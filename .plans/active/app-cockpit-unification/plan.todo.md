@@ -193,3 +193,11 @@ and its `.gg-count-badge` rule, the eight components that drew a count moved ont
 and DL-099 are the standards-only `feature/app-cockpit-count-badge-guides`, which also adds the
 count badge to the cockpit's tone budget in Rule 18. Raising Community's action fill to
 orange-800 is not in the step; it gets its own pair.
+
+**Step 10 (23 October).** The cockpit's fields take the app's anatomy: the label above an outlined
+box at the cockpit's 8px corner, and one shared message line under every field on both surfaces.
+The measurement the plan called for settled the cockpit's reserve at two lines, as in the app: a
+field in a two-column row at 640px is 290px wide, and 6 of the 32 messages under fields that share a
+row wrap in English, Spanish and Portuguese ([eval.md](eval.md#step-10-proof-outlined-fields)). The
+code is `feature/app-cockpit-outlined-fields`; DL-105 and its guide lines are the standards-only
+`feature/app-cockpit-outlined-fields-guides`.

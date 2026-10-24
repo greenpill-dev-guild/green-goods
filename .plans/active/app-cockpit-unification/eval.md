@@ -417,3 +417,54 @@ and after, and "A confirmar" at 99+; the badge is never wider than before, so st
 nor fixes it. `TabBadge` in the cockpit's Garden helpers had no consumer and goes with the step.
 White text on Community's action fill (orange-700) measures 4.0:1, though its token comment says
 5.0:1. The Wallet's Cookies tab, which uses the same sheet tabs as Promises, had no count to show.
+
+## Step 10 proof: outlined fields
+
+Run on 2026-10-23 against `develop` `5c76ca2b6`, with step 10 on `feature/app-cockpit-outlined-fields`.
+The frames show live gardens and stay out of the repository.
+
+**The message reserve (A23).** The locked rule reserves two lines in the cockpit if several of its
+longest Spanish and Portuguese messages wrap in two-column forms at 640px. A read-only inventory of
+the 62 admin files that render the field family found 99 messages under fields that share a row at
+some width; 32 of them share a row at 640px. Each was measured in Plus Jakarta Sans 12/16 in the
+cockpit's Storybook at its real width there: the flow dialog fills a 640px viewport and its body is
+592px, so a field in a two-column row is 290px wide (the specification estimated 205px). Six of the
+32 wrap, in English, Spanish and Portuguese alike:
+
+| Field and message | Width | Lines (en / es / pt) |
+|---|---|---|
+| Seed promises › Due in, the due-date hint with its longest date | 290px | 2 / 2 / 2 |
+| Pool setup › the gardeners' share hint | 290px | 2 / 2 / 2 |
+| Assessment › Metric, the duplicate-metric error | 224px | 2 / 2 / 2 |
+| Seed promises › the 96px requirement count, three errors | 96px | 2 / 2 to 3 / 2 to 3 |
+
+So the cockpit reserves two lines, as the app does. The setting stays per surface
+(`--gg-field-message-lines`, set in the cockpit's `index.css`), so either surface can change it
+alone. Also measured: the Seed step's Amount and Due errors fall back to Zod's English
+("Invalid input: expected number, received NaN"), one line at 290px.
+
+**TDD.** `required` for the lane; this step's behaviour is the anatomy contract and the reserved
+line. RED on `develop`'s field family with the new tests (the five admin field test files): 11 of
+29 cases failed, the 18 passing being the unchanged counter and ARIA cases; GREEN 29 of 29. The
+shared guard's new message-line assertions: RED on `develop`'s `theme.css` (1 failed, 30 passed),
+GREEN after. Browser mode (Storybook, `storybook-ci`): `AdminTextField` `LabelAboveGeometry` and
+`MessageHoldsTheLine` (a long error grows the line and never scrolls), `AdminFieldGroup`
+`MessageHoldsTheLine`, `AdminInlineField` `ErrorHoldsTheLine`, and the three design-system pages
+that grade fields.
+
+**Contrast.** The date picker's error moves from red-500 to the family's red-700: 4.39:1 to 6.47:1 on
+white in the cockpit, which since #1206 draws its dialogs on the canvas's amber ramp (3.66 to 5.26:1
+on the shared ramp Storybook draws). Dark is unchanged at 7.03:1.
+
+**Pairs.** A private artifact (its link is in the pull request; the frames show live gardens).
+**Storybook** for the cockpit: the Create Assessment route, the Create Garden details with every
+error showing, the assessment's first step, Garden settings, the Hypercert metadata step, the Seed
+step, six rows with an action beside a field, and the field family's own stories. **mock-auth
+localhost** for the app: Submit Work at Details. Each at 390, 768 and 1280px in light and dark, the
+forms in English, Spanish and Portuguese, the rows at 768 and 1280px (where they are one line) in
+English and Portuguese. Changed pixels per pair (a channel sum above 12): the app 0% on all 36
+pairs; the cockpit's forms 7.5 to 52.8%, the family's stories 0.6 to 40.8%. Each row keeps its
+action's relation to the box: Create Garden's team step centred, the vault dialogs' Max 2px below
+centre, Add members 8px, the Seed confirmers bottom-aligned. The cookie jar withdraw dialog's story
+is a harness built from shared controls, so its Max offset rests on the same arithmetic, not a
+picture.
