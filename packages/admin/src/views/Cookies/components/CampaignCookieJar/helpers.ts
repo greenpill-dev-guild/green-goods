@@ -34,3 +34,12 @@ export function gardensForAggregation(gardens: readonly Garden[]) {
     stewards: garden.stewards,
   }));
 }
+
+export function formatCampaignDate(seconds: number | undefined, locale: string): string | null {
+  if (!seconds) return null;
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(seconds * 1000);
+}

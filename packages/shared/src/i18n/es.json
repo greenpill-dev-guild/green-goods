@@ -3652,6 +3652,7 @@
   "cockpit.community.cookies.createSubmitted": "Creación enviada",
   "cockpit.community.cookies.createdJar": "Jar creada",
   "cockpit.community.cookies.createdJarAddressInput": "Dirección de la jar creada",
+  "cockpit.community.cookies.createdOn": "Creado el {date}",
   "cockpit.community.cookies.deployerOnly": "Esta superficie es para wallets de deployer y ops. Conecta una wallet de deployer para crear jars, o el propietario de la jar para sincronizar una jar existente.",
   "cockpit.community.cookies.desired": "Deseada",
   "cockpit.community.cookies.dialogDescription": "Crea una jar de campaña desde la factory desplegada. El propietario por defecto es esta wallet; en producción debería ser la Safe de ops.",

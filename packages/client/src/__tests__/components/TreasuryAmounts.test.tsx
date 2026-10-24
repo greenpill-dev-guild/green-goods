@@ -84,6 +84,7 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) =>
 }));
 
 import { MyDepositRow } from "../../components/Sheets/EndowmentSheet/MyDepositRow";
+import { TreasuryTabContent } from "../../components/Sheets/EndowmentSheet/TreasuryTabContent";
 import { CookieJarRow } from "../../components/Features/Garden/CookieJarRow";
 
 beforeEach(() => {
@@ -109,6 +110,42 @@ describe("Treasury amount controls", () => {
       /USDC.*My shares: 0.*0\.1 USDC.*Available balance/
     );
     expect(screen.queryByRole("button", { name: /^Withdraw$/i })).not.toBeInTheDocument();
+  });
+
+  it("says the reader has no deposits only after their deposits were read", async () => {
+    const refetchDeposits = vi.fn();
+    const treasury = (state: { depositsLoading?: boolean; depositsError?: boolean }) => (
+      <TreasuryTabContent
+        isOnline
+        vaults={[vault]}
+        vaultsLoading={false}
+        vaultsError={false}
+        myDeposits={[]}
+        {...state}
+        refetchDeposits={refetchDeposits}
+        gardenAddress={garden}
+        primaryAddress={account}
+        selectedAsset={asset}
+        onSelectAsset={vi.fn()}
+        amountInput=""
+        onAmountChange={vi.fn()}
+        balance={undefined}
+        previewShares={undefined}
+        decimals={6}
+      />
+    );
+    const { rerender } = render(treasury({ depositsLoading: true }));
+    expect(screen.queryByText("No deposits yet")).not.toBeInTheDocument();
+
+    rerender(treasury({ depositsError: true }));
+    expect(screen.queryByText("No deposits yet")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Failed to load vault data");
+    await userEvent.setup().click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetchDeposits).toHaveBeenCalledOnce();
+
+    rerender(treasury({}));
+    expect(screen.getByText("No deposits yet")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("associates a vault precision error with the input and prevents a withdrawal", async () => {

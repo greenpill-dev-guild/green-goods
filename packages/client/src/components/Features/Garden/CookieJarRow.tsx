@@ -60,6 +60,8 @@ export function CookieJarRow({ jar, gardenAddress, gardenName, amount }: CookieJ
   const decimals = jar.decimals;
   const assetSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
   const claimableNow = getClaimableNow(jar);
+  // A paused jar pays nothing, so its "Available now" reads zero.
+  const availableNow = jar.isPaused ? 0n : claimableNow;
   const panelId = `cookie-jar-claim-${jar.jarAddress.toLowerCase()}`;
   const amountState = useFormattedAmountInput(amountInput, decimals);
   const inputError = amountState.formatErrorId;
@@ -97,11 +99,11 @@ export function CookieJarRow({ jar, gardenAddress, gardenName, amount }: CookieJ
         amount={
           amount === "claimable"
             ? {
-                value: `${formatTokenAmount(claimableNow, decimals)} ${assetSymbol}`,
+                value: `${formatTokenAmount(availableNow, decimals, 4, undefined, true)} ${assetSymbol}`,
                 caption: formatMessage({ id: "app.cookieJar.maxWithdrawal" }),
               }
             : {
-                value: `${formatTokenAmount(jar.balance, decimals)} ${assetSymbol}`,
+                value: `${formatTokenAmount(jar.balance, decimals, 4, undefined, true)} ${assetSymbol}`,
                 caption: formatMessage({ id: "app.cookieJar.balance" }),
               }
         }

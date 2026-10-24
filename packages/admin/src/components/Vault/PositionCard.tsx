@@ -284,7 +284,7 @@ export function PositionCard({
           formatMessage({ id: "app.treasury.depositorTotal" }, { count: vault.depositorCount }),
         ]}
         amount={{
-          value: `${formatTokenAmount(netDeposited, assetDecimals)} ${assetSymbol}`,
+          value: `${formatTokenAmount(netDeposited, assetDecimals, 4, undefined, true)} ${assetSymbol}`,
           caption: formatMessage({ id: "app.treasury.netDeposited" }),
         }}
         onOpen={() => setPageOpen(!pageOpen)}

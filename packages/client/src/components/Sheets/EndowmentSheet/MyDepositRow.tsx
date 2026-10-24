@@ -87,7 +87,7 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
           `${formatMessage({ id: "app.treasury.myShares" })}: ${formatTokenAmount(deposit.shares, 18)}`,
         ]}
         amount={{
-          value: `${formatTokenAmount(maxWithdrawable, assetDecimals)} ${assetSymbol}`,
+          value: `${formatTokenAmount(maxWithdrawable, assetDecimals, 4, undefined, true)} ${assetSymbol}`,
           caption: formatMessage({ id: "app.treasury.availableBalance" }),
         }}
         onOpen={() => setOpen(!open)}

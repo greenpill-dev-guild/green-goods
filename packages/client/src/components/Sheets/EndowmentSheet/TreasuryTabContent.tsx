@@ -26,6 +26,10 @@ export interface TreasuryTabContentProps {
   vaultsError: boolean;
   refetchVaults?: () => void;
   myDeposits: VaultDeposit[];
+  /** The reader's deposits are still being read, or the read failed: no "none yet" until it finishes. */
+  depositsLoading?: boolean;
+  depositsError?: boolean;
+  refetchDeposits?: () => void;
   gardenAddress: Address;
   primaryAddress: string | null;
   selectedAsset: string;
@@ -44,6 +48,9 @@ export function TreasuryTabContent({
   vaultsError,
   refetchVaults,
   myDeposits,
+  depositsLoading = false,
+  depositsError = false,
+  refetchDeposits,
   gardenAddress,
   primaryAddress,
   selectedAsset,
@@ -123,7 +130,10 @@ export function TreasuryTabContent({
                   amount={{
                     value: `${formatTokenAmount(
                       getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
-                      assetDecimals
+                      assetDecimals,
+                      4,
+                      undefined,
+                      true
                     )} ${assetSymbol}`,
                     caption: formatMessage({ id: "app.treasury.netDeposited" }),
                   }}
@@ -136,7 +146,27 @@ export function TreasuryTabContent({
 
       <section>
         <SheetHeading>{formatMessage({ id: "app.treasury.activeDeposits" })}</SheetHeading>
-        {myDeposits.length === 0 && (
+        {depositsLoading && myDeposits.length === 0 && (
+          <div className="mt-2 flex animate-pulse flex-col gap-(--gg-list-gap)">
+            <ItemRowSkeleton lead="icon" amount />
+          </div>
+        )}
+        {!depositsLoading && depositsError && myDeposits.length === 0 && (
+          <EmptyState
+            className="mt-2"
+            tone="error"
+            icon={<RiErrorWarningLine />}
+            title={formatMessage({ id: "app.treasury.errorLoading" })}
+            action={
+              refetchDeposits ? (
+                <Button type="button" onClick={() => refetchDeposits()}>
+                  {formatMessage({ id: "app.common.tryAgain" })}
+                </Button>
+              ) : null
+            }
+          />
+        )}
+        {!depositsLoading && !depositsError && myDeposits.length === 0 && (
           <EmptyState
             className="mt-2 min-h-[9rem] rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0"
             icon={<RiBankLine />}

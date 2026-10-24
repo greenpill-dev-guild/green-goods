@@ -417,6 +417,8 @@ describe("CookieJarTab", () => {
     const jarToggle = screen.getByRole("button", { name: /0\.1 USDC/i });
     expect(jarToggle).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText("Paused")).toBeInTheDocument();
+    // A paused jar pays nothing, so the row never says something is available now.
+    expect(jarToggle).toHaveAccessibleName(/0 USDC Available now/);
 
     await user.click(jarToggle);
 

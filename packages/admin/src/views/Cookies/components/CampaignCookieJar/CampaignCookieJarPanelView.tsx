@@ -1,5 +1,6 @@
 import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { RiExternalLinkLine, RiRefreshLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
@@ -9,7 +10,7 @@ import { CampaignCookieJarPanelList } from "./CampaignCookieJarPanelList";
 import type { CampaignCookieJarPanelViewProps } from "./CampaignCookieJarPanelView.types";
 import { CampaignImageInput } from "./CampaignImageInput";
 import { GardenSelector } from "./GardenSelector";
-import { publicJarLink } from "./helpers";
+import { formatCampaignDate, publicJarLink } from "./helpers";
 
 export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProps) {
   const {
@@ -52,6 +53,11 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
     syncJar,
     headerAction,
   } = props;
+  const { locale } = useIntl();
+  // The list row leaves the jar's creation date to its own page, the Manage dialog.
+  const createdLabel = selectedCampaign
+    ? formatCampaignDate(selectedCampaign.createdAt, locale)
+    : null;
   return (
     <div className="flex flex-col gap-5">
       {!moduleConfigured ? (
@@ -142,6 +148,14 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               <p className="mt-1 break-all type-meta text-text-sub">
                 <EnsAddressText address={selectedCampaign.address} />
               </p>
+              {createdLabel ? (
+                <p className="mt-1 type-meta text-text-sub">
+                  {formatMessage(
+                    { id: "cockpit.community.cookies.createdOn", defaultMessage: "Created {date}" },
+                    { date: createdLabel }
+                  )}
+                </p>
+              ) : null}
               <a
                 href={publicJarLink(selectedCampaign.address)}
                 target="_blank"

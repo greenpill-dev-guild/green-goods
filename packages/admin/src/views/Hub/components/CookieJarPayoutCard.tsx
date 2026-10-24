@@ -128,7 +128,7 @@ export function CookieJarPayoutCard({
           ),
         ]}
         amount={{
-          value: `${formatTokenAmount(jar.balance, jar.decimals)} ${symbol}`,
+          value: `${formatTokenAmount(jar.balance, jar.decimals, 4, undefined, true)} ${symbol}`,
           caption: formatMessage({ id: "app.cookieJar.balance" }),
         }}
         onOpen={() => setPageOpen(!pageOpen)}

@@ -32,7 +32,7 @@ export function CampaignJarListRow({
         ? jar.maxWithdrawal
         : null;
   const balanceLabel = jar
-    ? `${formatTokenAmount(jar.balance, jar.decimals, 4)} ${jar.symbol}`
+    ? `${formatTokenAmount(jar.balance, jar.decimals, 4, undefined, true)} ${jar.symbol}`
     : isLoading
       ? formatMessage({
           id: "cockpit.community.cookies.rowReading",
@@ -58,8 +58,9 @@ export function CampaignJarListRow({
             }
           : undefined
       }
+      // A failed detail read leaves its amounts at a fallback zero, so the pill stands alone.
       details={
-        jar && perClaim !== null
+        jar && perClaim !== null && !hasDetailReadFailure
           ? [
               formatMessage(
                 { id: "app.cookieJar.perClaim" },
