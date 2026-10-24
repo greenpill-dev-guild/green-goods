@@ -48,8 +48,9 @@ export const PersonRow = React.forwardRef<HTMLElement, PersonRowProps>(function 
     ? { label: getRoleLabel(role, formatMessage).singular, tone: "neutral" as const }
     : undefined;
 
+  // Its Green Goods name, too, is read with the list's other rows, in one batch.
   return (
-    <AddressDisplay address={address} fallbackLabel={fallbackName}>
+    <AddressDisplay address={address} fallbackLabel={fallbackName} list>
       {(name) => (
         <ItemRow
           {...row}
