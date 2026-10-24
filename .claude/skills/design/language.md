@@ -351,7 +351,7 @@ Dark mode is a **deliberate palette, not a light inversion**. Three rules carry 
 | `surface-container-lowest` | `--earth-975` | `13% .010 65` | `10 7 4` | Sunken wells |
 | `surface-container-low` | `--earth-925` | `19% .014 65` | `24 19 13` | Quiet grouping (`--bg-weak-50`, info cards) |
 | `surface-container` | `--earth-850` | `26% .016 65` | `42 35 28` | **Default card** (`--bg-white-0`) |
-| `surface-container-high` | `--earth-800` | `30% .018 65` | `52 44 36` | Sheet / dialog inner; chips and fills on a card (`--bg-soft-200`) |
+| `surface-container-high` | `--earth-800` | `30% .018 65` | `52 44 36` | Centered dialog and docked side sheet inner (a phone sheet takes the card step, DL-104); chips and fills on a card (`--bg-soft-200`) |
 | `surface-container-highest` / `surface-bright` | `--earth-750` | `34% .019 65` | `62 52 44` | Active / hover (`--bg-sub-300`) |
 
 The installed app's dark card hairline is `--earth-700` (`67 61 55`, the ink at 12% over the card); the cockpit's card takes the ring below instead.

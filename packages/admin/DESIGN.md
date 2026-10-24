@@ -56,6 +56,7 @@ The cockpit speaks the installed app's Warm Earth language at a denser setting. 
 - The control-grade outline on fields, chips and secondary buttons, and one solid focus ring in each surface's focus role (DL-098).
 - One count badge, the shared `CountBadge`, on the workspace tone's accent here (DL-099, § Workspace Tinting).
 - Capsule chips with one selected fill: `AdminFilterChip` is a 32px capsule that a selection fills with the workspace tone's action pair, the app's selected look in the tone (DL-101).
+- The phone sheet: below 640px every dialog and the side sheet take the app's bottom sheet material, grip and header, at the cockpit's own 22px title (DL-104, § Admin Component Pattern).
 - The active-tab pill on both bottom bars: the workspace tone's container here, the green container in the app (DL-107, § Navigation).
 - Solid surfaces: every card, sheet, dialog and menu is opaque on both, and the cockpit's nav dock below is the one translucent piece (DL-108).
 
@@ -76,7 +77,7 @@ Each shared piece that follows joins this list with its decision-log row.
 
 - State layers: hover (8%), focus (12%), pressed (12%), dragged (16%)
 - Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), full (9999px). No 20/24/28px shapes (`--m3-shape-xl` is deleted). Use admin-prefixed `--admin-radius-*` tokens for these shapes; admin **remaps** the shared `--radius-*` aliases onto this scale (`rounded-xl`/`rounded-2xl` resolve to 16px) rather than inheriting the Warm Earth runtime values.
-- Single elevation ladder: `--m3-elevation-0/1/2`, plus the warm `--admin-chrome-shadow` reserved for floating chrome (nav dock, FAB). The old 0-5 scale and `--e1/e2/e3` aliases are deleted.
+- Single elevation ladder: `--m3-elevation-0/1/2`, plus the warm `--admin-chrome-shadow` reserved for floating chrome (nav dock, FAB). Below 640px a dialog or the side sheet is the installed app's bottom sheet and casts its float shadow (DL-104). The old 0-5 scale and `--e1/e2/e3` aliases are deleted.
 - **Spring motion (`--spring-*`)** is the only easing; the admin motion roles below alias it.
 - **Controlled Chrome**: the nav dock (NavigationBar + FAB) is the only translucent surface, a flat `rgb(var(--admin-surface-0) / 0.85)` with a 12px backdrop blur, a warm ambient shadow (`--admin-chrome-shadow`), and a 1px ink ring. The AppBar, MainSheet, and route frame are transparent, so content sits directly on the canvas. Dialogs, side sheets, menus, route cards, forms, tables, lists, and dense content stay solid (DL-108).
 - **Admin motion roles** are tokenized through runtime aliases: route content uses `--admin-motion-route-content-*`, canvas tone changes use `--admin-motion-canvas-tone-*`, FAB menus use `--admin-motion-fab-menu`, and interactive state changes use `--admin-motion-state`.
@@ -169,7 +170,7 @@ Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminCon
 - `AdminInputChip` holds something the steward chose and can take back out, such as a person named as a confirmer: a 32px outlined capsule with an optional avatar and a remove button.
 - Avoid new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
 
-Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; every mobile variant renders as a full-width bottom sheet, with padding inside the surface. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet (right-docked within the canvas chrome bounds on desktop, an AdminDialog-identical full-width bottom sheet on mobile), with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
+Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; every mobile variant renders as a full-width bottom sheet, with padding inside the surface. Below 640px that sheet is the installed app's in look (DL-104): the shared sheet material, the grip, which marks the sheet and does not drag it, and the shared `SheetHeader` at the cockpit's 22px title, with an optional target line under the title for what a consequential act writes to, no leading icon, and a hairline under the header only while the body scrolls; flows and the command palette keep their own header under the grip. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet (right-docked within the canvas chrome bounds on desktop, an AdminDialog-identical full-width bottom sheet on mobile), with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
 
 ---
 
@@ -181,7 +182,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 - **The protocol lives in its own garden.** The protocol pool is the Green Goods Community Garden's pool. Its console is that garden's Garden → Promises tab, like any garden's, and the protocol's operations (settlement, protocol funding, protocol confirmations) appear in that garden's Community → Coordination tab and nowhere else.
 - **Campaign cookie jars are protocol surfaces too** (DL-046). They span gardens, so they sit in that same garden: a Campaign Cookie Jars card on its Community → Payouts, shown to deployers only. Creating one is a flow dialog like every other create, and the `/cookies` URLs redirect to the card. `useIsProtocolGarden` is the one test both Community surfaces share.
 - **One home per organism.** `GardenPoolTab` mounts only in the Garden workspace. Its protocol context comes from the pool it reads (`poolType`), never from where it is mounted. Mounting a writing organism anywhere else is a design decision to record, not a convenience.
-- **Name the target.** Every pool write dialog names its pool with `PoolTarget`: a quiet "Writing to" line for a garden's pool, a warning for the protocol pool. A flow with a step rail puts the line at the foot of the rail, and on one line under the stepper on narrow screens (`ActionFlowShell`'s `target`); a dialog without a rail opens with it; the protocol pool's warning also stays at the top of the body (DL-066).
+- **Name the target.** Every pool write dialog names its pool with `PoolTarget`: a quiet "Writing to" line for a garden's pool, a warning for the protocol pool. A flow with a step rail puts the line at the foot of the rail, and on one line under the stepper on narrow screens (`ActionFlowShell`'s `target`); a dialog without a rail names it under its title through the dialog's `target`, the shared header's target line on phones (DL-104); the protocol pool's warning also stays at the top of the body (DL-066).
 - **Show every signature.** A flow that sends several writes shows them all in `SetupProgressList`, each with a `TxStepMarker`: how many prompts are coming, which one the wallet is waiting on, which are confirming or done, where a run stopped, and a done state the steward closes. The same marker drives hypercert minting, so progress reads the same everywhere.
 
 ---
@@ -198,7 +199,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 
 ## Cockpit M3 1a Invariants
 
-- **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow.
+- **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome, and below 640px the shared sheet's float shadow on a dialog or the side sheet (DL-104); nothing else casts shadow.
 - **Radius set**: 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
 - **Six-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), the nav-shell FAB fill, the tab rail's count badges (DL-099) and a selected filter chip (DL-101), plus the faint canvas wash.
 - **Hover rule**: hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; never translate/scale lifts or hue shifts.
