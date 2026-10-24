@@ -65,7 +65,7 @@ export const Tokens: Story = {
         <TokenTable
           tokens={[
             { name: "--m3-shape-xs", expected: "4px", note: "checkbox, tooltip" },
-            { name: "--m3-shape-sm", expected: "8px", note: "filled field top corners, outlined fields" },
+            { name: "--m3-shape-sm", expected: "8px", note: "fields" },
             { name: "--m3-shape-md", expected: "12px", note: "cards, choice rows, selectable cards" },
             { name: "--m3-shape-lg", expected: "16px", note: "dialogs, page containers" },
             { name: "--m3-shape-full", expected: "9999px", note: "buttons, chips, toolbar pills, FAB" },
@@ -86,7 +86,7 @@ export const Tokens: Story = {
             { name: "--gg-type-body-size", expected: "0.875rem", note: "14px body" },
             { name: "--gg-type-label-size", expected: "0.875rem", note: "14px: buttons, tabs" },
             { name: "--gg-type-label-sm-size", expected: "0.75rem", note: "12px / 500: eyebrows, metadata labels" },
-            { name: "--gg-type-meta-size", expected: "0.75rem", note: "12px: floating labels, supporting text" },
+            { name: "--gg-type-meta-size", expected: "0.75rem", note: "12px: field messages, supporting text" },
             { name: "--gg-type-meta-sm-size", expected: "0.6875rem", note: "11px: chips (with their own weight) and small supporting lines" },
             { name: "--gg-type-field-size", note: "field text: 16px below 640px, 14px from 640px" },
             { name: "--font-heading", note: "Plus Jakarta Sans" },
@@ -155,7 +155,7 @@ export const Tokens: Story = {
               <RiAddLine />
             </AdminIconButton>
           </Specimen>
-          <Specimen title="field · 40 (44 on touch widths)" target='[data-component="AdminTextField"] > div:first-child' expect={ADMIN.fieldContainer()}>
+          <Specimen title="field · 40 (44 on touch widths)" target='[data-component="AdminTextField"] [data-region="field-container"]' expect={ADMIN.fieldContainer()}>
             <div style={{ width: 240 }}>
               <AdminTextField label="Location" />
             </div>

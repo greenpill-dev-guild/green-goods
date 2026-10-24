@@ -369,6 +369,26 @@
   tab the app's ring on keyboard focus, pinned by the story's `KeyboardFocus` play
   ([eval.md](../eval.md#step-21-proof-the-bottom-bars-pill)).
 
+## Step 10: outlined fields (PRD-1276)
+
+- `feature/app-cockpit-outlined-fields`, cut from `develop` `5c76ca2b6`: the cockpit's
+  `AdminTextField`, `AdminTextArea`, `AdminSelect`, `AdminInlineField` and `AdminFieldGroup` take
+  the app's anatomy, the label above (`gg-field-label`, 14px / 500), an outlined 8px box on the
+  responsive tier, and the shared message line (`gg-field-message`), which reserves
+  `--gg-field-message-lines` lines; the cockpit sets two after the 640px measurement
+  ([eval.md](../eval.md#step-10-proof-outlined-fields)). The filled look and its `variant` prop go.
+- Shared: the date picker always renders its line, and its error takes the family's red;
+  `FormFieldWrapper` and `FormattedAmountInput` read the same line, so the app's reserve becomes the
+  per-surface setting with no visual change (0% on every app pair). Every cockpit row with an
+  action beside a field (fourteen components, in three layouts) keeps its relation to the box, and
+  the sign-in field reserves no message line.
+- Proof: TDD `required`, RED and GREEN in the eval section; the browser-mode stories and the
+  design-system pages; the pairs, **Storybook** for the cockpit and **mock-auth localhost** for the
+  app, no authenticated class.
+- Guides: DL-105 and its lines are the standards-only `feature/app-cockpit-outlined-fields-guides`.
+- Open: `FileUploadField` keeps its help above the upload well; the Seed step's Amount and Due
+  errors can fall back to Zod's English.
+
 ## Step 17: people rows (PRD-1284)
 
 - `feature/app-cockpit-people-rows`, cut from `develop` `a3645441c` and brought up to `3c4fd4b62` (#1227):
@@ -424,8 +444,9 @@
     copies with a state and up to five facts (PRD-1022 screen 14), offered to step 15; the commitment
     team rosters (the app's `CommitmentTeam`, the cockpit's `CommitmentRoster`), which carry each
     person's assigned rows and credits on the promise's own page; Manage Members, which keeps a chip
-    and a remove per role (DL-049); and the join request queues on both surfaces, which are decision
-    rows.
+    and a remove per role (DL-049); the Add Members queue, whose rows show the role each person is
+    about to be given (only its empty well and its names moved); and the join request queues on both
+    surfaces, which are decision rows.
   - A bare address now reads in the address display's short form (`0x12...abc`) in the app's member
     rows, where it read `0x1234...abcd`.
 

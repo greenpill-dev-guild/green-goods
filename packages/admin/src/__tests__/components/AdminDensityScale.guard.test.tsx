@@ -83,8 +83,9 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(container).not.toBeNull();
     expect(container).toHaveClass("min-h-11", "sm:min-h-10");
     const input = screen.getByRole("textbox", { name: "Garden name" });
-    // The field role: 16px text on touch widths and 14px from 640px (index.css).
-    expect(input).toHaveClass("type-field", "pt-5", "sm:pt-4");
+    // The field role: 16px text on touch widths and 14px from 640px (index.css),
+    // its 20px line centred in the tier: 12 + 20 + 12 and 10 + 20 + 10.
+    expect(input).toHaveClass("type-field", "leading-5", "py-3", "sm:py-2.5");
   });
 
   it("list rows grow with their content above the 44px floor, never on a button tier", () => {
@@ -157,6 +158,8 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-control-outline": "var(--m3-outline)",
       "--gg-focus-ring-width": "2px",
       "--gg-focus-halo-alpha": "0",
+      // The message line under every field reserves two lines, as the app's do (F3).
+      "--gg-field-message-lines": "2",
       // The state block's calm mark stays neutral: the workspace tone keeps to
       // its budget (Rule 18).
       "--gg-state-mark-fill": "rgb(var(--text-strong-950) / 0.06)",

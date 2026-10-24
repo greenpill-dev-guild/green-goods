@@ -244,6 +244,14 @@ behavior, and the cockpit's bar is unchanged
 ([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
 standards-only `feature/app-cockpit-bar-pill-guides`.
 
+**Step 10 (23 October).** The cockpit's fields take the app's anatomy: the label above an outlined
+box at the cockpit's 8px corner, and one shared message line under every field on both surfaces.
+The measurement the plan called for settled the cockpit's reserve at two lines, as in the app: a
+field in a two-column row at 640px is 290px wide, and 6 of the 32 messages under fields that share a
+row wrap in English, Spanish and Portuguese ([eval.md](eval.md#step-10-proof-outlined-fields)). The
+code is `feature/app-cockpit-outlined-fields`; DL-105 and its guide lines are the standards-only
+`feature/app-cockpit-outlined-fields-guides`.
+
 **Step 17 (24 October).** `feature/app-cockpit-people-rows` puts every list of people on Shared's
 new `PersonRow`: the item row led by the person's 56px round avatar, their name from the shared
 address display (which gains a render-prop for it), their highest role as the row's one chip and
@@ -252,6 +260,7 @@ funder lists render it, the cockpit's `PersonName` takes its name from the same 
 11's leftover states moved onto the state block. Every person row measured is 88px, and no detail
 wraps or is cut at 320, 360 or 390px in English, Spanish or Portuguese
 ([eval.md](eval.md#step-17-build-people-rows)). Decision rows keep their paired acts, Manage
-Members keeps a chip and a remove per role, and the group inspector's rows stay promise rows; the
+Members keeps a chip and a remove per role, the Add Members queue and a promise's team roster keep
+their own rows, and the group inspector's rows stay promise rows; the
 [UI handoff](handoffs/claude-ui.md#step-17-people-rows-prd-1284) lists the calls the pairs raise.
 DL-112 and its guide wording are the standards-only `feature/app-cockpit-people-rows-guides`.
