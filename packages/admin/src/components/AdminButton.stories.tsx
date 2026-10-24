@@ -2,7 +2,11 @@ import { RiAddLine, RiArrowRightLine, RiDeleteBinLine, RiSave3Line } from "@remi
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { drawnRings } from "../../../shared/.storybook/design-system/measure";
+import {
+  drawnRings,
+  readToken,
+  stateLayer,
+} from "../../../shared/.storybook/design-system/measure";
 import { AdminButton, AdminIconButton } from "./AdminButton";
 
 const meta: Meta<typeof AdminButton> = {
@@ -220,4 +224,52 @@ export const WorkspaceToneMatrix: Story = {
       <ButtonToneMatrix theme="dark" />
     </div>
   ),
+};
+
+const FILLED_TONES = [...WORKSPACE_TONES, ["home", "Home"]] as const;
+
+/**
+ * The filled button and icon button in every workspace tone, light and dark.
+ * Their state layer is the neutral ink painted beneath the label, so a hovered,
+ * focused or pressed label keeps at least the contrast it has at rest. The play
+ * test reads that from the browser and focuses each control from the keyboard,
+ * the one state a test can enter for real.
+ */
+export const FilledStateLayers: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="space-y-4">
+      {(["light", "dark"] as const).map((theme) => (
+        <section
+          key={theme}
+          data-theme={theme}
+          className="admin-m3 flex flex-wrap gap-4 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
+        >
+          {FILLED_TONES.map(([tone, label]) => (
+            <div key={tone} data-tone={tone} className="flex items-center gap-2">
+              <AdminButton variant="filled" size="sm">
+                {label}
+              </AdminButton>
+              <AdminIconButton variant="filled" label={`Add in ${label}, ${theme}`}>
+                <RiAddLine />
+              </AdminIconButton>
+            </div>
+          ))}
+        </section>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const control of within(canvasElement).getAllByRole("button")) {
+      await expect(stateLayer(control)).toMatchObject({ beneath: true, neutralInk: true });
+      await expect(stateLayer(control).minContrast).toBeGreaterThanOrEqual(4.5);
+      await userEvent.tab();
+      await expect(control).toHaveFocus();
+      await waitFor(() =>
+        expect(getComputedStyle(control, "::after").opacity).toBe(
+          readToken("--m3-state-focus", control)
+        )
+      );
+    }
+  },
 };
