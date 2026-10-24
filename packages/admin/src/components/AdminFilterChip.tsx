@@ -27,8 +27,9 @@ export interface AdminFilterChipProps {
  * - Unselected: transparent fill, outline ring, on-surface-variant text
  * - Selected: the app's selected look in the workspace tone, a solid
  *   --tone-action fill with --tone-on-action text and no outline. As on the
- *   filled AdminButton, the neutral state layer paints beneath the label, and
- *   the focus ring stands 2px off the chip so it never merges with the fill.
+ *   filled AdminButton, the neutral state layer paints beneath the label.
+ * - Focus: one solid 2px ring in the tone, 2px off the chip with the ground
+ *   showing between, so it never merges with a selected fill.
  * - Selection shows by fill and `aria-pressed` alone, with no leading check mark,
  *   so choosing a chip never changes its width or moves the chips after it
  *   (DL-065). An optional leadingIcon shows in both states for the same reason.
@@ -57,8 +58,9 @@ export function AdminFilterChip({
         "type-label font-medium whitespace-nowrap",
         // State layer + expanded 44px hit area (visual stays 32px)
         "m3-state-layer admin-hit-target",
-        // Focus ring, offset so it reads against the selected fill
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
+        // Focus ring: one solid 2px ring 2px off the chip (DL-098), drawn as the
+        // shared chip draws it, so it reads against a selected fill in the same tone
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
         // Motion
         "transition-colors duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
         // Disabled

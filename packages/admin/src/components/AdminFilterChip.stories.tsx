@@ -3,7 +3,6 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { drawnRings } from "../../../shared/.storybook/design-system/measure";
 import { AdminFilterChip } from "./AdminFilterChip";
 
 const meta: Meta<typeof AdminFilterChip> = {
@@ -182,12 +181,15 @@ export const WorkspaceToneMatrix: Story = {
         );
         await expect(getComputedStyle(pending).color).toBe(channelColor(scope, "--tone-on-action"));
 
-        // The ring draws 2px off the fill: the offset ring, then the ring in
-        // the tone's focus color.
+        // One solid 2px ring in the tone's focus color, 2px off the fill.
         await userEvent.tab();
         await expect(pending).toHaveFocus();
-        await waitFor(() => expect(drawnRings(pending)).toHaveLength(2));
-        await expect(drawnRings(pending)[1]).toContain(channelColor(scope, "--tone-focus-ring"));
+        await waitFor(() => expect(getComputedStyle(pending).outlineStyle).toBe("solid"));
+        await expect(getComputedStyle(pending).outlineWidth).toBe("2px");
+        await expect(getComputedStyle(pending).outlineOffset).toBe("2px");
+        await expect(getComputedStyle(pending).outlineColor).toBe(
+          channelColor(scope, "--tone-focus-ring")
+        );
 
         await userEvent.tab();
         await userEvent.keyboard(" ");
