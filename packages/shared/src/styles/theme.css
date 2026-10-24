@@ -580,6 +580,12 @@
   --gg-type-meta-sm-line: 1rem;
   --gg-type-meta-sm-weight: 400;
   --gg-type-meta-sm-tracking: 0px;
+  /* The count badge's own role (typography.count), so remapping meta-sm on a
+   * surface never moves it. */
+  --gg-type-count-size: 0.6875rem;
+  --gg-type-count-line: 1rem;
+  --gg-type-count-weight: 600;
+  --gg-type-count-tracking: 0px;
   --gg-type-field-size: 1rem;
   --gg-type-field-line: 1.5rem;
   --gg-type-field-weight: 400;
@@ -1673,6 +1679,39 @@
     inset-block-start: -1px;
     inset-inline-end: -0.375rem;
     display: inline-flex;
+  }
+
+  /* ── Count badge (F10) ── One count on both surfaces: a capsule 16px tall and
+   * at least 16px wide, with the count role's 11px numerals at weight 600 on a
+   * 16px line, on the action pair (DL-017). The cockpit fills
+   * it with its workspace tone's contrast-safe accent: Community's action fill
+   * (orange-700) carries white numerals at only 4.0:1, its accent (orange-800)
+   * at 4.9:1, and the other tones' accents equal their action fills. A badge
+   * that sits on an icon or a control's edge draws a 2px ring of the surface
+   * behind it: the page canvas, unless that surface sets
+   * `--gg-count-badge-ring`. */
+  .gg-count-badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-inline-size: 1rem;
+    block-size: 1rem;
+    padding-inline: 0.25rem;
+    border-radius: 9999px;
+    background-color: rgb(var(--tone-on-surface-accent, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+    font-size: var(--gg-type-count-size);
+    font-weight: var(--gg-type-count-weight);
+    line-height: var(--gg-type-count-line);
+    letter-spacing: var(--gg-type-count-tracking);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .gg-count-badge[data-ring] {
+    box-shadow: 0 0 0 2px var(--gg-count-badge-ring, rgb(var(--bg-canvas)));
   }
 
   /* ── Chip (DL-026) ── A capsule toggle for filters and choices: 32px with a

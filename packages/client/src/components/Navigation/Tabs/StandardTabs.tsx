@@ -1,3 +1,4 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import React from "react";
@@ -124,17 +125,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
             {tab.label}
           </span>
 
-          {/* Count badge */}
-          {tab.count !== undefined && tab.count > 0 && (
-            <span
-              className={cn(
-                "inline-flex items-center justify-center text-xs font-medium rounded-full min-w-[16px] h-4 px-1 flex-shrink-0",
-                pwaStatusStyles.primary.badge
-              )}
-            >
-              {tab.count > 99 ? "99+" : tab.count}
-            </span>
-          )}
+          {tab.count !== undefined && <CountBadge count={tab.count} />}
 
           {/* Bottom indicator with loading animation */}
           {activeTab === tab.id && (
