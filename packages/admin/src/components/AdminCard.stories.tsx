@@ -2,7 +2,6 @@ import { RiArrowRightSLine, RiLeafLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { drawnRings } from "../../../shared/.storybook/design-system/measure";
 import { AdminCard, AdminCardTitle } from "./AdminCard";
 
 const meta: Meta<typeof AdminCard> = {
@@ -87,7 +86,7 @@ export const Filled: Story = {
   ),
 };
 
-/** The outline is an inset ring beside the elevation-0 shadow; the play test checks it draws. */
+/** The outline is the shared card's 1px edge (DL-102); the play test checks it draws. */
 export const Outlined: Story = {
   tags: ["storybook-ci"],
   args: { variant: "outlined" },
@@ -99,7 +98,10 @@ export const Outlined: Story = {
   play: async ({ canvasElement }) => {
     const card = canvasElement.querySelector('[data-component="AdminCard"]');
     await expect(card).not.toBeNull();
-    await expect(drawnRings(card as Element)).not.toHaveLength(0);
+    const edge = getComputedStyle(card as Element);
+    await expect(edge.borderTopWidth).toBe("1px");
+    await expect(edge.borderTopStyle).toBe("solid");
+    await expect(edge.borderTopColor).not.toBe("rgba(0, 0, 0, 0)");
   },
 };
 
