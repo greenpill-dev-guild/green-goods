@@ -1,0 +1,19 @@
+{
+  "observedAt": "2026-10-24T00:58:36.915Z",
+  "proof": "Public RPC preparation and ordered simulation only; no browser assertion or live broadcast",
+  "sponsorship": {
+    "status": "unproven",
+    "reason": "The public Pimlico diagnostic reported a public API key rate limit. Earlier generic RPC errors do not establish configured-policy rejection or incompatibility.",
+    "configuredCredentialAvailableToTask": false
+  },
+  "walletSimulation": {
+    "chainId": 42161,
+    "count": 2,
+    "gas": "42128",
+    "maxFeePerGas": "24057600",
+    "maxFee": "1013498572800",
+    "authority": "wallet",
+    "sponsored": false,
+    "limitation": "Two simple zero-value probes, not representative domain actions or final wallet fee caps."
+  }
+}

@@ -8,6 +8,7 @@ import type { EmbeddedSenderDeps } from "../../modules/transactions/embedded-sen
 import type { ContractCall, TransactionSender, TxResult } from "../../modules/transactions/types";
 import type { WalletSender, WalletSenderDeps } from "../../modules/transactions/wallet-sender";
 import type { Address } from "../../types/domain";
+import type { BatchBudget } from "../../modules/transactions/batch-types";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "./mock-factories";
 
 export const MOCK_CONTRACT_ABI = [
@@ -142,12 +143,14 @@ export function createFakeSmartAccountClient(
       userOpHash: hash,
       sender: accountAddress,
       success: true,
+      logs: [],
       receipt: { status: "success", transactionHash: hash },
     })),
     getUserOperationReceipt: vi.fn(async ({ hash }: { hash: Hex }) => ({
       userOpHash: hash,
       sender: accountAddress,
       success: true,
+      logs: [],
       receipt: { status: "success", transactionHash: hash },
     })),
   };
@@ -201,5 +204,17 @@ export function createFakeWagmiDeps(options: FakeWagmiDepsOptions = {}): FakeWag
     ensureWalletChain: vi
       .fn<NonNullable<WalletSenderDeps["ensureWalletChain"]>>()
       .mockResolvedValue(),
+  };
+}
+
+export function createMockBatchBudget(overrides: Partial<BatchBudget> = {}): BatchBudget {
+  return {
+    maxCalls: 10,
+    maxCalldataBytes: 65536,
+    maxGas: "5000000",
+    maxFeePerGas: "1000000000",
+    maxFee: "5000000000000000",
+    sponsorship: "wallet",
+    ...overrides,
   };
 }

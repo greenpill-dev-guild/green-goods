@@ -1,0 +1,291 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "transaction-batching",
+    "title": "Transaction Batching and Recovery",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-10-23T22:19:58.286Z",
+    "updated_at": "2026-10-24T02:17:00Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-1344",
+    "project": "Green Goods v2.1.0 QA & Release",
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["shared", "admin"],
+    "work_types": ["implementation", "hardening"],
+    "surfaces": ["shared-transactions", "shared-work", "admin-garden", "admin-hub"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Phase 1 implementation authorized on 2026-10-23 in the transaction-batching worktree; later product phases remain planned. No agents dispatched.",
+    "PRD-1344 is the explicitly approved parent-only Linear mirror. No branch switch, commit, publication, or broadcast is authorized.",
+    "Phase 1 batching/recovery/budget source is isolated on develop. Clean implementation commit 382cdc08ec1a4264168ebef0d1741e39ee5933df passed 203 focused tests with six existing skips. Current-head push/CI validation remains pending; earlier full-suite failures and auth-policy violations describe the original base only. Settings, members, and bulk review UI remain unimplemented.",
+    "Existing source-structure and test-quality failures are recorded in handoffs/phase-1.md; unrelated auth, contract tests, and governance baselines remain untouched.",
+    "No production contract/schema or dependency versions changed. Worktree dependencies reuse existing installed packages through ignored local links.",
+    "User scope correction: further live Gnosis/account/profile QA belongs to another session. Owned standalone probes stopped and tabs closed; continue only batching source, required validation, and local evidence."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Future behavior-changing implementation requires fresh RED/GREEN proof; no implementation performed during planning."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": true,
+      "blocked_reason": "Phases 2\u20134 are not authorized for implementation by the current Phase 1 request."
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "feature/transaction-batching-foundation",
+      "depends_on": [],
+      "handoff": "handoffs/publication.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts",
+          "evidence": "2026-10-24 approximately 00:47\u201300:48 UTC: 3 genuine failures (18 pass) for missing frozen/fingerprinted budget, unbudgeted sending, and missing transport quote. Historical journal/adapter RED evidence remains in handoffs/phase-1.md."
+        },
+        "green": {
+          "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-budget.test.ts src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts src/modules/transactions/__tests__/batch-journal.test.ts src/modules/transactions/__tests__/batch-senders.test.ts src/modules/transactions/__tests__/wallet-sender.test.ts src/modules/transactions/__tests__/passkey-sender.test.ts src/modules/transactions/__tests__/sender-conformance.test.ts src/__tests__/modules/work/send-with-checkpoint.test.ts",
+          "evidence": "2026-10-24 01:04:40 UTC: 9 files, 180 tests passed, 6 existing skips on frozen uncommitted source. Both Shared typechecks passed. Eight actual Kernel software-signed fork execution outcomes also passed. This is working-copy behavioral proof, not a clean-SHA, authenticated device, or live sponsorship receipt."
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No production contract or schema change is planned. Runtime compatibility proof is owned by state_api and QA; any required contract change needs new scope."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/qa-pass-1.md",
+      "skill_tags": ["testing", "review"],
+      "blocked_reason": "Implementation and prerequisite QA evidence are pending."
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/qa-pass-2.md",
+      "skill_tags": ["testing", "review"],
+      "blocked_reason": "Implementation and prerequisite QA evidence are pending."
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-23T22:19:58.289Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-10-23T22:28:27.759Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planned",
+      "branch": null,
+      "note": "Authored four-phase implementation plan only; all behavior-changing lanes remain todo with pending proof."
+    },
+    {
+      "timestamp": "2026-10-23T22:29:25.621Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planned",
+      "branch": null,
+      "note": "Plan authoring finished; hub/schema and local links validated. Runtime, TDD, and live wallet evidence remain pending."
+    },
+    {
+      "timestamp": "2026-10-23T22:42:37.354Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-23T22:42:38.141Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-10-23T22:42:38.310Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Phase 1 authorized in the existing worktree; shared batching and recovery implementation started. Later phases remain todo."
+    },
+    {
+      "timestamp": "2026-10-23T23:20:40.505Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Phase 1 shared source implemented with focused recovery/conformance proof; full critical validation and live compatibility gates remain open."
+    },
+    {
+      "timestamp": "2026-10-23T23:26:52.735Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-23T23:38:48.784Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-23T23:48:04.283907+00:00",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Final uncommitted source: 51 focused cases, 7719 Shared, 1797 Client, 1335 Admin, and 776 Agent tests pass. Typechecks and ontology pass. Inherited source/test-quality failures and live compatibility/limits keep Phase 1 open."
+    },
+    {
+      "timestamp": "2026-10-24T01:19:08.244288+00:00",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Added reviewed-budget and transport preflight enforcement. Final focused loop: 180 pass, 6 skipped. Isolated Arbitrum fork: eight actual Kernel 0.3.1/0.3.3 execution outcomes pass. Full critical checkpoint running; live gates remain open."
+    },
+    {
+      "timestamp": "2026-10-24T01:20:58.874Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-24T01:33:32Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Stopped standalone browser probes after user clarified overlapping session ownership. No production auth/profile/Gnosis changes were made. Batching validation continues; live account/sponsorship evidence remains an external dependency."
+    },
+    {
+      "timestamp": "2026-10-24T01:40:34Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Full gate not passing. Initial Shared run: 7736 pass, 7 fail, 16 skipped; five-file focused recheck: 39 pass. Full two-worker rerun reproduced the unchanged language failure and was stopped by the agent, exit 130. Current downstream suites unrun. Typechecks/lint and independent ontology pass; two inherited source-policy failures remain. Evidence is working-copy only."
+    },
+    {
+      "timestamp": "2026-10-24T02:17:00Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/transaction-batching-foundation",
+      "note": "Prepared isolated develop-based batching checkpoint 382cdc08ec1a4264168ebef0d1741e39ee5933df with 203 passing focused tests and six existing skips. Thirty-five unrelated unpublished parent commits were excluded; push and draft PR pending."
+    }
+  ],
+  "execution_sub_lanes": {
+    "phase_1_shared": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "feature/transaction-batching-foundation",
+      "depends_on": [],
+      "handoff": "handoffs/publication.md"
+    },
+    "phase_2_settings": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_1_shared"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_3_members": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_2_settings"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_4_work_approvals": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_3_members"],
+      "handoff": "handoffs/ui.md"
+    }
+  }
+}

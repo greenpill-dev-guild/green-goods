@@ -59,6 +59,9 @@ describe("createTransactionSender", () => {
 
       expect(sender).toBeInstanceOf(PasskeySender);
       expect(sender.authMode).toBe("passkey");
+      expect(sender.batches?.execute).toBeTypeOf("function");
+      expect(sender.batches?.reconcile).toBeTypeOf("function");
+      expect(sender.batches?.list).toBeTypeOf("function");
       expect(sender.supportsSponsorship).toBe(true);
     });
 
@@ -135,6 +138,8 @@ describe("createTransactionSender", () => {
 
       expect(sender).toBeInstanceOf(WalletSender);
       expect(sender.authMode).toBe("wallet");
+      expect(sender.batches?.execute).toBeTypeOf("function");
+      expect(sender.batches?.reconcile).toBeTypeOf("function");
     });
 
     it("throws when wagmiConfig is missing for wallet mode", () => {
