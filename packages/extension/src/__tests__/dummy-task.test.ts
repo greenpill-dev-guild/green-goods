@@ -70,6 +70,25 @@ describe("grove.g0.investigation on Pi Durable", () => {
     expect(new Set(chunks.map((chunk) => chunk.slice(2))).size).toBe(chunks.length);
   });
 
+  it("reuses the receipt when a second task carries the same run id", async () => {
+    const effects = await EffectStore.open(indexedDB);
+    await effects.reset();
+    const events: PhaseEvent[] = [];
+    const harness = await openGroveHarness(createRetainedMemoryStorage(), {
+      effects,
+      onEvent: (event) => events.push(event),
+      holdGate: () => Promise.resolve(),
+    });
+    const input = { runId: "run-d", chunkCount: 1, chunkDelayMs: 5, holdAfterApply: false };
+    const first = await harness.waitFor(await harness.startInvestigation(input));
+    const second = await harness.waitFor(await harness.startInvestigation(input));
+    await harness.close();
+    expect(first.result?.replayedReceipt).toBe(false);
+    expect(second.result?.replayedReceipt).toBe(true);
+    expect(await effects.effectCount()).toBe(1);
+    expect(events.filter((event) => event.kind === "apply-effect")).toHaveLength(2);
+  });
+
   it("does not apply the effect twice when the crash lands after apply committed it", async () => {
     const effects = await EffectStore.open(indexedDB);
     await effects.reset();

@@ -75,7 +75,10 @@ async function launch(profileName, { flag = true, extension = true, freshProfile
     logFile: join(outDir, `${profileName}.browser.log`),
   });
   log(`launched ${profileName} on port ${browser.port}`);
-  return { ...browser, userDataDir };
+  const launched = { ...browser, userDataDir, extensionId: null };
+  // The MV3 worker stops after 30 s idle, so remember the id while it is still running.
+  if (extension) launched.extensionId = (await extensionId(launched)).id;
+  return launched;
 }
 
 async function extensionId(browser, previousTargetId = null, timeoutMs = 15000) {
@@ -88,16 +91,26 @@ async function extensionId(browser, previousTargetId = null, timeoutMs = 15000) 
   return { id: new URL(target.url).host, targetId: target.targetId };
 }
 
+// Right after a reload the extension's files can be briefly unavailable and the tab lands on an
+// error page; navigate again instead of waiting for a page that will never run.
 async function openGraph(browser, id) {
-  const page = await browser.cdp.openPage(`chrome-extension://${id}/graph.html`);
-  await browser.cdp.waitForLoad(page.sessionId);
+  const url = `chrome-extension://${id}/graph.html`;
+  const page = await browser.cdp.openPage(url);
   const started = Date.now();
-  while (Date.now() - started < 20000) {
+  let lastHref = null;
+  while (Date.now() - started < 30000) {
+    await browser.cdp.waitForLoad(page.sessionId);
+    lastHref = await browser.cdp.evaluate(page.sessionId, "location.href");
+    if (lastHref !== url) {
+      await sleep(500);
+      await browser.cdp.send("Page.navigate", { url }, page.sessionId);
+      continue;
+    }
     const ready = await browser.cdp.evaluate(page.sessionId, "Boolean(window.__g0 && window.__g0.ready)");
     if (ready) return page;
     await sleep(100);
   }
-  throw new Error(`graph page did not expose window.__g0; console: ${browser.cdp.logs(page.sessionId).join(" | ")}`);
+  throw new Error(`graph page did not expose window.__g0 (at ${lastHref}); console: ${browser.cdp.logs(page.sessionId).join(" | ")}`);
 }
 
 // chrome://extensions exposes developerPrivate, the API behind the page's own Developer mode
@@ -128,6 +141,7 @@ async function reloadAndObserve(browser, extensions, id, previousTargetId, how) 
     (t) => t.type === "service_worker" && t.url.includes(id) && t.targetId !== previousTargetId,
     10000,
   );
+  if (target) await sleep(1000);
   let graphReady = false;
   let runtimeId = null;
   if (target) {
@@ -236,11 +250,11 @@ await step("lifecycle", async () => {
   const browser = await launch("lifecycle", { freshProfile: true });
   try {
     const result = await lifecycle(browser);
-    const before = (await extensionId(browser)).id;
+    const before = browser.extensionId;
     await browser.kill();
     const again = await launch("lifecycle");
     try {
-      const after = (await extensionId(again)).id;
+      const after = again.extensionId;
       const info = await (await extensionsPage(again)).info(after);
       log(`browser restart: ${before} -> ${after} (${info?.state})`);
       return { ...result, browserRestart: { idBefore: before, idAfter: after, sameId: before === after, info } };
@@ -270,12 +284,11 @@ if (only.has("model") || only.has("pi")) {
   const main = await launch("main");
   try {
     await step("model", async () => {
-      const { id } = await extensionId(main);
-      const cold = await modelRun(main, id, "cold (first load in this profile)");
-      const warm = await modelRun(main, id, "warm (page reloaded, model cached)");
+      const cold = await modelRun(main, main.extensionId, "cold (first load in this profile)");
+      const warm = await modelRun(main, main.extensionId, "warm (page reloaded, model cached)");
       return { cold, warm };
     });
-    await step("pi", async () => pi(main, (await extensionId(main)).id));
+    await step("pi", async () => pi(main, main.extensionId));
   } finally {
     await main.kill().catch(() => undefined);
   }

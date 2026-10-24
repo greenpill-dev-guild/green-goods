@@ -148,7 +148,7 @@ export function createG0Api({ graph, say, onModelProgress }: Deps): G0Api {
       };
     },
     model: {
-      async run({ maxNewTokens = 320, passes = 2 } = {}) {
+      async run({ maxNewTokens = 448, passes = 2 } = {}) {
         const memory: MemorySample[] = [await measureMemory("before-load")];
         const reused = client !== null;
         client ??= new GemmaClient(onModelProgress);
@@ -161,7 +161,7 @@ export function createG0Api({ graph, say, onModelProgress }: Deps): G0Api {
         const results: ProposalReport[] = [];
         for (let pass = 0; pass < passes; pass += 1) {
           const result = await client.propose(G0_PACKET, maxNewTokens);
-          say(`model: pass ${pass + 1}: ${result.newTokens} tokens, ${result.tokensPerSecond.toFixed(1)} tok/s, ${result.validation.accepted.length} accepted`);
+          say(`model: pass ${pass + 1}: ${result.newTokens} tokens, ${result.tokensPerSecond.toFixed(1)} tok/s, ${result.validation.accepted.length} accepted${result.validation.truncated ? ", output truncated" : ""}`);
           results.push(result);
         }
         memory.push(await measureMemory("after-generate"));

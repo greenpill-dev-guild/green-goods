@@ -12,12 +12,13 @@ export function buildProposalMessages(packet: InvestigationPacket): ChatMessage[
   const chunks = packet.chunks.map((chunk) => `[${chunk.id}] ${chunk.text}`).join("\n\n");
   const system =
     "You connect passages from a saved source to items in a community garden's knowledge graph. " +
-    "You answer with JSON only: an array of at most " +
+    "You answer with compact JSON on one line and nothing else: an array of at most " +
     `${packet.maxProposals} objects, each with the keys targetId, predicate, chunkId, quote, reason. ` +
     "Use only targetId values and predicate values from the lists given. The quote must be copied " +
     "character for character from the named chunk, between one short clause and two sentences long. " +
-    "Propose a connection only when the quoted passage clearly supports it. If nothing qualifies, " +
-    "answer []. No prose, no markdown fences.";
+    "The reason is one clause of at most twelve words. Propose a connection only when the quoted " +
+    "passage clearly supports it. If nothing qualifies, answer []. No prose, no markdown fences, " +
+    "and stop right after the closing bracket.";
   const user =
     `Source: ${packet.sourceTitle}\n\n` +
     `Chunks:\n${chunks}\n\n` +

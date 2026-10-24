@@ -1,7 +1,7 @@
 # Grove G0 feasibility spike
 
-A disposable browser extension that measures the four parts of the Grove prototype
-([`.plans/ideas/grove/prototype.md`](../../.plans/ideas/grove/prototype.md), build-order row G0,
+A disposable browser extension that measures the four parts of the Grove prototype (the
+[Grove idea hub](../../.plans/ideas/grove/brief.md); its `prototype.md`, build-order row G0,
 decision 17). It is not a product surface: nothing here ships, and G1 may replace any of it.
 
 | Part | What this package does |
@@ -16,14 +16,14 @@ the browser's cache; nothing is committed.
 
 ## Commands
 
-Run from this directory, or with `bun run --cwd packages/extension <script>` from the root.
+Run these from the repository root.
 
 | Command | Purpose |
 |---|---|
-| `bun run build` | Build `.output/chrome-mv3` (copies the ONNX runtime's WebAssembly into `ort/`) |
-| `bun run test` | Node unit tests: validation, the synthetic graph, the Pi task with a simulated crash |
-| `bun run typecheck`, `bun run lint` | Types and oxlint |
-| `bun run g0 -- [--only lifecycle,webmcp,model,pi] [--headed] [--fresh]` | Drive the built extension in Brave Beta over CDP and write `g0/out/observations.json` |
+| `bun run --cwd packages/extension build` | Build `.output/chrome-mv3` (copies the ONNX runtime's WebAssembly into `ort/`) |
+| `bun run --cwd packages/extension test` | Node unit tests: validation, the synthetic graph, the Pi task with a simulated crash |
+| `bun run --cwd packages/extension typecheck` and `bun run --cwd packages/extension lint` | Types and oxlint |
+| `bun run --cwd packages/extension g0 -- --only lifecycle,webmcp,model,pi` | Drive the built extension in Brave Beta over CDP and write `g0/out/observations.json`; add `--headed` for visible windows or `--fresh` to wipe the persistent `main` profile |
 
 The rig launches `/Applications/Brave Browser Beta.app` headless with a scratch `--user-data-dir`
 under `g0/out/profiles/`, `--remote-debugging-port=0`, `--no-first-run`,

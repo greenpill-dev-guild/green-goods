@@ -70,7 +70,7 @@ export class GemmaClient {
     };
   }
 
-  async propose(packet: InvestigationPacket, maxNewTokens = 320): Promise<ProposalReport> {
+  async propose(packet: InvestigationPacket, maxNewTokens = 448): Promise<ProposalReport> {
     const response = await this.request({ type: "propose", packet, maxNewTokens });
     if (response.type === "error") throw new Error(`${response.stage}: ${response.message}`);
     if (response.type !== "result") throw new Error(`unexpected worker response ${response.type}`);

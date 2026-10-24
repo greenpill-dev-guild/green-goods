@@ -17,6 +17,8 @@ export interface ValidationResult {
   accepted: Proposal[];
   rejected: RejectedProposal[];
   parseError: string | null;
+  /** True when the output stopped before the closing bracket and only its complete items were read. */
+  truncated: boolean;
 }
 
 const MIN_QUOTE_LENGTH = 12;
@@ -26,7 +28,7 @@ const MAX_QUOTE_LENGTH = 400;
 // quote that is an exact substring of the saved text. Everything else is dropped and reported.
 export function validateProposals(rawText: string, packet: InvestigationPacket): ValidationResult {
   const parsed = parseJsonArray(rawText);
-  if (!parsed.ok) return { accepted: [], rejected: [], parseError: parsed.error };
+  if (!parsed.ok) return { accepted: [], rejected: [], parseError: parsed.error, truncated: false };
 
   const targetIds = new Set(packet.targets.map((target) => target.id));
   const predicates = new Set<string>(packet.predicates);
@@ -55,7 +57,7 @@ export function validateProposals(rawText: string, packet: InvestigationPacket):
     seen.add(key);
     accepted.push({ ...proposal, chunkId, reason: String(proposal.reason ?? "") });
   }
-  return { accepted, rejected, parseError: null };
+  return { accepted, rejected, parseError: null, truncated: parsed.truncated };
 }
 
 interface Vocabulary {
@@ -88,16 +90,37 @@ function findOwningChunk(quote: string, chunksById: Map<string, string>): string
   return owners.length === 1 ? (owners[0] ?? null) : null;
 }
 
-function parseJsonArray(rawText: string): { ok: true; items: unknown[] } | { ok: false; error: string } {
+type ParsedArray = { ok: true; items: unknown[]; truncated: boolean } | { ok: false; error: string };
+
+function parseJsonArray(rawText: string): ParsedArray {
   const withoutFences = rawText.replace(/```(?:json)?/gi, "").trim();
   const start = withoutFences.indexOf("[");
+  if (start === -1) return { ok: false, error: "no JSON array in output" };
   const end = withoutFences.lastIndexOf("]");
-  if (start === -1 || end === -1 || end < start) return { ok: false, error: "no JSON array in output" };
-  try {
-    const value: unknown = JSON.parse(withoutFences.slice(start, end + 1));
-    if (!Array.isArray(value)) return { ok: false, error: "top-level JSON is not an array" };
-    return { ok: true, items: value };
-  } catch (error) {
-    return { ok: false, error: `invalid JSON: ${(error as Error).message}` };
+  if (end > start) {
+    try {
+      const value: unknown = JSON.parse(withoutFences.slice(start, end + 1));
+      if (!Array.isArray(value)) return { ok: false, error: "top-level JSON is not an array" };
+      return { ok: true, items: value, truncated: false };
+    } catch (error) {
+      return { ok: false, error: `invalid JSON: ${(error as Error).message}` };
+    }
   }
+  return salvageTruncatedArray(withoutFences.slice(start));
+}
+
+// A generation that stops at the token cap leaves an open array. Its complete items are still
+// each checked against the packet; the cut-off item is dropped and the truncation is reported.
+function salvageTruncatedArray(openArray: string): ParsedArray {
+  let cut = openArray.lastIndexOf("}");
+  while (cut > 0) {
+    try {
+      const value: unknown = JSON.parse(`${openArray.slice(0, cut + 1)}]`);
+      if (Array.isArray(value)) return { ok: true, items: value, truncated: true };
+      return { ok: false, error: "top-level JSON is not an array" };
+    } catch {
+      cut = openArray.lastIndexOf("}", cut - 1);
+    }
+  }
+  return { ok: false, error: "no JSON array in output" };
 }
