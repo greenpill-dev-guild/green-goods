@@ -5,7 +5,7 @@ import type { TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
+import type { WorkCardPresentation } from "@/components/Cards/Work/MinimalWorkCard";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { WorkListTab } from "./WorkListTab";
 

@@ -2053,7 +2053,8 @@
 
   /* ── Card surface (F7) ── The one card surface: the card's fill, a 1px edge
    * that reads on linen and on the dark canvas, a faint shadow in light and the
-   * 24px corner. The app's Card, AdminCard and Surface's raised level draw it.
+   * 24px corner. The app's Card, AdminCard, Surface's raised level and
+   * WorkbenchCard draw it.
    * A work card's status edge (data-edge) widens the inline-start edge to 2px in
    * its status color. */
   .gg-card {

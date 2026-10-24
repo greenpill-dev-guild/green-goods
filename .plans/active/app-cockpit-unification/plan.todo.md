@@ -359,6 +359,18 @@ and the guide wording the standards-only `feature/app-cockpit-shared-cards-guide
 no change: 30 Storybook frames, every measured box and every pixel the same
 ([eval.md](eval.md#step-20-phase-4-proof-cards-and-tabs)).
 
+**Step 19, second pass (24 October).** With steps 14 to 18 on `develop`, the second pass removes
+the last cards nothing rendered: Shared's `VaultPositionCard`, the cockpit's `GardenYieldCard` and
+its strings, `WorkbenchRow`, and `WorkbenchList` with the Hub skeleton's row variant, its only
+user. `WorkbenchCard`, the Actions workspace's card, leaves `glass-raised` for the shared card
+surface, so that utility goes, and the app's work row module takes its component's name,
+`MinimalWorkCard`. `SkeletonCard`, the cell of the cockpit's route fallback grid, stays exported
+with its reason recorded. Step 16 had already deleted the app's `GardenCard` wrapper. The code is
+`feature/app-cockpit-unused-card-code-pass-2`, and the guide wording is the standards-only
+`feature/app-cockpit-unused-card-code-pass-2-guides`, merged as #1246
+([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-1286),
+[eval.md](eval.md#step-19-proof-second-pass)).
+
 **Step 20, phase 1 (24 October).** `feature/app-cockpit-shared-buttons` makes every cockpit button
 the shared one: `AdminButton` and `AdminIconButton` keep their names and props and render the
 shared `Button` and `IconButton`, so their 307 call sites are unchanged until a later pass renames

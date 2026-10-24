@@ -1158,6 +1158,48 @@ in **Storybook** (headless Chromium at device scale 2, the admin primitive frame
   corner with no edge; the list row is 16px and 56px tall here, on the weak fill; the selectable
   card is 12px and 66px tall, its selected state the tone's accent edge and a 10% tint.
 
+## Step 19 proof: second pass
+
+Run on 2026-10-24 for step 19's second pass, `feature/app-cockpit-unused-card-code-pass-2`, against
+`develop` `796e9e1bb`. Capture-only servers ran from the step's worktree: Storybook, and the cockpit
+on Arbitrum One with the production indexer. Every before frame was taken from the untouched
+`develop` tree, before the first edit. Frames that show a live garden went to the maintainer as a
+private artifact.
+
+**Pairs.** 34 pairs and 10 before-only frames, headless Chromium (Playwright) at device scale 2:
+
+- **mock-auth localhost**, cockpit (`/actions?mockAuth=deployer`, Green Goods Community Garden, with
+  Arbitrum reads answered by its public RPC in place of the rate-limited demo key): the Actions
+  workspace at 390, 768 and 1280px, in light and dark: 6 pairs.
+- **Storybook**: the Actions workspace story at the same widths, `WorkbenchCard`'s default,
+  upcoming, record, selected and grid stories, and the Hub's work and confirm queue placeholders,
+  in light and dark: 28 pairs. The 8 placeholder pairs are pixel-identical.
+- **Storybook, before only**: the stories of what the pass removes (`WorkbenchRow`, `WorkbenchList`,
+  the skeleton's row variant, `VaultPositionCard`, `GardenYieldCard`), in light and dark.
+
+**Computed** (`getComputedStyle` on the first `WorkbenchCard`, 1280px):
+
+| Where | Before | After |
+|---|---|---|
+| Cockpit, light | fill 255 255 255, no edge, 16px, glass inset ring | fill 255 255 255, 1px 231 229 228, 24px |
+| Cockpit, dark | fill 42 35 28, no edge, 16px | fill 42 35 28, 1px 67 61 55, 24px |
+| Storybook, light | 70% white under `blur(16px) saturate(1.3)`, 16px | the cockpit's after values |
+| Storybook, dark | 60% of 28 25 23 under the same blur, 16px | the cockpit's after values |
+
+After, every frame reports `backdrop-filter: none`. In the cockpit the fill is unchanged, since its
+override for `glass-raised` already painted `--admin-surface-0`, the fill `.gg-card` reads there.
+
+**Found on the way.**
+
+- The confirm queue waits on a grid of card placeholders but loads a list of decision rows, so it
+  changes shape when it loads.
+- `SkeletonGrid`'s cell, the cockpit's route fallback, draws its own card (`rounded-xl`,
+  `shadow-sm`, outside the elevation ladder) instead of `.gg-card`.
+- Storybook does not declare the cockpit's `--edge-focus`, so `WorkbenchCard`'s Selected story shows
+  no selected edge, before and after.
+- The app's own `Card` has five parts nothing renders: `CardHeader`, `CardTitle`,
+  `CardDescription`, `CardContent` and `CardFooter`.
+
 ## Step 20 phase 1 proof: shared buttons
 
 Run on 2026-10-24 against `develop` `796e9e1bb`, with step 20 phase 1 on
