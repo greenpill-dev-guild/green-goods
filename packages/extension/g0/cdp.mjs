@@ -100,6 +100,27 @@ export class Cdp {
     }
     return res.result.value;
   }
+  // Call a function in the page with arguments carried by the protocol, so no value is ever
+  // spliced into source text. `fn` must be self-contained: it is sent as its source.
+  async callFunction(sessionId, fn, args = [], { awaitPromise = true } = {}) {
+    const { result: global } = await this.send("Runtime.evaluate", { expression: "globalThis" }, sessionId);
+    const res = await this.send(
+      "Runtime.callFunctionOn",
+      {
+        objectId: global.objectId,
+        functionDeclaration: String(fn),
+        arguments: args.map((value) => ({ value })),
+        awaitPromise,
+        returnByValue: true,
+      },
+      sessionId,
+    );
+    if (res.exceptionDetails) {
+      const d = res.exceptionDetails;
+      throw new Error(`callFunctionOn threw: ${d.exception?.description ?? d.text}`);
+    }
+    return res.result.value;
+  }
   async closeTarget(targetId) {
     await this.send("Target.closeTarget", { targetId });
   }

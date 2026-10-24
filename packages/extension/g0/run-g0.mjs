@@ -119,12 +119,51 @@ async function extensionsPage(browser) {
   const page = await browser.cdp.openPage("chrome://extensions/");
   await browser.cdp.waitForLoad(page.sessionId);
   await sleep(500);
-  const call = (expression) => browser.cdp.evaluate(page.sessionId, expression);
+  // Values travel as protocol arguments; the functions below run in the page and must not close
+  // over anything here.
+  const call = (fn, ...args) => browser.cdp.callFunction(page.sessionId, fn, args);
   return {
     page,
-    developerMode: (enabled) => call(`new Promise((r) => chrome.developerPrivate.updateProfileConfiguration({ inDeveloperMode: ${enabled} }, () => chrome.developerPrivate.getProfileConfiguration(r)))`),
-    info: (id) => call(`new Promise((r) => chrome.developerPrivate.getExtensionInfo(${JSON.stringify(id)}, (i) => r(i ? { state: i.state, location: i.location, disableReasons: Object.entries(i.disableReasons).filter(([, v]) => v).map(([k]) => k) } : null)))`),
-    reload: (id) => call(`new Promise((r) => chrome.developerPrivate.reload(${JSON.stringify(id)}, { failQuietly: true }, () => r(chrome.runtime.lastError ? chrome.runtime.lastError.message : null)))`),
+    developerMode: (enabled) =>
+      call(
+        (on) =>
+          new Promise((resolve) => {
+            const api = globalThis.chrome.developerPrivate;
+            api.updateProfileConfiguration({ inDeveloperMode: on }, () => api.getProfileConfiguration(resolve));
+          }),
+        enabled,
+      ),
+    info: (id) =>
+      call(
+        (extensionId) =>
+          new Promise((resolve) => {
+            globalThis.chrome.developerPrivate.getExtensionInfo(extensionId, (info) =>
+              resolve(
+                info
+                  ? {
+                      state: info.state,
+                      location: info.location,
+                      disableReasons: Object.entries(info.disableReasons)
+                        .filter(([, value]) => value)
+                        .map(([key]) => key),
+                    }
+                  : null,
+              ),
+            );
+          }),
+        id,
+      ),
+    reload: (id) =>
+      call(
+        (extensionId) =>
+          new Promise((resolve) => {
+            const { chrome } = globalThis;
+            chrome.developerPrivate.reload(extensionId, { failQuietly: true }, () =>
+              resolve(chrome.runtime.lastError ? chrome.runtime.lastError.message : null),
+            );
+          }),
+        id,
+      ),
   };
 }
 
@@ -208,7 +247,7 @@ async function modelRun(browser, id, label) {
   let run;
   let error = null;
   try {
-    run = await browser.cdp.evaluate(page.sessionId, `window.__g0.model.run({ passes: ${passes} })`, { timeoutMs: 60 * 60 * 1000 });
+    run = await browser.cdp.callFunction(page.sessionId, (count) => globalThis.__g0.model.run({ passes: count }), [passes]);
   } catch (caught) {
     error = String(caught.message ?? caught);
   }
