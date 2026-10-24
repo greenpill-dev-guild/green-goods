@@ -1,10 +1,11 @@
-import { RiErrorWarningLine, RiWallet3Line } from "@remixicon/react";
+import { RiWallet3Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { type ComponentType, type ReactNode, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminButton } from "./AdminButton";
 import { ADMIN_FLOW_DIALOG_CLASS, AdminConfirmDialog, AdminDialog } from "./AdminDialog";
+import { AdminTextField } from "./AdminTextField";
 import { ActionFlowShell } from "./Layout/ActionFlowShell";
 
 const meta: Meta<typeof AdminDialog> = {
@@ -16,9 +17,11 @@ const meta: Meta<typeof AdminDialog> = {
     docs: {
       description: {
         component: [
-          "**AdminDialog** - M3 basic dialog. 28dp shape, surface-container-high,",
-          "elevation-3, 32 percent scrim, optional icon, headline, supporting",
-          "text, and action slot.",
+          "**AdminDialog** - the cockpit's dialog: its own surface (16dp corners,",
+          "surface-container-high, elevation 2, 32 percent scrim) under the shared",
+          "`SheetHeader` (DL-117): the 22px title, the target line, the description",
+          "and the close button on the title's line, with no icon. The confirm family's",
+          "Cancel and confirm are the shared `SheetActions`.",
           "",
           "**Tone-aware** - focus ring on the close button consumes",
           "`var(--tone-focus-ring, var(--m3-primary))` so it tints to the active",
@@ -29,8 +32,8 @@ const meta: Meta<typeof AdminDialog> = {
           "`SheetHeader` with the 22px title and the target line, no icon. Opening,",
           "closing and focus stay Radix's, as on desktop.",
           "",
-          "**Accessibility**: native `<dialog>` via Radix; Escape closes; focus",
-          "trapped while open; focus returns to trigger on close.",
+          "**Accessibility**: Radix dialog; Escape closes the topmost dialog; focus",
+          "is trapped while open and returns to the opener on close.",
         ].join("\n"),
       },
     },
@@ -142,13 +145,11 @@ async function expectRealEnterAnimation(surface: HTMLElement, keyframe: RegExp) 
 }
 
 function DialogPreview({
-  icon,
   title,
   description,
   body,
   confirmLabel = "Confirm",
 }: {
-  icon?: ComponentType<{ className?: string }>;
   title: string;
   description: string;
   body: string;
@@ -166,7 +167,6 @@ function DialogPreview({
         onOpenChange={setOpen}
         title={title}
         description={description}
-        icon={icon}
         actions={
           <>
             <AdminButton variant="text" onClick={() => setOpen(false)}>
@@ -210,22 +210,11 @@ export const Default: Story = {
         expect(document.querySelector('[role="dialog"]')).toBeNull();
         expect(document.body).not.toHaveAttribute("data-scroll-locked");
         expect(document.body.style.pointerEvents).toBe("");
-        expect(canvas.getByRole("button", { name: "Open dialog" })).toBeVisible();
+        // Focus returns to the opener.
+        expect(canvas.getByRole("button", { name: "Open dialog" })).toHaveFocus();
       });
     }
   },
-};
-
-export const WithIcon: Story = {
-  render: () => (
-    <DialogPreview
-      title="Unable to withdraw"
-      description="This jar has no available balance."
-      body="Recent payouts exhausted the jar. Top up the jar to continue."
-      icon={RiErrorWarningLine}
-      confirmLabel="Dismiss"
-    />
-  ),
 };
 
 export const StateCatalog: Story = {
@@ -241,7 +230,6 @@ export const StateCatalog: Story = {
         title="Unable to withdraw"
         description="This jar has no available balance."
         body="Top up the jar to continue."
-        icon={RiErrorWarningLine}
         confirmLabel="Dismiss"
       />
     </div>
@@ -392,6 +380,12 @@ export const FlowVariant: Story = {
     await expect(surface?.querySelector('[data-region="action-flow-header"]')).not.toBeNull();
     // ActionFlowShell pins its footer through the shared SheetFooter.
     await expect(surface?.querySelector('[data-component="SheetFooter"]')).not.toBeNull();
+    // The flow keeps the dialog's absolute close beside its own header; an
+    // unlayered `.m3-state-layer { position: relative }` once dropped it into
+    // flow over the headline.
+    const close = surface?.querySelector<HTMLElement>(':scope > [data-slot="close"]');
+    await expect(close).not.toBeNull();
+    if (close) await expect(getComputedStyle(close).position).toBe("absolute");
   },
 };
 
@@ -442,11 +436,10 @@ export const ConfirmWithDetails: Story = {
 };
 
 /**
- * Close-button geometry guard. Runs in addon-vitest browser mode, where the real
- * `@layer` cascade applies (jsdom has none), so `getComputedStyle().position` is
- * meaningful. Regression test for the defect where the unlayered
- * `.m3-state-layer { position: relative }` overrode Tailwind's layered `.absolute`,
- * dropping the close button into normal flow at the top-left, over the headline.
+ * Close-button geometry guard, in addon-vitest browser mode where the real
+ * `@layer` cascade applies. A structured dialog's close sits in the shared
+ * header on the title's line (DL-117): anchored at the surface's right edge,
+ * clear of the headline. The flow's absolute close is guarded in FlowVariant.
  */
 export const CloseButtonGeometry: Story = {
   tags: ["storybook-ci"],
@@ -471,18 +464,28 @@ export const CloseButtonGeometry: Story = {
     const surface = await within(document.body).findByRole("dialog", {
       name: /close button clearance/i,
     });
+    await waitForDialogSettled(surface);
     await waitFor(async () => {
-      const closeBtn = surface.querySelector<HTMLElement>('[data-slot="close"]');
-      await expect(closeBtn).not.toBeNull();
-      if (!closeBtn) return;
-      // `relative` means the unlayered state-layer rule is overriding `.absolute`
-      // again and the button has fallen into flow over the title.
-      await expect(getComputedStyle(closeBtn).position).toBe("absolute");
+      const header = surface.querySelector<HTMLElement>(
+        '[data-component="SheetHeader"][data-slot="root"]'
+      );
+      await expect(header).not.toBeNull();
+      if (!header) return;
       const surfaceRect = surface.getBoundingClientRect();
-      const closeRect = closeBtn.getBoundingClientRect();
-      // Anchored to the surface top-right (~16px inset), not floating over the headline.
+      const closeRect = within(header)
+        .getByRole("button", { name: "Close" })
+        .getBoundingClientRect();
+      const titleRect = within(surface)
+        .getByRole("heading", { name: /close button clearance/i })
+        .getBoundingClientRect();
+      // On the title's line, at the surface's right edge, clear of the headline.
       await expect(surfaceRect.right - closeRect.right).toBeLessThan(24);
       await expect(closeRect.left).toBeGreaterThan(surfaceRect.left + surfaceRect.width / 2);
+      await expect(titleRect.right).toBeLessThanOrEqual(
+        closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX
+      );
+      await expect(closeRect.top).toBeLessThanOrEqual(titleRect.bottom);
+      await expect(closeRect.bottom).toBeGreaterThanOrEqual(titleRect.top);
     });
   },
 };
@@ -875,4 +878,214 @@ export const ToneMatrix: Story = {
       ))}
     </div>
   ),
+};
+
+const PREVIEW_STAGE =
+  "flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6";
+
+/**
+ * Closes the open dialog with a gesture and checks the page comes back whole:
+ * no dialog, no scroll or pointer lock, and focus on the opener.
+ */
+async function closeAndExpectFocusOn(opener: HTMLElement, close: () => Promise<void>) {
+  await close();
+  await waitFor(() => {
+    expect(document.querySelector('[role="dialog"], [role="alertdialog"]')).toBeNull();
+    expect(document.body).not.toHaveAttribute("data-scroll-locked");
+    expect(document.body.style.pointerEvents).toBe("");
+    expect(opener).toHaveFocus();
+  });
+}
+
+function FormDialogPreview() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("North Meadow");
+  const [summary, setSummary] = useState("");
+  return (
+    <div className={PREVIEW_STAGE}>
+      <AdminButton variant="filled" onClick={() => setOpen(true)}>
+        Edit garden
+      </AdminButton>
+      <AdminDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Edit Garden"
+        description="Change the name and summary members see."
+        tone="garden"
+        actions={
+          <>
+            <AdminButton variant="text" onClick={() => setOpen(false)}>
+              Cancel
+            </AdminButton>
+            <AdminButton variant="filled" onClick={() => setOpen(false)}>
+              Save
+            </AdminButton>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <AdminTextField
+            label="Garden name"
+            required
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <AdminTextField
+            label="Summary"
+            value={summary}
+            onChange={(event) => setSummary(event.target.value)}
+          />
+        </div>
+      </AdminDialog>
+    </div>
+  );
+}
+
+/** A form dialog: typing stays inside it, Escape and Cancel close it, and focus comes home. */
+export const FormDialog: Story = {
+  tags: ["storybook-ci"],
+  render: () => <FormDialogPreview />,
+  play: async ({ canvasElement }) => {
+    const body = within(document.body);
+    const opener = within(canvasElement).getByRole("button", { name: "Edit garden" });
+
+    await userEvent.click(opener);
+    const dialog = await body.findByRole("dialog", { name: "Edit Garden" });
+    await waitForDialogSettled(dialog);
+    const summary = within(dialog).getByRole("textbox", { name: /summary/i });
+    await userEvent.type(summary, "Food forest");
+    await expect(summary).toHaveValue("Food forest");
+    await closeAndExpectFocusOn(opener, async () => {
+      await userEvent.keyboard("{Escape}");
+    });
+
+    await userEvent.click(opener);
+    const again = await body.findByRole("dialog", { name: "Edit Garden" });
+    await waitForDialogSettled(again);
+    await closeAndExpectFocusOn(opener, () =>
+      userEvent.click(within(again).getByRole("button", { name: "Cancel" }))
+    );
+  },
+};
+
+function ConfirmPreview() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={PREVIEW_STAGE}>
+      <AdminButton variant="filled" onClick={() => setOpen(true)}>
+        Pause vault
+      </AdminButton>
+      <AdminConfirmDialog
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onConfirm={() => setOpen(false)}
+        title="Emergency pause"
+        description="Pause deposits and withdrawals for this vault?"
+        confirmLabel="Pause"
+        variant="danger"
+      />
+    </div>
+  );
+}
+
+/**
+ * The confirm family: an alertdialog whose Cancel and confirm are the shared
+ * action bar. Escape and Cancel close it, and focus comes home.
+ */
+export const ConfirmFocusReturn: Story = {
+  tags: ["storybook-ci"],
+  render: () => <ConfirmPreview />,
+  play: async ({ canvasElement }) => {
+    const body = within(document.body);
+    const opener = within(canvasElement).getByRole("button", { name: "Pause vault" });
+
+    await userEvent.click(opener);
+    const dialog = await body.findByRole("alertdialog", { name: "Emergency pause" });
+    await waitForDialogSettled(dialog);
+    await expect(dialog.querySelector('[data-component="SheetActions"]')).not.toBeNull();
+    await expect(within(dialog).getByRole("button", { name: "Pause" })).toHaveAttribute(
+      "data-action",
+      "primary"
+    );
+    await closeAndExpectFocusOn(opener, async () => {
+      await userEvent.keyboard("{Escape}");
+    });
+
+    await userEvent.click(opener);
+    const again = await body.findByRole("alertdialog", { name: "Emergency pause" });
+    await waitForDialogSettled(again);
+    await closeAndExpectFocusOn(opener, () =>
+      userEvent.click(within(again).getByRole("button", { name: "Cancel" }))
+    );
+  },
+};
+
+function NestedPreview() {
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <div className={PREVIEW_STAGE}>
+      <AdminButton variant="filled" onClick={() => setOpen(true)}>
+        Manage member
+      </AdminButton>
+      <AdminDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Manage Member"
+        description="Rosa Lima gardens in North Meadow."
+        tone="community"
+        actions={
+          <AdminButton variant="text" onClick={() => setOpen(false)}>
+            Done
+          </AdminButton>
+        }
+      >
+        <AdminButton variant="outlined" onClick={() => setConfirming(true)}>
+          Remove member
+        </AdminButton>
+        <AdminConfirmDialog
+          isOpen={confirming}
+          onClose={() => setConfirming(false)}
+          onConfirm={() => setConfirming(false)}
+          title="Remove member?"
+          description="Rosa Lima loses access to North Meadow."
+          confirmLabel="Remove"
+          variant="danger"
+          tone="community"
+        />
+      </AdminDialog>
+    </div>
+  );
+}
+
+/**
+ * A confirm opened from inside a dialog: Escape closes only the topmost one,
+ * and focus steps back a level at a time, to the button that opened each.
+ */
+export const NestedDialogs: Story = {
+  tags: ["storybook-ci"],
+  render: () => <NestedPreview />,
+  play: async ({ canvasElement }) => {
+    const body = within(document.body);
+    const opener = within(canvasElement).getByRole("button", { name: "Manage member" });
+
+    await userEvent.click(opener);
+    const outer = await body.findByRole("dialog", { name: "Manage Member" });
+    await waitForDialogSettled(outer);
+    const removeMember = within(outer).getByRole("button", { name: "Remove member" });
+    await userEvent.click(removeMember);
+    const inner = await body.findByRole("alertdialog", { name: "Remove member?" });
+    await waitForDialogSettled(inner);
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(body.queryByRole("alertdialog")).toBeNull();
+      expect(body.getByRole("dialog", { name: "Manage Member" })).toBeVisible();
+      expect(removeMember).toHaveFocus();
+    });
+
+    await closeAndExpectFocusOn(opener, async () => {
+      await userEvent.keyboard("{Escape}");
+    });
+  },
 };

@@ -64,6 +64,13 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   prototype build; detours render inside their step). Below 640px dialogs present as bottom
   sheets with the same content and the same footer order, in the installed app's sheet
   material with its grip; a flow keeps its own header under the grip (DL-104).
+- **A dialog hands focus back and holds its confirm while it works (DL-117).** Closing a
+  dialog by Close, Cancel, Escape or the scrim returns focus to the control that opened it
+  (`AdminDialog` remembers it; a caller's `finalFocusRef` names another), and a confirm opened
+  from a dialog hands it back one level at a time. A confirm that is sending stays focusable
+  but ignores activation (`SheetActions`' loading action), so a second press never sends
+  twice. Proof: [AdminDialog.test.tsx](../../../packages/admin/src/__tests__/components/AdminDialog.test.tsx)
+  and the dialog stories' play functions. (WAI-ARIA dialog pattern; NN/g user control.)
 - **Action labels are specific**: "Pause pool", "Cancel season", "Approve work", never "OK",
   "Confirm", "Submit". Confirmations name consequences before the act (ecosystem cascade rule).
 - **Dirty flows confirm before discarding** (`useDirtyClose` + `DiscardChangesDialog`);

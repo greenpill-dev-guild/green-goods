@@ -15,6 +15,10 @@ export interface AdminListRowProps extends React.ButtonHTMLAttributes<HTMLButton
  * a meta line spills out of it. The row owns the box (surface, corner, ink state
  * layer, focus ring, current ring); the caller lays out the content, which can
  * answer the row's hover through `group-hover:`.
+ *
+ * Its corner is the shared item row's (`--gg-row-radius`), but its height follows
+ * its content, so it is not the shared `ItemRow`, whose anatomy holds every row at
+ * 88px (DL-118).
  */
 export const AdminListRow = React.forwardRef<HTMLButtonElement, AdminListRowProps>(
   ({ current = false, className, type = "button", children, ...props }, ref) => (
@@ -26,7 +30,7 @@ export const AdminListRow = React.forwardRef<HTMLButtonElement, AdminListRowProp
       data-component="AdminListRow"
       data-current={current ? "true" : "false"}
       className={cn(
-        "group block min-h-11 w-full rounded-[var(--m3-shape-lg)] border border-stroke-soft bg-bg-weak px-3 py-2 text-left",
+        "group block min-h-11 w-full rounded-(--gg-row-radius) border border-stroke-soft bg-bg-weak px-3 py-2 text-left",
         "m3-state-layer [--state-layer-color:var(--m3-on-surface)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
         current && "ring-1 ring-primary-base",

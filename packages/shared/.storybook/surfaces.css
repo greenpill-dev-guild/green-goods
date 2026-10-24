@@ -183,6 +183,22 @@
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
+/* The garden chip's app density is set in the installed app's scope
+   (theme.css), so a cockpit column inside an app document would inherit it.
+   Production's cockpit never sets these tokens; `initial` returns the column's
+   chip to the same fallbacks, the cockpit's 36px pill. Kept out of the first
+   admin block, which AdminDensityScale.guard pins against index.css. */
+[data-surface-scope="admin"] {
+  --gg-garden-chip-height: initial;
+  --gg-garden-chip-inline-start: initial;
+  --gg-garden-chip-inline-end: initial;
+  --gg-garden-chip-avatar: initial;
+  --gg-garden-chip-glyph: initial;
+  --gg-garden-chip-caret: initial;
+  --gg-garden-chip-edge: initial;
+  --gg-garden-chip-focus-ring: initial;
+}
+
 /* STATUS PALETTE REMAP (mirror). The cockpit's amber, handoff red and azure
    ramps from index.css, set on <body> as production does, so admin stories and
    the dialogs and sheets they portal draw the canvas's colors. Copied
@@ -303,6 +319,15 @@
   --focus-ring: var(--primary-on-surface);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
+  /* The garden chip at the app's density, as theme.css's app scope sets it. */
+  --gg-garden-chip-height: 2.75rem;
+  --gg-garden-chip-inline-start: 0.5rem;
+  --gg-garden-chip-inline-end: 1rem;
+  --gg-garden-chip-avatar: 1.75rem;
+  --gg-garden-chip-glyph: 1rem;
+  --gg-garden-chip-caret: 1rem;
+  --gg-garden-chip-edge: var(--gg-control-outline);
+  --gg-garden-chip-focus-ring: var(--focus-ring);
 }
 
 /* The app column in dark takes the dark outline, as theme.css's app dark block
