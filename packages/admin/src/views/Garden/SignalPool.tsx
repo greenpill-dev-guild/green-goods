@@ -11,7 +11,8 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { PoolType } from "@green-goods/shared/types/gardens-community";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiDeleteBinLine } from "@remixicon/react";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { RiDeleteBinLine, RiErrorWarningLine, RiScales3Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
@@ -313,14 +314,17 @@ export default function GardenSignalPoolView({
               {hasReadError ? (
                 // Read failures fill this reserved region (they never mount as a
                 // banner above content) so a failed load does not shift layout.
-                <div className="flex min-h-40 flex-col items-center justify-center gap-3 text-center">
-                  <p className="type-body text-text-soft">
-                    {formatMessage({ id: "app.conviction.errorLoadingFailed" })}
-                  </p>
-                  <AdminButton type="button" variant="tonal" size="sm" onClick={retryReads}>
-                    {formatMessage({ id: "app.common.retry" })}
-                  </AdminButton>
-                </div>
+                <EmptyState
+                  tone="error"
+                  icon={<RiErrorWarningLine />}
+                  title={formatMessage({ id: "app.conviction.loadError.title" })}
+                  description={formatMessage({ id: "app.conviction.loadError.description" })}
+                  action={
+                    <AdminButton type="button" variant="tonal" size="sm" onClick={retryReads}>
+                      {formatMessage({ id: "app.common.retry" })}
+                    </AdminButton>
+                  }
+                />
               ) : itemsLoading || weightsLoading ? (
                 // Skeleton rows match the loaded row height so the section
                 // does not shift when weights land.
@@ -334,9 +338,7 @@ export default function GardenSignalPoolView({
                   <div className="h-16 rounded-md skeleton-shimmer" />
                 </div>
               ) : registeredIds.length === 0 ? (
-                <p className="flex min-h-40 items-center justify-center text-center type-body text-text-soft">
-                  {formatMessage({ id: emptyKey })}
-                </p>
+                <EmptyState icon={<RiScales3Line />} title={formatMessage({ id: emptyKey })} />
               ) : (
                 <div className="space-y-2">
                   {registeredIds.map((itemId) => {

@@ -169,7 +169,8 @@ export const QueuedCreation: Story = {
 
 /**
  * The same request for a wallet reader after its send failed on the wallet's network. Nothing
- * sends it for them, so the row says it was not sent, names the network, and offers both acts.
+ * sends it for them, so the row says it was not sent, leads its details with its units and
+ * names the network after them (whole on hover), and offers both acts.
  */
 export const QueuedCreationWalletNotSent: Story = {
   tags: ["storybook-ci"],
@@ -188,6 +189,7 @@ export const QueuedCreationWalletNotSent: Story = {
       canvasElement.querySelector("[data-component=PendingCreationRow]") as HTMLElement
     );
     await expect(row.getByText("Not sent")).toBeVisible();
+    await expect(row.getByText("6 hours")).toBeVisible();
     await expect(row.getByText(/needs to be on Arbitrum One/)).toBeVisible();
     await expect(row.queryByText(/sends when you are connected/i)).toBeNull();
     await expect(row.getByRole("button", { name: "Send Now" })).toBeEnabled();
@@ -260,9 +262,11 @@ export const Loading: Story = {
     // No ⓘ while loading: it would slide as the line becomes the count. No + either.
     await expect(canvas.queryByRole("button", { name: "What this pool is for" })).toBeNull();
     await expect(canvas.queryByRole("button", { name: "Offer or Request" })).toBeNull();
-    const rows = canvasElement.querySelectorAll("[data-skeleton=commitment-row]");
+    // The item row's own frame, led by the icon tile the promises arrive with.
+    const rows = canvasElement.querySelectorAll("[data-skeleton=item-row]");
     await expect(rows).toHaveLength(4);
     await expect(rows[0].getBoundingClientRect().height).toBe(88);
+    await expect(rows[0].querySelector(".gg-item-row-tile")).not.toBeNull();
   },
 };
 

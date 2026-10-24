@@ -124,10 +124,9 @@ export const NoWorkYet: Story = {
   args: { works: [] },
   play: async ({ args }) => {
     await expect(
-      await screen.findByText(
-        "No matching work yet. Choose a requirement below to submit new work."
-      )
+      await screen.findByRole("heading", { name: "No matching work yet" })
     ).toBeVisible();
+    await expect(screen.getByText("Choose a requirement below to submit new work.")).toBeVisible();
     const rows = within(screen.getByRole("list", { name: "Promise requirements" }));
     await userEvent.click(rows.getByRole("button", { name: "Submit work for requirement 2" }));
     await expect(args.onSubmitRequirement).toHaveBeenCalledOnce();

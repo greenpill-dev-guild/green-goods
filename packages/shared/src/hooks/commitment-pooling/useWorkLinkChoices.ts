@@ -97,6 +97,7 @@ export function useWorkLinkChoices(input: {
                   approvedCount: requirement.approvedCount,
                   requiredCount: requirement.requiredCount,
                   dueDate: detail.commitment.dueDate,
+                  direction: detail.commitment.direction,
                   returnTo: workLinkReturnTo(
                     input.returnGarden as Address,
                     detail.commitment.commitmentId

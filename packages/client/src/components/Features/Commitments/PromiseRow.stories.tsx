@@ -6,7 +6,8 @@ import ptMessages from "@green-goods/shared/i18n/pt";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
 import { expect, fn, within } from "storybook/test";
-import { CommitmentRow } from "./CommitmentRow";
+import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
+import { PromiseRow } from "./PromiseRow";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
 const OTHER = "0x2222222222222222222222222222222222222222" as Address;
@@ -43,12 +44,13 @@ function row(overrides: Partial<InboxCommitment> = {}): InboxCommitment {
 }
 
 /**
- * One commitment as a member sees it in their own list: what it is, which
- * side they are on, where it stands, and whether it is waiting on them.
+ * One commitment as a member sees it in their own list, on the shared commitment row:
+ * offer or request on its icon, where it stands or that it waits on them in its one pill,
+ * and when it is due and who is on the other side on the detail line.
  */
-const meta: Meta<typeof CommitmentRow> = {
-  title: "Client/Commitments/CommitmentRow",
-  component: CommitmentRow,
+const meta: Meta<typeof PromiseRow> = {
+  title: "Client/Commitments/PromiseRow",
+  component: PromiseRow,
   tags: ["autodocs", "storybook-ci"],
   globals: { viewport: { value: "mobile" } },
   decorators: [
@@ -62,7 +64,7 @@ const meta: Meta<typeof CommitmentRow> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof CommitmentRow>;
+type Story = StoryObj<typeof PromiseRow>;
 
 export const ProviderNeedsYou: Story = {
   args: { row: row() },
@@ -73,19 +75,20 @@ export const ProviderNeedsYou: Story = {
   },
 };
 
-/** Named, with nothing waiting on the reader and no seat: the units take the qualifier. */
+/** Named, with nothing waiting on the reader and no seat: the units live on the promise. */
 export const Named: Story = {
   args: { row: row({ seat: null, needsYou: false }), title: "Compost delivery to the beds" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Compost delivery to the beds")).toBeVisible();
-    await expect(canvas.getByText("3 hours")).toBeVisible();
+    await expect(canvas.queryByText("3 hours")).not.toBeInTheDocument();
+    await expect(canvas.getByText("In progress")).toBeVisible();
   },
 };
 
 /**
- * One 88px row whatever it says: a long title takes two lines, and the 12px pill
- * and one qualifier share the line under it.
+ * One 88px row whatever it says: a long title keeps one line and shows in full on hover,
+ * with the pill under it and the due date and the other person on the line below.
  */
 export const LongTitleNeedsYou: Story = {
   args: {
@@ -99,13 +102,14 @@ export const LongTitleNeedsYou: Story = {
     const rowElement = canvas.getByRole("button", { name: /Repair the north fence panel/ });
     await expect(rowElement.getBoundingClientRect().height).toBe(88);
     const titleElement = within(rowElement).getByText(/Repair the north fence panel/);
-    await expect(titleElement.getBoundingClientRect().height).toBeLessThanOrEqual(40);
+    await expect(titleElement).toHaveAttribute("title", expect.stringContaining("first frost"));
     await expect(within(rowElement).getByRole("status").getBoundingClientRect().height).toBe(22);
     await expect(canvas.getByText("Needs you")).toBeVisible();
+    await expectItemRowsFit(canvasElement);
   },
 };
 
-/** A request carries the information edge; an offer, the primary one (DL-052). */
+/** A request leads with the helping hand, named for screen readers; its edge follows its pill. */
 export const Request: Story = {
   args: {
     row: row({
@@ -120,10 +124,10 @@ export const Request: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("button", { name: /3 rides/ })).toHaveAttribute(
-      "data-direction",
-      "REQUEST"
-    );
+    const rowElement = canvas.getByRole("button", { name: /3 rides/ });
+    await expect(rowElement).toHaveAttribute("data-direction", "REQUEST");
+    await expect(within(rowElement).getByRole("img", { name: "Request" })).toBeVisible();
+    await expect(rowElement).toHaveAttribute("data-edge", "info");
   },
 };
 
@@ -153,18 +157,25 @@ export const OnTheTeam: Story = {
     }),
   },
   play: async ({ canvasElement }) => {
-    // Team size lives on the promise; the row says how the reader is involved.
+    // Team size and how the reader helps live on the promise; the row names the lead.
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("You are helping with this")).toBeVisible();
+    await expect(canvas.getByText("0x22...222")).toBeVisible();
+    await expect(canvas.queryByText("You are helping with this")).not.toBeInTheDocument();
     await expect(canvas.queryByText("3 people on the team")).not.toBeInTheDocument();
   },
 };
 
+/** A send that gave up replaces the state in the pill, and outranks Needs you. */
 export const SendFailed: Story = {
-  args: { row: row({ needsYou: false }), sendFailed: true },
+  args: { row: row({ needsYou: true }), sendFailed: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Didn't send")).toBeVisible();
+    await expect(canvas.queryByText("Needs you")).not.toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: /3 hours/ })).toHaveAttribute(
+      "data-edge",
+      "error"
+    );
   },
 };
 
@@ -204,7 +215,7 @@ export const QuantityGrammar: Story = {
             <p className="text-xs font-semibold uppercase">{locale}</p>
             {quantityUnits.flatMap((unit, unitIndex) =>
               ([1n, 2n] as const).map((count) => (
-                <CommitmentRow
+                <PromiseRow
                   key={`${unit}-${count}`}
                   row={row({
                     commitment: commitment({
@@ -238,5 +249,93 @@ export const QuantityGrammar: Story = {
         await expect(localized.getByText(quantity)).toBeVisible();
       }
     }
+  },
+};
+
+const DUE = BigInt(Math.floor(Date.UTC(2026, 9, 24, 15) / 1000));
+const catalogs = { en: enMessages, es: esMessages, pt: ptMessages } as const;
+
+/** What a garden's To confirm tab shows: what kind of ask it is leads the details. */
+export const ToConfirm: Story = {
+  args: {
+    row: row({
+      commitment: commitment({ creator: OTHER, leadProvider: OTHER, dueDate: DUE }),
+      seat: "confirmer",
+      needsYou: true,
+    }),
+    title: "Repair the drip line",
+    kind: "Garden claim",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Garden claim")).toBeVisible();
+    await expect(canvas.getByText("Needs you")).toBeVisible();
+  },
+};
+
+/**
+ * Every seat and state at the app's phone columns (320, 360 and 390px phones) in English,
+ * Spanish and Portuguese: each row 88px, and every detail whole or dropped whole.
+ */
+export const FitsEveryLanguage: Story = {
+  globals: { viewport: { value: "desktop" } },
+  render: () => (
+    <div className="flex flex-col gap-8">
+      {(Object.keys(catalogs) as (keyof typeof catalogs)[]).map((locale) => (
+        <IntlProvider key={locale} locale={locale} messages={catalogs[locale]}>
+          <section className="flex flex-wrap items-start gap-4" data-locale={locale}>
+            {[288, 328, 358].map((width) => (
+              <div key={width} className="flex flex-col gap-(--gg-list-gap)" style={{ width }}>
+                <PromiseRow
+                  row={row({ commitment: commitment({ dueDate: DUE }) })}
+                  title="Water the seedlings weekly until the first rains"
+                  onOpen={() => {}}
+                />
+                <PromiseRow
+                  row={row({
+                    commitment: commitment({
+                      direction: "REQUEST",
+                      creator: OTHER,
+                      leadProvider: VIEWER,
+                      counterparty: VIEWER,
+                      derivedState: "EVIDENCE_SUBMITTED",
+                      dueDate: DUE,
+                    }),
+                    seat: "provider",
+                    needsYou: false,
+                  })}
+                  title="Repair the drip line on the north beds"
+                  onOpen={() => {}}
+                />
+                <PromiseRow
+                  row={row({ commitment: commitment({ dueDate: DUE }), needsYou: false })}
+                  title="Run a composting workshop"
+                  sendFailed
+                  onOpen={() => {}}
+                />
+                <PromiseRow
+                  row={row({
+                    commitment: commitment({
+                      creator: OTHER,
+                      leadProvider: OTHER,
+                      derivedState: "FULFILLED",
+                      onchainState: "FULFILLED",
+                      dueDate: DUE,
+                    }),
+                    seat: "contributor",
+                    needsYou: false,
+                  })}
+                  title="Turn the compost bays"
+                  onOpen={() => {}}
+                />
+              </div>
+            ))}
+          </section>
+        </IntlProvider>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
   },
 };

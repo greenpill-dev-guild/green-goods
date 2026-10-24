@@ -958,3 +958,65 @@ did the same beside an initial in a circle and a yield bar.
 - The app capture's first run clicked a role named "tab" for the garden's sections; the garden page
   draws them as buttons (`data-testid="tab-gardeners"`), and the wallet's send picker sits behind
   its Send mode. Rig behaviour, not the product's.
+
+## Step 15 build: commitment cards
+
+Run on 2026-10-24 against `develop` `3c4fd4b62`, with step 15 on
+`feature/app-cockpit-commitment-cards` (`bec8aa00c`, the glyph fix `cb32a9374` and the queued
+units `e1dd6c661`). The picks were locked on 18 October, so the pairs are acceptance evidence. The
+before frames come from a detached `develop` worktree served beside the branch. Frames that show
+live gardens stay out of the repository; the pairs went to the maintainer as a private artifact.
+
+**Pairs.** Headless Chromium (Playwright) at device scale 2 with reduced motion.
+
+- **Storybook**, both surfaces: every commitment list's component stories before and after, in
+  light and dark. The app's promise row in every seat and state (needs you, named, a long title,
+  a request, a confirmer waiting, on the team, didn't send, settled, record only, quantities),
+  the group row (available, none, unknown, in a list, four counts in English, Spanish and
+  Portuguese), the pinned promise (proof and work), the promise page's queue notice in all eleven
+  queue states, the garden's Promises tab (live, three queued creations, settled, visitor,
+  protocol pool, loading, empty, failed, offline) and a group's page; the cockpit's Offers and
+  Requests (open, a group, a group whose copy didn't send, past due, needs recovery, queued,
+  queued while sending, queued needing attention, empty, a deferred reward, partial
+  documentation), the group row (five days in, one didn't send, finishing) and the Promises tab.
+  129 before frames and 139 after frames at 390, 768 and 1280px, the after set adding the shared
+  row's stories and the app's To confirm row.
+
+**Fit after** (Storybook, each row's box measured in Chromium; a detail counts as dropped when it
+sits below its line's clip):
+
+| List | Columns | Rows | Height | Dropped whole | Ellipsis | Cut or wrapped |
+|---|---|---|---|---|---|---|
+| App promise rows, four seats and states | 288, 328, 358px in en, es, pt | 36 | 88px | none | none | 0 |
+| Shared row, every queue and act state | 288, 328, 358px in en, es, pt | 54 | 88px | the due date after a queued promise's reason, at every width | the queued reason, at every width | 0 |
+| App group row, four counts | 384px in en, es, pt | 3 | 88px | the remaining counts in es and pt | none | 0 |
+
+Titles keep one line and end in an ellipsis with the full title on hover, as the picks set.
+
+**Behavior.** The promise rows open their promise as before; the group row opens its group; a
+queued row's Discard and send keep their guards (Discard only where the queue allows it, the send
+disabled while offline, busy, deferred or past the group's deadline); the cockpit's Expire Now…
+and Finish Creating keep theirs. The focused tests check the shared row's rules (the direction
+named, the pill precedence and its edge, the other person from each seat, a state's words leading
+the line), the app's rows in the Promises sheet and the garden's tab, and the cockpit's queued
+row, whose act phase line still announces each phase.
+
+**Found on the way.** The first live pair named the reader on their own requests nobody had
+taken up: the confirmer seat fell back to the person who asked, who was the reader. A confirmer or
+a helper now reads only whoever does the promise (`ed5d6fdd9`); the row test reproduces it, failing
+without the fix and passing with it. Plus Jakarta Sans's contextual alternates drew the x of a
+short address ("0x2") as a times sign on the detail line; the line now turns them off
+(`cb32a9374`). The read model's direction can be `UNKNOWN`, which the client typecheck caught in
+the push gate; the row names only an offer or a request (`0f09678aa`). The app's
+queued creation led every request with the offer's seedling. Every `StatusBadge` pill is a polite
+live region, so a pill that changes is announced.
+
+**Found in review.** Codex found that a titled promise still on the device showed its units
+nowhere, since it has no page yet; they now lead its line, so in the app its reason drops whole
+where the fit table above shows an ellipsis, with its full words on hover and for screen readers
+(`86682e319`; the shared row's own stories pass no units, so the table stands for them). The same
+commit reads the zero address as nobody and starts no name lookups for a person the line cannot
+show. Two stories still looked for what the rows replaced (`2e961e4b2`, `8120d6e81`, the second
+caught by Storybook CI). Submit Work's pinned promise drew every promise with an unnamed seedling;
+the live work-link choice is built from the full commitment, so it now carries the direction and a
+request's pin leads with the helping hand, named (`e80272b9d`).

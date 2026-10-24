@@ -297,3 +297,15 @@ Members keeps a chip and a remove per role, the Add Members queue and a promise'
 their own rows, and the group inspector's rows stay promise rows; the
 [UI handoff](handoffs/claude-ui.md#step-17-people-rows-prd-1284) lists the calls the pairs raise.
 DL-112 and its guide wording are the standards-only `feature/app-cockpit-people-rows-guides`.
+
+**Step 15 (24 October).** `feature/app-cockpit-commitment-cards` puts every promise in a list on
+Shared's new `CommitmentRow`, the item row led by the offer or request icon: the app's promise rows
+(now `PromiseRow`), group rows, pending creations, the series offered over time and the pinned
+promise, and the cockpit's Offers and Requests rows, group rows and queued rows. The one pill takes
+"Needs you", "Past due" or a queue or act state ("Confirming…", "Not sent", "Didn't send"), the
+edge follows it, and the detail line gives the due date, then the other person. The app's
+commitment cards now live in one folder and the cockpit keeps only route assembly; the step 11
+states left for this step moved onto the state block. DL-110, which supersedes DL-052's direction
+edge, and the guide wording are the standards-only `feature/app-cockpit-commitment-cards-guides`
+([handoff](handoffs/claude-ui.md#step-15-commitment-cards-prd-1281),
+[eval.md](eval.md#step-15-build-commitment-cards)).

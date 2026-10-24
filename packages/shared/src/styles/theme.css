@@ -2236,11 +2236,14 @@
    * a detail that does not fit wraps below the clip and drops whole, separator
    * and all, last first. A first detail too long on its own ends in an
    * ellipsis. */
+  /* Details name people, often by a short address: Plus Jakarta Sans's contextual
+   * alternates would draw "0x2" as "0×2", so the line keeps the plain glyphs. */
   .gg-item-row-details {
     max-inline-size: 100%;
     block-size: var(--gg-type-meta-sm-line);
     overflow: hidden;
     color: rgb(var(--text-sub-600));
+    font-variant-ligatures: no-contextual;
   }
 
   .gg-item-row-detail-list {

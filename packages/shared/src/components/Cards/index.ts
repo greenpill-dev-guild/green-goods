@@ -14,6 +14,13 @@ export {
   cardVariants,
   surfaceCardVariants,
 } from "./CardBase";
+// CommitmentRow: one promise in a list on both surfaces, on the item row
+export {
+  CommitmentRow,
+  type CommitmentRowDirection,
+  type CommitmentRowPending,
+  type CommitmentRowProps,
+} from "./CommitmentRow";
 // FactRow: the facts about one thing, a label beside its value (DL-109)
 export { FactList, type FactListProps, FactRow, type FactRowProps } from "./FactRow";
 // ItemRow: one item in a list on both surfaces (F7)
