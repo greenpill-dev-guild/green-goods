@@ -235,6 +235,43 @@
 - Not in the step: the shared `Chip` the cockpit renders (`ConfidenceSelector`, `AssetSelector`)
   still selects in the app's green, not the workspace tone.
 
+## Step 9: phone sheets (PRD-1275)
+
+- F5 was locked on 18 October, so the pairs ([eval.md](../eval.md#step-9-proof-phone-sheets)) are
+  acceptance evidence, not a gate. Built on `feature/app-cockpit-phone-sheets`, cut from
+  `develop` `d84d48398`.
+- Shared: the grip is `SheetGrip`, a named export on the existing `components/Dialog/SheetHeader`
+  leaf (no new export path), a drag region only when a sheet binds the gesture to it; the bottom
+  sheet's material is one `[data-sheet-surface]` rule in `utilities.css` that `PwaSheet` carries
+  too, reading `--gg-sheet-fill` and `--gg-sheet-edge` with the installed app's values as
+  fallbacks; `SheetHeader` gains a `target` line between the title and the description and reads
+  `--gg-sheet-title-size` and `--gg-sheet-title-line`; the scroll-edge hairline and its cover
+  follow the sheet's own edge and fill.
+- Cockpit: below 640px `AdminDialog` and `AdminSideSheet` carry the material and the grip, which
+  marks the sheet and does not drag it, and their header is the shared `SheetHeader` through
+  `AdminDialogHeader` (the dialog's header, centered or phone, in one place). Flows and the command
+  palette keep their own header under the grip, with the dialog's close moved down below it.
+  `index.css` sets the four `--gg-sheet-*` tokens (the card step and its hairline, re-declared in
+  the dark block, and the 22px dialog title), mirrored in Storybook and pinned by
+  `AdminDensityScale.guard`. From 640px nothing changes.
+- Proof: focused tests run the same behavior on both presentations (focus lands on Close when the
+  dialog opens and returns to the opener through `finalFocusRef`; Close and Escape close it;
+  `preventClose` holds both), and pin the phone anatomy (the material attribute, a grip without a
+  drag region, the shared header's order and accessible description, the side sheet's phone form),
+  `SheetHeader`'s target line, `SheetGrip`'s grab region and the CSS contracts. Storybook geometry
+  stories pin the phone header, grip, 22px title and white surface, and the flow's close under the
+  grip. The look is **Storybook** (cockpit) and **mock-auth localhost** (app) pairs; no
+  authenticated class is involved.
+- Guides: DL-104 and its wording in both surface guides, the prompt contract, Rule 18's elevation
+  line, the review checklist, `language.md`, `implementation.md` and `interaction-patterns.md`
+  are the standards-only `feature/app-cockpit-phone-sheets-guides`, with token version 2.26.0.
+- Open: whether the grip also drags the sheet closed in the cockpit.
+- Not in the step: the centered dialog's header keeps 24px of right padding from 640px, so a long
+  title can run under its close button (a desktop defect on `develop`); the cockpit sheet's enter
+  keyframe keeps its 2% overshoot, which DL-033 removed from the app's sheet. Storybook's dark
+  `--surface-raised` mirror (neutral-900, where the cockpit uses the card step) skewed the dark
+  pairs' footer, so the step corrects it.
+
 ## Step 21: bottom bar active pill (PRD-1288)
 
 - `feature/app-cockpit-bar-pill`, cut from `develop` `d84d48398`: `AppBar` draws each tab's line

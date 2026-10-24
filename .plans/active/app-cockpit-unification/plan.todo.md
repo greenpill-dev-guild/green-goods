@@ -205,6 +205,15 @@ DL-101, which makes a selected chip the tone's sixth use, are the standards-only
 class and gave Storybook and the portals Community's amber ramp; its contrast guard now covers
 the selected chip too.
 
+**Step 9 (23 October).** Below 640px the cockpit's dialogs and its side sheet take the installed
+app's bottom sheet: the shared sheet material and grip and the shared `SheetHeader` at their own
+22px title, built from Shared's pieces (`SheetGrip`, one `[data-sheet-surface]` rule, a target line
+in the header) and four cockpit tokens. Radix still opens, closes and dismisses them, and the
+centered dialog from 640px does not change. The grip marks the sheet and does not drag it; whether
+it should drag in the cockpit is still open. The code is on `feature/app-cockpit-phone-sheets`,
+and DL-104 with its guide wording is the standards-only `feature/app-cockpit-phone-sheets-guides`;
+[eval.md](eval.md#step-9-proof-phone-sheets) records the pairs and the behavior proof.
+
 **Step 21 (23 October).** The installed app's bottom bar takes the cockpit's pill in its green on
 `feature/app-cockpit-bar-pill`: a 56 × 32 pill of the new app-scoped `--primary-container` behind
 the line icon in `--primary-container-foreground`, the active label in ink at weight 600, and every

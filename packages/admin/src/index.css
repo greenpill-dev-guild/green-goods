@@ -177,6 +177,16 @@
   --gg-type-field-line: 1.25rem;
   --gg-type-field-tracking: 0px;
 
+  /* The phone sheet (F5): below 640px the cockpit's dialogs take the shared
+     bottom sheet's material, grip and header. The sheet is the card step of the
+     one ladder with the card's hairline, as in the installed app (white and
+     neutral-200 in light; the dark block below re-declares both so a dark scope
+     resolves its own), and the header keeps the cockpit's 22px dialog title. */
+  --gg-sheet-fill: rgb(var(--admin-surface-0));
+  --gg-sheet-edge: rgb(var(--neutral-200));
+  --gg-sheet-title-size: var(--gg-type-title-lg-size);
+  --gg-sheet-title-line: var(--gg-type-title-lg-line);
+
   /* The shared card surface (F7) on the cockpit's own ladder: its white card,
      which flips to the warm card step in dark (re-declared in the dark block
      below, since this value resolves where it is declared), with the installed
@@ -189,6 +199,12 @@
   :root {
     --gg-type-field-size: 0.875rem;
   }
+}
+
+/* The phone sheet in dark: the lifted card (earth-850) and its hairline. */
+[data-theme="dark"] {
+  --gg-sheet-fill: rgb(var(--admin-surface-0));
+  --gg-sheet-edge: rgb(var(--earth-700));
 }
 
 /* Base layer: Admin-specific element resets */

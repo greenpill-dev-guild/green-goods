@@ -123,6 +123,13 @@
   --gg-type-field-line: 1.25rem;
   --gg-type-field-tracking: 0px;
 
+  /* The phone sheet (F5), as index.css `:root` sets it, with its dark pair in
+     the dark block below. */
+  --gg-sheet-fill: rgb(var(--admin-surface-0));
+  --gg-sheet-edge: rgb(var(--neutral-200));
+  --gg-sheet-title-size: var(--gg-type-title-lg-size);
+  --gg-sheet-title-line: var(--gg-type-title-lg-line);
+
   /* The shared card surface on the cockpit's ladder, as index.css `:root`
      sets it (its dark block re-declares the two below). */
   --gg-card-surface: var(--admin-surface-0);
@@ -153,6 +160,8 @@
   --g-soft-bg: rgb(var(--green-400) / 0.16);
   --g-soft-fg: rgb(var(--green-300));
   --g-on-action: rgb(var(--neutral-950));
+  --gg-sheet-fill: rgb(var(--admin-surface-0));
+  --gg-sheet-edge: rgb(var(--earth-700));
   --gg-card-surface: var(--admin-surface-0);
   --gg-card-edge: var(--earth-700);
 }

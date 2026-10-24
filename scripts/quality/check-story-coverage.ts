@@ -98,6 +98,11 @@ const NON_VISUAL_ADMIN_COMPONENTS = new Set<string>([
   // The visible boot frames (`BootSurface.tsx`) carry the story.
   "components/Boot/AdminRoot.tsx",
   "components/Boot/bootAdmin.tsx",
+
+  // The dialogs' header renders only inside a Radix dialog (it names and
+  // describes it); AdminDialog's and AdminSideSheet's stories carry its
+  // centered and phone states, icon and target line included.
+  "components/AdminDialogHeader.tsx",
 ]);
 
 /**
