@@ -416,9 +416,10 @@ display-size digits and editorial type sit centered inside it instead of growing
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
 required; a header launcher's count or status dot rides its `badge` slot), `Chip` (a 32px capsule
 toggle with a 44px hit area), `Switch` (a 44 × 24 track with a 44px hit box), `CountBadge` (every
-count on both surfaces, DL-099: a 16px capsule with 11px numerals at weight 600 on the action pair,
-the cockpit's on its workspace tone's accent; a 2px ring of the surface behind it on an icon or a
-control's edge and none beside a label; 99+ above 99, 9+ on the app's bottom bar). All live in
+count on both surfaces, DL-099: a capsule 16px tall and at least 16px wide, with 11px numerals at
+weight 600 on the action pair, the cockpit's on its workspace tone's accent; a 2px ring of the
+surface behind it on an icon or a control's edge and none beside a label; 99+ above 99, 9+ on the
+app's bottom bar). All live in
 `@green-goods/shared`. Composite pieces ride the same anatomy: `DatePicker` and `FileUploadField`
 are field-shaped triggers (`gg-control`), `ConfidenceSelector` and `AssetSelector` are radio
 chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-031).
