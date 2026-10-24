@@ -25,17 +25,24 @@ export {
   ItemRowSkeleton,
   type ItemRowTone,
 } from "./ItemRow";
-// GardenCard
+// ActionPicker: one action picker on both surfaces (DL-111)
+export { ActionPicker, type ActionPickerLayout, type ActionPickerProps } from "./ActionPicker";
+// GardenCard and the garden picker
 export {
   GardenCard,
   type GardenCardData,
-  type GardenCardLabels,
   type GardenCardProps,
-  type GardenCardVariantProps,
-  gardenCardVariants,
+  GardenPicker,
+  type GardenPickerProps,
 } from "./GardenCard";
 // MediaCard: the card shape for an object with a picture of its own
-export { MediaCard, type MediaCardLayout, type MediaCardProps } from "./MediaCard";
+export {
+  MediaCard,
+  type MediaCardLayout,
+  type MediaCardProps,
+  type MediaCardShape,
+  MediaCardSkeleton,
+} from "./MediaCard";
 // PersonRow: one person in a list on both surfaces, an item row led by their avatar
 export { PersonRow, type PersonRowProps } from "./PersonRow";
 // VaultPositionCard

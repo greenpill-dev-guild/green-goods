@@ -4,15 +4,6 @@ import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Garden } from "@green-goods/shared/types/domain";
 
-vi.mock("@/components/Cards/Garden/GardenCard", () => ({
-  GardenCard: ({ garden }: { garden: Garden }) =>
-    createElement("button", { type: "button" }, garden.name),
-}));
-
-vi.mock("@/components/Cards/Garden/GardenCardSkeleton", () => ({
-  GardenCardSkeleton: () => createElement("div", { "data-testid": "garden-card-skeleton" }),
-}));
-
 import { GardenList } from "../../views/Home/GardenList";
 
 const garden = {
@@ -55,7 +46,7 @@ describe("GardenList", () => {
   it("keeps warm cached gardens visible when an offline refresh fails", () => {
     renderGardenList({ isError: true, isOnline: false });
 
-    expect(screen.getByRole("button", { name: "Cached Garden" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cached Garden/ })).toBeInTheDocument();
     expect(screen.queryByText("No gardens found")).not.toBeInTheDocument();
   });
 

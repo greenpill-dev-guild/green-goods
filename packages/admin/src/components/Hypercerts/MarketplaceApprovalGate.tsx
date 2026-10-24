@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useMarketplaceApprovals } from "@green-goods/shared/hooks/hypercerts/useMarketplaceApprovals";
 import { getMarketplaceReadiness } from "@green-goods/shared/utils/blockchain/contracts";
 import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
@@ -90,15 +91,14 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 rounded-lg border border-stroke-soft bg-bg-white p-8">
-        <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-        <span className="type-body text-text-soft">
-          {formatMessage({
-            id: "app.marketplace.checkingApprovals",
-            defaultMessage: "Checking marketplace approvals...",
-          })}
-        </span>
-      </div>
+      <EmptyState
+        busy
+        icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+        title={formatMessage({
+          id: "app.marketplace.checkingApprovals",
+          defaultMessage: "Checking marketplace approvals...",
+        })}
+      />
     );
   }
 

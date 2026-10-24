@@ -276,6 +276,15 @@ move onto the state block. DL-113 and its guide lines are the standards-only #12
 ([handoff](handoffs/claude-ui.md#step-18-jar-and-vault-cards-prd-1285),
 [eval.md](eval.md#step-18-build-jar-and-vault-cards)).
 
+**Step 16 (24 October).** `feature/app-cockpit-pickers-records` gives both surfaces one action
+picker, Shared's `ActionPicker`: media cards with the action's banner in one listbox with one
+tab stop, a row that scrolls sideways in the app's Submit Work and a grid in the cockpit's. The
+app's garden card is the shared media card with its banner (Home's list, a work's page, and Submit
+Work's garden picker on the same listbox), and assessments and hypercerts are item rows on both
+surfaces. The twenty states step 11 left in the hypercert and action screens take the state block.
+DL-111 and its guide wording are the standards-only `feature/app-cockpit-pickers-records-guides`
+([handoff](handoffs/claude-ui.md#step-16-pickers-and-record-cards-prd-1283)).
+
 **Step 17 (24 October).** `feature/app-cockpit-people-rows` puts every list of people on Shared's
 new `PersonRow`: the item row led by the person's 56px round avatar, their name from the shared
 address display (which gains a render-prop for it), their highest role as the row's one chip and
