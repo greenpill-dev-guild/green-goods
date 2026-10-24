@@ -166,9 +166,11 @@
     contain-intrinsic-size: auto var(--gg-item-row-height);
   }
 
+  /* A garden's media card: the 104px banner and a 68px body inside its 1px edge, so
+     an off-screen card holds the 174px it takes once drawn. */
   .cv-garden-card {
     content-visibility: auto;
-    contain-intrinsic-size: auto 180px;
+    contain-intrinsic-size: auto 172px;
   }
 
   .cv-draft-card {

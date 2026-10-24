@@ -1,6 +1,6 @@
 # One Look for the App and the Cockpit — Evaluation
 
-**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); step 2's proof ran on 2026-10-23 ([below](#step-2-proof-ground-and-dark-ladder)); the design gate for the count badge (step 4) ran and was approved on 2026-10-23 ([below](#design-gate-for-the-count-badge)); review results pending.
+**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); step 2's proof ran on 2026-10-23 ([below](#step-2-proof-ground-and-dark-ladder)); the design gate for the count badge (step 4) ran and was approved on 2026-10-23 ([below](#design-gate-for-the-count-badge)); acceptance pass 1 ran on 2026-10-24 ([below](#acceptance-pass-1)); the product validation round is pending.
 
 ## Product validation
 
@@ -47,6 +47,56 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A21 | One height | Every card in a list is the same height on both surfaces, in every state, action and language; the pill under the title never makes a row grow. |
 | A22 | One pill per card | A card shows one pill, its status; an error, a retry or a pending state replaces it, feedback is a detail, and the photo count sits on the photo. |
 | A23 | Field messages (F3) | Fields reserve two message lines in the app and in the cockpit (DL-105, since 6 of the cockpit's 32 messages under side-by-side fields wrap at 640px); a message that fits the reserve never moves the form, and a longer one grows the slot rather than scrolling; the longest Spanish and Portuguese cockpit messages are measured in two-column forms at 640px. |
+
+## Acceptance pass 1
+
+Run on 2026-10-24 against `develop` `8476dbd80`: steps 1 to 19 and 21 with step 12's look, plus
+step 20's phases 3 and 4. Phase 1 (buttons, #1256), phase 2 (fields and chips, #1255) and the
+rename pass had not landed, so their families are rechecked when they merge. Every frame is headless
+Chromium (Playwright) at device scale 2, measured in the DOM: clipped and truncated text, tab cells, count
+badges, card heights, gaps, corners and edges, each card against its ground, pills per card, detail
+lines, ages, state blocks, the bars' pills, translucent surfaces and sideways scroll.
+
+- **mock-auth localhost** (Arbitrum One, production indexer, `?mockAuth=deployer`): the app's Home,
+  a garden's four tabs and Profile, and the cockpit's Hub, Garden, Community and Actions with every
+  tab, at 320, 360, 390, 768 and 1280px, in English, Spanish and Portuguese in light and English in
+  dark: 460 measured frames. The cockpit's Cookies route rendered nothing within four minutes in two
+  runs and is unverified.
+- **Storybook**: 30 catalog stories (the work card's mosaic, the tab rail, the item, person,
+  commitment and garden rows, the media and work cards, field messages, sheets and dialogs, count
+  badges and the state block) at the same widths in light and dark: 300 frames.
+- **localhost, signed out**: five public routes against the tree before step 1 (`870600083`), at
+  390 and 1280px in light and dark.
+- A read-only code audit covered A15 to A19.
+- **Pending:** authenticated Brave for wallet and passkey signing, the queue and offline uploads, and
+  installed-PWA behavior (the static loading screen, safe areas, the bar under a sheet). Keyboard
+  behavior rests on the stories' plays in CI.
+
+| ID | Pass 1 | Evidence and findings |
+|---|---|---|
+| A1 | pending on the app and the cockpit | Pass 1 compared against the tree before step 1 only on the public website, whose routes and element order match (A13). It walked the app's and the cockpit's routes without that baseline, so their flow comparison is pending. |
+| A2 | fails in es/pt at 320 to 360px | One family on both surfaces. The cockpit's vault row cuts its status pill in Spanish and Portuguese ("Depósitos desha…"). Titles truncate by design. The static loading screen is pending. |
+| A3 | passes | Canvas 250 248 245 in light and 17 12 8 in dark on both surfaces, under white cards and the lifted dark card (DL-097). |
+| A4 | carried | Not re-measured; DL-098's proof stands. |
+| A5 | passes by pointer | One chip shape and selected fill. The Hub's Pending and Approved stay inline, and the app's filter keeps its launcher and count. |
+| A6 | passes | From 640px no cockpit cell on a walked route is wider than 180px, and every row starts at the left; the Create Action instructions, home of the one wider cell A6 allows (Spanish, 191px), were not walked. No label clips, and a cell grows past its share only when its label needs it. Hub, Community and Actions scroll at 320 and 360px, as DL-100 records. |
+| A7 | passes | Every badge is 16px tall and at least 16px wide, with 11px numerals and at least 4.5:1. |
+| A8 | passes | 24px cards with a 1px edge on both surfaces, 16px rows, and 12px between items of one kind. |
+| A9 | passes | The mosaic renders none to four photos with its domain and count, wide and stacked; phones keep the row. |
+| A10 | passes | Card against canvas: 1.26:1 in dark, and 1.06:1 plus the hairline in light, on both surfaces. Chips and wells read on cards. |
+| A11 | passes as rendered | The app's bar is solid under the green pill and the cockpit's dock is translucent under the tone pill; sheets render the shared header. Focus return and Back rest on CI plays; installed-PWA behavior is pending. |
+| A12 | partial | Corners, filters, tone and chrome stay each surface's own. Density does not yet: the confirm and reason dialogs' 40px buttons differ from the cockpit's 32px default until phase 3's call-site pass. |
+| A13 | passes | Public routes match the tree before step 1 in type, buttons, color and layout. Only copy merged meanwhile differs (garden casing, "vault"). |
+| A14 | failed on `develop`, fixed | Four rules in the cockpit's `index.css`, older than the block, drew every cockpit state at a 72px tile, a 22px title and a 16px line. They are removed in pass 1's pull request: 56px, 16px and 14px, as DL-106 sets. Storybook never loads that stylesheet, so `AdminDensityScale.guard` now fails if any cockpit stylesheet targets the block again. |
+| A15 | partial | No Material class remains in the cockpit's views. Material type tokens still set sizes in CSS, their names remain in comments, the DesignMD keys still read `body-md` and `label-md`, and the app uses raw sizes, as the client prompt contract defers. |
+| A16 | passes, with residue | The guides describe solid surfaces and the one dock, and no route renders glass besides the dock. Unused translucent CSS and Storybook-only `glass-surface` remain. |
+| A17 | partial | Cockpit sections and rows in hypercert detail, the signal pool, campaign settings, vault history, garden metadata and the confirm queue draw raised 16px or 12px cards off `.gg-card`. `WorkbenchCard` is not built from a shape, and a few primitives have no consumer. |
+| A18 | partial | Assessment rows are built in four places and hypercert rows in three, and each app builds its own garden jar row. |
+| A19 | partial | Dialogs render the shared header and actions, with the Radix shell as DL-117's exception. Buttons and fields await phases 1 and 2, whose guides already read in the present tense. |
+| A20 | passes | No item row shows a detail in part, in any language at 320 to 390px, and no age is written in words. Older than the unification: the pool's Review Promises row cuts its age to "1 w…" at 360 and 390px. |
+| A21 | fails in Actions | At 320px an action card whose capitals chip wraps is 224px beside 194px. Home's off-screen garden cards held the old 182px placeholder against 174px drawn; fixed in pass 1's pull request. |
+| A22 | partial | The pool's season, status and funding cards each carry two pills, and action cards set two detail chips beside their status. |
+| A23 | carried | The field stories hold the two-line reserve. The two-column measures wait for phase 2. |
 
 ## Guards the work trips
 
