@@ -723,8 +723,13 @@ named, the pill precedence and its edge, the other person from each seat, a stat
 the line), the app's rows in the Promises sheet and the garden's tab, and the cockpit's queued
 row, whose act phase line still announces each phase.
 
-**Found on the way.** Plus Jakarta Sans's contextual alternates drew the x of a short address
-("0x2") as a times sign on the detail line; the line now turns them off (`cb32a9374`). The app's
+**Found on the way.** The first live pair named the reader on their own requests nobody had
+taken up: the confirmer seat fell back to the person who asked, who was the reader. A confirmer or
+a helper now reads only whoever does the promise (`ed5d6fdd9`); the row test reproduces it, failing
+without the fix and passing with it. Plus Jakarta Sans's contextual alternates drew the x of a
+short address ("0x2") as a times sign on the detail line; the line now turns them off
+(`cb32a9374`). The read model's direction can be `UNKNOWN`, which the client typecheck caught in
+the push gate; the row names only an offer or a request (`0f09678aa`). The app's
 queued creation led every request with the offer's seedling. Every `StatusBadge` pill is a polite
 live region, so a pill that changes is announced.
 
