@@ -107,11 +107,11 @@ Emphasis is carried by fill, outline, and color. The corner belongs to the surfa
 | **Secondary** (outlined, "Cancel" included) | 16px | Capsule | One step tighter in the app: 12px; none on the website | Second actions, "Cancel" (DL-016), "Add Link" |
 | **Tertiary** (text) | No container at rest; 16px fill on hover and focus | Capsule fill on hover and focus | None | Inline actions, a rare third action; 44px hit area |
 | **Icon buttons** | Circle | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
-| **Chips** | Capsule | Capsule | None | Filters and choices; selected uses the action fill (DL-017) |
+| **Chips** | Capsule | Capsule | None | Filters and choices; selected uses the action fill (DL-017), the workspace tone's in the cockpit (DL-101) |
 
 **Rule (DL-026; values DL-029 for the app, DL-089 for the website)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; the 32px compact size keeps that corner's proportion rather than its number, 12px at rest and 8px pressed (`--gg-button-radius-compact`, `--gg-button-radius-compact-pressed`; DL-038), because 16px on a 32px button is a full capsule and stopped reading as one of the app's buttons. On the public website buttons are capsules (`rounded.full`) at every size, at rest and while pressed (DL-089); its editorial cards, dialogs, and panels stay square. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`, and their `-compact` pair) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
 
-**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full`: 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps. The capsule is that set's 9999 step.
+**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full`: 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps. The capsule is that set's 9999 step, and the cockpit's chips take it as the app's do: a selected filter chip fills with the workspace tone's action pair (DL-101).
 
 ### Shape Morphing
 
@@ -380,7 +380,7 @@ The installed app's dark card hairline is `--earth-700` (`67 61 55`, the ink at 
 
 **Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
 
-- **Dual-safe light tones**: light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `purple-700` (7.93; DL-045 moved Actions off the error red), light home `neutral-600`. Hub and community light already passed and are unchanged.
+- **Dual-safe light tones**: light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `purple-700` (7.93; DL-045 moved Actions off the error red), light home `neutral-600`, light community `orange-700`, which the cockpit's amber ramp makes #B45309 (white at 5.02:1, its `orange-800` hover at 7.09:1). That ramp sits on `<body>` in the admin's `index.css`, so the canvas and the dialogs, side sheets and toasts it portals draw one orange; on the shared ramp those portals drew before, `orange-700` carried white at only 4.01:1, and Storybook mirrors the ramp for admin stories. Hub light already passed and is unchanged. The cockpit's filled controls lay the neutral ink layer over their fill and beneath their label (Rule 18), so hover and press deepen a light fill and lift a dark one and never fall below the rest contrast (painted over the label too, the layer took Community's dark pair from 4.58:1 to 3.66:1); `WorkspaceToneContrast.guard` holds every tone at rest and in each state to AA, in both themes, through that ramp, and checks that Storybook's copy matches it.
 - **Light surfaces are the linen ladder**: the M3 containers ride a warm linen family (constant hue ~85, chroma .005–.012, in `admin-m3-tokens.css`), not gray Tailwind neutrals; cards and sheets stay white. This mirrors dark's hue-65 ladder so both modes carry Warm Earth. The installed app takes the same ground (DL-097): white cards on the linen canvas, with a `neutral-200` card hairline (1.18:1 on linen).
 - **`--tone-focus-ring`** is the only token for focus indicators: = `--tone-action` in light, = `--tone-on-surface-accent` in dark (deep fills measure 2.3–2.7 against dark surfaces, below the 3:1 non-text minimum). Never ring with `--tone-action` directly.
 - **Control outline and focus (DL-098)**: the shared fields, chips and secondary buttons draw `--gg-control-outline` (neutral-500 in light, 4.80:1 on white; neutral-400 on the installed app's dark card, 6.14:1; the cockpit's `--m3-outline`), and buttons, chips, fields and the switch draw focus as one solid 2px ring with a 2px offset in the surface's focus role, the cockpit's `--tone-focus-ring` or the installed app's `--focus-ring` (`--primary-on-surface`, mint in dark), in place of the 3px halo (about 1.3:1). The public website keeps its hairline and its halo.
@@ -415,7 +415,11 @@ display-size digits and editorial type sit centered inside it instead of growing
 **Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
 required; a header launcher's count or status dot rides its `badge` slot), `Chip` (a 32px capsule
-toggle with a 44px hit area), `Switch` (a 44 × 24 track with a 44px hit box). All live in
+toggle with a 44px hit area), `Switch` (a 44 × 24 track with a 44px hit box), `CountBadge` (every
+count on both surfaces, DL-099: a capsule 16px tall and at least 16px wide, with 11px numerals at
+weight 600 on the action pair, the cockpit's on its workspace tone's accent; a 2px ring of the
+surface behind it on an icon or a control's edge and none beside a label; 99+ above 99, 9+ on the
+app's bottom bar). All live in
 `@green-goods/shared`. Composite pieces ride the same anatomy: `DatePicker` and `FileUploadField`
 are field-shaped triggers (`gg-control`), `ConfidenceSelector` and `AssetSelector` are radio
 chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-031).
@@ -462,6 +466,8 @@ Admin workspace action/detail flows open in centered `AdminDialog`; the admin ca
 | **Floating Toolbar** | Desktop content zone | Capsule, glass material | Contextual actions, always visible |
 
 **Admin dock**: the cockpit's bottom nav is a flat dock, not a glass capsule: `rgb(var(--admin-surface-0)/0.85)` with 12px blur, a 1px ink ring, and the warm chrome shadow (`0 18px 44px rgb(var(--warm-shadow)/0.14)`); the active item is a tone primary-container pill. The Floating Toolbar row is client/spatial vocabulary. Admin ships no floating toolbar.
+
+**App bar**: the installed app's bottom bar keeps its own chrome, a solid white bar with a hairline and 16px top corners, and takes the dock's active recipe in the app's green (DL-107): a 56 × 32 pill of `--primary-container` (green-100, green-900 in dark) behind the active tab's line icon, drawn in `--primary-container-foreground`, with the label in ink at weight 600. Every tab holds the pill's width, so no tab moves when the active one changes.
 
 **Symbol-first rule** (from Liquid Glass): Persistent navigation uses symbols (icons). Text labels only when the icon is genuinely ambiguous. Don't pair a symbol with text in a way that looks like a single button. If you need text, let it sit on its own container.
 

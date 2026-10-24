@@ -1,6 +1,6 @@
 # One Look for the App and the Cockpit — Evaluation
 
-**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); step 2's proof ran on 2026-10-23 ([below](#step-2-proof-ground-and-dark-ladder)); review results pending.
+**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); step 2's proof ran on 2026-10-23 ([below](#step-2-proof-ground-and-dark-ladder)); the design gate for the count badge (step 4) ran and was approved on 2026-10-23 ([below](#design-gate-for-the-count-badge)); review results pending.
 
 ## Product validation
 
@@ -372,3 +372,103 @@ per pair (a channel sum above 12):
 `#110C08` in dark (mock-auth localhost), with the page's own ground behind it; the unit cases in
 `theme.test.ts`, `bootFallback.test.tsx` and `pwa-manifest.test.ts` pin both presentations, and the
 website keeps white. Not checked on a device: whether iOS's solid status bar follows `theme-color`.
+
+## Design gate for the count badge
+
+Run on 2026-10-23 against `develop` `45cd6706e`, with step 4 drafted on the local branch
+`feature/app-cockpit-count-badge`; the maintainer approved the pairs the same day
+([spec.md](spec.md#count-badge-approved-23-october)). The rig is the token slices' gate's
+([above](#design-gate-for-the-token-slices)); the frames show live gardens and stay out of the
+repository.
+
+**Pairs.** Every component that draws a count, before and after, at 390, 768 and 1280px in light
+and dark, in English, Spanish and Portuguese, at counts of 1, 9, 10, 99 and 100: 18 combinations
+per surface per state, headless Chromium (Playwright) at device scale 2.
+
+- App, **mock-auth localhost**: `?mockAuth=deployer&presentation=pwa` on Arbitrum One and the
+  production indexer: the bottom bar, Home's launchers and filter, the tabs of the Your Work and
+  Promises sheets, and the TAS HUB garden's notification bell. A capture-only wrapper around the
+  four hooks that feed the counts (`useYourWorkCount`, `useCommitmentsInbox`,
+  `useCommitmentsToConfirm`, `useWorks`) set the numbers, so the components ran unmodified.
+- Cockpit, **Storybook**: the real `AdminTabRail` with the Hub, Garden and Community labels from
+  the product catalogs at every count, and the four workspaces' route stories without their play
+  functions.
+
+**Measured** at 10 on a 390px screen (computed styles):
+
+| Consumer | `develop` | Step 4 |
+|---|---|---|
+| App bottom bar | 20.6×16px, 10px at 700, no ring | 21.7×16px, 11px at 600, a 2px white ring |
+| Your Work and Promises launchers, a garden's bell | 25.3×18px, 12px at 600, a 2px border inside the box and a small shadow | 21.2×16px, 11px at 600, a 2px ring of the canvas |
+| Home filter | 16×10px, 10px at 600 | 16×16px, 11px at 600, a 2px ring of the canvas |
+| App tabs | 21.3×16px, 12px at 500 | 21.2×16px, 11px at 600 |
+| Cockpit tabs | 30.4×18px, 12px at 600, the tone container when active and gray otherwise | 21.2×16px, 11px at 600, the tone's accent on every tab |
+
+One digit is a 16px circle, two digits 21.2px and 99+ 28.3px; the bar's 9+ is 21.7px.
+
+**Contrast** of the numerals on their fill: the app 5.72:1 in light and 16.34:1 in dark. On the
+tone's action fill the cockpit measured 7.26 (Hub), 5.72 (Garden), 4.01 (Community), 7.93
+(Actions) and 10.27:1 (Home) in light, and 4.58 to 11.74:1 in dark; on the tone's accent,
+Community measures 4.93:1, which step 4 takes. Against the app's tinted active tab the badge
+measures 5.24:1 in light and 10.90:1 in dark.
+
+**Found on the way.** Portuguese "Em andamento" ends in an ellipsis at 390px at every count before
+and after, and "A confirmar" at 99+; the badge is never wider than before, so step 4 neither causes
+nor fixes it. `TabBadge` in the cockpit's Garden helpers had no consumer and goes with the step.
+White text on Community's action fill (orange-700) measures 4.0:1, though its token comment says
+5.0:1. The Wallet's Cookies tab, which uses the same sheet tabs as Promises, had no count to show.
+
+## Step 21 proof: the bottom bar's pill
+
+Run on 2026-10-23 against `develop` `d84d48398` (step 4 merged), with step 21 on
+`feature/app-cockpit-bar-pill`. Under the maintainer's merge rule of 23 October the pairs are
+reviewed after the merge. The frames show live gardens and stay out of the repository; the
+private review page is linked from the pull request.
+
+**Pairs.** Both bars before and after at 390, 768 and 1280px, in light and dark, in English,
+Spanish and Portuguese: 18 combinations per surface, headless Chromium (Playwright) at device
+scale 2.
+
+- App, **mock-auth localhost**: `?mockAuth=deployer&presentation=pwa` on Arbitrum One and the
+  production indexer. The bar with Home active at no count, 3 and the bar's 9+ (a capture-only
+  wrapper around `useYourWorkCount` set the count, so the bar ran unmodified), keyboard focus on the
+  active tab and on an inactive one, the bar with Profile active, and both whole screens.
+- Cockpit, **Storybook**: the real `NavigationBar` in a canvas carrying the Garden and the Hub
+  tones, as `CanvasLayout` renders it, in each language: the phone bar at 390px and the dock at
+  768 and 1280px.
+
+**Measured** (computed styles, light / dark):
+
+| | `develop` | Step 21 |
+|---|---|---|
+| Active tab | Filled icon and label in `--primary-on-surface` (green-800 / mint), label 14px at 400: 5.72:1 / 12.81:1 | Line icon in green-900 / green-100 on a 56 × 32 pill of green-100 / green-900 (6.39:1 in both), label 14px at 600 in ink: 19.76:1 / 14.83:1 |
+| Pill against the bar | None | 1.13:1 / 2.15:1 |
+| Inactive tabs | Line icon and label in `--text-soft-400` at 400 | Unchanged |
+| Bar | 69px, white, 16px top corners, a hairline, no blur | Unchanged; 8px padding around the 32px pill row, where it was 12px around the 24px icon |
+
+The pill is the cockpit's Garden pill as Storybook measures it: green-100 behind a green-900 icon
+with a weight 600 ink label, and green-900 behind green-100 in dark.
+
+- Every tab holds the pill's 56px, so no tab moves when the active one changes. Against `develop`
+  the outer tabs moved by up to 2px in English and 5px in Spanish and Portuguese, since their places
+  no longer follow the labels' widths. The icons keep their height; the labels sit 4px lower.
+- The count badge keeps its place on the icon's corner and its white ring, which now cuts into the
+  pill's edge; 3 and 9+ fit.
+- Focus is unchanged. An inactive tab draws the browser's default ring, now around the pill and
+  the label; the active tab hides its ring, as it does on `develop`.
+- Forced colors (Chromium emulation): the pill's fill drops and it draws a 1px outline, so the
+  active tab keeps a shape cue, as the filled icon gave it on `develop`.
+- The cockpit: 0 of 36 frames changed between `develop` and step 21.
+- Above the bar no screen moved. The only differences between runs were live data: a banner image
+  still loading, the offline download card's state, and the Promises launcher's count.
+
+**Checks.** `display-mode.test.tsx` passed (8): the active tab is exposed as `aria-current="page"`,
+now asserted directly. The AppBar story's `HomeActive` and `ProfileActive` plays (`storybook-ci`)
+check that only the active tab's icon slot paints `--primary-container` and that the bar stays
+69px, the height `#app-scroll` and `AppScreenError` reserve for it: restoring the 12px padding
+fails them (77 against 69), and so does removing the fill. `check-tokens.sh` passed.
+
+**Found, not fixed.** The active tab hides its keyboard focus ring (`focus:outline-hidden`, there
+since the first bar), and the inactive tabs draw the browser's blue default ring instead of the
+app's focus role (DL-098). Step 21 keeps focus as it was; giving the bar the app's focus role is a
+follow-up.

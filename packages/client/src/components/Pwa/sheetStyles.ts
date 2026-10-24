@@ -10,7 +10,6 @@ export interface PwaSheetStyle {
   tabActive: string;
   tabActiveIcon: string;
   tabInactive: string;
-  tabBadge: string;
   tabIndicator: string;
   workFeedbackSheet: string;
   workActionBar: string;
@@ -27,7 +26,6 @@ export const pwaSheetStyles = {
   tabActive: `${pwaStatusStyles.primary.text} ${pwaStatusStyles.primary.surface}`,
   tabActiveIcon: pwaStatusStyles.primary.icon,
   tabInactive: pwaStatusStyles.neutral.text,
-  tabBadge: pwaStatusStyles.primary.badge,
   tabIndicator: pwaStatusStyles.primary.progress,
   workFeedbackSheet:
     "absolute bottom-full left-0 right-0 bg-[var(--color-material-solid)] rounded-t-[var(--radius-lg)] shadow-[var(--shadow-float)] border border-stroke-soft-200 border-b-0 overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] origin-bottom",
