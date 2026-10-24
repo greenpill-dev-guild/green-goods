@@ -10,20 +10,18 @@ interface FunderRowProps {
 
 /**
  * One funder in a supporters list: a person row (DL-112) with the Funder chip and, as its
- * one count, the yield their deposits have generated, which is what the list ranks by.
+ * one count, the yield their deposits have generated, which is what the list ranks by. Yields
+ * in different assets never add up, so a funder with positions in several assets has no one
+ * yield (`totalYieldGenerated` is 0 for them) and the row counts the gardens they support.
  */
 export function FunderRow({ funder }: FunderRowProps) {
   const { formatMessage } = useIntl();
-  return (
-    <PersonRow
-      address={funder.address as Address}
-      roles={["funder"]}
-      details={[
-        formatMessage(
+  const detail =
+    funder.assetTotals.length > 1
+      ? formatMessage({ id: "app.funders.gardensSupported" }, { count: funder.gardenCount })
+      : formatMessage(
           { id: "app.funders.yieldGenerated" },
           { amount: formatTokenAmount(funder.totalYieldGenerated) }
-        ),
-      ]}
-    />
-  );
+        );
+  return <PersonRow address={funder.address as Address} roles={["funder"]} details={[detail]} />;
 }
