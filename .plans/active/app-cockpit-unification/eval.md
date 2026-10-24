@@ -417,3 +417,40 @@ and after, and "A confirmar" at 99+; the badge is never wider than before, so st
 nor fixes it. `TabBadge` in the cockpit's Garden helpers had no consumer and goes with the step.
 White text on Community's action fill (orange-700) measures 4.0:1, though its token comment says
 5.0:1. The Wallet's Cookies tab, which uses the same sheet tabs as Promises, had no count to show.
+
+## Step 5 proof: tabs
+
+Run on 2026-10-23 against `develop` `d84d48398`, with step 5 on `feature/app-cockpit-tabs`. The
+maintainer reviews these pairs after the slice merges (his 23 October ruling). The frames show
+live gardens and stay out of the repository; they are in a private artifact.
+
+**Pairs.** Every cockpit tab row, before and after, at 320, 390, 768 and 1280px, in light and
+dark, in English, Spanish and Portuguese; headless Chromium (Playwright) at device scale 2.
+
+- Cockpit, **Storybook**: the real `AdminTabRail` for all eight rows (Hub stages, Garden views,
+  Community views with Coordination, Actions domains, the phone account route, the pool switch,
+  the Create Action instructions and the Submit Work chooser), each with its catalog labels,
+  realistic counts and its tone, and the five workspaces' route stories without their plays.
+- App, **mock-auth localhost**: `?mockAuth=deployer&presentation=pwa` on Arbitrum One and the
+  production indexer: a garden page, Your Work and Promises. The step leaves them alone.
+
+**Measured** after the change (light; cells' widths in px):
+
+| Row | 320px | 390px | From 640px |
+|---|---|---|---|
+| Hub (4, icon and count) | scrolls in all three languages, 88 to 128 | scrolls in all three | four 180px cells, a 720px row |
+| Garden (4) | fits: 74 each in English, 70 to 81 in Spanish and Portuguese | fits, 91.5 each | four 180px cells |
+| Community, protocol garden (4) | scrolls in all three | fits in English and Spanish, scrolls in Portuguese | four 180px cells |
+| Actions (5, all counted) | scrolls in all three | scrolls in all three | 144px at 768, 180px at 1280 |
+| Account, pool switch (2) | fits, 148 each | fits, 183 each | two 180px cells, a 360px row |
+| Create Action instructions (3) | scrolls in all three | fits | 180px; Spanish 191, 174 and 174 |
+
+Before, every row at 320 and 390px scrolled except Account and the pool switch, which scrolled
+only in Spanish at 320px. The tab is 36px tall in every row and width. The active label on its cell measures 5.84
+(Hub), 4.70 (Garden), 6.30 (Actions) and 8.22:1 (Home) in light, and 8.97 to 12.32:1 in dark.
+Community reads 4.06:1 in Storybook, which draws the shared orange ramp; on the cockpit's canvas,
+where its amber ramp applies, the same label measures 5.7:1.
+
+**Found on the way.** The app's Promises sheet clips Portuguese "Em andamento" at 390 and 320px
+and Spanish "Por confirmar" at 320px, before and after; the step does not touch the app's tabs.
+The app's rows span the width at 1280px; the 180px cap is the cockpit's.

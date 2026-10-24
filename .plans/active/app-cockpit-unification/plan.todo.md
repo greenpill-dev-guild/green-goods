@@ -193,3 +193,12 @@ and its `.gg-count-badge` rule, the eight components that drew a count moved ont
 and DL-099 are the standards-only `feature/app-cockpit-count-badge-guides`, which also adds the
 count badge to the cockpit's tone budget in Rule 18. Raising Community's action fill to
 orange-800 is not in the step; it gets its own pair.
+
+**Step 5 (23 October).** The maintainer ruled that each slice merges once its CI is green and its
+review threads are resolved, with the pairs reviewed afterwards. The code is on
+`feature/app-cockpit-tabs`: `AdminTabRail` takes the app's equal-width tabs at the cockpit's 36px
+height, with the tinted active cell, the underline and step 4's badge; from 640px each cell stops
+at 180px and the row keeps to the left. At 320px the Hub, Actions and the protocol garden's
+Community row cannot hold equal cells, so they scroll there as before; that call went to the
+orchestrator with two alternatives. DL-100 and its guide lines are the standards-only
+`feature/app-cockpit-tabs-guides` ([handoff](handoffs/claude-ui.md#step-5-tabs-prd-1271)).
