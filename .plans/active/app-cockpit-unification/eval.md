@@ -511,15 +511,20 @@ that grade fields.
 white in the cockpit, which since #1206 draws its dialogs on the canvas's amber ramp (3.66 to 5.26:1
 on the shared ramp Storybook draws). Dark is unchanged at 7.03:1.
 
-**Pairs.** A private artifact (its link is in the pull request; the frames show live gardens).
+**Pairs.** A private artifact (its link is in the pull request; the frames show live gardens),
+captured in headless Chromium (Playwright) at 2x.
 **Storybook** for the cockpit: the Create Assessment route, the Create Garden details with every
 error showing, the assessment's first step, Garden settings, the Hypercert metadata step, the Seed
-step, six rows with an action beside a field, and the field family's own stories. **mock-auth
+step, five rows with an action beside a field, and the field family's own stories. **mock-auth
 localhost** for the app: Submit Work at Details. Each at 390, 768 and 1280px in light and dark, the
 forms in English, Spanish and Portuguese, the rows at 768 and 1280px (where they are one line) in
 English and Portuguese. Changed pixels per pair (a channel sum above 12): the app 0% on all 36
-pairs; the cockpit's forms 7.5 to 52.8%, the family's stories 0.6 to 40.8%. Each row keeps its
-action's relation to the box: Create Garden's team step centred, the vault dialogs' Max 2px below
-centre, Add members 8px, the Seed confirmers bottom-aligned. The cookie jar withdraw dialog's story
-is a harness built from shared controls, so its Max offset rests on the same arithmetic, not a
-picture.
+pairs; the cockpit's forms 7.5 to 52.8%, the family's stories 0.6 to 40.8%.
+
+**Rows with an action beside a field.** Seven move the action with the box and keep the relation it
+had on `develop`: the Seed confirmers by the 16px the message line grew, the rest by the 24px label
+block. Measured at 768px: Create Garden's team step centred, the vault Deposit and Withdraw dialogs'
+Max 2px below centre, Add members 8px below centre, the Seed confirmers on the box's bottom edge. Two
+rest on arithmetic, not a picture: the cookie jar withdraw dialog's Max (its story is a harness
+built from shared controls) and Strategies' add button, which stays on the box's top edge from
+640px.
