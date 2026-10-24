@@ -452,6 +452,20 @@ export const GrantReady: Story = {
       bar.getBoundingClientRect().top
     );
     view.scrollTo({ top: 0, behavior: "instant" });
+    // A public page keeps its compact limit rows: each value ends at its row's end, and a date
+    // stays on one line, where a column of values would start it mid-row and wrap it on a phone.
+    const limits = within(canvasElement).getByRole("region", { name: "Limits" });
+    for (const label of ["Starts", "Maximum publications"]) {
+      const term = within(limits).getByText(label).closest("dt") as HTMLElement;
+      const value = term.nextElementSibling as HTMLElement;
+      const text = view.document.createRange();
+      text.selectNodeContents(value);
+      const drawn = text.getBoundingClientRect();
+      const rowEnd = (term.parentElement as HTMLElement).getBoundingClientRect().right;
+      await expect(Math.abs(rowEnd - drawn.right)).toBeLessThanOrEqual(1);
+      const line = Number.parseFloat(view.getComputedStyle(value).lineHeight);
+      await expect(drawn.height).toBeLessThan(line * 1.5);
+    }
   },
 };
 export const GrantSigning: Story = { args: { ...GrantReady.args, stage: "grant_signing" } };
