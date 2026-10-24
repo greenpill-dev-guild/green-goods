@@ -399,7 +399,9 @@ export function PwaSheet({
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >
-        {showDragHandle && <SheetGrip testId={`${testId}-drag-handle`} dragHandlers={bind()} />}
+        {showDragHandle && (
+          <SheetGrip testId={`${testId}-drag-handle`} dragHandlers={canDrag ? bind() : undefined} />
+        )}
         {hasHeader && (
           <SheetHeader
             title={title}

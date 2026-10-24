@@ -6,13 +6,14 @@ import {
   type ReactNode,
   type RefObject,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
 import { SheetGrip } from "@green-goods/shared/components/Dialog/SheetHeader";
-import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { useFocusAfterFlip, useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminButton } from "./AdminButton";
 import { AdminDialogHeader } from "./AdminDialogHeader";
@@ -213,6 +214,8 @@ export function AdminDialog({
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
   const rendersAsSheet = useMediaQuery("(max-width: 639px)");
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  useFocusAfterFlip(rendersAsSheet, surfaceRef, '[data-slot="close"]');
   const mobileSheetSize = rendersAsSheet ? sheetSize : undefined;
   // Hidden tabs freeze CSS animations, so a close that happens while the tab
   // is backgrounded would never fire animationend — Radix Presence keeps the
@@ -269,6 +272,7 @@ export function AdminDialog({
 
         {/* Dialog panel */}
         <Dialog.Content
+          ref={surfaceRef}
           data-component="AdminDialog"
           data-slot="surface"
           data-variant={variant}
@@ -319,8 +323,8 @@ export function AdminDialog({
           {rendersAsSheet ? <SheetGrip /> : null}
 
           {/* Close button - absolute top-right. Below 640px the shared header
-              carries the close of a structured dialog; palette and flow keep
-              this one, under the grip. */}
+              carries a structured dialog's close (useFocusAfterFlip hands focus
+              across); palette and flow keep this one, under the grip. */}
           {!hideCloseButton && !(rendersAsSheet && hasStructuredHeader) ? (
             <Dialog.Close
               data-slot="close"

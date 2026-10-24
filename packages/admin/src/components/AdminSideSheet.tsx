@@ -1,9 +1,9 @@
 import { RiCloseLine } from "@remixicon/react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { type KeyboardEventHandler, type ReactNode, useEffect, useState } from "react";
+import { type KeyboardEventHandler, type ReactNode, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { SheetGrip } from "@green-goods/shared/components/Dialog/SheetHeader";
-import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { useFocusAfterFlip, useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminDialogHeader } from "./AdminDialogHeader";
 
@@ -85,6 +85,9 @@ export function AdminSideSheet({
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
   const rendersAsSheet = useMediaQuery("(max-width: 639px)");
+  // The phone and docked layouts render different Close buttons.
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  useFocusAfterFlip(rendersAsSheet, surfaceRef, '[data-slot="close"]');
   // Hidden tabs freeze CSS animations, so a close that happens while the tab
   // is backgrounded would never fire animationend — Radix Presence would keep
   // the exit node (and its body pointer-events lock) forever. Closing with
@@ -123,6 +126,7 @@ export function AdminSideSheet({
 
         {/* Sheet panel */}
         <Dialog.Content
+          ref={surfaceRef}
           data-component="AdminSideSheet"
           data-slot="surface"
           data-tone={tone}

@@ -1,7 +1,15 @@
 import { RiSearchLine } from "@remixicon/react";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, renderWithProviders, screen, userEvent, waitFor, within } from "../test-utils";
+import {
+  act,
+  fireEvent,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "../test-utils";
 import { AdminButton } from "../../components/AdminButton";
 import { AdminSideSheet } from "../../components/AdminSideSheet";
 import {
@@ -10,22 +18,46 @@ import {
   AdminDialog,
 } from "../../components/AdminDialog";
 
-/** Below 640px the cockpit's dialogs present as the shared bottom sheet (F5). */
-function emulateViewport(width: "phone" | "desktop") {
+type Width = "phone" | "desktop";
+type ChangeListener = (event: MediaQueryListEvent) => void;
+const PHONE_QUERY = "(max-width: 639px)";
+
+/**
+ * Below 640px the cockpit's dialogs present as the shared bottom sheet (F5).
+ * Returns the restore function, with `resize` to cross 640px mid-test.
+ */
+function emulateViewport(initial: Width) {
   const original = window.matchMedia;
+  let width = initial;
+  const phoneListeners = new Set<ChangeListener>();
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: width === "phone" && query === "(max-width: 639px)",
+    get matches() {
+      return width === "phone" && query === PHONE_QUERY;
+    },
     media: query,
     onchange: null,
     addListener: vi.fn(),
     removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
+    addEventListener: (_type: string, listener: ChangeListener) => {
+      if (query === PHONE_QUERY) phoneListeners.add(listener);
+    },
+    removeEventListener: (_type: string, listener: ChangeListener) => {
+      phoneListeners.delete(listener);
+    },
     dispatchEvent: vi.fn(),
   })) as typeof window.matchMedia;
-  return () => {
-    window.matchMedia = original;
-  };
+  return Object.assign(
+    () => {
+      window.matchMedia = original;
+    },
+    {
+      resize(next: Width) {
+        width = next;
+        const event = { matches: next === "phone", media: PHONE_QUERY } as MediaQueryListEvent;
+        for (const listener of phoneListeners) listener(event);
+      },
+    }
+  );
 }
 
 /** A controlled dialog opened from a plain button, which hands focus back through finalFocusRef. */
@@ -221,7 +253,7 @@ describe("AdminDialog on phones (F5)", () => {
   });
 });
 
-describe.each(["phone", "desktop"] as const)("AdminDialog behaviour on %s", (width) => {
+describe.each(["phone", "desktop"] as const)("AdminDialog behavior on %s", (width) => {
   let restoreViewport: () => void;
   beforeEach(() => {
     restoreViewport = emulateViewport(width);
@@ -258,6 +290,44 @@ describe.each(["phone", "desktop"] as const)("AdminDialog behaviour on %s", (wid
     expect(within(dialog).getByRole("button", { name: "Close" })).toBeDisabled();
     await user.keyboard("{Escape}");
     expect(screen.getByRole("dialog", { name: "Edit Domains" })).toBeInTheDocument();
+  });
+});
+
+describe("Crossing 640px while open", () => {
+  // The phone and centered layouts render different Close buttons, so the one
+  // that had focus unmounts when a rotated phone or a resized window crosses 640px.
+  it.each([
+    [
+      "AdminDialog",
+      () => (
+        <AdminDialog open onOpenChange={vi.fn()} title="Edit Domains" tone="garden">
+          <p>Domain form body</p>
+        </AdminDialog>
+      ),
+    ],
+    [
+      "AdminSideSheet",
+      () => (
+        <AdminSideSheet open onOpenChange={vi.fn()} title="Notifications">
+          <p>No new notifications</p>
+        </AdminSideSheet>
+      ),
+    ],
+  ] as const)("%s hands focus to the other layout's Close", async (_name, surface) => {
+    const viewport = emulateViewport("phone");
+    try {
+      renderWithProviders(surface());
+      const dialog = screen.getByRole("dialog");
+      const close = () => within(dialog).getByRole("button", { name: "Close" });
+      await waitFor(() => expect(close()).toHaveFocus());
+
+      for (const width of ["desktop", "phone"] as const) {
+        act(() => viewport.resize(width));
+        await waitFor(() => expect(close()).toHaveFocus());
+      }
+    } finally {
+      viewport();
+    }
   });
 });
 
