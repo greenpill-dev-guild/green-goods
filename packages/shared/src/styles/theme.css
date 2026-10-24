@@ -944,6 +944,10 @@
   --gg-control-outline: var(--neutral-500);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
+  /* The bottom bar's active pill (F6): the cockpit's Garden container pair,
+   * the pale green behind a deep green icon. */
+  --primary-container: var(--green-100);
+  --primary-container-foreground: var(--green-900);
 }
 
 /* The PWA restores its pale mint dark palette (DL-088) and takes the one warm
@@ -973,6 +977,8 @@
   --focus-ring: var(--gg-design-tertiary-dark, var(--green-200));
   --focus-ring-offset: var(--earth-850);
   --gg-control-outline: var(--neutral-400);
+  --primary-container: var(--green-900);
+  --primary-container-foreground: var(--green-100);
 }
 
 /* Resolve Tailwind aliases within each theme scope so nested dark surfaces
