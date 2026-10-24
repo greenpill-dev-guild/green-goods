@@ -53,6 +53,12 @@ describe("PersonRow", () => {
     expect(screen.getByRole("button")).toHaveAccessibleName(/^river\s*Owner\s*3 roles$/);
   });
 
+  it("shows no chip for someone the list holds no role for, as a pasted address", () => {
+    renderRow({ onOpen: vi.fn() });
+
+    expect(screen.getByRole("button")).toHaveAccessibleName("0x11...111");
+  });
+
   it("reads a name the person never published from the caller, then their short address", () => {
     const { rerender } = renderRow({ fallbackName: "Member 7" });
     expect(screen.getByText("Member 7")).toBeInTheDocument();
