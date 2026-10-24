@@ -35,7 +35,7 @@ Read `.claude/skills/design/implementation.md` before frontend work.
 - Prefer one dominant workspace surface per route. Avoid nested stacks of bordered panels that turn the page into a card mosaic.
 - Avoid hero sections, decorative promo banners, decorative gradients behind routine UI, and ornamental icon rows.
 - Keep color restrained: shared semantic tokens, one workspace accent, strong typography, minimal chrome.
-- Color roles are split by job: `--tone-action` for filled action backgrounds, `--tone-on-action` for text/icons on those fills, `--tone-on-surface-accent` for colored text/icons on solid surfaces, and `--tone-focus-ring` for focus indicators and the 3px border that marks the record a list has open (DL-103).
+- Color roles are split by job: `--tone-action` for filled action backgrounds, `--tone-on-action` for text/icons on those fills, `--tone-on-surface-accent` for colored text/icons on solid surfaces, and `--tone-focus-ring` for focus indicators and the border that marks the record a list has open (DL-103).
 - Treat `/hub` as the reference cockpit surface for new admin page composition.
 
 ## Preferred Primitives
