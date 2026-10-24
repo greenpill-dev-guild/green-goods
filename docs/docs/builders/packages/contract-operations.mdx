@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:264ca87c1e7677b78a3368b08f9187dedc609166986e34027499144a38cab726"
+source_digest: "sha256:4df7044a2b7002530fc23d25b6aa8518526117154e5356a0e12fdd7dbe6f0e6c"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -156,7 +156,6 @@ Options: `--manifest <value>`, `--plan <value>`, `--output <value>`.
 | <CopyCommand command="bun run contracts -- release vouchers --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 | <CopyCommand command="bun run contracts -- release steward-safe --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 | <CopyCommand command="bun run contracts -- release clc --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
-| <CopyCommand command="bun run contracts -- release source-upgrades --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 
 Options: `--stage <value>`, `--commit <value> (required)`.
 
@@ -169,6 +168,12 @@ Options: `--manifest <value>`, `--source-upgrades-plan <value>`, `--steward-safe
 | Command | Networks | Modes |
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release pilot --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan |
+
+Options: `--recover-lock`, `--manifest <value>`, `--plan <value>`, `--output <value>`, `--rehearsal <value>`, `--safe-pins <value>`, `--other-reserved-wei <value>`, `--envelope <value>`, `--step <value>`, `--expected-nonce <value>`, `--receipt <value>`.
+
+| Command | Networks | Modes |
+|---|---|---|
+| <CopyCommand command="bun run contracts -- release source-upgrades --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate, prepare-execution, broadcast, export-safe, adopt |
 
 ### Settlement (23)
 

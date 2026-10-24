@@ -1,5 +1,42 @@
 # Cosmo-Local Integration — acceptance evidence
 
+## Member and garden issuer acceptance — 23 October Pacific
+
+The user selected individual issuance with steward-assisted onboarding in the same shared pool.
+These are new required proofs, not results of the earlier two-organization rehearsal. The current
+deployment handoff records the selected pilot profile's successful member-signing proof; that
+evidence does not certify another issuer or new issuance/approval operations.
+
+| Boundary | Required success and rejection evidence |
+|---|---|
+| Ownership | Individual token and reserve belong to the approved member account; collective assets keep their approved Safe controls. Wrong member, pool steward and deployment sender cannot act as issuer. Distinguish token owner, mint writer and proxy administrator. |
+| Assisted consent | Steward prepares terms and performs allowed administrative calls; exact member approval is still required. Reject missing approval, changed terms after approval, wrong service/issuer/token and an administrator signing as the member. |
+| Onboarding | Source authority registration obeys its owner/pause boundary. Reserve configuration comes from the real reserve authority. New registrations cannot alter frozen bookings or already prepared reward commands. |
+| Shared exchange | Collective and member tokens use the same pool with explicit rates, fees, inventory and caps. Test denied admission, stale quote, minimum-output/deadline failure, exhaustion and a token at its holding cap. No default 1:1 member rate. |
+| Capacity | Keep supply, outstanding promises, finite allowance, reserve, pool holdings and remaining service budget distinct. A returned delivered voucher does not replenish service capacity; a holding cap is not a global issuance cap. |
+| Full member lifecycle | Issue and exchange a member voucher, then bind issuer/holder consent, escrow before acceptance, activate and settle one immutable partial split to the member reserve and original holder. Existing core service confirmation remains separate. |
+| Failure/recovery | Duplicate/lost/late messages, failed one-leg transfer and interrupted member signing recover without a second issue, swap or payout. A refund returns the original service voucher; no automatic reverse swap or G$ compensation. |
+| Product/data | Issuer identity and exact terms survive indexing and replay. Display access held and services owed separately; stale/pending actions cannot look final. Labeled UI proof and actual signing evidence cover their respective boundaries. |
+| Deployment | The regenerated plan includes every member token and approved administration component, correct nonce/address effects and exact authorities. Simulation and live readback match; old two-issuer artifacts are not silently adopted for changed inputs. |
+
+The selected TAS impact-website rehearsal requires three distinct designer, analyst and engineer
+accounts, with three separately accepted commitments, evidence records and outcomes under one
+shared brief. Include two individually controlled voucher assets alongside collective assets in
+the same Gnosis pool. Prove a bounded member-to-member asset exchange, then booking/redemption of
+the received service, immutable partial delivery/refund and correct member-reserve return. The
+peer-help service and its capacity/evidence must be distinct from a separately rewarded project
+deliverable. Neither a GG/TAS-only swap nor three labels for one operator account meets this proof.
+
+Label independent bookings and rewards accurately. One fulfilled
+multi-contributor Request uses canonical recognition over one agreed issuer/token total; it does
+not prove arbitrary role percentages, multiple reward assets, atomic project completion or a new
+collective project voucher. A fractional allocation must not be displayed as a whole service unit.
+An implemented aggregate project state, project token, arbitrary split, atomic bundle, automatic
+dependency scheduler or multi-issuer escrow is not required or claimed. Actual issuer approvals,
+services, capacities, rates and funded rewards remain gates for live configuration.
+
+## Earlier acceptance criteria and dated evidence
+
 **Reconciled:** 2026-10-22 UTC. These criteria apply to separately accepted implementation slices.
 No check below is certified by planning, a Linear state or the completed foundation project.
 
@@ -7,7 +44,7 @@ No check below is certified by planning, a Linear state or the completed foundat
 deployed contracts on Saturday, 24 October. The user exempts external audit/audit intake and
 replaces the two-week testnet wait with focused pre-deployment tests, exact deployment simulation
 and post-deployment smoke checks. Do not treat either superseded prerequisite as pending approval.
-Keep existing Safe controls, implemented delays and contract-enforced safeguards intact. Require
+Keep existing Safe controls, the accepted zero-delay policy and contract-enforced safeguards intact. Require
 a concrete candidate, exact networks and operations, owner/admin/writer controls, issuer terms
 and caps, persisted artifacts, and demonstrated failure/recovery behavior. The
 [deployment package](handoffs/codex-live-pilot-deployment.md) records actual evidence and gaps;
@@ -72,7 +109,7 @@ This is working-tree evidence, with no full-lifecycle or live-readiness claim.
 | Passport | Definitions, units, windows, source/freshness and receipt links; earned/purchased/payment/delivery/obligations separate | PRD-1097 |
 | Privacy | Separate publication consent, privacy-safe aggregates, no addresses or individual ranking | COM-46 / PRD-1097 |
 | Usability | Member and steward complete meaningful tasks, recover from interruption and explain balances and obligations | RESR-93 / COM-28 |
-| Live gate | Exact candidate and human decision; accepted hackathon audit exemption and testnet substitution recorded; focused tests, simulation, existing Safe/delay controls, recovery and post-deployment smoke proved | PRD-1197 |
+| Live gate | Exact candidate and human decision; accepted hackathon audit exemption, testnet substitution and zero-delay policy recorded; focused tests, simulation, Safe/owner controls, recovery and post-deployment smoke proved | PRD-1197 |
 | Live outcome | Authorized deployment readback plus a real service delivered and confirmed; otherwise explicit no-go | PRD-1100 |
 | Pitch integrity | Claim ledger, primary sources, live/rehearsal labels and audience-specific offer; no invented traction or financial rights | RESR-94 / MAR-32 |
 | Fiat stretch | Qualified corridor/account/recipient, all-in costs, payment recovery and separate live-pilot approval | RESR-82 / PRD-1031 / PRD-1038 |

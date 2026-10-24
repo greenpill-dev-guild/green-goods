@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-23T09:29:32Z"
+    "updated_at": "2026-10-24T00:33:40Z"
   },
   "links": {
     "brief": "brief.md",
@@ -95,6 +95,8 @@
     "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
+    "23 October Pacific / 24 October UTC: User dispatched the TAS impact-website pilot: three distinct designer, analyst and engineer accounts, three separate commitments under one shared brief, and an exchange of two member-owned voucher assets in the same curated Gnosis pool alongside collective assets. Finish and sign the independent source-execution tooling checkpoint first, then implement M1-M8 in bounded dependency order. Peer-help work and capacity stay separate from rewarded project deliverables. Fixture terms are explicitly fictional; actual participants, issuer approvals, capacities, rates, funded rewards and member upgrade/recovery controls remain open before live configuration. No project token, aggregate project state, arbitrary payout split, atomic bundle, automatic dependency scheduler, extra pool or new member Safe is implied. Linear parent_only/preserve_existing manifest verified live: RESR-73 remains Done, no external fields changed; local sync metadata recorded. Existing lane objects, history and backlog state preserved.",
+    "23 October Pacific / 24 October UTC: User accepted member-owned service vouchers alongside garden/collective vouchers in one shared Gnosis pool, with steward-assisted onboarding and exact member ownership/approval retained. spec.md, plan.todo.md M1-M8, eval.md and pilot-issuer-terms.md own the amendment. Extend the fixed two-issuer deployment configuration, prove actual member authority and the full member redemption path, and reconcile affected candidate inputs before deployment. Selected-profile passkey proof and signed checkpoint d7d4869b9 are recorded by the implementation handoff; they do not certify new issuer operations. Preserve the accepted zero-delay policy, independent Celo G$, existing collective Safe controls and voucher safeguards. Group-project examples are discussion only. This planning update leaves all lane objects, history, stage and unrelated work unchanged; no runtime implementation, broadcast, publication or Linear write.",
     "23 October UTC: Live pilot preparation tooling and operator runbook are implemented locally: source-upgrades, CLC and combined pilot inventory/package validation. All eight selected critical/docs checks pass fresh after the user approved ten starting units and twenty-unit pool holding caps per asset, within unchanged twenty-unit issuer supply ceilings; 2,209 Solidity, 433 script, 37 CLI and three production gas-boundary cases pass. Real owned Gnosis and Arbitrum proofs cover ten empty CLC deployments, source 23 deployments/four paused owner upgrades with 17/12 checked rows retained, source-readback/replan then six Arbitrum voucher initializers, and fixed-two HSG authority through zero/one/two/three/back-to-zero stewards. Every assembled stage is review-only with executionReady false. Actual deployment senders/nonces/garden-Hats/guardians, member/native-gas/signing, issuer capacity/acceptance, transport and live execution remain unconfirmed; Tech and Sun signer names/addresses are intentionally deferred for preparation. Existing GG Safe stays 2-of-5 for both reserve and network pool. Accepted Friday/Saturday checkpoints are in the live deployment handoff; preparation chat owns Linear writes. Preserve all lane objects/backlog/manual/live gates and 114 unrelated paths. No broadcast, dependency, branch or publication change.",
     "23 October UTC: Dynamic Tech and Sun steward-to-Safe implementation is complete locally with fixed two valid signatures at every roster size. Funded Arbitrum role hooks dispatch ordered CCIP updates to a dedicated Gnosis Hat and locked deployed HSG v2 Safe. Existing GG Safe stays 2-of-5 for both network pool administration and GG reserve. All nine selected check IDs pass across the source run, docs-only refresh and ontology proof; 2,209 Solidity, 361 script and 33 CLI cases pass, as do nine production Gnosis cases (1,000 eligibility fuzz runs), the Arbitrum upgrade preserving all 18 gardens, storage and size checks. Source roster permissions are unchanged; two signatures govern spending, not roster changes. Actual signer accounts, live inputs, source upgrade/observer registration, transport fuel, real CCIP delivery and activation remain pending. No live broadcast, extra GG Safe, dependency or publication change. All 114 unrelated hashes and existing lane objects/backlog/manual blockers are preserved; the deployment handoff owns detail.",
     "22 October Pacific / 23 October UTC: User selected the same existing Green Goods Gnosis Safe, preserving 2-of-5, for both network exchange-pool administration and GG issuer reserve; separate 3-of-4 pool Safe and garden delegate representation are superseded. Tech and Sun should derive signer eligibility from active garden stewards, initially 2-of-3. The user selected strict-majority active-steward signing with a minimum of two signatures; fewer than two eligible signers blocks spending. Recovery, roster synchronization and authenticated Arbitrum-to-Gnosis role updates remain unresolved and unimplemented. No Safe configuration, module, allowance, custody or live transaction changed. Preserve all lane objects and overall backlog.",
@@ -491,7 +493,31 @@
       "status": "live_package_tooling_prepared",
       "branch": "feature/cosmo-local-contracts",
       "note": "Bounded local preparation and approved 10-stock/20-cap proof recorded; detailed working-copy hashes and exact commands are in the linked evidence. Existing execution lane objects, backlog, manual blocks, actual member/issuer/transport and live activation gates stay unchanged. Canonical same-address bootstrap source/build and provider/native-gas investigation continues; no actual member signature or live transaction."
+    },
+    {
+      "timestamp": "2026-10-24T00:13:14Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "member_issuer_pilot_planning_reconciled",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Accepted member and collective voucher ownership with steward-assisted onboarding in one shared pool. Added dependency-ordered M1-M8 implementation and deployment proof; individual issuer roster, capacity, rates and controls remain unconfirmed. Existing lanes and evidence are preserved. Collaboration/group project options remain discussion scope, without a team token, automatic split or atomic bundle commitment. No runtime, deployment, commit or external tracker changes by this planning pass."
+    },
+    {
+      "timestamp": "2026-10-24T00:31:04.748Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-24T00:33:40Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "member_project_pilot_dispatched",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Selected bounded TAS three-person shared-brief journey and two-member-asset exchange for local implementation after the independent executor checkpoint. Canonical six-file amendment reconciled. Real issuer choices remain gates for live configuration; no runtime completion or live activation claimed. Parent-only preserve sync verified against live Linear without mutation."
     }
   ],
-  "updatedAt": "2026-10-23T09:29:32Z"
+  "updatedAt": "2026-10-24T00:33:40Z"
 }

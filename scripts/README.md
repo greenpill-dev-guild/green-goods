@@ -139,6 +139,21 @@ fork, preserving the checked state and ending paused. Local owner impersonation 
 signature. This operation does not replace `upgrade hats-module` or the existing integration-only
 `upgrade commitment-pooling` operation.
 
+Source execution adds `--mode prepare-execution` with the exact `--plan`, `--rehearsal`, committed
+`--safe-pins` JSON and explicit `--other-reserved-wei`. It binds full compiler jobs, constructor
+immutables, gas limits, canonical Safe/source state and the shared Arbitrum budget. Safe outer gas
+limits are conservative maxima, not estimates containing real owner signatures. `--mode broadcast`
+requires that plan, rehearsal and `--envelope`, plus one `--step` and `--expected-nonce`; it submits
+only that CREATE through the fixed operator keystore. The signer must match the approved deployer.
+
+For the four original owner-Safe calls, use `--mode export-safe` at the next boundary, obtain the
+normal owner signatures externally, then `--mode adopt --receipt <transaction-hash>` with the same
+execution inputs. Adoption never sends. The fixed chain journal preserves paid attempts and
+pending intent; uncertain submission blocks automatic retry. Only explicit receipt adoption with
+`--recover-lock` can recover a dead process's original lock. A surviving recovery guard requires
+operator resolution. Do not delete or reset the shared journal to replan. These modes leave the
+source proxies paused with their original owner and do not configure issuers or activate routes.
+
 `bun run contracts -- release pilot --mode preflight` reports the combined public input inventory
 offline. `--mode plan` requires `--source-upgrades-plan`, `--steward-safe-plan`, `--vouchers-plan`
 and `--clc-plan`, each pointing into its component's generated directory. The handler

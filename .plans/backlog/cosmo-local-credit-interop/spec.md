@@ -1,5 +1,135 @@
 # Cosmo-Local Integration — architecture
 
+## Accepted pilot amendment — member and garden issuers, 23 October Pacific
+
+Individual issuance is required in the pilot. Members and garden/collective issuers share **one
+curated Gnosis exchange pool**. Steward-assisted onboarding is accepted: a steward can prepare
+terms and configuration, publish an approved offer and administer pool admission, but the member
+owns their voucher and reserve and approves the exact service obligation. This amendment
+supersedes the two-organization-only pilot assumption. It is accepted architecture and planned
+work, not evidence that individual issuance is implemented or deployed.
+
+| Decision | Responsibility and boundary |
+|---|---|
+| Member-owned service | The named member's supported account owns the token and reserve and approves issuance, service terms and any delegated authority. A garden affiliation does not transfer that promise to the garden. |
+| Garden/collective service | The collective's existing issuer authority owns the promise and arranges delivery. A member may deliver on its behalf without issuing a personal voucher. |
+| Assisted onboarding | A steward prepares and submits permitted configuration; membership or stewardship alone cannot mint a member's voucher, spend their reserve, approve for them or take token ownership. |
+| Shared exchange | Pool administrators curate assets, rates, fees and pool holding caps. Admission is separate from issuance and does not guarantee service delivery, demand, cash conversion or pool inventory. |
+| Existing service controls | Retain exact issuer/holder consent, escrow before core acceptance, acceptance-bound activation and one immutable delivered/refundable allocation. Delivered units return to that issuer; undelivered units return to that holder. |
+| Independent money | Optional G$ rewards and personal cross-garden G$ service purchases remain on Celo. Each accepted offer revision selects one payment route; no mixed checkout or G$ bridge. |
+
+An offer describes a service; its voucher describes a transferable entitlement under the issuer's
+terms; a booking binds a particular delivery. Start with one clearly bounded service per member
+issuer. Repeated bookings use the same appropriate service voucher, not a new token per booking.
+A token may later cover several services only when their common unit and shared capacity budget
+are explicit. Individual services, member count, quantities, prices and exchange rates are not
+selected by this amendment; the existing GG/TAS baseline does not apply automatically to them.
+
+### Onboarding and authority
+
+1. The member and steward define a service unit, available capacity/calendar, terms and remedies.
+   Record the member's acceptance; publishing a profile or offer is not acceptance to issue.
+2. Verify the actual member-controlled account and its approved same-address profile on Arbitrum,
+   Gnosis and Celo. Token owner, reserve, source approval authority, mint writers, proxy
+   administrator and recovery powers must be explicit. Do not default member token administration
+   to the shared-pool Safe or create a new member Safe without a demonstrated need and selection.
+   For the reused pilot path, the Gnosis issuer address is both the token owner and the address
+   receiving delivered vouchers; use that member-controlled account as the reserve. Separating
+   these addresses is not part of this amendment. Bind the source approval authority explicitly.
+3. Deploy/configure the issuer token using the existing published CLC implementation and approved
+   controls. Initialize ownership atomically to the member; prove any temporary deployment powers
+   are removed. Only the member, or a separately approved delegate, authorizes issuance and the
+   reserve's finite adapter allowance. Service capacity is not enforced by token supply alone.
+4. The existing governance owner registers the issuer/token/source authority; the member configures
+   their reserve through the existing adapter boundary. Batch onboarding during the required paused
+   configuration window. Restore only the reviewed prior activation state; never silently rebind
+   accepted terms or broaden the owner-only registry into steward minting authority.
+5. The steward publishes the approved service and the pool administrator admits the asset with
+   explicit quote, fee, exposure and inventory settings. Current steward-controlled offer terms and
+   claim acceptance may remain for this assisted pilot. Member approval of the exact booking remains
+   required even when a steward performs core acceptance.
+6. The member completes issuance, exchange and redemption proof, including issuer return to their
+   own reserve. A steward's signature or the operator's working account is not proof of member control.
+
+Token ownership and proxy upgrade control are distinct. The release package must show both and
+obtain the member's approval of any delegated upgrade/recovery authority. No mandatory 48-hour
+delay remains: the user's zero-delay decision retains owner authorization, pause, compatibility
+and exact-candidate checks. Existing collective Safe controls remain unchanged.
+
+### Capacity, circulation and failure
+
+Track deliverable capacity, issued units, usable reserve, finite allowance, accepted undelivered
+rewards, outstanding service obligations and pool inventory separately. Issuing or exchanging a
+future service promise differs from earning someone else's voucher after completed work. Returned
+delivered vouchers do not replenish consumed service capacity; reuse requires an approved remaining
+budget. Pool holding caps bound pool exposure, not total minting or all outstanding promises.
+
+If an issuer cannot deliver, the agreed refund returns that issuer's voucher; it does not undo an
+earlier swap or promise G$, cash or another issuer's service. Suspend new issuance/admission or
+booking as appropriate, retain existing obligations, and expose the agreed remedy. De-listing must
+not erase balances, accepted bookings or their recovery paths. No automatic insurance or pooled
+guarantee is introduced.
+
+### Contract change boundary and deployment impact
+
+The release planner currently restricts issuers to `greenGoods | techAndSun`, although the source
+authority map, reserve adapter and escrow use issuer/token addresses. Extend the owning planner and
+configuration to explicit individual and collective issuer records, preserving existing keys and
+receipts. For N member service assets, plan N additional voucher-token instances. The exact proxy
+administration deployment count depends on the approved control arrangement. Reuse the one pool,
+its dependencies and the existing voucher modules; do not assert either a new module or no source
+change until the member-authority proof is complete.
+
+The smallest selected approach retains steward-assisted offer administration. Self-service member
+administration, a new issuer factory/registry and a second exchange engine are deferred. Add a
+narrow contract change only for a demonstrated authorization or lifecycle gap. The source planner,
+shared routes, indexer and UI must stop assuming every issuer is an organization Safe. Exact work
+and pre-deployment proof are in [the implementation sequence](plan.todo.md#member-and-garden-issuer-pilot--accepted-23-october-pacific)
+and [acceptance criteria](eval.md#member-and-garden-issuer-acceptance--23-october-pacific).
+
+### Selected TAS project rehearsal — three participants and a member exchange
+
+The user selected a TAS impact-website example for implementation on the existing branch. Use one
+shared brief/reference and three existing commitments, assigned to distinct designer, analyst and
+engineer accounts. Each commitment retains its own terms, acceptance, evidence and outcome. The
+brief groups the work for people; it is not an implemented aggregate project state or a guarantee
+that the group will finish. A coordinator confirms prerequisites before downstream work is booked.
+
+| Rehearsal commitment | Separately accepted result |
+|---|---|
+| Designer | A reviewed landing-page and impact-section design |
+| Analyst | A metrics definition, sample-data validation and impact summary |
+| Engineer | A working website implementation using the accepted design and data contract |
+
+Actual participants, accepted services, capacities, rates and funded rewards remain unconfirmed.
+Fixture identities, transport and delivery must be labeled. The connected rehearsal includes at
+least two member-controlled voucher assets alongside collective assets in the same curated Gnosis
+pool. It proves an exchange of one member's service voucher for another member's voucher, followed
+by booking and redeeming the received service. Replaying only the GG/TAS exchange does not meet
+this boundary; the designer need not issue a token.
+
+Keep the exchanged peer-help service distinct from a separately rewarded project deliverable.
+For example, general measurement coaching and a standalone integration-help lesson may be the two
+fixture services; the project's impact summary and website implementation are different work.
+Use separate capacity/obligation entries and evidence. Never count the same work or future service
+capacity twice. Test exact member approval, issuer custody, partial delivery/refund, return to the
+correct member reserve and retry without duplicate issuance, swap or payout.
+
+A garden can fund these milestones with vouchers it is authorized to distribute and optional G$.
+A single existing multi-contributor Request instead divides one agreed issuer/token reward total
+using canonical recognition after fulfillment. It does not guarantee an arbitrary negotiated
+designer/analyst/engineer percentage, a whole service unit for every person, or a basket of assets.
+Where distinct deliverables need fixed rewards or independent completion, use separate commitments.
+
+Member vouchers let a project obtain a named person's future service through the shared pool;
+they are not project equity or a claim on everyone else's labor. A future collective project voucher
+would require one accountable issuer, accepted team obligations, capacity and replacement rules,
+and project-wide remedies. No joint-liability, automatic revenue split, multi-issuer escrow or new
+project contract is selected. Broader project tokens, arbitrary payout splits, atomic bundles,
+automatic dependency scheduling and multi-issuer escrow remain outside this implementation.
+
+## Existing integration baseline and release disposition
+
 **Current hackathon release decision, 22 October 2026 Pacific:** the intended outcome is a
 controlled **live** pilot with deployed contracts by Saturday, 24 October. The pitch deck is
 targeted for Saturday and participant testing for Sunday/Monday, 25–26 October. External audit
@@ -10,7 +140,7 @@ post-deployment smoke checks. These substitutions are accepted decisions, not op
 Continue the same-address Gnosis work and prepare the exact deployment package through the
 repository workflow. The member address must remain identical on Arbitrum, Gnosis and Celo;
 optional G$ stays independently accounted for on Celo, with one shared Gnosis exchange pool.
-Existing Safe controls, implemented upgrade delays, consent, escrow, activation and immutable
+Existing Safe controls, the accepted zero-delay upgrade policy, consent, escrow, activation and immutable
 final-allocation rules remain intact. The policy change does not establish a usable signer,
 configured provider, issuer terms/caps or a passing deployment simulation. Make the concrete
 candidate and operations reviewable before execution. The
@@ -48,8 +178,8 @@ the correct voucher redeems directly. A different voucher may be exchanged throu
 direct pool call after reviewing input, net output, fees, minimum output and validity. SwapRouter
 quotes routes and does not execute them. WXDAI remains a separately labeled rehearsal asset.
 
-The shared Gnosis pool starts with Tech and Sun and Green Goods vouchers. It can serve more
-admitted issuers later; it is not hardcoded as a bilateral pair or a mandatory universal pool.
+The shared Gnosis pool includes Tech and Sun, Green Goods and admitted member vouchers in the
+pilot. It is not limited to a bilateral pair or a mandatory universal pool.
 A garden and a voucher issuer are different roles. New gardens may participate using existing
 admitted vouchers without issuing their own. A new issuer needs agreed service obligations,
 capacity, inventory, exposure limits, quotes/fees and explicit admission before its asset joins.
@@ -164,7 +294,7 @@ an earned reward requires the agreed work to reach a legitimate core `Fulfilled`
 | Existing Celo executor, G$ token, garden Safes and scoped execution permissions | Reuse existing custody and payment/refund transport. No new G$ bridge or Celo escrow vault; any demonstrated executor change requires a separately described scope decision |
 | New VoucherEntitlementModule | Arbitrum voucher terms, issuer/participant authorization, exact allocation, command dispatch and authenticated result reconciliation |
 | New GnosisVoucherAdapter | Community Safe-owned, finite allowance-backed `transferFrom` from each issuer reserve; durable once-only results and acknowledgment recovery |
-| New VoucherMessageCodec and VoucherEndpoint | Distinct v1 voucher wire domain, fixed authenticated peers, emergency pause and mandatory 48-hour scheduled UUPS upgrades |
+| New VoucherMessageCodec and VoucherEndpoint | Versioned authenticated voucher wire domains, fixed peers, emergency pause and owner-authorized zero-delay upgrades; preserve compatibility checks |
 | CLC GiftableToken | Reused implementation; issuer-controlled inventory, no adapter writer/mint/limiter or pool-withdrawal authority |
 | CLC SwapPool, registry, limiter, quoter and fee configuration | Current direct-purchase slice: reuse community-owned instances with explicit pool-local terms |
 | ICommitmentServiceOffers and service-offer namespace | Additive exact terms revision, claim nonce and accepted consent. Existing pooling interface and linear storage stay unchanged |
@@ -347,9 +477,9 @@ The ERC20 unlimited-allowance sentinel is rejected. Every successful batch consu
 authorized allowance amount, including any legitimate issuer self-allocation, with exact net
 reserve/recipient balance checks. Amounts are token base units, not inferred service prices.
 
-The issuer Safe can replenish inventory, change/revoke allowance and manage its token privileges.
-Community upgrade owners can change implementation after the mandatory proposed 48-hour delay;
-immediate emergency pause grants no upgrade bypass. Token/factory proxy administrators have their
+The issuer-controlled account or collective Safe can replenish inventory, change/revoke allowance
+and manage its token privileges within approved capacity. Authorized upgrade owners may execute
+without a mandatory waiting period; emergency pause grants no upgrade authority. Token/factory proxy administrators have their
 own powers and must be verified at release. Cap increases need explicit issuer decisions with
 evidence, never an automatic reputation formula. No fixture establishes real service prices,
 capacity, issuer approval or signer identities; those remain COM-46 prerequisites.
@@ -372,7 +502,11 @@ learner. Receiving vouchers does not establish service delivery, discharge or an
 Repeating a successful call is a second paid purchase; later app recovery must inspect the receipt
 before submitting again. Current proof and unverified capabilities belong in the purchases handoff.
 
-## Later slice: service presentment and redemption (specified, not implemented)
+## Service presentment and redemption
+
+The reconciled local implementation and connected rehearsal are recorded in the deployment handoff.
+The lifecycle below describes the intended behavior; it does not certify live activation or the new
+member-issuer path. The immutable final-allocation requirement supersedes incremental release wording.
 
 Presentment links Gnosis voucher escrow to an existing Green Goods service promise. The holder
 explicitly approves the delivered units through the integration alongside the existing promise
@@ -444,7 +578,7 @@ and replaces the two-week testnet period with focused pre-deployment tests, simu
 post-deployment smoke checks. PRD-1327 is outside hackathon scope. No renewed approval for either
 substitution is needed.
 
-Retain the owning contract/release workflow's Safe controls, implemented 48-hour upgrade delays,
+Retain the owning contract/release workflow's Safe controls and accepted zero-delay policy,
 pause authority, persisted deployment receipts and tested recovery/rollback. Verify exact owner,
 admin, writer, peer, allowance and cap state for the selected deployment and activation phase.
 A passing local fork, a policy substitution or an issue state does not establish those facts.

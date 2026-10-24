@@ -1,16 +1,29 @@
 # Cosmo-Local Integration
 
-**Reconciled:** 2026-10-22 UTC · **Stage:** backlog · **Posture:** the checkpoint is signed as
-`e7cd49d6`. The accepted voucher safeguards and their Indexer, Shared and member integration are
-implemented and verified locally, including the full critical contract gate. All new changes
-remain uncommitted. Live operations remain gated.
+**Reconciled:** 2026-10-23 Pacific · **Stage:** backlog · **Posture:** controlled live pilot
+preparation now includes member-owned and garden/collective vouchers in one shared Gnosis pool.
+Steward-assisted onboarding is accepted; members retain ownership and exact approval. The
+[architecture](spec.md#accepted-pilot-amendment--member-and-garden-issuers-23-october-pacific) and
+[implementation sequence](plan.todo.md#member-and-garden-issuer-pilot--accepted-23-october-pacific)
+record this added scope, which is not yet implementation or deployment evidence. The
+[deployment handoff](handoffs/codex-live-pilot-deployment.md) owns current signed checkpoints,
+account proof and live operations. The zero-delay upgrade decision supersedes older waiting
+periods; owner controls and accepted voucher safeguards remain.
+
+The selected implementation example is a TAS impact website: three separately scoped commitments
+for a designer, analyst and engineer under one shared brief, plus an exchange between two
+member-owned service vouchers in the same pool. The peer-help service stays distinct from the
+rewarded project deliverables. Actual people, terms, capacities, rates and funded rewards are
+still open; fixtures and simulated delivery must be labeled. Broader project-token and bundle
+features remain outside scope.
 
 The user adopted escrow before activation, exact voucher consent enforced at core acceptance,
 and one immutable final delivered/refundable split at 23:42 UTC. Earlier no-core-upgrade and
 incremental-release descriptions are historical within their original slices. The narrow core
 integration is now authorized; personal G$ remains on Celo. The
 [reconciliation record](handoffs/codex-voucher-reconciliation.md) owns the selected design and
-remaining proof. No broader issuer identity, cap or steward-suspension mechanism is selected.
+remaining proof. The new member-issuer amendment selects explicit issuer ownership and assisted
+onboarding; it does not select a general permissionless issuer or automatic capacity mechanism.
 
 **Linear project:** [Cosmo-Local Integration](https://linear.app/greenpill-dev-guild/project/cosmo-local-integration-6273120022c7)
 · [Architecture RESR-73](https://linear.app/greenpill-dev-guild/issue/RESR-73)
@@ -20,7 +33,9 @@ remaining proof. No broader issuer identity, cap or steward-suspension mechanism
 
 A member can contribute to a hub, earn access to useful services, use those services and understand
 what remains available or owed. A supporter can fund access and follow the resulting delivery.
-Tech and Sun and Green Goods are the first two proposed service-voucher issuers.
+Tech and Sun, Green Goods and admitted individual members are pilot service-voucher issuers.
+A member voucher promises that member's service; a collective voucher promises the collective's
+service. The member roster, service units and capacity still need issuer confirmation.
 
 The user clarified that the same commitment can receive vouchers and G$, with both terms agreed
 at acceptance. The
@@ -48,7 +63,7 @@ to communities, the Nigerian diaspora and institutions without requiring them to
 
 ## Broader hub scope (later slices included)
 
-- Two community-owned Gnosis voucher pools, earned reserve delivery and bounded direct purchases,
+- One shared curated Gnosis exchange pool for individual and collective issuers, earned reserve delivery and bounded direct purchases,
   service presentment and discharge, and explicit failure/recovery behavior.
 - Personal G$ service purchases across garden and protocol pools, with bound buyer consent,
   recorded funding, provider acceptance and mutually exclusive Celo payout/refund outcomes.
@@ -84,13 +99,14 @@ by the project move; see [the reconciliation record](project-reconciliation.md).
 
 ## Decisions still needed
 
-Both issuers must approve real service prices, available capacity, signer identities and concrete
+Each collective and individual issuer must approve real service prices, available capacity, signer identities and concrete
 reward/purchase terms before live use. Canonical earned allocation and later partial-delivery,
 discharge and remedy rules follow the accepted spec. Terms and reporting consent are
 separate. A token holding limit is not a loan facility or proof of service capacity.
 
-The October go/no-go must address each existing mainnet gate explicitly. Current plans grant no
-waiver. The separate PWA hub preserves its newer accepted design and execution gates. RESR-94
+The live release must address remaining technical gates explicitly. External audit and the older
+testnet waiting period are superseded by the accepted hackathon disposition, and no mandatory
+upgrade delay remains. The separate PWA hub preserves its accepted design and execution gates. RESR-94
 records the first diaspora audience and scenario asks; the exact first supporter, payment method and final COM-46 prices/capacity remain open.
 
 ## Evidence of success

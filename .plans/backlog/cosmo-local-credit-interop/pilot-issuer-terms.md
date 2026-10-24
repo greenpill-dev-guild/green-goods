@@ -1,5 +1,53 @@
 # Pilot issuer terms — working draft
 
+**Member-issuer amendment, 23 October Pacific:** individual service vouchers are required in the
+pilot alongside the collective vouchers below, with one shared exchange pool. Steward assistance
+does not transfer token/reserve ownership or replace the member's exact approval. The existing
+GG/TAS numeric baseline remains specific to those issuers; no member quantity, service price or
+exchange ratio is approved by analogy. The [architecture](spec.md#accepted-pilot-amendment--member-and-garden-issuers-23-october-pacific)
+owns the model and [M1–M8](plan.todo.md#member-and-garden-issuer-pilot--accepted-23-october-pacific)
+own the implementation sequence.
+
+## Member onboarding terms to confirm before activation
+
+For each willing member, record a public-safe service description and explicit acceptance of:
+
+- A bounded service unit, deliverable, availability/location, booking rules and remedy terms.
+- Their token-owning account, reserve, source approval authority, mint writers and separate
+  upgrade/recovery powers. Keep private member associations and credential evidence outside Git.
+- Total initial issuance, remaining service capacity, initial reserve/pool inventory, finite adapter
+  allowance and accepted-undelivered obligations. No numerical default is selected here.
+- Pool admission, an agreed quote/rate and fees, and a holding cap with usable swap headroom.
+  Neither admission nor an inventory cap guarantees demand or delivery.
+- Exact offer and booking approvals; the steward may assist but cannot approve as the issuer.
+  Delivered vouchers return to the member reserve within the remaining service budget; undelivered
+  vouchers return to the holder and do not automatically refund the earlier exchange asset.
+
+Start with a small confirmed member cohort; its size and names remain open. Career conversations
+inform possible services but are not permission to publish personal details or evidence that a
+member has agreed to deliver. No private notes or proposed individual commitments are copied here.
+
+## Selected TAS rehearsal brief
+
+The accepted implementation example is a TAS impact website with three distinct participant
+accounts and three separate commitments: design, metrics/impact analysis and website engineering.
+They share a brief/reference, with independent acceptance, evidence and outcomes. These are
+rehearsal roles, not a confirmed participant roster or permission to publish personal details.
+
+At least the analyst and engineer fixtures own separate service-voucher assets admitted to the
+same pool as the collective assets. A bounded exchange obtains the other member's voucher and
+continues through booking and partial delivery/refund. The designer need not issue a token.
+Standalone measurement coaching and integration-help lessons are possible fixture services;
+their work, evidence and capacity budgets stay separate from the project's impact summary and
+website implementation. Fixture issuance, quote/rate, pool cap, reserve and upgrade controls must
+be explicit and labeled, with no automatic promotion into live values.
+
+Before live issuer configuration, each real member still needs to confirm their account, service,
+capacity, issuance, source authority, allowance, rate/fees, remedies and upgrade/recovery powers.
+No selected numeric member rate, funded reward or delegated authority is recorded here.
+
+## Existing collective issuer baseline
+
 **Version:** `pilot-2026-10-23-draft-3` · **Status:** business baseline accepted; issuer capacity and live configuration unconfirmed.
 
 The selected services are Tech and Sun hub access, Green Goods assisted sessions, and Claude

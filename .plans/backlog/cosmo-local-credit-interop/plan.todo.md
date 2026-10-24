@@ -5,17 +5,92 @@
 **Linear Project**: Cosmo-Local Integration
 **Linear Source**: source:plans
 **Stage**: `backlog`
-**Status**: `CONTROLLED LIVE PILOT PREPARATION; SAME-ADDRESS AND DEPLOYMENT INPUTS OPEN`
+**Status**: `CONTROLLED LIVE PILOT PREPARATION; MEMBER ISSUANCE ADDED; DEPLOYMENT INPUTS OPEN`
 **Created**: 2026-08-25
-**Last Updated**: `2026-10-22`
+**Last Updated**: `2026-10-23 Pacific`
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
 [`tensions.md`](./tensions.md) · [`resources.md`](./resources.md) · [`eval.md`](./eval.md)
+
+## Member and garden issuer pilot — accepted 23 October Pacific
+
+The user requires member-owned service vouchers alongside garden vouchers in the same shared pool
+and accepts steward-assisted onboarding. The member retains ownership and exact approval. This
+section supersedes the two-issuer-only completion boundary; historical completed tasks below keep
+their original proof scope. The user has dispatched implementation, with the bounded independent
+execution-tooling checkpoint committed first, then M1–M8 in dependency order. No new member-issuer
+runtime or deployment result is claimed by this plan update.
+
+| # | Locked decision | Implementation consequence |
+|---|---|---|
+| 1 | Individual issuance is in the pilot | Include a real member issuer, not only a fictional third token. Member roster and actual services remain to be confirmed. |
+| 2 | Steward assistance; member ownership and approval | Retain steward-controlled publication/acceptance where compatible. Member controls token/reserve and approves exact obligations; pool stewardship is not issuer authority. |
+| 3 | One shared Gnosis pool | Add admitted assets and their configuration; no pool per member or new general exchange engine. |
+| 4 | Preserve existing lifecycle and independent G$ | Exact consent, escrow before acceptance, activation, immutable split and recovery; G$ remains on Celo. |
+| 5 | No mandatory upgrade delay | Preserve authorization, Safe signatures, pause and exact-candidate controls. External audit and two-week soak remain outside hackathon prerequisites. |
+| 6 | Existing branch and no new worktree | Preserve concurrent work; commit validated implementation in relevant local groupings when dispatched. |
+| 7 | TAS impact-website example selected | Three distinct participant accounts and separate commitments share one brief. Two member-owned assets exchange in the same pool; peer-help and project delivery have distinct work and capacity budgets. |
+
+### Dependency-ordered implementation checkpoints
+
+Each row is a bounded checkpoint, split further when its owning package requires more than one
+session. Start active implementation through the existing `linear-sync` workflow, respecting this
+hub's `parent_only` and `preserve_existing` modes. This planning pass changes no Linear states.
+
+| Step | Owning paths / work | Completion evidence |
+|---|---|---|
+| M1 | Define the labeled TAS rehearsal roster, independent deliverables and peer services; record confirmed versus unknown live units, capacities, token owner/reserve, source signer, upgrade/recovery controls and remedies | Fixture authority is explicit and cannot become live approval by default. Actual issuer acceptance remains required before live configuration; no private career notes or identities copied into public Git. |
+| M2 | Contracts release tooling: extend `script/utils/clc-release.ts`, its tests and `config/clc-pilot-release.json` from two fixed Safe issuers to explicit individual/collective records | Reject missing or mismatched authorities; deterministic inventory/nonce plans; member token initialization has no leftover deployer powers; existing collective manifests remain compatible. |
+| M3 | Contracts authority proof: extend the existing `GnosisVoucherPilot` / journey fixture and owning source/escrow tests | Three distinct project participants; at least two member-owned service assets. Member signs issuer approval and reserve calls; wrong member/steward/Safe cannot substitute. Existing generic modules suffice or a specific failing case justifies a narrow source change. |
+| M4 | Contracts configuration/execution: extend the existing release package and simulation at their current owners | Configure member authority under the required pause boundary, finite allowance, rate, fees, pool cap and inventory; idempotent recovery/adoption and exact readback include every added asset. |
+| M5 | Shared issuer/route metadata and Indexer projections, in separate package checkpoints | Individual/collective issuer, service unit and approval provenance round-trip; replay and pending/failure states remain truthful. A token transfer is not delivery or fresh capacity. |
+| M6 | Existing Admin onboarding and Client service journeys, with hooks in Shared | Steward prepares, member reviews/signs, administrator admits; member sees services they hold separately from services they owe. Labeled rendered proof plus authenticated signing proof for changed signing paths. |
+| M7 | Connected TAS three-participant rehearsal with collective and two member assets in the same pool | Three separate commitments under one brief, distinct acceptance/evidence/outcomes; member A voucher → member B voucher → exact booking consent → escrow → acceptance/activation → immutable partial outcome → member reserve return/holder refund. Stale terms, shortages, wrong authority and retries cannot duplicate issuance/swap/payout or count peer-help capacity as project delivery. |
+| M8 | Regenerate the affected deployment candidate, commit validated owned changes and execute the existing authorized release workflow | Exact new token/admin inventory, addresses/nonces, Safe calls, peers and caps; deployed readback and live smoke include the member issuer. Old two-issuer receipts certify only unchanged inputs. |
+
+Before affected issuer-specific deployment/configuration, identify which plan bytes and predicted
+addresses change. Preserve already deployed components and validated independent execution work;
+do not replay broadcasts or restart the deployment by assumption. Existing account proof is scoped
+to the selected profile and does not prove every new issuer's possession or approval. A broad
+implementation gate or the old two-issuer rehearsal cannot close M1–M8 by itself.
+
+Reuse boundaries: the current `VoucherEntitlementModule` owns source issuer binding and exact
+reward approval; `GnosisVoucherAdapter` owns reserve authorization; service escrow owns issuer
+approval and once-only transfers; `ServiceOffersLib` owns steward-controlled offer terms and
+acceptance. Extend these owners only where a member-path test demonstrates a gap. The release
+planner's fixed issuer list is the confirmed tooling gap. Member UI/indexer wiring remains to be
+proved. No self-service issuer factory, new team token, automatic project split or multi-issuer
+escrow belongs to these checkpoints. The bounded TAS example is selected for implementation;
+broader collaboration/project-platform features remain outside scope.
+
+### Proof status for the amendment
+
+- [x] Record member issuance, assisted onboarding, ownership/approval and shared-pool decisions.
+- [x] Select the TAS three-participant shared-brief example and two-member-asset exchange.
+- [ ] M1 issuer terms and controls confirmed.
+- [ ] M2–M4 member deployment, authority and configuration proof complete.
+- [ ] M5–M6 data/UI integration and signing proof complete.
+- [ ] M7 connected member/collective rehearsal complete.
+- [ ] M8 affected candidate, deployed readback and live smoke complete.
+
+Planning record: member and garden issuer amendment | Type: planning | Outcome: complete
+Agent: Codex; model unknown | Coverage: this amendment only; runtime implementation remains open.
+
+| Phase | Start → end (UTC, 24 October 2026) | Evidence |
+|---|---|---|
+| investigate | unknown → 00:13:14 | Current planner, authority, escrow and recognition code; existing handoff and accepted user decisions |
+| implement (plan only) | 00:13:14 → 00:18:08 | Six canonical planning files updated; no runtime or deployment changes |
+| verify/review | unknown → 00:18:08 | Plan-hub validator: 34 hubs; seven new local links/anchors resolve; prior lane/Linear/history state preserved; scoped diff check passes |
+
+The scoped diagnose selector selected no automated runtime checks. No contract or browser proof
+is claimed by this plan edit. Human corrections: 0 in this segment; attention: unknown.
+
+## Earlier release preparation and dated evidence
 
 **Current release decision, 22 October Pacific:** prepare the controlled live pilot and deployed
 contracts for Saturday, 24 October; deck Saturday and participant testing Sunday/Monday.
 External audit/audit intake is not a hackathon prerequisite. The user replaced the two-week
 testnet wait with focused pre-deployment tests, deployment simulation and post-deployment smoke
-checks. Preserve existing Safe controls, implemented delays and all accepted voucher safeguards.
+checks. Preserve existing Safe controls, the newer zero-delay decision and all accepted voucher safeguards.
 The [deployment package](handoffs/codex-live-pilot-deployment.md) owns the exact candidate,
 network operations, configuration inputs, technical blockers and execution review. Keep the
 current branch, signed commits and no-new-worktree constraint. The preparation chat owns Linear
@@ -440,7 +515,7 @@ cap per asset. The earlier ten/ten draft left no incoming swap headroom and is s
 twenty-unit issuance ceiling stays unchanged; the published GiftableToken does not itself implement
 that business cap. Issuer acceptance, actual capacity and the other activation gates remain open.
 
-Fresh source review finds no intrinsic upgrade timer in HatsModule or CommitmentPoolingModule;
+Historical source review before the accepted zero-delay change found no intrinsic upgrade timer in HatsModule or CommitmentPoolingModule;
 SettlementModule requires pause and immutable-route consistency, without a timer. VoucherEndpoint's
 48-hour timer applies to later replacement of an existing endpoint implementation. Fresh proxy
 initialization and owner unpause do not consume that delay. New CLC proxy upgrade timelocks use

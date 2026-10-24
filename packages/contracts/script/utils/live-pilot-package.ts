@@ -222,26 +222,32 @@ export function buildLivePilotPackage(input: LivePilotBuildInputs): LivePilotPac
     getAddress(source.authority.address),
     ...(clc.techAndSunSafe ? [getAddress(clc.techAndSunSafe)] : []),
   ]);
+  const reserveNonce = (sender: string, nonce: number, chainId: number, phase: "source" | "downstream") => {
+    if (!Number.isSafeInteger(nonce)) throw new Error("Native nonce overflow");
+    const from = getAddress(sender);
+    const key = `${phase}:${chainId}:${from}`;
+    if (owners.has(from)) throw new Error("Native sender cannot be an owner Safe");
+    const previous = groups.get(key);
+    const preceding = previous ?? (phase === "downstream" ? groups.get(`source:${chainId}:${from}`) : undefined);
+    if (preceding && nonce !== preceding.lastNonce + 1)
+      throw new Error("Native nonce overlap, gap or stage order mismatch");
+    groups.set(key, {
+      phase,
+      chainId,
+      from,
+      firstNonce: previous?.firstNonce ?? nonce,
+      lastNonce: nonce,
+      count: (previous?.count ?? 0) + 1,
+      requiresNonceRefreeze: phase === "downstream",
+    });
+  };
   const native = (
     tx: { from: string; nonce: number; to: string | null; value: "0"; data: string; address: string },
     chainId: number,
     phase: "source" | "downstream",
   ): PreparedTransaction => {
     const from = getAddress(tx.from);
-    const key = `${phase}:${chainId}:${from}`;
-    if (owners.has(from)) throw new Error("Native sender cannot be an owner Safe");
-    const previous = groups.get(key);
-    if (previous && tx.nonce !== previous.lastNonce + 1)
-      throw new Error("Native nonce overlap, gap or stage order mismatch");
-    groups.set(key, {
-      phase,
-      chainId,
-      from,
-      firstNonce: previous?.firstNonce ?? tx.nonce,
-      lastNonce: tx.nonce,
-      count: (previous?.count ?? 0) + 1,
-      requiresNonceRefreeze: phase === "downstream",
-    });
+    reserveNonce(from, tx.nonce, chainId, phase);
     return {
       chainId,
       from,
@@ -271,6 +277,10 @@ export function buildLivePilotPackage(input: LivePilotBuildInputs): LivePilotPac
     missing: string[] = [],
   ): PreparedTransaction => ({ chainId, from, to, operation, data, value: "0", reviewOnly: true, missing });
   const sourceNative = p.sourceUpgrades.deployments.map((tx) => native(tx, 42161, "source"));
+  // Each Safe call is submitted directly by the deployer after CREATEs; its Safe nonce stays independent.
+  p.sourceUpgrades.ownerCalls.forEach((_, index) =>
+    reserveNonce(source.deployer!, source.nonce! + p.sourceUpgrades.deployments.length + index, 42161, "source"),
+  );
   const stewardNative = p.stewardSafe.transactions.map((tx) => native(tx, tx.chainId, "downstream"));
   const voucherNative = p.vouchers.transactions.map((tx) => native(tx, tx.chainId, "downstream"));
   const clcNative = p.clc.transactions.map((tx) => native(tx, 100, "downstream"));

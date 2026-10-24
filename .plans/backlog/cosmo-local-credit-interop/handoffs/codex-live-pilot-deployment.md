@@ -1441,3 +1441,111 @@ Agent/model: Codex; model unknown | Coverage: prepared-request repair and curren
 Human corrections: unknown for this covered segment; attention: unknown. Overlapping verification
 intervals are elapsed observations and are not summed as effort. This record does not close the hub
 or certify the remaining execution tooling, live passkey proof or deployments.
+
+**Signed checkpoint and live account proof, 2026-10-23:** checkpoint
+`d7d4869b9bbcd0a2e392bb87eaa89b2c73696ca6` has a verified good signature. All 52 intended
+tree inputs match, its owned scope and index were clean at verification, and unrelated work was
+preserved. The actual post-checkpoint default test-quality and supply-chain command sequence
+passed, resolving the obsolete-name comparison issue. The earlier automated results remain
+exact-input working-copy/snapshot evidence; no clean committed-root aggregate receipt is claimed.
+
+The authenticated Brave retry succeeded. The operator completed the passkey flow, and Profile
+shows the participating account active after reload. Independent read-only Gnosis checks at
+23:48:44 UTC verified the successful canonical receipt, exact factory initializer and CREATE2
+derivation, pinned dependency and account runtimes, account version, stored public key, consumed
+root nonce, exact zero-value operation, normal chain-bound captured WebAuthn signature and
+successful inner call. The operation is fully sponsored within the approved ceiling: native
+value and member gas charge are zero. Raw credential IDs, private keys and biometric data were
+not accessed. Member associations, transaction identifiers, raw public-chain proof and screenshots
+remain private task evidence. This closes the member signing blocker for the selected pilot
+profile; it does not move original assets, roles or ENS, activate a service route, or deploy the
+remaining protocol components.
+
+Deployment work continues from this checkpoint. The existing source planner remains the
+authority for CREATEs and Safe owner calls. Its simulation already owns selected-state snapshots;
+the new readback adapter will reuse that snapshot rule for canonical receipt blocks and current
+prefix state. The existing Hats executor supplies the narrow normal-keystore send-argument and
+receipt/recovery pattern, but its two-step schema cannot represent the source release's 23 CREATEs
+and four Safe outer transactions. Source tooling therefore owns a separate bounded execution
+envelope/journal, with exact compiler-job runtime materialization, canonical adoption and shared
+budget accounting. No remaining broadcast command is ready until that port and its proof finish.
+
+**Accepted issuer-scope amendment, 2026-10-24 UTC (23 October Pacific):** individual/member-owned
+services join garden/collective vouchers in the same Gnosis pool. The authoritative scope is the
+[accepted spec amendment](../spec.md#accepted-pilot-amendment--member-and-garden-issuers-23-october-pacific)
+and [M1–M8 implementation sequence](../plan.todo.md#member-and-garden-issuer-pilot--accepted-23-october-pacific).
+Steward-assisted onboarding retains member ownership, exact approval and separately selected
+upgrade/recovery controls. The selected profile's successful passkey proof remains valid account
+evidence; it does not prove an issuer's terms, issuance, reserve allowance or booking approval.
+
+Read-only candidate inspection found no issuer-count dependency in the generic source upgrades
+or paused endpoint initialization. Those independent execution-tooling steps continue. The CLC
+planner, however, accepts exactly `greenGoods | techAndSun`, maps token/admin/configuration calls
+to their two Safes and emits ten deployments. The combined package emits only their two source
+issuer bindings. Every CLC factory salt currently includes the whole manifest hash: extending
+that manifest changes existing token, pool and dependency addresses unless identity preservation
+is explicit. The former two-issuer package is therefore not an executable member-issuer candidate.
+Member quantities, rates, source authority, upgrade/recovery controls, additional Gnosis nonces and
+gas reservations remain unselected. No extra pool, member Safe or steward authority is implied.
+The shared adapter/escrow already uses issuer/token addresses and exact issuer approval; the
+existing two-Safe rehearsal does not establish member-owned onboarding. Keep all service routes
+inactive until the amended configuration and connected member-issuer proof pass.
+
+**Guarded source executor verified, result observed 2026-10-24 00:37:18 UTC:** the concrete port
+now includes original compiler-job selection, exact constructor/runtime materialization, canonical
+baseline/readback, fixed-budget preparation, monotonic paid-attempt journaling, exclusive chain
+claims and explicit dead-owner receipt recovery. The CLI separates CREATE broadcast, Safe export
+and read-only adoption. Signing arguments bind the approved deployer, zero native value, chain,
+nonce, gas limit and fee cap. Output paths cannot replace the shared journal/locks or reviewed
+inputs, including case aliases. No new implementation authority or activation is included.
+
+The exact contract verifier passed in the secret-free source snapshot: 2,211 Solidity cases,
+three cold production gas cases, 37 Node CLI cases and 634 script cases in 49 files. Measured
+duration was 424 seconds. ABI comparison, whole contracts types and scoped static checks passed.
+The new CLI reference exposed an existing distinction between Gnosis wallet support and absent
+protocol deployment artifacts. The generator now includes persisted deployment authorities only;
+it does not fabricate a deployment record. Four failing existing generator cases now pass. Full
+Docs authority tests pass 81, Docs tests pass 99, all 17 projections are current, and the build's
+search index covers 77 live routes. Unrelated editorial warnings remain advisory. These are
+working-copy/exact-input results; signed checkpoint and post-checkpoint defaults follow.
+
+Fresh public reads at 00:27:47 UTC show 0.010128114155989177 ETH on Arbitrum and 1.27 xDAI on
+Gnosis for the approved deployer; latest/pending nonces are 1039/1039 and 0/0. Original Safe
+nonces remain 33 and 2, both 2-of-5 with no modules or guards. Canonical slot-zero readback pins
+the actual singleton reporting version 1.5.0; its observed full runtime, domain and first exact
+Safe transaction hash match the executor. Explorer implementation metadata was stale, and
+verified source provenance for the actual singleton is not established. No Safe change is made.
+
+The actual-source owned fork passed 23 exact CREATE runtimes and four impersonated owner calls,
+preserving the checked 17/12 scalar rows and original owners and ending paused. Public preparation
+retained all future CREATE nonces and fee fields. Thirty-percent CREATE gas ceilings total
+65,515,212; four conservative Safe outer maxima total 8,000,000 gas. At 0.05 gwei, source maxima,
+paid Hats cost and a proposed 0.001 ETH downstream reservation total 0.00475093868573 ETH, leaving
+0.00024906131427 ETH under the unchanged 0.005 ETH gas cap. The 0.002 ETH CCIP budget is separate.
+The downstream reservation is not a full remaining-component quote, and the Safe bounds do not
+price real signatures. No funding is needed at these observed balances. CREATE nonces are
+1039–1061; Safe outer nonces 1062–1065 and inner nonces 33–36; the next Arbitrum reservation is
+1066. Fresh input/readback checks still govern any eventual command.
+
+**TAS implementation dispatch:** the user selected the three-person impact-website rehearsal and
+member-to-member voucher exchange. The [selected example](../spec.md#selected-tas-project-rehearsal--three-participants-and-a-member-exchange)
+uses a shared brief and three independent commitments, with separately scoped peer-help work.
+The current checkpoint closes bounded execution-tooling implementation, then M1–M8 proceeds in
+dependency order. The parent-only/preserve-existing Linear manifest was read; RESR-73 was verified
+Done and no external fields changed. Actual member approvals, terms, capacities, rates, funded
+rewards and upgrade/recovery controls remain live inputs. Do not execute the old two-issuer
+package as the amended pilot or attribute member onboarding to the earlier collective rehearsal.
+
+Task record: Cosmo-local live pilot | Type: feature/fix | Outcome: partial
+Agent/model: Codex; model unknown | Coverage: completed account proof, guarded executor and accepted TAS dispatch
+
+| Phase | Start → end (UTC, 24 October 2026 unless dated) | Result / evidence |
+|---|---|---|
+| verify | unknown → 2026-10-23 23:48:44 | Canonical sponsored member proof independently checked; authenticated Brave Profile active |
+| implement/review | unknown → 00:29:38 | Compiler/runtime, preparation, readback, journal/claim and normal-operator composition frozen; sender finding closed |
+| verify | unknown → 00:37:18 | Full contract verifier passed; exact-input snapshot limits retained |
+| implement/verify | unknown → 00:42:17 | Missing-deployment docs regression repaired; authority, unit, projection, build and search checks pass |
+| investigate/plan | unknown → ongoing | TAS member-project scope reconciled; preserved Linear parent verified, read-only dependent seam designs prepared |
+
+Human corrections: 0 observed in this segment; attention: unknown. Phase intervals overlap and
+are not effort totals. This record does not close the hub or certify remaining live deployments.

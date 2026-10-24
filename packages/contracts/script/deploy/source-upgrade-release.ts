@@ -17,6 +17,9 @@ import {
   validateSourceUpgradePlan,
 } from "../utils/source-upgrade-release";
 import { simulateSourceUpgradePlan } from "../utils/source-upgrade-simulation";
+import { loadSourceUpgradeCompilerJobs } from "../utils/source-upgrade-compiler";
+import { validateSourceUpgradeMode } from "../cli/operations.mjs";
+import { runSourceUpgradeOperator, sourceUpgradeOutputPath } from "../utils/source-upgrade-operator";
 
 async function main() {
   const { values } = parseArgs({
@@ -26,18 +29,39 @@ async function main() {
       preflight: { type: "boolean" },
       "plan-only": { type: "boolean" },
       simulate: { type: "boolean" },
+      "prepare-execution": { type: "boolean" },
+      broadcast: { type: "boolean" },
+      "export-safe": { type: "boolean" },
+      adopt: { type: "boolean" },
+      "recover-lock": { type: "boolean" },
       manifest: { type: "string" },
       plan: { type: "string" },
       output: { type: "string" },
+      rehearsal: { type: "string" },
+      "safe-pins": { type: "string" },
+      "other-reserved-wei": { type: "string" },
+      envelope: { type: "string" },
+      step: { type: "string" },
+      "expected-nonce": { type: "string" },
+      receipt: { type: "string" },
     },
   });
-  if (
-    [values.preflight, values["plan-only"], values.simulate].filter(Boolean).length !== 1 ||
-    (values.preflight && (values.plan || values.output)) ||
-    (values["plan-only"] && values.plan) ||
-    (values.simulate && !values.plan)
-  )
-    throw new Error("Select exactly one source upgrade release mode and its required arguments");
+  const modes = {
+    preflight: "preflight",
+    "plan-only": "plan",
+    simulate: "simulate",
+    "prepare-execution": "prepare-execution",
+    broadcast: "broadcast",
+    "export-safe": "export-safe",
+    adopt: "adopt",
+  };
+  const selected = Object.keys(modes).filter((key) => values[key as keyof typeof values]);
+  if (selected.length !== 1) throw new Error("Select exactly one source upgrade release mode");
+  const options = Object.fromEntries(
+    Object.entries(values).filter(([key, value]) => !(key in modes) && value !== undefined),
+  );
+  options.mode = modes[selected[0] as keyof typeof modes];
+  validateSourceUpgradeMode(options);
   const manifestPath = releaseJsonPath(
     path.join(CONTRACTS_ROOT, "config"),
     values.manifest ?? "config/source-upgrade-release.json",
@@ -59,7 +83,7 @@ async function main() {
     ],
     {
       cwd: CONTRACTS_ROOT,
-      env: { ...process.env, FOUNDRY_PROFILE: "production" },
+      env: { ...process.env, FOUNDRY_PROFILE: "production", FOUNDRY_BUILD_INFO: "true", FOUNDRY_AST: "true" },
       stdio: "pipe",
       maxBuffer: 16 * 1024 * 1024,
     },
@@ -88,9 +112,10 @@ async function main() {
   const directory = path.join(CONTRACTS_ROOT, ".generated/source-upgrades");
   if (values["plan-only"]) {
     const plan = buildSourceUpgradePlan(manifest, artifacts, revision);
-    const output = releaseJsonPath(
+    const output = sourceUpgradeOutputPath(
       directory,
-      values.output ?? `.generated/source-upgrades/${plan.releaseId}.plan.json`,
+      options,
+      `.generated/source-upgrades/${plan.releaseId}.plan.json`,
     );
     writeReleaseJsonAtomic(output, plan);
     console.log(
@@ -109,14 +134,40 @@ async function main() {
   }
   const plan: unknown = JSON.parse(readFileSync(releaseJsonPath(directory, values.plan!), "utf8"));
   validateSourceUpgradePlan(plan, manifest, artifacts, revision);
-  const result = await simulateSourceUpgradePlan(plan, manifest, artifacts, new NetworkManager().getRpcUrl("arbitrum"));
+  if (!values.simulate) {
+    console.log(
+      JSON.stringify(
+        await runSourceUpgradeOperator({
+          options,
+          manifestPath,
+          manifest,
+          plan,
+          artifacts,
+          revision,
+          rpcUrl: new NetworkManager().getRpcUrl("arbitrum"),
+        }),
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+  const jobs = loadSourceUpgradeCompilerJobs(getFoundryOutDir("production"), artifacts);
+  const result = await simulateSourceUpgradePlan(
+    plan,
+    manifest,
+    artifacts,
+    new NetworkManager().getRpcUrl("arbitrum"),
+    jobs,
+  );
   if (releaseRevision(CONTRACTS_ROOT, manifestPath) !== revision)
     throw new Error("Release revision changed during source upgrade simulation");
-  const output = releaseJsonPath(
+  const output = sourceUpgradeOutputPath(
     directory,
-    values.output ?? `.generated/source-upgrades/${plan.releaseId}.simulation.json`,
+    options,
+    `.generated/source-upgrades/${plan.releaseId}.simulation.json`,
   );
-  writeReleaseJsonAtomic(output, { sourceCommit: revision, releaseId: manifest.releaseId, ...result });
+  writeReleaseJsonAtomic(output, { releaseId: manifest.releaseId, ...result });
   console.log(
     JSON.stringify(
       {

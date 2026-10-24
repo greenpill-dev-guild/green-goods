@@ -1064,16 +1064,17 @@
     "userUnregisteredStaleWorker": true,
     "liveScriptsObserved": ["/@vite/client", "/src/main.tsx"],
     "signInUiSucceeded": true,
-    "pilotEnrollmentHeld": "Member selection resolved by operator. The fresh quote/sign loop now blocks proof; no activation or transaction is claimed.",
-    "transactionSignatureOrBroadcast": false,
+    "pilotEnrollmentHeld": false,
+    "transactionSignatureOrBroadcast": true,
     "freshWebAuthnAssertionVerified": false,
     "automationLimit": "Browser URL policy rejected opening an internal worker-management page; operator performed worker-only cleanup. No circumvention or site-data deletion.",
     "userReportedSignInComplete": true,
-    "memberSelectionConfirmed": true
+    "memberSelectionConfirmed": true,
+    "freshWebAuthnEvidence": "The later member UserOperation has a valid captured WebAuthn signature. This does not independently certify the earlier startup/login restore assertion."
   },
   "liveQuoteRepair": {
     "observedAt": "2026-10-23T23:39:33Z",
-    "state": "Repair frozen and reviewed; all automated repair checks passed; signed local checkpoint and authenticated live retry pending",
+    "state": "Repair signed, automated proof passed and real sponsored Gnosis flow verified",
     "evidenceClass": "Real Brave localhost UI with operator-controlled authenticator; no agent access to credentials or browser storage",
     "sponsoredMaximumNative": "0.00161930835",
     "maximumCeilingNative": "0.01",
@@ -1085,7 +1086,7 @@
     "repair": "Retain a frozen flat UserOperation 0.7 request and quote. Invoke the installed viem send action with a pilot-scoped preparation adapter returning the retained request; reread nonce/factory and preserve session, full hash, full sponsored cost, 60-second expiry, durable intent and receipt checks. Unexpected returned hashes retain the original pending identity.",
     "priorApplicationEvidence": "Earlier full application/build results are historical. Fresh focused, all four full types and suites, scoped format/lint/source checks pass after repair freeze; Client build was not rerun for this bounded SDK repair.",
     "sourceContractCandidateChanged": false,
-    "broadcast": false,
+    "broadcast": true,
     "memberAddressAssociation": "Kept private; not included in this public artifact",
     "frozenAt": "2026-10-23T23:23:58Z",
     "verification": {
@@ -1095,7 +1096,7 @@
       "types": "All four application source/test typechecks passed after the final repair hashes",
       "static": "Scoped format, Shared lint and source structure passed",
       "broadApplicationSuites": "All four passed at exact frozen application inputs",
-      "liveRetry": "Pending; no new signature or broadcast after repair",
+      "liveRetry": "Successful canonical account/signature proof; private member transaction evidence retained outside Git",
       "freshApplicationResults": {
         "focused": {
           "files": 4,
@@ -1200,13 +1201,189 @@
           "durationSeconds": 16.27
         }
       ],
-      "attribution": "Secret-free public source snapshot; all65 application source/snapshot hashes stable except deliberately committed Portuguese catalog content. Not a clean committed-root receipt."
+      "attribution": "Secret-free public source snapshot; all65 application source/snapshot hashes stable except deliberately committed Portuguese catalog content. Not a clean committed-root receipt.",
+      "localCheckpoint": "d7d4869b9bbcd0a2e392bb87eaa89b2c73696ca6, verified good signature and exact52path tree"
     },
     "retainedLimits": {
       "quoteLifetimeSeconds": 60,
       "maxSponsoredCostWei": "10000000000000000",
       "valueWei": "0",
       "hashGuardRelaxed": false
+    },
+    "broadcastScope": "Only the explicitly reviewed zero-value sponsored member account proof; no remaining component deployment or activation"
+  },
+  "preparedProofSignedCheckpoint": {
+    "commit": "d7d4869b9bbcd0a2e392bb87eaa89b2c73696ca6",
+    "signature": "G",
+    "verifiedAt": "2026-10-23T23:41:33.247836Z",
+    "ownedPaths": 52,
+    "treeInputMismatches": [],
+    "ownedScopeCleanAtVerification": true,
+    "foreignWorkPreserved": true,
+    "published": false,
+    "validationAttribution": "Precommit exact-input public snapshot proof; no clean committed-root aggregate receipt claimed",
+    "postCheckpointDefaults": {
+      "finishedAt": "2026-10-23T23:43:23.428068Z",
+      "allPassed": true,
+      "checks": [
+        "codex-docs",
+        "guidance-links",
+        "immutable-plan-reports",
+        "test-quality",
+        "plan-hub validate",
+        "plan-hub tests"
+      ]
     }
+  },
+  "livePilotAccountProof": {
+    "observedAt": "2026-10-23T23:48:44.294Z",
+    "state": "Canonical sponsored Gnosis proof verified and selected account active after authenticated Brave reload",
+    "chainId": 100,
+    "profileId": "kernel-0.3.3-pilot",
+    "evidenceClasses": [
+      "authenticated Brave localhost",
+      "read-only canonical Gnosis RPC",
+      "Etherscan public transaction and event crosscheck"
+    ],
+    "checks": [
+      "canonical successful receipt and block recheck",
+      "exact factory initializer and independent CREATE2 derivation",
+      "pinned dependency runtimes and account implementation",
+      "root validator, stored public P256 key and account version",
+      "root nonce consumed at receipt and observed head",
+      "one chain-bound UserOperation and exact zero-value rootValidator call",
+      "captured WebAuthn signature verified through pinned validator",
+      "no failed TRY-mode inner call",
+      "full sponsored maximum within approved ceiling",
+      "active participating account shown after page reload"
+    ],
+    "valueWei": "0",
+    "memberGasChargeWei": "0",
+    "sponsoredMaximumCeilingWei": "10000000000000000",
+    "rawCredentialIdRead": false,
+    "privateKeyOrBiometricAccessed": false,
+    "memberIdentifiersAndTransactionEvidence": "Kept in private task evidence; not copied to this public repository",
+    "assetsRolesEnsMoved": false,
+    "serviceRouteActivationIncluded": false
+  },
+  "guardedSourceExecution": {
+    "state": "implemented_and_verified_working_copy_no_live_execution",
+    "historicalParentCommit": "d7d4869b9bbcd0a2e392bb87eaa89b2c73696ca6",
+    "resultObservedAt": "2026-10-24T00:37:18Z",
+    "sourceInputsSha256": {
+      "packages/contracts/config/source-upgrade-release.json": "4972fb41172755b56ae7b2965e6b16a338449d46ac749abf81a320727b515215",
+      "packages/contracts/config/source-upgrade-safe-pins.json": "b66ca0aef8329add19070380bfbbec5a78843469bfda7c52b00795b2a71d9728",
+      "packages/contracts/script/cli/operations.d.mts": "fffa091317075da9f932331961291ae66728f60a2188dfbc6b50b71d9cdb5db2",
+      "packages/contracts/script/cli/operations.mjs": "1687a65ba725dc6b3a2d69bbf73da2b25060be19fba4270d9f835ff61d4dfeba",
+      "packages/contracts/script/deploy/source-upgrade-release.ts": "a982bbbf676d23b9dbe17c446fc853a5730c1b6fe7af2336fc6368d13f3371e4",
+      "packages/contracts/script/utils/live-pilot-package.test.ts": "4858eaa4b9d17f2c060ec69fffac930d49f30107a2f02634fe39afe71ff7a31a",
+      "packages/contracts/script/utils/live-pilot-package.ts": "9b04ebffd4f12e5596882c17cf178821fe3405564e859340f49e9ed44ec51277",
+      "packages/contracts/script/utils/source-upgrade-compiler.test.ts": "a0ab5aa23749feb2104c31a184bf851c794b51bb8d584d93d7fd760332a83f5c",
+      "packages/contracts/script/utils/source-upgrade-compiler.ts": "e2383f1ca29af9f27e1f7eef8c74ad1910cedc6141af065d6c762d2640834076",
+      "packages/contracts/script/utils/source-upgrade-execution-claim.ts": "96bf705ebf8c53fb24e217bea7e639448c213dcaf02a3044e0d29ddc2a11c0f2",
+      "packages/contracts/script/utils/source-upgrade-execution-store.test.ts": "acd9ab667aa0c4ecc1e2cd20082ea33952d0040f182dff21a0ea42bd0faeed45",
+      "packages/contracts/script/utils/source-upgrade-execution-store.ts": "64d3348e1a1c7d471393d785b8dd3f007b97cfa732d6613b34db42f8871ad571",
+      "packages/contracts/script/utils/source-upgrade-execution-types.ts": "787b873c9392e746ebe76edf84dbbc89bde2cafd13b19537611c39cc1e85ee5c",
+      "packages/contracts/script/utils/source-upgrade-execution.test.ts": "e83005965e2be995cfecd81415fd5f652630738e7e63c21a7e8317c038e4d1dd",
+      "packages/contracts/script/utils/source-upgrade-execution.ts": "acac6a3da0bdfe36a3b0ea7d68f29390a5b54756384c070135068fa62cc8145a",
+      "packages/contracts/script/utils/source-upgrade-operator.test.ts": "e319ad4fd51ce3ca75f2afdae9bb376f14a303e54e11e75d6917dc1e38f876cf",
+      "packages/contracts/script/utils/source-upgrade-operator.ts": "ce572f35d465a5d31aa4740e4cfae164263e55b2e0723d1b233f959fa2978ba2",
+      "packages/contracts/script/utils/source-upgrade-prepare.test.ts": "5d2a0a06311659796cff4d3af9cba4df48e467ae2485eaadbbfd5e8822b515cf",
+      "packages/contracts/script/utils/source-upgrade-prepare.ts": "960cc2fb78aefbd76f9fd0887f9ced9dbd5324f10572b36de762ced1ddc6f236",
+      "packages/contracts/script/utils/source-upgrade-readback.test.ts": "b49c87af5dd8d51d333e487b81f34303371f222e413a9dbf81ed6f727c824466",
+      "packages/contracts/script/utils/source-upgrade-readback.ts": "3e4c69d5e89c44ee86e25f416c9a2f407bc1587412f988b5a373f4459b129f4d",
+      "packages/contracts/script/utils/source-upgrade-runtime.test.ts": "873ee5481e6300d700f707ad12d4c1898cac8d9f124d010e12d3018907422c83",
+      "packages/contracts/script/utils/source-upgrade-runtime.ts": "5054a5453f41c9b1c2f3a79191df481bbb90a0bfc0da3c10d5f7f199aebc328f",
+      "packages/contracts/script/utils/source-upgrade-safe-execution.ts": "ba301383a0c6d2f9bb3d75071a401022b53425069a261e91b1e3cbbdf777d70a",
+      "packages/contracts/script/utils/source-upgrade-simulation.test.ts": "1c746f77f460a491fc03d2aab7e1b282a27af150046c6897aaec004be66d4a36",
+      "packages/contracts/script/utils/source-upgrade-simulation.ts": "c83ee9f844d6da31844a953a54eb972b8203a0edfcd68dadb5b1705a77a483b3"
+    },
+    "fullContractProof": {
+      "entrypoint": "./scripts/contracts/verify-production.sh --skip-e2e --skip-dry-run",
+      "exitCode": 0,
+      "solidityCases": 2211,
+      "productionGasCases": 3,
+      "nodeCliCases": 37,
+      "scriptCases": 634,
+      "scriptFiles": 49,
+      "measuredSeconds": 424,
+      "proofClass": "exact-input secret-free working source snapshot; not a clean committed-root aggregate receipt"
+    },
+    "docsFollowup": {
+      "authorityTestsPassed": 81,
+      "docsTestsPassed": 99,
+      "buildPassed": true,
+      "searchSourceRoutes": 77,
+      "generatedProjectionsPassed": 17,
+      "change": "Wallet-supported chains without persisted protocol artifacts no longer imply deployment artifacts; normal source validation remains strict. CLI references and stale source digests regenerated."
+    },
+    "publicChainProof": {
+      "observedAt": "2026-10-24T00:27:47Z",
+      "arbitrumDeployerBalanceWei": "10128114155989177",
+      "gnosisDeployerBalanceWei": "1270000000000000000",
+      "arbitrumLatestAndPendingNonce": 1039,
+      "gnosisLatestAndPendingNonce": 0,
+      "arbitrumSafeNonce": 33,
+      "gnosisSafeNonce": 2,
+      "safeThreshold": 2,
+      "safeOwners": 5,
+      "safeSingletonVersion": "1.5.0",
+      "safeRuntimePins": {
+        "runtimeHash": "0xb89c1b3bdf2cf8827818646bce9a8f6e372885f8c55e5c07acbd307cb133b000",
+        "singleton": "0xEdd160fEBBD92E350D4D398fb636302fccd67C7e",
+        "singletonRuntimeHash": "0x180193227186ccb85316c94db1f0d156ed932b14712cfaac78901899178572dc"
+      },
+      "safeSourceProvenance": "not established; canonical runtime, authority, domain and exact first Safe transaction hash checked"
+    },
+    "ownedForkProof": {
+      "creates": 23,
+      "ownerImpersonatedCalls": 4,
+      "allExactRuntimeHashesPassed": true,
+      "poolingSelectedGetters": 17,
+      "settlementSelectedGetters": 12,
+      "originalOwnersPreserved": true,
+      "pausedEndState": true,
+      "safeSignaturesProved": false,
+      "liveBroadcast": false
+    },
+    "publicGasPreparation": {
+      "createGasLimitsWithThirtyPercentCeiling": "65515212",
+      "safeOuterConservativeGasMaximumTotal": "8000000",
+      "maxFeeWei": "50000000",
+      "priorityFeeWei": "0",
+      "hatsAlreadySpentWei": "75178085730000",
+      "sourceCreateMaximumWei": "3275760600000000",
+      "sourceSafeMaximumWei": "400000000000000",
+      "proposedOtherArbitrumReservedWei": "1000000000000000",
+      "sharedGasReservationWei": "4750938685730000",
+      "gasBudgetWei": "5000000000000000",
+      "gasHeadroomWei": "249061314270000",
+      "ccipReservationWei": "2000000000000000",
+      "limit": "Other-component reservation is a proposal, not their full quote; Safe outer bounds are maxima without real signatures."
+    },
+    "executionBoundaries": {
+      "createNonces": [1039, 1061],
+      "safeOuterNonces": [1062, 1065],
+      "safeInnerNonces": [33, 36],
+      "nextArbitrumNonce": 1066,
+      "normalKeystoreSubmissionProved": false,
+      "actualSafeSignaturesProved": false,
+      "sourceProxiesStayPaused": true,
+      "issuerConfigurationIncluded": false,
+      "routeActivationIncluded": false
+    },
+    "recovery": "Fixed chain journal, monotonic paid attempts, durable intent, no automatic rebroadcast, explicit canonical receipt adoption and dead-owner lock recovery. Failed CREATE nonce consumption requires a reviewed replan retaining prior spend; no automatic ledger reset.",
+    "remaining": "Signed checkpoint and post-checkpoint defaults; member-issuer/project implementation and fresh affected live plans. No remaining broadcast command or issuer activation is certified here."
+  },
+  "acceptedMemberProjectScope": {
+    "state": "dispatched_not_implemented",
+    "sharedPoolCount": 1,
+    "projectBrief": "TAS impact-website rehearsal",
+    "distinctParticipantRoles": ["designer", "analyst", "engineer"],
+    "separateCommitments": 3,
+    "memberServiceAssetsAtLeast": 2,
+    "memberIssuersInFixture": ["analyst", "engineer"],
+    "scope": "Two member-owned assets exchange in the same pool alongside collective assets; redeem the received service with exact consent, custody and immutable partial outcome. Peer-help work/capacity stays separate from rewarded project deliverables. No project aggregate, extra pool, arbitrary split, automatic scheduler or member Safe is implied.",
+    "liveInputs": "Actual participants, issuer approvals, services, capacities, rates, funded rewards and member upgrade/recovery controls remain unconfirmed."
   }
 }

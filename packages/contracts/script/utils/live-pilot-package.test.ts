@@ -53,14 +53,14 @@ function fixture() {
     stewardHat: "2",
     expectedTopHat: String(1n << 224n),
     networks: {
-      arbitrum: { chainId: 42161, router: address(105), deployer: arbDeployer, nonce: 11 },
+      arbitrum: { chainId: 42161, router: address(105), deployer: arbDeployer, nonce: 13 },
       gnosis: { chainId: 100, router: address(106), deployer: gnosisDeployer, nonce: 20 },
     },
   } as StewardManifest;
   const vouchers = structuredClone(voucherDraft) as VoucherManifest;
   Object.assign(vouchers.networks.arbitrum, {
     deployer: arbDeployer,
-    nonce: 12,
+    nonce: 14,
     router: address(105),
     owner: gg,
     guardian: address(107),
@@ -168,16 +168,16 @@ describe("live pilot package preparation", () => {
         chainId: 42161,
         from: address(101),
         firstNonce: 10,
-        lastNonce: 10,
-        count: 1,
+        lastNonce: 12,
+        count: 3,
         requiresNonceRefreeze: false,
       },
       {
         phase: "downstream",
         chainId: 42161,
         from: address(101),
-        firstNonce: 11,
-        lastNonce: 17,
+        firstNonce: 13,
+        lastNonce: 19,
         count: 7,
         requiresNonceRefreeze: true,
       },
@@ -202,6 +202,42 @@ describe("live pilot package preparation", () => {
       "before nonce freeze",
     );
   });
+  it("reserves all source CREATEs and direct Safe submissions before the downstream nonce budget", () => {
+    const f = fixture();
+    Object.assign(f.manifests.sourceUpgrades, { settlement: structuredClone(sourceDraft.settlement) });
+    const [settlementSource, settlementName] = SOURCE_UPGRADE_TARGETS.settlement.split(":");
+    f.artifacts.sourceUpgrades[SOURCE_UPGRADE_TARGETS.settlement] = artifact(settlementSource, settlementName, []);
+    const pooling = f.artifacts.sourceUpgrades[SOURCE_UPGRADE_TARGETS.pooling];
+    pooling.bytecode.object = `0x${"00".repeat(21 * 20)}60006000f3`;
+    pooling.bytecode.linkReferences = {};
+    for (let i = 0; i < 21; i++) {
+      const source = `src/lib/CommitmentPooling/PackageLibrary${i}.sol`;
+      const name = `PackageLibrary${i}`;
+      f.artifacts.sourceUpgrades[`${source}:${name}`] = artifact(source, name, []);
+      pooling.bytecode.linkReferences[source] = { [name]: [{ start: i * 20, length: 20 }] };
+    }
+    const source = buildSourceUpgradePlan(f.manifests.sourceUpgrades, f.artifacts.sourceUpgrades, commit);
+    expect(source.deployments).toHaveLength(23);
+    expect(source.ownerCalls).toHaveLength(4);
+    const first = f.manifests.sourceUpgrades.nonce;
+    f.manifests.stewardSafe.networks.arbitrum.nonce = first + 27;
+    f.manifests.vouchers.networks.arbitrum.nonce = first + 28;
+    const p = buildLivePilotPackage(withPlans(f));
+    expect(p.nativeNonceRanges.filter((range) => range.chainId === 42161)).toEqual([
+      expect.objectContaining({ phase: "source", firstNonce: first, lastNonce: first + 26, count: 27 }),
+      expect.objectContaining({ phase: "downstream", firstNonce: first + 27, lastNonce: first + 33, count: 7 }),
+    ]);
+    const upgrades = p.stages.find((stage) => stage.id === "source-paused-upgrades")!.transactions;
+    expect(upgrades.map((tx) => tx.safeNonce)).toEqual([4, 5, 6, 7]);
+    expect(upgrades.every((tx) => tx.from === f.manifests.sourceUpgrades.authority.address)).toBe(true);
+    const ids = p.stages.map((stage) => stage.id);
+    expect(ids.indexOf("source-deployments")).toBeLessThan(ids.indexOf("source-paused-upgrades"));
+    expect(ids.indexOf("source-paused-upgrades")).toBeLessThan(ids.indexOf("source-upgrade-boundary"));
+    expect(p.stages.find((stage) => stage.id === "steward-deployments")!.transactions[0].nonce).toBe(first + 27);
+    f.manifests.stewardSafe.networks.arbitrum.nonce = first + 23;
+    f.manifests.vouchers.networks.arbitrum.nonce = first + 24;
+    expect(() => buildLivePilotPackage(withPlans(f))).toThrow("nonce");
+  });
   it.each([
     "revision",
     "payload",
@@ -215,9 +251,32 @@ describe("live pilot package preparation", () => {
     if (kind === "artifact") input.artifacts.clc.bytecode.object += "00";
     expect(() => buildLivePilotPackage(input)).toThrow();
   });
+  it("keeps independent deployers' downstream nonce ranges separate", () => {
+    const f = fixture();
+    f.manifests.stewardSafe.networks.arbitrum.deployer = address(210);
+    f.manifests.stewardSafe.networks.arbitrum.nonce = 70;
+    f.manifests.vouchers.networks.arbitrum.nonce = 13;
+    const ranges = buildLivePilotPackage(withPlans(f)).nativeNonceRanges;
+    expect(ranges.find((range) => range.phase === "downstream" && range.from === address(210))).toMatchObject({
+      firstNonce: 70,
+      lastNonce: 70,
+      count: 1,
+    });
+    expect(ranges.find((range) => range.phase === "downstream" && range.from === address(101))).toMatchObject({
+      firstNonce: 13,
+      lastNonce: 18,
+      count: 6,
+    });
+  });
+  it("rejects source Safe submissions that overflow the deployer's nonce range", () => {
+    const f = fixture();
+    f.manifests.sourceUpgrades.nonce = Number.MAX_SAFE_INTEGER;
+    expect(() => buildLivePilotPackage(withPlans(f))).toThrow("nonce overflow");
+  });
   it.each(["overlap", "gap", "order"])("rejects valid component plans with native nonce %s", (kind) => {
     const f = fixture();
-    f.manifests.vouchers.networks.arbitrum.nonce = kind === "overlap" ? 11 : kind === "gap" ? 13 : 9;
+    const first = f.manifests.stewardSafe.networks.arbitrum.nonce!;
+    f.manifests.vouchers.networks.arbitrum.nonce = kind === "overlap" ? first : kind === "gap" ? first + 2 : first - 2;
     expect(() => buildLivePilotPackage(withPlans(f))).toThrow("nonce");
   });
   it.each([

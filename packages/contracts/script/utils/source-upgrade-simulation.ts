@@ -1,5 +1,14 @@
-import { Contract, getAddress, Interface, JsonRpcProvider, keccak256, toQuantity, ZeroAddress } from "ethers";
-import { assertIsolatedRpc, maskImmutableRuntime, minedIsolatedReceipt, startIsolatedFork } from "./isolated-fork";
+import {
+  type BlockTag,
+  Contract,
+  getAddress,
+  Interface,
+  JsonRpcProvider,
+  keccak256,
+  toQuantity,
+  ZeroAddress,
+} from "ethers";
+import { assertIsolatedRpc, minedIsolatedReceipt, startIsolatedFork } from "./isolated-fork";
 import {
   SOURCE_IMPLEMENTATION_SLOT,
   SOURCE_SAFE_GUARD_SLOT,
@@ -11,6 +20,8 @@ import {
   type SourceUpgradePlan,
   validateSourceUpgradePlan,
 } from "./source-upgrade-release";
+import { materializeSourceUpgradeRuntimes, type SourceUpgradeCompilerJobs } from "./source-upgrade-runtime";
+import { voucherDigest } from "./voucher-release";
 
 const SAFE_ABI = [
   "function getOwners() view returns(address[])",
@@ -57,9 +68,17 @@ function equal(actual: unknown, expected: unknown, label: string) {
   if (String(actual).toLowerCase() !== String(expected).toLowerCase())
     throw new Error(`Source upgrade simulation ${label} mismatch`);
 }
-async function snapshot(provider: JsonRpcProvider, proxy: string, abi: Interface, names: string[]) {
+/** Selected scalar/configuration getters only; this does not enumerate historical mapping entries. */
+export async function snapshotSourceUpgradeState(
+  provider: Pick<JsonRpcProvider, "call">,
+  proxy: string,
+  abi: Interface,
+  target: SourceTarget,
+  blockTag?: BlockTag,
+) {
   const rows: Record<string, string> = {};
-  for (const name of names) rows[name] = await provider.call({ to: proxy, data: abi.encodeFunctionData(name, []) });
+  for (const name of PRESERVED[target])
+    rows[name] = await provider.call({ to: proxy, data: abi.encodeFunctionData(name, []), blockTag });
   return rows;
 }
 /** Every mutation targets this process's owned loopback; upstream receives read-only fork requests. */
@@ -68,8 +87,10 @@ export async function simulateSourceUpgradePlan(
   m: SourceUpgradeManifest,
   artifacts: SourceUpgradeArtifacts,
   upstream: string,
+  compilerJobs?: SourceUpgradeCompilerJobs,
 ) {
   validateSourceUpgradePlan(plan, m, artifacts, plan.sourceCommit);
+  const runtimes = materializeSourceUpgradeRuntimes(plan, m, artifacts, compilerJobs ?? {});
   const fork = await startIsolatedFork(upstream, 42161);
   assertIsolatedRpc(fork.rpc);
   const provider = new JsonRpcProvider(fork.rpc, undefined, { cacheTimeout: -1, batchStallTime: 0 });
@@ -111,7 +132,7 @@ export async function simulateSourceUpgradePlan(
       const abi = new Interface(artifacts[SOURCE_UPGRADE_TARGETS[target]].abi);
       const core = new Contract(pin.proxy, abi, provider);
       equal(await core.owner(), m.authority.address, `${target} owner`);
-      before[target] = await snapshot(provider, pin.proxy, abi, PRESERVED[target]);
+      before[target] = await snapshotSourceUpgradeState(provider, pin.proxy, abi, target);
       if (target === "settlement") {
         equal(await core.CCIP_ROUTER(), m.settlement!.router, "Settlement router");
         equal(await core.getRouter(), m.settlement!.router, "Settlement receiver router");
@@ -124,7 +145,7 @@ export async function simulateSourceUpgradePlan(
       await provider.send("anvil_setBalance", [from, toQuantity(100n * 10n ** 18n)]);
     }
     const deployments = [];
-    for (const tx of plan.deployments) {
+    for (const [index, tx] of plan.deployments.entries()) {
       equal(await provider.getCode(tx.address), "0x", "unused CREATE address");
       equal(
         Number(await provider.send("eth_getTransactionCount", [tx.from, "pending"])),
@@ -145,11 +166,8 @@ export async function simulateSourceUpgradePlan(
       equal(receipt.status, 1, "deployment receipt");
       equal(receipt.contractAddress, tx.address, "CREATE address");
       const code = await provider.getCode(tx.address);
-      equal(
-        keccak256(maskImmutableRuntime(code, tx.immutableReferences)),
-        keccak256(maskImmutableRuntime(tx.runtimeTemplate, tx.immutableReferences)),
-        `${tx.key} runtime`,
-      );
+      const runtime = runtimes.deployments[index];
+      equal(keccak256(code), runtime.runtimeHash, `${tx.key} exact runtime`);
       if (tx.kind === "implementation") {
         const implementation = new Contract(tx.address, ["function proxiableUUID() view returns(bytes32)"], provider);
         equal(await implementation.proxiableUUID(), SOURCE_IMPLEMENTATION_SLOT, "UUPS slot");
@@ -165,7 +183,14 @@ export async function simulateSourceUpgradePlan(
           );
         }
       }
-      deployments.push({ key: tx.key, address: tx.address, transactionHash: hash, gasUsed: String(receipt.gasUsed) });
+      deployments.push({
+        key: tx.key,
+        address: tx.address,
+        transactionHash: hash,
+        gasUsed: String(receipt.gasUsed),
+        runtimeHash: runtime.runtimeHash,
+        compilerJobHash: runtime.compilerJobHash,
+      });
     }
     const ownerCalls = [];
     for (const tx of plan.ownerCalls) {
@@ -195,7 +220,7 @@ export async function simulateSourceUpgradePlan(
       const abi = new Interface(artifacts[SOURCE_UPGRADE_TARGETS[target]].abi);
       const core = new Contract(pin.proxy, abi, provider);
       equal(await core.paused(), true, `${target} paused end state`);
-      const preserved = await snapshot(provider, pin.proxy, abi, PRESERVED[target]);
+      const preserved = await snapshotSourceUpgradeState(provider, pin.proxy, abi, target);
       equal(JSON.stringify(preserved), JSON.stringify(before[target]), `${target} preserved state`);
       if (target === "pooling") {
         equal(await core.voucherAcceptanceProtocolVersion(), 1, "voucher acceptance protocol");
@@ -211,6 +236,10 @@ export async function simulateSourceUpgradePlan(
       });
     }
     return {
+      planHash: voucherDigest(plan),
+      sourceCommit: plan.sourceCommit,
+      manifestHash: voucherDigest(m),
+      runtimeBindingHash: runtimes.bindingHash,
       forkBlock: fork.forkBlock,
       forkBlockHash: fork.forkBlockHash,
       deployments,
