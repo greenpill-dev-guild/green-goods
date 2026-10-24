@@ -793,7 +793,8 @@ did the same beside an initial in a circle and a yield bar.
 **Found on the way.**
 
 - A count for the app's members would have to come from the garden's work list, which is paged, so
-  it would undercount active gardeners; the member rows keep when a gardener joined (a call in the
+  it would undercount active gardeners; the member rows keep since when a person has been a gardener,
+  the indexer's one date per gardener, set at their first gardener role in any garden (a call in the
   [UI handoff](handoffs/claude-ui.md#step-17-people-rows-prd-1284)).
 - `GardenCommunityCard` is mounted nowhere and draws its pools state only with governance on
   (PRD-917), so its state block has a unit test and no rendered pair.

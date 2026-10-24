@@ -406,9 +406,9 @@
     never spends the 120-read budget the photo editor needs. The batch route has served production
     since 14 September; this is its first client. A decorative avatar, a failed photo included,
     stays out of the row's accessible name.
-  - **On the row now:** the installed app's garden members (`GardenGardeners`: when a gardener joined
-    as the one fact, the app's default avatar for someone with no photo, and the member dialog's title
-    from the same display) and send recipients (`MemberRow`: the garden that tells two people apart;
+  - **On the row now:** the installed app's garden members (`GardenGardeners`: since when a person has
+    been a gardener as the one fact, the app's default avatar for someone with no photo, and the
+    member dialog's title from the same display) and send recipients (`MemberRow`: the garden that tells two people apart;
     the chosen recipient wears the open row's border and still reads as pressed, through the item
     row's additive `pressed` prop, since choosing is not opening a record), and
     the cockpit's member directory (`CommunityMembersTab`: Manage Roles as an icon button in the right
@@ -437,9 +437,11 @@
 - Calls for the maintainer's review of the pairs:
   - The role chip sits under the name as the row's one pill. The census mock drew it at the row's
     right end, where the row's one action goes; a directory row keeps Manage Roles there.
-  - The app's member list shows when a gardener joined, not a count: the indexer serves no
-    per-member work count and the garden's work list is paged, so a count from it would be wrong.
-    Send recipients keep the garden that tells two people apart.
+  - The app's member list shows since when a person has been a gardener, not a count: the indexer
+    serves no per-member work count and the garden's work list is paged, so a count from it would be
+    wrong. Its one date per gardener is set at their first gardener role in any garden, so the row
+    reads "Gardener since", as `develop` did, never "Joined" (Codex on #1241). Send recipients keep the
+    garden that tells two people apart.
   - Not on the row: the group inspector's people list (`GroupPeopleList`), whose rows are promise
     copies with a state and up to five facts (PRD-1022 screen 14), offered to step 15; the commitment
     team rosters (the app's `CommitmentTeam`, the cockpit's `CommitmentRoster`), which carry each
