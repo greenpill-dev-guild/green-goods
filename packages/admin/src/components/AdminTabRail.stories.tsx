@@ -317,7 +317,10 @@ export const EqualCellsOnDesktop: Story = {
     for (const cell of cellRects(rail)) {
       await expect(Math.abs(cell.width - DESKTOP_CELL_MAX_PX)).toBeLessThan(0.5);
     }
-    await expect(rail).toHaveAttribute("data-overflow", "none");
+    // The flag follows the rail's resize observer, which reports a frame after
+    // the layout read above, so a first render at another width can leave it
+    // stale for that frame.
+    await waitFor(() => expect(rail).toHaveAttribute("data-overflow", "none"));
     await expect(labelFits(canvas.getByRole("tab", { name: "Coordenação" }), "Coordenação")).toBe(
       true
     );
@@ -377,7 +380,8 @@ export const FullWidthOnAPhone: Story = {
     // The cells span the rail edge to edge, and nothing scrolls.
     await expect(Math.abs(cells[0].left - railBox.left)).toBeLessThan(0.5);
     await expect(Math.abs(cells[cells.length - 1].right - railBox.right)).toBeLessThan(0.5);
-    await expect(rail).toHaveAttribute("data-overflow", "none");
+    // The flag follows the rail's resize observer, a frame behind the layout.
+    await waitFor(() => expect(rail).toHaveAttribute("data-overflow", "none"));
 
     for (const label of ["Saúde", "Impacto", "Atividade", "Promessas"]) {
       const tab = canvas.getByRole("tab", { name: new RegExp(label) });
