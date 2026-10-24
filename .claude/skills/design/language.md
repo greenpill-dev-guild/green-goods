@@ -417,6 +417,8 @@ app's bottom bar). All live in
 are field-shaped triggers (`gg-control`), `ConfidenceSelector` and `AssetSelector` are radio
 chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-031).
 
+**Tab rows** (DL-100) share one anatomy on both surfaces: equal-width cells, the active cell tinted with its accent at 10% under the accent label and a 2px underline, and the `CountBadge` beside the label with no ring. Labels are 12px below 640px and 14px from 640px, at weight 500 whether selected or not. Each surface keeps its height and its overflow: the installed app's `StandardTabs` are 44px (48px from 640px) and let a long label take a second line; the cockpit's `AdminTabRail` is 36px, keeps every label on one line in a cell never narrower than its content, and scrolls a row that cannot hold its cells. From 640px the cockpit's row is at most 180px per tab and keeps to the left.
+
 **Surface tokens**: every size reads one block token (`--gg-button-block-*`, `--gg-icon-size-*`)
 plus `--gg-button-inline-*`, `--gg-hit-block`, and the label sizes `--gg-label-md/sm`, with the app
 scale as the fallback, beside the corner and weight tokens. A surface moves the whole family by
