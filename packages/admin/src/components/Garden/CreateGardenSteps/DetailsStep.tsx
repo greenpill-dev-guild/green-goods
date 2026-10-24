@@ -252,7 +252,6 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
       </div>
       <AdminTextField
         id="create-garden-slug"
-        className="font-mono"
         label={formatMessage({
           id: "app.garden.create.ensSubdomainLabel",
           defaultMessage: "ENS subdomain",
@@ -298,6 +297,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               })
         }
         inputProps={{
+          className: "font-mono",
           inputMode: "text",
           autoCapitalize: "none",
           autoComplete: "off",

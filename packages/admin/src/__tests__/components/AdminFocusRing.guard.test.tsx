@@ -46,13 +46,13 @@ describe("admin focus-ring role", () => {
     expect(input.className).not.toContain("--tone-on-surface-accent");
   });
 
-  it("AdminTextField outlined focus treatment rides the canonical role", () => {
-    render(<AdminTextField label="Garden name" variant="outlined" />);
+  it("AdminTextField focus treatment rides the canonical role", () => {
+    render(<AdminTextField label="Garden name" />);
     const input = screen.getByRole("textbox");
     fireEvent.focus(input);
-    // The outline ring lives on the input's container div. The floating label
-    // and caret legitimately keep --tone-on-surface-accent (accent TEXT role);
-    // only the ring itself must ride the focus role.
+    // The outline ring lives on the input's container div. The caret
+    // legitimately keeps --tone-on-surface-accent (accent TEXT role); only the
+    // ring itself must ride the focus role.
     const ringContainer = input.parentElement as HTMLElement;
     expect(ringContainer.className).toContain("ring-2");
     expect(ringContainer.className).toContain(TONE_FOCUS_RING);

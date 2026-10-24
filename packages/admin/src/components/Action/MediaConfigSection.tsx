@@ -156,12 +156,13 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
                 onChange({ ...config, needed: updated });
               }}
             />
-            {/* mb-5 lifts a control over the field's reserved supporting line, so it centres on the field. */}
+            {/* mb-3 keeps a control on the field's box (the box's middle sits 6px above the
+                field's: a 24px label above it, a 36px message line under it). */}
             <AdminIconButton
               variant="danger"
               onClick={() => removeNeeded(index)}
               label={removeShotLabel(index + 1)}
-              className="mb-5"
+              className="mb-3"
             >
               <RiCloseLine />
             </AdminIconButton>
@@ -194,7 +195,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             size="sm"
             onClick={addNeeded}
             leadingIcon={<RiAddLine />}
-            className="mb-5"
+            className="mb-3"
           >
             {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
           </AdminButton>
@@ -230,7 +231,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               variant="danger"
               onClick={() => removeOptional(index)}
               label={removeShotLabel(index + 1)}
-              className="mb-5"
+              className="mb-3"
             >
               <RiCloseLine />
             </AdminIconButton>
@@ -263,7 +264,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             size="sm"
             onClick={addOptional}
             leadingIcon={<RiAddLine />}
-            className="mb-5"
+            className="mb-3"
           >
             {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
           </AdminButton>

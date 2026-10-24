@@ -169,10 +169,7 @@ export function EditorialCookieJarActionsSkeleton({ isConnected }: { isConnected
                 })}
               </span>
               <EditorialSkeleton className="mt-2 h-11 w-full rounded-lg" />
-              <div
-                className="mt-3 text-sm"
-                style={{ minBlockSize: "var(--form-feedback-block-size, 2lh)" }}
-              />
+              <div className="gg-field-message mt-3 text-sm" />
             </div>
             <EditorialSkeleton className="h-4 w-36" />
             <EditorialSkeleton data-skeleton-action="deposit" className="h-11 w-full" />

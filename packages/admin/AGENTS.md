@@ -56,10 +56,10 @@ Read `.claude/skills/design/implementation.md` before frontend work.
 - `AccountSettingsPanel`
 - `ConnectShell`
 - `PageHeader`
-- `ListToolbar`
-- `SortSelect`
+- `AdminSearchToolbar`
+- `AdminSortSelect`
 - `Surface`
-- `Card`
+- `AdminCard`
 - `Alert`
 - `StatusBadge`
 - `FormField`

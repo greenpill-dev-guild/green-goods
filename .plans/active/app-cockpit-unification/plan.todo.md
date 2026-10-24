@@ -244,6 +244,14 @@ behavior, and the cockpit's bar is unchanged
 ([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
 standards-only `feature/app-cockpit-bar-pill-guides`.
 
+**Step 10 (23 October).** The cockpit's fields take the app's anatomy: the label above an outlined
+box at the cockpit's 8px corner, and one shared message line under every field on both surfaces.
+The measurement the plan called for settled the cockpit's reserve at two lines, as in the app: a
+field in a two-column row at 640px is 290px wide, and 6 of the 32 messages under fields that share a
+row wrap in English, Spanish and Portuguese ([eval.md](eval.md#step-10-proof-outlined-fields)). The
+code is `feature/app-cockpit-outlined-fields`; DL-105 and its guide lines are the standards-only
+`feature/app-cockpit-outlined-fields-guides`.
+
 **Step 19, first pass (24 October).** Steps 14 to 18 move card consumers in parallel, so step 19
 runs in two passes. The first removes what nothing rendered on `develop`: `CardBase` and Shared's
 own `Card`, `StatCard`, `ProposalCardConviction`, the list toolbar and sort control the cockpit
