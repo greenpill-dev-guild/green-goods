@@ -269,8 +269,11 @@ Questions raised against the picks, all settled by 18 October:
   page, not in a second card design.
 - **F8 on desktop: settled.** Each equal-width tab is at most 180px wide on desktop, the row aligned
   left and never wider than the content: 720px for the cockpit's four-tab rows (Hub, Garden,
-  Community), 360px for a two-tab row. The longest label, "Coordenação", measures 94px in Plus
-  Jakarta Sans at 14px, about 170px with its icon, count badge and padding. Phones fill the width
+  Community), 360px for a two-tab row. A cell is never narrower than its icon, label and count on
+  one line, so a cell whose content needs more than 180px takes it (DL-100). The longest route
+  label, "Coordenação", measures 94px in Plus Jakarta Sans at 14px, about 170px with its icon,
+  count badge and padding; the one cell past 180px is Spanish "Configuración de medios" in the
+  Create Action dialog, at 191px. Phones fill the width
   with equal cells, and a row that cannot hold its cells on one line scrolls with its edge fade and
   snap: the measured deviation DL-100 records (23 October), for the maintainer's review after merge.
 - **Where a card's status sits, and how many lines a title takes: settled.** Raised on 17 October,
@@ -715,7 +718,8 @@ ladder the app's dark cards follow the same step.
   today. Behind a filter button they would be two. The pick keeps them inline, so this point is
   closed unless the pick changes.
 - **F8 on desktop.** Equal cells across a 1176px content column are very wide. Settled on 18
-  October: each tab is at most 180px wide and the row aligns left.
+  October: each tab is at most 180px wide and the row aligns left; a cell whose content needs more
+  takes it, which DL-100 records for Spanish "Configuración de medios" (191px).
 - **F7 on the cockpit's phone.** A row removes the mosaic from the phone queue. Settled on 18
   October: the row stays, and a steward who sorts by photo checks it on the rendered pair.
 - **The Cosmo-Local demonstration.** The research's view was that only the token slice is small
