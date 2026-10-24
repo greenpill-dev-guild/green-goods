@@ -89,7 +89,8 @@ drift from 12px to 20px.
 | Status dots, tiny badges | 4px | `rounded` | Fixed | None |
 | Tags and text badges | 8px | `--radius-md` · `rounded-md` | Fixed | None |
 | Content inside cards, actions inside a field, a pressed app button | 12px | `--radius-squircle` | Concentric | Card or field (16px) - 4px |
-| Cards, fields (DL-022) | 16px | `--radius-lg` · `rounded-lg` · `.gg-control` | Concentric | Panel (20px) - 4px |
+| Fields (DL-022), item rows (DL-102) | 16px | `--radius-lg` · `rounded-lg` · `.gg-control` · `--gg-row-radius` | Concentric | Panel (20px) - 4px |
+| Cards on both surfaces (DL-102) | 24px | `--gg-card-radius` · `.gg-card` | Fixed | None |
 | Panels, sheets | 20px | `--radius-xl` · `rounded-xl` | Concentric | Page (24px) - 4px |
 | Modals, dialogs, bottom sheets | 24px | `--radius-2xl` · `rounded-2xl` | Concentric | Viewport edge |
 | Icon buttons | circle | `.gg-icon-button` | Capsule | None |
@@ -130,7 +131,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 
 **Haptics** (DL-039, DL-041): the installed app answers every press from one listener (`installPressHaptics`, mounted by `PwaRuntime`, so sign-in answers too). The listener reads what the markup already says: tabs (the app bar's included, as `data-pressable="tab"`), chips, switches, radios and checkboxes (native or ARIA), and anything with a pressed state (`aria-pressed`, such as a card that toggles a choice) get the selection tap; buttons, links, and every other declared pressable (card, row, media, trigger, fab) get the light tap. Text fields, dropdowns, scrims, and disabled controls stay silent. A new control answers without asking, so a control never calls a press haptic itself; outcome haptics (success, error, warning) stay with the code that knows the outcome. Settings offers a Vibration switch, shown only where the device can vibrate (iPhones have no Vibration API). The admin cockpit and the public website install nothing.
 
-**Admin carve-out**: the card motion above is client canon. Admin cards never lift, scale, or glow. Hover/press feedback is an elevation step (`--m3-elevation-1`→`2`) or the neutral ink layer `rgb(var(--m3-on-surface)/0.08)` only.
+**Admin carve-out**: the card motion above is client canon. Admin cards never lift, scale, glow, or step up in elevation: a card is the shared card surface (DL-102), and its hover and press feedback is the neutral ink layer `rgb(var(--m3-on-surface)/0.08)` only.
 
 **Shipped CSS** (shared `theme.css`, components layer; abridged):
 ```css
@@ -249,7 +250,7 @@ Motion is built into components, not applied externally:
 | Component | Motion | Spring Token |
 |-----------|--------|-------------|
 | **Buttons** | App: shape morph on press (the corner tightens one step). Website: capsule, no morph | `--spring-spatial-fast` |
-| **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift/scale/glow, only elevation 1→2 or the neutral 8% ink layer | `--spring-spatial-fast` |
+| **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift, scale, glow or elevation step, only the neutral 8% ink layer (DL-102) | `--spring-spatial-fast` |
 | **Client/PWA sheets** | Slide up from the bottom edge in one move, never past rest; follow the finger on a drag; accelerate out from rest, or leave at speed on a flick (DL-033) | `--spring-spatial-slow` in · `--spring-spatial-exit` out · `--spring-spatial` for a settle or a flick |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
 | **Progress (wavy)** | Organic wave motion on track | `--spring-effects-slow` |
@@ -362,7 +363,7 @@ Dark mode is a **deliberate palette, not a light inversion**. Three rules carry 
 | `surface-container-high` | `--earth-800` | `30% .018 65` | `52 44 36` | Sheet / dialog inner; chips and fills on a card (`--bg-soft-200`) |
 | `surface-container-highest` / `surface-bright` | `--earth-750` | `34% .019 65` | `62 52 44` | Active / hover (`--bg-sub-300`) |
 
-The installed app's dark card hairline is `--earth-700` (`67 61 55`, the ink at 12% over the card); the cockpit's card takes the ring below instead.
+The dark card hairline on both surfaces is `--earth-700` (`67 61 55`, the ink at 12% over the card): the shared card surface's edge (DL-102).
 
 **2. Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at low opacity, 8% on the resting card, stepping across the single `--m3-elevation-0/1/2` ladder) plus a small black blur only for chrome floating over content, never a black drop shadow as the primary cue. The dark canvas stays constant; the only workspace atmosphere is the same faint `--tone-surface-tint-color` top wash as light (10% in dark, fading to transparent by 320px). The per-workspace canvas hue wash is retired.
 

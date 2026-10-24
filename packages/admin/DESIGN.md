@@ -51,8 +51,8 @@ The admin uses Material Design 3 v0.192 as its **strict structural backbone**, n
 
 - All components follow M3 dimensions exactly
 - State layers: hover (8%), focus (12%), pressed (12%), dragged (16%)
-- Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), full (9999px). No 20/24/28px shapes (`--m3-shape-xl` is deleted). Use admin-prefixed `--admin-radius-*` tokens for these M3-only shapes; admin **remaps** the shared `--radius-*` aliases onto this scale (`rounded-xl`/`rounded-2xl` resolve to 16px) rather than inheriting the Warm Earth runtime values.
-- Single elevation ladder: `--m3-elevation-0/1/2`, plus the warm `--admin-chrome-shadow` reserved for floating chrome (nav dock, FAB). The old 0-5 scale and `--e1/e2/e3` aliases are deleted.
+- Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), full (9999px), plus the shared card's 24px corner (`--gg-card-radius`, DL-102): cards take 24px and item rows 16px, the installed app's cards. No 20 or 28px shapes (`--m3-shape-xl` is deleted). Use admin-prefixed `--admin-radius-*` tokens for these M3-only shapes; admin **remaps** the shared `--radius-*` aliases onto this scale (`rounded-xl`/`rounded-2xl` resolve to 16px) rather than inheriting the Warm Earth runtime values.
+- Single elevation ladder: `--m3-elevation-0/1/2`, plus the warm `--admin-chrome-shadow` reserved for floating chrome (nav dock, FAB). A card's surface is its fill, edge and faint shadow (`--gg-card-shadow`, DL-102), not an elevation step. The old 0-5 scale and `--e1/e2/e3` aliases are deleted.
 - **Spring motion (`--spring-*`) is the sole permitted deviation** from M3 standard easing
 - **Controlled Chrome**: the nav dock (NavigationBar + FAB) is the only translucent surface, a flat `rgb(var(--admin-surface-0) / 0.85)` with a 12px backdrop blur, a warm ambient shadow (`--admin-chrome-shadow`), and a 1px ink ring. The AppBar, MainSheet, and route frame are transparent, so content sits directly on the canvas. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid.
 - **Admin motion roles** are tokenized through runtime aliases: route content uses `--admin-motion-route-content-*`, canvas tone changes use `--admin-motion-canvas-tone-*`, FAB menus use `--admin-motion-fab-menu`, and interactive state changes use `--admin-motion-state`.
@@ -135,6 +135,8 @@ Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminCon
 
 ### Card and selection grammar
 
+- **One card surface** (DL-102): every card is the installed app's card, the shared `.gg-card`: white on the linen canvas or the lifted card in dark, a 1px edge in both themes, a faint shadow in light, and the 24px corner. `AdminCard`'s elevated and outlined variants draw it; its filled variant keeps its tint on the 24px corner with no edge. A card never lifts on hover; it takes the neutral ink layer. Cards in a list sit 12px apart (`--gg-list-gap`).
+- **The item row** (DL-102): one item in a list is the shared `ItemRow`, 88px in every state and language: the item's photo or a centered 56px icon tile, a one-line 13px title, its one pill under the title, one 11px detail line of at most two details, and its one action in the right slot; a work row adds the 2px status edge. On a phone (below 600px) the Hub queue lists work rows in place of `HubWorkCard`'s photo grid; from 600px it keeps the card grid.
 - `WorkbenchCard` (a shared Canvas primitive from `@green-goods/shared`, not an Admin* wrapper) is for workbench records and action/assessment queue items that stewards scan, compare, and act on in a grid or list.
 - `AdminCard` is for compact modules, stats, settings, status panels, and supporting detail regions.
 - `AdminSelectableCard` is for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
@@ -174,8 +176,8 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 
 ## Cockpit M3 1a Invariants
 
-- **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow.
-- **Radius set**: 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
+- **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow, except the card's own faint shadow, which belongs to the shared card surface (DL-102).
+- **Radius set**: 4/8/12/16/24/9999px only, the 24px step being the shared card's corner (DL-102); no 20 or 28px shapes anywhere in admin.
 - **Five-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), the nav-shell FAB fill and the tab rail's count badges (DL-099), plus the faint canvas wash.
 - **Hover rule**: hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; never translate/scale lifts or hue shifts.
 - **AdminButton only**: pill-shaped, Title Case action labels in en (DL-012; es/pt keep native casing); admin views never render the shared `Button` (`gg-button`).
