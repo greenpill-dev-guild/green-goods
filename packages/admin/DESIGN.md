@@ -55,6 +55,7 @@ The cockpit speaks the installed app's Warm Earth language at a denser setting. 
 - The ground: the linen canvas with white cards, and one warm dark ladder (DL-097, § Workspace Tinting).
 - The control-grade outline on fields, chips and secondary buttons, and one solid focus ring in each surface's focus role (DL-098).
 - One count badge, the shared `CountBadge`, on the workspace tone's accent here (DL-099, § Workspace Tinting).
+- The app's equal-width tabs: the tinted active cell under its accent label and underline, at the cockpit's 36px height (DL-100, § Admin Component Pattern).
 - The active-tab pill on both bottom bars: the workspace tone's container here, the green container in the app (DL-107, § Navigation).
 - Solid surfaces: every card, sheet, dialog and menu is opaque on both, and the cockpit's nav dock below is the one translucent piece (DL-108).
 
@@ -69,7 +70,7 @@ Each shared piece that follows joins this list with its decision-log row.
 - **Motion**: the Standard scheme on the spring tokens; a hover is an elevation step or the neutral ink layer, never a lift.
 - **Navigation**: the AppBar, the NavigationBar dock and its FAB (§ Navigation).
 
-**What leaves with the rule.** Each piece that Material 3 used to justify is replaced by the shared piece in its own change: the filled field with an underline, elevation as a card's surface, the 12px card corner, the 8px chip, the underline tab rail and the warm gray phone sheet; the gray count chip has already given way to the shared count badge (DL-099). Until its replacement lands, a piece keeps the anatomy this guide gives it.
+**What leaves with the rule.** Each piece that Material 3 used to justify is replaced by the shared piece in its own change: the filled field with an underline, elevation as a card's surface, the 12px card corner, the 8px chip and the warm gray phone sheet; the gray count chip has already given way to the shared count badge (DL-099), and the underline tab rail to the app's equal-width tabs (DL-100). Until its replacement lands, a piece keeps the anatomy this guide gives it.
 
 **Tokens keep their names.** The `--m3-*` tokens are an internal layer under the shared names the views read, and a name changes only when a change has to touch it. Shape, depth and motion read from that layer and the admin aliases beside it:
 
