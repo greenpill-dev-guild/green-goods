@@ -197,7 +197,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
               <AdminButton
                 type="button"
                 variant="filled"
-                className="w-full sm:mt-7 sm:w-auto"
+                className="w-full sm:mt-6 sm:w-auto"
                 onClick={handleAddStrategy}
                 disabled={isSaving || !newAddress.trim()}
                 loading={isSaving}
