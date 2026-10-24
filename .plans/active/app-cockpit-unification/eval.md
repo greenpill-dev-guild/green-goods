@@ -472,3 +472,57 @@ fails them (77 against 69), and so does removing the fill. `check-tokens.sh` pas
 since the first bar), and the inactive tabs draw the browser's blue default ring instead of the
 app's focus role (DL-098). Step 21 keeps focus as it was; giving the bar the app's focus role is a
 follow-up.
+
+## Step 7 build: cards, rows and list gap
+
+Run on 2026-10-23 against `develop` `ce0d71953`, with step 7 on `feature/app-cockpit-cards-rows`:
+the app's frames at `5a38c5634` and the cockpit's at `686de5dfc` (the commits between change only
+the app's rows and a story). The rig is the token slices' gate's
+([above](#design-gate-for-the-token-slices)). For the before frames, `develop`'s versions of the 37
+runtime files the step changes were written into the worktree and restored from the index after.
+The frames show live gardens and went to the maintainer as a private artifact, outside the
+repository.
+
+**Pairs.** 106 pairs, headless Chromium (Playwright) at device scale 2:
+
+- Cockpit, **Storybook**: the Hub (Approved scope), Garden (Overview), Community (Members), Create
+  Assessment and Profile route stories at 390, 768 and 1280px in light and dark in English, and the
+  Hub at 390px in Spanish and Portuguese: 34 pairs.
+- App, **mock-auth localhost**: `?mockAuth=deployer&presentation=pwa` on Arbitrum One with the
+  production indexer: Home, the TAS HUB garden's Work tab, Your Work's Pending and Completed tabs,
+  Profile and Submit Work at 390, 768 and 1280px in English and at 390px in Spanish and Portuguese,
+  in light and dark, and the Work tab and Completed at 320 and 360px in all three, in light: 72 pairs.
+
+**Fit after** (each row's height from its box; a detail counts as dropped when it sits below its
+line's clip):
+
+| List | Where | Rows | Height | Dropped whole | Ellipsis | Cut or wrapped |
+|---|---|---|---|---|---|---|
+| Garden › Work, TAS HUB's live work | mock-auth localhost, 320 to 1280px | 19 | 88px | none | none | 0 |
+| Your Work › Pending, the live reviews to do | mock-auth localhost, 320 to 390px | 8 | 88px | none | none | 0 |
+| Your Work › Completed, live | mock-auth localhost, 320 to 1280px | 3 | 88px | "Feedback" on all three at 320px in each language | none | 0 |
+| Pending, every kind, the product's catalogs | Storybook, 288 to 358px columns | 6 | 88px | the saved time, carried by four kinds: all four at 320 and 360px, and at 390px four in English and three in Spanish and Portuguese; the draft's age at 320px, and at 360px in English | the "when you're connected" reasons: three, one and none in English at 320, 360 and 390px, three, three and one in Spanish, three at every width in Portuguese | 0 |
+| The work row, the app's density | Storybook, 288 to 358px columns | 3 | 88px | "2 hr. ago" on one English row at 320px | none | 0 |
+| The work row, the cockpit's density | Storybook, 296 to 366px columns | 2 | 88px | none | none | 0 |
+| The cockpit's Hub queue on a phone | Storybook, 390px, light and dark | 2 | 88px | none | none | 0 |
+
+**Before.** The app's lists were already one height (88px, DL-034) at every width and language
+measured; the cockpit's phone queue drew the desktop card, 274px tall at 390px. In the app, step 7
+changes the row's anatomy: the pill moves under the title, the photo count and the second pill
+leave the third line, and ages take their short form ("há 3 sem." where it read "há 3 semanas").
+
+**Step 1's handover.** The work card's meta line, which newly ended in an ellipsis at 320px in
+English and Spanish, now fits: every Work-tab row at 320px shows both details whole. The Spanish
+action card title on Submit Work's first step is a card title outside the item row and was not
+measured again.
+
+**Found on the way.**
+
+- The first build gave feedback on Your Work's Completed rows only, so the garden's Work tab lost
+  the cue that `develop` drew as a second pill. Feedback now takes the age's place on every work row
+  (`5a38c5634`).
+- The pending row's fit story set its Spanish and Portuguese columns with an English clock and an
+  English long-form age; it now uses the rows' own formatters (`aa3a43ad6`).
+- The capture-only client dev server, restarted by Vite when `design-md.generated.json` changed
+  under it, came back serving 404 for every page until the process was restarted. This is rig
+  behaviour, not the product's.
