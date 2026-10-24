@@ -33,6 +33,7 @@ import { materializeSourceUpgradeRuntimes } from "./source-upgrade-runtime";
 import { voucherDigest } from "./voucher-release";
 import { collectSourceSafeSignature, sourceSafeSubmission } from "./source-upgrade-safe-operator";
 import { sourceSafeTypedData } from "./source-upgrade-safe-execution";
+import { runSourceBatchOperator } from "./source-upgrade-batch-operator";
 
 type Options = Record<string, string | boolean | undefined>;
 type Loaded = {
@@ -131,7 +132,8 @@ export async function runSourceUpgradeOperator(input: Loaded) {
         throw new Error("Source operator revision changed");
       const fresh = inspectSourceUpgradeManifest(JSON.parse(readFileSync(manifestPath, "utf8"))).manifest;
       const compiled = loadSourceUpgradeArtifacts(getFoundryOutDir("production"), fresh);
-      const regenerated = buildSourceUpgradePlan(fresh, compiled, revision);
+      // The CLI validates explicit resume; every readback retains the original immutable plan binding.
+      const regenerated = buildSourceUpgradePlan(fresh, compiled, plan.sourceCommit);
       const regeneratedRuntime = materializeSourceUpgradeRuntimes(
         regenerated,
         fresh,
@@ -180,6 +182,17 @@ export async function runSourceUpgradeOperator(input: Loaded) {
     const envelope = loadJson(directory, required(o, "envelope")) as SourceExecutionEnvelope;
     const context: SourceExecutionContext = { plan, manifest, runtime, rehearsal, envelope };
     validateSourceExecutionEnvelope(context);
+    if (["export-safe-batch", "adopt-safe-batch"].includes(String(o.mode))) {
+      return await runSourceBatchOperator({
+        options: o,
+        context,
+        directory,
+        provider,
+        abis,
+        revision,
+        regenerateBindings,
+      });
+    }
     const step = Number(required(o, "step")),
       expectedNonce = Number(required(o, "expected-nonce"));
     const boundary = envelope.boundaries[step - 1];

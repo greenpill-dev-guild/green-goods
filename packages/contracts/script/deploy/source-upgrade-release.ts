@@ -20,6 +20,9 @@ import { simulateSourceUpgradePlan } from "../utils/source-upgrade-simulation";
 import { loadSourceUpgradeCompilerJobs } from "../utils/source-upgrade-compiler";
 import { validateSourceUpgradeMode } from "../cli/operations.mjs";
 import { runSourceUpgradeOperator, sourceUpgradeOutputPath } from "../utils/source-upgrade-operator";
+import { sourceUpgradePlanRevision } from "../utils/source-upgrade-resume";
+import { sourceBatchBuilderFile } from "../utils/source-upgrade-batch";
+import { simulateSourceSafeBatch } from "../utils/source-upgrade-batch-simulation";
 
 async function main() {
   const { values } = parseArgs({
@@ -34,6 +37,13 @@ async function main() {
       "export-safe": { type: "boolean" },
       "sign-safe": { type: "boolean" },
       "broadcast-safe": { type: "boolean" },
+      "draft-safe-batch": { type: "boolean" },
+      "simulate-safe-batch": { type: "boolean" },
+      "export-safe-batch": { type: "boolean" },
+      "adopt-safe-batch": { type: "boolean" },
+      "resume-plan": { type: "boolean" },
+      batch: { type: "string" },
+      "batch-rehearsal": { type: "string" },
       "signer-account": { type: "string" },
       "owner-signature": { type: "string" },
       "signature-one": { type: "string" },
@@ -61,6 +71,10 @@ async function main() {
     "export-safe": "export-safe",
     "sign-safe": "sign-safe",
     "broadcast-safe": "broadcast-safe",
+    "draft-safe-batch": "draft-safe-batch",
+    "simulate-safe-batch": "simulate-safe-batch",
+    "export-safe-batch": "export-safe-batch",
+    "adopt-safe-batch": "adopt-safe-batch",
     adopt: "adopt",
   };
   const selected = Object.keys(modes).filter((key) => values[key as keyof typeof values]);
@@ -141,7 +155,50 @@ async function main() {
     return;
   }
   const plan: unknown = JSON.parse(readFileSync(releaseJsonPath(directory, values.plan!), "utf8"));
-  validateSourceUpgradePlan(plan, manifest, artifacts, revision);
+  const plannedRevision = sourceUpgradePlanRevision(
+    CONTRACTS_ROOT,
+    manifestPath,
+    revision,
+    (plan as { sourceCommit: string }).sourceCommit,
+    Boolean(values["resume-plan"]),
+  );
+  validateSourceUpgradePlan(plan, manifest, artifacts, plannedRevision);
+  if (values["draft-safe-batch"] || values["simulate-safe-batch"]) {
+    const result = values["draft-safe-batch"]
+      ? sourceBatchBuilderFile(plan, false)
+      : await simulateSourceSafeBatch(
+          plan,
+          manifest,
+          artifacts,
+          new NetworkManager().getRpcUrl("arbitrum"),
+          loadSourceUpgradeCompilerJobs(getFoundryOutDir("production"), artifacts),
+          revision,
+        );
+    const output = sourceUpgradeOutputPath(
+      directory,
+      options,
+      `.generated/source-upgrades/${plan.releaseId}.${values["draft-safe-batch"] ? "safe-batch.draft" : "safe-batch.simulation"}.json`,
+    );
+    if (
+      output !==
+      path.join(
+        directory,
+        `${plan.releaseId}.${values["draft-safe-batch"] ? "safe-batch.draft" : "safe-batch.simulation"}.json`,
+      )
+    )
+      throw new Error("Batch preparation must use its owned artifact path");
+    if (releaseRevision(CONTRACTS_ROOT, manifestPath) !== revision)
+      throw new Error("Revision changed during batch preparation");
+    writeReleaseJsonAtomic(output, result);
+    console.log(
+      JSON.stringify({
+        state: values["draft-safe-batch"] ? "predicted-batch-draft" : "atomic-batch-rehearsed",
+        output: path.relative(CONTRACTS_ROOT, output),
+        liveBroadcast: false,
+      }),
+    );
+    return;
+  }
   if (!values.simulate) {
     console.log(
       JSON.stringify(

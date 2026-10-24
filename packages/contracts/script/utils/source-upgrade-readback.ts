@@ -70,7 +70,7 @@ function assertSafe(state: SourceSafeState, pins: SourceSafePins, manifest: Sour
   equal(state.moduleGuard, ZeroAddress, "Safe module guard");
   if (state.modules.length) throw new Error("Source readback Safe modules mismatch");
 }
-function readers({ provider, manifest: m, abis }: ReadersInput) {
+export function sourceUpgradeStateReaders({ provider, manifest: m, abis }: ReadersInput) {
   const abi = (target: SourceTarget) => {
     if (!m[target] || !abis[target]) throw new Error(`Missing selected source ABI ${target}`);
     return abis[target]!;
@@ -158,7 +158,7 @@ export async function prepareSourceUpgradeBaseline(
   input: ReadersInput & { safePins: SourceSafePins },
 ): Promise<SourceExecutionEnvelope["baseline"]> {
   const { provider, manifest: m, safePins } = input,
-    r = readers(input);
+    r = sourceUpgradeStateReaders(input);
   equal((await provider.getNetwork()).chainId, m.chainId, "chain");
   const observation = await r.block(m.observation.blockNumber);
   equal(observation.hash, m.observation.blockHash, "observation hash");
@@ -193,7 +193,7 @@ export function createSourceUpgradeReadback(
 ): SourceExecutionReadPort {
   const { provider, context: c, journal } = input,
     m = c.manifest,
-    r = readers({ ...input, manifest: m });
+    r = sourceUpgradeStateReaders({ ...input, manifest: m });
   const assertCurrentPrefixState = async (prefix: number) => {
     if (!Number.isSafeInteger(prefix) || prefix < 0 || prefix > c.plan.deployments.length + c.plan.ownerCalls.length)
       throw new Error("Invalid source prefix length");

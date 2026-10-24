@@ -145,8 +145,19 @@ export async function verifySourceSafeReceipt(
   const { plan, manifest, envelope, step, port } = input;
   const call = plan.ownerCalls[step - plan.deployments.length - 1];
   const safeHash = sourceSafeTransactionHash(call, envelope.boundaries[step - 1], manifest.authority.address);
-  const events = receipt.logs
-    .filter((log) => log.address.toLowerCase() === manifest.authority.address.toLowerCase())
+  assertSourceSafeSuccess(receipt.logs, manifest.authority.address, safeHash);
+  const authority = await port.getSafeState(receipt.blockNumber);
+  assertSourceSafeAuthority(authority, manifest.authority, envelope.safePins);
+  check(
+    entirePrefixLength > step ? authority.nonce >= call.safeNonce + 1 : authority.nonce === call.safeNonce + 1,
+    "Safe nonce after boundary",
+  );
+  return safeHash;
+}
+
+export function assertSourceSafeSuccess(logs: SourcePublicReceipt["logs"], safe: string, safeHash: string) {
+  const events = logs
+    .filter((log) => log.address.toLowerCase() === safe.toLowerCase())
     .flatMap((log) => {
       for (const abi of [SOURCE_SAFE_EXECUTION, INDEXED_SAFE_EVENTS]) {
         try {
@@ -165,11 +176,4 @@ export async function verifySourceSafeReceipt(
   );
   same(successes[0].args.txHash, safeHash, "Safe event hash/nonce");
   check(successes[0].args.payment === 0n, "Safe payment");
-  const authority = await port.getSafeState(receipt.blockNumber);
-  assertSourceSafeAuthority(authority, manifest.authority, envelope.safePins);
-  check(
-    entirePrefixLength > step ? authority.nonce >= call.safeNonce + 1 : authority.nonce === call.safeNonce + 1,
-    "Safe nonce after boundary",
-  );
-  return safeHash;
 }
