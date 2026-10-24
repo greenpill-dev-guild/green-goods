@@ -15,7 +15,6 @@ interface AdminTextFieldCommonProps {
   disabled?: boolean;
   leadingIcon?: ComponentType<{ className?: string }>;
   trailingIcon?: ComponentType<{ className?: string }>;
-  variant?: "filled" | "outlined";
   name?: string;
   id?: string;
   placeholder?: string;

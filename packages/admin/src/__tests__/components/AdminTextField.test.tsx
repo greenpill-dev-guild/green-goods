@@ -8,36 +8,53 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, userEvent } from "../test-utils";
 
 describe("AdminTextField", () => {
-  it("floats the label when a forwarded ref restores an uncontrolled value", () => {
-    const restoreValue = (input: HTMLInputElement | null) => {
-      if (input) input.value = "10";
-    };
+  it("sets the label above the outlined control and the message line below it (F3)", () => {
+    render(<AdminTextField label="Garden name" helperText="Shown on the garden's page." />);
 
-    render(<AdminTextField ref={restoreValue} label="Impact quantity" type="number" />);
-
-    expect(screen.getByRole("spinbutton", { name: "Impact quantity" })).toHaveValue(10);
-    expect(screen.getByText("Impact quantity")).toHaveClass("top-0.5", "leading-4");
-    expect(screen.getByText("Impact quantity")).not.toHaveClass("top-1/2");
+    const control = screen.getByRole("textbox", { name: "Garden name" });
+    const box = control.closest('[data-region="field-container"]');
+    const label = screen.getByText("Garden name");
+    // The label is the shared field title, outside the outline, never over the text.
+    expect(label.tagName).toBe("LABEL");
+    expect(label).toHaveClass("gg-field-label");
+    expect(box?.previousElementSibling).toBe(label);
+    expect(box).toHaveClass("ring-1", "ring-inset");
+    // The message line is the shared one, which reserves the surface's lines.
+    expect(screen.getByText("Shown on the garden's page.").parentElement).toHaveClass(
+      "gg-field-help",
+      "gg-field-message"
+    );
+    expect(box?.nextElementSibling).toHaveAttribute("data-region", "supporting-line");
   });
 
-  it("keeps focused placeholder text below the floating label slot", () => {
+  it("shows a placeholder at rest, since no label rests inside the field", () => {
     render(<AdminTextField label="Search" placeholder="Search by title" />);
 
     const control = screen.getByRole("textbox", { name: "Search" });
-    fireEvent.focus(control);
-
-    expect(screen.getByText("Search")).toHaveClass("top-0.5", "leading-4");
-    expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
+    expect(control).toHaveAttribute("placeholder", "Search by title");
+    expect(control).toHaveClass("placeholder:text-text-soft");
+    expect(control.className).not.toContain("placeholder-transparent");
   });
-});
 
-describe("the filled field's active indicator", () => {
-  it("sits inside the container, so focusing a field never moves what sits below it", () => {
-    render(<AdminTextField label="Name" />);
+  it("thickens the outline inside the box on focus and on error, so the field keeps its height", () => {
+    render(
+      <>
+        <AdminTextField label="Name" />
+        <AdminTextField label="Email" error="Enter a valid email address." />
+      </>
+    );
 
-    const indicator = document.querySelector('[data-region="active-indicator"]');
-    expect(indicator?.parentElement).toHaveAttribute("data-region", "field-container");
-    expect(indicator).toHaveClass("absolute", "bottom-0");
+    const name = screen.getByRole("textbox", { name: "Name" });
+    const nameBox = name.closest('[data-region="field-container"]');
+    fireEvent.focus(name);
+    expect(nameBox).toHaveClass("ring-2", "ring-inset");
+    expect(nameBox?.className).toContain("--tone-focus-ring");
+
+    const emailBox = screen
+      .getByRole("textbox", { name: /Email/ })
+      .closest('[data-region="field-container"]');
+    expect(emailBox).toHaveClass("ring-2", "ring-inset");
+    expect(emailBox?.className).toContain("--m3-error");
   });
 });
 
@@ -51,7 +68,7 @@ describe("AdminTextArea", () => {
     expect(screen.getByText("Members read this")).toBeInTheDocument();
   });
 
-  it("floats the label on focus and forwards a textarea ref", () => {
+  it("forwards a textarea ref, its rows and its maxLength", () => {
     let captured: HTMLTextAreaElement | null = null;
     render(
       <AdminTextArea
@@ -68,11 +85,6 @@ describe("AdminTextArea", () => {
     expect(captured).toBe(control);
     expect(control).toHaveAttribute("rows", "5");
     expect(control).toHaveAttribute("maxlength", "120");
-
-    expect(screen.getByText("Reason")).toHaveClass("top-1/2");
-    fireEvent.focus(control);
-    expect(screen.getByText("Reason")).toHaveClass("top-0.5", "leading-4");
-    expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
   });
 });
 
@@ -198,7 +210,7 @@ describe("the character counter", () => {
 });
 
 describe("AdminSelect", () => {
-  it("renders a native select with the shared field anatomy and a permanently floated label", () => {
+  it("renders a native select under its label, with the shared field anatomy", () => {
     const onChange = vi.fn();
     render(
       <AdminSelect label="Cycle" value="" onChange={onChange}>
@@ -209,11 +221,8 @@ describe("AdminSelect", () => {
 
     const control = screen.getByRole("combobox", { name: "Cycle" });
     expect(control.tagName).toBe("SELECT");
-    // A native select always displays its selected option's text, so the
-    // label can never rest in the centered position without overlapping it.
-    expect(screen.getByText("Cycle")).toHaveClass("top-0.5", "leading-4");
-    expect(screen.getByText("Cycle")).not.toHaveClass("top-1/2");
-    expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
+    expect(screen.getByText("Cycle")).toHaveClass("gg-field-label");
+    expect(control).toHaveClass("py-3", "sm:py-2.5", "leading-5");
     // Option-row colours are not a utility on this control: a Tailwind class
     // would land in @layer utilities and beat the shared rule, putting the
     // cockpit field on a different surface from every other select. The contract

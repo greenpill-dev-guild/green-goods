@@ -187,7 +187,7 @@ export function SeedConfirmerList({
           type="button"
           variant="outlined"
           size="sm"
-          className="mb-5"
+          className="mb-9"
           leadingIcon={<RiAddLine className="h-4 w-4" />}
           onClick={() => void entry.handleAdd()}
           disabled={busy || entry.trimmedInput.length === 0}
