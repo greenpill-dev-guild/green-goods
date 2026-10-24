@@ -1,4 +1,5 @@
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { getSDGLabel } from "@green-goods/shared/config/sdg";
 import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
 import type { Address, GardenAssessment } from "@green-goods/shared/types/domain";
@@ -6,7 +7,7 @@ import type { EASGardenAssessment } from "@green-goods/shared/types/eas-response
 import type { AllowlistEntry, HypercertMetadata } from "@green-goods/shared/types/hypercerts";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiFileTextLine } from "@remixicon/react";
+import { RiFileTextLine, RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
@@ -70,9 +71,10 @@ export function HypercertPreview({
 
   if (!metadata) {
     return (
-      <div className="surface-inset flex min-h-40 items-center justify-center p-6 type-body text-text-sub">
-        {formatMessage({ id: "app.hypercerts.preview.empty" })}
-      </div>
+      <EmptyState
+        icon={<RiMedalLine />}
+        title={formatMessage({ id: "app.hypercerts.preview.empty" })}
+      />
     );
   }
 

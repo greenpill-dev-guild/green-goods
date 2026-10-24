@@ -1,3 +1,4 @@
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { ActionInstructionConfig, WorkInput } from "@green-goods/shared/types/domain";
 import {
   RiAddLine,
@@ -5,6 +6,7 @@ import {
   RiArrowUpLine,
   RiCloseLine,
   RiDeleteBinLine,
+  RiInputField,
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -137,20 +139,21 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
           ))}
 
           {config.inputs.length === 0 && (
-            <div className="text-center py-8 border border-dashed border-stroke-soft rounded-lg">
-              <p className="type-body text-text-sub mb-2">
-                {formatMessage({
-                  id: "app.admin.actions.detailsConfig.noInputs",
-                  defaultMessage: "No form inputs yet",
-                })}
-              </p>
-              <AdminButton type="button" variant="text" size="sm" onClick={addInput}>
-                {formatMessage({
-                  id: "app.admin.actions.detailsConfig.addFirstInput",
-                  defaultMessage: "Add Your First Input Field",
-                })}
-              </AdminButton>
-            </div>
+            <EmptyState
+              icon={<RiInputField />}
+              title={formatMessage({
+                id: "app.admin.actions.detailsConfig.noInputs",
+                defaultMessage: "No form inputs yet",
+              })}
+              action={
+                <AdminButton type="button" variant="text" size="sm" onClick={addInput}>
+                  {formatMessage({
+                    id: "app.admin.actions.detailsConfig.addFirstInput",
+                    defaultMessage: "Add Your First Input Field",
+                  })}
+                </AdminButton>
+              }
+            />
           )}
         </div>
       </div>

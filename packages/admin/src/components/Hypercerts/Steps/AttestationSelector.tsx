@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { filterAttestationsByAssessment } from "@green-goods/shared/modules/data/hypercerts-filters";
 import type { GardenAssessment } from "@green-goods/shared/types/domain";
 import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
@@ -10,7 +11,12 @@ import {
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatDateTime } from "@green-goods/shared/utils/time";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
-import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
+import {
+  RiCheckboxCircleLine,
+  RiCheckboxMultipleLine,
+  RiCloseCircleLine,
+  RiFileList3Line,
+} from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -243,14 +249,15 @@ export function AttestationSelector({
       )}
 
       {!isLoading && !hasError && filtered.length === 0 && (
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 type-body text-text-sub">
-          {formatMessage({
+        <EmptyState
+          icon={<RiFileList3Line />}
+          title={formatMessage({
             id:
               attestations.length === 0
                 ? "app.hypercerts.attestations.emptyUnavailable"
                 : "app.hypercerts.attestations.empty",
           })}
-        </div>
+        />
       )}
 
       <div className="grid gap-3">
