@@ -518,7 +518,7 @@ export function ActionTranslationEditor({
         </AdminButton>
         <AdminButton
           type="button"
-          variant="tonal"
+          variant="outlined"
           size="sm"
           leadingIcon={<RiCheckboxCircleLine />}
           onClick={markReviewed}

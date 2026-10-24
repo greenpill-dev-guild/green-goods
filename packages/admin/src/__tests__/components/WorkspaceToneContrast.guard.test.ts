@@ -5,8 +5,9 @@
  * A filled header action, the FAB, a step marker and the shared primary
  * buttons put `--tone-on-action` (white in light, the tone's -900 ink in dark,
  * DL-009) on `--tone-action`, as a selected filter chip does (DL-101). Shared
- * buttons hover on `--tone-action-hover`. The cockpit's filled AdminButton,
- * AdminIconButton and FAB and a selected AdminFilterChip keep their fill
+ * buttons hover and press on `--tone-action-hover`, and the cockpit's filled
+ * AdminButton and AdminIconButton are shared primaries (DL-115). The FAB and a
+ * selected AdminFilterChip keep their fill
  * and lay the neutral ink layer (`--m3-on-surface`, Rule 18) over it at the
  * state opacities, beneath their content (`.m3-state-layer-beneath`): the
  * layer deepens a light fill and lifts a dark one while the label keeps its
@@ -100,13 +101,8 @@ const STATES = ["--m3-state-hover", "--m3-state-focus", "--m3-state-pressed"].ma
 
 const TONES = ["hub", "garden", "community", "actions", "home"];
 
-/** The class lists of the cockpit's filled controls. */
-const filledVariants = [...adminButton.matchAll(/\n( *)filled: \[\n([\s\S]*?)\n\1\],/g)].map(
-  (match) => match[2]
-);
+/** The class lists of the cockpit's filled controls that lay the ink layer. */
 const FILLED_CONTROLS: Record<string, string> = {
-  "AdminButton filled": filledVariants[0] ?? "",
-  "AdminIconButton filled": filledVariants[1] ?? "",
   FabButton:
     fabButton.match(/data-slot="fab-button"[\s\S]*?className=\{cn\(([\s\S]*?)\n\s*\)\}/)?.[1] ?? "",
   "AdminFilterChip selected": filterChip.match(/\bselected\s*\?\s*\[([\s\S]*?)\]\s*:/)?.[1] ?? "",
@@ -167,6 +163,18 @@ describe("workspace tone fills", () => {
     expect(mirror.map((rule) => declarations(rule.body))).toEqual(
       [RAMP, RAMP_DARK].map((rule) => declarations(rule.body))
     );
+  });
+
+  it("hovers and presses the cockpit's filled buttons, shared primaries, on --tone-action-hover", () => {
+    // Filled maps onto the shared primary for the button and the icon button (DL-115).
+    expect(adminButton.match(/filled: \{ emphasis: "primary" \}/g)).toHaveLength(2);
+    for (const selector of [
+      '.gg-button[data-emphasis="primary"]:hover',
+      '.gg-button[data-emphasis="primary"]:not([data-tone]):active',
+      '.gg-icon-button[data-emphasis="primary"]:hover',
+    ]) {
+      expect(blocks(theme, selector), selector).toMatch(/var\(--tone-action-hover,/);
+    }
   });
 
   it("finds each filled control and lays the neutral ink layer, not the label's color", () => {

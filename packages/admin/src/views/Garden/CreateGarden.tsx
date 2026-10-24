@@ -67,7 +67,7 @@ export default function CreateGarden() {
                   disabled={createGarden.isCheckingConfirmation}
                 />
               ) : (
-                <AdminButton variant="tonal" size="sm" onClick={createGarden.retry}>
+                <AdminButton variant="outlined" size="sm" onClick={createGarden.retry}>
                   {intl.formatMessage({ id: "admin.garden.deploy.retry" })}
                 </AdminButton>
               )

@@ -2,7 +2,8 @@
  * AdminDensityScale.guard — pins the compact cockpit metric (DL-011).
  *
  * The cockpit control scale is 28 / 32 / 36 / 40 / 44:
- *   buttons 28 (sm) / 32 (md) / 40 (lg) · fields 44 on touch widths and 40 from
+ *   buttons 28 (sm) / 32 (md) / 40 (lg), the shared Button's compact / sm / lg
+ *   on the cockpit's tokens (DL-115) · fields 44 on touch widths and 40 from
  *   640px (DL-030) · toolbar pills 36 · inline field 32 (button-row axis) ·
  *   chips 32 · identity pill 36 · list rows from 44, growing with their content.
  * Shell chrome (AppBar, FAB, nav dock) is deliberately outside this scale.
@@ -26,7 +27,7 @@ import { AdminTextField } from "@/components/AdminTextField";
 import { render, screen } from "../test-utils";
 
 describe("AdminDensityScale.guard (DL-011)", () => {
-  it("buttons ride the 28/32/40 compact tiers with expanded hit targets below 44px", () => {
+  it("buttons ride the 28/32/40 tiers as the shared Button's compact, sm and lg sizes", () => {
     render(
       <>
         <AdminButton size="sm">Small</AdminButton>
@@ -39,15 +40,17 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     const md = screen.getByRole("button", { name: "Medium" });
     const lg = screen.getByRole("button", { name: "Large" });
 
-    expect(sm).toHaveClass("h-7");
-    expect(sm).toHaveClass("admin-hit-target");
-    expect(md).toHaveClass("h-8");
-    expect(md).toHaveClass("admin-hit-target");
-    expect(lg).toHaveClass("h-10", "admin-hit-target-lg");
-    // One 14px label at every size (DL-030): sm no longer drops to the 11px chip size.
-    expect(sm).toHaveClass("type-label");
-    expect(sm).not.toHaveClass("type-meta-sm");
-    expect(lg).not.toHaveClass("type-field");
+    // The heights, the 44px finger box and the one 14px label come from the
+    // tokens pinned below: compact 28, sm 32, lg 40 (DL-115, DL-031).
+    for (const [button, size] of [
+      [sm, "compact"],
+      [md, "sm"],
+      [lg, "lg"],
+    ] as const) {
+      expect(button).toHaveClass("gg-button");
+      expect(button).toHaveAttribute("data-size", size);
+      expect(button).toHaveAttribute("data-component", "AdminButton");
+    }
   });
 
   it("icon buttons ride the same 28/32/40 tiers with a mandatory accessible name", () => {
@@ -69,9 +72,10 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     const md = screen.getByRole("button", { name: "Remove Photo" });
     const lg = screen.getByRole("button", { name: "Open Settings" });
 
-    expect(sm).toHaveClass("h-7", "w-7", "admin-hit-target");
-    expect(md).toHaveClass("h-8", "w-8", "admin-hit-target");
-    expect(lg).toHaveClass("h-10", "w-10", "admin-hit-target-lg");
+    expect(sm).toHaveAttribute("data-size", "compact");
+    expect(md).toHaveAttribute("data-size", "sm");
+    expect(lg).toHaveAttribute("data-size", "lg");
+    expect(md).toHaveClass("gg-icon-button");
     expect(md).toHaveAttribute("data-component", "AdminIconButton");
     expect(md).toHaveAttribute("title", "Remove Photo");
   });
@@ -153,6 +157,16 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-icon-size-sm": "2rem",
       "--gg-icon-size-compact": "1.75rem",
       "--gg-hit-block": "2.75rem",
+      // The cockpit's look on the shared family (DL-115): no press scale, round
+      // icon buttons with an 18px glyph, and the neutral disabled pair instead of
+      // a dim, with an aria-disabled button keeping its pointer for a hover reason.
+      "--gg-button-pressed-transform": "none",
+      "--gg-icon-button-glyph": "1.125rem",
+      "--gg-icon-button-radius-pressed": "var(--radius-full)",
+      "--gg-button-disabled-opacity": "1",
+      "--gg-button-disabled-fill": "rgb(var(--m3-on-surface) / 0.12)",
+      "--gg-button-disabled-ink": "rgb(var(--m3-on-surface) / 0.38)",
+      "--gg-button-aria-disabled-events": "auto",
       // Shared fields, secondary buttons and chips draw the cockpit's control-grade
       // outline, and focus draws one solid 2px ring with no halo (F3).
       "--gg-control-outline": "var(--m3-outline)",
@@ -208,16 +222,19 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     });
     // The Storybook admin scope must render what production renders.
     expect(ggTokens(surfacesCss, '[data-surface-scope="admin"] {')).toEqual(admin);
-    // In dark the sheet is the lifted card with its hairline, re-declared so a
-    // dark scope below the root resolves its own.
-    const darkSheet = {
+    // In dark the sheet is the lifted card with its hairline, and the disabled
+    // pair takes the dark ink, re-declared so a dark scope below the root
+    // resolves its own.
+    const dark = {
       "--gg-sheet-fill": "rgb(var(--admin-surface-0))",
       "--gg-sheet-edge": "rgb(var(--earth-700))",
+      "--gg-button-disabled-fill": "rgb(var(--m3-on-surface) / 0.12)",
+      "--gg-button-disabled-ink": "rgb(var(--m3-on-surface) / 0.38)",
     };
-    expect(ggTokens(adminCss, '\n[data-theme="dark"] {\n  --gg-sheet')).toEqual(darkSheet);
+    expect(ggTokens(adminCss, '\n[data-theme="dark"] {\n  --gg-sheet')).toEqual(dark);
     expect(
       ggTokens(surfacesCss, '[data-surface-scope="admin"][data-theme="dark"] {')
-    ).toMatchObject(darkSheet);
+    ).toMatchObject(dark);
   });
 
   it("toolbar pills sit at the 36px tier", () => {

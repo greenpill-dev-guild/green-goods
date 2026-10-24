@@ -400,7 +400,7 @@ export function PositionCard({
 
               {!hasWorkflowOutcome && yieldStatus.status === "loading" && (
                 <div className="flex justify-end">
-                  <AdminButton variant="tonal" size="sm" disabled loading>
+                  <AdminButton variant="outlined" size="sm" disabled loading>
                     {formatMessage({ id: "app.yield.harvestDistribution.action.harvest" })}
                   </AdminButton>
                 </div>
@@ -418,9 +418,9 @@ export function PositionCard({
 
               {!hasWorkflowOutcome && canOpenDistribution && (
                 <div className="flex justify-end">
-                  {/* Tonal: Deposit is the page's one filled action (D9). */}
+                  {/* Outlined: Deposit is the page's one filled action (D9). */}
                   <AdminButton
-                    variant="tonal"
+                    variant="outlined"
                     size="sm"
                     onClick={() => openDistributionConfirm("auto")}
                     disabled={harvestDistribution.isPending}

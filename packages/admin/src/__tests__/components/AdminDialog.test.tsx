@@ -426,7 +426,10 @@ describe("AdminConfirmDialog", () => {
 
     expect(screen.queryByLabelText("Close")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+    // The loading confirm is held but keeps focus: aria-disabled and aria-busy (DL-115).
+    const pause = screen.getByRole("button", { name: "Pause" });
+    expect(pause).toHaveAttribute("aria-disabled", "true");
+    expect(pause).toHaveAttribute("aria-busy", "true");
   });
 });
 

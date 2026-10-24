@@ -112,7 +112,7 @@ export function ImpactTab({
                   </p>
                 </div>
                 {hasHypercerts ? (
-                  <AdminButton size="sm" variant="tonal" asChild>
+                  <AdminButton size="sm" variant="text" asChild>
                     <Link
                       to={adminRoutes.gardenImpact({
                         ...gardenRouteContext,
@@ -154,7 +154,7 @@ export function ImpactTab({
                     })}
                     action={
                       canCertify ? (
-                        <AdminButton size="sm" variant="tonal" asChild>
+                        <AdminButton size="sm" variant="outlined" asChild>
                           <Link to={adminRoutes.hubCertifyCreate(gardenRouteContext)}>
                             {formatMessage({ id: "cockpit.hub.action.createHypercert" })}
                           </Link>
@@ -203,7 +203,7 @@ export function ImpactTab({
                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
                 </AdminCardTitle>
                 {hasAssessments ? (
-                  <AdminButton size="sm" variant="tonal" asChild>
+                  <AdminButton size="sm" variant="text" asChild>
                     <Link
                       to={adminRoutes.gardenImpact({
                         ...gardenRouteContext,
@@ -241,7 +241,7 @@ export function ImpactTab({
                     title={formatMessage({ id: "app.garden.admin.noAssessments" })}
                     action={
                       canReview ? (
-                        <AdminButton size="sm" variant="tonal" asChild>
+                        <AdminButton size="sm" variant="outlined" asChild>
                           <Link to={adminRoutes.hubAssessCreate(gardenRouteContext)}>
                             {formatMessage({ id: "cockpit.hub.action.createAssessment" })}
                           </Link>

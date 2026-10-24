@@ -239,7 +239,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
             ))}
             {allocations.length > INITIAL_ALLOCATION_COUNT && !showAllAllocations && (
               <AdminButton
-                variant="tonal"
+                variant="text"
                 size="sm"
                 className="mt-1 w-full"
                 onClick={() => setShowAllAllocations(true)}

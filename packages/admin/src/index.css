@@ -140,6 +140,19 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  /* AdminButton and AdminIconButton render the shared family (DL-115), and these
+     keep the cockpit's look on it: buttons keep still while pressed, icon
+     buttons stay circles with an 18px glyph, and a disabled button takes the
+     neutral pair (a 12% ink fill under a 38% ink label) instead of a dim, while
+     an aria-disabled one keeps its pointer so a reason given on hover shows.
+     The pair resolves per theme, so the dark block below re-declares it. */
+  --gg-button-pressed-transform: none;
+  --gg-icon-button-glyph: 1.125rem;
+  --gg-icon-button-radius-pressed: var(--radius-full);
+  --gg-button-disabled-opacity: 1;
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
+  --gg-button-aria-disabled-events: auto;
   /* Shared fields, secondary buttons and chips take the cockpit's
      control-grade outline (4.8:1 on white, 6.1:1 on the dark card), the boundary its own
      Admin* controls already draw, and focus draws one solid 2px ring in the
@@ -217,10 +230,13 @@
   }
 }
 
-/* The phone sheet in dark: the lifted card (earth-850) and its hairline. */
+/* The phone sheet in dark: the lifted card (earth-850) and its hairline. The
+   disabled button pair, re-declared so a dark scope resolves its own ink. */
 [data-theme="dark"] {
   --gg-sheet-fill: rgb(var(--admin-surface-0));
   --gg-sheet-edge: rgb(var(--earth-700));
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
 }
 
 /* Base layer: Admin-specific element resets */

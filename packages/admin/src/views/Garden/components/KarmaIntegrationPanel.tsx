@@ -167,7 +167,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
 
       <div className="flex flex-wrap items-center gap-2">
         {showPendingAction ? (
-          <AdminButton type="button" variant="tonal" size="sm" loading disabled>
+          <AdminButton type="button" variant="outlined" size="sm" loading disabled>
             {formatMessage({
               id: "cockpit.garden.karma.action.retrying",
               defaultMessage: "Syncing…",
@@ -176,7 +176,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
         ) : canRunReconcile ? (
           <AdminButton
             type="button"
-            variant="tonal"
+            variant="outlined"
             size="sm"
             onClick={() => run(integration.reconcile)}
           >
