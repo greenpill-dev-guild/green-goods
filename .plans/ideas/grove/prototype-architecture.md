@@ -286,7 +286,7 @@ The four `grove_*` tools and the `externally_connectable` handler both reduce to
 
 ## 6. UI components
 
-One React application in the graph tab, built from Shared's primitives (`Button`, `Alert`, `DialogShell`, `ConfirmDialog`) and the Warm Earth tokens from `@green-goods/shared/styles/theme.css`, with every string in the extension's own `react-intl` catalog (`en`, `es`, `pt`, following Shared's catalog layout).
+One React application in the graph tab, built from Shared's primitives (`Button`, `Alert`, `DialogShell`, `ConfirmDialog`, `EmptyStateShell`, `GardenChip`, `StatusBadge`) and the Warm Earth tokens from `@green-goods/shared/styles/theme.css`, with every string in the extension's own `react-intl` catalog (`en`, `es`, `pt`, following Shared's catalog layout). The [design brief](prototype-design.md) sets the dialect: the cockpit's density and shape, the garden tone, and the canvas legend.
 
 ```text
 GraphApp                      providers: IntlProvider, QueryClientProvider, WorkspaceProvider, HarnessProvider

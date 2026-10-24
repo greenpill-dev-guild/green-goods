@@ -1,7 +1,7 @@
 # Grove prototype: four parts, one loop
 
 **Status:** prototype scope agreed on 24 October 2026; G0 authorized as a disposable spike; nothing built yet. **Updated:** 24 October 2026.
-**Relation to the plan:** this narrows the [MVP architecture](spec.md) and the [implementation sequence](plan.todo.md) to the smallest build that shows Grove's four core parts working together. Where it departs from the architecture, the [decisions](#decisions) say so. The product gates in [eval.md](eval.md) stay as they are; the prototype has its own [demo checks](#demo-checks). The [architecture companion](prototype-architecture.md) owns the packages, dependencies, module layers, types, components and data flows.
+**Relation to the plan:** this narrows the [MVP architecture](spec.md) and the [implementation sequence](plan.todo.md) to the smallest build that shows Grove's four core parts working together. Where it departs from the architecture, the [decisions](#decisions) say so. The product gates in [eval.md](eval.md) stay as they are; the prototype has its own [demo checks](#demo-checks). The [architecture companion](prototype-architecture.md) owns the packages, dependencies, module layers, types, components and data flows; the [design brief](prototype-design.md) owns how Grove looks and behaves as the cockpit's dialect on a graph.
 
 Grove is a browser extension that keeps a garden's living knowledge graph on the steward's own device. The prototype proves one loop: connect a garden, save a source, let a local model propose how it relates to the garden's work, resume that work after an interruption, review it, share one accepted piece with another garden, and let any browser agent ask the graph questions.
 
@@ -166,6 +166,10 @@ Record with every run: browser build and flags, model artifact revision, Pi and 
 | 19 | The snapshot carries protocol records with approval state: Garden, Actions, Work with pending, approved or rejected status, and WorkApproval records. No notes, assessments, gardener addresses or session data | Decided 24 October 2026. Richer than the public page, still protocol-only, no private data before the encryption and retention contract | Narrows S7 |
 | 20 | The no-WebMCP path is the direct adapter on Shared's garden readers; protocol records need no session, so the Hub is not involved in direct mode | Decided 24 October 2026; amends 13 | No |
 | 21 | The client's dead `navigator.modelContext` registration is fixed in its own pull request, outside Grove's slices | Decided 24 October 2026 | No |
+| 22 | Grove is a third dialect of Warm Earth set to the cockpit's dials: 14px density on the cockpit type roles, pill buttons, 12px cards, elevation steps, the steward's voice; shared controls carry `data-surface="admin"`; the shared core is taken as is | Decided 24 October 2026. Stewards use the Hub and Grove in one sitting; a desktop graph tool wants the denser setting; no new dials to drift | New; see the design brief |
+| 23 | The accent is the cockpit's garden tone on its five-use budget: active chip or tab, one filled action, the new-since count badge, the focus ring, the canvas's new-item halo | Decided 24 October 2026. Grove is garden knowledge; the Hub's Garden workspace and Grove match. The tone roles move to Shared in G1 | New |
+| 24 | The canvas encodes meaning by shape, dash, weight and label in ink and stone; the accent marks only what is new and the selection; colors are read from the live tokens | Decided 24 October 2026. Never meaning by color alone; the 1 to 3 percent accent rule holds on the canvas | New |
+| 25 | The dialect is proven on Storybook Design System pages beside App, Website and Admin, plus co-located component stories on the synthetic fixture | Decided 24 October 2026. Reviewed where the unification was reviewed, before the extension exists | New |
 
 ## Honesty rules the prototype keeps
 
