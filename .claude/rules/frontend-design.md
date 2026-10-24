@@ -87,7 +87,7 @@ Use `flex-1` on cards that should expand vertically within a flex container.
 
 ## Rule 8: Thumbnails
 
-Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar, `HubWorkCard`'s media mosaic, and the shared `ItemRow`'s lead, the item's own square photo as tall as the row or a 56px icon tile (DL-102).
+Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar, `HubWorkCard`'s media mosaic, the shared `ItemRow`'s lead, the item's own square photo as tall as the row or a 56px icon tile (DL-102), and the shared media card's 104px banner on the action picker and the installed app's garden card (DL-111).
 
 ## Rule 9: Typography Utilities
 
