@@ -40,7 +40,7 @@ This section replaces § Material System. Every surface that carries content or 
 - **One translucent piece**: the cockpit's nav dock (the `NavigationBar` with its FAB), a flat 85% surface with a 12px blur, a warm ambient shadow, and a 1px ink ring (Controlled Chrome in `packages/admin/DESIGN.md`). Nothing else is translucent.
 - **The scrim is not a surface**: a dialog or sheet that interrupts the main flow dims the page behind it with the shared scrim. The scrim carries no content.
 - **Transparent chrome is not glass**: a chrome root with no fill and no blur at all (the cockpit's `AppBar` root, `MainSheet` and route frame, and the website's `SiteHeader` over its hero) draws nothing behind its controls. Its controls sit on the page or carry their own solid fills.
-- **Glass in code is residue**: the translucent `--color-material-*` steps and the last two `glass-*` utilities, `glass-raised` (Shared's `WorkbenchCard` and `WorkbenchList`) and `glass-surface` (Shared's `MainSheet`), stay in Shared only until nothing renders them. `Surface` draws all four of its levels solid. New UI never reaches for any of them. `--color-material-solid` stays the solid fill, and the dock reads its blur from `--blur-material-regular`.
+- **Glass in code is residue**: the translucent `--color-material-*` steps and `glass-surface` (Shared's `MainSheet`) stay in Shared only until nothing renders them. `glass-surface` is the last `glass-*` utility once step 19's code change puts `WorkbenchCard` on the shared card surface and deletes `glass-raised` with `WorkbenchList`. `Surface` draws all four of its levels solid. New UI never reaches for any of them. `--color-material-solid` stays the solid fill, and the dock reads its blur from `--blur-material-regular`.
 
 ---
 
