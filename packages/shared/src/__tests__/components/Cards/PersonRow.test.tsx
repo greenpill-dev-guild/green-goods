@@ -51,6 +51,8 @@ describe("PersonRow", () => {
     renderRow({ roles: ["gardener", "owner", "steward"], details: ["3 roles"], onOpen: vi.fn() });
 
     expect(screen.getByRole("button")).toHaveAccessibleName(/^river\s*Owner\s*3 roles$/);
+    // A list's rows read their Green Goods names together, in one batch.
+    expect(hooks.protocol).toHaveBeenCalledWith(person, { list: true });
   });
 
   it("shows no chip for someone the list holds no role for, as a pasted address", () => {
