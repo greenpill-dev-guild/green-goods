@@ -21,6 +21,8 @@ dialect: installed-pwa
 
 **Routing:** presentation-mode loaders gate browser vs PWA entry. Installed/authenticated PWA routes live under `/home` and render through `PwaRuntime` + `AppShell` with the bottom `AppBar`.
 
+**Not the app's:** the public reporting pages (`/agent/reporting/*`) keep the public website's look even when an installed app opens a link to them (DL-121); `DESIGN.browser.md` § Reporting ceremony pages owns them.
+
 ---
 
 ## The Field Tool
