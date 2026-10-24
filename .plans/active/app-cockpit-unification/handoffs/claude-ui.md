@@ -724,6 +724,32 @@ the PR
 
 Human corrections: 0 observed; attention: unknown.
 
+## Step 20 phase 4: cards and tabs (PRD-1287)
+
+- `feature/app-cockpit-shared-cards`, cut from `develop` `796e9e1bb`, with its guide wording in the
+  standards-only `feature/app-cockpit-shared-cards-guides`. Adapters first: each cockpit component
+  keeps its name and props, and the box it draws comes from Shared where a shared piece fits.
+- **`AdminCard`** (72 uses in 40 files) already renders `.gg-card`, the shared card surface, with
+  the cockpit's fill and edge as tokens in `index.css`'s unlayered `:root` (step 7). It keeps the
+  shared card's 24px corner (DL-102) rather than the cockpit's old 12px card, and its stories now
+  describe the shared surface; `StateCatalog`'s play checks that every variant is the shared card.
+- **`AdminListRow`** takes the shared row corner, `--gg-row-radius` (16px, as before), and stays its
+  own row: both call sites (Group's people list and the waiting-for-approval row) lay out content of
+  varying height, which the item row's 88px anatomy would change.
+- **`AdminSelectableCard`** keeps its anatomy: every call site picks a choice without a picture
+  (domains, SDGs, capitals, attestations, Cynefin phases), and the shared `MediaCardPicker` is for
+  objects with a picture of their own (and is not a Shared export).
+- **No shared counterpart:** `AdminTabRail` (Shared has no tabs piece), `AdminTooltip`,
+  `AdminLinearProgress` (Shared's progress pieces are the ENS and submission timelines),
+  `AdminLoadingScreen`, `AdminViewActions` (it renders Shared's `useViewActions` model in the
+  cockpit's header slot and FAB) and `AdminSignIn`. No Shared export or cockpit-only prop was added.
+- `check-tokens.sh`'s legacy-card class still rejects a `<Card` render; its comment now says that
+  `AdminCard` renders `.gg-card`.
+- Proof: **Storybook** pairs of the card variants, a card title, a list row and both selectable-card
+  groups at 390, 768 and 1280px in light and dark, with every measured box and every pixel the same
+  before and after ([eval.md](../eval.md#step-20-phase-4-proof-cards-and-tabs)); the admin tests
+  that render these pieces (37) and the three story files pass. No authenticated class.
+
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker

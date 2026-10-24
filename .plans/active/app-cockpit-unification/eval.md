@@ -1108,3 +1108,19 @@ run locally with a temporary `server.fs.allow`, reverted before the commit.
 
 **Not in the step.** Nothing mounts the chip in the app, and its menu is unchanged: it opens only
 from a switcher, which the app does not mount yet.
+
+## Step 20 phase 4 proof: cards and tabs
+
+Run on 2026-10-24 against `develop` `796e9e1bb`, with phase 4 on `feature/app-cockpit-shared-cards`,
+in **Storybook** (headless Chromium at device scale 2, the admin primitive frame).
+
+- Stories: `AdminCard`'s `StateCatalog` (filled, elevated, outlined) and `CardTitle`, `AdminListRow`'s
+  `RecentAssessments` (a current row among others), and `AdminSelectableCard`'s `ToggleGroup` and
+  `RadioCards`, each at 390, 768 and 1280px in light and dark: 30 frames a state.
+- Measured on every `AdminCard`, `AdminListRow` and `AdminSelectableCard` (corner, edge, fill,
+  shadow, padding and box): 66 boxes, with no difference between `develop` and the branch. Pixels:
+  none of the 30 pairs differs (ImageMagick AE at 2% fuzz).
+- What the boxes are: the card has a 24px corner and a 1px edge, neutral-200 on white in light and
+  earth-700 on the lifted card in dark, with the faint shadow in light only; filled takes the same
+  corner with no edge; the list row is 16px and 56px tall here, on the weak fill; the selectable
+  card is 12px and 66px tall, its selected state the tone's accent edge and a 10% tint.
