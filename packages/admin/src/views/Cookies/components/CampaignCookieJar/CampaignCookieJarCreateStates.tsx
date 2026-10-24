@@ -1,10 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { useCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
@@ -43,14 +43,14 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
             <RiExternalLinkLine className="h-4 w-4 shrink-0" aria-hidden />
           </a>
         </div>
-        <AdminButton type="button" variant="outlined" asChild>
+        <Button type="button" emphasis="secondary" size="sm" asChild>
           <a href={publicUrl} target="_blank" rel="noreferrer">
             {formatMessage({
               id: "cockpit.community.cookies.openPublicLink",
               defaultMessage: "Open Public Link",
             })}
           </a>
-        </AdminButton>
+        </Button>
       </div>
       <AdminCard variant="outlined" className="space-y-3">
         <AdminCardTitle>
@@ -164,7 +164,8 @@ export function CampaignCookieJarSubmittedState({
           }
         />
         {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
-        <AdminButton
+        <Button
+          size="sm"
           type="button"
           onClick={onUseManualAddress}
           disabled={!manualAddress}
@@ -174,7 +175,7 @@ export function CampaignCookieJarSubmittedState({
             id: "cockpit.community.cookies.useCreatedJar",
             defaultMessage: "Use jar address",
           })}
-        </AdminButton>
+        </Button>
       </div>
     </div>
   );

@@ -1,27 +1,27 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
-import { useActionsByUID } from "@green-goods/shared/hooks/action/useAction";
-import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { useActionsByUID } from "@green-goods/shared/hooks/action/useAction";
 import type { AdminWorkspaceSectionTab } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
 import {
   useLocalizedEventTime,
   useLocalizedRelativeTime,
 } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import type {
   ActivityFilter,
   GardenActivityEvent,
   GardenDetailTab,
   GardenRange,
 } from "@green-goods/shared/types/garden-detail";
+import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
-import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-
-import { AdminButton } from "@/components/AdminButton";
-import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { localizeWorkActivityTitle } from "@/components/Action/actionDisplay";
+import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { type GardenAlert, GardenAlertsCard } from "./GardenAlertsCard";
 import { formatReviewTime, SectionStateCard } from "./GardenDetailHelpers";
 import {
@@ -175,16 +175,12 @@ export function OverviewTab({
                 </div>
                 <div className="flex items-center gap-2">
                   {RANGE_OPTIONS.map((range) => (
-                    <AdminButton
+                    <AdminFilterChip
                       key={range}
-                      type="button"
-                      variant={selectedRange === range ? "tonal" : "text"}
-                      size="sm"
-                      onClick={() => updateQueryState({ range })}
-                      className="px-2.5 py-1"
-                    >
-                      {formatMessage({ id: `app.garden.detail.range.${range}` })}
-                    </AdminButton>
+                      label={formatMessage({ id: `app.garden.detail.range.${range}` })}
+                      selected={selectedRange === range}
+                      onToggle={() => updateQueryState({ range })}
+                    />
                   ))}
                 </div>
               </AdminCardHeader>
@@ -272,16 +268,12 @@ export function OverviewTab({
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {(["all", "work", "impact", "community"] as ActivityFilter[]).map((filter) => (
-                    <AdminButton
+                    <AdminFilterChip
                       key={filter}
-                      type="button"
-                      variant={activityFilter === filter ? "tonal" : "text"}
-                      size="sm"
-                      onClick={() => setActivityFilter(filter)}
-                      className="px-2.5 py-1"
-                    >
-                      {formatMessage({ id: `app.garden.detail.activity.filter.${filter}` })}
-                    </AdminButton>
+                      label={formatMessage({ id: `app.garden.detail.activity.filter.${filter}` })}
+                      selected={activityFilter === filter}
+                      onToggle={() => setActivityFilter(filter)}
+                    />
                   ))}
                 </div>
               </AdminCardHeader>
@@ -377,10 +369,10 @@ export function OverviewTab({
                       })}
                     </div>
                     {filteredActivityEvents.length > activityEventLimit && (
-                      <AdminButton
+                      <Button
                         type="button"
-                        variant="text"
-                        size="sm"
+                        emphasis="tertiary"
+                        size="compact"
                         onClick={() => openSection("overview", "activity")}
                         className="mt-3 w-full"
                       >
@@ -391,7 +383,7 @@ export function OverviewTab({
                           },
                           { count: filteredActivityEvents.length }
                         )}
-                      </AdminButton>
+                      </Button>
                     )}
                   </>
                 )}

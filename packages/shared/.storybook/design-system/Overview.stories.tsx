@@ -2,7 +2,6 @@ import { RiCloseLine, RiShareLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { CSSProperties, ReactNode } from "react";
 import { expect, waitFor, within } from "storybook/test";
-import { AdminButton, AdminIconButton } from "../../../admin/src/components/AdminButton";
 import { AdminFilterChip } from "../../../admin/src/components/AdminFilterChip";
 import { AdminTextField } from "../../../admin/src/components/AdminTextField";
 import { Button } from "../../src/components/Button";
@@ -153,40 +152,34 @@ function AdminColumn() {
       <div className="admin-m3" data-tone="hub">
         <Row>
           <Specimen title="Filled / outlined / text · md" expect={ADMIN.button("md")} wide>
-            <AdminButton>Create Garden</AdminButton>
-            <AdminButton variant="outlined">Cancel</AdminButton>
-            <AdminButton variant="text">Show More</AdminButton>
+            <Button type="button" size="sm">Create Garden</Button>
+            <Button type="button" emphasis="secondary" size="sm">Cancel</Button>
+            <Button type="button" emphasis="tertiary" size="sm">Show More</Button>
           </Specimen>
           <Specimen
             title="No press morph"
             expect={ADMIN.button("md")}
             note="Pills stay pills; feedback is the M3 state layer and an elevation step, never a corner change (Rule 18)."
           >
-            <AdminButton variant="tonal">Save Draft</AdminButton>
+            <Button type="button" emphasis="secondary" size="sm">Save Draft</Button>
           </Specimen>
           <Specimen title="Danger" expect={ADMIN.button("md")}>
-            <AdminButton variant="danger">Remove Member</AdminButton>
+            <Button type="button" emphasis="primary" tone="danger" size="sm">Remove Member</Button>
           </Specimen>
           <Specimen title="lg · 40" expect={ADMIN.button("lg")}>
-            <AdminButton size="lg">Submit Work</AdminButton>
+            <Button type="button" size="lg">Submit Work</Button>
           </Specimen>
           <Specimen title="sm · 28" expect={ADMIN.button("sm")}>
-            <AdminButton size="sm" variant="outlined">
+            <Button type="button" emphasis="secondary" size="compact">
               Manage Members
-            </AdminButton>
+            </Button>
           </Specimen>
           <Specimen title="Icon button · md" expect={ADMIN.iconButton("md")}>
-            <AdminIconButton label="Share">
-              <RiShareLine />
-            </AdminIconButton>
-            <AdminIconButton label="Close" variant="tonal">
-              <RiCloseLine />
-            </AdminIconButton>
+            <IconButton size="sm" aria-label="Share" title="Share" icon={<RiShareLine />} />
+            <IconButton aria-label="Close" title="Close" emphasis="secondary" size="sm" icon={<RiCloseLine />} />
           </Specimen>
           <Specimen title="Icon button · lg" expect={ADMIN.iconButton("lg")}>
-            <AdminIconButton label="Share" size="lg">
-              <RiShareLine />
-            </AdminIconButton>
+            <IconButton aria-label="Share" title="Share" size="lg" icon={<RiShareLine />} />
           </Specimen>
           <Specimen title="Filter chip · 32" expect={ADMIN.chip()}>
             <AdminFilterChip label="Pending" selected={false} onToggle={() => {}} />
@@ -214,13 +207,11 @@ function AdminColumn() {
             note="Every tier carries a 44px finger box: admin-hit-target below 40px, admin-hit-target-lg on the 40px tier (DL-030)."
           >
             <div className="sb-show-hit flex flex-wrap items-center gap-4 py-2">
-              <AdminButton size="sm" variant="outlined">
+              <Button type="button" emphasis="secondary" size="compact">
                 Small
-              </AdminButton>
-              <AdminButton size="md">Medium</AdminButton>
-              <AdminIconButton label="Add" size="lg">
-                <RiShareLine />
-              </AdminIconButton>
+              </Button>
+              <Button type="button" size="sm">Medium</Button>
+              <IconButton aria-label="Add" title="Add" size="lg" icon={<RiShareLine />} />
             </div>
           </Specimen>
         </Row>
@@ -256,7 +247,7 @@ export const ThreeSystems: Story = {
   render: () => (
     <Page
       title="Button and control systems"
-      lede="Three surfaces, two systems. The installed app and the public website share the shared Button, IconButton, Chip, and field primitives and differ only in the corner and label weight the surface sets (16px like the fields in the app, a capsule on the website); the admin cockpit keeps AdminButton pills on its compact metric. Every specimen below is the real component measured in this browser."
+      lede="Three surfaces, two systems. The installed app and the public website share the shared Button, IconButton, Chip, and field primitives and differ only in the corner and label weight the surface sets (16px like the fields in the app, a capsule on the website); the admin cockpit renders the same Button and IconButton as pills on its compact metric (DL-119). Every specimen below is the real component measured in this browser."
     >
       <Section title="Side by side">
         <div className="sb-ds-columns">
@@ -282,7 +273,7 @@ export const ThreeSystems: Story = {
           <StoryLink id={STORY_LINKS.sharedChip}>Shared/Primitives/Chip</StoryLink>
           <StoryLink id={STORY_LINKS.sharedControls}>Shared/Form/ControlPrimitives</StoryLink>
           <StoryLink id={STORY_LINKS.editorialAtoms}>Client/Public/Editorial Atoms</StoryLink>
-          <StoryLink id={STORY_LINKS.adminButton}>Admin/Primitives/AdminButton</StoryLink>
+          <StoryLink id={STORY_LINKS.adminButtons}>Admin/Primitives/Buttons</StoryLink>
           <StoryLink id={STORY_LINKS.adminTextField}>Admin/Primitives/AdminTextField</StoryLink>
         </div>
       </Section>

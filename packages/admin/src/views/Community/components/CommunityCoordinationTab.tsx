@@ -1,5 +1,6 @@
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import {
   PoolType,
@@ -10,7 +11,6 @@ import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine, RiCheckLine, RiQuestionLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { GovernancePanel } from "./GovernancePanel";
 
@@ -149,25 +149,25 @@ export function CommunityCoordinationTab({
               </div>
 
               {canManage && communityConfig && pools.length === 0 ? (
-                <AdminButton
+                <Button
                   type="button"
-                  variant="outlined"
-                  size="sm"
+                  emphasis="secondary"
+                  size="compact"
                   onClick={createPools}
                   disabled={isCreatingPools}
                   loading={isCreatingPools}
                   className="w-full"
                 >
                   {formatMessage({ id: "app.community.createPools" })}
-                </AdminButton>
+                </Button>
               ) : null}
               <div className="flex flex-wrap items-center gap-2">
-                <AdminButton asChild variant="text" size="sm" className="px-0">
+                <Button asChild emphasis="tertiary" size="compact" className="px-0">
                   <Link to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}>
                     {formatMessage({ id: "app.conviction.manageStrategies" })}
                     <RiArrowRightSLine className="h-4 w-4" />
                   </Link>
-                </AdminButton>
+                </Button>
               </div>
             </AdminCard>
           </div>

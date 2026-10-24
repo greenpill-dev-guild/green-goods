@@ -1,7 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState, type EmptyStateTone } from "@green-goods/shared/components/ListPrimitives";
 import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import { AdminButton } from "@/components/AdminButton";
 import { RiAlertLine, RiArrowLeftLine, RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
 import { useIntl } from "react-intl";
@@ -95,13 +95,15 @@ export default function RouteErrorBoundary() {
         description={formatMessage({ id: "app.error.route.chunk.description" })}
         technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
         actions={
-          <AdminButton
-            variant="filled"
-            leadingIcon={<RiRefreshLine />}
+          <Button
+            type="button"
+            emphasis="primary"
+            size="sm"
+            leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
             onClick={() => window.location.reload()}
           >
             {formatMessage({ id: "app.error.route.chunk.action" })}
-          </AdminButton>
+          </Button>
         }
       />
     );
@@ -116,13 +118,15 @@ export default function RouteErrorBoundary() {
         description={formatMessage({ id: "app.error.route.network.description" })}
         technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
         actions={
-          <AdminButton
-            variant="filled"
-            leadingIcon={<RiRefreshLine />}
+          <Button
+            type="button"
+            emphasis="primary"
+            size="sm"
+            leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
             onClick={() => window.location.reload()}
           >
             {formatMessage({ id: "app.error.route.network.action" })}
-          </AdminButton>
+          </Button>
         }
       />
     );
@@ -139,20 +143,24 @@ export default function RouteErrorBoundary() {
       details={import.meta.env.DEV ? extractMessage(error) : undefined}
       actions={
         <div className="flex gap-3">
-          <AdminButton
-            variant="outlined"
-            leadingIcon={<RiArrowLeftLine />}
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="sm"
+            leadingIcon={<RiArrowLeftLine className="h-[18px] w-[18px]" aria-hidden="true" />}
             onClick={() => navigate(-1)}
           >
             {formatMessage({ id: "app.error.route.generic.actionBack" })}
-          </AdminButton>
-          <AdminButton
-            variant="filled"
-            leadingIcon={<RiRefreshLine />}
+          </Button>
+          <Button
+            type="button"
+            emphasis="primary"
+            size="sm"
+            leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
             onClick={() => window.location.reload()}
           >
             {formatMessage({ id: "app.error.route.generic.actionReload" })}
-          </AdminButton>
+          </Button>
         </div>
       }
     />

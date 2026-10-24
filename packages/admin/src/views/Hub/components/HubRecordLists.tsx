@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -8,7 +9,6 @@ import { RiErrorWarningLine, RiFileList3Line, RiMedalLine, RiSearchLine } from "
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { assessmentDomainLabelId } from "../assessmentDisplay";
 
 // The Hub's two record tabs (DL-082): the garden's assessments and its minted
@@ -98,9 +98,9 @@ function HubRecordGrid({
             { query: searchQuery }
           )}
           action={
-            <AdminButton variant="text" size="sm" onClick={onClearSearch}>
+            <Button type="button" emphasis="tertiary" size="compact" onClick={onClearSearch}>
               {formatMessage({ id: "cockpit.hub.clearSearch", defaultMessage: "Clear Search" })}
-            </AdminButton>
+            </Button>
           }
         />
       </EmptyStateShell>
@@ -121,9 +121,9 @@ function HubRecordGrid({
 
 function CreateRecordLink({ href, label }: { href: string; label: string }) {
   return (
-    <AdminButton size="sm" variant="outlined" asChild>
+    <Button emphasis="secondary" size="compact" asChild>
       <Link to={href}>{label}</Link>
-    </AdminButton>
+    </Button>
   );
 }
 

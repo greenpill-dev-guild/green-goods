@@ -1,4 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useDeregisterHypercert } from "@green-goods/shared/hooks/conviction/useDeregisterHypercert";
 import { useGardenPools } from "@green-goods/shared/hooks/conviction/useGardenPools";
@@ -11,12 +14,10 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { PoolType } from "@green-goods/shared/types/gardens-community";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { RiDeleteBinLine, RiErrorWarningLine, RiScales3Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminInlineField } from "@/components/AdminInlineField";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
@@ -320,9 +321,9 @@ export default function GardenSignalPoolView({
                   title={formatMessage({ id: "app.conviction.loadError.title" })}
                   description={formatMessage({ id: "app.conviction.loadError.description" })}
                   action={
-                    <AdminButton type="button" variant="outlined" size="sm" onClick={retryReads}>
+                    <Button type="button" emphasis="secondary" size="compact" onClick={retryReads}>
                       {formatMessage({ id: "app.common.retry" })}
-                    </AdminButton>
+                    </Button>
                   }
                 />
               ) : itemsLoading || weightsLoading ? (
@@ -365,14 +366,16 @@ export default function GardenSignalPoolView({
                           </div>
                         </div>
                         {canManage && (
-                          <AdminIconButton
-                            variant="danger"
+                          <IconButton
+                            emphasis="tertiary"
+                            tone="danger"
+                            size="sm"
                             onClick={() => setConfirmDeregister(itemId)}
                             disabled={deregisterMutation.isPending}
-                            label={formatMessage({ id: "app.conviction.removeStrategy" })}
-                          >
-                            <RiDeleteBinLine />
-                          </AdminIconButton>
+                            aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
+                            title={formatMessage({ id: "app.conviction.removeStrategy" })}
+                            icon={<RiDeleteBinLine />}
+                          />
                         )}
                       </div>
                     );
@@ -399,15 +402,16 @@ export default function GardenSignalPoolView({
                   inputMode="numeric"
                   error={inputError || undefined}
                   action={
-                    <AdminButton
+                    <Button
                       type="button"
-                      variant="filled"
+                      emphasis="primary"
+                      size="sm"
                       onClick={handleRegister}
                       disabled={!newItemId.trim() || registerMutation.isPending}
                       loading={registerMutation.isPending}
                     >
                       {formatMessage({ id: "app.conviction.register" })}
-                    </AdminButton>
+                    </Button>
                   }
                 />
               )}

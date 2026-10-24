@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { logger } from "@green-goods/shared/modules/app/logger";
@@ -6,7 +7,6 @@ import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import { extractErrorMessage } from "@green-goods/shared/utils/errors/extract-message";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminTextField } from "@/components/AdminTextField";
 import { isValidCampaignCookieJarMetadataUrl } from "../../campaignCookieJarPanel.model";
 
@@ -117,10 +117,10 @@ export function CampaignImageInput({
           />
         </div>
       ) : null}
-      <AdminButton
+      <Button
         type="button"
-        variant="text"
-        size="sm"
+        emphasis="tertiary"
+        size="compact"
         onClick={() => setShowUrlFallback((current) => !current)}
       >
         {showUrlFallback
@@ -132,7 +132,7 @@ export function CampaignImageInput({
               id: "cockpit.community.cookies.pasteImageUrl",
               defaultMessage: "Paste image URL",
             })}
-      </AdminButton>
+      </Button>
       {showUrlFallback ? (
         <AdminTextField
           id={`${source}-url`}

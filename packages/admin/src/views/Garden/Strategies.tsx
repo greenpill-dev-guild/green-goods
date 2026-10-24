@@ -1,5 +1,7 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
@@ -13,7 +15,6 @@ import { RiDeleteBinLine, RiLoader4Line, RiScales3Line } from "@remixicon/react"
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import {
@@ -170,14 +171,16 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
                 >
                   <AddressDisplay address={strategy} className="min-w-0 flex-1" />
                   {canManage && (
-                    <AdminIconButton
-                      variant="danger"
+                    <IconButton
+                      emphasis="tertiary"
+                      tone="danger"
+                      size="sm"
                       onClick={() => setConfirmRemoveIndex(index)}
                       disabled={isSaving}
-                      label={formatMessage({ id: "app.conviction.removeStrategy" })}
-                    >
-                      <RiDeleteBinLine />
-                    </AdminIconButton>
+                      aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
+                      title={formatMessage({ id: "app.conviction.removeStrategy" })}
+                      icon={<RiDeleteBinLine />}
+                    />
                   )}
                 </div>
               ))}
@@ -198,16 +201,17 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
                 error={addressError || undefined}
                 className="min-w-0 flex-1"
               />
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
+                emphasis="primary"
+                size="sm"
                 className="w-full sm:mt-6 sm:w-auto"
                 onClick={handleAddStrategy}
                 disabled={isSaving || !newAddress.trim()}
                 loading={isSaving}
               >
                 {formatMessage({ id: "app.conviction.addStrategy" })}
-              </AdminButton>
+              </Button>
             </div>
           )}
         </div>

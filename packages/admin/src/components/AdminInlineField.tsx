@@ -19,7 +19,7 @@ export interface AdminInlineFieldProps {
   name?: string;
   type?: string;
   inputMode?: React.ComponentPropsWithoutRef<"input">["inputMode"];
-  /** The trailing submit control — typically an `<AdminButton size="md">` (32dp). */
+  /** The trailing submit control — typically a shared `<Button size="sm">` (32dp). */
   action: React.ReactNode;
   className?: string;
   inputProps?: React.ComponentPropsWithoutRef<"input">;
@@ -32,7 +32,7 @@ export interface AdminInlineFieldProps {
  * rows (register a hypercert / action id, add a strategy address). It takes
  * the {@link AdminTextField} anatomy on a smaller box: the label above, then
  * Shared's `TextInput` on the admin surface (DL-116), held to the same 32dp
- * axis as its paired `AdminButton size="md"`, reading as one group, then the
+ * axis as its paired `Button size="sm"`, reading as one group, then the
  * message line.
  *
  * Label and supporting text are the family's: the shared field title and
@@ -101,7 +101,7 @@ export function AdminInlineField({
             }
             inputProps?.onKeyDown?.(e);
           }}
-          // The shared field held to the 32dp md-button axis, so the row aligns
+          // The shared field held to the 32px button's axis, so the row aligns
           // (DL-011 compact metric); the control draws its outline, focus ring
           // and error itself.
           className="h-8 min-h-8 min-w-0 flex-1"

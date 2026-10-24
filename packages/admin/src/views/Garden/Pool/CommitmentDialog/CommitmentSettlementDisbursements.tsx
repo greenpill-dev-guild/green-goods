@@ -1,10 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type { CommitmentSettlementController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { SettlementDisbursementView } from "@green-goods/shared/modules/commitment-pooling/settlement-workflow";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { formatGdollar, shortAddress } from "../poolFundingPresentation";
 import { type TransferAct, TransferReviewDialog } from "../TransferReviewDialog";
@@ -58,10 +58,10 @@ export function CommitmentSettlementDisbursements({
     return (
       <div className="flex flex-wrap justify-end gap-1">
         {view.actions.dispatch ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             disabled={disabled}
             onClick={() => setOpen({ act: "dispatch", disbursementId: id })}
           >
@@ -69,13 +69,13 @@ export function CommitmentSettlementDisbursements({
               id: "cockpit.garden.pool.settlement.act.dispatch",
               defaultMessage: "Dispatch…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {view.actions.retry ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             disabled={disabled}
             onClick={() => setOpen({ act: "retry", disbursementId: id })}
           >
@@ -83,13 +83,13 @@ export function CommitmentSettlementDisbursements({
               id: "cockpit.garden.pool.settlement.act.retry",
               defaultMessage: "Resend…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {view.actions.requeue ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             disabled={disabled}
             onClick={() => setOpen({ act: "requeue", disbursementId: id })}
           >
@@ -97,13 +97,13 @@ export function CommitmentSettlementDisbursements({
               id: "cockpit.garden.pool.settlement.act.requeue",
               defaultMessage: "Requeue…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {view.actions.cancel ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             disabled={disabled}
             onClick={() => setOpen({ act: "cancel", disbursementId: id })}
           >
@@ -111,7 +111,7 @@ export function CommitmentSettlementDisbursements({
               id: "cockpit.garden.pool.settlement.act.cancel",
               defaultMessage: "Cancel…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
     );

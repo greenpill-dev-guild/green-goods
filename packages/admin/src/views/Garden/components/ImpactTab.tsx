@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -10,7 +11,6 @@ import { normalizeTimestamp } from "@green-goods/shared/utils/time";
 import { RiErrorWarningLine, RiFileList3Line, RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
@@ -112,7 +112,7 @@ export function ImpactTab({
                   </p>
                 </div>
                 {hasHypercerts ? (
-                  <AdminButton size="sm" variant="text" asChild>
+                  <Button emphasis="tertiary" size="compact" asChild>
                     <Link
                       to={adminRoutes.gardenImpact({
                         ...gardenRouteContext,
@@ -121,7 +121,7 @@ export function ImpactTab({
                     >
                       {formatMessage({ id: "app.garden.admin.viewAll" })}
                     </Link>
-                  </AdminButton>
+                  </Button>
                 ) : null}
               </AdminCardHeader>
               <AdminCardBody className="flex flex-1 flex-col">
@@ -154,11 +154,11 @@ export function ImpactTab({
                     })}
                     action={
                       canCertify ? (
-                        <AdminButton size="sm" variant="outlined" asChild>
+                        <Button emphasis="secondary" size="compact" asChild>
                           <Link to={adminRoutes.hubCertifyCreate(gardenRouteContext)}>
                             {formatMessage({ id: "cockpit.hub.action.createHypercert" })}
                           </Link>
-                        </AdminButton>
+                        </Button>
                       ) : undefined
                     }
                   />
@@ -203,7 +203,7 @@ export function ImpactTab({
                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
                 </AdminCardTitle>
                 {hasAssessments ? (
-                  <AdminButton size="sm" variant="text" asChild>
+                  <Button emphasis="tertiary" size="compact" asChild>
                     <Link
                       to={adminRoutes.gardenImpact({
                         ...gardenRouteContext,
@@ -212,7 +212,7 @@ export function ImpactTab({
                     >
                       {formatMessage({ id: "app.garden.admin.viewAll" })}
                     </Link>
-                  </AdminButton>
+                  </Button>
                 ) : null}
               </AdminCardHeader>
               <AdminCardBody>
@@ -241,11 +241,11 @@ export function ImpactTab({
                     title={formatMessage({ id: "app.garden.admin.noAssessments" })}
                     action={
                       canReview ? (
-                        <AdminButton size="sm" variant="outlined" asChild>
+                        <Button emphasis="secondary" size="compact" asChild>
                           <Link to={adminRoutes.hubAssessCreate(gardenRouteContext)}>
                             {formatMessage({ id: "cockpit.hub.action.createAssessment" })}
                           </Link>
-                        </AdminButton>
+                        </Button>
                       ) : undefined
                     }
                   />

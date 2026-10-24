@@ -1,12 +1,12 @@
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { SeedTrayRow } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import type { Action, Address } from "@green-goods/shared/types/domain";
 import { Fragment, type ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { PersonName } from "@/components/PersonName";
@@ -89,10 +89,10 @@ export function SeedStepReview({
     <section className={`min-w-0 space-y-1.5 ${wide ? "sm:col-span-2" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <AdminCardTitle as="h4">{heading}</AdminCardTitle>
-        <AdminButton
+        <Button
           type="button"
-          variant="text"
-          size="sm"
+          emphasis="tertiary"
+          size="compact"
           disabled={!editable}
           aria-label={formatMessage(
             { id: "cockpit.garden.pool.seed.review.editSection", defaultMessage: "Edit {section}" },
@@ -101,7 +101,7 @@ export function SeedStepReview({
           onClick={() => onEditStep(step)}
         >
           {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
-        </AdminButton>
+        </Button>
       </div>
       <FactList frame="inset">
         {rows.map(([label, value]) => (

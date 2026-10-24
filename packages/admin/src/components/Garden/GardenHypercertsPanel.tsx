@@ -1,4 +1,5 @@
 import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
@@ -7,7 +8,6 @@ import { formatDate } from "@green-goods/shared/utils/time";
 import { RiAwardLine, RiExternalLinkLine, RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate } from "react-router-dom";
-import { AdminIconButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { ActiveListingsTable } from "@/components/Hypercerts/ActiveListingsTable";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
@@ -90,10 +90,12 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                         navigate(adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext))
                       }
                       action={
-                        <AdminIconButton
+                        <IconButton
                           asChild
-                          size="sm"
-                          label={formatMessage({ id: "app.hypercerts.list.viewExternal" })}
+                          emphasis="tertiary"
+                          size="compact"
+                          aria-label={formatMessage({ id: "app.hypercerts.list.viewExternal" })}
+                          title={formatMessage({ id: "app.hypercerts.list.viewExternal" })}
                         >
                           <a
                             href={`${HYPERCERTS_APP_BASE_URL}/${record.id}`}
@@ -102,7 +104,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                           >
                             <RiExternalLinkLine className="h-4 w-4" aria-hidden="true" />
                           </a>
-                        </AdminIconButton>
+                        </IconButton>
                       }
                     />
                   </li>

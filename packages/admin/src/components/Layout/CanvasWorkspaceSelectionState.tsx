@@ -1,9 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 
@@ -45,14 +45,14 @@ export function CanvasWorkspaceSelectionState({
                 defaultMessage: "Create your first garden to start using the canvas workspaces.",
               })}
               action={
-                <AdminButton asChild>
+                <Button size="sm" asChild>
                   <Link to={adminRoutes.gardenCreate()}>
                     {formatMessage({
                       id: "cockpit.workspace.createGarden",
                       defaultMessage: "Create Garden",
                     })}
                   </Link>
-                </AdminButton>
+                </Button>
               }
             />
           </AdminCardBody>

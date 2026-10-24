@@ -1,4 +1,5 @@
-import { AdminButton } from "@/components/AdminButton";
+import { Button } from "@green-goods/shared/components/Button";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 
@@ -38,29 +39,26 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
         {advancedOpen ? (
           <div className="mt-4 grid gap-4">
             <div className="flex flex-wrap gap-2">
-              <AdminButton
-                type="button"
-                variant={selectedAssetId === "custom" ? "tonal" : "outlined"}
-                size="sm"
-                onClick={() => setSelectedAssetId("custom")}
-              >
-                {formatMessage({
+              <AdminFilterChip
+                label={formatMessage({
                   id: "cockpit.community.cookies.useCustomToken",
                   defaultMessage: "Use custom token",
                 })}
-              </AdminButton>
+                selected={selectedAssetId === "custom"}
+                onToggle={() => setSelectedAssetId("custom")}
+              />
               {selectedAssetId === "custom" && defaultPayoutAsset ? (
-                <AdminButton
+                <Button
                   type="button"
-                  variant="text"
-                  size="sm"
+                  emphasis="tertiary"
+                  size="compact"
                   onClick={() => setSelectedAssetId(defaultPayoutAsset.id)}
                 >
                   {formatMessage({
                     id: "cockpit.community.cookies.useDefaultAssets",
                     defaultMessage: "Use default assets",
                   })}
-                </AdminButton>
+                </Button>
               ) : null}
             </div>
             {selectedAssetId === "custom" ? (

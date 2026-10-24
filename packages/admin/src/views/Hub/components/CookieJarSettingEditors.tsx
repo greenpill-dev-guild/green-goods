@@ -1,5 +1,6 @@
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
@@ -20,7 +21,6 @@ import {
 import { type ReactNode, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminInlineField } from "@/components/AdminInlineField";
 import { AdminSelect } from "@/components/AdminTextField";
@@ -82,12 +82,12 @@ function EditorFooter({
         {formatMessage({ id: "app.cookieJar.signsAsGarden" })}
       </p>
       <div className="flex flex-wrap justify-end gap-2">
-        <AdminButton type="button" variant="outlined" onClick={onCancel}>
+        <Button type="button" emphasis="secondary" size="sm" onClick={onCancel}>
           {formatMessage({ id: "app.common.cancel" })}
-        </AdminButton>
-        <AdminButton type="button" disabled={!canSubmit} onClick={onSubmit}>
+        </Button>
+        <Button size="sm" type="button" disabled={!canSubmit} onClick={onSubmit}>
           {submitLabel}
-        </AdminButton>
+        </Button>
       </div>
     </>
   );

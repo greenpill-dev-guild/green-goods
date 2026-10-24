@@ -1,8 +1,8 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { RiFileUnknowLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 
 export default function NotFound() {
   const { formatMessage } = useIntl();
@@ -18,14 +18,14 @@ export default function NotFound() {
           defaultMessage: "The page you are looking for does not exist or has been moved.",
         })}
         action={
-          <AdminButton asChild>
+          <Button size="sm" asChild>
             <Link to="/hub">
               {formatMessage({
                 id: "app.admin.nav.backToHub",
                 defaultMessage: "Back to Hub",
               })}
             </Link>
-          </AdminButton>
+          </Button>
         }
       />
     </div>

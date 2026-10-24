@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { getSDGLabel } from "@green-goods/shared/config/sdg";
@@ -10,7 +11,6 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiFileTextLine, RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressWithCopy } from "@/components/EnsAddressText";
 import { DistributionChart } from "../DistributionChart";
 
@@ -38,9 +38,9 @@ function SectionHeader({ labelId, onEdit }: { labelId: string; onEdit?: () => vo
     <div className="flex items-center justify-between">
       <p className="type-label-sm text-text-soft">{formatMessage({ id: labelId })}</p>
       {onEdit && (
-        <AdminButton type="button" variant="text" size="sm" onClick={onEdit}>
+        <Button type="button" emphasis="tertiary" size="compact" onClick={onEdit}>
           {formatMessage({ id: "app.hypercerts.preview.edit" })}
-        </AdminButton>
+        </Button>
       )}
     </div>
   );

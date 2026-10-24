@@ -10,7 +10,7 @@ export interface AdminListRowProps extends React.ButtonHTMLAttributes<HTMLButton
  * AdminListRow — a list row that opens its record.
  *
  * The whole row is one full-width, left-aligned button whose height follows its
- * content, never below the 44px finger box. That is what AdminButton cannot be:
+ * content, never below the 44px finger box. That is what a Button cannot be:
  * an action carries one label on a fixed compact height (DL-011), so a title over
  * a meta line spills out of it. The row owns the box (surface, corner, ink state
  * layer, focus ring, current ring); the caller lays out the content, which can

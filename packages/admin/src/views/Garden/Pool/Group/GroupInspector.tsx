@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type {
   CommitmentEventRecord,
@@ -6,7 +7,6 @@ import type {
 import { RiSeedlingLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
@@ -137,25 +137,26 @@ export function GroupInspector({
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         {canEditReward ? (
-          <AdminButton type="button" variant="outlined" onClick={onEditReward}>
+          <Button type="button" emphasis="secondary" size="sm" onClick={onEditReward}>
             {formatMessage({
               id: "cockpit.garden.pool.reward.title",
               defaultMessage: "Edit Reward",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {canSeedMore ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            leadingIcon={<RiSeedlingLine className="h-4 w-4" />}
+            emphasis="secondary"
+            size="sm"
+            leadingIcon={<RiSeedlingLine className="h-[18px] w-[18px]" aria-hidden="true" />}
             onClick={onSeedMore}
           >
             {formatMessage({
               id: "cockpit.garden.pool.seedMore.title",
               defaultMessage: "Seed More Like This",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
     </div>

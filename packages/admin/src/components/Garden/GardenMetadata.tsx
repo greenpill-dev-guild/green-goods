@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import type { SupportedChainId } from "@green-goods/shared/config/chains";
@@ -12,7 +14,6 @@ import {
   RiWallet3Line,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 // OpenSea's name for each chain the app supports. Null where it has no item page: OpenSea closed
@@ -110,26 +111,37 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           <code className="flex-1 truncate type-meta text-text-strong sm:type-body">
             <EnsAddressText address={gardenId} />
           </code>
-          <AdminIconButton
+          <IconButton
+            size="sm"
             className="flex-shrink-0"
             onClick={() => copyGarden(gardenId)}
-            label={formatMessage({
+            aria-label={formatMessage({
               id: "admin.gardenMetadata.copyGardenAddress",
               defaultMessage: "Copy Garden Address",
             })}
-          >
-            {copiedGarden ? (
-              <RiCheckLine className="h-4 w-4 text-success-dark" />
-            ) : (
-              <RiFileCopyLine className="h-4 w-4" />
-            )}
-          </AdminIconButton>
+            title={formatMessage({
+              id: "admin.gardenMetadata.copyGardenAddress",
+              defaultMessage: "Copy Garden Address",
+            })}
+            icon={
+              copiedGarden ? (
+                <RiCheckLine className="h-4 w-4 text-success-dark" />
+              ) : (
+                <RiFileCopyLine className="h-4 w-4" />
+              )
+            }
+          />
           {blockExplorer && (
-            <AdminIconButton
+            <IconButton
               asChild
-              variant="accent"
+              emphasis="tertiary"
+              size="sm"
               className="flex-shrink-0"
-              label={formatMessage({
+              aria-label={formatMessage({
+                id: "admin.gardenMetadata.viewGardenOnExplorer",
+                defaultMessage: "View Garden on Block Explorer",
+              })}
+              title={formatMessage({
                 id: "admin.gardenMetadata.viewGardenOnExplorer",
                 defaultMessage: "View Garden on Block Explorer",
               })}
@@ -141,7 +153,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               >
                 <RiExternalLinkLine />
               </a>
-            </AdminIconButton>
+            </IconButton>
           )}
         </div>
       </div>
@@ -158,26 +170,37 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           <code className="flex-1 truncate type-meta text-text-strong sm:type-body">
             <EnsAddressText address={tokenAddress} /> #{tokenId.toString()}
           </code>
-          <AdminIconButton
+          <IconButton
+            size="sm"
             className="flex-shrink-0"
             onClick={() => copyToken(`${tokenAddress}/${tokenId}`)}
-            label={formatMessage({
+            aria-label={formatMessage({
               id: "admin.gardenMetadata.copyNFTId",
               defaultMessage: "Copy NFT Identifier",
             })}
-          >
-            {copiedToken ? (
-              <RiCheckLine className="h-4 w-4 text-success-dark" />
-            ) : (
-              <RiFileCopyLine className="h-4 w-4" />
-            )}
-          </AdminIconButton>
+            title={formatMessage({
+              id: "admin.gardenMetadata.copyNFTId",
+              defaultMessage: "Copy NFT Identifier",
+            })}
+            icon={
+              copiedToken ? (
+                <RiCheckLine className="h-4 w-4 text-success-dark" />
+              ) : (
+                <RiFileCopyLine className="h-4 w-4" />
+              )
+            }
+          />
           {blockExplorer && (
-            <AdminIconButton
+            <IconButton
               asChild
-              variant="accent"
+              emphasis="tertiary"
+              size="sm"
               className="flex-shrink-0"
-              label={formatMessage({
+              aria-label={formatMessage({
+                id: "admin.gardenMetadata.viewNFTOnExplorer",
+                defaultMessage: "View NFT on Block Explorer",
+              })}
+              title={formatMessage({
                 id: "admin.gardenMetadata.viewNFTOnExplorer",
                 defaultMessage: "View NFT on Block Explorer",
               })}
@@ -189,7 +212,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               >
                 <RiExternalLinkLine />
               </a>
-            </AdminIconButton>
+            </IconButton>
           )}
         </div>
       </div>
@@ -205,11 +228,13 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           </div>
           <div className="flex flex-wrap gap-2">
             {blockExplorer && (
-              <AdminButton
+              <Button
                 asChild
-                variant="outlined"
-                size="md"
-                leadingIcon={<RiExternalLinkLine />}
+                emphasis="secondary"
+                size="sm"
+                leadingIcon={
+                  <RiExternalLinkLine className="h-[18px] w-[18px]" aria-hidden="true" />
+                }
               >
                 <a
                   href={getExplorerUrl(tokenAddress, "token") || "#"}
@@ -221,14 +246,19 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
                     defaultMessage: "Token Contract",
                   })}
                 </a>
-              </AdminButton>
+              </Button>
             )}
             {openSeaUrl && (
-              <AdminButton asChild variant="outlined" size="md" leadingIcon={<RiNftLine />}>
+              <Button
+                asChild
+                emphasis="secondary"
+                size="sm"
+                leadingIcon={<RiNftLine className="h-[18px] w-[18px]" aria-hidden="true" />}
+              >
                 <a href={openSeaUrl} target="_blank" rel="noopener noreferrer">
                   OpenSea
                 </a>
-              </AdminButton>
+              </Button>
             )}
           </div>
         </div>

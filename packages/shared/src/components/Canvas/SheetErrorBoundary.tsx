@@ -83,11 +83,17 @@ function SheetErrorFallback({
       title={titleLabel}
       action={
         <div className="flex items-center gap-3">
-          <Button size="sm" leadingIcon={<RiRefreshLine />} onClick={onRetry}>
+          <Button data-piece-control size="sm" leadingIcon={<RiRefreshLine />} onClick={onRetry}>
             {retryLabel}
           </Button>
           {onClose && (
-            <Button size="sm" emphasis="secondary" leadingIcon={<RiCloseLine />} onClick={onClose}>
+            <Button
+              data-piece-control
+              size="sm"
+              emphasis="secondary"
+              leadingIcon={<RiCloseLine />}
+              onClick={onClose}
+            >
               {closeLabel}
             </Button>
           )}

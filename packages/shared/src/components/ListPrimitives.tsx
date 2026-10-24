@@ -10,8 +10,8 @@ export interface EmptyStateProps {
   title: ReactNode;
   description?: ReactNode;
   /**
-   * The surface's own button or buttons: the shared `Button` in the app, an `AdminButton` in the
-   * cockpit, so the shared Button never renders there (Rule 18).
+   * The surface's own button or buttons, the shared `Button` on every surface, at the
+   * call site's emphasis and size (Rule 18, Rule 19).
    */
   action?: ReactNode;
   tone?: EmptyStateTone;

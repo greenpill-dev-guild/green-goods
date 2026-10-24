@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
 import { type DistributionMode, sumUnits } from "@green-goods/shared/lib/hypercerts/distribution";
@@ -7,7 +8,6 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { isAddress, zeroAddress } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressWithCopy, formatEnsAddressName } from "@/components/EnsAddressText";
@@ -39,10 +39,10 @@ function RemoveRecipientButton({ entry, onRemove }: RemoveRecipientButtonProps) 
   const recipientLabel = entry.label || formatEnsAddressName(entry.address, ensName);
 
   return (
-    <AdminButton
+    <Button
       type="button"
-      variant="text"
-      size="sm"
+      emphasis="tertiary"
+      size="compact"
       onClick={onRemove}
       aria-label={formatMessage(
         { id: "app.hypercerts.distribution.removeRecipient" },
@@ -51,7 +51,7 @@ function RemoveRecipientButton({ entry, onRemove }: RemoveRecipientButtonProps) 
       className="h-8 min-w-8 rounded-[var(--m3-shape-sm)] px-2 text-text-sub hover:bg-error-lighter hover:text-error-dark"
     >
       <RiCloseLine className="h-4 w-4" />
-    </AdminButton>
+    </Button>
   );
 }
 
@@ -220,9 +220,9 @@ export function DistributionConfig({
       </div>
 
       {mode === "custom" && (
-        <AdminButton type="button" variant="outlined" size="sm" onClick={handleAddRecipient}>
+        <Button type="button" emphasis="secondary" size="compact" onClick={handleAddRecipient}>
           {formatMessage({ id: "app.hypercerts.distribution.addRecipient" })}
-        </AdminButton>
+        </Button>
       )}
 
       <div className="type-meta text-text-sub">

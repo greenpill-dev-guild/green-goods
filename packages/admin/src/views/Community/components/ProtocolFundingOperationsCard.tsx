@@ -1,5 +1,6 @@
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { CELO_G_DOLLAR_TOKEN } from "@green-goods/shared/config/tokens";
 import type {
@@ -14,7 +15,6 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
@@ -242,9 +242,10 @@ export function ProtocolFundingOperationsCard({
             />
           </FactList>
           <div className="flex justify-end [&>button]:w-full">
-            <AdminButton
+            <Button
               type="button"
-              variant="filled"
+              emphasis="primary"
+              size="sm"
               disabled={!canReview || operations.isActing}
               onClick={() => setConfirmQueue(true)}
             >
@@ -252,7 +253,7 @@ export function ProtocolFundingOperationsCard({
                 id: "cockpit.community.protocolFunding.review",
                 defaultMessage: "Review Seed or Top-Up…",
               })}
-            </AdminButton>
+            </Button>
           </div>
         </div>
       ) : (

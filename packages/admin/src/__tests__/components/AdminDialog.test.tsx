@@ -1,6 +1,13 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { RiSearchLine } from "@remixicon/react";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  ADMIN_FLOW_DIALOG_CLASS,
+  AdminConfirmDialog,
+  AdminDialog,
+} from "../../components/AdminDialog";
+import { AdminSideSheet } from "../../components/AdminSideSheet";
 import {
   act,
   fireEvent,
@@ -10,13 +17,6 @@ import {
   waitFor,
   within,
 } from "../test-utils";
-import { AdminButton } from "../../components/AdminButton";
-import { AdminSideSheet } from "../../components/AdminSideSheet";
-import {
-  ADMIN_FLOW_DIALOG_CLASS,
-  AdminConfirmDialog,
-  AdminDialog,
-} from "../../components/AdminDialog";
 
 type Width = "phone" | "desktop";
 type ChangeListener = (event: MediaQueryListEvent) => void;
@@ -102,8 +102,12 @@ describe("AdminDialog", () => {
         description="Choose supported work domains"
         actions={
           <>
-            <AdminButton variant="text">Cancel</AdminButton>
-            <AdminButton>Save</AdminButton>
+            <Button type="button" emphasis="tertiary" size="sm">
+              Cancel
+            </Button>
+            <Button type="button" size="sm">
+              Save
+            </Button>
           </>
         }
       >

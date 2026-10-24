@@ -1,6 +1,7 @@
 // Command surface: a signed request with a clear target, review and explicit outcome.
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
@@ -12,7 +13,6 @@ import { GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH } from "@green-goods/shared/public-
 import { RiErrorWarningLine, RiLoader4Line, RiSeedlingLine } from "@remixicon/react";
 import { useRef } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "../AdminButton";
 import { AdminDialog } from "../AdminDialog";
 import { AdminTextArea, AdminTextField } from "../AdminTextField";
 
@@ -37,54 +37,64 @@ export function StewardAccessRequest({
     ? formatMessage({ id: `cockpit.stewardAccess.status.${request.state}` })
     : "";
   const actions = !c.available ? (
-    <AdminButton variant="outlined" size="lg" onClick={() => c.setOpen(false)}>
+    <Button type="button" emphasis="secondary" size="lg" onClick={() => c.setOpen(false)}>
       {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-    </AdminButton>
+    </Button>
   ) : statusView ? (
     <>
       {request?.state === "pending" ? (
-        <AdminButton
-          variant="outlined"
+        <Button
+          type="button"
+          emphasis="secondary"
           size="lg"
           disabled={c.busy}
           loading={c.activity === "withdrawing"}
           onClick={() => action(c.withdraw)}
         >
           {formatMessage({ id: "cockpit.stewardAccess.withdraw" })}
-        </AdminButton>
+        </Button>
       ) : null}
-      <AdminButton
+      <Button
+        type="button"
         size="lg"
         disabled={c.busy}
         loading={c.activity === "checking"}
         onClick={() => action(c.check)}
       >
         {formatMessage({ id: "cockpit.stewardAccess.checkStatus" })}
-      </AdminButton>
+      </Button>
     </>
   ) : c.step === "review" && c.selectedGarden ? (
     <>
-      <AdminButton
-        variant="outlined"
+      <Button
+        type="button"
+        emphasis="secondary"
         size="lg"
         disabled={c.busy}
         onClick={() => c.setStep("choose")}
       >
         {formatMessage({ id: "cockpit.stewardAccess.changeGarden" })}
-      </AdminButton>
-      <AdminButton
+      </Button>
+      <Button
+        type="button"
         size="lg"
         disabled={c.busy || c.outcomeUnknown || !c.accountAddress}
         loading={c.activity === "sending"}
         onClick={() => action(c.send)}
       >
         {formatMessage({ id: "cockpit.stewardAccess.send" })}
-      </AdminButton>
+      </Button>
     </>
   ) : (
-    <AdminButton variant="outlined" size="lg" disabled={c.busy} onClick={() => c.setOpen(false)}>
+    <Button
+      type="button"
+      emphasis="secondary"
+      size="lg"
+      disabled={c.busy}
+      onClick={() => c.setOpen(false)}
+    >
       {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-    </AdminButton>
+    </Button>
   );
   return (
     <div className="space-y-3" data-component="StewardAccessRequest">
@@ -101,9 +111,11 @@ export function StewardAccessRequest({
           </p>
         </div>
       ) : null}
-      <AdminButton
+      <Button
         ref={opener}
-        variant={showStatus ? "filled" : "outlined"}
+        type="button"
+        emphasis={showStatus ? "primary" : "secondary"}
+        size="sm"
         onClick={() => {
           if (request && c.selectedGarden) c.setStep("review");
           c.setOpen(true);
@@ -112,7 +124,7 @@ export function StewardAccessRequest({
         {formatMessage({
           id: request ? "cockpit.stewardAccess.viewRequest" : "cockpit.stewardAccess.request",
         })}
-      </AdminButton>
+      </Button>
       <AdminDialog
         open={c.open}
         onOpenChange={c.setOpen}
@@ -149,13 +161,14 @@ export function StewardAccessRequest({
                     variant="warning"
                     action={
                       c.serviceError ? (
-                        <AdminButton
-                          variant="outlined"
-                          size="sm"
+                        <Button
+                          type="button"
+                          emphasis="secondary"
+                          size="compact"
                           onClick={() => void c.retryAvailability()}
                         >
                           {formatMessage({ id: "app.common.retry", defaultMessage: "Retry" })}
-                        </AdminButton>
+                        </Button>
                       ) : undefined
                     }
                   >
@@ -182,14 +195,15 @@ export function StewardAccessRequest({
               {request?.reason ? (
                 <p className="whitespace-pre-wrap type-body text-text-strong">{request.reason}</p>
               ) : null}
-              <AdminButton
-                variant="text"
-                size="sm"
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
                 disabled={c.busy}
                 onClick={() => c.setStep("choose")}
               >
                 {formatMessage({ id: "cockpit.stewardAccess.changeGarden" })}
-              </AdminButton>
+              </Button>
             </div>
           ) : c.step === "choose" ? (
             <>
@@ -218,9 +232,14 @@ export function StewardAccessRequest({
                     id: "cockpit.stewardAccess.gardensError.description",
                   })}
                   action={
-                    <AdminButton variant="outlined" onClick={() => void c.reloadGardens()}>
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="sm"
+                      onClick={() => void c.reloadGardens()}
+                    >
                       {formatMessage({ id: "app.common.retry", defaultMessage: "Retry" })}
-                    </AdminButton>
+                    </Button>
                   }
                 />
               ) : c.candidates.length === 0 ? (
@@ -245,8 +264,10 @@ export function StewardAccessRequest({
                 <ul className="min-h-0 flex-1 divide-y divide-stroke-soft overflow-y-auto">
                   {c.candidates.map((garden) => (
                     <li key={garden.id}>
-                      <AdminButton
-                        variant="text"
+                      <Button
+                        type="button"
+                        emphasis="tertiary"
+                        size="sm"
                         onClick={() => c.selectGarden(garden)}
                         className="h-auto max-h-none min-h-11 w-full justify-start gap-3 whitespace-normal rounded-[var(--m3-shape-sm)] px-3 py-3 text-left"
                       >
@@ -260,7 +281,7 @@ export function StewardAccessRequest({
                           </span>
                           <span className="block type-body text-text-sub">{garden.location}</span>
                         </span>
-                      </AdminButton>
+                      </Button>
                     </li>
                   ))}
                 </ul>
@@ -290,15 +311,16 @@ export function StewardAccessRequest({
               <p className="type-body text-text-sub">
                 {formatMessage({ id: "cockpit.stewardAccess.signingHelp" })}
               </p>
-              <AdminButton
-                variant="text"
-                size="sm"
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
                 disabled={c.busy}
                 loading={c.activity === "checking"}
                 onClick={() => action(c.check)}
               >
                 {formatMessage({ id: "cockpit.stewardAccess.checkStatus" })}
-              </AdminButton>
+              </Button>
               {c.hasCheckedStatus && !request ? (
                 <p role="status" className="type-body text-text-sub">
                   {formatMessage({ id: "cockpit.stewardAccess.noRequest" })}

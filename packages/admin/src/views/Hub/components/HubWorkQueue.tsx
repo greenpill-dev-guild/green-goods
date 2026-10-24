@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { MediaCardLayout } from "@green-goods/shared/components/Cards/MediaCard";
@@ -12,7 +13,6 @@ import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiCheckboxCircleLine, RiErrorWarningLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 import { HubWorkCard } from "./HubWorkCard";
@@ -210,12 +210,12 @@ export function HubWorkQueue({
             { query: debouncedSearch }
           )}
           action={
-            <AdminButton variant="text" size="sm" onClick={onClearSearch}>
+            <Button type="button" emphasis="tertiary" size="compact" onClick={onClearSearch}>
               {formatMessage({
                 id: "cockpit.hub.clearSearch",
                 defaultMessage: "Clear Search",
               })}
-            </AdminButton>
+            </Button>
           }
         />
       </EmptyStateShell>

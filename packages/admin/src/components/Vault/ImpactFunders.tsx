@@ -1,10 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { useFunderLeaderboard } from "@green-goods/shared/hooks/vault/useFunderLeaderboard";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { FunderRow } from "./FunderRow";
 
@@ -65,17 +65,24 @@ export function ImpactFunders() {
       </ul>
 
       {hasMore && (
-        <AdminButton
-          variant="outlined"
-          size="sm"
+        <Button
+          type="button"
+          emphasis="secondary"
+          size="compact"
           className="mt-3 w-full"
           onClick={() => setExpanded((prev) => !prev)}
-          leadingIcon={expanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
+          leadingIcon={
+            expanded ? (
+              <RiArrowUpSLine className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <RiArrowDownSLine className="h-4 w-4" aria-hidden="true" />
+            )
+          }
         >
           {expanded
             ? formatMessage({ id: "app.funders.collapse" })
             : formatMessage({ id: "app.funders.viewAll" }, { count: funders.length })}
-        </AdminButton>
+        </Button>
       )}
 
       <p className="mt-3 type-meta text-text-sub">

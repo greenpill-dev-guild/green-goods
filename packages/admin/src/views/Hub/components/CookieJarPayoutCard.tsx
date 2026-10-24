@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
@@ -10,7 +11,6 @@ import { isJarClaimLimitLow } from "@green-goods/shared/utils/cookie-jar-claim-l
 import { RiCookieLine, RiHandCoinLine, RiLockLine, RiWalletLine } from "@remixicon/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { cooldownLabel, JarCooldownEditor, JarLimitEditor } from "./CookieJarSettingEditors";
 
@@ -91,20 +91,20 @@ export function CookieJarPayoutCard({
   }, [editingField]);
 
   const editButton = (field: JarSettingField, label: string) => (
-    <AdminButton
+    <Button
       ref={(node) => {
         editButtons.current[field] = node;
       }}
       type="button"
-      variant="text"
-      size="sm"
+      emphasis="tertiary"
+      size="compact"
       disabled={!signer.canSign}
       aria-label={label}
       aria-describedby={restricted ? restrictionId : undefined}
       onClick={() => onEdit(field)}
     >
       {formatMessage({ id: "app.common.edit" })}
-    </AdminButton>
+    </Button>
   );
   const editorProps = { jar, gardenAddress, gardenName, onClose: () => onEdit(null) };
   const limitRow = (
@@ -215,23 +215,25 @@ export function CookieJarPayoutCard({
           </p>
 
           <div className="grid grid-cols-2 gap-2">
-            <AdminButton
-              variant="outlined"
-              size="sm"
-              leadingIcon={<RiWalletLine />}
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              leadingIcon={<RiWalletLine className="h-4 w-4" aria-hidden="true" />}
               onClick={onDeposit}
             >
               {formatMessage({ id: "app.cookieJar.deposit" })}
-            </AdminButton>
-            <AdminButton
-              variant="filled"
-              size="sm"
-              leadingIcon={<RiHandCoinLine />}
+            </Button>
+            <Button
+              type="button"
+              emphasis="primary"
+              size="compact"
+              leadingIcon={<RiHandCoinLine className="h-4 w-4" aria-hidden="true" />}
               onClick={onClaim}
               disabled={jar.isPaused}
             >
               {formatMessage({ id: "app.cookieJar.withdraw" })}
-            </AdminButton>
+            </Button>
           </div>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
@@ -13,7 +14,6 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 
@@ -56,14 +56,14 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
         <AdminCardTitle className="min-w-0 truncate">
           {formatMessage({ id: "app.garden.admin.recentAssessments" })}
         </AdminCardTitle>
-        <AdminButton variant="outlined" size="sm" asChild>
+        <Button emphasis="secondary" size="compact" asChild>
           <Link
             to={adminRoutes.gardenImpact({ gardenId, section: "assessments" })}
             aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
           >
             {formatMessage({ id: "app.garden.admin.viewAll" })}
           </Link>
-        </AdminButton>
+        </Button>
       </AdminCardHeader>
       <AdminCardBody>
         {isLoading ? (
@@ -103,7 +103,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
                     selected={open}
                     aria-current={open ? "true" : undefined}
                     action={
-                      <AdminButton variant="text" size="sm" asChild>
+                      <Button emphasis="tertiary" size="compact" asChild>
                         <a
                           href={getEASExplorerUrl(chainId, assessment.id)}
                           target="_blank"
@@ -116,7 +116,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
                           {formatMessage({ id: "app.actions.view" })}
                           <RiExternalLinkLine className="h-4 w-4" aria-hidden="true" />
                         </a>
-                      </AdminButton>
+                      </Button>
                     }
                   />
                 </li>

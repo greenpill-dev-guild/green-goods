@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useWalletModalOpen } from "@green-goods/shared/hooks/auth/useWalletModalOpen";
 import {
   AuthActionsContext,
@@ -9,7 +10,6 @@ import {
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useCallback, useState } from "react";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
-import { AdminButton } from "@/components/AdminButton";
 import { withSignedOutAuth } from "../../../../shared/.storybook/decorators";
 import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { AdminStartupConnect } from "./AdminStartupConnect";
@@ -60,22 +60,24 @@ function StartupFixture(args: StartupStoryArgs) {
           Simulated wallet requests: {attempts}
         </p>
         <div className="flex flex-wrap gap-2">
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
+            emphasis="secondary"
+            size="sm"
             disabled={ready}
             onClick={() => setReady(true)}
           >
             Mark Fixture Auth Ready
-          </AdminButton>
-          <AdminButton
+          </Button>
+          <Button
             type="button"
-            variant="outlined"
+            emphasis="secondary"
+            size="sm"
             disabled={!modalOpen}
             onClick={() => setModalOpen(false)}
           >
             Dismiss Simulated Wallet
-          </AdminButton>
+          </Button>
         </div>
       </aside>
       <AuthStateContext.Provider value={state}>

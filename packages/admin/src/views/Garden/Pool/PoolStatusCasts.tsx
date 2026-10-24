@@ -1,5 +1,6 @@
-import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   RiLockLine,
   RiRefreshLine,
@@ -8,7 +9,6 @@ import {
   RiWifiOffLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 
 function SkeletonRail() {
@@ -97,17 +97,18 @@ export function PoolStatusCasts({
               "Something went wrong reaching the indexer. Nothing about the pool, its seasons, or its promises has changed.",
           })}
           action={
-            <AdminButton
+            <Button
               type="button"
-              variant="filled"
-              leadingIcon={<RiRefreshLine className="h-4 w-4" />}
+              emphasis="primary"
+              size="sm"
+              leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
               onClick={() => void pool.refetch()}
             >
               {formatMessage({
                 id: "cockpit.garden.pool.readError.retry",
                 defaultMessage: "Try Again",
               })}
-            </AdminButton>
+            </Button>
           }
         />
       </AdminCard>

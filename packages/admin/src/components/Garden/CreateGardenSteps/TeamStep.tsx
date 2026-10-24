@@ -1,9 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useAddressInput } from "@green-goods/shared/hooks/utils/useAddressInput";
 import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
@@ -64,16 +65,17 @@ export function TeamStep() {
             error={stewardInput.error || undefined}
             helperText={" "}
           />
-          <AdminButton
-            variant="outlined"
-            size="sm"
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
             className="mt-1.5 sm:mt-7.5"
             onClick={stewardInput.handleAdd}
             disabled={stewardInput.shouldResolveEns && stewardInput.resolvingEns}
-            leadingIcon={<RiAddLine />}
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
           >
             {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-          </AdminButton>
+          </Button>
         </div>
         {stewardInput.shouldResolveEns && (
           <p className="mt-1 type-body text-text-soft">
@@ -105,14 +107,15 @@ export function TeamStep() {
               className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 type-meta-sm font-mono text-text-sub"
             >
               <EnsAddressText address={steward as Address} />
-              <AdminIconButton
-                size="sm"
-                variant="danger"
+              <IconButton
+                emphasis="tertiary"
+                tone="danger"
+                size="compact"
                 onClick={() => removeSteward(form.stewards.indexOf(steward))}
-                label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-              >
-                <RiDeleteBinLine />
-              </AdminIconButton>
+                aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                title={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                icon={<RiDeleteBinLine />}
+              />
             </li>
           ))}
         </ul>
@@ -135,16 +138,17 @@ export function TeamStep() {
             error={gardenerInput.error || undefined}
             helperText={" "}
           />
-          <AdminButton
-            variant="outlined"
-            size="sm"
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
             className="mt-1.5 sm:mt-7.5"
             onClick={gardenerInput.handleAdd}
             disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
-            leadingIcon={<RiAddLine />}
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
           >
             {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-          </AdminButton>
+          </Button>
         </div>
         {gardenerInput.shouldResolveEns && (
           <p className="mt-1 type-body text-text-soft">
@@ -176,14 +180,15 @@ export function TeamStep() {
               className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 type-meta-sm font-mono text-text-sub"
             >
               <EnsAddressText address={gardener as Address} />
-              <AdminIconButton
-                size="sm"
-                variant="danger"
+              <IconButton
+                emphasis="tertiary"
+                tone="danger"
+                size="compact"
                 onClick={() => removeGardener(form.gardeners.indexOf(gardener))}
-                label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-              >
-                <RiDeleteBinLine />
-              </AdminIconButton>
+                aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                title={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                icon={<RiDeleteBinLine />}
+              />
             </li>
           ))}
         </ul>

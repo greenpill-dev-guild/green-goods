@@ -1,12 +1,12 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import type { WaitingRow } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiLoader4Line } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminListRow } from "@/components/AdminListRow";
 import { ClaimantName } from "./ClaimantName";
 import { directionEdgeClass, directionLabel } from "./poolPresentation";
@@ -162,16 +162,22 @@ export function WaitingForApprovalRow({
   } else {
     action = (
       <>
-        <AdminButton type="button" variant="text" size="sm" onClick={onDecline} disabled={disabled}>
+        <Button
+          type="button"
+          emphasis="tertiary"
+          size="compact"
+          onClick={onDecline}
+          disabled={disabled}
+        >
           {formatMessage({
             id: "cockpit.garden.pool.claims.act.decline",
             defaultMessage: "Decline…",
           })}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="filled"
-          size="sm"
+          emphasis="primary"
+          size="compact"
           onClick={onApprove}
           disabled={disabled}
         >
@@ -185,7 +191,7 @@ export function WaitingForApprovalRow({
                 id: "cockpit.garden.pool.approvals.approve",
                 defaultMessage: "Approve",
               })}
-        </AdminButton>
+        </Button>
       </>
     );
   }

@@ -1,7 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 
 /**
@@ -36,12 +36,18 @@ export function PoolNotReadyCard({
         })}
         action={
           <div className="flex flex-col items-center gap-3">
-            <AdminButton type="button" variant="filled" onClick={onSetUp} disabled={!isOnline}>
+            <Button
+              type="button"
+              emphasis="primary"
+              size="sm"
+              onClick={onSetUp}
+              disabled={!isOnline}
+            >
               {formatMessage({
                 id: "cockpit.garden.pool.act.setUp",
                 defaultMessage: "Set Up Promises",
               })}
-            </AdminButton>
+            </Button>
             {isOnline ? null : (
               <p className="type-meta text-warning-dark" role="status">
                 {formatMessage({

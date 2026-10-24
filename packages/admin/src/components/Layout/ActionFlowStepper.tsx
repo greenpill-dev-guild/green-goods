@@ -5,8 +5,8 @@
 //   • vertical — a labelled rail (dot + step title per row). Sits in the
 //     ActionFlowShell left rail on desktop, using the width to show every step.
 // Accent follows the workspace tone (Hub blue / Garden green / …) when inside a
-// `data-tone` dialog, falling back to green elsewhere — same token pattern as
-// AdminButton. Lives in packages/admin because only admin flows render it.
+// `data-tone` dialog, falling back to green elsewhere — the same token pattern
+// as the primary Button. Lives in packages/admin because only admin flows render it.
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";

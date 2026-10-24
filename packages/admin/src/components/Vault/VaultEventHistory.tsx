@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
@@ -13,7 +14,6 @@ import { formatDateTime } from "@green-goods/shared/utils/time";
 import { RiHistoryLine, RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface VaultEventHistoryProps {
@@ -203,13 +203,14 @@ export function VaultEventHistory({
 
           {visibleCount < events.length && (
             <div className="mt-4">
-              <AdminButton
-                variant="text"
-                size="sm"
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
                 onClick={() => setVisibleCount((count) => count + initialVisibleCount)}
               >
                 {formatMessage({ id: "app.treasury.loadMore" })}
-              </AdminButton>
+              </Button>
             </div>
           )}
         </>

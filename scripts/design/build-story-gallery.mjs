@@ -32,7 +32,7 @@ if (entries.length === 0) {
   throw new Error(`build-story-gallery: no story entries found in ${indexPath}`);
 }
 
-// Group stories by component title ("Admin/Primitives/AdminButton").
+// Group stories by component title ("Admin/Primitives/Buttons").
 const components = new Map();
 for (const e of entries) {
   if (!components.has(e.title)) components.set(e.title, []);

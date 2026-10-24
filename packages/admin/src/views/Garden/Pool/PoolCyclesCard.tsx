@@ -1,9 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { selectCycleEndAct } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { cycleName, cycleStateChip, formatUnixDate } from "./poolPresentation";
 
@@ -80,10 +80,10 @@ export function PoolCyclesCard({
   };
   const endButton = (cycle: CommitmentCycleRecord) =>
     selectCycleEndAct(cycle)?.kind === "end" ? (
-      <AdminButton
+      <Button
         type="button"
-        variant="outlined"
-        size="sm"
+        emphasis="secondary"
+        size="compact"
         onClick={() => onEndCycle(cycle)}
         disabled={actDisabled}
         aria-labelledby={
@@ -103,7 +103,7 @@ export function PoolCyclesCard({
                 defaultMessage: "End Season…",
               })}
         </span>
-      </AdminButton>
+      </Button>
     ) : null;
 
   const cycleRow = (cycle: CommitmentCycleRecord) => {
@@ -142,10 +142,10 @@ export function PoolCyclesCard({
         <div className="flex items-center gap-2">
           {endButton(cycle)}
           {cycle.state === "SEEDED" ? (
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={() => onOpenCampaign(cycle)}
               disabled={actDisabled || model.status !== "open"}
             >
@@ -153,13 +153,13 @@ export function PoolCyclesCard({
                 id: "cockpit.garden.pool.cycle.act.open",
                 defaultMessage: "Open Campaign",
               })}
-            </AdminButton>
+            </Button>
           ) : null}
           {canCancel ? (
-            <AdminButton
+            <Button
               type="button"
-              variant="text"
-              size="sm"
+              emphasis="tertiary"
+              size="compact"
               onClick={() => onCancelCycle(cycle)}
               disabled={actDisabled}
             >
@@ -167,7 +167,7 @@ export function PoolCyclesCard({
                 id: "cockpit.garden.pool.cycle.act.cancel",
                 defaultMessage: "Cancel Campaign…",
               })}
-            </AdminButton>
+            </Button>
           ) : null}
         </div>
       </li>
@@ -219,10 +219,10 @@ export function PoolCyclesCard({
           <div className="flex items-center gap-2">
             {endButton(season)}
             {season.state === "SEEDED" ? (
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
-                size="sm"
+                emphasis="primary"
+                size="compact"
                 onClick={() => onOpenSeason(season)}
                 disabled={actDisabled || !canOpenCycle}
               >
@@ -230,14 +230,14 @@ export function PoolCyclesCard({
                   id: "cockpit.garden.pool.cycle.act.openSeason",
                   defaultMessage: "Open to the Garden",
                 })}
-              </AdminButton>
+              </Button>
             ) : null}
             {(season.state === "SEEDED" || season.state === "OPEN") &&
             season.liveCommitmentCount === 0n ? (
-              <AdminButton
+              <Button
                 type="button"
-                variant="text"
-                size="sm"
+                emphasis="tertiary"
+                size="compact"
                 onClick={() => onCancelCycle(season)}
                 disabled={actDisabled}
               >
@@ -245,7 +245,7 @@ export function PoolCyclesCard({
                   id: "cockpit.garden.pool.cycle.act.cancelSeason",
                   defaultMessage: "Cancel Season…",
                 })}
-              </AdminButton>
+              </Button>
             ) : null}
           </div>
         </div>
@@ -274,10 +274,10 @@ export function PoolCyclesCard({
               })}
             </p>
           </div>
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={onStartSeason}
             disabled={actDisabled || !model.canSeedSeason}
           >
@@ -285,7 +285,7 @@ export function PoolCyclesCard({
               id: "cockpit.garden.pool.cycle.act.startSeason",
               defaultMessage: "Start Season",
             })}
-          </AdminButton>
+          </Button>
         </div>
       )}
 
@@ -318,10 +318,10 @@ export function PoolCyclesCard({
                   }
                 )}
           </p>
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={onStartCampaign}
             disabled={actDisabled || !model.canStartCampaign}
           >
@@ -329,7 +329,7 @@ export function PoolCyclesCard({
               id: "cockpit.garden.pool.cycle.act.startCampaign",
               defaultMessage: "Start Campaign",
             })}
-          </AdminButton>
+          </Button>
         </div>
         {model.campaigns.length > 0 ? (
           <ul className="mt-1 divide-y divide-stroke-soft">{model.campaigns.map(cycleRow)}</ul>
@@ -384,10 +384,10 @@ export function PoolCyclesCard({
                     {chip.label}
                   </StatusBadge>
                   {selectCycleEndAct(cycle)?.kind === "archive" ? (
-                    <AdminButton
+                    <Button
                       type="button"
-                      variant="text"
-                      size="sm"
+                      emphasis="tertiary"
+                      size="compact"
                       className="ml-auto"
                       onClick={() => onArchiveCycle(cycle)}
                       disabled={actDisabled}
@@ -399,7 +399,7 @@ export function PoolCyclesCard({
                           defaultMessage: "Archive…",
                         })}
                       </span>
-                    </AdminButton>
+                    </Button>
                   ) : null}
                 </li>
               );

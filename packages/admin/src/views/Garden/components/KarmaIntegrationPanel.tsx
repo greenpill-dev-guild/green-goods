@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type {
   KarmaIntegrationController,
@@ -6,7 +7,6 @@ import type {
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 
 interface KarmaStatusPresentation {
@@ -167,17 +167,17 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
 
       <div className="flex flex-wrap items-center gap-2">
         {showPendingAction ? (
-          <AdminButton type="button" variant="outlined" size="sm" loading disabled>
+          <Button type="button" emphasis="secondary" size="compact" loading disabled>
             {formatMessage({
               id: "cockpit.garden.karma.action.retrying",
               defaultMessage: "Syncing…",
             })}
-          </AdminButton>
+          </Button>
         ) : canRunReconcile ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => run(integration.reconcile)}
           >
             {formatMessage({
@@ -188,7 +188,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
               defaultMessage:
                 integration.status.status === "failed" ? "Retry Karma Sync" : "Retry Sync",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
 
         {integration.profileUrl ? (

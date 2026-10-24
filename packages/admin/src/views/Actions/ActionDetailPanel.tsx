@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
@@ -8,7 +9,6 @@ import type { Action } from "@green-goods/shared/types/domain";
 import { formatDateTime } from "@green-goods/shared/utils/time";
 import { RiEditLine, RiFileListLine, RiImageLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { ActionDetailMediaTile } from "./ActionDetailPrimitives";
 
 interface ActionDetailPanelProps {
@@ -48,12 +48,12 @@ export function ActionDetailPanel({
           icon={<RiSearchLine />}
           title={formatMessage({ id: "app.actions.notFound" })}
           action={
-            <AdminButton size="sm" variant="outlined" onClick={onClose}>
+            <Button type="button" emphasis="secondary" size="compact" onClick={onClose}>
               {formatMessage({
                 id: "app.actions.backToActions",
                 defaultMessage: "Back to Actions",
               })}
-            </AdminButton>
+            </Button>
           }
         />
       </div>
@@ -78,14 +78,15 @@ export function ActionDetailPanel({
       <div className="flex items-start justify-between gap-3">
         <StatusBadge variant={lifecycleVariant}>{lifecycleLabel}</StatusBadge>
         {canManageActions ? (
-          <AdminButton
-            size="sm"
-            variant="outlined"
-            leadingIcon={<RiEditLine className="h-4 w-4" />}
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            leadingIcon={<RiEditLine className="h-4 w-4" aria-hidden="true" />}
             onClick={onEdit}
           >
             {formatMessage({ id: "app.actions.edit" })}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
 

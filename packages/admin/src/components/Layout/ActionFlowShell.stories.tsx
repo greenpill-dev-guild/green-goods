@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import { Button } from "@green-goods/shared/components/Button";
 import { RiUploadCloudLine } from "@remixicon/react";
-import { expect, fn, userEvent, within } from "storybook/test";
+import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { AdminButton } from "../AdminButton";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { AdminLinearProgress } from "../AdminLinearProgress";
 import { ActionFlowShell } from "./ActionFlowShell";
 
@@ -31,19 +31,20 @@ function ProgressFooter({ busy, label }: { busy?: boolean; label?: string }) {
         ) : null}
       </div>
       <div className="flex gap-2">
-        <AdminButton type="button" variant="text" disabled={busy} onClick={fn()}>
+        <Button type="button" emphasis="tertiary" size="sm" disabled={busy} onClick={fn()}>
           Cancel
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="filled"
+          emphasis="primary"
+          size="sm"
           loading={busy}
           disabled={busy}
-          leadingIcon={<RiUploadCloudLine />}
+          leadingIcon={<RiUploadCloudLine className="h-[18px] w-[18px]" aria-hidden="true" />}
           onClick={fn()}
         >
           Submit
-        </AdminButton>
+        </Button>
       </div>
     </>
   );
@@ -163,7 +164,11 @@ export const CompletionVisibility: Story = {
       <ActionFlowShell
         title="Submit Work"
         complete={complete}
-        footer={<AdminButton onClick={() => setComplete(true)}>Complete submission</AdminButton>}
+        footer={
+          <Button type="button" size="sm" onClick={() => setComplete(true)}>
+            Complete submission
+          </Button>
+        }
       >
         <p role="status">{complete ? "Work submitted" : "Review your work"}</p>
         <FormPreview rows={20} />

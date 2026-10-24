@@ -1,8 +1,8 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { RiSeedlingLine } from "@remixicon/react";
-import { useIntl } from "react-intl";
 import type { ReactNode } from "react";
-import { AdminButton } from "@/components/AdminButton";
+import { useIntl } from "react-intl";
 
 interface CanvasGardenAccessStateProps {
   onCreateGarden: () => void;
@@ -47,12 +47,12 @@ export function CanvasGardenAccessState({
             <div className="flex w-full max-w-md flex-col items-center gap-6">
               {stewardAccess ? <div className="w-full">{stewardAccess}</div> : null}
               {canCreateGarden && (
-                <AdminButton onClick={onCreateGarden}>
+                <Button type="button" size="sm" onClick={onCreateGarden}>
                   {formatMessage({
                     id: "cockpit.workspace.createGarden",
                     defaultMessage: "Create Garden",
                   })}
-                </AdminButton>
+                </Button>
               )}
             </div>
           ) : null

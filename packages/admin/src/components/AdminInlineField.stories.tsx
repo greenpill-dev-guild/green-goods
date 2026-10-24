@@ -1,8 +1,8 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminButton } from "./AdminButton";
 import { AdminInlineField } from "./AdminInlineField";
 
 const meta: Meta<typeof AdminInlineField> = {
@@ -14,7 +14,7 @@ const meta: Meta<typeof AdminInlineField> = {
     docs: {
       description: {
         component:
-          "Compact 32dp field paired with an inline action for 'enter one short value and submit' rows (register a hypercert/action id, add a strategy address). The label sits above, as on every field (F3), so the input aligns on the same axis as the AdminButton; the message line sits below both controls and is reserved, so an error never nudges the button.",
+          "Compact 32dp field paired with an inline action for 'enter one short value and submit' rows (register a hypercert/action id, add a strategy address). The label sits above, as on every field (F3), so the input aligns on the same axis as the 32px Button; the message line sits below both controls and is reserved, so an error never nudges the button.",
       },
     },
   },
@@ -42,16 +42,17 @@ function RegisterRow({ initialError }: { initialError?: string }) {
         inputMode="numeric"
         error={error || undefined}
         action={
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
+            emphasis="primary"
+            size="sm"
             onClick={() => {
               if (!value.trim()) setError("Enter a hypercert token ID.");
             }}
             disabled={!value.trim()}
           >
             Register
-          </AdminButton>
+          </Button>
         }
       />
     </div>
@@ -135,9 +136,9 @@ const InlineFieldToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
             onChange={() => {}}
             placeholder="e.g. 12"
             action={
-              <AdminButton type="button" variant="filled">
+              <Button type="button" emphasis="primary" size="sm">
                 Register
-              </AdminButton>
+              </Button>
             }
           />
         </div>

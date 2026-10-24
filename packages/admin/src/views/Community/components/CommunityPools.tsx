@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
@@ -10,7 +12,6 @@ import {
 } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   RiArrowRightLine,
   RiErrorWarningLine,
@@ -20,7 +21,6 @@ import {
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { poolStatusChip } from "@/views/Garden/Pool/poolPresentation";
 import { HubConfirmQueue } from "@/views/Hub/components/HubConfirmQueue";
@@ -126,10 +126,11 @@ function GardenPoolCard({
           </StatusBadge>
         )}
       </div>
-      <AdminButton
+      <Button
         type="button"
-        variant="outlined"
-        leadingIcon={<RiArrowRightLine className="h-4 w-4" />}
+        emphasis="secondary"
+        size="sm"
+        leadingIcon={<RiArrowRightLine className="h-[18px] w-[18px]" aria-hidden="true" />}
         onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden.id }))}
         disabled={!canManage}
       >
@@ -137,7 +138,7 @@ function GardenPoolCard({
           id: "cockpit.community.pools.openConsole",
           defaultMessage: "Open the Pool Console",
         })}
-      </AdminButton>
+      </Button>
       {!canManage ? (
         <p className="type-meta text-text-soft">
           {formatMessage({
@@ -222,17 +223,18 @@ function ProtocolOperations({
                 "The module could not be reached. Nothing about the protocol pool has changed.",
             })}
             action={
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
-                leadingIcon={<RiRefreshLine className="h-4 w-4" />}
+                emphasis="primary"
+                size="sm"
+                leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
                 onClick={() => void protocolPool.refetch()}
               >
                 {formatMessage({
                   id: "cockpit.garden.pool.readError.retry",
                   defaultMessage: "Try Again",
                 })}
-              </AdminButton>
+              </Button>
             }
           />
         </AdminCard>

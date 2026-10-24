@@ -1,4 +1,5 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
@@ -14,7 +15,6 @@ import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiAddLine, RiAlertLine, RiCheckLine, RiGroupLine, RiQuestionLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard } from "../AdminCard";
 
@@ -269,8 +269,10 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               description={formatMessage({ id: "app.community.noPoolsYet.description" })}
               action={
                 canManage && community ? (
-                  <AdminButton
-                    variant="filled"
+                  <Button
+                    type="button"
+                    emphasis="primary"
+                    size="sm"
                     onClick={async () => {
                       try {
                         await onCreatePools();
@@ -290,7 +292,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   >
                     {!isCreatingPools && <RiAddLine className="h-4 w-4" />}
                     {formatMessage({ id: "app.community.createPools" })}
-                  </AdminButton>
+                  </Button>
                 ) : undefined
               }
             />
