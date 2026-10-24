@@ -118,7 +118,7 @@ export function FlowStatusRow({
             aria-valuemax={100}
             aria-valuenow={Math.round(progress)}
           >
-            {/* A semantic fill, not the workspace tone: the tone's four uses are spoken for (Rule 18). */}
+            {/* A semantic fill, not the workspace tone: the tone's five uses are spoken for (Rule 18). */}
             <div
               className="h-full bg-information-base"
               style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}

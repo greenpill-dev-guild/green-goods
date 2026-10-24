@@ -1,6 +1,6 @@
 # One Look for the App and the Cockpit — Evaluation
 
-**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); step 2's proof ran on 2026-10-23 ([below](#step-2-proof-ground-and-dark-ladder)); review results pending.
+**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); step 2's proof ran on 2026-10-23 ([below](#step-2-proof-ground-and-dark-ladder)); the design gate for the count badge (step 4) ran and was approved on 2026-10-23 ([below](#design-gate-for-the-count-badge)); review results pending.
 
 ## Product validation
 
@@ -372,3 +372,48 @@ per pair (a channel sum above 12):
 `#110C08` in dark (mock-auth localhost), with the page's own ground behind it; the unit cases in
 `theme.test.ts`, `bootFallback.test.tsx` and `pwa-manifest.test.ts` pin both presentations, and the
 website keeps white. Not checked on a device: whether iOS's solid status bar follows `theme-color`.
+
+## Design gate for the count badge
+
+Run on 2026-10-23 against `develop` `45cd6706e`, with step 4 drafted on the local branch
+`feature/app-cockpit-count-badge`; the maintainer approved the pairs the same day
+([spec.md](spec.md#count-badge-approved-23-october)). The rig is the token slices' gate's
+([above](#design-gate-for-the-token-slices)); the frames show live gardens and stay out of the
+repository.
+
+**Pairs.** Every component that draws a count, before and after, at 390, 768 and 1280px in light
+and dark, in English, Spanish and Portuguese, at counts of 1, 9, 10, 99 and 100: 18 combinations
+per surface per state, headless Chromium (Playwright) at device scale 2.
+
+- App, **mock-auth localhost**: `?mockAuth=deployer&presentation=pwa` on Arbitrum One and the
+  production indexer: the bottom bar, Home's launchers and filter, the tabs of the Your Work and
+  Promises sheets, and the TAS HUB garden's notification bell. A capture-only wrapper around the
+  four hooks that feed the counts (`useYourWorkCount`, `useCommitmentsInbox`,
+  `useCommitmentsToConfirm`, `useWorks`) set the numbers, so the components ran unmodified.
+- Cockpit, **Storybook**: the real `AdminTabRail` with the Hub, Garden and Community labels from
+  the product catalogs at every count, and the four workspaces' route stories without their play
+  functions.
+
+**Measured** at 10 on a 390px screen (computed styles):
+
+| Consumer | `develop` | Step 4 |
+|---|---|---|
+| App bottom bar | 20.6×16px, 10px at 700, no ring | 21.7×16px, 11px at 600, a 2px white ring |
+| Your Work and Promises launchers, a garden's bell | 25.3×18px, 12px at 600, a 2px border inside the box and a small shadow | 21.2×16px, 11px at 600, a 2px ring of the canvas |
+| Home filter | 16×10px, 10px at 600 | 16×16px, 11px at 600, a 2px ring of the canvas |
+| App tabs | 21.3×16px, 12px at 500 | 21.2×16px, 11px at 600 |
+| Cockpit tabs | 30.4×18px, 12px at 600, the tone container when active and gray otherwise | 21.2×16px, 11px at 600, the tone's accent on every tab |
+
+One digit is a 16px circle, two digits 21.2px and 99+ 28.3px; the bar's 9+ is 21.7px.
+
+**Contrast** of the numerals on their fill: the app 5.72:1 in light and 16.34:1 in dark. On the
+tone's action fill the cockpit measured 7.26 (Hub), 5.72 (Garden), 4.01 (Community), 7.93
+(Actions) and 10.27:1 (Home) in light, and 4.58 to 11.74:1 in dark; on the tone's accent,
+Community measures 4.93:1, which step 4 takes. Against the app's tinted active tab the badge
+measures 5.24:1 in light and 10.90:1 in dark.
+
+**Found on the way.** Portuguese "Em andamento" ends in an ellipsis at 390px at every count before
+and after, and "A confirmar" at 99+; the badge is never wider than before, so step 4 neither causes
+nor fixes it. `TabBadge` in the cockpit's Garden helpers had no consumer and goes with the step.
+White text on Community's action fill (orange-700) measures 4.0:1, though its token comment says
+5.0:1. The Wallet's Cookies tab, which uses the same sheet tabs as Promises, had no count to show.
