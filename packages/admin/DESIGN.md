@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Green Goods Admin Cockpit Dialect
-description: Restrained M3 cockpit overlay for Green Goods admin surfaces. Extends the Warm Earth core DesignMD tokens.
+description: The steward cockpit, the installed app's Warm Earth language at a denser setting. Extends the Warm Earth core DesignMD tokens.
 extends: ../../DESIGN.md
 surface: admin
 dialect: cockpit
@@ -41,23 +41,44 @@ typography:
 
 **Physical metaphor:** The operations room of a community garden collective. A well-organized potting shed, with every tool in its place. Functional, purposeful, warm but not decorative.
 
-**Key difference from client:** Same warm linen canvas, same warm charcoal ink. But no serif headlines, no lookbook layouts, no editorial personality. This is where the *work* happens.
+**Key difference from the installed app:** the same language at a denser setting. Stewards meet the app's face, linen canvas and warm charcoal ink here, set tighter, with pill buttons, a tone per workspace and the cockpit's own navigation. Nothing editorial: no serif headlines, no lookbook layouts. This is where the *work* happens.
 
 ---
 
-## M3 Strict Anatomy
+## One Language, a Denser Setting
 
-The admin uses Material Design 3 v0.192 as its **strict structural backbone**, not M3-inspired, not hybrid:
+The cockpit speaks the installed app's Warm Earth language at a denser setting. Its strict Material 3 rule is retired (DL-095): nothing here follows Material 3 because it is Material 3. Stewards use both surfaces in one sitting, so the pieces they meet on both should look and behave as one, while density, pill buttons, workspace tones and the navigation still tell them which surface they are on.
 
-- All components follow M3 dimensions exactly
+**Shared with the installed app.** Where Shared has the piece, the cockpit renders it and tunes it through its own token block; it never restyles it (DL-031). So far:
+
+- The face and the type roles: Plus Jakarta Sans, with one set of role names at each surface's sizes (DL-096, § Typography).
+- The ground: the linen canvas with white cards, and one warm dark ladder (DL-097, § Workspace Tinting).
+- The control-grade outline on fields, chips and secondary buttons, and one solid focus ring in each surface's focus role (DL-098).
+- One count badge, the shared `CountBadge`, on the workspace tone's accent here (DL-099, § Workspace Tinting).
+- The active-tab pill on both bottom bars: the workspace tone's container here, the green container in the app (DL-107, § Navigation).
+- Solid surfaces: every card, sheet, dialog and menu is opaque on both, and the cockpit's nav dock below is the one translucent piece (DL-108).
+
+Each shared piece that follows joins this list with its decision-log row.
+
+**The cockpit's own dials**, kept because they were chosen for stewards (DL-095):
+
+- **Density**: the compact control metric (buttons 28/32/40, each tier with a 44px finger box) and 14px body and labels (DL-011, DL-030; § Cockpit M3 1a Invariants).
+- **Pill buttons**: every button is a pill, and the FAB is a capsule at both sizes (DL-010).
+- **Workspace tones**: Hub, Garden, Community and Actions each carry their own tone, spent on a fixed budget (§ Workspace Tinting); the active nav pill is drawn in it.
+- **Inline filters**: filter chips and sort sit in the toolbar, so Pending and Approved stay one tap apart (DL-082).
+- **Motion**: the Standard scheme on the spring tokens; a hover is an elevation step or the neutral ink layer, never a lift.
+- **Navigation**: the AppBar, the NavigationBar dock and its FAB (§ Navigation).
+
+**What leaves with the rule.** Each piece that Material 3 used to justify is replaced by the shared piece in its own change: the filled field with an underline, elevation as a card's surface, the 12px card corner, the 8px chip, the underline tab rail and the warm gray phone sheet; the gray count chip has already given way to the shared count badge (DL-099). Until its replacement lands, a piece keeps the anatomy this guide gives it.
+
+**Tokens keep their names.** The `--m3-*` tokens are an internal layer under the shared names the views read, and a name changes only when a change has to touch it. Shape, depth and motion read from that layer and the admin aliases beside it:
+
 - State layers: hover (8%), focus (12%), pressed (12%), dragged (16%)
-- Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), full (9999px), plus the shared card's 24px corner (`--gg-card-radius`, DL-102): cards take 24px and item rows 16px, the installed app's cards. No 20 or 28px shapes (`--m3-shape-xl` is deleted). Use admin-prefixed `--admin-radius-*` tokens for these M3-only shapes; admin **remaps** the shared `--radius-*` aliases onto this scale (`rounded-xl`/`rounded-2xl` resolve to 16px) rather than inheriting the Warm Earth runtime values.
-- Single elevation ladder: `--m3-elevation-0/1/2`, plus the warm `--admin-chrome-shadow` reserved for floating chrome (nav dock, FAB). A card's surface is its fill, edge and faint shadow (`--gg-card-shadow`, DL-102), not an elevation step. The old 0-5 scale and `--e1/e2/e3` aliases are deleted.
-- **Spring motion (`--spring-*`) is the sole permitted deviation** from M3 standard easing
-- **Controlled Chrome**: the nav dock (NavigationBar + FAB) is the only translucent surface, a flat `rgb(var(--admin-surface-0) / 0.85)` with a 12px backdrop blur, a warm ambient shadow (`--admin-chrome-shadow`), and a 1px ink ring. The AppBar, MainSheet, and route frame are transparent, so content sits directly on the canvas. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid.
+- Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), full (9999px), plus the shared card's 24px corner (`--gg-card-radius`, DL-102): cards take 24px and item rows 16px, the installed app's cards. No 20 or 28px shapes (`--m3-shape-xl` is deleted). Use admin-prefixed `--admin-radius-*` tokens for these shapes; admin **remaps** the shared `--radius-*` aliases onto this scale (`rounded-xl`/`rounded-2xl` resolve to 16px) rather than inheriting the Warm Earth runtime values.
+- Single elevation ladder: `--m3-elevation-0/1/2`, plus the warm `--admin-chrome-shadow` reserved for floating chrome (nav dock, FAB). Below 640px a dialog or the side sheet is the installed app's bottom sheet and casts its float shadow (DL-104). A card's surface is its fill, edge and faint shadow (`--gg-card-shadow`, DL-102), not an elevation step. The old 0-5 scale and `--e1/e2/e3` aliases are deleted.
+- **Spring motion (`--spring-*`)** is the only easing; the admin motion roles below alias it.
+- **Controlled Chrome**: the nav dock (NavigationBar + FAB) is the only translucent surface, a flat `rgb(var(--admin-surface-0) / 0.85)` with a 12px backdrop blur, a warm ambient shadow (`--admin-chrome-shadow`), and a 1px ink ring. The AppBar, MainSheet, and route frame are transparent, so content sits directly on the canvas. Dialogs, side sheets, menus, route cards, forms, tables, lists, and dense content stay solid (DL-108).
 - **Admin motion roles** are tokenized through runtime aliases: route content uses `--admin-motion-route-content-*`, canvas tone changes use `--admin-motion-canvas-tone-*`, FAB menus use `--admin-motion-fab-menu`, and interactive state changes use `--admin-motion-state`.
-
-**Why strict:** M3+unbounded glass produced inconsistent UI. Strict M3 provides discipline; Controlled Chrome gives spatial depth to persistent shell surfaces without making operational content translucent.
 
 **Enforcement:** `bun run check --only design-tokens` fails if admin source adds glass, backdrop blur, or decorative gradients outside the approved chrome CSS boundary: `src/index.css` plus `src/styles/admin-m3-tokens.css` (tokens + Controlled Chrome material rules), `src/styles/admin-m3-components.css` (admin-owned component skins and motion), and `src/styles/admin-layout.css` (the layout and surface classes admin components render, including the media scrims; Storybook imports it too, so stories lay out as the product does). The old `admin-m3-overrides.css` is deleted.
 
@@ -101,20 +122,21 @@ CSS Grid with named areas:
 
 ## Workspace Tinting
 
-The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface-container-low` in light, the warm dark floor `--m3-surface` in dark), and never changes color per workspace. Cards are white in light and sit ten points of lightness above the canvas in dark, with an 8% ring, so a card never blends into the ground (the dark ladder is the shared Earth ramp in `theme.css`, DL-097). Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly five places:
+The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface-container-low` in light, the warm dark floor `--m3-surface` in dark), and never changes color per workspace. Cards are white in light and sit ten points of lightness above the canvas in dark, with an 8% ring, so a card never blends into the ground (the dark ladder is the shared Earth ramp in `theme.css`, DL-097). Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly six places:
 
 1. **Active tab**: the `AdminTabRail` underline and active label.
 2. **Active nav pill**: the NavigationBar active item, via `--tone-primary-container` / `--tone-on-primary-container`.
 3. **At most one filled header action**: the single `--tone-action` filled button per route. A review surface such as the Hub fills none: its whole action set renders outlined, and the declared primary still sorts rightmost and fills the FAB (DL-043).
 4. **The FAB**: the nav-shell `FabButton`, the workspace's primary action, filled with `--tone-action` and labeled in `--tone-on-action`.
 5. **Count badges**: the shared `CountBadge` on every `AdminTabRail` tab that counts, active or not, filled with `--tone-on-surface-accent` and inked with `--tone-on-action` (DL-099).
+6. **A selected filter chip**: `AdminFilterChip` while it is selected, filled with `--tone-action` and labeled in `--tone-on-action`, the installed app's selected look in the workspace tone (DL-101).
 
 One atmospheric allowance on top: a faint top-of-canvas wash from `--tone-surface-tint-color` (5% light / 10% dark) fading to transparent by 320px. Everything else on the canvas stays neutral ink and stone.
 
 Color roles:
 
-- `--tone-action` is for filled action backgrounds.
-- `--tone-on-action` is the text/icon color on filled action backgrounds and the count badge's ink.
+- `--tone-action` is for filled action backgrounds and a selected filter chip's fill.
+- `--tone-on-action` is the text/icon color on filled action backgrounds and a selected filter chip, and the count badge's ink.
 - `--tone-primary-container` / `--tone-on-primary-container` are the active-selection container pair (the nav pill).
 - `--tone-on-surface-accent` is for colored text/icons on solid surfaces, and fills the count badge (DL-099). It equals the action fill in every tone but Community, where it is orange-800 (white at 7.09:1 on the cockpit's amber ramp) beside the orange-700 fill (5.02:1).
 - `--tone-focus-ring` is the cockpit's value of the one focus role; it resolves to action tone in light mode and on-surface accent in dark mode, and the shared controls draw it as one solid 2px ring (DL-098). The installed app sets the same role to its green.
@@ -127,9 +149,9 @@ Color roles:
 
 ## Admin Component Pattern
 
-The M3 primitives are **Admin* adapter wrappers** following M3 v0.192 exactly, with zero changes to the shared package. Around them sit admin-owned shell and layout families that intentionally do not carry the prefix: the Shell forks (`AppBar`, `NavigationBar`, `MainSheet`, `FabButton`), `CanvasLayout` and the `Canvas*` route-state surfaces, the `Account*` panels, the `ActionFlow*` flow chrome, and named singletons (`PageHeader`, `CommandPalette`, `ConnectShell`, `LeftInspectorDialog`).
+The cockpit's controls are **Admin* adapter wrappers** on its compact metric, with zero changes to the shared package. Around them sit admin-owned shell and layout families that intentionally do not carry the prefix: the Shell forks (`AppBar`, `NavigationBar`, `MainSheet`, `FabButton`), `CanvasLayout` and the `Canvas*` route-state surfaces, the `Account*` panels, the `ActionFlow*` flow chrome, and named singletons (`PageHeader`, `CommandPalette`, `ConnectShell`, `LeftInspectorDialog`).
 
-Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminConfirmDialog, AdminDialog, AdminFieldGroup, AdminFilterChip, AdminIconButton, AdminInlineField, AdminInputChip, AdminLinearProgress, AdminListRow, AdminReasonDialog, AdminSearchToolbar, AdminSelect, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextArea, AdminTextField, AdminTooltip, AdminViewActions. (AdminSelect is the M3 form select added 2026-08-29. It lives in `AdminTextField.tsx` beside AdminTextArea; the toolbar `AdminSortSelect` stays toolbar-only. AdminIconButton, for glyph-only actions on the DL-011 tiers with a mandatory accessible name, lives in `AdminButton.tsx`; AdminFieldGroup carries the family's label/hint/error anatomy for group-shaped fields (checkbox grids, repeating rows, upload wells). AdminCard also exports AdminCardHeader/Body/Footer slots, which retired the legacy shared `Card` from admin production code (2026-08-30). AdminBadge, AdminFab, and AdminListItem were deleted 2026-08-29 for having zero production consumers; the dock FAB is `Shell/FabButton`. AdminListRow, added 2026-09-30, is the list row that opens its record; unlike AdminListItem it owns only the row's box, so a row of any content can adopt it.)
+Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminConfirmDialog, AdminDialog, AdminFieldGroup, AdminFilterChip, AdminIconButton, AdminInlineField, AdminInputChip, AdminLinearProgress, AdminListRow, AdminReasonDialog, AdminSearchToolbar, AdminSelect, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextArea, AdminTextField, AdminTooltip, AdminViewActions. (AdminSelect is the form select added 2026-08-29. It lives in `AdminTextField.tsx` beside AdminTextArea; the toolbar `AdminSortSelect` stays toolbar-only. AdminIconButton, for glyph-only actions on the DL-011 tiers with a mandatory accessible name, lives in `AdminButton.tsx`; AdminFieldGroup carries the family's label/hint/error anatomy for group-shaped fields (checkbox grids, repeating rows, upload wells). AdminCard also exports AdminCardHeader/Body/Footer slots, which retired the legacy shared `Card` from admin production code (2026-08-30). AdminBadge, AdminFab, and AdminListItem were deleted 2026-08-29 for having zero production consumers; the dock FAB is `Shell/FabButton`. AdminListRow, added 2026-09-30, is the list row that opens its record; unlike AdminListItem it owns only the row's box, so a row of any content can adopt it.)
 
 **Adoption is enforced**: the wrapper-adoption sweep in `check:design-tokens` fails any new shared field primitive (`TextInput`/`Textarea`/`NativeSelect`/`FormField`/local re-wraps), raw `<button>`, or legacy `Card` render in `packages/admin/src` outside the audited baseline (13 sanctioned residue sites: state-layer row/card buttons, the avatar identity tile, stepper dots). Typography is enforced the same way: every size comes from the `type-*` roles (§ Typography), and the type sweep fails on a raw Tailwind size, a retired Material alias or named class, or any other shared-scale size.
 
@@ -143,11 +165,11 @@ Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminCon
 - `AdminListRow` is for a list row that opens its record: the whole row is the button, its height follows its content, and the open record is marked current. Actions stay `AdminButton`; choices stay `AdminSelectableCard`.
 - `AdminChoiceGroup` is for compact single-select preferences and context switches inside dense panels.
 - `AdminTabRail` is the exclusive mode/tab control for route-local views. Anatomy: underline tabs on a hairline stone rule, with a 2px accent underline under the active tab, and the shared `CountBadge` on every tab that counts (DL-099).
-- `AdminFilterChip` is the compact filter grammar for toggles inside toolbars. A selected chip shows its fill and `aria-pressed`, never a check mark, so selecting it never changes its width (DL-065).
-- `AdminInputChip` holds something the steward chose and can take back out, such as a person named as a confirmer: a 32px outlined chip with an optional avatar and a remove button.
+- `AdminFilterChip` is the compact filter grammar for toggles inside toolbars: a 32px capsule, outlined at rest, that a selection fills with the workspace tone's action pair, the installed app's selected look (DL-101). A selected chip shows its fill and `aria-pressed`, never a check mark, so selecting it never changes its width (DL-065).
+- `AdminInputChip` holds something the steward chose and can take back out, such as a person named as a confirmer: a 32px outlined capsule with an optional avatar and a remove button.
 - Avoid new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
 
-Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; every mobile variant renders as a full-width bottom sheet, with padding inside the surface. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet (right-docked within the canvas chrome bounds on desktop, an AdminDialog-identical full-width bottom sheet on mobile), with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
+Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; every mobile variant renders as a full-width bottom sheet, with padding inside the surface. Below 640px that sheet is the installed app's in look (DL-104): the shared sheet material, the grip, which marks the sheet and does not drag it, and the shared `SheetHeader` at the cockpit's 22px title, with the target line under the title, no leading icon, and a hairline under the header only while the body scrolls; flows and the command palette keep their own header under the grip. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet (right-docked within the canvas chrome bounds on desktop, an AdminDialog-identical full-width bottom sheet on mobile), with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
 
 ---
 
@@ -170,15 +192,15 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 - **NavigationBar** (bottom, Z3): Workspace tabs (Hub, Garden, Community, Actions). Symbol-first. Role-adaptive visibility via permissions. The active tab carries a pill of the workspace tone's container behind its icon, with its label in ink at weight 600. The installed app's bottom bar draws the same pill in its green, and each bar keeps its own chrome (DL-107).
 - **FAB** (`Shell/FabButton`): Per-workspace primary action, a capsule at both sizes (`rounded-full`): 48px circle in the dock, 56px extended capsule with label when floating on mobile (DL-010; capsule = the 9999 step of the admin radius set). Closed, it shows a plus in every workspace, in the workspace tone, whether it fires one act or opens a speed dial; a dial shows a close icon while open, and its rows name each act beside the act's own icon (DL-078). Integrated into NavigationBar via FabProvider.
 - **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
-- **Controlled Chrome**: only the NavigationBar/FAB dock is translucent, with flat `rgb(var(--admin-surface-0) / 0.85)`, a 12px blur, a warm ambient shadow, and a 1px ink ring (every dialog surface and the account side sheet are solid M3). The AppBar root and MainSheet are transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
+- **Controlled Chrome**: only the NavigationBar/FAB dock is translucent, with flat `rgb(var(--admin-surface-0) / 0.85)`, a 12px blur, a warm ambient shadow, and a 1px ink ring (every dialog surface, menu and the account side sheet are solid, DL-108). The AppBar root and MainSheet are transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 
 ---
 
 ## Cockpit M3 1a Invariants
 
-- **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow, except the card's own faint shadow, which belongs to the shared card surface (DL-102).
+- **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome, and below 640px the shared sheet's float shadow on a dialog or the side sheet (DL-104); nothing else casts shadow, except the card's own faint shadow, which belongs to the shared card surface (DL-102).
 - **Radius set**: 4/8/12/16/24/9999px only, the 24px step being the shared card's corner (DL-102); no 20 or 28px shapes anywhere in admin.
-- **Five-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), the nav-shell FAB fill and the tab rail's count badges (DL-099), plus the faint canvas wash.
+- **Six-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), the nav-shell FAB fill, the tab rail's count badges (DL-099) and a selected filter chip (DL-101), plus the faint canvas wash.
 - **Hover rule**: hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; never translate/scale lifts or hue shifts.
 - **AdminButton only**: pill-shaped, Title Case action labels in en (DL-012; es/pt keep native casing); admin views never render the shared `Button` (`gg-button`).
 - **Shared pieces ride the shared family (DL-031)**: the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy; `index.css` sets the family's `--gg-*` tokens (pills, one 14px / 500 label, lg and md on 40, sm on 32, compact on 28, a 44px finger box) and `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track. Never restyle a shared piece from admin; move the token.
@@ -193,7 +215,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 - Use status language: "3 pending reviews" not "You have work to do!"
 - Keep one dominant workspace surface per route
 - Use the Hub route as reference composition for new cockpit surfaces
-- Follow M3 dimensions exactly, and don't deviate "because it looks better"
+- Take the shared piece where Shared has one, and tune it through the cockpit's tokens, never a restyle (DL-031)
 - Use solid material for any text-dense surface (forms, tables, review panels)
 - Reserve the Controlled Chrome dock material (flat 85% surface, 12px blur, warm shadow, ink ring) for the floating nav/FAB chrome only
 - Route motion through the admin motion roles instead of one-off durations
@@ -204,5 +226,6 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 - Write homepage, campaign, or executive-summary copy
 - Nest multiple layers of rounded bordered panels
 - Add side padding around a view's page content below 600px (the shell's 12px phone gutter is the only one)
-- Apply glass/blur/translucency to route cards, forms, tables, records, or dense content
+- Apply glass, blur, or translucency to anything but the nav dock: route cards, menus, forms, tables, records, and dense content stay solid (DL-108)
 - Use Inter (admin uses Plus Jakarta Sans)
+- Justify a choice by Material 3 alone: the rule is retired (DL-095)
