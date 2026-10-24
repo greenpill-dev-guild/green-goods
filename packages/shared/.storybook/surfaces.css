@@ -93,6 +93,10 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  --gg-button-block-cap-lg: var(--gg-button-block-lg);
+  --gg-button-block-cap-md: var(--gg-button-block-md);
+  --gg-button-block-cap-sm: var(--gg-button-block-sm);
+  --gg-button-block-cap-compact: var(--gg-button-block-compact);
   --gg-button-pressed-transform: none;
   --gg-icon-button-glyph: 1.125rem;
   --gg-icon-button-radius-pressed: var(--radius-full);

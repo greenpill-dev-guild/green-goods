@@ -248,7 +248,7 @@ export function StewardAccessRequest({
                       <AdminButton
                         variant="text"
                         onClick={() => c.selectGarden(garden)}
-                        className="h-auto min-h-11 w-full justify-start gap-3 whitespace-normal rounded-[var(--m3-shape-sm)] px-3 py-3 text-left"
+                        className="h-auto max-h-none min-h-11 w-full justify-start gap-3 whitespace-normal rounded-[var(--m3-shape-sm)] px-3 py-3 text-left"
                       >
                         <RiSeedlingLine
                           className="h-5 w-5 shrink-0 text-text-sub"

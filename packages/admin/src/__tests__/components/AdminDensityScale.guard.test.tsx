@@ -160,6 +160,12 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       // The cockpit's look on the shared family (DL-115): no press scale, round
       // icon buttons with an 18px glyph, and the neutral disabled pair instead of
       // a dim, with an aria-disabled button keeping its pointer for a hover reason.
+      // Each size capped at its block, as the fixed-height AdminButton was, so a
+      // stretching row never grows a button.
+      "--gg-button-block-cap-lg": "var(--gg-button-block-lg)",
+      "--gg-button-block-cap-md": "var(--gg-button-block-md)",
+      "--gg-button-block-cap-sm": "var(--gg-button-block-sm)",
+      "--gg-button-block-cap-compact": "var(--gg-button-block-compact)",
       "--gg-button-pressed-transform": "none",
       "--gg-icon-button-glyph": "1.125rem",
       "--gg-icon-button-radius-pressed": "var(--radius-full)",
