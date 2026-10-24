@@ -101,7 +101,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Feedback | `Skeleton`, `Spinner`, `HydrationFallback` |
 | Input | `FileUploadField`, `ListPrimitives`, `DatePicker`, form components |
 | Surfaces | `Surface` with a `solid-*` elevation; its glass elevations are residue, and its own story and the Glass story still show them until they go |
-| Identity | `AddressDisplay`, `DomainBadge` |
+| Identity | `AddressDisplay`, `PersonRow` (a person in a list, DL-112), `DomainBadge` |
 | Audio | `Audio/*` (voice capture primitives) |
 
 **Type roles** (the `type-*` utilities in shared `theme.css`, at the app's density; root `DESIGN.md` § Typography):

@@ -186,11 +186,13 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [garden-detail.ts](../../../packages/shared/src/utils/garden-detail.ts). An alarm on every card
   stops meaning anything. (Refactoring UI: emphasize by de-emphasizing.)
 - **Member counts mean people (DL-049).** Every member count counts distinct people, never
-  role seats: a person who owns, stewards, and gardens is one member. A roster lists each person
-  once, with one role chip per role, and each role carries its own remove, named for the role it
-  takes away ("Remove Gardener"), so taking one role leaves the others. Role counts live in one
-  place per surface, the role filter, which folds into a select on a narrow card rather than
-  pushing the people below the fold. Proof: `memberCount` in
+  role seats: a person who owns, stewards, and gardens is one member. Manage Members lists each
+  person once, with one role chip per role, and each role carries its own remove, named for the
+  role it takes away ("Remove Gardener"), so taking one role leaves the others. Every other list
+  of people is the person row (DL-112): the person once, their highest role as its one chip, and
+  how many roles they hold when it is more than one. Counts of people per role live in one place
+  per surface, the role filter, which folds into a select on a narrow card rather than pushing
+  the people below the fold. Proof: `memberCount` in
   [useGardenDerivedState.ts](../../../packages/shared/src/hooks/garden/useGardenDerivedState.ts)
   and the rows of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
   of them.
