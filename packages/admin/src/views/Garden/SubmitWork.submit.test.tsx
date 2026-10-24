@@ -269,6 +269,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
+  useFocusAfterFlip: () => undefined,
 }));
 
 vi.mock("@green-goods/shared/hooks/utils/useBeforeUnloadWhilePending", () => ({

@@ -1,8 +1,11 @@
 import { RiCloseLine } from "@remixicon/react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { type KeyboardEventHandler, type ReactNode, useEffect, useState } from "react";
+import { type KeyboardEventHandler, type ReactNode, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { SheetGrip } from "@green-goods/shared/components/Dialog/SheetHeader";
+import { useFocusAfterFlip, useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { AdminDialogHeader } from "./AdminDialogHeader";
 
 // ============================================================================
 // Types
@@ -55,7 +58,9 @@ const closeButtonClasses = cn(
  *   rounded all around, and slides in from the right edge.
  *   Width reuses the `--canvas-right-sheet-width` token (one width for every
  *   sheet — per-content widths read as inconsistent chrome).
- * - <640px: full-width bottom sheet, with padding owned by its content.
+ * - <640px: full-width bottom sheet, with padding owned by its content, in the
+ *   phone dialog's look (F5): the shared sheet material, the grip (visual
+ *   only) and the shared `SheetHeader`.
  *
  * Content contract: children own the body — panels compose `SheetBody`
  * (scrolling middle) and optionally `SheetFooter` (pinned bottom bar) inside
@@ -78,6 +83,11 @@ export function AdminSideSheet({
   tone = "hub",
 }: AdminSideSheetProps) {
   const { formatMessage } = useIntl();
+  const closeLabel = formatMessage({ id: "app.common.close" });
+  const rendersAsSheet = useMediaQuery("(max-width: 639px)");
+  // The phone and docked layouts render different Close buttons.
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  useFocusAfterFlip(rendersAsSheet, surfaceRef, '[data-slot="close"]');
   // Hidden tabs freeze CSS animations, so a close that happens while the tab
   // is backgrounded would never fire animationend — Radix Presence would keep
   // the exit node (and its body pointer-events lock) forever. Closing with
@@ -116,23 +126,28 @@ export function AdminSideSheet({
 
         {/* Sheet panel */}
         <Dialog.Content
+          ref={surfaceRef}
           data-component="AdminSideSheet"
           data-slot="surface"
           data-tone={tone}
           data-mobile="sheet"
+          data-sheet-surface={rendersAsSheet ? "" : undefined}
           data-instant-exit={instantExit || undefined}
           className={cn(
             // Mobile: full-width bottom sheet. Desktop ≥640px:
             // right-docked below AppBar and extended to the viewport bottom.
             "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-none -translate-x-1/2 flex-col",
-            "rounded-t-[var(--m3-shape-lg)]",
             "sm:top-[var(--admin-sheet-top)] sm:right-[var(--admin-sheet-side-inset)] sm:bottom-[var(--admin-sheet-bottom)] sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",
             "sm:w-[var(--admin-side-sheet-width)]",
-            "sm:rounded-[var(--m3-shape-lg)]",
             // Solid surface + elevation 2 — dense surfaces stay solid; glass
-            // remains Navigation/FAB-only.
-            "bg-[rgb(var(--m3-surface-container-high))]",
-            "shadow-[var(--m3-elevation-2)]",
+            // remains Navigation/FAB-only. Below 640px the shared sheet
+            // material paints the surface instead.
+            !rendersAsSheet &&
+              cn(
+                "rounded-t-[var(--m3-shape-lg)] sm:rounded-[var(--m3-shape-lg)]",
+                "bg-[rgb(var(--m3-surface-container-high))]",
+                "shadow-[var(--m3-elevation-2)]"
+              ),
             // Enter/exit motion (mobile slide-up, desktop slide-in-from-right)
             // is driven by the [data-component="AdminSideSheet"][data-slot="surface"]
             // [data-state] rules in admin-m3-components.css.
@@ -150,39 +165,61 @@ export function AdminSideSheet({
           }}
           onKeyDown={onKeyDown}
         >
-          {/* Close button - absolute top-right */}
-          <Dialog.Close
-            data-slot="close"
-            className={closeButtonClasses}
-            aria-label={formatMessage({ id: "app.common.close" })}
-            disabled={preventClose}
-          >
-            <RiCloseLine className="h-6 w-6" aria-hidden />
-          </Dialog.Close>
-
-          <header
-            data-slot="header"
-            className="shrink-0 border-b border-stroke-soft px-4 py-3 pr-14 sm:px-6 sm:pr-14"
-          >
-            <div className="min-w-0">
-              <Dialog.Title className="type-title-lg font-semibold text-[rgb(var(--m3-on-surface))]">
-                {title}
-              </Dialog.Title>
-              <Dialog.Description
-                className={cn(
-                  description ? "mt-0.5 type-body" : "sr-only",
-                  "text-[rgb(var(--m3-on-surface-variant))]"
-                )}
+          {rendersAsSheet ? (
+            <>
+              {/* The phone sheet's grip (visual only) and the phone dialog's
+                  header, which carries the close button. */}
+              <SheetGrip />
+              <AdminDialogHeader
+                title={title}
+                description={description}
+                rendersAsSheet
+                closeLabel={closeLabel}
+                onClose={() => handleOpenChange(false)}
+                closeDisabled={preventClose}
+                closeTestId="admin-side-sheet-close"
+              />
+            </>
+          ) : (
+            <>
+              {/* Close button - absolute top-right */}
+              <Dialog.Close
+                data-slot="close"
+                className={closeButtonClasses}
+                aria-label={closeLabel}
+                disabled={preventClose}
               >
-                {description ?? title}
-              </Dialog.Description>
-            </div>
-          </header>
+                <RiCloseLine className="h-6 w-6" aria-hidden />
+              </Dialog.Close>
+
+              <header
+                data-slot="header"
+                className="shrink-0 border-b border-stroke-soft px-4 py-3 pr-14 sm:px-6 sm:pr-14"
+              >
+                <div className="min-w-0">
+                  <Dialog.Title className="type-title-lg font-semibold text-[rgb(var(--m3-on-surface))]">
+                    {title}
+                  </Dialog.Title>
+                  <Dialog.Description
+                    className={cn(
+                      description ? "mt-0.5 type-body" : "sr-only",
+                      "text-[rgb(var(--m3-on-surface-variant))]"
+                    )}
+                  >
+                    {description ?? title}
+                  </Dialog.Description>
+                </div>
+              </header>
+            </>
+          )}
 
           {/* Content column — panels own scrolling (SheetBody) and any pinned
-              footer (SheetFooter), so shell and panel padding never stack. */}
+              footer (SheetFooter), so shell and panel padding never stack.
+              Under the phone's shared header, the panel's SheetBody shows a
+              hairline only while it scrolls (DL-028). */}
           <div
             data-slot="content"
+            data-body-scroll-edge={rendersAsSheet ? "top" : undefined}
             data-testid="admin-side-sheet-content"
             className="flex min-h-0 flex-1 flex-col type-body text-[rgb(var(--m3-on-surface-variant))]"
           >

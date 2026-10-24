@@ -17,4 +17,16 @@ describe("Hub workbench grid CSS", () => {
     expect(gridRule).toContain("justify-content: stretch");
     expect(gridRule).not.toContain("22rem");
   });
+
+  it("gives the work queue's wide cards their own column rule, two to a row at 1280px", () => {
+    const css = readFileSync(resolve(__dirname, "../../styles/admin-layout.css"), "utf-8");
+    const wideRule =
+      css.match(/\.hub-workbench-grid\[data-card-layout="wide"\]\s*{[^}]*}/s)?.[0] ?? "";
+
+    // 26rem tracks: the 1176px content column at 1280px fits two (three need
+    // 1276px), and the 920px column at 1024px still fits two.
+    expect(wideRule).toContain(
+      "grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr))"
+    );
+  });
 });
