@@ -20,9 +20,17 @@ export interface AddressDisplayName {
   display: string;
 }
 
-export function useAddressDisplayName(address?: Address | null): AddressDisplayName {
+export function useAddressDisplayName(
+  address?: Address | null,
+  {
+    list = false,
+  }: {
+    /** One row in a list: its Green Goods name is read with the list's other rows, in one batch. */
+    list?: boolean;
+  } = {}
+): AddressDisplayName {
   const { data: ensName } = useEnsName(address);
-  const { data: protocolName } = useGreenGoodsEnsName(address);
+  const { data: protocolName } = useGreenGoodsEnsName(address, { list });
   const preferredName = protocolName || ensName || null;
   return {
     preferredName,

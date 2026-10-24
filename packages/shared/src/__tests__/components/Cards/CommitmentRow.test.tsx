@@ -22,15 +22,14 @@ const MAKER = "0x1111111111111111111111111111111111111111" as Address;
 const TAKER = "0x2222222222222222222222222222222222222222" as Address;
 const NOBODY = "0x0000000000000000000000000000000000000000" as Address;
 
-const { useEnsName } = vi.hoisted(() => ({
+const { useEnsName, useGreenGoodsEnsName } = vi.hoisted(() => ({
   useEnsName: vi.fn((address?: string | null) => ({
     data: address === "0x2222222222222222222222222222222222222222" ? "maria.eth" : null,
   })),
+  useGreenGoodsEnsName: vi.fn(() => ({ data: null })),
 }));
 vi.mock("../../../hooks/blockchain/useEnsName", () => ({ useEnsName }));
-vi.mock("../../../hooks/ens/useGreenGoodsEnsName", () => ({
-  useGreenGoodsEnsName: () => ({ data: null }),
-}));
+vi.mock("../../../hooks/ens/useGreenGoodsEnsName", () => ({ useGreenGoodsEnsName }));
 
 const commitment = {
   direction: "OFFER" as const,
@@ -64,6 +63,8 @@ describe("CommitmentRow", () => {
       /^Offer Water the seedlings weekly In progress due 24 Oct\s*maria\.eth$/
     );
     expect(row).toHaveAttribute("data-edge", "info");
+    // A list's rows read their Green Goods names together, in one batch.
+    expect(useGreenGoodsEnsName).toHaveBeenCalledWith(TAKER, { list: true });
   });
 
   it("reads the other person from the reader's seat, and names nobody before anyone takes it up", () => {

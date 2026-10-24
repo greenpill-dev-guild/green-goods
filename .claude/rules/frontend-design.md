@@ -229,14 +229,14 @@ Persistent chrome (`AppBar` GardenChip, workspace title bar, breadcrumb) is the 
   description="Review work flowing through Tech and Sun Hub."
   metadata={<MetaStrip items={[{ label: garden.name }]} />}
 />
-<WorkbenchRow eyebrow={garden.name} title={...} />
+<ItemRow lead={lead} title={...} details={[garden.name, age]} />
 <Card>
   <p>{gardenName}</p>  {/* visible-body duplication */}
 </Card>
 
 // Good — header speaks to the stage; rows speak to their own status; chrome owns the garden context
 <PageHeader title="Work" description="Review and triage pending submissions." />
-<WorkbenchRow eyebrow="Review" title={...} />
+<ItemRow lead={lead} title={...} status={{ label: "Pending", tone: "warning" }} details={[gardener, age]} />
 <Card>
   {/* Garden context inherited from chrome; no body line needed. Keep it in
       hover-title for accessibility if the card may be detached from chrome. */}
