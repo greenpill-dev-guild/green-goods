@@ -2255,6 +2255,31 @@
     padding-inline-end: 0.5rem;
   }
 
+  /* An amount the item carries, in the right slot of a row with no action (a jar's
+   * balance): the value with its asset at the title's size, never cut, and what it is
+   * under it. The body gives way first, so a long amount ends the title in an ellipsis. */
+  .gg-item-row-amount {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.125rem;
+    padding-inline-end: 0.75rem;
+    text-align: end;
+  }
+
+  .gg-item-row-amount-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .gg-item-row-amount-caption {
+    color: rgb(var(--text-sub-600));
+    white-space: nowrap;
+  }
+
   /* ── State mark ── The round tile that leads the state block (`EmptyState`):
    * 56px with a 24px glyph on both surfaces. A calm state takes the surface's
    * quiet accent: the app's green tint, or what a surface sets in
