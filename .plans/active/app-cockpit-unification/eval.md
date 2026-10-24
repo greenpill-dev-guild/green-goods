@@ -42,7 +42,7 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A16 | Glass | The design guide describes solid surfaces and the cockpit's one translucent dock; the five-thickness material spec is gone and nothing rendered changes. |
 | A17 | Card shapes | Shared holds one card surface and the four shapes, each at two densities; every object card in scope is built from them; no card primitive is left without a consumer. |
 | A18 | One home per object | Each object's card code lives in one place; no two card components share a name; every new Shared path is a deliberate export. |
-| A19 | Cockpit controls | For each migrated family, the cockpit renders only the shared controls; density, hit areas, pill corners and the tone budget are unchanged; Rules 15 and 18 and the wrapper-adoption sweep describe the new direction. |
+| A19 | Cockpit controls | For each migrated family, the cockpit renders only the shared controls; density, hit areas, pill corners and the tone budget are unchanged; Rules 15 and 18 and the wrapper-adoption sweep describe the new direction. For dialogs and sheets, `AdminDialog`'s Radix shell is DL-117's recorded exception: it renders the shared header and action bar inside its own surface. |
 | A20 | Detail lines | Every item row's detail line stays on one line at 320, 360 and 390px in English, Spanish and Portuguese; each card type shows its details in the accepted order, and a detail that does not fit drops whole; an age is always a number. |
 | A21 | One height | Every card in a list is the same height on both surfaces, in every state, action and language; the pill under the title never makes a row grow. |
 | A22 | One pill per card | A card shows one pill, its status; an error, a retry or a pending state replaces it, feedback is a detail, and the photo count sits on the photo. |
@@ -1108,6 +1108,39 @@ run locally with a temporary `server.fs.allow`, reverted before the commit.
 
 **Not in the step.** Nothing mounts the chip in the app, and its menu is unchanged: it opens only
 from a switcher, which the app does not mount yet.
+
+## Step 20 phase 3 proof: dialogs on the shared header
+
+Run on 2026-10-24 for `feature/app-cockpit-shared-dialogs` (`0c69a097c` and `73f6e563f`) against
+`develop` `796e9e1bb`. Two capture-only Storybooks, one per tree, rendered a parked capture story
+(four dialogs, each open) that was copied into both and deleted before any gate.
+
+**Pairs.** 24 pairs, **Storybook**, headless Chromium (Playwright) at device scale 2: a standard
+dialog with its own actions, a form dialog, a danger confirm with a pool target, and a confirm
+nested in a dialog, at 390, 768 and 1280px in light and dark. Four are pixel-identical: the
+standard and form dialogs at 390px, which have shown the shared header since step 9. Private page:
+https://claude.ai/artifact/7dC3c4kyd6po22ef6iyYnc.
+
+**Measured** on the topmost dialog (`getComputedStyle`):
+
+| | Before | After |
+|---|---|---|
+| Header from 640px | the cockpit's own: an icon on a destructive confirm, a rule under it, Close absolute 12px from the edge | `SheetHeader`: no icon, no rule, Close on the title's line 16px from the edge |
+| Title | 22px on 28px | 22px on 28px |
+| Desktop confirm height | 220px | 225px |
+| Confirm family's buttons | `AdminButton` at 32px, Cancel a text button, the dark danger fill `rgb(255, 104, 117)` | `SheetActions` at 40px, Cancel outlined, the danger fill `rgb(208, 37, 51)` in both themes (DL-053) |
+| Surface fill from 640px | 236 233 226 in light, 52 44 36 in dark | unchanged |
+
+**Behavior.** Play functions in Chromium, 15 of 15 in the AdminDialog and AdminSideSheet stories:
+`Default`, `FormDialog`, `ConfirmFocusReturn` and `NestedDialogs` close with Escape and with
+Cancel and check that the scroll and pointer locks are released and focus is back on the opener;
+in the nested pair Escape closes only the confirm and focus steps back one level. They failed
+before the focus fix: Radix returns focus only to a `Dialog.Trigger`, which the cockpit's
+controlled dialogs lack. Unit tests: the full admin suite, 151 files and 1,379 tests passing.
+
+**Found on the way.** The first after frames showed the confirm family's footer padded twice:
+`SheetActions` pads and fills itself, and the dialog's footer bar pads too. The dialog now hosts
+the bar from its own selector, as DialogShell and ConfirmDialog do (`73f6e563f`).
 
 ## Step 20 phase 4 proof: cards and tabs
 
