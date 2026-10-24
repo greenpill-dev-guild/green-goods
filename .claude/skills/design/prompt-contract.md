@@ -184,7 +184,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `NavigationBar` | Bottom workspace tabs: Hub, Garden, Community, Actions (+ mobile-only Profile tab); symbol-first; role-adaptive |
 | `FabButton` (`Shell/FabButton`) | Per-workspace primary action in the nav shell, a capsule at both sizes (`rounded-full`): 48px dock circle, 56px extended floating capsule with label (DL-010); integrated via `FabProvider` |
 
-**Admin wrappers** (exported from `packages/admin/src/components/Admin*.tsx`, where the filesystem is the roster of record; 24 wrappers across 20 files today, since `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminIconButton` in `AdminButton.tsx`, and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`; `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers):
+**Admin wrappers** (exported from `packages/admin/src/components/Admin*.tsx`, where the filesystem is the roster of record; 24 wrappers across 20 files once DL-109's code change retires `AdminSettingRow` for the shared `FactRow`, since `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminIconButton` in `AdminButton.tsx`, and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`; `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers):
 
 `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFieldGroup` · `AdminFilterChip` · `AdminIconButton` · `AdminInlineField` · `AdminInputChip` · `AdminLinearProgress` · `AdminListRow` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
 

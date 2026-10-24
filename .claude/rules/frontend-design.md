@@ -146,7 +146,8 @@ modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to sur
 Shared `FormField`/`TextInput`/`Textarea`/`NativeSelect` renders in `packages/admin/src` fail
 the wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row** (field title
 left, `Switch` or compact control right), use the shared `FactRow` with no value and the control as
-its `action`, in a `FactList` (DL-109): its label reads as a field title.
+its `action`, in a `FactList` (DL-109): its label reads as a field title. `AdminSettingRow` draws the
+setting row until DL-109's code change retires it.
 
 **Client**: use the `FormField` component from `@green-goods/shared` for label+input+error
 patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
