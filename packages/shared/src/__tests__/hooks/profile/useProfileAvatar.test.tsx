@@ -14,9 +14,14 @@ const mocks = vi.hoisted(() => ({
   clearDraft: vi.fn(),
   loadDraft: vi.fn(),
   getAvatar: vi.fn(),
+  getListed: vi.fn(),
   publishAvatar: vi.fn(),
   saveAvatar: vi.fn(),
   signMessage: vi.fn(),
+  ensNames: {} as Record<string, string>,
+  ensNameLoading: false,
+  ensAvatars: {} as Record<string, string>,
+  ensAvatarCalls: [] as Array<{ address: string | null | undefined; enabled: boolean | undefined }>,
 }));
 
 vi.mock("wagmi", () => ({
@@ -31,6 +36,24 @@ vi.mock("../../../hooks/auth/useAuth", () => ({
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => CHAIN_ID,
 }));
+// ENS answers come from the tables above; every avatar lookup records whether it was enabled.
+vi.mock("../../../hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address?: string | null) => ({
+    data: address ? (mocks.ensNames[address.toLowerCase()] ?? null) : undefined,
+    isLoading: address ? mocks.ensNameLoading : false,
+  }),
+}));
+vi.mock("../../../hooks/blockchain/useEnsAvatar", () => ({
+  useEnsAvatar: (address?: string | null, options: { enabled?: boolean } = {}) => {
+    mocks.ensAvatarCalls.push({ address, enabled: options.enabled });
+    return {
+      data:
+        options.enabled && address ? (mocks.ensAvatars[address.toLowerCase()] ?? null) : undefined,
+      isLoading: false,
+      error: null,
+    };
+  },
+}));
 vi.mock("../../../modules/profile-avatar", async (importOriginal) => {
   const original = await importOriginal<typeof import("../../../modules/profile-avatar")>();
   return {
@@ -40,12 +63,16 @@ vi.mock("../../../modules/profile-avatar", async (importOriginal) => {
     publishProfileAvatar: mocks.publishAvatar,
     profileAvatarTransport: {
       get: mocks.getAvatar,
+      getListed: mocks.getListed,
       save: mocks.saveAvatar,
     },
   };
 });
 
-import { useProfileAvatarEditor } from "../../../hooks/profile/useProfileAvatar";
+import {
+  useProfileAvatarEditor,
+  useResolvedProfileAvatar,
+} from "../../../hooks/profile/useProfileAvatar";
 
 function createDraft(address: Address) {
   return {
@@ -257,5 +284,64 @@ describe("useProfileAvatarEditor", () => {
 
     expect(result.current.draft?.address).toBe(ADDRESS_B);
     expect(result.current.stage).toBe("idle");
+  });
+});
+
+describe("useResolvedProfileAvatar in a list of people", () => {
+  const listedRecord = (address: Address, avatarUri: string | null) => ({
+    chainId: CHAIN_ID,
+    address,
+    avatarUri,
+    version: avatarUri ? 1 : 0,
+    updatedAt: null,
+  });
+
+  beforeEach(() => {
+    mocks.getListed.mockReset();
+    mocks.ensNames = {};
+    mocks.ensNameLoading = false;
+    mocks.ensAvatars = {};
+    mocks.ensAvatarCalls = [];
+  });
+
+  it("makes no ENS avatar lookup for someone without an ENS name", async () => {
+    mocks.getListed.mockResolvedValue(listedRecord(ADDRESS_A, null));
+    const { result } = renderHookWithQueryClient(() =>
+      useResolvedProfileAvatar(ADDRESS_A, "/images/avatar.png", CHAIN_ID, { list: true })
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.avatarUri).toBe("/images/avatar.png");
+    expect(mocks.ensAvatarCalls.every((call) => call.enabled === false)).toBe(true);
+  });
+
+  it("looks up an ENS-named person's ENS avatar only once their profile shows no photo", async () => {
+    mocks.ensNames[ADDRESS_B] = "bea.eth";
+    mocks.ensAvatars[ADDRESS_B] = "https://example.com/bea.png";
+    const profile = createDeferred<ReturnType<typeof listedRecord>>();
+    mocks.getListed.mockReturnValue(profile.promise);
+    const { result } = renderHookWithQueryClient(() =>
+      useResolvedProfileAvatar(ADDRESS_B, "/images/avatar.png", CHAIN_ID, { list: true })
+    );
+
+    // While the profile read is out, the row waits and asks ENS for nothing.
+    expect(result.current.isLoading).toBe(true);
+    expect(mocks.ensAvatarCalls.every((call) => call.enabled === false)).toBe(true);
+
+    await act(async () => profile.resolve(listedRecord(ADDRESS_B, null)));
+    await waitFor(() => expect(result.current.avatarUri).toBe("https://example.com/bea.png"));
+    expect(mocks.ensAvatarCalls.at(-1)?.enabled).toBe(true);
+  });
+
+  it("shows a profile photo as soon as it arrives, without waiting on the ENS name", async () => {
+    mocks.ensNameLoading = true;
+    mocks.getListed.mockResolvedValue(listedRecord(ADDRESS_A, "ipfs://river"));
+    const { result } = renderHookWithQueryClient(() =>
+      useResolvedProfileAvatar(ADDRESS_A, "/images/avatar.png", CHAIN_ID, { list: true })
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.record?.avatarUri).toBe("ipfs://river");
+    expect(mocks.ensAvatarCalls.every((call) => call.enabled === false)).toBe(true);
   });
 });
