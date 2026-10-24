@@ -159,6 +159,75 @@
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
+/* STATUS PALETTE REMAP (mirror). The cockpit's amber, handoff red and azure
+   ramps from index.css, set on <body> as production does, so admin stories and
+   the dialogs and sheets they portal draw the canvas's colors. Copied
+   declaration for declaration; WorkspaceToneContrast.guard fails when the two
+   drift. */
+:root[data-surface="admin"] body,
+[data-surface-scope="admin"] {
+  /* Link-hover step: the generated DesignMD tertiary-action-hover resolves to
+   * a green measuring 4.29:1 on white — one step deeper (green-900, 7.19)
+   * keeps the resting→hover darkening while clearing body-text AA. Dark mode
+   * re-points the .text-primary-* classes separately below. */
+  --primary-darker: var(--green-900);
+  /* Amber (warning) — handoff #D97706 anchor, full scale extrapolated from Tailwind amber */
+  --orange-50: 255 251 235;
+  --orange-100: 254 243 199;
+  --orange-200: 253 230 138;
+  --orange-300: 252 211 77;
+  --orange-400: 251 191 36;
+  --orange-500: 217 119 6;     /* #D97706 — handoff --amber-500 */
+  --orange-600: 180 83 9;
+  --orange-700: 180 83 9;      /* #B45309 — handoff --amber-700 */
+  --orange-800: 146 64 14;
+  --orange-900: 120 53 15;
+  --orange-950: 69 26 3;
+
+  /* Red — less-vivid handoff red */
+  --red-50: 254 242 242;
+  --red-100: 254 226 226;
+  --red-200: 254 202 202;
+  --red-300: 252 165 165;
+  --red-400: 248 113 113;
+  --red-500: 224 56 53;        /* #E03835 — handoff --red-500 */
+  --red-600: 220 38 38;
+  --red-700: 185 28 28;        /* #B91C1C — handoff --red-700 */
+  --red-800: 153 27 27;
+  --red-900: 127 29 29;
+  --red-950: 69 10 10;
+
+  /* Sky — handoff azure replaces our cyan-ish */
+  --sky-50: 239 246 255;
+  --sky-100: 219 234 254;
+  --sky-200: 191 219 254;
+  --sky-300: 147 197 253;
+  --sky-400: 96 165 250;
+  --sky-500: 59 130 246;       /* #3B82F6 — handoff --sky-500 */
+  --sky-600: 37 99 235;
+  --sky-700: 29 78 216;
+  --sky-800: 30 64 175;
+  --sky-900: 30 58 138;
+  --sky-950: 23 37 84;
+
+  /* Information state — remap from --blue-* to --sky-* so info badges in admin
+   * also pick up the handoff azure. Without this, --information-* would
+   * continue to resolve through --blue-* (unchanged in this scope). */
+  --information-dark: var(--sky-950);
+  --information-base: var(--sky-500);
+  --information-light: var(--sky-200);
+  --information-lighter: var(--sky-50);
+}
+
+:root[data-surface="admin"][data-theme="dark"] body,
+[data-theme="dark"] [data-surface-scope="admin"],
+[data-surface-scope="admin"][data-theme="dark"] {
+  /* Dark-mode handoff palette — slightly lighter shades for AA on dark surfaces */
+  --orange-500: 245 158 11;    /* #F59E0B */
+  --red-500: 248 113 113;      /* #F87171 */
+  --sky-500: 96 165 250;       /* #60A5FA */
+}
+
 /* ── Installed app and public website ──────────────────────────────────── */
 /* The client sets Inter on :root and, in the installed app's presentation,
    Plus Jakarta Sans, the cockpit's face (index.css). The app frame and <body>
