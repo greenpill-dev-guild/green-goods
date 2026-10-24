@@ -764,7 +764,10 @@ Human corrections: 0 observed; attention: unknown.
   is `TextInput` with no edge or fill of its own, inside the pill that keeps the ring.
 - **`AdminFilterChip`** renders Shared's `Chip` with `admin-hit-target`, the 44px layout box. The
   shared selected rule reads `--tone-action` and `--tone-on-action`, with the theme's action pair as
-  the fallback; the app sets no tone, so its chips are unchanged.
+  the fallback; the app sets no tone, so its chips are unchanged. A selected chip's hover and press
+  lay the neutral ink as a background image beneath the label, at `--gg-chip-state-hover` and
+  `--gg-chip-state-pressed`, which only the cockpit sets (0.08 and 0.12); Codex's review of #1255
+  found the feedback missing.
 - **Stay:** `AdminFieldGroup` (no shared group field), `AdminSortSelect` (already `NativeSelect`),
   `AdminInputChip` (a `Chip` is a button and cannot hold the remove button), `AdminCheckbox` and
   `AdminChoiceGroup` (no shared counterpart; `FormCheckbox` is not exported).

@@ -1145,7 +1145,9 @@ in **Storybook** (headless Chromium at device scale 2).
 - What changes on screen: the box is the shared control on the admin surface, with a 1px outline in
   place of the inset ring, the focus ring 2px off the box, a 1px error border, a white fill where
   the field was transparent and the shared disabled fill; the filter chip is the shared chip, its
-  selected fill in the workspace tone.
+  selected fill in the workspace tone. With a real pointer, a selected chip in every tone deepens
+  (light) or lifts (dark) by the neutral ink layer on hover (8%) and press (12%), its label color
+  unchanged, and the app's selected chip keeps its fill on hover.
 - Found by the first after capture and fixed before review: the admin surface's outline and fill,
   declared after the shared error and disabled states at the same weight, hid both, so a field in
   error kept its gray edge; and the shared disabled rule's background shorthand cleared a disabled
