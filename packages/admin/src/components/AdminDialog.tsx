@@ -474,15 +474,16 @@ export function AdminConfirmDialog({
       hideCloseButton={isLoading}
       actions={
         // The shared action bar (DL-016): Cancel outlined, the confirm filled,
-        // in the danger fill for a destructive act. A loading confirm stays
-        // focusable and ignores activation.
+        // in the warning or danger fill when the dialog warns, its one tone cue
+        // now the header has no icon. A loading confirm stays focusable and
+        // ignores activation.
         <SheetActions
           primary={{
             label: resolvedConfirmLabel,
             onClick: handleConfirm,
             loading: isLoading,
             disabled: !isLoading && confirmDisabled,
-            tone: isDanger ? "danger" : "default",
+            tone: variant,
           }}
           secondary={{ label: resolvedCancelLabel, onClick: handleCancel, disabled: isLoading }}
         />

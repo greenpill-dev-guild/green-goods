@@ -434,6 +434,26 @@ describe("AdminConfirmDialog", () => {
     expect(dialog).toHaveClass("inset-x-0", "w-[100dvw]", "max-w-none", "sm:max-w-md");
   });
 
+  it.each([
+    ["warning", "warning"],
+    ["danger", "danger"],
+    ["default", null],
+  ] as const)("fills a %s confirmation's confirm in its tone", (variant, tone) => {
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Discard changes?"
+        confirmLabel="Discard"
+        variant={variant}
+      />
+    );
+    const confirm = screen.getByRole("button", { name: "Discard" });
+    if (tone) expect(confirm).toHaveAttribute("data-tone", tone);
+    else expect(confirm).not.toHaveAttribute("data-tone");
+  });
+
   it("locks confirmation dialogs while loading", () => {
     const onConfirm = vi.fn();
     renderWithProviders(
