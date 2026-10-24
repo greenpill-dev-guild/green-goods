@@ -2459,6 +2459,7 @@
   "app.hypercerts.list.totalUnits": "Total units",
   "app.hypercerts.list.viewDetails": "View Details",
   "app.hypercerts.list.viewExternal": "View on Hypercerts",
+  "app.hypercerts.list.workCount": "{count, plural, one {# work} other {# works}}",
   "app.hypercerts.list.workScopes": "Work scopes",
   "app.hypercerts.marketplace.expired": "Expired",
   "app.hypercerts.marketplace.expires": "Expires",

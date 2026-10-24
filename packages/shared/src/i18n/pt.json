@@ -2459,6 +2459,7 @@
   "app.hypercerts.list.totalUnits": "Unidades totais",
   "app.hypercerts.list.viewDetails": "Ver detalhes",
   "app.hypercerts.list.viewExternal": "Ver em Hypercerts",
+  "app.hypercerts.list.workCount": "{count, plural, one {# trabalho} other {# trabalhos}}",
   "app.hypercerts.list.workScopes": "Escopos de trabalho",
   "app.hypercerts.marketplace.expired": "Expirado",
   "app.hypercerts.marketplace.expires": "Expira",
