@@ -265,8 +265,9 @@
   ([eval.md](../eval.md#step-10-proof-outlined-fields)). The filled look and its `variant` prop go.
 - Shared: the date picker always renders its line, and its error takes the family's red;
   `FormFieldWrapper` and `FormattedAmountInput` read the same line, so the app's reserve becomes the
-  per-surface setting with no visual change (0% on every app pair). Seven cockpit rows with an
-  action beside a field move it with the box and keep their relation to it.
+  per-surface setting with no visual change (0% on every app pair). Every cockpit row with an
+  action beside a field (fourteen components, in three layouts) keeps its relation to the box, and
+  the sign-in field reserves no message line.
 - Proof: TDD `required`, RED and GREEN in the eval section; the browser-mode stories and the
   design-system pages; the pairs, **Storybook** for the cockpit and **mock-auth localhost** for the
   app, no authenticated class.

@@ -572,10 +572,20 @@ forms in English, Spanish and Portuguese, the rows at 768 and 1280px (where they
 English and Portuguese. Changed pixels per pair (a channel sum above 12): the app 0% on all 36
 pairs; the cockpit's forms 7.5 to 52.8%, the family's stories 0.6 to 40.8%.
 
-**Rows with an action beside a field.** Seven move the action with the box and keep the relation it
-had on `develop`: the Seed confirmers by the 16px the message line grew, the rest by the 24px label
-block. Measured at 768px: Create Garden's team step centred, the vault Deposit and Withdraw dialogs'
-Max 2px below centre, Add members 8px below centre, the Seed confirmers on the box's bottom edge. Two
-rest on arithmetic, not a picture: the cookie jar withdraw dialog's Max (its story is a harness
-built from shared controls) and Strategies' add button, which stays on the box's top edge from
-640px.
+**Rows with an action beside a field.** Every action laid out against a field keeps the relation it
+had on `develop`. A sweep of the 52 admin files that render the field family found fourteen
+components with such rows, in three layouts. Rows aligned to the field's top move the action down by
+the 24px label block: Create Garden's team step, Add members, the vault Deposit and Withdraw dialogs,
+the cookie jar withdraw dialog, Strategies and the assessment outcome's remove button. Rows aligned
+to its bottom lift the action by 36px instead of 20 (the two-line message line and its gap): the
+Seed confirmers and amounts, the garden picker and the created jar address. Centred rows (the action
+editors' option and shot rows, the payout unit) take a 12px bottom margin for 20, because the box's
+middle now sits 6px above the field's. Measured in Storybook at 390, 768 and 1280px: the team step,
+the outcome's remove button, the payout unit and the garden picker's buttons centred; Deposit and
+Withdraw 2px below centre, Add members 8px, the action editors 3px (their buttons' own top margin,
+as on `develop`); the Seed rows and the created jar address on the box's bottom edge. The cookie jar
+withdraw dialog (its story is a harness built from shared controls) and Strategies (no story) rest
+on arithmetic, not a picture. The sign-in field shows its hints and errors in the form's feedback
+zone, so it reserves no message line: its slot grows from 64 to 72px, and the field fits it at every
+width. The first pass found seven of the fourteen; Codex's review of `770812271` found the rest of
+the bottom-aligned and top-aligned rows and the sign-in slot, and the sweep found the centred ones.
