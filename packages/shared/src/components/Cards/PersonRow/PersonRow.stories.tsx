@@ -41,12 +41,24 @@ function Column({ width, children }: { width: number; children: ReactNode }) {
 
 /**
  * A garden's people: every kind of name, several roles held at once with the count of them,
- * a funder's yield, and the longest role, "Community member", in each language.
+ * since when a gardener has been one, a funder's yield, and the longest role, "Community
+ * member", in each language.
  */
 function Roster() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatDate } = useIntl();
   const roles = (count: number) =>
     formatMessage({ id: "cockpit.community.members.roleCount" }, { count });
+  // The installed app's member detail, at noon UTC so every timezone reads the same day.
+  const gardenerSince = formatMessage(
+    { id: "app.garden.gardeners.gardenerSince" },
+    {
+      date: formatDate(Date.UTC(2023, 10, 14, 12), {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+    }
+  );
   return (
     <>
       <li>
@@ -60,7 +72,7 @@ function Roster() {
         />
       </li>
       <li>
-        <PersonRow address={BARE} roles={["gardener"]} />
+        <PersonRow address={BARE} roles={["gardener"]} details={[gardenerSince]} />
       </li>
       <li>
         <PersonRow
@@ -140,15 +152,17 @@ export const Densities: Story = {
     const rows = within(app).getAllByRole("listitem");
     await expect(rows[0]).toHaveTextContent(/^river\s*Owner\s*2 roles$/);
     await expect(rows[1]).toHaveTextContent(/^ana-souza\.eth\s*Steward\s*3 roles$/);
-    await expect(rows[2]).toHaveTextContent(/^0x33\.\.\.333\s*Gardener$/);
+    await expect(rows[2]).toHaveTextContent(
+      /^0x33\.\.\.333\s*Gardener\s*Gardener since Nov 14, 2023$/
+    );
     await expect(rows[4].querySelector(".gg-item-row-avatar")).toBeEmptyDOMElement();
     await expectItemRowsFit(canvasElement);
   },
 };
 
 /**
- * The longest role chips and counts in English, Spanish and Portuguese at 320, 360 and
- * 390px phones: every row keeps its 88px, and no detail wraps or is cut.
+ * The longest role chips, counts and dates in English, Spanish and Portuguese at 320, 360 and
+ * 390px phones: every row keeps its 88px, and every detail sits whole on its line.
  */
 export const ThreeLanguages: Story = {
   render: () => (
@@ -173,7 +187,8 @@ export const ThreeLanguages: Story = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    await expectItemRowsFit(canvasElement);
+    const fit = await expectItemRowsFit(canvasElement);
+    await expect(fit.ellipsized).toBe(0);
   },
 };
 

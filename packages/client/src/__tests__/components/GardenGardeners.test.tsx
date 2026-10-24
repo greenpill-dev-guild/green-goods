@@ -39,7 +39,7 @@ vi.mock("@/components/Inputs", () => ({
 import { GardenGardeners, type GardenMember } from "../../components/Features/Garden/Gardeners";
 
 const messages = {
-  "app.garden.gardeners.joined": "Joined {date}",
+  "app.garden.gardeners.gardenerSince": "Gardener since {date}",
   "app.roles.gardener": "Gardener",
   "app.roles.steward": "Steward",
 };
@@ -135,7 +135,7 @@ describe("GardenGardeners", () => {
     expect(toastService.success).not.toHaveBeenCalled();
   });
 
-  it("shows each member's highest role and when a gardener joined, and no date it lacks", () => {
+  it("shows each member's highest role and since when a gardener has been one, and no date it lacks", () => {
     render(
       <TestIntl>
         <GardenGardeners
@@ -149,11 +149,13 @@ describe("GardenGardeners", () => {
     );
 
     const steward = screen.getByRole("button", { name: /Member 0/i });
-    expect(steward).toHaveTextContent("Steward");
-    expect(steward).not.toHaveTextContent("Gardener");
-    expect(steward).toHaveTextContent("Joined Nov 14, 2023");
-    expect(screen.getByRole("button", { name: /Member 1/i })).not.toHaveTextContent("Joined");
-    expect(screen.getByRole("button", { name: /Member 2/i })).not.toHaveTextContent("Joined");
+    // The pill is the highest role alone. The date is the indexer's one date per gardener, their
+    // first gardener role in any garden, so it never claims when they joined this garden.
+    expect(within(steward).getByTitle("Steward")).toBeInTheDocument();
+    expect(within(steward).queryByTitle("Gardener")).not.toBeInTheDocument();
+    expect(steward).toHaveTextContent("Gardener since Nov 14, 2023");
+    expect(screen.getByRole("button", { name: /Member 1/i })).not.toHaveTextContent("since");
+    expect(screen.getByRole("button", { name: /Member 2/i })).not.toHaveTextContent("since");
   });
 
   it("uses the viewed member's published avatar and protocol name across changes", () => {

@@ -1992,7 +1992,7 @@
   "app.garden.draft.title": "¿Continuar trabajo anterior?",
   "app.garden.gardeners": "Jardineros",
   "app.garden.gardeners.noGardeners": "Aún no se han unido jardineros a este jardín.",
-  "app.garden.gardeners.joined": "Se unió el {date}",
+  "app.garden.gardeners.gardenerSince": "Jardinero desde el {date}",
   "app.garden.insights": "Análisis",
   "app.garden.share": "Compartir jardín",
   "app.garden.shareFailed": "No se pudo compartir el jardín",

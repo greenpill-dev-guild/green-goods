@@ -111,8 +111,8 @@ export const IdentityStates: Story = {
     await expect(canvas.getByText("river")).toBeVisible();
     await expect(canvas.queryByText("river.greengoods.eth")).toBeNull();
     await expect(canvas.getByText("ordinary.eth")).toBeVisible();
-    // A gardener's one fact is when they joined; a member with no known date shows none.
-    await expect(canvas.getByText("Joined Nov 14, 2023")).toBeVisible();
+    // A gardener's one fact is since when they have been one; a member with no known date shows none.
+    await expect(canvas.getByText("Gardener since Nov 14, 2023")).toBeVisible();
     await expectItemRowsFit(canvasElement);
   },
 };

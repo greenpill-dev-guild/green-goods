@@ -46,7 +46,8 @@ function contactName(member: GardenMember) {
 
 /**
  * One member as a person row (DL-112): their avatar, their name from the shared address
- * display, their highest role as the chip and, as the one fact, when they joined.
+ * display, their highest role as the chip and, as the one fact, since when they have been a
+ * gardener.
  */
 const GardenMemberItem = memo(function GardenMemberItem({
   member,
@@ -62,7 +63,9 @@ const GardenMemberItem = memo(function GardenMemberItem({
     ...(member.isSteward ? (["steward"] as const) : []),
     ...(member.isGardener ? (["gardener"] as const) : []),
   ];
-  const joined = member.isGardener && member.registeredAt ? member.registeredAt : null;
+  // The indexer records one date per gardener, their first gardener role in any garden, so the
+  // row says since when they have been a gardener, never when they joined this garden.
+  const gardenerSince = member.isGardener && member.registeredAt ? member.registeredAt : null;
 
   return (
     <PersonRow
@@ -73,20 +76,20 @@ const GardenMemberItem = memo(function GardenMemberItem({
       fallbackAvatar={DEFAULT_AVATAR}
       chainId={garden?.chainId ?? DEFAULT_CHAIN_ID}
       details={
-        joined
+        gardenerSince
           ? [
               {
                 text: intl.formatMessage(
-                  { id: "app.garden.gardeners.joined" },
+                  { id: "app.garden.gardeners.gardenerSince" },
                   {
-                    date: intl.formatDate(joined, {
+                    date: intl.formatDate(gardenerSince, {
                       year: "numeric",
                       month: "short",
                       day: "numeric",
                     }),
                   }
                 ),
-                dateTime: new Date(joined).toISOString(),
+                dateTime: new Date(gardenerSince).toISOString(),
               },
             ]
           : undefined
