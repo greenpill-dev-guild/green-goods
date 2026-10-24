@@ -91,6 +91,9 @@ export const StateCatalog: Story = {
  * value or a select's option text, and focus redraws the ring without moving
  * anything. Runs in addon-vitest browser mode, where real layout applies.
  */
+/** A field's root: the control inside it is Shared's and carries its own data-component. */
+const FIELD_ROOT = '[data-component="AdminTextField"], [data-component="AdminSelect"]';
+
 export const LabelAboveGeometry: Story = {
   tags: ["storybook-ci"],
   render: () => (
@@ -131,9 +134,9 @@ export const LabelAboveGeometry: Story = {
     const tier = window.innerWidth < 640 ? 44 : 40;
     await expect(Math.round(nameBox?.getBoundingClientRect().height ?? 0)).toBe(tier);
 
-    // Focus thickens the ring inside the box, so the field keeps its height.
+    // Focus draws the shared ring outside the box (DL-098), so the field keeps its height.
     const search = canvas.getByRole("textbox", { name: "Search" });
-    const searchField = search.closest<HTMLElement>("[data-component]");
+    const searchField = search.closest<HTMLElement>(FIELD_ROOT);
     const before = searchField?.getBoundingClientRect().height;
     await userEvent.click(search);
     await expect(search).toHaveFocus();
@@ -188,7 +191,7 @@ export const MessageHoldsTheLine: Story = {
     const canvas = within(canvasElement);
     const fieldOf = (role: "textbox" | "combobox", name: string) => {
       const control = canvas.getByRole(role, { name });
-      return control.closest<HTMLElement>("[data-component]") ?? control;
+      return control.closest<HTMLElement>(FIELD_ROOT) ?? control;
     };
     const heightOf = (role: "textbox" | "combobox", name: string) =>
       fieldOf(role, name).getBoundingClientRect().height;

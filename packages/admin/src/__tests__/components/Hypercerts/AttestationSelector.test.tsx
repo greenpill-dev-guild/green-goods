@@ -78,6 +78,14 @@ vi.mock("@green-goods/shared/components/Form/ControlPrimitives", () => ({
       children
     );
   },
+  TextInput: ({ surface: _surface, ...props }: { surface?: string; [key: string]: unknown }) => {
+    const React = require("react");
+    return React.createElement("input", props);
+  },
+  Textarea: ({ surface: _surface, ...props }: { surface?: string; [key: string]: unknown }) => {
+    const React = require("react");
+    return React.createElement("textarea", props);
+  },
 }));
 
 vi.mock("@green-goods/shared/components/Form/FormInput", () => ({

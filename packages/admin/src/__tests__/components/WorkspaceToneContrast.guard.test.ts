@@ -5,8 +5,9 @@
  * A filled header action, the FAB, a step marker and the shared primary
  * buttons put `--tone-on-action` (white in light, the tone's -900 ink in dark,
  * DL-009) on `--tone-action`, as a selected filter chip does (DL-101). Shared
- * buttons hover on `--tone-action-hover`. The cockpit's filled AdminButton,
- * AdminIconButton and FAB and a selected AdminFilterChip keep their fill
+ * buttons hover on `--tone-action-hover`. A selected filter chip is Shared's
+ * chip (DL-116), which keeps its fill in every state. The cockpit's filled
+ * AdminButton, AdminIconButton and FAB keep their fill
  * and lay the neutral ink layer (`--m3-on-surface`, Rule 18) over it at the
  * state opacities, beneath their content (`.m3-state-layer-beneath`): the
  * layer deepens a light fill and lifts a dark one while the label keeps its
@@ -109,8 +110,10 @@ const FILLED_CONTROLS: Record<string, string> = {
   "AdminIconButton filled": filledVariants[1] ?? "",
   FabButton:
     fabButton.match(/data-slot="fab-button"[\s\S]*?className=\{cn\(([\s\S]*?)\n\s*\)\}/)?.[1] ?? "",
-  "AdminFilterChip selected": filterChip.match(/\bselected\s*\?\s*\[([\s\S]*?)\]\s*:/)?.[1] ?? "",
 };
+
+/** The shared chip's selected rule, which the cockpit's filter chip renders (DL-116). */
+const SELECTED_CHIP = blocks(theme, '.gg-chip[aria-selected="true"]');
 
 /** Whether the stylesheet paints an opted-in control's state layer beneath its content. */
 const BENEATH_RULE =
@@ -166,6 +169,21 @@ describe("workspace tone fills", () => {
     const mirror = rulesAfter(storybook, "STATUS PALETTE REMAP (mirror)", 2);
     expect(mirror.map((rule) => declarations(rule.body))).toEqual(
       [RAMP, RAMP_DARK].map((rule) => declarations(rule.body))
+    );
+  });
+
+  it("fills a selected filter chip in the tone where it sits, through Shared's chip", () => {
+    expect(filterChip).toMatch(/<Chip\b/);
+    // Read on the chip itself, so each [data-tone] scope resolves; the app has no tone.
+    expect(SELECTED_CHIP).toMatch(
+      /background-color:\s*rgb\(var\(--tone-action,\s*var\(--primary-action\)\)\)/
+    );
+    expect(SELECTED_CHIP).toMatch(
+      /color:\s*rgb\(var\(--tone-on-action,\s*var\(--primary-action-foreground\)\)\)/
+    );
+    // A hover never repaints a selected chip: the selected rule follows the hover rule.
+    expect(theme.indexOf(".gg-chip:hover")).toBeLessThan(
+      theme.indexOf('.gg-chip[aria-pressed="true"]')
     );
   });
 

@@ -1817,12 +1817,15 @@
     outline-offset: 2px;
   }
 
+  /* The cockpit fills a selected chip in its workspace tone (DL-101, DL-116),
+     read where the chip sits so each tone scope resolves; outside a tone it is
+     the theme's action pair. */
   .gg-chip[aria-pressed="true"],
   .gg-chip[aria-checked="true"],
   .gg-chip[aria-selected="true"] {
     border-color: transparent;
-    background-color: rgb(var(--primary-action));
-    color: rgb(var(--primary-action-foreground));
+    background-color: rgb(var(--tone-action, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
   .gg-chip:disabled,
