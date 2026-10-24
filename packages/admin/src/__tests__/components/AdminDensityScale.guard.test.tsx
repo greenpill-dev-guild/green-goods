@@ -189,6 +189,10 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-sheet-edge": "rgb(var(--neutral-200))",
       "--gg-sheet-title-size": "var(--gg-type-title-lg-size)",
       "--gg-sheet-title-line": "var(--gg-type-title-lg-line)",
+      // The shared card surface (F7) on the cockpit's own ladder: its card and
+      // the installed app's linen-grade edge.
+      "--gg-card-surface": "var(--admin-surface-0)",
+      "--gg-card-edge": "var(--neutral-200)",
     });
     // The Storybook admin scope must render what production renders.
     expect(ggTokens(surfacesCss, '[data-surface-scope="admin"] {')).toEqual(admin);

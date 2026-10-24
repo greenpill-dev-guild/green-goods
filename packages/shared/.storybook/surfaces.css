@@ -129,6 +129,11 @@
   --gg-sheet-edge: rgb(var(--neutral-200));
   --gg-sheet-title-size: var(--gg-type-title-lg-size);
   --gg-sheet-title-line: var(--gg-type-title-lg-line);
+
+  /* The shared card surface on the cockpit's ladder, as index.css `:root`
+     sets it (its dark block re-declares the two below). */
+  --gg-card-surface: var(--admin-surface-0);
+  --gg-card-edge: var(--neutral-200);
 }
 
 @media (min-width: 40rem) {
@@ -157,6 +162,8 @@
   --g-on-action: rgb(var(--neutral-950));
   --gg-sheet-fill: rgb(var(--admin-surface-0));
   --gg-sheet-edge: rgb(var(--earth-700));
+  --gg-card-surface: var(--admin-surface-0);
+  --gg-card-edge: var(--earth-700);
 }
 
 /* The cockpit body font. Production sets it on <body> in `@layer base` and has
@@ -269,6 +276,9 @@
   --gg-icon-size-sm: initial;
   --gg-icon-size-compact: initial;
   --gg-hit-block: initial;
+  /* The card surface falls back to the scope's own card and hairline. */
+  --gg-card-surface: initial;
+  --gg-card-edge: initial;
 }
 
 [data-surface-scope="app"] {
