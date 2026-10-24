@@ -202,3 +202,11 @@ centered dialog from 640px does not change. The grip marks the sheet and does no
 it should drag in the cockpit is still open. The code is on `feature/app-cockpit-phone-sheets`,
 and DL-104 with its guide wording is the standards-only `feature/app-cockpit-phone-sheets-guides`;
 [eval.md](eval.md#step-9-proof-phone-sheets) records the pairs and the behavior proof.
+
+**Step 21 (23 October).** The installed app's bottom bar takes the cockpit's pill in its green on
+`feature/app-cockpit-bar-pill`: a 56 × 32 pill of the new app-scoped `--primary-container` behind
+the line icon in `--primary-container-foreground`, the active label in ink at weight 600, and every
+tab holding the pill's width. The bar keeps its 69px, its chrome, its count badge and its focus
+behavior, and the cockpit's bar is unchanged
+([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
+standards-only `feature/app-cockpit-bar-pill-guides`.
