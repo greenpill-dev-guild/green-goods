@@ -134,8 +134,9 @@ In admin, views color through the Warm Earth aliases (`text-text-strong`, `text-
 
 Use the project dialog primitives — they own mobile safety. `AdminDialog` (admin) and
 `DialogShell` (client/shared) already cap width to the viewport and present as a bottom sheet
-on narrow viewports; `AdminDialog` draws the shared `SheetHeader` at every width and, in its
-confirm family, the shared `SheetActions` (DL-117); consumers must NOT restate `max-w-*` overrides (the admin
+on narrow viewports; `AdminDialog`'s `standard` and `confirm` variants draw the shared
+`SheetHeader` at every width (flows and the palette keep their own header), and its confirm
+family the shared `SheetActions` (DL-117); consumers must NOT restate `max-w-*` overrides (the admin
 `AdminDialogStandard.guard` test fails ad-hoc `max-w-*` on AdminDialog). Only a hand-rolled
 modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to survive 375px.
 
