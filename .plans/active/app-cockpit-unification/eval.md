@@ -417,3 +417,65 @@ and after, and "A confirmar" at 99+; the badge is never wider than before, so st
 nor fixes it. `TabBadge` in the cockpit's Garden helpers had no consumer and goes with the step.
 White text on Community's action fill (orange-700) measures 4.0:1, though its token comment says
 5.0:1. The Wallet's Cookies tab, which uses the same sheet tabs as Promises, had no count to show.
+
+## Step 9 proof: phone sheets
+
+Run on 2026-10-23 against `develop` `d84d48398`, with step 9 on `feature/app-cockpit-phone-sheets`.
+F5 was locked on 18 October, so these pairs are the step's acceptance evidence rather than a gate.
+The frames show live gardens and stay out of the repository; the review page is a private artifact.
+
+**Pairs.** Headless Chromium (Playwright) at device scale 2 with reduced motion, `develop` and step 9
+served side by side from two worktrees.
+
+- Cockpit, **Storybook**: a capture-only story rendered the real dialogs open: the past-due expire
+  confirmation (`CommitmentExpireDialog` with its `PoolTarget`), the cancel-a-promise reason dialog
+  (`AdminReasonDialog` with its suggestions and target), a form dialog, the discard confirmation
+  and the Notifications side sheet, beside `AdminDialog`'s flow and palette stories. 66 frames per
+  state: every scene at 390, 768 and 1280px in light and dark, and the three scenes with the most
+  header text in Spanish and Portuguese at 390 and 1280px.
+- App, **mock-auth localhost**: `?mockAuth=deployer&presentation=pwa` on Arbitrum One and the
+  production indexer, the Your Work and Promises sheets (`AppSheet` through `PwaSheet`) at 390, 768
+  and 1280px in light and dark, to show the shared changes leave the installed app as it was. The
+  sheets' computed fill, hairline, corners, shadow, grip (its 40×6 pill, the grab cursor and the
+  locked touch) and 18px title match `develop` in all 12 frames; 9 frames match pixel for pixel,
+  and the other 3 differ only where live content loaded at a different moment (the garden
+  banner's photo behind the scrim and two work-card thumbnails).
+
+**Measured** (computed styles at 390px; light, then dark):
+
+| | `develop` | Step 9 |
+|---|---|---|
+| Surface | warm gray `236 233 226`, dark `52 44 36`; no edge; elevation 2 | white, dark `42 35 28` (the lifted card); a 1px hairline, `231 229 228` and dark `67 61 55`; the float shadow |
+| Grip | none | 40×6px, the dialog's tone at 32% (stone for an untoned dialog) |
+| Header | an icon on danger and warning confirmations, a rule under the header, the close absolute top-right | the shared `SheetHeader`: no icon, the target line before the description, the close on the title's line, a hairline only while the body scrolls |
+| Title | 22px on a 28px line | 22px on a 28px line |
+| Close | 40px with a 44px finger box | 40px with a 44px finger box |
+
+From 640px nothing changes: all 40 frames at 768 and 1280px match `develop` pixel for pixel
+(channel-sum threshold 12), and the 26 that differ are the 390px frames. The flows and the command
+palette keep their own header under the grip; the flow's close sits below the grip on the flow's
+title row. In Spanish and Portuguese every phone title fits as it did, wrapping where it wrapped on
+`develop`.
+
+**Behavior.** Radix still opens, closes and dismisses the sheet. The focused tests run the same
+cases on the phone and the desktop presentation: focus lands on Close when the dialog opens,
+returns to the opener through `finalFocusRef` after Close and after Escape, and `preventClose`
+disables Close and holds Escape. The phone cases add the material attribute, a grip without a drag
+region, the shared header's order (title, target, description) and accessible description, and the
+side sheet's phone form. Backdrop dismissal is Radix's in both presentations; jsdom cannot press
+outside a dialog, so it rests on the rendered check below.
+
+**Back** (mock-auth localhost, 390px, light, the real cockpit served from both worktrees): after an
+in-app step (Garden to Hub, or Garden to Profile) the Notifications side sheet and the Edit Profile
+Photo dialog each open with focus on Close, and Back returns to `/garden/health`, closes the sheet
+and clears the body's pointer lock, so the page answers taps again: the same on `develop` and on
+step 9, where both now open as the phone sheet. A tap on the dimmed page above the photo dialog
+closes it on both too, and focus then rests on the page body on both, since that dialog names no
+`finalFocusRef`.
+
+**Found on the way.** The centered dialog's header keeps 24px of right padding from 640px (its
+`pr-14` loses to `sm:px-6`; the side sheet adds `sm:pr-14` and keeps 56px), so a long title can run
+under the close button on desktop; desktop is out of the step. The cockpit sheet's enter keyframe
+keeps the 2% overshoot DL-033 removed from the app's sheet. Storybook mirrored the cockpit's dark
+`--surface-raised` as neutral-900 where the cockpit uses the card step, which drew a darker footer
+band in dark stories only; step 9 corrects the mirror.

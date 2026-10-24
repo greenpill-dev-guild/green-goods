@@ -193,3 +193,12 @@ and its `.gg-count-badge` rule, the eight components that drew a count moved ont
 and DL-099 are the standards-only `feature/app-cockpit-count-badge-guides`, which also adds the
 count badge to the cockpit's tone budget in Rule 18. Raising Community's action fill to
 orange-800 is not in the step; it gets its own pair.
+
+**Step 9 (23 October).** Below 640px the cockpit's dialogs and its side sheet take the installed
+app's bottom sheet: the shared sheet material and grip and the shared `SheetHeader` at their own
+22px title, built from Shared's pieces (`SheetGrip`, one `[data-sheet-surface]` rule, a target line
+in the header) and four cockpit tokens. Radix still opens, closes and dismisses them, and the
+centered dialog from 640px does not change. The grip marks the sheet and does not drag it; whether
+it should drag in the cockpit is still open. The code is on `feature/app-cockpit-phone-sheets`,
+and DL-104 with its guide wording is the standards-only `feature/app-cockpit-phone-sheets-guides`;
+[eval.md](eval.md#step-9-proof-phone-sheets) records the pairs and the behavior proof.
