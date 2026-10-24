@@ -29,7 +29,7 @@ import {
   AdminTextField,
 } from "../../../admin/src/components/AdminTextField";
 import { AppBar } from "../../../admin/src/components/Shell/AppBar";
-import { Page, Row, Section, Specimen, StoryLink } from "./measure";
+import { measureElement, Page, Row, Section, Specimen, StoryLink } from "./measure";
 import { ADMIN, ADMIN_SIZES, type AdminSize, STORY_LINKS } from "./rules";
 
 const meta = {
@@ -487,7 +487,10 @@ export const Buttons: Story = {
   ),
 };
 
-/** AdminDialog's close button: a 40px circle with the 44px finger box (DL-030). */
+/**
+ * AdminDialog's close button: the shared header's 40px circle, with the 44px
+ * finger box (DL-030) its `::after` draws from the cockpit's hit token (DL-117).
+ */
 export const DialogCloseButton: Story = {
   tags: ["storybook-ci"],
   render: () => (
@@ -496,7 +499,7 @@ export const DialogCloseButton: Story = {
         open
         onOpenChange={() => undefined}
         title="Close button"
-        description="The close affordance is the 40px circle top-right."
+        description="The close affordance is the 40px circle on the title's line."
         tone="hub"
         actions={<AdminButton>Done</AdminButton>}
       >
@@ -525,8 +528,8 @@ export const DialogCloseButton: Story = {
     await waitFor(async () => {
       await expect(close.getBoundingClientRect().height).toBe(40);
     });
-    // The admin-hit-target-lg pseudo-element gives the 40px circle a 44px finger box.
-    await expect(Number.parseFloat(getComputedStyle(close, "::before").height)).toBe(44);
+    // A pseudo-element gives the 40px circle a 44px finger box.
+    await expect(measureElement(close).hitHeight).toBe(44);
   },
 };
 

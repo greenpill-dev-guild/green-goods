@@ -974,6 +974,18 @@
    * the pale green behind a deep green icon. */
   --primary-container: var(--green-100);
   --primary-container-foreground: var(--green-900);
+  /* The garden context chip at the app's density: a 44px capsule, a 28px
+   * avatar with a 16px glyph and caret, the 16px label role, the control
+   * outline, and focus in the app's green. Unset, the chip keeps the
+   * cockpit's 36px pill. Its two colors are set again in the dark block. */
+  --gg-garden-chip-height: 2.75rem;
+  --gg-garden-chip-inline-start: 0.5rem;
+  --gg-garden-chip-inline-end: 1rem;
+  --gg-garden-chip-avatar: 1.75rem;
+  --gg-garden-chip-glyph: 1rem;
+  --gg-garden-chip-caret: 1rem;
+  --gg-garden-chip-edge: var(--gg-control-outline);
+  --gg-garden-chip-focus-ring: var(--focus-ring);
 }
 
 /* The PWA restores its pale mint dark palette (DL-088) and takes the one warm
@@ -1005,6 +1017,8 @@
   --gg-control-outline: var(--neutral-400);
   --primary-container: var(--green-900);
   --primary-container-foreground: var(--green-100);
+  --gg-garden-chip-edge: var(--gg-control-outline);
+  --gg-garden-chip-focus-ring: var(--focus-ring);
 }
 
 /* Resolve Tailwind aliases within each theme scope so nested dark surfaces

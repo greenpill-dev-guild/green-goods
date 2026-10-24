@@ -60,8 +60,17 @@ function emulateViewport(initial: Width) {
   );
 }
 
-/** A controlled dialog opened from a plain button, which hands focus back through finalFocusRef. */
-function OpenerHarness({ preventClose = false }: { preventClose?: boolean }) {
+/**
+ * A controlled dialog opened from a plain button. It names its opener through
+ * finalFocusRef unless `namedReturn` is false, as most call sites do.
+ */
+function OpenerHarness({
+  preventClose = false,
+  namedReturn = true,
+}: {
+  preventClose?: boolean;
+  namedReturn?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLButtonElement>(null);
   return (
@@ -75,7 +84,7 @@ function OpenerHarness({ preventClose = false }: { preventClose?: boolean }) {
         title="Edit Domains"
         tone="garden"
         preventClose={preventClose}
-        finalFocusRef={opener}
+        finalFocusRef={namedReturn ? opener : undefined}
       >
         <p>Domain form body</p>
       </AdminDialog>
@@ -123,10 +132,14 @@ describe("AdminDialog", () => {
     expect(screen.getByTestId("admin-dialog-actions")).toContainElement(
       screen.getByRole("button", { name: "Save" })
     );
-    // From 640px the centered dialog keeps its own surface, header and close.
+    // From 640px the centered dialog keeps its own surface and takes the shared
+    // header, which carries the close on the title's line (DL-117).
     expect(dialog).not.toHaveAttribute("data-sheet-surface");
     expect(dialog.querySelector('[data-component="SheetGrip"]')).toBeNull();
-    expect(dialog.querySelector('[data-slot="header"]')).not.toBeNull();
+    const header = dialog.querySelector('[data-component="SheetHeader"][data-slot="root"]');
+    expect(header).toHaveAttribute("data-standalone");
+    expect(within(header as HTMLElement).getByRole("button", { name: "Close" })).toBeVisible();
+    expect(screen.getByTestId("admin-dialog-body")).toHaveAttribute("data-scroll-edge", "top");
   });
 
   it("uses full-width mobile geometry for flow action dialogs", () => {
@@ -281,6 +294,18 @@ describe.each(["phone", "desktop"] as const)("AdminDialog behavior on %s", (widt
     expect(opener).toHaveFocus();
   });
 
+  it("hands focus back to the opener without a finalFocusRef", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<OpenerHarness namedReturn={false} />);
+    const opener = screen.getByRole("button", { name: "Edit domains" });
+
+    await user.click(opener);
+    await screen.findByRole("dialog", { name: "Edit Domains" });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(opener).toHaveFocus());
+  });
+
   it("holds the close button and Escape while a blocking action runs", async () => {
     const user = userEvent.setup();
     renderWithProviders(<OpenerHarness preventClose />);
@@ -409,12 +434,33 @@ describe("AdminConfirmDialog", () => {
     expect(dialog).toHaveClass("inset-x-0", "w-[100dvw]", "max-w-none", "sm:max-w-md");
   });
 
-  it("locks confirmation dialogs while loading", () => {
+  it.each([
+    ["warning", "warning"],
+    ["danger", "danger"],
+    ["default", null],
+  ] as const)("fills a %s confirmation's confirm in its tone", (variant, tone) => {
     renderWithProviders(
       <AdminConfirmDialog
         isOpen
         onClose={vi.fn()}
         onConfirm={vi.fn()}
+        title="Discard changes?"
+        confirmLabel="Discard"
+        variant={variant}
+      />
+    );
+    const confirm = screen.getByRole("button", { name: "Discard" });
+    if (tone) expect(confirm).toHaveAttribute("data-tone", tone);
+    else expect(confirm).not.toHaveAttribute("data-tone");
+  });
+
+  it("locks confirmation dialogs while loading", () => {
+    const onConfirm = vi.fn();
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={onConfirm}
         title="Emergency pause"
         description="Pause this vault?"
         confirmLabel="Pause"
@@ -426,10 +472,12 @@ describe("AdminConfirmDialog", () => {
 
     expect(screen.queryByLabelText("Close")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-    // The loading confirm is held but keeps focus: aria-disabled and aria-busy (DL-115).
-    const pause = screen.getByRole("button", { name: "Pause" });
-    expect(pause).toHaveAttribute("aria-disabled", "true");
-    expect(pause).toHaveAttribute("aria-busy", "true");
+    // The shared action bar keeps a loading confirm focusable but inert.
+    const confirm = screen.getByRole("button", { name: "Pause" });
+    expect(confirm).toHaveAttribute("aria-disabled", "true");
+    expect(confirm).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(confirm);
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 });
 
