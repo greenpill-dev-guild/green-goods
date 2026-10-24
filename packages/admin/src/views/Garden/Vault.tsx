@@ -1,4 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
@@ -13,6 +15,7 @@ import {
   summarizeNetDepositsByAsset,
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { RiBankLine, RiErrorWarningLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -192,14 +195,20 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       ) : null}
 
       {vaultsLoading && (
-        <p className="type-body text-text-soft">
-          {formatMessage({ id: "app.treasury.loadingVaults" })}
-        </p>
+        // The positions' own frames while they load, so the rows land where these stood.
+        <div className="flex flex-col gap-(--gg-list-gap)" role="status" aria-live="polite">
+          <span className="sr-only">{formatMessage({ id: "app.treasury.loadingVaults" })}</span>
+          {[0, 1].map((index) => (
+            <ItemRowSkeleton key={index} lead="icon" amount />
+          ))}
+        </div>
       )}
 
       {vaultsHasError && (
-        <Alert
-          variant="error"
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({ id: "app.treasury.errorLoading" })}
           action={
             <AdminButton
               type="button"
@@ -215,15 +224,11 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
                 : formatMessage({ id: "app.common.tryAgain" })}
             </AdminButton>
           }
-        >
-          {formatMessage({ id: "app.treasury.errorLoading" })}
-        </Alert>
+        />
       )}
 
       {!vaultsLoading && !vaultsHasError && vaults.length === 0 && (
-        <p className="rounded-md border border-stroke-soft bg-bg-white px-4 py-3 type-body text-text-soft">
-          {formatMessage({ id: "app.treasury.noVault" })}
-        </p>
+        <EmptyState icon={<RiBankLine />} title={formatMessage({ id: "app.treasury.noVault" })} />
       )}
 
       {!vaultsLoading && vaults.length > 0 && (
@@ -234,7 +239,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       )}
 
       {!vaultsLoading && vaults.length > 0 && (
-        <section className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
+        <section className="flex flex-col gap-(--gg-list-gap)">
           {vaults.map((vault) => (
             <PositionCard
               key={vault.id}
