@@ -301,6 +301,15 @@ export const SharedFamilyMatrix: Story = {
                   >
                     <RiDeleteBinLine />
                   </AdminIconButton>
+                  <AdminIconButton
+                    size={size}
+                    variant="tonal"
+                    disabled
+                    data-matrix="disabled"
+                    label={`Send, disabled, ${tone} ${theme} ${size}`}
+                  >
+                    <RiSave3Line />
+                  </AdminIconButton>
                 </div>
               ))}
             </div>

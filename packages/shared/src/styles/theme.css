@@ -1794,14 +1794,22 @@
     --gg-icon-button-ink: rgb(var(--static-white, var(--neutral-0)));
   }
 
-  /* Disabled: the surface's own ink, and on a filled icon button its fill, else
-   * the emphasis's own under the dim (DL-115). */
+  /* Disabled: the surface's own ink, and on a filled or outlined icon button its
+   * fill, else the emphasis's own under the dim (DL-115). A quiet icon button keeps
+   * its transparent rest, so one that keeps its pointer never shows a hover. */
   .gg-icon-button:is(:disabled, [aria-disabled="true"]) {
     color: var(--gg-button-disabled-ink, var(--gg-icon-button-ink));
   }
 
-  .gg-icon-button[data-emphasis="primary"]:is(:disabled, [aria-disabled="true"]) {
+  .gg-icon-button:is([data-emphasis="primary"], [data-emphasis="secondary"]):is(
+      :disabled,
+      [aria-disabled="true"]
+    ) {
     background-color: var(--gg-button-disabled-fill, var(--gg-icon-button-fill));
+  }
+
+  .gg-icon-button[data-emphasis="tertiary"]:is(:disabled, [aria-disabled="true"]) {
+    background-color: transparent;
   }
 
   /* A launcher's count or status dot, pinned to the top-right corner. */
