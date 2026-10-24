@@ -1,5 +1,7 @@
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect } from "storybook/test";
+import tokens from "../../styles/design-md.generated.json";
 import { Badge, CountBadge } from "./Badge";
 
 const meta: Meta<typeof Badge> = {
@@ -132,6 +134,7 @@ const COUNT_LADDER = [1, 9, 10, 99, 100];
 
 /** The one count badge (F10) at every width it takes, beside a label and on a control's edge. */
 export const Count: Story = {
+  tags: ["storybook-ci"],
   render: () => (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
@@ -146,6 +149,19 @@ export const Count: Story = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // A single digit still takes the full 16px capsule, set in the count role DESIGN.md declares.
+    const badge = canvasElement.querySelector<HTMLElement>(".gg-count-badge");
+    if (!badge) throw new Error("No count badge rendered");
+    const style = getComputedStyle(badge);
+    const { count } = tokens.typography;
+    await expect(style.fontSize).toBe(count.fontSize);
+    await expect(style.lineHeight).toBe(count.lineHeight);
+    await expect(Number(style.fontWeight)).toBe(count.fontWeight);
+    const box = badge.getBoundingClientRect();
+    await expect(box.height).toBe(16);
+    await expect(box.width).toBeGreaterThanOrEqual(16);
+  },
 };
 
 /** In the cockpit the badge takes each workspace tone's action pair. */

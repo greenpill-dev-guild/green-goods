@@ -580,6 +580,12 @@
   --gg-type-meta-sm-line: 1rem;
   --gg-type-meta-sm-weight: 400;
   --gg-type-meta-sm-tracking: 0px;
+  /* The count badge's own role (typography.count), so remapping meta-sm on a
+   * surface never moves it. */
+  --gg-type-count-size: 0.6875rem;
+  --gg-type-count-line: 1rem;
+  --gg-type-count-weight: 600;
+  --gg-type-count-tracking: 0px;
   --gg-type-field-size: 1rem;
   --gg-type-field-line: 1.5rem;
   --gg-type-field-weight: 400;
@@ -1681,8 +1687,9 @@
     display: inline-flex;
   }
 
-  /* ── Count badge (F10) ── One count on both surfaces: a 16px capsule with
-   * 11px numerals at weight 600 on the action pair (DL-017). The cockpit fills
+  /* ── Count badge (F10) ── One count on both surfaces: a capsule 16px tall and
+   * at least 16px wide, with the count role's 11px numerals at weight 600 on a
+   * 16px line, on the action pair (DL-017). The cockpit fills
    * it with its workspace tone's contrast-safe accent: Community's action fill
    * (orange-700) carries white numerals at only 4.0:1, its accent (orange-800)
    * at 4.9:1, and the other tones' accents equal their action fills. A badge
@@ -1701,10 +1708,10 @@
     border-radius: 9999px;
     background-color: rgb(var(--tone-on-surface-accent, var(--primary-action)));
     color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
-    font-size: var(--gg-type-meta-sm-size, 0.6875rem);
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: 0;
+    font-size: var(--gg-type-count-size);
+    font-weight: var(--gg-type-count-weight);
+    line-height: var(--gg-type-count-line);
+    letter-spacing: var(--gg-type-count-tracking);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
