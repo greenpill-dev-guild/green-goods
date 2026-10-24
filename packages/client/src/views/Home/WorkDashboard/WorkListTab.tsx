@@ -166,6 +166,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
       <div className="flex flex-1 flex-col px-4 pb-4">
         {isLoading ? (
           <EmptyState
+            busy
             className="flex-1"
             placement="sheet"
             icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}

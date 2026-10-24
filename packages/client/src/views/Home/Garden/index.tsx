@@ -219,6 +219,7 @@ export const Garden: React.FC = () => {
     if (gardensInitialLoading) {
       state = (
         <EmptyState
+          busy
           icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
           title={intl.formatMessage({
             id: "app.garden.loading",

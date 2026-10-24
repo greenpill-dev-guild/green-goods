@@ -51,6 +51,13 @@ describe("EmptyState", () => {
     }
   });
 
+  it("announces a loading block politely, as the spinner it replaces did", () => {
+    render(<EmptyState busy icon={<span />} title="Loading your work..." />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading your work...");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("lets a page name itself by the title and focus it, never from the Tab key", () => {
     render(
       <EmptyState titleAs="h1" headingId="page-title" icon={<span />} title="This link expired" />

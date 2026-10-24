@@ -66,6 +66,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
       {gardensLoading ? (
         <Card>
           <EmptyState
+            busy
             className="w-full"
             icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
             title={intl.formatMessage({

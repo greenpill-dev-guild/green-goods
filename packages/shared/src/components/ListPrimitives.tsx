@@ -18,6 +18,11 @@ export interface EmptyStateProps {
   action?: ReactNode;
   tone?: EmptyStateTone;
   /**
+   * A loading block: it is a polite status, so a screen reader hears its title while the content
+   * loads, as the spinner it replaces did.
+   */
+  busy?: boolean;
+  /**
    * Keep the mark and title fixed while the description and action grow below them: `sheet` at
    * the sheet tabs' upper-middle anchor (DL-036), `list` 32px under a list's header row, where
    * the list would start (DL-056). `center` centers the whole block in its space.
@@ -55,6 +60,7 @@ export function EmptyState({
   description,
   action,
   tone = "neutral",
+  busy = false,
   placement = "center",
   className,
   titleAs: Title = "h3",
@@ -64,8 +70,9 @@ export function EmptyState({
     <div
       data-component="EmptyState"
       data-tone={tone}
-      // A failed read replaces the content, so it is announced like any error.
-      role={tone === "error" ? "alert" : undefined}
+      // A failed read replaces the content, so it is announced like any error; a loading block is
+      // a polite status.
+      role={tone === "error" ? "alert" : busy ? "status" : undefined}
       className={cn(
         "flex min-h-[12rem] flex-col items-center gap-2 px-5 text-center",
         PLACEMENT_CLASSES[placement],
