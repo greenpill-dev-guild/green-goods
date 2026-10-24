@@ -840,27 +840,6 @@
   font-weight: 400;
 }
 
-.admin-m3 [data-component="EmptyState"] {
-  padding-block: clamp(3rem, 8vh, 5rem);
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="icon"] {
-  width: 4.5rem;
-  height: 4.5rem;
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="title"] {
-  font-size: var(--type-title-lg, 1.375rem);
-  line-height: var(--type-title-lg-lh, 1.75rem);
-  font-weight: 600;
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="description"] {
-  max-width: 34rem;
-  font-size: var(--type-body-lg, 1rem);
-  line-height: var(--type-body-lg-lh, 1.5rem);
-}
-
 .main-scroll-area::-webkit-scrollbar-track {
   background: transparent;
 }
