@@ -125,32 +125,17 @@ export const WithTabs: Story = {
     description: "A regenerative garden in Costa Rica.",
     backLink: { to: "/garden", label: "Back to garden workspace" },
     children: (
-      <div className="flex gap-4 border-b border-stroke-soft -mb-px">
-        <button
-          type="button"
-          className="border-b-2 border-primary-base px-1 pb-2 type-body font-medium text-primary-base"
-        >
-          Overview
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 type-body font-medium text-text-soft hover:text-text-sub"
-        >
-          Work
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 type-body font-medium text-text-soft hover:text-text-sub"
-        >
-          Community
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 type-body font-medium text-text-soft hover:text-text-sub"
-        >
-          Endowments
-        </button>
-      </div>
+      <AdminTabRail
+        ariaLabel="Garden views"
+        activeId="overview"
+        onChange={() => {}}
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "work", label: "Work" },
+          { id: "community", label: "Community" },
+          { id: "endowments", label: "Endowments" },
+        ]}
+      />
     ),
   },
 };
@@ -246,26 +231,16 @@ export const FullFeatured: Story = {
     ),
     sticky: true,
     children: (
-      <div className="flex gap-4 -mb-px">
-        <button
-          type="button"
-          className="border-b-2 border-primary-base px-1 pb-2 type-body font-medium text-primary-base"
-        >
-          Overview
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 type-body font-medium text-text-soft hover:text-text-sub"
-        >
-          Work
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 type-body font-medium text-text-soft hover:text-text-sub"
-        >
-          Impact
-        </button>
-      </div>
+      <AdminTabRail
+        ariaLabel="Garden views"
+        activeId="overview"
+        onChange={() => {}}
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "work", label: "Work" },
+          { id: "impact", label: "Impact" },
+        ]}
+      />
     ),
   },
 };
