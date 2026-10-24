@@ -203,8 +203,9 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   the pill, as on every row with a status edge. The detail line gives the due date, then the
   other person (in a steward's list, whoever does it, else whoever asked); a queue or act
   state's own words lead it instead. This replaces the record row's chips and meta for
-  promises: who is involved and how much live in the promise's dialog. Proof: the shared
-  `CommitmentRow`, which Offers and Requests and the app's lists render.
+  promises: who is involved and how much live in the promise's dialog, except on a promise
+  still on the device, which has no dialog yet and keeps its units on its row. Proof: the
+  shared `CommitmentRow`, which Offers and Requests and the app's lists render.
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect: encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)
