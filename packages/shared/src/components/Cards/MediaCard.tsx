@@ -4,7 +4,7 @@ import { cn } from "../../utils/styles/cn";
 
 /**
  * Where a media card puts its picture: above the text (`stacked`, a phone or a
- * narrow column), or in a 144px column on the left with the text centred beside
+ * narrow column), or in a 144px column on the left with the text centered beside
  * it (`wide`, a desktop list). The consumer chooses, so the card holds no
  * viewport breakpoint of its own.
  */
@@ -99,7 +99,7 @@ export function MediaCard({
 }: MediaCardProps) {
   const slots = mediaCardVariants({ layout });
   // A stacked card keeps an empty line in place; a wide card is as tall as its
-  // picture, so its centred text needs no placeholder.
+  // picture, so its centered text needs no placeholder.
   const showSubtitle = subtitle !== undefined && (subtitle !== "" || layout === "stacked");
 
   const content = (

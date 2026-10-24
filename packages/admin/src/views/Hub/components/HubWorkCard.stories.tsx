@@ -72,7 +72,7 @@ export const Default: Story = {
   },
 };
 
-/** The desktop queue's card: the mosaic on the left, the text centred beside it. */
+/** The desktop queue's card: the mosaic on the left, the text centered beside it. */
 export const Wide: Story = {
   args: { ...Default.args, layout: "wide", actionTitle: "Planting event" },
   decorators: [

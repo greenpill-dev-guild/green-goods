@@ -38,7 +38,7 @@ const meta: Meta<typeof MediaCard> = {
     docs: {
       description: {
         component:
-          "The card shape for an object with a picture of its own (work, gardens, actions, impact certificates). Stacked puts the picture on top; wide puts it in a 144px column on the left with the text centred beside it. The card draws the shared card surface (`gg-card`): a 24px corner, a hairline edge and a faint shadow. One title line, the status pill under it, one optional line, one detail line; the photo count and the domain sit on the picture.",
+          "The card shape for an object with a picture of its own (work, gardens, actions, impact certificates). Stacked puts the picture on top; wide puts it in a 144px column on the left with the text centered beside it. The card draws the shared card surface (`gg-card`): a 24px corner, a hairline edge and a faint shadow. One title line, the status pill under it, one optional line, one detail line; the photo count and the domain sit on the picture.",
       },
     },
   },
