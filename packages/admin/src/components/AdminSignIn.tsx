@@ -43,12 +43,13 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
         }
       }}
     >
-      {/* AdminTextField includes its reserved supporting line; this slot accommodates it
-          on desktop and touch widths. Both slots and feedback stay mounted in every state. */}
-      <div className="flex h-16 w-full items-center" data-testid="admin-auth-slot-one">
+      {/* The field's hints and errors live in the feedback zone below, so it reserves no
+          message line, and this slot holds its label and box on desktop and touch widths.
+          Both slots and feedback stay mounted in every state. */}
+      <div className="flex h-18 w-full items-center" data-testid="admin-auth-slot-one">
         {isForm ? (
           <AdminTextField
-            className="w-full text-left"
+            className="w-full text-left [--gg-field-message-lines:0]"
             label={formatMessage(
               isCreating
                 ? {

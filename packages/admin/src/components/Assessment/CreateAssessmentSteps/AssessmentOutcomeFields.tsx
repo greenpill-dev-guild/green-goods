@@ -102,10 +102,10 @@ export function AssessmentOutcomeFields({
       />
 
       {/* Always in its column, so adding a second outcome never
-          shifts the fields; centred on the field's 44 / 40px box. */}
+          shifts the fields; centred on the field's 44 / 40px box, below its 24px label. */}
       <AdminIconButton
         variant="danger"
-        className="mt-1.5 [grid-area:remove] sm:mt-1"
+        className="mt-7.5 [grid-area:remove] sm:mt-7"
         onClick={onRemove}
         disabled={isSubmitting || !canRemove}
         label={formatMessage({
