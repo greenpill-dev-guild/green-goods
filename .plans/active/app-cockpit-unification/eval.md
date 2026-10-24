@@ -516,6 +516,14 @@ since the first bar), and the inactive tabs draw the browser's blue default ring
 app's focus role (DL-098). Step 21 keeps focus as it was; giving the bar the app's focus role is a
 follow-up.
 
+**Focus follow-up (23 October).** `fix/app-bar-focus-ring` gives every bar tab the app's focus
+role on keyboard focus, the active tab included: one solid 2px ring with a 2px offset in
+`--focus-ring` (green-800 in light, mint in dark), around the pill and the label with 16px corners,
+and none on a pointer press. Before it, the active tab drew no ring and the others drew the
+browser's blue `auto` ring. The AppBar story's `KeyboardFocus` play tabs onto every tab and checks
+the ring; develop's bar fails it (`none` where `solid` is expected), and so does a ring in the wrong
+color role. Rendered on mock-auth localhost at 390, 768 and 1280px in light and dark.
+
 ## Step 10 proof: outlined fields
 
 Run on 2026-10-23 against `develop` `5c76ca2b6`, with step 10 on `feature/app-cockpit-outlined-fields`.
