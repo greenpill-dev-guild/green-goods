@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
@@ -8,7 +9,6 @@ import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { DepositModal, WithdrawModal } from "@/components/Vault";
 
@@ -72,9 +72,10 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
         actions={
           <>
             {vaultsHasError && vaultGardenAddress ? (
-              <AdminButton
+              <Button
                 type="button"
-                variant="outlined"
+                emphasis="secondary"
+                size="sm"
                 onClick={() => {
                   void refetch();
                 }}
@@ -83,11 +84,11 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
                 {isFetching
                   ? formatMessage({ id: "app.common.refreshing" })
                   : formatMessage({ id: "app.common.tryAgain" })}
-              </AdminButton>
+              </Button>
             ) : null}
-            <AdminButton type="button" variant="text" onClick={handleClose}>
+            <Button type="button" emphasis="tertiary" size="sm" onClick={handleClose}>
               {formatMessage({ id: "app.common.cancel" })}
-            </AdminButton>
+            </Button>
           </>
         }
       >

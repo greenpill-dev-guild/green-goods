@@ -1,9 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
-import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { withAdminPrimitiveFrame } from "../../../../shared/.storybook/decorators";
-import { AdminButton } from "../AdminButton";
 import { AdminCard } from "../AdminCard";
 import { AdminTabRail } from "../AdminTabRail";
 
@@ -26,7 +26,7 @@ const meta: Meta = {
           "",
           "1. Canvas background (the wash on `.workspace-canvas[data-tone]`)",
           "2. GardenChip leaf icon (tone-tinted)",
-          "3. Filled AdminButton action color",
+          "3. Primary Button action color",
           "4. PageHeader bottom hairline (`rgb(var(--tone-action) / 0.10)`)",
           "5. Neutral AdminTabRail and AdminCard surfaces",
           "",
@@ -103,7 +103,9 @@ const ToneCell = ({
               14 submissions waiting, oldest 3 days. Card material stays neutral.
             </div>
           </div>
-          <AdminButton size="sm">Review queue</AdminButton>
+          <Button type="button" size="compact">
+            Review queue
+          </Button>
         </div>
       </AdminCard>
     </div>

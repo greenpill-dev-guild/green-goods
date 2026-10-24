@@ -3,7 +3,6 @@
 /* Startup and recovery remain styled without downloading the workspace.
  * admin-workspace.css scans the remaining admin and shared components. */
 @source "./components/Boot/BootSurface.tsx";
-@source "./components/AdminButton.tsx";
 @source "./components/AdminLoadingScreen.tsx";
 @source "./components/Layout/ConnectPrompt.tsx";
 @source "../../shared/src/components/ErrorBoundary/ErrorBoundary.tsx";

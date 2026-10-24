@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -7,9 +8,8 @@ import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { mocked } from "storybook/test";
-import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { FunderRow } from "./FunderRow";
 
 // ⚠ VISUAL HARNESS — not the real ImpactFunders.
@@ -76,15 +76,22 @@ function ImpactFundersHarness({
         ))}
       </ul>
       {hasMore && (
-        <AdminButton
-          variant="outlined"
-          size="sm"
+        <Button
+          type="button"
+          emphasis="secondary"
+          size="compact"
           className="mt-3 w-full"
           onClick={() => setExpanded((v) => !v)}
-          leadingIcon={expanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
+          leadingIcon={
+            expanded ? (
+              <RiArrowUpSLine className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <RiArrowDownSLine className="h-4 w-4" aria-hidden="true" />
+            )
+          }
         >
           {expanded ? "Collapse" : `View all ${funders.length}`}
-        </AdminButton>
+        </Button>
       )}
       <p className="mt-3 type-meta text-text-sub">
         Contextual copy about how impact funding works, protocol-wide.

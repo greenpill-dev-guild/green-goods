@@ -1,5 +1,7 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useEnsNames } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -12,7 +14,6 @@ import { RiCloseLine, RiUserAddLine, RiUserLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminConfirmDialog, AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { AdminFilterChip } from "../AdminFilterChip";
 import { AdminSearchToolbar } from "../AdminSearchToolbar";
@@ -175,19 +176,20 @@ export function ManageMembersDialog({
         )}
         actions={
           <>
-            <AdminButton type="button" variant="text" onClick={onClose} disabled={busy}>
+            <Button type="button" emphasis="tertiary" size="sm" onClick={onClose} disabled={busy}>
               {formatMessage({ id: "admin.common.close", defaultMessage: "Close" })}
-            </AdminButton>
+            </Button>
             {canManage ? (
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
-                leadingIcon={<RiUserAddLine />}
+                emphasis="primary"
+                size="sm"
+                leadingIcon={<RiUserAddLine className="h-[18px] w-[18px]" aria-hidden="true" />}
                 onClick={() => onAddMembers(addMembersPrefill)}
                 disabled={busy}
               >
                 {formatMessage({ id: "admin.addMember.openAction", defaultMessage: "Add Members" })}
-              </AdminButton>
+              </Button>
             ) : null}
           </>
         }
@@ -273,22 +275,26 @@ export function ManageMembersDialog({
                           <span key={role} className="inline-flex items-center gap-0.5">
                             <RoleChip role={role} />
                             {canManage ? (
-                              <AdminIconButton
-                                size="sm"
-                                variant="danger"
+                              <IconButton
+                                emphasis="tertiary"
+                                tone="danger"
+                                size="compact"
                                 onClick={() => {
                                   setRemoveErrorRole(null);
                                   setPendingRemoval({ address, role });
                                 }}
                                 disabled={busy}
                                 loading={isRemovingRole}
-                                label={formatMessage(
+                                aria-label={formatMessage(
                                   { id: "app.admin.roles.remove" },
                                   { role: getRoleLabel(role, formatMessage).singular }
                                 )}
-                              >
-                                <RiCloseLine />
-                              </AdminIconButton>
+                                title={formatMessage(
+                                  { id: "app.admin.roles.remove" },
+                                  { role: getRoleLabel(role, formatMessage).singular }
+                                )}
+                                icon={<RiCloseLine />}
+                              />
                             ) : null}
                           </span>
                         );

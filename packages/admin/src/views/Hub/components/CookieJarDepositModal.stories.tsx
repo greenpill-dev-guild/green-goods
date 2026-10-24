@@ -1,14 +1,13 @@
-import { AdminButton } from "@/components/AdminButton";
-import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
-import { AdminDialog } from "@/components/AdminDialog";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
-import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
+import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
+import { AdminDialog } from "@/components/AdminDialog";
 
 // ⚠ VISUAL HARNESS — not the real CookieJarDepositModal.
 // The real component calls `useGardenCookieJars` (wagmi
@@ -58,12 +57,12 @@ function CookieJarDepositModalHarness({
       actions={
         lowLimit ? (
           <>
-            <AdminButton type="button" variant="outlined" onClick={fn()}>
+            <Button type="button" emphasis="secondary" size="sm" onClick={fn()}>
               Deposit Anyway
-            </AdminButton>
-            <AdminButton type="button" onClick={fn()}>
+            </Button>
+            <Button size="sm" type="button" onClick={fn()}>
               Fix Limit First
-            </AdminButton>
+            </Button>
           </>
         ) : undefined
       }

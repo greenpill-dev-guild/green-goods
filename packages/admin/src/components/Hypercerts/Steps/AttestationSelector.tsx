@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { filterAttestationsByAssessment } from "@green-goods/shared/modules/data/hypercerts-filters";
 import type { GardenAssessment } from "@green-goods/shared/types/domain";
@@ -19,7 +20,6 @@ import {
 } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminSelectableCard } from "@/components/AdminSelectableCard";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
@@ -192,26 +192,26 @@ export function AttestationSelector({
       {/* Bulk selection buttons */}
       {!isLoading && !hasError && filtered.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={handleSelectAll}
             disabled={allFilteredSelected || selectable.length === 0}
-            leadingIcon={<RiCheckboxMultipleLine />}
+            leadingIcon={<RiCheckboxMultipleLine className="h-4 w-4" aria-hidden="true" />}
           >
             {formatMessage({ id: "app.hypercerts.attestations.selectAll" })}
-          </AdminButton>
-          <AdminButton
+          </Button>
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={handleDeselectAll}
             disabled={!someSelected}
-            leadingIcon={<RiCloseCircleLine />}
+            leadingIcon={<RiCloseCircleLine className="h-4 w-4" aria-hidden="true" />}
           >
             {formatMessage({ id: "app.hypercerts.attestations.deselectAll" })}
-          </AdminButton>
+          </Button>
         </div>
       )}
 

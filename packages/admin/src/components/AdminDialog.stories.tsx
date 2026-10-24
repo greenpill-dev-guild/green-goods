@@ -1,9 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { RiWallet3Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ReactNode, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminButton } from "./AdminButton";
 import { ADMIN_FLOW_DIALOG_CLASS, AdminConfirmDialog, AdminDialog } from "./AdminDialog";
 import { AdminTextField } from "./AdminTextField";
 import { ActionFlowShell } from "./Layout/ActionFlowShell";
@@ -103,12 +103,12 @@ function OpenGeometryDialog({
         description={description}
         actions={
           <>
-            <AdminButton variant="text" onClick={() => undefined}>
+            <Button type="button" emphasis="tertiary" size="sm" onClick={() => undefined}>
               Cancel
-            </AdminButton>
-            <AdminButton variant="filled" onClick={() => undefined}>
+            </Button>
+            <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
               Confirm
-            </AdminButton>
+            </Button>
           </>
         }
       >
@@ -159,9 +159,15 @@ function DialogPreview({
 
   return (
     <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6">
-      <AdminButton variant="filled" leadingIcon={<RiWallet3Line />} onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        emphasis="primary"
+        size="sm"
+        leadingIcon={<RiWallet3Line className="h-[18px] w-[18px]" aria-hidden="true" />}
+        onClick={() => setOpen(true)}
+      >
         Open dialog
-      </AdminButton>
+      </Button>
       <AdminDialog
         open={open}
         onOpenChange={setOpen}
@@ -169,12 +175,12 @@ function DialogPreview({
         description={description}
         actions={
           <>
-            <AdminButton variant="text" onClick={() => setOpen(false)}>
+            <Button type="button" emphasis="tertiary" size="sm" onClick={() => setOpen(false)}>
               Cancel
-            </AdminButton>
-            <AdminButton variant="filled" onClick={() => setOpen(false)}>
+            </Button>
+            <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(false)}>
               {confirmLabel}
-            </AdminButton>
+            </Button>
           </>
         }
       >
@@ -328,12 +334,12 @@ function FlowSheet() {
           <>
             <div className="min-w-0 flex-1" aria-live="polite" />
             <div className="flex gap-2">
-              <AdminButton variant="text" onClick={() => undefined}>
+              <Button type="button" emphasis="tertiary" size="sm" onClick={() => undefined}>
                 Cancel
-              </AdminButton>
-              <AdminButton variant="filled" onClick={() => undefined}>
+              </Button>
+              <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
                 Submit work
-              </AdminButton>
+              </Button>
             </div>
           </>
         }
@@ -451,9 +457,9 @@ export const CloseButtonGeometry: Story = {
         title="Close button clearance"
         description="The close affordance anchors top-right, clear of the headline."
         actions={
-          <AdminButton variant="filled" onClick={() => undefined}>
+          <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
             Done
-          </AdminButton>
+          </Button>
         }
       >
         <div>Body content used to anchor the geometry assertions.</div>
@@ -903,9 +909,9 @@ function FormDialogPreview() {
   const [summary, setSummary] = useState("");
   return (
     <div className={PREVIEW_STAGE}>
-      <AdminButton variant="filled" onClick={() => setOpen(true)}>
+      <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
         Edit garden
-      </AdminButton>
+      </Button>
       <AdminDialog
         open={open}
         onOpenChange={setOpen}
@@ -914,12 +920,12 @@ function FormDialogPreview() {
         tone="garden"
         actions={
           <>
-            <AdminButton variant="text" onClick={() => setOpen(false)}>
+            <Button type="button" emphasis="tertiary" size="sm" onClick={() => setOpen(false)}>
               Cancel
-            </AdminButton>
-            <AdminButton variant="filled" onClick={() => setOpen(false)}>
+            </Button>
+            <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(false)}>
               Save
-            </AdminButton>
+            </Button>
           </>
         }
       >
@@ -972,9 +978,9 @@ function ConfirmPreview() {
   const [open, setOpen] = useState(false);
   return (
     <div className={PREVIEW_STAGE}>
-      <AdminButton variant="filled" onClick={() => setOpen(true)}>
+      <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
         Pause vault
-      </AdminButton>
+      </Button>
       <AdminConfirmDialog
         isOpen={open}
         onClose={() => setOpen(false)}
@@ -1025,9 +1031,9 @@ function NestedPreview() {
   const [confirming, setConfirming] = useState(false);
   return (
     <div className={PREVIEW_STAGE}>
-      <AdminButton variant="filled" onClick={() => setOpen(true)}>
+      <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
         Manage member
-      </AdminButton>
+      </Button>
       <AdminDialog
         open={open}
         onOpenChange={setOpen}
@@ -1035,14 +1041,14 @@ function NestedPreview() {
         description="Rosa Lima gardens in North Meadow."
         tone="community"
         actions={
-          <AdminButton variant="text" onClick={() => setOpen(false)}>
+          <Button type="button" emphasis="tertiary" size="sm" onClick={() => setOpen(false)}>
             Done
-          </AdminButton>
+          </Button>
         }
       >
-        <AdminButton variant="outlined" onClick={() => setConfirming(true)}>
+        <Button type="button" emphasis="secondary" size="sm" onClick={() => setConfirming(true)}>
           Remove member
-        </AdminButton>
+        </Button>
         <AdminConfirmDialog
           isOpen={confirming}
           onClose={() => setConfirming(false)}

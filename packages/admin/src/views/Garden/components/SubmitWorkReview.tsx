@@ -6,11 +6,12 @@
 // step so a value can be corrected without walking the flow again. One status
 // row above the sections says where the send stands and keeps its height while
 // it works, so the sections under it never move (DL-072, DL-080).
+
+import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { Action } from "@green-goods/shared/types/domain";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
@@ -45,16 +46,16 @@ function ReviewCard({
       <div className="mb-2 flex items-center justify-between gap-2">
         <h3 className="type-label-sm text-text-sub">{title}</h3>
         {onEdit && editText ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             onClick={onEdit}
             disabled={!editable}
             aria-label={`${editText} ${title}`}
           >
             {editText}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
       {children}

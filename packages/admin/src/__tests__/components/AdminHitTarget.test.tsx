@@ -4,8 +4,8 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { Button } from "@green-goods/shared/components/Button";
 import { describe, expect, it, vi } from "vitest";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { renderWithProviders, screen } from "../test-utils";
 
@@ -20,7 +20,9 @@ describe("compact admin hit targets", () => {
   it("applies the reserved hit target to each compact primitive", () => {
     renderWithProviders(
       <>
-        <AdminButton size="sm">Review</AdminButton>
+        <Button type="button" size="compact">
+          Review
+        </Button>
         <AdminFilterChip label="Open" selected={false} onToggle={vi.fn()} />
       </>
     );

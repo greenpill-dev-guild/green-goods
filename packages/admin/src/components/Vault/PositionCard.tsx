@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
@@ -26,7 +27,6 @@ import { RiBankLine, RiExternalLinkLine } from "@remixicon/react";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { HarvestOutcomeAlerts } from "./HarvestOutcomeAlerts";
@@ -335,9 +335,10 @@ export function PositionCard({
           </dl>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <AdminButton
-              variant="filled"
-              size="sm"
+            <Button
+              type="button"
+              emphasis="primary"
+              size="compact"
               onClick={() => onDeposit(vault.asset)}
               disabled={!vaultAcceptingDeposits}
               title={
@@ -347,26 +348,32 @@ export function PositionCard({
               }
             >
               {formatMessage({ id: "app.treasury.deposit" })}
-            </AdminButton>
-            <AdminButton variant="outlined" size="sm" onClick={() => onWithdraw(vault.asset)}>
+            </Button>
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              onClick={() => onWithdraw(vault.asset)}
+            >
               {formatMessage({ id: "app.treasury.withdraw" })}
-            </AdminButton>
+            </Button>
           </div>
 
           {/* Auto-allocation repair — only shown for the specific legacy misconfiguration
                (deposit limit zero + not shutdown), not for paused/full/generic states */}
           {isLegacyMisconfiguration && isModuleOwner && (
             <div className="mt-2">
-              <AdminButton
-                variant="outlined"
-                size="sm"
+              <Button
+                type="button"
+                emphasis="secondary"
+                size="compact"
                 className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
                 onClick={onEnableAutoAllocate}
                 disabled={enableAutoAllocate.isPending}
                 loading={enableAutoAllocate.isPending}
               >
                 {formatMessage({ id: "app.treasury.enableAutoAllocate" })}
-              </AdminButton>
+              </Button>
             </div>
           )}
 
@@ -400,9 +407,9 @@ export function PositionCard({
 
               {!hasWorkflowOutcome && yieldStatus.status === "loading" && (
                 <div className="flex justify-end">
-                  <AdminButton variant="outlined" size="sm" disabled loading>
+                  <Button type="button" emphasis="secondary" size="compact" disabled loading>
                     {formatMessage({ id: "app.yield.harvestDistribution.action.harvest" })}
-                  </AdminButton>
+                  </Button>
                 </div>
               )}
 
@@ -419,28 +426,31 @@ export function PositionCard({
               {!hasWorkflowOutcome && canOpenDistribution && (
                 <div className="flex justify-end">
                   {/* Outlined: Deposit is the page's one filled action (D9). */}
-                  <AdminButton
-                    variant="outlined"
-                    size="sm"
+                  <Button
+                    type="button"
+                    emphasis="secondary"
+                    size="compact"
                     onClick={() => openDistributionConfirm("auto")}
                     disabled={harvestDistribution.isPending}
                     loading={harvestDistribution.isPending}
                   >
                     {formatMessage({ id: actionLabelId })}
-                  </AdminButton>
+                  </Button>
                 </div>
               )}
 
               <div className="flex justify-end border-t border-stroke-soft pt-3">
-                <AdminButton
-                  variant="danger"
-                  size="sm"
+                <Button
+                  type="button"
+                  emphasis="primary"
+                  tone="danger"
+                  size="compact"
                   onClick={() => setConfirmPauseOpen(true)}
                   disabled={!canEmergencyPause || emergencyPause.isPending}
                   loading={emergencyPause.isPending}
                 >
                   {formatMessage({ id: "app.treasury.emergencyPause" })}
-                </AdminButton>
+                </Button>
               </div>
             </div>
           )}

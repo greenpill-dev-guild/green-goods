@@ -12,7 +12,8 @@ import { expect, waitFor, within } from "storybook/test";
 import { GardenChip } from "../../src/components/Canvas/GardenChip";
 import { FactList, FactRow } from "../../src/components/Cards/FactRow";
 import { Switch } from "../../src/components/Form/ControlPrimitives";
-import { AdminButton, AdminIconButton } from "../../../admin/src/components/AdminButton";
+import { Button } from "../../src/components/Button";
+import { IconButton } from "../../src/components/IconButton";
 import { AdminCheckbox } from "../../../admin/src/components/AdminCheckbox";
 import { AdminChoiceGroup } from "../../../admin/src/components/AdminChoiceGroup";
 import { AdminDialog } from "../../../admin/src/components/AdminDialog";
@@ -56,99 +57,141 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const BUTTON_VARIANTS = ["filled", "tonal", "elevated", "outlined", "text", "danger"] as const;
-const ICON_VARIANTS = ["standard", "accent", "tonal", "filled", "danger"] as const;
-const SIZE_LABEL: Record<AdminSize, string> = { sm: "sm · 28", md: "md · 32", lg: "lg · 40" };
+const BUTTON_STYLES = [
+  { label: "primary", emphasis: "primary" },
+  { label: "secondary", emphasis: "secondary" },
+  { label: "tertiary", emphasis: "tertiary" },
+  { label: "primary danger", emphasis: "primary", tone: "danger" },
+  { label: "secondary danger", emphasis: "secondary", tone: "danger" },
+] as const;
+const ICON_STYLES = [
+  { label: "tertiary", emphasis: "tertiary" },
+  { label: "secondary", emphasis: "secondary" },
+  { label: "primary", emphasis: "primary" },
+  { label: "tertiary danger", emphasis: "tertiary", tone: "danger" },
+] as const;
+/** The cockpit's tiers on the shared sizes its tokens set (DL-031). */
+const SHARED_SIZE = { sm: "compact", md: "sm", lg: "lg" } as const;
+const SIZE_LABEL: Record<AdminSize, string> = {
+  sm: "compact · 28",
+  md: "sm · 32",
+  lg: "lg · 40",
+};
 
 function ButtonSections() {
   return (
     <>
       <Section
         id="buttons"
-        title="AdminButton"
-        lede="Pill at every size with one 14px label and a 44px finger box (DL-012, DL-030), no press morph."
+        title="Button"
+        lede="The shared Button at the cockpit's density: a pill at every size with one 14px label and a 44px finger box (DL-012, DL-030), no press morph (DL-115, DL-119)."
       >
         {ADMIN_SIZES.map((size) => (
           <Row key={size}>
-            {BUTTON_VARIANTS.map((variant) => (
+            {BUTTON_STYLES.map((style) => (
               <Specimen
-                key={variant}
-                title={`${variant} · ${SIZE_LABEL[size]}`}
+                key={style.label}
+                title={`${style.label} · ${SIZE_LABEL[size]}`}
                 expect={ADMIN.button(size)}
               >
-                <AdminButton
-                  variant={variant}
-                  size={size}
-                  leadingIcon={variant === "filled" ? <RiSave3Line /> : undefined}
+                <Button
+                  type="button"
+                  emphasis={style.emphasis}
+                  tone={"tone" in style ? style.tone : undefined}
+                  size={SHARED_SIZE[size]}
+                  leadingIcon={
+                    style.label === "primary" ? (
+                      <RiSave3Line
+                        className={size === "sm" ? "h-4 w-4" : "h-[18px] w-[18px]"}
+                        aria-hidden="true"
+                      />
+                    ) : undefined
+                  }
                 >
-                  {variant === "danger" ? "Remove Member" : "Create Garden"}
-                </AdminButton>
+                  {"tone" in style ? "Remove Member" : "Create Garden"}
+                </Button>
               </Specimen>
             ))}
           </Row>
         ))}
         <Row>
-          <Specimen title="disabled · md" expect={ADMIN.button("md")}>
-            <AdminButton disabled>Create Garden</AdminButton>
+          <Specimen title="disabled · sm" expect={ADMIN.button("md")}>
+            <Button type="button" size="sm" disabled>
+              Create Garden
+            </Button>
           </Specimen>
-          <Specimen title="loading · md" expect={ADMIN.button("md")}>
-            <AdminButton loading>Saving</AdminButton>
+          <Specimen title="loading · sm" expect={ADMIN.button("md")}>
+            <Button type="button" size="sm" loading>
+              Saving
+            </Button>
           </Specimen>
-          <Specimen title="outlined disabled · md" expect={ADMIN.button("md")}>
-            <AdminButton variant="outlined" disabled>
+          <Specimen title="secondary disabled · sm" expect={ADMIN.button("md")}>
+            <Button type="button" emphasis="secondary" size="sm" disabled>
               Cancel
-            </AdminButton>
+            </Button>
           </Specimen>
-          <Specimen title="leading icon · sm" expect={ADMIN.button("sm")}>
-            <AdminButton size="sm" variant="tonal" leadingIcon={<RiAddLine />}>
+          <Specimen title="leading icon · compact" expect={ADMIN.button("sm")}>
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
+            >
               Add Member
-            </AdminButton>
+            </Button>
           </Specimen>
-          <Specimen title="as link · md" expect={ADMIN.button("md")} target="a">
-            <AdminButton asChild variant="outlined">
+          <Specimen title="as link · sm" expect={ADMIN.button("md")} target="a">
+            <Button asChild emphasis="secondary" size="sm">
               <a href="#buttons">Open Garden</a>
-            </AdminButton>
+            </Button>
           </Specimen>
         </Row>
         <div className="sb-ds-links" style={{ marginTop: 12 }}>
-          <StoryLink id={STORY_LINKS.adminButton}>Admin/Primitives/AdminButton</StoryLink>
+          <StoryLink id={STORY_LINKS.adminButtons}>Admin/Primitives/Buttons</StoryLink>
         </div>
       </Section>
 
       <Section
         id="icon-buttons"
-        title="AdminIconButton"
-        lede="Glyph-only actions on the same 28 / 32 / 40 tiers with a mandatory accessible name."
+        title="IconButton"
+        lede="Glyph-only actions on the same 28 / 32 / 40 tiers with a mandatory accessible name, given as the tooltip too, and the tier's glyph (18px, 16px at 28px)."
       >
         {ADMIN_SIZES.map((size) => (
           <Row key={size}>
-            {ICON_VARIANTS.map((variant) => (
+            {ICON_STYLES.map((style) => (
               <Specimen
-                key={variant}
-                title={`${variant} · ${SIZE_LABEL[size]}`}
+                key={style.label}
+                title={`${style.label} · ${SIZE_LABEL[size]}`}
                 expect={ADMIN.iconButton(size)}
               >
-                <AdminIconButton variant={variant} size={size} label={`${variant} ${size}`}>
-                  {variant === "danger" ? <RiDeleteBinLine /> : <RiShareLine />}
-                </AdminIconButton>
+                <IconButton
+                  emphasis={style.emphasis}
+                  tone={"tone" in style ? style.tone : undefined}
+                  size={SHARED_SIZE[size]}
+                  aria-label={`${style.label} ${size}`}
+                  title={`${style.label} ${size}`}
+                  icon={"tone" in style ? <RiDeleteBinLine /> : <RiShareLine />}
+                />
               </Specimen>
             ))}
           </Row>
         ))}
         <Row>
-          <Specimen title="disabled · md" expect={ADMIN.iconButton("md")}>
-            <AdminIconButton label="Disabled" disabled>
-              <RiAddLine />
-            </AdminIconButton>
+          <Specimen title="disabled · sm" expect={ADMIN.iconButton("md")}>
+            <IconButton
+              size="sm"
+              aria-label="Disabled"
+              title="Disabled"
+              disabled
+              icon={<RiAddLine />}
+            />
           </Specimen>
-          <Specimen title="loading · md" expect={ADMIN.iconButton("md")}>
-            <AdminIconButton label="Loading" loading>
-              <RiAddLine />
-            </AdminIconButton>
+          <Specimen title="loading · sm" expect={ADMIN.iconButton("md")}>
+            <IconButton size="sm" aria-label="Loading" title="Loading" loading icon={<RiAddLine />} />
           </Specimen>
         </Row>
         <div className="sb-ds-links" style={{ marginTop: 12 }}>
-          <StoryLink id={STORY_LINKS.adminIconButtons}>Admin/Primitives/AdminButton › IconButtons</StoryLink>
+          <StoryLink id={STORY_LINKS.adminIconButtons}>Admin/Primitives/Buttons › IconButtons</StoryLink>
         </div>
       </Section>
     </>
@@ -250,7 +293,7 @@ function InlineFieldDemo() {
       value={value}
       onChange={setValue}
       placeholder="e.g. 12"
-      action={<AdminButton variant="tonal">Register</AdminButton>}
+      action={<Button type="button" emphasis="secondary" size="sm">Register</Button>}
     />
   );
 }
@@ -501,7 +544,7 @@ export const DialogCloseButton: Story = {
         title="Close button"
         description="The close affordance is the 40px circle on the title's line."
         tone="hub"
-        actions={<AdminButton>Done</AdminButton>}
+        actions={<Button type="button" size="sm">Done</Button>}
       >
         <Specimen
           title="close"

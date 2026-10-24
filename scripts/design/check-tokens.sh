@@ -336,7 +336,7 @@ collect_admin_invariant_hits() {
 #      NativeSelect/FormField and local FormInput/FormTextarea re-wraps) —
 #      the canonical anatomy is AdminTextField/AdminTextArea/AdminSelect/
 #      AdminInlineField.
-#   2. Raw <button> elements — actions ride AdminButton/AdminIconButton,
+#   2. Raw <button> elements — actions ride the shared Button/IconButton,
 #      choices ride AdminFilterChip/AdminChoiceGroup/AdminSelectableCard,
 #      tabs ride AdminTabRail. (m3-state-layer row/card buttons are folded
 #      into the baseline until a dedicated row primitive exists.)
@@ -523,6 +523,35 @@ collect_admin_chrome_violations() {
     | sort -u
   check_collection_statuses 2 "${PIPESTATUS[@]}"
 }
+
+# ----------------------------------------------------------------------------
+# Retired cockpit buttons (DL-119)
+#
+# Admin views render the shared Button and IconButton directly. AdminButton and
+# AdminIconButton, the adapters DL-115 put in front of them, are gone: this sweep
+# fails if either name returns anywhere in admin or shared code, stories and tests
+# included, or if the adapter's file comes back.
+# ----------------------------------------------------------------------------
+RETIRED_ADMIN_BUTTON_PATTERN='(^|[^[:alnum:]_])Admin(Icon)?Button([^[:alnum:]_]|$)'
+
+collect_retired_admin_button_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+    --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$RETIRED_ADMIN_BUTTON_PATTERN" packages/admin/src packages/shared/src packages/shared/.storybook 2>/dev/null
+}
+
+if ! RETIRED_ADMIN_BUTTON_HITS="$(collect_optional_hits collect_retired_admin_button_hits)"; then exit 2; fi
+if [[ -e packages/admin/src/components/AdminButton.tsx ]]; then
+  RETIRED_ADMIN_BUTTON_HITS="packages/admin/src/components/AdminButton.tsx (the file)${RETIRED_ADMIN_BUTTON_HITS:+$'\n'}${RETIRED_ADMIN_BUTTON_HITS}"
+fi
+if [[ -n "$RETIRED_ADMIN_BUTTON_HITS" ]]; then
+  echo "❌ AdminButton and AdminIconButton are retired (DL-119):"
+  echo "$RETIRED_ADMIN_BUTTON_HITS" | sed 's/^/  /'
+  echo
+  echo "Admin views render the shared Button (emphasis primary / secondary / tertiary, tone danger, size compact / sm / lg) and IconButton directly; the cockpit's tokens in packages/admin/src/index.css set their look."
+  exit 1
+fi
 
 if ! ADMIN_CHROME_VIOLATIONS="$(collect_optional_hits collect_admin_chrome_violations)"; then exit 2; fi
 if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
@@ -754,6 +783,7 @@ echo "✅ workspace tone propagation guard: --m3-primary re-declared at .admin-m
 echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
+echo "✅ retired cockpit button sweep passed: no AdminButton or AdminIconButton in admin or shared code, stories or tests (DL-119)."
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
 echo "✅ admin cockpit invariant sweep passed: off-ladder shadows, hover/press transforms, alias focus rings, and text-*-base stay within the audited baseline."
 echo "✅ admin wrapper-adoption sweep passed: shared field primitives, raw <button> elements, and legacy Card renders stay within the audited baseline."

@@ -14,7 +14,7 @@ const meta: Meta<typeof AdminListRow> = {
           "**AdminListRow** — a list row that opens its record.",
           "The whole row is one full-width, left-aligned button whose height follows",
           "its content, never below the 44px finger box. The row owns the box; the",
-          "caller lays out the content. Use `AdminButton` for actions,",
+          "caller lays out the content. Use the shared `Button` for actions,",
           "`AdminSelectableCard` for choices, and `WorkbenchCard` for queue records.",
           "",
           "`current` marks the row whose record is open: `aria-current` plus a ring.",

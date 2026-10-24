@@ -1,8 +1,9 @@
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
 import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
 import { formatReportingPeriod, normalizeTimestamp } from "@green-goods/shared/utils/time";
@@ -15,7 +16,6 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { assessmentDomainLabelId } from "../assessmentDisplay";
 
 export type HubAssessmentRecord = Pick<
@@ -158,12 +158,18 @@ export function HubAssessmentInspector({
 
       {canMint ? (
         <SheetFooter>
-          <AdminButton variant="filled" onClick={onOpenMintFlow} className="w-full justify-center">
+          <Button
+            type="button"
+            emphasis="primary"
+            size="sm"
+            onClick={onOpenMintFlow}
+            className="w-full justify-center"
+          >
             {formatMessage({
               id: "cockpit.hub.action.createHypercert",
               defaultMessage: "Create Hypercert",
             })}
-          </AdminButton>
+          </Button>
         </SheetFooter>
       ) : null}
     </>

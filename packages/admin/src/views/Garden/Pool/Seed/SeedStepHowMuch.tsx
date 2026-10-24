@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import {
   type CommitmentComposerValues,
   MAX_COMMITMENT_SET_SIZE,
@@ -14,7 +15,6 @@ import { hasActionEnded } from "@green-goods/shared/utils/action/window";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
@@ -24,8 +24,8 @@ import { dueDateAfter, formatDueDate } from "./seedReward";
 import {
   actionUIDOf,
   closedSeedActions,
-  seedErrorText,
   type SeedFieldError,
+  seedErrorText,
 } from "./seedStepModel";
 
 /** How many separate promises a steward usually seeds at once. */
@@ -394,24 +394,24 @@ export function SeedStepHowMuch({
                   disabled={busy}
                 />
                 {/* Lifted over the fields' reserved supporting line, so it lines up with them. */}
-                <AdminButton
+                <Button
                   type="button"
-                  variant="text"
-                  size="sm"
+                  emphasis="tertiary"
+                  size="compact"
                   className="mb-9"
                   aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
                   onClick={() => requirements.remove(index)}
                   disabled={busy}
                 >
                   <RiCloseLine className="h-4 w-4" />
-                </AdminButton>
+                </Button>
               </div>
             ))}
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
-              leadingIcon={<RiAddLine className="h-4 w-4" />}
+              emphasis="secondary"
+              size="compact"
+              leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
               onClick={() => requirements.append({ actionUID: "", requiredCount: 1 })}
               disabled={busy}
             >
@@ -419,7 +419,7 @@ export function SeedStepHowMuch({
                 id: "cockpit.garden.pool.seed.requirementAdd",
                 defaultMessage: "Add Action",
               })}
-            </AdminButton>
+            </Button>
             {closedSeedActions(values, actions, chainId, now).map((action) => (
               <p key={action.id} className="type-meta text-error-dark" role="alert">
                 {formatMessage(

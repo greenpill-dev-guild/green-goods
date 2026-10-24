@@ -6,7 +6,7 @@
  * buttons put `--tone-on-action` (white in light, the tone's -900 ink in dark,
  * DL-009) on `--tone-action`, as a selected filter chip does (DL-101). Shared
  * buttons hover and press on `--tone-action-hover`, and the cockpit's filled
- * AdminButton and AdminIconButton are shared primaries (DL-115). The FAB and a
+ * actions are the shared primaries (DL-115, DL-119). The FAB and a
  * selected AdminFilterChip keep their fill
  * and lay the neutral ink layer (`--m3-on-surface`, Rule 18) over it at the
  * state opacities, beneath their content (`.m3-state-layer-beneath`): the
@@ -27,7 +27,6 @@ const tokens = read("../../styles/admin-m3-tokens.css");
 const theme = read("../../../../shared/src/styles/theme.css");
 const app = read("../../index.css");
 const storybook = read("../../../../shared/.storybook/surfaces.css");
-const adminButton = read("../../components/AdminButton.tsx");
 const fabButton = read("../../components/Shell/FabButton.tsx");
 const filterChip = read("../../components/AdminFilterChip.tsx");
 
@@ -166,8 +165,7 @@ describe("workspace tone fills", () => {
   });
 
   it("hovers and presses the cockpit's filled buttons, shared primaries, on --tone-action-hover", () => {
-    // Filled maps onto the shared primary for the button and the icon button (DL-115).
-    expect(adminButton.match(/filled: \{ emphasis: "primary" \}/g)).toHaveLength(2);
+    // Admin views render the shared primary for a filled action (DL-115, DL-119).
     for (const selector of [
       '.gg-button[data-emphasis="primary"]:hover',
       '.gg-button[data-emphasis="primary"]:not([data-tone]):active',

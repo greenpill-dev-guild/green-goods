@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { NotificationPanel } from "@green-goods/shared/components/Canvas/NotificationPanel";
 import {
   isAdminRightSheetContentId,
@@ -13,7 +14,6 @@ import {
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import {
@@ -105,13 +105,14 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
 
           <div className="flex flex-wrap gap-2">
             {SHEET_OPTIONS.map((option) => (
-              <AdminButton
+              <Button
                 key={option.id}
+                size="sm"
                 type="button"
                 onClick={() => openRegisteredContent(option.id)}
               >
                 Open {option.label}
-              </AdminButton>
+              </Button>
             ))}
             <button
               type="button"

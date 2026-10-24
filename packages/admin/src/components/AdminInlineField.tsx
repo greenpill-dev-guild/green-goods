@@ -18,7 +18,7 @@ export interface AdminInlineFieldProps {
   name?: string;
   type?: string;
   inputMode?: React.ComponentPropsWithoutRef<"input">["inputMode"];
-  /** The trailing submit control — typically an `<AdminButton size="md">` (32dp). */
+  /** The trailing submit control — typically a shared `<Button size="sm">` (32dp). */
   action: React.ReactNode;
   className?: string;
   inputProps?: React.ComponentPropsWithoutRef<"input">;
@@ -30,7 +30,7 @@ export interface AdminInlineFieldProps {
  * A 32dp field (DL-011 compact metric) for "enter one short value and submit"
  * rows (register a hypercert / action id, add a strategy address). It takes
  * the {@link AdminTextField} anatomy on a smaller box: the label above, then
- * the input on the same 32dp axis as its paired `AdminButton size="md"`,
+ * the input on the same 32dp axis as its paired `Button size="sm"`,
  * reading as one group, then the message line.
  *
  * Label and supporting text are the family's: the shared field title and
@@ -99,7 +99,7 @@ export function AdminInlineField({
             inputProps?.onKeyDown?.(e);
           }}
           className={cn(
-            // 32dp compact box, matching AdminButton md so the row aligns
+            // 32dp compact box, matching the 32px button so the row aligns
             // (DL-011 compact metric).
             "h-8 min-w-0 flex-1 rounded-[var(--m3-shape-sm)] bg-transparent px-3",
             "type-body [color:rgb(var(--m3-on-surface))] outline-none",

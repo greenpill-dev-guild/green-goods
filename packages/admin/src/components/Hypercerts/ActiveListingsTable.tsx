@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useCancelListing } from "@green-goods/shared/hooks/hypercerts/useCancelListing";
 import { useHypercertListings } from "@green-goods/shared/hooks/hypercerts/useHypercertListings";
@@ -14,7 +15,6 @@ import {
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 
 interface ActiveListingsTableProps {
@@ -79,15 +79,21 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
   const recoveryControls = pendingCancellation ? (
     <>
       <Alert variant="info">
-        <AdminButton size="sm" disabled={recoveryBusy} onClick={() => void checkConfirmation()}>
+        <Button
+          type="button"
+          size="compact"
+          disabled={recoveryBusy}
+          onClick={() => void checkConfirmation()}
+        >
           {intl.formatMessage({
             id: "app.account.checkConfirmation",
             defaultMessage: "Check confirmation",
           })}
-        </AdminButton>
-        <AdminButton
-          size="sm"
-          variant="text"
+        </Button>
+        <Button
+          type="button"
+          emphasis="tertiary"
+          size="compact"
           disabled={recoveryBusy}
           onClick={() => {
             setRecoveryError(false);
@@ -95,7 +101,7 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
           }}
         >
           {intl.formatMessage({ id: "app.account.reviewCancellation" })}
-        </AdminButton>
+        </Button>
       </Alert>
       {recoveryError && (
         <Alert variant="error">
@@ -267,9 +273,11 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                 </td>
                 <td className="px-4 py-3 text-right">
                   {status === "active" ? (
-                    <AdminButton
-                      variant="danger"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="primary"
+                      tone="danger"
+                      size="compact"
                       onClick={() =>
                         pendingCancellation ? checkConfirmation() : cancelListing(listing.orderId)
                       }
@@ -279,7 +287,7 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                         (Boolean(pendingCancellation) &&
                           pendingCancellation?.orderId !== listing.orderId)
                       }
-                      leadingIcon={<RiCloseLine />}
+                      leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
                     >
                       {intl.formatMessage({
                         id:
@@ -291,20 +299,23 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                             ? "Check confirmation"
                             : "Cancel",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : (
                     onCreateListing && (
-                      <AdminButton
-                        variant="text"
-                        size="sm"
+                      <Button
+                        type="button"
+                        emphasis="tertiary"
+                        size="compact"
                         onClick={() => onCreateListing(listing.hypercertId)}
-                        leadingIcon={<RiExchangeDollarLine />}
+                        leadingIcon={
+                          <RiExchangeDollarLine className="h-4 w-4" aria-hidden="true" />
+                        }
                       >
                         {intl.formatMessage({
                           id: "app.admin.listings.renew",
                           defaultMessage: "Renew",
                         })}
-                      </AdminButton>
+                      </Button>
                     )
                   )}
                 </td>

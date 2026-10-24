@@ -1,6 +1,7 @@
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
@@ -10,7 +11,6 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { isAddress } from "viem";
-import { AdminIconButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
@@ -169,9 +169,14 @@ export function CommunityMembersTab({
                       }
                       action={
                         canManage ? (
-                          <AdminIconButton
+                          <IconButton
                             asChild
-                            label={formatMessage({ id: "cockpit.community.members.manageRoles" })}
+                            emphasis="tertiary"
+                            size="sm"
+                            aria-label={formatMessage({
+                              id: "cockpit.community.members.manageRoles",
+                            })}
+                            title={formatMessage({ id: "cockpit.community.members.manageRoles" })}
                           >
                             <Link
                               to={adminRoutes.communityMembers({
@@ -182,7 +187,7 @@ export function CommunityMembersTab({
                             >
                               <RiUserSettingsLine />
                             </Link>
-                          </AdminIconButton>
+                          </IconButton>
                         ) : undefined
                       }
                     />

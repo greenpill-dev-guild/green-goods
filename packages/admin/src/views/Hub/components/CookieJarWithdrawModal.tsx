@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
@@ -11,7 +12,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
@@ -129,17 +129,24 @@ export function CookieJarWithdrawModal({
       preventClose={isPending}
       actions={
         <>
-          <AdminButton type="button" variant="text" onClick={onClose} disabled={isPending}>
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="sm"
+            onClick={onClose}
+            disabled={isPending}
+          >
             {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton
+          </Button>
+          <Button
+            size="sm"
             type="button"
             loading={isPending}
             disabled={!selectedWithdrawJar || parsedWithdrawAmount <= 0n}
             onClick={handleWithdraw}
           >
             {formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Claim" })}
-          </AdminButton>
+          </Button>
         </>
       }
     >
@@ -173,9 +180,10 @@ export function CookieJarWithdrawModal({
             error={withdrawInputError ? formatMessage({ id: withdrawInputError }) : undefined}
             inputProps={{ inputMode: "decimal" }}
           />
-          <AdminButton
-            variant="outlined"
-            size="sm"
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
             className="mt-8 min-w-14"
             onClick={() => {
               if (!selectedWithdrawJar) return;
@@ -187,7 +195,7 @@ export function CookieJarWithdrawModal({
             }}
           >
             {formatMessage({ id: "app.treasury.max", defaultMessage: "Max" })}
-          </AdminButton>
+          </Button>
         </div>
 
         {/* Purpose */}

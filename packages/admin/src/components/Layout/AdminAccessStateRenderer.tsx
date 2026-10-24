@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
@@ -6,7 +7,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { AdminSignInContainer } from "@/components/AdminSignIn";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
@@ -47,7 +47,8 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
     return (
       <WalletRequiredConnectShell
         action={
-          <AdminButton
+          <Button
+            size="sm"
             type="button"
             onClick={() => {
               void state.signOut();
@@ -57,7 +58,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
               id: "app.admin.auth.signOutAndReconnect",
               defaultMessage: "Sign Out & Connect Wallet",
             })}
-          </AdminButton>
+          </Button>
         }
       />
     );

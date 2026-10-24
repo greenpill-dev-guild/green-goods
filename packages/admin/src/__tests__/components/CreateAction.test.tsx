@@ -5,12 +5,12 @@
  * Covers rendering and local form actions.
  */
 
+import { default as enMessages } from "@green-goods/shared/i18n/en.json";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { default as enMessages } from "@green-goods/shared/i18n/en.json";
 
 // ── Mock state ──────────────────────────────────────────
 
@@ -32,9 +32,18 @@ vi.mock("@green-goods/shared/components/Button", () => ({
   Button: ({
     children,
     loading,
+    emphasis: _emphasis,
+    tone: _tone,
+    size: _size,
+    leadingIcon: _leadingIcon,
     ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) =>
-    React.createElement("button", props, loading ? "Loading..." : children),
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    loading?: boolean;
+    emphasis?: string;
+    tone?: string;
+    size?: string;
+    leadingIcon?: React.ReactNode;
+  }) => React.createElement("button", props, loading ? "Loading..." : children),
 }));
 
 vi.mock("@green-goods/shared/components/ErrorBoundary/ErrorBoundary", () => ({
@@ -150,17 +159,6 @@ vi.mock("@/components/AdminDialog", async (importOriginal) => ({
   AdminDialog: ({ children }: { children: React.ReactNode }) =>
     React.createElement("div", { role: "dialog" }, children),
   ADMIN_FLOW_DIALOG_CLASS: "",
-}));
-
-vi.mock("@/components/AdminButton", () => ({
-  AdminButton: ({
-    children,
-    onClick,
-    loading,
-    type = "button",
-    disabled,
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) =>
-    React.createElement("button", { type, onClick, disabled }, loading ? "Loading..." : children),
 }));
 
 vi.mock("@/components/DiscardChangesDialog", () => ({ DiscardChangesDialog: () => null }));

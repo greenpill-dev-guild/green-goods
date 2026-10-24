@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolFundingControllerView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
@@ -5,7 +7,6 @@ import { goodDollarWeiToUsdCents } from "@green-goods/shared/modules/wallet/good
 import { RiAlertLine, RiCheckLine, RiInformationLine, RiRefreshLine } from "@remixicon/react";
 import { type RefObject, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import {
   formatGdollar,
@@ -89,17 +90,20 @@ export function PoolFundingSection({
             defaultMessage: "Pool Funding",
           })}
         </AdminCardTitle>
-        <AdminIconButton
+        <IconButton
           size="lg"
-          label={formatMessage({
+          aria-label={formatMessage({
+            id: "cockpit.garden.pool.funding.refresh",
+            defaultMessage: "Refresh Pool Funding",
+          })}
+          title={formatMessage({
             id: "cockpit.garden.pool.funding.refresh",
             defaultMessage: "Refresh Pool Funding",
           })}
           onClick={() => void handleRefresh()}
           loading={manualRefresh === "running"}
-        >
-          <RiRefreshLine />
-        </AdminIconButton>
+          icon={<RiRefreshLine />}
+        />
       </div>
 
       {funding.isLoading && !snapshot ? (
@@ -230,18 +234,18 @@ export function PoolFundingSection({
                     })}
             </span>
             <span aria-hidden>·</span>
-            <AdminButton
+            <Button
               ref={detailsButtonRef}
               type="button"
-              variant="text"
-              size="sm"
+              emphasis="tertiary"
+              size="compact"
               onClick={onOpenDetails}
             >
               {formatMessage({
                 id: "cockpit.garden.pool.funding.openDetails",
                 defaultMessage: "View Details",
               })}
-            </AdminButton>
+            </Button>
           </p>
         </>
       )}

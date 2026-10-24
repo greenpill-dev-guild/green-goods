@@ -1,9 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { MAX_REASON } from "@green-goods/shared/modules/commitment-pooling/reasons";
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "./AdminButton";
 import { AdminDialog, type AdminDialogProps } from "./AdminDialog";
 import { AdminTextArea } from "./AdminTextField";
 
@@ -197,16 +197,16 @@ export function AdminReasonDialog({
             })}
           >
             {suggestions.map((suggestion) => (
-              <AdminButton
+              <Button
                 key={suggestion}
                 type="button"
-                variant="outlined"
-                size="sm"
+                emphasis="secondary"
+                size="compact"
                 disabled={busy}
                 onClick={() => setReason(suggestion)}
               >
                 {suggestion}
-              </AdminButton>
+              </Button>
             ))}
           </div>
         ) : null}

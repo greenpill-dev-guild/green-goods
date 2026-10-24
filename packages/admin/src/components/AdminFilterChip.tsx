@@ -1,5 +1,5 @@
-import { type ComponentType } from "react";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { type ComponentType } from "react";
 
 // ============================================================================
 // Types
@@ -26,8 +26,8 @@ export interface AdminFilterChipProps {
  * - Shape: a capsule (--m3-shape-full), the app's chip shape
  * - Unselected: transparent fill, outline ring, on-surface-variant text
  * - Selected: the app's selected look in the workspace tone, a solid
- *   --tone-action fill with --tone-on-action text and no outline. As on the
- *   filled AdminButton, the neutral state layer paints beneath the label.
+ *   --tone-action fill with --tone-on-action text and no outline. The neutral
+ *   state layer paints beneath the label.
  * - Focus: one solid 2px ring in the tone, 2px off the chip with the ground
  *   showing between, so it never merges with a selected fill.
  * - Selection shows by fill and `aria-pressed` alone, with no leading check mark,

@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
@@ -21,7 +22,6 @@ import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { useReadContract } from "wagmi";
-import { AdminButton } from "@/components/AdminButton";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
@@ -210,10 +210,10 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
           icon={<RiErrorWarningLine />}
           title={formatMessage({ id: "app.treasury.errorLoading" })}
           action={
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={() => {
                 void refetchVaults();
               }}
@@ -222,7 +222,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
               {vaultsFetching
                 ? formatMessage({ id: "app.common.refreshing" })
                 : formatMessage({ id: "app.common.tryAgain" })}
-            </AdminButton>
+            </Button>
           }
         />
       )}

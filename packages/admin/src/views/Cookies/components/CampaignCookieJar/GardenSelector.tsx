@@ -1,8 +1,8 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
@@ -95,10 +95,10 @@ export function GardenSelector({
         />
         {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
         <div className="flex flex-wrap gap-2 md:mb-9">
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => onSelectMany?.(filteredGardens.map((garden) => garden.id))}
             disabled={!onSelectMany || filteredGardens.length === 0 || allVisibleSelected}
           >
@@ -106,11 +106,11 @@ export function GardenSelector({
               id: "cockpit.community.cookies.selectVisibleGardens",
               defaultMessage: "Select Visible",
             })}
-          </AdminButton>
-          <AdminButton
+          </Button>
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             onClick={onClear}
             disabled={!onClear || selectedGardenIds.length === 0}
           >
@@ -118,7 +118,7 @@ export function GardenSelector({
               id: "cockpit.community.cookies.clearGardens",
               defaultMessage: "Clear",
             })}
-          </AdminButton>
+          </Button>
         </div>
       </div>
       <p className="type-meta text-text-sub">

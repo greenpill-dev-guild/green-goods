@@ -1,12 +1,12 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useMarketplaceApprovals } from "@green-goods/shared/hooks/hypercerts/useMarketplaceApprovals";
 import { getMarketplaceReadiness } from "@green-goods/shared/utils/blockchain/contracts";
 import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
 import { useState } from "react";
-import { AdminConfirmDialog } from "../AdminDialog";
 import { useIntl } from "react-intl";
-import { AdminButton } from "../AdminButton";
+import { AdminConfirmDialog } from "../AdminDialog";
 
 interface MarketplaceApprovalGateProps {
   /** Active chain id; readiness is derived from deployment artifacts. */
@@ -156,7 +156,8 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             </p>
           )}
           {isPending && (
-            <AdminButton
+            <Button
+              size="sm"
               type="button"
               onClick={checkPending}
               disabled={isChecking}
@@ -164,18 +165,19 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
               className="mt-4"
             >
               {formatMessage({ id: "app.admin.work.submit.checkConfirmation" })}
-            </AdminButton>
+            </Button>
           )}
 
           {isPending && (
-            <AdminButton
+            <Button
+              size="sm"
               type="button"
               disabled={isChecking || isClearing}
               onClick={() => setReviewCancellation(true)}
               className="mt-4"
             >
               {formatMessage({ id: "app.account.reviewCancellation" })}
-            </AdminButton>
+            </Button>
           )}
           <AdminConfirmDialog
             isOpen={reviewCancellation}
@@ -206,16 +208,17 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
           />
           {error && <p className="mt-3 type-meta text-error-base">{error.message}</p>}
 
-          <AdminButton
+          <Button
+            size="sm"
             type="button"
             onClick={() => grantApprovals()}
             disabled={isGranting || isPending}
             loading={isGranting}
-            leadingIcon={<RiShieldCheckLine className="h-4 w-4" />}
+            leadingIcon={<RiShieldCheckLine className="h-[18px] w-[18px]" aria-hidden="true" />}
             className="mt-4"
           >
             {formatMessage({ id: "app.marketplace.approveAll", defaultMessage: "Approve All" })}
-          </AdminButton>
+          </Button>
         </div>
       </div>
     </div>

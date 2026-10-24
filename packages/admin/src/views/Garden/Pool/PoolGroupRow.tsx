@@ -1,7 +1,7 @@
 import { CommitmentRow } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { RiSendPlaneLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminIconButton } from "@/components/AdminButton";
 import type { PoolCommitmentGroup } from "./poolCommitmentRows";
 import { rowDueDetail } from "./poolTime";
 
@@ -117,15 +117,16 @@ export function PoolGroupRow({
       onOpen={onOpen}
       action={
         unsent > 0 ? (
-          <AdminIconButton
-            variant="tonal"
-            label={finishLabel}
+          <IconButton
+            emphasis="secondary"
+            size="sm"
+            aria-label={finishLabel}
+            title={finishLabel}
             onClick={onFinish}
             loading={finishing}
             disabled={finishDisabled || finishing}
-          >
-            <RiSendPlaneLine aria-hidden="true" />
-          </AdminIconButton>
+            icon={<RiSendPlaneLine aria-hidden="true" />}
+          />
         ) : undefined
       }
     />

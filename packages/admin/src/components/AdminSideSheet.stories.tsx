@@ -1,10 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminButton } from "./AdminButton";
 import { AdminSideSheet } from "./AdminSideSheet";
 
 const meta: Meta<typeof AdminSideSheet> = {
@@ -187,12 +187,12 @@ export const WithPinnedFooter: Story = {
       <>
         <SheetBody padded>{SAMPLE_ROWS}</SheetBody>
         <SheetFooter>
-          <AdminButton variant="text" onClick={() => undefined}>
+          <Button type="button" emphasis="tertiary" size="sm" onClick={() => undefined}>
             Secondary
-          </AdminButton>
-          <AdminButton variant="filled" onClick={() => undefined}>
+          </Button>
+          <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
             Primary
-          </AdminButton>
+          </Button>
         </SheetFooter>
       </>
     </OpenSideSheet>
@@ -204,9 +204,9 @@ function SideSheetPreview() {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex min-h-56 items-center justify-center">
-      <AdminButton variant="filled" onClick={() => setOpen(true)}>
+      <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
         Open side sheet
-      </AdminButton>
+      </Button>
       <AdminSideSheet open={open} onOpenChange={setOpen} title="Settings" tone="hub">
         <SheetBody padded>
           <p className="type-body text-text-sub">

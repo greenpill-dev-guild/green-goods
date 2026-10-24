@@ -104,7 +104,7 @@ const SCOPES = {
   ],
   "rule-13-raw-tailwind-color": ["packages/admin/src", "packages/client/src"],
   "rule-16-inline-alert-div": ["packages/admin/src", "packages/client/src"],
-  // Admin keeps AdminButton and the admin field family (frontend-design Rules 15 and 18).
+  // Admin keeps its field family and raw-button sweep (frontend-design Rules 15 and 18).
   "rule-19-client-shared-controls": ["packages/client/src"],
 };
 

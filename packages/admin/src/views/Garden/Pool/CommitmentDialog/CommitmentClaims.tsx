@@ -1,4 +1,5 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
@@ -15,7 +16,6 @@ import { RiCheckLine, RiTimeLine } from "@remixicon/react";
 import { Fragment, type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { PersonName } from "@/components/PersonName";
 import { ClaimantName } from "../ClaimantName";
@@ -218,10 +218,10 @@ export function CommitmentClaims({
                   <ActPhaseLine phase={phase} chainId={chainId} confirmed="" />
                 ) : waiting && can.acceptClaim ? (
                   <>
-                    <AdminButton
+                    <Button
                       type="button"
-                      variant="outlined"
-                      size="sm"
+                      emphasis="secondary"
+                      size="compact"
                       onClick={() =>
                         onOpenDialog({ kind: "decline-claim", claimant: claim.claimant })
                       }
@@ -231,11 +231,11 @@ export function CommitmentClaims({
                         id: "cockpit.garden.pool.claims.act.decline",
                         defaultMessage: "Decline…",
                       })}
-                    </AdminButton>
-                    <AdminButton
+                    </Button>
+                    <Button
                       type="button"
-                      variant="filled"
-                      size="sm"
+                      emphasis="primary"
+                      size="compact"
                       onClick={() => void acts.acceptClaim(claim.claimant).catch(() => undefined)}
                       disabled={actDisabled}
                     >
@@ -248,7 +248,7 @@ export function CommitmentClaims({
                             id: "cockpit.garden.pool.approvals.approve",
                             defaultMessage: "Approve",
                           })}
-                    </AdminButton>
+                    </Button>
                   </>
                 ) : null}
               </span>

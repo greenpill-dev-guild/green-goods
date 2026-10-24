@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { ConvictionMeter } from "@green-goods/shared/components/Conviction/ConvictionMeter";
 import {
   WeightAllocator,
@@ -14,7 +15,6 @@ import { RiArrowRightSLine, RiUserVoiceLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 
 interface GovernancePanelProps {
   /** All garden pools — the panel filters to the HypercertSignalPool. */
@@ -149,12 +149,12 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
                 { count: proposals.length }
               )}
             </span>
-            <AdminButton asChild variant="text" size="sm">
+            <Button asChild emphasis="tertiary" size="compact">
               <Link to={adminRoutes.communityCoordinationSignalPool("hypercert", { gardenId })}>
                 {formatMessage({ id: "cockpit.community.coordination.openPool" })}
                 <RiArrowRightSLine className="h-4 w-4" />
               </Link>
-            </AdminButton>
+            </Button>
           </div>
         </div>
 
@@ -209,12 +209,12 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
                   showLabels={false}
                 />
               </div>
-              <AdminButton asChild variant="text" size="sm" className="justify-self-start">
+              <Button asChild emphasis="tertiary" size="compact" className="justify-self-start">
                 <Link to={adminRoutes.communityCoordinationSignalPool("hypercert", { gardenId })}>
                   {formatMessage({ id: "app.actions.view" })}
                   <RiArrowRightSLine className="h-4 w-4" />
                 </Link>
-              </AdminButton>
+              </Button>
             </article>
           ))}
         </div>

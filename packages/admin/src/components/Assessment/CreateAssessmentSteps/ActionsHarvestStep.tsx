@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -8,7 +9,6 @@ import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/util
 import { RiHammerLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { knownDomain, resolveDomainLabel, Section } from "./shared";
 
@@ -131,10 +131,10 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                   { count: selectedUIDs.length, total: domainActions.length }
                 )}
               </span>
-              <AdminButton
+              <Button
                 type="button"
-                variant="text"
-                size="sm"
+                emphasis="tertiary"
+                size="compact"
                 onClick={() => {
                   if (selectedUIDs.length === domainActions.length) {
                     setField("selectedActionUIDs", []);
@@ -156,7 +156,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                       id: "app.admin.assessment.domainAction.selectAll",
                       defaultMessage: "Select All",
                     })}
-              </AdminButton>
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

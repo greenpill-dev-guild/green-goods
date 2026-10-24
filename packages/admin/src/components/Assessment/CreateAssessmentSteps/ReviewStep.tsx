@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { Step } from "@green-goods/shared/components/Form/StepIndicator";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -10,7 +11,6 @@ import {
 } from "@green-goods/shared/utils/time";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { resolveCynefinOptions, resolveDomainMetrics } from "./StrategyKernelStep";
@@ -71,10 +71,10 @@ export function ReviewStep({ form, steps, status, onEditStep }: ReviewStepProps)
       <Section
         title={title}
         action={
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             disabled={!editable}
             aria-label={formatMessage(
               { id: "app.admin.flow.review.editSection", defaultMessage: "Edit {section}" },
@@ -83,7 +83,7 @@ export function ReviewStep({ form, steps, status, onEditStep }: ReviewStepProps)
             onClick={() => onEditStep(stepIndex)}
           >
             {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
-          </AdminButton>
+          </Button>
         }
       >
         <FactList frame="inset">{rows}</FactList>

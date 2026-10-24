@@ -1,10 +1,10 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { RiCloseLine, RiUserAddLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminIconButton } from "../AdminButton";
 import { formatRoleNames, type StagedMember } from "./addMembersEntry";
 import { RoleChip } from "./RoleChip";
 
@@ -99,15 +99,18 @@ export function StagedMemberList({
                   ) : null}
                 </div>
                 <RoleChip role={role} />
-                <AdminIconButton
-                  size="sm"
+                <IconButton
+                  size="compact"
                   className="shrink-0"
                   onClick={() => onRemove(address)}
                   disabled={disabled}
-                  label={formatMessage({ id: "admin.addMember.remove", defaultMessage: "Remove" })}
-                >
-                  <RiCloseLine />
-                </AdminIconButton>
+                  aria-label={formatMessage({
+                    id: "admin.addMember.remove",
+                    defaultMessage: "Remove",
+                  })}
+                  title={formatMessage({ id: "admin.addMember.remove", defaultMessage: "Remove" })}
+                  icon={<RiCloseLine />}
+                />
               </li>
             );
           })}

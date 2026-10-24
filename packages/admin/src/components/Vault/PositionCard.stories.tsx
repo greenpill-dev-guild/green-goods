@@ -1,15 +1,15 @@
-import { PositionCard as RealPositionCard } from "./PositionCard";
-import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
-import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
-import { expect, fn, mocked, userEvent, within } from "storybook/test";
-import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiBankLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
+import { expect, fn, mocked, userEvent, within } from "storybook/test";
+import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
+import { PositionCard as RealPositionCard } from "./PositionCard";
 
 // ⚠ VISUAL HARNESS — not the real PositionCard.
 // The real component wires `useUser`, `useVaultPreview`, `useYieldStatus`,
@@ -106,31 +106,33 @@ function PositionCardHarness({
           </dl>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <AdminButton
-              variant="filled"
-              size="sm"
+            <Button
+              type="button"
+              emphasis="primary"
+              size="compact"
               onClick={fn()}
               disabled={!vaultAcceptingDeposits}
             >
               Deposit
-            </AdminButton>
-            <AdminButton variant="outlined" size="sm" onClick={fn()}>
+            </Button>
+            <Button type="button" emphasis="secondary" size="compact" onClick={fn()}>
               Withdraw
-            </AdminButton>
+            </Button>
           </div>
 
           {isLegacyMisconfiguration && isModuleOwner && (
             <div className="mt-2">
-              <AdminButton
-                variant="outlined"
-                size="sm"
+              <Button
+                type="button"
+                emphasis="secondary"
+                size="compact"
                 className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
                 onClick={fn()}
                 disabled={isEnablingAutoAllocate}
                 loading={isEnablingAutoAllocate}
               >
                 Enable auto-allocate
-              </AdminButton>
+              </Button>
             </div>
           )}
 
@@ -152,9 +154,9 @@ function PositionCardHarness({
                   variant="warning"
                   className="p-3"
                   action={
-                    <AdminButton variant="outlined" size="sm" onClick={fn()}>
+                    <Button type="button" emphasis="secondary" size="compact" onClick={fn()}>
                       Retry distribution
-                    </AdminButton>
+                    </Button>
                   }
                 >
                   Harvest confirmed, but distribution is still pending. The harvested funds remain
@@ -174,9 +176,10 @@ function PositionCardHarness({
                 distributionState !== "complete" &&
                 distributionState !== "submitted" && (
                   <div className="flex justify-end">
-                    <AdminButton
-                      variant="tonal"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="compact"
                       onClick={fn()}
                       disabled={isHarvesting}
                       loading={isHarvesting}
@@ -187,19 +190,21 @@ function PositionCardHarness({
                             ? "app.yield.harvestDistribution.action.harvest"
                             : "app.yield.harvestDistribution.action.distribute",
                       })}
-                    </AdminButton>
+                    </Button>
                   </div>
                 )}
               <div className="flex justify-end border-t border-stroke-soft pt-3">
-                <AdminButton
-                  variant="danger"
-                  size="sm"
+                <Button
+                  type="button"
+                  emphasis="primary"
+                  tone="danger"
+                  size="compact"
                   onClick={fn()}
                   disabled={!canEmergencyPause || isPausing}
                   loading={isPausing}
                 >
                   Emergency pause
-                </AdminButton>
+                </Button>
               </div>
             </div>
           )}

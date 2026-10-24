@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { ActionInstructionConfig, WorkInput } from "@green-goods/shared/types/domain";
 import {
@@ -10,7 +12,6 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminCardTitle } from "../AdminCard";
 import { AdminCheckbox } from "../AdminCheckbox";
 import { AdminFieldGroup } from "../AdminFieldGroup";
@@ -117,12 +118,17 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
               defaultMessage: "Form inputs",
             })}
           </AdminCardTitle>
-          <AdminButton type="button" size="sm" onClick={addInput} leadingIcon={<RiAddLine />}>
+          <Button
+            type="button"
+            size="compact"
+            onClick={addInput}
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
+          >
             {formatMessage({
               id: "app.admin.actions.detailsConfig.addInput",
               defaultMessage: "Add Input",
             })}
-          </AdminButton>
+          </Button>
         </div>
 
         <div className="space-y-4">
@@ -146,12 +152,12 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
                 defaultMessage: "No form inputs yet",
               })}
               action={
-                <AdminButton type="button" variant="text" size="sm" onClick={addInput}>
+                <Button type="button" emphasis="tertiary" size="compact" onClick={addInput}>
                   {formatMessage({
                     id: "app.admin.actions.detailsConfig.addFirstInput",
                     defaultMessage: "Add Your First Input Field",
                   })}
-                </AdminButton>
+                </Button>
               }
             />
           )}
@@ -206,37 +212,50 @@ function InputFieldEditor({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <AdminIconButton
+          <IconButton
+            size="sm"
             onClick={() => onMove("up")}
             disabled={index === 0}
-            label={formatMessage({
+            aria-label={formatMessage({
               id: "app.admin.actions.detailsConfig.moveUp",
               defaultMessage: "Move Up",
             })}
-          >
-            <RiArrowUpLine />
-          </AdminIconButton>
-          <AdminIconButton
+            title={formatMessage({
+              id: "app.admin.actions.detailsConfig.moveUp",
+              defaultMessage: "Move Up",
+            })}
+            icon={<RiArrowUpLine />}
+          />
+          <IconButton
+            size="sm"
             onClick={() => onMove("down")}
             disabled={index === totalInputs - 1}
-            label={formatMessage({
+            aria-label={formatMessage({
               id: "app.admin.actions.detailsConfig.moveDown",
               defaultMessage: "Move Down",
             })}
-          >
-            <RiArrowDownLine />
-          </AdminIconButton>
-          <AdminIconButton
-            variant="danger"
+            title={formatMessage({
+              id: "app.admin.actions.detailsConfig.moveDown",
+              defaultMessage: "Move Down",
+            })}
+            icon={<RiArrowDownLine />}
+          />
+          <IconButton
+            emphasis="tertiary"
+            tone="danger"
+            size="sm"
             className="ml-2"
             onClick={onRemove}
-            label={formatMessage({
+            aria-label={formatMessage({
               id: "app.admin.actions.detailsConfig.delete",
               defaultMessage: "Delete",
             })}
-          >
-            <RiDeleteBinLine />
-          </AdminIconButton>
+            title={formatMessage({
+              id: "app.admin.actions.detailsConfig.delete",
+              defaultMessage: "Delete",
+            })}
+            icon={<RiDeleteBinLine />}
+          />
         </div>
       </div>
 
@@ -368,20 +387,28 @@ function InputFieldEditor({
                 />
                 {/* mb-3 keeps a control on the field's box (the box's middle sits 6px above the
                     field's: a 24px label above it, a 36px message line under it). */}
-                <AdminIconButton
-                  variant="danger"
+                <IconButton
+                  emphasis="tertiary"
+                  tone="danger"
+                  size="sm"
                   className="mb-3"
                   onClick={() => removeOption(optIndex)}
-                  label={formatMessage(
+                  aria-label={formatMessage(
                     {
                       id: "app.admin.actions.detailsConfig.removeOption",
                       defaultMessage: "Remove Option #{number}",
                     },
                     { number: optIndex + 1 }
                   )}
-                >
-                  <RiCloseLine />
-                </AdminIconButton>
+                  title={formatMessage(
+                    {
+                      id: "app.admin.actions.detailsConfig.removeOption",
+                      defaultMessage: "Remove Option #{number}",
+                    },
+                    { number: optIndex + 1 }
+                  )}
+                  icon={<RiCloseLine />}
+                />
               </div>
             ))}
             <div className="flex items-center gap-2">
@@ -406,17 +433,21 @@ function InputFieldEditor({
                   defaultMessage: "Add option...",
                 })}
               />
-              <AdminIconButton
-                variant="filled"
+              <IconButton
+                emphasis="primary"
+                size="sm"
                 className="mb-3"
                 onClick={addOption}
-                label={formatMessage({
+                aria-label={formatMessage({
                   id: "app.admin.actions.detailsConfig.addOptionPlaceholder",
                   defaultMessage: "Add option...",
                 })}
-              >
-                <RiAddLine />
-              </AdminIconButton>
+                title={formatMessage({
+                  id: "app.admin.actions.detailsConfig.addOptionPlaceholder",
+                  defaultMessage: "Add option...",
+                })}
+                icon={<RiAddLine />}
+              />
             </div>
           </AdminFieldGroup>
         </div>

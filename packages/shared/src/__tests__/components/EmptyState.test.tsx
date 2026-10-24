@@ -19,7 +19,7 @@ describe("EmptyState", () => {
         icon={<span />}
         title="No actions yet"
         action={
-          <button type="button" data-component="AdminButton">
+          <button type="button" data-testid="surface-action">
             Create Your First Action
           </button>
         }
@@ -27,7 +27,7 @@ describe("EmptyState", () => {
     );
 
     const button = screen.getByRole("button", { name: "Create Your First Action" });
-    expect(button).toHaveAttribute("data-component", "AdminButton");
+    expect(button).toHaveAttribute("data-testid", "surface-action");
     expect(document.querySelectorAll(".gg-button")).toHaveLength(0);
   });
 

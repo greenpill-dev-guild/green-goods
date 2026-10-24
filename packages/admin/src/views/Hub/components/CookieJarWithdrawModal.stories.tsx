@@ -1,16 +1,15 @@
-import { AdminButton } from "@/components/AdminButton";
-import { AdminDialog } from "@/components/AdminDialog";
 import { Button } from "@green-goods/shared/components/Button";
-import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import {
   NativeSelect,
   Textarea,
   TextInput,
 } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
+import { AdminDialog } from "@/components/AdminDialog";
 
 // ⚠ VISUAL HARNESS — not the real CookieJarWithdrawModal.
 // Real component wires `useCookieJarWithdraw` + `useGardenCookieJars`
@@ -97,9 +96,10 @@ function CookieJarWithdrawModalHarness({
               placeholder="0.00"
               className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 type-body text-text-strong"
             />
-            <AdminButton
-              variant="outlined"
-              size="sm"
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
               className="min-w-14"
               onClick={() => {
                 if (!selected) return;
@@ -111,7 +111,7 @@ function CookieJarWithdrawModalHarness({
               }}
             >
               Max
-            </AdminButton>
+            </Button>
           </div>
         </div>
 

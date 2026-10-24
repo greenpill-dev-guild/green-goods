@@ -1,7 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { RiExternalLinkLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextArea } from "@/components/AdminTextField";
@@ -113,17 +113,19 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             {/* Disabled while a write is in flight: the sync/metadata hooks
                 report errors inline, so a Cancel-close mid-write would render
                 the failure into a dialog nobody can see. */}
-            <AdminButton
+            <Button
               type="button"
-              variant="text"
+              emphasis="tertiary"
+              size="sm"
               onClick={() => setSelectedCampaign(null)}
               disabled={syncAllowlist.isPending || updateMetadata.isPending}
             >
               {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
+              size="sm"
               type="button"
-              leadingIcon={<RiRefreshLine />}
+              leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
               onClick={handleSync}
               disabled={!canSync || syncAllowlist.isPending || updateMetadata.isPending}
               loading={syncAllowlist.isPending || updateMetadata.isPending}
@@ -132,7 +134,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 id: "cockpit.community.cookies.sync",
                 defaultMessage: "Sync Allowlist",
               })}
-            </AdminButton>
+            </Button>
           </>
         }
       >

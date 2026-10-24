@@ -1,4 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { CommitmentRow } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
@@ -12,7 +14,6 @@ import {
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ActPhaseLine, actPhaseText } from "@/components/ActPhaseLine";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
@@ -146,11 +147,11 @@ export function PoolCommitmentsCard({
               defaultMessage: "Offers and Requests",
             })}
           </AdminCardTitle>
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
-            leadingIcon={<RiSeedlingLine className="h-4 w-4" />}
+            emphasis="secondary"
+            size="compact"
+            leadingIcon={<RiSeedlingLine className="h-4 w-4" aria-hidden="true" />}
             onClick={onSeed}
             disabled={!canSeed}
           >
@@ -158,7 +159,7 @@ export function PoolCommitmentsCard({
               id: "cockpit.garden.pool.act.seedPromises",
               defaultMessage: "Seed Promises",
             })}
-          </AdminButton>
+          </Button>
         </div>
 
         <AdminSearchToolbar
@@ -296,33 +297,40 @@ export function PoolCommitmentsCard({
                     action={
                       <span className="flex items-center gap-1">
                         {row.discardable ? (
-                          <AdminIconButton
-                            label={formatMessage({
+                          <IconButton
+                            size="sm"
+                            aria-label={formatMessage({
+                              id: "cockpit.garden.pool.queued.discard",
+                              defaultMessage: "Discard",
+                            })}
+                            title={formatMessage({
                               id: "cockpit.garden.pool.queued.discard",
                               defaultMessage: "Discard",
                             })}
                             disabled={busyJobId !== null}
                             onClick={() => void runQueued(row.jobId, acts.discardQueued)}
-                          >
-                            <RiDeleteBinLine aria-hidden="true" />
-                          </AdminIconButton>
+                            icon={<RiDeleteBinLine aria-hidden="true" />}
+                          />
                         ) : null}
                         {/* A row that never tried has nothing to try again (A24). */}
-                        <AdminIconButton
-                          variant="tonal"
-                          label={sendLabel}
+                        <IconButton
+                          emphasis="secondary"
+                          size="sm"
+                          aria-label={sendLabel}
+                          title={sendLabel}
                           disabled={
                             row.settlementDeferred || !isOnline || busyJobId !== null || expired
                           }
                           loading={busyJobId === row.jobId}
                           onClick={() => void runQueued(row.jobId, acts.retryQueued)}
-                        >
-                          {row.failed ? (
-                            <RiRefreshLine aria-hidden="true" />
-                          ) : (
-                            <RiSendPlaneLine aria-hidden="true" />
-                          )}
-                        </AdminIconButton>
+                          icon={
+                            row.failed ? (
+                              <RiRefreshLine aria-hidden="true" />
+                            ) : (
+                              <RiSendPlaneLine aria-hidden="true" />
+                            )
+                          }
+                        />
                       </span>
                     }
                   />
@@ -420,10 +428,10 @@ export function PoolCommitmentsCard({
                       isDue ? (
                         // Outlined where it sits: the red is for the confirm inside
                         // the dialog, which names the blast radius first.
-                        <AdminButton
+                        <Button
                           type="button"
-                          variant="outlined"
-                          size="sm"
+                          emphasis="secondary"
+                          size="compact"
                           onClick={() => setExpireTarget(commitment)}
                           disabled={actDisabled}
                         >
@@ -431,7 +439,7 @@ export function PoolCommitmentsCard({
                             id: "cockpit.garden.pool.row.act.expire",
                             defaultMessage: "Expire Now…",
                           })}
-                        </AdminButton>
+                        </Button>
                       ) : undefined
                     }
                   />

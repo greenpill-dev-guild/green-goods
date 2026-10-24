@@ -1,8 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { ActionInstructionConfig } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminCheckbox } from "../AdminCheckbox";
 import { AdminFieldGroup } from "../AdminFieldGroup";
 import { AdminTextArea, AdminTextField } from "../AdminTextField";
@@ -158,14 +159,16 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             />
             {/* mb-3 keeps a control on the field's box (the box's middle sits 6px above the
                 field's: a 24px label above it, a 36px message line under it). */}
-            <AdminIconButton
-              variant="danger"
+            <IconButton
+              emphasis="tertiary"
+              tone="danger"
+              size="sm"
               onClick={() => removeNeeded(index)}
-              label={removeShotLabel(index + 1)}
+              aria-label={removeShotLabel(index + 1)}
+              title={removeShotLabel(index + 1)}
               className="mb-3"
-            >
-              <RiCloseLine />
-            </AdminIconButton>
+              icon={<RiCloseLine />}
+            />
           </div>
         ))}
         <div className="flex items-center gap-2">
@@ -190,15 +193,15 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               defaultMessage: "e.g., Front view, Side view",
             })}
           />
-          <AdminButton
+          <Button
             type="button"
-            size="sm"
+            size="compact"
             onClick={addNeeded}
-            leadingIcon={<RiAddLine />}
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
             className="mb-3"
           >
             {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
-          </AdminButton>
+          </Button>
         </div>
       </AdminFieldGroup>
 
@@ -227,14 +230,16 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
                 onChange({ ...config, optional: updated });
               }}
             />
-            <AdminIconButton
-              variant="danger"
+            <IconButton
+              emphasis="tertiary"
+              tone="danger"
+              size="sm"
               onClick={() => removeOptional(index)}
-              label={removeShotLabel(index + 1)}
+              aria-label={removeShotLabel(index + 1)}
+              title={removeShotLabel(index + 1)}
               className="mb-3"
-            >
-              <RiCloseLine />
-            </AdminIconButton>
+              icon={<RiCloseLine />}
+            />
           </div>
         ))}
         <div className="flex items-center gap-2">
@@ -259,15 +264,15 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               defaultMessage: "e.g., Close-up, Detail shot",
             })}
           />
-          <AdminButton
+          <Button
             type="button"
-            size="sm"
+            size="compact"
             onClick={addOptional}
-            leadingIcon={<RiAddLine />}
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
             className="mb-3"
           >
             {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
-          </AdminButton>
+          </Button>
         </div>
       </AdminFieldGroup>
     </div>

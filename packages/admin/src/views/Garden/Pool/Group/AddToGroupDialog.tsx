@@ -1,21 +1,21 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
   type GroupToAddTo,
   useAddToGroup,
 } from "@green-goods/shared/hooks/admin-ui/pool/useAddToGroup";
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { MAX_COMMITMENT_SET_SIZE } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Address } from "@green-goods/shared/types/domain";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextField } from "@/components/AdminTextField";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { GardenPoolTarget } from "../PoolTarget";
-import { SeedFlowNote } from "../Seed/SeedFlowFooter";
 import { formatUsd } from "../poolPresentation";
+import { SeedFlowNote } from "../Seed/SeedFlowFooter";
 import { addToGroupStatus } from "./addToGroupStatus";
 
 /** How many a steward usually adds at once, as the seeding flow suggests. */
@@ -200,18 +200,20 @@ export function AddToGroupDialog({
         />
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton
+        <Button
           type="button"
-          variant="outlined"
+          emphasis="secondary"
+          size="sm"
           onClick={onBack}
           disabled={status.busy || adding.locked}
           className="self-start sm:self-auto"
         >
           {formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="filled"
+          emphasis="primary"
+          size="sm"
           onClick={() => void add()}
           disabled={status.busy || !validCount}
           loading={status.busy}
@@ -237,7 +239,7 @@ export function AddToGroupDialog({
                 },
                 { count: validCount ? count : 1 }
               )}
-        </AdminButton>
+        </Button>
       </div>
     </div>
   );

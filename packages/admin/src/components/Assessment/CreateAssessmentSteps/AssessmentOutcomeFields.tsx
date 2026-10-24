@@ -1,7 +1,7 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { SmartOutcome } from "@green-goods/shared/types/domain";
 import { RiDeleteBinLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminIconButton } from "../../AdminButton";
 import { AdminSelect, AdminTextField } from "../../AdminTextField";
 
 type OutcomeField = "description" | "metric" | "target";
@@ -103,18 +103,23 @@ export function AssessmentOutcomeFields({
 
       {/* Always in its column, so adding a second outcome never
           shifts the fields; centred on the field's 44 / 40px box, below its 24px label. */}
-      <AdminIconButton
-        variant="danger"
+      <IconButton
+        emphasis="tertiary"
+        tone="danger"
+        size="sm"
         className="mt-7.5 [grid-area:remove] sm:mt-7"
         onClick={onRemove}
         disabled={isSubmitting || !canRemove}
-        label={formatMessage({
+        aria-label={formatMessage({
           id: "app.admin.assessment.strategyKernel.removeOutcome",
           defaultMessage: "Remove Outcome",
         })}
-      >
-        <RiDeleteBinLine />
-      </AdminIconButton>
+        title={formatMessage({
+          id: "app.admin.assessment.strategyKernel.removeOutcome",
+          defaultMessage: "Remove Outcome",
+        })}
+        icon={<RiDeleteBinLine />}
+      />
     </div>
   );
 }

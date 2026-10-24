@@ -1,10 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { RiErrorWarningLine, RiRefreshLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 
 /** The panel while the commitment, its detail and its timeline are still in flight. */
 export function CommitmentDialogLoading() {
@@ -57,29 +57,29 @@ export function CommitmentDialogNotFound({
         })}
         action={
           <div className="flex gap-2">
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
-              leadingIcon={<RiRefreshLine className="h-4 w-4" />}
+              emphasis="secondary"
+              size="compact"
+              leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
               onClick={() => onRetry()}
             >
               {formatMessage({
                 id: "cockpit.garden.pool.commitment.notFound.retry",
                 defaultMessage: "Retry",
               })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
               type="button"
-              variant="text"
-              size="sm"
+              emphasis="tertiary"
+              size="compact"
               onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden }))}
             >
               {formatMessage({
                 id: "cockpit.garden.pool.commitment.notFound.back",
                 defaultMessage: "Back to Pool",
               })}
-            </AdminButton>
+            </Button>
           </div>
         }
       />
@@ -108,17 +108,17 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
           defaultMessage: "The pool console switches on with the release that serves pooling here.",
         })}
         action={
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden }))}
           >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.notFound.back",
               defaultMessage: "Back to Pool",
             })}
-          </AdminButton>
+          </Button>
         }
       />
     </div>

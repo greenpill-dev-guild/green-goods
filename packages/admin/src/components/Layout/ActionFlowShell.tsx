@@ -2,10 +2,10 @@
 // scroll body only. The single chrome for admin action flows.
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine } from "@remixicon/react";
-import { useLayoutEffect, useRef, type ReactNode } from "react";
-import { AdminIconButton } from "../AdminButton";
+import { type ReactNode, useLayoutEffect, useRef } from "react";
 import { type ActionFlowStep, ActionFlowStepper } from "./ActionFlowStepper";
 
 export interface ActionFlowShellProps {
@@ -121,15 +121,15 @@ export function ActionFlowShell({
         )}
       >
         {onBack ? (
-          <AdminIconButton
+          <IconButton
             size="lg"
             className="mt-0.5 flex-shrink-0"
             onClick={onBack}
             disabled={backDisabled}
-            label={backLabel ?? ""}
-          >
-            <RiArrowLeftLine />
-          </AdminIconButton>
+            aria-label={backLabel ?? ""}
+            title={backLabel ?? ""}
+            icon={<RiArrowLeftLine />}
+          />
         ) : null}
 
         <div className="min-w-0 flex-1">
