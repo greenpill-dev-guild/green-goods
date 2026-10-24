@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import { ACTION_CAPITAL_LABEL_IDS } from "@green-goods/shared/hooks/admin-ui/actions/actions.utils";
@@ -5,20 +6,10 @@ import { deriveActionDetailModel } from "@green-goods/shared/hooks/admin-ui/acti
 import type { Action } from "@green-goods/shared/types/domain";
 import { formatDateTime } from "@green-goods/shared/utils/time";
 import { RiEditLine, RiFileListLine, RiImageLine } from "@remixicon/react";
-import { type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { ActionDetailMediaTile } from "./ActionDetailPrimitives";
-
-function DetailField({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <dt className="type-label-sm text-text-soft">{label}</dt>
-      <dd className="mt-1 type-body font-semibold text-text-strong">{children}</dd>
-    </div>
-  );
-}
 
 interface ActionDetailPanelProps {
   actionId?: string;
@@ -129,34 +120,36 @@ export function ActionDetailPanel({
           <p className="type-body text-text-sub">
             {displayAction.description || formatMessage({ id: "admin.actions.noDescription" })}
           </p>
-          <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-            <DetailField label={formatMessage({ id: "app.admin.actions.create.domainLabel" })}>
-              <span className="inline-flex items-center gap-1.5">
-                {DomainIcon ? <DomainIcon className="h-4 w-4 text-text-soft" /> : null}
-                {domainLabel}
-              </span>
-            </DetailField>
-            <DetailField
+          <FactList frame="inset">
+            <FactRow
+              label={formatMessage({ id: "app.admin.actions.create.domainLabel" })}
+              value={
+                <span className="inline-flex items-center gap-1.5">
+                  {DomainIcon ? <DomainIcon className="h-4 w-4 text-text-soft" /> : null}
+                  {domainLabel}
+                </span>
+              }
+            />
+            <FactRow
               label={formatMessage({
                 id: "cockpit.actions.lifecycle",
                 defaultMessage: "Lifecycle",
               })}
-            >
-              {lifecycleLabel}
-            </DetailField>
-            <DetailField label={formatMessage({ id: "app.actions.detail.startTime" })}>
-              {formatDateTime(action.startTime)}
-            </DetailField>
-            <DetailField label={formatMessage({ id: "app.actions.detail.endTime" })}>
-              {formatDateTime(action.endTime)}
-            </DetailField>
-            <div className="sm:col-span-2">
-              <dt className="type-label-sm text-text-soft">
-                {formatMessage({ id: "app.actions.detail.capitals" })}
-              </dt>
-              <dd className="mt-1.5">
-                {action.capitals.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
+              value={lifecycleLabel}
+            />
+            <FactRow
+              label={formatMessage({ id: "app.actions.detail.startTime" })}
+              value={formatDateTime(action.startTime)}
+            />
+            <FactRow
+              label={formatMessage({ id: "app.actions.detail.endTime" })}
+              value={formatDateTime(action.endTime)}
+            />
+            <FactRow
+              label={formatMessage({ id: "app.actions.detail.capitals" })}
+              value={
+                action.capitals.length > 0 ? (
+                  <span className="flex flex-wrap gap-1.5">
                     {action.capitals.map((capital) => (
                       <span
                         key={capital}
@@ -165,13 +158,13 @@ export function ActionDetailPanel({
                         {formatMessage({ id: ACTION_CAPITAL_LABEL_IDS[capital] })}
                       </span>
                     ))}
-                  </div>
+                  </span>
                 ) : (
-                  <span className="type-body text-text-sub">—</span>
-                )}
-              </dd>
-            </div>
-          </dl>
+                  "—"
+                )
+              }
+            />
+          </FactList>
 
           <section className="space-y-2">
             <div className="flex items-center gap-2">

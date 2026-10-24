@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { SeedTrayRow } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
@@ -102,14 +103,11 @@ export function SeedStepReview({
           {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
         </AdminButton>
       </div>
-      <dl className="space-y-1">
+      <FactList frame="inset">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-4 type-body">
-            <dt className="max-w-[55%] shrink-0 text-text-soft">{label}</dt>
-            <dd className="min-w-0 break-words text-right text-text-strong">{value}</dd>
-          </div>
+          <FactRow key={label} label={label} value={value} />
         ))}
-      </dl>
+      </FactList>
     </section>
   );
 

@@ -343,7 +343,7 @@ describe("garden domain recovery UI", () => {
       </TestProviders>
     );
 
-    const pendingWork = screen.getByText("Pending Work").closest(".garden-stat-row");
+    const pendingWork = screen.getByText("Pending Work").closest('[data-component="FactRow"]');
     expect(pendingWork).not.toBeNull();
     expect(within(pendingWork as HTMLElement).getByText("6")).toBeInTheDocument();
   });
