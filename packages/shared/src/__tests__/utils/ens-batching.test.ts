@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - It needs the real viem client on a recording transport, while ens.test.ts replaces the client factory with stubs for the whole file.
 /**
  * ENS Lookup Batching Tests
  *
