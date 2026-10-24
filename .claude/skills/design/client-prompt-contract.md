@@ -102,6 +102,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Input | `FileUploadField`, `DatePicker`, form components |
 | Surfaces | `Surface` at its four solid levels: ground, raised, floating and overlay |
 | Identity | `AddressDisplay`, `DomainBadge` |
+| Pickers | `ActionPicker` and `GardenPicker`, with DL-111's code change: banner cards in one listbox, the row Submit Work scrolls sideways (DL-111) |
 | Audio | `Audio/*` (voice capture primitives) |
 
 The card shapes import from their own leaves under `@green-goods/shared/components/Cards/`, not the package root.

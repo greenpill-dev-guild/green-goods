@@ -1,6 +1,8 @@
 import { useActionEditorController } from "@green-goods/shared/hooks/admin-ui/actions/useActionEditorController";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@green-goods/shared/utils/time";
+import { RiLoader4Line, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { ActionTranslationEditor } from "@/components/Action/ActionTranslationEditor";
@@ -55,9 +57,11 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           sticky
         />
         <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
-          <AdminCard role="status" aria-live="polite">
-            <p className="text-text-sub">{formatMessage({ id: "app.actions.loading" })}</p>
-          </AdminCard>
+          <EmptyState
+            busy
+            icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+            title={formatMessage({ id: "app.actions.loading" })}
+          />
         </CanvasRouteContent>
       </CanvasRouteFrame>
     );
@@ -84,9 +88,10 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           sticky
         />
         <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
-          <AdminCard className="text-center">
-            <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-          </AdminCard>
+          <EmptyState
+            icon={<RiSearchLine />}
+            title={formatMessage({ id: "app.actions.notFound" })}
+          />
         </CanvasRouteContent>
       </CanvasRouteFrame>
     );

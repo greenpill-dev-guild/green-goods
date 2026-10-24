@@ -49,3 +49,57 @@ describe("profile avatar transport timeouts", () => {
     await expectation;
   });
 });
+
+describe("profile avatar list reads", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const record = (address: string) => ({
+    chainId: 42161,
+    address,
+    avatarUri: null,
+    version: 0,
+    updatedAt: null,
+  });
+
+  it("sends the reads a list makes in one task together, 50 addresses to a request", async () => {
+    const people = Array.from(
+      { length: 60 },
+      (_, index) => `0x${(index + 1).toString(16).padStart(40, "0")}` as Address
+    );
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const listed = new URL(String(input)).searchParams.get("addresses")?.split(",") ?? [];
+      return new Response(JSON.stringify({ ok: true, records: listed.map(record) }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const records = await Promise.all(
+      people.map((person) =>
+        profileAvatarTransport.getListed(42161, person, "https://agent.example")
+      )
+    );
+
+    const sizes = fetchMock.mock.calls.map(
+      ([input]) => new URL(String(input)).searchParams.get("addresses")?.split(",").length
+    );
+    expect(sizes.sort()).toEqual([10, 50]);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toMatch(
+      /^https:\/\/agent\.example\/public\/profile-avatars\/42161\?addresses=/
+    );
+    expect(records.map((entry) => entry.address)).toEqual(people);
+  });
+
+  it("fails each read of a batch the agent refuses, so each row keeps its glyph", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ ok: false }), { status: 429 }))
+    );
+
+    const reads = [address, "0x2222222222222222222222222222222222222222"].map((person) =>
+      profileAvatarTransport.getListed(42161, person, "https://agent.example")
+    );
+
+    for (const read of reads) await expect(read).rejects.toMatchObject({ status: 429 });
+  });
+});

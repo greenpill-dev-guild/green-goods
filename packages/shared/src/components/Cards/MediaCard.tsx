@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { ReactNode } from "react";
 import { tv } from "tailwind-variants";
 import { cn } from "../../utils/styles/cn";
@@ -10,13 +11,22 @@ import { cn } from "../../utils/styles/cn";
  */
 export type MediaCardLayout = "stacked" | "wide";
 
-export interface MediaCardProps {
+/**
+ * The frame a stacked card gives its picture: a `photo` fills a 16:9 frame; a
+ * `banner`, the header picture an action or a garden carries, fills a 104px strip
+ * so a list or a picker of them stays short. A wide card keeps its 144px column.
+ */
+export type MediaCardShape = "photo" | "banner";
+
+export interface MediaCardProps
+  extends Omit<React.HTMLAttributes<HTMLElement>, "title" | "children" | "onClick"> {
   /**
    * The card's own picture: a photo, a banner, or the object's photo grid. It
-   * fills the frame, 16:9 when stacked and 144px wide by at least 120px tall
-   * when wide, so it should fill its box (`h-full w-full`).
+   * fills the frame (16:9 when stacked, a 104px strip for a banner, and 144px wide
+   * by at least 120px tall when wide), so it should fill its box (`h-full w-full`).
    */
   media: ReactNode;
+  mediaShape?: MediaCardShape;
   /** A mark on the picture's lower left, such as the domain. */
   mediaLabel?: string;
   /**
@@ -42,9 +52,10 @@ export interface MediaCardProps {
   detailsTitle?: string;
   layout?: MediaCardLayout;
   selected?: boolean;
-  /** Opens the card's object. With it, the whole card is one button. */
+  /** Opens the card's object, or chooses it in a picker. With it, the whole card is one button. */
   onClick?: () => void;
-  className?: string;
+  /** Turns the card's button off while what it would do cannot happen. */
+  disabled?: boolean;
 }
 
 const mediaCardVariants = tv({
@@ -59,7 +70,7 @@ const mediaCardVariants = tv({
     layout: {
       stacked: {
         root: "flex-col",
-        frame: "aspect-video w-full",
+        frame: "w-full",
         count: "bottom-2",
       },
       wide: {
@@ -69,9 +80,18 @@ const mediaCardVariants = tv({
         count: "top-2",
       },
     },
+    mediaShape: {
+      photo: {},
+      banner: {},
+    },
   },
+  compoundVariants: [
+    { layout: "stacked", mediaShape: "photo", class: { frame: "aspect-video" } },
+    { layout: "stacked", mediaShape: "banner", class: { frame: "h-26" } },
+  ],
   defaultVariants: {
     layout: "stacked",
+    mediaShape: "photo",
   },
 });
 
@@ -80,24 +100,31 @@ const mediaCardVariants = tv({
  * and actions), one of the four shared card shapes. It draws
  * the shared card surface (`gg-card`), its picture with up to two marks on it,
  * a one-line title, the status pill under the title, an optional line under the
- * status, and one detail line.
+ * status, and one detail line. Other attributes (a picker's radio role, its tab
+ * stop) reach the card's root.
  */
-export function MediaCard({
-  media,
-  mediaLabel,
-  mediaCount,
-  title,
-  status,
-  subtitle,
-  details,
-  detailsEnd,
-  detailsTitle,
-  layout = "stacked",
-  selected = false,
-  onClick,
-  className,
-}: MediaCardProps) {
-  const slots = mediaCardVariants({ layout });
+export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function MediaCard(
+  {
+    media,
+    mediaShape = "photo",
+    mediaLabel,
+    mediaCount,
+    title,
+    status,
+    subtitle,
+    details,
+    detailsEnd,
+    detailsTitle,
+    layout = "stacked",
+    selected = false,
+    onClick,
+    disabled,
+    className,
+    ...rest
+  },
+  ref
+) {
+  const slots = mediaCardVariants({ layout, mediaShape });
   // A stacked card keeps an empty line in place; a wide card is as tall as its
   // picture, so its centered text needs no placeholder.
   const showSubtitle = subtitle !== undefined && (subtitle !== "" || layout === "stacked");
@@ -145,6 +172,7 @@ export function MediaCard({
   );
 
   const shared = {
+    ...rest,
     "data-layout": layout,
     "data-selected": selected ? "true" : "false",
     className: cn(slots.root(), className),
@@ -152,11 +180,57 @@ export function MediaCard({
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} {...shared}>
+      <button
+        type="button"
+        ref={ref as React.Ref<HTMLButtonElement>}
+        onClick={onClick}
+        disabled={disabled}
+        {...shared}
+      >
         {content}
       </button>
     );
   }
 
-  return <div {...shared}>{content}</div>;
+  return (
+    <div ref={ref as React.Ref<HTMLDivElement>} {...shared}>
+      {content}
+    </div>
+  );
+});
+
+MediaCard.displayName = "MediaCard";
+
+/**
+ * The card's frame with nothing in it, for a list or a picker that is still loading: the
+ * picture's frame, the title line and the detail line, so the cards that arrive land where
+ * these stood (DL-056).
+ */
+export function MediaCardSkeleton({
+  mediaShape = "photo",
+  layout = "stacked",
+  className,
+}: {
+  mediaShape?: MediaCardShape;
+  layout?: MediaCardLayout;
+  className?: string;
+}) {
+  const slots = mediaCardVariants({ layout, mediaShape });
+  return (
+    <div
+      aria-hidden="true"
+      data-skeleton="media-card"
+      className={cn(slots.root(), "pointer-events-none", className)}
+    >
+      <div className={slots.frame()} />
+      <div className={slots.body()}>
+        <span className="flex h-5 w-full items-center">
+          <span className="h-3.5 w-2/3 rounded bg-bg-soft-200" />
+        </span>
+        <span className="flex h-4 w-full items-center">
+          <span className="h-2.5 w-1/2 rounded bg-bg-soft-200" />
+        </span>
+      </div>
+    </div>
+  );
 }

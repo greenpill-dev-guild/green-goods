@@ -1,5 +1,5 @@
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
-import { useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { useAddressDisplayName } from "../hooks/ens/useAddressDisplayName";
 import { useTimeout } from "../hooks/utils/useTimeout";
@@ -21,6 +21,12 @@ export interface AddressDisplayProps {
   interactive?: boolean;
   /** A role label for public readers when a name has not been published. */
   fallbackLabel?: string;
+  /**
+   * For a caller that builds its own element around the name, such as a row's title or a
+   * chip: it receives the name this display would show (the Green Goods name, then the ENS
+   * name, then a short address) and renders it, with no popover or copy button.
+   */
+  children?: (name: string) => ReactNode;
 }
 
 export function AddressDisplay({
@@ -29,6 +35,7 @@ export function AddressDisplay({
   showCopyButton = true,
   interactive = true,
   fallbackLabel,
+  children,
 }: AddressDisplayProps) {
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
@@ -38,6 +45,8 @@ export function AddressDisplay({
 
   // Auto-cleanup timer via useTimeout (Rule 1)
   const { set: scheduleCopyReset } = useTimeout();
+
+  if (children) return <>{children(display)}</>;
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();

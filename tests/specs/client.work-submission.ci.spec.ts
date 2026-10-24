@@ -25,8 +25,15 @@ test.describe("Work Submission CI Tests", () => {
       await page.goto("/home/garden?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      const actionCard = page.getByTestId("action-card").first();
-      const gardenCard = page.getByTestId("garden-card").first();
+      // Each picker is a listbox of cards; a press chooses one.
+      const actionCard = page
+        .getByRole("listbox", { name: "Select Your Action" })
+        .getByRole("option")
+        .first();
+      const gardenCard = page
+        .getByRole("listbox", { name: "Select Your Garden" })
+        .getByRole("option")
+        .first();
       await expect(actionCard).toBeVisible();
       await expect(gardenCard).toBeVisible();
 
