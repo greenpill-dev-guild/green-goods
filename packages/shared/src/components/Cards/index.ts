@@ -1,3 +1,5 @@
+// FactRow: the facts about one thing, a label beside its value (DL-109)
+export { FactList, type FactListProps, FactRow, type FactRowProps } from "./FactRow";
 // ItemRow: one item in a list on both surfaces (F7)
 export {
   ItemRow,

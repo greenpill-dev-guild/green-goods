@@ -10,6 +10,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, waitFor, within } from "storybook/test";
 import { GardenChip } from "../../src/components/Canvas/GardenChip";
+import { FactList, FactRow } from "../../src/components/Cards/FactRow";
 import { Switch } from "../../src/components/Form/ControlPrimitives";
 import { AdminButton, AdminIconButton } from "../../../admin/src/components/AdminButton";
 import { AdminCheckbox } from "../../../admin/src/components/AdminCheckbox";
@@ -19,7 +20,6 @@ import { AdminFilterChip } from "../../../admin/src/components/AdminFilterChip";
 import { AdminInlineField } from "../../../admin/src/components/AdminInlineField";
 import { AdminSearchToolbar } from "../../../admin/src/components/AdminSearchToolbar";
 import { AdminSelectableCard } from "../../../admin/src/components/AdminSelectableCard";
-import { AdminSettingRow } from "../../../admin/src/components/AdminSettingRow";
 import { AdminSideSheet } from "../../../admin/src/components/AdminSideSheet";
 import { AdminSortSelect } from "../../../admin/src/components/AdminSortSelect";
 import { AdminTabRail } from "../../../admin/src/components/AdminTabRail";
@@ -305,7 +305,7 @@ function ChipsTabsChoices() {
       <Section
         id="choices"
         title="Choices, cards, checkbox, switch"
-        lede="AdminChoiceGroup for compact single-select preferences, AdminSelectableCard for richer choices, AdminCheckbox with its 40dp target, and the shared Switch inside an AdminSettingRow."
+        lede="AdminChoiceGroup for compact single-select preferences, AdminSelectableCard for richer choices, AdminCheckbox with its 40dp target, and the shared Switch in a setting row of the shared FactRow."
       >
         <Row>
           <Specimen title="choice group" target='[role="radio"]' expect={{ family: "Plus Jakarta Sans" }} wide>
@@ -356,18 +356,21 @@ function ChipsTabsChoices() {
             wide
           >
             <div style={{ width: "100%", maxWidth: 480 }}>
-              <AdminSettingRow
-                labelId="ds-open-joining"
-                label="Open joining"
-                description="Anyone can join without approval."
-              >
-                <Switch
-                  surface="admin"
-                  aria-labelledby="ds-open-joining"
-                  checked={openJoining}
-                  onCheckedChange={setOpenJoining}
+              <FactList>
+                <FactRow
+                  labelId="ds-open-joining"
+                  label="Open joining"
+                  description="Anyone can join without approval."
+                  action={
+                    <Switch
+                      surface="admin"
+                      aria-labelledby="ds-open-joining"
+                      checked={openJoining}
+                      onCheckedChange={setOpenJoining}
+                    />
+                  }
                 />
-              </AdminSettingRow>
+              </FactList>
             </div>
           </Specimen>
         </Row>
@@ -375,7 +378,7 @@ function ChipsTabsChoices() {
           <StoryLink id={STORY_LINKS.adminChoiceGroup}>AdminChoiceGroup</StoryLink>
           <StoryLink id={STORY_LINKS.adminSelectableCard}>AdminSelectableCard</StoryLink>
           <StoryLink id={STORY_LINKS.adminCheckbox}>AdminCheckbox</StoryLink>
-          <StoryLink id={STORY_LINKS.adminSettingRow}>AdminSettingRow</StoryLink>
+          <StoryLink id={STORY_LINKS.sharedFactRow}>FactRow</StoryLink>
         </div>
       </Section>
 

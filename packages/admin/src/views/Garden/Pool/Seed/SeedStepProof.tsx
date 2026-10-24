@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
@@ -6,7 +7,6 @@ import { Controller, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
-import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { SeedConfirmerList, type SeedMember } from "./SeedConfirmerList";
 import { SeedRewardSection } from "./SeedRewardSection";
 import type { SeedFieldError } from "./seedStepModel";
@@ -69,37 +69,40 @@ export function SeedStepProof({
         members={members}
       />
 
-      <AdminSettingRow
-        labelId={`${noteId}-fallback`}
-        label={formatMessage({
-          id: "cockpit.garden.pool.seed.protocolFallback",
-          defaultMessage: "Let the Green Goods team confirm if nobody local is eligible",
-        })}
-        description={
-          protocolRegistered
-            ? formatMessage({
-                id: "cockpit.garden.pool.seed.protocolFallbackHint",
-                defaultMessage:
-                  "On for this pilot. Usable only while nobody local can confirm, always with a recorded reason; every contributor stays excluded.",
-              })
-            : formatMessage({
-                id: "cockpit.garden.pool.seed.protocolFallbackUnavailable",
-                defaultMessage:
-                  "Unavailable on this deployment: no Green Goods protocol pool is registered yet. The fallback is stored off.",
-              })
-        }
-      >
-        <AdminCheckbox
-          aria-labelledby={`${noteId}-fallback`}
-          checked={protocolRegistered && values.protocolFallbackEnabled}
-          disabled={busy || !protocolRegistered}
-          onChange={(event) =>
-            form.setValue("protocolFallbackEnabled", event.target.checked, {
-              shouldDirty: true,
-            })
+      <FactList frame="inset">
+        <FactRow
+          labelId={`${noteId}-fallback`}
+          label={formatMessage({
+            id: "cockpit.garden.pool.seed.protocolFallback",
+            defaultMessage: "Let the Green Goods team confirm if nobody local is eligible",
+          })}
+          description={
+            protocolRegistered
+              ? formatMessage({
+                  id: "cockpit.garden.pool.seed.protocolFallbackHint",
+                  defaultMessage:
+                    "On for this pilot. Usable only while nobody local can confirm, always with a recorded reason; every contributor stays excluded.",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.seed.protocolFallbackUnavailable",
+                  defaultMessage:
+                    "Unavailable on this deployment: no Green Goods protocol pool is registered yet. The fallback is stored off.",
+                })
+          }
+          action={
+            <AdminCheckbox
+              aria-labelledby={`${noteId}-fallback`}
+              checked={protocolRegistered && values.protocolFallbackEnabled}
+              disabled={busy || !protocolRegistered}
+              onChange={(event) =>
+                form.setValue("protocolFallbackEnabled", event.target.checked, {
+                  shouldDirty: true,
+                })
+              }
+            />
           }
         />
-      </AdminSettingRow>
+      </FactList>
       {!protocolRegistered ? (
         <Alert variant="warning">
           {formatMessage({

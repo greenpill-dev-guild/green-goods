@@ -84,12 +84,12 @@ AI design tools should map output to these exports. Full palette lives in the pr
 
 **Admin** (`packages/admin/src/components/`):
 - Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `FabButton` (the old side-sheet renderers are deleted: every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
-- Admin wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record: 25 wrappers across 21 files today; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminIconButton` in `AdminButton.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`, and `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers): `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminFieldGroup`, `AdminFilterChip`, `AdminIconButton`, `AdminInlineField`, `AdminInputChip`, `AdminLinearProgress`, `AdminListRow`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelect`, `AdminSelectableCard`, `AdminSettingRow`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29)
+- Admin wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record: 24 wrappers across 20 files once DL-109's code change retires `AdminSettingRow` for the shared `FactRow`; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminIconButton` in `AdminButton.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`, and `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers): `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminFieldGroup`, `AdminFilterChip`, `AdminIconButton`, `AdminInlineField`, `AdminInputChip`, `AdminLinearProgress`, `AdminListRow`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelect`, `AdminSelectableCard`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29)
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
 - Dialogs: `DialogShell` (client / shared default; admin dashboard dialogs use `AdminDialog`)
-- Cards / status: `ItemRow`, `MediaCard`, `StatusBadge`, `Alert`
+- Cards / status: `ItemRow`, `MediaCard`, `FactList` and `FactRow` (with DL-109's code change), `StatusBadge`, `Alert`
 - Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `AddressDisplay`, `DomainBadge`
 
 Full palettes with file paths live in `prompt-contract.md` and `client-prompt-contract.md`.

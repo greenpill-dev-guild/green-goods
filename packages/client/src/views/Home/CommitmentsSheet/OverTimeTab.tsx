@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
@@ -88,21 +89,18 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
           <SheetHeading as="h4">
             {formatMessage({ id: "app.commitments.record.title" })}
           </SheetHeading>
-          <dl className="mt-3 space-y-2">
+          <FactList frame="inset" className="mt-1">
             {record.map((entry) => (
-              <div key={entry.key} className="flex items-baseline justify-between gap-3">
-                <dt className="min-w-0 truncate text-sm text-text-sub-600" title={entry.gardenName}>
-                  {entry.gardenName}
-                </dt>
-                <dd className="shrink-0 text-sm text-text-strong-950">
-                  {formatMessage(
-                    { id: "app.commitments.record.counts" },
-                    { kept: entry.kept, lapsed: entry.lapsed }
-                  )}
-                </dd>
-              </div>
+              <FactRow
+                key={entry.key}
+                label={entry.gardenName}
+                value={formatMessage(
+                  { id: "app.commitments.record.counts" },
+                  { kept: entry.kept, lapsed: entry.lapsed }
+                )}
+              />
             ))}
-          </dl>
+          </FactList>
           <p className="mt-3 text-xs text-text-soft-400">
             {formatMessage({ id: "app.commitments.record.note" })}
           </p>
