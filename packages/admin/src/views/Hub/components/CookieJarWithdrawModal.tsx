@@ -176,7 +176,7 @@ export function CookieJarWithdrawModal({
           <AdminButton
             variant="outlined"
             size="sm"
-            className="mt-2 min-w-14"
+            className="mt-8 min-w-14"
             onClick={() => {
               if (!selectedWithdrawJar) return;
               const max =

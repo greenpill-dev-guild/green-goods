@@ -49,7 +49,8 @@ export function TeamStep() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
           <AdminTextField
             id="create-garden-steward-address"
-            className="min-w-0 flex-1 font-mono"
+            className="min-w-0 flex-1"
+            inputProps={{ className: "font-mono" }}
             label={formatMessage({
               id: "app.roles.steward.plural",
               defaultMessage: "Stewards",
@@ -66,7 +67,7 @@ export function TeamStep() {
           <AdminButton
             variant="tonal"
             size="sm"
-            className="mt-1.5"
+            className="mt-1.5 sm:mt-7.5"
             onClick={stewardInput.handleAdd}
             disabled={stewardInput.shouldResolveEns && stewardInput.resolvingEns}
             leadingIcon={<RiAddLine />}
@@ -122,7 +123,8 @@ export function TeamStep() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
           <AdminTextField
             id="create-garden-gardener-address"
-            className="min-w-0 flex-1 font-mono"
+            className="min-w-0 flex-1"
+            inputProps={{ className: "font-mono" }}
             label={formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
             value={gardenerInput.input}
             onChange={(event) => gardenerInput.setInput(event.target.value)}
@@ -136,7 +138,7 @@ export function TeamStep() {
           <AdminButton
             variant="tonal"
             size="sm"
-            className="mt-1.5"
+            className="mt-1.5 sm:mt-7.5"
             onClick={gardenerInput.handleAdd}
             disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
             leadingIcon={<RiAddLine />}

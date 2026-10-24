@@ -244,6 +244,14 @@ behavior, and the cockpit's bar is unchanged
 ([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
 standards-only `feature/app-cockpit-bar-pill-guides`.
 
+**Step 10 (23 October).** The cockpit's fields take the app's anatomy: the label above an outlined
+box at the cockpit's 8px corner, and one shared message line under every field on both surfaces.
+The measurement the plan called for settled the cockpit's reserve at two lines, as in the app: a
+field in a two-column row at 640px is 290px wide, and 6 of the 32 messages under fields that share a
+row wrap in English, Spanish and Portuguese ([eval.md](eval.md#step-10-proof-outlined-fields)). The
+code is `feature/app-cockpit-outlined-fields`; DL-105 and its guide lines are the standards-only
+`feature/app-cockpit-outlined-fields-guides`.
+
 **Step 15 (24 October).** `feature/app-cockpit-commitment-cards` puts every promise in a list on
 Shared's new `CommitmentRow`, the item row led by the offer or request icon: the app's promise rows
 (now `PromiseRow`), group rows, pending creations, the series offered over time and the pinned

@@ -266,15 +266,14 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           </Popover.Portal>
         </Popover.Root>
 
-        {(helperText || error) && (
-          <p
-            id={`${id}-helper-text`}
-            className="gg-field-help min-h-[1rem]"
-            data-invalid={error ? "true" : undefined}
-          >
-            {error || helperText}
-          </p>
-        )}
+        {/* The shared message line, reserved like every field's, so an error never moves the form. */}
+        <p
+          id={`${id}-helper-text`}
+          className="gg-field-help gg-field-message"
+          data-invalid={error ? "true" : undefined}
+        >
+          {error || helperText}
+        </p>
       </div>
     );
   }

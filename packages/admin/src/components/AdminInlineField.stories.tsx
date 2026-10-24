@@ -14,7 +14,7 @@ const meta: Meta<typeof AdminInlineField> = {
     docs: {
       description: {
         component:
-          "Compact 40dp field paired with an inline action for 'enter one short value and submit' rows (register a hypercert/action id, add a strategy address). External M3 label keeps the input aligned on the same axis as the AdminButton; error text sits below both controls so it never nudges the button.",
+          "Compact 32dp field paired with an inline action for 'enter one short value and submit' rows (register a hypercert/action id, add a strategy address). The label sits above, as on every field (F3), so the input aligns on the same axis as the AdminButton; the message line sits below both controls and is reserved, so an error never nudges the button.",
       },
     },
   },
@@ -83,7 +83,7 @@ export const AlignsWithButton: Story = {
 };
 
 /**
- * The supporting slot is one reserved line, so an error arriving never nudges the row
+ * The message line is reserved, so an error arriving never nudges the row
  * or what sits below it. Checked in browser mode, where real layout applies: the
  * field is as tall after Enter on an empty value raises its error as it was before.
  */
