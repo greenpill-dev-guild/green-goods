@@ -347,3 +347,17 @@ have no shared counterpart. DL-118 records each reason. The code is `feature/app
 and the guide wording the standards-only `feature/app-cockpit-shared-cards-guides`. The pairs show
 no change: 30 Storybook frames, every measured box and every pixel the same
 ([eval.md](eval.md#step-20-phase-4-proof-cards-and-tabs)).
+
+**Step 20, phase 2 (24 October).** The cockpit's fields, selects and filter chip go onto the shared
+family (PRD-1287), adapters first: `AdminTextField`, `AdminTextArea`, `AdminSelect`,
+`AdminInlineField` and `AdminSearchToolbar` render Shared's `TextInput`, `Textarea` and
+`NativeSelect` on the admin surface inside their own label and message line, and `AdminFilterChip`
+renders Shared's `Chip`, whose selected fill reads the workspace tone. `AdminFieldGroup`,
+`AdminSortSelect`, `AdminInputChip`, `AdminCheckbox` and `AdminChoiceGroup` stay, each for a reason
+DL-116 records. The code is `feature/app-cockpit-shared-fields` and the guide wording the
+standards-only `feature/app-cockpit-shared-fields-guides`. Heights and rows hold; the box takes the
+shared outline, focus ring, error border and disabled fill, and a text area the shared 80px
+minimum. The pairs caught the admin surface hiding the error and disabled states, which
+`theme.css` now sets again, with a browser-mode check
+([eval.md](eval.md#step-20-phase-2-proof-fields-selects-and-chips),
+[handoff](handoffs/claude-ui.md#step-20-phase-2-fields-selects-and-chips-prd-1287)).

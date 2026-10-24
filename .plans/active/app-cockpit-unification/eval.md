@@ -1124,3 +1124,34 @@ in **Storybook** (headless Chromium at device scale 2, the admin primitive frame
   earth-700 on the lifted card in dark, with the faint shadow in light only; filled takes the same
   corner with no edge; the list row is 16px and 56px tall here, on the weak fill; the selectable
   card is 12px and 66px tall, its selected state the tone's accent edge and a 10% tint.
+
+## Step 20 phase 2 proof: fields, selects and chips
+
+Run on 2026-10-24 against `develop` `796e9e1bb`, with phase 2 on `feature/app-cockpit-shared-fields`,
+in **Storybook** (headless Chromium at device scale 2).
+
+- Stories: a capture-only state matrix (every field, text area, select, inline field, chip and
+  search state in the garden tone, and the chips in the hub and community tones too) at 390 and
+  1280px in light and dark, its keyboard focus at 1280px, and eight real form steps re-rendered in
+  Spanish and Portuguese at 640px: Create Garden's details, Create Assessment's details and route,
+  garden settings, hypercert metadata, Seed promises, pool allocation and assessment outcomes.
+- Heights hold: single-line fields and selects are 44px below 640px and 40px from 640px, the inline
+  field 32px, chips 32px and the search pill 34px. A three-row text area is 92px below 640px (84
+  before), because the shared control sets 16px text on a 24px line, and 80px from 640px as before.
+- Forms at 640px: of 64 fields, 60 keep their label, box and message line to the pixel. The four
+  that moved are the description text areas of Create Assessment's details and route, 60 to 80px,
+  the shared control's minimum. The six rows in each language where fields sit side by side stay
+  aligned.
+- What changes on screen: the box is the shared control on the admin surface, with a 1px outline in
+  place of the inset ring, the focus ring 2px off the box, a 1px error border, a white fill where
+  the field was transparent and the shared disabled fill; the filter chip is the shared chip, its
+  selected fill in the workspace tone.
+- Found by the first after capture and fixed before review: the admin surface's outline and fill,
+  declared after the shared error and disabled states at the same weight, hid both, so a field in
+  error kept its gray edge; and the shared disabled rule's background shorthand cleared a disabled
+  select's chevron in light and tiled it across the box in dark. `theme.css` sets the three again
+  for the admin surface, and `AdminTextField`'s `StatesShowOnTheBox` checks them in browser mode;
+  it failed before each fix.
+- Tests: the updated field tests and guards failed 9 of 34 against `develop`'s components and pass
+  34 of 34; the admin suite passes (151 files, 1,378 tests), and so do the shared style guards (70).
+  The 390px focus frames are left out, because the rig clipped them once a focus scrolled the page.
