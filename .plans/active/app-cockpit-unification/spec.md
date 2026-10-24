@@ -271,9 +271,13 @@ Questions raised against the picks, all settled by 18 October:
   page, not in a second card design.
 - **F8 on desktop: settled.** Each equal-width tab is at most 180px wide on desktop, the row aligned
   left and never wider than the content: 720px for the cockpit's four-tab rows (Hub, Garden,
-  Community), 360px for a two-tab row. The longest label, "Coordenação", measures 94px in Plus
-  Jakarta Sans at 14px, about 170px with its icon, count badge and padding. Phones keep full-width
-  tabs.
+  Community), 360px for a two-tab row. A cell is never narrower than its icon, label and count on
+  one line, so a cell whose content needs more than 180px takes it (DL-100). The longest route
+  label, "Coordenação", measures 94px in Plus Jakarta Sans at 14px, about 170px with its icon,
+  count badge and padding; the one cell past 180px is Spanish "Configuración de medios" in the
+  Create Action dialog, at 191px. Phones fill the width
+  with equal cells, and a row that cannot hold its cells on one line scrolls with its edge fade and
+  snap: the measured deviation DL-100 records (23 October), for the maintainer's review after merge.
 - **Where a card's status sits, and how many lines a title takes: settled.** Raised on 17 October,
   when the pill in the title's corner cut titles off. The
   [card census](artifacts/card-census.html#layouts) measured five placements, and on 18 October the
@@ -625,8 +629,9 @@ on the pair.
 
 - **The app's tabs on both, equal width** (recommended): `StandardTabs` as shipped. Equal cells, a
   tinted active cell with a 2px underline, a solid count badge, an icon when a tab has one. On
-  desktop each cell is capped at 180px and the row aligns left (720px for four tabs, as the lab
-  draws), so the cells stay readable.
+  desktop each cell is at most 180px and the row aligns left (720px for four tabs, as the lab
+  draws), so the cells stay readable; a cell whose icon, label and count need more takes it
+  (DL-100).
 - **The cockpit rail on both**: an underline rail at content width with the grey count chip. The
   app's four garden tabs would scroll at 320px.
 - **Keep both**: two tab vocabularies for the same job.
@@ -634,7 +639,8 @@ on the pair.
 Touches `AdminTabRail`: it gains the equal-width layout and the tinted active cell, and its count
 chip becomes the shared badge. The tab height stays per surface (DL-011).
 
-**Pick, locked on 18 October:** the recommended option.
+**Pick, locked on 18 October:** the recommended option. On phones a row that cannot hold its cells scrolls, the
+measured deviation DL-100 records (23 October).
 
 ### F9 Filter control
 
@@ -715,7 +721,8 @@ ladder the app's dark cards follow the same step.
   today. Behind a filter button they would be two. The pick keeps them inline, so this point is
   closed unless the pick changes.
 - **F8 on desktop.** Equal cells across a 1176px content column are very wide. Settled on 18
-  October: each tab is at most 180px wide and the row aligns left.
+  October: each tab is at most 180px wide and the row aligns left; a cell whose content needs more
+  takes it, which DL-100 records for Spanish "Configuración de medios" (191px).
 - **F7 on the cockpit's phone.** A row removes the mosaic from the phone queue. Settled on 18
   October: the row stays, and a steward who sorts by photo checks it on the rendered pair.
 - **The Cosmo-Local demonstration.** The research's view was that only the token slice is small
