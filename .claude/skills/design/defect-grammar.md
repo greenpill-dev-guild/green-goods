@@ -48,7 +48,8 @@ Narrow candidates by:
 | "the toggle row" / "the setting row" | `data-component="FactRow"` with `data-kind="setting"` (`AdminSettingRow` until DL-109's code change lands) |
 | "the choice chips" / "the option group" | `data-component="AdminChoiceGroup"` |
 | "the selectable card" | `data-component="AdminSelectableCard"` |
-| "the picker card" / "the action card" | a card of the shared action or garden picker: `.gg-media-card[role="option"]` inside the `role="listbox"` (DL-111; `data-component="AdminSelectableCard"` until DL-111's code change lands) |
+| "the picker card" / "the action card" in Submit Work | a card of the shared action or garden picker: `.gg-media-card[role="option"]` inside the `role="listbox"` (DL-111; `data-component="AdminSelectableCard"` until DL-111's code change lands) |
+| "the action card" on the Actions workspace | the action's shared `WorkbenchCard` (no `data-component` tag, so narrow by its title and rect) |
 | "the inline field" | `data-component="AdminInlineField"` |
 | "the garden switcher" / "the garden pill" | `data-component="GardenChip"` (shared 36px pill in the AppBar) |
 | "the work card" | `data-component="HubWorkCard"` |
