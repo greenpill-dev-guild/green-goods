@@ -60,7 +60,7 @@ Every interaction must be reachable through at least two modalities (fallback ch
 
 ### Hover is a preview, not a gate
 
-Design hover states as if the cursor were an eye: generous hit areas (≥ 44px), glow not just color shift, and a brief contextual reveal using the shared effects timing. (Admin carve-out: cockpit hovers never glow: an elevation step or the neutral `rgb(var(--m3-on-surface)/0.08)` ink layer only, and the ink layer alone on a card, DL-102.) Never hide essential information behind hover: touch and gaze cannot hover; primary content must be visible at rest.
+Design hover states as if the cursor were an eye: generous hit areas (≥ 44px), glow not just color shift, and a brief contextual reveal using the shared effects timing. (Admin carve-out: cockpit hovers never glow: an elevation step or the neutral `rgb(var(--m3-on-surface)/0.08)` ink layer only, and a card or item row takes the ink layer only, DL-102.) Never hide essential information behind hover: touch and gaze cannot hover; primary content must be visible at rest.
 
 ### Adaptive Density
 

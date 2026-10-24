@@ -104,7 +104,7 @@ The left column is what the user says. The right column is the internal statemen
 | "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16px), AdminCard's default padding, currently p-3 (12px)` |
 | "The top bar on Garden feels detached from the page." | `canvas-area-top in /garden → hierarchy: AppBar reads detached from the canvas (expected: transparent root over the --tone-surface-tint-color wash); check the wash gradient and sticky-header transparency` |
 | "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: hover/active text transition hardcodes ease-out 200ms instead of --spring-effects-fast (each cell draws its own underline: there is no sliding indicator to animate)` |
-| "The form jumps when I get something wrong on my phone." | `AdminTextField in AdminDialog create-garden form → responsive: expected the message line to keep its two-line reserve (--gg-field-message-lines, DL-105) at every width, currently it collapses below 400px container width and the form shifts when an error appears` |
+| "The input label looks wrong at phone width." | `AdminTextField in AdminDialog create-garden form → responsive: the label above the outlined box wraps to a second line below 400px container width` |
 | "The notifications panel feels like one big list." | `NotificationPanel in AdminSideSheet (AppBar bell) → hierarchy: expected "Needs attention" / "Recent activity" section grouping, currently flat` |
 | "Something's off but I can't tell what." | Tier 3: the agent asks which workspace/region to focus on, then Tier 1s again. |
 
