@@ -83,7 +83,10 @@ export interface ItemRowProps
   onOpen?: () => void;
   /** The open target's name, when the row's own text does not say what opens. */
   openLabel?: string;
-  /** The record the list has open: a 3px border in the focus role. */
+  /**
+   * The record the list has open: a 3px border in the focus role, and `aria-current` on what
+   * opens it, so a screen reader hears which record is open.
+   */
   selected?: boolean;
 }
 
@@ -221,6 +224,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
         type="button"
         data-pressable="card"
         aria-label={openLabel}
+        aria-current={selected ? "true" : undefined}
         onClick={onOpen}
       >
         {content}
@@ -236,6 +240,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
           className="gg-item-row-open"
           data-pressable="row"
           aria-label={openLabel}
+          aria-current={selected ? "true" : undefined}
           onClick={onOpen}
         >
           {content}

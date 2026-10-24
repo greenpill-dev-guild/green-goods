@@ -59,6 +59,34 @@ describe("ItemRow", () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
+  it("tells a screen reader which record the list has open, on what opens it", () => {
+    const { rerender } = renderRow({ onOpen: vi.fn(), selected: true });
+    expect(screen.getByRole("button")).toHaveAttribute("aria-current", "true");
+
+    rerender(
+      <IntlProvider locale="en">
+        <ItemRow
+          {...row}
+          onOpen={vi.fn()}
+          selected
+          action={<button type="button">Discard</button>}
+        />
+      </IntlProvider>
+    );
+    expect(screen.getByRole("button", { name: /Planted native saplings/ })).toHaveAttribute(
+      "aria-current",
+      "true"
+    );
+    expect(screen.getByRole("button", { name: "Discard" })).not.toHaveAttribute("aria-current");
+
+    rerender(
+      <IntlProvider locale="en">
+        <ItemRow {...row} onOpen={vi.fn()} />
+      </IntlProvider>
+    );
+    expect(screen.getByRole("button")).not.toHaveAttribute("aria-current");
+  });
+
   it("is content when it has nothing to open: only its action takes focus", () => {
     const { rerender } = renderRow();
     expect(screen.queryByRole("button")).toBeNull();
