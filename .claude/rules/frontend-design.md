@@ -79,7 +79,7 @@ Use `flex-1` on cards that should expand vertically within a flex container.
 
 ## Rule 7: Filter Alignment (card header rows)
 
-`AdminCardHeader` defaults to `items-center`; when stacking with `flex-col`, always add `items-start`.
+`AdminCardHeader`, the header row of the shared card that `AdminCard` draws (DL-118), defaults to `items-center`; when stacking with `flex-col`, always add `items-start`.
 
 ```tsx
 <AdminCardHeader className="flex-col items-start gap-3">
@@ -134,7 +134,9 @@ In admin, views color through the Warm Earth aliases (`text-text-strong`, `text-
 
 Use the project dialog primitives — they own mobile safety. `AdminDialog` (admin) and
 `DialogShell` (client/shared) already cap width to the viewport and present as a bottom sheet
-on narrow viewports; consumers must NOT restate `max-w-*` overrides (the admin
+on narrow viewports; `AdminDialog`'s `standard` and `confirm` variants draw the shared
+`SheetHeader` at every width (flows and the palette keep their own header), and its confirm
+family the shared `SheetActions` (DL-117); consumers must NOT restate `max-w-*` overrides (the admin
 `AdminDialogStandard.guard` test fails ad-hoc `max-w-*` on AdminDialog). Only a hand-rolled
 modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to survive 375px.
 
@@ -229,14 +231,14 @@ Persistent chrome (`AppBar` GardenChip, workspace title bar, breadcrumb) is the 
   description="Review work flowing through Tech and Sun Hub."
   metadata={<MetaStrip items={[{ label: garden.name }]} />}
 />
-<WorkbenchRow eyebrow={garden.name} title={...} />
+<ItemRow lead={lead} title={...} details={[garden.name, age]} />
 <Card>
   <p>{gardenName}</p>  {/* visible-body duplication */}
 </Card>
 
 // Good — header speaks to the stage; rows speak to their own status; chrome owns the garden context
 <PageHeader title="Work" description="Review and triage pending submissions." />
-<WorkbenchRow eyebrow="Review" title={...} />
+<ItemRow lead={lead} title={...} status={{ label: "Pending", tone: "warning" }} details={[gardener, age]} />
 <Card>
   {/* Garden context inherited from chrome; no body line needed. Keep it in
       hover-title for accessibility if the card may be detached from chrome. */}
@@ -256,11 +258,11 @@ Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered 
 The six enforceable invariants of the admin cockpit finish — treat violations as design regressions:
 
 - **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows, besides the shared bottom sheet's float shadow on a dialog or the side sheet below 640px (DL-104) and the shared card's faint shadow (`--gg-card-shadow`, DL-102).
-- **Admin radius set** — 4/8/12/16/9999px plus the shared card's 24px corner (`--gg-card-radius`, DL-102); no 20 or 28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin, so a card takes its corner from `.gg-card`, never from a `rounded-*` utility).
+- **Admin radius set** — 4/8/12/16/9999px plus the shared card's 24px corner (`--gg-card-radius`, DL-102); no 20 or 28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin, so a card takes its corner from `.gg-card`, never from a `rounded-*` utility). `AdminCard` is the shared card and `AdminListRow` takes the shared row's 16px corner (`--gg-row-radius`), while `AdminSelectableCard` keeps its 12px (DL-118).
 - **Six-use tone budget** — workspace tone appears only in the active tab (its 10% accent tint, label and 2px underline, DL-100), the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), the nav-shell FAB fill, the shared `CountBadge` on every tab of the rail, filled with `--tone-on-surface-accent` (DL-099), and a selected `AdminFilterChip`, filled with `--tone-action` (DL-101), plus the faint canvas wash. The focus role (DL-098), which rings focus and marks the record a list has open (DL-103), is not counted.
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; a card or item row takes the ink layer only and never lifts (DL-102); a shared button takes the shared hover, its filled emphasis stepping to its tone's measured hover fill (`--tone-action-hover`, DL-009) and the others to the weak fill (DL-115); never translate/scale lifts or hue shifts.
-- **AdminButton renders the shared Button** — with DL-115's code change, `AdminButton` and `AdminIconButton` render the shared `Button` and `IconButton` (until it lands they draw the cockpit's own pill on the same metric): filled is the primary, outlined the secondary, text the tertiary, danger and outlined danger the danger tone, and sm, md and lg the shared compact, sm and lg sizes. Pill shape, one 14px label at every size, Title Case action labels (en; DL-012). Admin views import `AdminButton`, never the shared `Button` directly, until a later pass renames the call sites (`EmptyState` takes an `AdminButton` element as its action), and tonal stays the cockpit's pill for the chosen option in a set until phase 2. Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
-- **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). The same tokens keep the cockpit's buttons still while pressed, its icon buttons round with an 18px glyph, and a disabled button on the neutral pair (a 12% ink fill under a 38% ink label) instead of a dim (DL-115). Never restyle a shared piece from admin; move the token.
+- **AdminButton renders the shared Button** — with DL-115's code change, `AdminButton` and `AdminIconButton` render the shared `Button` and `IconButton` (until it lands they draw the cockpit's own pill on the same metric): filled is the primary, outlined the secondary, text the tertiary, danger and outlined danger the danger tone, and sm, md and lg the shared compact, sm and lg sizes. Pill shape, one 14px label at every size, Title Case action labels (en; DL-012). Admin views import `AdminButton`, never the shared `Button` directly, until a later pass renames the call sites (`EmptyState` takes an `AdminButton` element as its action, and the confirm family's action bar is the shared `SheetActions`, DL-117), and tonal stays the cockpit's pill for the chosen option in a set until phase 2. Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
+- **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert, and the dialogs' `SheetHeader` and `SheetActions`, DL-117) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). The same tokens keep the cockpit's buttons still while pressed, its icon buttons round with an 18px glyph, and a disabled button on the neutral pair (a 12% ink fill under a 38% ink label) instead of a dim (DL-115). Never restyle a shared piece from admin; move the token. Where a shared piece fits, the cockpit's own wrapper draws it in place and keeps its name and props (`AdminCard` over `.gg-card`); a wrapper with no shared counterpart stays the cockpit's (DL-118).
 
 ## Rule 19: Client Buttons and Controls Come From the Shared Family
 

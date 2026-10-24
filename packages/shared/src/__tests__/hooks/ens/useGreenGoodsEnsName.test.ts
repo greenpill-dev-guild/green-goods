@@ -11,6 +11,7 @@ import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mockReadContract = vi.fn();
+const mockMulticall = vi.fn();
 
 const ENS_ADDRESS = "0xENSContract000000000000000000000000000001";
 const L1_RECEIVER_ADDRESS = "0xReceiver0000000000000000000000000000000001";
@@ -25,6 +26,7 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
   createClients: vi.fn(() => ({
     publicClient: {
       readContract: mockReadContract,
+      multicall: mockMulticall,
     },
   })),
   getNetworkContracts: vi.fn(() => ({
@@ -53,6 +55,7 @@ describe("useGreenGoodsEnsName", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReadContract.mockReset();
+    mockMulticall.mockReset();
   });
 
   it("returns the protocol subdomain when ownerToSlug exists", async () => {
@@ -145,5 +148,78 @@ describe("useGreenGoodsEnsName", () => {
     });
     await waitFor(() => expect(result.current.isError).toBe(false));
     expect(result.current.data).toBe("river.greengoods.eth");
+  });
+
+  describe("in a list of people", () => {
+    const RIVER = "0x1111111111111111111111111111111111111111" as const;
+    const BEA = "0x2222222222222222222222222222222222222222" as const;
+    const NONE = "0x3333333333333333333333333333333333333333" as const;
+    // Each contract's slugs by owner: River's is on L2, Bea's only on the L1 receiver.
+    const slugs: Record<string, Record<string, string>> = {
+      [ENS_ADDRESS]: { [RIVER]: "river" },
+      [L1_RECEIVER_ADDRESS]: { [BEA]: "bea" },
+    };
+    type Call = { address: string; args: [string] };
+
+    beforeEach(() => {
+      mockReadContract.mockImplementation(async ({ functionName }) =>
+        functionName === "l1Receiver" ? L1_RECEIVER_ADDRESS : ""
+      );
+    });
+
+    it("reads every row's name in one batch, and the rows without an L2 slug in one L1 batch", async () => {
+      mockMulticall.mockImplementation(async ({ contracts }: { contracts: Call[] }) =>
+        contracts.map(({ address, args }) => ({
+          status: "success",
+          result: slugs[address]?.[args[0]] ?? "",
+        }))
+      );
+
+      const { result } = renderHookWithQueryClient(() => [
+        useGreenGoodsEnsName(RIVER, { list: true }),
+        useGreenGoodsEnsName(BEA, { list: true }),
+        useGreenGoodsEnsName(NONE, { list: true }),
+      ]);
+
+      await waitFor(() => expect(result.current.every((name) => name.isSuccess)).toBe(true));
+      expect(result.current.map((name) => name.data)).toEqual([
+        "river.greengoods.eth",
+        "bea.greengoods.eth",
+        null,
+      ]);
+      // One L2 read for the three rows, one receiver read, one L1 read for the two misses.
+      expect(mockMulticall).toHaveBeenCalledTimes(2);
+      expect(mockMulticall.mock.calls[0][0].contracts).toHaveLength(3);
+      expect(mockMulticall.mock.calls[1][0].contracts).toHaveLength(2);
+      expect(mockReadContract).toHaveBeenCalledTimes(1);
+    });
+
+    it("fails only the row whose read fails, which keeps its last known name", async () => {
+      mockMulticall.mockImplementation(async ({ contracts }: { contracts: Call[] }) =>
+        contracts.map(({ address, args }) =>
+          args[0] === BEA
+            ? { status: "failure", error: new Error("RPC unavailable") }
+            : { status: "success", result: slugs[address]?.[args[0]] ?? "" }
+        )
+      );
+      const queryClient = createTestQueryClient();
+      // Bea's name is known but stale, so both rows read on mount, in one batch.
+      queryClient.setQueryData(queryKeys.ens.protocolName(BEA), "bea.greengoods.eth", {
+        updatedAt: 1,
+      });
+
+      const { result } = renderHookWithQueryClient(
+        () => [
+          useGreenGoodsEnsName(RIVER, { list: true }),
+          useGreenGoodsEnsName(BEA, { list: true }),
+        ],
+        { queryClient }
+      );
+
+      await waitFor(() => expect(result.current[1].isError).toBe(true));
+      expect(mockMulticall).toHaveBeenCalledTimes(1);
+      expect(result.current[1].data).toBe("bea.greengoods.eth");
+      expect(result.current[0].data).toBe("river.greengoods.eth");
+    });
   });
 });

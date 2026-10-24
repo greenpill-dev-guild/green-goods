@@ -3,7 +3,9 @@
  *
  * Resolves an address to its Green Goods protocol subdomain. L2 ownerToSlug is
  * the fast path, with an L1 receiver fallback for authoritative receiver-only
- * records. Returns the full *.greengoods.eth name when present.
+ * records. Returns the full *.greengoods.eth name when present. A row in a list
+ * of people (`list`) reads its name with the list's other rows, in one batch
+ * (`modules/ens/protocol-names`).
  *
  * @module hooks/ens/useGreenGoodsEnsName
  */
@@ -15,6 +17,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
+import { readListedProtocolName } from "../../modules/ens/protocol-names";
 import {
   createClients,
   GreenGoodsENSABI,
@@ -27,7 +30,15 @@ import {
   readENSL1ReceiverAddress,
 } from "./availability";
 
-export function useGreenGoodsEnsName(address?: Address | null) {
+export function useGreenGoodsEnsName(
+  address?: Address | null,
+  {
+    list = false,
+  }: {
+    /** One row in a list of people: the name shares the account's one cache entry. */
+    list?: boolean;
+  } = {}
+) {
   const normalizedAddress =
     address && isAddress(address) ? (address.toLowerCase() as Address) : undefined;
   const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
@@ -39,6 +50,7 @@ export function useGreenGoodsEnsName(address?: Address | null) {
       if (!normalizedAddress || !ensAddress || ensAddress === zeroAddress) {
         return null;
       }
+      if (list) return readListedProtocolName(ensAddress, normalizedAddress);
 
       const { publicClient } = createClients(DEFAULT_CHAIN_ID);
       const slug = (await publicClient.readContract({
