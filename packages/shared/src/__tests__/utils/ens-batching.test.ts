@@ -11,6 +11,7 @@ import {
   createPublicClient,
   custom,
   decodeFunctionData,
+  encodeErrorResult,
   encodeFunctionResult,
   type Hex,
   multicall3Abi,
@@ -22,7 +23,8 @@ import { describe, expect, it, vi } from "vitest";
 const { calls } = vi.hoisted(() => ({ calls: [] as string[] }));
 
 // The real viem client on a transport that records each request. Every lookup's call
-// reverts, so each row reads no name, which is what an address without ENS gets.
+// reverts with the universal resolver's ResolverNotFound, which viem reads as no name: what
+// an address without ENS gets.
 vi.mock("../../config/pimlico", () => ({
   createPublicClientForChain: (_chainId: number, { batch }: Pick<PublicClientConfig, "batch">) =>
     createPublicClient({
@@ -37,10 +39,21 @@ vi.mock("../../config/pimlico", () => ({
             data: params[0].data,
           });
           if (functionName !== "aggregate3") throw new Error("Expected one batched call");
+          const noName = encodeErrorResult({
+            abi: [
+              {
+                type: "error",
+                name: "ResolverNotFound",
+                inputs: [{ name: "name", type: "bytes" }],
+              },
+            ],
+            errorName: "ResolverNotFound",
+            args: ["0x"],
+          });
           return encodeFunctionResult({
             abi: multicall3Abi,
             functionName: "aggregate3",
-            result: args[0].map(() => ({ success: false, returnData: "0x" as Hex })),
+            result: args[0].map(() => ({ success: false, returnData: noName })),
           });
         },
       }),
@@ -56,9 +69,12 @@ const PEOPLE = [
 ] as Address[];
 
 describe("ENS name lookups", () => {
-  it("read a list's names in one mainnet call", async () => {
-    await Promise.allSettled(PEOPLE.map((address) => resolveEnsName(address, { chainId: 1 })));
+  it("read a list's names in one mainnet call, each row still getting its own answer", async () => {
+    const names = await Promise.all(
+      PEOPLE.map((address) => resolveEnsName(address, { chainId: 1 }))
+    );
 
+    expect(names).toEqual([null, null, null]);
     expect(calls).toEqual(["eth_call"]);
   });
 });
