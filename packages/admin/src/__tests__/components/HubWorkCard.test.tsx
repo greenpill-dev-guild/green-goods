@@ -320,8 +320,8 @@ describe("HubWorkCard", () => {
     expect(titleEl).toHaveAttribute("title", "Planted 50 native saplings");
   });
 
-  it("renders with correct card shape classes", () => {
+  it("draws the shared card surface", () => {
     renderCard();
-    expect(screen.getByRole("button").className).toContain("rounded-[var(--m3-shape-md)]");
+    expect(screen.getByRole("button")).toHaveClass("gg-card");
   });
 });

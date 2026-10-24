@@ -8,58 +8,36 @@ import { tv, type VariantProps } from "tailwind-variants";
 
 export const adminCardVariants = tv({
   base: [
-    // Shape: corner-medium (12dp)
-    "rounded-[var(--m3-shape-md)]",
+    // The one card surface (.gg-card in shared theme.css, F7): the card's fill,
+    // a 1px edge, a faint shadow and the 24px corner, the installed app's card.
+    "gg-card",
     // Transition
     "transition-shadow duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
   ],
   variants: {
     variant: {
-      // Filled — surface-container-highest, no outline, elevation 0→1 on hover
-      filled: ["bg-[rgb(var(--m3-surface-container-highest))]", "shadow-[var(--m3-elevation-0)]"],
-      // Elevated — the white card on the linen canvas (--admin-surface-0 flips
-      // to the warm container step in dark), elevation 1 base
-      elevated: ["bg-[rgb(var(--admin-surface-0))]", "shadow-[var(--m3-elevation-1)]"],
-      // Outlined — surface, no elevation, ring outline
-      outlined: [
-        "bg-[rgb(var(--m3-surface))]",
-        "shadow-[var(--m3-elevation-0)]",
-        "ring-1 ring-inset ring-[rgb(var(--m3-outline-variant))]",
-      ],
+      // Filled — a tinted card on the card's corner: surface-container-highest,
+      // no edge and no shadow (the app's information card).
+      filled: ["border-0 shadow-none", "bg-[rgb(var(--m3-surface-container-highest))]"],
+      // Elevated — the card on the canvas, as the card surface draws it.
+      elevated: [],
+      // Outlined — the same card: the card surface already draws its edge.
+      outlined: [],
     },
     // One density ladder instead of per-view `className="p-3"` overrides:
-    // default = M3 card padding (16dp), compact = dense stat/list tiles (12dp),
+    // default = card padding (16dp), compact = dense stat/list tiles (12dp),
     // none = flush wrapper for edge-to-edge content (tables, media, lists).
     density: {
       default: "p-4",
       compact: "p-3",
       none: "p-0",
     },
+    // Hover and press are the neutral ink layer: the card never lifts.
     interactive: {
       true: ["m3-state-layer", "cursor-pointer", "[--state-layer-color:var(--m3-on-surface)]"],
       false: [],
     },
   },
-  compoundVariants: [
-    // Interactive filled: hover goes 0→1
-    {
-      variant: "filled",
-      interactive: true,
-      class: "hover:shadow-[var(--m3-elevation-1)]",
-    },
-    // Interactive elevated: hover goes 1→2
-    {
-      variant: "elevated",
-      interactive: true,
-      class: "hover:shadow-[var(--m3-elevation-2)]",
-    },
-    // Interactive outlined: hover goes 0→1
-    {
-      variant: "outlined",
-      interactive: true,
-      class: "hover:shadow-[var(--m3-elevation-1)]",
-    },
-  ],
   defaultVariants: {
     variant: "elevated",
     density: "default",
@@ -84,14 +62,13 @@ export interface AdminCardProps
 // ============================================================================
 
 /**
- * AdminCard — M3 Card
+ * AdminCard — the cockpit's card, on the shared card surface (F7).
  *
- * Implements Material Design 3 card anatomy with three variants:
- * - filled: surface-container-highest background, no outline, elevation 0→1
- * - elevated: surface-container-low background, elevation 1→2
- * - outlined: surface background, ring-1 outline-variant, elevation 0→1
+ * - elevated and outlined: the card surface, the installed app's card: its fill,
+ *   a 1px edge, a faint shadow and the 24px corner
+ * - filled: a tinted card on the same corner, with no edge and no shadow
  *
- * The interactive prop adds state layer + cursor-pointer + hover elevation upgrade.
+ * The interactive prop adds the neutral ink state layer and cursor-pointer.
  */
 export function AdminCard({
   className,
