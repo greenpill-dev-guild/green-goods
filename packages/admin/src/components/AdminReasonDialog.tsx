@@ -1,6 +1,6 @@
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { MAX_REASON } from "@green-goods/shared/modules/commitment-pooling/reasons";
-import { RiAlertLine } from "@remixicon/react";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "./AdminButton";
@@ -52,7 +52,10 @@ export interface AdminReasonDialogProps {
  * with the text in place so a retry costs nothing.
  *
  * Built on AdminDialog's `confirm` variant so it sits in the same size tier
- * as AdminConfirmDialog (sm) and inherits its mobile bottom-sheet presentation.
+ * as AdminConfirmDialog (sm) and inherits its mobile bottom-sheet presentation;
+ * its Cancel and confirm are the shared action bar's (`SheetActions`). The
+ * shared `ConfirmDialog` has no body for the reason field, so the dialog stays
+ * on AdminDialog (DL-117).
  */
 export function AdminReasonDialog({
   isOpen,
@@ -122,7 +125,6 @@ export function AdminReasonDialog({
       title={title}
       target={target}
       description={description}
-      icon={isDanger ? <RiAlertLine className="h-6 w-6 text-[rgb(var(--m3-error))]" /> : undefined}
       variant="confirm"
       role="dialog"
       tone={tone}
@@ -130,20 +132,22 @@ export function AdminReasonDialog({
       hideCloseButton={busy}
       bodyClassName="space-y-3"
       actions={
-        <>
-          <AdminButton type="button" variant="text" onClick={onClose} disabled={busy}>
-            {cancelLabel ?? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton
-            type="button"
-            variant={isDanger ? "danger" : "filled"}
-            onClick={() => void handleConfirm()}
-            disabled={!canConfirm}
-            loading={busy}
-          >
-            {confirmLabel}
-          </AdminButton>
-        </>
+        <SheetActions
+          primary={{
+            label: confirmLabel,
+            onClick: () => void handleConfirm(),
+            loading: busy,
+            // A busy confirm stays focusable; only a missing reason disables it.
+            disabled: !busy && !canConfirm,
+            tone: isDanger ? "danger" : "default",
+          }}
+          secondary={{
+            label:
+              cancelLabel ?? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+            onClick: onClose,
+            disabled: busy,
+          }}
+        />
       }
     >
       {children}
