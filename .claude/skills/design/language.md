@@ -88,9 +88,10 @@ drift from 12px to 20px.
 |---------|--------|---------------|------------|-------------------|
 | Status dots, tiny badges | 4px | `rounded` | Fixed | None |
 | Tags and text badges | 8px | `--radius-md` · `rounded-md` | Fixed | None |
-| Content inside cards, actions inside a field, a pressed app button | 12px | `--radius-squircle` | Concentric | Card or field (16px) - 4px |
+| Actions inside a field, a pressed app button | 12px | `--radius-squircle` | Concentric | Field (16px) - 4px |
 | Fields (DL-022), item rows (DL-102) | 16px | `--radius-lg` · `rounded-lg` · `.gg-control` · `--gg-row-radius` | Concentric | Panel (20px) - 4px |
 | Cards on both surfaces (DL-102) | 24px | `--gg-card-radius` · `.gg-card` | Fixed | None |
+| Content inset in a card | 24px less the inset | `--gg-card-radius` less the inset | Concentric | Card (24px) - inset |
 | Panels, sheets | 20px | `--radius-xl` · `rounded-xl` | Concentric | Page (24px) - 4px |
 | Modals, dialogs, bottom sheets | 24px | `--radius-2xl` · `rounded-2xl` | Concentric | Viewport edge |
 | Icon buttons | circle | `.gg-icon-button` | Capsule | None |

@@ -120,6 +120,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 
 ## 5. Rows, cards, and status
 
+- **Lists are moving onto the shared item row.** DL-102 makes `ItemRow` the row for every list, and lists move onto it in their own steps of the unification plan: the work item in step 7, then the commitment and pool rows, record cards, people, and jars and vaults in steps 15 to 18. Each step decides how its list's chips, acts and meta fit the item row's one pill, one action slot and one detail line of at most two details. Until a list's step lands, it keeps the two variants below.
 - **Two row variants, and only two.**
   - **Record row** (a row you *look at*): title + kind/state chips on line one, calm meta on
     line two, ONE trailing act or a chevron when the row simply opens.
