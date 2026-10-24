@@ -85,17 +85,20 @@ export function useResolvedProfileAvatar(
   const primaryAddress = usePrimaryAddress();
   const targetAddress = address ?? primaryAddress;
   const list = options.list === true;
+  const profilePhoto = avatar.data?.avatarUri;
   // In a list, the ENS name query is the one the row's address display already runs.
   const ensName = useEnsName(list ? targetAddress : null);
   const ensAvatarWanted = list
-    ? Boolean(ensName.data) && !avatar.isLoading && !avatar.data?.avatarUri
+    ? Boolean(ensName.data) && !avatar.isLoading && !profilePhoto
     : Boolean(targetAddress);
   const ens = useEnsAvatar(targetAddress, { enabled: ensAvatarWanted });
-  const resolved = resolveProfileAvatar(avatar.data?.avatarUri, ens.data, fallbackAvatarUri);
+  // A list row waits on ENS only while an ENS photo could still be the one it shows.
+  const waitingOnEns = list ? !profilePhoto && (ensName.isLoading || ens.isLoading) : ens.isLoading;
+  const resolved = resolveProfileAvatar(profilePhoto, ens.data, fallbackAvatarUri);
   return {
     ...resolved,
     record: avatar.data ?? null,
-    isLoading: avatar.isLoading || ensName.isLoading || ens.isLoading,
+    isLoading: avatar.isLoading || waitingOnEns,
     error: (avatar.error ?? ens.error) as Error | null,
   };
 }

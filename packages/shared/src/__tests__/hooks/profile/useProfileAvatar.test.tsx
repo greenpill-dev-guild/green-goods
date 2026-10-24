@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   saveAvatar: vi.fn(),
   signMessage: vi.fn(),
   ensNames: {} as Record<string, string>,
+  ensNameLoading: false,
   ensAvatars: {} as Record<string, string>,
   ensAvatarCalls: [] as Array<{ address: string | null | undefined; enabled: boolean | undefined }>,
 }));
@@ -39,7 +40,7 @@ vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
 vi.mock("../../../hooks/blockchain/useEnsName", () => ({
   useEnsName: (address?: string | null) => ({
     data: address ? (mocks.ensNames[address.toLowerCase()] ?? null) : undefined,
-    isLoading: false,
+    isLoading: address ? mocks.ensNameLoading : false,
   }),
 }));
 vi.mock("../../../hooks/blockchain/useEnsAvatar", () => ({
@@ -298,6 +299,7 @@ describe("useResolvedProfileAvatar in a list of people", () => {
   beforeEach(() => {
     mocks.getListed.mockReset();
     mocks.ensNames = {};
+    mocks.ensNameLoading = false;
     mocks.ensAvatars = {};
     mocks.ensAvatarCalls = [];
   });
@@ -329,5 +331,17 @@ describe("useResolvedProfileAvatar in a list of people", () => {
     await act(async () => profile.resolve(listedRecord(ADDRESS_B, null)));
     await waitFor(() => expect(result.current.avatarUri).toBe("https://example.com/bea.png"));
     expect(mocks.ensAvatarCalls.at(-1)?.enabled).toBe(true);
+  });
+
+  it("shows a profile photo as soon as it arrives, without waiting on the ENS name", async () => {
+    mocks.ensNameLoading = true;
+    mocks.getListed.mockResolvedValue(listedRecord(ADDRESS_A, "ipfs://river"));
+    const { result } = renderHookWithQueryClient(() =>
+      useResolvedProfileAvatar(ADDRESS_A, "/images/avatar.png", CHAIN_ID, { list: true })
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.record?.avatarUri).toBe("ipfs://river");
+    expect(mocks.ensAvatarCalls.every((call) => call.enabled === false)).toBe(true);
   });
 });
