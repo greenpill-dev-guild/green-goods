@@ -102,7 +102,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Input | `FileUploadField`, `DatePicker`, form components |
 | Surfaces | `Surface` at its four solid levels: ground, raised, floating and overlay |
 | Identity | `AddressDisplay`, `DomainBadge` |
-| Pickers | `ActionPicker` and `GardenPicker`, arriving with step 16's code change: banner cards in one listbox, the row Submit Work scrolls sideways (DL-111) |
+| Pickers | `ActionPicker` and `GardenPicker`, with DL-111's code change: banner cards in one listbox, the row Submit Work scrolls sideways (DL-111) |
 | Audio | `Audio/*` (voice capture primitives) |
 
 **Type roles** (the `type-*` utilities in shared `theme.css`, at the app's density; root `DESIGN.md` § Typography):

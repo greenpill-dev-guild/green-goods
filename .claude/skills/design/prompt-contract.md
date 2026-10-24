@@ -199,6 +199,7 @@ All sit on the compact metric and the reduced admin shape scale, 4/8/12/16/9999 
 **Shared primitives** (import from `@green-goods/shared`):
 - Admin dashboard dialogs use `AdminDialog` / `AdminConfirmDialog` (centered M3, scrim, pinned `actions`; `palette` variant for the command palette, `flow` variant + `ADMIN_FLOW_DIALOG_CLASS` for full-surface action flows). `DialogShell` is for shared or non-admin (client PWA) surfaces only. Do not use it for admin dashboard dialogs. See the admin.mdx Dialog Contract.
 - Card shapes, each from its leaf export: `ItemRow` (a record in a list, `components/Cards/ItemRow/ItemRow`), `MediaCard` (an object with a picture of its own, `components/Cards/MediaCard`), `FactList` and `FactRow` (the facts about one thing and a setting row, `components/Cards/FactRow`, with DL-109's code change), `EmptyState` (empty, loading and error, `components/ListPrimitives`).
+- The action picker: `ActionPicker` (media cards with the action's banner in one listbox, `components/Cards/ActionPicker`, with DL-111's code change).
 - Identity / data display: `AddressDisplay`, `StatusBadge`, `Alert`. (`DomainBadge` stays a client primitive: admin renders a neutral white/90 domain chip on `HubWorkCard` instead.)
 
 **Reference composition**: `/hub` route. Model new admin surfaces on it. `DashboardLayout` / `Sidebar` / `Header` are legacy. Do not start from them.
