@@ -45,6 +45,14 @@ vi.mock("@green-goods/shared/components/Form/ControlPrimitives", () => ({
     surface: _surface,
     ...props
   }: React.ComponentProps<"textarea"> & { surface?: string }) => <textarea {...props} />,
+  TextInput: ({
+    surface: _surface,
+    ...props
+  }: React.ComponentProps<"input"> & { surface?: string }) => <input {...props} />,
+  NativeSelect: ({
+    surface: _surface,
+    ...props
+  }: React.ComponentProps<"select"> & { surface?: string }) => <select {...props} />,
 }));
 
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({

@@ -115,13 +115,27 @@ describe("AdminDensityScale.guard (DL-011)", () => {
   it("fields ride the responsive tier: 44px / 16px on touch widths, 40px / 14px from 640px (DL-030)", () => {
     render(<AdminTextField label="Garden name" />);
 
-    const container = screen.getByRole("textbox", { name: "Garden name" }).parentElement;
-    expect(container).not.toBeNull();
-    expect(container).toHaveClass("min-h-11", "sm:min-h-10");
+    // The field is Shared's control on the admin surface (DL-116), whose recipe holds the tier.
     const input = screen.getByRole("textbox", { name: "Garden name" });
-    // The field role: 16px text on touch widths and 14px from 640px (index.css),
-    // its 20px line centred in the tier: 12 + 20 + 12 and 10 + 20 + 10.
-    expect(input).toHaveClass("type-field", "leading-5", "py-3", "sm:py-2.5");
+    expect(input).toHaveAttribute("data-component", "TextInput");
+    expect(input).toHaveAttribute("data-surface", "admin");
+    const theme = readFileSync(
+      resolve(__dirname, "../../../../shared/src/styles/theme.css"),
+      "utf-8"
+    );
+    const rule = (selector: RegExp) => theme.match(selector)?.[1] ?? "";
+    const touch = rule(/\n\s*input\.gg-control\[data-surface="admin"\],[^{]*\{([^}]*)\}/);
+    expect(touch).toMatch(/block-size:\s*2\.75rem/);
+    const desktop = theme.slice(theme.indexOf("@media (min-width: 40rem)"));
+    expect(rule(/\.gg-control\[data-surface="admin"\]\s*\{([^}]*)\}/)).toMatch(
+      /font-size:\s*var\(--type-body-lg/
+    );
+    expect(desktop).toMatch(
+      /input\.gg-control\[data-surface="admin"\],[^{]*\{[^}]*block-size:\s*2\.5rem/
+    );
+    expect(desktop).toMatch(
+      /\.gg-control\[data-surface="admin"\]\s*\{[^}]*font-size:\s*var\(--type-body-md/
+    );
   });
 
   it("list rows grow with their content above the 44px floor, never on a button tier", () => {
@@ -217,6 +231,10 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-focus-halo-alpha": "0",
       // The message line under every field reserves two lines, as the app's do (F3).
       "--gg-field-message-lines": "2",
+      // A selected chip lays the neutral ink layer at the cockpit's state
+      // opacities on hover and press; the app sets neither (DL-116).
+      "--gg-chip-state-hover": "var(--m3-state-hover)",
+      "--gg-chip-state-pressed": "var(--m3-state-pressed)",
       // The state block's calm mark stays neutral: the workspace tone keeps to
       // its budget (Rule 18).
       "--gg-state-mark-fill": "rgb(var(--text-strong-950) / 0.06)",

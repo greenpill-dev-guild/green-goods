@@ -277,7 +277,7 @@ const PHONE_QUEUE = storyPoolConsole({
  * The cockpit's phone columns (296, 336 and 366px: a 320, 360 and 390px screen less the
  * shell's 12px phone gutters) in English, Spanish and Portuguese. A row's act is its icon
  * there, and a queued row's two acts stack, so every row keeps its pill and its due date
- * whole beside the tile and the acts.
+ * whole beside the tile and the acts, and every act keeps its whole finger box in the row.
  */
 export const PhoneFitsEveryLanguage: Story = {
   tags: ["storybook-ci"],
@@ -305,22 +305,27 @@ export const PhoneFitsEveryLanguage: Story = {
       element ? element.scrollWidth > element.clientWidth + 0.5 : false;
     const pillOf = (row: HTMLElement) =>
       row.querySelector<HTMLElement>(".gg-item-row-body .truncate");
-    // The pill is the row's state, so it never ends in an ellipsis. One still does on a
-    // 320px screen: the wait on garden membership needs up to 147px beside the stacked
-    // acts' 127px. Shorter words or a pill that runs under the acts is an open call, so the
-    // story names that pill instead of hiding it.
-    const isOpenCall = (row: HTMLElement) => {
-      const locale = row.closest("[data-locale]")?.getAttribute("data-locale") as
-        | keyof typeof CATALOGS
-        | undefined;
-      return (
-        row.closest("[data-fit-width]")?.getAttribute("data-fit-width") === "296" &&
-        locale !== undefined &&
-        pillOf(row)?.textContent === CATALOGS[locale]["cockpit.garden.pool.queued.waiting"]
-      );
-    };
-    const cutPills = rows.filter((row) => isCut(pillOf(row)) && !isOpenCall(row));
+    // The pill is the row's state, so it never ends in an ellipsis.
+    const cutPills = rows.filter((row) => isCut(pillOf(row)));
     await expect(cutPills.map((row) => row.textContent)).toEqual([]);
+    // An act's finger box is the button and its block margin. Stacked acts must keep the
+    // whole box inside the 88px row, which clips what overflows.
+    const clippedActs = rows.flatMap((row) => {
+      const box = row.getBoundingClientRect();
+      return [...row.querySelectorAll<HTMLElement>(".gg-item-row-action button")].filter(
+        (button) => {
+          // The form a row's width hides (Expire Now…'s words below 480px) takes no room.
+          if (button.getClientRects().length === 0) return false;
+          const rect = button.getBoundingClientRect();
+          const style = getComputedStyle(button);
+          return (
+            rect.top - Number.parseFloat(style.marginTop) < box.top - 0.5 ||
+            rect.bottom + Number.parseFloat(style.marginBottom) > box.bottom + 0.5
+          );
+        }
+      );
+    });
+    await expect(clippedActs.map((button) => button.getAttribute("aria-label"))).toEqual([]);
     // A promise's due date leads its line whole.
     const cutDates = rows.filter((row) =>
       isCut(row.querySelector<HTMLElement>("time.gg-item-row-detail-text"))
