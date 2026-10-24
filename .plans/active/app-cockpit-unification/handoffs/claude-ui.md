@@ -307,6 +307,11 @@
   proof in words); a completed row without feedback shows its age, not "Review added to the garden
   record"; a nested card in the cockpit takes the same 24px card; and the card title keeps each
   surface's title weight.
+- Open call from Codex's review of #1224: on a phone the Hub queue's work row shows the work's own
+  title, so a search that matches only its action title lists rows with no matching text, where
+  the desktop card names the action. Naming the action on the row needs a third detail or a new
+  title rule, so it waits for the maintainer.
+
 ## Step 9: phone sheets (PRD-1275)
 
 - F5 was locked on 18 October, so the pairs ([eval.md](../eval.md#step-9-proof-phone-sheets)) are

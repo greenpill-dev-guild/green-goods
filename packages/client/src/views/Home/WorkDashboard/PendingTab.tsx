@@ -285,6 +285,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
 
       {isLoading ? (
         <EmptyState
+          busy
           className="flex-1"
           placement="sheet"
           icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
