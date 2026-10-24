@@ -84,7 +84,7 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) =>
 }));
 
 import { MyDepositRow } from "../../components/Sheets/EndowmentSheet/MyDepositRow";
-import { CookieJarCard } from "../../components/Sheets/EndowmentSheet/CookieJarCard";
+import { CookieJarRow } from "../../components/Features/Garden/CookieJarRow";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -93,10 +93,27 @@ beforeEach(() => {
   mocks.maxWithdraw = 100000n;
 });
 
+/** A deposit's row opens its page, where the withdrawal is. */
+async function openDeposit(user: ReturnType<typeof userEvent.setup>) {
+  render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+  const row = screen.getByRole("button", { name: /USDC/ });
+  expect(row).toHaveAttribute("aria-expanded", "false");
+  await user.click(row);
+  expect(row).toHaveAttribute("aria-expanded", "true");
+}
+
 describe("Treasury amount controls", () => {
+  it("lists a deposit as a row with what can be withdrawn, and no act until it opens", () => {
+    render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+    expect(screen.getByRole("button", { name: /USDC/ })).toHaveAccessibleName(
+      /USDC.*My shares: 0.*0\.1 USDC.*Available balance/
+    );
+    expect(screen.queryByRole("button", { name: /^Withdraw$/i })).not.toBeInTheDocument();
+  });
+
   it("associates a vault precision error with the input and prevents a withdrawal", async () => {
     const user = userEvent.setup();
-    render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+    await openDeposit(user);
     const input = screen.getByRole("textbox", { name: /Amount to withdraw/i });
     await user.type(input, "0.1234567");
     expect(input).toHaveAttribute("aria-invalid", "true");
@@ -108,7 +125,7 @@ describe("Treasury amount controls", () => {
 
   it("uses the vault preview limit and submits the parsed amount only after confirmation", async () => {
     const user = userEvent.setup();
-    render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+    await openDeposit(user);
     const input = screen.getByRole("textbox", { name: /Amount to withdraw/i });
     await user.type(input, "0.100001");
     expect(screen.getByRole("button", { name: /^Withdraw$/i })).toBeDisabled();
@@ -134,7 +151,13 @@ describe("Treasury amount controls", () => {
 
   it("keeps the jar balance, purpose, precision and confirmation requirements", async () => {
     const user = userEvent.setup();
-    render(<CookieJarCard jar={jar} gardenAddress={garden} gardenName="Garden Alpha" />);
+    render(
+      <CookieJarRow jar={jar} gardenAddress={garden} gardenName="Garden Alpha" amount="balance" />
+    );
+    // A garden's endowment sheet leads with what the jar holds, beside its per-claim limit.
+    expect(screen.getByRole("button", { name: /USDC/i })).toHaveAccessibleName(
+      /0\.1 USDC a claim.*0\.05 USDC.*Jar Balance/
+    );
     await user.click(screen.getByRole("button", { name: /USDC/i }));
     const input = screen.getByRole("textbox", { name: /^How much$/i });
     const withdraw = screen.getByRole("button", { name: /^Claim$/i });
@@ -163,10 +186,11 @@ describe("Treasury amount controls", () => {
   it("caps a jar at the per-withdrawal limit when its balance is larger", async () => {
     const user = userEvent.setup();
     render(
-      <CookieJarCard
+      <CookieJarRow
         jar={{ ...jar, balance: 200000n }}
         gardenAddress={garden}
         gardenName="Garden Alpha"
+        amount="balance"
       />
     );
     await user.click(screen.getByRole("button", { name: /USDC/i }));
@@ -178,7 +202,7 @@ describe("Treasury amount controls", () => {
     mocks.online = state !== "offline";
     mocks.pending = state === "pending";
     const user = userEvent.setup();
-    render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
+    await openDeposit(user);
     await user.click(screen.getByRole("button", { name: /^max$/i }));
     const withdraw = screen.getByRole("button", { name: /^Withdraw$/i });
     if (state === "pending") {
@@ -194,10 +218,11 @@ describe("Treasury amount controls", () => {
   it("keeps paused jars closed to withdrawals", async () => {
     const user = userEvent.setup();
     render(
-      <CookieJarCard
+      <CookieJarRow
         jar={{ ...jar, isPaused: true }}
         gardenAddress={garden}
         gardenName="Garden Alpha"
+        amount="balance"
       />
     );
     await user.click(screen.getByRole("button", { name: /USDC/i }));

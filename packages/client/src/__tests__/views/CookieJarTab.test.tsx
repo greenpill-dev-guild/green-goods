@@ -112,16 +112,21 @@ describe("CookieJarTab", () => {
     });
   });
 
-  it("leads with the claimable-now amount using each jar's actual decimals", () => {
+  it("leads with the claimable-now amount using each jar's actual decimals", async () => {
     render(<CookieJarTab />);
 
-    // The card leads with what can be claimed right now: min(maxWithdrawal,
+    // The row leads with what can be claimed right now: min(maxWithdrawal,
     // balance) = min(100000, 123456) = 100000 / 10^6 → "0.1".
     expect(screen.getByText("0.1 USDC")).toBeInTheDocument();
-    // The label names the limit and the cooldown, so the number stops reading like a balance.
-    expect(screen.getByText("Up to 0.1 USDC per claim, once an hour")).toBeInTheDocument();
-    // The group header names the garden once; the card no longer restates it.
+    // Its caption and the per-claim limit beside it stop the number reading like a balance.
+    const row = screen.getByRole("button", { name: /0\.1 USDC/ });
+    expect(row).toHaveAccessibleName(/0\.1 USDC a claim.*0\.1 USDC.*Available now/);
+    // The group header names the garden once; the row does not restate it.
     expect(screen.getAllByText("Garden Alpha")).toHaveLength(1);
+
+    // The cooldown lives on the jar's page, which the row opens.
+    await userEvent.setup().click(row);
+    expect(screen.getByText("Up to 0.1 USDC per claim, once an hour")).toBeInTheDocument();
   });
 
   it("caps the claimable-now figure at the jar's remaining balance", () => {
@@ -186,9 +191,10 @@ describe("CookieJarTab", () => {
 
     render(<CookieJarTab />);
 
-    expect(screen.getByText("Up to 0.01 DAI per claim, once a day")).toBeInTheDocument();
+    expect(screen.getByText("0.01 DAI a claim")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /0\.01 DAI/ }));
     await user.click(screen.getByRole("button", { name: /0\.1 USDC/ }));
+    expect(screen.getByText("Up to 0.01 DAI per claim, once a day")).toBeInTheDocument();
 
     // One message, on the low jar only; claiming the allowed amount still works.
     expect(

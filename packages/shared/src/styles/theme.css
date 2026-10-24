@@ -2280,6 +2280,13 @@
     white-space: nowrap;
   }
 
+  /* The page a row opens in place, right under it (a jar's claim form, a vault's acts):
+   * the card surface at the row's corner, so the row keeps its height and its page reads
+   * as its own. */
+  .gg-item-row-page {
+    border-radius: var(--gg-row-radius);
+  }
+
   /* ── State mark ── The round tile that leads the state block (`EmptyState`):
    * 56px with a 24px glyph on both surfaces. A calm state takes the surface's
    * quiet accent: the app's green tint, or what a surface sets in
