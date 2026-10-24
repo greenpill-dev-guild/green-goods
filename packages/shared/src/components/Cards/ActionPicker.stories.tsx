@@ -81,7 +81,7 @@ const meta: Meta<typeof ActionPicker> = {
     docs: {
       description: {
         component:
-          "Choosing the action a work answers, one picker on both surfaces: media cards with the action's banner (its photo, or its domain's gradient), the domain on the banner, a one-line title and what the action asks for. One radio group with one tab stop: the arrow keys and Home and End move, Space, Enter or a press chooses, and the chosen card takes the 3px border in the focus role. The installed app lays the cards in a row that scrolls sideways; the cockpit in a grid.",
+          "Choosing the action a work answers, one picker on both surfaces: media cards with the action's banner (its photo, or its domain's gradient), the domain on the banner, a one-line title and what the action asks for. One listbox with one tab stop: the arrow keys and Home and End move, Space, Enter or a press chooses, and the chosen card takes the 3px border in the focus role. The installed app lays the cards in a row that scrolls sideways; the cockpit in a grid.",
       },
     },
   },
@@ -101,18 +101,18 @@ export const InTheApp: Story = {
   ),
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const group = canvas.getByRole("radiogroup", { name: "Action" });
-    const radios = within(group).getAllByRole("radio");
-    await expect(radios[1]).toHaveAttribute("aria-checked", "true");
-    await expect(radios[1]).toHaveAttribute("tabindex", "0");
+    const group = canvas.getByRole("listbox", { name: "Action" });
+    const cards = within(group).getAllByRole("option");
+    await expect(cards[1]).toHaveAttribute("aria-selected", "true");
+    await expect(cards[1]).toHaveAttribute("tabindex", "0");
 
-    radios[1].focus();
+    cards[1].focus();
     await userEvent.keyboard("{ArrowRight}");
-    await expect(radios[2]).toHaveFocus();
+    await expect(cards[2]).toHaveFocus();
     await expect(args.onChange).not.toHaveBeenCalled();
     await userEvent.keyboard(" ");
     await expect(args.onChange).toHaveBeenCalledWith("workshop");
-    await expect(radios[2]).toHaveAttribute("aria-checked", "true");
+    await expect(cards[2]).toHaveAttribute("aria-selected", "true");
   },
 };
 
@@ -128,17 +128,17 @@ export const InTheCockpit: Story = {
   ),
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const radios = canvas.getAllByRole("radio");
+    const cards = canvas.getAllByRole("option");
     // Nothing chosen: the first card holds the tab stop.
-    await expect(radios[0]).toHaveAttribute("tabindex", "0");
+    await expect(cards[0]).toHaveAttribute("tabindex", "0");
 
     await userEvent.tab();
-    await expect(radios[0]).toHaveFocus();
+    await expect(cards[0]).toHaveFocus();
     await userEvent.keyboard("{End}");
-    await expect(radios[3]).toHaveFocus();
+    await expect(cards[3]).toHaveFocus();
     await userEvent.keyboard("{Enter}");
     await expect(args.onChange).toHaveBeenCalledWith("sorting");
-    await userEvent.click(radios[0]);
+    await userEvent.click(cards[0]);
     await expect(args.onChange).toHaveBeenLastCalledWith("plant");
   },
 };

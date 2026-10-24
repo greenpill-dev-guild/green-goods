@@ -4,7 +4,7 @@
  *
  * A garden is a media card with its banner: its name, how many people are members, then where.
  * It opens the garden when it has somewhere to go, is content when it has not, and Submit Work
- * chooses a garden from the same cards as a radio group.
+ * chooses a garden from the same cards as a listbox.
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -64,7 +64,7 @@ describe("GardenCard", () => {
     expect(screen.getByText("1 member").closest("[title]")).toHaveAttribute("title", "1 member");
   });
 
-  it("chooses a garden from the same cards in a radio group", () => {
+  it("chooses a garden from the same cards in a listbox", () => {
     const onChange = vi.fn();
     renderWithIntl(
       <GardenPicker
@@ -76,13 +76,13 @@ describe("GardenCard", () => {
       />
     );
 
-    const group = screen.getByRole("radiogroup", { name: "Garden" });
+    const group = screen.getByRole("listbox", { name: "Garden" });
     expect(group).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /Riverside Garden/ })).toHaveAttribute(
-      "aria-checked",
+    expect(screen.getByRole("option", { name: /Riverside Garden/ })).toHaveAttribute(
+      "aria-selected",
       "true"
     );
-    fireEvent.click(screen.getByRole("radio", { name: /Community Garden/ }));
+    fireEvent.click(screen.getByRole("option", { name: /Community Garden/ }));
     expect(onChange).toHaveBeenCalledWith("0xgarden");
   });
 });

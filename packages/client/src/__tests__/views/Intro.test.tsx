@@ -227,9 +227,9 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions });
 
-    const picker = screen.getByRole("radiogroup", { name: "Select Your Action" });
-    expect(within(picker).getByRole("radio", { name: /Plant Trees/ })).toBeInTheDocument();
-    expect(within(picker).getByRole("radio", { name: /Water Garden/ })).toBeInTheDocument();
+    const picker = screen.getByRole("listbox", { name: "Select Your Action" });
+    expect(within(picker).getByRole("option", { name: /Plant Trees/ })).toBeInTheDocument();
+    expect(within(picker).getByRole("option", { name: /Water Garden/ })).toBeInTheDocument();
   });
 
   it("filters out expired actions", () => {
@@ -244,8 +244,8 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions });
 
-    expect(screen.getByRole("radio", { name: /Active Action/ })).toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: /Expired Action/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Active Action/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Expired Action/ })).not.toBeInTheDocument();
   });
 
   it("skips an action with a missing id instead of crashing", () => {
@@ -256,8 +256,8 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions });
 
-    expect(screen.getByRole("radio", { name: /Valid Action/ })).toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: /Broken Action/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Valid Action/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Broken Action/ })).not.toBeInTheDocument();
   });
 
   it("says so in place of the picker when a selected domain has no active actions", () => {
@@ -274,12 +274,10 @@ describe("WorkIntro", () => {
     expect(
       screen.getByRole("heading", { name: "No active actions at this time." })
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("radiogroup", { name: "Select Your Action" })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("listbox", { name: "Select Your Action" })).not.toBeInTheDocument();
   });
 
-  it("chooses an action from the picker and marks the chosen one checked", () => {
+  it("chooses an action from the picker and marks the chosen one selected", () => {
     const setActionUID = vi.fn();
     const actions = [
       makeAction({ id: "action-1", title: "Plant Trees" }),
@@ -288,15 +286,15 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions, setActionUID, selectedActionUID: 2 });
 
-    fireEvent.click(screen.getByRole("radio", { name: /Plant Trees/ }));
+    fireEvent.click(screen.getByRole("option", { name: /Plant Trees/ }));
 
     expect(setActionUID).toHaveBeenCalledWith(1);
-    expect(screen.getByRole("radio", { name: /Plant Trees/ })).toHaveAttribute(
-      "aria-checked",
+    expect(screen.getByRole("option", { name: /Plant Trees/ })).toHaveAttribute(
+      "aria-selected",
       "false"
     );
-    expect(screen.getByRole("radio", { name: /Water Beds/ })).toHaveAttribute(
-      "aria-checked",
+    expect(screen.getByRole("option", { name: /Water Beds/ })).toHaveAttribute(
+      "aria-selected",
       "true"
     );
   });
@@ -307,8 +305,8 @@ describe("WorkIntro", () => {
 
     renderIntro({ gardens, setGardenAddress });
 
-    const picker = screen.getByRole("radiogroup", { name: "Select Your Garden" });
-    fireEvent.click(within(picker).getByRole("radio", { name: /My Garden/ }));
+    const picker = screen.getByRole("listbox", { name: "Select Your Garden" });
+    fireEvent.click(within(picker).getByRole("option", { name: /My Garden/ }));
 
     expect(setGardenAddress).toHaveBeenCalledWith("0xABC");
   });
@@ -448,7 +446,7 @@ describe("WorkIntro", () => {
       onJoinCommunityGarden: vi.fn(),
     });
 
-    expect(screen.getByRole("radio", { name: /Plant Trees/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Plant Trees/ })).toBeInTheDocument();
     expect(screen.getByText("Join the Community Garden")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Join Community Garden" })).toBeInTheDocument();
   });

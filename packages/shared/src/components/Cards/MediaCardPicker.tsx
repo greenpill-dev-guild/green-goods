@@ -2,11 +2,12 @@
  * MediaCardPicker — choosing one object from media cards, the same on the installed app
  * and the cockpit: the action a work answers, or the garden it is for.
  *
- * The cards are one radio group with one tab stop: Tab reaches the chosen card (or, with
- * nothing chosen, the first), the arrow keys and Home and End move between cards, and Space,
+ * The cards are the options of one listbox with one tab stop: Tab reaches the chosen card (or,
+ * with nothing chosen, the first), the arrow keys and Home and End move between cards, and Space,
  * Enter or a press chooses one. Moving never chooses, because choosing an action resets the
- * work's details. The chosen card takes the media card's selected mark, the 3px border in the
- * focus role. `row` lays the cards in one row that scrolls sideways, each 90% of it, snapping
+ * work's details; a listbox lets the choice stay apart from focus, where radios would check as
+ * focus moves. The chosen card takes the media card's selected mark, the 3px border in the focus
+ * role. `row` lays the cards in one row that scrolls sideways, each 90% of it, snapping
  * to a card's start (the installed app); `grid` lays them one to a row, then two once the
  * picker is 36rem wide (the cockpit's flow dialog). While the options load, `loading` holds
  * their place with four empty cards in the same layout (DL-056).
@@ -158,8 +159,8 @@ export function MediaCardPicker({
           cardRefs.current[index] = element;
         }}
         mediaShape="banner"
-        role="radio"
-        aria-checked={chosen}
+        role="option"
+        aria-selected={chosen}
         tabIndex={index === tabStop ? 0 : -1}
         selected={chosen}
         disabled={disabled || optionDisabled}
@@ -174,16 +175,23 @@ export function MediaCardPicker({
   });
 
   return (
-    // eslint-disable-next-line jsx-a11y/interactive-supports-focus -- roving-tabindex radiogroup; focus lives on the chosen card
+    // eslint-disable-next-line jsx-a11y/interactive-supports-focus -- roving-tabindex listbox; focus lives on the chosen card
     <div
-      role="radiogroup"
+      role="listbox"
       aria-label={label}
+      aria-orientation={layout === "row" ? "horizontal" : "vertical"}
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
       onBlur={handleBlur}
       className={cn(LAYOUT_CLASSES[layout].group, className)}
     >
-      {layout === "grid" ? <div className={GRID_CLASS}>{cards}</div> : cards}
+      {layout === "grid" ? (
+        <div role="presentation" className={GRID_CLASS}>
+          {cards}
+        </div>
+      ) : (
+        cards
+      )}
     </div>
   );
 }

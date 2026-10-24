@@ -245,10 +245,10 @@ behavior, and the cockpit's bar is unchanged
 standards-only `feature/app-cockpit-bar-pill-guides`.
 
 **Step 16 (24 October).** `feature/app-cockpit-pickers-records` gives both surfaces one action
-picker, Shared's `ActionPicker`: media cards with the action's banner in one radio group with one
+picker, Shared's `ActionPicker`: media cards with the action's banner in one listbox with one
 tab stop, a row that scrolls sideways in the app's Submit Work and a grid in the cockpit's. The
 app's garden card is the shared media card with its banner (Home's list, a work's page, and Submit
-Work's garden picker on the same radio group), and assessments and hypercerts are item rows on both
+Work's garden picker on the same listbox), and assessments and hypercerts are item rows on both
 surfaces. The twenty states step 11 left in the hypercert and action screens take the state block.
 DL-111 and its guide wording are the standards-only `feature/app-cockpit-pickers-records-guides`
 ([handoff](handoffs/claude-ui.md#step-16-pickers-and-record-cards-prd-1283)).

@@ -51,7 +51,7 @@ const meta: Meta<typeof GardenCard> = {
     docs: {
       description: {
         component:
-          "A garden in the installed app: the shared media card with the garden's banner (its photo, or its name's gradient), its name on one line, and how many members, then where. Home's list opens a garden from it; Submit Work chooses one with `GardenPicker`, the action picker's radio group.",
+          "A garden in the installed app: the shared media card with the garden's banner (its photo, or its name's gradient), its name on one line, and how many members, then where. Home's list opens a garden from it; Submit Work chooses one with `GardenPicker`, the action picker's listbox.",
       },
     },
   },
@@ -109,19 +109,19 @@ function PickerHarness() {
   );
 }
 
-/** Submit Work: the gardens as the action picker's radio group, in one row that scrolls sideways. */
+/** Submit Work: the gardens as the action picker's listbox, in one row that scrolls sideways. */
 export const Picker: Story = {
   // storybook-quality-allow state-harness: PickerHarness owns the choice while rendering the real GardenPicker.
   render: () => <PickerHarness />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const radios = canvas.getAllByRole("radio");
+    const cards = canvas.getAllByRole("option");
     await userEvent.tab();
-    await expect(radios[0]).toHaveFocus();
+    await expect(cards[0]).toHaveFocus();
     await userEvent.keyboard("{ArrowRight}");
-    await expect(radios[1]).toHaveFocus();
-    await expect(radios[1]).toHaveAttribute("aria-checked", "false");
+    await expect(cards[1]).toHaveFocus();
+    await expect(cards[1]).toHaveAttribute("aria-selected", "false");
     await userEvent.keyboard(" ");
-    await expect(radios[1]).toHaveAttribute("aria-checked", "true");
+    await expect(cards[1]).toHaveAttribute("aria-selected", "true");
   },
 };

@@ -6,7 +6,7 @@
  * garden's name on one line and one detail line: how many members, then where (the place
  * shortens first). Stewards, the description and how to join live on the garden's page. Home's
  * garden list opens a garden from it, and Submit Work chooses one with `GardenPicker`, the same
- * radio group as the action picker.
+ * listbox as the action picker.
  *
  * @module components/Cards/GardenCard
  */
@@ -107,7 +107,7 @@ export interface GardenPickerProps {
   className?: string;
 }
 
-/** Choosing a garden from its cards: the action picker's radio group, with garden cards. */
+/** Choosing a garden from its cards: the action picker's listbox, with garden cards. */
 export function GardenPicker({ gardens, ...picker }: GardenPickerProps) {
   const { formatMessage } = useIntl();
   return (

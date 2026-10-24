@@ -375,7 +375,7 @@
   - **One action picker.** `ActionPicker` on the new leaf
     `@green-goods/shared/components/Cards/ActionPicker`, built on an internal `MediaCardPicker`: a
     media card per action with its banner (its photo, or `ActionBannerFallback`) in a 104px strip,
-    the domain as the mark on the banner, a one-line title and what it asks for. One radio group,
+    the domain as the mark on the banner, a one-line title and what it asks for. One listbox,
     one tab stop (the chosen card, else the first), the arrow keys and Home and End moving and
     wrapping, Space, Enter or a press choosing; moving never chooses, because a choice resets the
     work's details. The app's Submit Work lays it as a row that scrolls sideways (each card 90% of
@@ -386,7 +386,7 @@
     reach its root), `mediaShape="banner"`, a disabled state and `MediaCardSkeleton`, all additive.
   - **The app's garden card.** Shared `GardenCard` is now the media card with the garden's banner,
     its name, then members (people, DL-049) and place on one detail line; `GardenPicker` on the
-    same leaf chooses a garden on the picker's radio group. Home's list (12px apart), a work's page
+    same leaf chooses a garden on the picker's listbox. Home's list (12px apart), a work's page
     and Submit Work render it. The app's wrapper `GardenCard`, `GardenCardSkeleton`, `ActionCard`
     and `ActionCardSkeleton` are deleted.
   - **Records on the item row.** The app's Assessments tab, the Hub's two record tabs, the garden's
@@ -395,6 +395,12 @@
     links in the row's right slot.
   - **States.** Step 11's twenty states in the hypercert and action screens take the state block,
     copy and actions kept.
+- Codex's first review of the guides (#1236) changed the code too: the cards are listbox options,
+  not radios, since radios check as focus moves and a choice here resets the work; an action
+  whose domain the app does not know (Submit Work's Other) takes a neutral banner and no domain
+  mark, where the shared fallback would read it as Agro; interaction patterns § 5 now names the
+  item row as the record row's anatomy; and the client prompt contract marks the pickers as
+  arriving with this code.
 - Proof: [eval.md](../eval.md#step-16-build-pickers-and-record-cards). Generated: the API index,
   the glossary digest and the four seam fingerprints (the new leaf).
 - Guides: DL-111, both surface guides, Rule 8, both prompt contracts and the defect grammar are the
@@ -404,9 +410,7 @@
   (the cockpit's lists never read the stored detail that holds the outcomes, and an earlier fix
   names every assessment's domain); a hypercert row's is the works it bundles, not its units; the
   app's Assessments tab and both pickers lose their carousels for a list and native rows; a
-  selected domain with no actions no longer holds the old card's height. Interaction patterns § 5
-  still describes a record row with kind and state chips and a three-part meta, which the item row
-  replaces; DL-111 leaves it for the owner of § 5. The commitment composer's multi-select action
+  selected domain with no actions no longer holds the old card's height. The commitment composer's multi-select action
   rail and the Actions workspace's `WorkbenchCard` list are outside this step.
 
 ## TDD Proof

@@ -2,7 +2,7 @@
  * ActionPicker Tests
  * @vitest-environment happy-dom
  *
- * One action picker on both surfaces: a radio group of banner cards with one tab stop, where
+ * One action picker on both surfaces: a listbox of banner cards with one tab stop, where
  * the arrow keys move and only Space, Enter or a press chooses, and a card says its domain and
  * what it asks for. The row and grid layouts are measured in a real browser by the stories.
  */
@@ -74,32 +74,44 @@ function renderPicker(props: Partial<ActionPickerProps> = {}) {
 afterEach(cleanup);
 
 describe("ActionPicker", () => {
-  it("is one named radio group whose cards say the domain and what the action asks for", () => {
+  it("is one named listbox whose cards say the domain and what the action asks for", () => {
     renderPicker({ value: "panels" });
 
-    expect(screen.getByRole("radiogroup", { name: "Action" })).toBeInTheDocument();
-    const radios = screen.getAllByRole("radio");
-    expect(radios).toHaveLength(3);
-    expect(radios[0]).toHaveAccessibleName(/Agroforestry.*Plant native trees.*2 photos required/);
-    expect(radios[1]).toHaveAccessibleName(/Solar.*Clean the panels.*Photos optional/);
+    expect(screen.getByRole("listbox", { name: "Action" })).toBeInTheDocument();
+    const cards = screen.getAllByRole("option");
+    expect(cards).toHaveLength(3);
+    expect(cards[0]).toHaveAccessibleName(/Agroforestry.*Plant native trees.*2 photos required/);
+    expect(cards[1]).toHaveAccessibleName(/Solar.*Clean the panels.*Photos optional/);
     // A required action without a count asks for one photo, as Submit Work does.
-    expect(radios[2]).toHaveAccessibleName(/Waste.*Sort the waste.*1 photo required/);
-    expect(radios.map((radio) => radio.getAttribute("aria-checked"))).toEqual([
+    expect(cards[2]).toHaveAccessibleName(/Waste.*Sort the waste.*1 photo required/);
+    expect(cards.map((card) => card.getAttribute("aria-selected"))).toEqual([
       "false",
       "true",
       "false",
     ]);
   });
 
+  it("gives an action whose domain the app does not know a neutral banner and no domain mark", () => {
+    renderPicker({
+      actions: [
+        makeAction("mystery", "Mystery action", null, { title: "Evidence", required: false }),
+      ],
+    });
+    const card = screen.getByRole("option");
+    expect(card).toHaveAccessibleName(/^Mystery action/);
+    // Never a known domain's gradient (the shared fallback would read an unknown domain as Agro).
+    expect(card.querySelector('[style*="linear-gradient"]')).toBeNull();
+  });
+
   it("keeps one tab stop, on the chosen card, or the first when nothing is chosen", () => {
     renderPicker({ value: "sort" });
-    expect(screen.getAllByRole("radio").map((radio) => radio.tabIndex)).toEqual([-1, -1, 0]);
+    expect(screen.getAllByRole("option").map((card) => card.tabIndex)).toEqual([-1, -1, 0]);
   });
 
   it("moves with the arrow keys, Home and End, wrapping, without choosing", () => {
     const { onChange } = renderPicker();
-    const group = screen.getByRole("radiogroup");
-    const [first, second, third] = screen.getAllByRole("radio");
+    const group = screen.getByRole("listbox");
+    const [first, second, third] = screen.getAllByRole("option");
 
     first.focus();
     fireEvent.keyDown(group, { key: "ArrowRight" });
@@ -120,14 +132,14 @@ describe("ActionPicker", () => {
 
   it("chooses the pressed card, and chooses nothing while turned off", () => {
     const { onChange } = renderPicker();
-    fireEvent.click(screen.getByRole("radio", { name: /Clean the panels/ }));
+    fireEvent.click(screen.getByRole("option", { name: /Clean the panels/ }));
     expect(onChange).toHaveBeenCalledWith("panels");
 
     cleanup();
     const { onChange: offChange } = renderPicker({ disabled: true });
-    const radio = screen.getByRole("radio", { name: /Clean the panels/ });
-    expect(radio).toBeDisabled();
-    fireEvent.click(radio);
+    const card = screen.getByRole("option", { name: /Clean the panels/ });
+    expect(card).toBeDisabled();
+    fireEvent.click(card);
     expect(offChange).not.toHaveBeenCalled();
   });
 
@@ -148,8 +160,8 @@ describe("ActionPicker", () => {
         <button type="button">After</button>
       </>
     );
-    const group = screen.getByRole("radiogroup");
-    const [a, b] = screen.getAllByRole("radio");
+    const group = screen.getByRole("listbox");
+    const [a, b] = screen.getAllByRole("option");
 
     b.focus();
     fireEvent.keyDown(group, { key: "ArrowRight" });
@@ -157,12 +169,12 @@ describe("ActionPicker", () => {
     expect(a.tabIndex).toBe(0);
 
     fireEvent.blur(a, { relatedTarget: screen.getByRole("button", { name: "After" }) });
-    expect(screen.getAllByRole("radio").map((radio) => radio.tabIndex)).toEqual([-1, 0, -1]);
+    expect(screen.getAllByRole("option").map((card) => card.tabIndex)).toEqual([-1, 0, -1]);
   });
 
   it("holds the options' place with empty cards while they load", () => {
     renderPicker({ loading: true });
-    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(document.querySelectorAll('[data-skeleton="media-card"]')).toHaveLength(4);
   });
 });

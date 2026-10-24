@@ -63,7 +63,7 @@ const meta: Meta<typeof MediaCardPicker> = {
     docs: {
       description: {
         component:
-          "The radio group under the action and garden pickers: media cards with a 104px banner, one tab stop (the chosen card, or the first), the arrow keys and Home and End moving between the cards that can be chosen, and Space, Enter or a press choosing. `row` scrolls sideways with each card 90% of the row; `grid` is one column, then two from 36rem.",
+          "The listbox under the action and garden pickers: media cards with a 104px banner, one tab stop (the chosen card, or the first), the arrow keys and Home and End moving between the cards that can be chosen, and Space, Enter or a press choosing. `row` scrolls sideways with each card 90% of the row; `grid` is one column, then two from 36rem.",
       },
     },
   },
@@ -83,12 +83,12 @@ export const Row: Story = {
   ),
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const radios = canvas.getAllByRole("radio");
-    await expect(radios[1]).toBeDisabled();
+    const cards = canvas.getAllByRole("option");
+    await expect(cards[1]).toBeDisabled();
     await userEvent.tab();
-    await expect(radios[0]).toHaveFocus();
+    await expect(cards[0]).toHaveFocus();
     await userEvent.keyboard("{ArrowRight}");
-    await expect(radios[2]).toHaveFocus();
+    await expect(cards[2]).toHaveFocus();
     await userEvent.keyboard("{Enter}");
     await expect(args.onChange).toHaveBeenCalledWith("school");
   },

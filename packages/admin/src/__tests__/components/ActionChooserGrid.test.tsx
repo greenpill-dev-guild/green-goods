@@ -77,14 +77,14 @@ describe("ActionChooserGrid", () => {
       </IntlProvider>
     );
 
-    const group = screen.getByRole("radiogroup", { name: "Ação" });
+    const group = screen.getByRole("listbox", { name: "Ação" });
     expect(group).toBeInTheDocument();
     expect(
-      screen.getByRole("radio", { name: /Verificação de energia e disponibilidade/ })
+      screen.getByRole("option", { name: /Verificação de energia e disponibilidade/ })
     ).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /Atividade de manutenção/ })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /Oficina realizada/ })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /Triagem e detalhamento/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Atividade de manutenção/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Oficina realizada/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Triagem e detalhamento/ })).toBeInTheDocument();
     expect(screen.queryByText("Energy & Uptime Check")).not.toBeInTheDocument();
     expect(screen.queryByText("Sorting & Breakdown")).not.toBeInTheDocument();
   });
@@ -102,10 +102,10 @@ describe("ActionChooserGrid", () => {
       </IntlProvider>
     );
 
-    const radios = screen.getAllByRole("radio");
-    expect(radios.every((radio) => radio.getAttribute("aria-checked") === "false")).toBe(true);
-    expect(radios[0]).toHaveAttribute("tabindex", "0");
-    fireEvent.click(screen.getByRole("radio", { name: /Oficina realizada/ }));
+    const cards = screen.getAllByRole("option");
+    expect(cards.every((card) => card.getAttribute("aria-selected") === "false")).toBe(true);
+    expect(cards[0]).toHaveAttribute("tabindex", "0");
+    fireEvent.click(screen.getByRole("option", { name: /Oficina realizada/ }));
     expect(onSelect).toHaveBeenCalledWith("edu");
   });
 });

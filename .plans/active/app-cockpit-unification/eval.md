@@ -689,7 +689,7 @@ Run on 2026-10-24 against `develop` `3c4fd4b62`, with step 16 on
 **Picking an action works the same by pointer and keyboard on both surfaces.** Both surfaces render
 one component, so one behaviour is proved once at its owner and again at each mount:
 
-- `ActionPicker.test.tsx` (Shared, happy-dom): one named radio group; each card named by its domain,
+- `ActionPicker.test.tsx` (Shared, happy-dom): one named listbox; each card named by its domain,
   title and what it asks for; one tab stop on the chosen card, else the first; the arrow keys, Home
   and End move and wrap without choosing; a press chooses; nothing is chosen while turned off; a
   card that cannot be chosen is passed over, and the tab stop returns to the chosen card when focus

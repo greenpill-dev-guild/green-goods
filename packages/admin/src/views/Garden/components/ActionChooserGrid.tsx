@@ -10,14 +10,14 @@ export interface ActionChooserGridProps {
   selectedActionId: string;
   onSelect: (actionId: string) => void;
   disabled?: boolean;
-  /** Accessible name for the radio group (e.g. "Action"). */
+  /** Accessible name for the listbox (e.g. "Action"). */
   groupLabel: string;
 }
 
 /**
  * ActionChooserGrid — the Choose step of Submit Work: the shared action picker, the one the
  * installed app uses, laid out as a grid, with each canonical action titled in the cockpit's
- * own words. One radio group with one tab stop: the arrow keys and Home and End move, and
+ * own words. One listbox with one tab stop: the arrow keys and Home and End move, and
  * Space, Enter or a press chooses, because choosing resets the work's details.
  */
 export function ActionChooserGrid({
