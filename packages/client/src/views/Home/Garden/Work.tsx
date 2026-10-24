@@ -3,6 +3,7 @@ import { SheetHeader } from "@green-goods/shared/components/Dialog/SheetHeader";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
 import { useQueuedWorkActions } from "@green-goods/shared/hooks/work/useQueuedWorkActions";
 import { useWorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
@@ -10,7 +11,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { isUserAddress } from "@green-goods/shared/utils/blockchain/address";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { RiCheckLine, RiCloseLine, RiErrorWarningLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiErrorWarningLine, RiSearchLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -75,26 +76,32 @@ export const GardenWork: React.FC = () => {
         <div className="padded">
           {gardensLoading || workLoading ? (
             <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-              <p className="text-sm text-text-sub-600">
-                {workLoadError
-                  ? intl.formatMessage({
-                      id: "app.home.work.loadError",
-                      defaultMessage:
-                        "Couldn't load this work. Check your connection and try again.",
-                    })
-                  : intl.formatMessage({
-                      id: "app.home.work.notFound",
-                      defaultMessage: "Work submission not found.",
-                    })}
-              </p>
-              {workLoadError && (
+          ) : workLoadError ? (
+            <EmptyState
+              tone="error"
+              icon={<RiErrorWarningLine />}
+              title={intl.formatMessage({
+                id: "app.home.work.loadError.title",
+                defaultMessage: "Couldn't load this work",
+              })}
+              description={intl.formatMessage({
+                id: "app.home.work.loadError.description",
+                defaultMessage: "Check your connection and try again.",
+              })}
+              action={
                 <Button type="button" onClick={() => void retryWorkLoad()}>
                   {intl.formatMessage({ id: "app.garden.loadRetry", defaultMessage: "Try Again" })}
                 </Button>
-              )}
-            </div>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={<RiSearchLine />}
+              title={intl.formatMessage({
+                id: "app.home.work.notFound",
+                defaultMessage: "Work submission not found.",
+              })}
+            />
           )}
         </div>
       </article>

@@ -1,4 +1,3 @@
-import { Alert } from "@green-goods/shared/components/Alert";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { HubWorkScope } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
@@ -6,7 +5,7 @@ import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hu
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { Work } from "@green-goods/shared/types/domain";
-import { RiCheckboxCircleLine, RiSearchLine } from "@remixicon/react";
+import { RiCheckboxCircleLine, RiErrorWarningLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
@@ -112,12 +111,18 @@ export function HubWorkQueue({
   if (hasDataError) {
     return (
       <EmptyStateShell>
-        <Alert variant="error">
-          {formatMessage({
-            id: "cockpit.hub.error",
-            defaultMessage: "Hub data could not be loaded. Refresh the workspace and try again.",
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({
+            id: "cockpit.hub.error.title",
+            defaultMessage: "Hub data could not be loaded",
           })}
-        </Alert>
+          description={formatMessage({
+            id: "cockpit.hub.error.description",
+            defaultMessage: "Refresh the workspace and try again.",
+          })}
+        />
       </EmptyStateShell>
     );
   }

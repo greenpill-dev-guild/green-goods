@@ -14,7 +14,6 @@ vi.mock("@/components/Cards", () => ({
 
 vi.mock("@/components/Communication", () => ({
   Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  EmptyState: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
 vi.mock("@/components/Display", () => ({
@@ -72,7 +71,8 @@ const messages = {
   "app.garden.assessments.dateRange": "Reporting period",
   "app.garden.assessments.detailUnavailableShort": "More detail could not be loaded.",
   "app.garden.assessments.listTitle": "Assessments",
-  "app.garden.assessments.loadError": "Assessments could not be loaded.",
+  "app.garden.assessments.loadError.description": "Check your connection and try again.",
+  "app.garden.assessments.loadError.title": "Assessments could not be loaded",
   "app.garden.assessments.noAssesment": "No assessments yet for this garden.",
   "app.garden.assessments.noSdgTargets": "No SDG alignment recorded.",
   "app.garden.assessments.outcomeTarget": "Target: {target} {metric}",
@@ -149,7 +149,7 @@ describe("GardenAssessments", () => {
 
   it.each([
     ["no assessment was read", "success", "No assessments yet for this garden."],
-    ["the list could not be read", "error", "Assessments could not be loaded."],
+    ["the list could not be read", "error", "Assessments could not be loaded"],
   ] as const)("says so when %s", (_label, status, message) => {
     renderAssessments([], status);
 

@@ -157,6 +157,10 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-control-outline": "var(--m3-outline)",
       "--gg-focus-ring-width": "2px",
       "--gg-focus-halo-alpha": "0",
+      // The state block's calm mark stays neutral: the workspace tone keeps to
+      // its budget (Rule 18).
+      "--gg-state-mark-fill": "rgb(var(--text-strong-950) / 0.06)",
+      "--gg-state-mark-ink": "rgb(var(--text-sub-600))",
       // The type roles at the cockpit's density: titles 22 / 16 / 14, body and
       // labels 14 at -0.006em, small labels and meta 12 (labels at 500), chips 11,
       // and field text 16px on touch widths (14px from 640px, a media rule).

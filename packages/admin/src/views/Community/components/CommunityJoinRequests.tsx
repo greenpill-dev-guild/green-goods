@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   useGardenJoinRequestAvailability,
   useGardenJoinRequests,
@@ -181,14 +182,15 @@ function CommunityJoinRequestQueue({
         </div>
 
         {loaded && queue.length === 0 && !join.queueState.isLoading ? (
-          <div className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft p-4 type-meta text-text-sub">
-            <RiInbox2Line className="h-5 w-5" />
-            {formatMessage({
+          <EmptyState
+            placement="list"
+            icon={<RiInbox2Line />}
+            title={formatMessage({
               id: stewardRequest
                 ? "cockpit.community.stewardRequests.empty"
                 : "cockpit.community.joinRequests.empty",
             })}
-          </div>
+          />
         ) : null}
 
         <AdminCard variant="outlined" density="none" className="divide-y divide-stroke-soft">

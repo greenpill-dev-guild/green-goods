@@ -39,7 +39,6 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
 
 vi.mock("@/components/Communication", () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
-  EmptyState: ({ title }: { title: string }) => <p>{title}</p>,
 }));
 
 vi.mock("@/components/Display", () => ({

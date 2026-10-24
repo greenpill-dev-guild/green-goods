@@ -375,9 +375,10 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
-    expect(
-      screen.getByText("We could not load what is still moving. Your promises are safe.")
-    ).toBeInTheDocument();
+    // The failure is announced, with the line saying nothing was lost under its title.
+    const failure = screen.getByRole("alert");
+    expect(failure).toHaveTextContent("We could not load what is still moving");
+    expect(failure).toHaveTextContent("Your promises are safe.");
 
     await userEvent.setup().click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);

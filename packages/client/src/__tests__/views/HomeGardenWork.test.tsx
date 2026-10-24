@@ -485,6 +485,51 @@ describe("Home garden work detail", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/home/garden-1");
   });
 
+  it.each([
+    { name: "a failed read", workLoadError: true, says: "Couldn't load this work", retries: true },
+    {
+      name: "a missing work",
+      workLoadError: false,
+      says: "Work submission not found.",
+      retries: false,
+    },
+  ])("says what happened to $name, and offers the read again only when it failed", (state) => {
+    const retryWorkLoad = vi.fn();
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      workLoading: false,
+      workLoadError: state.workLoadError,
+      retryWorkLoad,
+    });
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/work-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+
+    expect(screen.getByRole("heading", { name: state.says })).toBeInTheDocument();
+    const retry = screen.queryByRole("button", { name: "Try Again" });
+    if (state.retries) {
+      fireEvent.click(retry as HTMLElement);
+      expect(retryWorkLoad).toHaveBeenCalledOnce();
+    } else {
+      expect(retry).toBeNull();
+    }
+  });
+
   it("does not show approval mode for evaluator-only access", () => {
     mockUseUser.mockReturnValue({
       user: { id: "0x1111111111111111111111111111111111111111" },
