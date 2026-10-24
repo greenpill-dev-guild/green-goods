@@ -148,7 +148,13 @@ export const ADMIN = {
     family: "Plus Jakarta Sans",
   }),
   inlineField: (): Expectation => ({ height: 32 }),
-  tab: (): Expectation => ({ height: 36, labelSize: 14, family: "Plus Jakarta Sans" }),
+  /** 12px labels below 640px, 14px from 640px, as the app sets its tabs (F8). */
+  tab: (): Expectation => ({
+    height: 36,
+    labelSize: typeof window !== "undefined" && window.innerWidth < 640 ? 12 : 14,
+    weight: 500,
+    family: "Plus Jakarta Sans",
+  }),
   toolbar: (): Expectation => ({ height: 36, radius: "pill" }),
   chip: (): Expectation => ({ height: 32, radius: "pill", labelSize: 14, hit: 44 }),
   identityPill: (): Expectation => ({ height: 36, radius: "pill" }),
