@@ -1,3 +1,4 @@
+import { EmptyState, type EmptyStateTone } from "@green-goods/shared/components/ListPrimitives";
 import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { AdminButton } from "@/components/AdminButton";
@@ -11,7 +12,7 @@ import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-d
  * replaces the hashed chunks, every already-open session fails its next lazy
  * route load. Reloading once fetches the fresh manifest and lands back on the
  * requested URL — no manual "Reload" click. The sessionStorage guard (keyed by
- * failing path) makes a genuinely-broken chunk fall through to the error card
+ * failing path) makes a genuinely-broken chunk fall through to the error state
  * on its second failure instead of reload-looping.
  */
 const CHUNK_RELOAD_GUARD_KEY = "gg-admin-chunk-reload";
@@ -32,7 +33,7 @@ export function attemptChunkAutoRecovery(): boolean {
     window.location.reload();
     return true;
   } catch {
-    // Storage unavailable (rare) — fall through to the manual card rather
+    // Storage unavailable (rare): fall through to the manual state rather
     // than risking a reload loop we cannot guard.
     return false;
   }
@@ -75,7 +76,7 @@ export default function RouteErrorBoundary() {
     });
 
     // Stale-deployment self-heal: reload once per failing path before ever
-    // showing the manual card (the reload interrupts render, so the card
+    // showing the manual state (the reload interrupts render, so the state
     // below only appears on a repeat failure).
     if (isChunkError) {
       attemptChunkAutoRecovery();
@@ -84,12 +85,12 @@ export default function RouteErrorBoundary() {
 
   // Chunk errors = stale deployment, hard reload fixes it. Reaching this
   // render twice for the same path means the auto-recovery already spent its
-  // one shot — show the manual card.
+  // one shot, so show the manual state.
   if (isChunkError) {
     return (
-      <ErrorCard
-        icon={<RiRefreshLine className="h-6 w-6 text-information-dark" />}
-        iconBg="bg-information-lighter"
+      <RouteErrorState
+        icon={<RiRefreshLine />}
+        tone="neutral"
         title={formatMessage({ id: "app.error.route.chunk.title" })}
         description={formatMessage({ id: "app.error.route.chunk.description" })}
         technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
@@ -108,9 +109,9 @@ export default function RouteErrorBoundary() {
 
   if (isNetwork) {
     return (
-      <ErrorCard
-        icon={<RiWifiOffLine className="h-6 w-6 text-warning-dark" />}
-        iconBg="bg-warning-lighter"
+      <RouteErrorState
+        icon={<RiWifiOffLine />}
+        tone="warning"
         title={formatMessage({ id: "app.error.route.network.title" })}
         description={formatMessage({ id: "app.error.route.network.description" })}
         technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
@@ -129,9 +130,9 @@ export default function RouteErrorBoundary() {
 
   // Generic route error (render crash, unexpected throw, etc.)
   return (
-    <ErrorCard
-      icon={<RiAlertLine className="h-6 w-6 text-error-dark" />}
-      iconBg="bg-error-lighter"
+    <RouteErrorState
+      icon={<RiAlertLine />}
+      tone="error"
       title={formatMessage({ id: "app.error.route.generic.title" })}
       description={formatMessage({ id: "app.error.route.generic.description" })}
       technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
@@ -160,9 +161,13 @@ export default function RouteErrorBoundary() {
 
 // ─── Internal helpers ───────────────────────────────────────────────────────
 
-function ErrorCard({
+/**
+ * A route that failed, as the state block: the page's space keeps the shell
+ * around it, and every kind of failure is announced, as a failed read is.
+ */
+function RouteErrorState({
   icon,
-  iconBg,
+  tone,
   title,
   description,
   details,
@@ -170,7 +175,7 @@ function ErrorCard({
   actions,
 }: {
   icon: ReactNode;
-  iconBg: string;
+  tone: EmptyStateTone;
   title: string;
   description: string;
   details?: string;
@@ -178,29 +183,29 @@ function ErrorCard({
   actions: ReactNode;
 }) {
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-24">
-      <div className="w-full max-w-md animate-fade-in-up" role="alert">
-        <div className="rounded-xl border border-stroke-soft bg-bg-white p-8 text-center shadow-[var(--m3-elevation-1)]">
-          <div
-            className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${iconBg}`}
-          >
-            {icon}
-          </div>
-          <h2 className="type-title-lg font-semibold text-text-strong">{title}</h2>
-          <p className="mt-2 type-body text-text-sub">{description}</p>
-          {details && (
-            <details className="mt-4 text-left">
-              <summary className="cursor-pointer type-label-sm text-text-soft hover:text-text-sub">
-                {technicalDetailsLabel}
-              </summary>
-              <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-bg-soft p-3 type-meta text-text-sub">
-                {details}
-              </pre>
-            </details>
-          )}
-          <div className="mt-6">{actions}</div>
-        </div>
-      </div>
+    <div
+      className="flex flex-1 flex-col items-center justify-center px-6 py-24"
+      // The failure tone announces itself; the others are announced here.
+      role={tone === "error" ? undefined : "alert"}
+    >
+      <EmptyState
+        titleAs="h2"
+        tone={tone}
+        icon={icon}
+        title={title}
+        description={description}
+        action={actions}
+      />
+      {details && (
+        <details className="w-full max-w-md text-left">
+          <summary className="cursor-pointer type-label-sm text-text-soft hover:text-text-sub">
+            {technicalDetailsLabel}
+          </summary>
+          <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-bg-soft p-3 type-meta text-text-sub">
+            {details}
+          </pre>
+        </details>
+      )}
     </div>
   );
 }

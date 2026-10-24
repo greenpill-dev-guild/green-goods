@@ -1,13 +1,13 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Work } from "@green-goods/shared/types/domain";
-import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
+import { RiErrorWarningLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
-import { EmptyState, Loader } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 
 interface WorkListMessages {
   itemCount: { id: string; defaultMessage: string };
@@ -165,12 +165,12 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
 
       <div className="flex flex-1 flex-col px-4 pb-4">
         {isLoading ? (
-          <div className="flex flex-1 flex-col items-center justify-center pb-32">
-            <Loader />
-            <p className="text-sm text-text-soft-400 mt-4">
-              {intl.formatMessage(messages.loading)}
-            </p>
-          </div>
+          <EmptyState
+            className="flex-1"
+            placement="sheet"
+            icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+            title={intl.formatMessage(messages.loading)}
+          />
         ) : hasError ? (
           <EmptyState
             className="flex-1"
@@ -220,7 +220,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
             description={intl.formatMessage(messages.emptyDescription)}
           />
         ) : (
-          <ul className="animate-stagger-in space-y-3">
+          <ul className="animate-stagger-in flex flex-col gap-(--gg-list-gap)">
             {items.map((work) => (
               <li key={work.id}>
                 <MinimalWorkCard

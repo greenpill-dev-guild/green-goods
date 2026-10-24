@@ -1,11 +1,11 @@
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiArrowRightSLine } from "@remixicon/react";
+import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
-import { SeedlingIllustration } from "./SeedlingIllustration";
 
 // Paradigm: Ritual — single-purpose garden selection, focused attention.
 
@@ -32,28 +32,29 @@ export function CanvasWorkspaceSelectionState({
     return (
       <div className="py-8">
         <AdminCard density="none" className="mx-auto max-w-xl">
-          <AdminCardBody className="flex flex-col items-center py-12 text-center">
-            <SeedlingIllustration className="h-24 w-24" />
-            <h2 className="mt-4 type-title-md text-text-strong">
-              {formatMessage({
+          <AdminCardBody>
+            <EmptyState
+              titleAs="h2"
+              icon={<RiSeedlingLine />}
+              title={formatMessage({
                 id: "cockpit.workspace.noGardens",
                 defaultMessage: "No gardens yet",
               })}
-            </h2>
-            <p className="mt-2 max-w-md type-body text-text-sub">
-              {formatMessage({
+              description={formatMessage({
                 id: "cockpit.workspace.noGardensDescription",
                 defaultMessage: "Create your first garden to start using the canvas workspaces.",
               })}
-            </p>
-            <AdminButton className="mt-6" asChild>
-              <Link to={adminRoutes.gardenCreate()}>
-                {formatMessage({
-                  id: "cockpit.workspace.createGarden",
-                  defaultMessage: "Create Garden",
-                })}
-              </Link>
-            </AdminButton>
+              action={
+                <AdminButton asChild>
+                  <Link to={adminRoutes.gardenCreate()}>
+                    {formatMessage({
+                      id: "cockpit.workspace.createGarden",
+                      defaultMessage: "Create Garden",
+                    })}
+                  </Link>
+                </AdminButton>
+              }
+            />
           </AdminCardBody>
         </AdminCard>
       </div>

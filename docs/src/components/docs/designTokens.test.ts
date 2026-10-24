@@ -30,7 +30,7 @@ describe("design token page data", () => {
   test("the projection carries the type, radius, and spacing scales with brand fonts mapped", () => {
     assert.equal(Object.keys(tokens.rounded).length, 7);
     assert.equal(Object.keys(tokens.spacing).length, 3);
-    assert.equal(Object.keys(tokens.typography).length, 6);
+    assert.equal(Object.keys(tokens.typography).length, 7);
     for (const token of Object.values(tokens.typography)) assert.ok(token.fontFamily in FONT_STACKS, token.fontFamily);
   });
 

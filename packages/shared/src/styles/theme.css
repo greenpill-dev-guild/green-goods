@@ -590,12 +590,35 @@
   --gg-type-field-line: 1.5rem;
   --gg-type-field-weight: 400;
   --gg-type-field-tracking: -0.011em;
+  /* The card title (typography.card-title): every card's one-line title, item
+   * rows and media cards. 15px at 500 here, the work row's weight; the cockpit
+   * sets 13px at 600 in packages/admin/src/index.css. Its own role, so a
+   * surface that moves title-sm never moves a card title. */
+  --gg-type-card-title-size: 0.9375rem;
+  --gg-type-card-title-line: 1.25rem;
+  --gg-type-card-title-weight: 500;
+  --gg-type-card-title-tracking: 0px;
   /* 12px: app buttons of every emphasis, and actions inside a field (DL-026). */
   --radius-squircle: var(--gg-radius-squircle);
   --radius-lg: var(--gg-radius-lg);
   --radius-xl: var(--gg-radius-xl);
   --radius-2xl: var(--gg-radius-2xl);
   --radius-full: var(--gg-radius-full);
+
+  /* ── Cards, rows and lists (F7, F11) ── One card surface on both surfaces:
+   * the card's fill, a 1px edge and a faint shadow, on a 24px corner. The fill
+   * and edge read --gg-card-surface and --gg-card-edge where a surface sets them
+   * (the cockpit, in admin index.css) and the element's own --bg-white-0 and
+   * --stroke-soft-200 otherwise, so a dark scope below the root resolves its
+   * own. An item row takes a 16px corner and one 88px height, and every card
+   * list keeps 12px between its cards. Read by .gg-card and .gg-item-row in the
+   * components layer below. */
+  --gg-card-radius: var(--gg-radius-2xl);
+  --gg-row-radius: var(--gg-radius-lg);
+  --gg-card-shadow: 0 1px 2px 0 rgb(var(--static-black) / 0.05);
+  --gg-item-row-height: 5.5rem;
+  --gg-item-row-tile: 3.5rem;
+  --gg-list-gap: 0.75rem;
 
   /* ── Glass Material ── Blur + transparency tokens for navigation-tier surfaces
    * Applied via .glass-surface utility or per-component backdrop-filter.
@@ -618,9 +641,17 @@
   --color-material-thick: oklch(0.96 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
   /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
-   * surface-colored cover that rides the end of the content to hide it. */
-  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
-  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
+   * surface-colored cover that rides the end of the content to hide it. Both
+   * follow the sheet's own hairline and fill where a surface sets them
+   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the cockpit's phone dialogs). */
+  --sheet-scroll-edge-line: linear-gradient(
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200))),
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200)))
+  );
+  --sheet-scroll-edge-cover: linear-gradient(
+    var(--gg-sheet-fill, var(--color-material-solid)),
+    var(--gg-sheet-fill, var(--color-material-solid))
+  );
 
   --blur-material-ultrathin: 30px;
   --blur-material-thin: 20px;
@@ -791,6 +822,9 @@
   /* Declared again so a dark scope below the root draws the dark stroke: the
    * :root outline has already resolved to the light one when it is inherited. */
   --gg-control-outline: var(--stroke-sub-300);
+  /* A card reads against the dark canvas by its lightness step and its edge; a
+   * black shadow would not show, so the card casts none (F13). */
+  --gg-card-shadow: 0 0 transparent;
   --stroke-soft-200: var(--neutral-800);     /* 34 37 48 - soft borders (subtle elevation) */
   --stroke-white-0: var(--neutral-950);
   
@@ -903,9 +937,17 @@
   --color-material-thick: oklch(0.12 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
   /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
-   * surface-colored cover that rides the end of the content to hide it. */
-  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
-  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
+   * surface-colored cover that rides the end of the content to hide it. Both
+   * follow the sheet's own hairline and fill where a surface sets them
+   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the cockpit's phone dialogs). */
+  --sheet-scroll-edge-line: linear-gradient(
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200))),
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200)))
+  );
+  --sheet-scroll-edge-cover: linear-gradient(
+    var(--gg-sheet-fill, var(--color-material-solid)),
+    var(--gg-sheet-fill, var(--color-material-solid))
+  );
   --border-material: 1px solid oklch(1 0 0 / 0.06);
 
   /* Social colors - invert for dark mode */
@@ -1938,6 +1980,328 @@
     background: rgb(var(--tone-on-action, var(--m3-on-primary, 255 255 255)));
   }
 
+  /* ── Card surface (F7) ── The one card surface: the card's fill, a 1px edge
+   * that reads on linen and on the dark canvas, a faint shadow in light and the
+   * 24px corner. The app's Card, AdminCard, Surface, CardBase and Shared's Card
+   * draw it. A work card's status edge (data-edge) widens the inline-start edge
+   * to 2px in its status color. */
+  .gg-card {
+    --gg-focus-ring: var(--tone-focus-ring, var(--focus-ring, var(--primary-base)));
+    position: relative;
+    border: 1px solid rgb(var(--gg-card-edge, var(--stroke-soft-200)));
+    border-radius: var(--gg-card-radius);
+    background-color: rgb(var(--gg-card-surface, var(--bg-white-0)));
+    box-shadow: var(--gg-card-shadow);
+  }
+
+  .gg-card[data-edge] {
+    border-inline-start-width: 2px;
+  }
+
+  .gg-card[data-edge="success"] {
+    border-inline-start-color: rgb(var(--success-base));
+  }
+
+  .gg-card[data-edge="warning"] {
+    border-inline-start-color: rgb(var(--warning-base));
+  }
+
+  .gg-card[data-edge="error"] {
+    border-inline-start-color: rgb(var(--error-base));
+  }
+
+  .gg-card[data-edge="info"] {
+    border-inline-start-color: rgb(var(--information-base));
+  }
+
+  .gg-card[data-edge="neutral"] {
+    border-inline-start-color: rgb(var(--stroke-sub-300));
+  }
+
+  /* ── Media card (F12) ── A card with a picture of its own (MediaCard). Its
+   * picture reaches the card's corners, so the card clips it. One that opens its
+   * object answers like an item row: the neutral ink layer on hover, never a
+   * lift (Rule 18), the focus ring, and a 3px border in the focus role when its
+   * object is open, drawn over the picture. */
+  .gg-media-card {
+    overflow: hidden;
+  }
+
+  button.gg-media-card {
+    cursor: pointer;
+  }
+
+  button.gg-media-card:focus-visible {
+    outline: 2px solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    button.gg-media-card:hover {
+      background-image: linear-gradient(
+        rgb(var(--text-strong-950) / 0.04),
+        rgb(var(--text-strong-950) / 0.04)
+      );
+    }
+  }
+
+  .gg-media-card[data-selected="true"] {
+    border-color: rgb(var(--gg-focus-ring));
+  }
+
+  .gg-media-card[data-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgb(var(--gg-focus-ring));
+    border-radius: calc(var(--gg-card-radius) - 1px);
+    pointer-events: none;
+  }
+
+  /* ── Item row (F7) ── Every item in a list on both surfaces, on the card
+   * surface: one height in every state and language (88px, in rem so it grows
+   * with the reader's text size), a 16px corner, the item's own square photo or
+   * a centered 56px icon tile, a one-line title, the one status pill under it,
+   * one detail line, and the row's one action in its right slot. ItemRow
+   * (Cards/ItemRow) renders it. A row with nothing to open is content: it
+   * presses nowhere and takes no focus. */
+  .gg-item-row {
+    display: flex;
+    align-items: stretch;
+    inline-size: 100%;
+    block-size: var(--gg-item-row-height);
+    overflow: hidden;
+    border-radius: var(--gg-row-radius);
+    color: rgb(var(--text-strong-950));
+    text-align: start;
+  }
+
+  /* The open target: the whole row, or, beside an action, everything but the
+   * action. It never draws its own ring: overflow clips it, so the row does. */
+  .gg-item-row-open {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: stretch;
+    min-inline-size: 0;
+    color: inherit;
+    text-align: inherit;
+    cursor: pointer;
+  }
+
+  .gg-item-row-open:focus-visible {
+    outline: none;
+  }
+
+  button.gg-item-row:focus-visible,
+  .gg-item-row:has(> .gg-item-row-open:focus-visible) {
+    outline: 2px solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
+  }
+
+  /* The neutral ink layer over the card's fill: never a lift or a hue (Rule 18). */
+  @media (hover: hover) {
+    button.gg-item-row:hover,
+    .gg-item-row:has(> .gg-item-row-open:hover) {
+      background-image: linear-gradient(
+        rgb(var(--text-strong-950) / 0.04),
+        rgb(var(--text-strong-950) / 0.04)
+      );
+    }
+  }
+
+  /* The record a list has open: a 3px border in the focus role, drawn over the
+   * photo, so selection reads on every row the same way. */
+  .gg-item-row[data-selected="true"] {
+    border-color: rgb(var(--gg-focus-ring));
+  }
+
+  .gg-item-row[data-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgb(var(--gg-focus-ring));
+    border-radius: calc(var(--gg-row-radius) - 1px);
+    pointer-events: none;
+  }
+
+  /* Lead: the item's own photo, square and the row's full height, with its
+   * photo count (or another mark) on it; or a 56px icon tile, centered. */
+  .gg-item-row-photo {
+    position: relative;
+    flex: 0 0 auto;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background-color: rgb(var(--gg-card-fill, var(--bg-soft-200)));
+  }
+
+  .gg-item-row-mark {
+    position: absolute;
+    inset-block-start: 0.3125rem;
+    inset-inline-end: 0.3125rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1875rem;
+    padding: 0.0625rem 0.375rem;
+    border-radius: 9999px;
+    background-color: rgb(var(--static-black) / 0.6);
+    color: rgb(var(--static-white));
+    font-size: var(--gg-type-meta-sm-size);
+    font-weight: 600;
+    line-height: var(--gg-type-meta-sm-line);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .gg-item-row-mark > svg {
+    inline-size: 0.75rem;
+    block-size: 0.75rem;
+  }
+
+  .gg-item-row-lead {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    padding-inline-start: 0.75rem;
+  }
+
+  .gg-item-row-tile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--gg-item-row-tile);
+    block-size: var(--gg-item-row-tile);
+    border-radius: var(--radius-squircle);
+    background-color: rgb(var(--gg-card-fill, var(--bg-soft-200)));
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-item-row-tile-icon {
+    display: flex;
+  }
+
+  .gg-item-row-tile-icon > svg {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
+  .gg-item-row-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.125rem;
+    min-inline-size: 0;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .gg-item-row-title {
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* One detail line that never wraps: each detail carries its separator in a
+   * 12px start pad and the list is pulled 12px back inside a one-line clip, so
+   * a detail that does not fit wraps below the clip and drops whole, separator
+   * and all, last first. A first detail too long on its own ends in an
+   * ellipsis. */
+  .gg-item-row-details {
+    max-inline-size: 100%;
+    block-size: var(--gg-type-meta-sm-line);
+    overflow: hidden;
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-item-row-detail-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: var(--gg-type-meta-sm-line);
+    margin-inline-start: -0.75rem;
+  }
+
+  .gg-item-row-detail {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-inline-size: 0;
+    padding-inline-start: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* The separator is drawn, not read: the empty alternative text keeps it out
+   * of the row's accessible name where the browser supports it. */
+  .gg-item-row-detail::before {
+    content: "\2022";
+    content: "\2022" / "";
+    position: absolute;
+    inset-inline-start: 0.25rem;
+    color: rgb(var(--text-soft-400));
+  }
+
+  .gg-item-row-detail-text {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .gg-item-row-detail > svg {
+    flex: 0 0 auto;
+    inline-size: 0.875rem;
+    block-size: 0.875rem;
+  }
+
+  .gg-item-row-detail[data-tone="soft"] {
+    color: rgb(var(--text-soft-400));
+  }
+
+  .gg-item-row-detail[data-tone="error"] {
+    color: rgb(var(--error-dark));
+  }
+
+  .gg-item-row-action {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    padding-inline-end: 0.5rem;
+  }
+
+  /* ── State mark ── The round tile that leads the state block (`EmptyState`):
+   * 56px with a 24px glyph on both surfaces. A calm state takes the surface's
+   * quiet accent: the app's green tint, or what a surface sets in
+   * `--gg-state-mark-fill` and `--gg-state-mark-ink` (the cockpit keeps it
+   * neutral, because its workspace tone is held to its budget, Rule 18). A
+   * warning and a failure take their status tints. */
+  .gg-state-mark {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    inline-size: 3.5rem;
+    block-size: 3.5rem;
+    border-radius: 9999px;
+    background-color: var(--gg-state-mark-fill, rgb(var(--primary-on-surface) / 0.1));
+    color: var(--gg-state-mark-ink, rgb(var(--primary-on-surface)));
+  }
+
+  .gg-state-mark > svg {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
+  .gg-state-mark[data-tone="warning"] {
+    background-color: rgb(var(--warning-lighter));
+    color: rgb(var(--warning-base));
+  }
+
+  .gg-state-mark[data-tone="error"] {
+    background-color: rgb(var(--error-lighter));
+    color: rgb(var(--error-base));
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .gg-control,
     .gg-button,
@@ -2761,4 +3125,11 @@
   line-height: var(--tw-leading, var(--gg-type-field-line));
   font-weight: var(--tw-font-weight, var(--gg-type-field-weight));
   letter-spacing: var(--tw-tracking, var(--gg-type-field-tracking));
+}
+
+@utility type-card-title {
+  font-size: var(--gg-type-card-title-size);
+  line-height: var(--tw-leading, var(--gg-type-card-title-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-card-title-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-card-title-tracking));
 }

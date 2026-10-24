@@ -22,7 +22,7 @@ import {
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { MemberRow } from "./MemberRow";
 import { isQrScanSupported, QRScanner } from "./QRScanner";
 import type { SelectedRecipient } from "./types";

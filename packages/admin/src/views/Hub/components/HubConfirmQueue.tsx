@@ -1,5 +1,4 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
-import { Alert } from "@green-goods/shared/components/Alert";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
@@ -10,7 +9,7 @@ import type {
 import { useHubConfirmQueueController } from "@green-goods/shared/hooks/admin-ui/pool/useHubConfirmQueueController";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
-import { RiCheckLine, RiShakeHandsLine } from "@remixicon/react";
+import { RiCheckLine, RiErrorWarningLine, RiShakeHandsLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -78,19 +77,27 @@ export function HubConfirmQueue({
   if (queue.isError) {
     body = (
       <EmptyStateShell>
-        <Alert variant="error">
-          {formatMessage({
-            id: "cockpit.hub.confirm.readError",
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({
+            id: "cockpit.hub.confirm.readError.title",
+            defaultMessage: "The confirmation queue could not be read",
+          })}
+          description={formatMessage({
+            id: "cockpit.hub.confirm.readError.description",
             defaultMessage:
-              "The confirmation queue could not be read. Nothing was confirmed or disputed while it was unreachable; refresh and try again.",
+              "Nothing was confirmed or disputed while it was unreachable; refresh and try again.",
           })}
-        </Alert>
-        <AdminButton type="button" variant="filled" onClick={() => void toConfirm.refetch()}>
-          {formatMessage({
-            id: "cockpit.garden.pool.readError.retry",
-            defaultMessage: "Try Again",
-          })}
-        </AdminButton>
+          action={
+            <AdminButton type="button" variant="filled" onClick={() => void toConfirm.refetch()}>
+              {formatMessage({
+                id: "cockpit.garden.pool.readError.retry",
+                defaultMessage: "Try Again",
+              })}
+            </AdminButton>
+          }
+        />
       </EmptyStateShell>
     );
   } else if (queue.isLoading) {

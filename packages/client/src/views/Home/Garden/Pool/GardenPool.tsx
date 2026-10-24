@@ -1,5 +1,6 @@
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { IconButton } from "@green-goods/shared/components/IconButton";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   type GardenPoolDirection,
   type GardenPoolLiveness,
@@ -11,7 +12,7 @@ import {
   type CommitmentPoolRecord,
   usePoolCharter,
 } from "@green-goods/shared/commitment-pooling";
-import { RiInformationLine } from "@remixicon/react";
+import { RiFilterOffLine, RiInformationLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -243,9 +244,11 @@ export function GardenPool({ pool }: GardenPoolProps) {
 
           {controller.rows.length === 0 ? (
             controller.shownCreations.length === 0 ? (
-              <p className="py-6 text-center text-sm text-text-sub-600">
-                {formatMessage({ id: "app.commitments.filter.noMatches" })}
-              </p>
+              <EmptyState
+                placement="list"
+                icon={<RiFilterOffLine />}
+                title={formatMessage({ id: "app.commitments.filter.noMatches" })}
+              />
             ) : null
           ) : (
             <div className="space-y-2">

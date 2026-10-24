@@ -144,7 +144,8 @@ const messages: Record<string, string> = {
   "app.garden.whichGarden": "Which garden are you submitting for?",
   "app.garden.noActiveActions": "No active actions at this time.",
   "app.garden.noActionsConfigured": "No actions have been configured for this garden yet.",
-  "app.garden.noGardensAvailable": "No gardens available. You may need to join a garden first.",
+  "app.garden.noGardensAvailable.description": "You may need to join a garden first.",
+  "app.garden.noGardensAvailable.title": "No gardens available",
   "app.garden.communityOnramp.action": "Join Community Garden",
   "app.garden.communityOnramp.description":
     "The Community Garden is open to everyone and gives you a place to submit your first work.",
@@ -309,7 +310,10 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions, gardens, selectedDomain: Domain.SOLAR });
 
-    const emptyState = screen.getByText("No active actions at this time.");
+    // The state block holds the selection card's height, so the step does not jump.
+    const emptyState = screen
+      .getByRole("heading", { name: "No active actions at this time." })
+      .closest("[data-component='EmptyState']") as HTMLElement;
     expect(emptyState.className).toContain("h-[13.25rem]");
     expect(emptyState.closest("[data-testid='carousel-item']")?.className).toContain("basis-full");
   });
@@ -510,9 +514,8 @@ describe("WorkIntro", () => {
   it("shows the passive empty state when no joinable community garden is available", () => {
     renderIntro({ gardens: [], hasJoinedGardens: false, joinableCommunityGarden: null });
 
-    expect(
-      screen.getByText("No gardens available. You may need to join a garden first.")
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "No gardens available" })).toBeInTheDocument();
+    expect(screen.getByText("You may need to join a garden first.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Join Community Garden" })).not.toBeInTheDocument();
   });
 

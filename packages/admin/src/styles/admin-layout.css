@@ -205,7 +205,8 @@ button.garden-stat-row:hover {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
     justify-content: stretch;
     align-items: stretch;
-    gap: 0.875rem;
+    /* One list gap on both surfaces (F11). */
+    gap: var(--gg-list-gap);
     list-style: none;
     margin: 0;
     padding: 0;
@@ -216,11 +217,17 @@ button.garden-stat-row:hover {
     width: 100%;
   }
 
+  /* The work queue's wide cards (F12): from the desktop breakpoint each work
+     card lies wide, its mosaic on the left, so two share a row at 1280px where
+     three tall cards stood, and three from about 1380px. */
+  .hub-workbench-grid[data-card-layout="wide"] {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+  }
+
   /* Hover feedback is a pure elevation step (1 → 2) with box-shadow 150ms —
      no translate lift, no hue shift (Cockpit M3 1a interaction contract). */
   .workbench-row,
-  .workbench-card,
-  .hub-work-card {
+  .workbench-card {
     transition-property: background-color, box-shadow;
     transition-duration: var(--spring-effects-fast-duration);
     transition-timing-function: var(--spring-effects-fast-easing);
@@ -228,8 +235,7 @@ button.garden-stat-row:hover {
 
   @media (prefers-reduced-motion: reduce) {
     .workbench-row,
-    .workbench-card,
-    .hub-work-card {
+    .workbench-card {
       transition: none;
     }
   }
@@ -240,8 +246,7 @@ button.garden-stat-row:hover {
     background-color: rgb(var(--m3-on-surface) / 0.08);
   }
 
-  .workbench-card[data-selected="true"],
-  .hub-work-card[data-selected="true"] {
+  .workbench-card[data-selected="true"] {
     box-shadow: var(--edge-focus), var(--m3-elevation-2);
   }
 
@@ -249,14 +254,12 @@ button.garden-stat-row:hover {
     box-shadow: var(--m3-elevation-1);
   }
 
-  .workbench-card-clickable:hover,
-  .hub-work-card:hover {
+  .workbench-card-clickable:hover {
     box-shadow: var(--m3-elevation-2);
   }
 
   .workbench-row-clickable:active,
-  .workbench-card-clickable:active,
-  .hub-work-card:active {
+  .workbench-card-clickable:active {
     box-shadow: var(--m3-elevation-1);
   }
 

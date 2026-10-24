@@ -13,7 +13,7 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 
 export interface PoolLifecycleNoticeProps {
   pool: CommitmentPoolRecord;

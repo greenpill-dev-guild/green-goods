@@ -2,8 +2,8 @@
  * WorkCard Tests
  * @vitest-environment happy-dom
  *
- * The card's title is display only: it never shows the timestamps older submissions appended.
- * Its age reads in the reader's language.
+ * The row's title is display only: it never shows the timestamps older submissions appended.
+ * Its age reads in the reader's language, in the short form every card's details take.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -28,15 +28,15 @@ describe("WorkCard", () => {
       </IntlProvider>
     );
 
-    const title = screen.getByRole("heading", { level: 4 });
-    expect(title).toHaveTextContent(/^Planting Event$/);
+    const title = screen.getByText(/^Planting Event$/);
     expect(title).toHaveAttribute("title", "Planting Event");
   });
 
   it.each([
-    ["es", "hace 2 horas"],
-    ["pt", "há 2 horas"],
-  ])("gives the work's age in the reader's language (%s)", (locale, age) => {
+    ["en", "2 hr. ago"],
+    ["es", "hace 2 h"],
+    ["pt", "há 2 h"],
+  ])("gives the work's age in its short form in the reader's language (%s)", (locale, age) => {
     render(
       <IntlProvider locale={locale}>
         <WorkCard

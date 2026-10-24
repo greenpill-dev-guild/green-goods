@@ -110,9 +110,9 @@ for (const scenario of workExplorationCases(process.env.GG_BROWSER_SEED)) {
           if (action === "open")
             await page.goto(`${pathname}?presentation=pwa`, { waitUntil: "domcontentloaded" });
           if (action === "recover") {
-            await expect(
-              page.getByText("Couldn't load this work. Check your connection and try again.")
-            ).toBeVisible({ timeout: 60000 });
+            await expect(page.getByText("Couldn't load this work", { exact: true })).toBeVisible({
+              timeout: 60000,
+            });
             // The list cannot remove the retry control through background recovery.
             helper.backend.setUnavailable("eas: Attestations", false);
             await page.getByRole("button", { name: "Try Again", exact: true }).click();

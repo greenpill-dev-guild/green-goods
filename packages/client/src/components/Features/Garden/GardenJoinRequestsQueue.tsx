@@ -1,5 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   useGardenJoinRequestAvailability,
   useGardenJoinRequests,
@@ -174,13 +175,14 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
       </div>
 
       {loaded && join.queue.length === 0 && !join.queueState.isLoading ? (
-        <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-bg-white-0 p-3 text-sm text-text-sub-600">
-          <RiGroupLine className="h-5 w-5" />
-          {formatMessage({
+        <EmptyState
+          placement="list"
+          icon={<RiGroupLine />}
+          title={formatMessage({
             id: "app.garden.joinQueue.empty",
             defaultMessage: "There are no pending join requests.",
           })}
-        </div>
+        />
       ) : null}
 
       <div className="space-y-3">

@@ -3,7 +3,8 @@ import { tv, type VariantProps } from "tailwind-variants";
 import { cn } from "../../utils/styles/cn";
 
 export const cardVariants = tv({
-  base: "rounded-2xl border flex gap-0.5 justify-between border-border bg-bg-white-0",
+  // The one card surface (.gg-card in theme.css, F7): fill, edge, faint shadow, 24px.
+  base: "gg-card flex gap-0.5 justify-between",
   variants: {
     variant: {
       default: "",
@@ -11,10 +12,10 @@ export const cardVariants = tv({
       elevated: "shadow-md",
     },
     mode: {
-      outline: "border-border border shadow-xs",
-      filled: "bg-card border-0",
+      outline: "",
+      filled: "bg-card border-0 shadow-none",
       ghost: "border-0 shadow-none bg-transparent",
-      "no-outline": "border-0 shadow-0",
+      "no-outline": "border-0 shadow-none",
     },
     size: {
       sm: "p-2",
@@ -92,7 +93,7 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 CardFooter.displayName = "CardFooter";
 
 const surfaceCardVariants = tv({
-  base: "rounded-lg glass-raised",
+  base: "gg-card",
   variants: {
     variant: {
       default: "",

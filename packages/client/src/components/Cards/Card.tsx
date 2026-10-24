@@ -3,16 +3,17 @@ import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
 export const cardVariants = tv({
-  base: "rounded-2xl border flex gap-0.5 justify-between border-border p-1 px-4 bg-bg-white-0",
+  // The one card surface (.gg-card in shared theme.css, F7): fill, edge, faint shadow, 24px.
+  base: "gg-card flex gap-0.5 justify-between p-1 px-4",
   variants: {
     variant: {
       primary: "",
       avatar: "",
     },
     mode: {
-      "no-outline": "border-0 shadow-0",
-      outline: "border-border border shadow-xs",
-      filled: "bg-card border-0",
+      "no-outline": "border-0 shadow-none",
+      outline: "",
+      filled: "bg-card border-0 shadow-none",
     },
     size: {
       large: "min-h-18",
