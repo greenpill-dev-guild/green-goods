@@ -214,6 +214,24 @@
 - Not in the step: Community's action fill (orange-700) carries white text at 4.0:1; raising it to
   orange-800 takes its own pair.
 
+## Step 21: bottom bar active pill (PRD-1288)
+
+- `feature/app-cockpit-bar-pill`, cut from `develop` `d84d48398`: `AppBar` draws each tab's line
+  icon in a 56 × 32 slot (`data-slot="icon"`) that paints `--primary-container` behind it, with the
+  icon in `--primary-container-foreground`, when the tab is active, and the active label
+  (`data-slot="label"`) in ink at weight 600. The filled icons are gone. The bar's padding goes from
+  12 to 8px, so it stays 69px. Shared `theme.css` sets the pair in the app presentation only:
+  green-100 behind green-900, swapped in dark, the cockpit's Garden pill.
+- Proof: the pairs ([eval.md](../eval.md#step-21-proof-the-bottom-bars-pill)), **mock-auth
+  localhost** for the app and **Storybook** for the cockpit, which did not change. No authenticated
+  class: the bar is outside the browser-proof paths. The display-mode test asserts `aria-current`,
+  and the story's plays guard the pill and the 69px.
+- Guides: DL-107 and the wording in both surface guides, `language.md`, the client prompt contract
+  and root `DESIGN.md`'s Quick Token Reference are the standards-only
+  `feature/app-cockpit-bar-pill-guides`.
+- Not in the step: the active tab hides its keyboard focus ring, and the other tabs draw the
+  browser's default ring rather than the app's focus role.
+
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker
@@ -235,6 +253,8 @@
   is rendered-only behaviour and records `proof_limit` with its rendered evidence. Step 4's badge
   is a styling recipe with one small component: its rules have a focused test (a mutated cap
   fails it, the restored one passes), and its look is `proof_limit` on the approved pairs.
+  Step 21's bar pill is styling, `not_applicable` for RED and GREEN: its story plays fail when the
+  12px padding or the pill's fill comes back, and its look is `proof_limit` on the pairs.
 
 ## Validation Receipt
 
