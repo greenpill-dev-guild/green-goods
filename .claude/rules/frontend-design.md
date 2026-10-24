@@ -87,7 +87,7 @@ Use `flex-1` on cards that should expand vertically within a flex container.
 
 ## Rule 8: Thumbnails
 
-Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar and `HubWorkCard`'s media mosaic.
+Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar, `HubWorkCard`'s media mosaic, and the shared `ItemRow`'s lead, the item's own square photo as tall as the row or a 56px icon tile (DL-102).
 
 ## Rule 9: Typography Utilities
 
@@ -239,8 +239,8 @@ Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered 
 
 The six enforceable invariants of the admin cockpit finish — treat violations as design regressions:
 
-- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows, besides the shared bottom sheet's float shadow on a dialog or the side sheet below 640px (DL-104).
-- **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
+- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows, besides the shared bottom sheet's float shadow on a dialog or the side sheet below 640px (DL-104) and the shared card's faint shadow (`--gg-card-shadow`, DL-102).
+- **Admin radius set** — 4/8/12/16/9999px plus the shared card's 24px corner (`--gg-card-radius`, DL-102); no 20 or 28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin, so a card takes its corner from `.gg-card`, never from a `rounded-*` utility).
 - **Six-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), the nav-shell FAB fill, the shared `CountBadge` on every tab of the rail, filled with `--tone-on-surface-accent` (DL-099), and a selected `AdminFilterChip`, filled with `--tone-action` (DL-101), plus the faint canvas wash.
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; never translate/scale lifts or hue shifts.
 - **AdminButton only** — pill shape, one 14px label at every size, Title Case action labels (en; DL-012); admin views never render the shared `Button` (`gg-button`; `EmptyState` takes an `AdminButton` element as its action). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
