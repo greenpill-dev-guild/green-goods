@@ -239,7 +239,7 @@ Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered 
 
 The six enforceable invariants of the admin cockpit finish — treat violations as design regressions:
 
-- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows.
+- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows, besides the shared bottom sheet's float shadow on a dialog or the side sheet below 640px (DL-104).
 - **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
 - **Five-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), the nav-shell FAB fill, and the shared `CountBadge` on every tab of the rail, filled with `--tone-on-surface-accent` (DL-099), plus the faint canvas wash.
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; never translate/scale lifts or hue shifts.

@@ -85,7 +85,7 @@ Run the five-minute review in root [`DESIGN.md` § Interface Principles](../../.
 | 4.8 | **i18n ready?** All user-facing strings use `intl.formatMessage()` | | Replace hardcoded strings. Update en.json, es.json, pt.json |
 | 4.9 | **Storybook story exists?** Component has story with loading/error/empty variants | | Create story file. Include `tags: ["autodocs"]`, add play functions for interactions |
 | 4.10 | **Offline state handled?** Component degrades gracefully without connectivity | | Show cached data with freshness indicator. Queue actions for background sync |
-| 4.11 | **Admin: single elevation ladder?** Only `--m3-elevation-0/1/2` (+ warm chrome shadow on floating chrome) | | Replace any other shadow token or ad-hoc `box-shadow` with the ladder |
+| 4.11 | **Admin: single elevation ladder?** Only `--m3-elevation-0/1/2` (+ warm chrome shadow on floating chrome, and the shared sheet's float shadow on a phone dialog, DL-104) | | Replace any other shadow token or ad-hoc `box-shadow` with the ladder |
 | 4.12 | **Admin: radius set?** Only 4/8/12/16/9999px | | Snap to the nearest admin step (no 20/24/28px) |
 | 4.13 | **Admin: tone budget?** Workspace tone appears only in its 5 sanctioned uses (active tab, active nav pill, one filled header action, nav-shell FAB fill, the tab rail's count badges, DL-099), plus the faint canvas wash | | Return extra tone usage to neutral ink/stone |
 | 4.14 | **Admin: hover discipline?** Elevation step or neutral 8% ink layer only: no lift, no glow, no hue shift | | Replace transform/glow hovers with elevation 1→2 or `rgb(var(--m3-on-surface)/0.08)` |

@@ -52,7 +52,7 @@ The admin uses Material Design 3 v0.192 as its **strict structural backbone**, n
 - All components follow M3 dimensions exactly
 - State layers: hover (8%), focus (12%), pressed (12%), dragged (16%)
 - Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), full (9999px). No 20/24/28px shapes (`--m3-shape-xl` is deleted). Use admin-prefixed `--admin-radius-*` tokens for these M3-only shapes; admin **remaps** the shared `--radius-*` aliases onto this scale (`rounded-xl`/`rounded-2xl` resolve to 16px) rather than inheriting the Warm Earth runtime values.
-- Single elevation ladder: `--m3-elevation-0/1/2`, plus the warm `--admin-chrome-shadow` reserved for floating chrome (nav dock, FAB). The old 0-5 scale and `--e1/e2/e3` aliases are deleted.
+- Single elevation ladder: `--m3-elevation-0/1/2`, plus the warm `--admin-chrome-shadow` reserved for floating chrome (nav dock, FAB). Below 640px a dialog or the side sheet is the installed app's bottom sheet and casts its float shadow (DL-104). The old 0-5 scale and `--e1/e2/e3` aliases are deleted.
 - **Spring motion (`--spring-*`) is the sole permitted deviation** from M3 standard easing
 - **Controlled Chrome**: the nav dock (NavigationBar + FAB) is the only translucent surface, a flat `rgb(var(--admin-surface-0) / 0.85)` with a 12px backdrop blur, a warm ambient shadow (`--admin-chrome-shadow`), and a 1px ink ring. The AppBar, MainSheet, and route frame are transparent, so content sits directly on the canvas. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid.
 - **Admin motion roles** are tokenized through runtime aliases: route content uses `--admin-motion-route-content-*`, canvas tone changes use `--admin-motion-canvas-tone-*`, FAB menus use `--admin-motion-fab-menu`, and interactive state changes use `--admin-motion-state`.
@@ -145,7 +145,7 @@ Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminCon
 - `AdminInputChip` holds something the steward chose and can take back out, such as a person named as a confirmer: a 32px outlined chip with an optional avatar and a remove button.
 - Avoid new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
 
-Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; every mobile variant renders as a full-width bottom sheet, with padding inside the surface. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet (right-docked within the canvas chrome bounds on desktop, an AdminDialog-identical full-width bottom sheet on mobile), with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
+Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; every mobile variant renders as a full-width bottom sheet, with padding inside the surface. Below 640px that sheet is the installed app's in look (DL-104): the shared sheet material, the grip, which marks the sheet and does not drag it, and the shared `SheetHeader` at the cockpit's 22px title, with the target line under the title, no leading icon, and a hairline under the header only while the body scrolls; flows and the command palette keep their own header under the grip. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet (right-docked within the canvas chrome bounds on desktop, an AdminDialog-identical full-width bottom sheet on mobile), with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
 
 ---
 
@@ -174,7 +174,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 
 ## Cockpit M3 1a Invariants
 
-- **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow.
+- **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome, and below 640px the shared sheet's float shadow on a dialog or the side sheet (DL-104); nothing else casts shadow.
 - **Radius set**: 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
 - **Five-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), the nav-shell FAB fill and the tab rail's count badges (DL-099), plus the faint canvas wash.
 - **Hover rule**: hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; never translate/scale lifts or hue shifts.
