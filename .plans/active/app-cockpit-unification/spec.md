@@ -260,7 +260,8 @@ Questions raised against the picks, all settled by 18 October:
   The reserve becomes a per-surface setting like the button corner; the rest of the field anatomy is
   shared, and a longer message grows the slot rather than scrolling. On the pair, the longest
   Spanish and Portuguese cockpit messages are measured in two-column forms at 640px, where a message
-  has about 205px; if several wrap, the cockpit reserves two lines too.
+  has about 205px; if several wrap, the cockpit reserves two lines too. They did: 6 of the 32
+  messages under side-by-side fields wrap, so both surfaces reserve two lines (DL-105).
 - **F7 on the cockpit's phone: settled.** The cockpit's phone queue takes the work row. Its work
   card is one button that opens the work's page, where approval happens, so the queue only chooses
   what to open; a photo-grid card is about 300px tall on a phone, so two fit a screen, against about
@@ -627,8 +628,9 @@ on the pair.
 
 - **The app's tabs on both, equal width** (recommended): `StandardTabs` as shipped. Equal cells, a
   tinted active cell with a 2px underline, a solid count badge, an icon when a tab has one. On
-  desktop each cell is capped at 180px and the row aligns left (720px for four tabs, as the lab
-  draws), so the cells stay readable.
+  desktop each cell is at most 180px and the row aligns left (720px for four tabs, as the lab
+  draws), so the cells stay readable; a cell whose icon, label and count need more takes it
+  (DL-100).
 - **The cockpit rail on both**: an underline rail at content width with the grey count chip. The
   app's four garden tabs would scroll at 320px.
 - **Keep both**: two tab vocabularies for the same job.

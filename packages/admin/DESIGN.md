@@ -59,7 +59,7 @@ The cockpit speaks the installed app's Warm Earth language at a denser setting. 
 - Capsule chips with one selected fill: `AdminFilterChip` is a 32px capsule that a selection fills with the workspace tone's action pair, the app's selected look in the tone (DL-101).
 - One card surface and one item row: the shared `.gg-card` with the app's 24px corner, edge and faint shadow, and the shared `ItemRow` for every record in a list, the row you look at and open (DL-102, § Card and selection grammar).
 - The phone sheet: below 640px every dialog and the side sheet take the app's bottom sheet material, grip and header, at the cockpit's own 22px title (DL-104, § Admin Component Pattern).
-- One field anatomy: the label above an outlined box and a message line that reserves two lines, at the cockpit's 8px corner and heights (DL-105, § Cockpit M3 1a Invariants).
+- One field anatomy: the label above an outlined box and a message line that reserves two lines, at the cockpit's 8px corner and heights (DL-105, § Cockpit M3 1a Invariants). The cockpit's fields, `AdminFieldGroup` included, take it in step 10's code change and keep the filled field until it lands.
 - The active-tab pill on both bottom bars: the workspace tone's container here, the green container in the app (DL-107, § Navigation).
 - Solid surfaces: every card, sheet, dialog and menu is opaque on both, and the cockpit's nav dock below is the one translucent piece (DL-108).
 

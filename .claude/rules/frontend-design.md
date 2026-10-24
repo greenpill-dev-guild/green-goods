@@ -159,8 +159,9 @@ outlined control, at the field title's 14px / 500, and a message line under it t
 lines for a hint or an error, so a message that fits never moves the form. The admin family,
 `FormField`, `FormattedAmountInput` and `DatePicker` draw that line with the shared
 `gg-field-message`, and the admin family and the date picker take the shared `gg-field-label`;
-each surface keeps its own corner and heights. `FileUploadField` still puts its help above the
-upload well.
+each surface keeps its own corner and heights. The cockpit's family, `AdminFieldGroup` included,
+moves onto that line in step 10's code change and keeps its filled field until it lands.
+`FileUploadField` still puts its help above the upload well.
 
 **A field-input label is never a hand-rolled eyebrow.** Labeling an input, toggle, or
 selectable-card group with `type-label-sm text-text-soft` (the eyebrow/metadata token) makes that
