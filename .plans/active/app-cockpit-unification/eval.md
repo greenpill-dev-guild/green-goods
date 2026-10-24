@@ -860,4 +860,6 @@ where the fit table above shows an ellipsis, with its full words on hover and fo
 (`86682e319`; the shared row's own stories pass no units, so the table stands for them). The same
 commit reads the zero address as nobody and starts no name lookups for a person the line cannot
 show. Two stories still looked for what the rows replaced (`2e961e4b2`, `8120d6e81`, the second
-caught by Storybook CI).
+caught by Storybook CI). Submit Work's pinned promise drew every promise with an unnamed seedling;
+the live work-link choice is built from the full commitment, so it now carries the direction and a
+request's pin leads with the helping hand, named (`e80272b9d`).

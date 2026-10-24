@@ -387,14 +387,15 @@
   clause in #1238). In the same commit the other person reads the zero address as nobody, and a
   row whose line has no room for the person starts no name lookups. Two stories still looked for
   what the rows replaced (`2e961e4b2`, `8120d6e81`), and the recovery guide still named
-  `QueuedActRow`'s old path (`378131db0`).
+  `QueuedActRow`'s old path (`378131db0`). Submit Work's pinned promise led every promise with
+  an unnamed seedling, though the live work-link choice is built from the full commitment; the
+  choice now carries the direction, so a request leads with its helping hand (`e80272b9d`).
 - **Calls for the maintainer's review of the pairs**, each a recommendation made in the build:
   the status edge replaces DL-052's direction edge (the census drew it); the seat sentences ("You
   took this up") leave the rows for the other person's name; a queued promise leads its details
   with its units and its reason follows, giving way first on a phone with its full words on
-  hover, and its acts are icon buttons; the pinned
-  promise reads its title first with "Proof for" under it and loses its tint, and in Submit Work
-  it leads with an unnamed seedling because the work link carries no direction; a group's
+  hover, and its acts are icon buttons; the pinned promise reads its title first with "Proof
+  for" or "Work for" under it and loses its tint; a group's
   remaining counts drop in Spanish and Portuguese at 384px; the cockpit's "Queued" and "Failed
   to send" become the shared "Not sent" and "Didn't send"; a To confirm row's kind leads its
   details in place of the second pill.
