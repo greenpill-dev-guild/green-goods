@@ -260,9 +260,11 @@ export const Loading: Story = {
     // No ⓘ while loading: it would slide as the line becomes the count. No + either.
     await expect(canvas.queryByRole("button", { name: "What this pool is for" })).toBeNull();
     await expect(canvas.queryByRole("button", { name: "Offer or Request" })).toBeNull();
-    const rows = canvasElement.querySelectorAll("[data-skeleton=commitment-row]");
+    // The item row's own frame, led by the icon tile the promises arrive with.
+    const rows = canvasElement.querySelectorAll("[data-skeleton=item-row]");
     await expect(rows).toHaveLength(4);
     await expect(rows[0].getBoundingClientRect().height).toBe(88);
+    await expect(rows[0].querySelector(".gg-item-row-tile")).not.toBeNull();
   },
 };
 
