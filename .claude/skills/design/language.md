@@ -477,6 +477,23 @@ Wavy progress makes the indicator feel alive and active: the progress isn't just
 
 **Accessibility**: Wavy styling is purely decorative. The progress value is communicated via `aria-valuenow`. Loading indicators use `aria-busy` and `aria-label`.
 
+### States
+
+Every empty, loading, failed and not-ready state on both surfaces is one state block, Shared's `EmptyState` (DL-106). Its sizes come from the type roles, so each surface draws it at its own density:
+
+| Part | Spec | App (16px density) | Cockpit (14px density) |
+|------|------|--------------------|------------------------|
+| **Tile** | `.gg-state-mark`: a 56px circle with a 24px glyph; the glyph spins while content loads | 56px | 56px |
+| **Title** | `type-title-md`, weight 600, lines balanced | 18/24 | 16/24 |
+| **Line** | `type-body`, one description, no orphans | 16px | 14px |
+| **Action** | The surface's own button, 14px under the line | Shared `Button` | `AdminButton` |
+
+**Color roles**: a calm tile reads `--gg-state-mark-fill` and `--gg-state-mark-ink`. Unset, they give the app's green (`--primary-on-surface` at 10% behind the full ink); the cockpit sets a neutral ink tint (`--text-strong-950` at 6%) and its sub ink, because the workspace tone keeps to its budget (Rule 18). Setting that one pair to the tone's container and ink would turn it to the workspace tint. A warning takes `--warning-lighter` behind `--warning-base`, and a failure `--error-lighter` behind `--error-base`, on both surfaces.
+
+**Behavior**: a failure is announced as an alert; calm and warning states are not live regions. `placement` keeps the app's anchors: `sheet` holds the tile and title at a sheet tab's upper-middle anchor (DL-036), `list` sets them 32px under a list's header row (DL-056), and `center` centers the block in its space. The block draws no frame of its own; it sits in its context's card, dialog or route space.
+
+**Keeps its own anatomy**: logo and boot screens (DL-084), skeleton loading (DL-056), spinners with no words, notices beside content (`JoinToAct`, the reporting `StatusCard`, `SectionStateCard`), and one-line "none yet" notes inside a busy section.
+
 ---
 
 ## Material Behaviors
