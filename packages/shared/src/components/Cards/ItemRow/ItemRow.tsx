@@ -5,8 +5,9 @@
  * the card surface with a 16px corner. It leads with the item's own photo or a centered
  * 56px icon tile, then a one-line title (the full title shows on hover), the item's one
  * status pill under it, and one detail line; the row's one action, when it has one, takes
- * the right slot. Each surface sets the density through tokens (the title is 15px in the
- * app and 13px in the cockpit), so the component takes no density prop.
+ * the right slot, and otherwise an amount the item carries (a jar's balance) can. Each
+ * surface sets the density through tokens (the title is 15px in the app and 13px in the
+ * cockpit), so the component takes no density prop.
  *
  * The detail line follows the agreed rules: each card type passes at most two details,
  * most important first; the line never wraps, and a detail that does not fit drops whole,
@@ -79,6 +80,12 @@ export interface ItemRowProps
   edge?: ItemRowTone;
   /** The row's one action, in the right slot. Only a row that needs the reader has one. */
   action?: React.ReactNode;
+  /**
+   * The amount the item carries, in the right slot when the row has no action: the value
+   * with its asset as the item's own screens write it ("9.98 DAI"), and under it what the
+   * amount is ("Jar balance"). It is part of what opens the row, so it is read with it.
+   */
+  amount?: { value: string; caption?: string };
   /** Opens the item. */
   onOpen?: () => void;
   /** The open target's name, when the row's own text does not say what opens. */
@@ -166,7 +173,8 @@ function RowContent({
   title,
   status,
   details,
-}: Pick<ItemRowProps, "lead" | "title" | "status" | "details">) {
+  amount,
+}: Pick<ItemRowProps, "lead" | "title" | "status" | "details" | "amount">) {
   return (
     <>
       <Lead lead={lead} />
@@ -187,6 +195,14 @@ function RowContent({
         ) : null}
         {details?.length ? <DetailLine details={details} /> : null}
       </span>
+      {amount ? (
+        <span className="gg-item-row-amount">
+          <span className="gg-item-row-amount-value type-card-title">{amount.value}</span>
+          {amount.caption ? (
+            <span className="gg-item-row-amount-caption type-meta-sm">{amount.caption}</span>
+          ) : null}
+        </span>
+      ) : null}
     </>
   );
 }
@@ -199,6 +215,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
     details,
     edge,
     action,
+    amount,
     onOpen,
     openLabel,
     selected = false,
@@ -213,7 +230,16 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
     "data-edge": edge,
     "data-selected": selected ? "true" : undefined,
   };
-  const content = <RowContent lead={lead} title={title} status={status} details={details} />;
+  // An action takes the right slot in the amount's place, so the row keeps its one height.
+  const content = (
+    <RowContent
+      lead={lead}
+      title={title}
+      status={status}
+      details={details}
+      amount={action ? undefined : amount}
+    />
+  );
 
   // The whole row opens its item.
   if (onOpen && !action) {
@@ -259,9 +285,20 @@ ItemRow.displayName = "ItemRow";
  * The row's frame with nothing in it, for a list that is still loading: the square photo,
  * the title line, the pill and the detail line, so the rows that arrive land where these
  * stood (DL-056). A list whose rows carry a status edge passes `edge`, so the frame keeps
- * the edge's width.
+ * the edge's width; a list whose rows lead with an icon tile passes `lead="icon"`, and one
+ * whose rows carry an amount passes `amount`, so the frame draws them where they land.
  */
-export function ItemRowSkeleton({ className, edge }: { className?: string; edge?: ItemRowTone }) {
+export function ItemRowSkeleton({
+  className,
+  edge,
+  lead = "photo",
+  amount = false,
+}: {
+  className?: string;
+  edge?: ItemRowTone;
+  lead?: ItemRowLead["kind"];
+  amount?: boolean;
+}) {
   return (
     <div
       aria-hidden="true"
@@ -269,7 +306,13 @@ export function ItemRowSkeleton({ className, edge }: { className?: string; edge?
       data-edge={edge}
       className={cn("gg-card gg-item-row", className)}
     >
-      <span className="gg-item-row-photo" />
+      {lead === "icon" ? (
+        <span className="gg-item-row-lead">
+          <span className="gg-item-row-tile" />
+        </span>
+      ) : (
+        <span className="gg-item-row-photo" />
+      )}
       <span className="gg-item-row-body">
         <span className="flex h-5 w-full items-center">
           <span className="h-3.5 w-2/3 rounded bg-bg-soft-200" />
@@ -279,6 +322,12 @@ export function ItemRowSkeleton({ className, edge }: { className?: string; edge?
           <span className="h-2.5 w-1/2 rounded bg-bg-soft-200" />
         </span>
       </span>
+      {amount ? (
+        <span className="gg-item-row-amount">
+          <span className="block h-4 w-16 rounded bg-bg-soft-200" />
+          <span className="block h-2.5 w-12 rounded bg-bg-soft-200" />
+        </span>
+      ) : null}
     </div>
   );
 }

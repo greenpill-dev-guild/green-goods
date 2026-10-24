@@ -2275,6 +2275,37 @@
     padding-inline-end: 0.5rem;
   }
 
+  /* An amount the item carries, in the right slot of a row with no action (a jar's
+   * balance): the value with its asset in the title's role, never cut, and what it is
+   * under it. The body gives way first, so a long amount ends the title in an ellipsis. */
+  .gg-item-row-amount {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.125rem;
+    padding-inline-end: 0.75rem;
+    text-align: end;
+  }
+
+  .gg-item-row-amount-value {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .gg-item-row-amount-caption {
+    color: rgb(var(--text-sub-600));
+    white-space: nowrap;
+  }
+
+  /* The page a row opens in place, right under it (a jar's claim form, a vault's acts):
+   * the card surface at the row's corner, so the row keeps its height and its page reads
+   * as its own. */
+  .gg-item-row-page {
+    border-radius: var(--gg-row-radius);
+  }
+
   /* ── Fact row (DL-109) ── The facts about one thing on both surfaces, a label
    * beside its value in divided rows: a review before a send, a record's
    * details, a settings list. The label takes the narrower column and the

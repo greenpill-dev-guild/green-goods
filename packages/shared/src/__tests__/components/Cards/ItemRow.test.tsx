@@ -2,9 +2,10 @@
  * ItemRow Tests
  * @vitest-environment happy-dom
  *
- * The row opens its item, keeps its one action apart, is content when it has nothing to open,
- * and holds at most two details in the type's order. Layout (one 88px height, a detail line
- * that never wraps) is measured in a real browser by the ItemRow and WorkCard stories.
+ * The row opens its item, keeps its one action apart, reads the amount it carries, is content
+ * when it has nothing to open, and holds at most two details in the type's order. Layout (one
+ * 88px height, a detail line that never wraps) is measured in a real browser by the ItemRow and
+ * WorkCard stories.
  */
 
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -85,6 +86,27 @@ describe("ItemRow", () => {
       </IntlProvider>
     );
     expect(screen.getByRole("button")).not.toHaveAttribute("aria-current");
+  });
+
+  it("reads the amount it carries with what opens it, and gives the right slot to an action", () => {
+    const amount = { value: "9.98 DAI", caption: "Jar balance" };
+    const { rerender } = renderRow({ onOpen: vi.fn(), amount });
+    expect(screen.getByRole("button")).toHaveAccessibleName(
+      /Planted native saplings.*Pending.*9\.98 DAI.*Jar balance/
+    );
+
+    rerender(
+      <IntlProvider locale="en">
+        <ItemRow
+          {...row}
+          onOpen={vi.fn()}
+          amount={amount}
+          action={<button type="button">Claim</button>}
+        />
+      </IntlProvider>
+    );
+    expect(screen.queryByText("9.98 DAI")).toBeNull();
+    expect(screen.getByRole("button", { name: "Claim" })).toBeInTheDocument();
   });
 
   it("is content when it has nothing to open: only its action takes focus", () => {
