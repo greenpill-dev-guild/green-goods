@@ -32,7 +32,8 @@ import {
   type ItemRowTone,
 } from "../ItemRow/ItemRow";
 
-export type CommitmentRowDirection = "OFFER" | "REQUEST";
+/** The record's direction; anything but an offer or a request reads as not known yet. */
+export type CommitmentRowDirection = NonNullable<CommitmentReadModel["direction"]>;
 
 /** A queue or act state that replaces the row's status while it lasts. */
 export type CommitmentRowPending = "confirming" | "notSent" | "sendFailed";
@@ -110,11 +111,12 @@ const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
         kind: "icon",
         icon: isRequest ? <RiHandHeartLine /> : <RiSeedlingLine />,
         // A record not read yet leads as an offer did before, without claiming to be one.
-        label: direction
-          ? formatMessage({
-              id: isRequest ? "app.commitments.row.request" : "app.commitments.row.offer",
-            })
-          : undefined,
+        label:
+          direction === "OFFER" || direction === "REQUEST"
+            ? formatMessage({
+                id: isRequest ? "app.commitments.row.request" : "app.commitments.row.offer",
+              })
+            : undefined,
         mark: group ? (
           <>
             <span aria-hidden="true">{count > 99 ? "99+" : count}</span>
