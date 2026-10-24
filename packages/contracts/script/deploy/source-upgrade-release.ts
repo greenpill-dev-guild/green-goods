@@ -23,6 +23,7 @@ import { runSourceUpgradeOperator, sourceUpgradeOutputPath } from "../utils/sour
 import { sourceUpgradePlanRevision } from "../utils/source-upgrade-resume";
 import { sourceBatchBuilderFile } from "../utils/source-upgrade-batch";
 import { simulateSourceSafeBatch } from "../utils/source-upgrade-batch-simulation";
+import { runSourceUpgradeCreateSession } from "../utils/source-upgrade-create-session";
 
 async function main() {
   const { values } = parseArgs({
@@ -34,6 +35,7 @@ async function main() {
       simulate: { type: "boolean" },
       "prepare-execution": { type: "boolean" },
       broadcast: { type: "boolean" },
+      "broadcast-creates": { type: "boolean" },
       "export-safe": { type: "boolean" },
       "sign-safe": { type: "boolean" },
       "broadcast-safe": { type: "boolean" },
@@ -68,6 +70,7 @@ async function main() {
     simulate: "simulate",
     "prepare-execution": "prepare-execution",
     broadcast: "broadcast",
+    "broadcast-creates": "broadcast-creates",
     "export-safe": "export-safe",
     "sign-safe": "sign-safe",
     "broadcast-safe": "broadcast-safe",
@@ -163,6 +166,16 @@ async function main() {
     Boolean(values["resume-plan"]),
   );
   validateSourceUpgradePlan(plan, manifest, artifacts, plannedRevision);
+  if (values["broadcast-creates"]) {
+    console.log(
+      JSON.stringify(
+        await runSourceUpgradeCreateSession({ options, plan, revision: revision!, manifestPath }),
+        null,
+        2,
+      ),
+    );
+    return;
+  }
   if (values["draft-safe-batch"] || values["simulate-safe-batch"]) {
     const result = values["draft-safe-batch"]
       ? sourceBatchBuilderFile(plan, false)

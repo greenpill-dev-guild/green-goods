@@ -148,6 +148,23 @@ describe("source upgrade operator command boundaries", () => {
     for (const flag of ["sender", "account", "private-key", "password", "rpc-url", "gas-limit"])
       expect(() => resolveCommand([...base, "--mode", "broadcast", ...execution, `--${flag}`, "override"])).toThrow();
   });
+  it("supports one-password CREATE sessions without arbitrary signer or boundary overrides", () => {
+    const session = [
+      ...base,
+      "--mode",
+      "broadcast-creates",
+      ...files,
+      "--envelope",
+      ".generated/source-upgrades/p.execution.json",
+      "--resume-plan",
+    ];
+    const command = resolveCommand(session);
+    expect("args" in command && command.args).toContain("--broadcast-creates");
+    expect("env" in command && command.env.FOUNDRY_KEYSTORE_ACCOUNT).toBe("green-goods-deployer");
+    for (const flag of ["step", "expected-nonce", "account", "password", "private-key", "rpc-url"])
+      expect(() => resolveCommand([...session, `--${flag}`, "override"])).toThrow();
+    expect(() => resolveCommand([...base, "--mode", "broadcast-creates", ...files])).toThrow("envelope");
+  });
   it("separates read-only Safe export, receipt adoption, and explicit dead-lock recovery", () => {
     for (const mode of ["export-safe", "adopt"])
       expect(() =>
