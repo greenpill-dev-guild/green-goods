@@ -76,11 +76,9 @@ export type {
   TxInlineFeedbackProps,
   TxInlineFeedbackSeverity,
   UseCanvasResponsiveFabOptions,
-  VaultPositionCardProps,
   WeightAllocatorProposal,
   WeightAllocatorProps,
   WorkbenchCardProps,
-  WorkbenchRowProps,
   WorkbenchTone,
   WorkCardData,
 } from "./components/index";
@@ -177,14 +175,11 @@ export {
   useRefreshAction,
   useRefreshActionValue,
   useViewActions,
-  VaultPositionCard,
   type ViewAction,
   type ViewActionsConfig,
   validationToasts,
   WeightAllocator,
   WorkbenchCard,
-  WorkbenchList,
-  WorkbenchRow,
   WorkCard as WorkCardComponent,
 } from "./components/index";
 // ============================================================================

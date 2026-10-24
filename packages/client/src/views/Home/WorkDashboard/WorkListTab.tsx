@@ -6,7 +6,7 @@ import React from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
-import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
+import type { WorkCardPresentation } from "@/components/Cards/Work/MinimalWorkCard";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 
 interface WorkListMessages {

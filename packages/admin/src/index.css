@@ -712,15 +712,6 @@
     animation: fade-in-up var(--spring-spatial-duration) var(--spring-spatial-easing) both;
   }
 
-  /* Shared's WorkbenchCard and WorkbenchList still carry `glass-raised`. Inside
-   * admin routes they stay solid cards, like every surface but the nav dock
-   * (DL-108), until they leave the residue class. */
-  .admin-m3 .canvas-area-main .glass-raised {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: rgb(var(--admin-surface-0));
-  }
-
   /* ── Glass Surface ── Shared frosted treatment
    * In admin, Controlled Chrome owns glass surfaces; M3 overrides neutralize
    * dense chrome/content where glass would reduce readability.

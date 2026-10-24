@@ -8,13 +8,7 @@ export {
 } from "./useCanvasResponsiveFab";
 export { useViewActions } from "./useViewActions";
 export type { ViewAction, ViewActionsConfig } from "./viewActions.types";
-export { WorkbenchCard, type WorkbenchCardProps } from "./WorkbenchCard";
-export { WorkbenchList } from "./WorkbenchList";
-export {
-  WorkbenchRow,
-  type WorkbenchRowProps,
-  type WorkbenchTone,
-} from "./WorkbenchRow";
+export { WorkbenchCard, type WorkbenchCardProps, type WorkbenchTone } from "./WorkbenchCard";
 export { FabProvider, useFabConfig, useFabConfigValue } from "./FabContext";
 export {
   RefreshActionProvider,
