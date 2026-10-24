@@ -48,7 +48,8 @@
     "2026-10-23: accepted focused Grove — Garden Knowledge project within Community Evidence Mesh; RESR-103 stays Backlog with parent-only tracking, five undated A0–A4 milestones and all 18 checkpoints pending.",
     "Published portable public-safe HTML design studies and a next-session handoff. Private-note-derived fixtures were replaced with synthetic records; no runtime, dependency or product gate is complete.",
     "2026-10-23: prototype specification added (prototype.md): Gemma, KOI, Pi Durable and WebMCP in one demo loop, slices G0 to G4, ten decisions and six demo checks; connects through the public garden page's WebMCP tool and uses Pi Durable 1.4.0 IndexedDbStorage. No implementation started.",
-    "2026-10-24: the prototype's four open questions were decided (public garden page first; Brave Beta with the WebMCP flag, Chrome only as fallback; Grove works without WebMCP through a direct adapter and an externally_connectable API; TAS second; counts toward A0 to A4). G0 authorized as a disposable spike in its own session; hub not promoted; nothing built."
+    "2026-10-24: the prototype's four open questions were decided (public garden page first; Brave Beta with the WebMCP flag, Chrome only as fallback; Grove works without WebMCP through a direct adapter and an externally_connectable API; TAS second; counts toward A0 to A4). G0 authorized as a disposable spike in its own session; hub not promoted; nothing built.",
+    "2026-10-24: correction: the connection surface is the Admin Hub, not the public garden page (prototype decisions 18 to 21): a read-only garden snapshot tool behind a Hub setting, protocol records with approval state, direct Shared readers without WebMCP; the client's own navigator.modelContext fix ships separately."
   ],
   "lanes": {
     "ui": {
