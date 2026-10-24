@@ -6,7 +6,7 @@ import { tv, type VariantProps } from "tailwind-variants";
 // Variant System
 // ============================================================================
 
-export const adminCardVariants = tv({
+const adminCardVariants = tv({
   base: [
     // The one card surface (.gg-card in shared theme.css, F7): the card's fill,
     // a 1px edge, a faint shadow and the 24px corner, the installed app's card.

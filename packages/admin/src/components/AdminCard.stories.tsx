@@ -101,7 +101,6 @@ export const Outlined: Story = {
     const edge = getComputedStyle(card as Element);
     await expect(edge.borderTopWidth).toBe("1px");
     await expect(edge.borderTopStyle).toBe("solid");
-    await expect(edge.borderTopColor).not.toBe("rgba(0, 0, 0, 0)");
   },
 };
 

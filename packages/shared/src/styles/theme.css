@@ -1988,6 +1988,46 @@
     border-inline-start-color: rgb(var(--stroke-sub-300));
   }
 
+  /* ── Media card (F12) ── A card with a picture of its own (MediaCard). Its
+   * picture reaches the card's corners, so the card clips it. One that opens its
+   * object answers like an item row: the neutral ink layer on hover, never a
+   * lift (Rule 18), the focus ring, and a 3px border in the focus role when its
+   * object is open, drawn over the picture. */
+  .gg-media-card {
+    overflow: hidden;
+  }
+
+  button.gg-media-card {
+    cursor: pointer;
+  }
+
+  button.gg-media-card:focus-visible {
+    outline: 2px solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    button.gg-media-card:hover {
+      background-image: linear-gradient(
+        rgb(var(--text-strong-950) / 0.04),
+        rgb(var(--text-strong-950) / 0.04)
+      );
+    }
+  }
+
+  .gg-media-card[data-selected="true"] {
+    border-color: rgb(var(--gg-focus-ring));
+  }
+
+  .gg-media-card[data-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgb(var(--gg-focus-ring));
+    border-radius: calc(var(--gg-card-radius) - 1px);
+    pointer-events: none;
+  }
+
   /* ── Item row (F7) ── Every item in a list on both surfaces, on the card
    * surface: one height in every state and language (88px, in rem so it grows
    * with the reader's text size), a 16px corner, the item's own square photo or

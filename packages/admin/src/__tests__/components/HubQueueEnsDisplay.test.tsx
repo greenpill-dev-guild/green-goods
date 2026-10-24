@@ -209,3 +209,73 @@ describe("Hub work queue on a phone", () => {
     expect(document.querySelectorAll('[data-skeleton="item-row"]')).toHaveLength(5);
   });
 });
+
+// F12: from the cockpit's desktop breakpoint the work card lies wide and the
+// grid takes the wide column rule; from 600px to 1023px the card stays stacked,
+// and below 600px the queue lists work rows (above).
+describe("Hub work queue layout", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  const atWidth = (width: number) => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches:
+        (query === "(min-width: 1024px)" && width >= 1024) ||
+        (query === "(max-width: 599px)" && width < 600),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  };
+
+  const renderQueue = (worksLoading = false) =>
+    renderWithIntl(
+      <HubWorkQueue
+        items={worksLoading ? [] : [TEST_WORK]}
+        scope="pending"
+        worksLoading={worksLoading}
+        hasDataError={false}
+        normalizedSearch=""
+        debouncedSearch=""
+        actionsMap={new Map()}
+        selectedWorkId={undefined}
+        onOpenWorkDetail={vi.fn()}
+        onClearSearch={vi.fn()}
+      />
+    );
+
+  beforeEach(() => {
+    mockUseEnsName.mockReturnValue({ data: null });
+    mockUseGreenGoodsEnsName.mockReturnValue({ data: null });
+  });
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it.each([
+    { width: 1280, layout: "wide" },
+    { width: 1024, layout: "wide" },
+    { width: 768, layout: "stacked" },
+    { width: 600, layout: "stacked" },
+  ])("lays each card $layout at $width px, and the grid with it", ({ width, layout }) => {
+    atWidth(width);
+    renderQueue();
+
+    expect(screen.getByRole("list")).toHaveAttribute("data-card-layout", layout);
+    expect(screen.getByRole("button", { name: /Compost setup/ })).toHaveAttribute(
+      "data-layout",
+      layout
+    );
+  });
+
+  it("loads in the shape it will take, so the queue does not jump", () => {
+    atWidth(1280);
+    renderQueue(true);
+
+    expect(screen.getByRole("list")).toHaveAttribute("data-card-layout", "wide");
+  });
+});
