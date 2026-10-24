@@ -18,9 +18,4 @@ export { FormInfo } from "./Form/FormInfo";
 
 // Work cards
 export { DraftCard, type DraftCardProps } from "./Work/DraftCard";
-export {
-  MinimalWorkCard,
-  type MinimalWorkCardProps,
-  StatusBadge,
-  type StatusBadgeProps,
-} from "./Work/WorkCard";
+export { MinimalWorkCard, type MinimalWorkCardProps } from "./Work/MinimalWorkCard";

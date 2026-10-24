@@ -320,7 +320,7 @@ export default function GardenSignalPoolView({
                   title={formatMessage({ id: "app.conviction.loadError.title" })}
                   description={formatMessage({ id: "app.conviction.loadError.description" })}
                   action={
-                    <AdminButton type="button" variant="tonal" size="sm" onClick={retryReads}>
+                    <AdminButton type="button" variant="outlined" size="sm" onClick={retryReads}>
                       {formatMessage({ id: "app.common.retry" })}
                     </AdminButton>
                   }

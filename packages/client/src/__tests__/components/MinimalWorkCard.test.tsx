@@ -2,7 +2,7 @@ import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards
 import esMessages from "@green-goods/shared/i18n/es";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
-import { MinimalWorkCard } from "../../components/Cards/Work/WorkCard";
+import { MinimalWorkCard } from "../../components/Cards/Work/MinimalWorkCard";
 import { renderWithProviders as render, screen, userEvent } from "../test-utils";
 
 describe("components/Cards/MinimalWorkCard", () => {

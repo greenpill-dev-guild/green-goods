@@ -140,6 +140,25 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  /* AdminButton and AdminIconButton render the shared family (DL-115), and these
+     keep the cockpit's look on it: buttons keep still while pressed, icon
+     buttons stay circles with an 18px glyph, and a disabled button takes the
+     neutral pair (a 12% ink fill under a 38% ink label) instead of a dim, while
+     an aria-disabled one keeps its pointer so a reason given on hover shows.
+     The pair resolves per theme, so the dark block below re-declares it. Each
+     size is capped at its block, as AdminButton's fixed height was, so a row
+     that stretches its items never grows a button. */
+  --gg-button-block-cap-lg: var(--gg-button-block-lg);
+  --gg-button-block-cap-md: var(--gg-button-block-md);
+  --gg-button-block-cap-sm: var(--gg-button-block-sm);
+  --gg-button-block-cap-compact: var(--gg-button-block-compact);
+  --gg-button-pressed-transform: none;
+  --gg-icon-button-glyph: 1.125rem;
+  --gg-icon-button-radius-pressed: var(--radius-full);
+  --gg-button-disabled-opacity: 1;
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
+  --gg-button-aria-disabled-events: auto;
   /* Shared fields, secondary buttons and chips take the cockpit's
      control-grade outline (4.8:1 on white, 6.1:1 on the dark card), the boundary its own
      Admin* controls already draw, and focus draws one solid 2px ring in the
@@ -221,10 +240,25 @@
   }
 }
 
-/* The phone sheet in dark: the lifted card (earth-850) and its hairline. */
+/* AdminButton and AdminIconButton keep the block margin the cockpit's hit-target
+   classes reserved around them, 6px around the 28 and 32px tiers and 2px around
+   40px, so the finger boxes of a wrapped row never overlap and the rows laid out
+   around that room keep their rhythm (DL-115). The shared pieces the cockpit
+   renders never reserved it, so the tokens sit on the adapters, not on :root. */
+:where([data-component="AdminButton"], [data-component="AdminIconButton"]) {
+  --gg-button-reserve-lg: 0.125rem;
+  --gg-button-reserve-md: 0.125rem;
+  --gg-button-reserve-sm: 0.375rem;
+  --gg-button-reserve-compact: 0.375rem;
+}
+
+/* The phone sheet in dark: the lifted card (earth-850) and its hairline. The
+   disabled button pair, re-declared so a dark scope resolves its own ink. */
 [data-theme="dark"] {
   --gg-sheet-fill: rgb(var(--admin-surface-0));
   --gg-sheet-edge: rgb(var(--earth-700));
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
 }
 
 /* Base layer: Admin-specific element resets */
@@ -716,15 +750,6 @@
     animation: fade-in-up var(--spring-spatial-duration) var(--spring-spatial-easing) both;
   }
 
-  /* Shared's WorkbenchCard and WorkbenchList still carry `glass-raised`. Inside
-   * admin routes they stay solid cards, like every surface but the nav dock
-   * (DL-108), until they leave the residue class. */
-  .admin-m3 .canvas-area-main .glass-raised {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: rgb(var(--admin-surface-0));
-  }
-
   /* ── Glass Surface ── Shared frosted treatment
    * In admin, Controlled Chrome owns glass surfaces; M3 overrides neutralize
    * dense chrome/content where glass would reduce readability.
@@ -851,27 +876,6 @@
   line-height: var(--type-body-sm-lh, 1rem);
   letter-spacing: var(--type-body-sm-ls, 0.025rem);
   font-weight: 400;
-}
-
-.admin-m3 [data-component="EmptyState"] {
-  padding-block: clamp(3rem, 8vh, 5rem);
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="icon"] {
-  width: 4.5rem;
-  height: 4.5rem;
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="title"] {
-  font-size: var(--type-title-lg, 1.375rem);
-  line-height: var(--type-title-lg-lh, 1.75rem);
-  font-weight: 600;
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="description"] {
-  max-width: 34rem;
-  font-size: var(--type-body-lg, 1rem);
-  line-height: var(--type-body-lg-lh, 1.5rem);
 }
 
 .main-scroll-area::-webkit-scrollbar-track {

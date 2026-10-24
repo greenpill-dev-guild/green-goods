@@ -1440,15 +1440,25 @@
     outline-offset: 2px;
   }
 
+  /* A surface whose buttons keep still while pressed sets
+   * --gg-button-pressed-transform to none (the cockpit, DL-115). */
   .gg-button:active {
-    transform: scale(0.985);
+    transform: var(--gg-button-pressed-transform, scale(0.985));
   }
 
+  /* A disabled button dims and takes no pointer. A surface can draw its own
+   * disabled look through tokens instead: no dim, a fill and ink of its own
+   * (painted after the emphases below), and an aria-disabled button that keeps
+   * its pointer so a reason given on hover still shows (the cockpit, DL-115). */
   .gg-button:disabled,
   .gg-button[aria-disabled="true"] {
     pointer-events: none;
     cursor: not-allowed;
-    opacity: 0.6;
+    opacity: var(--gg-button-disabled-opacity, 0.6);
+  }
+
+  .gg-button[aria-disabled="true"] {
+    pointer-events: var(--gg-button-aria-disabled-events, none);
   }
 
   /* ── Button emphasis API (DL-023, DL-026, DL-029) ──
@@ -1503,9 +1513,13 @@
     --gg-button-weight: 500;
   }
 
+  /* Each emphasis and state below names its fill and ink, and this rule paints
+   * them, so a disabled button can take a surface's own pair instead (DL-115). */
   .gg-button[data-emphasis] {
     border-radius: var(--gg-button-radius);
     font-weight: var(--gg-button-weight);
+    background: var(--gg-button-fill);
+    color: var(--gg-button-ink);
   }
 
   /* The compact size keeps the corner's proportion, not its number: 16px on a
@@ -1515,8 +1529,14 @@
     border-radius: var(--gg-button-radius-compact);
   }
 
+  /* A surface whose rows were laid out around fixed-height buttons caps each
+   * size at its block, so a row that stretches never grows one, and can reserve
+   * a block margin for the finger box's reach (the cockpit's adapters, DL-115).
+   * The app sets neither. */
   .gg-button[data-size="lg"] {
     --gg-button-block: var(--gg-button-block-lg, 3rem);
+    max-block-size: var(--gg-button-block-cap-lg, none);
+    margin-block: var(--gg-button-reserve-lg, 0);
     --gg-button-line: var(--text-label-md--line-height);
     padding-inline: var(--gg-button-inline-lg, 1.25rem);
     font-size: var(--gg-label-md);
@@ -1525,6 +1545,8 @@
 
   .gg-button[data-size="md"] {
     --gg-button-block: var(--gg-button-block-md, 2.75rem);
+    max-block-size: var(--gg-button-block-cap-md, none);
+    margin-block: var(--gg-button-reserve-md, 0);
     --gg-button-line: var(--text-label-md--line-height);
     padding-inline: var(--gg-button-inline-md, 1rem);
     font-size: var(--gg-label-md);
@@ -1533,11 +1555,15 @@
 
   .gg-button[data-size="sm"] {
     --gg-button-block: var(--gg-button-block-sm, 2.5rem);
+    max-block-size: var(--gg-button-block-cap-sm, none);
+    margin-block: var(--gg-button-reserve-sm, 0);
     padding-inline: var(--gg-button-inline-sm, 0.875rem);
   }
 
   .gg-button[data-size="compact"] {
     --gg-button-block: var(--gg-button-block-compact, 2rem);
+    max-block-size: var(--gg-button-block-cap-compact, none);
+    margin-block: var(--gg-button-reserve-compact, 0);
     gap: 0.375rem;
     padding-inline: var(--gg-button-inline-compact, 0.75rem);
   }
@@ -1556,94 +1582,103 @@
   }
 
   .gg-button[data-emphasis="primary"] {
-    background: rgb(var(--tone-action, var(--primary-action)));
-    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+    --gg-button-fill: rgb(var(--tone-action, var(--primary-action)));
+    --gg-button-ink: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
   .gg-button[data-emphasis="primary"]:hover {
-    background: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+    --gg-button-fill: rgb(var(--tone-action-hover, var(--primary-action-hover)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"] {
-    background: rgb(var(--error-action));
-    color: rgb(var(--static-white, var(--neutral-0)));
+    --gg-button-fill: rgb(var(--error-action));
+    --gg-button-ink: rgb(var(--static-white, var(--neutral-0)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"]:hover {
-    background: rgb(var(--error-action-hover));
+    --gg-button-fill: rgb(var(--error-action-hover));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"] {
-    background: rgb(var(--warning-base));
-    color: rgb(var(--static-white, var(--neutral-0)));
+    --gg-button-fill: rgb(var(--warning-base));
+    --gg-button-ink: rgb(var(--static-white, var(--neutral-0)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"]:hover {
-    background: rgb(var(--warning-dark));
+    --gg-button-fill: rgb(var(--warning-dark));
   }
 
   .gg-button[data-emphasis="secondary"] {
     border-color: rgb(var(--gg-control-outline));
-    background: rgb(var(--bg-white-0));
-    color: rgb(var(--text-strong-950));
+    --gg-button-fill: rgb(var(--bg-white-0));
+    --gg-button-ink: rgb(var(--text-strong-950));
   }
 
   .gg-button[data-emphasis="secondary"]:hover {
-    background: rgb(var(--bg-weak-50));
+    --gg-button-fill: rgb(var(--bg-weak-50));
   }
 
   .gg-button[data-emphasis="secondary"][data-tone="danger"] {
     border-color: rgb(var(--error-base));
-    color: rgb(var(--error-base));
+    --gg-button-ink: rgb(var(--error-base));
   }
 
   .gg-button[data-emphasis="secondary"][data-tone="danger"]:hover {
-    background: rgb(var(--error-base) / 0.08);
+    --gg-button-fill: rgb(var(--error-base) / 0.08);
   }
 
   .gg-button[data-emphasis="tertiary"] {
     border-color: transparent;
-    background: transparent;
-    color: rgb(var(--text-sub-600));
+    --gg-button-fill: transparent;
+    --gg-button-ink: rgb(var(--text-sub-600));
   }
 
   .gg-button[data-emphasis="tertiary"]:hover {
-    background: rgb(var(--bg-weak-50));
-    color: rgb(var(--text-strong-950));
+    --gg-button-fill: rgb(var(--bg-weak-50));
+    --gg-button-ink: rgb(var(--text-strong-950));
   }
 
   .gg-button[data-emphasis="tertiary"][data-tone="danger"] {
-    color: rgb(var(--error-base));
+    --gg-button-ink: rgb(var(--error-base));
   }
 
   .gg-button[data-emphasis="tertiary"][data-tone="danger"]:hover {
-    background: rgb(var(--error-base) / 0.08);
-    color: rgb(var(--error-base));
+    --gg-button-fill: rgb(var(--error-base) / 0.08);
+    --gg-button-ink: rgb(var(--error-base));
   }
 
   /* Pressed fill: touch has no hover, so the press itself shows the state the
    * pointer gets on hover. Without it a tap on a phone changed nothing visible
    * but a 4px corner. Toned buttons keep their own pressed colour. */
   .gg-button[data-emphasis="primary"]:not([data-tone]):active {
-    background: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+    --gg-button-fill: rgb(var(--tone-action-hover, var(--primary-action-hover)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"]:active {
-    background: rgb(var(--error-action-hover));
+    --gg-button-fill: rgb(var(--error-action-hover));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"]:active {
-    background: rgb(var(--warning-dark));
+    --gg-button-fill: rgb(var(--warning-dark));
   }
 
   .gg-button[data-emphasis="secondary"]:not([data-tone]):active,
   .gg-button[data-emphasis="tertiary"]:not([data-tone]):active {
-    background: rgb(var(--bg-weak-50));
+    --gg-button-fill: rgb(var(--bg-weak-50));
   }
 
   .gg-button[data-emphasis="secondary"][data-tone="danger"]:active,
   .gg-button[data-emphasis="tertiary"][data-tone="danger"]:active {
-    background: rgb(var(--error-base) / 0.08);
+    --gg-button-fill: rgb(var(--error-base) / 0.08);
+  }
+
+  /* Disabled: a surface's own fill and ink when it sets them (the cockpit's
+   * neutral pair, DL-115), else the emphasis's own under the dim above. Last, so
+   * a hover or press on an aria-disabled button that keeps its pointer changes
+   * nothing. */
+  .gg-button[data-emphasis]:is(:disabled, [aria-disabled="true"]) {
+    background: var(--gg-button-disabled-fill, var(--gg-button-fill));
+    color: var(--gg-button-disabled-ink, var(--gg-button-ink));
   }
 
   /* Press morph (DL-001): a filled or outlined button tightens one step while
@@ -1673,8 +1708,12 @@
     padding: 0;
     border: 1px solid transparent;
     border-radius: calc(var(--gg-icon-button-size) / 2);
-    background-color: transparent;
-    color: rgb(var(--text-sub-600));
+    --gg-icon-button-fill: transparent;
+    --gg-icon-button-ink: rgb(var(--text-sub-600));
+    /* The same reserve as the button's, per size (DL-115); none in the app. */
+    margin-block: var(--gg-button-reserve-md, 0);
+    background-color: var(--gg-icon-button-fill);
+    color: var(--gg-icon-button-ink);
     cursor: pointer;
     transition:
       background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
@@ -1683,21 +1722,26 @@
       border-radius var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out);
   }
 
+  /* The glyph is 20px; a denser surface sets --gg-icon-button-glyph (the cockpit
+   * draws 18px, DL-115). The compact size keeps 16px. */
   .gg-icon-button svg {
-    inline-size: 1.25rem;
-    block-size: 1.25rem;
+    inline-size: var(--gg-icon-button-glyph, 1.25rem);
+    block-size: var(--gg-icon-button-glyph, 1.25rem);
   }
 
   .gg-icon-button[data-size="lg"] {
     --gg-icon-button-size: var(--gg-icon-size-lg, 3rem);
+    margin-block: var(--gg-button-reserve-lg, 0);
   }
 
   .gg-icon-button[data-size="sm"] {
     --gg-icon-button-size: var(--gg-icon-size-sm, 2.5rem);
+    margin-block: var(--gg-button-reserve-sm, 0);
   }
 
   .gg-icon-button[data-size="compact"] {
     --gg-icon-button-size: var(--gg-icon-size-compact, 2rem);
+    margin-block: var(--gg-button-reserve-compact, 0);
   }
 
   .gg-icon-button[data-size="compact"] svg {
@@ -1713,8 +1757,8 @@
   }
 
   .gg-icon-button:hover {
-    background-color: rgb(var(--bg-weak-50));
-    color: rgb(var(--text-strong-950));
+    --gg-icon-button-fill: rgb(var(--bg-weak-50));
+    --gg-icon-button-ink: rgb(var(--text-strong-950));
   }
 
   .gg-icon-button:focus-visible {
@@ -1722,48 +1766,73 @@
     outline-offset: 2px;
   }
 
+  /* Pressed, the circle tightens to the squircle; a surface whose icon buttons
+   * stay circles sets --gg-icon-button-radius-pressed (the cockpit, DL-115). */
   .gg-icon-button:active {
-    border-radius: var(--radius-squircle);
+    border-radius: var(--gg-icon-button-radius-pressed, var(--radius-squircle));
   }
 
+  /* Disabled dims, as the button does, through the same surface tokens. */
   .gg-icon-button:disabled,
   .gg-icon-button[aria-disabled="true"] {
     pointer-events: none;
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: var(--gg-button-disabled-opacity, 0.5);
+  }
+
+  .gg-icon-button[aria-disabled="true"] {
+    pointer-events: var(--gg-button-aria-disabled-events, none);
   }
 
   .gg-icon-button[data-emphasis="secondary"] {
     border-color: rgb(var(--stroke-soft-200));
-    background-color: rgb(var(--bg-white-0));
+    --gg-icon-button-fill: rgb(var(--bg-white-0));
   }
 
   .gg-icon-button[data-emphasis="secondary"]:hover {
-    background-color: rgb(var(--bg-weak-50));
+    --gg-icon-button-fill: rgb(var(--bg-weak-50));
   }
 
   .gg-icon-button[data-emphasis="primary"] {
-    background-color: rgb(var(--tone-action, var(--primary-action)));
-    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+    --gg-icon-button-fill: rgb(var(--tone-action, var(--primary-action)));
+    --gg-icon-button-ink: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
   .gg-icon-button[data-emphasis="primary"]:hover {
-    background-color: rgb(var(--tone-action-hover, var(--primary-action-hover)));
-    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+    --gg-icon-button-fill: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+    --gg-icon-button-ink: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
   .gg-icon-button[data-tone="danger"] {
-    color: rgb(var(--error-base));
+    --gg-icon-button-ink: rgb(var(--error-base));
   }
 
   .gg-icon-button[data-emphasis="primary"][data-tone="danger"] {
-    background-color: rgb(var(--error-action));
-    color: rgb(var(--static-white, var(--neutral-0)));
+    --gg-icon-button-fill: rgb(var(--error-action));
+    --gg-icon-button-ink: rgb(var(--static-white, var(--neutral-0)));
   }
 
   .gg-icon-button[data-emphasis="primary"][data-tone="danger"]:hover {
-    background-color: rgb(var(--error-action-hover));
-    color: rgb(var(--static-white, var(--neutral-0)));
+    --gg-icon-button-fill: rgb(var(--error-action-hover));
+    --gg-icon-button-ink: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  /* Disabled: the surface's own ink, and on a filled or outlined icon button its
+   * fill, else the emphasis's own under the dim (DL-115). A quiet icon button keeps
+   * its transparent rest, so one that keeps its pointer never shows a hover. */
+  .gg-icon-button:is(:disabled, [aria-disabled="true"]) {
+    color: var(--gg-button-disabled-ink, var(--gg-icon-button-ink));
+  }
+
+  .gg-icon-button:is([data-emphasis="primary"], [data-emphasis="secondary"]):is(
+      :disabled,
+      [aria-disabled="true"]
+    ) {
+    background-color: var(--gg-button-disabled-fill, var(--gg-icon-button-fill));
+  }
+
+  .gg-icon-button[data-emphasis="tertiary"]:is(:disabled, [aria-disabled="true"]) {
+    background-color: transparent;
   }
 
   /* A launcher's count or status dot, pinned to the top-right corner. */
@@ -2037,7 +2106,8 @@
 
   /* ── Card surface (F7) ── The one card surface: the card's fill, a 1px edge
    * that reads on linen and on the dark canvas, a faint shadow in light and the
-   * 24px corner. The app's Card, AdminCard and Surface's raised level draw it.
+   * 24px corner. The app's Card, AdminCard, Surface's raised level and
+   * WorkbenchCard draw it.
    * A work card's status edge (data-edge) widens the inline-start edge to 2px in
    * its status color. */
   .gg-card {

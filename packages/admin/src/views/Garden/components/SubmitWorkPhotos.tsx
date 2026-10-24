@@ -138,7 +138,7 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
                       aria-haspopup="dialog"
                       aria-label={previewLabel}
                       title={previewLabel}
-                      className="group my-0 flex aspect-square h-auto w-full min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
+                      className="group my-0 flex aspect-square h-auto max-h-none w-full min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
                     >
                       <ImageWithFallback
                         src={url}

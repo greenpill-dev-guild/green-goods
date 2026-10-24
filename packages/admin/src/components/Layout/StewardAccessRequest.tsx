@@ -129,7 +129,7 @@ export function StewardAccessRequest({
         tone="home"
         preventClose={c.busy}
         actions={actions}
-        actionsClassName="min-h-[calc(4rem+env(safe-area-inset-bottom))] flex-row items-center justify-end bg-transparent [&>button]:min-w-0 [&>button]:flex-1 [&>button]:whitespace-normal [&>button]:px-3 [&>button]:leading-tight sm:[&>button]:flex-none sm:[&>button]:whitespace-nowrap sm:[&>button]:px-5"
+        actionsClassName="min-h-[calc(4rem+env(safe-area-inset-bottom))] flex-row items-center justify-end bg-transparent [&>button]:min-w-0 [&>button]:flex-1 [&>button]:max-h-none [&>button]:whitespace-normal [&>button]:px-3 [&>button]:py-0 [&>button]:leading-tight sm:[&>button]:flex-none sm:[&>button]:whitespace-nowrap sm:[&>button]:px-5"
         finalFocusRef={opener}
       >
         <div
@@ -248,7 +248,7 @@ export function StewardAccessRequest({
                       <AdminButton
                         variant="text"
                         onClick={() => c.selectGarden(garden)}
-                        className="h-auto min-h-11 w-full justify-start gap-3 whitespace-normal rounded-[var(--m3-shape-sm)] px-3 py-3 text-left"
+                        className="h-auto max-h-none min-h-11 w-full justify-start gap-3 whitespace-normal rounded-[var(--m3-shape-sm)] px-3 py-3 text-left"
                       >
                         <RiSeedlingLine
                           className="h-5 w-5 shrink-0 text-text-sub"

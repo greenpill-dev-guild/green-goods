@@ -224,7 +224,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               </AdminButton>
             )}
             {openSeaUrl && (
-              <AdminButton asChild variant="tonal" size="md" leadingIcon={<RiNftLine />}>
+              <AdminButton asChild variant="outlined" size="md" leadingIcon={<RiNftLine />}>
                 <a href={openSeaUrl} target="_blank" rel="noopener noreferrer">
                   OpenSea
                 </a>

@@ -127,7 +127,8 @@ describe("KarmaIntegrationPanel", () => {
     renderPanel({ status: "retrying", isPending: true });
 
     const button = screen.getByRole("button", { name: "Syncing…" });
-    expect(button).toBeDisabled();
+    // Held but focusable while the repair runs: presses are ignored (DL-115).
+    expect(button).toHaveAttribute("aria-disabled", "true");
     expect(button).toHaveAttribute("aria-busy", "true");
   });
 

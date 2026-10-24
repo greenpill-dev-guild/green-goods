@@ -5,15 +5,16 @@
  * A filled header action, the FAB, a step marker and the shared primary
  * buttons put `--tone-on-action` (white in light, the tone's -900 ink in dark,
  * DL-009) on `--tone-action`, as a selected filter chip does (DL-101). Shared
- * buttons hover on `--tone-action-hover`. A selected filter chip is Shared's
- * chip (DL-116): it keeps its fill and, on hover and press, lays the neutral
- * ink layer as a background image, so beneath its label. The cockpit's filled
- * AdminButton, AdminIconButton and FAB keep their fill
- * and lay the neutral ink layer (`--m3-on-surface`, Rule 18) over it at the
- * state opacities, beneath their content (`.m3-state-layer-beneath`): the
- * layer deepens a light fill and lifts a dark one while the label keeps its
- * color. Painted over the label as well, it pulls fill and label toward one
- * ink, and Community's dark pair (4.58:1 at rest) falls to 3.66:1 when pressed.
+ * buttons hover and press on `--tone-action-hover`, and the cockpit's filled
+ * AdminButton and AdminIconButton are shared primaries (DL-115). A selected
+ * filter chip is Shared's chip (DL-116): it keeps its fill and, on hover and
+ * press, lays the neutral ink layer as a background image, beneath its label.
+ * The FAB keeps its fill and lays the same layer (`--m3-on-surface`, Rule 18)
+ * over it at the state opacities, beneath its content
+ * (`.m3-state-layer-beneath`): the layer deepens a light fill and lifts a dark
+ * one while the label keeps its color. Painted over the label as well, it
+ * pulls fill and label toward one ink, and Community's dark pair (4.58:1 at
+ * rest) falls to 3.66:1 when pressed.
  * The tones resolve against the cockpit's amber ramp (index.css), set on <body>
  * so the canvas and the dialogs, side sheets and toasts it portals share it:
  * Community's light orange-700 carries white at 5.02:1 there, where the shared
@@ -102,13 +103,8 @@ const STATES = ["--m3-state-hover", "--m3-state-focus", "--m3-state-pressed"].ma
 
 const TONES = ["hub", "garden", "community", "actions", "home"];
 
-/** The class lists of the cockpit's filled controls. */
-const filledVariants = [...adminButton.matchAll(/\n( *)filled: \[\n([\s\S]*?)\n\1\],/g)].map(
-  (match) => match[2]
-);
+/** The class lists of the cockpit's filled controls that lay the ink layer. */
 const FILLED_CONTROLS: Record<string, string> = {
-  "AdminButton filled": filledVariants[0] ?? "",
-  "AdminIconButton filled": filledVariants[1] ?? "",
   FabButton:
     fabButton.match(/data-slot="fab-button"[\s\S]*?className=\{cn\(([\s\S]*?)\n\s*\)\}/)?.[1] ?? "",
 };
@@ -217,6 +213,18 @@ describe("workspace tone fills", () => {
       { pseudo: ":hover", state: "--m3-state-hover" },
       { pseudo: ":active", state: "--m3-state-pressed" },
     ]);
+  });
+
+  it("hovers and presses the cockpit's filled buttons, shared primaries, on --tone-action-hover", () => {
+    // Filled maps onto the shared primary for the button and the icon button (DL-115).
+    expect(adminButton.match(/filled: \{ emphasis: "primary" \}/g)).toHaveLength(2);
+    for (const selector of [
+      '.gg-button[data-emphasis="primary"]:hover',
+      '.gg-button[data-emphasis="primary"]:not([data-tone]):active',
+      '.gg-icon-button[data-emphasis="primary"]:hover',
+    ]) {
+      expect(blocks(theme, selector), selector).toMatch(/var\(--tone-action-hover,/);
+    }
   });
 
   it("finds each filled control and lays the neutral ink layer, not the label's color", () => {

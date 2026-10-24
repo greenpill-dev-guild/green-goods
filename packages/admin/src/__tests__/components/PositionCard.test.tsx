@@ -568,7 +568,9 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       const action = screen.getByRole("button", { name: /Harvest & distribute/i });
-      expect(action).toBeDisabled();
+      // Held while loading but focusable: aria-disabled and aria-busy (DL-115).
+      expect(action).toHaveAttribute("aria-disabled", "true");
+      expect(action).toHaveAttribute("aria-busy", "true");
     });
 
     it("explains an unavailable network without a refresh instruction", () => {

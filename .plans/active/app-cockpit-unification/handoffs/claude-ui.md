@@ -665,15 +665,47 @@ Human corrections: 0 observed; attention: unknown.
   cockpit and the strips' stories and **mock-auth localhost** for the app's strips
   ([eval.md](../eval.md#step-19-proof-unused-card-code-and-solid-surfaces)). No authenticated
   class: none of the changed files is on a browser-proof path.
-- **The second pass**, after steps 14 to 18 merge: `VaultPositionCard`, which nothing renders
-  (step 18's object); `WorkbenchRow`, which nothing renders, and the `glass-raised` that
-  `WorkbenchCard` and `WorkbenchList` still carry (step 16's records); and the two app wrappers
-  that share their Shared card's name, `GardenCard` and the work row's `Cards/Work/WorkCard`
-  module (step 16 makes the garden card a media card).
+- **The second pass** is `feature/app-cockpit-unused-card-code-pass-2`, cut from `develop`
+  `796e9e1bb` after #1242 merged. Its guide wording is the standards-only
+  `feature/app-cockpit-unused-card-code-pass-2-guides` (#1246). Step 16 had already deleted the
+  app's `GardenCard` wrapper.
+- **Removed in the second pass, nothing rendered them:** Shared's `VaultPositionCard` and the
+  cockpit's `GardenYieldCard` (step 18 left both), with their stories and tests and the thirteen
+  strings only the yield card read; `WorkbenchRow`, whose status pill classes and `WorkbenchTone`
+  moved into `WorkbenchCard`; and `WorkbenchList`, with the Hub skeleton's `row` variant, the only
+  thing that drew it. No queue asked for that variant: the work queue waits on media card
+  placeholders and the confirm queue on card placeholders. The `./components/Canvas/WorkbenchList`
+  export goes, so the API index and the seam fingerprints are regenerated.
+- **Solid:** `WorkbenchCard`, the Actions workspace's card, draws the shared card surface
+  (`.gg-card`, DL-102) in place of `glass-raised`. The cockpit's override for `glass-raised` had
+  already painted the same fill, so in the cockpit the card gains only the 1px card edge and the
+  24px corner, which it now takes from `.gg-card` instead of `rounded-2xl` (Rule 18). It still
+  lifts on hover and marks a selected card with the older 2px focus edge until it moves onto the
+  media card or item row. The `glass-raised` utility, that override and the workbench row's
+  cockpit rules are gone, so `glass-surface` on `MainSheet` is the last glass utility.
+- **Renamed:** the app's work row module `Cards/Work/WorkCard.tsx` is now
+  `Cards/Work/MinimalWorkCard.tsx`, after the component it holds, so it no longer shares Shared's
+  `WorkCard` name. Its `StatusBadge` re-export, which nothing imported, goes.
+- **Kept, with its reason:** `SkeletonCard` is the cell `SkeletonGrid` draws for the cockpit's
+  route fallback (`packages/admin/src/routes/views.tsx`); it stays exported with the Skeleton leaf,
+  whose stories show it. Every other Shared card export has a consumer, and no two card components
+  or card modules share a name (`views/Public/Fund.tsx` names its lazy import of the app's
+  `PublicFundingCard` after the component it loads).
+- Proof for the second pass: the Shared, app and cockpit suites and typechecks, and the pairs,
+  **Storybook** for the workbench card, the Actions workspace and the Hub skeletons and
+  **mock-auth localhost** for the cockpit's Actions workspace
+  ([eval.md](../eval.md#step-19-proof-second-pass)). No authenticated class: none of the changed
+  files is on a browser-proof path.
 - Not in the step: Shared's `MainSheet` still carries `glass-surface` and renders only in cockpit
   stories; the cockpit's glass guard in `check-tokens.sh` scans `packages/admin/src` only, which is
-  how the glass in Shared and the app went unflagged; and when the app is offline in a mobile
-  browser the 16px offline strip covers only the top of the 24px install strip.
+  how the glass in Shared and the app went unflagged; when the app is offline in a mobile browser
+  the 16px offline strip covers only the top of the 24px install strip; the confirm queue waits on
+  a grid of card placeholders but loads a list of decision rows, so it changes shape when it loads;
+  `SkeletonGrid`'s cell draws its own card (`rounded-xl`, `shadow-sm`) rather than `.gg-card`;
+  Shared's `MIN_YIELD_THRESHOLD_USD` lost its last reader with the yield card; and the app's own
+  `Card` has five parts nothing renders (`CardHeader`, `CardTitle`, `CardDescription`,
+  `CardContent`, `CardFooter`). The step covers Shared's card exports and shared names, so these
+  are left for a later cleanup.
 
 ## Step 12: garden context chip (PRD-1278)
 
@@ -724,6 +756,27 @@ the PR
 
 Human corrections: 0 observed; attention: unknown.
 
+## Step 20 phase 3: dialogs on the shared header (PRD-1287)
+
+- `feature/app-cockpit-shared-dialogs`, cut from `develop` `796e9e1bb`: `AdminDialogHeader`
+  renders the shared `SheetHeader` at every width (`standalone` from 640px). `AdminDialog` drops
+  the absolute Close for structured dialogs, shows the body's scroll edge at every width and covers
+  it with its own fill from 640px, and returns focus to the control that opened it
+  (`onOpenAutoFocus` remembers it; `finalFocusRef` still wins). `AdminConfirmDialog` and
+  `AdminReasonDialog` pin Cancel and the confirm in `SheetActions`, which the dialog's footer bar
+  hosts from its own selector in `admin-m3-components.css`. The `icon` props stay accepted and are
+  not drawn. No Shared file changes.
+- Not done as asked: `AdminDialog` does not render `DialogShell`, which lacks node actions,
+  `target`, the alertdialog role, `finalFocusRef`, the flows' and the palette's own headers, the
+  workspace tone and the hidden-tab instant exit, and below 640px is the app's dragging sheet.
+  DL-117 records it with the pieces that keep their own code; the orchestrator heard before the
+  build.
+- DL-117 and the guide wording are the standards-only `feature/app-cockpit-shared-dialogs-guides`.
+  Proof: [eval.md](../eval.md#step-20-phase-3-proof-dialogs-on-the-shared-header).
+- Not in the step: dialogs that pass their own actions keep `AdminButton` at 32px beside the
+  confirm family's 40px until the call-site pass, and `AdminSideSheet` still swaps its Close at
+  640px and keeps `useFocusAfterFlip`.
+
 ## Step 20 phase 4: cards and tabs (PRD-1287)
 
 - `feature/app-cockpit-shared-cards`, cut from `develop` `796e9e1bb`, with its guide wording in the
@@ -749,6 +802,47 @@ Human corrections: 0 observed; attention: unknown.
   groups at 390, 768 and 1280px in light and dark, with every measured box and every pixel the same
   before and after ([eval.md](../eval.md#step-20-phase-4-proof-cards-and-tabs)); the admin tests
   that render these pieces (37) and the three story files pass. No authenticated class.
+
+## Step 20, phase 1: shared buttons (PRD-1287)
+
+- `feature/app-cockpit-shared-buttons`, cut from `develop` `796e9e1bb`; its guide wording (DL-115,
+  Rule 18, the cockpit guide, the prompt contract) is the standards-only
+  `feature/app-cockpit-shared-buttons-guides`, #1253.
+- **The adapters.** `AdminButton.tsx` renders the shared `Button` and `IconButton`. Filled is the
+  primary, outlined and elevated the secondary, text the tertiary, danger and outlined danger the
+  danger tone; sm, md and lg are the shared compact, sm and lg sizes. Icon buttons: standard and
+  accent the tertiary, tonal the secondary circle, filled the primary, danger the tertiary in the
+  danger tone. They keep `loading`, `leadingIcon` (sized 16 / 18px), `asChild`, the label as name
+  and tooltip, the `type="button"` default and their `data-component`.
+- **Tonal.** The 21 tonal actions moved to `outlined` (retries, creates, deposit, add, mark
+  reviewed, harvest, back, OpenSea) or `text` (the Impact tab's two view-all links and the yield
+  card's show-all). The three tonal choices (Overview's range and activity filters, the campaign
+  jar's custom token) keep the cockpit's pill through a legacy branch in the adapter: phase 2.
+- **Tokens.** `index.css` sets seven in its unlayered `:root` (the dark block re-declares the
+  disabled pair), mirrored in `surfaces.css` and pinned by `AdminDensityScale.guard`: no press
+  scale, an 18px icon glyph, round pressed icon buttons, no disabled dim, the neutral disabled fill
+  and ink, and pointer events on an aria-disabled button. Shared's `theme.css` reads each with the
+  app's value as fallback, and every button and icon button emphasis now names its fill and ink
+  (`--gg-button-fill`, `--gg-button-ink` and the icon pair) so the disabled rule can swap them.
+  Each size also reads a cap (the cockpit caps each at its block, so a stretching row never grows
+  a button) and a reserve token as its block margin (6px around 28 and 32px, 2px around 40px, set
+  on the two adapters rather than `:root`, as the hit-target classes were, since the shared pieces
+  the cockpit renders never reserved it).
+- **Behaviour.** A loading button stays focusable (`aria-disabled`, `aria-busy`) and ignores
+  presses, as the shared Button always has; five tests assert that now. Outlined and text labels
+  take the neutral inks, the filled hover is its tone's measured hover step, and buttons drop the
+  elevation shadow.
+- Proof: the admin suite, the Shared button and style tests, typechecks, and the pairs, all
+  **Storybook** (static builds of `develop` and the branch), with the real screens drawn from the
+  cockpit's view stories ([eval.md](../eval.md#step-20-phase-1-proof-shared-buttons)). No authenticated
+  class: none of the changed files is on a browser-proof path.
+- Calls for the maintainer: the neutral outlined and text labels (the tone accent leaves 148
+  buttons); the dropped elevation; the three tonal choices waiting for phase 2; and the shared
+  pieces that already rendered the shared Button in the cockpit, which take the same disabled pair.
+- Not in the step: the call-site rename and deleting the `Admin*` button files; `admin-hit-target`
+  stays for the cockpit's own compact controls; three admin tests still mock the shared `Button`
+  from before their components moved to `AdminButton` (`DepositModal`, `AttestationSelector`,
+  `CreateAction`), so they exercise a mock, not the adapter.
 
 ## Step 20 phase 2: fields, selects and chips (PRD-1287)
 

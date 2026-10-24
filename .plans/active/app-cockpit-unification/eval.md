@@ -1,6 +1,6 @@
 # One Look for the App and the Cockpit — Evaluation
 
-**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); step 2's proof ran on 2026-10-23 ([below](#step-2-proof-ground-and-dark-ladder)); the design gate for the count badge (step 4) ran and was approved on 2026-10-23 ([below](#design-gate-for-the-count-badge)); review results pending.
+**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); step 2's proof ran on 2026-10-23 ([below](#step-2-proof-ground-and-dark-ladder)); the design gate for the count badge (step 4) ran and was approved on 2026-10-23 ([below](#design-gate-for-the-count-badge)); acceptance pass 1 ran on 2026-10-24 ([below](#acceptance-pass-1)); the product validation round is pending.
 
 ## Product validation
 
@@ -42,11 +42,61 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A16 | Glass | The design guide describes solid surfaces and the cockpit's one translucent dock; the five-thickness material spec is gone and nothing rendered changes. |
 | A17 | Card shapes | Shared holds one card surface and the four shapes, each at two densities; every object card in scope is built from them; no card primitive is left without a consumer. |
 | A18 | One home per object | Each object's card code lives in one place; no two card components share a name; every new Shared path is a deliberate export. |
-| A19 | Cockpit controls | For each migrated family, the cockpit renders only the shared controls; density, hit areas, pill corners and the tone budget are unchanged; Rules 15 and 18 and the wrapper-adoption sweep describe the new direction. |
+| A19 | Cockpit controls | For each migrated family, the cockpit renders only the shared controls; density, hit areas, pill corners and the tone budget are unchanged; Rules 15 and 18 and the wrapper-adoption sweep describe the new direction. For dialogs and sheets, `AdminDialog`'s Radix shell is DL-117's recorded exception: it renders the shared header and action bar inside its own surface. |
 | A20 | Detail lines | Every item row's detail line stays on one line at 320, 360 and 390px in English, Spanish and Portuguese; each card type shows its details in the accepted order, and a detail that does not fit drops whole; an age is always a number. |
 | A21 | One height | Every card in a list is the same height on both surfaces, in every state, action and language; the pill under the title never makes a row grow. |
 | A22 | One pill per card | A card shows one pill, its status; an error, a retry or a pending state replaces it, feedback is a detail, and the photo count sits on the photo. |
 | A23 | Field messages (F3) | Fields reserve two message lines in the app and in the cockpit (DL-105, since 6 of the cockpit's 32 messages under side-by-side fields wrap at 640px); a message that fits the reserve never moves the form, and a longer one grows the slot rather than scrolling; the longest Spanish and Portuguese cockpit messages are measured in two-column forms at 640px. |
+
+## Acceptance pass 1
+
+Run on 2026-10-24 against `develop` `8476dbd80`: steps 1 to 19 and 21 with step 12's look, plus
+step 20's phases 3 and 4. Phase 1 (buttons, #1256), phase 2 (fields and chips, #1255) and the
+rename pass had not landed, so their families are rechecked when they merge. Every frame is headless
+Chromium (Playwright) at device scale 2, measured in the DOM: clipped and truncated text, tab cells, count
+badges, card heights, gaps, corners and edges, each card against its ground, pills per card, detail
+lines, ages, state blocks, the bars' pills, translucent surfaces and sideways scroll.
+
+- **mock-auth localhost** (Arbitrum One, production indexer, `?mockAuth=deployer`): the app's Home,
+  a garden's four tabs and Profile, and the cockpit's Hub, Garden, Community and Actions with every
+  tab, at 320, 360, 390, 768 and 1280px, in English, Spanish and Portuguese in light and English in
+  dark: 460 measured frames. The cockpit's Cookies route rendered nothing within four minutes in two
+  runs and is unverified.
+- **Storybook**: 30 catalog stories (the work card's mosaic, the tab rail, the item, person,
+  commitment and garden rows, the media and work cards, field messages, sheets and dialogs, count
+  badges and the state block) at the same widths in light and dark: 300 frames.
+- **localhost, signed out**: five public routes against the tree before step 1 (`870600083`), at
+  390 and 1280px in light and dark.
+- A read-only code audit covered A15 to A19.
+- **Pending:** authenticated Brave for wallet and passkey signing, the queue and offline uploads, and
+  installed-PWA behavior (the static loading screen, safe areas, the bar under a sheet). Keyboard
+  behavior rests on the stories' plays in CI.
+
+| ID | Pass 1 | Evidence and findings |
+|---|---|---|
+| A1 | pending on the app and the cockpit | Pass 1 compared against the tree before step 1 only on the public website, whose routes and element order match (A13). It walked the app's and the cockpit's routes without that baseline, so their flow comparison is pending. |
+| A2 | fails in es/pt at 320 to 360px | One family on both surfaces. The cockpit's vault row cuts its status pill in Spanish and Portuguese ("Depósitos desha…"). Titles truncate by design. The static loading screen is pending. |
+| A3 | passes | Canvas 250 248 245 in light and 17 12 8 in dark on both surfaces, under white cards and the lifted dark card (DL-097). |
+| A4 | carried | Not re-measured; DL-098's proof stands. |
+| A5 | passes by pointer | One chip shape and selected fill. The Hub's Pending and Approved stay inline, and the app's filter keeps its launcher and count. |
+| A6 | passes | From 640px no cockpit cell on a walked route is wider than 180px, and every row starts at the left; the Create Action instructions, home of the one wider cell A6 allows (Spanish, 191px), were not walked. No label clips, and a cell grows past its share only when its label needs it. Hub, Community and Actions scroll at 320 and 360px, as DL-100 records. |
+| A7 | passes | Every badge is 16px tall and at least 16px wide, with 11px numerals and at least 4.5:1. |
+| A8 | passes | 24px cards with a 1px edge on both surfaces, 16px rows, and 12px between items of one kind. |
+| A9 | passes | The mosaic renders none to four photos with its domain and count, wide and stacked; phones keep the row. |
+| A10 | passes | Card against canvas: 1.26:1 in dark, and 1.06:1 plus the hairline in light, on both surfaces. Chips and wells read on cards. |
+| A11 | passes as rendered | The app's bar is solid under the green pill and the cockpit's dock is translucent under the tone pill; sheets render the shared header. Focus return and Back rest on CI plays; installed-PWA behavior is pending. |
+| A12 | partial | Corners, filters, tone and chrome stay each surface's own. Density does not yet: the confirm and reason dialogs' 40px buttons differ from the cockpit's 32px default until phase 3's call-site pass. |
+| A13 | passes | Public routes match the tree before step 1 in type, buttons, color and layout. Only copy merged meanwhile differs (garden casing, "vault"). |
+| A14 | failed on `develop`, fixed | Four rules in the cockpit's `index.css`, older than the block, drew every cockpit state at a 72px tile, a 22px title and a 16px line. They are removed in pass 1's pull request: 56px, 16px and 14px, as DL-106 sets. Storybook never loads that stylesheet, so `AdminDensityScale.guard` now fails if any cockpit stylesheet targets the block again. |
+| A15 | partial | No Material class remains in the cockpit's views. Material type tokens still set sizes in CSS, their names remain in comments, the DesignMD keys still read `body-md` and `label-md`, and the app uses raw sizes, as the client prompt contract defers. |
+| A16 | passes, with residue | The guides describe solid surfaces and the one dock, and no route renders glass besides the dock. Unused translucent CSS and Storybook-only `glass-surface` remain. |
+| A17 | partial | Cockpit sections and rows in hypercert detail, the signal pool, campaign settings, vault history, garden metadata and the confirm queue draw raised 16px or 12px cards off `.gg-card`. `WorkbenchCard` is not built from a shape, and a few primitives have no consumer. |
+| A18 | partial | Assessment rows are built in four places and hypercert rows in three, and each app builds its own garden jar row. |
+| A19 | partial | Dialogs render the shared header and actions, with the Radix shell as DL-117's exception. Buttons and fields await phases 1 and 2, whose guides already read in the present tense. |
+| A20 | passes | No item row shows a detail in part, in any language at 320 to 390px, and no age is written in words. Older than the unification: the pool's Review Promises row cuts its age to "1 w…" at 360 and 390px. |
+| A21 | fails in Actions | At 320px an action card whose capitals chip wraps is 224px beside 194px. Home's off-screen garden cards held the old 182px placeholder against 174px drawn; fixed in pass 1's pull request. |
+| A22 | partial | The pool's season, status and funding cards each carry two pills, and action cards set two detail chips beside their status. |
+| A23 | carried | The field stories hold the two-line reserve. The two-column measures wait for phase 2. |
 
 ## Guards the work trips
 
@@ -1109,6 +1159,39 @@ run locally with a temporary `server.fs.allow`, reverted before the commit.
 **Not in the step.** Nothing mounts the chip in the app, and its menu is unchanged: it opens only
 from a switcher, which the app does not mount yet.
 
+## Step 20 phase 3 proof: dialogs on the shared header
+
+Run on 2026-10-24 for `feature/app-cockpit-shared-dialogs` (`0c69a097c` and `73f6e563f`) against
+`develop` `796e9e1bb`. Two capture-only Storybooks, one per tree, rendered a parked capture story
+(four dialogs, each open) that was copied into both and deleted before any gate.
+
+**Pairs.** 24 pairs, **Storybook**, headless Chromium (Playwright) at device scale 2: a standard
+dialog with its own actions, a form dialog, a danger confirm with a pool target, and a confirm
+nested in a dialog, at 390, 768 and 1280px in light and dark. Four are pixel-identical: the
+standard and form dialogs at 390px, which have shown the shared header since step 9. Private page:
+https://claude.ai/artifact/7dC3c4kyd6po22ef6iyYnc.
+
+**Measured** on the topmost dialog (`getComputedStyle`):
+
+| | Before | After |
+|---|---|---|
+| Header from 640px | the cockpit's own: an icon on a destructive confirm, a rule under it, Close absolute 12px from the edge | `SheetHeader`: no icon, no rule, Close on the title's line 16px from the edge |
+| Title | 22px on 28px | 22px on 28px |
+| Desktop confirm height | 220px | 225px |
+| Confirm family's buttons | `AdminButton` at 32px, Cancel a text button, the dark danger fill `rgb(255, 104, 117)` | `SheetActions` at 40px, Cancel outlined, the danger fill `rgb(208, 37, 51)` in both themes (DL-053) |
+| Surface fill from 640px | 236 233 226 in light, 52 44 36 in dark | unchanged |
+
+**Behavior.** Play functions in Chromium, 15 of 15 in the AdminDialog and AdminSideSheet stories:
+`Default`, `FormDialog`, `ConfirmFocusReturn` and `NestedDialogs` close with Escape and with
+Cancel and check that the scroll and pointer locks are released and focus is back on the opener;
+in the nested pair Escape closes only the confirm and focus steps back one level. They failed
+before the focus fix: Radix returns focus only to a `Dialog.Trigger`, which the cockpit's
+controlled dialogs lack. Unit tests: the full admin suite, 151 files and 1,379 tests passing.
+
+**Found on the way.** The first after frames showed the confirm family's footer padded twice:
+`SheetActions` pads and fills itself, and the dialog's footer bar pads too. The dialog now hosts
+the bar from its own selector, as DialogShell and ConfirmDialog do (`73f6e563f`).
+
 ## Step 20 phase 4 proof: cards and tabs
 
 Run on 2026-10-24 against `develop` `796e9e1bb`, with phase 4 on `feature/app-cockpit-shared-cards`,
@@ -1124,6 +1207,81 @@ in **Storybook** (headless Chromium at device scale 2, the admin primitive frame
   earth-700 on the lifted card in dark, with the faint shadow in light only; filled takes the same
   corner with no edge; the list row is 16px and 56px tall here, on the weak fill; the selectable
   card is 12px and 66px tall, its selected state the tone's accent edge and a 10% tint.
+
+## Step 19 proof: second pass
+
+Run on 2026-10-24 for step 19's second pass, `feature/app-cockpit-unused-card-code-pass-2`, against
+`develop` `796e9e1bb`. Capture-only servers ran from the step's worktree: Storybook, and the cockpit
+on Arbitrum One with the production indexer. Every before frame was taken from the untouched
+`develop` tree, before the first edit. Frames that show a live garden went to the maintainer as a
+private artifact.
+
+**Pairs.** 34 pairs and 10 before-only frames, headless Chromium (Playwright) at device scale 2:
+
+- **mock-auth localhost**, cockpit (`/actions?mockAuth=deployer`, Green Goods Community Garden, with
+  Arbitrum reads answered by its public RPC in place of the rate-limited demo key): the Actions
+  workspace at 390, 768 and 1280px, in light and dark: 6 pairs.
+- **Storybook**: the Actions workspace story at the same widths, `WorkbenchCard`'s default,
+  upcoming, record, selected and grid stories, and the Hub's work and confirm queue placeholders,
+  in light and dark: 28 pairs. The 8 placeholder pairs are pixel-identical.
+- **Storybook, before only**: the stories of what the pass removes (`WorkbenchRow`, `WorkbenchList`,
+  the skeleton's row variant, `VaultPositionCard`, `GardenYieldCard`), in light and dark.
+
+**Computed** (`getComputedStyle` on the first `WorkbenchCard`, 1280px):
+
+| Where | Before | After |
+|---|---|---|
+| Cockpit, light | fill 255 255 255, no edge, 16px, glass inset ring | fill 255 255 255, 1px 231 229 228, 24px |
+| Cockpit, dark | fill 42 35 28, no edge, 16px | fill 42 35 28, 1px 67 61 55, 24px |
+| Storybook, light | 70% white under `blur(16px) saturate(1.3)`, 16px | the cockpit's after values |
+| Storybook, dark | 60% of 28 25 23 under the same blur, 16px | the cockpit's after values |
+
+After, every frame reports `backdrop-filter: none`. In the cockpit the fill is unchanged, since its
+override for `glass-raised` already painted `--admin-surface-0`, the fill `.gg-card` reads there.
+
+**Found on the way.**
+
+- The confirm queue waits on a grid of card placeholders but loads a list of decision rows, so it
+  changes shape when it loads.
+- `SkeletonGrid`'s cell, the cockpit's route fallback, draws its own card (`rounded-xl`,
+  `shadow-sm`, outside the elevation ladder) instead of `.gg-card`.
+- Storybook does not declare the cockpit's `--edge-focus`, so `WorkbenchCard`'s Selected story shows
+  no selected edge, before and after.
+- The app's own `Card` has five parts nothing renders: `CardHeader`, `CardTitle`,
+  `CardDescription`, `CardContent` and `CardFooter`.
+
+## Step 20 phase 1 proof: shared buttons
+
+Run on 2026-10-24 against `develop` `8476dbd80`, with step 20 phase 1 merged onto it at
+`37ebc54e4` on `feature/app-cockpit-shared-buttons`, both as static Storybook builds. Every frame is
+**Storybook**; the real screens are the cockpit's own view stories, and none shows a real garden.
+The pairs are a private artifact: https://claude.ai/artifact/N3Rr6p2FPETmEUnCWRLqia (17 pairs
+across twelve scenes, light and dark, and the new family matrix).
+
+- **The tiers hold.** Every `AdminButton` in the captures (93 before, 333 after) is 28, 32 or 40px
+  tall for sm, md and lg, with a 44px finger box, a 14px label at 500 and a pill corner; every
+  `AdminIconButton` (24 before, 114 after) is a 28, 32 or 40px circle with a 44px finger box. Each
+  keeps the block margin it reserved before, 6px around 28 and 32px and 2px around 40px.
+- **The disabled pair is the same.** The state catalog's disabled and loading buttons draw a
+  `rgba(12, 10, 9, 0.12)` fill under a `rgba(12, 10, 9, 0.38)` label at opacity 1, before and
+  after.
+- **The app and the website do not change.** The shared Button and IconButton stories (both
+  emphasis catalogs, loading, destructive, the website surface, as a link, with a badge), the app's
+  and the website's design-system button pages and the editorial buttons, light and dark, captured
+  from both builds at 1024px: 22 comparisons, 0 differing pixels.
+- **What the pairs found.** The first after build drew the tone matrix's 28px buttons at 40px.
+  `AdminButton` fixed its height, while the shared button only sets a minimum, so a row that
+  stretches its items took the tonal pill's hit-target margins as its height; a filter chip's do
+  the same. Each shared size now reads a cap token that is `none` in the app, the cockpit caps every
+  size at its block (`76195349e`), and the three tiles drawn as buttons lift the cap. CI's Outcomes
+  Hold Still play found the second: the shared button reserves no block margin, where the cockpit's
+  hit-target classes gave 6px (2px at 40px). The assessment step's section header takes that room
+  back with `-my-2`, so Add Outcome rose 8px above its title. Each shared size now reads a reserve
+  token as its block margin (0 in the app), set on the two adapters (`f7ab9df2d`), and the story's
+  measure is 2px again, as on develop.
+- **What changes, as DL-115 records.** Outlined and text labels take the shared neutral inks and an
+  outlined button the card's white fill; the filled hover is its tone's measured hover step;
+  buttons drop the elevation shadow; and a loading button stays focusable.
 
 ## Step 20 phase 2 proof: fields, selects and chips
 

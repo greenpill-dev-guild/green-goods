@@ -65,7 +65,7 @@ export function TeamStep() {
             helperText={" "}
           />
           <AdminButton
-            variant="tonal"
+            variant="outlined"
             size="sm"
             className="mt-1.5 sm:mt-7.5"
             onClick={stewardInput.handleAdd}
@@ -136,7 +136,7 @@ export function TeamStep() {
             helperText={" "}
           />
           <AdminButton
-            variant="tonal"
+            variant="outlined"
             size="sm"
             className="mt-1.5 sm:mt-7.5"
             onClick={gardenerInput.handleAdd}

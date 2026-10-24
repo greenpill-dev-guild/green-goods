@@ -92,7 +92,7 @@ export function CommunityPayoutsTab({
                 headerAction={
                   <AdminButton
                     type="button"
-                    variant="tonal"
+                    variant="outlined"
                     size="sm"
                     leadingIcon={<RiAddLine />}
                     onClick={() => navigate(campaignJarsRoute(CREATE_CAMPAIGN_JAR_ROUTE_ITEM))}

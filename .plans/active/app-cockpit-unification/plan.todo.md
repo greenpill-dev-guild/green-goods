@@ -81,7 +81,7 @@ bounded change, and split a step that would mix independent behaviours.
 | 17. People rows | `ui` | Member, funder and claimant rows on the item row with an avatar, one role chip and one count, each name through the shared address display. Built on 24 October: Shared's `PersonRow` under the app's garden members and send recipients and the cockpit's member directory and funder lists, and the cockpit's `PersonName` on the shared address display (DL-112). Claimant rows are decision rows (`CommitmentClaims`, `ClaimDecisionPanel`), so they keep their paired acts and take only their names from the shared address display, the app's directly and the cockpit's through `PersonName`; DL-112 also keeps Manage Members, the Add Members queue, a promise's team roster and the group inspector off the person row. | Rendered pairs of every people list; names resolve as they do today. |
 | 18. Jar and vault cards | `ui` | The app's and the cockpit's jar, deposit and position cards on the item row with one detail and no action on the row; they have no picture of their own, so no media card. The public site's cards stay editorial. Built on 24 October (#1234, DL-113 in #1233): every jar, deposit and position list is item rows with the amount in the right slot, and a jar's, deposit's or position's row opens its page in place beneath it. | Rendered pairs of every jar and vault list in the app and the cockpit; amounts and assets read as they do today. |
 | 19. Unused card code | `ui` | Remove Shared's unused card exports (`CardBase`, its own `Card`, `StatCard`, `ProposalCardConviction`, `SortSelect`, `ListToolbar`) and `Surface`'s glass tiers once nothing renders them; rename the app's wrapper cards that share a Shared card's name. | No export without a consumer or a recorded reason; no two card components share a name. |
-| 20. Cockpit controls onto the shared family | `ui` | Phased, one family at a time: buttons and icon buttons; fields, checkboxes and chips; dialogs and sheets; cards and tabs. Each phase retires its `Admin*` files, rewrites the matching part of Rules 15 and 18, and turns the design token check's wrapper-adoption sweep around. Split into one issue per phase when scheduled. | Each phase: the cockpit renders only the shared family for its controls; density, hit areas and pill corners unchanged; the design checks pass. |
+| 20. Cockpit controls onto the shared family | `ui` | Phased, one family at a time: buttons and icon buttons; fields, checkboxes and chips; dialogs and sheets; cards and tabs. Each phase renders the shared family inside its `Admin*` adapters, which keep their names and props, and rewrites the matching part of Rules 15 and 18 (buttons: DL-115; dialogs and sheets: DL-117; cards and tabs: DL-118). One later pass renames the call sites, retires the `Admin*` files and turns the design token check's wrapper-adoption sweep around. `AdminDialog`'s Radix shell stays as DL-117's recorded exception, approved by the orchestrator on 24 October. Split into one issue per phase when scheduled. | Each phase: the cockpit renders only the shared family for its controls; density, hit areas and pill corners unchanged; the design checks pass. |
 | 21. Bottom bar active state (F6) | `ui` | The app's bottom bar shows its active tab with a green pill behind the icon, the cockpit's recipe; each bar keeps its chrome, and the app's bar stays solid. | Rendered pairs of both bars in light and dark; labels, count badges and focus unchanged. |
 | 22. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-facing review, then an independent regression review. | Criteria in [eval.md](eval.md), with fresh receipts for the changed surfaces. |
 
@@ -336,6 +336,17 @@ Portuguese with a long name, and the cockpit column is pixel-identical to `devel
 chip in the app and selection stays with the PWA simplification hub
 ([handoff](handoffs/claude-ui.md#step-12-garden-context-chip-prd-1278)).
 
+**Step 20, phase 3 (24 October).** The cockpit's dialogs take the shared dialog family's pieces
+behind their own names and props: the shared `SheetHeader` at every width, the shared
+`SheetActions` in the confirm family, and focus back on the opener when a dialog closes.
+`AdminDialog` keeps its own Radix surface, because `DialogShell` cannot carry what the cockpit's
+dialogs need without new Shared props (DL-117). This is the adapter pass: the call-site pass
+renames the call sites and retires the other `Admin*` dialog files, and the `AdminDialog` shell
+stays as the recorded exception. The code is `feature/app-cockpit-shared-dialogs`,
+and DL-117 with its guide wording the standards-only `feature/app-cockpit-shared-dialogs-guides`
+([handoff](handoffs/claude-ui.md#step-20-phase-3-dialogs-on-the-shared-header-prd-1287),
+[eval.md](eval.md#step-20-phase-3-proof-dialogs-on-the-shared-header)).
+
 **Step 20, phase 4 (24 October).** The cockpit's cards and tabs go onto the shared family (PRD-1287),
 adapters first: each component keeps its name and props for its call sites. `AdminCard` has
 rendered the shared card surface since step 7, so its 72 call sites already draw the shared card;
@@ -347,6 +358,30 @@ have no shared counterpart. DL-118 records each reason. The code is `feature/app
 and the guide wording the standards-only `feature/app-cockpit-shared-cards-guides`. The pairs show
 no change: 30 Storybook frames, every measured box and every pixel the same
 ([eval.md](eval.md#step-20-phase-4-proof-cards-and-tabs)).
+
+**Step 19, second pass (24 October).** With steps 14 to 18 on `develop`, the second pass removes
+the last cards nothing rendered: Shared's `VaultPositionCard`, the cockpit's `GardenYieldCard` and
+its strings, `WorkbenchRow`, and `WorkbenchList` with the Hub skeleton's row variant, its only
+user. `WorkbenchCard`, the Actions workspace's card, leaves `glass-raised` for the shared card
+surface, so that utility goes, and the app's work row module takes its component's name,
+`MinimalWorkCard`. `SkeletonCard`, the cell of the cockpit's route fallback grid, stays exported
+with its reason recorded. Step 16 had already deleted the app's `GardenCard` wrapper. The code is
+`feature/app-cockpit-unused-card-code-pass-2`, and the guide wording is the standards-only
+`feature/app-cockpit-unused-card-code-pass-2-guides`, merged as #1246
+([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-1286),
+[eval.md](eval.md#step-19-proof-second-pass)).
+
+**Step 20, phase 1 (24 October).** `feature/app-cockpit-shared-buttons` makes every cockpit button
+the shared one: `AdminButton` and `AdminIconButton` keep their names and props and render the
+shared `Button` and `IconButton`, so their 307 call sites are unchanged until a later pass renames
+them. Filled maps to the primary, outlined to the secondary, text to the tertiary, danger and
+outlined danger to the danger tone, and sm, md and lg to the shared compact, sm and lg sizes on the
+cockpit's 28 / 32 / 40px tiers. The 21 tonal actions became outlined or text; the three tonal
+choices keep their pill for phase 2. Seven tokens the shared family now reads keep the cockpit's
+look, each falling back to the app's value. DL-115 and its guide wording are the standards-only
+`feature/app-cockpit-shared-buttons-guides`, #1253
+([handoff](handoffs/claude-ui.md#step-20-phase-1-shared-buttons-prd-1287),
+[eval.md](eval.md#step-20-phase-1-proof-shared-buttons)).
 
 **Step 20, phase 2 (24 October).** The cockpit's fields, selects and filter chip go onto the shared
 family (PRD-1287), adapters first: `AdminTextField`, `AdminTextArea`, `AdminSelect`,
