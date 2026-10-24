@@ -99,7 +99,7 @@ Text takes its size from the type scale, never from a raw Tailwind size (`text-x
 
 The roles are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`type-body font-medium`) and responsive variants work (`type-meta sm:type-body`). The Material `text-title-*`, `text-body-*`, and `text-label-*` aliases and the `label-*`, `body-*`, and `subheading-*` classes are retired; `check:design-tokens` fails on them and on the shared theme's other sizes (`text-paragraph-*`, `text-title-h*`, and the like) anywhere in `packages/admin/src` and `packages/shared/src`, and on a raw size anywhere in `packages/admin/src`, stories included.
 
-Mind the role split: `type-label-sm text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta); it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
+Mind the role split: `type-label-sm text-text-soft` is the **eyebrow / metadata** token (card overlines, section meta); it is **not** a form-field label. A fact's label beside its value is the shared `FactRow`'s, on `type-label-sm` in the sub ink (DL-109). The title that labels a control goes through `FormField`, or a setting's `FactRow` (see Rule 15).
 
 ## Rule 10: Icon Sizing Convention
 
@@ -145,7 +145,8 @@ modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to sur
 `AdminFieldGroup` for group-shaped fields (checkbox grids, repeating rows, upload wells).
 Shared `FormField`/`TextInput`/`Textarea`/`NativeSelect` renders in `packages/admin/src` fail
 the wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row** (field title
-left, `Switch` or compact control right), use `AdminSettingRow`.
+left, `Switch` or compact control right), use the shared `FactRow` with no value and the control as
+its `action`, in a `FactList` (DL-109): its label reads as a field title.
 
 **Client**: use the `FormField` component from `@green-goods/shared` for label+input+error
 patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
@@ -167,7 +168,7 @@ moves onto that line in step 10's code change and keeps its filled field until i
 selectable-card group with `type-label-sm text-text-soft` (the eyebrow/metadata token) makes that
 field read visibly smaller and grayer than the family labels next to it — the Garden Profile
 dialog regressed exactly this way. Route every admin field label through the field family
-(`AdminTextField`/`AdminFieldGroup`/`AdminSettingRow`); client labels go through `FormField`.
+(`AdminTextField`/`AdminFieldGroup`) or a setting's `FactRow`; client labels go through `FormField`.
 
 ```tsx
 // Bad — hand-rolled eyebrow token as a field label
@@ -179,8 +180,8 @@ dialog regressed exactly this way. Route every admin field label through the fie
 {errors.name && <p>{errors.name.message}</p>}
 
 // Good — canonical admin field family
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
-import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { AdminTextField } from "@/components/AdminTextField";
 
 <AdminTextField label="Name" required error={errors.name?.message} {...register("name")} />
@@ -189,9 +190,14 @@ import { AdminTextField } from "@/components/AdminTextField";
   {options.map(...)}
 </AdminFieldGroup>
 
-<AdminSettingRow labelId="open-joining" label="Open joining" description="…">
-  <Switch aria-labelledby="open-joining" ... />
-</AdminSettingRow>
+<FactList frame="inset">
+  <FactRow
+    labelId="open-joining"
+    label="Open joining"
+    description="…"
+    action={<Switch aria-labelledby="open-joining" ... />}
+  />
+</FactList>
 ```
 
 ## Rule 16: Alert/Error Boxes
