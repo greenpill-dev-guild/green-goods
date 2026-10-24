@@ -9,6 +9,16 @@
 
 import type { Abi, Hex, TypedDataDefinition } from "viem";
 import type { Address } from "../../types/domain";
+import type {
+  BatchBudget,
+  BatchQuote,
+  BatchCapability,
+  BatchExecution,
+  BatchOperations,
+  BatchReference,
+  BatchScope,
+  BatchSendOptions,
+} from "./batch-types";
 
 /** A single contract call to execute */
 export interface ContractCall {
@@ -46,6 +56,8 @@ export interface TxResult {
 }
 
 export interface TransactionSendOptions {
+  /** Reviewed budgets are mandatory on the explicit batch boundary, optional for legacy single sends. */
+  batchBudget?: BatchBudget;
   assertOwnership?: () => void | Promise<void>;
   /**
    * Called once, immediately before the call can reach the network. A passkey
@@ -56,9 +68,11 @@ export interface TransactionSendOptions {
   onBeforeBroadcast?: (reference?: BroadcastReference) => Promise<void>;
   onBroadcastReference?: (reference: BroadcastReference) => Promise<void>;
   onBroadcast?: (hash: Hex) => Promise<void>;
+  /** Opaque batch identity, checkpointed before any receipt wait. */
+  onBatchReference?: (reference: BatchReference) => Promise<void>;
 }
 
-export interface AtomicBatchOptions {
+export interface AtomicBatchOptions extends BatchSendOptions {
   /** Called once the wallet has accepted the batch. Its receipt is still pending. */
   onAccepted?: () => Promise<void>;
 }
@@ -89,6 +103,15 @@ export function assertTypedDataChain(request: AccountTypedDataRequest): void {
 }
 
 export interface TransactionSender {
+  batches?: BatchOperations;
+  preflightBatch?(calls: readonly ContractCall[], budget: BatchBudget): Promise<BatchQuote>;
+  /** Explicit opt-in batching; legacy eligibility and single-call contracts stay separate. */
+  getBatchCapability?(scope: BatchScope): Promise<BatchCapability>;
+  submitAtomicBatch?(
+    calls: readonly ContractCall[],
+    options?: BatchSendOptions
+  ): Promise<BatchExecution>;
+  reconcileBatch?(reference: BatchReference): Promise<BatchExecution>;
   /** Sign an order with the same account and chain as its subsequent transaction. */
   signTypedData?(request: AccountTypedDataRequest, options?: TransactionSendOptions): Promise<Hex>;
   assertOwnership?: (address: Address, chainId: number) => void | Promise<void>;

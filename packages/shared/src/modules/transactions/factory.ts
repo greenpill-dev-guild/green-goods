@@ -15,6 +15,7 @@ import type { TransactionSender } from "./types";
 import { PasskeySender } from "./passkey-sender";
 import { EmbeddedSender } from "./embedded-sender";
 import { WalletSender } from "./wallet-sender";
+import { withBatchRecovery } from "./batch-service";
 
 export interface TransactionSenderOptions {
   authMode: "passkey" | "embedded" | "wallet";
@@ -53,6 +54,11 @@ export interface TransactionSenderOptions {
  * ```
  */
 export function createTransactionSender(options: TransactionSenderOptions): TransactionSender {
+  const sender = createTransportSender(options);
+  return options.authMode === "embedded" ? sender : withBatchRecovery(sender);
+}
+
+function createTransportSender(options: TransactionSenderOptions): TransactionSender {
   switch (options.authMode) {
     case "passkey": {
       if (options.smartAccountClient?.account) {

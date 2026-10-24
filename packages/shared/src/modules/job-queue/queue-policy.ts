@@ -78,7 +78,9 @@ export function sendCheckpointOf(job: Pick<Job, "kind" | "payload">): SendCheckp
 /** Whether a job's send may already be on-chain, so it is confirmed and never sent again. */
 export function hasRecordedSend(job: Pick<Job, "kind" | "payload">): boolean {
   const sent = sendCheckpointOf(job);
-  return Boolean(sent?.broadcast || sent?.transactionHash || sent?.broadcastPending);
+  return Boolean(
+    sent?.batchReference || sent?.broadcast || sent?.transactionHash || sent?.broadcastPending
+  );
 }
 
 /** Replace a job's send record, or clear it, keeping whatever else shares its field. */
@@ -88,6 +90,7 @@ export function writeSendCheckpoint(job: Job, send: SendCheckpoint | undefined):
   const payload = job.payload as Record<string, unknown>;
   const {
     broadcast: _broadcast,
+    batchReference: _batchReference,
     broadcastPending: _pending,
     broadcastPendingAt: _pendingAt,
     intentBlock: _block,

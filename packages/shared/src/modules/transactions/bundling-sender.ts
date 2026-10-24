@@ -87,6 +87,14 @@ export function createBundlingSender(
       settle({ status: "empty" });
       return;
     }
+    const checkpointAll = async (
+      notify: (options: TransactionSendOptions) => Promise<void> | undefined
+    ) => {
+      // An accepted send belongs to every job even if one durable checkpoint fails.
+      const results = await Promise.allSettled(calls.map(async ({ options }) => notify(options)));
+      const failed = results.find((result) => result.status === "rejected");
+      if (failed?.status === "rejected") throw failed.reason;
+    };
     try {
       // Each job checks it still owns its send, as a single send would, before
       // anything can reach the wallet. One that doesn't stops the whole request.
@@ -96,14 +104,23 @@ export function createBundlingSender(
       const result = await sendAtomicBatch(
         calls.map(({ call }) => call),
         {
+          assertOwnership: async () => {
+            for (const { options } of calls) await options.assertOwnership?.();
+          },
+          onBatchReference: async (reference) => {
+            await checkpointAll((options) => options.onBatchReference?.(reference));
+          },
+          onBroadcastReference: async (reference) => {
+            await checkpointAll((options) => options.onBroadcastReference?.(reference));
+          },
           onAccepted: async () => {
             hooks.onAccepted?.();
           },
         }
       );
-      for (const { options } of calls) await options.onBroadcast?.(result.hash);
+      await checkpointAll((options) => options.onBroadcast?.(result.hash));
       settle({ status: "sent", hash: result.hash });
-      for (const { resolve } of calls) resolve({ hash: result.hash, sponsored: false });
+      for (const { resolve } of calls) resolve(result);
     } catch (error) {
       settle(outcomeOfError(error));
       for (const { reject } of calls) reject(error);
@@ -133,6 +150,10 @@ export function createBundlingSender(
         supportsBatching: base.supportsBatching,
         supportsSponsorship: base.supportsSponsorship,
         ...(base.assertOwnership ? { assertOwnership: base.assertOwnership.bind(base) } : {}),
+        ...(base.reconcileBatch ? { reconcileBatch: base.reconcileBatch.bind(base) } : {}),
+        ...(base.reconcileBroadcast
+          ? { reconcileBroadcast: base.reconcileBroadcast.bind(base) }
+          : {}),
         sendContractCall(call, options = {}) {
           return new Promise<TxResult>((resolve, reject) => {
             if (flushed || held.has(participant)) {
