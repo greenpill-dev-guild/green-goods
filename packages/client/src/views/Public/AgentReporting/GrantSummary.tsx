@@ -52,7 +52,7 @@ function LimitRow({ icon, label, value }: { icon: ReactNode; label: string; valu
         </span>
         {label}
       </dt>
-      <dd className="ms-auto flex min-w-0 items-center justify-end gap-1 text-right type-label-sm text-text-strong-950 [overflow-wrap:anywhere]">
+      <dd className="ms-auto flex min-w-0 items-center justify-end gap-1 text-right type-label-sm tracking-normal text-text-strong-950 [overflow-wrap:anywhere]">
         {value}
       </dd>
     </div>
