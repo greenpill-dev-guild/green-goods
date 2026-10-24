@@ -107,6 +107,14 @@
   }
 }
 
+/* The confirm family hosts the shared action bar in the dialog's own footer bar,
+ * which pads it and draws its hairline, the way DialogShell and ConfirmDialog
+ * set the bar's padding from their own selectors (DL-117). */
+[data-component="AdminDialog"] [data-slot="actions"] > [data-component="SheetActions"] {
+  padding: 0;
+  background-color: transparent;
+}
+
 /* From 640px the centered dialog keeps its own surface (DL-104), so the shared
  * header's scroll edge (DL-028) covers with that fill, not the phone sheet's.
  * The cover is a token the shared scroll-edge rule reads (DL-031). */
