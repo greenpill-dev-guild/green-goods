@@ -165,7 +165,7 @@ const combinedAppRoutes = [
               }),
             },
           ]),
-          // The reporting ceremony pages use the focused shell and are drawn as the app draws.
+          // The reporting ceremony pages use the focused shell and take the website's look (DL-121).
           errorFrame("ceremony", [
             // Static before dynamic: the permissions page must never be read as a locator.
             {

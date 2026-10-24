@@ -1,15 +1,5 @@
 import type { GrantView } from "@green-goods/shared/modules/agent-reporting";
-import {
-  RiCalendarCloseLine,
-  RiCalendarLine,
-  RiCheckboxMultipleLine,
-  RiCoinLine,
-  RiGasStationLine,
-  RiPlantLine,
-  RiShieldCheckLine,
-  RiStackLine,
-  RiTimeLine,
-} from "@remixicon/react";
+import { RiPlantLine, RiShieldCheckLine } from "@remixicon/react";
 import { type ReactNode, useId } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { formatEther } from "viem";
@@ -34,25 +24,16 @@ function formatDuration(intl: IntlShape, milliseconds: number) {
 }
 
 /**
- * One limit: its icon and label on the start side, its value on the end. When a translated label
- * and a date can't share a line on a narrow phone or at a larger text size, the value moves under
- * the label, still on the end side, instead of being squeezed. The public reporting pages keep
- * this compact row as they drew it before the app and cockpit unification: the shared fact row
- * lines values up in a column, which wraps a date at phone widths.
+ * One limit, as the website's receipt draws a fact (DL-121): the label on the start side in the
+ * sub ink, the value at weight 500 on the end, and a hairline under the row. When a translated
+ * label and a date can't share a line on a narrow phone or at a larger text size, the value moves
+ * under the label, still on the end side, instead of being squeezed.
  */
-function LimitRow({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
+function LimitRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 py-2.5">
-      <dt className="flex min-w-0 items-center gap-2 type-meta text-text-sub-600">
-        <span
-          className="flex shrink-0 text-text-soft-400 [&>svg]:h-4 [&>svg]:w-4"
-          aria-hidden="true"
-        >
-          {icon}
-        </span>
-        {label}
-      </dt>
-      <dd className="ms-auto flex min-w-0 items-center justify-end gap-1 text-right type-label-sm tracking-normal text-text-strong-950 [overflow-wrap:anywhere]">
+    <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-0.5 border-b border-stroke-soft-200 pb-3">
+      <dt className="min-w-0 type-label-sm tracking-normal text-text-sub-600">{label}</dt>
+      <dd className="ms-auto min-w-0 text-right type-label-sm font-medium tracking-normal text-text-strong-950 [overflow-wrap:anywhere]">
         {value}
       </dd>
     </div>
@@ -129,9 +110,8 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
         <h3 id={limitsId} className="text-sm font-semibold leading-5 text-text-strong-950">
           {intl.formatMessage({ id: "public.reporting.grant.limits", defaultMessage: "Limits" })}
         </h3>
-        <dl className="mt-1 divide-y divide-stroke-soft-200 tabular-nums">
+        <dl className="mt-3 grid gap-4 tabular-nums">
           <LimitRow
-            icon={<RiCalendarLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.starts",
               defaultMessage: "Starts",
@@ -139,7 +119,6 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             value={date(policy.validAfter)}
           />
           <LimitRow
-            icon={<RiCalendarCloseLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.expires",
               defaultMessage: "Expires",
@@ -147,7 +126,6 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             value={date(policy.validUntil)}
           />
           <LimitRow
-            icon={<RiTimeLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.duration",
               defaultMessage: "Duration",
@@ -155,7 +133,6 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             value={formatDuration(intl, policy.validUntil - policy.validAfter)}
           />
           <LimitRow
-            icon={<RiStackLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.maximum",
               defaultMessage: "Maximum publications",
@@ -163,7 +140,6 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             value={intl.formatNumber(policy.maxSubmissions)}
           />
           <LimitRow
-            icon={<RiCheckboxMultipleLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.used",
               defaultMessage: "Already used",
@@ -171,7 +147,6 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             value={intl.formatNumber(grant.submissionsUsed)}
           />
           <LimitRow
-            icon={<RiGasStationLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.gas",
               defaultMessage: "Total gas allowance",
@@ -183,7 +158,6 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
           />
           {policy.gasCostCapWei ? (
             <LimitRow
-              icon={<RiCoinLine />}
               label={intl.formatMessage({
                 id: "public.reporting.grant.cost",
                 defaultMessage: "Maximum total sponsored cost",

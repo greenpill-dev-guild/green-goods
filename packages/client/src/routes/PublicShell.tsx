@@ -284,7 +284,8 @@ export default function PublicShell() {
     return () => cancelAnimationFrame(frame);
   }, [formatMessage]);
 
-  // Reporting ceremony pages are transactional: no editorial chrome, and app buttons.
+  // Reporting ceremony pages are transactional: no site navigation or install prompt. The focused
+  // shell sets the website's surface itself (DL-121).
   if (focused) {
     return (
       <Suspense fallback={null}>
