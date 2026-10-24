@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:14a5ca7d305d81ec5491e74857766f076526802c2d3711bbe80b8397ccc17aff"
+source_digest: "sha256:7530ffc5b24fbbc4916a33fa064d7a57a49aa9eeeb8c204b8278182a3d5aecd7"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -18,7 +18,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # Contract operations
 
-Generated from the package-owned CLI definitions: 97 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
+Generated from the package-owned CLI definitions: 98 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
 
 `--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.
 
@@ -135,7 +135,7 @@ No options beyond the command itself.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
-### Release (11)
+### Release (12)
 
 Run a release session step by step with its transaction boundaries.
 
@@ -161,6 +161,12 @@ Options: `--manifest <value>`, `--members <value>`, `--receipts <value>`, `--pla
 | Command | Networks | Modes |
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release clc --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
+
+No options beyond the command itself.
+
+| Command | Networks | Modes |
+|---|---|---|
+| <CopyCommand command="bun run contracts -- release downstream --mode &lt;mode&gt;" /> | not network-scoped | simulate, broadcast |
 
 Options: `--stage <value>`, `--commit <value> (required)`.
 

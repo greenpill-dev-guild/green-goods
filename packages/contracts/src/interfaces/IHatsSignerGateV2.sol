@@ -27,6 +27,7 @@ interface IHatsSignerGateV2 {
     function isValidSigner(address signer) external view returns (bool);
     function validSignerCount() external view returns (uint256);
     function thresholdConfig() external view returns (ThresholdConfig memory);
+    function setThresholdConfig(ThresholdConfig calldata config) external;
     function locked() external view returns (bool);
     function disableDelegatecallTarget(address target) external;
     function lock() external;

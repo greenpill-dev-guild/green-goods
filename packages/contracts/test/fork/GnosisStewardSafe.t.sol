@@ -78,7 +78,7 @@ contract GnosisStewardSafeForkTest is Test {
             address(0x3bc1A0Ad72417f2d411118085256fC53CBdDd137).staticcall(abi.encodeWithSignature("lastTopHatId()"));
         require(ok, "top Hat counter");
         uint256 nextTopHat = (abi.decode(result, (uint256)) + 1) << 224;
-        receiver = new StewardSafeReceiver(ROUTER, PUBLISHER, GARDEN, nextTopHat, 19);
+        receiver = new StewardSafeReceiver(ROUTER, PUBLISHER, GARDEN, nextTopHat, 19, address(0));
         gate = receiver.gate();
         safe = receiver.safe();
         vm.deal(address(safe), 10 ether);
@@ -241,7 +241,9 @@ contract GnosisStewardSafeForkTest is Test {
         vm.chainId(100);
         (bool ok, bytes memory counter) = receiver.HATS().staticcall(abi.encodeWithSignature("lastTopHatId()"));
         require(ok, "top Hat counter");
-        receiver = new StewardSafeReceiver(ROUTER, address(source), GARDEN, (abi.decode(counter, (uint256)) + 1) << 224, 20);
+        receiver = new StewardSafeReceiver(
+            ROUTER, address(source), GARDEN, (abi.decode(counter, (uint256)) + 1) << 224, 20, address(0)
+        );
         assertEq(address(receiver), predictedReceiver);
         gate = receiver.gate();
         safe = receiver.safe();

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Interface } from "ethers";
 import draft from "../../config/steward-safe-release.json";
 import {
   type StewardArtifacts,
@@ -11,6 +12,7 @@ const address = (n: number) => `0x${n.toString(16).padStart(40, "0")}`;
 function fixture() {
   return {
     ...structuredClone(draft),
+    bootstrapSigner: null as string | null,
     garden: address(10),
     hatsModule: address(11),
     stewardHat: "2",
@@ -26,7 +28,7 @@ function artifacts(): StewardArtifacts {
     abi: [
       name === "StewardRolePublisher"
         ? "constructor(address,address,address,uint256,address)"
-        : "constructor(address,address,address,uint256,uint256)",
+        : "constructor(address,address,address,uint256,uint256,address)",
     ],
     bytecode: { object: "0x60006000f3" },
     deployedBytecode: { object: "0x6000" },
@@ -99,6 +101,30 @@ describe("fixed-two steward Safe release", () => {
     validateStewardPlan(plan, fixture(), artifacts(), commit);
     plan.transactions[0].data += "00";
     expect(() => validateStewardPlan(plan, fixture(), artifacts(), commit)).toThrow("mismatch");
+  });
+  it("binds the approved bootstrap signer and labels initial authority", () => {
+    const m = fixture();
+    m.bootstrapSigner = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
+    const a = artifacts();
+    const p = buildStewardPlan(m, a, commit);
+    expect(p.kind).toBe("BOOTSTRAP_STEWARD_SAFE");
+    expect(p.activationIncluded).toBe(true);
+    const abi = new Interface(a.StewardSafeReceiver.abi);
+    expect(
+      p.transactions[1].data.endsWith(
+        abi
+          .encodeDeploy([
+            m.networks.gnosis.router,
+            p.transactions[0].address,
+            m.garden,
+            m.expectedTopHat,
+            m.salt,
+            m.bootstrapSigner,
+          ])
+          .slice(2),
+      ),
+    ).toBe(true);
+    expect(() => validateStewardPlan(p, { ...m, bootstrapSigner: null }, a, commit)).toThrow();
   });
   it("rejects stale revision, wrong build, and unreviewed runtime", () => {
     const m = fixture();

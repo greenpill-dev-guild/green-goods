@@ -117,21 +117,22 @@ export async function simulateStewardNetwork(
         ],
         provider,
       );
-      equal(await gate.locked(), true, "locked gate");
+      const bootstrap = manifest.bootstrapSigner ?? null;
+      equal(await gate.locked(), !bootstrap, "gate lock mode");
       equal(await gate.claimableFor(), true, "permissionless reconciliation");
       equal(await gate.safe(), safeAddress, "gate Safe");
       equal(await gate.ownerHat(), manifest.expectedTopHat, "gate owner Hat");
       equal(await gate.implementation(), "0x148057884AC910Bdd93693F230C5c35a8c47CA3b", "reviewed HSG");
       const config = await gate.thresholdConfig();
       equal(config[0], 0, "absolute threshold");
-      equal(config[1], 2, "minimum");
-      equal(config[2], 2, "target");
+      equal(config[1], bootstrap ? 1 : 2, "minimum");
+      equal(config[2], bootstrap ? 1 : 2, "target");
       equal(await safe.VERSION(), "1.4.1", "HSG-created Safe version");
       equal(await safe.getThreshold(), 1, "bootstrap physical threshold");
-      equal(await gate.validSignerCount(), 0, "no activation/signers");
+      equal(await gate.validSignerCount(), bootstrap ? 1 : 0, "valid signers");
       const owners = await safe.getOwners();
       equal(owners.length, 1, "placeholder owner count");
-      equal(owners[0], gateAddress, "placeholder owner");
+      equal(owners[0], bootstrap ?? gateAddress, "initial owner");
       const [modules, next] = await safe.getModulesPaginated("0x0000000000000000000000000000000000000001", 2);
       equal(modules.length, 1, "sole Safe module");
       equal(modules[0], gateAddress, "gate module");
@@ -148,7 +149,11 @@ export async function simulateStewardNetwork(
         "0xA1dabEF33b3B82c7814B6D82A79e50F4AC44102B",
         "0x9641d764fc13c8B624c04430C7356C1C7C8102e2",
       ])
-        equal(await gate.enabledDelegatecallTargets(target), false, "disabled delegatecall target");
+        equal(
+          await gate.enabledDelegatecallTargets(target),
+          Boolean(bootstrap) && target === "0x9641d764fc13c8B624c04430C7356C1C7C8102e2",
+          "pinned call-only batch permission",
+        );
       const hats = new Contract(
         "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
         [
@@ -168,10 +173,10 @@ export async function simulateStewardNetwork(
         address: safeAddress,
         gate: gateAddress,
         signerHat: String(signerHat),
-        effectiveThreshold: 2,
+        effectiveThreshold: bootstrap ? 1 : 2,
         physicalThreshold: 1,
-        validSigners: 0,
-        spendingEnabled: false,
+        validSigners: bootstrap ? 1 : 0,
+        spendingEnabled: Boolean(bootstrap),
       };
     }
     return {
@@ -184,7 +189,7 @@ export async function simulateStewardNetwork(
       gasUsed: String(receipt.gasUsed),
       runtimeHash: keccak256(code),
       safe: safeState,
-      activationIncluded: false,
+      activationIncluded: Boolean(manifest.bootstrapSigner),
       transportDelivered: false,
       observerRegistered: false,
       funding: "synthetic local balance; live funding not proved",

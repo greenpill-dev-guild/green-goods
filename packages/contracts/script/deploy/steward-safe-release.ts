@@ -87,7 +87,7 @@ async function main() {
         {
           state: "planned",
           output: path.relative(CONTRACTS_ROOT, output),
-          activationIncluded: false,
+          activationIncluded: Boolean(inspected.manifest.bootstrapSigner),
           liveBroadcast: false,
         },
         null,
@@ -118,7 +118,7 @@ async function main() {
     releaseId: input.releaseId,
     rows,
     liveBroadcast: false,
-    activationIncluded: false,
+    activationIncluded: Boolean(inspected.manifest.bootstrapSigner),
   });
   console.log(
     JSON.stringify(
@@ -126,7 +126,7 @@ async function main() {
         state: "simulated",
         output: path.relative(CONTRACTS_ROOT, output),
         liveBroadcast: false,
-        activationIncluded: false,
+        activationIncluded: Boolean(inspected.manifest.bootstrapSigner),
       },
       null,
       2,

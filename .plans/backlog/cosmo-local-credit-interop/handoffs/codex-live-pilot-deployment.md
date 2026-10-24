@@ -1746,3 +1746,105 @@ Task record: Cosmo-local live pilot | Type: feature/operator workflow | Outcome:
 Final formatting note: Biome wrapped the test fixture function type annotation after the full verifier. The old byte receipt is retained; emitted JavaScript is exactly identical, and the complete 728-case/55-file script suite, all 37 CLI checks and typecheck passed again at the final formatted bytes. The private current staging manifest records all 18 tooling/Docs hashes. No production runtime input changed. This task did not stage or commit; the coordinating chat owns Git mutations.
 
 The scoped code and generated Docs checkpoint is now signed in `ed35217183dab520e6c889e9eaf21ad8733f468f` (good SSH signature, normal pre-commit hooks). All 18 committed tooling/Docs hashes match the final validated inputs. The complete post-format script proof passes 728 tests in 55 files plus 37 CLI tests; final typecheck passes. The original full-verifier byte receipt and the one formatter-only fixture change remain separately recorded, with identical emitted JavaScript verified. The coordinating chat owns the follow-up evidence commit and remote publication; this task made no Git mutation. The locked deployment plan remains the original f40309b1d plan.
+
+## 2026-10-24 — Consolidated downstream owner packets and approved bootstrap
+
+The user explicitly selected `0x2aa64E6d80390F5C017F0313cB908051BE2FD35e` as the
+Tech and Sun Gnosis Safe's initial single signer. This release-scoped bootstrap replaces the
+initial fixed-two requirement for that issuer Safe only. Protocol endpoint and shared-pool
+ownership stays with the existing GG Safe at threshold two. The receiver now permits one
+bootstrap signer until two source-verified owners can support permanent finalization to an
+absolute minimum/target of two. Only the approved bootstrap signer can finalize, and the bootstrap exception is removed
+before counting: an unverified bootstrap owner cannot satisfy the final two. Finalization locks
+HSG and cannot be reversed. An authenticated revocation overrides initial bootstrap eligibility.
+
+Only the pinned v1.4.1 MultiSendCallOnly remains enabled for this bootstrap Safe. The two other
+HSG default delegatecall targets are disabled. Published HSG postflight checks reject owner,
+threshold, guard, module and fallback changes through the permitted helper. The old zero-bootstrap
+configuration retains its locked-two behavior and all three disabled defaults.
+
+A disposable read-only Gnosis probe against the pinned published Hats/HSG/Safe binaries passed
+bootstrap execution, permitted batching, premature-finalization rejection, finalization to two,
+revocation/regrant, and Safe configuration mutation rejection. Transport and ERC1271 signers in
+that probe are synthetic; no real user signature or DON delivery is claimed. Public evidence
+and three explicitly labeled review drafts are in the ignored deployment queue directory.
+
+The previously shared Arbitrum Safe nonce 33 executed successfully in
+`0xabdff0d7998aefeb1cb0ffb274abc681ae7aa2a2dbb78127edbc473a738bc3a9`, with the reviewed
+SafeTx hash `0x5eb399c1f00ced0aed16ab905feeebefb1fe24287966d26d87157ee6529edb7f`.
+The actual outer target is the verified SafeRelayExecutor, not the Safe itself. Its success
+receipt and exact inner calldata establish the ordered source upgrades; the Safe advanced to
+34. The old direct-only adoption handler does not support this relay envelope. Its files remain
+unchanged. The downstream operator independently checks the exact relayed receipt, pinned relay
+code, zero Safe reimbursement, external fee cap, original Safe ownership/threshold/runtime,
+selected preserved source state and exact upgraded implementation runtimes at the receipt and
+current blocks before allowing any new deployment.
+
+The new package-owned command is:
+
+```bash
+bun run contracts -- release downstream --mode broadcast
+```
+
+It compiles the production targets, binds committed source and the frozen public candidate
+inputs, validates source state and current chain/nonces, rehearses both complete deployment
+sequences on owned forks, and exercises atomic rollback followed by success for all three
+consolidated owner packets. It persists public `42161-pilot-downstream.json` and `100-pilot-downstream.json` deployment
+artifacts. It then requests the normal deployer password once and sends only
+the approved deployer transactions. Every send has a durable pending record and canonical
+receipt, calldata, chain, nonce, fee and runtime verification. Existing execution state is
+preserved and requires reconciliation; this command does not blindly restart a partial run.
+
+The sequence has 23 deployments, the EOA-owned Hats observer registration, and five native CCIP
+fuel transfers. CREATE predictions remain Arbitrum nonces 1062–1068 and Gnosis 0–15. The observer
+uses Arbitrum nonce 1069. Transport fuel follows at Arbitrum 1070–1072 and Gnosis 16–17:
+0.0005 ETH to the publisher, 0.0005 ETH to entitlement, 0.001 ETH to redemption, and 0.25 xDAI each
+to the Gnosis adapter and escrow. This totals the previously approved 0.002 ETH / 0.50 xDAI
+transport budgets. Gas is capped separately at 0.0028 ETH / 0.10 xDAI; the command also checks
+remaining reservations and live estimates. Arbitrum max fee is 0.05 gwei with zero priority;
+Gnosis max fee is 2 gwei with 1 gwei priority. The last observed deployer balances were
+0.009124259183215177 ETH and 1.27 xDAI, so no top-up was requested.
+
+After all live receipts and initial paused/zero-supply/zero-allowance state pass, the command
+exports these final Transaction Builder files under `packages/contracts/.generated/deployment-queue/`:
+
+| Packet | Chain | Safe nonce | Calls | Required owners |
+| --- | --- | --- | --- | --- |
+| `100-green-goods-consolidated.safe-batch.json` | Gnosis 100 | 2 | 14 | GG two-of-five |
+| `100-tech-and-sun-consolidated.safe-batch.json` | Gnosis 100 | 0 | 5 | Approved bootstrap signer only |
+| `42161-green-goods-final.safe-batch.json` | Arbitrum 42161 | 34 | 8 | GG two-of-five |
+
+These are two more packets for the GG team, plus one for the user's sole bootstrap signature.
+The intended execution order is GG Gnosis, Tech and Sun Gnosis, then GG Arbitrum. Safe helper
+selection follows the actual GG Safe version and pinned deployed code; the HSG Safe uses its
+pinned v1.4.1 call-only helper. Final hashes are exported after the live deployments; earlier
+draft hashes must not be treated as final signing requests. No Safe owner call is broadcast
+by this command.
+
+The packets recommend twenty voucher units per issuer, ten deposited and ten retained, a finite
+adapter allowance of ten, six decimals and zero initial fees. Source authorities are proposed
+as the GG Safe for GG and the approved bootstrap signer for Tech and Sun. Bootstrap ownership
+alone does not constitute acceptance of this separate source authority. Issuer capacity and
+service terms remain unaccepted; the final packets retain that distinction and require owner
+review. Member roles, member quantities and later individual onboarding were not requested as
+blocking inputs.
+
+Observed local proof: the production gate passed 2,211 Solidity cases across 171 suites, three
+production gas cases, 37 CLI cases and 753 script cases across 58 files in 215 seconds. Final
+operator preflight changes additionally passed package typecheck and the complete script suite.
+ABI synchronization, source/test quality, lint and generated package documentation checks were
+also run. The live exact downstream fork rehearsals run in the user's normal operator terminal
+before its password prompt because this session's direct public RPC tunnel returned HTTP 403;
+connected RPC reads subsequently also became unavailable. No new live deployment is claimed.
+
+Task record: Cosmo live pilot deployment | Type: feature | Outcome: operator prepared, signing pending
+Agent/model: Codex / unknown | Coverage: bootstrap and consolidated downstream continuation
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+| --- | --- | --- |
+| Investigate | unknown → 2026-10-24 20:17:53 | Existing source bindings, published HSG protections and downstream sequence inspected. |
+| Implement | 2026-10-24 20:17:53 → 2026-10-24 21:34:50 | Bootstrap, three review packets and one-password downstream command. |
+| Verify | 2026-10-24 20:18:40 → 2026-10-24 21:34:50 | Published-binary read-only probe; production gate and final focused checks above. |
+| Wait | ongoing | Normal deployer keystore signing, followed by the two GG and one bootstrap owner packets. |
+
+Human corrections: zero observed in this continuation segment; attention: unknown.

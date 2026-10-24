@@ -93,7 +93,7 @@ function fixture() {
         artifact(`src/accounts/${n}.sol`, n, [
           n === "StewardRolePublisher"
             ? "constructor(address,address,address,uint256,address)"
-            : "constructor(address,address,address,uint256,uint256)",
+            : "constructor(address,address,address,uint256,uint256,address)",
         ]),
       ]),
     ) as StewardArtifacts,

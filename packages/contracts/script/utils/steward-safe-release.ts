@@ -16,6 +16,7 @@ export interface StewardManifest {
   schemaVersion: 1;
   releaseId: string;
   threshold: 2;
+  bootstrapSigner?: string | null;
   greenGoodsSafe: string;
   garden: string | null;
   hatsModule: string | null;
@@ -28,7 +29,7 @@ export interface StewardManifest {
 export type StewardArtifacts = Record<(typeof STEWARD_CONTRACTS)[number], VoucherArtifact>;
 export interface StewardPlan {
   schemaVersion: 1;
-  kind: "FIXED_TWO_STEWARD_SAFE";
+  kind: "FIXED_TWO_STEWARD_SAFE" | "BOOTSTRAP_STEWARD_SAFE";
   releaseId: string;
   sourceCommit: string;
   manifestHash: string;
@@ -45,7 +46,7 @@ export interface StewardPlan {
     data: string;
   }>;
   observerRegistration: { chainId: 42161; to: string; value: "0"; data: string; authority: string };
-  activationIncluded: false;
+  activationIncluded: boolean;
   liveBroadcast: false;
 }
 const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -66,6 +67,7 @@ export function inspectStewardManifest(value: unknown): {
       "schemaVersion",
       "releaseId",
       "threshold",
+      ...(Object.hasOwn(value as object, "bootstrapSigner") ? ["bootstrapSigner"] : []),
       "greenGoodsSafe",
       "garden",
       "hatsModule",
@@ -107,6 +109,8 @@ export function inspectStewardManifest(value: unknown): {
     )
       throw new Error(`Invalid ${label}`);
   }
+  if (root.bootstrapSigner !== undefined && root.bootstrapSigner !== null)
+    address(root.bootstrapSigner, "bootstrapSigner");
   address(root.garden, "garden");
   address(root.hatsModule, "hatsModule");
   uint(root.stewardHat, "stewardHat");
@@ -198,7 +202,14 @@ export function buildStewardPlan(value: unknown, artifacts: StewardArtifacts, so
     const args =
       network === "arbitrum"
         ? [c.router, m.hatsModule, m.garden, m.stewardHat, addresses.gnosis]
-        : [c.router, addresses.arbitrum, m.garden, m.expectedTopHat, m.salt];
+        : [
+            c.router,
+            addresses.arbitrum,
+            m.garden,
+            m.expectedTopHat,
+            m.salt,
+            m.bootstrapSigner ?? "0x0000000000000000000000000000000000000000",
+          ];
     return {
       network,
       chainId: c.chainId,
@@ -216,7 +227,7 @@ export function buildStewardPlan(value: unknown, artifacts: StewardArtifacts, so
   });
   return {
     schemaVersion: 1,
-    kind: "FIXED_TWO_STEWARD_SAFE",
+    kind: m.bootstrapSigner ? "BOOTSTRAP_STEWARD_SAFE" : "FIXED_TWO_STEWARD_SAFE",
     releaseId: m.releaseId,
     sourceCommit,
     manifestHash: digest(m),
@@ -232,7 +243,7 @@ export function buildStewardPlan(value: unknown, artifacts: StewardArtifacts, so
       ]),
       authority: "HatsModule owner; separate reviewed upgrade/registration, not executed by this plan",
     },
-    activationIncluded: false,
+    activationIncluded: Boolean(m.bootstrapSigner),
     liveBroadcast: false,
   };
 }

@@ -8,7 +8,7 @@ import { IHats } from "../interfaces/IHats.sol";
 import { IHatsSignerGateV2, IModuleProxyFactory, IStewardSafe } from "../interfaces/IHatsSignerGateV2.sol";
 import { StewardRoleCodec as Codec } from "../libraries/StewardRoleCodec.sol";
 
-/// @notice Authenticated Gnosis mirror, Hats eligibility module and dynamic fixed-two issuer Safe.
+/// @notice Authenticated steward Safe with an optional single-signer bootstrap and irreversible fixed-two finalization.
 /// @dev No operator, platform admin, upgrade or arbitrary execution path. This contract alone holds the top Hat.
 contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
     address public constant HATS = 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137;
@@ -22,6 +22,8 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
     uint256 public immutable signerHat;
     IHatsSignerGateV2 public immutable gate;
     IStewardSafe public immutable safe;
+    address public immutable bootstrapSigner;
+    bool public bootstrapFinalized;
 
     struct State {
         uint64 revision;
@@ -34,16 +36,21 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
     error InvalidMessage();
     error ConflictingRevision();
     error OnlySelf();
+    error BootstrapNotActive();
+    error OnlyBootstrapSigner();
+    error InsufficientVerifiedStewards();
     event StewardMirrored(address indexed account, uint64 revision, bool eligible);
     event StewardReconciled(address indexed account, bool eligible);
     event ReconciliationDeferred(address indexed account);
+    event BootstrapFinalized();
 
     constructor(
         address router_,
         address publisher_,
         address garden_,
         uint256 expectedTopHat,
-        uint256 salt
+        uint256 salt,
+        address bootstrapSigner_
     )
         CCIPReceiver(router_)
     {
@@ -52,6 +59,9 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
                 || garden_ == address(0) || expectedTopHat == 0
         ) revert InvalidConfiguration();
         _checkDependencies();
+        if (bootstrapSigner_ == address(1) || bootstrapSigner_ == address(this)) revert InvalidConfiguration();
+        bootstrapSigner = bootstrapSigner_;
+        bootstrapFinalized = bootstrapSigner_ == address(0);
         publisher = publisher_;
         garden = garden_;
         ownerHat = IHats(HATS).mintTopHat(address(this), "Tech and Sun cross-chain steward authority", "");
@@ -66,7 +76,7 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
             ownerHat: ownerHat,
             signerHats: hats,
             safe: address(0),
-            thresholdConfig: IHatsSignerGateV2.ThresholdConfig(0, 2, 2),
+            thresholdConfig: IHatsSignerGateV2.ThresholdConfig(0, bootstrapFinalized ? 2 : 1, bootstrapFinalized ? 2 : 1),
             locked: false,
             claimableFor: true,
             implementation: HSG_IMPLEMENTATION,
@@ -77,17 +87,38 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
             IModuleProxyFactory(MODULE_FACTORY)
                 .deployModule(HSG_IMPLEMENTATION, abi.encodeWithSignature("setUp(bytes)", abi.encode(params)), salt)
         );
-        // HSG enables these defaults. Remove all before the irreversible lock, in this same constructor.
+        // Keep only the pinned call-only multisend for bootstrap Safe batches.
+        // HSG checks owners, threshold, guard, modules and fallback after delegatecalls.
         gate.disableDelegatecallTarget(0x40A2aCCbd92BCA938b02010E17A5b8929b49130D);
         gate.disableDelegatecallTarget(0xA1dabEF33b3B82c7814B6D82A79e50F4AC44102B);
-        gate.disableDelegatecallTarget(0x9641d764fc13c8B624c04430C7356C1C7C8102e2);
-        gate.lock();
+        if (bootstrapFinalized) gate.disableDelegatecallTarget(0x9641d764fc13c8B624c04430C7356C1C7C8102e2);
         safe = IStewardSafe(gate.safe());
+        if (bootstrapFinalized) {
+            gate.lock();
+        } else {
+            if (bootstrapSigner_ == address(gate) || bootstrapSigner_ == address(safe)) revert InvalidConfiguration();
+            IHats(HATS).mintHat(signerHat, bootstrapSigner_);
+            gate.claimSignerFor(signerHat, bootstrapSigner_);
+        }
     }
 
     /// @dev Hats falls back to stored standing on a reverting eligibility call. Always explicitly return false.
     function getWearerStatus(address account, uint256 hat) external view returns (bool eligible, bool standing) {
-        return (hat == signerHat && states[account].eligible, true);
+        State memory state = states[account];
+        bool initialSigner = !bootstrapFinalized && account == bootstrapSigner && state.revision == 0;
+        return (hat == signerHat && (state.eligible || initialSigner), true);
+    }
+
+    /// @notice The approved bootstrap signer may permanently tighten the Safe after two source-verified owners join.
+    /// @dev Removing the bootstrap exception before counting prevents an unverified bootstrap owner from satisfying two.
+    function finalizeBootstrap() external nonReentrant {
+        if (bootstrapFinalized) revert BootstrapNotActive();
+        if (msg.sender != bootstrapSigner) revert OnlyBootstrapSigner();
+        bootstrapFinalized = true;
+        if (gate.validSignerCount() < 2) revert InsufficientVerifiedStewards();
+        gate.setThresholdConfig(IHatsSignerGateV2.ThresholdConfig(0, 2, 2));
+        gate.lock();
+        emit BootstrapFinalized();
     }
 
     function getHatStatus(uint256 hat) external view returns (bool) {
