@@ -448,8 +448,8 @@ dark, in English, Spanish and Portuguese; headless Chromium (Playwright) at devi
 Before, every row at 320 and 390px scrolled except Account and the pool switch, which scrolled
 only in Spanish at 320px. The tab is 36px tall in every row and width. The active label on its cell measures 5.84
 (Hub), 4.70 (Garden), 6.30 (Actions) and 8.22:1 (Home) in light, and 8.97 to 12.32:1 in dark.
-Community reads 4.06:1 in Storybook, which draws the shared orange ramp; on the cockpit's canvas,
-where its amber ramp applies, the same label measures 5.7:1.
+Community read 4.06:1 in these Storybook frames, captured before #1206 gave Storybook and the
+cockpit's portals the canvas's amber ramp; on that ramp the same label computes to 5.75:1.
 
 **Found on the way.** The app's Promises sheet clips Portuguese "Em andamento" at 390 and 320px
 and Spanish "Por confirmar" at 320px, before and after; the step does not touch the app's tabs.
