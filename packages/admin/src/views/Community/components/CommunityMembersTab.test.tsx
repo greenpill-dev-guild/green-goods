@@ -23,6 +23,15 @@ vi.mock("@/components/Garden/AddMembersDialog", () => ({
 vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
   resolveEnsName: async () => null,
 }));
+// Each member is a person row: nobody here has a photo or a Green Goods name, so the row
+// reads neither from a wallet nor the network.
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useResolvedProfileAvatar: () => ({ avatarUri: null, isLoading: false }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
 
 function MembersHarness({
   memberCount = storyDirectory.length,
