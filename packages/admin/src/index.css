@@ -236,6 +236,18 @@
   }
 }
 
+/* AdminButton and AdminIconButton keep the block margin the cockpit's hit-target
+   classes reserved around them, 6px around the 28 and 32px tiers and 2px around
+   40px, so the finger boxes of a wrapped row never overlap and the rows laid out
+   around that room keep their rhythm (DL-115). The shared pieces the cockpit
+   renders never reserved it, so the tokens sit on the adapters, not on :root. */
+:where([data-component="AdminButton"], [data-component="AdminIconButton"]) {
+  --gg-button-reserve-lg: 0.125rem;
+  --gg-button-reserve-md: 0.125rem;
+  --gg-button-reserve-sm: 0.375rem;
+  --gg-button-reserve-compact: 0.375rem;
+}
+
 /* The phone sheet in dark: the lifted card (earth-850) and its hairline. The
    disabled button pair, re-declared so a dark scope resolves its own ink. */
 [data-theme="dark"] {

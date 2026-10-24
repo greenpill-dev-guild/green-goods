@@ -161,6 +161,15 @@
   }
 }
 
+/* The adapters' finger-box reserve, as admin index.css sets it (DL-115). */
+:root[data-surface="admin"] :where([data-component="AdminButton"], [data-component="AdminIconButton"]),
+[data-surface-scope="admin"] :where([data-component="AdminButton"], [data-component="AdminIconButton"]) {
+  --gg-button-reserve-lg: 0.125rem;
+  --gg-button-reserve-md: 0.125rem;
+  --gg-button-reserve-sm: 0.375rem;
+  --gg-button-reserve-compact: 0.375rem;
+}
+
 :root[data-surface="admin"][data-theme="dark"],
 [data-theme="dark"] [data-surface-scope="admin"],
 [data-surface-scope="admin"][data-theme="dark"] {

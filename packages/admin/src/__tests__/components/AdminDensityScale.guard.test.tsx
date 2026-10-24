@@ -226,6 +226,26 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-card-edge": "var(--neutral-200)",
       "--gg-card-fill": "var(--m3-surface-container-high)",
     });
+    // The adapters reserve the old hit-target margin around each tier (DL-115):
+    // 6px around 28 and 32px, 2px around 40px, on the adapters alone.
+    const reserve = {
+      "--gg-button-reserve-lg": "0.125rem",
+      "--gg-button-reserve-md": "0.125rem",
+      "--gg-button-reserve-sm": "0.375rem",
+      "--gg-button-reserve-compact": "0.375rem",
+    };
+    expect(
+      ggTokens(
+        adminCss,
+        ':where([data-component="AdminButton"], [data-component="AdminIconButton"]) {'
+      )
+    ).toEqual(reserve);
+    expect(
+      ggTokens(
+        surfacesCss,
+        '[data-surface-scope="admin"] :where([data-component="AdminButton"], [data-component="AdminIconButton"]) {'
+      )
+    ).toEqual(reserve);
     // The Storybook admin scope must render what production renders.
     expect(ggTokens(surfacesCss, '[data-surface-scope="admin"] {')).toEqual(admin);
     // In dark the sheet is the lifted card with its hairline, and the disabled

@@ -1507,11 +1507,13 @@
   }
 
   /* A surface whose rows were laid out around fixed-height buttons caps each
-   * size at its block, so a row that stretches never grows one (the cockpit,
-   * DL-115). The app sets no cap. */
+   * size at its block, so a row that stretches never grows one, and can reserve
+   * a block margin for the finger box's reach (the cockpit's adapters, DL-115).
+   * The app sets neither. */
   .gg-button[data-size="lg"] {
     --gg-button-block: var(--gg-button-block-lg, 3rem);
     max-block-size: var(--gg-button-block-cap-lg, none);
+    margin-block: var(--gg-button-reserve-lg, 0);
     --gg-button-line: var(--text-label-md--line-height);
     padding-inline: var(--gg-button-inline-lg, 1.25rem);
     font-size: var(--gg-label-md);
@@ -1521,6 +1523,7 @@
   .gg-button[data-size="md"] {
     --gg-button-block: var(--gg-button-block-md, 2.75rem);
     max-block-size: var(--gg-button-block-cap-md, none);
+    margin-block: var(--gg-button-reserve-md, 0);
     --gg-button-line: var(--text-label-md--line-height);
     padding-inline: var(--gg-button-inline-md, 1rem);
     font-size: var(--gg-label-md);
@@ -1530,12 +1533,14 @@
   .gg-button[data-size="sm"] {
     --gg-button-block: var(--gg-button-block-sm, 2.5rem);
     max-block-size: var(--gg-button-block-cap-sm, none);
+    margin-block: var(--gg-button-reserve-sm, 0);
     padding-inline: var(--gg-button-inline-sm, 0.875rem);
   }
 
   .gg-button[data-size="compact"] {
     --gg-button-block: var(--gg-button-block-compact, 2rem);
     max-block-size: var(--gg-button-block-cap-compact, none);
+    margin-block: var(--gg-button-reserve-compact, 0);
     gap: 0.375rem;
     padding-inline: var(--gg-button-inline-compact, 0.75rem);
   }
@@ -1682,6 +1687,8 @@
     border-radius: calc(var(--gg-icon-button-size) / 2);
     --gg-icon-button-fill: transparent;
     --gg-icon-button-ink: rgb(var(--text-sub-600));
+    /* The same reserve as the button's, per size (DL-115); none in the app. */
+    margin-block: var(--gg-button-reserve-md, 0);
     background-color: var(--gg-icon-button-fill);
     color: var(--gg-icon-button-ink);
     cursor: pointer;
@@ -1701,14 +1708,17 @@
 
   .gg-icon-button[data-size="lg"] {
     --gg-icon-button-size: var(--gg-icon-size-lg, 3rem);
+    margin-block: var(--gg-button-reserve-lg, 0);
   }
 
   .gg-icon-button[data-size="sm"] {
     --gg-icon-button-size: var(--gg-icon-size-sm, 2.5rem);
+    margin-block: var(--gg-button-reserve-sm, 0);
   }
 
   .gg-icon-button[data-size="compact"] {
     --gg-icon-button-size: var(--gg-icon-size-compact, 2rem);
+    margin-block: var(--gg-button-reserve-compact, 0);
   }
 
   .gg-icon-button[data-size="compact"] svg {
