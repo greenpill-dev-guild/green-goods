@@ -802,6 +802,65 @@ design-token, story, source-structure and seam checks, and the `storybook-ci` pl
 files that render a changed screen (`vitest --project=storybook`): 153 tests, all passing after the
 `ReviewLine` change, with two load timeouts that passed on a rerun.
 
+## Step 18 build: jar and vault cards
+
+Run on 2026-10-24 against `develop` `3c4fd4b62`, with step 18 at `c7b90c2dc` on
+`feature/app-cockpit-jar-vault-cards` (the review fixes after it change none of these frames).
+The before frames came from a detached capture worktree at `develop`, the after frames from the
+branch, each served by its own capture-only Storybook from the same untracked capture stories,
+which reuse each real story with its own mocks and add Spanish and Portuguese. The pairs went to
+the maintainer as a private artifact, outside the repository.
+
+**Pairs.** 83 pairs and 2 after-only frames, headless Chromium (Playwright) at device scale 2:
+71 **Storybook** pairs and 12 **mock-auth localhost** pairs.
+
+- App, **mock-auth localhost**: `?mockAuth=deployer&presentation=pwa` on Arbitrum One with the
+  production indexer, at TAS HUB, the one garden of the first fourteen where the deployer sees
+  Open Endowment: its Endowment tab (the vault summary and the reader's DAI deposit), its Cookie
+  jar tab, and the WETH jar's page opened, at 390px in light and dark and in Spanish and
+  Portuguese, each code state served by its own capture-only client dev server.
+
+The Storybook pairs, full page:
+
+- Cockpit: Community › Payouts' jars (closed, one opened, one paused), Community › Endowment's
+  positions (closed and opened), the real `PositionCard`, and the campaign cookie jars, at 390, 768
+  and 1280px in light and dark in English and at 390px in Spanish and Portuguese; the no-vault,
+  no-campaign, no-event and no-allocation states.
+- App: the endowment sheet's Endowment tab with a deposit (closed and opened) and with none, its
+  Cookie jar tab (closed and opened), and the wallet's Cookies tab (closed and opened), at 390px
+  in light and dark and in Spanish and Portuguese.
+- After only: the row's `Amounts` story, both densities at their phone list widths in three
+  languages.
+
+The wallet's Cookies tab has no jar for the mock users, so its pairs come from its real story.
+
+**Fit after** (each visible row's height from its box; an amount counts as cut when its value
+overflows its slot or the row):
+
+| Set | Where | Rows | Height | Amounts cut | Detail lines | First detail in an ellipsis |
+|---|---|---|---|---|---|---|
+| Every captured list | 73 frames, 390 to 1280px, light and dark, three languages | 163 | 88px | 0 | 0 wrapped, cut or dropped | 2: the Portuguese per-claim detail at 390px inside the cockpit's Payouts card |
+| TAS HUB's endowment sheet, live | 12 frames at 390px, light and dark, three languages; the garden's work rows behind the sheet included | 256 | 88px | 0 | 0 wrapped, cut or dropped | none |
+| The row's `Amounts` story | app columns of 288, 328 and 358px; cockpit 296 and 366px | 45 | 88px | 0 | 0 wrapped, cut or dropped | 9 per theme: the per-claim detail at 288px in all three languages, at 328px in Portuguese, at 296px in Spanish and Portuguese; none at 358 or 366px |
+
+**Before.** The app's jar cards were compact cards of their own height (a claim form opening
+inside the card), the endowment sheet's deposits showed an open withdraw form, and the vault
+summary was a two-line card without the asset on its net deposits. The cockpit drew a grid of
+tall cards: a garden jar's at least 256px with its editors and acts, a position's with four facts
+and every act; the campaign list was a divided list of content-height rows.
+
+**Found on the way.**
+
+- Codex's review of #1234 caught a paused jar's row still claiming an amount was available now,
+  the deposits' empty state showing before the read finished, a campaign jar showing a fallback
+  "0 a claim" after a failed read, and dust amounts that would overflow the slot; all fixed in
+  `ed8b05724`, with focused tests. It also asked for the open row to take `selected`; kept as a
+  disclosure (`aria-expanded`), since several pages can be open and `aria-current` marks one item.
+- The design-token baseline still listed the campaign row's raw `<button>`, which the item row
+  replaced, so CI's token check failed until the line was removed (`d9e2485a6`).
+- Capture rig: a new story's first render made Vite re-optimize and reload the Storybook iframe,
+  so the capture waits for the preview channel to return before each render.
+
 ## Step 17 build: people rows
 
 Run on 2026-10-24 against `develop` `a3645441c`, with step 17 on `feature/app-cockpit-people-rows`

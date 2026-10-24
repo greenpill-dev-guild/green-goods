@@ -13,6 +13,8 @@
   `feature/app-cockpit-control-outline-guides` (#1196), both first stacked on step 2's. Step 4:
   `feature/app-cockpit-count-badge` with its guides `feature/app-cockpit-count-badge-guides`.
   Step 7: `feature/app-cockpit-cards-rows` with its guides `feature/app-cockpit-cards-rows-guides`.
+  Step 18: `feature/app-cockpit-jar-vault-cards` (#1234) with its guides
+  `feature/app-cockpit-jar-vault-cards-guides` (#1233).
 - Status: in progress. Steps 1 to 3 merged on 23 October; step 4 was approved on its pair the same
   day; every later step starts on its own approved pair. Still pending: labeled authenticated Brave proof of an installed app's first
   launch with no network (step 1) and of the installed app's status bar, with the iOS check of
@@ -416,6 +418,66 @@
   long reviews taller; the Profile's settings become one card while its account, garden and help
   cards stay; the send review's Change moves to an icon button; the account status rows stay status
   cards; and pool readiness now shows its words.
+
+## Step 18: jar and vault cards (PRD-1285)
+
+- `feature/app-cockpit-jar-vault-cards`, cut from `develop` `a3645441c` (#1226) and brought up to
+  `3c4fd4b62` (#1227):
+  - **The row's amount.** `ItemRow` takes an additive `amount` (`{ value, caption? }`) for its right
+    slot: the value with its asset at the title's size, never cut, over what it is; an action
+    still takes the slot. `ItemRowSkeleton` takes `lead="icon"` and `amount`. `.gg-item-row-amount`
+    and `.gg-item-row-page` (the page a row opens, on the card surface at the row's corner) are in
+    Shared `theme.css`. Story: `Shared/Cards/ItemRow` › Amounts, fit-checked at both densities in
+    three languages.
+  - **App.** The wallet's and the endowment sheet's garden jars are one `CookieJarRow`
+    (`components/Features/Garden`): cookie tile, asset, Active or Paused, "0.01 DAI a claim", and
+    what can be claimed now (wallet, 0 when paused) or the jar's balance (endowment sheet) on the
+    right; the row opens the jar's page with the cadence, holdings and the wallet's claim form. The
+    old endowment `CookieJarCard` is gone. The vault summary lists content rows; My deposits
+    lists rows that open their withdrawal, and its empty state waits for the deposits read.
+  - **Cockpit.** `CookieJarPayoutCard` (Payouts) and `PositionCard` (Endowment and the vault page)
+    are rows whose page opens in place and stays mounted while closed; the deep-linked limit
+    editor opens its jar's page. `CampaignJarListRow` is an item row with the jar's picture, its
+    per-claim amount (dropped after a failed read) and its balance; the Manage dialog gains the
+    creation date. Lists keep `--gg-list-gap` and load as row frames.
+  - **States** (step 11's remainder on these surfaces) on `EmptyState`: the campaign list (4),
+    the endowment (3), the vault history (2), the strategies list (2), the yield card (1), the
+    app's My deposits (3 with the read gate).
+- Proof: focused tests for the row's amount, the app's jar rows, deposit rows and the deposits
+  gate, the cockpit's jar and position rows (rows carry no act until opened; the deep link opens
+  its page and Cancel returns focus to Edit), the failed vault read's retry and the campaign row's
+  read failure, plus the existing jar and vault suites, all passing. The look is **Storybook**
+  pairs on both surfaces and **mock-auth localhost** pairs of TAS HUB's endowment sheet
+  ([eval.md](../eval.md#step-18-build-jar-and-vault-cards)); the wallet's jars come from its
+  story, since no mock role holds a jar. browser-proof for the wallet's claim path is pending:
+  signing is untouched.
+- Guides: DL-113 and its lines in both surface guides, root `DESIGN.md` and the cockpit prompt
+  contract are the standards-only #1233, which merged first; no token change.
+- With step 14: #1243 merged first and retired `AdminSettingRow`, so the jar page's limit and
+  cooldown rows are step 14's `FactRow`s, carried in unchanged when develop was merged
+  (`31e915c77`); `theme.css` keeps the item row's amount and page rules beside the fact row block.
+- Open calls: the page opens in place rather than in a dialog (one tap more where a card showed
+  its acts); the wallet keeps leading with what can be claimed now; an opened row does not take
+  `selected` (several pages can be open); Portuguese "por reivindicação" ends in an ellipsis on
+  the narrowest rows; campaign search matches the slug and address the row no longer shows.
+- Not in the step: `GardenPoolCard` (a commitment pool, step 15's area); Shared's
+  `VaultPositionCard` and the cockpit's `GardenYieldCard`, which no route renders (step 19).
+
+Task record: PRD-1285 (step 18) | Type: feature | Outcome: built, both PRs open on green local
+gates; current-head CI and the merges are the orchestrator's
+Agent/model: Claude Code / claude-opus-5-5 | Coverage: the step 18 session, from the brief to both
+PRs answered
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | unknown → 09:00Z | The hub, sibling notes, the six card designs, the state remainder |
+| Implement | 09:00Z → 09:28Z | `ed53000c9` (row), `8e5e502e6` (app), `c7b90c2dc` (cockpit) |
+| Verify and publish | 09:28Z → 09:36Z | Push gate 14 of 15; #1233 and #1234 opened |
+| Fix (CI and review) | 09:37Z → 10:21Z | Token baseline `d9e2485a6`; Codex's points `ed8b05724` and `41109ae4a`; develop merged |
+| Verify (pairs) | 09:45Z → 10:25Z | 71 Storybook pairs, the private artifact |
+| Verify (live pairs) | 10:25Z → 10:54Z | 12 mock-auth localhost pairs of TAS HUB's endowment sheet, added to the artifact |
+
+Human corrections: 0 observed; attention: unknown.
 
 ## Step 17: people rows (PRD-1284)
 
