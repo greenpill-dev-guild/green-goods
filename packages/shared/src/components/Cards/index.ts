@@ -14,6 +14,13 @@ export {
   cardVariants,
   surfaceCardVariants,
 } from "./CardBase";
+// CommitmentRow: one promise in a list on both surfaces, on the item row
+export {
+  CommitmentRow,
+  type CommitmentRowDirection,
+  type CommitmentRowPending,
+  type CommitmentRowProps,
+} from "./CommitmentRow";
 // ItemRow: one item in a list on both surfaces (F7)
 export {
   ItemRow,

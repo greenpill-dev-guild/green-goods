@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import type { ProofComposerStatus } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import {
   RiErrorWarningLine,
+  RiLoader4Line,
   RiSearchLine,
   RiWifiOffLine,
   type RemixiconComponentType,
@@ -116,11 +117,13 @@ export function ProofState({
             ) : null}
           </div>
         ) : kind === "loading" || kind === "restoringDraft" ? (
-          <p className="text-xs text-text-soft-400" role="status">
-            {formatMessage({
+          <EmptyState
+            busy
+            icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+            title={formatMessage({
               id: kind === "restoringDraft" ? "app.proof.draft.loading" : "app.commitment.loading",
             })}
-          </p>
+          />
         ) : kind === "closed" ? (
           <EmptyState
             icon={<RiSearchLine />}

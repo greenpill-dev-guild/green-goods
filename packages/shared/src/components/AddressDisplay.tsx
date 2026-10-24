@@ -1,13 +1,11 @@
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { useEnsName } from "../hooks/blockchain/useEnsName";
-import { useGreenGoodsEnsName } from "../hooks/ens/useGreenGoodsEnsName";
+import { useAddressDisplayName } from "../hooks/ens/useAddressDisplayName";
 import { useTimeout } from "../hooks/utils/useTimeout";
 import { logger } from "../modules/app/logger";
 import type { Address } from "../types/domain";
 import { copyToClipboard } from "../utils/app/clipboard";
-import { formatAddress } from "../utils/app/text";
 import { cn } from "../utils/styles/cn";
 import { IconButton } from "./IconButton";
 
@@ -35,16 +33,8 @@ export function AddressDisplay({
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const tooltipId = useId();
-  const { data: ensName } = useEnsName(address);
-  const { data: protocolName } = useGreenGoodsEnsName(address);
-  const preferredName = protocolName || ensName;
-  const display =
-    !preferredName && fallbackLabel
-      ? fallbackLabel
-      : formatAddress(address, {
-          ensName: preferredName,
-          variant: preferredName ? "default" : "card",
-        });
+  const { preferredName, display: name } = useAddressDisplayName(address);
+  const display = !preferredName && fallbackLabel ? fallbackLabel : name;
 
   // Auto-cleanup timer via useTimeout (Rule 1)
   const { set: scheduleCopyReset } = useTimeout();

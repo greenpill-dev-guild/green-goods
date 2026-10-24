@@ -85,6 +85,7 @@
     "./components/Canvas/WorkbenchCard": "./src/components/Canvas/WorkbenchCard.tsx",
     "./components/Canvas/WorkbenchList": "./src/components/Canvas/WorkbenchList.tsx",
     "./components/Cards/CardBase": "./src/components/Cards/CardBase.tsx",
+    "./components/Cards/CommitmentRow/CommitmentRow": "./src/components/Cards/CommitmentRow/CommitmentRow.tsx",
     "./components/Cards/ItemRow/ItemRow": "./src/components/Cards/ItemRow/ItemRow.tsx",
     "./components/Cards/MediaCard": "./src/components/Cards/MediaCard.tsx",
     "./components/Cards/WorkCard/WorkCard": "./src/components/Cards/WorkCard/WorkCard.tsx",

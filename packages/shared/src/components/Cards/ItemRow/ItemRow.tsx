@@ -61,6 +61,8 @@ export type ItemRowLead =
       kind: "icon";
       icon: React.ReactNode;
       mark?: React.ReactNode;
+      /** Names the icon when it says something the row's text does not (offer or request). */
+      label?: string;
     };
 
 export interface ItemRowProps
@@ -103,7 +105,12 @@ function Lead({ lead }: { lead: ItemRowLead }) {
     return (
       <span className="gg-item-row-lead">
         <span className="gg-item-row-tile">
-          <span aria-hidden="true" className="gg-item-row-tile-icon">
+          <span
+            {...(lead.label
+              ? { role: "img", "aria-label": lead.label }
+              : { "aria-hidden": true as const })}
+            className="gg-item-row-tile-icon"
+          >
             {lead.icon}
           </span>
           {lead.mark ? <Mark>{lead.mark}</Mark> : null}
@@ -259,9 +266,17 @@ ItemRow.displayName = "ItemRow";
  * The row's frame with nothing in it, for a list that is still loading: the square photo,
  * the title line, the pill and the detail line, so the rows that arrive land where these
  * stood (DL-056). A list whose rows carry a status edge passes `edge`, so the frame keeps
- * the edge's width.
+ * the edge's width, and a list whose rows lead with an icon tile passes `lead="icon"`.
  */
-export function ItemRowSkeleton({ className, edge }: { className?: string; edge?: ItemRowTone }) {
+export function ItemRowSkeleton({
+  className,
+  edge,
+  lead = "photo",
+}: {
+  className?: string;
+  edge?: ItemRowTone;
+  lead?: ItemRowLead["kind"];
+}) {
   return (
     <div
       aria-hidden="true"
@@ -269,7 +284,13 @@ export function ItemRowSkeleton({ className, edge }: { className?: string; edge?
       data-edge={edge}
       className={cn("gg-card gg-item-row", className)}
     >
-      <span className="gg-item-row-photo" />
+      {lead === "icon" ? (
+        <span className="gg-item-row-lead">
+          <span className="gg-item-row-tile" />
+        </span>
+      ) : (
+        <span className="gg-item-row-photo" />
+      )}
       <span className="gg-item-row-body">
         <span className="flex h-5 w-full items-center">
           <span className="h-3.5 w-2/3 rounded bg-bg-soft-200" />
