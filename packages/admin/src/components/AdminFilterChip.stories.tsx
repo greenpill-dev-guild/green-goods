@@ -162,6 +162,8 @@ export const WorkspaceToneMatrix: Story = {
     </div>
   ),
   play: async ({ canvasElement }) => {
+    // Widths are compared, so measure in the loaded face, not its fallback.
+    await document.fonts.ready;
     // Scopes in reading order, so each Tab reaches the next chip.
     for (const theme of ["light", "dark"] as const) {
       for (const [tone] of WORKSPACE_TONES) {
@@ -181,15 +183,18 @@ export const WorkspaceToneMatrix: Story = {
         );
         await expect(getComputedStyle(pending).color).toBe(channelColor(scope, "--tone-on-action"));
 
-        // One solid 2px ring in the tone's focus color, 2px off the fill.
+        // One solid 2px ring in the tone's focus color, 2px off the fill. The
+        // chip's color transition covers the outline, so wait for it to land.
         await userEvent.tab();
         await expect(pending).toHaveFocus();
-        await waitFor(() => expect(getComputedStyle(pending).outlineStyle).toBe("solid"));
+        await waitFor(() =>
+          expect(getComputedStyle(pending).outlineColor).toBe(
+            channelColor(scope, "--tone-focus-ring")
+          )
+        );
+        await expect(getComputedStyle(pending).outlineStyle).toBe("solid");
         await expect(getComputedStyle(pending).outlineWidth).toBe("2px");
         await expect(getComputedStyle(pending).outlineOffset).toBe("2px");
-        await expect(getComputedStyle(pending).outlineColor).toBe(
-          channelColor(scope, "--tone-focus-ring")
-        );
 
         await userEvent.tab();
         await userEvent.keyboard(" ");
