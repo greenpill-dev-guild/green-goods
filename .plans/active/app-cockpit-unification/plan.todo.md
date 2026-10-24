@@ -78,7 +78,7 @@ bounded change, and split a step that would mix independent behaviours.
 | 14. Fact rows | `ui` | One shared fact row, a label beside its value in divided rows, with an optional action, in place of about eleven local label-and-value rows on both surfaces, the cockpit's two `ReviewRow`s among them. | Every review, detail and settings screen that lists facts renders the shared row; rendered pairs of each. |
 | 15. Commitment cards | `ui` | The app's five commitment rows and cards and the cockpit's pool rows move onto the item row, led by the offer or request icon, with "Confirming…" and "Not sent" shown in the status pill, with the act phase line and queue states as the object's own parts. Commitments get one home. | Rendered pairs of every commitment list in both surfaces, in every act phase and queue state. |
 | 16. Pickers and record cards | `ui` | One action picker for both surfaces, built from media cards with a banner; assessment and hypercert record cards on the item row; the app's garden card as a media card. | Picking an action works the same by pointer and keyboard on both surfaces; rendered pairs of each list. |
-| 17. People rows | `ui` | Member, funder and claimant rows on the item row with an avatar, one role chip and one count, each name through the shared address display. | Rendered pairs of every people list; names resolve as they do today. |
+| 17. People rows | `ui` | Member, funder and claimant rows on the item row with an avatar, one role chip and one count, each name through the shared address display. Built on 24 October: Shared's `PersonRow` under the app's garden members and send recipients and the cockpit's member directory and funder lists, and the cockpit's `PersonName` on the shared address display (DL-112). Claimant rows are decision rows (`CommitmentClaims`, `ClaimDecisionPanel`), so they keep their paired acts and take only their names from the shared address display, the app's directly and the cockpit's through `PersonName`; DL-112 also keeps Manage Members, the Add Members queue, a promise's team roster and the group inspector off the person row. | Rendered pairs of every people list; names resolve as they do today. |
 | 18. Jar and vault cards | `ui` | The app's and the cockpit's jar, deposit and position cards on the item row with one detail and no action on the row; they have no picture of their own, so no media card. The public site's cards stay editorial. Built on 24 October (#1234, DL-113 in #1233): every jar, deposit and position list is item rows with the amount in the right slot, and a jar's, deposit's or position's row opens its page in place beneath it. | Rendered pairs of every jar and vault list in the app and the cockpit; amounts and assets read as they do today. |
 | 19. Unused card code | `ui` | Remove Shared's unused card exports (`CardBase`, its own `Card`, `StatCard`, `ProposalCardConviction`, `SortSelect`, `ListToolbar`) and `Surface`'s glass tiers once nothing renders them; rename the app's wrapper cards that share a Shared card's name. | No export without a consumer or a recorded reason; no two card components share a name. |
 | 20. Cockpit controls onto the shared family | `ui` | Phased, one family at a time: buttons and icon buttons; fields, checkboxes and chips; dialogs and sheets; cards and tabs. Each phase retires its `Admin*` files, rewrites the matching part of Rules 15 and 18, and turns the design token check's wrapper-adoption sweep around. Split into one issue per phase when scheduled. | Each phase: the cockpit renders only the shared family for its controls; density, hit areas and pill corners unchanged; the design checks pass. |
@@ -275,6 +275,40 @@ while closed so a write in flight keeps its state. Step 11's remaining states on
 move onto the state block. DL-113 and its guide lines are the standards-only #1233
 ([handoff](handoffs/claude-ui.md#step-18-jar-and-vault-cards-prd-1285),
 [eval.md](eval.md#step-18-build-jar-and-vault-cards)).
+
+**Step 16 (24 October).** `feature/app-cockpit-pickers-records` gives both surfaces one action
+picker, Shared's `ActionPicker`: media cards with the action's banner in one listbox with one
+tab stop, a row that scrolls sideways in the app's Submit Work and a grid in the cockpit's. The
+app's garden card is the shared media card with its banner (Home's list, a work's page, and Submit
+Work's garden picker on the same listbox), and assessments and hypercerts are item rows on both
+surfaces. The twenty states step 11 left in the hypercert and action screens take the state block.
+DL-111 and its guide wording are the standards-only `feature/app-cockpit-pickers-records-guides`
+([handoff](handoffs/claude-ui.md#step-16-pickers-and-record-cards-prd-1283)).
+
+**Step 17 (24 October).** `feature/app-cockpit-people-rows` puts every list of people on Shared's
+new `PersonRow`: the item row led by the person's 56px round avatar, their name from the shared
+address display (which gains a render-prop for it), their highest role as the row's one chip and
+one count. The app's garden members and send recipients and the cockpit's member directory and
+funder lists render it, the cockpit's `PersonName` takes its name from the same display, and step
+11's leftover states moved onto the state block. Every person row measured is 88px, and no detail
+wraps or is cut at 320, 360 or 390px in English, Spanish or Portuguese
+([eval.md](eval.md#step-17-build-people-rows)). Decision rows keep their paired acts, Manage
+Members keeps a chip and a remove per role, the Add Members queue and a promise's team roster keep
+their own rows, and the group inspector's rows stay promise rows; the
+[UI handoff](handoffs/claude-ui.md#step-17-people-rows-prd-1284) lists the calls the pairs raise.
+DL-112 and its guide wording are the standards-only `feature/app-cockpit-people-rows-guides`.
+
+**Step 15 (24 October).** `feature/app-cockpit-commitment-cards` puts every promise in a list on
+Shared's new `CommitmentRow`, the item row led by the offer or request icon: the app's promise rows
+(now `PromiseRow`), group rows, pending creations, the series offered over time and the pinned
+promise, and the cockpit's Offers and Requests rows, group rows and queued rows. The one pill takes
+"Needs you", "Past due" or a queue or act state ("Confirming…", "Not sent", "Didn't send"), the
+edge follows it, and the detail line gives the due date, then the other person. The app's
+commitment cards now live in one folder and the cockpit keeps only route assembly; the step 11
+states left for this step moved onto the state block. DL-110, which supersedes DL-052's direction
+edge, and the guide wording are the standards-only `feature/app-cockpit-commitment-cards-guides`
+([handoff](handoffs/claude-ui.md#step-15-commitment-cards-prd-1281),
+[eval.md](eval.md#step-15-build-commitment-cards)).
 
 **Step 19, first pass (24 October).** Steps 14 to 18 move card consumers in parallel, so step 19
 runs in two passes. The first removes what nothing rendered on `develop`: `CardBase` and Shared's

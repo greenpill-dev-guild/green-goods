@@ -8,6 +8,7 @@ import {
   FIXTURE_IMAGE_PROFILE,
   STORYBOOK_NOW_SECONDS,
 } from "../../../../../shared/.storybook/fixtures";
+import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { GardenGardeners, type GardenMember } from "./Gardeners";
 
@@ -52,7 +53,7 @@ const meta: Meta<typeof GardenGardeners> = {
       expect(cards.length).toBeGreaterThan(1);
       const first = cards[0].getBoundingClientRect();
       const next = cards[1].getBoundingClientRect();
-      expect(next.top - first.bottom).toBe(16);
+      expect(next.top - first.bottom).toBe(12);
     });
     await userEvent.click(canvas.getAllByRole("button", { name: /Gardener \d+/ })[0]);
     await waitFor(() => expect(within(document.body).getByRole("dialog")).toBeVisible());
@@ -110,7 +111,8 @@ export const IdentityStates: Story = {
     await expect(canvas.getByText("river")).toBeVisible();
     await expect(canvas.queryByText("river.greengoods.eth")).toBeNull();
     await expect(canvas.getByText("ordinary.eth")).toBeVisible();
-    // The row renders its label, the colon and the date as separate text nodes of one span.
-    await expect(canvas.getByText("Gardener since: Unknown")).toBeVisible();
+    // A gardener's one fact is since when they have been one; a member with no known date shows none.
+    await expect(canvas.getByText("Gardener since Nov 14, 2023")).toBeVisible();
+    await expectItemRowsFit(canvasElement);
   },
 };

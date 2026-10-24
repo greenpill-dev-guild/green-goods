@@ -19,9 +19,10 @@ import { useNavigate } from "react-router-dom";
 
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import {
-  CommitmentRow,
   CommitmentStateLadder,
+  PendingCreationRow,
   PromiseGroupRow,
+  PromiseRow,
 } from "@/components/Features/Commitments";
 import {
   GardenListHeader,
@@ -31,7 +32,6 @@ import {
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { CycleDetailsSheet } from "./CycleDetailsSheet";
 import { CycleRail } from "./CycleRail";
-import { PendingCreationRow } from "./PendingCreationRow";
 import { type CommitmentDoor, PoolCreateEntry } from "./PoolCreateEntry";
 import { PoolLifecycleNotice } from "./PoolLifecycleNotice";
 
@@ -228,7 +228,10 @@ export function GardenPool({ pool }: GardenPoolProps) {
           }}
         >
           {controller.shownCreations.length > 0 ? (
-            <div className="mb-2 space-y-2" data-component="PoolPendingCreations">
+            <div
+              className="mb-(--gg-list-gap) flex flex-col gap-(--gg-list-gap)"
+              data-component="PoolPendingCreations"
+            >
               {controller.shownCreations.map((creation) => (
                 <PendingCreationRow
                   key={creation.jobId}
@@ -251,10 +254,10 @@ export function GardenPool({ pool }: GardenPoolProps) {
               />
             ) : null
           ) : (
-            <div className="space-y-2">
+            <div className="flex flex-col gap-(--gg-list-gap)">
               {entries.map((entry) =>
                 entry.kind === "single" ? (
-                  <CommitmentRow
+                  <PromiseRow
                     key={entry.row.commitment.id}
                     row={entry.row}
                     title={controller.titleOf(entry.row.commitment.metadataCID)}

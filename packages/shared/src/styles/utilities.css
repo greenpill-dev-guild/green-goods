@@ -212,9 +212,10 @@
     contain-intrinsic-size: auto 60px;
   }
 
+  /* A member's person row, which keeps the item row's height (DL-112). */
   .cv-member {
     content-visibility: auto;
-    contain-intrinsic-size: auto 56px;
+    contain-intrinsic-size: auto var(--gg-item-row-height);
   }
 
   /* ── Native Scroll Bounce ── */

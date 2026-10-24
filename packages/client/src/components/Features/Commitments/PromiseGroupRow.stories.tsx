@@ -4,14 +4,16 @@ import pt from "@green-goods/shared/i18n/pt";
 import { IntlProvider } from "react-intl";
 import { expect, fn, userEvent, within } from "storybook/test";
 
-import { CommitmentRow } from "./CommitmentRow";
+import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
 import { PromiseGroupRow } from "./PromiseGroupRow";
+import { PromiseRow } from "./PromiseRow";
 import { STORY_GROUP_TITLE, storyGroup } from "./promiseGroupStoryFixtures";
 
 /**
  * Many separate promises made alike, as one row on the Promises tab (PRD-1029
- * c1): the promise row's 88px frame and direction edge, a stack tile carrying
- * how many promises there are, and the counts with availability first.
+ * c1), on the shared commitment row: the direction's icon carrying how many
+ * promises there are, what is still available in the pill, and the due date and
+ * the rest of the counts on the detail line.
  */
 const meta: Meta<typeof PromiseGroupRow> = {
   title: "Client/Commitments/PromiseGroupRow",
@@ -20,7 +22,7 @@ const meta: Meta<typeof PromiseGroupRow> = {
   globals: { viewport: { value: "mobile" } },
   decorators: [
     (Story) => (
-      <div className="max-w-sm space-y-2 p-4">
+      <div className="flex max-w-sm flex-col gap-(--gg-list-gap) p-4">
         <Story />
       </div>
     ),
@@ -38,19 +40,20 @@ export const Available: Story = {
     const canvas = within(canvasElement);
     const row = canvas.getByRole("button", { name: /A group of 10 separate promises/ });
     await expect(row.getBoundingClientRect().height).toBe(88);
-    await expect(row).toHaveTextContent("4 available · 3 in progress · 3 kept");
+    await expect(row).toHaveTextContent(/4 available.*3 in progress, 3 kept/);
+    await expectItemRowsFit(canvasElement);
     await expect(canvas.queryByRole("progressbar")).toBeNull();
     await userEvent.click(row);
     await expect(args.onOpen).toHaveBeenCalledTimes(1);
   },
 };
 
-/** Every one taken up or kept: the line still leads with availability. */
+/** Every one taken up or kept: the pill still says what is available. */
 export const NoneAvailable: Story = {
   args: { group: storyGroup({ available: 0, inProgress: 6, kept: 4 }).group },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole("button")).toHaveTextContent(
-      "None available · 6 in progress · 4 kept"
+      /None available.*6 in progress, 4 kept/
     );
   },
 };
@@ -70,7 +73,7 @@ export const AvailabilityUnknown: Story = {
 
 /**
  * Back in the list after taking one up (c5l): the reader's copy is an ordinary
- * row with their relationship, and the group counts one fewer available.
+ * promise row, and the group counts one fewer available.
  */
 export const InTheListAfterTakingOne: Story = {
   render: (args) => {
@@ -83,7 +86,7 @@ export const InTheListAfterTakingOne: Story = {
     return (
       <>
         {yours.map((row) => (
-          <CommitmentRow key={row.commitment.id} row={row} title={STORY_GROUP_TITLE} />
+          <PromiseRow key={row.commitment.id} row={row} title={STORY_GROUP_TITLE} />
         ))}
         <PromiseGroupRow {...args} group={group} />
       </>
@@ -95,7 +98,7 @@ export const InTheListAfterTakingOne: Story = {
     await expect(canvas.getByText("Needs you")).toBeVisible();
     await expect(
       canvas.getByRole("button", { name: /A group of 10 separate promises/ })
-    ).toHaveTextContent("3 available · 4 in progress · 3 kept");
+    ).toHaveTextContent(/3 available.*4 in progress, 3 kept/);
   },
 };
 
@@ -104,6 +107,9 @@ export const FourCounts: Story = {
   args: {
     group: storyGroup({ available: 4, inProgress: 3, kept: 2, ended: 1 }).group,
     title: "Household water survey across the whole community garden",
+  },
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
   },
 };
 

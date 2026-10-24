@@ -16,7 +16,7 @@ import {
   PWA_SHEET_FOCAL_STATE_CLASSNAME,
   PWA_SHEET_STATE_CLASSNAME,
 } from "@/components/Pwa/sheetScrollStyles";
-import { CommitmentRowSkeleton } from "./CommitmentRow";
+import { PromiseRowSkeleton } from "./PromiseRow";
 
 /**
  * Each tab reads from its own source, so each says its own recovery words. A
@@ -267,7 +267,7 @@ function PageLadder({
         {header.loading}
         <div className="space-y-2 animate-pulse" aria-hidden="true">
           {Array.from({ length: PAGE_SKELETON_ROWS }, (_, index) => (
-            <CommitmentRowSkeleton key={index} />
+            <PromiseRowSkeleton key={index} />
           ))}
         </div>
       </div>

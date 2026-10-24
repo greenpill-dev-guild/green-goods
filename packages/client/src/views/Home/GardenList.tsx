@@ -1,4 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { GardenCard } from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
+import { MediaCardSkeleton } from "@green-goods/shared/components/Cards/MediaCard";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { GardenFilterScope } from "@green-goods/shared/hooks/garden/useFilteredGardens";
 import type { Garden } from "@green-goods/shared/types/domain";
@@ -11,8 +13,6 @@ import {
   RiWifiOffLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { GardenCard } from "@/components/Cards/Garden/GardenCard";
-import { GardenCardSkeleton } from "@/components/Cards/Garden/GardenCardSkeleton";
 
 interface GardenListProps {
   gardens: Garden[];
@@ -77,9 +77,9 @@ export function GardenList({
 
   if (showSkeleton) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-(--gg-list-gap)">
         {Array.from({ length: 3 }).map((_, idx) => (
-          <GardenCardSkeleton key={idx} media="large" height="home" />
+          <MediaCardSkeleton key={`garden-skeleton-${idx}`} mediaShape="banner" />
         ))}
         {!isOnline && (
           <p className="text-center text-sm text-text-sub-600 mt-4 px-4">
@@ -181,9 +181,6 @@ export function GardenList({
           key={garden.id}
           garden={garden}
           className="cv-garden-card"
-          media="large"
-          height="home"
-          showStewards={true}
           selected={garden.id === selectedGardenId}
           onClick={() => onCardClick(garden.id)}
         />

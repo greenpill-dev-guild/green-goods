@@ -41,12 +41,28 @@ export type ProfileAvatarEditorOptions = {
   factoryData?: `0x${string}`;
 };
 
-export function useProfileAvatar(address?: Address | null, chainId = DEFAULT_CHAIN_ID) {
+export interface ProfileAvatarReadOptions {
+  /**
+   * The photo of one row in a list of people. Its read goes out with the list's other rows, 50
+   * to a request on the batch route's own budget, so a long roster never spends the
+   * single-read budget the photo editor needs. The record shares the account's one cache entry.
+   */
+  list?: boolean;
+}
+
+export function useProfileAvatar(
+  address?: Address | null,
+  chainId = DEFAULT_CHAIN_ID,
+  { list = false }: ProfileAvatarReadOptions = {}
+) {
   const primaryAddress = usePrimaryAddress();
   const targetAddress = address ?? primaryAddress;
   return useQuery({
     queryKey: profileAvatarKeys.record(chainId, targetAddress ?? ""),
-    queryFn: () => profileAvatarTransport.get(chainId, targetAddress!),
+    queryFn: () =>
+      list
+        ? profileAvatarTransport.getListed(chainId, targetAddress!)
+        : profileAvatarTransport.get(chainId, targetAddress!),
     enabled: Boolean(targetAddress),
   });
 }
@@ -54,13 +70,14 @@ export function useProfileAvatar(address?: Address | null, chainId = DEFAULT_CHA
 export function useResolvedProfileAvatar(
   address?: Address | null,
   fallbackAvatarUri?: string | null,
-  chainId = DEFAULT_CHAIN_ID
+  chainId = DEFAULT_CHAIN_ID,
+  options: ProfileAvatarReadOptions = {}
 ): ProfileAvatarResolution & {
   record: ProfileAvatarRecord | null;
   isLoading: boolean;
   error: Error | null;
 } {
-  const avatar = useProfileAvatar(address, chainId);
+  const avatar = useProfileAvatar(address, chainId, options);
   const primaryAddress = usePrimaryAddress();
   const targetAddress = address ?? primaryAddress;
   const ens = useEnsAvatar(targetAddress, { enabled: Boolean(targetAddress) });

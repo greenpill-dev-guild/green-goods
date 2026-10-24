@@ -2033,12 +2033,18 @@
   }
 
   @media (hover: hover) {
-    button.gg-media-card:hover {
+    button.gg-media-card:hover:not(:disabled) {
       background-image: linear-gradient(
         rgb(var(--text-strong-950) / 0.04),
         rgb(var(--text-strong-950) / 0.04)
       );
     }
+  }
+
+  /* A picker's card while choosing cannot happen. */
+  button.gg-media-card:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 
   .gg-media-card[data-selected="true"] {
@@ -2180,6 +2186,26 @@
     block-size: 1.5rem;
   }
 
+  /* A person's avatar (PersonRow): a 56px circle where the tile sits, their photo filling
+   * it, or a person glyph on the row's quiet fill when they have none. */
+  .gg-item-row-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--gg-item-row-tile);
+    block-size: var(--gg-item-row-tile);
+    overflow: hidden;
+    border-radius: 9999px;
+    background-color: rgb(var(--gg-card-fill, var(--bg-soft-200)));
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-item-row-avatar > svg {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
   .gg-item-row-body {
     display: flex;
     flex: 1 1 auto;
@@ -2191,11 +2217,14 @@
     padding: 0.5rem 0.75rem;
   }
 
+  /* Plus Jakarta Sans's contextual alternates draw the x of a short address ("0x12...abc",
+   * a person row's title) as a times sign, so a title keeps its letters as written. */
   .gg-item-row-title {
     max-inline-size: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-variant-ligatures: no-contextual;
   }
 
   /* One detail line that never wraps: each detail carries its separator in a
@@ -2203,11 +2232,14 @@
    * a detail that does not fit wraps below the clip and drops whole, separator
    * and all, last first. A first detail too long on its own ends in an
    * ellipsis. */
+  /* Details name people, often by a short address: Plus Jakarta Sans's contextual
+   * alternates would draw "0x2" as "0×2", so the line keeps the plain glyphs. */
   .gg-item-row-details {
     max-inline-size: 100%;
     block-size: var(--gg-type-meta-sm-line);
     overflow: hidden;
     color: rgb(var(--text-sub-600));
+    font-variant-ligatures: no-contextual;
   }
 
   .gg-item-row-detail-list {

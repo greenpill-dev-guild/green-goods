@@ -175,7 +175,7 @@ export function RecipientPicker({
 
       {/* Search results (address / garden-name match) */}
       {trimmed && searchResults.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {searchResults.map((member) => (
             <MemberRow
               key={member.address}
@@ -199,7 +199,7 @@ export function RecipientPicker({
 
       {/* Garden drill-down: members of one browsed garden */}
       {!trimmed && browseGarden ? (
-        <section className="space-y-2">
+        <section className="space-y-3">
           <Button
             type="button"
             emphasis="tertiary"
@@ -239,7 +239,7 @@ export function RecipientPicker({
       {!trimmed && !browseGarden ? (
         <>
           {eligibleRecents.length > 0 ? (
-            <section className="space-y-2">
+            <section className="space-y-3">
               <SheetHeading as="h4">
                 {formatMessage({ id: "app.send.recipient.recentTitle" })}
               </SheetHeading>
@@ -261,7 +261,7 @@ export function RecipientPicker({
           ) : null}
 
           {directory.myGardens.map((group) => (
-            <section key={group.gardenId} className="space-y-2">
+            <section key={group.gardenId} className="space-y-3">
               <SheetHeading as="h4" className="truncate" title={group.gardenName}>
                 {group.gardenName}
               </SheetHeading>

@@ -15,7 +15,7 @@ import { useMemo } from "react";
 import type { CommitmentsDirectionFilter } from "@green-goods/shared/stores/useUIStore";
 import { useIntl } from "react-intl";
 
-import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
+import { CommitmentStateLadder, PromiseRow } from "@/components/Features/Commitments";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { gardenAddressFor, groupByGarden } from "./grouping";
 
@@ -162,11 +162,11 @@ export function LiveTab({
             <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
               {group.gardenName}
             </SheetHeading>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-(--gg-list-gap)">
               {group.rows.map((row) => {
                 const gardenAddress = gardenAddressFor(row, pools);
                 return (
-                  <CommitmentRow
+                  <PromiseRow
                     key={row.commitment.id}
                     row={row}
                     title={

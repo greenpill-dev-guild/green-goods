@@ -351,6 +351,57 @@
   `--surface-raised` mirror (neutral-900, where the cockpit uses the card step) skewed the dark
   pairs' footer, so the step corrects it.
 
+## Step 15: commitment cards (PRD-1281)
+
+- `feature/app-cockpit-commitment-cards`, cut from `develop` `3c4fd4b62`; the guide wording and
+  DL-110 are the standards-only `feature/app-cockpit-commitment-cards-guides`, which merges first.
+- **One home.** Shared's `CommitmentRow` (new leaf `components/Cards/CommitmentRow/CommitmentRow`)
+  is the commitment card on both surfaces: the item row led by the offer or request icon (named
+  for screen readers through the item row's new `lead.label`), one pill that "Needs you", "Past
+  due" or a queue or act state replaces (`pending`: "Confirming…", "Not sent", "Didn't send"),
+  the edge in the pill's tone, and the due date, then the other person from the reader's seat
+  (`selectCommitmentOtherParty`) named through `useAddressDisplayName`, the lookup
+  `AddressDisplay` now shares. A queue or act state's words (`note`) lead the line instead, and
+  a group (`group`) marks its size on the tile and gives its counts in the person's place. The
+  app's commitment cards live in `components/Features/Commitments` (`PromiseRow`, renamed from
+  `CommitmentRow`; `PromiseGroupRow`; `PendingCreationRow` and `QueuedActRow`, moved there; the
+  pinned promise); the cockpit keeps only route assembly (`PoolCommitmentsCard`, the
+  `PoolGroupRow` adapter, `queuedCreationPill` and `rowDueDetail`).
+- **What stays the object's own.** Each surface's state words; the act phase line, whose sentence
+  leads a queued row's details while `ActPhaseLine` still announces it; the queue's recovery
+  (Discard and the send as icon buttons in the right slot); who a promise is between, on its
+  page or dialog. The promise page's queue notice (`QueuedActRow`) stays a notice: the page is
+  where its full explanation belongs. The decision rows (Review Promises, the Hub's Confirm
+  queue) and the promise picker in Submit Work are out of the step.
+- **State blocks left by step 11.** Moved: `PoolStatusCasts` (4), `PoolCommitmentsCard` (2),
+  `CommitmentDialogStates` (2), `CommunityPools` (2), `SignalPool` (2), `ConvictionSheet`'s
+  empty pool (its failed read, beside content, became the shared `Alert`), `LinkWorkSheet` and
+  the proof flow's loading. Left as text on purpose: `PoolClaimsCard`'s "Nothing to review."
+  (DL-067's one quiet line), and the one-line notes inside `ClaimContextSheet`'s choices and
+  `CommitmentHistory`'s section (DL-106's exception).
+- **Found on the way.** Plus Jakarta Sans's contextual alternates draw the x of "0x2" as a times
+  sign, so the item row's detail line turns them off; short addresses set elsewhere in the face
+  still do it. `PendingCreationRow` led every request with the offer's seedling. Every
+  `StatusBadge` is a polite live region, so a pill that changes is announced.
+- **Found in review** (Codex on #1239): a promise still on the device has no page yet, so the
+  units the row moved to the page showed nowhere; they lead its line now, in the app ahead of its
+  reason and in the cockpit whenever no act phase or reason does (`86682e319`, with the DL-110
+  clause in #1238). In the same commit the other person reads the zero address as nobody, and a
+  row whose line has no room for the person starts no name lookups. Two stories still looked for
+  what the rows replaced (`2e961e4b2`, `8120d6e81`), and the recovery guide still named
+  `QueuedActRow`'s old path (`378131db0`). Submit Work's pinned promise led every promise with
+  an unnamed seedling, though the live work-link choice is built from the full commitment; the
+  choice now carries the direction, so a request leads with its helping hand (`e80272b9d`).
+- **Calls for the maintainer's review of the pairs**, each a recommendation made in the build:
+  the status edge replaces DL-052's direction edge (the census drew it); the seat sentences ("You
+  took this up") leave the rows for the other person's name; a queued promise leads its details
+  with its units and its reason follows, giving way first on a phone with its full words on
+  hover, and its acts are icon buttons; the pinned promise reads its title first with "Proof
+  for" or "Work for" under it and loses its tint; a group's
+  remaining counts drop in Spanish and Portuguese at 384px; the cockpit's "Queued" and "Failed
+  to send" become the shared "Not sent" and "Didn't send"; a To confirm row's kind leads its
+  details in place of the second pill.
+
 ## Step 21: bottom bar active pill (PRD-1288)
 
 - `feature/app-cockpit-bar-pill`, cut from `develop` `d84d48398`: `AppBar` draws each tab's line
@@ -478,6 +529,113 @@ PRs answered
 | Verify (live pairs) | 10:25Z → 10:54Z | 12 mock-auth localhost pairs of TAS HUB's endowment sheet, added to the artifact |
 
 Human corrections: 0 observed; attention: unknown.
+
+## Step 16: pickers and record cards (PRD-1283)
+
+- `feature/app-cockpit-pickers-records`, cut from `develop` `3c4fd4b62`:
+  - **One action picker.** `ActionPicker` on the new leaf
+    `@green-goods/shared/components/Cards/ActionPicker`, built on an internal `MediaCardPicker`: a
+    media card per action with its banner (its photo, or `ActionBannerFallback`) in a 104px strip,
+    the domain as the mark on the banner, a one-line title and what it asks for. One listbox,
+    one tab stop (the chosen card, else the first), the arrow keys and Home and End moving and
+    wrapping, Space, Enter or a press choosing; moving never chooses, because a choice resets the
+    work's details. The app's Submit Work lays it as a row that scrolls sideways (each card 90% of
+    the row, snapping to its start) where its Embla carousel stood; the cockpit's
+    `ActionChooserGrid` lays it as a grid, two to a row once the flow dialog is 36rem wide, and
+    keeps localizing canonical titles.
+  - **The media card** gains a ref and attribute pass-through (a picker's radio role and tab stop
+    reach its root), `mediaShape="banner"`, a disabled state and `MediaCardSkeleton`, all additive.
+  - **The app's garden card.** Shared `GardenCard` is now the media card with the garden's banner,
+    its name, then members (people, DL-049) and place on one detail line; `GardenPicker` on the
+    same leaf chooses a garden on the picker's listbox. Home's list (12px apart), a work's page
+    and Submit Work render it. The app's wrapper `GardenCard`, `GardenCardSkeleton`, `ActionCard`
+    and `ActionCardSkeleton` are deleted.
+  - **Records on the item row.** The Assessments list on the app's Insights tab, the Hub's two record tabs, the garden's
+    Impact tab and its two panels: the record's icon, its title, no pill, and its date, then the
+    assessment's domain or the works a hypercert bundles. The panels keep their EAS and Hypercerts
+    links in the row's right slot.
+  - **States.** Step 11's twenty states in the hypercert and action screens take the state block,
+    copy and actions kept.
+- Codex's first review of the guides (#1236) changed the code too: the cards are listbox options,
+  not radios, since radios check as focus moves and a choice here resets the work; an action
+  whose domain the app does not know (Submit Work's Other) takes a neutral banner and no domain
+  mark, where the shared fallback would read it as Agro; interaction patterns § 5 now names the
+  item row as the record row's anatomy; and the client prompt contract marks the pickers as
+  arriving with this code.
+- Proof: [eval.md](../eval.md#step-16-build-pickers-and-record-cards). Generated: the API index,
+  the glossary digest and the four seam fingerprints (the new leaf).
+- Guides: DL-111, both surface guides, Rule 8, both prompt contracts and the defect grammar are the
+  standards-only `feature/app-cockpit-pickers-records-guides`. No token changes, so no
+  `token_version` bump.
+- Calls for the maintainer: an assessment row's second detail is its domain, not its outcome count
+  (the cockpit's lists never read the stored detail that holds the outcomes, and an earlier fix
+  names every assessment's domain); a hypercert row's is the works it bundles, not its units; the
+  app's Assessments list (Insights tab) and both pickers lose their carousels for a list and native rows; a
+  selected domain with no actions no longer holds the old card's height. The commitment composer's multi-select action
+  rail and the Actions workspace's `WorkbenchCard` list are outside this step.
+
+## Step 17: people rows (PRD-1284)
+
+- `feature/app-cockpit-people-rows`, cut from `develop` `a3645441c` and brought up to `3c4fd4b62` (#1227):
+  - **The person row.** Shared's new `PersonRow` on the leaf export
+    `@green-goods/shared/components/Cards/PersonRow/PersonRow`: the item row led by the person's
+    56px round avatar (their profile photo or ENS avatar, else the surface's own picture or a person
+    glyph, and an empty circle while the photo is looked up), their name from the shared address
+    display, their highest role as the row's one pill (a neutral chip, in `GARDEN_ROLE_ORDER`), and
+    one count. Additive changes underneath: an `avatar` lead and `ItemRowSkeleton({ lead: "avatar" })`
+    on `ItemRow`, the `.gg-item-row-avatar` rule in Shared `theme.css`, and a `children` render-prop
+    on `AddressDisplay` that hands its resolved name to a row title or a chip.
+  - **Photos in batches.** A row's profile photo read goes out with its list's other rows, 50
+    addresses to a request on the agent's batch route and its own 600-per-10-minute budget
+    (`useProfileAvatar(…, { list: true })`, `profileAvatarTransport.getListed`), so a long roster
+    never spends the 120-read budget the photo editor needs. The batch route has served production
+    since 14 September; this is its first client. A decorative avatar, a failed photo included,
+    stays out of the row's accessible name.
+  - **On the row now:** the installed app's garden members (`GardenGardeners`: since when a person has
+    been a gardener as the one fact, the app's default avatar for someone with no photo, and the
+    member dialog's title from the same display) and send recipients (`MemberRow`: the garden that tells two people apart;
+    the chosen recipient wears the open row's border and still reads as pressed, through the item
+    row's additive `pressed` prop, since choosing is not opening a record), and
+    the cockpit's member directory (`CommunityMembersTab`: Manage Roles as an icon button in the right
+    slot, how many roles a person holds when it is more than one) and funder lists (`FunderRow` in
+    `GardenSupporters` and `ImpactFunders`, which take the shared card and avatar skeletons). Each list
+    keeps 12px between rows.
+  - **Names.** The cockpit's `PersonName` takes its name from `AddressDisplay`, so `ClaimantName`,
+    the claim asks, Review Promises and the seed confirmer chips read people as everywhere else, with
+    no change to their markup. The directory, the funder rows and the send rows had read ENS alone;
+    a Green Goods name now shows there too. The Add Members queue names people the same way.
+  - **Step 11's leftover states** on the state block: the Add Members queue's empty well
+    (`StagedMemberList`), the steward access chooser's loading, failed and no-gardens states
+    (`StewardAccessRequest`; the failure is announced and keeps Retry, and a search that finds nothing
+    is still read out), and the community card's not-ready pools (`GardenCommunityCard`, which nothing
+    mounts and which shows only with governance on, so it has no rendered pair). Five two-sentence
+    strings split into a title and a line.
+- Proof: focused tests for the person row (name, highest role, avatar states), the address display's
+  render-prop, the app's member list and send flow, the Add Members queue and the chooser's failed
+  read; Shared, app and cockpit typechecks; the play functions of the person row, item row, Gardeners
+  and steward access stories in Storybook. The look is the pairs: **Storybook** for the cockpit and
+  **mock-auth localhost** for the app, no authenticated class
+  ([eval.md](../eval.md#step-17-build-people-rows)).
+- Guides: DL-112, both surface guides, Rule 8, the interaction patterns' DL-049 paragraph, the root
+  quick reference and both prompt contracts are the standards-only
+  `feature/app-cockpit-people-rows-guides`. No token changes, so no `token_version` bump.
+- Calls for the maintainer's review of the pairs:
+  - The role chip sits under the name as the row's one pill. The census mock drew it at the row's
+    right end, where the row's one action goes; a directory row keeps Manage Roles there.
+  - The app's member list shows since when a person has been a gardener, not a count: the indexer
+    serves no per-member work count and the garden's work list is paged, so a count from it would be
+    wrong. Its one date per gardener is set at their first gardener role in any garden, so the row
+    reads "Gardener since", as `develop` did, never "Joined" (Codex on #1241). Send recipients keep the
+    garden that tells two people apart.
+  - Not on the row: the group inspector's people list (`GroupPeopleList`), whose rows are promise
+    copies with a state and up to five facts (PRD-1022 screen 14), offered to step 15; the commitment
+    team rosters (the app's `CommitmentTeam`, the cockpit's `CommitmentRoster`), which carry each
+    person's assigned rows and credits on the promise's own page; Manage Members, which keeps a chip
+    and a remove per role (DL-049); the Add Members queue, whose rows show the role each person is
+    about to be given (only its empty well and its names moved); and the join request queues on both
+    surfaces, which are decision rows.
+  - A bare address now reads in the address display's short form (`0x12...abc`) in the app's member
+    rows, where it read `0x1234...abcd`.
 
 ## Step 19: unused card code (PRD-1286)
 

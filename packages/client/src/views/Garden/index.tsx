@@ -7,7 +7,8 @@ import { RiErrorWarningLine, RiHammerFill, RiPlantFill, RiRefreshLine } from "@r
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
-import { ActionCardSkeleton, FormInfo, GardenCardSkeleton } from "@/components/Cards";
+import { MediaCardSkeleton } from "@green-goods/shared/components/Cards/MediaCard";
+import { FormInfo } from "@/components/Cards";
 import { FormProgress } from "@/components/Communication";
 import { PinnedPromiseCard } from "@/components/Features/Commitments";
 import { DraftSheet } from "@/components/Sheets";
@@ -33,6 +34,19 @@ const trackControllerMediaEvent = (
 ) =>
   trackWorkMediaJourneyEvent(event, properties as Parameters<typeof trackWorkMediaJourneyEvent>[1]);
 
+/** A picker's row before its cards arrive, laid out as the picker lays them. */
+const PickerRowSkeleton: React.FC = () => (
+  <div className="-mx-4 flex gap-(--gg-list-gap) overflow-hidden px-4 pb-1">
+    {[0, 1, 2, 3].map((index) => (
+      <MediaCardSkeleton
+        key={`picker-skeleton-${index}`}
+        mediaShape="banner"
+        className="w-[90%] shrink-0"
+      />
+    ))}
+  </div>
+);
+
 const IntroSkeleton: React.FC = () => {
   const intl = useIntl();
   return (
@@ -48,13 +62,7 @@ const IntroSkeleton: React.FC = () => {
         })}
         Icon={RiHammerFill}
       />
-      <div className="flex gap-4 overflow-x-auto">
-        {[0, 1, 2, 3].map((index) => (
-          <div key={`action-skel-${index}`} className="min-w-[16rem]">
-            <ActionCardSkeleton media="small" height="selection" />
-          </div>
-        ))}
-      </div>
+      <PickerRowSkeleton />
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.selectYourGarden",
@@ -66,13 +74,7 @@ const IntroSkeleton: React.FC = () => {
         })}
         Icon={RiPlantFill}
       />
-      <div className="flex gap-4 overflow-x-auto">
-        {[0, 1, 2, 3].map((index) => (
-          <div key={`garden-skel-${index}`} className="min-w-[16rem]">
-            <GardenCardSkeleton media="small" height="selection" showStats={false} />
-          </div>
-        ))}
-      </div>
+      <PickerRowSkeleton />
     </div>
   );
 };
@@ -179,6 +181,7 @@ const Work: React.FC = () => {
     <PinnedPromiseCard
       kind="work"
       title={linkIntent.commitmentTitle}
+      direction={linkIntent.direction}
       onOpen={() => setPromiseOpen(true)}
     />
   ) : null;

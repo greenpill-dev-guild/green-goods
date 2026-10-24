@@ -1,6 +1,7 @@
 // Command surface: a signed request with a clear target, review and explicit outcome.
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   type StewardAccessRequestController,
@@ -8,7 +9,7 @@ import {
 } from "@green-goods/shared/hooks/admin-ui/layout/useStewardAccessRequestController";
 import { gardenJoinRequestErrorMessage } from "@green-goods/shared/modules/garden-join-requests";
 import { GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH } from "@green-goods/shared/public-contracts/join-requests";
-import { RiSeedlingLine } from "@remixicon/react";
+import { RiErrorWarningLine, RiLoader4Line, RiSeedlingLine } from "@remixicon/react";
 import { useRef } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "../AdminButton";
@@ -201,32 +202,45 @@ export function StewardAccessRequest({
                 />
               </div>
               {c.catalogLoading ? (
-                <p role="status" className="type-body text-text-sub">
-                  {formatMessage({ id: "cockpit.stewardAccess.loadingGardens" })}
-                </p>
+                <EmptyState
+                  busy
+                  className="min-h-0 flex-1"
+                  icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+                  title={formatMessage({ id: "cockpit.stewardAccess.loadingGardens" })}
+                />
               ) : c.catalogError ? (
-                <Alert
-                  variant="error"
+                <EmptyState
+                  tone="error"
+                  className="min-h-0 flex-1"
+                  icon={<RiErrorWarningLine />}
+                  title={formatMessage({ id: "cockpit.stewardAccess.gardensError.title" })}
+                  description={formatMessage({
+                    id: "cockpit.stewardAccess.gardensError.description",
+                  })}
                   action={
-                    <AdminButton
-                      variant="outlined"
-                      size="sm"
-                      onClick={() => void c.reloadGardens()}
-                    >
+                    <AdminButton variant="outlined" onClick={() => void c.reloadGardens()}>
                       {formatMessage({ id: "app.common.retry", defaultMessage: "Retry" })}
                     </AdminButton>
                   }
-                >
-                  {formatMessage({ id: "cockpit.stewardAccess.gardensError" })}
-                </Alert>
+                />
               ) : c.candidates.length === 0 ? (
-                <p role="status" className="type-body text-text-sub">
-                  {formatMessage({
-                    id: c.invalidLink
-                      ? "cockpit.stewardAccess.invalidLink"
-                      : "cockpit.stewardAccess.noGardens",
-                  })}
-                </p>
+                // A search that finds nothing is still read out as the steward types.
+                <div role="status" className="flex min-h-0 flex-1 flex-col">
+                  <EmptyState
+                    className="min-h-0 flex-1"
+                    icon={<RiSeedlingLine />}
+                    title={formatMessage({
+                      id: c.invalidLink
+                        ? "cockpit.stewardAccess.invalidLink.title"
+                        : "cockpit.stewardAccess.noGardens.title",
+                    })}
+                    description={formatMessage({
+                      id: c.invalidLink
+                        ? "cockpit.stewardAccess.invalidLink.description"
+                        : "cockpit.stewardAccess.noGardens.description",
+                    })}
+                  />
+                </div>
               ) : (
                 <ul className="min-h-0 flex-1 divide-y divide-stroke-soft overflow-y-auto">
                   {c.candidates.map((garden) => (

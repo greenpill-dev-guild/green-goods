@@ -1,22 +1,13 @@
-import { DomainBadge } from "@green-goods/shared/components/DomainBadge";
+import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
+import type { Domain } from "@green-goods/shared/types/domain";
 import type { GardenAssessmentRecord } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
 import { formatReportingPeriod } from "@green-goods/shared/utils/time";
-import {
-  RiCalendarLine,
-  RiErrorWarningLine,
-  RiExternalLinkLine,
-  RiFileTextLine,
-  RiPriceTag3Line,
-  RiStackLine,
-} from "@remixicon/react";
+import { RiErrorWarningLine, RiFileList3Line, RiFileTextLine } from "@remixicon/react";
 import { forwardRef, memo } from "react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
-import { Card } from "@/components/Cards";
-import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import { Badge } from "@/components/Communication";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
-import { CYNEFIN_LABEL_IDS, outcomeMeasure } from "./assessmentDisplay";
+import { useNavigate } from "react-router-dom";
 
 interface GardenAssessmentsProps {
   records: GardenAssessmentRecord[];
@@ -29,136 +20,29 @@ interface AssessmentListProps {
   assessmentFetchStatus: "pending" | "success" | "error";
 }
 
-const AssessmentCard = memo(function AssessmentCard({
-  record,
-}: {
-  record: GardenAssessmentRecord;
-}) {
+/**
+ * One assessment, the shared item row (step 16): the record's icon, its title, its
+ * reporting period, then its domain (an unknown one stays unlabelled). The row opens the
+ * assessment's page, which holds the outcomes and the rest.
+ */
+const AssessmentRow = memo(function AssessmentRow({ record }: { record: GardenAssessmentRecord }) {
   const intl = useIntl();
-  const { summary, detail } = record;
+  const navigate = useNavigate();
+  const { summary } = record;
   const reportingPeriod =
     formatReportingPeriod(intl, summary.startDate, summary.endDate) ??
     intl.formatMessage({ id: "app.garden.assessments.dateNotSet" });
-  const kernel = detail.status === "loaded" ? detail.value : null;
-  const outcomesPreview = kernel?.smartOutcomes.slice(0, 3) ?? [];
+  const domain = DOMAIN_CONFIG[summary.domain as Domain];
 
   return (
-    <Card className="flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3
-            className="line-clamp-2 break-words text-base font-semibold text-text-strong-950"
-            title={summary.title}
-          >
-            {summary.title}
-          </h3>
-          <DomainBadge domain={summary.domain} variant="inline" className="mt-1" />
-          <p className="mt-2 line-clamp-3 text-sm text-text-sub-600" title={summary.description}>
-            {summary.description}
-          </p>
-        </div>
-        <Link
-          to={`assessments/${summary.id}`}
-          viewTransition
-          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-stroke-soft-200 px-2 py-1 text-xs font-medium text-text-sub-600 transition hover:bg-bg-weak-50"
-        >
-          <RiExternalLinkLine className="h-3.5 w-3.5" aria-hidden="true" />
-          {intl.formatMessage({ id: "app.actions.view" })}
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <div className="flex flex-col gap-1">
-          <Badge
-            leadingIcon={<RiCalendarLine className="h-4 w-4 text-primary-on-surface" />}
-            variant="pill"
-          >
-            {intl.formatMessage({ id: "app.garden.assessments.dateRange" })}
-          </Badge>
-          <span className="px-2 text-xs text-text-sub-600">{reportingPeriod}</span>
-        </div>
-        {kernel && kernel.cynefinPhase !== null ? (
-          <div className="flex flex-col gap-1">
-            <Badge
-              leadingIcon={<RiStackLine className="h-4 w-4 text-primary-on-surface" />}
-              variant="pill"
-            >
-              {intl.formatMessage({ id: "app.garden.assessments.cynefinPhase" })}
-            </Badge>
-            <span className="px-2 text-xs text-text-sub-600">
-              {intl.formatMessage({ id: CYNEFIN_LABEL_IDS[kernel.cynefinPhase] })}
-            </span>
-          </div>
-        ) : null}
-        {kernel ? (
-          <div className="flex flex-col gap-1 sm:col-span-2">
-            <Badge
-              leadingIcon={<RiPriceTag3Line className="h-4 w-4 text-primary-on-surface" />}
-              variant="pill"
-            >
-              {intl.formatMessage({ id: "app.garden.assessments.sdgAlignment" })}
-            </Badge>
-            <ul className="flex flex-wrap gap-1 px-2">
-              {kernel.sdgTargets.map((sdg) => (
-                <li key={`${summary.id}-sdg-${sdg}`}>
-                  <Badge variant="pill" tint="primary">
-                    {intl.formatMessage(
-                      { id: "app.garden.assessments.sdgItem" },
-                      {
-                        number: sdg,
-                        label: intl.formatMessage({ id: `app.hypercerts.sdg.${sdg}` }),
-                      }
-                    )}
-                  </Badge>
-                </li>
-              ))}
-              {kernel.sdgTargets.length === 0 ? (
-                <li className="text-xs text-text-sub-600">
-                  {intl.formatMessage({ id: "app.garden.assessments.noSdgTargets" })}
-                </li>
-              ) : null}
-            </ul>
-          </div>
-        ) : null}
-      </div>
-
-      {detail.status === "pending" ? (
-        <div className="space-y-2 rounded-md bg-bg-weak-50 p-3" aria-hidden="true">
-          <div className="h-3 w-24 animate-pulse rounded bg-bg-soft-200" />
-          <div className="h-3 w-full animate-pulse rounded bg-bg-soft-200" />
-          <div className="h-3 w-2/3 animate-pulse rounded bg-bg-soft-200" />
-        </div>
-      ) : null}
-
-      {/* The stored files could not be read. That is not an assessment with nothing recorded. */}
-      {detail.status === "unavailable" ? (
-        <p className="flex items-center gap-1.5 text-xs text-text-sub-600">
-          <RiErrorWarningLine className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          {intl.formatMessage({ id: "app.garden.assessments.detailUnavailableShort" })}
-        </p>
-      ) : null}
-
-      {outcomesPreview.length ? (
-        <div className="rounded-md bg-bg-weak-50 p-3 text-xs text-text-sub-600">
-          <p className="mb-1 font-medium text-text-strong-950">
-            {intl.formatMessage({ id: "app.garden.assessments.smartOutcomesPreview" })}
-          </p>
-          <ul className="space-y-2">
-            {outcomesPreview.map((outcome, index) => (
-              <li key={`${summary.id}-outcome-${index}`}>
-                <p
-                  className="line-clamp-2 font-medium text-text-strong-950"
-                  title={outcome.description}
-                >
-                  {outcome.description}
-                </p>
-                <p>{outcomeMeasure(intl, summary.domain, outcome)}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </Card>
+    <ItemRow
+      lead={{ kind: "icon", icon: <RiFileList3Line /> }}
+      title={summary.title}
+      details={
+        domain ? [reportingPeriod, intl.formatMessage({ id: domain.labelId })] : [reportingPeriod]
+      }
+      onOpen={() => navigate(`assessments/${summary.id}`, { viewTransition: true })}
+    />
   );
 });
 
@@ -167,42 +51,21 @@ const AssessmentList = ({ records, assessmentFetchStatus }: AssessmentListProps)
   switch (assessmentFetchStatus) {
     case "pending":
       return (
-        <Carousel opts={{ align: "start", loop: false }}>
-          <CarouselContent>
-            {[...Array(3)].map((_, i) => (
-              <CarouselItem key={i}>
-                <div className="rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4">
-                  <div className="mb-3 h-4 w-24 animate-pulse rounded bg-bg-soft-200" />
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    {[...Array(4)].map((_, j) => (
-                      <div key={j} className="h-6 w-16 animate-pulse rounded-full bg-bg-soft-200" />
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {[...Array(4)].map((_, k) => (
-                      <div key={k} className="flex flex-col gap-2">
-                        <div className="h-5 w-28 animate-pulse rounded bg-bg-soft-200" />
-                        <div className="h-4 w-20 animate-pulse rounded bg-bg-soft-200" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
+        <div className="flex flex-col gap-(--gg-list-gap)" aria-busy="true">
+          {[0, 1, 2].map((index) => (
+            <ItemRowSkeleton key={`assessment-skeleton-${index}`} lead="icon" />
+          ))}
+        </div>
       );
     case "success":
       return records.length ? (
-        <Carousel opts={{ align: "start", loop: false }}>
-          <CarouselContent>
-            {records.map((record) => (
-              <CarouselItem key={record.summary.id}>
-                <AssessmentCard record={record} />
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
+        <ul className="flex flex-col gap-(--gg-list-gap)">
+          {records.map((record) => (
+            <li key={record.summary.id}>
+              <AssessmentRow record={record} />
+            </li>
+          ))}
+        </ul>
       ) : (
         <EmptyState
           icon={<RiFileTextLine />}

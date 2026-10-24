@@ -10,7 +10,13 @@ import {
 } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import {
+  RiArrowRightLine,
+  RiErrorWarningLine,
+  RiRefreshLine,
+  RiSeedlingLine,
+} from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -202,34 +208,33 @@ function ProtocolOperations({
     return (
       <>
         {gardenPool}
-        <AdminCard
-          variant="elevated"
-          className="flex min-h-40 flex-col items-center justify-center gap-3 text-center"
-        >
-          <AdminCardTitle>
-            {formatMessage({
+        <AdminCard variant="elevated">
+          <EmptyState
+            tone="error"
+            icon={<RiErrorWarningLine />}
+            title={formatMessage({
               id: "cockpit.community.pools.readError.title",
               defaultMessage: "Couldn’t read the protocol pool",
             })}
-          </AdminCardTitle>
-          <p className="max-w-md type-body text-text-soft">
-            {formatMessage({
+            description={formatMessage({
               id: "cockpit.community.pools.readError.body",
               defaultMessage:
                 "The module could not be reached. Nothing about the protocol pool has changed.",
             })}
-          </p>
-          <AdminButton
-            type="button"
-            variant="filled"
-            leadingIcon={<RiRefreshLine className="h-4 w-4" />}
-            onClick={() => void protocolPool.refetch()}
-          >
-            {formatMessage({
-              id: "cockpit.garden.pool.readError.retry",
-              defaultMessage: "Try Again",
-            })}
-          </AdminButton>
+            action={
+              <AdminButton
+                type="button"
+                variant="filled"
+                leadingIcon={<RiRefreshLine className="h-4 w-4" />}
+                onClick={() => void protocolPool.refetch()}
+              >
+                {formatMessage({
+                  id: "cockpit.garden.pool.readError.retry",
+                  defaultMessage: "Try Again",
+                })}
+              </AdminButton>
+            }
+          />
         </AdminCard>
         {railContent}
       </>
@@ -239,24 +244,19 @@ function ProtocolOperations({
     return (
       <>
         {gardenPool}
-        <AdminCard
-          variant="elevated"
-          className="space-y-2"
-          data-testid="protocol-pool-unregistered"
-        >
-          <AdminCardTitle>
-            {formatMessage({
+        <AdminCard variant="elevated" data-testid="protocol-pool-unregistered">
+          <EmptyState
+            icon={<RiSeedlingLine />}
+            title={formatMessage({
               id: "cockpit.community.pools.unregistered.title",
               defaultMessage: "No protocol pool is registered yet",
             })}
-          </AdminCardTitle>
-          <p className="type-body text-text-soft">
-            {formatMessage({
+            description={formatMessage({
               id: "cockpit.community.pools.unregistered.body",
               defaultMessage:
                 "Registering it is a deployment operation by the Green Goods team. Until then, the team cannot step in as a fallback confirmer anywhere.",
             })}
-          </p>
+          />
         </AdminCard>
         {railContent}
       </>

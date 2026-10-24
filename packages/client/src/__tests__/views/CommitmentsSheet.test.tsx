@@ -27,6 +27,7 @@ vi.mock("react-router-dom", async () => {
 });
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
+const OTHER = "0x2222222222222222222222222222222222222222" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
 const mockUseCommitmentsInbox = vi.fn();
@@ -399,7 +400,7 @@ describe("CommitmentsSheet", () => {
     expect(screen.getByText("Nothing moving right now")).toBeInTheDocument();
   });
 
-  it("puts what needs the reader ahead of their relationship on a row", () => {
+  it("puts what needs the reader in the row's one pill, in place of its state", () => {
     mockUseCommitmentsInbox.mockReturnValue(
       inbox({
         live: [{ commitment: commitment(), seat: "provider", needsYou: true }],
@@ -410,32 +411,45 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
-    // A row carries one qualifier: what needs the reader outranks how they are involved.
+    // A row carries one pill: what needs the reader outranks where the promise stands.
     expect(screen.getByText("Needs you")).toBeInTheDocument();
+    expect(screen.queryByText("In progress")).not.toBeInTheDocument();
     expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
     expect(screen.getByText("3 hours")).toBeInTheDocument();
     expect(screen.getByText("Rocinha Community Garden")).toBeInTheDocument();
-    expect(screen.getByText("In progress")).toBeInTheDocument();
   });
 
-  it("reads the same commitment differently from the other side", () => {
+  it("names the person on the other side, read from the reader's seat", () => {
+    const taken = commitment({ creator: VIEWER, leadProvider: VIEWER, counterparty: OTHER });
     mockUseCommitmentsInbox.mockReturnValue(
-      inbox({ live: [{ commitment: commitment(), seat: "confirmer", needsYou: false }] })
+      inbox({ live: [{ commitment: taken, seat: "provider", needsYou: false }] })
     );
+    const { unmount } = render(<CommitmentsSheet isOpen onClose={() => {}} />);
+    // The one who offered it reads who took it up.
+    expect(screen.getByText("0x22...222")).toBeInTheDocument();
+    unmount();
 
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({ live: [{ commitment: taken, seat: "confirmer", needsYou: false }] })
+    );
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
-
-    expect(screen.getByText("You took this up")).toBeInTheDocument();
-    expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
+    // The one who took it up reads who offered it, never their own name.
+    expect(screen.getByText("0x11...111")).toBeInTheDocument();
+    expect(screen.queryByText("0x22...222")).not.toBeInTheDocument();
   });
 
-  it("never says a member did work they only helped with", async () => {
+  it("never names a member who only helped as the one who did the work", async () => {
     const user = userEvent.setup();
     mockUseCommitmentsInbox.mockReturnValue(
       inbox({
         settled: [
           {
-            commitment: commitment({ derivedState: "FULFILLED", onchainState: "FULFILLED" }),
+            commitment: commitment({
+              derivedState: "FULFILLED",
+              onchainState: "FULFILLED",
+              creator: OTHER,
+              leadProvider: OTHER,
+            }),
             seat: "contributor",
             needsYou: false,
           },
@@ -446,9 +460,10 @@ describe("CommitmentsSheet", () => {
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
     await user.click(screen.getByTestId("tab-over-time"));
 
-    // Kept, the relationship is told in the past tense.
-    expect(screen.getByText("You helped with this")).toBeInTheDocument();
-    expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
+    // A helper reads the lead who did it; how they helped is told on the promise.
+    expect(screen.getByText("Kept")).toBeInTheDocument();
+    expect(screen.getByText("0x22...222")).toBeInTheDocument();
+    expect(screen.queryByText("You did this")).not.toBeInTheDocument();
   });
 
   it("says the queue could not be read rather than showing a short list", () => {

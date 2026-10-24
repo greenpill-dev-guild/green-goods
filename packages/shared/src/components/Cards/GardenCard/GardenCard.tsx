@@ -1,291 +1,122 @@
-import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
+/**
+ * GardenCard — a garden in the installed app, the shared media card with the garden's banner
+ * (step 16 of the app and cockpit unification).
+ *
+ * The banner is the garden's own picture, or its name's gradient when it has none; then the
+ * garden's name on one line and one detail line: how many members, then where (the place
+ * shortens first). Stewards, the description and how to join live on the garden's page. Home's
+ * garden list opens a garden from it, and Submit Work chooses one with `GardenPicker`, the same
+ * listbox as the action picker.
+ *
+ * @module components/Cards/GardenCard
+ */
 import * as React from "react";
-import { tv, type VariantProps } from "tailwind-variants";
+import { type IntlShape, useIntl } from "react-intl";
 import { buildGardenMemberSets } from "../../../utils/app/garden";
-import { formatAddress } from "../../../utils/app/text";
-import { cn } from "../../../utils/styles/cn";
-import { Badge } from "../../Badge/Badge";
 import { GardenBannerFallback } from "../../Display/GardenBannerFallback";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
+import { MediaCard, type MediaCardProps } from "../MediaCard";
+import {
+  MediaCardPicker,
+  type MediaCardPickerLayout,
+  type MediaCardPickerOption,
+} from "../MediaCardPicker";
 
-const gardenCardVariants = tv({
-  base: "@container relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
-  variants: {
-    media: {
-      large: "",
-      small: "",
-    },
-    height: {
-      home: "",
-      selection: "h-72",
-      default: "",
-    },
-    interactive: {
-      true: "cursor-pointer",
-      false: "",
-    },
-  },
-  defaultVariants: {
-    media: "large",
-    height: "default",
-    interactive: true,
-  },
-});
-
-export type GardenCardVariantProps = VariantProps<typeof gardenCardVariants>;
-
-/** Data structure for the GardenCard component */
+/** What a garden card shows of a garden. */
 export interface GardenCardData {
   id: string;
   name: string;
   location?: string;
-  description?: string;
   bannerImage?: string;
   gardeners?: string[];
   stewards?: string[];
 }
 
-/** Translatable labels for the GardenCard component */
-export interface GardenCardLabels {
-  members?: string;
-  stewards?: string;
-  stewardHeading?: string;
-  /** Template for "and X others" - use {count} placeholder */
-  andOthers?: string;
-}
-
-/** Default English labels */
-const defaultLabels: Required<GardenCardLabels> = {
-  members: "Members",
-  stewards: "Stewards",
-  stewardHeading: "Stewards",
-  andOthers: "and {count} others",
-};
-
-export interface GardenCardProps extends GardenCardVariantProps {
+export interface GardenCardProps
+  extends Omit<
+    MediaCardProps,
+    | "media"
+    | "mediaShape"
+    | "mediaLabel"
+    | "mediaCount"
+    | "title"
+    | "status"
+    | "subtitle"
+    | "details"
+    | "detailsEnd"
+    | "detailsTitle"
+    | "layout"
+  > {
   garden: GardenCardData;
-  selected?: boolean;
-  className?: string;
-  onClick?: () => void;
-  showStewards?: boolean;
-  showStats?: boolean;
-  showDescription?: boolean;
-  showBanner?: boolean;
-  /** Translated labels - defaults to English */
-  labels?: GardenCardLabels;
-  /** Render function for steward display name (for ENS resolution) */
-  renderStewardName?: (address: string) => React.ReactNode;
 }
 
-export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
-  (
-    {
-      garden,
-      media,
-      height,
-      interactive = true,
-      selected = false,
-      className,
-      onClick,
-      showStewards = false,
-      showStats = true,
-      showDescription = true,
-      showBanner = true,
-      labels: labelsProp,
-      renderStewardName,
-    },
-    ref
-  ) => {
-    // Merge provided labels with defaults
-    const labels = { ...defaultLabels, ...labelsProp };
+/** The card's picture, title and detail line, shared by the card and the picker. */
+function gardenCardContent(
+  garden: GardenCardData,
+  formatMessage: IntlShape["formatMessage"]
+): Pick<MediaCardPickerOption, "media" | "title" | "details" | "detailsTitle"> {
+  // A member is a person, whatever roles they hold (DL-049).
+  const members = buildGardenMemberSets(garden.gardeners ?? [], garden.stewards ?? []).memberIds
+    .size;
+  const place = garden.location?.trim();
+  const memberLabel = formatMessage({ id: "app.garden.memberCount" }, { count: members });
+  return {
+    title: garden.name,
+    media: (
+      <ImageWithFallback
+        src={garden.bannerImage || ""}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+        backgroundFallback={<GardenBannerFallback name={garden.name} />}
+      />
+    ),
+    details: (
+      <>
+        {memberLabel}
+        {place ? <span className="font-normal text-text-soft"> · {place}</span> : null}
+      </>
+    ),
+    detailsTitle: place ? `${memberLabel} · ${place}` : memberLabel,
+  };
+}
 
-    const membership = React.useMemo(
-      () => buildGardenMemberSets(garden.gardeners || [], garden.stewards || []),
-      [garden.gardeners, garden.stewards]
-    );
-
-    const membersCount = membership.memberIds.size;
-    const stewardAddresses = React.useMemo(
-      () => Array.from(membership.stewardIds),
-      [membership.stewardIds]
-    );
-    const stewardCount = stewardAddresses.length;
-
-    // A card with nothing to open is content, not a button: a button that does
-    // nothing would still take focus, announce itself, and answer a press.
-    const isInteractive = interactive && onClick !== undefined;
-    const classes = gardenCardVariants({ media, height, interactive: isInteractive });
-    const isMinimalSelection = height === "selection" && !showStats && !showStewards;
-    const mediaHeightClasses =
-      isMinimalSelection && media === "small" ? "h-24" : "h-26 @[300px]:h-32 @[400px]:h-40";
-
-    const Wrapper = isInteractive ? "button" : "div";
-
-    return (
-      <Wrapper
-        ref={ref as React.Ref<HTMLButtonElement & HTMLDivElement>}
-        data-testid="garden-card"
-        data-pressable={isInteractive ? "card" : undefined}
-        className={cn(
-          classes,
-          isMinimalSelection && "h-[13.25rem]",
-          "rounded-2xl border border-border bg-bg-white-0 text-left",
-          className
-        )}
-        onClick={isInteractive ? onClick : undefined}
-        type={isInteractive ? "button" : undefined}
-        style={{ textAlign: "left", width: "100%" }}
-      >
-        {showBanner && (
-          <div
-            className={cn(
-              // Container query: adapts to card width, not viewport
-              mediaHeightClasses,
-              "relative w-full overflow-hidden"
-            )}
-          >
-            <ImageWithFallback
-              src={garden.bannerImage || ""}
-              alt={garden.name || garden.description || "Garden"}
-              className="absolute inset-0 w-full h-full object-cover"
-              backgroundFallback={<GardenBannerFallback name={garden.name} />}
-            />
-          </div>
-        )}
-
-        <div
-          data-selected={selected}
-          className={cn(
-            // Container query: responsive padding based on card width
-            "p-3 @[300px]:p-4 @[400px]:p-5",
-            "flex flex-col gap-2 border border-border rounded-lg transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] flex-1 text-left",
-            showBanner && "border-t-0 rounded-t-none"
-          )}
-        >
-          <div className="flex flex-col gap-2 flex-1">
-            {/*
-             * Selection highlight overlay. Must match the OUTER Wrapper's
-             * border-radius (rounded-2xl, 24px in our theme) — anything tighter
-             * (e.g. rounded-lg = 16px) leaves an 8px curvature gap at the
-             * corners that overflow-clip on the Wrapper then chops, producing
-             * the "border cut off at the edges" regression. Matches ActionCard's
-             * 3px primary border for visual parity.
-             */}
-            <div
-              aria-hidden="true"
-              className={cn(
-                "absolute inset-0 rounded-2xl border-[3px] border-primary-on-surface opacity-0 transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] z-10 pointer-events-none",
-                selected && "opacity-100"
-              )}
-            />
-
-            {/* Garden name */}
-            <h5
-              className={cn(
-                isMinimalSelection
-                  ? "min-w-0 truncate type-title-sm transition-colors"
-                  : "flex items-center text-lg font-semibold transition-colors line-clamp-1",
-                selected && "text-primary-on-surface"
-              )}
-              title={garden.name}
-            >
-              {garden.name}
-            </h5>
-
-            {/* Stats badges */}
-            {showStats && (
-              <div className="flex flex-row flex-wrap gap-1 text-xs text-text-sub-600 font-medium">
-                <Badge
-                  variant="outline"
-                  tint="none"
-                  className="border-0 p-0 text-xs font-medium leading-tight"
-                  leadingIcon={<RiGroupFill className="h-4 w-4 text-primary-on-surface" />}
-                >
-                  {membersCount} {labels.members}
-                </Badge>
-
-                {stewardCount > 0 && (
-                  <Badge
-                    variant="outline"
-                    tint="none"
-                    className="border-0 p-0 text-xs font-medium leading-tight"
-                    leadingIcon={<RiMapPinUserFill className="h-4 w-4 text-primary-on-surface" />}
-                  >
-                    {stewardCount} {labels.stewards}
-                  </Badge>
-                )}
-
-                {garden.location && (
-                  <Badge
-                    variant="outline"
-                    tint="none"
-                    className="border-0 p-0 text-xs font-medium leading-tight"
-                  >
-                    <RiMapPinFill className="h-4 w-4 text-primary-on-surface" />
-                    <span className="max-w-[12rem] truncate" title={garden.location}>
-                      {garden.location}
-                    </span>
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            {/* Stewards list */}
-            {showStewards && stewardCount > 0 && (
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-sub-600">
-                  <RiMapPinUserFill className="h-3.5 w-3.5 text-primary-on-surface" />
-                  <span>{labels.stewardHeading}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-1 text-xs text-text-sub-600">
-                  {stewardAddresses.slice(0, 2).map((steward) => {
-                    const stewardLabel = renderStewardName
-                      ? renderStewardName(steward)
-                      : formatAddress(steward, { variant: "card" });
-                    return (
-                      <Badge
-                        key={steward}
-                        variant="outline"
-                        tint="none"
-                        className="border-0 p-0 text-xs font-medium leading-tight"
-                      >
-                        <span
-                          className="max-w-[10rem] truncate"
-                          title={typeof stewardLabel === "string" ? stewardLabel : steward}
-                        >
-                          {stewardLabel}
-                        </span>
-                      </Badge>
-                    );
-                  })}
-                  {stewardAddresses.length > 2 && (
-                    <span className="text-xs text-text-sub-600">
-                      {labels.andOthers.replace("{count}", String(stewardAddresses.length - 2))}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Description */}
-            {showDescription && garden.description && (
-              <p
-                className={cn(
-                  "text-sm text-text-sub-600 line-clamp-3",
-                  isMinimalSelection ? "h-[3.75rem] leading-5" : "flex-1"
-                )}
-                title={garden.description}
-              >
-                {garden.description}
-              </p>
-            )}
-          </div>
-        </div>
-      </Wrapper>
-    );
-  }
-);
+export const GardenCard = React.forwardRef<HTMLElement, GardenCardProps>(function GardenCard(
+  { garden, ...props },
+  ref
+) {
+  const { formatMessage } = useIntl();
+  const content = gardenCardContent(garden, formatMessage);
+  return (
+    <MediaCard ref={ref} data-testid="garden-card" {...props} {...content} mediaShape="banner" />
+  );
+});
 
 GardenCard.displayName = "GardenCard";
 
-export { gardenCardVariants };
+export interface GardenPickerProps {
+  gardens: readonly GardenCardData[];
+  /** The chosen garden's id; nothing is chosen when it matches none. */
+  value: string | null;
+  onChange: (gardenId: string) => void;
+  /** Names the group for assistive technology. */
+  label: string;
+  layout: MediaCardPickerLayout;
+  disabled?: boolean;
+  /** Holds the gardens' place while they load. */
+  loading?: boolean;
+  className?: string;
+}
+
+/** Choosing a garden from its cards: the action picker's listbox, with garden cards. */
+export function GardenPicker({ gardens, ...picker }: GardenPickerProps) {
+  const { formatMessage } = useIntl();
+  return (
+    <MediaCardPicker
+      {...picker}
+      options={gardens.map((garden) => ({
+        value: garden.id,
+        ...gardenCardContent(garden, formatMessage),
+      }))}
+    />
+  );
+}
