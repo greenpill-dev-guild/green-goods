@@ -249,9 +249,9 @@ standards-only `feature/app-cockpit-bar-pill-guides`.
 divided rows, the labels in one column as wide as the longest (up to 40%), and the row's one action
 in its right slot; a row with no value is a setting. The search found more local rows than the
 census's eleven, and all of them moved: the cockpit's `AdminSettingRow` (retired), `FlowStatusRow`'s
-summary, `DetailRow`, `InfoRow`, both `ReviewRow`s, `DetailField`, `PoolFundingDialogFact`, the
+summary, `DetailRow`, `InfoRow`, both `ReviewRow`s, `ReviewLine` (retired), `DetailField`, `PoolFundingDialogFact`, the
 commitment and settlement fact rows, `ChangeSummary` and the rails' stat rows; the app's `Fact`
 (retired), `SummaryRow`, `ReadinessRow`, the settings rows and the claim panel's rows; and the inline
-fact lists on the same screens. The 136 pairs and the measurements are in
+fact lists on the same screens. The 142 pairs and the measurements are in
 [eval.md](eval.md#step-14-build-fact-rows). DL-109 and the guide wording are the standards-only
 `feature/app-cockpit-fact-rows-guides` (#1232).

@@ -688,9 +688,9 @@ Run on 2026-10-24 against `develop` `3c4fd4b62`, with step 14 on `feature/app-co
 app; the before frames came from a detached worktree at `develop`. The frames went to the maintainer
 as a private artifact, outside the repository.
 
-**Pairs.** 136, headless Chromium (Playwright) at device scale 2:
+**Pairs.** 142, headless Chromium (Playwright) at device scale 2:
 
-- Cockpit, **Storybook**: 34 screens at 390px in light and dark and at 1280px in light, with Add to
+- Cockpit, **Storybook**: 36 screens at 390px in light and dark and at 1280px in light, with Add to
   This Group in Spanish and the Group inspector in Portuguese at 390px.
 - App, **Storybook**: 12 screens at 390px in light and dark, and at 768px in light where the screen
   has room. Four are capture-only stories kept out of Git: the G$ fee summary, pool readiness, and a
@@ -721,5 +721,13 @@ as a private artifact, outside the repository.
   sibling; they read the fact row now. The settings test counted cards and the pool readiness test
   found its list by role; they count fact rows and find the list by its label, since a description
   list has no list role.
+- The Storybook runner caught a row the search had missed: the campaign jar review's `ReviewLine`,
+  whose story play still read the old markup. It is a fact row now, with its two screens in the pairs.
 - Rig: a story added while Storybook runs reloads its page once (Vite optimizes the new imports), so
   those frames were taken by direct URL. This is rig behaviour, not the product's.
+
+**Checks.** The focused Vitest files for every changed screen (63 admin and 47 client files at
+first, then the files each later change touched), the three typechecks, oxlint, the react-patterns,
+design-token, story, source-structure and seam checks, and the `storybook-ci` plays of the 102 story
+files that render a changed screen (`vitest --project=storybook`): 153 tests, all passing after the
+`ReviewLine` change, with two load timeouts that passed on a rerun.

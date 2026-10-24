@@ -385,7 +385,7 @@
     step 18's position stat rows, step 19's `StatCard`, and the account status rows (`AccountRow`,
     `SignedOutRow`, the Profile's `AccountInfo`).
 - Proof: focused tests for every screen whose test read the old rows, the FactRow story plays, and
-  136 rendered pairs, **Storybook** for the cockpit and the app's components and **mock-auth
+  142 rendered pairs, **Storybook** for the cockpit and the app's components and **mock-auth
   localhost** for the Profile's settings, no authenticated class
   ([eval.md](../eval.md#step-14-build-fact-rows)).
 - Guides: DL-109, root `DESIGN.md`, both surface guides, Rules 9 and 15, the cockpit's prompt
