@@ -393,7 +393,7 @@
 
 - Two passes, because steps 14 to 18 move card consumers in parallel. The first pass is
   `feature/app-cockpit-unused-card-code`, cut from `develop` `a3645441c`; its guide wording is the
-  standards-only `feature/app-cockpit-unused-card-code-guides`.
+  standards-only `feature/app-cockpit-unused-card-code-guides`, merged as #1235.
 - **Removed, nothing rendered them:** `CardBase` with Shared's own `Card` and their header, title,
   body and footer parts, `cardVariants` and `surfaceCardVariants` (and the
   `./components/Cards/CardBase` export, so the API index and the four seam fingerprints are

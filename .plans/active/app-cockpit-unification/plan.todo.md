@@ -259,8 +259,8 @@ had replaced with its own, and the work row's unused status-border helper. It al
 DL-108 named solid: `Surface`'s four levels (and with them the Hub's empty, error and loading
 frame), the garden menu, the cockpit's two hover tooltips, and the app's install and offline
 strips. The code is `feature/app-cockpit-unused-card-code`, and the guide wording, with the public
-design page's role-map caption, is the standards-only `feature/app-cockpit-unused-card-code-guides`
-([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-1286),
+design page's role-map caption, is the standards-only `feature/app-cockpit-unused-card-code-guides`,
+merged as #1235 ([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-1286),
 [eval.md](eval.md#step-19-proof-unused-card-code-and-solid-surfaces)). The second pass waits for
 steps 16 and 18: `VaultPositionCard`, `WorkbenchRow` and the `glass-raised` left on `WorkbenchCard`
 and `WorkbenchList`, and the app's `GardenCard` and work row module, which share their Shared
