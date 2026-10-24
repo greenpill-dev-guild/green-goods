@@ -51,7 +51,10 @@ export interface FactRowProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "children" | "title"> {
   /** What the value is. */
   label: React.ReactNode;
-  /** The value. A row without one is a setting: its label names the control in `action`. */
+  /**
+   * The value. A row without one whose `action` is a control is a setting: its label names
+   * the control and reads as a field title.
+   */
   value?: React.ReactNode;
   /** The full value on hover, where the value shows a short form (a name for an address). */
   valueTitle?: string;
@@ -70,7 +73,8 @@ export const FactRow = React.forwardRef<HTMLDivElement, FactRowProps>(function F
   { label, value, valueTitle, description, icon, action, labelId, className, ...rest },
   ref
 ) {
-  const setting = value === undefined || value === null;
+  // A setting has no value and a control; a fact whose value is missing stays a fact.
+  const setting = (value === undefined || value === null) && action != null;
   return (
     <div
       data-component="FactRow"
