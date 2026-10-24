@@ -38,6 +38,20 @@ export function PinnedPromiseCard({
   const label = formatMessage({
     id: kind === "proof" ? "app.commitment.pinned.proofFor" : "app.commitment.pinned.workFor",
   });
+  // The button's name replaces the row's contents, the direction's named icon with them, so
+  // a promise whose direction is known says it first, as the icon leads the row.
+  const directionName =
+    direction === "OFFER" || direction === "REQUEST"
+      ? formatMessage({
+          id: direction === "REQUEST" ? "app.commitments.row.request" : "app.commitments.row.offer",
+        })
+      : null;
+  const openLabel = directionName
+    ? formatMessage(
+        { id: "app.commitment.pinned.openWithDirection" },
+        { direction: directionName, label, title }
+      )
+    : formatMessage({ id: "app.commitment.pinned.open" }, { label, title });
 
   return (
     <div
@@ -53,7 +67,7 @@ export function PinnedPromiseCard({
         title={title}
         note={label}
         onOpen={onOpen}
-        openLabel={formatMessage({ id: "app.commitment.pinned.open" }, { label, title })}
+        openLabel={openLabel}
       />
     </div>
   );

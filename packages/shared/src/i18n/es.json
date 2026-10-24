@@ -1158,6 +1158,7 @@
   "app.commitment.link.rowOptionNamed": "Requisito {requirement} · {action} · {done} de {of}",
   "app.commitment.pinned.proofFor": "Prueba para",
   "app.commitment.pinned.open": "{label} {title}. Abrir la promesa",
+  "app.commitment.pinned.openWithDirection": "{direction}: {label} {title}. Abrir la promesa",
   "app.commitment.pinned.workFor": "Trabajo para",
   "app.commitment.promised.title": "Qué se prometió",
   "app.commitment.status.label": "En qué punto está",

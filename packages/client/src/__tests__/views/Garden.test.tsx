@@ -270,6 +270,7 @@ const messages = {
   "app.action.selected": "Selected Action",
   "app.commitment.pinned.workFor": "Work for",
   "app.commitment.pinned.open": "{label} {title}. Open the promise",
+  "app.commitment.pinned.openWithDirection": "{direction}: {label} {title}. Open the promise",
   "app.commitments.row.request": "Request",
   "app.garden.commitment.linkSchedulingError":
     "Your work was submitted, but its link to the promise could not be queued.",
@@ -458,11 +459,14 @@ describe("Garden (Work) View", () => {
     };
     renderWithProviders();
 
-    // The pin leads with the promise's own direction, a request's helping hand.
+    // The pin leads with the promise's own direction, a request's helping hand, and its
+    // button's name says it too, since that name replaces the icon's for a screen reader.
     const pinned = within(screen.getByTestId("pinned-promise"));
     expect(pinned.getByRole("img", { name: "Request" })).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: "Work for Repair tool handles. Open the promise" })
+      screen.getByRole("button", {
+        name: "Request: Work for Repair tool handles. Open the promise",
+      })
     );
     expect(screen.getByRole("dialog")).toHaveTextContent("Promise sheet");
 
