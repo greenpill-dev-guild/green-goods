@@ -82,7 +82,7 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 
 | Type | What it describes | First-check |
 |------|-------------------|-------------|
-| `spacing` | Padding, gap, margin. Includes concentricity (`child_radius = parent_radius − padding`). | M3 anatomy token + parent radius. |
+| `spacing` | Padding, gap, margin. Includes concentricity (`child_radius = parent_radius − padding`). | The surface's spacing token + parent radius. |
 | `alignment` | Horizontal/vertical alignment inside a container. | Flex/grid direction, `items-*`, `justify-*`. |
 | `contrast` | Token pair mismatch (fg/bg), WCAG failure, disabled state too subtle. | Role token pair (`--m3-on-surface` over `--m3-surface-*`). |
 | `state-layer` | Hover, pressed, focused, selected, disabled: missing, wrong opacity, or wrong color. | M3 state layer percentages (8/12/12/16). |
@@ -101,7 +101,7 @@ The left column is what the user says. The right column is the internal statemen
 
 | User says | Agent's internal statement |
 |-----------|----------------------------|
-| "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16dp) per M3 card anatomy, currently p-3 (12dp)` |
+| "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16px), AdminCard's default padding, currently p-3 (12px)` |
 | "The top bar on Garden feels detached from the page." | `canvas-area-top in /garden → hierarchy: AppBar reads detached from the canvas (expected: transparent root over the --tone-surface-tint-color wash); check the wash gradient and sticky-header transparency` |
 | "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: hover/active text transition hardcodes ease-out 200ms instead of --spring-effects-fast (underline rail: there is no sliding indicator to animate)` |
 | "The input label looks wrong at phone width." | `AdminTextField (outlined) in AdminDialog create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |

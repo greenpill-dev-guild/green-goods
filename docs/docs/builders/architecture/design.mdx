@@ -83,9 +83,9 @@ fill that carries text uses the contrast-safe action pair, never the bright acce
   one height scale: 48, 44, 40, and 32px.
 - **Motion.** Named spring tokens only, such as `--spring-spatial` and `--spring-effects`. Nothing
   settles on a hand-written curve or duration.
-- **Material and elevation.** Five material thicknesses from ultrathin to solid, matched to content
-  density, and five elevation layers from the substrate to overlays. Body text never sits on the
-  thinnest glass.
+- **Material and elevation.** Solid surfaces everywhere, with depth from shadow, the scrim, and five
+  elevation layers from the substrate to overlays. The cockpit's nav dock is the one translucent
+  surface.
 
 ### Tokens at a glance {#tokens}
 
@@ -107,7 +107,7 @@ emphasis and size from the same tokens.
 <div className="gg-figure-grid">
   <figure className="gg-figure">
   <img src="/img/design/shared-tokens-materialroles-role-map.webp" alt="Material role map story: how the canvas, sheet, glass, and chrome roles stack, shown in light and dark" loading="lazy" width="1200" height="1052" />
-  <figcaption>Canvas, sheet, glass and chrome roles in both themes. <a href="https://design.greengoods.app/?path=/story/shared-tokens-materialroles--role-map">Open in Storybook</a>.</figcaption>
+  <figcaption>Canvas, sheet, glass and chrome roles in both themes. The glass role now survives only in the cockpit's nav dock. <a href="https://design.greengoods.app/?path=/story/shared-tokens-materialroles--role-map">Open in Storybook</a>.</figcaption>
 </figure>
   <figure className="gg-figure">
   <img src="/img/design/shared-primitives-button-emphasis-catalog.webp" alt="Button emphasis catalog story: primary, secondary, tertiary, and danger buttons at large, medium, small, and compact sizes" loading="lazy" width="1200" height="280" />
@@ -119,7 +119,7 @@ emphasis and size from the same tokens.
 
 The dialects share tokens and terminology without pretending every audience has the same needs.
 Each has its own DesignMD file, and the hard rule between them is the chrome: a bottom app bar
-means the installed app, a site header means the website, and the Material 3 shell means the
+means the installed app, a site header means the website, and the nav dock with its FAB means the
 cockpit. Never mix them. The [client](../packages/client) and [admin](../packages/admin) package
 pages describe the shells that enforce the split.
 
@@ -173,21 +173,23 @@ green is reserved for the install and support calls to action. Its rules live in
   </figure>
 </div>
 
-### The admin cockpit: Material 3, strictly {#admin}
+### The admin cockpit: the app's language, set denser {#admin}
 
 Stewards and evaluators work in the cockpit, and its litmus test is blunt: if it would be out of
-place in Linear, GitHub, or Stripe's dashboard, it is out of place here. The same linen canvas and
-charcoal ink, but no serif, no lookbook layouts, and Plus Jakarta Sans throughout. Material Design 3
-is the strict structural backbone, with exact component dimensions, M3 state layers, a six-step
-shape scale, and one elevation ladder; spring motion is the only permitted deviation. The nav dock
-(the `NavigationBar` and the FAB) is the only translucent surface, dialogs and side sheets and
-dense content stay solid, and each workspace tints the canvas with its own tone. Its rules live in
+place in Linear, GitHub, or Stripe's dashboard, it is out of place here. It speaks the installed
+app's language at a denser setting: the same face, linen canvas, and charcoal ink, with no serif and
+no lookbook layouts. Its strict Material 3 rule is retired. It takes the app's shared pieces where
+they exist and keeps its own dials: the compact control metric, pill buttons, a tone per workspace,
+inline filters, the Standard motion scheme, and its navigation; its Material-named tokens keep
+their names. The nav dock (the `NavigationBar` and the FAB) is the only translucent surface,
+everything else stays solid, and each workspace washes the top of the canvas with its tone. Its
+rules live in
 [`packages/admin/DESIGN.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/admin/DESIGN.md).
 
 <div className="gg-figure-grid">
   <figure className="gg-figure">
   <img src="/img/design/design-system-admin-foundations-tokens.webp" alt="Admin foundations story: the Material 3 color roles, elevation levels, and type scale the steward cockpit uses" loading="lazy" width="1200" height="800" />
-  <figcaption>The dashboard’s Material 3 color roles, elevation and typography. <a href="https://design.greengoods.app/?path=/story/design-system-admin-foundations--tokens">Open in Storybook</a>.</figcaption>
+  <figcaption>The dashboard’s color roles (Material-named tokens), elevation and typography. <a href="https://design.greengoods.app/?path=/story/design-system-admin-foundations--tokens">Open in Storybook</a>.</figcaption>
 </figure>
   <figure className="gg-figure">
     <img src="/img/design/design-system-admin-components-buttons.webp" alt="Admin components story: every AdminButton variant as a pill at the small and medium sizes, each with its measured height, corner, label, and hit area" loading="lazy" width="2000" height="1333" />
