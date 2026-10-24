@@ -1,6 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
-import type { Address, Garden } from "@green-goods/shared/types/domain";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   buildCampaignCookieJarMetadata,
   getCampaignCookieJarPayoutAssets,
@@ -141,9 +141,6 @@ export const campaignCookieJarPanelViewProps: CampaignCookieJarPanelViewProps = 
   campaignSearch: "",
   setCampaignSearch: () => undefined,
   visibleCampaigns: [storybookCampaign],
-  gardensByAddress: new Map<string, Garden>(
-    STORYBOOK_ADMIN_GARDENS.map((garden) => [garden.id.toLowerCase(), garden])
-  ),
   setSelectedCampaign: () => undefined,
   selectedCampaign: null,
   selectedCampaignTitle: storybookCampaign.title,

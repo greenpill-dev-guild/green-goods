@@ -127,9 +127,10 @@ const sheet = async () => within(await screen.findByTestId("app-sheet"));
 
 /**
  * A garden's endowment: the vault treasury with its Deposit action pinned in the shared bar
- * (DL-016), the reader's own deposits with their withdraw confirmation, and the garden cookie jar
- * with its claim confirmation. Vault, jar, and wallet hooks are mocked per story; wallet balance
- * reads resolve empty, so Deposit waits for a balance.
+ * (DL-016), the reader's own deposits as rows that open their withdrawal and its confirmation,
+ * and the garden cookie jar as a row that opens its claim and confirmation. Vault, jar, and
+ * wallet hooks are mocked per story; wallet balance reads resolve empty, so Deposit waits for a
+ * balance.
  */
 const meta: Meta<typeof EndowmentSheet> = {
   title: "Client/Sheets/EndowmentSheet",
@@ -184,6 +185,8 @@ export const WithdrawConfirm: Story = {
   beforeEach: withEndowment({ deposits: [myDeposit] }),
   play: async () => {
     const endowment = await sheet();
+    // A deposit is a row with no act; it opens its withdrawal beneath it.
+    await userEvent.click(endowment.getByRole("button", { expanded: false }));
     await userEvent.type(endowment.getByRole("textbox", { name: "Amount to withdraw" }), "5");
     await userEvent.click(endowment.getByRole("button", { name: "Withdraw" }));
     const confirm = within(await screen.findByRole("alertdialog", { name: "Confirm Withdrawal" }));
