@@ -166,6 +166,7 @@ export function SheetHeader({
         </div>
         {!hideCloseButton && (
           <IconButton
+            data-piece-control
             data-component="SheetHeader"
             data-slot="close"
             data-testid={closeTestId}

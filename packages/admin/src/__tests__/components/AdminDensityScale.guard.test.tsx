@@ -14,11 +14,12 @@
  * @vitest-environment happy-dom
  */
 
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { RiAddLine } from "@remixicon/react";
 import { describe, expect, it } from "vitest";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminInlineField } from "@/components/AdminInlineField";
 import { AdminListRow } from "@/components/AdminListRow";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
@@ -26,13 +27,47 @@ import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTextField } from "@/components/AdminTextField";
 import { render, screen } from "../test-utils";
 
+/** Every .tsx file under `dir`, stories and tests left out. */
+const sourceFiles = (dir: string): string[] =>
+  readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) return name === "__tests__" ? [] : sourceFiles(path);
+    return /\.tsx$/.test(name) && !/\.(stories|test)\.tsx$/.test(name) ? [path] : [];
+  });
+
+/**
+ * The text of each JSX opening tag `pattern` finds, up to its closing `>` outside braces,
+ * with block and whole-line comments left out.
+ */
+const openingTags = (raw: string, pattern: RegExp): string[] => {
+  const source = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  return Array.from(source.matchAll(pattern), (match) => {
+    const start = match.index ?? 0;
+    let depth = 0;
+    let end = start;
+    for (; end < source.length; end += 1) {
+      const char = source[end];
+      if (char === "{") depth += 1;
+      else if (char === "}") depth -= 1;
+      else if (char === ">" && depth === 0) break;
+    }
+    return source.slice(start, end);
+  });
+};
+
 describe("AdminDensityScale.guard (DL-011)", () => {
   it("buttons ride the 28/32/40 tiers as the shared Button's compact, sm and lg sizes", () => {
     render(
       <>
-        <AdminButton size="sm">Small</AdminButton>
-        <AdminButton size="md">Medium</AdminButton>
-        <AdminButton size="lg">Large</AdminButton>
+        <Button type="button" size="compact">
+          Small
+        </Button>
+        <Button type="button" size="sm">
+          Medium
+        </Button>
+        <Button type="button" size="lg">
+          Large
+        </Button>
       </>
     );
 
@@ -49,22 +84,20 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     ] as const) {
       expect(button).toHaveClass("gg-button");
       expect(button).toHaveAttribute("data-size", size);
-      expect(button).toHaveAttribute("data-component", "AdminButton");
     }
   });
 
   it("icon buttons ride the same 28/32/40 tiers with a mandatory accessible name", () => {
     render(
       <>
-        <AdminIconButton size="sm" label="Move Up">
-          <RiAddLine />
-        </AdminIconButton>
-        <AdminIconButton size="md" label="Remove Photo">
-          <RiAddLine />
-        </AdminIconButton>
-        <AdminIconButton size="lg" label="Open Settings">
-          <RiAddLine />
-        </AdminIconButton>
+        <IconButton size="compact" aria-label="Move Up" title="Move Up" icon={<RiAddLine />} />
+        <IconButton size="sm" aria-label="Remove Photo" title="Remove Photo" icon={<RiAddLine />} />
+        <IconButton
+          size="lg"
+          aria-label="Open Settings"
+          title="Open Settings"
+          icon={<RiAddLine />}
+        />
       </>
     );
 
@@ -76,7 +109,6 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(md).toHaveAttribute("data-size", "sm");
     expect(lg).toHaveAttribute("data-size", "lg");
     expect(md).toHaveClass("gg-icon-button");
-    expect(md).toHaveAttribute("data-component", "AdminIconButton");
     expect(md).toHaveAttribute("title", "Remove Photo");
   });
 
@@ -142,8 +174,8 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-button-weight": "500",
       "--gg-label-md": "0.875rem",
       "--gg-label-sm": "0.875rem",
-      // lg and md land on the 40px lg tier, sm on the 32px md tier, compact on the
-      // 28px sm tier: the same h-10 / h-8 / h-7 AdminButton renders above.
+      // lg and md land on the 40px tier, sm on 32px and compact on 28px: the
+      // tiers the buttons above render.
       "--gg-button-block-lg": "2.5rem",
       "--gg-button-block-md": "2.5rem",
       "--gg-button-block-sm": "2rem",
@@ -160,12 +192,17 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       // The cockpit's look on the shared family (DL-115): no press scale, round
       // icon buttons with an 18px glyph, and the neutral disabled pair instead of
       // a dim, with an aria-disabled button keeping its pointer for a hover reason.
-      // Each size capped at its block, as the fixed-height AdminButton was, so a
-      // stretching row never grows a button.
+      // Each size capped at its block, as the cockpit's fixed-height pill was, so a
+      // stretching row never grows a button, with the hit-target classes' margin
+      // reserved around it, 6px around 28 and 32px and 2px around 40px (DL-119).
       "--gg-button-block-cap-lg": "var(--gg-button-block-lg)",
       "--gg-button-block-cap-md": "var(--gg-button-block-md)",
       "--gg-button-block-cap-sm": "var(--gg-button-block-sm)",
       "--gg-button-block-cap-compact": "var(--gg-button-block-compact)",
+      "--gg-button-reserve-lg": "0.125rem",
+      "--gg-button-reserve-md": "0.125rem",
+      "--gg-button-reserve-sm": "0.375rem",
+      "--gg-button-reserve-compact": "0.375rem",
       "--gg-button-pressed-transform": "none",
       "--gg-icon-button-glyph": "1.125rem",
       "--gg-icon-button-radius-pressed": "var(--radius-full)",
@@ -226,26 +263,6 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-card-edge": "var(--neutral-200)",
       "--gg-card-fill": "var(--m3-surface-container-high)",
     });
-    // The adapters reserve the old hit-target margin around each tier (DL-115):
-    // 6px around 28 and 32px, 2px around 40px, on the adapters alone.
-    const reserve = {
-      "--gg-button-reserve-lg": "0.125rem",
-      "--gg-button-reserve-md": "0.125rem",
-      "--gg-button-reserve-sm": "0.375rem",
-      "--gg-button-reserve-compact": "0.375rem",
-    };
-    expect(
-      ggTokens(
-        adminCss,
-        ':where([data-component="AdminButton"], [data-component="AdminIconButton"]) {'
-      )
-    ).toEqual(reserve);
-    expect(
-      ggTokens(
-        surfacesCss,
-        '[data-surface-scope="admin"] :where([data-component="AdminButton"], [data-component="AdminIconButton"]) {'
-      )
-    ).toEqual(reserve);
     // The Storybook admin scope must render what production renders.
     expect(ggTokens(surfacesCss, '[data-surface-scope="admin"] {')).toEqual(admin);
     // In dark the sheet is the lifted card with its hairline, and the disabled
@@ -261,6 +278,79 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(
       ggTokens(surfacesCss, '[data-surface-scope="admin"][data-theme="dark"] {')
     ).toMatchObject(dark);
+  });
+
+  it("keeps the glyph tier and the disabled pair over call-site classes, and skips a shared piece's own buttons (DL-119)", () => {
+    const adminCss = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
+    const surfacesCss = readFileSync(
+      resolve(__dirname, "../../../../shared/.storybook/surfaces.css"),
+      "utf-8"
+    );
+    const themeCss = readFileSync(
+      resolve(__dirname, "../../../../shared/src/styles/theme.css"),
+      "utf-8"
+    );
+    const declarations = (source: string, selector: string) => {
+      const start = source.indexOf(`${selector} {`);
+      expect(start, selector).toBeGreaterThan(-1);
+      return source.slice(start, source.indexOf("\n}", start)).replace(/\s+/g, " ");
+    };
+    // Outside every layer in index.css, so an icon's h-4 w-4 or a call site's
+    // warning colors never win over the tier or the pair (the utilities layer
+    // beats the shared rules in the components layer).
+    for (const [selector, body] of [
+      [
+        ".gg-icon-button:not([data-piece-control]) svg",
+        "inline-size: var(--gg-icon-button-glyph, 1.25rem);",
+      ],
+      ['.gg-icon-button[data-size="compact"]:not([data-piece-control]) svg', "inline-size: 1rem;"],
+      [
+        '.gg-button[data-emphasis]:is(:disabled, [aria-disabled="true"])',
+        "background: var(--gg-button-disabled-fill, var(--gg-button-fill));",
+      ],
+      [
+        '.gg-icon-button:is(:disabled, [aria-disabled="true"])',
+        "color: var(--gg-button-disabled-ink, var(--gg-icon-button-ink));",
+      ],
+    ] as const) {
+      expect(declarations(adminCss, selector)).toContain(body);
+      expect(declarations(surfacesCss, `[data-surface-scope="admin"] ${selector}`)).toContain(body);
+      // At the top level: no brace left open before it, so no @layer holds it.
+      const before = adminCss
+        .slice(0, adminCss.indexOf(`${selector} {`))
+        .replace(/\/\*[\s\S]*?\*\//g, "");
+      expect(before.split("{").length - before.split("}").length, selector).toBe(0);
+    }
+    // A shared piece's own buttons keep the app's layout: no reserve, no cap.
+    const reset = declarations(themeCss, "  :is(.gg-button, .gg-icon-button)[data-piece-control]");
+    for (const size of ["lg", "md", "sm", "compact"]) {
+      expect(reset).toContain(`--gg-button-reserve-${size}: 0;`);
+      expect(reset).toContain(`--gg-button-block-cap-${size}: none;`);
+    }
+    // Every Button or IconButton a shared piece renders carries the mark.
+    const sharedComponents = resolve(__dirname, "../../../../shared/src/components");
+    const files = sourceFiles(sharedComponents);
+    const unmarked = files.flatMap((file) =>
+      openingTags(readFileSync(file, "utf-8"), /<(Button|IconButton)\b/g)
+        .filter((tag) => !tag.includes("data-piece-control"))
+        .map((tag) => `${file.slice(sharedComponents.length + 1)}: ${tag.slice(0, 40)}`)
+    );
+    expect(files.length).toBeGreaterThan(0);
+    expect(unmarked).toEqual([]);
+  });
+
+  it("names the type on every cockpit Button, so one in a form never submits it by accident", () => {
+    // The shared Button leaves `type` to its caller, where a native button
+    // defaults to submit; a link drawn as one (`asChild`) has none.
+    const adminSource = resolve(__dirname, "../..");
+    const files = sourceFiles(adminSource);
+    const untyped = files.flatMap((file) =>
+      openingTags(readFileSync(file, "utf-8"), /<Button\b/g)
+        .filter((tag) => !/\btype=|\basChild\b|\{\.\.\./.test(tag))
+        .map((tag) => `${file.slice(adminSource.length + 1)}: ${tag.slice(0, 60)}`)
+    );
+    expect(files.length).toBeGreaterThan(0);
+    expect(untyped).toEqual([]);
   });
 
   it("toolbar pills sit at the 36px tier", () => {

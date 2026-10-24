@@ -108,6 +108,7 @@ export function AddressDisplay({
 
       {showCopyButton && (
         <IconButton
+          data-piece-control
           size="compact"
           className="-my-1.5 text-text-soft"
           onClick={handleCopy}

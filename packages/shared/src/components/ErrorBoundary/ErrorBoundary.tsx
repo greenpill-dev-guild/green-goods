@@ -111,7 +111,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         title="Something went wrong"
         description="An unexpected error occurred. Please try again."
         action={
-          <Button size="sm" leadingIcon={<RiRefreshLine />} onClick={this.handleReset}>
+          <Button
+            data-piece-control
+            size="sm"
+            leadingIcon={<RiRefreshLine />}
+            onClick={this.handleReset}
+          >
             Try Again
           </Button>
         }

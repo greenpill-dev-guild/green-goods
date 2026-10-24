@@ -84,6 +84,7 @@ function renderAction(role: ActionRole, action: SheetAction | undefined) {
   const inert = loading || Boolean(disabled);
   return (
     <Button
+      data-piece-control
       {...buttonProps}
       key={role}
       type={type ?? "button"}

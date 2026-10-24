@@ -1508,8 +1508,8 @@
 
   /* A surface whose rows were laid out around fixed-height buttons caps each
    * size at its block, so a row that stretches never grows one, and can reserve
-   * a block margin for the finger box's reach (the cockpit's adapters, DL-115).
-   * The app sets neither. */
+   * a block margin for the finger box's reach (the cockpit, DL-119). The app
+   * sets neither, and a shared piece's own buttons take neither (below). */
   .gg-button[data-size="lg"] {
     --gg-button-block: var(--gg-button-block-lg, 3rem);
     max-block-size: var(--gg-button-block-cap-lg, none);
@@ -1543,6 +1543,21 @@
     margin-block: var(--gg-button-reserve-compact, 0);
     gap: 0.375rem;
     padding-inline: var(--gg-button-inline-compact, 0.75rem);
+  }
+
+  /* A shared piece lays out its own buttons: a toast's actions, the sheet's
+   * actions and Close, a copy, dismiss or remove button. It marks them
+   * data-piece-control, and they keep the app's layout on any surface, with no
+   * reserve and no cap, so a wrapped toast action grows to fit (DL-119). */
+  :is(.gg-button, .gg-icon-button)[data-piece-control] {
+    --gg-button-reserve-lg: 0;
+    --gg-button-reserve-md: 0;
+    --gg-button-reserve-sm: 0;
+    --gg-button-reserve-compact: 0;
+    --gg-button-block-cap-lg: none;
+    --gg-button-block-cap-md: none;
+    --gg-button-block-cap-sm: none;
+    --gg-button-block-cap-compact: none;
   }
 
   /* Hit areas: every size carries an absolute box that reaches the surface's
@@ -1700,7 +1715,8 @@
   }
 
   /* The glyph is 20px; a denser surface sets --gg-icon-button-glyph (the cockpit
-   * draws 18px, DL-115). The compact size keeps 16px. */
+   * draws 18px, DL-115, over any size class the icon carries, DL-119). The
+   * compact size keeps 16px. */
   .gg-icon-button svg {
     inline-size: var(--gg-icon-button-glyph, 1.25rem);
     block-size: var(--gg-icon-button-glyph, 1.25rem);
