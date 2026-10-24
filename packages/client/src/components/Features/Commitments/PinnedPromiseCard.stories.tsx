@@ -28,9 +28,13 @@ export const ProofFor: Story = {
     const card = within(canvasElement).getByRole("button", {
       name: /^Proof for Repair the north fence panel.*Open the promise$/,
     });
-    // A long title clamps at two 20px lines.
+    // A long title keeps one line and ends in an ellipsis, the full title on hover.
     const title = within(card).getByText(/Repair the north fence panel/);
-    await expect(title.getBoundingClientRect().height).toBeLessThanOrEqual(40);
+    await expect(title.getBoundingClientRect().height).toBeLessThanOrEqual(20);
+    await expect(title).toHaveAttribute(
+      "title",
+      expect.stringContaining("Repair the north fence panel")
+    );
     card.click();
     await expect(args.onOpen).toHaveBeenCalledTimes(1);
   },

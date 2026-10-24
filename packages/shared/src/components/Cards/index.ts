@@ -1,19 +1,10 @@
-// Card Base Components
+// CommitmentRow: one promise in a list on both surfaces, on the item row
 export {
-  CardBase,
-  Card,
-  type CardProps,
-  type CardBaseProps,
-  CardContent,
-  CardBody,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  type CardVariantProps,
-  cardVariants,
-  surfaceCardVariants,
-} from "./CardBase";
+  CommitmentRow,
+  type CommitmentRowDirection,
+  type CommitmentRowPending,
+  type CommitmentRowProps,
+} from "./CommitmentRow";
 // FactRow: the facts about one thing, a label beside its value (DL-109)
 export { FactList, type FactListProps, FactRow, type FactRowProps } from "./FactRow";
 // ItemRow: one item in a list on both surfaces (F7)
@@ -49,7 +40,6 @@ export { PersonRow, type PersonRowProps } from "./PersonRow";
 export { VaultPositionCard, type VaultPositionCardProps } from "./VaultPositionCard";
 // WorkCard
 export {
-  getStatusBorderClass,
   WorkCard,
   type WorkCardData,
   type WorkCardLabels,

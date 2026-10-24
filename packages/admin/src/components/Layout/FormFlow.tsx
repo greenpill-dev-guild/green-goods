@@ -69,7 +69,7 @@ export function FormFlow({
           <Surface
             key={section.id}
             as="section"
-            elevation="solid-raised"
+            elevation="raised"
             padding="none"
             data-region={`form-section-${section.id}`}
             aria-labelledby={`form-section-${section.id}-title`}
@@ -145,7 +145,7 @@ export function FormFlow({
 
       <Surface
         as="footer"
-        elevation="solid-raised"
+        elevation="raised"
         padding="compact"
         data-region="form-flow-actions"
         className="mt-4"

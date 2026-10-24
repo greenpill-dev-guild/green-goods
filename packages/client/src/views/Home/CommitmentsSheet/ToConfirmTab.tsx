@@ -1,4 +1,3 @@
-import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
@@ -11,7 +10,7 @@ import { RiShieldCheckLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 
-import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
+import { CommitmentStateLadder, PromiseRow } from "@/components/Features/Commitments";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 
 export interface ToConfirmTabProps {
@@ -82,28 +81,22 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
           <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
             {group.gardenName}
           </SheetHeading>
-          <div className="space-y-2">
-            {group.rows.map((row) => {
-              const captured = isCapturedCommitment(row.commitment);
-              return (
-                <div key={row.commitment.id} className="space-y-1">
-                  <CommitmentRow
-                    row={{ commitment: row.commitment, seat: "confirmer", needsYou: true }}
-                    title={row.title}
-                    onOpen={(id) => onOpenCommitment(group.garden, id)}
-                  />
-                  <div className="flex gap-1 px-1">
-                    <StatusBadge size="sm" variant="neutral">
-                      {formatMessage({
-                        id: captured
-                          ? "app.commitments.toConfirm.captured"
-                          : "app.commitments.toConfirm.gardenClaim",
-                      })}
-                    </StatusBadge>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex flex-col gap-(--gg-list-gap)">
+            {/* Every row here waits on the reader, so what kind of ask it is leads its
+                details, where a second pill used to sit under the row. */}
+            {group.rows.map((row) => (
+              <PromiseRow
+                key={row.commitment.id}
+                row={{ commitment: row.commitment, seat: "confirmer", needsYou: true }}
+                title={row.title}
+                kind={formatMessage({
+                  id: isCapturedCommitment(row.commitment)
+                    ? "app.commitments.toConfirm.captured"
+                    : "app.commitments.toConfirm.gardenClaim",
+                })}
+                onOpen={(id) => onOpenCommitment(group.garden, id)}
+              />
+            ))}
           </div>
         </div>
       ))}

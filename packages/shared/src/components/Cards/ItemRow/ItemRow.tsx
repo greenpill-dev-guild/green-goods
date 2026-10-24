@@ -62,6 +62,8 @@ export type ItemRowLead =
       kind: "icon";
       icon: React.ReactNode;
       mark?: React.ReactNode;
+      /** Names the icon when it says something the row's text does not (offer or request). */
+      label?: string;
     }
   | {
       kind: "avatar";
@@ -145,7 +147,12 @@ function Lead({ lead }: { lead: ItemRowLead }) {
     return (
       <span className="gg-item-row-lead">
         <span className="gg-item-row-tile">
-          <span aria-hidden="true" className="gg-item-row-tile-icon">
+          <span
+            {...(lead.label
+              ? { role: "img", "aria-label": lead.label }
+              : { "aria-hidden": true as const })}
+            className="gg-item-row-tile-icon"
+          >
             {lead.icon}
           </span>
           {lead.mark ? <Mark>{lead.mark}</Mark> : null}

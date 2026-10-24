@@ -622,11 +622,19 @@ describe("GardenPoolTab (W7)", () => {
     });
     renderTab();
     const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
-    expect(within(rows[0]).queryByText("Confirm in your wallet.")).not.toBeInTheDocument();
-    expect(within(rows[1]).getByText("Confirm in your wallet.")).toBeInTheDocument();
-    // A queued row wears its direction's edge before the index has it.
-    expect(rows[0]).toHaveClass("border-s-primary-base");
-    expect(rows[1]).toHaveClass("border-s-information-base");
+    const phaseLine = (row: HTMLElement) => row.querySelector('[data-component="ActPhaseLine"]');
+    expect(phaseLine(rows[0])).toBeNull();
+    expect(within(rows[0]).getByText("Not sent")).toBeInTheDocument();
+    // The act in flight takes the pill and leads the details, and its line is still announced.
+    expect(within(rows[1]).getByText("Confirming…")).toBeInTheDocument();
+    expect(phaseLine(rows[1])).toHaveAttribute("role", "status");
+    expect(phaseLine(rows[1])).toHaveTextContent("Confirm in your wallet.");
+    expect(rows[1].querySelector(".gg-item-row-details")).toHaveTextContent(
+      "Confirm in your wallet."
+    );
+    // A queued row leads with its direction before the index has it (DL-110).
+    expect(within(rows[0]).getByRole("img", { name: "Offer" })).toBeInTheDocument();
+    expect(within(rows[1]).getByRole("img", { name: "Request" })).toBeInTheDocument();
   });
 
   it("approves a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
@@ -754,7 +762,7 @@ describe("GardenPoolTab (W7)", () => {
     });
     renderTab();
     const group = screen.getByTestId("pool-group-group-00000001");
-    expect(group).toHaveTextContent(/10 promises/);
+    expect(group).toHaveTextContent(/A group of 10 separate promises/);
     expect(group).toHaveTextContent(/4 available.*3 in progress.*2 kept.*1 ended/);
     // The copies are the group's: none is a row of its own.
     expect(screen.queryByTestId("pool-commitment-21")).not.toBeInTheDocument();
@@ -790,7 +798,7 @@ describe("GardenPoolTab (W7)", () => {
     });
     renderTab();
     const group = screen.getByTestId("pool-group-group-00000001");
-    expect(group).toHaveTextContent(/9 created.*1 didn’t send/);
+    expect(group).toHaveTextContent(/1 didn’t send.*9 created/);
     const queuedRows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
     expect(queuedRows.map((row) => row.textContent)).toEqual([
       expect.stringContaining("Seed swap"),

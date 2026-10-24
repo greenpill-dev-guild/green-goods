@@ -217,7 +217,12 @@ export function ProofComposer() {
         progress={beatIndex + 1}
         heading={heading}
         pinned={
-          <PinnedPromiseCard kind="proof" title={title} onOpen={() => setPromiseOpen(true)} />
+          <PinnedPromiseCard
+            kind="proof"
+            title={title}
+            direction={controller.commitment.direction}
+            onOpen={() => setPromiseOpen(true)}
+          />
         }
         bar={
           <ProofBar

@@ -620,20 +620,17 @@
   --gg-item-row-tile: 3.5rem;
   --gg-list-gap: 0.75rem;
 
-  /* ── Glass Material ── Blur + transparency tokens for navigation-tier surfaces
-   * Applied via .glass-surface utility or per-component backdrop-filter.
-   * @media (prefers-contrast: more) forces solid fallback — see utilities.
+  /* ── Glass residue ── The cockpit's .glass-surface rule reads these two. Every
+   * surface is solid (DL-108); new UI never uses them.
    */
   --glass-blur: 16px;
   --glass-bg: 255 255 255 / 80%;
-  --glass-ring: 0 0 0 / 4%;
-  --glass-overlay-bg: 0 0 0 / 40%;
 
-  /* ── Material System ── 5-thickness semantic surface material (Warm Earth spec).
-   * Match thickness to content density — see .claude/skills/design/surfaces.md.
-   * Opacity uses OKLCH per language.md § Color Direction (destination token format).
-   * Usage: `background: var(--color-material-regular); backdrop-filter: blur(var(--blur-material-regular));`
-   * Degrades to solid via @media (prefers-contrast: more) at end of theme layer.
+  /* ── Material ── Every surface is solid (surfaces.md § Solid Surfaces, DL-108):
+   * --color-material-solid is the solid fill, and the cockpit's nav dock reads its
+   * blur from --blur-material-regular. The translucent steps are residue that stays
+   * only until nothing renders them; they resolve solid under
+   * @media (prefers-contrast: more) at the end of the theme layer.
    */
   --color-material-ultrathin: oklch(0.99 0 0 / 0.2);
   --color-material-thin: oklch(0.98 0 0 / 0.4);
@@ -928,7 +925,6 @@
 
   /* Glass material - dark mode overrides */
   --glass-bg: 23 23 23 / 80%;
-  --glass-ring: 255 255 255 / 6%;
 
   /* Material system — dark mode shifts tones darker; opacity higher for readability */
   --color-material-ultrathin: oklch(0.1 0 0 / 0.2);
@@ -1022,9 +1018,9 @@
 }
 } /* End @layer theme */
 
-/* Material system — accessibility fallback.
- * Users who enable max-contrast lose translucent glass and get solid surfaces.
- * Matches the fallback rule in .claude/skills/design/surfaces.md § Material System.
+/* Material residue — accessibility fallback.
+ * With max contrast, the translucent material steps that still render resolve
+ * solid, like every other surface (surfaces.md § Solid Surfaces, DL-108).
  */
 @media (prefers-contrast: more) {
   :root {
@@ -1982,9 +1978,9 @@
 
   /* ── Card surface (F7) ── The one card surface: the card's fill, a 1px edge
    * that reads on linen and on the dark canvas, a faint shadow in light and the
-   * 24px corner. The app's Card, AdminCard, Surface, CardBase and Shared's Card
-   * draw it. A work card's status edge (data-edge) widens the inline-start edge
-   * to 2px in its status color. */
+   * 24px corner. The app's Card, AdminCard and Surface's raised level draw it.
+   * A work card's status edge (data-edge) widens the inline-start edge to 2px in
+   * its status color. */
   .gg-card {
     --gg-focus-ring: var(--tone-focus-ring, var(--focus-ring, var(--primary-base)));
     position: relative;
@@ -2236,11 +2232,14 @@
    * a detail that does not fit wraps below the clip and drops whole, separator
    * and all, last first. A first detail too long on its own ends in an
    * ellipsis. */
+  /* Details name people, often by a short address: Plus Jakarta Sans's contextual
+   * alternates would draw "0x2" as "0×2", so the line keeps the plain glyphs. */
   .gg-item-row-details {
     max-inline-size: 100%;
     block-size: var(--gg-type-meta-sm-line);
     overflow: hidden;
     color: rgb(var(--text-sub-600));
+    font-variant-ligatures: no-contextual;
   }
 
   .gg-item-row-detail-list {

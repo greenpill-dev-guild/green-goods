@@ -8,7 +8,7 @@ import { RiHandHeartLine, RiRefreshLine, RiSeedlingLine, RiTimeLine } from "@rem
 import { type ReactNode, useId } from "react";
 import { useIntl } from "react-intl";
 
-import { CommitmentRow, groupCountsText } from "@/components/Features/Commitments";
+import { groupCountsText, PromiseRow } from "@/components/Features/Commitments";
 import { CommitmentActionBar } from "../Commitment/CommitmentActionBar";
 import { CommitmentDetailShell } from "../Commitment/CommitmentDetailShell";
 
@@ -179,12 +179,12 @@ export function PromiseGroupPage({
       {join}
 
       {yours.length > 0 ? (
-        <section aria-labelledby={yoursId} className="space-y-2">
+        <section aria-labelledby={yoursId} className="space-y-(--gg-list-gap)">
           <h2 id={yoursId} className="text-sm font-semibold leading-5 text-text-strong-950">
             {formatMessage({ id: "app.pool.group.yours" })}
           </h2>
           {yours.map((row) => (
-            <CommitmentRow key={row.commitment.id} row={row} title={title} onOpen={onOpenCopy} />
+            <PromiseRow key={row.commitment.id} row={row} title={title} onOpen={onOpenCopy} />
           ))}
         </section>
       ) : null}

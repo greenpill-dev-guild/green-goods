@@ -3,16 +3,14 @@ import { tv, type VariantProps } from "tailwind-variants";
 import { cn } from "../../utils/styles/cn";
 
 /* ============================================================================
- * Surface — Unified surface primitive for the Green Goods design system.
+ * Surface — the solid surface primitive for the Green Goods design system.
  *
- * Replaces: CardBase, SurfaceCard, .surface-section, .surface-inset, .surface-card
- *
- * Elevation variants map to M3 tonal elevation + shadow depth:
- *   ground   → recessed into canvas (bg-bg-weak, no shadow)
+ * Every level draws an opaque fill, and depth comes from its shadow (DL-108):
+ *   ground   → recessed into the canvas (bg-bg-weak, the resting edge)
  *   raised   → the card level: the one card surface (.gg-card, F7) on its
- *              24px corner, in both its glass and solid names
- *   floating → popover/dropdown (bg-bg-white, elevation-3)
- *   overlay  → sheet/modal level (bg-bg-white, elevation-5)
+ *              24px corner
+ *   floating → popover/dropdown (bg-bg-white, the resting edge, elevation 2)
+ *   overlay  → sheet/modal level (bg-bg-white, elevation 2)
  *
  * Usage:
  *   <Surface elevation="raised" padding="default">
@@ -24,16 +22,10 @@ import { cn } from "../../utils/styles/cn";
 export const surfaceVariants = tv({
   variants: {
     elevation: {
-      // Glass tiers (M3 + Liquid)
-      ground: "glass-ground",
+      ground: "bg-bg-weak shadow-[var(--edge-rest)]",
       raised: "gg-card",
-      floating: "glass-floating",
-      overlay: "glass-overlay",
-      // Solid variants (for non-glass contexts: form content, data tables)
-      "solid-ground": "bg-bg-weak shadow-[var(--edge-rest)]",
-      "solid-raised": "gg-card",
-      "solid-floating": "bg-bg-white shadow-[var(--edge-rest),_var(--m3-elevation-2)]",
-      "solid-overlay": "bg-bg-white shadow-[var(--m3-elevation-2)]",
+      floating: "bg-bg-white shadow-[var(--edge-rest),_var(--m3-elevation-2)]",
+      overlay: "bg-bg-white shadow-[var(--m3-elevation-2)]",
     },
     padding: {
       none: "",
@@ -67,14 +59,7 @@ export const surfaceVariants = tv({
   },
   compoundVariants: [
     {
-      elevation: [
-        "ground",
-        "floating",
-        "overlay",
-        "solid-ground",
-        "solid-floating",
-        "solid-overlay",
-      ],
+      elevation: ["ground", "floating", "overlay"],
       radius: "card",
       class: "rounded-lg",
     },

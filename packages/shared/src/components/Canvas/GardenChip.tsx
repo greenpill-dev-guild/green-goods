@@ -160,11 +160,13 @@ export function GardenChip({
       </Popover.Trigger>
 
       <Popover.Portal>
+        {/* Solid, like every menu (DL-108): the chip's own raised surface, white in light
+            and the cockpit's card in dark. */}
         <Popover.Content
           align="start"
           sideOffset={8}
           className={cn(
-            "z-overlay rounded-xl glass-floating p-1 shadow-[var(--edge-rest),_var(--m3-elevation-2)]",
+            "z-overlay rounded-xl bg-[var(--surface-raised,rgb(var(--bg-white-0)))] p-1 shadow-[var(--edge-rest),_var(--m3-elevation-2)]",
             "animate-in fade-in-0 zoom-in-95",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
             "motion-reduce:animate-none"
@@ -186,10 +188,11 @@ export function GardenChip({
             />
           ))}
 
-          {/* Divider + Create Garden */}
+          {/* Divider + Create Garden. The divider is the raised surface's hairline, so it
+              still reads on the cockpit's dark card. */}
           {showCreateAction && (
             <>
-              <div className="mx-2 my-1 border-t border-stroke-soft" />
+              <div className="mx-2 my-1 border-t border-[color:var(--hairline,rgb(var(--stroke-soft-200)))]" />
               <button
                 type="button"
                 onClick={() => {

@@ -351,6 +351,57 @@
   `--surface-raised` mirror (neutral-900, where the cockpit uses the card step) skewed the dark
   pairs' footer, so the step corrects it.
 
+## Step 15: commitment cards (PRD-1281)
+
+- `feature/app-cockpit-commitment-cards`, cut from `develop` `3c4fd4b62`; the guide wording and
+  DL-110 are the standards-only `feature/app-cockpit-commitment-cards-guides`, which merges first.
+- **One home.** Shared's `CommitmentRow` (new leaf `components/Cards/CommitmentRow/CommitmentRow`)
+  is the commitment card on both surfaces: the item row led by the offer or request icon (named
+  for screen readers through the item row's new `lead.label`), one pill that "Needs you", "Past
+  due" or a queue or act state replaces (`pending`: "Confirming…", "Not sent", "Didn't send"),
+  the edge in the pill's tone, and the due date, then the other person from the reader's seat
+  (`selectCommitmentOtherParty`) named through `useAddressDisplayName`, the lookup
+  `AddressDisplay` now shares. A queue or act state's words (`note`) lead the line instead, and
+  a group (`group`) marks its size on the tile and gives its counts in the person's place. The
+  app's commitment cards live in `components/Features/Commitments` (`PromiseRow`, renamed from
+  `CommitmentRow`; `PromiseGroupRow`; `PendingCreationRow` and `QueuedActRow`, moved there; the
+  pinned promise); the cockpit keeps only route assembly (`PoolCommitmentsCard`, the
+  `PoolGroupRow` adapter, `queuedCreationPill` and `rowDueDetail`).
+- **What stays the object's own.** Each surface's state words; the act phase line, whose sentence
+  leads a queued row's details while `ActPhaseLine` still announces it; the queue's recovery
+  (Discard and the send as icon buttons in the right slot); who a promise is between, on its
+  page or dialog. The promise page's queue notice (`QueuedActRow`) stays a notice: the page is
+  where its full explanation belongs. The decision rows (Review Promises, the Hub's Confirm
+  queue) and the promise picker in Submit Work are out of the step.
+- **State blocks left by step 11.** Moved: `PoolStatusCasts` (4), `PoolCommitmentsCard` (2),
+  `CommitmentDialogStates` (2), `CommunityPools` (2), `SignalPool` (2), `ConvictionSheet`'s
+  empty pool (its failed read, beside content, became the shared `Alert`), `LinkWorkSheet` and
+  the proof flow's loading. Left as text on purpose: `PoolClaimsCard`'s "Nothing to review."
+  (DL-067's one quiet line), and the one-line notes inside `ClaimContextSheet`'s choices and
+  `CommitmentHistory`'s section (DL-106's exception).
+- **Found on the way.** Plus Jakarta Sans's contextual alternates draw the x of "0x2" as a times
+  sign, so the item row's detail line turns them off; short addresses set elsewhere in the face
+  still do it. `PendingCreationRow` led every request with the offer's seedling. Every
+  `StatusBadge` is a polite live region, so a pill that changes is announced.
+- **Found in review** (Codex on #1239): a promise still on the device has no page yet, so the
+  units the row moved to the page showed nowhere; they lead its line now, in the app ahead of its
+  reason and in the cockpit whenever no act phase or reason does (`86682e319`, with the DL-110
+  clause in #1238). In the same commit the other person reads the zero address as nobody, and a
+  row whose line has no room for the person starts no name lookups. Two stories still looked for
+  what the rows replaced (`2e961e4b2`, `8120d6e81`), and the recovery guide still named
+  `QueuedActRow`'s old path (`378131db0`). Submit Work's pinned promise led every promise with
+  an unnamed seedling, though the live work-link choice is built from the full commitment; the
+  choice now carries the direction, so a request leads with its helping hand (`e80272b9d`).
+- **Calls for the maintainer's review of the pairs**, each a recommendation made in the build:
+  the status edge replaces DL-052's direction edge (the census drew it); the seat sentences ("You
+  took this up") leave the rows for the other person's name; a queued promise leads its details
+  with its units and its reason follows, giving way first on a phone with its full words on
+  hover, and its acts are icon buttons; the pinned promise reads its title first with "Proof
+  for" or "Work for" under it and loses its tint; a group's
+  remaining counts drop in Spanish and Portuguese at 384px; the cockpit's "Queued" and "Failed
+  to send" become the shared "Not sent" and "Didn't send"; a To confirm row's kind leads its
+  details in place of the second pill.
+
 ## Step 21: bottom bar active pill (PRD-1288)
 
 - `feature/app-cockpit-bar-pill`, cut from `develop` `d84d48398`: `AppBar` draws each tab's line
@@ -585,6 +636,43 @@ Human corrections: 0 observed; attention: unknown.
     surfaces, which are decision rows.
   - A bare address now reads in the address display's short form (`0x12...abc`) in the app's member
     rows, where it read `0x1234...abcd`.
+
+## Step 19: unused card code (PRD-1286)
+
+- Two passes, because steps 14 to 18 move card consumers in parallel. The first pass is
+  `feature/app-cockpit-unused-card-code`, cut from `develop` `a3645441c`; its guide wording is the
+  standards-only `feature/app-cockpit-unused-card-code-guides`, merged as #1235.
+- **Removed, nothing rendered them:** `CardBase` with Shared's own `Card` and their header, title,
+  body and footer parts, `cardVariants` and `surfaceCardVariants` (and the
+  `./components/Cards/CardBase` export, so the API index and the four seam fingerprints are
+  regenerated); `StatCard`; `ProposalCardConviction` (the Governance panel draws its own proposal
+  rows); the list toolbar and sort control, `ListToolbar` and `SortSelect`, which the cockpit's
+  `AdminSearchToolbar` and `AdminSortSelect` replaced (the Hub's sort choices keep their own type,
+  and their three strings stay, since the cockpit's controls read them); and the work row's
+  `getStatusBorderClass`, unused since the row's status edge became `data-edge` (DL-102). Their
+  stories go with them, and the Foundation token story draws its panels on `.gg-card`.
+- **Solid, as DL-108 requires:** `Surface` draws its four levels solid and drops its glass
+  elevations and the `solid-*` names (`FormFlow` asks for `raised`), so the Hub's empty, error and
+  loading frame (`EmptyStateShell` on the ground level) loses its 8px blur and its gradient its
+  alpha; the garden menu takes the chip's own raised surface (`--surface-raised`), with its
+  divider on the surface's hairline so it still shows on the dark card; the cockpit's AppBar and
+  single-action FAB tooltips take `AdminTooltip`'s solid inverse surface; and the app's install
+  and offline strips are opaque with no blur. The `glass-ground`, `glass-floating` and
+  `glass-overlay` utilities, the Glass story and the two glass tokens nothing read are gone, and
+  the `theme.css` comments point at surfaces.md § Solid Surfaces.
+- Proof: the Shared, app and cockpit suites and typechecks, and the pairs, **Storybook** for the
+  cockpit and the strips' stories and **mock-auth localhost** for the app's strips
+  ([eval.md](../eval.md#step-19-proof-unused-card-code-and-solid-surfaces)). No authenticated
+  class: none of the changed files is on a browser-proof path.
+- **The second pass**, after steps 14 to 18 merge: `VaultPositionCard`, which nothing renders
+  (step 18's object); `WorkbenchRow`, which nothing renders, and the `glass-raised` that
+  `WorkbenchCard` and `WorkbenchList` still carry (step 16's records); and the two app wrappers
+  that share their Shared card's name, `GardenCard` and the work row's `Cards/Work/WorkCard`
+  module (step 16 makes the garden card a media card).
+- Not in the step: Shared's `MainSheet` still carries `glass-surface` and renders only in cockpit
+  stories; the cockpit's glass guard in `check-tokens.sh` scans `packages/admin/src` only, which is
+  how the glass in Shared and the app went unflagged; and when the app is offline in a mobile
+  browser the 16px offline strip covers only the top of the 24px install strip.
 
 ## TDD Proof
 

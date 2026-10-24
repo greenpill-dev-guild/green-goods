@@ -392,10 +392,11 @@
     rgb(var(--admin-surface-50)) 0%,
     rgb(var(--admin-surface-0)) 100%
   );
+  /* The Hub's empty, error and loading frame is a solid surface (DL-108). */
   --admin-empty-state-bg: linear-gradient(
     180deg,
-    rgb(var(--admin-surface-0) / 0.62) 0%,
-    rgb(var(--admin-surface-50) / 0.82) 100%
+    rgb(var(--admin-surface-0)) 0%,
+    rgb(var(--admin-surface-50)) 100%
   );
   --admin-workbench-icon-bg: rgb(var(--bg-soft-200));
   --admin-skeleton-shimmer: linear-gradient(
@@ -491,8 +492,8 @@
   );
   --admin-empty-state-bg: linear-gradient(
     180deg,
-    rgb(var(--neutral-900) / 0.72) 0%,
-    rgb(var(--neutral-950) / 0.86) 100%
+    rgb(var(--neutral-900)) 0%,
+    rgb(var(--neutral-950)) 100%
   );
   --admin-workbench-icon-bg: rgb(var(--bg-sub-300));
   --admin-skeleton-shimmer: linear-gradient(
@@ -711,9 +712,9 @@
     animation: fade-in-up var(--spring-spatial-duration) var(--spring-spatial-easing) both;
   }
 
-  /* Legacy shared Card surfaces (`glass-raised` from CardBase/Surface) rendered
-   * inside admin routes stay solid white cards — glass is reserved for the
-   * navigation chrome. Pending those consumers' migration to Admin* wrappers. */
+  /* Shared's WorkbenchCard and WorkbenchList still carry `glass-raised`. Inside
+   * admin routes they stay solid cards, like every surface but the nav dock
+   * (DL-108), until they leave the residue class. */
   .admin-m3 .canvas-area-main .glass-raised {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;

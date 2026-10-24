@@ -958,3 +958,117 @@ did the same beside an initial in a circle and a yield bar.
 - The app capture's first run clicked a role named "tab" for the garden's sections; the garden page
   draws them as buttons (`data-testid="tab-gardeners"`), and the wallet's send picker sits behind
   its Send mode. Rig behaviour, not the product's.
+
+## Step 15 build: commitment cards
+
+Run on 2026-10-24 against `develop` `3c4fd4b62`, with step 15 on
+`feature/app-cockpit-commitment-cards` (`bec8aa00c`, the glyph fix `cb32a9374` and the queued
+units `e1dd6c661`). The picks were locked on 18 October, so the pairs are acceptance evidence. The
+before frames come from a detached `develop` worktree served beside the branch. Frames that show
+live gardens stay out of the repository; the pairs went to the maintainer as a private artifact.
+
+**Pairs.** Headless Chromium (Playwright) at device scale 2 with reduced motion.
+
+- **Storybook**, both surfaces: every commitment list's component stories before and after, in
+  light and dark. The app's promise row in every seat and state (needs you, named, a long title,
+  a request, a confirmer waiting, on the team, didn't send, settled, record only, quantities),
+  the group row (available, none, unknown, in a list, four counts in English, Spanish and
+  Portuguese), the pinned promise (proof and work), the promise page's queue notice in all eleven
+  queue states, the garden's Promises tab (live, three queued creations, settled, visitor,
+  protocol pool, loading, empty, failed, offline) and a group's page; the cockpit's Offers and
+  Requests (open, a group, a group whose copy didn't send, past due, needs recovery, queued,
+  queued while sending, queued needing attention, empty, a deferred reward, partial
+  documentation), the group row (five days in, one didn't send, finishing) and the Promises tab.
+  129 before frames and 139 after frames at 390, 768 and 1280px, the after set adding the shared
+  row's stories and the app's To confirm row.
+
+**Fit after** (Storybook, each row's box measured in Chromium; a detail counts as dropped when it
+sits below its line's clip):
+
+| List | Columns | Rows | Height | Dropped whole | Ellipsis | Cut or wrapped |
+|---|---|---|---|---|---|---|
+| App promise rows, four seats and states | 288, 328, 358px in en, es, pt | 36 | 88px | none | none | 0 |
+| Shared row, every queue and act state | 288, 328, 358px in en, es, pt | 54 | 88px | the due date after a queued promise's reason, at every width | the queued reason, at every width | 0 |
+| App group row, four counts | 384px in en, es, pt | 3 | 88px | the remaining counts in es and pt | none | 0 |
+
+Titles keep one line and end in an ellipsis with the full title on hover, as the picks set.
+
+**Behavior.** The promise rows open their promise as before; the group row opens its group; a
+queued row's Discard and send keep their guards (Discard only where the queue allows it, the send
+disabled while offline, busy, deferred or past the group's deadline); the cockpit's Expire Now…
+and Finish Creating keep theirs. The focused tests check the shared row's rules (the direction
+named, the pill precedence and its edge, the other person from each seat, a state's words leading
+the line), the app's rows in the Promises sheet and the garden's tab, and the cockpit's queued
+row, whose act phase line still announces each phase.
+
+**Found on the way.** The first live pair named the reader on their own requests nobody had
+taken up: the confirmer seat fell back to the person who asked, who was the reader. A confirmer or
+a helper now reads only whoever does the promise (`ed5d6fdd9`); the row test reproduces it, failing
+without the fix and passing with it. Plus Jakarta Sans's contextual alternates drew the x of a
+short address ("0x2") as a times sign on the detail line; the line now turns them off
+(`cb32a9374`). The read model's direction can be `UNKNOWN`, which the client typecheck caught in
+the push gate; the row names only an offer or a request (`0f09678aa`). The app's
+queued creation led every request with the offer's seedling. Every `StatusBadge` pill is a polite
+live region, so a pill that changes is announced.
+
+**Found in review.** Codex found that a titled promise still on the device showed its units
+nowhere, since it has no page yet; they now lead its line, so in the app its reason drops whole
+where the fit table above shows an ellipsis, with its full words on hover and for screen readers
+(`86682e319`; the shared row's own stories pass no units, so the table stands for them). The same
+commit reads the zero address as nobody and starts no name lookups for a person the line cannot
+show. Two stories still looked for what the rows replaced (`2e961e4b2`, `8120d6e81`, the second
+caught by Storybook CI). Submit Work's pinned promise drew every promise with an unnamed seedling;
+the live work-link choice is built from the full commitment, so it now carries the direction and a
+request's pin leads with the helping hand, named (`e80272b9d`).
+
+## Step 19 proof: unused card code and solid surfaces
+
+Run on 2026-10-24 for step 19's first pass, `feature/app-cockpit-unused-card-code` (`84cf1a9d0` and
+`31df7a87b`), against `develop` `a3645441c`. Capture-only servers ran from the step's worktree:
+Storybook, the app and the cockpit, the last two on Arbitrum One with the production indexer. The
+Storybook and app before frames were taken before the change; the cockpit's before frames from
+`develop`'s versions of the seven files its frames depend on, written into the worktree and restored
+after. Frames that show live gardens went to the maintainer as a private artifact.
+
+**Pairs.** 77 pairs, headless Chromium (Playwright) at device scale 2:
+
+- **mock-auth localhost**, cockpit (`?mockAuth=deployer`, Green Goods Community Garden): the Hub's
+  Assessments stage, which has no assessments, at 390, 768 and 1280px, and its garden menu and
+  Settings tooltip at 1280px, in light and dark: 10 pairs.
+- **mock-auth localhost**, app (`?mockAuth=deployer&presentation=pwa` in an iPhone 13 browser
+  context): Home with the install strip, offline, and back online, in light and dark: 6 pairs.
+- **Storybook**: the AppBar, GardenChip and FabButton stories with the menu open or a tooltip shown;
+  the Hub's work, confirm and record queues when empty and when a read fails, at 390, 768 and
+  1280px; the strip component's four states; `Surface`'s levels; `FormFlow`; and the Foundation
+  token story, in light and dark: 61 pairs.
+
+**Computed after** (`getComputedStyle`; every surface reports `backdrop-filter: none`):
+
+| Surface | Light | Dark |
+|---|---|---|
+| Garden menu, cockpit | 255 255 255 | 42 35 28 |
+| Hub frame, cockpit | 255 255 255 to 251 249 244 | 28 25 23 to 12 10 9 |
+| Hub frame, Storybook fallback | 250 250 249 | 22 20 18 |
+| AppBar tooltip, cockpit | 28 25 23 | 245 245 244 |
+| Surface ground; raised, floating and overlay | 250 250 249; 255 255 255 | 24 19 13; 42 35 28 |
+| Install strip; offline strip, app | 255 255 255; 12 10 9 | not measured |
+
+Before, measured in the cockpit the same way: the garden menu `rgba(255, 255, 255, 0.55)` in light and
+`rgba(28, 25, 23, 0.45)` in dark, both under `blur(20px) saturate(1.5)` (in light the Hub's heading
+shows through it, and in dark it nearly disappears into the canvas); the Hub frame a gradient at 62
+and 82% in light and 72 and 86% in dark under `blur(8px) saturate(1.1)`; the AppBar tooltip at 0.9
+alpha. The strips were 95% fills with a blur. `FormFlow`'s four pairs are pixel-identical: it moves
+from `solid-raised` to `raised`, which draws the same card.
+
+**Found on the way.**
+
+- The garden menu's divider took the stroke token, which equals the cockpit's dark card (41 37 36 on
+  42 35 28), so the solid menu hid it. It now takes the raised surface's hairline: 58 52 45 on the
+  dark card, and 238 on white in light, where it was 245.
+- Storybook does not declare the cockpit's `--admin-empty-state-bg`, so the Hub stories have always
+  drawn `EmptyStateShell`'s fallback, not the cockpit's gradient; the cockpit's own frames carry it.
+- Offline in a phone browser, the 16px offline strip covers only the top of the 24px install strip.
+  Before, the install strip's text showed through the offline strip.
+- The Foundation token story drew `CardBase` without padding, its header beside its controls. It now
+  draws its panels on `.gg-card` with padding; the docs page's capture of it
+  (`shared-tokens-foundation-controls.webp`) still shows the old layout in the previous typeface.

@@ -1,19 +1,13 @@
-import type {
-  CommitmentDerivedState,
-  CommitmentReadModel,
-  CommitmentSeat,
-} from "@green-goods/shared/commitment-pooling";
+import type { CommitmentDerivedState } from "@green-goods/shared/commitment-pooling";
+import type { ItemRowDetail } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import type { IntlShape } from "react-intl";
 
 /**
- * How a commitment's state and the reader's relationship to it are said in the
- * member's own words.
+ * How a commitment's state and its due date are said in the member's own words.
  *
- * Two rules from the design language hold here. The machine vocabulary never
- * reaches a member, so the contract's own state names are translated rather
- * than printed. And the sentence is written from the reader's seat: the same
- * commitment reads "you offered this" to one person and "you took this up" to
- * another, and getting that backwards is the defect this whole axis exists to
- * prevent.
+ * The machine vocabulary never reaches a member, so the contract's own state
+ * names are translated rather than printed. How the reader is involved is said
+ * on the promise itself, where the people are named from their seat.
  */
 
 type BadgeTone = "success" | "warning" | "error" | "info" | "neutral";
@@ -50,35 +44,26 @@ export function presentState(state: CommitmentDerivedState): StatePresentation {
 }
 
 /**
- * The reader's relationship, as a sentence about them.
- *
- * Direction decides the verb and seat decides the side, which is why both are
- * needed: a provider on an Offer made it, a provider on a Request answered one.
- * Once a promise is kept, the work it describes is done, so the sentences that
- * say it is still happening move to the past.
+ * "due 24 Oct": a row's due date in its short form, without the weekday and with the year
+ * only when it is not this one, as a moment with the full date behind it.
  */
-export function relationshipLabelId(
-  seat: CommitmentSeat | null,
-  direction: CommitmentReadModel["direction"],
-  { kept = false }: { kept?: boolean } = {}
-): string | null {
-  const isRequest = direction === "REQUEST";
-  switch (seat) {
-    case "provider":
-      return isRequest
-        ? kept
-          ? "app.commitments.relationship.providerOnRequestKept"
-          : "app.commitments.relationship.providerOnRequest"
-        : "app.commitments.relationship.providerOnOffer";
-    case "confirmer":
-      return isRequest
-        ? "app.commitments.relationship.confirmerOnRequest"
-        : "app.commitments.relationship.confirmerOnOffer";
-    case "contributor":
-      return kept
-        ? "app.commitments.relationship.contributorKept"
-        : "app.commitments.relationship.contributor";
-    default:
-      return null;
-  }
+export function promiseDueDetail(
+  intl: Pick<IntlShape, "formatDate" | "formatMessage">,
+  dueDate: bigint | null | undefined,
+  now: number = Date.now()
+): ItemRowDetail | null {
+  if (!dueDate) return null;
+  const ms = Number(dueDate) * 1000;
+  if (!Number.isFinite(ms) || ms <= 0) return null;
+  const sameYear = new Date(ms).getFullYear() === new Date(now).getFullYear();
+  const date = intl.formatDate(ms, {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" as const }),
+  });
+  return {
+    text: intl.formatMessage({ id: "app.commitments.row.due" }, { date }),
+    dateTime: new Date(ms).toISOString(),
+    title: intl.formatDate(ms, { dateStyle: "long" }),
+  };
 }

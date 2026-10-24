@@ -5,7 +5,7 @@
  * This is the work submission flow view at /garden.
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -63,6 +63,7 @@ interface MockWorkLinkIntent {
   commitmentTitle: string;
   requirementLabel: string;
   returnTo: string;
+  direction?: "OFFER" | "REQUEST";
 }
 let mockLinkIntent: MockWorkLinkIntent | null = null;
 let mockCommitmentLinkChoices: MockWorkLinkIntent[] = [];
@@ -269,6 +270,8 @@ const messages = {
   "app.action.selected": "Selected Action",
   "app.commitment.pinned.workFor": "Work for",
   "app.commitment.pinned.open": "{label} {title}. Open the promise",
+  "app.commitment.pinned.openWithDirection": "{direction}: {label} {title}. Open the promise",
+  "app.commitments.row.request": "Request",
   "app.garden.commitment.linkSchedulingError":
     "Your work was submitted, but its link to the promise could not be queued.",
   "app.garden.commitment.linkScheduling": "Work submitted. Queueing its link to the promise…",
@@ -452,11 +455,18 @@ describe("Garden (Work) View", () => {
       commitmentTitle: "Repair tool handles",
       requirementLabel: "1",
       returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9",
+      direction: "REQUEST",
     };
     renderWithProviders();
 
+    // The pin leads with the promise's own direction, a request's helping hand, and its
+    // button's name says it too, since that name replaces the icon's for a screen reader.
+    const pinned = within(screen.getByTestId("pinned-promise"));
+    expect(pinned.getByRole("img", { name: "Request" })).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: "Work for Repair tool handles. Open the promise" })
+      screen.getByRole("button", {
+        name: "Request: Work for Repair tool handles. Open the promise",
+      })
     );
     expect(screen.getByRole("dialog")).toHaveTextContent("Promise sheet");
 
