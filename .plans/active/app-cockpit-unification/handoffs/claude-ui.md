@@ -215,6 +215,36 @@
 - Not in the step: Community's action fill (orange-700) carries white text at 4.0:1; raising it to
   orange-800 takes its own pair.
 
+## Step 5: tabs (PRD-1271)
+
+- `feature/app-cockpit-tabs`, cut from `develop` `d84d48398`: `AdminTabRail` takes the app's
+  equal-width tabs at the cockpit's 36px height (F8). Every cell takes an equal share of the row
+  and never less than its own icon, label and count; the active cell is tinted with
+  `--tone-on-surface-accent` at 10% under the accent label and a 2px underline drawn inside it;
+  the count is step 4's `CountBadge`. Labels are 12px below 640px and 14px from 640px at weight
+  500 in both states, as the app sets its tabs. Below 640px the row fills the width; from 640px it
+  is at most 180px per tab (`--tab-rail-count`) and keeps to the left, its rule included.
+- No new tone role: the tint reads the accent that already inks the active label. `--tone-tint`
+  is a deleted role, and `--tone-surface-tint-color` feeds only the canvas wash.
+- The rule is an inset line, so the active underline covers it inside the scrollport, and the
+  focus ring draws inside the cell, where the scroll container no longer clips it.
+- Phones: at 320px the Hub's four cells (icon, label and count), Actions' five and the protocol
+  garden's four-tab Community row cannot hold equal cells, so those rows scroll there, as they
+  did before. Put to the orchestrator on 23 October with two alternatives (wrapping labels, and
+  hiding the Hub's icons on phones); it took this rule, option 1, for the maintainer's review after
+  merge, and DL-100 records it as a measured deviation from the 18 October pick.
+- Proof: two `storybook-ci` stories on the rail. `EqualCellsOnDesktop` checks four 180px cells in
+  a 720px row at its left edge, with the tint and underline following the selection;
+  `FullWidthOnAPhone` checks Portuguese Garden labels whole at 12px across a 296px row with no
+  scroll. Removing the row cap fails the first. The design-system tab expectation takes 12px
+  below 640px and weight 500, and the `PageHeader` stories render the real rail in place of
+  hand-drawn underline tabs. Rendered pairs: Storybook for the cockpit, mock-auth localhost for
+  the app ([eval.md](../eval.md#step-5-proof-tabs)).
+- Guides: DL-100 and its lines are the standards-only `feature/app-cockpit-tabs-guides`.
+- Found, not changed: the app's Promises sheet clips Portuguese "Em andamento" at 390 and 320px
+  and Spanish "Por confirmar" at 320px. `TabBadge` itself left with #1204; the three Garden files
+  that still name `TabBadgeSeverity` use it to type the Attention Needed alerts.
+
 ## Step 6: capsule chips (PRD-1272)
 
 - The pick (F4) was locked on 18 October; the pairs are acceptance evidence
@@ -360,6 +390,10 @@
   is rendered-only behaviour and records `proof_limit` with its rendered evidence. Step 4's badge
   is a styling recipe with one small component: its rules have a focused test (a mutated cap
   fails it, the restored one passes), and its look is `proof_limit` on the approved pairs.
+  Step 5 changes the tab rail's structure, so its layout has behaviour proof in the browser: the
+  two layout stories above, with the cap mutated away the desktop one fails; selection, keyboard
+  and the accessible names keep their existing story and unit tests. Its look is `proof_limit` on
+  the rendered pairs.
   Step 21's bar pill is styling, `not_applicable` for RED and GREEN: its story plays fail when the
   12px padding or the pill's fill comes back, and its look is `proof_limit` on the pairs.
 - Step 7: tests written beside the code, then replayed against `develop`'s components (the branch's
