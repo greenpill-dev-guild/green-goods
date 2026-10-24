@@ -374,6 +374,8 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool()} />);
 
     expect(screen.getByText("Prune the north beds")).toBeInTheDocument();
+    // It has no page yet, so its units stay on its row.
+    expect(screen.getByText("6 hours")).toBeInTheDocument();
     expect(screen.getByText("Waiting to send")).toBeInTheDocument();
     // The phone's own row counts: an otherwise empty pool is not empty.
     expect(screen.queryByText("No promises yet")).not.toBeInTheDocument();

@@ -90,8 +90,9 @@ function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): Ro
  *
  * It rides the top of the pool's list in the same row as the indexed ones, so landing back
  * on the pool with the thing visible is the confirmation. The pill carries the queue's
- * state; what that means for the reader leads the details, in full on hover; and the two
- * ways out sit in the row's right slot, the send rightmost. Three casts: waiting to send,
+ * state. It has no page yet, so its units lead the details when its title is not already
+ * them, and what the state means for the reader follows, in full on hover; the two ways
+ * out sit in the row's right slot, the send rightmost. Three casts: waiting to send,
  * waiting for the member's garden hat (which spends no retries), and given up, where retry
  * and discard are the member's explicit choice and nothing is ever dropped silently.
  *
@@ -161,6 +162,7 @@ export function PendingCreationRow({
         copy.chipId ? { label: formatMessage({ id: copy.chipId }), tone: "warning" } : undefined
       }
       pending={copy.pending}
+      units={creation.title ? units : null}
       note={note}
       due={creation.groupDueDate ? promiseDueDetail(intl, BigInt(creation.groupDueDate)) : null}
       action={

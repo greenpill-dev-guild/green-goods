@@ -20,12 +20,14 @@ import type { Address } from "../../../types/domain";
 
 const MAKER = "0x1111111111111111111111111111111111111111" as Address;
 const TAKER = "0x2222222222222222222222222222222222222222" as Address;
+const NOBODY = "0x0000000000000000000000000000000000000000" as Address;
 
-vi.mock("../../../hooks/blockchain/useEnsName", () => ({
-  useEnsName: (address?: string | null) => ({
-    data: address?.toLowerCase() === TAKER.toLowerCase() ? "maria.eth" : null,
-  }),
+const { useEnsName } = vi.hoisted(() => ({
+  useEnsName: vi.fn((address?: string | null) => ({
+    data: address === "0x2222222222222222222222222222222222222222" ? "maria.eth" : null,
+  })),
 }));
+vi.mock("../../../hooks/blockchain/useEnsName", () => ({ useEnsName }));
 vi.mock("../../../hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: () => ({ data: null }),
 }));
@@ -70,15 +72,18 @@ describe("CommitmentRow", () => {
     expect(screen.getByRole("button")).toHaveTextContent("0x11...111");
     expect(screen.getByRole("button")).not.toHaveTextContent("maria.eth");
 
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <CommitmentRow
-          {...base}
-          party={{ commitment: { ...commitment, counterparty: null }, seat: "provider" }}
-        />
-      </IntlProvider>
-    );
-    expect(screen.getByRole("button")).toHaveAccessibleName(/due 24 Oct$/);
+    // Nobody has taken it up, whether the seat is empty or holds the chain's zero address.
+    for (const counterparty of [null, NOBODY]) {
+      rerender(
+        <IntlProvider locale="en" messages={messages}>
+          <CommitmentRow
+            {...base}
+            party={{ commitment: { ...commitment, counterparty }, seat: "provider" }}
+          />
+        </IntlProvider>
+      );
+      expect(screen.getByRole("button")).toHaveAccessibleName(/due 24 Oct$/);
+    }
 
     // The one who asked, on their own request nobody has taken up, never reads their own name.
     rerender(
@@ -102,20 +107,31 @@ describe("CommitmentRow", () => {
   });
 
   it("puts a queue or act state in the one pill, edged in its tone, its words leading the line", () => {
-    renderRow({
+    useEnsName.mockClear();
+    const queued = {
       pending: "notSent",
       note: "Saved on this phone.",
       onOpen: undefined,
       action: <button type="button">Send Now</button>,
-    });
+    } as const;
+    const { rerender } = renderRow(queued);
 
     expect(screen.getByText("Not sent")).toBeInTheDocument();
     expect(screen.queryByText("In progress")).not.toBeInTheDocument();
     const row = document.querySelector(".gg-item-row");
     expect(row).toHaveAttribute("data-edge", "warning");
-    expect(row?.querySelector(".gg-item-row-details")).toHaveTextContent(
-      /^Saved on this phone\.\s*due 24 Oct$/
+    const details = () => document.querySelector(".gg-item-row-details");
+    expect(details()).toHaveTextContent(/^Saved on this phone\.\s*due 24 Oct$/);
+    // The person's place is taken, so no name is looked up for it.
+    expect(useEnsName).not.toHaveBeenCalled();
+
+    // A promise still on the device has no page to show its units, so they lead the line.
+    rerender(
+      <IntlProvider locale="en" messages={messages}>
+        <CommitmentRow {...base} {...queued} units="6 hours" />
+      </IntlProvider>
     );
+    expect(details()).toHaveTextContent(/^6 hours\s*Saved on this phone\.$/);
   });
 
   it.each([

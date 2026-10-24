@@ -43,6 +43,11 @@ export function isSameAccount(left: Address | null | undefined, right: Address):
   return left.toLowerCase() === right.toLowerCase();
 }
 
+/** The account in a seat, or null when the seat is absent, empty or the zero address. */
+function seatHolder(account: Address | null | undefined): Address | null {
+  return account && account !== ZERO_ADDRESS ? account : null;
+}
+
 /**
  * A commitment a steward recorded on somebody else's behalf.
  *
@@ -140,7 +145,7 @@ export function selectCommitmentSeat(input: {
  * the reader's seat. A provider reads the person they do it for; a confirmer or a helper reads
  * the person who does it, and nobody before anyone has taken it up, since the one who asked is
  * often the reader. A reader with no seat (a steward's list, a visitor) reads whoever does it,
- * else whoever asked. Null when nobody is there yet.
+ * else whoever asked. Null when nobody is there yet, the zero address included.
  *
  * The provider is the lead provider once one is set: on a request taken up as a garden
  * claim, the counterparty is the garden's account, not the person (the cockpit's
@@ -152,9 +157,10 @@ export function selectCommitmentOtherParty(input: {
 }): Address | null {
   const { commitment, seat } = input;
   const isRequest = commitment.direction === "REQUEST";
-  const provider =
-    commitment.leadProvider ?? (isRequest ? commitment.counterparty : commitment.creator) ?? null;
-  const receiver = (isRequest ? commitment.creator : commitment.counterparty) ?? null;
+  const creator = seatHolder(commitment.creator);
+  const counterparty = seatHolder(commitment.counterparty);
+  const provider = seatHolder(commitment.leadProvider) ?? (isRequest ? counterparty : creator);
+  const receiver = isRequest ? creator : counterparty;
   if (seat === "provider") return receiver;
   if (seat === "confirmer" || seat === "contributor") return provider;
   return provider ?? receiver;

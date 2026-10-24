@@ -8,7 +8,8 @@
  * while an act is on its way, "Not sent" while it waits on this device, "Didn't send" once its
  * send gave up. The 2px edge follows the pill. The detail line gives the due date, then the
  * other person, named as the shared address display names them; a queue or act state's own
- * words lead the line instead, and a group gives its counts in the person's place.
+ * words lead the line instead, and a group gives its counts in the person's place. A promise
+ * still on the device has no page yet to show its units, so they lead its line.
  *
  * What only commitments have stays with them: each surface's state words, the act phase
  * line, the queue's recovery, and who a promise is between.
@@ -70,6 +71,11 @@ export interface CommitmentRowProps
    * or act state's words while it lasts, or what kind of ask the row is. The due date follows.
    */
   note?: ItemRowDetail | null;
+  /**
+   * How much a promise still on the device promises, when its title does not already say: it
+   * has no page yet to show them, so they lead the line and the note or the due date follows.
+   */
+  units?: ItemRowDetail | null;
   /** Copies made together: how many, marked on the tile, and their counts in the person's place. */
   group?: { size: number; counts: ItemRowDetail } | null;
 }
@@ -83,13 +89,22 @@ function detailLine(first: Detail, second: Detail): ItemRowProps["details"] {
   return only ? [only] : undefined;
 }
 
+/** Whether the line has room for the other person: their place is taken by anything else. */
+function lineNamesPerson({
+  note,
+  units,
+  group,
+}: Pick<CommitmentRowProps, "note" | "units" | "group">): boolean {
+  return !note && !units && !group;
+}
+
 type RowViewProps = Omit<CommitmentRowProps, "party"> & {
   /** The other person's name, once the row has someone to name. */
   personName: string | null;
 };
 
 const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
-  { direction, status, pending, due, personName, note, group, ...rest },
+  { direction, status, pending, due, personName, note, units, group, ...rest },
   ref
 ) {
   const { formatMessage } = useIntl();
@@ -98,7 +113,11 @@ const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
     ? { label: formatMessage({ id: PENDING[pending].id }), tone: PENDING[pending].tone }
     : status;
   const count = group ? Math.max(group.size, 0) : 0;
-  const details = note ? detailLine(note, due) : detailLine(due, group ? group.counts : personName);
+  const details = units
+    ? detailLine(units, note ?? due)
+    : note
+      ? detailLine(note, due)
+      : detailLine(due, group ? group.counts : personName);
 
   return (
     <ItemRow
@@ -143,9 +162,10 @@ const NamedRow = React.forwardRef<HTMLElement, RowViewProps & { person: Address 
 
 export const CommitmentRow = React.forwardRef<HTMLElement, CommitmentRowProps>(
   function CommitmentRow({ party, ...props }, ref) {
-    // Only a row with someone to name reads names, so a row with nobody yet (a promise
-    // still on this device, a pinned promise) needs no name lookups at all.
-    const person = party ? selectCommitmentOtherParty(party) : null;
+    // Only a row whose line names someone reads names: a row with nobody yet (a promise
+    // still on this device, a pinned promise), or whose line gives the person's place to
+    // something else, needs no name lookups at all.
+    const person = party && lineNamesPerson(props) ? selectCommitmentOtherParty(party) : null;
     return person ? (
       <NamedRow ref={ref} {...props} person={person} personName={null} />
     ) : (

@@ -263,7 +263,8 @@ export function PoolCommitmentsCard({
                     })
                   : row.settlementDeferred
                     ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
-                    : `${row.targetUnits} ${row.unitLabel}`.trim());
+                    : null);
+              const units = note ? null : `${row.targetUnits} ${row.unitLabel}`.trim() || null;
               const sendLabel = row.failed
                 ? formatMessage({
                     id: "cockpit.garden.pool.queued.retry",
@@ -288,6 +289,7 @@ export function PoolCommitmentsCard({
                     status={pill.status}
                     pending={pill.pending}
                     note={note}
+                    units={units}
                     due={
                       row.groupDueDate ? rowDueDetail(intl, BigInt(row.groupDueDate), now) : null
                     }
