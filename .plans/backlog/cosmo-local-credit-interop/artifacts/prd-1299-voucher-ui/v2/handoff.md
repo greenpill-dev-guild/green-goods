@@ -6,11 +6,12 @@ the pilot amendment accepted on 23 October Pacific. A second pass the same day r
 screen on the surfaces the app and the cockpit already ship, after Afo noticed the designs had lost
 the existing promise and pool components. A third pass recorded Afo's decisions on the open
 questions and, at Afo's choice, restyled the lab with the working pilot services: Tech and Sun hub
-days, Green Goods assisted sessions and Claude access. None of the three passes is published: the
-[Voucher Pilot Design](https://claude.ai/artifact/12BURCmGX2Ddnzt7Uv4USC) (artifact version 4) still
-shows the 23 October build with the dials, and the older [Voucher Lab](https://claude.ai/artifact/3pwUYy43vdb91q6qdH3H9G)
-the 22 October draft. Nothing here changes contracts, production code, live configuration or
-Linear.
+days, Green Goods assisted sessions and Claude access. A fourth pass brought the live state and the
+settled items up to the implementation lane's latest record and published the revision: the
+[Voucher Pilot Design](https://claude.ai/artifact/12BURCmGX2Ddnzt7Uv4USC) (artifact version 6,
+private) is a summary page with this lab beside it. The older
+[Voucher Lab](https://claude.ai/artifact/3pwUYy43vdb91q6qdH3H9G) still shows the 22 October draft.
+Nothing here changes contracts, production code, live configuration or Linear.
 
 PRD-1299 owns design approval and PRD-1297 implements it. PRD-1323 and PRD-1324 own linked
 rewards. Gui reviews the Portuguese copy (PRD-1312).
@@ -23,9 +24,32 @@ rewards. Gui reviews the Portuguese copy (PRD-1312).
 - **See it rendered:** [`evidence/`](evidence/) holds labeled static-prototype screenshots.
 - **Change it:** edit [`lab/`](lab/), then [rebuild and check](#rebuild-and-check).
 
+## What changed on 24 October, fourth pass: the live record and the published page
+
+Afo found the published page still asking settled questions and listing blockers the
+implementation lane had cleared. This pass brought the lab and these docs up to that lane's record
+of 08:37 UTC on 24 October, then published the revision.
+
+- **Live state.** The lab's decisions page, the crosswalk and
+  [Live state and blockers](#live-state-and-blockers) now follow that record. Of the 23 October
+  blockers, the new passkey accounts replaced the same-address rule, Gnosis signing is proven for
+  the selected pilot account, issuer acceptance became an onboarding input, and Gnosis routes and
+  data wait on the deployment. The Arbitrum source upgrade is next.
+- **Settled.** The reward retry after a repair, and Afo's ruling that onboarding inputs don't block
+  implementation or deployment, joined the settled list.
+- **Two decisions.** The last two questions on the 23 October page: personal G$ purchases are
+  hidden from pilot members, and the first cohort gets English (decisions 8 and 9).
+- **One fix.** The campaign's peer-help note (`SBrief`, One kept) sat flush against the screen
+  edges, because the note rule's margin shorthand overrode its gutter class. The rule now sets only
+  the top and bottom margins, and `evidence/discovery-and-project.png` was composed again to match.
+- **Published.** The summary page was rewritten from this handoff: the ten decisions, the six
+  settled items, the one open call, the live state, 32 static-prototype renders and the shipped
+  comparison. The lab beside it is `voucher-lab.html` wrapped as a full page, with a link back.
+
 ## What changed on 24 October, third pass: decisions and the working pilot services
 
-**Decisions.** Afo settled the eight open questions; they are listed under [Decisions](#decisions).
+**Decisions.** Afo settled the open questions, the last two (the G$ purchase's visibility and the
+first cohort's languages) in the fourth pass; they are listed under [Decisions](#decisions).
 Three now show in the screens: the member's approval sheet says approving signs the exact terms
 and adds "Recorded as: your signed approval of these terms"; the draft terms carry "Acceptance
 deadline: 7 days from agreeing"; and every booking's deadline sits seven days after agreeing.
@@ -280,10 +304,10 @@ above the controls.
 
 The collective terms (`pilot-issuer-terms.md`, draft 3) name Tech and Sun hub days, Green Goods
 assisted sessions and Claude access; the release owner accepted their prices, a twenty-voucher
-ceiling per issuer, ten participants and a 1:1 pool ratio on 22 October. The issuers haven't
-accepted the terms, and their capacity, addresses and acceptance are unconfirmed (COM-46). On
-24 October Afo chose to show the services anyway, so the lab's voucher services, issuers and
-prices are these working terms, still to be accepted.
+ceiling per issuer, ten participants and a 1:1 pool ratio on 22 October. Each issuer accepts the
+terms, and confirms its capacity and addresses, at onboarding; on 24 October Afo ruled those
+onboarding inputs rather than blockers and chose to show the services now. So the lab's voucher
+services, issuers and prices are these working terms, still to be accepted.
 
 The member-issuer amendment adds recommended starting points for a member's service, requested on
 23 October Pacific. The lab carries them in the onboarding draft **as proposals the member approves
@@ -354,8 +378,10 @@ bundled build).
 | Command or check | Observed result |
 |---|---|
 | `node build.mjs` | Wrote `voucher-lab.html`, `copy-sheet.md` (1,531 keys) and `crosswalk.md` (46 rows). The build refuses a missing language, an em dash or placeholders that differ between languages. |
-| `node check.mjs` | Passed on 24 October after the second pass. The self-test passed, including every dial option on each screen it applies to and the unfilled-placeholder rule. Twenty-one views fit at 1440 × 900, 1280 × 720, 1024 × 768 and 390 × 844 with no sideways scroll, and at the three desktop sizes the side panel held its controls without scrolling. All 1,687 pilot renders (every state of the fifteen pilot screens in English, Spanish and Portuguese, every state in dark, and 703 dial settings) showed no clipped or overflowing text, a name on every control, no focus behind an open dialog, every icon present, and AA contrast. The clipping rule now exempts only the item row's one-line title and detail line, whose ellipsis is the shipped design (DL-102). The first run of the second pass failed on long reward details, the cycle rail at phone width, one Spanish pill and one dark contrast; each was fixed and the rerun passed. It passed again, with the same counts, after the docs pass removed the first pass's unused kit rules and rewrote the lab's decisions page. After the third pass it passed on the first run and on both reruns that followed the visual-review fixes: 1,703 renders and 719 dial settings, now that the console's Report visit and Transfer failed states are in the dial sweep. |
-| Decisions page | Rendered at 1440 × 900 and 390 × 844: nine sections, the nine decisions and five gaps as numbered lists, code spans styled, no sideways scroll or overflowing text, no page errors. Run from a scratch script. |
+| `node check.mjs` | Passed on 24 October after the second pass. The self-test passed, including every dial option on each screen it applies to and the unfilled-placeholder rule. Twenty-one views fit at 1440 × 900, 1280 × 720, 1024 × 768 and 390 × 844 with no sideways scroll, and at the three desktop sizes the side panel held its controls without scrolling. All 1,687 pilot renders (every state of the fifteen pilot screens in English, Spanish and Portuguese, every state in dark, and 703 dial settings) showed no clipped or overflowing text, a name on every control, no focus behind an open dialog, every icon present, and AA contrast. The clipping rule now exempts only the item row's one-line title and detail line, whose ellipsis is the shipped design (DL-102). The first run of the second pass failed on long reward details, the cycle rail at phone width, one Spanish pill and one dark contrast; each was fixed and the rerun passed. It passed again, with the same counts, after the docs pass removed the first pass's unused kit rules and rewrote the lab's decisions page. After the third pass it passed on the first run and on both reruns that followed the visual-review fixes: 1,703 renders and 719 dial settings, now that the console's Report visit and Transfer failed states are in the dial sweep. In the fourth pass it passed three times with the same counts: after the live-state corrections, after the two decisions, and after the peer-help note's margin fix. |
+| Decisions page | Rendered at 1440 × 900 and 390 × 844 after the fourth pass: ten sections, the ten decisions and five gaps as numbered lists, code spans styled, no sideways scroll or overflowing text, no page errors. Run from a scratch script. |
+| Visual review, fourth pass | The 33 frames rendered for the published page, at 2× for the member app and 1× for the cockpit. It found one slip, fixed: the campaign's peer-help note without side margins. |
+| Published page | The summary page at 1280 × 900 in light and 390 × 844 in dark: no sideways scroll, no load errors, both typefaces loaded, every image present. The wrapped lab at 1440 × 900 and 390 × 844: standards mode, the link back, no page errors. Both before publishing, from scratch scripts. |
 | Repository checks | `node scripts/harness/plan-hub.mjs validate` validated 32 hubs. `bun run check -- --intent qa` selected `format` and `lint` for the changed paths; both passed, 2 fresh and 0 reused. |
 | Visual review, third pass | Every regenerated frame in English, the Green Goods console in Portuguese dark, and the Voucher Issuers card at full size. It found six slips, all fixed: "deposit the vouchers" for a single voucher, "Green Goods's", voucher amounts printed as "8.00", "1 cumpridas" in the Portuguese season line, a booking deadline still explained as the holder's choice, and issuer names wrapping onto three lines. |
 | Keyboard walk, third pass | Tab through eleven restyled surfaces: the hub day and Claude access offers, the hub day's Promise kept? sheet, the Claude access split, the exchange, the Promises tab, the Vouchers tab with a holding open, the approval sheet, Tech and Sun's accept dialog, Green Goods' return dialog, and the draft dialog. Forty-six stops, every one visible, named, with a focus ring, and inside the open sheet or dialog; no problems. |
@@ -384,7 +410,7 @@ screen reader. The [design audit](design-audit.md#remaining) lists what is still
 
 ## Decisions
 
-**Decided by Afo on 24 October.** Seven follow the lab's recommendation; the last does not.
+**Decided by Afo on 24 October.** Nine follow the lab's recommendation; the last does not.
 
 1. **The member's approval of a draft** is a signed approval in the app, bound to the terms
    digest, which the issuer metadata then references. Today the metadata carries an approval
@@ -402,58 +428,71 @@ screen reader. The [design audit](design-audit.md#remaining) lists what is still
 6. **The refund fee:** the home garden's Safe keeps paying the refund transfer's token fee.
 7. **Accept after the payment check** stays a cockpit rule for the pilot, with the reason beside
    the disabled Accept.
-8. **The working pilot services now.** The lab shows the real services before the issuers accept
-   their terms, instead of waiting as it recommended. See
-   [the working pilot services](#the-working-pilot-services-and-the-member-defaults).
+8. **Personal G$ purchases are hidden from pilot members.** The working terms don't offer them;
+   the designed journey stays in the lab for later.
+9. **English first.** The first cohort gets English; Spanish and Portuguese follow once native
+   reviewers sign off.
+10. **The working pilot services now.** The lab shows the real services before the issuers accept
+    their terms, instead of waiting as it recommended. See
+    [the working pilot services](#the-working-pilot-services-and-the-member-defaults).
 
 **Settled from the spec and the contract branch:** who accepts a member's booking (the stewards,
 after the member approves), the pilot's control model (the member's own account owns the token and
 reserve and administers upgrades, accepted per member at onboarding), pool inventory (the member
 deposits it from their reserve), who runs activation and the transfers after a split (the holder's
-app; anyone can call), and who prepares a member's draft (a protocol steward, in the Voucher
-Issuers card). Placement is settled by the no-regression rule: each piece lives on the shipped
-surface the contract branch extends.
+app; anyone can call), who prepares a member's draft (a protocol steward, in the Voucher Issuers
+card), and a reward retry after a reserve or allowance repair (it reuses the same request through
+the same budget, pause and replay guards, and the issuer's Safe may retry only one already
+authorized). Afo ruled on 24 October that participant accounts and each issuer's accepted terms,
+capacity and addresses are onboarding inputs, not blockers to implementation or deployment.
+Placement is settled by the no-regression rule: each piece lives on the shipped surface the
+contract branch extends.
 
 **Still open: the direction.** Afo approves the rebuilt screens and the eight journeys, or marks
 what to change.
 
-**For PRD-1297 to choose:** delisting's mechanism (the lab recommends a zero pool holding limit
-prepared as an owner Safe draft beside the onboarding drafts, which keeps every balance) and who
-calls a reward retry after a reserve or allowance repair (anyone can; the issuer's Safe keeps its
-fallback).
+**For PRD-1297 to choose:** delisting's mechanism. The lab recommends a zero pool holding limit,
+prepared as an owner Safe draft beside the onboarding drafts, which keeps every balance.
 
 ## Live state and blockers
 
-As the implementation lane recorded them through 24 October UTC in
-`handoffs/codex-live-pilot-deployment.md` and `artifacts/member-issuer-local-proof-2026-10-24.json`.
-This session read them and reran nothing. No voucher, pool or member-issuer transaction has been
-broadcast.
+As the implementation lane recorded them in `handoffs/codex-live-pilot-deployment.md` and
+`artifacts/member-issuer-local-proof-2026-10-24.json`, last at 08:37 UTC on 24 October. This
+session read them and reran nothing, so the source upgrade may have moved since. The Hats upgrade
+is live on Arbitrum; no source, voucher, pool or member-issuer transaction has been broadcast.
 
-- **Accounts.** The same-address requirement was superseded on 23 October: the pilot cohort uses
-  new patched passkey accounts, with a member-owned connected wallet as fallback. The selected pilot
-  account completed an authenticated, sponsored Gnosis proof. That proves one account, not every
-  member issuer's possession or approval.
-- **Deployment.** The Hats upgrade is live on Arbitrum. The source, voucher and pool deployments are
-  prepared and rehearsed, not broadcast. The release planner still accepts two garden issuers, so
-  member tokens are not yet in an executable candidate.
-- **Routes and data.** The app's issuer and service routes are empty until receipts exist, and
-  Gnosis indexing is unbound, so every member-issuer screen here is a design, not a read.
-- **Issuers.** The lab shows Tech and Sun and Green Goods with their working terms, but neither has
-  confirmed capacity, accountable addresses or acceptance (COM-46). No real member has accepted
-  terms; the recommended defaults are proposals.
+- **Next: the Arbitrum source upgrade.** The deployer sends 23 contract deployments, then the
+  original 2-of-5 Safe runs one standard batch of four calls that leaves Pooling and Settlement
+  paused. Its rehearsal against the live network is pending, because the implementation session's
+  network access was refused; the batch can't be exported until that passes.
+- **Member tokens are prepared.** The release adds two member tokens beside the ten collective
+  deployments (milestones M2 to M4 and M7), signed in the implementation checkpoint and rehearsed
+  on owned forks with fictional members. The deployment candidate and live readback (M8) and the
+  data, UI and signing proof (M5 and M6) are still open. A real member's token goes live only after
+  that member's onboarding.
+- **Accounts.** The pilot cohort uses new patched passkey accounts that keep one new address on all
+  three networks, with a member-owned connected wallet as fallback; keeping each member's original
+  address was dropped on 23 October. The selected pilot account completed an authenticated,
+  sponsored Gnosis proof. That proves one account, not every member issuer's signing.
+- **Routes and data.** The app's issuer and service routes are empty and Gnosis indexing is unbound
+  until the deployment is adopted, so every member-issuer screen here is a design, not a read.
 - **Earned consent.** Agreeing to a voucher reward on the source network stays operator-assisted;
   approving a booking on Gnosis doesn't replace it. The lab's **Agreement unavailable** state shows
   it honestly.
+- **Not blockers.** Participant accounts and each issuer's accepted terms, capacity and addresses
+  are onboarding inputs. No real member has accepted terms yet, and the recommended defaults stay
+  proposals until one does.
 
 This design authorizes no deployment, broadcast, production auth activation or live financial
 action, and claims no readiness.
 
 ## Copy and text owners
 
-- English is a draft for Afo. Portuguese awaits Gui's review (PRD-1312), and Spanish awaits a
-  native speaker. The [copy sheet](copy-sheet.md) marks both. The 24 October keys include
-  Portuguese forms with and without the article before a person's name ("vales do Teo", "vales da
-  Maya"), which Gui should confirm.
+- English is a draft for Afo, and the first cohort gets English only (decision 9). Portuguese
+  awaits Gui's review (PRD-1312), and Spanish awaits a native speaker. The
+  [copy sheet](copy-sheet.md) marks both. The 24 October keys include Portuguese forms with and
+  without the article before a person's name ("vales do Teo", "vales da Maya"), which Gui should
+  confirm.
 - **Redeem** is the voucher verb and **Withdraw** the vault verb, decided on 24 October.
   Production vault strings are unchanged until PRD-1297 updates them, and until then the Spanish
   and Portuguese Redeem verbs (canjear, resgatar) collide with today's vault strings.
@@ -555,6 +594,13 @@ Agent/model: Claude Code / claude-opus-5-5 and claude-fable-5-1, in three sessio
 | Implement | 2026-10-24 19:25 → 19:40 | Decisions recorded in these docs and the lab; copy, screens, journeys, written pages, crosswalk and the check's dial sweep restyled; the deadline and signed-approval decisions drawn into onboarding. Times from file changes. |
 | Verify | 2026-10-24 19:40 → 19:50 | `check.mjs` passing three times (1,703 renders, 719 dial settings); evidence re-rendered twice; visual review and six fixes; keyboard walk, 46 stops. |
 | Document | 2026-10-24 19:45 → 19:55 | Third-pass docs, evidence README, design audit, artifact README; repository checks rerun. |
+| Investigate | unknown → about 20:20 | Afo asked whether the published page was current. It still showed the 23 October build, with eleven open questions and four blockers; compared it, the lab and the implementation lane's deployment handoff, member-issuer proof and plan todo. |
+| Implement | about 20:20 → 20:56 | Live state and settled items corrected in the lab's decisions page, the crosswalk and this handoff; `check.mjs` passing; the decisions page rendered. Times from file changes, approximate. |
+| Decide | about 20:57 → 21:45 | Two of the published page's questions had never been answered. Afo hid personal G$ purchases from pilot members and chose English first. |
+| Implement and verify | about 21:45 → 22:00 | Decisions recorded; rebuild; `check.mjs` passing; 33 frames rendered and reviewed; the peer-help note's margins fixed and the discovery evidence composed again. |
+| Publish | 2026-10-24 22:00 → 22:06 | Summary page rewritten from this handoff and checked at two widths and themes; published with the lab and 32 images as artifact versions 5 and 6, the second after wrapping the lab as a full page. |
+| Document | 2026-10-24 22:06 → 22:10 | Fourth-pass docs, evidence README, design audit, artifact README; `check.mjs` passing after the margin fix. |
 
-Human corrections: 1 observed in this segment (the designs had lost the existing promise and pool
-components); attention: unknown.
+Human corrections: 2 observed in the third session (the designs had lost the existing promise and
+pool components; the published page still asked settled questions and listed cleared blockers);
+attention: unknown.

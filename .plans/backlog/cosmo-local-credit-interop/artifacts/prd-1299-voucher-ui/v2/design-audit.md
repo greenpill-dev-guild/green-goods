@@ -177,6 +177,11 @@ name, as `VoucherIssuerOnboarding` does, after the real issuer names wrapped ont
 beside it. And English possessives of Green Goods read "Green Goods'", as the app's strings write
 them.
 
+**Fourth pass, the same day.** Reviewing the frames for the published page found the campaign's
+peer-help note in `SBrief` flush against the screen edges: the note rule's `margin` shorthand
+overrode its 16px gutter class. The rule now sets only the top and bottom margins, which leaves the
+wallet's note, the rule's other user, unchanged.
+
 ## Kept on purpose
 
 - **The v1 reference screens keep chain and wallet names** (Celo, Gnosis, the Gnosis wallet,
@@ -200,7 +205,8 @@ These need a local checkout, a running app, or a decision. Items closed on 24 Oc
    neutral border and the cockpit wash were estimated from the guides, not read from computed
    styles. Compare with a running app in light and dark.
 3. **Spanish and Portuguese.** The pilot revision drafts every pilot string in both. Portuguese
-   awaits Gui's review (PRD-1312), and Spanish awaits a native speaker.
+   awaits Gui's review (PRD-1312), and Spanish awaits a native speaker. The first cohort gets
+   English (decided 24 Oct), so neither review blocks it.
 4. **Vault verb.** Afo picked Withdraw on 24 October. Update the 23 English strings in
    `packages/shared/src/i18n/en.json` and their translations. That's implementation work for
    PRD-1297, not this branch.

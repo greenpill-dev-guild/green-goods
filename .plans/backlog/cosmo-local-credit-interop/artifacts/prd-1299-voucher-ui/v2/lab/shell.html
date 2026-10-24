@@ -647,7 +647,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       s('SRedeem', { kind: 'Lesson', state: 'Closed' }, MA, 'Settled. Her exchange isn’t reversed and Teo’s capacity isn’t restored; the stewards close the promise as ended early.'),
       s('SBrief', { state: 'One kept' }, NO, 'The campaign shows each promise’s own outcome, and the peer help kept apart from the project work.')
     ] },
-    { id: 's-gd', simple: true, remap: REMAP, title: 'Buy with your own G$', note: 'Lina buys a month of the AI assistant from another garden with personal G$. The home garden’s Safe holds the payment and its stewards check it; the provider accepts; Lina confirms it was kept before anyone is paid. The working pilot terms offer no G$ purchases, so this journey is designed and locally proven but not part of the live pilot, and its service is fictional.', steps: [
+    { id: 's-gd', simple: true, remap: REMAP, title: 'Buy with your own G$', note: 'Lina buys a month of the AI assistant from another garden with personal G$. The home garden’s Safe holds the payment and its stewards check it; the provider accepts; Lina confirms it was kept before anyone is paid. The working pilot terms offer no G$ purchases, so Afo hid this journey from pilot members on 24 October. It stays designed and locally proven for later, and its service is fictional.', steps: [
       s('SOffer', { kind: GP, state: 'Open' }, L, 'The offer says Lina’s own garden’s Safe holds the payment, what comes back if it doesn’t go ahead, and that the token fee isn’t refunded.'),
       s('SPay', { kind: GP, state: 'Agree' }, L, 'Step 1: agree to the exact terms. The gross, the token fee and the refund are on screen.'),
       s('SPay', { kind: GP, state: 'Pay or deposit' }, L, 'Step 2: send 450.45 G$ to Riverside Commons’ Safe.'),
@@ -672,7 +672,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       s('SPurchase', { state: 'Refunded' }, L, 'Refunded. The sending fee isn’t returned.'),
       s('SPurchase', { state: 'Problem reported' }, L, 'A dispute stops any new payout or refund until the stewards decide.'),
       s('SRequests', { state: 'Dispute' }, K, 'Kaya decides the outcome for Green Goods’ stewards. The money follows the payout or the refund that comes after.'),
-      s('SPay', { kind: VSN, state: 'Signing not available' }, L, 'Live blocker: the account can’t sign on Gnosis yet, so depositing stays off.'),
+      s('SPay', { kind: VSN, state: 'Signing not available' }, L, 'An account that can’t sign on Gnosis yet keeps depositing off, with the reason on screen.'),
       s('SRedeem', { kind: 'Hub day', state: 'Canceling' }, L, 'Before acceptance Lina can cancel. Her voucher comes back once the cancellation reaches the escrow.'),
       s('SRedeem', { kind: 'Hub day', state: 'Accepted first' }, L, 'If Tech and Sun’s acceptance lands first, the booking starts instead.'),
       s('SRedeem', { kind: 'Hub day', state: 'Terms changed' }, L, 'Tech and Sun changed the terms before accepting, so Lina cancels and books again.'),
@@ -1026,7 +1026,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         ]],
         ['h', 'The working pilot services on these screens'],
         ['ul', [
-          'The terms (`pilot-issuer-terms.md`, draft 3) are a business baseline the release owner accepted on 22 October. The issuers have not accepted them, and their capacity, addresses and acceptance are unconfirmed. Afo chose on 24 October to show them anyway, so every voucher service here is a real offer under terms still to be accepted.',
+          'The terms (`pilot-issuer-terms.md`, draft 3) are a business baseline the release owner accepted on 22 October. Each issuer accepts them, and confirms its capacity and addresses, at onboarding; on 24 October Afo took those out of the blockers and chose to show the services now, so every voucher service here is a real offer under terms still to be accepted.',
           '**Tech and Sun hub day** (1 Tech and Sun voucher: one named person’s visit of up to four hours, with workspace, power and connectivity) is “Redeem a voucher you hold”. Tech and Sun’s Safe signs 2 of 3, and a short visit returns by usable time out of 240 minutes.',
           '**Claude access** (10 Green Goods vouchers: 30 days of a named Claude Team seat from working access) is the exchange and the early-end journeys. Green Goods’ Safe signs 2 of 5, and a short month returns by available days out of 30.',
           '**Green Goods assisted session** (2 Green Goods vouchers, 30 minutes) shows in Green Goods’ console and the wallet; it books the same way as a hub day.',
@@ -1042,10 +1042,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           '**Pool inventory:** the member deposits it from their reserve.',
           '**Activation and the transfers after a split:** the holder’s app runs them, and anyone can call them.',
           '**Who prepares a member’s draft:** a Green Goods steward, in Community’s Voucher Issuers card.',
+          '**A reward retry** after a reserve or allowance repair reuses the same request, through the same budget, pause and replay guards; the issuer’s Safe may retry only one that was already authorized.',
+          '**Onboarding inputs:** participant accounts and each issuer’s accepted terms, capacity and addresses are collected at onboarding. Afo ruled on 24 October that they don’t block implementation or deployment.',
           '**Placement:** each piece lives on the shipped surface the contract branch extends.'
         ]],
         ['h', 'Decided by Afo on 24 October'],
-        ['p', 'Seven follow the lab’s recommendation; the last does not.'],
+        ['p', 'Nine follow the lab’s recommendation; the last does not.'],
         ['ol', [
           '**The member’s approval of a draft** is a signed approval in the app, bound to the terms digest, which the issuer metadata then references.',
           '**Partial delivery:** after the holder approves the split, the stewards close the promise as canceled with the reason, and the app shows it as “Ended early”, never “Kept”.',
@@ -1054,14 +1056,15 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           '**G$ purchase disputes in the protocol pool:** Green Goods’ stewards decide, under a seven-day response policy shown as policy.',
           '**The refund fee:** the home garden’s Safe keeps paying the refund transfer’s token fee.',
           '**Accept after the payment check** stays a cockpit rule for the pilot.',
+          '**Personal G$ purchases are hidden from pilot members.** The working terms don’t offer them; the designed journey stays for later.',
+          '**English first.** The first cohort gets English; Spanish and Portuguese follow once native reviewers sign off.',
           '**The working pilot services now:** the lab shows the real services before the issuers accept their terms.'
         ]],
         ['h', 'Still open'],
         ['p', '**The direction.** Afo approves the rebuilt screens and the eight journeys, or marks what to change.'],
         ['h', 'For PRD-1297 to choose'],
         ['ul', [
-          '**Delisting’s mechanism.** The lab recommends a zero pool holding limit, prepared as an owner Safe draft beside the onboarding drafts, which keeps every balance.',
-          '**The reward retry after a reserve or allowance repair.** Anyone can call it; the issuer’s Safe keeps its fallback.'
+          '**Delisting’s mechanism.** The lab recommends a zero pool holding limit, prepared as an owner Safe draft beside the onboarding drafts, which keeps every balance.'
         ]],
         ['h', 'Gaps in the implementation'],
         ['p', 'Found by building on the shipped surfaces. The lab records them for PRD-1297 rather than redesigning the code.'],
@@ -1074,17 +1077,19 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         ]],
         ['h', 'Live state and blockers'],
         ['ul', [
-          'As the implementation lane recorded them through 24 October UTC in its deployment handoff and the member-issuer proof; not rerun here. No voucher, pool or member-issuer transaction has been broadcast.',
-          '**Accounts.** The same-address requirement was superseded on 23 October: the pilot cohort uses new patched passkey accounts, with a member-owned connected wallet as fallback. The selected pilot account completed an authenticated, sponsored Gnosis proof. That proves one account, not every member issuer’s possession or approval.',
-          '**Deployment.** The Hats upgrade is live on Arbitrum. The source, voucher and pool deployments are prepared, not broadcast. The release planner still accepts two garden issuers, so member tokens are not yet in an executable candidate.',
-          '**Routes and data.** The app’s issuer and service routes are empty until receipts exist, and Gnosis indexing is unbound, so every member-issuer screen here is a design, not a read.',
-          '**Issuers.** The lab shows Tech and Sun and Green Goods with their working terms, but neither has confirmed capacity, accountable addresses or acceptance (COM-46). No real member has accepted terms; the recommended defaults are proposals.',
+          'As the implementation lane recorded them in its deployment handoff and the member-issuer proof, last at 08:37 UTC on 24 October; not rerun here, and the upgrade below may have moved since. The Hats upgrade is live on Arbitrum; no source, voucher, pool or member-issuer transaction has been broadcast.',
+          '**Next: the Arbitrum source upgrade.** The deployer sends 23 contract deployments, then the original 2-of-5 Safe runs one batch of four calls that leaves both modules paused. Its rehearsal against the live network is pending, because the implementation session’s network access was refused.',
+          '**Member tokens are prepared.** The release adds two member tokens beside the ten collective deployments, signed in the implementation checkpoint and rehearsed on owned forks with fictional members. A real member’s token goes live only after that member’s onboarding.',
+          '**Accounts.** The pilot cohort uses new patched passkey accounts that keep one new address on all three networks, with a member-owned connected wallet as fallback; keeping each member’s original address was dropped on 23 October. The selected pilot account completed an authenticated, sponsored Gnosis proof. That proves one account, not every member issuer’s signing.',
+          '**Routes and data.** The app’s issuer and service routes are empty and Gnosis indexing is unbound until the deployment is adopted, so every member-issuer screen here is a design, not a read.',
           '**Earned consent.** Agreeing to a voucher reward on the source network stays operator-assisted; approving a booking on Gnosis doesn’t replace it.',
+          '**Not blockers:** participant accounts and each issuer’s accepted terms, capacity and addresses. They are onboarding inputs, and the recommended member defaults stay proposals until a member accepts them.',
           '**Proof.** The member-issuer rehearsal passed 21 cases on owned forks with fictional accounts, plus Shared, Client and Admin focused tests and a Storybook rehearsal. No live issuance, exchange or redemption.',
           'This design authorizes no deployment, broadcast, production auth activation or live financial action, and claims no readiness.'
         ]],
         ['h', 'Text owners'],
         ['ul', [
+          'The first cohort gets English. Gui reviews the Portuguese, and a native speaker the Spanish, before either ships.',
           'The hub spec still says “Redeem” keeps its vault meaning (lines 45 to 50 on develop). Its owner should record the Redeem decision for vouchers.',
           'The contract branch’s brief keeps a member’s G$ in the buyer garden’s Safe. The pilot design now follows that rule, so v2’s earlier request to change it is withdrawn.'
         ]]

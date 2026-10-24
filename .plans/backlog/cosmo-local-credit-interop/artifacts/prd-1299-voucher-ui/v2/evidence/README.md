@@ -17,7 +17,8 @@ None of these images is product or authenticated-signing evidence.
 
 All the static-prototype frames below were re-rendered on 24 October after the third pass, which
 put the working pilot services on the screens the second pass rebuilt on the shipped surfaces. They
-replace the earlier frames of the same names.
+replace the earlier frames of the same names. `discovery-and-project.png` was composed again after
+the fourth pass gave the campaign's peer-help note its side margins.
 
 | File | What it shows |
 |---|---|

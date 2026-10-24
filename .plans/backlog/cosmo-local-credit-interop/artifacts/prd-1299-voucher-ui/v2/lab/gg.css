@@ -860,7 +860,7 @@
 .gg .ex-tech summary { cursor: pointer; font-weight: 600; }
 /* Wallet: a holding's page opens in place under its row; bookings are promises and live in Promises */
 .gg .wl-acts { display: flex; flex-wrap: wrap; gap: 8px; }
-.gg .wl-where { margin: 16px 0 0; display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: 13px; line-height: 18px; color: var(--muted); }
+.gg .wl-where { margin-top: 16px; margin-bottom: 0; display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: 13px; line-height: 18px; color: var(--muted); }
 .gg .wl-where .i { width: 16px; height: 16px; margin-top: 1px; color: var(--soft); }
 /* Profile, Account tab: Service Assets is one section among the account's own; its status reads as a band */
 .gg .pf-field { margin-top: 12px; }
