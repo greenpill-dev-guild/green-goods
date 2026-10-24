@@ -84,10 +84,7 @@ export function PoolCommitmentsCard({
     id: "cockpit.garden.pool.row.act.expire",
     defaultMessage: "Expire Now…",
   });
-  const discardLabel = formatMessage({
-    id: "cockpit.garden.pool.queued.discard",
-    defaultMessage: "Discard",
-  });
+  const discardLabel = formatMessage({ id: "cockpit.garden.pool.queued.discard" });
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
