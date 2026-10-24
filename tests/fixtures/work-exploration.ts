@@ -1,4 +1,10 @@
-import { decodeFunctionData, encodeFunctionResult, type Hex, multicall3Abi } from "viem";
+import {
+  decodeFunctionData,
+  encodeErrorResult,
+  encodeFunctionResult,
+  type Hex,
+  multicall3Abi,
+} from "viem";
 
 /** A bounded read-only action plan. The seed, not wall time, owns every variation. */
 export function workExplorationCases(seedText = "17") {
@@ -33,6 +39,12 @@ export function assertExplorationNavigation(url: string, origin: string, pathnam
 const ENS_UNIVERSAL_RESOLVER = "0xeeeeeeee14d718c2b47d9923deab1335e144eeee";
 const REVERSE_NAME_READ = "0xb7d6ca64";
 const MULTICALL3 = "0xca11bde05977b3631167028862be2a173976ca11";
+/** The universal resolver's answer for an address with no reverse name; viem reads it as none. */
+export const NO_REVERSE_NAME = encodeErrorResult({
+  abi: [{ type: "error", name: "ResolverNotFound", inputs: [{ name: "name", type: "bytes" }] }],
+  errorName: "ResolverNotFound",
+  args: ["0x"],
+});
 
 /**
  * How many declared reverse-name reads a call makes: one sent to the universal resolver, or
@@ -91,14 +103,17 @@ export function explorationEnsRejection(url: string, method: string, body: strin
   }
   const reads = reverseNameReads(payload.params[0]) as number;
   if (payload.params[0].to.toLowerCase() === MULTICALL3) {
-    // Each batched read fails on its own, as the single read's rejection does.
+    // Each batched read answers that the address has no reverse name.
     return {
       jsonrpc: "2.0",
       id: payload.id,
       result: encodeFunctionResult({
         abi: multicall3Abi,
         functionName: "aggregate3",
-        result: Array.from({ length: reads }, () => ({ success: false, returnData: "0x" as Hex })),
+        result: Array.from({ length: reads }, () => ({
+          success: false,
+          returnData: NO_REVERSE_NAME,
+        })),
       }),
     };
   }

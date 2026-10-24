@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertExplorationNavigation,
   explorationEnsRejection,
+  NO_REVERSE_NAME,
   workExplorationCases,
 } from "./work-exploration";
 
@@ -65,7 +66,7 @@ describe("exploration ENS transport boundary", () => {
       error: { code: 3, message: "No reverse ENS name in this scenario" },
     });
   });
-  it("answers a list's reverse-name reads batched into one multicall, each read failing", () => {
+  it("answers a list's reverse-name reads batched into one multicall: no name for each", () => {
     const read = { target: request.params[0].to, allowFailure: true, callData: "0xb7d6ca640000" };
     const batched = (reads: (typeof read)[]) => ({
       ...request,
@@ -89,8 +90,8 @@ describe("exploration ENS transport boundary", () => {
     expect(
       decodeFunctionResult({ abi: multicall3Abi, functionName: "aggregate3", data: answer.result })
     ).toEqual([
-      { success: false, returnData: "0x" },
-      { success: false, returnData: "0x" },
+      { success: false, returnData: NO_REVERSE_NAME },
+      { success: false, returnData: NO_REVERSE_NAME },
     ]);
     // A batch may carry only that read.
     expect(() =>
