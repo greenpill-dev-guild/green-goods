@@ -254,15 +254,15 @@ Questions raised against the picks, all settled by 18 October:
 - **F9 and the earlier preference: settled.** Earlier the same day the maintainer preferred the
   app's filter button ([brief](brief.md#stated-direction), item 6). The pick keeps the cockpit's
   chips, and the maintainer confirmed the pick when asked.
-- **F3 and the app's message lines: settled.** Each surface keeps its own reserve under a field:
+- **F3 and the app's message lines: settled.** Each surface sets its own reserve under a field:
   two lines in the app (DL-018, chosen because many real messages wrap on a 360px phone in English,
-  Spanish and Portuguese) and one in the cockpit (its rule that a message never moves the form).
-  The reserve becomes a per-surface setting like the button corner; the rest of the field anatomy is
-  shared, and a longer message grows the slot rather than scrolling. On the pair, the longest
-  Spanish and Portuguese cockpit messages are measured in two-column forms at 640px, where a message
-  has about 205px; if several wrap, the cockpit reserves two lines too. Measured on 23 October: a
-  two-column field there is 290px wide and 6 of 32 messages wrap, so the cockpit reserves two lines
-  (DL-105).
+  Spanish and Portuguese), and one in the cockpit (its rule that a message never moves the form)
+  unless its longest messages wrap. The reserve becomes a per-surface setting like the button
+  corner; the rest of the field anatomy is shared, and a longer message grows the slot rather than
+  scrolling. On the pair, the longest Spanish and Portuguese cockpit messages are measured in
+  two-column forms at 640px, where a message has about 205px; if several wrap, the cockpit reserves
+  two lines too. Measured on 23 October: a two-column field there is 290px wide and 6 of 32 messages
+  wrap, so the cockpit reserves two lines, like the app (DL-105).
 - **F7 on the cockpit's phone: settled.** The cockpit's phone queue takes the work row. Its work
   card is one button that opens the work's page, where approval happens, so the queue only chooses
   what to open; a photo-grid card is about 300px tall on a phone, so two fit a screen, against about
