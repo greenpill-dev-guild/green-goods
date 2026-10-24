@@ -11,9 +11,10 @@
  * layer deepens a light fill and lifts a dark one while the label keeps its
  * color. Painted over the label as well, it pulls fill and label toward one
  * ink, and Community's dark pair (4.58:1 at rest) falls to 3.66:1 when pressed.
- * Community's light fill was orange-700, which carries white at 4.0:1, and a
- * layer in the label's own color took every hovered or pressed fill further
- * toward its label.
+ * The tones resolve against the cockpit's amber ramp (index.css), set on <body>
+ * so the canvas and the dialogs, side sheets and toasts it portals share it:
+ * Community's light orange-700 carries white at 5.02:1 there, where the shared
+ * ramp those portals drew before gave it 4.01:1. Storybook mirrors the ramp.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -22,6 +23,8 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(resolve(__dirname, path), "utf-8");
 const tokens = read("../../styles/admin-m3-tokens.css");
 const theme = read("../../../../shared/src/styles/theme.css");
+const app = read("../../index.css");
+const storybook = read("../../../../shared/.storybook/surfaces.css");
 const adminButton = read("../../components/AdminButton.tsx");
 const fabButton = read("../../components/Shell/FabButton.tsx");
 
@@ -32,6 +35,23 @@ const blocks = (css: string, selector: string) =>
   [...css.matchAll(new RegExp(`(?:^|\\n)\\s*${escape(selector)}\\s*\\{([^}]*)\\}`, "g"))]
     .map((match) => match[1])
     .join("\n");
+
+/** The first `count` rules after `marker` in `css`: their selector and declarations. */
+const rulesAfter = (css: string, marker: string, count: number) => {
+  const start = css.indexOf(marker);
+  if (start < 0) throw new Error(`${marker} not found`);
+  return [...css.slice(start).matchAll(/([^{}]*)\{([^}]*)\}/g)]
+    .slice(0, count)
+    .map(([, selector, body]) => ({ selector: selector.split("*/").pop()?.trim(), body }));
+};
+
+/** A block's custom property declarations, comments dropped. */
+const declarations = (body: string) =>
+  [...body.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map(
+    ([, property, value]) => `${property}: ${value.trim()}`
+  );
+
+const [RAMP, RAMP_DARK] = rulesAfter(app, "STATUS PALETTE REMAP", 2);
 
 type Rgb = [number, number, number];
 
@@ -103,6 +123,7 @@ describe("workspace tone fills", () => {
       light: [
         blocks(tokens, `[data-tone="${tone}"]`),
         blocks(tokens, ":root"),
+        RAMP.body,
         blocks(theme, ":root"),
         theme,
       ],
@@ -110,6 +131,8 @@ describe("workspace tone fills", () => {
         blocks(tokens, `[data-theme="dark"] [data-tone="${tone}"]`),
         blocks(tokens, '[data-theme="dark"]'),
         blocks(theme, '[data-theme="dark"]'),
+        RAMP_DARK.body,
+        RAMP.body,
         blocks(theme, ":root"),
         theme,
       ],
@@ -132,6 +155,15 @@ describe("workspace tone fills", () => {
         }
       }
     }
+  });
+
+  it("keeps one ramp for the canvas, what it portals and Storybook's admin stories", () => {
+    // On <body>, the dialogs, side sheets, toasts and popovers that portal there draw it too.
+    expect([RAMP.selector, RAMP_DARK.selector]).toEqual(["body", '[data-theme="dark"] body']);
+    const mirror = rulesAfter(storybook, "STATUS PALETTE REMAP (mirror)", 2);
+    expect(mirror.map((rule) => declarations(rule.body))).toEqual(
+      [RAMP, RAMP_DARK].map((rule) => declarations(rule.body))
+    );
   });
 
   it("finds each filled control and lays the neutral ink layer, not the label's color", () => {

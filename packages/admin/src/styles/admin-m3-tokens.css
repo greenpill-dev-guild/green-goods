@@ -445,22 +445,25 @@
 /* Community — Amber/Gold. The ambient canvas wash leans gold (oklch hue 80,
    vs the Actions red-orange neighbor at 30) so the workspace reads clearly
    apart (QA round 2: the earlier hue-50 wash still sat too close to red).
-   The fills stay on the orange ramp, so the yellow separation comes from the
-   canvas wash, surface tint, secondary, and containers. The filled action is
-   orange-800: white measures 4.93:1 on it and 6.71:1 on its orange-900 hover,
-   where orange-700 carried white at only 4.01:1. --tone-primary stays
-   orange-600 for the checkbox and progress fills it feeds through
-   --m3-primary; white text on it measures 3.43:1. */
+   Primary stays orange-600 and action orange-700 because --tone-primary feeds
+   --m3-primary, which M3 renders as a white-text filled background (buttons,
+   FAB, date-picker selected day) — those need AA contrast, and orange-600 is
+   the lightest white-safe step in the ramp. The yellow separation therefore
+   comes from the canvas wash, surface tint, secondary, and containers, not the
+   primary accent. The ramp is the cockpit's amber one (index.css), which covers
+   the canvas and its portals: orange-600 and -700 are #B45309 there, white at
+   5.02:1, and the orange-800 hover 7.09:1. */
 [data-tone="community"] {
   --tone-primary: var(--orange-600);
   --tone-on-primary: 255 255 255;
-  --tone-action: var(--orange-800);
-  --tone-action-hover: var(--orange-900);
+  --tone-action: var(--orange-700);
+  --tone-action-hover: var(--orange-800);
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--yellow-100);
   --tone-on-primary-container: var(--yellow-900);
   /* orange-800 (not -700) so tone-colored TEXT on the light community surface
-     clears AA — orange-700 measured 4.01:1 on the 14px current-step rail label. */
+     keeps a margin: orange-700 measured 4.01:1 on the 14px current-step rail
+     label while flow dialogs drew the shared orange ramp. */
   --tone-on-surface-accent: var(--orange-800);
   --tone-surface-tint-color: rgb(var(--yellow-500) / 5%);
 }
