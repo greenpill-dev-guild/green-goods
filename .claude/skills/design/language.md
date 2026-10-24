@@ -2,7 +2,7 @@
 
 > Material expression through spatial structure. The warmth of color, shape, and spring physics wrapped in the geometric precision of hierarchy and concentricity.
 
-**Warm Earth** is Green Goods' design language: a synthesis of [M3 Expressive](https://m3.material.io/) and [Liquid Glass](https://developer.apple.com/design/) that creates interfaces feeling alive, friendly, and spatially precise. It builds on the existing Adaptive Surface paradigm, Z-layer model, and material system. Those foundations remain, and the Warm Earth language adds the visual/interaction identity.
+**Warm Earth** is Green Goods' design language: a synthesis of [M3 Expressive](https://m3.material.io/) and [Liquid Glass](https://developer.apple.com/design/) that creates interfaces feeling alive, friendly, and spatially precise. It builds on the existing Adaptive Surface paradigm and Z-layer model. Those foundations remain, and the Warm Earth language adds the visual/interaction identity.
 
 This file is the detailed Warm Earth implementation guide. The root `DESIGN.md` YAML front matter is the canonical DesignMD token source; this file, sibling sub-files (`surfaces.md`), generated artifacts, and runtime CSS are projections that explain or consume that source for implementation.
 
@@ -14,7 +14,7 @@ This file is the detailed Warm Earth implementation guide. The root `DESIGN.md` 
 
 **Material 3 Expressive brings the soul**: warmth, color, spring-based animation, organic shapes, friendliness. Backed by 46 user studies and 18,000 participants proving that expressive UIs are preferred across all age groups, spotted key elements up to 4x faster, and dramatically erased the usability age gap.
 
-**Apple's Liquid Glass brings the skeleton**: concentricity, functional glass layers, structural precision, content-forward hierarchy, source-anchored interaction. A system-level rethinking of how glass material creates spatial depth, with mathematical shape nesting and clear functional layer separation.
+**Apple's Liquid Glass brings the skeleton**: concentricity, structural precision, content-forward hierarchy, source-anchored interaction. We take its mathematical shape nesting and clear layer separation, not its translucent material.
 
 **Green Goods adds the meaning**: regenerative principles, ecological time, capability over extraction. The interface is a garden tool, not a financial terminal. Every element serves communities documenting real-world impact.
 
@@ -24,7 +24,7 @@ Every surface, component, and interaction in Green Goods expresses:
 
 1. **Warmth**: Higher chroma colors, spring-based motion, shape morphing on interaction, organic loading shapes. The interface feels friendly and alive, not sterile and flat.
 
-2. **Clarity**: Concentricity, functional layer separation, content-forward hierarchy, scroll edge effects. Structure is self-evident, never decorated into existence.
+2. **Clarity**: Concentricity, clear layer separation, content-forward hierarchy, scroll edge effects. Structure is self-evident, never decorated into existence.
 
 3. **Purpose**: Every element serves the mission. No engagement hacking. No dark patterns. The regenerative checks in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design) apply to visual expression too: solarpunk warmth, not trading-floor urgency.
 
@@ -32,7 +32,7 @@ Every surface, component, and interaction in Green Goods expresses:
 
 **From M3 Expressive** (skipped): 35 iconic shapes (we use garden-themed shapes selectively), 5 button sizes (we use 3), button groups, split buttons, FAB menu, carousel, slider (future work if needed).
 
-**From Liquid Glass** (skipped): platform-specific macOS density rules, SF Symbols dependency, SwiftUI-specific APIs. We take the principles, not the Apple-platform implementation.
+**From Liquid Glass** (skipped): the translucent material itself (Green Goods surfaces are solid, and the cockpit's nav dock is the one translucent piece, DL-108), platform-specific macOS density rules, SF Symbols dependency, SwiftUI-specific APIs. We take the principles, not the Apple-platform implementation.
 
 ---
 
@@ -107,11 +107,11 @@ Emphasis is carried by fill, outline, and color. The corner belongs to the surfa
 | **Secondary** (outlined, "Cancel" included) | 16px | Capsule | One step tighter in the app: 12px; none on the website | Second actions, "Cancel" (DL-016), "Add Link" |
 | **Tertiary** (text) | No container at rest; 16px fill on hover and focus | Capsule fill on hover and focus | None | Inline actions, a rare third action; 44px hit area |
 | **Icon buttons** | Circle | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
-| **Chips** | Capsule | Capsule | None | Filters and choices; selected uses the action fill (DL-017) |
+| **Chips** | Capsule | Capsule | None | Filters and choices; selected uses the action fill (DL-017), the workspace tone's in the cockpit (DL-101) |
 
 **Rule (DL-026; values DL-029 for the app, DL-089 for the website)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; the 32px compact size keeps that corner's proportion rather than its number, 12px at rest and 8px pressed (`--gg-button-radius-compact`, `--gg-button-radius-compact-pressed`; DL-038), because 16px on a 32px button is a full capsule and stopped reading as one of the app's buttons. On the public website buttons are capsules (`rounded.full`) at every size, at rest and while pressed (DL-089); its editorial cards, dialogs, and panels stay square. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`, and their `-compact` pair) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
 
-**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full`: 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps. The capsule is that set's 9999 step.
+**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full`: 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps. The capsule is that set's 9999 step, and the cockpit's chips take it as the app's do: a selected filter chip fills with the workspace tone's action pair (DL-101).
 
 ### Shape Morphing
 
@@ -324,7 +324,7 @@ Group related content using tonal surface variants, not just cards and borders:
 | `surface-container` | Content groups, sections | Slightly elevated tone |
 | `surface-container-high` | Emphasized groups, active states | Noticeable tonal lift |
 
-This creates nuanced hierarchy that guides users through the screen without relying on borders or shadows alone. Combined with glass materials, tonal surfaces show through translucent layers.
+This creates nuanced hierarchy that guides users through the screen without relying on borders or shadows alone.
 
 ### Dynamic Garden Theming
 
@@ -338,14 +338,6 @@ Each garden can derive an accent palette from its visual identity. This is M3's 
 | Admin workspace wash | One faint top wash (`--tone-surface-tint-color`, 5% light / 10% dark, fading to transparent by 320px) over the constant linen canvas (per-workspace canvas tinting is retired) |
 
 **Implementation note**: Dynamic garden theming is aspirational. The brand palette is the baseline. Garden-derived palettes are a future enhancement when the garden profile system supports banner images.
-
-### Glass Color Harmony
-
-Colors must read well through translucent glass surfaces. Considerations:
-
-- **On glass text**: Needs higher contrast than on solid backgrounds. Glass blur reduces perceived contrast.
-- **Tinted glass**: Subtle color tint in glass material shifts how content colors appear. Test accent colors through all 5 material thicknesses.
-- **Dark mode**: Glass materials need higher opacity in dark mode (already handled in material tokens). Colors shift to lighter tints for readability.
 
 ### Dark Mode Palette (Admin)
 
@@ -441,7 +433,7 @@ Contextual page-level actions: client/spatial vocabulary, not a shipped admin su
 - Mobile: replaced by bottom navigation bar
 - Pairs with FAB for hero action emphasis
 - Holds buttons, icon buttons, and search field
-- Uses glass material (`bg-bg-soft/95 backdrop-blur-lg`)
+- Solid, like every surface but the cockpit's nav dock (DL-108)
 - Capsule shape (the toolbar itself is a capsule container; items inside are concentric)
 
 ### Sheets
@@ -463,15 +455,15 @@ Admin workspace action/detail flows open in centered `AdminDialog`; the admin ca
 |-----------|---------|-------|----------|
 | **Nav Bar** (bottom) | Mobile, 3-4 tabs | Capsule container, capsule active indicator | Symbol-first, tap to switch workspace |
 | **Nav Rail** (side) | Tablet, desktop sidebar | Collapsible (icons only) / expandable (icons + labels) | Icon moves from above to beside label when expanded |
-| **Floating Toolbar** | Desktop content zone | Capsule, glass material | Contextual actions, always visible |
+| **Floating Toolbar** | Desktop content zone | Capsule, solid | Contextual actions, always visible |
 
-**Admin dock**: the cockpit's bottom nav is a flat dock, not a glass capsule: `rgb(var(--admin-surface-0)/0.85)` with 12px blur, a 1px ink ring, and the warm chrome shadow (`0 18px 44px rgb(var(--warm-shadow)/0.14)`); the active item is a tone primary-container pill. The Floating Toolbar row is client/spatial vocabulary. Admin ships no floating toolbar.
+**Admin dock**: the cockpit's bottom nav is a flat dock and the one translucent surface in Green Goods (DL-108): `rgb(var(--admin-surface-0)/0.85)` with 12px blur, a 1px ink ring, and the warm chrome shadow (`0 18px 44px rgb(var(--warm-shadow)/0.14)`); the active item is a tone primary-container pill. The Floating Toolbar row is client/spatial vocabulary. Admin ships no floating toolbar.
 
 **App bar**: the installed app's bottom bar keeps its own chrome, a solid white bar with a hairline and 16px top corners, and takes the dock's active recipe in the app's green (DL-107): a 56 × 32 pill of `--primary-container` (green-100, green-900 in dark) behind the active tab's line icon, drawn in `--primary-container-foreground`, with the label in ink at weight 600. Every tab holds the pill's width, so no tab moves when the active one changes.
 
 **Symbol-first rule** (from Liquid Glass): Persistent navigation uses symbols (icons). Text labels only when the icon is genuinely ambiguous. Don't pair a symbol with text in a way that looks like a single button. If you need text, let it sit on its own container.
 
-**Grouping** (from Liquid Glass): Related bar items share a glass background. Items grouped using the correct API automatically share spatial relationship. Don't group symbols with text labels.
+**Grouping** (from Liquid Glass): Related bar items share one background. Items grouped using the correct API automatically share spatial relationship. Don't group symbols with text labels.
 
 ### Progress & Loading
 
@@ -489,24 +481,16 @@ Wavy progress makes the indicator feel alive and active: the progress isn't just
 
 ## Material Behaviors
 
-New behavioral patterns for glass materials, synthesized from Liquid Glass. These extend the existing material system ([surfaces.md](./surfaces.md)) with dynamic responses.
+Behavioral patterns synthesized from Liquid Glass, applied to solid surfaces ([surfaces.md](./surfaces.md)): Green Goods takes the behavior, not the translucent material (DL-108).
 
 ### Focus Variation
 
-Glass material shifts as user engagement deepens. This replaces the binary "transparent or opaque" model with a continuous spectrum:
+As engagement deepens, a surface stays solid and what surrounds it changes:
 
-| Engagement Level | Material Response | Interaction Pattern |
-|-----------------|-------------------|---------------------|
-| **Browsing** | Default glass: transparent, content shows through | User scanning, not focused on any element |
-| **Engaged** | Slightly more opaque, material settles | User interacting with a specific surface |
-| **Deep focus** (modal/sheet) | Opaque glass + dimming layer behind | Task interrupts main flow, so center attention |
-| **Parallel task** (side panel) | Lighter glass, no dimming | Task happens alongside main flow, so maintain context |
+- **Dimming layer** for modal interruption: a dialog or sheet opens over the shared scrim, which dims the page and redirects the user's attention.
+- **Separation** for parallel client tasks: a side panel opens beside the page with no scrim, so the user stays aware of both contexts.
 
-**Dimming vs separation** (from Liquid Glass):
-- **Dimming layer** for modal interruption: a dialog/sheet opens and the user's attention is redirected.
-- **Glass separation** for parallel client tasks: panel depth keeps the user aware of both contexts.
-
-Admin carve-out: routine admin overlays are not parallel glass panels. Workspace action/detail flows use centered `AdminDialog`, and global AppBar surfaces use solid `AdminSideSheet`.
+Admin carve-out: routine admin overlays are not parallel panels. Workspace action/detail flows use centered `AdminDialog`, and global AppBar surfaces use solid `AdminSideSheet`.
 
 ### Source-Anchored Interactions
 
@@ -520,17 +504,17 @@ Actions originate from their trigger element, not from screen edges or arbitrary
 | **Toast notifications** | The action that caused them | Slide from the action's position |
 | **Tooltips** | The element being described | Scale + fade from trigger |
 
-**Rule** (from Liquid Glass): Apply the material directly to the control, not its inner views. When making custom controls, the glass material sits on the control itself, and the action sheet's source role is assigned to the control.
+**Rule** (from Liquid Glass): Apply the surface directly to the control, not its inner views. When making custom controls, the surface sits on the control itself, and the action sheet's source role is assigned to the control.
 
 This extends the spatial architecture's "Spatial Origin Rule" (sheets open from the side where you triggered them) to all interactive surfaces.
 
 ### Scroll Edge Effects
 
-Replace hard dividers at glass/content boundaries with soft blur. Scroll edge effects clarify where UI ends and content begins, without adding visual clutter.
+Where pinned controls overlap scrolling content, replace a hard divider with a soft edge. Scroll edge effects clarify where UI ends and content begins, without adding visual clutter.
 
 | Style | Use | Appearance |
 |-------|-----|------------|
-| **Soft** | Default on mobile/tablet. For interactive elements using glass. | Subtle blur transition at the boundary |
+| **Soft** | Default on mobile/tablet. For pinned controls over scrolling content. | A short fade at the boundary |
 | **Hard** | Desktop, admin, text-heavy interfaces. For controls without backgrounds or pinned headers. | Stronger, more opaque boundary |
 
 **Rules** (from Liquid Glass):
@@ -540,7 +524,7 @@ Replace hard dividers at glass/content boundaries with soft blur. Scroll edge ef
 - Scroll views automatically show an edge effect when pinned controls overlap them.
 
 ```css
-/* Soft scroll edge: mask at glass/content boundary */
+/* Soft scroll edge: mask where pinned controls meet content */
 .scroll-edge-soft {
   mask-image: linear-gradient(
     to bottom,
@@ -565,14 +549,14 @@ Replace hard dividers at glass/content boundaries with soft blur. Scroll edge ef
 
 ### Background Extension
 
-Content extends behind glass surfaces for immersion. The glass layer floats above content: content should feel continuous, not cropped by UI elements.
+Content can extend behind floating controls for immersion: it should feel continuous, not cropped by UI elements. The controls keep their own solid fill (DL-108).
 
 | Pattern | Use |
 |---------|-----|
-| Garden banners extend behind nav bar | Client PWA: banner visible through top glass |
-| Ambient color wash behind glass layers | Client ambient surfaces; in admin the only atmosphere is the faint workspace top wash over the constant linen canvas, with no margin tinting |
+| Garden banner behind the top controls | Client PWA: the controls sit over the banner on their own solid fill |
+| Ambient color wash behind floating controls | Client ambient surfaces; in admin the only atmosphere is the faint workspace top wash over the constant linen canvas, with no margin tinting |
 
-**Rule**: Text and controls must always layer above the extended background. Glass material provides the separation: content behind glass is visible but not interactive.
+**Rule**: Text and controls must always layer above the extended background, each on its own solid fill: the content behind them is visible but not interactive.
 
 **CSS approach sketch**:
 ```css
@@ -582,11 +566,10 @@ Content extends behind glass surfaces for immersion. The glass layer floats abov
   padding-left: var(--sidebar-width);
 }
 
-/* Sidebar glass floats above */
-.sidebar-glass {
+/* Sidebar floats above, solid */
+.sidebar-floating {
   position: fixed;
-  backdrop-filter: blur(var(--blur-material-regular));
-  background: var(--color-material-regular);
+  background: var(--color-material-solid);
 }
 ```
 
@@ -594,36 +577,15 @@ Content extends behind glass surfaces for immersion. The glass layer floats abov
 
 ## Structure & Layout
 
-### Functional Glass Layers
-
-The interface has three distinct functional layers. Glass creates a floating control plane above content, replacing the traditional "embedded controls in content" model.
-
-```text
-Layer 3: Glass Controls     Navigation bars, toolbars, FABs
-                            Liquid Glass material, floating above content
-                            Interactive, persistent, orientation-giving
-
-Layer 2: Content            Cards, lists, media, data tables, forms
-                            Solid or thick material, primary reading surface
-                            The work: what the user came for
-
-Layer 1: Environment        Background, ambient color, workspace atmosphere
-                            Z0-Z1 in the Z-layer model
-                            Felt more than seen, setting mood without demanding attention
-```
-
-**Distinction from Z-layers**: Z-layers (Z0-Z4) are implementation: they define shadow depth, blur amount, and stacking order. Functional layers are design intent: they define the *role* each surface plays. A Z2 card is "Content." A Z3 toolbar is "Glass Controls." The mental models complement each other.
-
 ### Content-Forward Principle
 
-From Liquid Glass: UI should support interaction where needed and remain unobtrusive when not. The Glass Controls layer exists to serve the Content layer, not to compete with it.
+From Liquid Glass: UI should support interaction where needed and remain unobtrusive when not. Controls exist to serve the content, not to compete with it.
 
 In practice:
-- Controls use glass material (semi-transparent) so content shows through, and controls recede
+- Controls recede through size, placement, and quiet color, never through translucency (DL-108)
 - Empty states are quiet, not attention-grabbing
 - Toolbar and navigation recede during scroll or full-screen content modes
-- Dense content (forms, tables) uses thick or solid material, so glass recedes to let content dominate
-- Hero content (images, videos, celebrations) uses ultrathin glass, with controls barely visible
+- Hero content (images, videos, celebrations) gets the room, with as few controls as the moment needs
 
 ### Symbol-First Navigation
 
@@ -636,7 +598,7 @@ From Liquid Glass: persistent navigation bars now rely more on symbols (icons) t
 - When actions are closely related (multiple copy variants), use the symbol once to introduce the group, then text for variants.
 - The admin cockpit already follows this in its nav dock and AppBar icon actions (admin has no floating toolbar).
 
-**Grouping** (from Liquid Glass): Related bar items should share a glass background:
+**Grouping** (from Liquid Glass): Related bar items should share one background:
 - Group by function and frequency: related actions together
 - A primary action (like "Done") stays separate with tint color
 - If a bar feels crowded, move secondary actions into a menu to keep things clean
@@ -655,7 +617,6 @@ Hero moments are designated places where all style dimensions amplify simultaneo
 | **Color** | Balanced role hierarchy (mostly canvas + ink) | Full chroma, vibrant tertiary accent |
 | **Motion** | Standard spring scheme | Expressive spring scheme (bouncy, delightful) |
 | **Typography** | Body/label weights | Display weight, variable fonts |
-| **Material** | Regular glass | Dramatic (ultrathin glass over vivid background) |
 
 ### Green Goods Hero Moments
 
@@ -703,7 +664,7 @@ append-only ledger where all ongoing design decisions land:
 ## Related
 
 - [SKILL.md](./SKILL.md): Adaptive Surface paradigm, material metaphors, decision tree
-- [surfaces.md](./surfaces.md): Z-layer model, material thickness system, glass pane, adaptive density, progressive disclosure, scroll-linked depth
+- [surfaces.md](./surfaces.md): Z-layer model, solid surfaces and the one translucent dock, adaptive density, progressive disclosure, scroll-linked depth
 - [review-checklist.md](./review-checklist.md): Regenerative, spatial, ecosystem, and compliance checks
 - [ecosystem.md](./ecosystem.md): 15 user archetypes, cascade awareness
 - Warm Earth's sources are recorded in § Philosophy above; the former SKILL.md reading-list appendix (books, designers, studios) was removed in the 2026-07 round-2 consolidation

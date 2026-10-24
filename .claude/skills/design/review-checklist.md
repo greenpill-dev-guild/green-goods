@@ -45,7 +45,7 @@ Run the five-minute review in root [`DESIGN.md` § Interface Principles](../../.
 | # | Check | Pass | Fix if Fail |
 |---|-------|------|-------------|
 | 2.1 | **Paradigm declared?** Surface type chosen (Command / Ambient / Data Landscape / Conversational) | | Choose paradigm using the Decision Matrix below. Add comment to component: `// Paradigm: Command Surface` |
-| 2.2 | **Material appropriate?** Glass blur level matches content density | | Text-dense → thick material (solid bg). Glanceable → regular (light blur). Status → thin (max blur). See `surfaces.md`. Admin: solid everywhere except the nav dock, and blur outside the admin chrome files fails `check:design-tokens` |
+| 2.2 | **Surface solid?** No translucency or backdrop blur on a surface that carries content or controls | | Use an opaque fill and let the shadow tier carry depth; only the cockpit's nav dock is translucent (DL-108). See `surfaces.md`. Admin: blur outside the admin chrome files fails `check:design-tokens` |
 | 2.3 | **Depth hierarchy?** Z-axis used for information priority (Z0–Z4) | | Primary content at Z2 (main pane), contextual at Z1 (recessed), alerts at Z3 (elevated). See `surfaces.md`. Admin: depth is backed by the single `--m3-elevation-0/1/2` ladder plus the warm chrome shadow |
 | 2.4 | **Hit targets ≥ 44px?** All interactive elements large enough for touch/gaze | | Use the shared `Button` / `IconButton` / `Chip` sizes, which keep a 44–48px hit area at every height (DL-023). Custom pressables use `min-h-11 min-w-11` (44px) |
 | 2.5 | **Rounded corners scale?** Larger elements have larger radii; buttons share one corner per surface | | Client runtime scale (not stock Tailwind): tag `rounded-md` (8px), inner content `var(--radius-squircle)` (12px), card and field `rounded-lg` (16px), panel and sheet `rounded-xl` (20px), modal `rounded-2xl` (24px). Buttons: every emphasis 16px in the app and a capsule on the website, icon circle, chip capsule (DL-026, DL-029, DL-089), never a radius class on a button or field. Admin: badge 8, card 12, dialog/pane 16, pill 9999, with no 24px step |
@@ -87,7 +87,7 @@ Run the five-minute review in root [`DESIGN.md` § Interface Principles](../../.
 | 4.10 | **Offline state handled?** Component degrades gracefully without connectivity | | Show cached data with freshness indicator. Queue actions for background sync |
 | 4.11 | **Admin: single elevation ladder?** Only `--m3-elevation-0/1/2` (+ warm chrome shadow on floating chrome) | | Replace any other shadow token or ad-hoc `box-shadow` with the ladder |
 | 4.12 | **Admin: radius set?** Only 4/8/12/16/9999px | | Snap to the nearest admin step (no 20/24/28px) |
-| 4.13 | **Admin: tone budget?** Workspace tone appears only in its 5 sanctioned uses (active tab, active nav pill, one filled header action, nav-shell FAB fill, the tab rail's count badges, DL-099), plus the faint canvas wash | | Return extra tone usage to neutral ink/stone |
+| 4.13 | **Admin: tone budget?** Workspace tone appears only in its 6 sanctioned uses (active tab, active nav pill, one filled header action, nav-shell FAB fill, the tab rail's count badges, DL-099, a selected filter chip, DL-101), plus the faint canvas wash | | Return extra tone usage to neutral ink/stone |
 | 4.14 | **Admin: hover discipline?** Elevation step or neutral 8% ink layer only: no lift, no glow, no hue shift | | Replace transform/glow hovers with elevation 1→2 or `rgb(var(--m3-on-surface)/0.08)` |
 | 4.15 | **Buttons: Title Case labels?** Buttons are `AdminButton` (pill); action labels are Title Case in en (DL-012: es/pt keep native casing); shared `Button` never appears in admin | | Swap shared `Button` for `AdminButton`; fix sentence-case action labels |
 
@@ -99,11 +99,11 @@ Use when starting a new view or refactoring an existing one.
 
 ```
 Q1: Is this a primary action area where the user DOES things?
-    → Yes: Command Surface (thick material, high contrast, controls visible)
+    → Yes: Command Surface (high density, high contrast, controls visible)
     → No: Q2
 
 Q2: Is this monitoring/status that the user GLANCES at?
-    → Yes: Ambient Display (thin material, peripheral, never demands attention)
+    → Yes: Ambient Display (low prominence, peripheral, never demands attention)
     → No: Q3
 
 Q3: Is this data exploration (charts, history, comparisons)?
@@ -117,19 +117,21 @@ Q4: Is this AI/guidance interaction?
 
 ### Paradigm → Token → Component Mapping
 
-| Paradigm | Material | Density | Key Radix Primitives | Example Green Goods Surface |
-|----------|----------|---------|---------------------|---------------------------|
-| **Command Surface** | Thick (solid bg, minimal blur) | High: controls visible | Dialog, Select, DropdownMenu, Toggle | Admin dashboard, review queue, garden config |
-| **Ambient Display** | Thin (max blur, translucent) | Low: glanceable | Tooltip, HoverCard, Progress | Sync status badge, garden health indicator |
-| **Data Landscape** | Regular (balanced blur) | Variable: zooms | Tabs, Accordion, ScrollArea | Assessment history, impact analytics, cross-garden view |
-| **Conversational** | Ultrathin (subtle) | Sparse: message-focused | None | GreenWill agent interaction, guided onboarding |
+Every paradigm sits on solid surfaces (DL-108); the paradigm sets density and primitives, not translucency.
+
+| Paradigm | Density | Key Radix Primitives | Example Green Goods Surface |
+|----------|---------|---------------------|---------------------------|
+| **Command Surface** | High: controls visible | Dialog, Select, DropdownMenu, Toggle | Admin dashboard, review queue, garden config |
+| **Ambient Display** | Low: glanceable | Tooltip, HoverCard, Progress | Sync status badge, garden health indicator |
+| **Data Landscape** | Variable: zooms | Tabs, Accordion, ScrollArea | Assessment history, impact analytics, cross-garden view |
+| **Conversational** | Sparse: message-focused | None | GreenWill agent interaction, guided onboarding |
 
 ### Paradigm → Tailwind Token Strategy
 
 | Paradigm | Background | Border | Text | Shadow |
 |----------|-----------|--------|------|--------|
 | **Command** (admin) | Solid `rgb(var(--admin-surface-0))` | `--stroke-sub-300` hairline | `--text-strong-950` (high contrast) | `--m3-elevation-1` |
-| **Ambient** (client) | `--color-material-thin` + `--blur-material-thin` | `var(--border-material)` | `--text-sub-600` | None |
+| **Ambient** (client) | Solid `var(--color-material-solid)` | `var(--border-material)` | `--text-sub-600` | None |
 | **Data Landscape** | `--bg-white-0` canvas | `--stroke-sub-300` hairline | `--text-strong-950` | Variable by depth (`--shadow-elevation-*`) |
 | **Conversational** | Transparent | None | `--text-strong-950` | None |
 
@@ -169,7 +171,7 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 | Lens | Manual Review | Automation | Status |
 |------|--------------|-----------|--------|
 | **1: Regenerative** | Value-flow, succession, recovery, motivation, capability, and aesthetic checks | `bun run check --only vocabulary` scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`, and the agent's copy tests hold its chat copy to the same list; prompt-only admin/client vocabulary is guidance, not a runtime check | **Wired** |
-| **2: Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
+| **2: Spatial** | Paradigm declared, surfaces solid | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
 | **3: Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / steward / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
 | **4: Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** (addon installed, no CI gate) |
 | **Cross-cutting** | Token consistency across docs and implementation | `bun run check --only design-tokens`: spec ↔ `theme.css` (shared) + `packages/admin/src/styles/admin-m3-tokens.css` / `admin-m3-components.css` + `token_version` declared in `design/SKILL.md` | **Wired** |

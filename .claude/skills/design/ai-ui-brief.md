@@ -24,7 +24,7 @@ Do not paste long external articles into every prompt. The references below are 
 |--------|---------|-------------------------------|
 | [web.dev CSS](https://web.dev/learn/css) and [Baseline](https://web.dev/baseline) | Native CSS, browser support, semantic HTML, responsive layout, performance-safe animation, progressive enhancement | Prefer platform primitives first: semantic elements, CSS Grid/Flexbox, container queries, logical properties, `clamp()`, dynamic viewport units, `@property`, View Transitions when supported, and reduced-motion fallbacks. Target Baseline Widely Available unless a task explicitly accepts a newer feature with fallback. |
 | [Refactoring UI](https://www.refactoringui.com/) | Visual craft for developers: hierarchy, spacing, typography, contrast, density, polish | Make the hierarchy obvious before adding decoration. Use spacing, type weight/size, alignment, and contrast to show priority. Avoid equal-weight cards, vague gray text, arbitrary borders, and visual noise. |
-| [Material Design 3](https://m3.material.io/) | Component anatomy, states, shape, color roles, adaptive layout, motion discipline | Use M3 as the structural backbone for components and state layers. For admin, M3 anatomy is strict. For client, borrow shape, color, and motion principles through Warm Earth rather than raw M3 styling. |
+| [Material Design 3](https://m3.material.io/) | Component anatomy, states, shape, color roles, adaptive layout, motion discipline | Borrow component anatomy, state layers, and color-role thinking through Warm Earth on both surfaces, never raw M3 styling. The cockpit's strict M3 rule is retired: it speaks the installed app's language at a denser setting (DL-095). |
 | [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) | Content-first layout, clarity, safe areas, platform comfort, material/layer restraint, meaningful motion | Keep content primary and controls supportive. Respect safe areas and touch targets. Use motion for continuity and feedback, not spectacle. Use material/layers to clarify hierarchy, not as decoration. |
 | Green Goods Warm Earth | Product identity, surface dialect, tokens, primitives, validation | This repo decides the final dialect: canvas/ink/stone/accent roles, concentric geometry, spring tokens, surface-specific chrome, Storybook, i18n, and browser proof. |
 
@@ -62,7 +62,7 @@ Constraints:
 - Add user-facing strings to en, es, and pt.
 
 Surface rules:
-- Admin: restrained steward cockpit. Command Surface, solid dense content, strict M3 anatomy, Plus Jakarta Sans, one dominant workspace, inspectors over card mosaics, utility copy only.
+- Admin: restrained steward cockpit, the installed app's language at a denser setting. Command Surface, solid surfaces, pill buttons on the compact metric, Plus Jakarta Sans, one dominant workspace, inspectors over card mosaics, utility copy only.
 - Client PWA: gardener field tool. Bottom AppBar, Plus Jakarta Sans (the cockpit's face), expressive Warm Earth allowed, offline/sync states visible, warm community copy.
 - Public browser: editorial public record. SiteHeader only, real Garden imagery, Fraunces for editorial heroes, no wallet header CTA, no admin dashboard/KPI feel.
 - Docs: readable reference surface. Preserve Docusaurus structure, long-form readability, compact callouts, concrete commands and paths.
@@ -82,7 +82,7 @@ Done when:
 - What is the primary user job?
 - Which existing primitive should carry the interaction?
 - Which information is glance, scan, engage, and deep dive?
-- What should be solid versus material/glass?
+- Is every surface solid? (Only the cockpit's nav dock is translucent, DL-108.)
 - What should move, why should it move, and what is the reduced-motion equivalent?
 - What must be true at 320-375px, tablet, desktop, and inside a narrow container?
 - Which story, test, or browser proof will show the result is real?

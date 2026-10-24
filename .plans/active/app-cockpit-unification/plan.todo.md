@@ -67,7 +67,7 @@ bounded change, and split a step that would mix independent behaviours.
 | 3. Control boundary and focus role (F3, part) | `ui` | A 3:1 outline token for secondary buttons, chips and fields; one focus-ring role, with the app's ring in its own green, drawn as a solid 2px ring in place of the halo; the app's button labels at weight 500 (21 October). Merged as #1195 with its guides #1196 (23 October). | Measured ratios in both themes; focus ring visible on every control family. |
 | 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs, a garden's notification bell, and the cockpit's tab rail consume it. Approved on 23 October with the bar's 9+, the tone's accent on every cockpit tab, and the unused `TabBadge` removed ([spec.md](spec.md#count-badge-approved-23-october)). | Every consumer renders the same badge; counts above 9 and 99 still fit. |
 | 5. Tabs (F8) | `ui` | The cockpit's tab rail takes the equal-width tinted layout and the shared badge. On desktop each tab is at most 180px wide and the row aligns left; phones keep full-width tabs. | Rendered pairs of every tab row at phone, tablet and desktop widths in three languages. |
-| 6. Chips (F4) | `ui` | Capsule chips with one selected treatment in the cockpit's filter row. The filter control keeps its form on each surface (the F9 pick). | One chip shape on both; DL-082 scopes unchanged; keyboard and screen-reader paths unchanged. |
+| 6. Chips (F4) | `ui` | Capsule chips with one selected treatment in the cockpit's filter row. The filter control keeps its form on each surface (the F9 pick). Built on 23 October: `AdminFilterChip` as a capsule that selects in the workspace tone's action pair, and `AdminInputChip` as a capsule beside it (DL-101). | One chip shape on both; DL-082 scopes unchanged; keyboard and screen-reader paths unchanged. |
 | 7. Cards, rows and list gap (F7, F11) | `ui` | The app's card as the one card surface (24px, a visible edge, a faint shadow) in place of the five card primitives; the shared item row in the app's work-row style (16px corner, the 2px status edge) as locked on 18 October: card titles 15px in the app and 13px in the cockpit, card details and labels 11px (moved here from step 1 on 21 October), one 88px height, an 88px photo or a lead icon tile, a one-line title, the status pill under the title, one detail line by the spec's detail-line rules, and the row's one action in its right slot; first used by the work item on phones on both surfaces, the cockpit's phone queue included (a steward who sorts by photo checks it on the pair); a 12px list gap token. | Rendered pairs of every list at every width; a visible card edge in both themes; every row in a list one height; no detail line wraps at 320, 360 or 390px in English, Spanish or Portuguese. |
 | 8. Wide desktop work card (F12) | `ui` | The cockpit's desktop work card lies wide with its mosaic on the left, as the first use of the shared media card; the grid's column rule follows. | Mosaic variants for no photo, one, two and three or more photos; phone widths unaffected. |
 | 9. Phone sheets (F5) | `ui` | The cockpit's phone sheet takes the shared surface, grip and header. Its centred desktop dialog does not change. | Sheet open, close, focus return and Back unchanged. |
@@ -203,6 +203,17 @@ Community row cannot hold equal cells, so they scroll there as before. The orche
 rule (option 1 of three) for the maintainer's review after merge, and DL-100 records it as a
 measured deviation from the pick. DL-100 and its guide lines are the standards-only
 `feature/app-cockpit-tabs-guides` ([handoff](handoffs/claude-ui.md#step-5-tabs-prd-1271)).
+
+**Step 6 (23 October).** `feature/app-cockpit-chips` makes the cockpit's chips capsules:
+`AdminFilterChip` selects in the workspace tone's action pair, the app's selected look in the
+cockpit's accent, with the filled controls' state layer beneath its label and its focus ring
+drawn as the shared chip draws it, 2px off with the ground between; `AdminInputChip` takes the
+capsule in its own commit. The pick was locked on 18 October, so the rendered pairs are
+acceptance evidence ([eval.md](eval.md#step-6-proof-capsule-chips)). The guide wording and
+DL-101, which makes a selected chip the tone's sixth use, are the standards-only
+`feature/app-cockpit-chips-guides`. #1206, merged the same night, defined the beneath layer's
+class and gave Storybook and the portals Community's amber ramp; its contrast guard now covers
+the selected chip too.
 
 **Step 21 (23 October).** The installed app's bottom bar takes the cockpit's pill in its green on
 `feature/app-cockpit-bar-pill`: a 56 × 32 pill of the new app-scoped `--primary-container` behind
