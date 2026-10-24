@@ -12,6 +12,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useAuth } from "../auth/useAuth";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useEnsAvatar } from "../blockchain/useEnsAvatar";
+import { useEnsName } from "../blockchain/useEnsName";
 import { uploadFileToIPFS } from "../../modules/data/ipfs/upload";
 import {
   clearProfileAvatarDraft,
@@ -46,6 +47,9 @@ export interface ProfileAvatarReadOptions {
    * The photo of one row in a list of people. Its read goes out with the list's other rows, 50
    * to a request on the batch route's own budget, so a long roster never spends the
    * single-read budget the photo editor needs. The record shares the account's one cache entry.
+   * The row looks up an ENS avatar only for someone with an ENS name and no profile photo, so
+   * most rows make no ENS call of their own: the name is the one the row's address display
+   * already reads.
    */
   list?: boolean;
 }
@@ -80,12 +84,18 @@ export function useResolvedProfileAvatar(
   const avatar = useProfileAvatar(address, chainId, options);
   const primaryAddress = usePrimaryAddress();
   const targetAddress = address ?? primaryAddress;
-  const ens = useEnsAvatar(targetAddress, { enabled: Boolean(targetAddress) });
+  const list = options.list === true;
+  // In a list, the ENS name query is the one the row's address display already runs.
+  const ensName = useEnsName(list ? targetAddress : null);
+  const ensAvatarWanted = list
+    ? Boolean(ensName.data) && !avatar.isLoading && !avatar.data?.avatarUri
+    : Boolean(targetAddress);
+  const ens = useEnsAvatar(targetAddress, { enabled: ensAvatarWanted });
   const resolved = resolveProfileAvatar(avatar.data?.avatarUri, ens.data, fallbackAvatarUri);
   return {
     ...resolved,
     record: avatar.data ?? null,
-    isLoading: avatar.isLoading || ens.isLoading,
+    isLoading: avatar.isLoading || ensName.isLoading || ens.isLoading,
     error: (avatar.error ?? ens.error) as Error | null,
   };
 }
