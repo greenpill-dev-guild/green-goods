@@ -641,9 +641,17 @@
   --color-material-thick: oklch(0.96 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
   /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
-   * surface-colored cover that rides the end of the content to hide it. */
-  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
-  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
+   * surface-colored cover that rides the end of the content to hide it. Both
+   * follow the sheet's own hairline and fill where a surface sets them
+   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the cockpit's phone dialogs). */
+  --sheet-scroll-edge-line: linear-gradient(
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200))),
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200)))
+  );
+  --sheet-scroll-edge-cover: linear-gradient(
+    var(--gg-sheet-fill, var(--color-material-solid)),
+    var(--gg-sheet-fill, var(--color-material-solid))
+  );
 
   --blur-material-ultrathin: 30px;
   --blur-material-thin: 20px;
@@ -929,9 +937,17 @@
   --color-material-thick: oklch(0.12 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
   /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
-   * surface-colored cover that rides the end of the content to hide it. */
-  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
-  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
+   * surface-colored cover that rides the end of the content to hide it. Both
+   * follow the sheet's own hairline and fill where a surface sets them
+   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the cockpit's phone dialogs). */
+  --sheet-scroll-edge-line: linear-gradient(
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200))),
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200)))
+  );
+  --sheet-scroll-edge-cover: linear-gradient(
+    var(--gg-sheet-fill, var(--color-material-solid)),
+    var(--gg-sheet-fill, var(--color-material-solid))
+  );
   --border-material: 1px solid oklch(1 0 0 / 0.06);
 
   /* Social colors - invert for dark mode */

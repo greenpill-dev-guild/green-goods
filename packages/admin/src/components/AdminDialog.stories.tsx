@@ -24,6 +24,11 @@ const meta: Meta<typeof AdminDialog> = {
           "`var(--tone-focus-ring, var(--m3-primary))` so it tints to the active",
           "workspace (action color in light, bright accent in dark).",
           "",
+          "**On phones (below 640px)** - the installed app's bottom sheet in look (F5):",
+          "the shared sheet material, the grip (visual only) and the shared",
+          "`SheetHeader` with the 22px title and the target line, no icon. Opening,",
+          "closing and focus stay Radix's, as on desktop.",
+          "",
           "**Accessibility**: native `<dialog>` via Radix; Escape closes; focus",
           "trapped while open; focus returns to trigger on close.",
         ].join("\n"),
@@ -315,9 +320,8 @@ export const PaletteVariant: Story = {
  */
 const FLOW_SECTIONS = ["Action details", "Time & notes", "Evidence photos", "Review"];
 
-export const FlowVariant: Story = {
-  tags: ["storybook-ci"],
-  render: () => (
+function FlowSheet() {
+  return (
     <AdminDialog
       open
       size="lg"
@@ -365,7 +369,12 @@ export const FlowVariant: Story = {
         </div>
       </ActionFlowShell>
     </AdminDialog>
-  ),
+  );
+}
+
+export const FlowVariant: Story = {
+  tags: ["storybook-ci"],
+  render: () => <FlowSheet />,
   play: async () => {
     const surface = document.querySelector<HTMLElement>(
       '[data-component="AdminDialog"][data-slot="surface"]'
@@ -548,7 +557,9 @@ export const DesktopGeometry: Story = {
 /**
  * Mobile full-width bottom-sheet geometry at a real 390x844 viewport.
  * Regression-guards mobile sheet overflow, off-bottom sheets, hidden/floating
- * footers, and the close-button overlap defect.
+ * footers, and the close-button overlap defect, and pins the shared phone
+ * sheet (F5): the grip, the shared header's close on the title's line, the
+ * 22px title and the sheet material.
  */
 export const MobileSheetGeometry: Story = {
   tags: ["storybook-ci"],
@@ -633,39 +644,81 @@ export const MobileSheetGeometry: Story = {
       surfaceRect.bottom + VIEWPORT_EDGE_TOLERANCE_PX
     );
 
-    // Close button sits inside the surface, anchored top-right, clear of body
-    // and headline. `position: absolute` is the direct guard for the cascade
-    // defect where the unlayered `.m3-state-layer { position: relative }`
-    // overrode Tailwind's `.absolute`.
-    const closeBtn = surface.querySelector<HTMLElement>('[data-slot="close"]');
-    await expect(closeBtn).not.toBeNull();
-    if (closeBtn) {
-      await expect(getComputedStyle(closeBtn).position).toBe("absolute");
-      const closeRect = closeBtn.getBoundingClientRect();
-      await expect(closeRect.left).toBeGreaterThanOrEqual(
-        surfaceRect.left - VIEWPORT_EDGE_TOLERANCE_PX
-      );
-      await expect(closeRect.right).toBeLessThanOrEqual(
-        surfaceRect.right + VIEWPORT_EDGE_TOLERANCE_PX
-      );
-      await expect(closeRect.top).toBeGreaterThanOrEqual(
-        surfaceRect.top - VIEWPORT_EDGE_TOLERANCE_PX
-      );
-      // Anchored to the right (~16px inset), not floating over the headline.
-      await expect(surfaceRect.right - closeRect.right).toBeLessThan(24);
-      await expect(closeRect.left).toBeGreaterThan(surfaceRect.left + surfaceRect.width / 2);
-      // Sits above the scrollable body — does not overlap content.
-      await expect(closeRect.bottom).toBeLessThanOrEqual(bodyRect.top + VIEWPORT_EDGE_TOLERANCE_PX);
-      // Headline text stays clear of the absolute close button. Clearance now
-      // lives on the header row (pr-14 on the title bar), not on the title's own
-      // paddingRight, so assert the geometry directly: the title never extends
-      // under the close button.
-      const title = within(surface).getByRole("heading", { name: /mobile bottom sheet/i });
-      const titleRect = title.getBoundingClientRect();
-      await expect(titleRect.right).toBeLessThanOrEqual(
-        closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX
-      );
-    }
+    // The shared header's close sits inside the surface on the title's first
+    // line, anchored top-right, clear of the body and the title.
+    const header = surface.querySelector<HTMLElement>(
+      '[data-component="SheetHeader"][data-slot="root"]'
+    );
+    await expect(header).not.toBeNull();
+    if (!header) return;
+    const closeRect = within(header).getByRole("button", { name: "Close" }).getBoundingClientRect();
+    const title = within(surface).getByRole("heading", { name: /mobile bottom sheet/i });
+    const titleRect = title.getBoundingClientRect();
+    const firstLineMiddle =
+      titleRect.top + Number.parseFloat(getComputedStyle(title).lineHeight) / 2;
+    await expect(closeRect.top).toBeLessThanOrEqual(firstLineMiddle);
+    await expect(closeRect.bottom).toBeGreaterThanOrEqual(firstLineMiddle);
+    await expect(closeRect.right).toBeLessThanOrEqual(
+      surfaceRect.right + VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expect(surfaceRect.right - closeRect.right).toBeLessThan(24);
+    await expect(closeRect.bottom).toBeLessThanOrEqual(bodyRect.top + VIEWPORT_EDGE_TOLERANCE_PX);
+    await expect(titleRect.right).toBeLessThanOrEqual(closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX);
+    // The cockpit keeps its 22px dialog title in the shared header.
+    await expect(getComputedStyle(title).fontSize).toBe("22px");
+
+    // The grip tops the surface, centred above the title, and marks the sheet
+    // without a gesture.
+    const grip = surface.querySelector<HTMLElement>(
+      '[data-component="SheetGrip"][data-slot="grip"]'
+    );
+    await expect(grip).not.toBeNull();
+    if (!grip) return;
+    const gripRect = grip.getBoundingClientRect();
+    const surfaceMiddle = (surfaceRect.left + surfaceRect.right) / 2;
+    await expect(
+      Math.abs((gripRect.left + gripRect.right) / 2 - surfaceMiddle)
+    ).toBeLessThanOrEqual(CENTER_TOLERANCE_PX);
+    await expect(gripRect.bottom).toBeLessThanOrEqual(titleRect.top);
+    await expect(grip.parentElement).not.toHaveAttribute("data-drag-region");
+
+    // The shared sheet material: white in light, rounded on top only.
+    const surfaceStyle = getComputedStyle(surface);
+    await expect(surfaceStyle.backgroundColor).toBe("rgb(255, 255, 255)");
+    await expect(surfaceStyle.borderTopLeftRadius).toBe("16px");
+    await expect(surfaceStyle.borderBottomLeftRadius).toBe("0px");
+  },
+};
+
+/**
+ * A flow keeps its own header on a phone, under the shared grip: the dialog's
+ * close moves down with it, on the flow's title row and clear of the grip.
+ */
+export const MobileFlowSheetGeometry: Story = {
+  tags: ["storybook-ci"],
+  parameters: { viewport: { options: ADMIN_MOBILE_390_VIEWPORT } },
+  globals: { viewport: { value: "adminMobile390x844" } },
+  render: () => <FlowSheet />,
+  play: async () => {
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+    const surface = await within(document.body).findByRole("dialog", { name: "Submit Work" });
+    await waitForDialogSettled(surface);
+    const handle = surface.querySelector<HTMLElement>(
+      '[data-component="SheetGrip"][data-slot="drag-handle"]'
+    );
+    const close = surface.querySelector<HTMLElement>(':scope > [data-slot="close"]');
+    await expect(handle).not.toBeNull();
+    await expect(close).not.toBeNull();
+    if (!handle || !close) return;
+    const closeRect = close.getBoundingClientRect();
+    const title = within(surface).getByRole("heading", { name: "Submit Work", level: 1 });
+    const titleRect = title.getBoundingClientRect();
+    await expect(closeRect.top).toBeGreaterThanOrEqual(
+      handle.getBoundingClientRect().bottom - VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expect(closeRect.top).toBeLessThanOrEqual(titleRect.bottom);
+    await expect(closeRect.bottom).toBeGreaterThanOrEqual(titleRect.top);
+    await expect(titleRect.right).toBeLessThanOrEqual(closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX);
   },
 };
 

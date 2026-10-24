@@ -80,6 +80,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
+  useFocusAfterFlip: () => undefined,
 }));
 
 vi.mock("react-router-dom", async (importOriginal) => {
