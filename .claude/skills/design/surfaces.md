@@ -39,6 +39,7 @@ Every surface that carries content or controls is solid, in the installed app, t
 
 - **One translucent piece**: the cockpit's nav dock (the `NavigationBar` with its FAB), a flat 85% surface with a 12px blur, a warm ambient shadow, and a 1px ink ring (Controlled Chrome in `packages/admin/DESIGN.md`). Nothing else is translucent.
 - **The scrim is not a surface**: a dialog or sheet that interrupts the main flow dims the page behind it with the shared scrim. The scrim carries no content.
+- **Transparent chrome is not glass**: a chrome root with no fill and no blur at all (the cockpit's `AppBar` root, `MainSheet` and route frame, and the website's `SiteHeader` over its hero) draws nothing behind its controls. Its controls sit on the page or carry their own solid fills.
 - **Glass in code is residue**: the translucent `--color-material-*` steps, the `glass-*` utilities, and `Surface`'s glass elevations stay in Shared only until nothing renders them. New UI never reaches for them. `--color-material-solid` stays the solid fill, and the dock reads its blur from `--blur-material-regular`.
 
 ---

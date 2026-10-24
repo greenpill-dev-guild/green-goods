@@ -47,7 +47,7 @@ The categories below are contract-specific framing: *why* client output should r
 ## Materials & Motion (client)
 
 - **Full Warm Earth expression** is permitted: capsule + squircle + concentric shapes, spring motion, hero moments, expressive color.
-- **Surfaces are solid**, as in the cockpit, whose nav dock is the one translucent piece (DL-108): no glass, blur, or frosted panels on cards, sheets, dialogs, or bars (see [surfaces.md](./surfaces.md)).
+- **Surfaces are solid**, as in the cockpit, whose nav dock is the one translucent piece (DL-108): no glass, blur, or frosted panels on cards, sheets, dialogs, or bars. The browser site's `SiteHeader` stays fully transparent over the hero, with no fill and no blur: transparent chrome draws no surface, so it is not glass (see [surfaces.md](./surfaces.md)).
 - **Spring motion is the default easing**, never hardcoded cubic-bezier or duration values.
 - **Typography**: Plus Jakarta Sans across the installed PWA, shared with the cockpit (DL-096); Inter on the public browser site. Editorial serif (Fraunces/Lora/Newsreader) only on the public browser site, never in the installed PWA.
 - **Succession-aware**: pioneer gardens get simple hero moments, climax gardens get full expression.
@@ -108,7 +108,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 - Never a raw Tailwind size or a retired Material name. The app's own views still carry the shared scale (`text-label-md` and its siblings) until they move.
 
 **Hero moment amplification** (garden creation, first work submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone):
-- Apply full Warm Earth amplification: expressive shape × full chroma × Expressive motion scheme × display typography × dramatic material.
+- Apply full Warm Earth amplification: expressive shape × full chroma × Expressive motion scheme × display typography, on solid surfaces (no material step, DL-108).
 - Spec and list: `.claude/skills/design/language.md § Hero Moments`.
 - **Never appear in admin** (see `prompt-contract.md § Hero Moments Live in the Client, Not the Cockpit`).
 
