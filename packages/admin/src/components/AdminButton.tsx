@@ -41,12 +41,13 @@ const adminButtonVariants = tv({
       // view feels distinct (Hub blue / Garden green / Community orange /
       // Actions red / Home stone). Hover keeps geometry stable and uses
       // elevation/state-layer feedback instead of translating the control.
-      // The state layer is the default neutral ink (Rule 18), which deepens a
-      // light fill and lifts a dark one, so a pressed label never loses the
-      // contrast it has at rest.
+      // The state layer is the default neutral ink (Rule 18), painted beneath
+      // the label: it deepens a light fill and lifts a dark one, so a pressed
+      // label never loses the contrast it has at rest.
       filled: [
         "bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
+        "m3-state-layer-beneath",
       ],
       // Tonal — medium emphasis
       tonal: [
@@ -262,11 +263,13 @@ const adminIconButtonVariants = tv({
         "[--state-layer-color:var(--m3-on-secondary-container)]",
         "disabled:bg-[rgb(var(--m3-on-surface)/0.12)]",
       ],
-      // Filled — highest emphasis, workspace tone fill, the neutral ink state layer.
+      // Filled — highest emphasis, workspace tone fill, the neutral ink state
+      // layer painted beneath the glyph.
       filled: [
         "bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
         "disabled:bg-[rgb(var(--m3-on-surface)/0.12)]",
+        "m3-state-layer-beneath",
       ],
       // Danger — destructive glyph; feedback stays the error-tinted ink layer.
       danger: [

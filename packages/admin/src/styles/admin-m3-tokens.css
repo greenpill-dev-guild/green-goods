@@ -283,6 +283,19 @@
     opacity: 0;
   }
 
+  /* A filled control paints its layer beneath its content: the layer deepens
+   * or lifts the fill alone, so the label keeps its color and its contrast at
+   * rest. Painted over the label as well, the layer pulls fill and label toward
+   * one ink, and Community's dark pair (4.58:1 at rest) falls to 3.66:1 when
+   * pressed. */
+  .m3-state-layer-beneath {
+    isolation: isolate;
+  }
+
+  .m3-state-layer-beneath::after {
+    z-index: -1;
+  }
+
   /* M3 expanded touch target: a ≥44px effective hit area around the 32px-visual
    * compact controls (AdminButton sm, AdminFilterChip). The block margin
    * reserves the pseudo-element's 6px reach above and below, so wrapped rows
