@@ -452,7 +452,10 @@
   story, since no mock role holds a jar. browser-proof for the wallet's claim path is pending:
   signing is untouched.
 - Guides: DL-113 and its lines in both surface guides, root `DESIGN.md` and the cockpit prompt
-  contract are the standards-only #1233, which merges first; no token change.
+  contract are the standards-only #1233, which merged first; no token change.
+- With step 14: #1243 merged first and retired `AdminSettingRow`, so the jar page's limit and
+  cooldown rows are step 14's `FactRow`s, carried in unchanged when develop was merged
+  (`31e915c77`); `theme.css` keeps the item row's amount and page rules beside the fact row block.
 - Open calls: the page opens in place rather than in a dialog (one tap more where a card showed
   its acts); the wallet keeps leading with what can be claimed now; an opened row does not take
   `selected` (several pages can be open); Portuguese "por reivindicação" ends in an ellipsis on
