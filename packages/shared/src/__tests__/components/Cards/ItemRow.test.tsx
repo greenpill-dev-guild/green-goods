@@ -88,6 +88,18 @@ describe("ItemRow", () => {
     expect(screen.getByRole("button")).not.toHaveAttribute("aria-current");
   });
 
+  it("tells a screen reader which row the reader chose, as pressed rather than open", () => {
+    const { rerender } = renderRow({ onOpen: vi.fn(), pressed: true });
+    expect(screen.getByRole("button", { pressed: true })).not.toHaveAttribute("aria-current");
+
+    rerender(
+      <IntlProvider locale="en">
+        <ItemRow {...row} onOpen={vi.fn()} pressed={false} />
+      </IntlProvider>
+    );
+    expect(screen.getByRole("button", { pressed: false })).toBeInTheDocument();
+  });
+
   it("reads the amount it carries with what opens it, and gives the right slot to an action", () => {
     const amount = { value: "9.98 DAI", caption: "Jar balance" };
     const { rerender } = renderRow({ onOpen: vi.fn(), amount });
@@ -120,6 +132,19 @@ describe("ItemRow", () => {
     );
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(screen.getByRole("button")).toHaveAccessibleName("Claim");
+  });
+
+  it("keeps a person's avatar out of the row's name, a photo that fails to load included", () => {
+    const { container } = renderRow({
+      lead: { kind: "avatar", src: "https://images.example/missing.webp" },
+      title: "maria.eth",
+      status: { label: "Gardener", tone: "neutral" },
+      details: ["2 roles"],
+      onOpen: vi.fn(),
+    });
+
+    fireEvent.error(container.querySelector("img") as HTMLImageElement);
+    expect(screen.getByRole("button")).toHaveAccessibleName(/^maria\.eth\s*Gardener\s*2 roles$/);
   });
 
   it("holds at most two details on one line, in the type's order, an age as a moment", () => {

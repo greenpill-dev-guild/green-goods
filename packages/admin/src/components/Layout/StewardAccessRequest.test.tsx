@@ -84,6 +84,14 @@ describe("StewardAccessRequest", () => {
     expect(c.send).not.toHaveBeenCalled();
     expect(c.check).not.toHaveBeenCalled();
   });
+
+  it("announces a garden list that failed to load and reloads it on Retry", () => {
+    const c = controller({ candidates: [], catalogError: true });
+    renderRequest(c);
+    expect(screen.getByRole("alert")).toHaveTextContent("Gardens could not be loaded");
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(c.reloadGardens).toHaveBeenCalledTimes(1);
+  });
   it("reviews the primary account and optional note before sending", () => {
     const c = controller({ selectedGarden: garden, step: "review" });
     renderRequest(c);

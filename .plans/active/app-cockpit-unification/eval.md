@@ -903,3 +903,58 @@ frames show live gardens:
   production indexer, Home's garden list and Submit Work at 390px in English (light and dark),
   Spanish and Portuguese. The garden's Insights tab timed out under load at a 30 to 32 load average,
   so the app's assessments pair is the Storybook story alone.
+
+## Step 17 build: people rows
+
+Run on 2026-10-24 against `develop` `a3645441c`, with step 17 on `feature/app-cockpit-people-rows`
+at `f6d3d8165`. The before frames came from the same worktree before the change, the after frames
+from that commit, through the rig the earlier steps used. The app's frames show live gardens and
+people and went to the maintainer as a private artifact, outside the repository.
+
+**Pairs.** 104 pairs, headless Chromium (Playwright) at device scale 2:
+
+- Cockpit, **Storybook**: the member directory with a fuller roster (a Green Goods name, ENS
+  names, bare addresses, two photos and people who hold several roles) at 390, 768 and 1280px in
+  light and dark and at 390px in Spanish and Portuguese; a steward with several roles and the
+  read-only directory; a garden's supporters and the protocol's funders, loading included, and the
+  funder row; the Add Members queue empty and filled; the steward access chooser loading, failed and
+  with no gardens; and, with their markup unchanged, `PersonName`, `ClaimantName` and the group
+  inspector's people. The app's Gardeners stories are in the same Storybook. 84 pairs.
+- App, **mock-auth localhost**: `?mockAuth=deployer&presentation=pwa` on Arbitrum One with the
+  production indexer: a garden's Gardeners tab and the wallet's send recipients at 320, 360, 390
+  and 768px in English, light, and at 390 and 768px in dark, and at 390px in Spanish and Portuguese
+  in both themes: 20 pairs.
+
+**Fit after** (each row's height from its box; a detail counts as dropped when it sits below its
+line's clip; a title or chip counts as cut when its text overflows its box):
+
+| List | Where | Rows | Height | Dropped whole | Ellipsis | Cut or wrapped |
+|---|---|---|---|---|---|---|
+| The person row, every kind of name and the longest chips | Storybook, 288, 328 and 358px columns in English, Spanish and Portuguese | 45 | 88px | none | none | 0 |
+| The person row at both densities | Storybook, 358 and 366px | 10 | 88px | none | none | 0 |
+| Community › Members, the roster | Storybook, 390px in each language, and 1280px | 6 each | 88px | none | none | 0 |
+| A garden's supporters, the protocol's funders | Storybook, 390px | 3 each | 88px | none | none | 0 |
+| A garden's Gardeners tab, live | mock-auth localhost, 320, 360 and 390px in each language | 4 | 88px | none | none | 0 |
+| Send recipients, live | mock-auth localhost, 320, 360 and 390px in each language | 79 | 88px | none | none | 0 |
+
+No title or role chip was cut on any row measured, Spanish "Miembro de la comunidad" included. The
+send rows measured sit in their garden's section, which names the garden, so they carry no detail;
+a search that mixes gardens gives each row its garden.
+
+**Before.** The app's member cards put a Steward badge in the corner and a "Gardener since" line
+that wrapped onto two lines at 320px, and its send rows cut most names to a few letters beside up to
+two role chips. The cockpit's directory listed every role as a chip and read names from ENS alone,
+so the roster's owner, who has only a Green Goods name, showed as a short address; the funder rows
+did the same beside an initial in a circle and a yield bar.
+
+**Found on the way.**
+
+- A count for the app's members would have to come from the garden's work list, which is paged, so
+  it would undercount active gardeners; the member rows keep since when a person has been a gardener,
+  the indexer's one date per gardener, set at their first gardener role in any garden (a call in the
+  [UI handoff](handoffs/claude-ui.md#step-17-people-rows-prd-1284)).
+- `GardenCommunityCard` is mounted nowhere and draws its pools state only with governance on
+  (PRD-917), so its state block has a unit test and no rendered pair.
+- The app capture's first run clicked a role named "tab" for the garden's sections; the garden page
+  draws them as buttons (`data-testid="tab-gardeners"`), and the wallet's send picker sits behind
+  its Send mode. Rig behaviour, not the product's.

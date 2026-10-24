@@ -1,9 +1,11 @@
+import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { useFunderLeaderboard } from "@green-goods/shared/hooks/vault/useFunderLeaderboard";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
 import { FunderRow } from "./FunderRow";
 
 const DEFAULT_VISIBLE = 3;
@@ -15,18 +17,14 @@ export function ImpactFunders() {
 
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
+      <AdminCard className="sm:p-5">
         <div className="h-5 w-40 rounded skeleton-shimmer" />
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 flex flex-col gap-(--gg-list-gap)">
           {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-14 rounded-lg skeleton-shimmer"
-              style={{ animationDelay: `${i * 0.08}s` }}
-            />
+            <ItemRowSkeleton key={i} lead="avatar" />
           ))}
         </div>
-      </section>
+      </AdminCard>
     );
   }
 
@@ -36,10 +34,9 @@ export function ImpactFunders() {
 
   const visibleFunders = expanded ? funders : funders.slice(0, DEFAULT_VISIBLE);
   const hasMore = funders.length > DEFAULT_VISIBLE;
-  const maxYield = funders[0]?.totalYieldGenerated ?? 0n;
 
   return (
-    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
+    <AdminCard className="sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-heading type-title-md font-semibold text-text-strong">
@@ -59,11 +56,13 @@ export function ImpactFunders() {
         )}
       </div>
 
-      <div className="mt-3 space-y-2">
+      <ul className="mt-3 flex flex-col gap-(--gg-list-gap)">
         {visibleFunders.map((funder) => (
-          <FunderRow key={funder.address} funder={funder} maxYield={maxYield} />
+          <li key={funder.address}>
+            <FunderRow funder={funder} />
+          </li>
         ))}
-      </div>
+      </ul>
 
       {hasMore && (
         <AdminButton
@@ -82,6 +81,6 @@ export function ImpactFunders() {
       <p className="mt-3 type-meta text-text-sub">
         {formatMessage({ id: "app.funders.contextExplainer" })}
       </p>
-    </section>
+    </AdminCard>
   );
 }

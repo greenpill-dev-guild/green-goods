@@ -523,6 +523,69 @@ Human corrections: 0 observed; attention: unknown.
   selected domain with no actions no longer holds the old card's height. The commitment composer's multi-select action
   rail and the Actions workspace's `WorkbenchCard` list are outside this step.
 
+## Step 17: people rows (PRD-1284)
+
+- `feature/app-cockpit-people-rows`, cut from `develop` `a3645441c` and brought up to `3c4fd4b62` (#1227):
+  - **The person row.** Shared's new `PersonRow` on the leaf export
+    `@green-goods/shared/components/Cards/PersonRow/PersonRow`: the item row led by the person's
+    56px round avatar (their profile photo or ENS avatar, else the surface's own picture or a person
+    glyph, and an empty circle while the photo is looked up), their name from the shared address
+    display, their highest role as the row's one pill (a neutral chip, in `GARDEN_ROLE_ORDER`), and
+    one count. Additive changes underneath: an `avatar` lead and `ItemRowSkeleton({ lead: "avatar" })`
+    on `ItemRow`, the `.gg-item-row-avatar` rule in Shared `theme.css`, and a `children` render-prop
+    on `AddressDisplay` that hands its resolved name to a row title or a chip.
+  - **Photos in batches.** A row's profile photo read goes out with its list's other rows, 50
+    addresses to a request on the agent's batch route and its own 600-per-10-minute budget
+    (`useProfileAvatar(…, { list: true })`, `profileAvatarTransport.getListed`), so a long roster
+    never spends the 120-read budget the photo editor needs. The batch route has served production
+    since 14 September; this is its first client. A decorative avatar, a failed photo included,
+    stays out of the row's accessible name.
+  - **On the row now:** the installed app's garden members (`GardenGardeners`: since when a person has
+    been a gardener as the one fact, the app's default avatar for someone with no photo, and the
+    member dialog's title from the same display) and send recipients (`MemberRow`: the garden that tells two people apart;
+    the chosen recipient wears the open row's border and still reads as pressed, through the item
+    row's additive `pressed` prop, since choosing is not opening a record), and
+    the cockpit's member directory (`CommunityMembersTab`: Manage Roles as an icon button in the right
+    slot, how many roles a person holds when it is more than one) and funder lists (`FunderRow` in
+    `GardenSupporters` and `ImpactFunders`, which take the shared card and avatar skeletons). Each list
+    keeps 12px between rows.
+  - **Names.** The cockpit's `PersonName` takes its name from `AddressDisplay`, so `ClaimantName`,
+    the claim asks, Review Promises and the seed confirmer chips read people as everywhere else, with
+    no change to their markup. The directory, the funder rows and the send rows had read ENS alone;
+    a Green Goods name now shows there too. The Add Members queue names people the same way.
+  - **Step 11's leftover states** on the state block: the Add Members queue's empty well
+    (`StagedMemberList`), the steward access chooser's loading, failed and no-gardens states
+    (`StewardAccessRequest`; the failure is announced and keeps Retry, and a search that finds nothing
+    is still read out), and the community card's not-ready pools (`GardenCommunityCard`, which nothing
+    mounts and which shows only with governance on, so it has no rendered pair). Five two-sentence
+    strings split into a title and a line.
+- Proof: focused tests for the person row (name, highest role, avatar states), the address display's
+  render-prop, the app's member list and send flow, the Add Members queue and the chooser's failed
+  read; Shared, app and cockpit typechecks; the play functions of the person row, item row, Gardeners
+  and steward access stories in Storybook. The look is the pairs: **Storybook** for the cockpit and
+  **mock-auth localhost** for the app, no authenticated class
+  ([eval.md](../eval.md#step-17-build-people-rows)).
+- Guides: DL-112, both surface guides, Rule 8, the interaction patterns' DL-049 paragraph, the root
+  quick reference and both prompt contracts are the standards-only
+  `feature/app-cockpit-people-rows-guides`. No token changes, so no `token_version` bump.
+- Calls for the maintainer's review of the pairs:
+  - The role chip sits under the name as the row's one pill. The census mock drew it at the row's
+    right end, where the row's one action goes; a directory row keeps Manage Roles there.
+  - The app's member list shows since when a person has been a gardener, not a count: the indexer
+    serves no per-member work count and the garden's work list is paged, so a count from it would be
+    wrong. Its one date per gardener is set at their first gardener role in any garden, so the row
+    reads "Gardener since", as `develop` did, never "Joined" (Codex on #1241). Send recipients keep the
+    garden that tells two people apart.
+  - Not on the row: the group inspector's people list (`GroupPeopleList`), whose rows are promise
+    copies with a state and up to five facts (PRD-1022 screen 14), offered to step 15; the commitment
+    team rosters (the app's `CommitmentTeam`, the cockpit's `CommitmentRoster`), which carry each
+    person's assigned rows and credits on the promise's own page; Manage Members, which keeps a chip
+    and a remove per role (DL-049); the Add Members queue, whose rows show the role each person is
+    about to be given (only its empty well and its names moved); and the join request queues on both
+    surfaces, which are decision rows.
+  - A bare address now reads in the address display's short form (`0x12...abc`) in the app's member
+    rows, where it read `0x1234...abcd`.
+
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker
