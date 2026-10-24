@@ -205,7 +205,8 @@ button.garden-stat-row:hover {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
     justify-content: stretch;
     align-items: stretch;
-    gap: 0.875rem;
+    /* One list gap on both surfaces (F11). */
+    gap: var(--gg-list-gap);
     list-style: none;
     margin: 0;
     padding: 0;

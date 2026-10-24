@@ -72,12 +72,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
           id: "app.workDashboard.badge.yourWorkReviewed",
           defaultMessage: "Your work was reviewed",
         }),
-    supportingText: work.feedback?.trim()
-      ? intl.formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" })
-      : intl.formatMessage({
-          id: "app.workCard.reviewRecorded",
-          defaultMessage: "Review added to the garden record",
-        }),
+    // The row itself gives feedback in the age's place when there is some (F7).
   });
 
   return (

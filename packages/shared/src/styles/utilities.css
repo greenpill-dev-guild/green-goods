@@ -261,9 +261,11 @@
     content-visibility: auto;
   }
 
+  /* Work and pending rows are one height (the item row's, F7), so an off-screen
+     row holds exactly the space it will take. */
   .cv-work-card {
     content-visibility: auto;
-    contain-intrinsic-size: auto 100px;
+    contain-intrinsic-size: auto var(--gg-item-row-height);
   }
 
   .cv-garden-card {
@@ -273,7 +275,7 @@
 
   .cv-draft-card {
     content-visibility: auto;
-    contain-intrinsic-size: auto 80px;
+    contain-intrinsic-size: auto var(--gg-item-row-height);
   }
 
   .cv-notification {

@@ -42,8 +42,9 @@ describe("PendingCard", () => {
     );
 
     expect(screen.getByText("Mulching")).toBeInTheDocument();
-    expect(screen.getByText("2 hours ago")).toBeInTheDocument();
+    // Where it stands, then when, on one detail line; the age in its short form.
     expect(screen.getByText("Step 2 of 4 · 3 photos")).toBeInTheDocument();
+    expect(screen.getByText("2 hr. ago")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Draft");
 
     fireEvent.click(screen.getByLabelText("Delete Draft"));
@@ -104,6 +105,23 @@ describe("PendingCard", () => {
     expect(screen.getByText("Step 1 of 4")).toBeInTheDocument();
   });
 
+  it("drops a status line that only repeats the pill", () => {
+    renderWithIntl(
+      <PendingCard
+        kind="review"
+        pill="In review"
+        title="Mulch Delivery Log"
+        meta="You submitted · Oct 2"
+        status="Waiting for a review"
+        discardLabel="Discard Mulch Delivery Log"
+      />
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("In review");
+    expect(screen.getByText("You submitted · Oct 2")).toBeInTheDocument();
+    expect(screen.queryByText("Waiting for a review")).not.toBeInTheDocument();
+  });
+
   it("offers Discard only when the list hands it one", () => {
     const base = {
       kind: "checking" as const,
@@ -113,10 +131,12 @@ describe("PendingCard", () => {
       status: "Checking whether it was sent",
       discardLabel: "Discard Path Edging",
     };
-    renderWithIntl(<PendingCard {...base} locked />);
+    renderWithIntl(<PendingCard {...base} locked onOpen={vi.fn()} />);
     expect(screen.queryByLabelText("Discard Path Edging")).toBeNull();
-    // The pill is drawn over the row's button, so a tap on it reaches the row.
-    expect(screen.getByRole("status")).toHaveClass("pointer-events-none");
+    // The pill sits inside the row's open target, so a tap on it opens the row.
+    expect(screen.getByRole("button", { name: /Path Edging/ })).toContainElement(
+      screen.getByRole("status")
+    );
     cleanup();
 
     const onDiscard = vi.fn();

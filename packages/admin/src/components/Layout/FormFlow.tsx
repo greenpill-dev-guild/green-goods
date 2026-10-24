@@ -71,10 +71,9 @@ export function FormFlow({
             as="section"
             elevation="solid-raised"
             padding="none"
-            radius="lg"
             data-region={`form-section-${section.id}`}
             aria-labelledby={`form-section-${section.id}-title`}
-            className="overflow-hidden border border-stroke-soft-200"
+            className="overflow-hidden"
           >
             <div className="flex items-start gap-3 border-b border-stroke-soft-200 px-4 py-3 sm:px-5 sm:py-4">
               <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-bg-weak px-2 type-meta font-semibold text-text-sub">
@@ -148,9 +147,8 @@ export function FormFlow({
         as="footer"
         elevation="solid-raised"
         padding="compact"
-        radius="lg"
         data-region="form-flow-actions"
-        className="mt-4 border border-stroke-soft-200"
+        className="mt-4"
       >
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">{actions}</div>
       </Surface>

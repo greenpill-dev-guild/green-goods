@@ -216,6 +216,17 @@ DL-101, which makes a selected chip the tone's sixth use, are the standards-only
 class and gave Storybook and the portals Community's amber ramp; its contrast guard now covers
 the selected chip too.
 
+**Step 7 (23 October).** `feature/app-cockpit-cards-rows` puts every card on the installed app's
+card and every work item on Shared's new item row: `.gg-card` in Shared `theme.css` under the five
+card primitives (their exports stay for step 19), `ItemRow` with its skeleton and stories, the card
+title role (15px at 500 in the app, 13px at 600 in the cockpit) and `--gg-list-gap` (12px). The
+work row, the app's pending and draft rows and the cockpit's phone queue render it. Every measured
+row is 88px, and no detail line wraps or is cut at 320, 360 or 390px in English, Spanish or
+Portuguese ([eval.md](eval.md#step-7-build-cards-rows-and-list-gap)); the pairs went to the
+maintainer as a private artifact. DL-102 and the guide wording are the standards-only
+`feature/app-cockpit-cards-rows-guides`. The
+[UI handoff](handoffs/claude-ui.md#step-7-cards-rows-and-list-gap-prd-1273) lists six calls the
+pairs raise.
 **Step 9 (23 October).** Below 640px the cockpit's dialogs and its side sheet take the installed
 app's bottom sheet: the shared sheet material and grip and the shared `SheetHeader` at their own
 22px title, built from Shared's pieces (`SheetGrip`, one `[data-sheet-surface]` rule, a target line

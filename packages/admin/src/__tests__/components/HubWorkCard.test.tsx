@@ -329,4 +329,9 @@ describe("HubWorkCard", () => {
     const titleEl = screen.getByText("Planted 50 native saplings");
     expect(titleEl).toHaveAttribute("title", "Planted 50 native saplings");
   });
+
+  it("draws the shared card surface", () => {
+    renderCard({ onClick: vi.fn() });
+    expect(screen.getByRole("button")).toHaveClass("gg-card");
+  });
 });

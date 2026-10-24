@@ -14,6 +14,15 @@ export {
   cardVariants,
   surfaceCardVariants,
 } from "./CardBase";
+// ItemRow: one item in a list on both surfaces (F7)
+export {
+  ItemRow,
+  type ItemRowDetail,
+  type ItemRowLead,
+  type ItemRowProps,
+  ItemRowSkeleton,
+  type ItemRowTone,
+} from "./ItemRow";
 // GardenCard
 export {
   GardenCard,
@@ -34,6 +43,4 @@ export {
   type WorkCardData,
   type WorkCardLabels,
   type WorkCardProps,
-  type WorkCardVariantProps,
-  workCardVariants,
 } from "./WorkCard";

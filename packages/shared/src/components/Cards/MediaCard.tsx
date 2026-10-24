@@ -118,7 +118,7 @@ export function MediaCard({
       </div>
 
       <div className={slots.body()}>
-        <h3 className="truncate type-title-sm font-semibold text-text-strong" title={title}>
+        <h3 className="truncate type-card-title text-text-strong" title={title}>
           {title}
         </h3>
         {status ? <div className="flex min-w-0">{status}</div> : null}

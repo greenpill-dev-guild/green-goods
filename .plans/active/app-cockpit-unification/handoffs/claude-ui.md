@@ -12,6 +12,7 @@
   `feature/app-cockpit-control-outline` (#1195) with its guides
   `feature/app-cockpit-control-outline-guides` (#1196), both first stacked on step 2's. Step 4:
   `feature/app-cockpit-count-badge` with its guides `feature/app-cockpit-count-badge-guides`.
+  Step 7: `feature/app-cockpit-cards-rows` with its guides `feature/app-cockpit-cards-rows-guides`.
 - Status: in progress. Steps 1 to 3 merged on 23 October; step 4 was approved on its pair the same
   day; every later step starts on its own approved pair. Still pending: labeled authenticated Brave proof of an installed app's first
   launch with no network (step 1) and of the installed app's status bar, with the iOS check of
@@ -265,6 +266,52 @@
 - Not in the step: the shared `Chip` the cockpit renders (`ConfidenceSelector`, `AssetSelector`)
   still selects in the app's green, not the workspace tone.
 
+## Step 7: cards, rows and list gap (PRD-1273)
+
+- `feature/app-cockpit-cards-rows`, cut from `develop` and brought up to `ce0d71953` (#1206):
+  - **One card surface.** `.gg-card` in Shared `theme.css`: the 24px corner (`--gg-card-radius`), a
+    1px edge, the card fill, and a faint shadow in light only (`--gg-card-shadow`). Only the cockpit
+    declares `--gg-card-surface`, `--gg-card-edge` and `--gg-card-fill` (admin `index.css`, mirrored
+    in Storybook's `surfaces.css` and pinned by `AdminDensityScale.guard`), so the app's scopes
+    resolve their own white and stroke, and both surfaces measure the same card and edge in dark.
+    `data-edge` draws the 2px status edge. The five card primitives (client `Card`, `AdminCard`,
+    Shared `Surface`, `CardBase`, Shared `Card`) take the surface and keep their exports for step 19.
+  - **The item row.** `ItemRow` and `ItemRowSkeleton` on the new leaf export
+    `@green-goods/shared/components/Cards/ItemRow/ItemRow` (the `cards` barrel does not resolve in
+    the client and admin Vitest aliases): 88px, an 88px photo or a 56px icon tile, a one-line title
+    in the new card title role (`type-card-title`: 15px at 500 in the app, 13px at 600 in the
+    cockpit), one status pill under it, at most two details on one 11px line that drop whole when
+    they do not fit (a first detail too long on its own ends in an ellipsis), the row's one action in
+    its right slot, and a 16px corner. Stories: `Shared/Cards/ItemRow`; the fit helper
+    `packages/shared/.storybook/itemRowFit.ts` checks 88px rows and lines that never wrap or cut.
+  - **On the row now:** Shared `WorkCard` (who · age, ages always a short number, the photo count on
+    the photo; in the app, feedback in the age's place, never a second pill), the app's pending and
+    draft rows (`PendingCard`, `DraftCard`), and the cockpit's
+    queue below 600px (`HubWorkQueue` renders the work row, with `hubWorkTitle()` shared with
+    `HubWorkCard`, and loads with five row skeletons).
+  - **List gap.** `--gg-list-gap` (12px) on the garden's Work tab, Your Work's lists and the cockpit's
+    queue grid.
+- Proof: focused tests for the row's API, the work row's short ages in three languages, the app's
+  work and pending rows, the cockpit's phone queue and the card surface, and the Storybook story
+  tests of the row, the work row and the pending row, whose fit checks run in English, Spanish and
+  Portuguese at both surfaces' phone widths. The look is the pairs: **mock-auth localhost** for the
+  app and **Storybook** for the cockpit, no authenticated class
+  ([eval.md](../eval.md#step-7-build-cards-rows-and-list-gap)).
+- Guides: DL-102, both surface guides, Rules 8 and 18, `language.md` and the review checklist are the
+  standards-only `feature/app-cockpit-cards-rows-guides` (#1218), with token version 2.29.0,
+  provisional: the merge takes the next free number.
+- Calls the pairs raise, each with a recommendation in the pairs artifact: the pending rows' long
+  "when you're connected" reasons drop the saved time on three or four of six kinds at 390px and end
+  in an ellipsis in Portuguese; feedback takes the age's place on every work row, and at 320px a
+  completed row drops it; the proof and promise markers become a mark on the photo (DL-061 marked
+  proof in words); a completed row without feedback shows its age, not "Review added to the garden
+  record"; a nested card in the cockpit takes the same 24px card; and the card title keeps each
+  surface's title weight.
+- Open call from Codex's review of #1224: on a phone the Hub queue's work row shows the work's own
+  title, so a search that matches only its action title lists rows with no matching text, where
+  the desktop card names the action. Naming the action on the row needs a third detail or a new
+  title rule, so it waits for the maintainer.
+
 ## Step 9: phone sheets (PRD-1275)
 
 - F5 was locked on 18 October, so the pairs ([eval.md](../eval.md#step-9-proof-phone-sheets)) are
@@ -349,6 +396,13 @@
   the rendered pairs.
   Step 21's bar pill is styling, `not_applicable` for RED and GREEN: its story plays fail when the
   12px padding or the pill's fill comes back, and its look is `proof_limit` on the pairs.
+- Step 7: tests written beside the code, then replayed against `develop`'s components (the branch's
+  tests over `ce0d71953`'s source, swapped into the worktree): 15 of 52 failed across the 7 files,
+  each on step 7's behaviour (short ages, one pill, the row's details and Discard, the phone queue's
+  rows and skeletons, the card surface, the cockpit's new tokens), 3 of them only because they read
+  the title from the row's title slot; the ItemRow file failed to import. All pass on the branch. The
+  feedback test, added after the replay, fails with the row's feedback fallback removed and passes
+  restored. The look is `proof_limit` on the pairs.
 
 ## Validation Receipt
 

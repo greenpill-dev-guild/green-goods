@@ -50,6 +50,7 @@ const TYPE_ROLE_CLASSES = [
   "type-meta",
   "type-meta-sm",
   "type-field",
+  "type-card-title",
 ];
 
 const twMerge = extendTailwindMerge({
