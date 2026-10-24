@@ -32,7 +32,8 @@ describe("AddressDisplay protocol identity", () => {
       wrapper: createTestWrapper(),
     });
     expect(screen.getByText("river")).toBeInTheDocument();
-    expect(hooks.protocol).toHaveBeenCalledWith(first);
+    // A display on its own reads its name on its own; a list's rows read theirs in a batch.
+    expect(hooks.protocol).toHaveBeenCalledWith(first, { list: false });
 
     rerender(<AddressDisplay address={second} interactive={false} />);
     expect(screen.getByText("forest")).toBeInTheDocument();

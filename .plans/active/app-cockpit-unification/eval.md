@@ -1072,3 +1072,39 @@ from `solid-raised` to `raised`, which draws the same card.
 - The Foundation token story drew `CardBase` without padding, its header beside its controls. It now
   draws its panels on `.gg-card` with padding; the docs page's capture of it
   (`shared-tokens-foundation-controls.webp`) still shows the old layout in the previous typeface.
+
+## Step 12 build: the garden chip at the app's density
+
+Run on 2026-10-24 against `develop` `796e9e1bb`, with step 12 at `b47e23936` on
+`feature/app-cockpit-app-garden-chip`. Two capture-only Storybooks, a detached `develop` worktree
+for the before frames and the branch for the after frames, rendered the same untracked capture
+story: the chip under the installed app's scope beside the cockpit's, in English, Spanish and
+Portuguese, with a long garden name in a 288px column. The pairs went to the maintainer as a
+private artifact.
+
+**Pairs.** 6 pairs, headless Chromium (Playwright) at device scale 2, all **Storybook**: the whole
+story at 1280 and 390px in light and dark, and the app column with keyboard focus on its first
+switcher in light and dark.
+
+**Measured**, every chip in each frame (12 per scope):
+
+| Scope | Height | Avatar | Label | Edge | Focus ring |
+|---|---|---|---|---|---|
+| App, before | 36px | 22px | 16px | the hairline, `stroke-sub-300` | `green-800`, in dark too |
+| App, after | 44px | 28px | 16px | the control outline, `neutral-500` (`neutral-400` in dark) | the app's focus role: its green, mint in dark |
+| Cockpit, before and after | 36px | 22px | 14px | the hairline | its token unset, so the fallback as before |
+
+The long name ends in an ellipsis inside its column in every frame, and no chip runs past its
+column.
+
+**The cockpit is unchanged.** With the app column hidden, so both states draw the cockpit column at
+the same page offset, its before and after crops are pixel-identical at 1280 and 390px in light and
+dark: 0 differing pixels at any threshold. Taken in place under the taller app column, 50 to 213
+pixels differ, all on the capsules' anti-aliased edges, from the column's new offset on the page.
+
+**Story test.** `AppDensity`'s play checks both densities (height, avatar, label size), the long
+name and the app's focus color. The chip's seven stories passed in the Storybook browser runner,
+run locally with a temporary `server.fs.allow`, reverted before the commit.
+
+**Not in the step.** Nothing mounts the chip in the app, and its menu is unchanged: it opens only
+from a switcher, which the app does not mount yet.
