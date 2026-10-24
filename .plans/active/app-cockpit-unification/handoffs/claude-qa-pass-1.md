@@ -16,9 +16,9 @@
 - Acceptance pass 1 checked matrix A1 to A23 on `develop` at `8476dbd80`: steps 1 to 19 and 21 with
   step 12's look, plus step 20's phases 3 and 4. Each criterion's result and evidence is in
   [the evaluation](../eval.md#acceptance-pass-1).
-- 12 criteria pass as rendered, A1 shows no change, and A4 and A23 carry their earlier proof. A14
-  failed and is fixed on this branch. A2 and A21 fail, and A15, A17, A18, A19 and A22 pass in part;
-  the private findings page names an owner for each finding.
+- 11 criteria pass as rendered, and A4 and A23 carry their earlier proof. A14 failed and is fixed
+  on this branch. A2 and A21 fail; A12, A15, A17, A18, A19 and A22 pass in part; and A1 is pending
+  on the app and the cockpit. The private findings page names an owner for each finding.
 - This branch fixes the cockpit's state block size (A14) and the off-screen placeholder for Home's
   garden cards (A21). `AdminDensityScale.guard` now fails if a cockpit stylesheet restyles the
   state block again.
@@ -52,4 +52,6 @@
   and 2 (#1255) and the call-site pass merge.
 - Authenticated-class surfaces stay pending: wallet and passkey signing, the queue and offline
   uploads, and installed-PWA behavior.
-- The cockpit's Cookies route never rendered under mock-auth, so it is unverified.
+- A1 needs the app's and the cockpit's flows compared with the tree before step 1.
+- The cockpit's Cookies route never rendered under mock-auth, and the Create Action instructions
+  were not walked, so both are unverified.

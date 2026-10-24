@@ -74,18 +74,18 @@ lines, ages, state blocks, the bars' pills, translucent surfaces and sideways sc
 
 | ID | Pass 1 | Evidence and findings |
 |---|---|---|
-| A1 | no change found | Routes, element order and flows matched on every walked screen. A full flow comparison with the tree before step 1 ran only for the public website (A13). |
+| A1 | pending on the app and the cockpit | Pass 1 compared against the tree before step 1 only on the public website, whose routes and element order match (A13). It walked the app's and the cockpit's routes without that baseline, so their flow comparison is pending. |
 | A2 | fails in es/pt at 320 to 360px | One family on both surfaces. The cockpit's vault row cuts its status pill in Spanish and Portuguese ("Depósitos desha…"). Titles truncate by design. The static loading screen is pending. |
 | A3 | passes | Canvas 250 248 245 in light and 17 12 8 in dark on both surfaces, under white cards and the lifted dark card (DL-097). |
 | A4 | carried | Not re-measured; DL-098's proof stands. |
 | A5 | passes by pointer | One chip shape and selected fill. The Hub's Pending and Approved stay inline, and the app's filter keeps its launcher and count. |
-| A6 | passes | From 640px no cockpit cell is wider than 180px and every row starts at the left. No label clips, and a cell grows past its share only when its label needs it. Hub, Community and Actions scroll at 320 and 360px, as DL-100 records. |
+| A6 | passes | From 640px no cockpit cell on a walked route is wider than 180px, and every row starts at the left; the Create Action instructions, home of the one wider cell A6 allows (Spanish, 191px), were not walked. No label clips, and a cell grows past its share only when its label needs it. Hub, Community and Actions scroll at 320 and 360px, as DL-100 records. |
 | A7 | passes | Every badge is 16px tall and at least 16px wide, with 11px numerals and at least 4.5:1. |
 | A8 | passes | 24px cards with a 1px edge on both surfaces, 16px rows, and 12px between items of one kind. |
 | A9 | passes | The mosaic renders none to four photos with its domain and count, wide and stacked; phones keep the row. |
 | A10 | passes | Card against canvas: 1.26:1 in dark, and 1.06:1 plus the hairline in light, on both surfaces. Chips and wells read on cards. |
 | A11 | passes as rendered | The app's bar is solid under the green pill and the cockpit's dock is translucent under the tone pill; sheets render the shared header. Focus return and Back rest on CI plays; installed-PWA behavior is pending. |
-| A12 | passes, one note | Density, corners, filters, tone and chrome stay each surface's own. The confirm and reason dialogs' 40px buttons differ from the cockpit's 32px default until phase 3's call-site pass. |
+| A12 | partial | Corners, filters, tone and chrome stay each surface's own. Density does not yet: the confirm and reason dialogs' 40px buttons differ from the cockpit's 32px default until phase 3's call-site pass. |
 | A13 | passes | Public routes match the tree before step 1 in type, buttons, color and layout. Only copy merged meanwhile differs (garden casing, "vault"). |
 | A14 | failed on `develop`, fixed | Four rules in the cockpit's `index.css`, older than the block, drew every cockpit state at a 72px tile, a 22px title and a 16px line. They are removed in pass 1's pull request: 56px, 16px and 14px, as DL-106 sets. Storybook never loads that stylesheet, so `AdminDensityScale.guard` now fails if any cockpit stylesheet targets the block again. |
 | A15 | partial | No Material class remains in the cockpit's views. Material type tokens still set sizes in CSS, their names remain in comments, the DesignMD keys still read `body-md` and `label-md`, and the app uses raw sizes, as the client prompt contract defers. |
