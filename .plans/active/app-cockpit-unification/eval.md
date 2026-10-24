@@ -680,3 +680,35 @@ measured again.
 - The capture-only client dev server, restarted by Vite when `design-md.generated.json` changed
   under it, came back serving 404 for every page until the process was restarted. This is rig
   behaviour, not the product's.
+
+## Step 16 build: pickers and record cards
+
+Run on 2026-10-24 against `develop` `3c4fd4b62`, with step 16 on
+`feature/app-cockpit-pickers-records`.
+
+**Picking an action works the same by pointer and keyboard on both surfaces.** Both surfaces render
+one component, so one behaviour is proved once at its owner and again at each mount:
+
+- `ActionPicker.test.tsx` (Shared, happy-dom): one named radio group; each card named by its domain,
+  title and what it asks for; one tab stop on the chosen card, else the first; the arrow keys, Home
+  and End move and wrap without choosing; a press chooses; nothing is chosen while turned off; a
+  card that cannot be chosen is passed over, and the tab stop returns to the chosen card when focus
+  leaves; loading holds four empty cards.
+- Story play functions in a real browser: `Shared/Cards/ActionPicker` (the app's row: the arrow
+  key moves, Space chooses; the cockpit's grid: Tab reaches the first card, End, Enter, a press),
+  `Shared/Cards/MediaCardPicker` (the arrow key skips a card that cannot be chosen) and
+  `Shared/Cards/GardenCard` (the garden picker), plus the cockpit's
+  `Admin/Workflows/Garden/ActionChooserGrid` (a press checks a card).
+- At the mounts: the app's `Intro.test.tsx` (the action and garden pickers choose by UID and by
+  garden, the chosen card checked) and the cockpit's `ActionChooserGrid.test.tsx` (canonical titles
+  in Portuguese, an empty selection is nothing chosen).
+
+**Records and states.** `GardenAssessments.test.tsx` (each assessment a row that opens its page,
+the reporting period read for a reader west of UTC, an unknown domain unlabelled),
+`ImpactTab.test.tsx` (domains named, failed reads announced and not counted), the garden card's
+tests (members counted as people, the place, content when it opens nothing) and the hypercert,
+listing, approval, preview, GreenWill and details-editor suites (72 cases) pass with the states on
+the block.
+
+The rendered pairs (**Storybook** for the cockpit, **mock-auth localhost** for the app) go to the
+maintainer as a private artifact.
