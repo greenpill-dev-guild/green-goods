@@ -1,9 +1,16 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { expandDomainMask, hasDomain } from "@green-goods/shared/utils/domain";
 import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
-import { RiHammerFill, RiPlantFill, RiUserAddLine } from "@remixicon/react";
+import {
+  RiHammerFill,
+  RiHammerLine,
+  RiPlantFill,
+  RiPlantLine,
+  RiUserAddLine,
+} from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { ActionCard } from "@/components/Cards/Action/ActionCard";
@@ -243,12 +250,14 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
 
           {actions.length === 0 && actionsStatus === "success" && (
             <CarouselItem className="basis-full max-w-full">
-              <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
-                {intl.formatMessage({
+              <EmptyState
+                className="h-[13.25rem] min-h-0"
+                icon={<RiHammerLine />}
+                title={intl.formatMessage({
                   id: "app.garden.noActionsConfigured",
                   defaultMessage: "No actions have been configured for this garden yet.",
                 })}
-              </div>
+              />
             </CarouselItem>
           )}
 
@@ -257,12 +266,14 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             filteredActions.length === 0 &&
             unknownActions.length === 0 && (
               <CarouselItem className="basis-full max-w-full">
-                <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
-                  {intl.formatMessage({
+                <EmptyState
+                  className="h-[13.25rem] min-h-0"
+                  icon={<RiHammerLine />}
+                  title={intl.formatMessage({
                     id: "app.garden.noActiveActions",
                     defaultMessage: "No active actions at this time.",
                   })}
-                </div>
+                />
               </CarouselItem>
             )}
 
@@ -368,51 +379,49 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             showCommunityOnramp &&
             !communityGardenSelected && (
               <CarouselItem className="basis-full max-w-full">
-                <div className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-alpha-10 text-primary-on-surface">
-                      <RiPlantFill className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-text-strong-950">
-                        {intl.formatMessage({
-                          id: "app.garden.communityOnramp.title",
-                          defaultMessage: "Join the Community Garden",
-                        })}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-text-sub-600">
-                        {intl.formatMessage({
-                          id: "app.garden.communityOnramp.description",
-                          defaultMessage:
-                            "The Community Garden is open to everyone and gives you a place to submit your first work.",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={onJoinCommunityGarden}
-                    loading={isJoiningCommunityGarden}
-                    leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
-                    className="w-full"
-                  >
-                    {intl.formatMessage({
-                      id: "app.garden.communityOnramp.action",
-                      defaultMessage: "Join Garden",
-                    })}
-                  </Button>
-                </div>
+                <EmptyState
+                  icon={<RiPlantLine />}
+                  title={intl.formatMessage({
+                    id: "app.garden.communityOnramp.title",
+                    defaultMessage: "Join the Community Garden",
+                  })}
+                  description={intl.formatMessage({
+                    id: "app.garden.communityOnramp.description",
+                    defaultMessage:
+                      "The Community Garden is open to everyone and gives you a place to submit your first work.",
+                  })}
+                  action={
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={onJoinCommunityGarden}
+                      loading={isJoiningCommunityGarden}
+                      leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
+                    >
+                      {intl.formatMessage({
+                        id: "app.garden.communityOnramp.action",
+                        defaultMessage: "Join Garden",
+                      })}
+                    </Button>
+                  }
+                />
               </CarouselItem>
             )}
 
           {filteredGardens.length === 0 && gardensStatus === "success" && !showCommunityOnramp && (
-            <div className="p-4 text-sm text-text-sub-600">
-              {intl.formatMessage({
-                id: "app.garden.noGardensAvailable",
-                defaultMessage: "No gardens available. You may need to join a garden first.",
-              })}
-            </div>
+            <CarouselItem className="basis-full max-w-full">
+              <EmptyState
+                icon={<RiPlantLine />}
+                title={intl.formatMessage({
+                  id: "app.garden.noGardensAvailable.title",
+                  defaultMessage: "No gardens available",
+                })}
+                description={intl.formatMessage({
+                  id: "app.garden.noGardensAvailable.description",
+                  defaultMessage: "You may need to join a garden first.",
+                })}
+              />
+            </CarouselItem>
           )}
 
           {filteredGardens.length > 0 &&

@@ -8,7 +8,7 @@ import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { RiShieldKeyholeLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { AccountEntry, type EntryScreen } from "./AccountEntry";
 import { PageAccount } from "./CeremonyActs";
 import { CeremonyFrame, type CeremonyHeading } from "./CeremonyFrame";

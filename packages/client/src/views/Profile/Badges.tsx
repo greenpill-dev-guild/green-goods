@@ -21,7 +21,7 @@ import type { SheetAction } from "@green-goods/shared/components/Dialog/SheetAct
 import { RiAwardLine, RiCoinsLine, RiHammerLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 
 const BADGE_ORDER = ["genesis", "first-work", "first-support"] as const;
 

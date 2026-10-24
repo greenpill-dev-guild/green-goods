@@ -15,7 +15,7 @@ import { RiBankLine, RiErrorWarningLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { MyDepositRow } from "./MyDepositRow";
 
 export interface TreasuryTabContentProps {

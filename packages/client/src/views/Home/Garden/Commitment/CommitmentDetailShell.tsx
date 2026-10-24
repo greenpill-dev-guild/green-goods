@@ -2,7 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { RiRefreshLine, RiSearchLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { TopNav } from "@/components/Navigation";
 import { FixedBar } from "../FixedBar";
 

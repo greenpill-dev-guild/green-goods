@@ -1,3 +1,4 @@
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { RiFileUnknowLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -8,18 +9,15 @@ export default function NotFound() {
 
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-24">
-      <div className="text-center">
-        <RiFileUnknowLine className="mx-auto h-16 w-16 text-text-soft" aria-hidden="true" />
-        <h1 className="mt-4 type-title-lg font-semibold text-text-strong">
-          {formatMessage({ id: "app.admin.nav.notFound", defaultMessage: "Page not found" })}
-        </h1>
-        <p className="mt-2 text-text-sub">
-          {formatMessage({
-            id: "app.admin.nav.notFoundDescription",
-            defaultMessage: "The page you are looking for does not exist or has been moved.",
-          })}
-        </p>
-        <div className="mt-6">
+      <EmptyState
+        titleAs="h1"
+        icon={<RiFileUnknowLine />}
+        title={formatMessage({ id: "app.admin.nav.notFound", defaultMessage: "Page not found" })}
+        description={formatMessage({
+          id: "app.admin.nav.notFoundDescription",
+          defaultMessage: "The page you are looking for does not exist or has been moved.",
+        })}
+        action={
           <AdminButton asChild>
             <Link to="/hub">
               {formatMessage({
@@ -28,8 +26,8 @@ export default function NotFound() {
               })}
             </Link>
           </AdminButton>
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

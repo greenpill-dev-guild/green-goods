@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createElement, type ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,10 +11,6 @@ vi.mock("@/components/Cards/Garden/GardenCard", () => ({
 
 vi.mock("@/components/Cards/Garden/GardenCardSkeleton", () => ({
   GardenCardSkeleton: () => createElement("div", { "data-testid": "garden-card-skeleton" }),
-}));
-
-vi.mock("@remixicon/react", () => ({
-  RiRefreshLine: () => createElement("span", { "data-testid": "refresh-icon" }),
 }));
 
 import { GardenList } from "../../views/Home/GardenList";
@@ -71,10 +67,23 @@ describe("GardenList", () => {
   });
 
   it("shows a retry state for an online request failure without a cache", () => {
-    renderGardenList({ gardens: [], isError: true });
+    const onRetry = vi.fn();
+    renderGardenList({ gardens: [], isError: true, onRetry });
 
     expect(screen.getByText("Loading is taking longer than expected")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it("gives a member with no gardens of their own the way to every garden", () => {
+    const onBrowseAll = vi.fn();
+    renderGardenList({ gardens: [], scope: "mine", onBrowseAll });
+
+    expect(
+      screen.getByRole("heading", { name: "You don't steward any gardens yet." })
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Browse All Gardens" }));
+    expect(onBrowseAll).toHaveBeenCalledOnce();
   });
 
   it("keeps the no-gardens result for a successful empty response", () => {

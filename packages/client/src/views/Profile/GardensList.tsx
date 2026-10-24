@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import {
@@ -7,7 +8,13 @@ import {
 } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiArrowRightSLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
+import {
+  RiArrowRightSLine,
+  RiErrorWarningLine,
+  RiLoader4Line,
+  RiMapPinLine,
+  RiPlantLine,
+} from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -58,32 +65,35 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
 
       {gardensLoading ? (
         <Card>
-          <div className="flex flex-row items-center justify-center w-full py-2">
-            <span className="text-sm text-text-sub-600">
-              {intl.formatMessage({
-                id: "app.profile.loadingGardens",
-                defaultMessage: "Loading gardens...",
-              })}
-            </span>
-          </div>
+          <EmptyState
+            busy
+            className="w-full"
+            icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+            title={intl.formatMessage({
+              id: "app.profile.loadingGardens",
+              defaultMessage: "Loading gardens...",
+            })}
+          />
         </Card>
       ) : gardensError && gardens.length === 0 ? (
         <Card>
-          <div className="flex flex-col items-center gap-3 w-full py-4">
-            <RiPlantLine className="w-8 h-8 text-text-soft-400" />
-            <p className="text-center text-sm text-text-sub-600">
-              {intl.formatMessage({
-                id: "app.profile.gardensUnavailable",
-                defaultMessage: "Gardens are unavailable right now.",
-              })}
-            </p>
-            <Button type="button" emphasis="secondary" onClick={() => void refetchGardens()}>
-              {intl.formatMessage({
-                id: "app.home.retry",
-                defaultMessage: "Retry",
-              })}
-            </Button>
-          </div>
+          <EmptyState
+            className="w-full"
+            tone="error"
+            icon={<RiErrorWarningLine />}
+            title={intl.formatMessage({
+              id: "app.profile.gardensUnavailable",
+              defaultMessage: "Gardens are unavailable right now.",
+            })}
+            action={
+              <Button type="button" emphasis="secondary" onClick={() => void refetchGardens()}>
+                {intl.formatMessage({
+                  id: "app.home.retry",
+                  defaultMessage: "Retry",
+                })}
+              </Button>
+            }
+          />
         </Card>
       ) : myGardens.length > 0 ? (
         <ul className="flex flex-col gap-2">
@@ -126,36 +136,33 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
         </ul>
       ) : (
         <Card>
-          <div className="flex flex-col items-center gap-3 w-full py-4">
-            <RiPlantLine className="w-8 h-8 text-text-soft-400" />
-            <div className="text-center">
-              <p className="text-sm font-medium text-text-strong-950">
+          <EmptyState
+            className="w-full"
+            icon={<RiPlantLine />}
+            title={intl.formatMessage({
+              id: "app.profile.noGardensTitle",
+              defaultMessage: "No gardens yet",
+            })}
+            description={intl.formatMessage({
+              id: "app.profile.noGardensDescription",
+              defaultMessage: "Join a garden to start documenting regenerative work",
+            })}
+            action={
+              <Button
+                type="button"
+                onClick={() => {
+                  setGardenFilters((current) => ({ scope: "open", sort: current.sort }));
+                  navigate("/home");
+                }}
+                leadingIcon={<RiPlantLine className="h-4 w-4" aria-hidden="true" />}
+              >
                 {intl.formatMessage({
-                  id: "app.profile.noGardensTitle",
-                  defaultMessage: "No gardens yet",
+                  id: "app.profile.discoverGardens",
+                  defaultMessage: "Open Gardens",
                 })}
-              </p>
-              <p className="text-xs text-text-sub-600 mt-1">
-                {intl.formatMessage({
-                  id: "app.profile.noGardensDescription",
-                  defaultMessage: "Join a garden to start documenting regenerative work",
-                })}
-              </p>
-            </div>
-            <Button
-              type="button"
-              onClick={() => {
-                setGardenFilters((current) => ({ scope: "open", sort: current.sort }));
-                navigate("/home");
-              }}
-              leadingIcon={<RiPlantLine className="h-4 w-4" aria-hidden="true" />}
-            >
-              {intl.formatMessage({
-                id: "app.profile.discoverGardens",
-                defaultMessage: "Open Gardens",
-              })}
-            </Button>
-          </div>
+              </Button>
+            }
+          />
         </Card>
       )}
     </>

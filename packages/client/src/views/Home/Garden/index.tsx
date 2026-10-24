@@ -2,6 +2,7 @@ import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
@@ -213,50 +214,57 @@ export const Garden: React.FC = () => {
   };
 
   if (!garden) {
+    // With no garden to draw, the page is the state block under the back bar.
+    let state: React.ReactNode;
     if (gardensInitialLoading) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
-          <TopNav onBackClick={() => navigate("/home")} />
-          <RiLoader4Line className="w-8 h-8 text-text-soft-400 animate-spin" />
-          <p className="text-sm text-text-sub-600 text-center">
-            {intl.formatMessage({
-              id: "app.garden.loading",
-              defaultMessage: "Loading garden...",
-            })}
-          </p>
-        </div>
+      state = (
+        <EmptyState
+          busy
+          icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+          title={intl.formatMessage({
+            id: "app.garden.loading",
+            defaultMessage: "Loading garden...",
+          })}
+        />
       );
-    }
-    if (gardensError) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
-          <TopNav onBackClick={() => navigate("/home")} />
-          <RiErrorWarningLine className="w-10 h-10 text-error-base" />
-          <p className="text-sm text-text-sub-600 text-center max-w-xs">
-            {intl.formatMessage({
-              id: "app.garden.loadError",
-              defaultMessage: "Couldn't load this garden. Check your connection and try again.",
-            })}
-          </p>
-          <Button type="button" onClick={() => refetchGardens()}>
-            {intl.formatMessage({
-              id: "app.garden.loadRetry",
-              defaultMessage: "Try Again",
-            })}
-          </Button>
-        </div>
+    } else if (gardensError) {
+      state = (
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={intl.formatMessage({
+            id: "app.garden.loadError.title",
+            defaultMessage: "Couldn't load this garden",
+          })}
+          description={intl.formatMessage({
+            id: "app.garden.loadError.description",
+            defaultMessage: "Check your connection and try again.",
+          })}
+          action={
+            <Button type="button" onClick={() => refetchGardens()}>
+              {intl.formatMessage({
+                id: "app.garden.loadRetry",
+                defaultMessage: "Try Again",
+              })}
+            </Button>
+          }
+        />
       );
-    }
-    return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
-        <TopNav onBackClick={() => navigate("/home")} />
-        <RiMapPin2Fill className="w-10 h-10 text-text-soft-400" />
-        <p className="text-sm text-text-sub-600 text-center">
-          {intl.formatMessage({
+    } else {
+      state = (
+        <EmptyState
+          icon={<RiMapPin2Fill />}
+          title={intl.formatMessage({
             id: "app.garden.notFound",
             defaultMessage: "Garden not found",
           })}
-        </p>
+        />
+      );
+    }
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <TopNav onBackClick={() => navigate("/home")} />
+        {state}
       </div>
     );
   }

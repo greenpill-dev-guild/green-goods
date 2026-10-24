@@ -147,6 +147,11 @@
   --gg-control-outline: var(--m3-outline);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
+  /* The state block's calm mark stays neutral: a quiet ink tint and the sub
+     ink, where the app draws its green, because the workspace tone is held to
+     its budget (Rule 18). Warnings and failures keep their status tints. */
+  --gg-state-mark-fill: rgb(var(--text-strong-950) / 0.06);
+  --gg-state-mark-ink: rgb(var(--text-sub-600));
 
   /* The type roles at the cockpit's density: the app's names (shared theme.css)
      on the cockpit's 14px scale. Titles 22 / 16 / 14, body and labels 14, small

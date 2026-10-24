@@ -5,6 +5,7 @@ import {
   RiInformationLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { EmptyState } from "../ListPrimitives";
 import { SheetBody } from "./SheetBody";
 
 export type NotificationPanelTone = "info" | "warn" | "critical";
@@ -240,23 +241,17 @@ export function NotificationPanel({
 
   return (
     <SheetBody padded={true}>
-      <div className="flex flex-col items-center gap-3 py-12 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-bg-soft">
-          <RiInboxLine className="h-6 w-6 text-text-soft" />
-        </div>
-        <h3 className="text-sm font-semibold text-text-strong">
-          {formatMessage({
-            id: "cockpit.notifications.empty.title",
-            defaultMessage: "No notifications",
-          })}
-        </h3>
-        <p className="max-w-[240px] text-xs text-text-sub">
-          {formatMessage({
-            id: "cockpit.notifications.empty.description",
-            defaultMessage: "Work submissions, assessments, and system alerts will appear here.",
-          })}
-        </p>
-      </div>
+      <EmptyState
+        icon={<RiInboxLine />}
+        title={formatMessage({
+          id: "cockpit.notifications.empty.title",
+          defaultMessage: "No notifications",
+        })}
+        description={formatMessage({
+          id: "cockpit.notifications.empty.description",
+          defaultMessage: "Work submissions, assessments, and system alerts will appear here.",
+        })}
+      />
     </SheetBody>
   );
 }

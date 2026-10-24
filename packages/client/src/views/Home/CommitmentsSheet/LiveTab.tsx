@@ -1,6 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Chip } from "@green-goods/shared/components/Chip";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
@@ -9,6 +10,7 @@ import {
   type InboxCommitment,
   useCommitmentMetadata,
 } from "@green-goods/shared/commitment-pooling";
+import { RiFilterOffLine } from "@remixicon/react";
 import { useMemo } from "react";
 import type { CommitmentsDirectionFilter } from "@green-goods/shared/stores/useUIStore";
 import { useIntl } from "react-intl";
@@ -93,7 +95,8 @@ export function LiveTab({
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.live.loading",
-        errorId: "app.commitments.live.error",
+        errorId: "app.commitments.live.error.title",
+        errorDescriptionId: "app.commitments.live.error.description",
         emptyTitleId: "app.commitments.live.emptyTitle",
         emptyDescriptionId: "app.commitments.live.emptyDescription",
       }}
@@ -148,9 +151,11 @@ export function LiveTab({
       </div>
 
       {visible.length === 0 ? (
-        <p className="py-6 text-center text-sm text-text-sub-600">
-          {formatMessage({ id: "app.commitments.filter.noMatches" })}
-        </p>
+        <EmptyState
+          placement="sheet"
+          icon={<RiFilterOffLine />}
+          title={formatMessage({ id: "app.commitments.filter.noMatches" })}
+        />
       ) : (
         groups.map((group) => (
           <div key={group.key}>

@@ -1,7 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { RiErrorWarningLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { EmptyState } from "@/components/Communication/EmptyState";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 
 export interface AppScreenErrorProps {
   /** The screen's code could not be fetched without a connection; it returns on its own. */

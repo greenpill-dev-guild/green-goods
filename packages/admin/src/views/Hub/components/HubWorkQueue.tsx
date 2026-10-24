@@ -1,7 +1,6 @@
+import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { MediaCardLayout } from "@green-goods/shared/components/Cards/MediaCard";
-import { Alert } from "@green-goods/shared/components/Alert";
-import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { WorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { HubWorkScope } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
@@ -11,7 +10,7 @@ import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGood
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Work } from "@green-goods/shared/types/domain";
-import { RiCheckboxCircleLine, RiSearchLine } from "@remixicon/react";
+import { RiCheckboxCircleLine, RiErrorWarningLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
@@ -166,12 +165,18 @@ export function HubWorkQueue({
   if (hasDataError) {
     return (
       <EmptyStateShell>
-        <Alert variant="error">
-          {formatMessage({
-            id: "cockpit.hub.error",
-            defaultMessage: "Hub data could not be loaded. Refresh the workspace and try again.",
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({
+            id: "cockpit.hub.error.title",
+            defaultMessage: "Hub data could not be loaded",
           })}
-        </Alert>
+          description={formatMessage({
+            id: "cockpit.hub.error.description",
+            defaultMessage: "Refresh the workspace and try again.",
+          })}
+        />
       </EmptyStateShell>
     );
   }
