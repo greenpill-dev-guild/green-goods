@@ -79,7 +79,7 @@ bounded change, and split a step that would mix independent behaviours.
 | 15. Commitment cards | `ui` | The app's five commitment rows and cards and the cockpit's pool rows move onto the item row, led by the offer or request icon, with "Confirming…" and "Not sent" shown in the status pill, with the act phase line and queue states as the object's own parts. Commitments get one home. | Rendered pairs of every commitment list in both surfaces, in every act phase and queue state. |
 | 16. Pickers and record cards | `ui` | One action picker for both surfaces, built from media cards with a banner; assessment and hypercert record cards on the item row; the app's garden card as a media card. | Picking an action works the same by pointer and keyboard on both surfaces; rendered pairs of each list. |
 | 17. People rows | `ui` | Member, funder and claimant rows on the item row with an avatar, one role chip and one count, each name through the shared address display. | Rendered pairs of every people list; names resolve as they do today. |
-| 18. Jar and vault cards | `ui` | The app's and the cockpit's jar, deposit and position cards on the item row with one detail and no action on the row; they have no picture of their own, so no media card. The public site's cards stay editorial. | Rendered pairs of every jar and vault list in the app and the cockpit; amounts and assets read as they do today. |
+| 18. Jar and vault cards | `ui` | The app's and the cockpit's jar, deposit and position cards on the item row with one detail and no action on the row; they have no picture of their own, so no media card. The public site's cards stay editorial. Built on 24 October (#1234, DL-113 in #1233): every jar, deposit and position list is item rows with the amount in the right slot, and a jar's, deposit's or position's row opens its page in place beneath it. | Rendered pairs of every jar and vault list in the app and the cockpit; amounts and assets read as they do today. |
 | 19. Unused card code | `ui` | Remove Shared's unused card exports (`CardBase`, its own `Card`, `StatCard`, `ProposalCardConviction`, `SortSelect`, `ListToolbar`) and `Surface`'s glass tiers once nothing renders them; rename the app's wrapper cards that share a Shared card's name. | No export without a consumer or a recorded reason; no two card components share a name. |
 | 20. Cockpit controls onto the shared family | `ui` | Phased, one family at a time: buttons and icon buttons; fields, checkboxes and chips; dialogs and sheets; cards and tabs. Each phase retires its `Admin*` files, rewrites the matching part of Rules 15 and 18, and turns the design token check's wrapper-adoption sweep around. Split into one issue per phase when scheduled. | Each phase: the cockpit renders only the shared family for its controls; density, hit areas and pill corners unchanged; the design checks pass. |
 | 21. Bottom bar active state (F6) | `ui` | The app's bottom bar shows its active tab with a green pill behind the icon, the cockpit's recipe; each bar keeps its chrome, and the app's bar stays solid. | Rendered pairs of both bars in light and dark; labels, count badges and focus unchanged. |
@@ -243,3 +243,15 @@ tab holding the pill's width. The bar keeps its 69px, its chrome, its count badg
 behavior, and the cockpit's bar is unchanged
 ([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
 standards-only `feature/app-cockpit-bar-pill-guides`.
+
+**Step 18 (24 October).** `feature/app-cockpit-jar-vault-cards` (#1234) puts every jar, deposit
+and position list on the item row. `ItemRow` gains an `amount` for its right slot (the value with
+its asset, never cut, over what it is), which an action still takes when a row has one. The app's
+wallet and endowment-sheet jars become one `CookieJarRow` with the wallet's claim form; the vault
+summary becomes content rows and My deposits a row that opens its withdrawal. In the cockpit the
+Payouts jars, the endowment positions and the campaign cookie jars become rows; a jar's or a
+position's page opens in place beneath its row with everything the card held, and stays mounted
+while closed so a write in flight keeps its state. Step 11's remaining states on these surfaces
+move onto the state block. DL-113 and its guide lines are the standards-only #1233
+([handoff](handoffs/claude-ui.md#step-18-jar-and-vault-cards-prd-1285),
+[eval.md](eval.md#step-18-build-jar-and-vault-cards)).

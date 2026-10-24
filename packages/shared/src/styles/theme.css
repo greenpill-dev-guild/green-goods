@@ -2256,7 +2256,7 @@
   }
 
   /* An amount the item carries, in the right slot of a row with no action (a jar's
-   * balance): the value with its asset at the title's size, never cut, and what it is
+   * balance): the value with its asset in the title's role, never cut, and what it is
    * under it. The body gives way first, so a long amount ends the title in an ellipsis. */
   .gg-item-row-amount {
     display: flex;
@@ -2270,7 +2270,6 @@
   }
 
   .gg-item-row-amount-value {
-    font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }

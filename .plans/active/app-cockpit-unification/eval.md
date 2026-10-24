@@ -680,3 +680,55 @@ measured again.
 - The capture-only client dev server, restarted by Vite when `design-md.generated.json` changed
   under it, came back serving 404 for every page until the process was restarted. This is rig
   behaviour, not the product's.
+
+## Step 18 build: jar and vault cards
+
+Run on 2026-10-24 against `develop` `3c4fd4b62`, with step 18 at `c7b90c2dc` on
+`feature/app-cockpit-jar-vault-cards` (the review fixes after it change none of these frames).
+The before frames came from a detached capture worktree at `develop`, the after frames from the
+branch, each served by its own capture-only Storybook from the same untracked capture stories,
+which reuse each real story with its own mocks and add Spanish and Portuguese. The pairs went to
+the maintainer as a private artifact, outside the repository.
+
+**Pairs.** 71 pairs and 2 after-only frames, headless Chromium (Playwright) at device scale 2,
+full page, all **Storybook**:
+
+- Cockpit: Community › Payouts' jars (closed, one opened, one paused), Community › Endowment's
+  positions (closed and opened), the real `PositionCard`, and the campaign cookie jars, at 390, 768
+  and 1280px in light and dark in English and at 390px in Spanish and Portuguese; the no-vault,
+  no-campaign, no-event and no-allocation states.
+- App: the endowment sheet's Endowment tab with a deposit (closed and opened) and with none, its
+  Cookie jar tab (closed and opened), and the wallet's Cookies tab (closed and opened), at 390px
+  in light and dark and in Spanish and Portuguese.
+- After only: the row's `Amounts` story, both densities at their phone list widths in three
+  languages.
+
+Mock-auth localhost was not run for the app: the endowment sheet opens only for a garden's
+reviewer and the wallet needs a gardener holding a jar, which the mock roles do not give
+deterministically, so the app's pairs use its real stories with mocked reads.
+
+**Fit after** (each visible row's height from its box; an amount counts as cut when its value
+overflows its slot or the row):
+
+| Set | Where | Rows | Height | Amounts cut | Detail lines | First detail in an ellipsis |
+|---|---|---|---|---|---|---|
+| Every captured list | 73 frames, 390 to 1280px, light and dark, three languages | 163 | 88px | 0 | 0 wrapped, cut or dropped | 2: the Portuguese per-claim detail at 390px inside the cockpit's Payouts card |
+| The row's `Amounts` story | app columns of 288, 328 and 358px; cockpit 296 and 366px | 45 | 88px | 0 | 0 wrapped, cut or dropped | 9 per theme: the per-claim detail at 288px in all three languages, at 328px in Portuguese, at 296px in Spanish and Portuguese; none at 358 or 366px |
+
+**Before.** The app's jar cards were compact cards of their own height (a claim form opening
+inside the card), the endowment sheet's deposits showed an open withdraw form, and the vault
+summary was a two-line card without the asset on its net deposits. The cockpit drew a grid of
+tall cards: a garden jar's at least 256px with its editors and acts, a position's with four facts
+and every act; the campaign list was a divided list of content-height rows.
+
+**Found on the way.**
+
+- Codex's review of #1234 caught a paused jar's row still claiming an amount was available now,
+  the deposits' empty state showing before the read finished, a campaign jar showing a fallback
+  "0 a claim" after a failed read, and dust amounts that would overflow the slot; all fixed in
+  `ed8b05724`, with focused tests. It also asked for the open row to take `selected`; kept as a
+  disclosure (`aria-expanded`), since several pages can be open and `aria-current` marks one item.
+- The design-token baseline still listed the campaign row's raw `<button>`, which the item row
+  replaced, so CI's token check failed until the line was removed (`d9e2485a6`).
+- Capture rig: a new story's first render made Vite re-optimize and reload the Storybook iframe,
+  so the capture waits for the preview channel to return before each render.
