@@ -1072,3 +1072,36 @@ from `solid-raised` to `raised`, which draws the same card.
 - The Foundation token story drew `CardBase` without padding, its header beside its controls. It now
   draws its panels on `.gg-card` with padding; the docs page's capture of it
   (`shared-tokens-foundation-controls.webp`) still shows the old layout in the previous typeface.
+
+## Step 20 phase 3 proof: dialogs on the shared header
+
+Run on 2026-10-24 for `feature/app-cockpit-shared-dialogs` (`0c69a097c` and `73f6e563f`) against
+`develop` `796e9e1bb`. Two capture-only Storybooks, one per tree, rendered a parked capture story
+(four dialogs, each open) that was copied into both and deleted before any gate.
+
+**Pairs.** 24 pairs, **Storybook**, headless Chromium (Playwright) at device scale 2: a standard
+dialog with its own actions, a form dialog, a danger confirm with a pool target, and a confirm
+nested in a dialog, at 390, 768 and 1280px in light and dark. Four are pixel-identical: the
+standard and form dialogs at 390px, which have shown the shared header since step 9. Private page:
+https://claude.ai/artifact/7dC3c4kyd6po22ef6iyYnc.
+
+**Measured** on the topmost dialog (`getComputedStyle`):
+
+| | Before | After |
+|---|---|---|
+| Header from 640px | the cockpit's own: an icon on a destructive confirm, a rule under it, Close absolute 12px from the edge | `SheetHeader`: no icon, no rule, Close on the title's line 16px from the edge |
+| Title | 22px on 28px | 22px on 28px |
+| Desktop confirm height | 220px | 225px |
+| Confirm family's buttons | `AdminButton` at 32px, Cancel a text button, the dark danger fill `rgb(255, 104, 117)` | `SheetActions` at 40px, Cancel outlined, the danger fill `rgb(208, 37, 51)` in both themes (DL-053) |
+| Surface fill from 640px | 236 233 226 in light, 52 44 36 in dark | unchanged |
+
+**Behavior.** Play functions in Chromium, 15 of 15 in the AdminDialog and AdminSideSheet stories:
+`Default`, `FormDialog`, `ConfirmFocusReturn` and `NestedDialogs` close with Escape and with
+Cancel and check that the scroll and pointer locks are released and focus is back on the opener;
+in the nested pair Escape closes only the confirm and focus steps back one level. They failed
+before the focus fix: Radix returns focus only to a `Dialog.Trigger`, which the cockpit's
+controlled dialogs lack. Unit tests: the full admin suite, 151 files and 1,379 tests passing.
+
+**Found on the way.** The first after frames showed the confirm family's footer padded twice:
+`SheetActions` pads and fills itself, and the dialog's footer bar pads too. The dialog now hosts
+the bar from its own selector, as DialogShell and ConfirmDialog do (`73f6e563f`).

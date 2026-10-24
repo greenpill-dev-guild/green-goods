@@ -674,6 +674,27 @@ Human corrections: 0 observed; attention: unknown.
   how the glass in Shared and the app went unflagged; and when the app is offline in a mobile
   browser the 16px offline strip covers only the top of the 24px install strip.
 
+## Step 20 phase 3: dialogs on the shared header (PRD-1287)
+
+- `feature/app-cockpit-shared-dialogs`, cut from `develop` `796e9e1bb`: `AdminDialogHeader`
+  renders the shared `SheetHeader` at every width (`standalone` from 640px). `AdminDialog` drops
+  the absolute Close for structured dialogs, shows the body's scroll edge at every width and covers
+  it with its own fill from 640px, and returns focus to the control that opened it
+  (`onOpenAutoFocus` remembers it; `finalFocusRef` still wins). `AdminConfirmDialog` and
+  `AdminReasonDialog` pin Cancel and the confirm in `SheetActions`, which the dialog's footer bar
+  hosts from its own selector in `admin-m3-components.css`. The `icon` props stay accepted and are
+  not drawn. No Shared file changes.
+- Not done as asked: `AdminDialog` does not render `DialogShell`, which lacks node actions,
+  `target`, the alertdialog role, `finalFocusRef`, the flows' and the palette's own headers, the
+  workspace tone and the hidden-tab instant exit, and below 640px is the app's dragging sheet.
+  DL-117 records it with the pieces that keep their own code; the orchestrator heard before the
+  build.
+- DL-117 and the guide wording are the standards-only `feature/app-cockpit-shared-dialogs-guides`.
+  Proof: [eval.md](../eval.md#step-20-phase-3-proof-dialogs-on-the-shared-header).
+- Not in the step: dialogs that pass their own actions keep `AdminButton` at 32px beside the
+  confirm family's 40px until the call-site pass, and `AdminSideSheet` still swaps its Close at
+  640px and keeps `useFocusAfterFlip`.
+
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker

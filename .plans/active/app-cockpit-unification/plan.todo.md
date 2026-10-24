@@ -323,3 +323,12 @@ merged as #1235 ([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-12
 steps 16 and 18: `VaultPositionCard`, `WorkbenchRow` and the `glass-raised` left on `WorkbenchCard`
 and `WorkbenchList`, and the app's `GardenCard` and work row module, which share their Shared
 card's name.
+
+**Step 20, phase 3 (24 October).** The cockpit's dialogs take the shared dialog family's pieces
+behind their own names and props: the shared `SheetHeader` at every width, the shared
+`SheetActions` in the confirm family, and focus back on the opener when a dialog closes.
+`AdminDialog` keeps its own Radix surface, because `DialogShell` cannot carry what the cockpit's
+dialogs need without new Shared props (DL-117). The code is `feature/app-cockpit-shared-dialogs`,
+and DL-117 with its guide wording the standards-only `feature/app-cockpit-shared-dialogs-guides`
+([handoff](handoffs/claude-ui.md#step-20-phase-3-dialogs-on-the-shared-header-prd-1287),
+[eval.md](eval.md#step-20-phase-3-proof-dialogs-on-the-shared-header)).
