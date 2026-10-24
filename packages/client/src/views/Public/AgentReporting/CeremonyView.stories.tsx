@@ -159,8 +159,8 @@ const meta: Meta<typeof CeremonyView> = {
     withLocale,
   ],
   parameters: {
-    // The focused shell renders without the website surface: app corners for fields and buttons.
-    surface: "app",
+    // The focused shell carries the website surface (DL-121), as the route does.
+    surface: "website",
     layout: "fullscreen",
     docs: {
       description: {
@@ -452,9 +452,12 @@ export const GrantReady: Story = {
       bar.getBoundingClientRect().top
     );
     view.scrollTo({ top: 0, behavior: "instant" });
-    // A public page keeps its compact limit rows: each value ends at its row's end, and a date
-    // stays on one line, where a column of values would start it mid-row and wrap it on a phone.
+    // The page is the website's (DL-121), and its limits are the website receipt's rows: each
+    // value at weight 500 ends at its row's end, and a date stays on one line, where a column of
+    // values would start it mid-row and wrap it on a phone.
     const limits = within(canvasElement).getByRole("region", { name: "Limits" });
+    const shell = limits.closest("main")?.parentElement;
+    await expect(shell?.dataset.site).toBe("website");
     for (const label of ["Starts", "Maximum publications"]) {
       const term = within(limits).getByText(label).closest("dt") as HTMLElement;
       const value = term.nextElementSibling as HTMLElement;
@@ -465,6 +468,7 @@ export const GrantReady: Story = {
       await expect(Math.abs(rowEnd - drawn.right)).toBeLessThanOrEqual(1);
       const line = Number.parseFloat(view.getComputedStyle(value).lineHeight);
       await expect(drawn.height).toBeLessThan(line * 1.5);
+      await expect(view.getComputedStyle(value).fontWeight).toBe("500");
     }
   },
 };

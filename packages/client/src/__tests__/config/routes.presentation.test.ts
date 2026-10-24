@@ -85,7 +85,7 @@ describe("presentation route trees", () => {
     // The shell has no state of its own: with the header gone, only the site's can be trusted.
     expect(errorView(shell)).toBeUndefined();
     expect((shell?.children ?? []).map(errorView)).toEqual(["page", "ceremony"]);
-    // The reporting pages are drawn as the app draws, so they fail as it does; nothing else does.
+    // The reporting pages fail inside their focused bar (the ceremony screen); nothing else does.
     expect(ceremony.children?.map((route) => isReporting(route))).toEqual([true, true, true]);
     expect(pages.children?.some(isReporting)).toBe(false);
     expect(collectRouteIds(pages.children ?? [])).toEqual(

@@ -4,7 +4,7 @@ import { expect, fn, waitFor, within } from "storybook/test";
 import { withClientAppRuntime } from "../../../../shared/.storybook/decorators";
 import PublicShell from "../../routes/PublicShell";
 import Root from "../../routes/Root";
-import { AppScreenError } from "./AppScreenError";
+import { CeremonyPageError as FailedCeremonyPage } from "./CeremonyPageError";
 import { PublicPageError } from "./PublicPageError";
 import { PublicSiteError } from "./PublicSiteError";
 
@@ -23,7 +23,7 @@ function PageInSite({ offline = false, path = "/impact" }: { offline?: boolean; 
               { path: "impact", element: <PublicPageError offline={offline} onReload={fn()} /> },
               {
                 path: "agent/reporting/permissions",
-                element: <AppScreenError shell="focused" offline={offline} onReload={fn()} />,
+                element: <FailedCeremonyPage offline={offline} onReload={fn()} />,
               },
             ],
           },
@@ -85,7 +85,7 @@ export const SiteError: Story = {
   },
 };
 
-/** A reporting ceremony page failed. Its focused bar stays, and the state is drawn as the app draws. */
+/** A reporting ceremony page failed. Its focused bar stays, and the state is the website's (DL-121). */
 export const CeremonyPageError: Story = {
   globals: { viewport: { value: "mobile" } },
   render: () => <PageInSite path="/agent/reporting/permissions" />,
@@ -94,7 +94,12 @@ export const CeremonyPageError: Story = {
     await expect(
       await canvas.findByRole("heading", { level: 1, name: "This screen didn't load" })
     ).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "Reload" })).toBeVisible();
+    const reload = canvas.getByRole("button", { name: "Reload" });
+    await expect(reload).toBeVisible();
     expect(canvas.queryByRole("navigation", { name: "Main navigation" })).toBeNull();
+    // The website's voice, not the app's state block: the focused shell carries the website's
+    // surface itself (DL-121).
+    expect(canvas.getByRole("main").parentElement?.dataset.site).toBe("website");
+    expect(canvasElement.querySelector('[data-component="EmptyState"]')).toBeNull();
   },
 };
