@@ -151,7 +151,7 @@ export function CommunityCoordinationTab({
               {canManage && communityConfig && pools.length === 0 ? (
                 <AdminButton
                   type="button"
-                  variant="tonal"
+                  variant="outlined"
                   size="sm"
                   onClick={createPools}
                   disabled={isCreatingPools}

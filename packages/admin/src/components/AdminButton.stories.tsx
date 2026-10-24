@@ -4,8 +4,9 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import {
   drawnRings,
+  gradeMeasurement,
+  measureElement,
   readToken,
-  stateLayer,
 } from "../../../shared/.storybook/design-system/measure";
 import { AdminButton, AdminIconButton } from "./AdminButton";
 
@@ -18,7 +19,7 @@ const meta: Meta<typeof AdminButton> = {
     docs: {
       description: {
         component:
-          "M3 common button with filled, tonal, elevated, outlined, text, danger, and outlined danger variants. Uses full-round shape, label-large typography, M3 state layers, and tokenized spring motion.",
+          "The cockpit's buttons are the shared Button and IconButton (DL-115). Filled is the primary in the workspace tone, outlined the secondary on the control outline, text the tertiary, and danger and outlined danger take the danger tone; sm, md and lg are the shared compact, sm and lg sizes on the cockpit's 28 / 32 / 40px tiers with a 44px finger box. Tonal stays the cockpit's own pill for the chosen option in a set until phase 2.",
       },
     },
   },
@@ -40,8 +41,9 @@ export const Filled: Story = {
   args: { variant: "filled", size: "md", children: "Continue" },
 };
 
+/** The chosen option in a set: the cockpit's own tonal pill until phase 2. */
 export const Tonal: Story = {
-  args: { variant: "tonal", size: "md", children: "Save draft" },
+  args: { variant: "tonal", size: "md", children: "Last 30 days" },
 };
 
 export const Outlined: Story = {
@@ -67,8 +69,8 @@ export const Loading: Story = {
 };
 
 /**
- * AdminIconButton — glyph-only actions on the same DL-011 tiers (28/32/40).
- * The `label` prop is the mandatory accessible name (aria-label + tooltip).
+ * AdminIconButton — glyph-only actions on the same tiers (28/32/40), the shared
+ * IconButton. The `label` prop is the mandatory accessible name (aria-label + tooltip).
  */
 export const IconButtons: Story = {
   render: () => (
@@ -108,10 +110,17 @@ export const IconButtons: Story = {
   ),
 };
 
+/** A focus ring the browser draws: the shared family's outline or a box-shadow ring. */
+const drawsFocusRing = (control: HTMLElement) => {
+  const style = getComputedStyle(control);
+  const outline = style.outlineStyle !== "none" && Number.parseFloat(style.outlineWidth) >= 2;
+  return outline || drawnRings(control).length > 0;
+};
+
 /**
- * Keyboard focus draws the ring on every low-emphasis variant. These rest at
- * elevation 0, which shares one box-shadow list with the ring; while that token
- * was `none` it voided the list and no ring drew. The play test tabs through them.
+ * Keyboard focus draws the ring on every low-emphasis variant: the shared
+ * family's 2px outline in the focus role, and the tonal pill's ring. The play
+ * test tabs through them.
  */
 export const FocusRings: Story = {
   tags: ["storybook-ci"],
@@ -131,7 +140,7 @@ export const FocusRings: Story = {
     for (const control of within(canvasElement).getAllByRole("button")) {
       await userEvent.tab();
       await expect(control).toHaveFocus();
-      await waitFor(() => expect(drawnRings(control)).not.toHaveLength(0));
+      await waitFor(() => expect(drawsFocusRing(control)).toBe(true));
     }
   },
 };
@@ -226,16 +235,133 @@ export const WorkspaceToneMatrix: Story = {
   ),
 };
 
-const FILLED_TONES = [...WORKSPACE_TONES, ["home", "Home"]] as const;
+const ALL_TONES = [...WORKSPACE_TONES, ["home", "Home"]] as const;
+const ACTION_VARIANTS = ["filled", "outlined", "text", "danger", "outlinedDanger"] as const;
+const SIZE_HEIGHTS = { sm: 28, md: 32, lg: 40 } as const;
+
+/** Channels and alpha of a computed colour. */
+const colorParts = (color: string) => {
+  const [r = 0, g = 0, b = 0, a = 1] = (color.match(/[\d.]+/g) ?? []).map(Number);
+  return { rgb: [r, g, b], alpha: color.startsWith("rgba") ? a : 1 };
+};
 
 /**
- * The filled button and icon button in every workspace tone, light and dark.
- * Their state layer is the neutral ink painted beneath the label, so a hovered,
- * focused or pressed label keeps at least the contrast it has at rest. The play
- * test reads that from the browser and focuses each control from the keyboard,
- * the one state a test can enter for real.
+ * The shared family as the cockpit draws it (DL-115): every action variant at
+ * every tier, at rest, disabled and loading, beside the icon buttons, in every
+ * workspace tone, light and dark. The play test measures it in the browser: the
+ * 28 / 32 / 40px tiers with a 44px finger box, the one 14px label at 500, the
+ * pill and the circle, and the disabled pair (a 12% ink fill under a 38% ink
+ * label, no dim).
  */
-export const FilledStateLayers: Story = {
+export const SharedFamilyMatrix: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="space-y-4">
+      {(["light", "dark"] as const).map((theme) => (
+        <section
+          key={theme}
+          data-theme={theme}
+          className="admin-m3 space-y-3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
+        >
+          {ALL_TONES.map(([tone, label]) => (
+            <div key={tone} data-tone={tone} className="space-y-2" data-testid={`${theme}-${tone}`}>
+              <div className="type-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+                {label}, {theme}
+              </div>
+              {(["sm", "md", "lg"] as const).map((size) => (
+                <div key={size} className="flex flex-wrap items-center gap-2">
+                  {ACTION_VARIANTS.map((variant) => (
+                    <AdminButton key={variant} variant={variant} size={size}>
+                      {variant === "outlinedDanger" ? "Reject" : "Save"}
+                    </AdminButton>
+                  ))}
+                  <AdminButton size={size} disabled data-matrix="disabled">
+                    Save
+                  </AdminButton>
+                  <AdminButton size={size} variant="outlined" disabled data-matrix="disabled">
+                    Save
+                  </AdminButton>
+                  <AdminButton size={size} loading>
+                    Saving
+                  </AdminButton>
+                  <AdminIconButton size={size} label={`Add, ${tone} ${theme} ${size}`}>
+                    <RiAddLine />
+                  </AdminIconButton>
+                  <AdminIconButton
+                    size={size}
+                    variant="filled"
+                    label={`Save, ${tone} ${theme} ${size}`}
+                  >
+                    <RiSave3Line />
+                  </AdminIconButton>
+                  <AdminIconButton
+                    size={size}
+                    variant="danger"
+                    label={`Delete, ${tone} ${theme} ${size}`}
+                  >
+                    <RiDeleteBinLine />
+                  </AdminIconButton>
+                  <AdminIconButton
+                    size={size}
+                    variant="tonal"
+                    disabled
+                    data-matrix="disabled"
+                    label={`Send, disabled, ${tone} ${theme} ${size}`}
+                  >
+                    <RiSave3Line />
+                  </AdminIconButton>
+                </div>
+              ))}
+            </div>
+          ))}
+        </section>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const buttons = Array.from(
+      canvasElement.querySelectorAll<HTMLElement>('[data-component="AdminButton"]')
+    );
+    await expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons) {
+      const size = button.getAttribute("data-size");
+      const tier = size === "compact" ? "sm" : size === "sm" ? "md" : "lg";
+      const failed = gradeMeasurement(measureElement(button), {
+        height: SIZE_HEIGHTS[tier],
+        radius: "pill",
+        labelSize: 14,
+        weight: 500,
+        hit: 44,
+      }).filter((check) => !check.pass);
+      await expect(failed).toEqual([]);
+    }
+    for (const icon of canvasElement.querySelectorAll<HTMLElement>(
+      '[data-component="AdminIconButton"]'
+    )) {
+      const size = icon.getAttribute("data-size");
+      const tier = size === "compact" ? "sm" : size === "sm" ? "md" : "lg";
+      const measured = measureElement(icon);
+      await expect([measured.height, measured.corner]).toEqual([SIZE_HEIGHTS[tier], "circle"]);
+      await expect(measured.hitHeight).toBeGreaterThanOrEqual(44);
+    }
+    for (const disabled of canvasElement.querySelectorAll<HTMLElement>(
+      '[data-matrix="disabled"]'
+    )) {
+      const style = getComputedStyle(disabled);
+      await expect(style.opacity).toBe("1");
+      await expect(colorParts(style.backgroundColor).alpha).toBeCloseTo(0.12, 2);
+      await expect(colorParts(style.color).alpha).toBeCloseTo(0.38, 2);
+    }
+  },
+};
+
+/**
+ * The filled button and icon button, shared primaries, in every workspace tone,
+ * light and dark: the tone's fill under its on-action ink, and keyboard focus
+ * drawing the 2px ring. Hover and press take the tone's measured hover step,
+ * whose contrast WorkspaceToneContrast.guard holds at AA.
+ */
+export const FilledActions: Story = {
   tags: ["storybook-ci"],
   render: () => (
     <div className="space-y-4">
@@ -245,7 +371,7 @@ export const FilledStateLayers: Story = {
           data-theme={theme}
           className="admin-m3 flex flex-wrap gap-4 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
         >
-          {FILLED_TONES.map(([tone, label]) => (
+          {ALL_TONES.map(([tone, label]) => (
             <div key={tone} data-tone={tone} className="flex items-center gap-2">
               <AdminButton variant="filled" size="sm">
                 {label}
@@ -261,15 +387,16 @@ export const FilledStateLayers: Story = {
   ),
   play: async ({ canvasElement }) => {
     for (const control of within(canvasElement).getAllByRole("button")) {
-      await expect(stateLayer(control)).toMatchObject({ beneath: true, neutralInk: true });
-      await expect(stateLayer(control).minContrast).toBeGreaterThanOrEqual(4.5);
+      const style = getComputedStyle(control);
+      await expect(colorParts(style.backgroundColor).rgb.join(" ")).toBe(
+        readToken("--tone-action", control)
+      );
+      await expect(colorParts(style.color).rgb.join(" ")).toBe(
+        readToken("--tone-on-action", control)
+      );
       await userEvent.tab();
       await expect(control).toHaveFocus();
-      await waitFor(() =>
-        expect(getComputedStyle(control, "::after").opacity).toBe(
-          readToken("--m3-state-focus", control)
-        )
-      );
+      await waitFor(() => expect(drawsFocusRing(control)).toBe(true));
     }
   },
 };

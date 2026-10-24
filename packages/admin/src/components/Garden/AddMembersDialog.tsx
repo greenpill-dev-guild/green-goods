@@ -420,7 +420,7 @@ export function AddMembersDialog({
                 </AdminIconButton>
                 <AdminButton
                   type="button"
-                  variant="tonal"
+                  variant="outlined"
                   onClick={() => handleAddToList()}
                   disabled={busy || !typedEntryCommitReady || resolvingEns}
                   leadingIcon={<RiAddLine />}

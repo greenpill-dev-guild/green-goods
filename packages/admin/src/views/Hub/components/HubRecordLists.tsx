@@ -121,7 +121,7 @@ function HubRecordGrid({
 
 function CreateRecordLink({ href, label }: { href: string; label: string }) {
   return (
-    <AdminButton size="sm" variant="tonal" asChild>
+    <AdminButton size="sm" variant="outlined" asChild>
       <Link to={href}>{label}</Link>
     </AdminButton>
   );

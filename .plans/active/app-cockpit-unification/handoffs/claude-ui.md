@@ -803,6 +803,47 @@ Human corrections: 0 observed; attention: unknown.
   before and after ([eval.md](../eval.md#step-20-phase-4-proof-cards-and-tabs)); the admin tests
   that render these pieces (37) and the three story files pass. No authenticated class.
 
+## Step 20, phase 1: shared buttons (PRD-1287)
+
+- `feature/app-cockpit-shared-buttons`, cut from `develop` `796e9e1bb`; its guide wording (DL-115,
+  Rule 18, the cockpit guide, the prompt contract) is the standards-only
+  `feature/app-cockpit-shared-buttons-guides`, #1253.
+- **The adapters.** `AdminButton.tsx` renders the shared `Button` and `IconButton`. Filled is the
+  primary, outlined and elevated the secondary, text the tertiary, danger and outlined danger the
+  danger tone; sm, md and lg are the shared compact, sm and lg sizes. Icon buttons: standard and
+  accent the tertiary, tonal the secondary circle, filled the primary, danger the tertiary in the
+  danger tone. They keep `loading`, `leadingIcon` (sized 16 / 18px), `asChild`, the label as name
+  and tooltip, the `type="button"` default and their `data-component`.
+- **Tonal.** The 21 tonal actions moved to `outlined` (retries, creates, deposit, add, mark
+  reviewed, harvest, back, OpenSea) or `text` (the Impact tab's two view-all links and the yield
+  card's show-all). The three tonal choices (Overview's range and activity filters, the campaign
+  jar's custom token) keep the cockpit's pill through a legacy branch in the adapter: phase 2.
+- **Tokens.** `index.css` sets seven in its unlayered `:root` (the dark block re-declares the
+  disabled pair), mirrored in `surfaces.css` and pinned by `AdminDensityScale.guard`: no press
+  scale, an 18px icon glyph, round pressed icon buttons, no disabled dim, the neutral disabled fill
+  and ink, and pointer events on an aria-disabled button. Shared's `theme.css` reads each with the
+  app's value as fallback, and every button and icon button emphasis now names its fill and ink
+  (`--gg-button-fill`, `--gg-button-ink` and the icon pair) so the disabled rule can swap them.
+  Each size also reads a cap (the cockpit caps each at its block, so a stretching row never grows
+  a button) and a reserve token as its block margin (6px around 28 and 32px, 2px around 40px, set
+  on the two adapters rather than `:root`, as the hit-target classes were, since the shared pieces
+  the cockpit renders never reserved it).
+- **Behaviour.** A loading button stays focusable (`aria-disabled`, `aria-busy`) and ignores
+  presses, as the shared Button always has; five tests assert that now. Outlined and text labels
+  take the neutral inks, the filled hover is its tone's measured hover step, and buttons drop the
+  elevation shadow.
+- Proof: the admin suite, the Shared button and style tests, typechecks, and the pairs, all
+  **Storybook** (static builds of `develop` and the branch), with the real screens drawn from the
+  cockpit's view stories ([eval.md](../eval.md#step-20-phase-1-proof-shared-buttons)). No authenticated
+  class: none of the changed files is on a browser-proof path.
+- Calls for the maintainer: the neutral outlined and text labels (the tone accent leaves 148
+  buttons); the dropped elevation; the three tonal choices waiting for phase 2; and the shared
+  pieces that already rendered the shared Button in the cockpit, which take the same disabled pair.
+- Not in the step: the call-site rename and deleting the `Admin*` button files; `admin-hit-target`
+  stays for the cockpit's own compact controls; three admin tests still mock the shared `Button`
+  from before their components moved to `AdminButton` (`DepositModal`, `AttestationSelector`,
+  `CreateAction`), so they exercise a mock, not the adapter.
+
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker

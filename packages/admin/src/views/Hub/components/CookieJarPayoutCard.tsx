@@ -216,7 +216,7 @@ export function CookieJarPayoutCard({
 
           <div className="grid grid-cols-2 gap-2">
             <AdminButton
-              variant="tonal"
+              variant="outlined"
               size="sm"
               leadingIcon={<RiWalletLine />}
               onClick={onDeposit}

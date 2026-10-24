@@ -1,143 +1,55 @@
+import {
+  Button,
+  type ButtonEmphasis,
+  type ButtonSize,
+  type ButtonTone,
+} from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiLoader4Line } from "@remixicon/react";
 import * as React from "react";
-import { tv, type VariantProps } from "tailwind-variants";
+import { tv } from "tailwind-variants";
 
 // ============================================================================
-// Variant System
+// The cockpit's buttons are the shared family (DL-115)
 // ============================================================================
+//
+// AdminButton and AdminIconButton keep their names and props, so the cockpit's
+// call sites are unchanged, and render the shared Button and IconButton. Each
+// variant maps onto a shared emphasis and tone, and each size onto the shared
+// size that the cockpit's tokens put on its 28 / 32 / 40px tiers with a 44px
+// finger box (index.css, DL-031). The cockpit's look lives in those tokens, not
+// in classes here. A later pass renames the call sites and retires these files.
 
-const adminButtonVariants = tv({
-  base: [
-    // Layout & shape
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap",
-    "rounded-[var(--m3-shape-full)]",
-    // Geometry parity — every variant carries a 1px border box so the box never
-    // changes width when a button swaps filled↔outlined (e.g. the active-tab
-    // action). Auto-width buttons grow by the border, so without this the
-    // outlined variant rendered 2px wider than filled (measured). Outlined
-    // overrides only the border COLOR.
-    "border border-transparent",
-    // Typography — Title Case labels as authored ("Create Assessment",
-    // DL-012; en only — es/pt keep native casing); no text-transform.
-    "type-label font-medium",
-    // Motion
-    "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-    // State layer (pseudo-element overlay defined in admin-m3-tokens.css)
-    "m3-state-layer",
-    // Focus ring
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
-    // Disabled
-    "disabled:pointer-events-none",
-    "disabled:bg-[rgb(var(--m3-on-surface)/0.12)] disabled:text-[rgb(var(--m3-on-surface)/0.38)] disabled:shadow-none",
-    // aria-disabled looks the same but keeps focus and hover, so a reason
-    // shown on hover or focus still reaches the steward.
-    "aria-disabled:cursor-not-allowed",
-    "aria-disabled:bg-[rgb(var(--m3-on-surface)/0.12)] aria-disabled:text-[rgb(var(--m3-on-surface)/0.38)] aria-disabled:shadow-none",
-  ],
-  variants: {
-    variant: {
-      // Filled — highest emphasis. Uses the workspace's `--tone-action` so each
-      // view feels distinct (Hub blue / Garden green / Community orange /
-      // Actions red / Home stone). Hover keeps geometry stable and uses
-      // elevation/state-layer feedback instead of translating the control.
-      // The state layer is the default neutral ink (Rule 18), painted beneath
-      // the label: it deepens a light fill and lifts a dark one, so a pressed
-      // label never loses the contrast it has at rest.
-      filled: [
-        "bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
-        "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
-        "m3-state-layer-beneath",
-      ],
-      // Tonal — medium emphasis
-      tonal: [
-        "bg-[rgb(var(--m3-secondary-container))] [color:rgb(var(--m3-on-secondary-container))]",
-        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
-        "[--state-layer-color:var(--m3-on-secondary-container)]",
-      ],
-      // Elevated — medium emphasis with surface tint
-      elevated: [
-        "bg-[rgb(var(--m3-surface-container-low))] [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
-        "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
-        "[--state-layer-color:var(--m3-primary)]",
-      ],
-      // Outlined — low emphasis with border. Matches the filled hover through
-      // elevation gain, without moving the button box.
-      outlined: [
-        "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
-        "border-[rgb(var(--m3-outline))]",
-        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
-        "[--state-layer-color:var(--m3-primary)]",
-      ],
-      // Text — lowest emphasis
-      text: [
-        "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
-        "shadow-[var(--m3-elevation-0)]",
-        "[--state-layer-color:var(--m3-primary)]",
-      ],
-      // Danger — destructive action
-      danger: [
-        "bg-[rgb(var(--m3-error))] [color:rgb(var(--m3-on-error))]",
-        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
-        "[--state-layer-color:var(--m3-on-error)]",
-      ],
-      // Outlined danger — a destructive action at outlined emphasis, beside a
-      // filled primary (Reject next to Approve). The focus ring stays the tone ring.
-      outlinedDanger: [
-        "bg-transparent [color:rgb(var(--m3-error))]",
-        "border-[rgb(var(--m3-error))]",
-        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
-        "[--state-layer-color:var(--m3-error)]",
-      ],
-    },
-    size: {
-      // Compact cockpit metric (DL-011): 28 / 32 / 40. Every tier carries a
-      // 44px finger box (admin-hit-target for sm and md, the 2px-margin
-      // admin-hit-target-lg for lg) and the one 14px label (DL-030): the size
-      // difference carries the emphasis, never a type jump.
-      // Densest action — list rows, table actions, inline text buttons.
-      sm: "admin-hit-target h-7 px-2.5 type-label",
-      // Standard action (32dp).
-      md: "admin-hit-target h-8 px-4 type-label",
-      // Prominent first-action button (40dp).
-      lg: "admin-hit-target-lg h-10 px-5 type-label",
-    },
-    hasLeadingIcon: {
-      true: "pl-3",
-      false: "",
-    },
-  },
-  compoundVariants: [
-    // When hasLeadingIcon + md → pl-3 pr-4
-    { size: "md", hasLeadingIcon: true, class: "pl-3 pr-4" },
-    // When hasLeadingIcon + sm → pl-2 pr-2.5 (tight spacing for the dense size)
-    { size: "sm", hasLeadingIcon: true, class: "pl-2 pr-2.5" },
-    // When hasLeadingIcon + lg → pl-3.5 pr-5
-    { size: "lg", hasLeadingIcon: true, class: "pl-3.5 pr-5" },
-  ],
-  defaultVariants: {
-    variant: "filled",
-    size: "md",
-    hasLeadingIcon: false,
-  },
-});
+export type AdminButtonVariant =
+  | "filled"
+  | "tonal"
+  | "elevated"
+  | "outlined"
+  | "text"
+  | "danger"
+  | "outlinedDanger";
+export type AdminButtonSize = "sm" | "md" | "lg";
 
-// ============================================================================
-// Types
-// ============================================================================
+const BUTTON_EMPHASIS: Record<
+  Exclude<AdminButtonVariant, "tonal">,
+  { emphasis: ButtonEmphasis; tone?: ButtonTone }
+> = {
+  filled: { emphasis: "primary" },
+  outlined: { emphasis: "secondary" },
+  // No shared emphasis is a raised surface; elevated sat beside outlined.
+  elevated: { emphasis: "secondary" },
+  text: { emphasis: "tertiary" },
+  danger: { emphasis: "primary", tone: "danger" },
+  outlinedDanger: { emphasis: "secondary", tone: "danger" },
+};
 
-type AdminButtonVariantProps = VariantProps<typeof adminButtonVariants>;
+/** The cockpit's tiers on the shared sizes its tokens put at 28, 32 and 40px. */
+const SHARED_SIZE: Record<AdminButtonSize, ButtonSize> = { sm: "compact", md: "sm", lg: "lg" };
 
-export interface AdminButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    Omit<AdminButtonVariantProps, "hasLeadingIcon"> {
-  /** Render as child element (Radix Slot pattern). */
-  asChild?: boolean;
-  /** Show spinner + aria-busy. */
-  loading?: boolean;
-  /** Leading icon element — adjusts padding automatically. */
-  leadingIcon?: React.ReactNode;
-}
+// The shared Button leaves its leading glyph unsized: 16px on the densest
+// tier, 18px otherwise.
+const glyphSize = (size: AdminButtonSize) => (size === "sm" ? "h-4 w-4" : "h-[18px] w-[18px]");
 
 type SlottableChildProps = {
   className?: string;
@@ -146,66 +58,88 @@ type SlottableChildProps = {
   [key: string]: unknown;
 };
 
-// ============================================================================
-// Component
-// ============================================================================
+export interface AdminButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: AdminButtonVariant | null;
+  size?: AdminButtonSize | null;
+  /** Render as child element (Radix Slot pattern). */
+  asChild?: boolean;
+  /** Show spinner + aria-busy; the button stays focusable and ignores presses. */
+  loading?: boolean;
+  /** Leading icon element. */
+  leadingIcon?: React.ReactNode;
+}
 
-export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>(
-  (
-    {
-      className,
-      variant,
-      size,
-      asChild = false,
-      loading = false,
-      leadingIcon,
-      disabled,
-      children,
-      // Native buttons default to type="submit", so an AdminButton inside any
-      // <form> would submit it (full page reload) unless every call site
-      // remembers type="button". Default to the safe type; submit buttons opt
-      // in explicitly. Not forwarded to asChild clones (anchors have no type).
-      type = "button",
-      ...props
+// ============================================================================
+// Tonal: the chosen option in a set, until phase 2
+// ============================================================================
+//
+// Tonal has no shared emphasis. Its remaining uses mark the chosen option in a
+// set (a range, a filter, a token), which is a choice rather than an action, so
+// it keeps the cockpit's tonal pill until phase 2 moves those sets onto a
+// choice control (DL-115).
+
+const tonalChoice = tv({
+  base: [
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap",
+    "rounded-[var(--m3-shape-full)] border border-transparent",
+    "type-label font-medium",
+    "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
+    "m3-state-layer",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
+    "disabled:pointer-events-none",
+    "disabled:bg-[rgb(var(--m3-on-surface)/0.12)] disabled:text-[rgb(var(--m3-on-surface)/0.38)] disabled:shadow-none",
+    "aria-disabled:cursor-not-allowed",
+    "aria-disabled:bg-[rgb(var(--m3-on-surface)/0.12)] aria-disabled:text-[rgb(var(--m3-on-surface)/0.38)] aria-disabled:shadow-none",
+    "bg-[rgb(var(--m3-secondary-container))] [color:rgb(var(--m3-on-secondary-container))]",
+    "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
+    "[--state-layer-color:var(--m3-on-secondary-container)]",
+  ],
+  variants: {
+    size: {
+      sm: "admin-hit-target h-7 px-2.5",
+      md: "admin-hit-target h-8 px-4",
+      lg: "admin-hit-target-lg h-10 px-5",
     },
+    hasLeadingIcon: { true: "pl-3", false: "" },
+  },
+  compoundVariants: [
+    { size: "md", hasLeadingIcon: true, class: "pl-3 pr-4" },
+    { size: "sm", hasLeadingIcon: true, class: "pl-2 pr-2.5" },
+    { size: "lg", hasLeadingIcon: true, class: "pl-3.5 pr-5" },
+  ],
+});
+
+const TonalChoiceButton = React.forwardRef<
+  HTMLButtonElement,
+  Omit<AdminButtonProps, "variant" | "size"> & { size: AdminButtonSize }
+>(
+  (
+    { size, asChild, loading = false, leadingIcon, disabled, className, children, ...props },
     ref
   ) => {
-    const hasLeadingIcon = Boolean(leadingIcon) || loading;
-
-    const classes = cn(adminButtonVariants({ variant, size, hasLeadingIcon }), className);
-
-    // 16px icons in the densest tier; 18px otherwise.
-    const iconSize = size === "sm" ? "h-4 w-4" : "h-[18px] w-[18px]";
+    const classes = cn(
+      tonalChoice({ size, hasLeadingIcon: Boolean(leadingIcon) || loading }),
+      className
+    );
     const leadingSlot = loading ? (
-      <RiLoader4Line className={cn(iconSize, "shrink-0 animate-spin")} aria-hidden />
-    ) : leadingIcon ? (
-      <span className={cn(iconSize, "shrink-0 [&>svg]:h-full [&>svg]:w-full")} aria-hidden>
-        {leadingIcon}
-      </span>
-    ) : null;
-
-    const content = (
-      <>
-        {leadingSlot}
-        {children}
-      </>
+      <RiLoader4Line className={cn(glyphSize(size), "shrink-0 animate-spin")} aria-hidden />
+    ) : (
+      leadingIcon
     );
 
-    // asChild pattern — clone the single child element and apply button styling
     if (asChild && React.isValidElement(children)) {
       const child = children as React.ReactElement<SlottableChildProps>;
-      const childProps = child.props;
-
+      const { type: _type, ...linkProps } = props;
       return React.cloneElement(child, {
-        ...(props as SlottableChildProps),
+        ...(linkProps as SlottableChildProps),
         ref,
-        className: cn(classes, childProps.className),
+        className: cn(classes, child.props.className),
         "data-component": "AdminButton",
         "aria-busy": loading || undefined,
         children: (
           <>
             {leadingSlot}
-            {childProps.children}
+            {child.props.children}
           </>
         ),
       });
@@ -218,11 +152,77 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
         className={classes}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
-        type={type}
         {...props}
       >
-        {content}
+        {leadingSlot}
+        {children}
       </button>
+    );
+  }
+);
+
+TonalChoiceButton.displayName = "TonalChoiceButton";
+
+// ============================================================================
+// AdminButton
+// ============================================================================
+
+export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>(
+  (
+    {
+      variant,
+      size,
+      asChild = false,
+      loading = false,
+      leadingIcon,
+      // Native buttons default to type="submit", so an AdminButton inside any
+      // <form> would submit it unless every call site remembers type="button".
+      // Default to the safe type; submit buttons opt in. A link has no type.
+      type = "button",
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const tier = size ?? "md";
+    const icon = leadingIcon ? (
+      <span className={cn(glyphSize(tier), "shrink-0 [&>svg]:h-full [&>svg]:w-full")} aria-hidden>
+        {leadingIcon}
+      </span>
+    ) : undefined;
+
+    if (variant === "tonal") {
+      return (
+        <TonalChoiceButton
+          ref={ref}
+          size={tier}
+          asChild={asChild}
+          loading={loading}
+          leadingIcon={icon}
+          type={type}
+          {...props}
+        >
+          {children}
+        </TonalChoiceButton>
+      );
+    }
+
+    const { emphasis, tone } = BUTTON_EMPHASIS[variant ?? "filled"];
+    return (
+      <Button
+        ref={ref}
+        data-component="AdminButton"
+        emphasis={emphasis}
+        tone={tone}
+        size={SHARED_SIZE[tier]}
+        loading={loading}
+        leadingIcon={icon}
+        asChild={asChild}
+        type={asChild ? undefined : type}
+        {...props}
+      >
+        {children}
+      </Button>
     );
   }
 );
@@ -230,72 +230,27 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
 AdminButton.displayName = "AdminButton";
 
 // ============================================================================
-// Icon Button
+// AdminIconButton
 // ============================================================================
 
-const adminIconButtonVariants = tv({
-  base: [
-    "inline-flex shrink-0 items-center justify-center",
-    "rounded-[var(--m3-shape-full)]",
-    "border border-transparent",
-    "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-    "m3-state-layer",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
-    "disabled:pointer-events-none disabled:text-[rgb(var(--m3-on-surface)/0.38)]",
-  ],
-  variants: {
-    variant: {
-      // Standard — the M3 default: on-surface-variant glyph, ink state layer.
-      standard: [
-        "bg-transparent [color:rgb(var(--m3-on-surface-variant))]",
-        "[--state-layer-color:var(--m3-on-surface)]",
-      ],
-      // Accent — tone-colored glyph for emphasized inline actions (external
-      // links, primary row actions) without a filled container.
-      accent: [
-        "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
-        "[--state-layer-color:var(--m3-primary)]",
-      ],
-      // Tonal — secondary-container fill, medium emphasis.
-      tonal: [
-        "bg-[rgb(var(--m3-secondary-container))] [color:rgb(var(--m3-on-secondary-container))]",
-        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
-        "[--state-layer-color:var(--m3-on-secondary-container)]",
-        "disabled:bg-[rgb(var(--m3-on-surface)/0.12)]",
-      ],
-      // Filled — highest emphasis, workspace tone fill, the neutral ink state
-      // layer painted beneath the glyph.
-      filled: [
-        "bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
-        "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
-        "disabled:bg-[rgb(var(--m3-on-surface)/0.12)]",
-        "m3-state-layer-beneath",
-      ],
-      // Danger — destructive glyph; feedback stays the error-tinted ink layer.
-      danger: [
-        "bg-transparent [color:rgb(var(--m3-error))]",
-        "[--state-layer-color:var(--m3-error)]",
-      ],
-    },
-    size: {
-      // DL-011 compact tiers; every tier carries the 44px finger box (DL-030).
-      // Glyphs ride 16px in sm, 18px in md/lg.
-      sm: "admin-hit-target h-7 w-7 [&_svg]:h-4 [&_svg]:w-4",
-      md: "admin-hit-target h-8 w-8 [&_svg]:h-[18px] [&_svg]:w-[18px]",
-      lg: "admin-hit-target-lg h-10 w-10 [&_svg]:h-[18px] [&_svg]:w-[18px]",
-    },
-  },
-  defaultVariants: {
-    variant: "standard",
-    size: "md",
-  },
-});
+export type AdminIconButtonVariant = "standard" | "accent" | "tonal" | "filled" | "danger";
 
-type AdminIconButtonVariantProps = VariantProps<typeof adminIconButtonVariants>;
+const ICON_EMPHASIS: Record<AdminIconButtonVariant, { emphasis: ButtonEmphasis; tone?: "danger" }> =
+  {
+    standard: { emphasis: "tertiary" },
+    // The workspace tone keeps to its six uses (Rule 18): an accent glyph takes
+    // the neutral ink of the standard one.
+    accent: { emphasis: "tertiary" },
+    // A tonal circle was a row or overlay action (send, remove a photo), which
+    // the outlined circle carries.
+    tonal: { emphasis: "secondary" },
+    filled: { emphasis: "primary" },
+    danger: { emphasis: "tertiary", tone: "danger" },
+  };
 
-export interface AdminIconButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    AdminIconButtonVariantProps {
+export interface AdminIconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: AdminIconButtonVariant | null;
+  size?: AdminButtonSize | null;
   /**
    * Accessible name — icon buttons have no text, so the name is mandatory.
    * Applied as aria-label and title (hover tooltip).
@@ -303,36 +258,40 @@ export interface AdminIconButtonProps
   label: string;
   /** Render as child element (Radix Slot pattern) — e.g. an anchor or Link. */
   asChild?: boolean;
-  /** Show spinner + aria-busy in place of the glyph. */
+  /** Show spinner + aria-busy in place of the glyph; the button stays focusable. */
   loading?: boolean;
 }
 
 export const AdminIconButton = React.forwardRef<HTMLButtonElement, AdminIconButtonProps>(
   (
     {
-      className,
       variant,
       size,
       label,
       asChild = false,
       loading = false,
-      disabled,
-      children,
       type = "button",
+      className,
+      children,
       ...props
     },
     ref
   ) => {
-    const classes = cn(adminIconButtonVariants({ variant, size }), className);
-    const glyph = loading ? <RiLoader4Line className="animate-spin" aria-hidden /> : children;
+    const { emphasis, tone } = ICON_EMPHASIS[variant ?? "standard"];
+    const sharedSize = SHARED_SIZE[size ?? "md"];
 
     if (asChild && React.isValidElement(children)) {
+      // The shared IconButton is always a <button>, so a link drawn as one takes
+      // the class and state attributes the IconButton renders.
       const child = children as React.ReactElement<SlottableChildProps>;
       return React.cloneElement(child, {
         ...(props as SlottableChildProps),
         ref,
-        className: cn(classes, child.props.className),
+        className: cn("gg-icon-button", child.props.className, className),
         "data-component": "AdminIconButton",
+        "data-emphasis": emphasis,
+        "data-tone": tone,
+        "data-size": sharedSize,
         "aria-label": label,
         title: label,
         "aria-busy": loading || undefined,
@@ -340,19 +299,20 @@ export const AdminIconButton = React.forwardRef<HTMLButtonElement, AdminIconButt
     }
 
     return (
-      <button
+      <IconButton
         ref={ref}
         data-component="AdminIconButton"
-        className={classes}
-        disabled={disabled || loading}
         aria-label={label}
         title={label}
-        aria-busy={loading || undefined}
+        icon={children}
+        emphasis={emphasis}
+        tone={tone}
+        size={sharedSize}
+        loading={loading}
         type={type}
+        className={className}
         {...props}
-      >
-        {glyph}
-      </button>
+      />
     );
   }
 );

@@ -44,7 +44,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
               variant="text"
               size="sm"
               onClick={() => setPreviewIndex(index)}
-              className="group relative aspect-square h-auto min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
+              className="group relative aspect-square h-auto max-h-none min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
               aria-label={`View ${actionTitle ? `${actionTitle} ` : ""}photo ${index + 1} of ${resolvedMedia.length}`}
             >
               <ImageWithFallback

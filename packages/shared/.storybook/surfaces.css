@@ -93,6 +93,17 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  --gg-button-block-cap-lg: var(--gg-button-block-lg);
+  --gg-button-block-cap-md: var(--gg-button-block-md);
+  --gg-button-block-cap-sm: var(--gg-button-block-sm);
+  --gg-button-block-cap-compact: var(--gg-button-block-compact);
+  --gg-button-pressed-transform: none;
+  --gg-icon-button-glyph: 1.125rem;
+  --gg-icon-button-radius-pressed: var(--radius-full);
+  --gg-button-disabled-opacity: 1;
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
+  --gg-button-aria-disabled-events: auto;
   --gg-control-outline: var(--m3-outline);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
@@ -150,6 +161,15 @@
   }
 }
 
+/* The adapters' finger-box reserve, as admin index.css sets it (DL-115). */
+:root[data-surface="admin"] :where([data-component="AdminButton"], [data-component="AdminIconButton"]),
+[data-surface-scope="admin"] :where([data-component="AdminButton"], [data-component="AdminIconButton"]) {
+  --gg-button-reserve-lg: 0.125rem;
+  --gg-button-reserve-md: 0.125rem;
+  --gg-button-reserve-sm: 0.375rem;
+  --gg-button-reserve-compact: 0.375rem;
+}
+
 :root[data-surface="admin"][data-theme="dark"],
 [data-theme="dark"] [data-surface-scope="admin"],
 [data-surface-scope="admin"][data-theme="dark"] {
@@ -169,6 +189,8 @@
   --g-on-action: rgb(var(--neutral-950));
   --gg-sheet-fill: rgb(var(--admin-surface-0));
   --gg-sheet-edge: rgb(var(--earth-700));
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
   --gg-card-surface: var(--admin-surface-0);
   --gg-card-edge: var(--earth-700);
   --gg-card-fill: var(--m3-surface-container-high);

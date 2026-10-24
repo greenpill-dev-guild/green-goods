@@ -140,7 +140,7 @@ export default function RouteErrorBoundary() {
       actions={
         <div className="flex gap-3">
           <AdminButton
-            variant="tonal"
+            variant="outlined"
             leadingIcon={<RiArrowLeftLine />}
             onClick={() => navigate(-1)}
           >
