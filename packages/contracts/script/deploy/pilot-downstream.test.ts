@@ -1,10 +1,69 @@
 // TEST-QUALITY: allow-small-test-file - Transaction envelope and canonicality failures must stop this one-shot operator before a deployment can become a completed checkpoint.
 import { describe, expect, it } from "vitest";
-import type { TransactionReceipt, TransactionResponse } from "ethers";
+import {
+  Interface,
+  concat,
+  zeroPadValue,
+  type JsonRpcProvider,
+  type TransactionReceipt,
+  type TransactionResponse,
+} from "ethers";
 import type { SourceUpgradePlan } from "../utils/source-upgrade-release";
 import type { SourceExecutionJournal } from "../utils/source-upgrade-execution-types";
-import { assertDownstreamReceipt, sourceImplementationCheckpoint } from "./pilot-downstream";
+import { assertDownstreamReceipt, ownerBatch, sourceImplementationCheckpoint } from "./pilot-downstream";
 const sender = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
+describe("atomic Safe rehearsal with ABI-decoded owners", () => {
+  it.each([1, 2])("executes a %i-signature batch without mutating Ethers results", async (threshold) => {
+    const abi = new Interface([
+      "function getOwners() view returns(address[])",
+      "function getThreshold() view returns(uint256)",
+      "function nonce() view returns(uint256)",
+      "function approveHash(bytes32)",
+      "function execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes) returns(bool)",
+    ]);
+    const owners = [
+      "0x0000000000000000000000000000000000000003",
+      "0x0000000000000000000000000000000000000001",
+      "0x0000000000000000000000000000000000000002",
+    ];
+    const review = {
+      safe: sender,
+      nonce: 34,
+      safeTransactionHash: "0x" + "11".repeat(32),
+      message: { to: sender, data: "0x1234", gasToken: "0x" + "00".repeat(20), refundReceiver: "0x" + "00".repeat(20) },
+    };
+    let nonce = review.nonce;
+    const transactions: { from: string; to: string; data: string }[] = [];
+    const provider = {
+      call: async ({ data }: { data: string }) => {
+        const name = abi.parseTransaction({ data })!.name;
+        return abi.encodeFunctionResult(name, [
+          name === "getOwners" ? owners : name === "getThreshold" ? threshold : nonce,
+        ]);
+      },
+      send: async (method: string, args: any[]) => {
+        if (method !== "eth_sendTransaction") return true;
+        const tx = args[0];
+        transactions.push(tx);
+        if (abi.parseTransaction(tx)!.name === "execTransaction") nonce++;
+        return "0x" + transactions.length.toString(16).padStart(64, "0");
+      },
+      getTransactionReceipt: async () => ({ status: 1, gasUsed: 100000n }),
+    } as unknown as JsonRpcProvider;
+    const result = await ownerBatch(provider, review);
+    const selected = threshold === 1 ? [owners[0]] : [owners[1], owners[0]];
+    expect(transactions.slice(0, threshold).map((tx) => tx.from)).toEqual(selected);
+    for (const tx of transactions.slice(0, threshold))
+      expect(abi.decodeFunctionData("approveHash", tx.data)[0]).toBe(review.safeTransactionHash);
+    const execution = abi.decodeFunctionData("execTransaction", transactions[threshold].data);
+    expect(execution[9]).toBe(
+      concat(selected.map((owner) => concat([zeroPadValue(owner, 32), zeroPadValue("0x00", 32), "0x01"]))),
+    );
+    expect(execution[2]).toBe(review.message.data);
+    expect(nonce).toBe(35);
+    expect(result.syntheticOwnerApprovals).toBe(true);
+  });
+});
 function fixture() {
   const tx = {
     chainId: 100,

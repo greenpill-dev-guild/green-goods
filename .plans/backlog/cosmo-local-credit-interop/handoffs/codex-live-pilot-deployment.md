@@ -1896,3 +1896,33 @@ Agent/model: Codex / unknown | Coverage: user-reported implementation mismatch
 
 Human corrections: one observed (incorrect implementation ordering in the delivered verifier);
 attention: unknown.
+
+## 2026-10-24 — Immutable Safe owner array repair
+
+The next operator attempt reached the atomic Safe rehearsal and stopped before the password
+prompt or any live broadcast. Ethers decodes `getOwners()` as an immutable `Result`; its
+`slice()` also returns an immutable `Result`. Sorting that slice threw the reported readonly
+property error. The rehearsal now copies the owners into a plain array before selecting and
+sorting the signing subset. Owner selection, threshold, signatures and live transaction policy
+are unchanged.
+
+A regression invokes the actual `ownerBatch` function through Ethers contract ABI decoding,
+with a synthetic RPC boundary. The two-owner case failed at the original sort; both one-owner
+and two-owner cases now pass and verify the approval order, signature bytes and nonce increment.
+The complete focused file passes 18 cases, plus 37 CLI checks; package typecheck, scoped lint
+and ABI synchronization pass. The full required production verification is running separately
+against matching secret-free snapshot inputs. This test is not a live-chain rehearsal; the
+operator still runs both live-state forks before requesting the single deployer password.
+No downstream execution journal or lock exists, so the same operator command can be retried
+after validation without clearing state or repeating completed source deployment work.
+
+Task record: Cosmo live pilot deployment | Type: fix | Outcome: repair prepared, production validation pending
+Agent/model: Codex / unknown | Coverage: user-reported readonly-property error
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+| --- | --- | --- |
+| Investigate | unknown | Exact Ethers immutable-array failure reproduced. |
+| Implement | unknown | Copy decoded owners before sorting; preserve all signing policies. |
+| Verify | ongoing | Regression RED/GREEN, 18 focused and 37 CLI cases, types, lint and ABI synchronization pass; production gate running. |
+
+Human corrections: one observed (another error in the delivered operator); attention: unknown.

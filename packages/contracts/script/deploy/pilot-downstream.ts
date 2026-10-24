@@ -330,12 +330,14 @@ function exportPacket(r: any) {
   writeReleaseJsonAtomic(path.join(Q, r.file + ".safe-batch.review.json"), r);
 }
 
-async function ownerBatch(p: JsonRpcProvider, review: any) {
+export async function ownerBatch(p: JsonRpcProvider, review: any) {
   const safe = new Contract(review.safe, SAFE, p);
   same(await safe.nonce(), review.nonce, "Atomic Safe nonce");
   const owners: string[] = await safe.getOwners();
   const threshold = Number(await safe.getThreshold());
-  const selected = owners.slice(0, threshold).sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : 1));
+  const selected = Array.from(owners)
+    .slice(0, threshold)
+    .sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : 1));
   const signatures = concat(selected.map((a) => concat([zeroPadValue(a, 32), zeroPadValue("0x00", 32), "0x01"])));
   for (const owner of selected) {
     await p.send("anvil_impersonateAccount", [owner]);
