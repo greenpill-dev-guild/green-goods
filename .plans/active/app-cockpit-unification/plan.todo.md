@@ -242,3 +242,17 @@ tab holding the pill's width. The bar keeps its 69px, its chrome, its count badg
 behavior, and the cockpit's bar is unchanged
 ([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
 standards-only `feature/app-cockpit-bar-pill-guides`.
+
+**Step 19, first pass (24 October).** Steps 14 to 18 move card consumers in parallel, so step 19
+runs in two passes. The first removes what nothing rendered on `develop`: `CardBase` and Shared's
+own `Card`, `StatCard`, `ProposalCardConviction`, the list toolbar and sort control the cockpit
+had replaced with its own, and the work row's unused status-border helper. It also makes the glass
+DL-108 named solid: `Surface`'s four levels (and with them the Hub's empty, error and loading
+frame), the garden menu, the cockpit's two hover tooltips, and the app's install and offline
+strips. The code is `feature/app-cockpit-unused-card-code`, and the guide wording, with the public
+design page's role-map caption, is the standards-only `feature/app-cockpit-unused-card-code-guides`
+([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-1286),
+[eval.md](eval.md#step-19-proof-unused-card-code-and-solid-surfaces)). The second pass waits for
+steps 16 and 18: `VaultPositionCard`, `WorkbenchRow` and the `glass-raised` left on `WorkbenchCard`
+and `WorkbenchList`, and the app's `GardenCard` and work row module, which share their Shared
+card's name.

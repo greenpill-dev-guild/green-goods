@@ -369,6 +369,43 @@
   tab the app's ring on keyboard focus, pinned by the story's `KeyboardFocus` play
   ([eval.md](../eval.md#step-21-proof-the-bottom-bars-pill)).
 
+## Step 19: unused card code (PRD-1286)
+
+- Two passes, because steps 14 to 18 move card consumers in parallel. The first pass is
+  `feature/app-cockpit-unused-card-code`, cut from `develop` `a3645441c`; its guide wording is the
+  standards-only `feature/app-cockpit-unused-card-code-guides`.
+- **Removed, nothing rendered them:** `CardBase` with Shared's own `Card` and their header, title,
+  body and footer parts, `cardVariants` and `surfaceCardVariants` (and the
+  `./components/Cards/CardBase` export, so the API index and the four seam fingerprints are
+  regenerated); `StatCard`; `ProposalCardConviction` (the Governance panel draws its own proposal
+  rows); the list toolbar and sort control, `ListToolbar` and `SortSelect`, which the cockpit's
+  `AdminSearchToolbar` and `AdminSortSelect` replaced (the Hub's sort choices keep their own type,
+  and their three strings stay, since the cockpit's controls read them); and the work row's
+  `getStatusBorderClass`, unused since the row's status edge became `data-edge` (DL-102). Their
+  stories go with them, and the Foundation token story draws its panels on `.gg-card`.
+- **Solid, as DL-108 requires:** `Surface` draws its four levels solid and drops its glass
+  elevations and the `solid-*` names (`FormFlow` asks for `raised`), so the Hub's empty, error and
+  loading frame (`EmptyStateShell` on the ground level) loses its 8px blur and its gradient its
+  alpha; the garden menu takes the chip's own raised surface (`--surface-raised`), with its
+  divider on the surface's hairline so it still shows on the dark card; the cockpit's AppBar and
+  single-action FAB tooltips take `AdminTooltip`'s solid inverse surface; and the app's install
+  and offline strips are opaque with no blur. The `glass-ground`, `glass-floating` and
+  `glass-overlay` utilities, the Glass story and the two glass tokens nothing read are gone, and
+  the `theme.css` comments point at surfaces.md § Solid Surfaces.
+- Proof: the Shared, app and cockpit suites and typechecks, and the pairs, **Storybook** for the
+  cockpit and the strips' stories and **mock-auth localhost** for the app's strips
+  ([eval.md](../eval.md#step-19-proof-unused-card-code-and-solid-surfaces)). No authenticated
+  class: none of the changed files is on a browser-proof path.
+- **The second pass**, after steps 14 to 18 merge: `VaultPositionCard`, which nothing renders
+  (step 18's object); `WorkbenchRow`, which nothing renders, and the `glass-raised` that
+  `WorkbenchCard` and `WorkbenchList` still carry (step 16's records); and the two app wrappers
+  that share their Shared card's name, `GardenCard` and the work row's `Cards/Work/WorkCard`
+  module (step 16 makes the garden card a media card).
+- Not in the step: Shared's `MainSheet` still carries `glass-surface` and renders only in cockpit
+  stories; the cockpit's glass guard in `check-tokens.sh` scans `packages/admin/src` only, which is
+  how the glass in Shared and the app went unflagged; and when the app is offline in a mobile
+  browser the 16px offline strip covers only the top of the 24px install strip.
+
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker
