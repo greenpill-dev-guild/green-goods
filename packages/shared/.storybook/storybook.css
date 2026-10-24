@@ -128,12 +128,12 @@
   /* Unscoped (not .admin-m3-gated) so PORTALED admin dialogs — which escape
      the .admin-m3 subtree — keep the dark footer/hairline. Mirrors the
      unscoped [data-theme="dark"] block in packages/admin/src/index.css. */
-  --surface-raised: rgb(var(--neutral-900));
+  --surface-raised: rgb(var(--m3-surface-container));
   --hairline: rgb(var(--neutral-50) / 0.08);
 }
 
 :is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) {
-  --surface-raised: rgb(var(--neutral-900));
+  --surface-raised: rgb(var(--m3-surface-container));
   --outline: rgb(var(--neutral-50) / 0.10);
   --color-text-strong: rgb(var(--text-strong-950));
   --color-text-sub: rgb(var(--text-sub-600));

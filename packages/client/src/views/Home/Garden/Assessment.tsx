@@ -1,9 +1,11 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useGardenAssessmentRecords } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { formatReportingPeriod } from "@green-goods/shared/utils/time";
+import { RiErrorWarningLine, RiSearchLine } from "@remixicon/react";
 import type { FC } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
@@ -36,17 +38,27 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
     // An assessment missing from a list that could not be read, or could not be
     // refreshed, has not been shown to be missing.
     const unread = Boolean(garden) && (status === "error" || refreshFailed);
-    const message = looking
-      ? null
-      : intl.formatMessage({
-          id: unread ? "app.garden.assessments.loadError" : "app.garden.assessments.notFound",
-        });
     return (
       <article>
         <TopNav onBackClick={() => window.history.back()} overlay />
         <div className="padded pt-[var(--app-top-bar-height)]">
-          <WorkViewSkeleton showMedia={false} showActions={false} numDetails={2} />
-          {message ? <p className="mt-6 text-center text-sm text-text-sub-600">{message}</p> : null}
+          {looking ? (
+            <WorkViewSkeleton showMedia={false} showActions={false} numDetails={2} />
+          ) : unread ? (
+            <EmptyState
+              tone="error"
+              icon={<RiErrorWarningLine />}
+              title={intl.formatMessage({ id: "app.garden.assessments.loadError.title" })}
+              description={intl.formatMessage({
+                id: "app.garden.assessments.loadError.description",
+              })}
+            />
+          ) : (
+            <EmptyState
+              icon={<RiSearchLine />}
+              title={intl.formatMessage({ id: "app.garden.assessments.notFound" })}
+            />
+          )}
         </div>
       </article>
     );

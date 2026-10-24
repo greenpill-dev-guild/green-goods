@@ -202,8 +202,8 @@ const messages = {
   "app.garden.admin.backToGarden": "Back to Garden",
   "app.work.detail.loading": "Loading work...",
   "app.work.detail.loadingDescription": "Fetching work details.",
-  "app.work.detail.loadError":
-    "Work details could not be loaded. Check your connection and try again.",
+  "app.work.detail.loadError.description": "Check your connection and try again.",
+  "app.work.detail.loadError.title": "Work details could not be loaded",
   "app.work.detail.title": "Work Detail",
   "app.work.detail.notFoundDescription": "The requested work submission could not be found.",
   "app.work.detail.notFound": "Work not found",
@@ -704,9 +704,7 @@ describe("WorkDetail view", () => {
       React.createElement(WorkDetailPanel, { workId: "0xWork", layout: "sheet" })
     );
 
-    expect(
-      screen.getByText("Work details could not be loaded. Check your connection and try again.")
-    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Work details could not be loaded");
     expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
   });
 

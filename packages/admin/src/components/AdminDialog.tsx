@@ -5,16 +5,18 @@ import {
   type KeyboardEventHandler,
   type ReactNode,
   type RefObject,
-  isValidElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
-import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { SheetGrip } from "@green-goods/shared/components/Dialog/SheetHeader";
+import { useFocusAfterFlip, useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminButton } from "./AdminButton";
+import { AdminDialogHeader } from "./AdminDialogHeader";
 import { releaseStuckDialogArtifacts } from "./Layout/dialogCloseSafetyNet";
 
 // ============================================================================
@@ -133,6 +135,15 @@ const mobileSheetClasses = cn(
   "sm:inset-x-auto sm:left-1/2 sm:bottom-auto sm:top-1/2 sm:w-full sm:max-h-[calc(100dvh-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2"
 );
 
+// The centered dialog's own surface: page-container corners, the warm
+// container step and elevation 2. Below 640px the shared bottom sheet's
+// material (`[data-sheet-surface]`, shared utilities.css) takes its place.
+const dialogSurfaceClasses = cn(
+  "rounded-t-[var(--m3-shape-lg)] sm:rounded-[var(--m3-shape-lg)]",
+  "bg-[rgb(var(--m3-surface-container-high))]",
+  "shadow-[var(--m3-elevation-2)]"
+);
+
 const closeButtonClasses = cn(
   // Centered on the compact header title row (py-3 + the 28px title-large line).
   "absolute right-3 top-1.5 z-10",
@@ -165,6 +176,13 @@ const closeButtonClasses = cn(
  * - Close button: absolute top-right, centered on the title row
  * - palette/flow suppress the structured header/padding and own their chrome
  * - Animations: sheet slide-up (mobile) / zoom (desktop) on open/close
+ *
+ * Below 640px every variant is the installed app's bottom sheet in look (F5):
+ * the shared sheet material and grip (`SheetGrip`, visual only: the sheet does
+ * not drag), and the shared `SheetHeader` in place of the structured header,
+ * keeping the 22px title and the target line but no icon, with a hairline
+ * under it only while the body scrolls. Radix still owns opening, closing,
+ * focus and dismissal, so they behave as on desktop.
  */
 export function AdminDialog({
   open,
@@ -194,7 +212,10 @@ export function AdminDialog({
   tone = "home",
 }: AdminDialogProps) {
   const { formatMessage } = useIntl();
+  const closeLabel = formatMessage({ id: "app.common.close" });
   const rendersAsSheet = useMediaQuery("(max-width: 639px)");
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  useFocusAfterFlip(rendersAsSheet, surfaceRef, '[data-slot="close"]');
   const mobileSheetSize = rendersAsSheet ? sheetSize : undefined;
   // Hidden tabs freeze CSS animations, so a close that happens while the tab
   // is backgrounded would never fire animationend — Radix Presence keeps the
@@ -230,12 +251,6 @@ export function AdminDialog({
   // structured header (icon/title/description) is suppressed and the title is
   // kept screen-reader-only for the Radix dialog a11y contract.
   const hasStructuredHeader = variant !== "palette" && variant !== "flow";
-  const iconNode =
-    typeof Icon === "function" ? (
-      <Icon className="h-6 w-6 text-[rgb(var(--m3-on-surface-variant))]" />
-    ) : isValidElement(Icon) ? (
-      Icon
-    ) : null;
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
@@ -257,11 +272,13 @@ export function AdminDialog({
 
         {/* Dialog panel */}
         <Dialog.Content
+          ref={surfaceRef}
           data-component="AdminDialog"
           data-slot="surface"
           data-variant={variant}
           data-tone={tone}
           data-mobile="sheet"
+          data-sheet-surface={rendersAsSheet ? "" : undefined}
           data-sheet-size={mobileSheetSize}
           data-size={size}
           data-instant-exit={instantExit || undefined}
@@ -269,11 +286,8 @@ export function AdminDialog({
           className={cn(
             // Every mobile variant spans the viewport; desktop sizing remains variant-specific.
             mobileSheetClasses,
-            "rounded-t-[var(--m3-shape-lg)] sm:rounded-[var(--m3-shape-lg)]",
-            // Surface
-            "bg-[rgb(var(--m3-surface-container-high))]",
-            // Elevation 2
-            "shadow-[var(--m3-elevation-2)]",
+            // Below 640px the shared sheet material paints the surface instead.
+            !rendersAsSheet && dialogSurfaceClasses,
             // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by
             // the [data-component="AdminDialog"][data-slot="surface"][data-state]
             // rules in admin-m3-components.css. Those keyframes animate only
@@ -304,12 +318,18 @@ export function AdminDialog({
             finalFocusRef.current.focus();
           }}
         >
-          {/* Close button - absolute top-right */}
-          {!hideCloseButton ? (
+          {/* Below 640px the sheet's grip tops the surface. It marks the
+              sheet only: the cockpit's sheet does not drag. */}
+          {rendersAsSheet ? <SheetGrip /> : null}
+
+          {/* Close button - absolute top-right. Below 640px the shared header
+              carries a structured dialog's close (useFocusAfterFlip hands focus
+              across); palette and flow keep this one, under the grip. */}
+          {!hideCloseButton && !(rendersAsSheet && hasStructuredHeader) ? (
             <Dialog.Close
               data-slot="close"
-              className={closeButtonClasses}
-              aria-label={formatMessage({ id: "app.common.close" })}
+              className={cn(closeButtonClasses, rendersAsSheet && "top-7")}
+              aria-label={closeLabel}
               disabled={preventClose}
             >
               <RiCloseLine className="h-6 w-6" aria-hidden />
@@ -317,40 +337,18 @@ export function AdminDialog({
           ) : null}
 
           {hasStructuredHeader ? (
-            <header
-              data-slot="header"
-              className={cn(
-                "shrink-0 border-b border-stroke-soft px-4 py-3 sm:px-6",
-                // Clearance for the absolute close button on the title row.
-                !hideCloseButton && "pr-14"
-              )}
-            >
-              <div className="flex items-start gap-3">
-                {iconNode ? (
-                  <span className="mt-0.5 shrink-0" aria-hidden="true">
-                    {iconNode}
-                  </span>
-                ) : null}
-                <div className="min-w-0">
-                  <Dialog.Title className="type-title-lg font-semibold text-[rgb(var(--m3-on-surface))]">
-                    {title}
-                  </Dialog.Title>
-                  {target ? (
-                    <div data-slot="target" className="mt-2">
-                      {target}
-                    </div>
-                  ) : null}
-                  <Dialog.Description
-                    className={cn(
-                      description ? "mt-0.5 type-body" : "sr-only",
-                      "text-[rgb(var(--m3-on-surface-variant))]"
-                    )}
-                  >
-                    {description ?? title}
-                  </Dialog.Description>
-                </div>
-              </div>
-            </header>
+            <AdminDialogHeader
+              title={title}
+              target={target}
+              description={description}
+              icon={Icon}
+              rendersAsSheet={rendersAsSheet}
+              closeLabel={closeLabel}
+              onClose={() => handleOpenChange(false)}
+              closeDisabled={preventClose}
+              hideCloseButton={hideCloseButton}
+              closeTestId="admin-dialog-close"
+            />
           ) : (
             <>
               <Dialog.Title className="sr-only">{title}</Dialog.Title>
@@ -361,6 +359,9 @@ export function AdminDialog({
           <div
             data-slot="body"
             data-testid="admin-dialog-body"
+            // Under the shared header, a hairline shows only while the body
+            // scrolls under it (DL-028).
+            data-scroll-edge={rendersAsSheet && hasStructuredHeader ? "top" : undefined}
             className={cn(
               "min-h-0 flex-1 overflow-y-auto type-body",
               "text-[rgb(var(--m3-on-surface-variant))]",

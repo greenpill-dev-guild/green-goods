@@ -20,7 +20,8 @@ import {
 import { forwardRef, memo, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { List, type RowComponentProps, useDynamicRowHeight } from "react-window";
-import { Badge, EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { Badge } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";

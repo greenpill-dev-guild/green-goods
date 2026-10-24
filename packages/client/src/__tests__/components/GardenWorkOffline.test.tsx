@@ -12,10 +12,6 @@ vi.mock("@/components/Cards", () => ({
     <div data-testid="cached-work">{work.title}</div>
   ),
 }));
-vi.mock("@/components/Communication", async () => ({
-  ...(await import("../../components/Communication/EmptyState")),
-  Loader: () => <div>Loading</div>,
-}));
 
 import enMessages from "@green-goods/shared/i18n/en";
 import type { Work } from "@green-goods/shared/types/domain";

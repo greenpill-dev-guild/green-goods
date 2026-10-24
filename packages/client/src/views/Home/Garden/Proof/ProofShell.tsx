@@ -10,7 +10,8 @@ import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 
 import { FormInfo } from "@/components/Cards";
-import { EmptyState, FormProgress } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { FormProgress } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
 
 export interface ProofShellProps {

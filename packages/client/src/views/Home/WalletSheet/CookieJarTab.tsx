@@ -24,7 +24,7 @@ import { RiArrowDownSLine, RiErrorWarningLine, RiInboxLine, RiWifiOffLine } from
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   PWA_SHEET_SCROLL_CLASSNAME,
   PWA_SHEET_FOCAL_STATE_CLASSNAME,

@@ -12,6 +12,7 @@
   `feature/app-cockpit-control-outline` (#1195) with its guides
   `feature/app-cockpit-control-outline-guides` (#1196), both first stacked on step 2's. Step 4:
   `feature/app-cockpit-count-badge` with its guides `feature/app-cockpit-count-badge-guides`.
+  Step 7: `feature/app-cockpit-cards-rows` with its guides `feature/app-cockpit-cards-rows-guides`.
 - Status: in progress. Steps 1 to 3 merged on 23 October; step 4 was approved on its pair the same
   day; every later step starts on its own approved pair. Still pending: labeled authenticated Brave proof of an installed app's first
   launch with no network (step 1) and of the installed app's status bar, with the iOS check of
@@ -235,6 +236,84 @@
 - Not in the step: the shared `Chip` the cockpit renders (`ConfidenceSelector`, `AssetSelector`)
   still selects in the app's green, not the workspace tone.
 
+## Step 7: cards, rows and list gap (PRD-1273)
+
+- `feature/app-cockpit-cards-rows`, cut from `develop` and brought up to `ce0d71953` (#1206):
+  - **One card surface.** `.gg-card` in Shared `theme.css`: the 24px corner (`--gg-card-radius`), a
+    1px edge, the card fill, and a faint shadow in light only (`--gg-card-shadow`). Only the cockpit
+    declares `--gg-card-surface`, `--gg-card-edge` and `--gg-card-fill` (admin `index.css`, mirrored
+    in Storybook's `surfaces.css` and pinned by `AdminDensityScale.guard`), so the app's scopes
+    resolve their own white and stroke, and both surfaces measure the same card and edge in dark.
+    `data-edge` draws the 2px status edge. The five card primitives (client `Card`, `AdminCard`,
+    Shared `Surface`, `CardBase`, Shared `Card`) take the surface and keep their exports for step 19.
+  - **The item row.** `ItemRow` and `ItemRowSkeleton` on the new leaf export
+    `@green-goods/shared/components/Cards/ItemRow/ItemRow` (the `cards` barrel does not resolve in
+    the client and admin Vitest aliases): 88px, an 88px photo or a 56px icon tile, a one-line title
+    in the new card title role (`type-card-title`: 15px at 500 in the app, 13px at 600 in the
+    cockpit), one status pill under it, at most two details on one 11px line that drop whole when
+    they do not fit (a first detail too long on its own ends in an ellipsis), the row's one action in
+    its right slot, and a 16px corner. Stories: `Shared/Cards/ItemRow`; the fit helper
+    `packages/shared/.storybook/itemRowFit.ts` checks 88px rows and lines that never wrap or cut.
+  - **On the row now:** Shared `WorkCard` (who · age, ages always a short number, the photo count on
+    the photo; in the app, feedback in the age's place, never a second pill), the app's pending and
+    draft rows (`PendingCard`, `DraftCard`), and the cockpit's
+    queue below 600px (`HubWorkQueue` renders the work row, with `hubWorkTitle()` shared with
+    `HubWorkCard`, and loads with five row skeletons).
+  - **List gap.** `--gg-list-gap` (12px) on the garden's Work tab, Your Work's lists and the cockpit's
+    queue grid.
+- Proof: focused tests for the row's API, the work row's short ages in three languages, the app's
+  work and pending rows, the cockpit's phone queue and the card surface, and the Storybook story
+  tests of the row, the work row and the pending row, whose fit checks run in English, Spanish and
+  Portuguese at both surfaces' phone widths. The look is the pairs: **mock-auth localhost** for the
+  app and **Storybook** for the cockpit, no authenticated class
+  ([eval.md](../eval.md#step-7-build-cards-rows-and-list-gap)).
+- Guides: DL-102, both surface guides, Rules 8 and 18, `language.md` and the review checklist are the
+  standards-only `feature/app-cockpit-cards-rows-guides` (#1218), with token version 2.29.0,
+  provisional: the merge takes the next free number.
+- Calls the pairs raise, each with a recommendation in the pairs artifact: the pending rows' long
+  "when you're connected" reasons drop the saved time on three or four of six kinds at 390px and end
+  in an ellipsis in Portuguese; feedback takes the age's place on every work row, and at 320px a
+  completed row drops it; the proof and promise markers become a mark on the photo (DL-061 marked
+  proof in words); a completed row without feedback shows its age, not "Review added to the garden
+  record"; a nested card in the cockpit takes the same 24px card; and the card title keeps each
+  surface's title weight.
+## Step 9: phone sheets (PRD-1275)
+
+- F5 was locked on 18 October, so the pairs ([eval.md](../eval.md#step-9-proof-phone-sheets)) are
+  acceptance evidence, not a gate. Built on `feature/app-cockpit-phone-sheets`, cut from
+  `develop` `d84d48398`.
+- Shared: the grip is `SheetGrip`, a named export on the existing `components/Dialog/SheetHeader`
+  leaf (no new export path), a drag region only when a sheet binds the gesture to it; the bottom
+  sheet's material is one `[data-sheet-surface]` rule in `utilities.css` that `PwaSheet` carries
+  too, reading `--gg-sheet-fill` and `--gg-sheet-edge` with the installed app's values as
+  fallbacks; `SheetHeader` gains a `target` line between the title and the description and reads
+  `--gg-sheet-title-size` and `--gg-sheet-title-line`; the scroll-edge hairline and its cover
+  follow the sheet's own edge and fill.
+- Cockpit: below 640px `AdminDialog` and `AdminSideSheet` carry the material and the grip, which
+  marks the sheet and does not drag it, and their header is the shared `SheetHeader` through
+  `AdminDialogHeader` (the dialog's header, centered or phone, in one place). Flows and the command
+  palette keep their own header under the grip, with the dialog's close moved down below it.
+  `index.css` sets the four `--gg-sheet-*` tokens (the card step and its hairline, re-declared in
+  the dark block, and the 22px dialog title), mirrored in Storybook and pinned by
+  `AdminDensityScale.guard`. From 640px nothing changes.
+- Proof: focused tests run the same behavior on both presentations (focus lands on Close when the
+  dialog opens and returns to the opener through `finalFocusRef`; Close and Escape close it;
+  `preventClose` holds both), and pin the phone anatomy (the material attribute, a grip without a
+  drag region, the shared header's order and accessible description, the side sheet's phone form),
+  `SheetHeader`'s target line, `SheetGrip`'s grab region and the CSS contracts. Storybook geometry
+  stories pin the phone header, grip, 22px title and white surface, and the flow's close under the
+  grip. The look is **Storybook** (cockpit) and **mock-auth localhost** (app) pairs; no
+  authenticated class is involved.
+- Guides: DL-104 and its wording in both surface guides, the prompt contract, Rule 18's elevation
+  line, the review checklist, `language.md`, `implementation.md` and `interaction-patterns.md`
+  are the standards-only `feature/app-cockpit-phone-sheets-guides`, with token version 2.26.0.
+- Open: whether the grip also drags the sheet closed in the cockpit.
+- Not in the step: the centered dialog's header keeps 24px of right padding from 640px, so a long
+  title can run under its close button (a desktop defect on `develop`); the cockpit sheet's enter
+  keyframe keeps its 2% overshoot, which DL-033 removed from the app's sheet. Storybook's dark
+  `--surface-raised` mirror (neutral-900, where the cockpit uses the card step) skewed the dark
+  pairs' footer, so the step corrects it.
+
 ## Step 21: bottom bar active pill (PRD-1288)
 
 - `feature/app-cockpit-bar-pill`, cut from `develop` `d84d48398`: `AppBar` draws each tab's line
@@ -297,6 +376,13 @@
   fails it, the restored one passes), and its look is `proof_limit` on the approved pairs.
   Step 21's bar pill is styling, `not_applicable` for RED and GREEN: its story plays fail when the
   12px padding or the pill's fill comes back, and its look is `proof_limit` on the pairs.
+- Step 7: tests written beside the code, then replayed against `develop`'s components (the branch's
+  tests over `ce0d71953`'s source, swapped into the worktree): 15 of 52 failed across the 7 files,
+  each on step 7's behaviour (short ages, one pill, the row's details and Discard, the phone queue's
+  rows and skeletons, the card surface, the cockpit's new tokens), 3 of them only because they read
+  the title from the row's title slot; the ItemRow file failed to import. All pass on the branch. The
+  feedback test, added after the replay, fails with the row's feedback fallback removed and passes
+  restored. The look is `proof_limit` on the pairs.
 
 ## Validation Receipt
 

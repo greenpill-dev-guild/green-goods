@@ -20,13 +20,13 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import type { WorkDashboardPendingFilter } from "@green-goods/shared/stores/useUIStore";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
-import { RiErrorWarningLine, RiRefreshLine, RiTaskLine } from "@remixicon/react";
+import { RiErrorWarningLine, RiLoader4Line, RiRefreshLine, RiTaskLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { DraftCard } from "@/components/Cards";
 import { PendingCard } from "@/components/Cards/Work/PendingCard";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
-import { EmptyState, Loader } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import {
   decisionRow,
@@ -284,15 +284,15 @@ export const PendingTab: React.FC<PendingTabProps> = ({
       </WorkListHeader>
 
       {isLoading ? (
-        <div className="flex flex-1 flex-col items-center justify-center pb-32">
-          <Loader />
-          <p className="mt-4 text-sm text-text-soft-400">
-            {intl.formatMessage({
-              id: "app.workDashboard.loading",
-              defaultMessage: "Loading your work...",
-            })}
-          </p>
-        </div>
+        <EmptyState
+          className="flex-1"
+          placement="sheet"
+          icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+          title={intl.formatMessage({
+            id: "app.workDashboard.loading",
+            defaultMessage: "Loading your work...",
+          })}
+        />
       ) : failed ? (
         <EmptyState
           className="flex-1"
@@ -329,7 +329,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
           description={intl.formatMessage({ id: "app.workDashboard.pending.description" })}
         />
       ) : (
-        <ul className="flex flex-col gap-3 px-4 pb-6" data-testid="pending-list">
+        <ul className="flex flex-col gap-(--gg-list-gap) px-4 pb-6" data-testid="pending-list">
           {shown.map((row) => (
             <li key={row.id} className="cv-draft-card">
               <PendingRowCard
