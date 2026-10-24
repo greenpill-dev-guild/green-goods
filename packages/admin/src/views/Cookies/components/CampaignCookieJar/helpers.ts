@@ -34,26 +34,3 @@ export function gardensForAggregation(gardens: readonly Garden[]) {
     stewards: garden.stewards,
   }));
 }
-
-export function formatCampaignDate(seconds: number | undefined, locale: string): string | null {
-  if (!seconds) return null;
-  return new Intl.DateTimeFormat(locale, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(seconds * 1000);
-}
-
-export function formatSourceGardens(
-  sourceGardens: readonly Address[],
-  gardensByAddress: Map<string, Garden>
-): string {
-  if (sourceGardens.length === 0) return "";
-  const names = sourceGardens
-    .map((address) => gardensByAddress.get(address.toLowerCase())?.name)
-    .filter((name): name is string => Boolean(name));
-  if (names.length === 0) return `${sourceGardens.length} gardens`;
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  return `${names[0]} and ${names.length - 1} more`;
-}

@@ -23,7 +23,6 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
     campaignSearch,
     setCampaignSearch,
     visibleCampaigns,
-    gardensByAddress,
     setSelectedCampaign,
     selectedCampaign,
     selectedCampaignTitle,
@@ -80,7 +79,6 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         campaignSearch={campaignSearch}
         setCampaignSearch={setCampaignSearch}
         visibleCampaigns={visibleCampaigns}
-        gardensByAddress={gardensByAddress}
         onSelectCampaign={setSelectedCampaign}
         headerAction={headerAction}
       />
