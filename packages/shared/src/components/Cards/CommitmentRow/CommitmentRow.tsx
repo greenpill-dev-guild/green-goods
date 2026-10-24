@@ -155,7 +155,8 @@ const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
 /** A row that names someone reads their name the way the shared address display does. */
 const NamedRow = React.forwardRef<HTMLElement, RowViewProps & { person: Address }>(
   function NamedRow({ person, ...props }, ref) {
-    const { display } = useAddressDisplayName(person);
+    // A list's rows read their Green Goods names together, in one batch.
+    const { display } = useAddressDisplayName(person, { list: true });
     return <RowView ref={ref} {...props} personName={display} />;
   }
 );
