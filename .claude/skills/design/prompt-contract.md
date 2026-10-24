@@ -187,9 +187,9 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 
 `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFilterChip` · `AdminInlineField` · `AdminLinearProgress` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSettingRow` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
 
-Form selects use `AdminSelect` (full field anatomy, permanently floated label, chevron slot, empty-value option as the placeholder row); `AdminSortSelect` is the toolbar sort pill only, never a form control.
+Form selects use `AdminSelect` (full field anatomy, the label above, chevron slot, empty-value option as the placeholder row); `AdminSortSelect` is the toolbar sort pill only, never a form control.
 
-**Field anatomy**: the filled variant with its bottom underline is the cockpit's default field look ("the line"); use `variant="outlined"` only when a field sits ON a filled surface (e.g. inside a container-highest panel) where the underline would vanish. All fields share the 44px compact height, 14px text, and one error anatomy: label + indicator/ring recolor to `--m3-error`, supporting text in the family slot (`AdminInlineField` included).
+**Field anatomy** (DL-105): one look, the installed app's: the label above an outlined 8px box, then a message line that reserves two lines. The filled field with its underline is retired, and so is the `variant` prop. All fields share the responsive tier (44px with 16px text on touch widths, 40px with 14px from 640px) and one error anatomy: the label and the ring recolor to `--m3-error`, with the message on the reserved line (`AdminInlineField` and `AdminFieldGroup` included).
 
 (`AdminBadge`, `AdminFab`, and `AdminListItem` were deleted 2026-08-29. Do not reintroduce them; the nav-shell FAB is `Shell/FabButton`.)
 

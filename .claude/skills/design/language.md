@@ -412,6 +412,8 @@ No action is shorter than 32px and no hit area is smaller than 44px. Fields use 
 (`controlSize` sm 40, md 44, lg 48), and a single-line field is exactly its step whatever its text:
 display-size digits and editorial type sit centered inside it instead of growing it.
 
+**Field anatomy** (DL-105): every field, on both surfaces, puts its label above the control at the field title's 14px / 500 (`gg-field-label`) and its hint, error or count on the message line under it (`gg-field-message`, 12/16px type). The line reserves the surface's message lines whether or not it shows a message, two on both surfaces, so a message that fits never moves the form and a longer one grows the line. The surface keeps its corner and heights.
+
 **Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
 required; a header launcher's count or status dot rides its `badge` slot), `Chip` (a 32px capsule
@@ -426,7 +428,8 @@ chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconB
 
 **Surface tokens**: every size reads one block token (`--gg-button-block-*`, `--gg-icon-size-*`)
 plus `--gg-button-inline-*`, `--gg-hit-block`, and the label sizes `--gg-label-md/sm`, with the app
-scale as the fallback, beside the corner and weight tokens. A surface moves the whole family by
+scale as the fallback, beside the corner and weight tokens. Fields read `--gg-field-message-lines`
+for their message line (two by default). A surface moves the whole family by
 setting the tokens, never by restyling a component (DL-031).
 
 **Color variants** (from M3): Filled (primary), Outlined (secondary), Text (tertiary). A tonal fill is not a separate emphasis. Combined with shape, these give sufficient hierarchy without introducing more sizes.
