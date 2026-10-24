@@ -243,3 +243,15 @@ tab holding the pill's width. The bar keeps its 69px, its chrome, its count badg
 behavior, and the cockpit's bar is unchanged
 ([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
 standards-only `feature/app-cockpit-bar-pill-guides`.
+
+**Step 14 (24 October).** `feature/app-cockpit-fact-rows` gives both surfaces one fact row: Shared's
+`FactList` and `FactRow` on the new leaf `./components/Cards/FactRow`, a label beside its value in
+divided rows, the labels in one column as wide as the longest (up to 40%), and the row's one action
+in its right slot; a row with no value is a setting. The search found more local rows than the
+census's eleven, and all of them moved: the cockpit's `AdminSettingRow` (retired), `FlowStatusRow`'s
+summary, `DetailRow`, `InfoRow`, both `ReviewRow`s, `DetailField`, `PoolFundingDialogFact`, the
+commitment and settlement fact rows, `ChangeSummary` and the rails' stat rows; the app's `Fact`
+(retired), `SummaryRow`, `ReadinessRow`, the settings rows and the claim panel's rows; and the inline
+fact lists on the same screens. The 136 pairs and the measurements are in
+[eval.md](eval.md#step-14-build-fact-rows). DL-109 and the guide wording are the standards-only
+`feature/app-cockpit-fact-rows-guides` (#1232).
