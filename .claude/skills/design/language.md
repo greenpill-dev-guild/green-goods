@@ -89,7 +89,8 @@ drift from 12px to 20px.
 | Status dots, tiny badges | 4px | `rounded` | Fixed | None |
 | Tags and text badges | 8px | `--radius-md` · `rounded-md` | Fixed | None |
 | Content inside cards, actions inside a field, a pressed app button | 12px | `--radius-squircle` | Concentric | Card or field (16px) - 4px |
-| Cards, fields (DL-022) | 16px | `--radius-lg` · `rounded-lg` · `.gg-control` | Concentric | Panel (20px) - 4px |
+| Fields (DL-022), item rows (DL-102) | 16px | `--radius-lg` · `rounded-lg` · `.gg-control` · `--gg-row-radius` | Concentric | Panel (20px) - 4px |
+| Cards on both surfaces (DL-102) | 24px | `--gg-card-radius` · `.gg-card` | Fixed | None |
 | Panels, sheets | 20px | `--radius-xl` · `rounded-xl` | Concentric | Page (24px) - 4px |
 | Modals, dialogs, bottom sheets | 24px | `--radius-2xl` · `rounded-2xl` | Concentric | Viewport edge |
 | Icon buttons | circle | `.gg-icon-button` | Capsule | None |
@@ -130,7 +131,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 
 **Haptics** (DL-039, DL-041): the installed app answers every press from one listener (`installPressHaptics`, mounted by `PwaRuntime`, so sign-in answers too). The listener reads what the markup already says: tabs (the app bar's included, as `data-pressable="tab"`), chips, switches, radios and checkboxes (native or ARIA), and anything with a pressed state (`aria-pressed`, such as a card that toggles a choice) get the selection tap; buttons, links, and every other declared pressable (card, row, media, trigger, fab) get the light tap. Text fields, dropdowns, scrims, and disabled controls stay silent. A new control answers without asking, so a control never calls a press haptic itself; outcome haptics (success, error, warning) stay with the code that knows the outcome. Settings offers a Vibration switch, shown only where the device can vibrate (iPhones have no Vibration API). The admin cockpit and the public website install nothing.
 
-**Admin carve-out**: the card motion above is client canon. Admin cards never lift, scale, or glow. Hover/press feedback is an elevation step (`--m3-elevation-1`→`2`) or the neutral ink layer `rgb(var(--m3-on-surface)/0.08)` only.
+**Admin carve-out**: the card motion above is client canon. Admin cards never lift, scale, glow, or step up in elevation: a card is the shared card surface (DL-102), and its hover and press feedback is the neutral ink layer `rgb(var(--m3-on-surface)/0.08)` only.
 
 **Shipped CSS** (shared `theme.css`, components layer; abridged):
 ```css
@@ -249,7 +250,7 @@ Motion is built into components, not applied externally:
 | Component | Motion | Spring Token |
 |-----------|--------|-------------|
 | **Buttons** | App: shape morph on press (the corner tightens one step). Website: capsule, no morph | `--spring-spatial-fast` |
-| **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift/scale/glow, only elevation 1→2 or the neutral 8% ink layer | `--spring-spatial-fast` |
+| **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift, scale, glow or elevation step, only the neutral 8% ink layer (DL-102) | `--spring-spatial-fast` |
 | **Client/PWA sheets** | Slide up from the bottom edge in one move, never past rest; follow the finger on a drag; accelerate out from rest, or leave at speed on a flick (DL-033) | `--spring-spatial-slow` in · `--spring-spatial-exit` out · `--spring-spatial` for a settle or a flick |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
 | **Progress (wavy)** | Organic wave motion on track | `--spring-effects-slow` |
@@ -351,10 +352,10 @@ Dark mode is a **deliberate palette, not a light inversion**. Three rules carry 
 | `surface-container-lowest` | `--earth-975` | `13% .010 65` | `10 7 4` | Sunken wells |
 | `surface-container-low` | `--earth-925` | `19% .014 65` | `24 19 13` | Quiet grouping (`--bg-weak-50`, info cards) |
 | `surface-container` | `--earth-850` | `26% .016 65` | `42 35 28` | **Default card** (`--bg-white-0`) |
-| `surface-container-high` | `--earth-800` | `30% .018 65` | `52 44 36` | Sheet / dialog inner; chips and fills on a card (`--bg-soft-200`) |
+| `surface-container-high` | `--earth-800` | `30% .018 65` | `52 44 36` | Centered dialog and docked side sheet inner (a phone sheet takes the card step, DL-104); chips and fills on a card (`--bg-soft-200`) |
 | `surface-container-highest` / `surface-bright` | `--earth-750` | `34% .019 65` | `62 52 44` | Active / hover (`--bg-sub-300`) |
 
-The installed app's dark card hairline is `--earth-700` (`67 61 55`, the ink at 12% over the card); the cockpit's card takes the ring below instead.
+The dark card hairline on both surfaces is `--earth-700` (`67 61 55`, the ink at 12% over the card): the shared card surface's edge (DL-102).
 
 **2. Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at low opacity, 8% on the resting card, stepping across the single `--m3-elevation-0/1/2` ladder) plus a small black blur only for chrome floating over content, never a black drop shadow as the primary cue. The dark canvas stays constant; the only workspace atmosphere is the same faint `--tone-surface-tint-color` top wash as light (10% in dark, fading to transparent by 320px). The per-workspace canvas hue wash is retired.
 
@@ -404,6 +405,8 @@ No action is shorter than 32px and no hit area is smaller than 44px. Fields use 
 (`controlSize` sm 40, md 44, lg 48), and a single-line field is exactly its step whatever its text:
 display-size digits and editorial type sit centered inside it instead of growing it.
 
+**Field anatomy** (DL-105): every field in the installed app and the cockpit puts its label above the control at the field title's 14px / 500 (`gg-field-label`) and its hint, error or count on the message line under it (`gg-field-message`, 12/16px type). The line reserves the surface's message lines whether or not it shows a message, two on each, so a message that fits never moves the form and a longer one grows the line. Each surface keeps its corner and heights, and the public website keeps its underline field (DL-024).
+
 **Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
 required; a header launcher's count or status dot rides its `badge` slot), `Chip` (a 32px capsule
@@ -416,9 +419,12 @@ app's bottom bar). All live in
 are field-shaped triggers (`gg-control`), `ConfidenceSelector` and `AssetSelector` are radio
 chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-031).
 
+**Tab rows** (DL-100) share one anatomy on both surfaces: equal-width cells, the active cell tinted with its accent at 10% under the accent label and a 2px underline, and the `CountBadge` beside the label with no ring. Labels are 12px below 640px and 14px from 640px, at weight 500 whether selected or not. Each surface keeps its height and its overflow: the installed app's `StandardTabs` are 44px (48px from 640px) and let a long label take a second line; the cockpit's `AdminTabRail` is 36px, keeps every label on one line in a cell never narrower than its content, and scrolls a row that cannot hold its cells. From 640px the cockpit's row is at most 180px per tab and keeps to the left.
+
 **Surface tokens**: every size reads one block token (`--gg-button-block-*`, `--gg-icon-size-*`)
 plus `--gg-button-inline-*`, `--gg-hit-block`, and the label sizes `--gg-label-md/sm`, with the app
-scale as the fallback, beside the corner and weight tokens. A surface moves the whole family by
+scale as the fallback, beside the corner and weight tokens. Fields read `--gg-field-message-lines`
+for their message line (two by default). A surface moves the whole family by
 setting the tokens, never by restyling a component (DL-031).
 
 **Color variants** (from M3): Filled (primary), Outlined (secondary), Text (tertiary). A tonal fill is not a separate emphasis. Combined with shape, these give sufficient hierarchy without introducing more sizes.
@@ -476,6 +482,23 @@ Admin workspace action/detail flows open in centered `AdminDialog`; the admin ca
 Wavy progress makes the indicator feel alive and active: the progress isn't just filling a bar, it's growing. Organic loading shapes align with Green Goods' regenerative identity: a sprouting seed instead of a generic spinner.
 
 **Accessibility**: Wavy styling is purely decorative. The progress value is communicated via `aria-valuenow`. Loading indicators use `aria-busy` and `aria-label`.
+
+### States
+
+Every empty, loading, failed and not-ready state on both surfaces is one state block, Shared's `EmptyState` (DL-106). Its sizes come from the type roles, so each surface draws it at its own density:
+
+| Part | Spec | App (16px density) | Cockpit (14px density) |
+|------|------|--------------------|------------------------|
+| **Tile** | `.gg-state-mark`: a 56px circle with a 24px glyph; the glyph spins while content loads | 56px | 56px |
+| **Title** | `type-title-md`, weight 600, lines balanced | 18/24 | 16/24 |
+| **Line** | `type-body`, one description, no orphans | 16px | 14px |
+| **Action** | The surface's own button, 14px under the line | Shared `Button` | `AdminButton` |
+
+**Color roles**: a calm tile reads `--gg-state-mark-fill` and `--gg-state-mark-ink`. Unset, they give the app's green (`--primary-on-surface` at 10% behind the full ink); the cockpit sets a neutral ink tint (`--text-strong-950` at 6%) and its sub ink, because the workspace tone keeps to its budget (Rule 18). Setting that one pair to the tone's container and ink would turn it to the workspace tint. A warning takes `--warning-lighter` behind `--warning-base`, and a failure `--error-lighter` behind `--error-base`, on both surfaces.
+
+**Behavior**: a failure is announced as an alert; calm and warning states are not live regions. `placement` keeps the app's anchors: `sheet` holds the tile and title at a sheet tab's upper-middle anchor (DL-036), `list` sets them 32px under a list's header row (DL-056), and `center` centers the block in its space. The block draws no frame of its own; it sits in its context's card, dialog or route space.
+
+**Keeps its own anatomy**: logo and boot screens (DL-084), skeleton loading (DL-056), spinners with no words, notices beside content (`JoinToAct`, the reporting `StatusCard`, `SectionStateCard`), and one-line "none yet" notes inside a busy section.
 
 ---
 

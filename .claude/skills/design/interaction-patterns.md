@@ -61,8 +61,9 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   through a small dialog that jumps to a large wizard is the canonical violation. (NN/g
   consistency; Tesler's Law: the system absorbs the complexity, not the user.)
 - **The step rail is declared once per flow and never changes** (validator-enforced in the
-  prototype build; detours render inside their step). Below 620px dialogs present as bottom
-  sheets with the same content and the same footer order.
+  prototype build; detours render inside their step). Below 640px dialogs present as bottom
+  sheets with the same content and the same footer order, in the installed app's sheet
+  material with its grip; a flow keeps its own header under the grip (DL-104).
 - **Action labels are specific**: "Pause pool", "Cancel season", "Approve work", never "OK",
   "Confirm", "Submit". Confirmations name consequences before the act (ecosystem cascade rule).
 - **Dirty flows confirm before discarding** (`useDirtyClose` + `DiscardChangesDialog`);
