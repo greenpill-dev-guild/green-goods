@@ -679,9 +679,6 @@
   --m3-on-primary-container: var(--green-950);
   --m3-error: var(--error-base);
   --m3-on-error: var(--neutral-0);
-  --m3-state-hover: var(--primary-alpha-10);
-  --m3-state-focus: var(--primary-alpha-16);
-  --m3-state-pressed: var(--primary-alpha-24);
 
   /* ── M3 Type Scale ── */
   --type-display-lg: 57px;
@@ -883,9 +880,6 @@
   --m3-on-primary-container: var(--green-100);
   --m3-error: var(--error-base);
   --m3-on-error: var(--neutral-950);
-  --m3-state-hover: var(--primary-alpha-10);
-  --m3-state-focus: var(--primary-alpha-16);
-  --m3-state-pressed: var(--primary-alpha-24);
 
   /* Overlays - darker in dark mode */
   --overlay-gray: 51 51 51 / 56%;

@@ -275,6 +275,57 @@ export function drawnRings(element: Element): string[] {
     .map(([part]) => part);
 }
 
+type Channels = [number, number, number];
+
+const channels = (color: string) =>
+  (color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number) as Channels;
+
+const mix = (color: Channels, layer: Channels, opacity: number) =>
+  color.map((channel, index) => channel * (1 - opacity) + layer[index] * opacity) as Channels;
+
+function luminance(color: Channels) {
+  const [r, g, b] = color.map((channel) => {
+    const c = channel / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(a: Channels, b: Channels) {
+  const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (high + 0.05) / (low + 0.05);
+}
+
+/**
+ * A control's `.m3-state-layer` as the browser resolves it: whether the
+ * `::after` layer sits beneath the content (an isolated box with the layer at
+ * `z-index: -1`), whether it is the neutral ink `--m3-on-surface`, and the
+ * label's lowest contrast against the fill at rest and under the layer at the
+ * hover, focus and pressed opacities. A layer painted over the label moves the
+ * label toward the ink too, and an opacity that is not a number reads as NaN.
+ */
+export function stateLayer(element: Element) {
+  const style = getComputedStyle(element);
+  const layer = getComputedStyle(element, "::after");
+  const beneath =
+    style.isolation === "isolate" && layer.position === "absolute" && layer.zIndex === "-1";
+  const fill = channels(style.backgroundColor);
+  const label = channels(style.color);
+  const ink = channels(layer.backgroundColor);
+  const opacities = ["--m3-state-hover", "--m3-state-focus", "--m3-state-pressed"].map((name) =>
+    Number(readToken(name, element))
+  );
+  const ratios = [0, ...opacities].map((opacity) =>
+    contrastRatio(mix(fill, ink, opacity), beneath ? label : mix(label, ink, opacity))
+  );
+  const onSurface = readToken("--m3-on-surface", element).split(/\s+/).join(", ");
+  return {
+    beneath,
+    neutralInk: layer.backgroundColor === `rgb(${onSurface})`,
+    minContrast: Math.min(...ratios),
+  };
+}
+
 const DEFAULT_TARGET =
   'button, a[href], input, select, textarea, [role="tab"], [role="switch"], [role="button"]';
 
