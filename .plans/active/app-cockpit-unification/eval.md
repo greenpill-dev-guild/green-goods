@@ -1202,15 +1202,16 @@ override for `glass-raised` already painted `--admin-surface-0`, the fill `.gg-c
 
 ## Step 20 phase 1 proof: shared buttons
 
-Run on 2026-10-24 against `develop` `796e9e1bb`, with step 20 phase 1 on
-`feature/app-cockpit-shared-buttons` at `76195349e`, both as static Storybook builds. Every frame is
+Run on 2026-10-24 against `develop` `8476dbd80`, with step 20 phase 1 merged onto it at
+`37ebc54e4` on `feature/app-cockpit-shared-buttons`, both as static Storybook builds. Every frame is
 **Storybook**; the real screens are the cockpit's own view stories, and none shows a real garden.
-The pairs are a private artifact: https://claude.ai/artifact/N3Rr6p2FPETmEUnCWRLqia (16 pairs
-across eleven scenes, light and dark, and the new family matrix).
+The pairs are a private artifact: https://claude.ai/artifact/N3Rr6p2FPETmEUnCWRLqia (17 pairs
+across twelve scenes, light and dark, and the new family matrix).
 
-- **The tiers hold.** Every `AdminButton` in the captures (96 before, 336 after) is 28, 32 or 40px
+- **The tiers hold.** Every `AdminButton` in the captures (93 before, 333 after) is 28, 32 or 40px
   tall for sm, md and lg, with a 44px finger box, a 14px label at 500 and a pill corner; every
-  `AdminIconButton` (20 before, 110 after) is a 28, 32 or 40px circle with a 44px finger box.
+  `AdminIconButton` (24 before, 114 after) is a 28, 32 or 40px circle with a 44px finger box. Each
+  keeps the block margin it reserved before, 6px around 28 and 32px and 2px around 40px.
 - **The disabled pair is the same.** The state catalog's disabled and loading buttons draw a
   `rgba(12, 10, 9, 0.12)` fill under a `rgba(12, 10, 9, 0.38)` label at opacity 1, before and
   after.
@@ -1222,7 +1223,12 @@ across eleven scenes, light and dark, and the new family matrix).
   `AdminButton` fixed its height, while the shared button only sets a minimum, so a row that
   stretches its items took the tonal pill's hit-target margins as its height; a filter chip's do
   the same. Each shared size now reads a cap token that is `none` in the app, the cockpit caps every
-  size at its block (`76195349e`), and the three tiles drawn as buttons lift the cap.
+  size at its block (`76195349e`), and the three tiles drawn as buttons lift the cap. CI's Outcomes
+  Hold Still play found the second: the shared button reserves no block margin, where the cockpit's
+  hit-target classes gave 6px (2px at 40px). The assessment step's section header takes that room
+  back with `-my-2`, so Add Outcome rose 8px above its title. Each shared size now reads a reserve
+  token as its block margin (0 in the app), set on the two adapters (`f7ab9df2d`), and the story's
+  measure is 2px again, as on develop.
 - **What changes, as DL-115 records.** Outlined and text labels take the shared neutral inks and an
   outlined button the card's white fill; the filled hover is its tone's measured hover step;
   buttons drop the elevation shadow; and a loading button stays focusable.

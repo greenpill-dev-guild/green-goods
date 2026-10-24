@@ -824,6 +824,10 @@ Human corrections: 0 observed; attention: unknown.
   and ink, and pointer events on an aria-disabled button. Shared's `theme.css` reads each with the
   app's value as fallback, and every button and icon button emphasis now names its fill and ink
   (`--gg-button-fill`, `--gg-button-ink` and the icon pair) so the disabled rule can swap them.
+  Each size also reads a cap (the cockpit caps each at its block, so a stretching row never grows
+  a button) and a reserve token as its block margin (6px around 28 and 32px, 2px around 40px, set
+  on the two adapters rather than `:root`, as the hit-target classes were, since the shared pieces
+  the cockpit renders never reserved it).
 - **Behaviour.** A loading button stays focusable (`aria-disabled`, `aria-busy`) and ignores
   presses, as the shared Button always has; five tests assert that now. Outlined and text labels
   take the neutral inks, the filled hover is its tone's measured hover step, and buttons drop the
