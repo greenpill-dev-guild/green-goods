@@ -383,6 +383,20 @@ look, each falling back to the app's value. DL-115 and its guide wording are the
 ([handoff](handoffs/claude-ui.md#step-20-phase-1-shared-buttons-prd-1287),
 [eval.md](eval.md#step-20-phase-1-proof-shared-buttons)).
 
+**Step 20, phase 2 (24 October).** The cockpit's fields, selects and filter chip go onto the shared
+family (PRD-1287), adapters first: `AdminTextField`, `AdminTextArea`, `AdminSelect`,
+`AdminInlineField` and `AdminSearchToolbar` render Shared's `TextInput`, `Textarea` and
+`NativeSelect` on the admin surface inside their own label and message line, and `AdminFilterChip`
+renders Shared's `Chip`, whose selected fill reads the workspace tone. `AdminFieldGroup`,
+`AdminSortSelect`, `AdminInputChip`, `AdminCheckbox` and `AdminChoiceGroup` stay, each for a reason
+DL-116 records. The code is `feature/app-cockpit-shared-fields` and the guide wording the
+standards-only `feature/app-cockpit-shared-fields-guides`. Heights and rows hold; the box takes the
+shared outline, focus ring, error border and disabled fill, and a text area the shared 80px
+minimum. The pairs caught the admin surface hiding the error and disabled states, which
+`theme.css` now sets again, with a browser-mode check
+([eval.md](eval.md#step-20-phase-2-proof-fields-selects-and-chips),
+[handoff](handoffs/claude-ui.md#step-20-phase-2-fields-selects-and-chips-prd-1287)).
+
 **Step 20, call-site pass (24 October).** `feature/app-cockpit-button-call-sites` finishes the
 buttons: every cockpit button renders the shared `Button` or `IconButton` directly, and
 `AdminButton` and `AdminIconButton` are deleted, with the design token check failing if either

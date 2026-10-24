@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -22,6 +23,7 @@ const publicSiteImageDirectory = "packages/client/public/images/";
 const clientImageRoles = {
   "no-image-placeholder.png": "Public site image fallback",
   "avatar.png": "Default profile photo",
+  "brand-mark-small.webp": "Public site header brand mark",
 };
 
 const files = [
@@ -88,20 +90,49 @@ const assetFiles = [
 
 /**
  * The client's own images, at the paths the client itself requests
- * (`/images/hero-<view>.webp`, the image fallback and the default profile
- * photo), so Client stories show them instead of a broken image. Heroes are read
- * from the folder rather than listed by name: a newly curated hero is served
- * without an edit here.
+ * (`/images/hero-<view>.webp` or `.avif`, the header's brand mark, the image
+ * fallback and the default profile photo), so Client stories show them instead
+ * of a broken image. Heroes are read from the folder rather than listed by name:
+ * a newly curated hero is served without an edit here.
  */
 function publicSiteImages() {
   return readdirSync(resolve(repoRoot, publicSiteImageDirectory))
-    .filter((name) => /^hero-.+\.webp$/.test(name) || Object.hasOwn(clientImageRoles, name))
+    .filter(
+      (name) => /^hero-.+\.(?:webp|avif)$/.test(name) || Object.hasOwn(clientImageRoles, name),
+    )
     .sort()
     .map((name) => ({
       from: `${publicSiteImageDirectory}${name}`,
       to: `images/${name}`,
       role: clientImageRoles[name] ?? "Public site hero photograph",
     }));
+}
+
+/**
+ * Every image a client component requests from `/images/` ships with Storybook,
+ * or its stories draw a broken image: the brand mark and AVIF heroes went missing
+ * that way. Tests and the service worker are left out, since neither renders in
+ * a story, and so is a path to a file the folder does not have.
+ */
+function assertClientImagesShip(assets) {
+  const sourceDir = resolve(repoRoot, "packages/client/src");
+  const imageDir = resolve(repoRoot, publicSiteImageDirectory);
+  const shipped = new Set(assets.map((asset) => asset.to));
+  const missing = new Set();
+  for (const path of readdirSync(sourceDir, { recursive: true })) {
+    if (!/\.tsx?$/.test(path) || /\.test\.tsx?$/.test(path)) continue;
+    if (/(?:^|\/)(?:__tests__|sw)\//.test(path)) continue;
+    const source = readFileSync(resolve(sourceDir, path), "utf8");
+    for (const [, name] of source.matchAll(/["'`]\/images\/([\w.-]+)["'`]/g)) {
+      if (existsSync(resolve(imageDir, name)) && !shipped.has(`images/${name}`)) missing.add(name);
+    }
+  }
+  if (missing.size > 0) {
+    throw new Error(
+      `Storybook does not ship client images that components request: ${[...missing].sort().join(", ")}. ` +
+        "Give each a role in clientImageRoles or match the hero pattern in .storybook/prepare-design-assets.mjs.",
+    );
+  }
 }
 
 function readJson(path) {
@@ -119,6 +150,8 @@ function readGitCommit() {
     return null;
   }
 }
+
+assertClientImagesShip(assetFiles);
 
 rmSync(outputDir, { recursive: true, force: true });
 rmSync(legacyOutputDir, { recursive: true, force: true });

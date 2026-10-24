@@ -844,6 +844,40 @@ Human corrections: 0 observed; attention: unknown.
   from before their components moved to `AdminButton` (`DepositModal`, `AttestationSelector`,
   `CreateAction`), so they exercise a mock, not the adapter.
 
+## Step 20 phase 2: fields, selects and chips (PRD-1287)
+
+- `feature/app-cockpit-shared-fields`, cut from `develop` `796e9e1bb`, with its guide wording in the
+  standards-only `feature/app-cockpit-shared-fields-guides` (DL-116). Adapters first: each cockpit
+  component keeps its name, props and `data-component`.
+- **`AdminTextField`, `AdminTextArea`, `AdminSelect`** render Shared's `TextInput`, `Textarea` and
+  `NativeSelect` at `surface="admin"` inside their own label (`gg-field-label`), message line
+  (`gg-field-message`), icons and counter. The field's own ring, focus state and chevron are gone:
+  the control draws the box, outline, focus ring (DL-098), error border and disabled fill. A
+  caller's `inputProps.className` or `controlProps.className` still reaches the control.
+- **`AdminInlineField`** renders `TextInput` held to the 32px axis; **`AdminSearchToolbar`**'s input
+  is `TextInput` with no edge or fill of its own, inside the pill that keeps the ring.
+- **`AdminFilterChip`** renders Shared's `Chip` with `admin-hit-target`, the 44px layout box. The
+  shared selected rule reads `--tone-action` and `--tone-on-action`, with the theme's action pair as
+  the fallback; the app sets no tone, so its chips are unchanged. A selected chip's hover and press
+  lay the neutral ink as a background image beneath the label, at `--gg-chip-state-hover` and
+  `--gg-chip-state-pressed`, which only the cockpit sets (0.08 and 0.12); Codex's review of #1255
+  found the feedback missing.
+- **Stay:** `AdminFieldGroup` (no shared group field), `AdminSortSelect` (already `NativeSelect`),
+  `AdminInputChip` (a `Chip` is a button and cannot hold the remove button), `AdminCheckbox` and
+  `AdminChoiceGroup` (no shared counterpart; `FormCheckbox` is not exported).
+- `theme.css`: after the admin surface's tier, the error border (`--m3-error`), the focused error
+  outline and the disabled fill and text are set again, and a disabled admin select keeps one
+  chevron. `check-tokens.sh`'s field-class comment names DL-116; the sweep already leaves
+  `Admin*.tsx` out.
+- Tests that asserted the old classes now assert the shared control (`data-component`,
+  `data-surface="admin"`, `gg-control`, `data-invalid`); three suites' `ControlPrimitives` mocks
+  add `TextInput`; the focus-ring, density and tone-contrast guards read the shared recipe in
+  `theme.css`.
+- For later: the app's disabled `NativeSelect` loses its chevron in light and tiles it in dark (the
+  shared `:disabled` background shorthand). Fixing it changes the app, so it is not in this phase.
+- Proof: **Storybook** pairs ([eval.md](../eval.md#step-20-phase-2-proof-fields-selects-and-chips)).
+  No authenticated class.
+
 ## Step 20, call-site pass: buttons (PRD-1287)
 
 - `feature/app-cockpit-button-call-sites`, cut from `develop` `f7af3e567` (#1256 merged); its guide

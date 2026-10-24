@@ -22,6 +22,20 @@ import { fireEvent, render, screen } from "../test-utils";
 
 const TONE_FOCUS_RING = "--tone-focus-ring";
 
+/** Shared's control recipe, which the cockpit's fields render (DL-116). */
+const theme = readFileSync(resolve(__dirname, "../../../../shared/src/styles/theme.css"), "utf-8");
+const takesSharedRing = (input: HTMLElement) => {
+  expect(input).toHaveClass("gg-control");
+  expect(input.className).not.toContain("--tone-on-surface-accent");
+  // The shared control resolves its ring from the tone where it sits, and draws it on focus.
+  expect(theme).toMatch(
+    /:where\(\.gg-control,[^)]*\)\s*\{\s*--gg-focus-ring:\s*var\(--tone-focus-ring,/
+  );
+  expect(theme).toMatch(
+    /\.gg-control:focus-visible\s*\{[^}]*outline:\s*var\(--gg-focus-ring-width\)\s*solid\s*rgb\(var\(--gg-focus-ring\)\)/
+  );
+};
+
 describe("admin focus-ring role", () => {
   it("AdminCheckbox input carries a visible focus-visible ring on the canonical role", () => {
     render(<AdminCheckbox label="Accept charter" />);
@@ -37,26 +51,20 @@ describe("admin focus-ring role", () => {
     expect(pill.className).toContain(TONE_FOCUS_RING);
   });
 
-  it("AdminInlineField focus ring rides the canonical role, not the accent-text role", () => {
+  it("AdminInlineField takes the shared control's ring, on the canonical role", () => {
     render(
       <AdminInlineField label="Action id" value="" onChange={vi.fn()} action={<span>Add</span>} />
     );
-    const input = screen.getByRole("textbox");
-    expect(input.className).toContain(TONE_FOCUS_RING);
-    expect(input.className).not.toContain("--tone-on-surface-accent");
+    takesSharedRing(screen.getByRole("textbox"));
   });
 
-  it("AdminTextField focus treatment rides the canonical role", () => {
+  it("AdminTextField takes the shared control's ring, on the canonical role", () => {
     render(<AdminTextField label="Garden name" />);
     const input = screen.getByRole("textbox");
     fireEvent.focus(input);
-    // The outline ring lives on the input's container div. The caret
-    // legitimately keeps --tone-on-surface-accent (accent TEXT role); only the
-    // ring itself must ride the focus role.
-    const ringContainer = input.parentElement as HTMLElement;
-    expect(ringContainer.className).toContain("ring-2");
-    expect(ringContainer.className).toContain(TONE_FOCUS_RING);
-    expect(ringContainer.className).not.toContain("--tone-on-surface-accent");
+    takesSharedRing(input);
+    // No wrapper draws a second ring around it.
+    expect((input.parentElement as HTMLElement).className).not.toContain("ring-");
   });
 
   it("no elevation token voids the focus ring that shares its box-shadow", () => {

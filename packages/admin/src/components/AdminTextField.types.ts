@@ -53,8 +53,9 @@ export interface AdminTextAreaProps extends AdminTextFieldCommonProps {
   };
 }
 
+/** Shared's `NativeSelect` draws the chevron, so a select takes no trailing icon. */
 export interface AdminSelectProps
-  extends Omit<AdminTextFieldCommonProps, "showCount" | "countBytes"> {
+  extends Omit<AdminTextFieldCommonProps, "showCount" | "countBytes" | "trailingIcon"> {
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
   /** The `<option>` elements. An empty-value option acts as the placeholder row. */

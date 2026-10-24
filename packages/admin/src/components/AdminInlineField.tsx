@@ -1,3 +1,4 @@
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
 import { useId } from "react";
@@ -30,8 +31,9 @@ export interface AdminInlineFieldProps {
  * A 32dp field (DL-011 compact metric) for "enter one short value and submit"
  * rows (register a hypercert / action id, add a strategy address). It takes
  * the {@link AdminTextField} anatomy on a smaller box: the label above, then
- * the input on the same 32dp axis as its paired `Button size="sm"`,
- * reading as one group, then the message line.
+ * Shared's `TextInput` on the admin surface (DL-116), held to the same 32dp
+ * axis as its paired `Button size="sm"`, reading as one group, then the
+ * message line.
  *
  * Label and supporting text are the family's: the shared field title and
  * message line (`gg-field-label`, `gg-field-message`), the same error color
@@ -77,8 +79,9 @@ export function AdminInlineField({
         {required ? <span aria-hidden="true">{"\u00a0*"}</span> : null}
       </label>
       <div className="flex items-center gap-2" data-component="AdminInlineField">
-        <input
+        <TextInput
           {...inputProps}
+          surface="admin"
           id={inputId}
           name={name}
           type={type}
@@ -98,18 +101,10 @@ export function AdminInlineField({
             }
             inputProps?.onKeyDown?.(e);
           }}
-          className={cn(
-            // 32dp compact box, matching the 32px button so the row aligns
-            // (DL-011 compact metric).
-            "h-8 min-w-0 flex-1 rounded-[var(--m3-shape-sm)] bg-transparent px-3",
-            "type-body [color:rgb(var(--m3-on-surface))] outline-none",
-            "ring-1 ring-inset transition-[box-shadow] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-            "placeholder-[rgb(var(--m3-on-surface-variant)/0.6)]",
-            hasError
-              ? "ring-[rgb(var(--m3-error))] focus:ring-2 focus:ring-[rgb(var(--m3-error))]"
-              : "ring-[rgb(var(--m3-outline))] focus:ring-2 focus:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
-            disabled && "cursor-not-allowed [color:rgb(var(--m3-on-surface)/0.38)]"
-          )}
+          // The shared field held to the 32px button's axis, so the row aligns
+          // (DL-011 compact metric); the control draws its outline, focus ring
+          // and error itself.
+          className="h-8 min-h-8 min-w-0 flex-1"
         />
         {action}
       </div>
