@@ -65,10 +65,10 @@ export const Tokens: Story = {
         <TokenTable
           tokens={[
             { name: "--m3-shape-xs", expected: "4px", note: "checkbox, tooltip" },
-            { name: "--m3-shape-sm", expected: "8px", note: "chips, filled field top corners, outlined fields" },
+            { name: "--m3-shape-sm", expected: "8px", note: "filled field top corners, outlined fields" },
             { name: "--m3-shape-md", expected: "12px", note: "cards, choice rows, selectable cards" },
             { name: "--m3-shape-lg", expected: "16px", note: "dialogs, page containers" },
-            { name: "--m3-shape-full", expected: "9999px", note: "buttons, toolbar pills, FAB" },
+            { name: "--m3-shape-full", expected: "9999px", note: "buttons, chips, toolbar pills, FAB" },
             { name: "--radius-xs", expected: "4px", note: "remapped in index.css" },
             { name: "--radius-sm", expected: "8px", note: "remapped in index.css" },
             { name: "--radius-xl", expected: "16px", note: "rounded-xl, remapped in index.css" },
