@@ -604,8 +604,8 @@ describe("GardenPool", () => {
       />
     );
 
-    const list = screen.getByRole("list", { name: "What this pool still needs" });
-    const rows = list.querySelectorAll("li");
+    const list = screen.getByLabelText("What this pool still needs");
+    const rows = list.querySelectorAll('[data-component="FactRow"]');
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveAttribute("data-done", "true");
     expect(rows[1]).toHaveAttribute("data-done", "false");
@@ -619,7 +619,7 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool({ state: "NOT_READY", charterCID: "bafy-charter" })} />);
 
     expect(screen.queryByText("Your steward is setting this pool up.")).toBeNull();
-    expect(screen.queryByRole("list", { name: "What this pool still needs" })).toBeNull();
+    expect(screen.queryByLabelText("What this pool still needs")).toBeNull();
     expect(screen.getByText(/when its stewards set one up/i)).toBeInTheDocument();
   });
 
@@ -627,7 +627,7 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool({ state: "NOT_READY", charterCID: "bafy-charter" })} />);
 
     expect(screen.getByText("Your steward is setting this pool up.")).toBeInTheDocument();
-    expect(screen.queryByRole("list", { name: "What this pool still needs" })).toBeNull();
+    expect(screen.queryByLabelText("What this pool still needs")).toBeNull();
   });
 
   it("says why a pool is paused even when it holds nothing yet", () => {

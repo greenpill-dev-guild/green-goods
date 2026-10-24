@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
@@ -9,7 +10,6 @@ import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
-import { AdminSettingRow } from "@/components/AdminSettingRow";
 
 /** The protocol pool's mount point: reads through the shared controller, renders the card. */
 export function SettlementOperationsPanel({ chainId }: { chainId: number }) {
@@ -100,42 +100,43 @@ export function SettlementOperationsCard({
         </Alert>
       ) : null}
 
-      <AdminSettingRow
-        label={formatMessage({
-          id: "cockpit.community.settlementOps.paused.label",
-          defaultMessage: "Settlement source",
-        })}
-      >
-        <StatusBadge variant={operations.sourcePaused ? "warning" : "success"} size="sm">
-          {operations.sourcePaused
-            ? formatMessage({
-                id: "cockpit.community.settlementOps.paused.on",
-                defaultMessage: "Paused",
-              })
-            : formatMessage({
-                id: "cockpit.community.settlementOps.paused.off",
-                defaultMessage: "Running",
-              })}
-        </StatusBadge>
-      </AdminSettingRow>
-
-      <AdminSettingRow
-        labelId="settlement-ops-delivery"
-        label={formatMessage({
-          id: "cockpit.community.settlementOps.delivery.label",
-          defaultMessage: "Gardener delivery",
-        })}
-      >
-        <div className="flex flex-col items-end gap-2">
-          <StatusBadge
-            variant={enabled ? "success" : "neutral"}
-            size="sm"
-            data-testid="gardener-delivery-state"
-          >
-            {deliveryLabel}
-          </StatusBadge>
-        </div>
-      </AdminSettingRow>
+      <FactList frame="inset">
+        <FactRow
+          label={formatMessage({
+            id: "cockpit.community.settlementOps.paused.label",
+            defaultMessage: "Settlement source",
+          })}
+          value={
+            <StatusBadge variant={operations.sourcePaused ? "warning" : "success"} size="sm">
+              {operations.sourcePaused
+                ? formatMessage({
+                    id: "cockpit.community.settlementOps.paused.on",
+                    defaultMessage: "Paused",
+                  })
+                : formatMessage({
+                    id: "cockpit.community.settlementOps.paused.off",
+                    defaultMessage: "Running",
+                  })}
+            </StatusBadge>
+          }
+        />
+        <FactRow
+          labelId="settlement-ops-delivery"
+          label={formatMessage({
+            id: "cockpit.community.settlementOps.delivery.label",
+            defaultMessage: "Gardener delivery",
+          })}
+          value={
+            <StatusBadge
+              variant={enabled ? "success" : "neutral"}
+              size="sm"
+              data-testid="gardener-delivery-state"
+            >
+              {deliveryLabel}
+            </StatusBadge>
+          }
+        />
+      </FactList>
 
       <details className="border-t border-stroke-soft pt-3">
         <summary className="admin-hit-target relative rounded-[var(--m3-shape-sm)] py-1 type-body font-medium text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]">

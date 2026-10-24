@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
@@ -68,22 +69,16 @@ export function CommunityEndowmentTab({
                   </ul>
                 )}
               </div>
-              <div className="divide-y divide-stroke-soft">
-                <div className="garden-stat-row">
-                  <span className="garden-stat-row-label">
-                    {formatMessage({ id: "app.treasury.totalHarvests" })}
-                  </span>
-                  <span className="garden-stat-row-value">{countsUnread ? "—" : harvestCount}</span>
-                </div>
-                <div className="garden-stat-row">
-                  <span className="garden-stat-row-label">
-                    {formatMessage({ id: "app.treasury.depositorCount" })}
-                  </span>
-                  <span className="garden-stat-row-value">
-                    {countsUnread ? "—" : depositorCount}
-                  </span>
-                </div>
-              </div>
+              <FactList frame="inset">
+                <FactRow
+                  label={formatMessage({ id: "app.treasury.totalHarvests" })}
+                  value={countsUnread ? "—" : harvestCount}
+                />
+                <FactRow
+                  label={formatMessage({ id: "app.treasury.depositorCount" })}
+                  value={countsUnread ? "—" : depositorCount}
+                />
+              </FactList>
               {treasurySeverity !== "none" ? (
                 <Alert
                   variant={treasurySeverity === "critical" ? "error" : "warning"}

@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
@@ -10,7 +11,6 @@ import { useEffect, useId, useRef } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
-import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { cooldownLabel, JarCooldownEditor, JarLimitEditor } from "./CookieJarSettingEditors";
 
@@ -130,39 +130,40 @@ export function CookieJarPayoutCard({
         </p>
       </div>
 
-      <div className="space-y-2">
+      {/* One fact per setting, divided; a setting being changed shows its editor in its place. */}
+      <div className="divide-y divide-stroke-soft">
         {editingField === "limit" ? (
           <JarLimitEditor {...editorProps} />
         ) : (
-          <AdminSettingRow
-            label={formatMessage({ id: "app.cookieJar.claimLimit" })}
-            className="rounded-md bg-bg-weak py-1 pl-3 pr-1"
-          >
-            <span className="flex items-center gap-1">
-              <span className="font-semibold tabular-nums text-text-strong">
-                {formatTokenAmount(jar.maxWithdrawal, jar.decimals)} {symbol}
-              </span>
-              {editButton("limit", formatMessage({ id: "app.cookieJar.editClaimLimit" }))}
-            </span>
-          </AdminSettingRow>
+          <FactList frame="inset">
+            <FactRow
+              label={formatMessage({ id: "app.cookieJar.claimLimit" })}
+              value={
+                <span className="tabular-nums">
+                  {formatTokenAmount(jar.maxWithdrawal, jar.decimals)} {symbol}
+                </span>
+              }
+              action={editButton("limit", formatMessage({ id: "app.cookieJar.editClaimLimit" }))}
+            />
+          </FactList>
         )}
         {editingField === "cooldown" ? (
           <JarCooldownEditor {...editorProps} />
         ) : (
-          <AdminSettingRow
-            label={formatMessage({ id: "app.cookieJar.withdrawalInterval" })}
-            className="rounded-md bg-bg-weak py-1 pl-3 pr-1"
-          >
-            <span className="flex items-center gap-1">
-              <span className="font-semibold tabular-nums text-text-strong">
-                {cooldownLabel(formatMessage, jar.withdrawalInterval)}
-              </span>
-              {editButton(
+          <FactList frame="inset">
+            <FactRow
+              label={formatMessage({ id: "app.cookieJar.withdrawalInterval" })}
+              value={
+                <span className="tabular-nums">
+                  {cooldownLabel(formatMessage, jar.withdrawalInterval)}
+                </span>
+              }
+              action={editButton(
                 "cooldown",
                 formatMessage({ id: "app.cookieJar.editWithdrawalCooldown" })
               )}
-            </span>
-          </AdminSettingRow>
+            />
+          </FactList>
         )}
       </div>
 

@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { PoolSetupStepState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence";
@@ -189,16 +190,11 @@ export function SetupStepOpen({
   return (
     <div className="space-y-4">
       {phase === "ready" ? (
-        <dl className="space-y-2">
+        <FactList frame="inset">
           {summaryRows.map(([label, value]) => (
-            <div key={label}>
-              <dt className="type-label-sm text-text-soft">{label}</dt>
-              <dd className="type-body text-text-strong" title={value}>
-                {value}
-              </dd>
-            </div>
+            <FactRow key={label} label={label} value={value} />
           ))}
-        </dl>
+        </FactList>
       ) : null}
 
       <div className="space-y-2">

@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -32,9 +33,17 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
 
   if (vaults.length === 0) return null;
 
-  const rowClass = "py-2";
-  const linkClass =
-    "mt-0.5 inline-flex items-center gap-1 type-meta text-primary-dark hover:underline";
+  const addressLink = (address: Address) => (
+    <a
+      href={getBlockExplorerAddressUrl(chainId, address)}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1 font-normal text-primary-dark hover:underline"
+    >
+      <EnsAddressText address={address} />
+      <RiExternalLinkLine className="h-3 w-3" />
+    </a>
+  );
 
   return (
     <AdminCard density="none">
@@ -47,63 +56,27 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
         </div>
       </AdminCardHeader>
       <AdminCardBody>
-        <dl className="divide-y divide-stroke-soft">
+        <FactList frame="inset">
           {vaults.map((vault) => (
-            <div key={`contract-${vault.id}`} className={rowClass}>
-              <dt className="type-meta text-text-soft">
-                {getVaultAssetSymbol(vault.asset, vault.chainId)}{" "}
-                {formatMessage({ id: "app.explorer.vault" })}
-              </dt>
-              <dd>
-                <a
-                  href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={linkClass}
-                >
-                  <EnsAddressText address={vault.vaultAddress} />
-                  <RiExternalLinkLine className="h-3 w-3" />
-                </a>
-              </dd>
-            </div>
+            <FactRow
+              key={`contract-${vault.id}`}
+              label={`${getVaultAssetSymbol(vault.asset, vault.chainId)} ${formatMessage({ id: "app.explorer.vault" })}`}
+              value={addressLink(vault.vaultAddress)}
+            />
           ))}
           {octantModuleAddress && !isZeroAddress(octantModuleAddress) && (
-            <div className={rowClass}>
-              <dt className="type-meta text-text-soft">
-                {formatMessage({ id: "app.explorer.vaultRegistry" })}
-              </dt>
-              <dd>
-                <a
-                  href={getBlockExplorerAddressUrl(chainId, octantModuleAddress)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={linkClass}
-                >
-                  <EnsAddressText address={octantModuleAddress} />
-                  <RiExternalLinkLine className="h-3 w-3" />
-                </a>
-              </dd>
-            </div>
+            <FactRow
+              label={formatMessage({ id: "app.explorer.vaultRegistry" })}
+              value={addressLink(octantModuleAddress)}
+            />
           )}
           {AAVE_V3_POOL[chainId] && (
-            <div className={rowClass}>
-              <dt className="type-meta text-text-soft">
-                {formatMessage({ id: "app.explorer.aavePool" })}
-              </dt>
-              <dd>
-                <a
-                  href={getBlockExplorerAddressUrl(chainId, AAVE_V3_POOL[chainId])}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={linkClass}
-                >
-                  <EnsAddressText address={AAVE_V3_POOL[chainId]} />
-                  <RiExternalLinkLine className="h-3 w-3" />
-                </a>
-              </dd>
-            </div>
+            <FactRow
+              label={formatMessage({ id: "app.explorer.aavePool" })}
+              value={addressLink(AAVE_V3_POOL[chainId])}
+            />
           )}
-        </dl>
+        </FactList>
       </AdminCardBody>
     </AdminCard>
   );

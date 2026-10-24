@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { GrantView } from "@green-goods/shared/modules/agent-reporting";
 import {
   RiCalendarCloseLine,
@@ -14,7 +15,6 @@ import { useId } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { formatEther } from "viem";
 import { FormCard } from "@/components/Cards";
-import { Fact } from "@/components/Display";
 import { LineValue } from "./PublicationSummary";
 
 /** The permission window's length in the largest unit that reads plainly. */
@@ -104,9 +104,8 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
         <h3 id={limitsId} className="text-sm font-semibold leading-5 text-text-strong-950">
           {intl.formatMessage({ id: "public.reporting.grant.limits", defaultMessage: "Limits" })}
         </h3>
-        <dl className="mt-1 divide-y divide-stroke-soft-200 tabular-nums">
-          <Fact
-            wrap
+        <FactList frame="inset" className="mt-1 tabular-nums">
+          <FactRow
             icon={<RiCalendarLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.starts",
@@ -114,8 +113,7 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             })}
             value={date(policy.validAfter)}
           />
-          <Fact
-            wrap
+          <FactRow
             icon={<RiCalendarCloseLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.expires",
@@ -123,8 +121,7 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             })}
             value={date(policy.validUntil)}
           />
-          <Fact
-            wrap
+          <FactRow
             icon={<RiTimeLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.duration",
@@ -132,8 +129,7 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             })}
             value={formatDuration(intl, policy.validUntil - policy.validAfter)}
           />
-          <Fact
-            wrap
+          <FactRow
             icon={<RiStackLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.maximum",
@@ -141,8 +137,7 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             })}
             value={intl.formatNumber(policy.maxSubmissions)}
           />
-          <Fact
-            wrap
+          <FactRow
             icon={<RiCheckboxMultipleLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.used",
@@ -150,8 +145,7 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             })}
             value={intl.formatNumber(grant.submissionsUsed)}
           />
-          <Fact
-            wrap
+          <FactRow
             icon={<RiGasStationLine />}
             label={intl.formatMessage({
               id: "public.reporting.grant.gas",
@@ -163,8 +157,7 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
             )}
           />
           {policy.gasCostCapWei ? (
-            <Fact
-              wrap
+            <FactRow
               icon={<RiCoinLine />}
               label={intl.formatMessage({
                 id: "public.reporting.grant.cost",
@@ -173,7 +166,7 @@ export function GrantSummary({ grant }: { grant: GrantView }) {
               value={`${formatEther(BigInt(policy.gasCostCapWei))} ETH`}
             />
           ) : null}
-        </dl>
+        </FactList>
       </section>
     </>
   );

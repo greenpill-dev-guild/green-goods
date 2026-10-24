@@ -2255,6 +2255,102 @@
     padding-inline-end: 0.5rem;
   }
 
+  /* ── Fact row (DL-109) ── The facts about one thing on both surfaces, a label
+   * beside its value in divided rows: a review before a send, a record's
+   * details, a settings list. The label takes the narrower column and the
+   * quieter ink so the value reads first, a value wraps rather than being cut,
+   * and the row's one action takes the right slot. A row with no value is a
+   * setting: its label names the control there. FactList and FactRow
+   * (Cards/FactRow) render it. */
+  .gg-fact-list {
+    margin: 0;
+  }
+
+  /* A list that is its own card runs its rules to the card's edges. */
+  .gg-fact-list[data-frame="card"] > .gg-fact-row {
+    padding-inline: 0.875rem;
+  }
+
+  .gg-fact-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+    column-gap: 0.75rem;
+    align-items: baseline;
+    padding-block: 0.625rem;
+  }
+
+  .gg-fact-row + .gg-fact-row {
+    border-block-start: 1px solid rgb(var(--gg-card-edge, var(--stroke-soft-200)));
+  }
+
+  .gg-fact-row[data-has-action="true"] {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) auto;
+  }
+
+  /* A setting: its label and hint take the row, its control the right slot. */
+  .gg-fact-row[data-kind="setting"] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .gg-fact-term {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-inline-size: 0;
+  }
+
+  .gg-fact-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .gg-fact-row[data-kind="fact"] .gg-fact-label {
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-fact-icon {
+    display: flex;
+    flex: 0 0 auto;
+    align-self: center;
+    color: rgb(var(--text-soft-400));
+  }
+
+  .gg-fact-icon > svg {
+    inline-size: 1rem;
+    block-size: 1rem;
+  }
+
+  .gg-fact-description {
+    color: rgb(var(--text-sub-600));
+  }
+
+  /* The hint lines up with the label's words, not with its glyph. */
+  .gg-fact-term[data-has-icon="true"] > .gg-fact-description {
+    padding-inline-start: 1.5rem;
+  }
+
+  /* The value's weight is FactRow's `font-medium`: the type role is a utility,
+   * so a weight set here would lose to it. */
+  .gg-fact-value {
+    margin: 0;
+    min-inline-size: 0;
+    color: rgb(var(--text-strong-950));
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+
+  .gg-fact-action {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    align-self: center;
+    margin: 0;
+  }
+
   /* ── State mark ── The round tile that leads the state block (`EmptyState`):
    * 56px with a 24px glyph on both surfaces. A calm state takes the surface's
    * quiet accent: the app's green tint, or what a surface sets in
