@@ -12,7 +12,7 @@ import { RiErrorWarningLine, RiInboxLine, RiRefreshLine } from "@remixicon/react
 import React, { forwardRef, memo, type UIEvent, useCallback, useEffect } from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { GardenListHeader, GardenListHeaderLoading } from "./GardenListHeader";

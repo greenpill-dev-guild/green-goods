@@ -2,7 +2,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import { RiErrorWarningLine, RiInboxLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { CookieJarCard } from "./CookieJarCard";
 

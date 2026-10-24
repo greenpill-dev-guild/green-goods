@@ -13,7 +13,8 @@ import { forwardRef, memo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/Cards";
-import { Badge, EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { Badge } from "@/components/Communication";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 import { CYNEFIN_LABEL_IDS, outcomeMeasure } from "./assessmentDisplay";
 
@@ -213,7 +214,8 @@ const AssessmentList = ({ records, assessmentFetchStatus }: AssessmentListProps)
         <EmptyState
           tone="error"
           icon={<RiErrorWarningLine />}
-          title={intl.formatMessage({ id: "app.garden.assessments.loadError" })}
+          title={intl.formatMessage({ id: "app.garden.assessments.loadError.title" })}
+          description={intl.formatMessage({ id: "app.garden.assessments.loadError.description" })}
         />
       );
   }

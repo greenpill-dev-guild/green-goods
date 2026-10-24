@@ -1,5 +1,4 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { Alert } from "@green-goods/shared/components/Alert";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type CommitmentPoolingAvailability } from "@green-goods/shared/commitment-pooling";
 import {
@@ -12,7 +11,7 @@ import {
 import type React from "react";
 import { useIntl } from "react-intl";
 
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   PWA_SHEET_FOCAL_STATE_CLASSNAME,
   PWA_SHEET_STATE_CLASSNAME,
@@ -27,9 +26,9 @@ import { CommitmentRowSkeleton } from "./CommitmentRow";
 export interface TabCopy {
   /** Shown while the tab is still finding out. */
   loadingId: string;
-  /** Shown when the read failed; on a page, the state's title. */
+  /** Shown when the read failed, as the state's title. */
   errorId: string;
-  /** On a page, the line under the failed state's title. */
+  /** The line under the failed state's title. */
   errorDescriptionId?: string;
   /** Shown when the tab is genuinely empty. */
   emptyTitleId: string;
@@ -174,19 +173,26 @@ export function CommitmentStateLadder({
 
   if (isError) {
     return (
-      <Region className={regionClassName} center>
-        <Alert variant="error" className="p-3">
-          {formatMessage({ id: copy.errorId })}
-        </Alert>
-        <Button
-          type="button"
-          emphasis="secondary"
-          onClick={onRetry}
-          className="w-full"
-          leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-        >
-          {formatMessage({ id: "app.commitments.retry" })}
-        </Button>
+      <Region className={regionClassName} focal>
+        <EmptyState
+          placement="sheet"
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({ id: copy.errorId })}
+          description={
+            copy.errorDescriptionId ? formatMessage({ id: copy.errorDescriptionId }) : undefined
+          }
+          action={
+            <Button
+              type="button"
+              emphasis="secondary"
+              onClick={onRetry}
+              leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+            >
+              {formatMessage({ id: "app.commitments.retry" })}
+            </Button>
+          }
+        />
       </Region>
     );
   }

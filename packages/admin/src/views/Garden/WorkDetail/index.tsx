@@ -1,11 +1,17 @@
-import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useResolvedWorkDetail } from "@green-goods/shared/hooks/admin-ui/garden/useResolvedWorkDetail";
 import { trackWorkApprovalPresentationFailed } from "@green-goods/shared/modules/app/analytics-events";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
-import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
+import {
+  RiCheckboxCircleLine,
+  RiCloseLine,
+  RiErrorWarningLine,
+  RiSearchLine,
+  RiTimeLine,
+} from "@remixicon/react";
 import { useCallback, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useParams } from "react-router-dom";
@@ -153,35 +159,29 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
     );
   }
 
-  if (resolved.isError) {
-    const message = formatMessage({ id: "app.work.detail.loadError" });
-    if (layout === "sheet") {
-      return (
-        <div className="p-1">
-          <Alert variant="error">{message}</Alert>
-        </div>
-      );
-    }
-
-    return (
-      <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6">
-        <Alert variant="error">{message}</Alert>
-      </CanvasRouteContent>
+  if (resolved.isError || resolved.isNotFound || !work || !garden) {
+    // A missing work is announced as a failure too: the link named a work that is not there.
+    const state = resolved.isError ? (
+      <EmptyState
+        tone="error"
+        icon={<RiErrorWarningLine />}
+        title={formatMessage({ id: "app.work.detail.loadError.title" })}
+        description={formatMessage({ id: "app.work.detail.loadError.description" })}
+      />
+    ) : (
+      <EmptyState
+        tone="error"
+        icon={<RiSearchLine />}
+        title={formatMessage({ id: "app.work.detail.notFound" })}
+      />
     );
-  }
-
-  if (resolved.isNotFound || !work || !garden) {
     if (layout === "sheet") {
-      return (
-        <div className="p-1">
-          <Alert variant="error">{formatMessage({ id: "app.work.detail.notFound" })}</Alert>
-        </div>
-      );
+      return <div className="p-1">{state}</div>;
     }
 
     return (
       <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6">
-        <Alert variant="error">{formatMessage({ id: "app.work.detail.notFound" })}</Alert>
+        {state}
       </CanvasRouteContent>
     );
   }

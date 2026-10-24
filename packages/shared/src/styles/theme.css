@@ -2255,6 +2255,39 @@
     padding-inline-end: 0.5rem;
   }
 
+  /* ── State mark ── The round tile that leads the state block (`EmptyState`):
+   * 56px with a 24px glyph on both surfaces. A calm state takes the surface's
+   * quiet accent: the app's green tint, or what a surface sets in
+   * `--gg-state-mark-fill` and `--gg-state-mark-ink` (the cockpit keeps it
+   * neutral, because its workspace tone is held to its budget, Rule 18). A
+   * warning and a failure take their status tints. */
+  .gg-state-mark {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    inline-size: 3.5rem;
+    block-size: 3.5rem;
+    border-radius: 9999px;
+    background-color: var(--gg-state-mark-fill, rgb(var(--primary-on-surface) / 0.1));
+    color: var(--gg-state-mark-ink, rgb(var(--primary-on-surface)));
+  }
+
+  .gg-state-mark > svg {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
+  .gg-state-mark[data-tone="warning"] {
+    background-color: rgb(var(--warning-lighter));
+    color: rgb(var(--warning-base));
+  }
+
+  .gg-state-mark[data-tone="error"] {
+    background-color: rgb(var(--error-lighter));
+    color: rgb(var(--error-base));
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .gg-control,
     .gg-button,

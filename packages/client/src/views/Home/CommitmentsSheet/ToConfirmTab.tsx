@@ -67,7 +67,8 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.toConfirm.loading",
-        errorId: "app.commitments.toConfirm.error",
+        errorId: "app.commitments.toConfirm.error.title",
+        errorDescriptionId: "app.commitments.toConfirm.error.description",
         emptyTitleId: "app.commitments.toConfirm.emptyTitle",
         emptyDescriptionId: "app.commitments.toConfirm.emptyDescription",
       }}

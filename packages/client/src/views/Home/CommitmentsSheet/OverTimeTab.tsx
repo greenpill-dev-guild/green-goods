@@ -77,7 +77,8 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.overTime.loading",
-        errorId: "app.commitments.overTime.error",
+        errorId: "app.commitments.overTime.error.title",
+        errorDescriptionId: "app.commitments.overTime.error.description",
         emptyTitleId: "app.commitments.overTime.emptyTitle",
         emptyDescriptionId: "app.commitments.overTime.emptyDescription",
       }}

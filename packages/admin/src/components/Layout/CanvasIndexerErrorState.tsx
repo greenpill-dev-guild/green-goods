@@ -1,6 +1,7 @@
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { RiErrorWarningLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { SeedlingIllustration } from "./SeedlingIllustration";
 
 interface CanvasIndexerErrorStateProps {
   onRetry: () => void;
@@ -19,26 +20,28 @@ export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProp
 
   return (
     <section
-      className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
+      className="flex min-h-full flex-col items-center justify-center px-6 py-16"
       data-testid="canvas-indexer-error"
     >
-      <SeedlingIllustration className="h-28 w-28" />
-      <h1 className="mt-5 type-title-lg font-semibold text-text-strong">
-        {formatMessage({
+      <EmptyState
+        titleAs="h1"
+        tone="error"
+        icon={<RiErrorWarningLine />}
+        title={formatMessage({
           id: "cockpit.access.indexerErrorTitle",
           defaultMessage: "Can't load garden access",
         })}
-      </h1>
-      <p className="mt-2 max-w-md type-body text-text-sub">
-        {formatMessage({
+        description={formatMessage({
           id: "cockpit.access.indexerErrorDescription",
           defaultMessage:
             "We couldn't load gardens from the indexer. This is usually temporary. Try again in a moment.",
         })}
-      </p>
-      <AdminButton className="mt-6" onClick={onRetry}>
-        {formatMessage({ id: "cockpit.access.indexerErrorRetry", defaultMessage: "Try Again" })}
-      </AdminButton>
+        action={
+          <AdminButton onClick={onRetry}>
+            {formatMessage({ id: "cockpit.access.indexerErrorRetry", defaultMessage: "Try Again" })}
+          </AdminButton>
+        }
+      />
     </section>
   );
 }

@@ -50,6 +50,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
   RiArrowRightSLine: (props: any) => createElement("span", props),
+  RiErrorWarningLine: (props: any) => createElement("span", props),
   RiMapPinLine: (props: any) => createElement("span", props),
   RiLoader4Line: (props: any) => createElement("span", props),
   RiPlantLine: (props: any) => createElement("span", props),

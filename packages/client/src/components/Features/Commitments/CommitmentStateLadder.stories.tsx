@@ -15,7 +15,8 @@ const UNAVAILABLE = {
 
 const COPY = {
   loadingId: "app.commitments.live.loading",
-  errorId: "app.commitments.live.error",
+  errorId: "app.commitments.live.error.title",
+  errorDescriptionId: "app.commitments.live.error.description",
   emptyTitleId: "app.commitments.live.emptyTitle",
   emptyDescriptionId: "app.commitments.live.emptyDescription",
 };

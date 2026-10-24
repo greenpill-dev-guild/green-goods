@@ -1,4 +1,3 @@
-import { Alert } from "@green-goods/shared/components/Alert";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { WorkbenchCard } from "@green-goods/shared/components/Canvas/WorkbenchCard";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -6,7 +5,7 @@ import { useLocalizedEventTime } from "@green-goods/shared/hooks/app/useLocalize
 import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
 import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
 import { formatReportingPeriod } from "@green-goods/shared/utils/time";
-import { RiFileList3Line, RiMedalLine, RiSearchLine } from "@remixicon/react";
+import { RiErrorWarningLine, RiFileList3Line, RiMedalLine, RiSearchLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -59,12 +58,18 @@ function HubRecordGrid({
   if (hasDataError) {
     return (
       <EmptyStateShell>
-        <Alert variant="error">
-          {formatMessage({
-            id: "cockpit.hub.error",
-            defaultMessage: "Hub data could not be loaded. Refresh the workspace and try again.",
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({
+            id: "cockpit.hub.error.title",
+            defaultMessage: "Hub data could not be loaded",
           })}
-        </Alert>
+          description={formatMessage({
+            id: "cockpit.hub.error.description",
+            defaultMessage: "Refresh the workspace and try again.",
+          })}
+        />
       </EmptyStateShell>
     );
   }

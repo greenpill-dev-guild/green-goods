@@ -4,26 +4,29 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GardenJoinRequestsQueue } from "@/components/Features/Garden/GardenJoinRequestsQueue";
 
-const { addGardener, resolveRequest } = vi.hoisted(() => ({
+const { addGardener, resolveRequest, loadQueue, queue } = vi.hoisted(() => ({
   addGardener: vi.fn(),
   resolveRequest: vi.fn(),
+  loadQueue: vi.fn(),
+  queue: { current: [] as Array<Record<string, unknown>> },
 }));
+
+const MAYA = {
+  id: "request-1",
+  accountAddress: "0x2222222222222222222222222222222222222222",
+  displayName: "Maya",
+  state: "pending",
+  revision: 3,
+  requestedAt: "2026-08-27T12:00:00.000Z",
+};
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
   useGardenJoinRequestAvailability: () => true,
   useGardenJoinRequests: () => ({
-    queue: [
-      {
-        id: "request-1",
-        accountAddress: "0x2222222222222222222222222222222222222222",
-        displayName: "Maya",
-        state: "pending",
-        revision: 3,
-        requestedAt: "2026-08-27T12:00:00.000Z",
-      },
-    ],
+    queue: queue.current,
     queueState: { isLoading: false, error: null },
     mutationState: { isLoading: false, error: null },
+    loadQueue,
     resolveRequest,
   }),
 }));
@@ -42,6 +45,8 @@ function renderQueue() {
 describe("GardenJoinRequestsQueue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queue.current = [MAYA];
+    loadQueue.mockResolvedValue(undefined);
     addGardener.mockResolvedValue({ success: true });
     resolveRequest.mockResolvedValue({ pendingOnchainMembership: false });
   });
@@ -88,5 +93,16 @@ describe("GardenJoinRequestsQueue", () => {
       await screen.findByText(/Confirm again in a moment, once the new role shows/)
     ).toBeVisible();
     expect(screen.queryByText("The gardener was welcomed.")).not.toBeInTheDocument();
+  });
+
+  it("says there are no requests only once a check has found none", async () => {
+    queue.current = [];
+    renderQueue();
+    expect(screen.queryByText("There are no pending join requests.")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Check Requests" }));
+    expect(
+      await screen.findByRole("heading", { name: "There are no pending join requests." })
+    ).toBeInTheDocument();
   });
 });

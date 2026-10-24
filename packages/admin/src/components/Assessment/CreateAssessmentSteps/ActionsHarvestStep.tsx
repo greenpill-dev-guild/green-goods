@@ -1,9 +1,11 @@
 import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/utils/time";
+import { RiHammerLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -100,9 +102,10 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         })}
       >
         {domainActions.length === 0 ? (
-          <div className="rounded-md border border-dashed border-stroke-soft p-6 text-center">
-            <p className="type-body text-text-soft">
-              {selectedDomain === null
+          <EmptyState
+            icon={<RiHammerLine />}
+            title={
+              selectedDomain === null
                 ? formatMessage({
                     id: "app.admin.assessment.domainAction.chooseDomainFirst",
                     defaultMessage: "Choose a domain on the first step to see its actions.",
@@ -113,9 +116,9 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                       defaultMessage: "No actions registered for {domain}.",
                     },
                     { domain: resolveDomainLabel(intl, selectedDomain) }
-                  )}
-            </p>
-          </div>
+                  )
+            }
+          />
         ) : (
           <div className="space-y-2">
             <div className="flex items-center justify-between type-meta text-text-soft">
