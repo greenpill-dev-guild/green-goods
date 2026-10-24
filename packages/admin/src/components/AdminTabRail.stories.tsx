@@ -69,8 +69,9 @@ function cellRects(rail: HTMLElement): DOMRect[] {
 
 /** A selected cell carries the accent tint; an unselected one paints nothing. */
 function isTinted(tab: HTMLElement): boolean {
-  const background = getComputedStyle(tab).backgroundColor;
-  return background !== "rgba(0, 0, 0, 0)" && background !== "transparent";
+  // The computed fill's channels; a fourth is its alpha, absent when opaque.
+  const channels = getComputedStyle(tab).backgroundColor.match(/[\d.]+/g) ?? [];
+  return channels.length >= 3 && Number(channels[3] ?? 1) > 0;
 }
 
 /** The label's own text, laid out whole inside its cell. */
