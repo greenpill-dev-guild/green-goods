@@ -84,6 +84,10 @@ export function PoolCommitmentsCard({
     id: "cockpit.garden.pool.row.act.expire",
     defaultMessage: "Expire Now…",
   });
+  const discardLabel = formatMessage({
+    id: "cockpit.garden.pool.queued.discard",
+    defaultMessage: "Discard",
+  });
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -283,6 +287,7 @@ export function PoolCommitmentsCard({
                     id: "cockpit.garden.pool.queued.sendNow",
                     defaultMessage: "Send Now",
                   });
+              const SendGlyph = row.failed ? RiRefreshLine : RiSendPlaneLine;
               return (
                 <li key={row.jobId}>
                   <CommitmentRow
@@ -308,14 +313,8 @@ export function PoolCommitmentsCard({
                         {row.discardable ? (
                           <IconButton
                             size="sm"
-                            aria-label={formatMessage({
-                              id: "cockpit.garden.pool.queued.discard",
-                              defaultMessage: "Discard",
-                            })}
-                            title={formatMessage({
-                              id: "cockpit.garden.pool.queued.discard",
-                              defaultMessage: "Discard",
-                            })}
+                            aria-label={discardLabel}
+                            title={discardLabel}
                             disabled={busyJobId !== null}
                             onClick={() => void runQueued(row.jobId, acts.discardQueued)}
                             icon={<RiDeleteBinLine aria-hidden="true" />}
@@ -332,13 +331,7 @@ export function PoolCommitmentsCard({
                           }
                           loading={busyJobId === row.jobId}
                           onClick={() => void runQueued(row.jobId, acts.retryQueued)}
-                          icon={
-                            row.failed ? (
-                              <RiRefreshLine aria-hidden="true" />
-                            ) : (
-                              <RiSendPlaneLine aria-hidden="true" />
-                            )
-                          }
+                          icon={<SendGlyph aria-hidden="true" />}
                         />
                       </span>
                     }
