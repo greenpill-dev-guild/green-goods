@@ -15,12 +15,13 @@ function getTool(name: PublicWebMcpTool["name"], tools = createPublicWebMcpTools
   return tool;
 }
 
+function defineModelContext(target: Document | Navigator, value: unknown) {
+  Object.defineProperty(target, "modelContext", { configurable: true, value });
+}
+
 function modelContextWithRegister(registerTool = vi.fn<(tool: PublicWebMcpTool) => unknown>()) {
   const modelContext = { registerTool };
-  Object.defineProperty(navigator, "modelContext", {
-    configurable: true,
-    value: modelContext,
-  });
+  defineModelContext(document, modelContext);
   return { modelContext, registerTool };
 }
 
@@ -41,6 +42,8 @@ describe("public WebMCP tools", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     window.history.pushState({}, "", "/");
+    defineModelContext(document, undefined);
+    defineModelContext(navigator, undefined);
     Object.defineProperty(window, "__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__", {
       configurable: true,
       value: undefined,
@@ -89,7 +92,8 @@ describe("public WebMCP tools", () => {
   });
 
   it("does nothing when the browser has no WebMCP modelContext", () => {
-    Object.defineProperty(navigator, "modelContext", { configurable: true, value: undefined });
+    defineModelContext(document, undefined);
+    defineModelContext(navigator, undefined);
 
     registerPublicWebMcpTools();
 
@@ -97,7 +101,7 @@ describe("public WebMCP tools", () => {
   });
 
   it("does nothing when modelContext cannot register tools", () => {
-    Object.defineProperty(navigator, "modelContext", { configurable: true, value: {} });
+    defineModelContext(document, {});
 
     registerPublicWebMcpTools();
 
@@ -120,6 +124,35 @@ describe("public WebMCP tools", () => {
       { readOnlyHint: false, untrustedContentHint: false },
     ]);
     expect(registerTool.mock.contexts).toEqual([modelContext, modelContext]);
+  });
+
+  it("falls back to navigator.modelContext only when document.modelContext is absent", () => {
+    const registerTool = vi.fn<(tool: PublicWebMcpTool) => unknown>();
+    const legacyModelContext = { registerTool };
+    defineModelContext(document, undefined);
+    defineModelContext(navigator, legacyModelContext);
+
+    registerPublicWebMcpTools();
+
+    expect(registerTool).toHaveBeenCalledTimes(2);
+    expect(registerTool.mock.contexts).toEqual([legacyModelContext, legacyModelContext]);
+    expect(window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__).toEqual([
+      "green_goods_describe_public_page",
+      "green_goods_navigate_public_route",
+    ]);
+  });
+
+  it("prefers document.modelContext when a browser exposes both objects", () => {
+    const { modelContext, registerTool } = modelContextWithRegister();
+    const legacyRegisterTool = vi.fn<(tool: PublicWebMcpTool) => unknown>();
+    defineModelContext(navigator, { registerTool: legacyRegisterTool });
+
+    registerPublicWebMcpTools();
+
+    expect(registerTool).toHaveBeenCalledTimes(2);
+    expect(registerTool.mock.contexts).toEqual([modelContext, modelContext]);
+    expect(legacyRegisterTool).not.toHaveBeenCalled();
+    expect(window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__).toBe(true);
   });
 
   it("does not register duplicate tools after the first successful registration", () => {

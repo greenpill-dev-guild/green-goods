@@ -5,6 +5,10 @@ type WebMcpInputSchema = {
   additionalProperties?: boolean;
 };
 
+type WebMcpToolExecuteOptions = {
+  signal: AbortSignal;
+};
+
 type WebMcpToolDefinition = {
   name: string;
   description: string;
@@ -13,16 +17,26 @@ type WebMcpToolDefinition = {
     readOnlyHint?: boolean;
     untrustedContentHint?: boolean;
   };
-  execute: (input: Record<string, unknown>) => unknown;
+  // The browser calls `execute(input, { signal })`. Both public tools finish synchronously, so
+  // their implementations may leave the abort signal unused.
+  execute: (input: Record<string, unknown>, options: WebMcpToolExecuteOptions) => unknown;
 };
 
 type WebMcpRuntimeLocation = Pick<Location, "assign" | "pathname">;
 
+type WebMcpRegisterToolOptions = {
+  signal?: AbortSignal;
+};
+
 type WebMcpModelContext = {
-  registerTool?: (tool: WebMcpToolDefinition) => unknown;
+  registerTool?: (tool: WebMcpToolDefinition, options?: WebMcpRegisterToolOptions) => unknown;
 };
 
 declare global {
+  interface Document {
+    modelContext?: WebMcpModelContext;
+  }
+
   interface Navigator {
     modelContext?: WebMcpModelContext;
   }
@@ -113,6 +127,16 @@ function navigatePublicRoute(
   };
 }
 
+/**
+ * The WebMCP draft moved the tool registry from `navigator.modelContext` to
+ * `document.modelContext` in July 2026, and Chromium 150+ (Brave Beta 156 included) exposes only
+ * the document form. Older builds still carry the navigator alias, so the document form wins and
+ * the alias is the fallback.
+ */
+function resolveWebMcpModelContext() {
+  return document.modelContext ?? navigator.modelContext;
+}
+
 export function createPublicWebMcpTools({
   pageDocument = document,
   pageLocation = window.location,
@@ -162,7 +186,8 @@ export function createPublicWebMcpTools({
 }
 
 export function registerPublicWebMcpTools() {
-  const registerTool = navigator.modelContext?.registerTool;
+  const modelContext = resolveWebMcpModelContext();
+  const registerTool = modelContext?.registerTool;
   if (typeof registerTool !== "function" || window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__) {
     return;
   }
@@ -170,7 +195,7 @@ export function registerPublicWebMcpTools() {
   const tools = createPublicWebMcpTools();
 
   for (const tool of tools) {
-    registerTool.call(navigator.modelContext, tool);
+    registerTool.call(modelContext, tool);
   }
 
   window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__ = true;
