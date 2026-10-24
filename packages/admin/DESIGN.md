@@ -55,6 +55,7 @@ The cockpit speaks the installed app's Warm Earth language at a denser setting. 
 - The ground: the linen canvas with white cards, and one warm dark ladder (DL-097, § Workspace Tinting).
 - The control-grade outline on fields, chips and secondary buttons, and one solid focus ring in each surface's focus role (DL-098).
 - One count badge, the shared `CountBadge`, on the workspace tone's accent here (DL-099, § Workspace Tinting).
+- The active-tab pill on both bottom bars: the workspace tone's container here, the green container in the app (DL-107, § Navigation).
 - Solid surfaces: every card, sheet, dialog and menu is opaque on both, and the cockpit's nav dock below is the one translucent piece (DL-108).
 
 Each shared piece that follows joins this list with its decision-log row.
@@ -185,7 +186,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 ## Navigation
 
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
-- **NavigationBar** (bottom, Z3): Workspace tabs (Hub, Garden, Community, Actions). Symbol-first. Role-adaptive visibility via permissions.
+- **NavigationBar** (bottom, Z3): Workspace tabs (Hub, Garden, Community, Actions). Symbol-first. Role-adaptive visibility via permissions. The active tab carries a pill of the workspace tone's container behind its icon, with its label in ink at weight 600. The installed app's bottom bar draws the same pill in its green, and each bar keeps its own chrome (DL-107).
 - **FAB** (`Shell/FabButton`): Per-workspace primary action, a capsule at both sizes (`rounded-full`): 48px circle in the dock, 56px extended capsule with label when floating on mobile (DL-010; capsule = the 9999 step of the admin radius set). Closed, it shows a plus in every workspace, in the workspace tone, whether it fires one act or opens a speed dial; a dial shows a close icon while open, and its rows name each act beside the act's own icon (DL-078). Integrated into NavigationBar via FabProvider.
 - **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
 - **Controlled Chrome**: only the NavigationBar/FAB dock is translucent, with flat `rgb(var(--admin-surface-0) / 0.85)`, a 12px blur, a warm ambient shadow, and a 1px ink ring (every dialog surface, menu and the account side sheet are solid, DL-108). The AppBar root and MainSheet are transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.

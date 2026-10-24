@@ -89,7 +89,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `PublicShell` | Browser mode route shell: `SiteHeader` + public route outlet |
 | `PwaRuntime` / `AppShell` | Installed/authenticated PWA runtime: providers, update notifier, scroll root, bottom `AppBar` |
 | `SiteHeader` | Browser mode: hamburger (mobile) + horizontal links (desktop), fixed transparent header that fades out on scroll; no backdrop blur |
-| `AppBar` | Installed PWA: bottom nav (Home / Garden / Profile), hides on `/home/garden` and `/home/:id/work/:workId` |
+| `AppBar` | Installed PWA: bottom nav (Home / Garden / Profile), hides on `/home/garden` and `/home/:id/work/:workId`; the active tab shows a green pill behind its icon, the cockpit's recipe (DL-107) |
 
 **Shared primitives** (import from `@green-goods/shared`):
 

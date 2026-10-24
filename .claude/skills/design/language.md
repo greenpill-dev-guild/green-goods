@@ -459,6 +459,8 @@ Admin workspace action/detail flows open in centered `AdminDialog`; the admin ca
 
 **Admin dock**: the cockpit's bottom nav is a flat dock and the one translucent surface in Green Goods (DL-108): `rgb(var(--admin-surface-0)/0.85)` with 12px blur, a 1px ink ring, and the warm chrome shadow (`0 18px 44px rgb(var(--warm-shadow)/0.14)`); the active item is a tone primary-container pill. The Floating Toolbar row is client/spatial vocabulary. Admin ships no floating toolbar.
 
+**App bar**: the installed app's bottom bar keeps its own chrome, a solid white bar with a hairline and 16px top corners, and takes the dock's active recipe in the app's green (DL-107): a 56 × 32 pill of `--primary-container` (green-100, green-900 in dark) behind the active tab's line icon, drawn in `--primary-container-foreground`, with the label in ink at weight 600. Every tab holds the pill's width, so no tab moves when the active one changes.
+
 **Symbol-first rule** (from Liquid Glass): Persistent navigation uses symbols (icons). Text labels only when the icon is genuinely ambiguous. Don't pair a symbol with text in a way that looks like a single button. If you need text, let it sit on its own container.
 
 **Grouping** (from Liquid Glass): Related bar items share one background. Items grouped using the correct API automatically share spatial relationship. Don't group symbols with text labels.
