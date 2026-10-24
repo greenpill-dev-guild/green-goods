@@ -11,6 +11,7 @@ import {
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
+import { stateLayer } from "../../../../shared/.storybook/design-system/measure";
 import { FabButton } from "./FabButton";
 
 /** A config as `useViewActions` builds it: the primary first. */
@@ -121,6 +122,15 @@ async function expectWorkspaceTone(fab: HTMLElement) {
   await expect(style.backgroundColor).toBe(`rgb(${tone})`);
 }
 
+/**
+ * The state layer is the neutral ink painted beneath the icon and label, so no
+ * hovered, focused or pressed state lowers their contrast below rest.
+ */
+async function expectLayerBeneath(fab: HTMLElement) {
+  await expect(stateLayer(fab)).toMatchObject({ beneath: true, neutralInk: true });
+  await expect(stateLayer(fab).minContrast).toBeGreaterThanOrEqual(4.5);
+}
+
 /** Closed, a dial is the plus in its workspace's tone, named for what it opens. */
 const restsClosed: Play = async ({ canvasElement }) => {
   const fab = within(canvasElement).getByRole("button", { name: "Open Actions" });
@@ -128,6 +138,7 @@ const restsClosed: Play = async ({ canvasElement }) => {
   // reads to assistive tech as a control that cannot open.
   await expect(fab).toHaveAttribute("aria-expanded", "false");
   await expectWorkspaceTone(fab);
+  await expectLayerBeneath(fab);
 };
 
 /** Open, the button is named for closing, and each act says what it does. */
@@ -167,6 +178,9 @@ export const CommunityOpen: Story = {
   ...Community,
   play: opensDial("Add Member", "Deposit / Withdraw", "Fund Cookie Jar"),
 };
+
+/** Dark mode: Community's tonal fill keeps its ink at rest and under every state (DL-009). */
+export const CommunityDark: Story = { ...Community, globals: { theme: "dark" } };
 
 /** Actions declares one act, so its FAB fires directly: the same plus, beside the act's label. */
 export const Actions: Story = {
