@@ -9,7 +9,8 @@ import { cn } from "../../utils/styles/cn";
  *
  * Elevation variants map to M3 tonal elevation + shadow depth:
  *   ground   → recessed into canvas (bg-bg-weak, no shadow)
- *   raised   → default card level (bg-bg-white, elevation-1)
+ *   raised   → the card level: the one card surface (.gg-card, F7) on its
+ *              24px corner, in both its glass and solid names
  *   floating → popover/dropdown (bg-bg-white, elevation-3)
  *   overlay  → sheet/modal level (bg-bg-white, elevation-5)
  *
@@ -21,17 +22,16 @@ import { cn } from "../../utils/styles/cn";
  * ============================================================================ */
 
 export const surfaceVariants = tv({
-  base: "rounded-xl",
   variants: {
     elevation: {
       // Glass tiers (M3 + Liquid)
       ground: "glass-ground",
-      raised: "glass-raised",
+      raised: "gg-card",
       floating: "glass-floating",
       overlay: "glass-overlay",
       // Solid variants (for non-glass contexts: form content, data tables)
       "solid-ground": "bg-bg-weak shadow-[var(--edge-rest)]",
-      "solid-raised": "bg-bg-white shadow-[var(--edge-rest),_var(--m3-elevation-1)]",
+      "solid-raised": "gg-card",
       "solid-floating": "bg-bg-white shadow-[var(--edge-rest),_var(--m3-elevation-2)]",
       "solid-overlay": "bg-bg-white shadow-[var(--m3-elevation-2)]",
     },
@@ -41,7 +41,9 @@ export const surfaceVariants = tv({
       default: "p-4 sm:p-5",
       spacious: "p-6 sm:p-8",
     },
+    // `card` is the card's own corner on the raised level and 16px elsewhere.
     radius: {
+      card: "",
       sm: "rounded-sm",
       md: "rounded-md",
       lg: "rounded-lg",
@@ -60,10 +62,22 @@ export const surfaceVariants = tv({
   defaultVariants: {
     elevation: "raised",
     padding: "none",
-    radius: "lg",
+    radius: "card",
     interactive: false,
   },
   compoundVariants: [
+    {
+      elevation: [
+        "ground",
+        "floating",
+        "overlay",
+        "solid-ground",
+        "solid-floating",
+        "solid-overlay",
+      ],
+      radius: "card",
+      class: "rounded-lg",
+    },
     {
       interactive: true,
       elevation: "raised",

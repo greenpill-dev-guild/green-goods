@@ -1,14 +1,16 @@
+import {
+  ItemRow,
+  type ItemRowProps,
+  type ItemRowTone,
+} from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiDeleteBinLine, RiDraftLine, RiHandHeartLine, RiLockLine } from "@remixicon/react";
 import React from "react";
-import { ImageWithFallback } from "@/components/Display";
 
 /** Where the row stands; the pill, its tone and the status edge follow from it. */
 export type PendingCardKind = "needs" | "needsReview" | "upload" | "draft" | "checking" | "review";
 
-const PILL_TONE: Record<PendingCardKind, "error" | "warning" | "info" | "neutral"> = {
+const PILL_TONE: Record<PendingCardKind, ItemRowTone> = {
   needs: "error",
   needsReview: "warning",
   upload: "info",
@@ -18,14 +20,17 @@ const PILL_TONE: Record<PendingCardKind, "error" | "warning" | "info" | "neutral
 };
 
 /** The status edge: blocked in error, to upload and checking in information, in review in stroke. */
-const EDGE: Record<PendingCardKind, string | null> = {
-  needs: "border-l-2 border-l-error-base",
-  needsReview: null,
-  upload: "border-l-2 border-l-information-base",
-  draft: null,
-  checking: "border-l-2 border-l-information-base",
-  review: "border-l-2 border-l-stroke-sub-300",
+const EDGE: Record<PendingCardKind, ItemRowTone | undefined> = {
+  needs: "error",
+  needsReview: undefined,
+  upload: "info",
+  draft: undefined,
+  checking: "info",
+  review: "neutral",
 };
+
+/** Work waiting on a review says so in its pill; a status line would only repeat it. */
+const STATUS_REPEATS_PILL: ReadonlySet<PendingCardKind> = new Set(["review", "needsReview"]);
 
 export interface PendingCardProps {
   kind: PendingCardKind;
@@ -34,7 +39,7 @@ export interface PendingCardProps {
   title: string;
   /** When it was saved, edited or submitted. */
   meta: string;
-  /** Proof, or work that keeps a promise, carries the hand-heart marker before its meta. */
+  /** Proof, or work that keeps a promise, carries the hand-heart mark on its photo. */
   marker?: { kind: "proof" | "linked"; label: string };
   /** Where it stands, in a few words. */
   status: string;
@@ -53,10 +58,10 @@ export interface PendingCardProps {
 }
 
 /**
- * One row of Your Work › Pending (D12, D13, D20): the draft card's 88px frame
- * for every kind. A square photo, the title, a meta line, a status line, the
- * 12px pill top right and the guarded Discard bottom right, so labels line up
- * on every row. Titles keep clear of the widest pill.
+ * One row of Your Work › Pending (D12, D13, D20) on the shared item row (F7): the
+ * photo, the title, the kind's pill under it, then where it stands and when on one
+ * detail line, with the guarded Discard in the right slot. A blocked row's reason
+ * reads in the error colour; a row a send may be on its way for shows the lock.
  */
 export const PendingCard: React.FC<PendingCardProps> = ({
   kind,
@@ -74,105 +79,48 @@ export const PendingCard: React.FC<PendingCardProps> = ({
   discardLabel,
   className,
 }) => {
-  const edge = EDGE[kind];
+  const where = {
+    text: status,
+    tone: statusTone,
+    icon: locked ? <RiLockLine className="text-text-soft-400" aria-hidden="true" /> : undefined,
+  };
+  // Where it stands, then when: what the reader acts on comes first.
+  const details: ItemRowProps["details"] = STATUS_REPEATS_PILL.has(kind) ? [meta] : [where, meta];
 
   return (
-    <div
-      ref={thumbnailRef}
+    <ItemRow
+      ref={thumbnailRef as React.Ref<HTMLElement>}
       data-component="PendingCard"
       data-kind={kind}
-      className={cn(
-        "relative flex h-22 w-full items-stretch overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] hover:shadow-md active:brightness-98",
-        edge,
-        className
-      )}
-    >
-      <button
-        onClick={onOpen}
-        type="button"
-        data-pressable="card"
-        className="flex min-w-0 flex-1 cursor-pointer items-stretch gap-0 text-left focus:outline-none focus-visible:shadow-button-primary-focus"
-      >
-        {/* A fixed square the photo can't resize, same as work cards (DL-019). */}
-        <div className="relative h-full aspect-square flex-shrink-0 overflow-hidden bg-bg-weak-50">
-          {thumbnailUrl ? (
-            <ImageWithFallback
-              src={thumbnailUrl}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-              fallbackClassName="absolute inset-0 h-full w-full"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-text-soft-400">
-              <RiDraftLine className="h-6 w-6" aria-hidden="true" />
-            </div>
-          )}
-        </div>
-
-        <div className="min-w-0 flex-1 overflow-hidden px-3 py-2 pr-27">
-          <h4 className="truncate text-label-md font-medium text-text-strong-950" title={title}>
-            {title}
-          </h4>
-          <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-text-sub-600">
-            {marker ? (
-              <>
-                <RiHandHeartLine
-                  className="h-3.5 w-3.5 shrink-0 text-primary-on-surface"
-                  aria-hidden="true"
-                />
-                <span
-                  className={cn(
-                    "shrink-0",
-                    marker.kind === "proof" && "font-medium text-text-strong-950"
-                  )}
-                >
-                  {marker.label}
-                </span>
-                <span aria-hidden="true">·</span>
-              </>
-            ) : null}
-            <span className="min-w-0 truncate" title={meta}>
-              {meta}
-            </span>
-          </div>
-          <div className="mt-1 flex min-w-0 items-center gap-1 whitespace-nowrap text-xs">
-            {locked ? (
-              <RiLockLine className="h-3.5 w-3.5 shrink-0 text-text-soft-400" aria-hidden="true" />
-            ) : null}
-            <span
-              className={cn(
-                "min-w-0 truncate",
-                statusTone === "error" ? "text-error-dark" : "text-text-sub-600"
-              )}
-              title={status}
-            >
-              {status}
-            </span>
-          </div>
-        </div>
-      </button>
-
-      {/* Drawn over the row, not part of it: a tap on the pill opens the row. */}
-      <StatusBadge
-        size="xs"
-        variant={PILL_TONE[kind]}
-        showIcon={false}
-        className="pointer-events-none absolute right-2 top-2 whitespace-nowrap"
-      >
-        {pill}
-      </StatusBadge>
-
-      {onDiscard ? (
-        <IconButton
-          onClick={(event) => {
-            event.stopPropagation();
-            onDiscard();
-          }}
-          className="absolute bottom-1 right-2"
-          aria-label={discardLabel}
-          icon={<RiDeleteBinLine aria-hidden="true" />}
-        />
-      ) : null}
-    </div>
+      className={className}
+      lead={{
+        kind: "photo",
+        src: thumbnailUrl,
+        fallbackIcon: RiDraftLine,
+        mark: marker ? (
+          <>
+            <RiHandHeartLine aria-hidden="true" />
+            <span className="sr-only">{marker.label}</span>
+          </>
+        ) : undefined,
+      }}
+      title={title}
+      status={{ label: pill, tone: PILL_TONE[kind] }}
+      details={details}
+      edge={EDGE[kind]}
+      onOpen={onOpen}
+      action={
+        onDiscard ? (
+          <IconButton
+            onClick={(event) => {
+              event.stopPropagation();
+              onDiscard();
+            }}
+            aria-label={discardLabel}
+            icon={<RiDeleteBinLine aria-hidden="true" />}
+          />
+        ) : undefined
+      }
+    />
   );
 };

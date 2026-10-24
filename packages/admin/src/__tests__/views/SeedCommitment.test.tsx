@@ -193,6 +193,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
+  useFocusAfterFlip: () => undefined,
 }));
 
 vi.mock(

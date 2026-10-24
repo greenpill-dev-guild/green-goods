@@ -187,9 +187,34 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-type-field-size": "1rem",
       "--gg-type-field-line": "1.25rem",
       "--gg-type-field-tracking": "0px",
+      // The phone sheet (F5): the card step and its hairline under the shared
+      // sheet material, and the 22px dialog title in the shared header.
+      "--gg-sheet-fill": "rgb(var(--admin-surface-0))",
+      "--gg-sheet-edge": "rgb(var(--neutral-200))",
+      "--gg-sheet-title-size": "var(--gg-type-title-lg-size)",
+      "--gg-sheet-title-line": "var(--gg-type-title-lg-line)",
+      // A card's one-line title at 13px / 600 (F7), and the shared card surface
+      // on the cockpit's own ladder: its card, the app's linen-grade edge and
+      // the fill one step above the card.
+      "--gg-type-card-title-size": "0.8125rem",
+      "--gg-type-card-title-line": "1.125rem",
+      "--gg-type-card-title-weight": "600",
+      "--gg-card-surface": "var(--admin-surface-0)",
+      "--gg-card-edge": "var(--neutral-200)",
+      "--gg-card-fill": "var(--m3-surface-container-high)",
     });
     // The Storybook admin scope must render what production renders.
     expect(ggTokens(surfacesCss, '[data-surface-scope="admin"] {')).toEqual(admin);
+    // In dark the sheet is the lifted card with its hairline, re-declared so a
+    // dark scope below the root resolves its own.
+    const darkSheet = {
+      "--gg-sheet-fill": "rgb(var(--admin-surface-0))",
+      "--gg-sheet-edge": "rgb(var(--earth-700))",
+    };
+    expect(ggTokens(adminCss, '\n[data-theme="dark"] {\n  --gg-sheet')).toEqual(darkSheet);
+    expect(
+      ggTokens(surfacesCss, '[data-surface-scope="admin"][data-theme="dark"] {')
+    ).toMatchObject(darkSheet);
   });
 
   it("toolbar pills sit at the 36px tier", () => {

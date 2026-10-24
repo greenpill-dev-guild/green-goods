@@ -1,7 +1,7 @@
 import { useDraftThumbnail, type DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import React from "react";
 import { useIntl } from "react-intl";
-import { formatAgoStandalone } from "./pendingCopy";
+import { formatAgo } from "./pendingCopy";
 import { PendingCard } from "./PendingCard";
 
 export interface DraftCardProps {
@@ -36,7 +36,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
         actionTitle ||
         intl.formatMessage({ id: "app.draft.untitled", defaultMessage: "Untitled Draft" })
       }
-      meta={formatAgoStandalone(intl, draft.updatedAt)}
+      meta={formatAgo(intl, draft.updatedAt)}
       marker={
         draft.linkIntent
           ? {

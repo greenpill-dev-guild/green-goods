@@ -243,6 +243,7 @@ vi.mock("@green-goods/shared/hooks/navigation/useCanvasSearchParams", () => ({
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
+  useFocusAfterFlip: () => undefined,
 }));
 
 vi.mock("@green-goods/shared/hooks/useSheetWidth", () => ({

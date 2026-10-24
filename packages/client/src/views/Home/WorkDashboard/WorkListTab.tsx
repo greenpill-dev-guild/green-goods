@@ -220,7 +220,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
             description={intl.formatMessage(messages.emptyDescription)}
           />
         ) : (
-          <ul className="animate-stagger-in space-y-3">
+          <ul className="animate-stagger-in flex flex-col gap-(--gg-list-gap)">
             {items.map((work) => (
               <li key={work.id}>
                 <MinimalWorkCard

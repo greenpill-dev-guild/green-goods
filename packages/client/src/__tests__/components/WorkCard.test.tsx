@@ -19,14 +19,30 @@ describe("components/Cards/MinimalWorkCard", () => {
     metadata: "",
   };
 
-  it("renders action override, media count, feedback, and relative time", () => {
-    render(<MinimalWorkCard work={work as any} onClick={vi.fn()} actionTitle="Custom Title" />);
+  it("names the work, its one status pill and its short age, with the photo count on the photo", () => {
+    render(
+      <MinimalWorkCard
+        work={{ ...work, feedback: "" } as any}
+        onClick={vi.fn()}
+        actionTitle="Custom Title"
+      />
+    );
 
-    expect(screen.getByText("Custom Title")).toBeInTheDocument();
-    expect(screen.getByText("Approved")).toBeInTheDocument();
+    const row = screen.getByRole("button");
+    expect(row).toHaveTextContent("Custom Title");
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Approved");
+    expect(screen.getByText("1 photo")).toBeInTheDocument();
+    expect(screen.getByText("2 hr. ago")).toBeInTheDocument();
+    expect(screen.queryByText("Feedback")).not.toBeInTheDocument();
+  });
+
+  it("gives feedback in the age's place, never as a second pill", () => {
+    render(<MinimalWorkCard work={work as any} onClick={vi.fn()} />);
+
+    expect(screen.getAllByRole("status")).toHaveLength(1);
     expect(screen.getByText("Feedback")).toBeInTheDocument();
-    expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("2 hours ago")).toBeInTheDocument();
+    expect(screen.queryByText("2 hr. ago")).not.toBeInTheDocument();
   });
 
   it("calls onClick when the compact card is pressed", async () => {
@@ -56,40 +72,30 @@ describe("components/Cards/MinimalWorkCard", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("keeps the compact row and its media square on the same height contract", () => {
-    render(<MinimalWorkCard work={work as any} onClick={vi.fn()} />);
-
-    const card = screen.getByRole("button");
-    const image = card.querySelector("img");
-    const media = image?.parentElement;
-
-    expect(card).toHaveStyle({ height: "88px" });
-    expect(media).toHaveStyle({ height: "100%", aspectRatio: "1 / 1" });
-  });
-
-  it("uses one primary state and supporting line for a queued card", () => {
+  it("words a list's own state in the one pill and its two details", () => {
     render(
       <MinimalWorkCard
         work={work as any}
         onClick={vi.fn()}
         presentation={{
           statusLabel: "To upload",
-          statusTone: "uploading",
+          statusTone: "info",
           contextLabel: "You submitted",
           supportingText: "Ready to sign and upload",
         }}
       />
     );
 
-    const card = screen.getByRole("button");
-    expect(screen.getByText("To upload")).toBeInTheDocument();
-    expect(screen.queryByText("Approved")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent("To upload");
+    expect(screen.getByText("You submitted")).toBeInTheDocument();
+    // The second detail takes the age's place.
     expect(screen.getByText("Ready to sign and upload")).toBeInTheDocument();
-    expect(card.querySelectorAll("h4")).toHaveLength(1);
+    expect(screen.queryByText("2 hr. ago")).not.toBeInTheDocument();
   });
 
   describe("title", () => {
-    const title = () => screen.getByRole("heading", { level: 4 });
+    const title = () => screen.getByRole("button").querySelector(".gg-item-row-title");
 
     it("drops the timestamps older submissions appended to a hosted title", () => {
       render(

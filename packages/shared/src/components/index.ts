@@ -56,6 +56,9 @@ export {
   type GardenCardProps,
   type GardenCardVariantProps,
   gardenCardVariants,
+  MediaCard,
+  type MediaCardLayout,
+  type MediaCardProps,
   VaultPositionCard,
   type VaultPositionCardProps,
   getStatusBorderClass,
@@ -63,8 +66,6 @@ export {
   type WorkCardData,
   type WorkCardLabels,
   type WorkCardProps,
-  type WorkCardVariantProps,
-  workCardVariants,
 } from "./Cards";
 // Surface Component (unified surface primitive — preferred over Card/CardBase for new code)
 export { Surface, surfaceVariants } from "./Surface";
