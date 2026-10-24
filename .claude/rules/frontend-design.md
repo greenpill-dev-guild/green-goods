@@ -154,6 +154,13 @@ patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
 default surface and an underline on the public editorial surface (DL-022, DL-024). Mark required fields in both surfaces (the admin family renders
 its own aria-hidden asterisk from `required` — never hardcode `" *"` into label strings).
 
+**The installed app and the cockpit** lay a field out one way (DL-105): the label above an
+outlined control, at the field title's 14px / 500, and a message line under it that reserves two
+lines for a hint or an error, so a message that fits never moves the form. The admin family,
+`FormField`, `FormattedAmountInput` and `DatePicker` draw that line with the shared
+`gg-field-message`, and the admin family and the date picker take the shared `gg-field-label`;
+each surface keeps its own corner and heights.
+
 **A field-input label is never a hand-rolled eyebrow.** Labeling an input, toggle, or
 selectable-card group with `type-label-sm text-text-soft` (the eyebrow/metadata token) makes that
 field read visibly smaller and grayer than the family labels next to it — the Garden Profile
