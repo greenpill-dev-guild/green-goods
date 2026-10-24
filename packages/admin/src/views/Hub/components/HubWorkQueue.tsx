@@ -235,10 +235,10 @@ export function HubWorkQueue({
   }
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
     <ul
       className={isPhone ? PHONE_LIST_CLASS : "hub-workbench-grid"}
       data-card-layout={cardLayout}
+      // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
       role="list"
     >
       {items.map((work, index) => {
