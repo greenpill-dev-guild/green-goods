@@ -26,7 +26,9 @@ describe("AdminInlineField error anatomy", () => {
 
     const input = screen.getByRole("textbox", { name: /Action id/ });
     expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(input.className).toContain("--m3-error");
+    // Shared's control on the admin surface draws the error itself (DL-116).
+    expect(input).toHaveAttribute("data-component", "TextInput");
+    expect(input).toHaveAttribute("data-invalid", "true");
 
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("Enter a numeric id.");

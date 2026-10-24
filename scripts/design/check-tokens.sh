@@ -335,7 +335,7 @@ collect_admin_invariant_hits() {
 #   1. Shared field primitives rendered directly (TextInput/Textarea/
 #      NativeSelect/FormField and local FormInput/FormTextarea re-wraps) —
 #      the canonical anatomy is AdminTextField/AdminTextArea/AdminSelect/
-#      AdminInlineField.
+#      AdminInlineField, which render those primitives inside (DL-116).
 #   2. Raw <button> elements — actions ride AdminButton/AdminIconButton,
 #      choices ride AdminFilterChip/AdminChoiceGroup/AdminSelectableCard,
 #      tabs ride AdminTabRail. (m3-state-layer row/card buttons are folded

@@ -186,6 +186,12 @@ vi.mock("@green-goods/shared/components/Form/ControlPrimitives", async () => {
       invalid?: boolean;
       surface?: string;
     }) => React.createElement("textarea", props),
+    TextInput: ({
+      invalid: _invalid,
+      surface: _surface,
+      ...props
+    }: React.InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean; surface?: string }) =>
+      React.createElement("input", props),
   };
 });
 

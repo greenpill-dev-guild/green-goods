@@ -1,5 +1,9 @@
+import {
+  NativeSelect,
+  Textarea,
+  TextInput,
+} from "@green-goods/shared/components/Form/ControlPrimitives";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiArrowDownSLine } from "@remixicon/react";
 import * as React from "react";
 import { useCallback, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -18,13 +22,14 @@ import { CharacterCounter, countedLength, overLimitMessage } from "./CharacterCo
 
 /**
  * The field anatomy behind {@link AdminTextField}, {@link AdminTextArea}, and
- * {@link AdminSelect}: the installed app's label and message layout (F3) at
- * the cockpit's 8px corner, on the responsive field tier (DL-011, DL-030):
- * 44px / 16px text below 640px (the installed app's touch fields), 40px /
- * 14px text from 640px, balanced with the 32 / 40px buttons:
+ * {@link AdminSelect}: the shared field (DL-116), the installed app's label and
+ * message layout (F3) around Shared's own control:
  * - The label above the control, the shared field title (`gg-field-label`)
- * - An outlined control: the control-grade outline at rest, a 2px ring in the
- *   workspace tone on focus and in the error colour on error
+ * - The shared control (`TextInput`, `Textarea`, `NativeSelect`) on the admin
+ *   surface: the cockpit's 8px corner on the responsive field tier, 44px /
+ *   16px text below 640px (the installed app's touch fields) and 40px / 14px
+ *   text from 640px (DL-030, DL-031), the control-grade outline at rest, one
+ *   2px focus ring in the workspace tone (DL-098), and the error colour on error
  * - Leading and trailing icon slots (20px, on-surface-variant)
  * - Supporting text / error message below with aria-describedby linkage, on
  *   the shared message line (`gg-field-message`), which reserves the
@@ -73,7 +78,6 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
         ? { id: `${inputId}-count`, max: maxLength }
         : null;
 
-    const [focused, setFocused] = useState(false);
     // An uncontrolled field (register(), defaultValue) tracks its own length
     // for the counter.
     const [uncontrolledLength, setUncontrolledLength] = useState(() =>
@@ -122,10 +126,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     // Shared handlers
     // -------------------------------------------------------------------------
 
-    const handleFocus = () => setFocused(true);
-
     const handleBlur = (e: React.FocusEvent<AdminTextFieldControl>) => {
-      setFocused(false);
       onBlur?.(e);
     };
 
@@ -139,29 +140,10 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     // Control element (input, textarea or select)
     // -------------------------------------------------------------------------
 
+    // The shared control draws the box, the text and every state; the field
+    // only makes room for its icons. A select's chevron is the control's own.
     const controlClasses = cn(
-      "peer w-full bg-transparent",
-      // 16px on touch widths (no iOS zoom, PWA parity), 14px from 640px (DL-030).
-      "type-field leading-5 [color:rgb(var(--m3-on-surface))]",
-      // Remove browser defaults
-      "outline-none border-none focus:outline-none focus:border-none",
-      // Caret color
-      hasError
-        ? "caret-[rgb(var(--m3-error))]"
-        : "caret-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
-      // The label sits above, so a placeholder shows at rest, in the installed
-      // app's placeholder colour (gg-control).
-      "placeholder:text-text-soft",
-      // Disabled text
-      disabled && "[color:rgb(var(--m3-on-surface)/0.38)] cursor-not-allowed",
-      // The text line centred in the tier: 12 + 20 + 12 = 44 on touch widths,
-      // 10 + 20 + 10 = 40 from 640px. A textarea's first line sits there too.
-      "py-3 sm:py-2.5",
-      multiline && "resize-y",
-      // Selects drop the native chrome; the chevron renders in the trailing
-      // icon slot and clicks fall through it to the control. Option-row colours
-      // belong to `[data-theme="dark"] select option` in theme.css, not here.
-      select && "appearance-none cursor-pointer disabled:cursor-not-allowed",
+      select && "cursor-pointer",
       LeadingIcon && "pl-9",
       TrailingIcon && "pr-9",
       // A caller's class styles the value alone (an address in mono), never the label.
@@ -195,17 +177,36 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           .filter(Boolean)
           .join(" ") || undefined,
       onChange: handleChange,
-      onFocus: handleFocus,
       onBlur: handleBlur,
       className: controlClasses,
     };
 
+    // Shared's controls on the admin surface (DL-031): they read the invalid
+    // state from aria-invalid, so a group-level error a caller passes in
+    // colours the box too.
     const control = select ? (
-      <select {...controlProps} {...sharedControlProps} ref={mergeRef} />
+      <NativeSelect
+        {...(controlProps as React.ComponentPropsWithoutRef<typeof NativeSelect>)}
+        {...sharedControlProps}
+        surface="admin"
+        ref={mergeRef as React.Ref<HTMLSelectElement>}
+      />
     ) : multiline ? (
-      <textarea {...controlProps} {...sharedControlProps} ref={mergeRef} rows={rows} />
+      <Textarea
+        {...(controlProps as React.ComponentPropsWithoutRef<typeof Textarea>)}
+        {...sharedControlProps}
+        surface="admin"
+        ref={mergeRef as React.Ref<HTMLTextAreaElement>}
+        rows={rows}
+      />
     ) : (
-      <input {...controlProps} {...sharedControlProps} ref={mergeRef} type={type} />
+      <TextInput
+        {...(controlProps as React.ComponentPropsWithoutRef<typeof TextInput>)}
+        {...sharedControlProps}
+        surface="admin"
+        ref={mergeRef as React.Ref<HTMLInputElement>}
+        type={type}
+      />
     );
 
     const iconClasses = (position: "left" | "right") =>
@@ -239,27 +240,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           {required ? <span aria-hidden="true">{"\u00a0*"}</span> : null}
         </label>
 
-        {/* Container with the outline ring */}
-        <div
-          data-region="field-container"
-          className={cn(
-            // Shape: all corners 8px (--m3-shape-sm), the cockpit's field corner.
-            "rounded-[var(--m3-shape-sm)]",
-            // Height: 44 on touch widths, 40 from 640px (DL-030)
-            "min-h-11 sm:min-h-10",
-            "bg-transparent",
-            "relative flex flex-col",
-            // Horizontal padding accounts for optional icons
-            LeadingIcon ? "pl-3 pr-4" : "px-4",
-            // Outline ring, drawn inside so focus and error never move the form
-            hasError
-              ? "ring-2 ring-inset ring-[rgb(var(--m3-error))]"
-              : focused
-                ? "ring-2 ring-inset ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
-                : "ring-1 ring-inset ring-[rgb(var(--m3-outline))]",
-            disabled && "ring-1 ring-inset ring-[rgb(var(--m3-on-surface)/0.38)]"
-          )}
-        >
+        {/* The control and the icons laid over its inline padding */}
+        <div data-region="field-container" className="relative">
           {LeadingIcon ? (
             <span aria-hidden="true" className={iconClasses("left")}>
               <LeadingIcon className="h-full w-full" />
@@ -332,9 +314,9 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
 AdminTextField.displayName = "AdminTextField";
 
 /**
- * AdminTextArea — the multiline text field. Same anatomy, label, ring, and
- * supporting-text behavior as {@link AdminTextField}; the control is a
- * vertically resizable <textarea> (default 3 rows). Added for the
+ * AdminTextArea — the multiline text field. Same anatomy, label, and
+ * supporting-text behavior as {@link AdminTextField}; the control is Shared's
+ * vertically resizable `Textarea` (default 3 rows). Added for the
  * reason-required flows so no surface hand-rolls a label + textarea again.
  */
 export const AdminTextArea = React.forwardRef<HTMLTextAreaElement, AdminTextAreaProps>(
@@ -353,19 +335,17 @@ export const AdminTextArea = React.forwardRef<HTMLTextAreaElement, AdminTextArea
 AdminTextArea.displayName = "AdminTextArea";
 
 /**
- * AdminSelect — the form select. Same anatomy, label, ring, and
- * supporting-text behavior as {@link AdminTextField}, wrapping a native
- * `<select>`: the trailing slot carries a chevron by default, and an
- * empty-value `<option>` plays the placeholder role. Added 2026-08-29 so
+ * AdminSelect — the form select. Same anatomy, label, and supporting-text
+ * behavior as {@link AdminTextField}, wrapping Shared's `NativeSelect`, which
+ * draws its own chevron; an empty-value `<option>` plays the placeholder role. Added 2026-08-29 so
  * form flows stop hand-rolling `SELECT_CLASS` selects (the toolbar
  * `AdminSortSelect` stays a separate, toolbar-only control).
  */
 export const AdminSelect = React.forwardRef<HTMLSelectElement, AdminSelectProps>(
-  ({ selectProps, children, trailingIcon, ...props }, ref) => (
+  ({ selectProps, children, ...props }, ref) => (
     <AdminTextFieldBase
       {...(props as AdminTextFieldBaseProps)}
       select
-      trailingIcon={trailingIcon ?? RiArrowDownSLine}
       controlProps={{ ...selectProps, children } as Record<string, unknown>}
       // Safe narrowing: with select set the base always renders a <select>.
       ref={ref as React.Ref<AdminTextFieldControl>}
