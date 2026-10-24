@@ -540,7 +540,10 @@ describe("GardenPoolTab (W7)", () => {
     renderTab();
     const row = screen.getByTestId("pool-commitment-1");
     expect(within(row).getByText(/past due/i)).toBeInTheDocument();
-    fireEvent.click(within(row).getByRole("button", { name: /expire now/i }));
+    // The act is its icon on a narrow row and its words on a wide one, and either opens it.
+    const expires = within(row).getAllByRole("button", { name: /expire now/i });
+    expect(expires).toHaveLength(2);
+    fireEvent.click(expires[0]!);
     // A governing act never fires from a bare row act: the confirm names the
     // blast radius before anything reaches the chain.
     const dialog = await screen.findByRole("alertdialog");
@@ -616,9 +619,14 @@ describe("GardenPoolTab (W7)", () => {
       pendingCreates: [
         { ...queued, jobId: "job-a", title: "Compost workshop" },
         { ...queued, jobId: "job-b", title: "Seed swap", direction: "REQUEST" as const },
+        { ...queued, jobId: "job-c", title: "Tool library" },
       ],
       queuedPhase: (jobId: string) =>
-        jobId === "job-b" ? { status: "signing", key: "job-b" } : { status: "idle" },
+        jobId === "job-b"
+          ? { status: "signing", key: "job-b" }
+          : jobId === "job-c"
+            ? { status: "failed", key: "job-c" }
+            : { status: "idle" },
     });
     renderTab();
     const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
@@ -631,6 +639,10 @@ describe("GardenPoolTab (W7)", () => {
     expect(phaseLine(rows[1])).toHaveTextContent("Confirm in your wallet.");
     expect(rows[1].querySelector(".gg-item-row-details")).toHaveTextContent(
       "Confirm in your wallet."
+    );
+    // A failed act leads in the error color, as its phase line did.
+    expect(rows[2].querySelector('.gg-item-row-detail[data-tone="error"]')).toHaveTextContent(
+      /didn.t go through/
     );
     // A queued row leads with its direction before the index has it (DL-110).
     expect(within(rows[0]).getByRole("img", { name: "Offer" })).toBeInTheDocument();
