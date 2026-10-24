@@ -14,6 +14,8 @@ Linear: [Grove — Garden Knowledge](https://linear.app/green-goods/project/grov
 
 Scope **A0: S0 + P0 runtime feasibility**. Confirm the exact approved dependencies, versions and reuse rights before installing. The current work authorizes alignment/publication, not the entire extension build. Once bounded execution is accepted, use this hub's start gate and promotion procedure.
 
+A thinner alternative first step is the G0 slice of the [prototype specification](../prototype.md). Pi Durable 1.4.0 (21 October 2026) ships an IndexedDB storage, so P0's adapter and conformance work falls away either way.
+
 Prove one real local Gemma configuration beside a readable graph in packaged Brave, plus Pi browser storage conformance, one runner owner, stop/reopen and references-only persistence. Use synthetic input and record an explicit failed gate if browser, model, CSP or recovery feasibility fails. Do not substitute mock inference or a cloud provider and call the local-AI gate passed.
 
 Grove owns local knowledge/history in Dexie. Pi owns resumable investigation phases. Idempotent command receipts reconcile separate commits. KOI owns explicit scoped exchange through an optional controlled peer. A local graph must remain usable with no peer or model running.
