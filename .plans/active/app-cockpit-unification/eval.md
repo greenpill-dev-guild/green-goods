@@ -690,8 +690,16 @@ branch, each served by its own capture-only Storybook from the same untracked ca
 which reuse each real story with its own mocks and add Spanish and Portuguese. The pairs went to
 the maintainer as a private artifact, outside the repository.
 
-**Pairs.** 71 pairs and 2 after-only frames, headless Chromium (Playwright) at device scale 2,
-full page, all **Storybook**:
+**Pairs.** 83 pairs and 2 after-only frames, headless Chromium (Playwright) at device scale 2:
+71 **Storybook** pairs and 12 **mock-auth localhost** pairs.
+
+- App, **mock-auth localhost**: `?mockAuth=deployer&presentation=pwa` on Arbitrum One with the
+  production indexer, at TAS HUB, the one garden of the first fourteen where the deployer sees
+  Open Endowment: its Endowment tab (the vault summary and the reader's DAI deposit), its Cookie
+  jar tab, and the WETH jar's page opened, at 390px in light and dark and in Spanish and
+  Portuguese, each code state served by its own capture-only client dev server.
+
+The Storybook pairs, full page:
 
 - Cockpit: Community › Payouts' jars (closed, one opened, one paused), Community › Endowment's
   positions (closed and opened), the real `PositionCard`, and the campaign cookie jars, at 390, 768
@@ -703,9 +711,7 @@ full page, all **Storybook**:
 - After only: the row's `Amounts` story, both densities at their phone list widths in three
   languages.
 
-Mock-auth localhost was not run for the app: the endowment sheet opens only for a garden's
-reviewer and the wallet needs a gardener holding a jar, which the mock roles do not give
-deterministically, so the app's pairs use its real stories with mocked reads.
+The wallet's Cookies tab has no jar for the mock users, so its pairs come from its real story.
 
 **Fit after** (each visible row's height from its box; an amount counts as cut when its value
 overflows its slot or the row):
@@ -713,6 +719,7 @@ overflows its slot or the row):
 | Set | Where | Rows | Height | Amounts cut | Detail lines | First detail in an ellipsis |
 |---|---|---|---|---|---|---|
 | Every captured list | 73 frames, 390 to 1280px, light and dark, three languages | 163 | 88px | 0 | 0 wrapped, cut or dropped | 2: the Portuguese per-claim detail at 390px inside the cockpit's Payouts card |
+| TAS HUB's endowment sheet, live | 12 frames at 390px, light and dark, three languages; the garden's work rows behind the sheet included | 256 | 88px | 0 | 0 wrapped, cut or dropped | none |
 | The row's `Amounts` story | app columns of 288, 328 and 358px; cockpit 296 and 366px | 45 | 88px | 0 | 0 wrapped, cut or dropped | 9 per theme: the per-claim detail at 288px in all three languages, at 328px in Portuguese, at 296px in Spanish and Portuguese; none at 358 or 366px |
 
 **Before.** The app's jar cards were compact cards of their own height (a claim form opening

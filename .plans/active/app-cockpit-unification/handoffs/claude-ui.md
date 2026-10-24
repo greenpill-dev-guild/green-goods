@@ -399,9 +399,10 @@
   gate, the cockpit's jar and position rows (rows carry no act until opened; the deep link opens
   its page and Cancel returns focus to Edit), the failed vault read's retry and the campaign row's
   read failure, plus the existing jar and vault suites, all passing. The look is **Storybook**
-  pairs on both surfaces ([eval.md](../eval.md#step-18-build-jar-and-vault-cards)); mock-auth
-  localhost was not run (the roles do not reach a reviewer's endowment sheet or a gardener's jar
-  deterministically). browser-proof for the wallet's claim path is pending: signing is untouched.
+  pairs on both surfaces and **mock-auth localhost** pairs of TAS HUB's endowment sheet
+  ([eval.md](../eval.md#step-18-build-jar-and-vault-cards)); the wallet's jars come from its
+  story, since no mock role holds a jar. browser-proof for the wallet's claim path is pending:
+  signing is untouched.
 - Guides: DL-113 and its lines in both surface guides, root `DESIGN.md` and the cockpit prompt
   contract are the standards-only #1233, which merges first; no token change.
 - Open calls: the page opens in place rather than in a dialog (one tap more where a card showed
@@ -423,6 +424,7 @@ PRs answered
 | Verify and publish | 09:28Z → 09:36Z | Push gate 14 of 15; #1233 and #1234 opened |
 | Fix (CI and review) | 09:37Z → 10:21Z | Token baseline `d9e2485a6`; Codex's points `ed8b05724` and `41109ae4a`; develop merged |
 | Verify (pairs) | 09:45Z → 10:25Z | 71 Storybook pairs, the private artifact |
+| Verify (live pairs) | 10:25Z → 10:54Z | 12 mock-auth localhost pairs of TAS HUB's endowment sheet, added to the artifact |
 
 Human corrections: 0 observed; attention: unknown.
 
