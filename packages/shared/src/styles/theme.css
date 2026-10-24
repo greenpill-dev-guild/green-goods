@@ -1683,10 +1683,10 @@
 
   /* ── Count badge (F10) ── One count on both surfaces: a capsule 16px tall and
    * at least 16px wide, with the count role's 11px numerals at weight 600 on a
-   * 16px line, on the action pair (DL-017). The cockpit fills
-   * it with its workspace tone's contrast-safe accent: Community's action fill
-   * (orange-700) carries white numerals at only 4.0:1, its accent (orange-800)
-   * at 4.9:1, and the other tones' accents equal their action fills. A badge
+   * 16px line, on the action pair (DL-017). The cockpit fills it with its
+   * workspace tone's on-surface accent, which equals the action fill in every
+   * tone but Community: there it is orange-800, white at 7.09:1 on the cockpit's
+   * amber ramp, beside the orange-700 fill at 5.02:1. A badge
    * that sits on an icon or a control's edge draws a 2px ring of the surface
    * behind it: the page canvas, unless that surface sets
    * `--gg-count-badge-ring`. */
