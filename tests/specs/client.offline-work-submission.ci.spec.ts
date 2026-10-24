@@ -88,8 +88,15 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(page.getByTestId("work-dashboard-button")).toBeEnabled({ timeout: 15000 });
     await page.getByRole("link", { name: "Garden" }).click();
 
-    const actionCard = page.getByTestId("action-card").first();
-    const gardenCard = page.getByTestId("garden-card").first();
+    // Each picker is a listbox of cards; a press chooses one.
+    const actionCard = page
+      .getByRole("listbox", { name: "Select Your Action" })
+      .getByRole("option")
+      .first();
+    const gardenCard = page
+      .getByRole("listbox", { name: "Select Your Garden" })
+      .getByRole("option")
+      .first();
     // A cold dev server transforms the wizard route on first request.
     await expect(actionCard).toBeVisible({ timeout: 15000 });
     await expect(gardenCard).toBeVisible();

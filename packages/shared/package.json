@@ -84,6 +84,7 @@
     "./components/Canvas/viewActions.types": "./src/components/Canvas/viewActions.types.ts",
     "./components/Canvas/WorkbenchCard": "./src/components/Canvas/WorkbenchCard.tsx",
     "./components/Canvas/WorkbenchList": "./src/components/Canvas/WorkbenchList.tsx",
+    "./components/Cards/ActionPicker": "./src/components/Cards/ActionPicker.tsx",
     "./components/Cards/CardBase": "./src/components/Cards/CardBase.tsx",
     "./components/Cards/ItemRow/ItemRow": "./src/components/Cards/ItemRow/ItemRow.tsx",
     "./components/Cards/FactRow": "./src/components/Cards/FactRow.tsx",
