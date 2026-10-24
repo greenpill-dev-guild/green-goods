@@ -204,7 +204,7 @@ export const GardensWithoutSteward: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const label = await canvas.findByText("Gardens without a steward");
-    await expect(label.nextElementSibling).toHaveTextContent(/^1$/);
+    await expect(label.closest("dt")?.nextElementSibling).toHaveTextContent(/^1$/);
   },
 };
 

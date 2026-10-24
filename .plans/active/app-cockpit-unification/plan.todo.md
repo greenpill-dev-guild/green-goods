@@ -252,6 +252,18 @@ row wrap in English, Spanish and Portuguese ([eval.md](eval.md#step-10-proof-out
 code is `feature/app-cockpit-outlined-fields`; DL-105 and its guide lines are the standards-only
 `feature/app-cockpit-outlined-fields-guides`.
 
+**Step 14 (24 October).** `feature/app-cockpit-fact-rows` gives both surfaces one fact row: Shared's
+`FactList` and `FactRow` on the new leaf `./components/Cards/FactRow`, a label beside its value in
+divided rows, the labels in one column as wide as the longest (up to 40%), and the row's one action
+in its right slot; a row with no value is a setting. The search found more local rows than the
+census's eleven, and all of them moved: the cockpit's `AdminSettingRow` (retired), `FlowStatusRow`'s
+summary, `DetailRow`, `InfoRow`, both `ReviewRow`s, `ReviewLine` (retired), `DetailField`, `PoolFundingDialogFact`, the
+commitment and settlement fact rows, `ChangeSummary` and the rails' stat rows; the app's `Fact`
+(retired), `SummaryRow`, `ReadinessRow`, the settings rows and the claim panel's rows; and the inline
+fact lists on the same screens. The 142 pairs and the measurements are in
+[eval.md](eval.md#step-14-build-fact-rows). DL-109 and the guide wording are the standards-only
+`feature/app-cockpit-fact-rows-guides` (#1232).
+
 **Step 15 (24 October).** `feature/app-cockpit-commitment-cards` puts every promise in a list on
 Shared's new `CommitmentRow`, the item row led by the offer or request icon: the app's promise rows
 (now `PromiseRow`), group rows, pending creations, the series offered over time and the pinned

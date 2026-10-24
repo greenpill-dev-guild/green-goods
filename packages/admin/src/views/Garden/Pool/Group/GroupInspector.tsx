@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type {
   CommitmentEventRecord,
   CommitmentReadModel,
@@ -189,15 +190,12 @@ export function GroupInspector({
               defaultMessage: "Each promise",
             })}
           </AdminCardTitle>
-          {/* Label left, value right, as the promise inspector's facts read. */}
-          <dl className="space-y-1">
+          {/* The label beside its value, as the promise inspector's facts read. */}
+          <FactList frame="inset">
             {terms.map(([label, value]) => (
-              <div key={label} className="flex justify-between gap-3 type-body">
-                <dt className="shrink-0 text-text-soft">{label}</dt>
-                <dd className="min-w-0 text-right text-text-strong">{value}</dd>
-              </div>
+              <FactRow key={label} label={label} value={value} />
             ))}
-          </dl>
+          </FactList>
         </section>
         <p
           className="flex flex-wrap gap-x-2.5 gap-y-1 type-body text-text-sub"

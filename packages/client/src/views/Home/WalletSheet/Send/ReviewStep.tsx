@@ -1,6 +1,8 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { RiPencilLine } from "@remixicon/react";
@@ -19,49 +21,6 @@ interface ReviewStepProps {
   onEditAmount: () => void;
 }
 
-function SummaryRow({
-  label,
-  value,
-  title,
-  onEdit,
-  editLabel,
-}: {
-  label: string;
-  value: string;
-  title?: string;
-  onEdit?: () => void;
-  editLabel?: string;
-}) {
-  const body = (
-    <>
-      <span className="shrink-0 text-xs uppercase tracking-wide text-text-soft-400">{label}</span>
-      <span className="flex min-w-0 items-center gap-1.5">
-        <span className="truncate text-sm font-medium text-text-strong-950" title={title ?? value}>
-          {value}
-        </span>
-        {onEdit ? (
-          <RiPencilLine className="h-3.5 w-3.5 shrink-0 text-text-soft-400" aria-hidden />
-        ) : null}
-      </span>
-    </>
-  );
-
-  if (onEdit) {
-    return (
-      <button
-        type="button"
-        data-pressable="row"
-        onClick={onEdit}
-        aria-label={editLabel}
-        className="flex w-full items-center justify-between gap-3 py-2 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:opacity-80"
-      >
-        {body}
-      </button>
-    );
-  }
-  return <div className="flex items-center justify-between gap-3 py-2">{body}</div>;
-}
-
 export function ReviewStep({
   recipient,
   recipientLabel,
@@ -74,32 +33,39 @@ export function ReviewStep({
 }: ReviewStepProps) {
   const { formatMessage, locale } = useIntl();
   const editLabel = formatMessage({ id: "app.send.edit" });
+  // Each fact keeps its Change in the row's right slot, so the reader edits what they read.
+  const editButton = (onEdit: () => void) => (
+    <IconButton
+      size="compact"
+      emphasis="tertiary"
+      aria-label={editLabel}
+      icon={<RiPencilLine />}
+      onClick={onEdit}
+    />
+  );
 
   return (
     <div className="space-y-4 p-4">
-      <div className="divide-y divide-stroke-soft-200 rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3">
-        <SummaryRow
+      <FactList>
+        <FactRow
           label={formatMessage({ id: "app.send.review.to" })}
           value={recipientLabel}
-          title={recipient.address}
-          onEdit={onEditRecipient}
-          editLabel={editLabel}
+          valueTitle={recipient.address}
+          action={editButton(onEditRecipient)}
         />
-        <SummaryRow
+        <FactRow
           label={formatMessage({ id: "app.send.review.token" })}
           value={
             token.chainId === 42220 ? formatMessage({ id: "app.celoWallet.asset" }) : token.symbol
           }
-          onEdit={onEditAmount}
-          editLabel={editLabel}
+          action={editButton(onEditAmount)}
         />
-        <SummaryRow
+        <FactRow
           label={formatMessage({ id: "app.send.review.amount" })}
           value={`${formatTokenAmount(parsedAmount, token.decimals, token.decimals, locale)} ${token.symbol}`}
-          onEdit={onEditAmount}
-          editLabel={editLabel}
+          action={editButton(onEditAmount)}
         />
-      </div>
+      </FactList>
 
       <div className="space-y-1.5">
         <SheetHeading as="label" htmlFor="send-note" className="block">

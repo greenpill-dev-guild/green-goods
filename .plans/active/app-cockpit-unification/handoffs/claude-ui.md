@@ -439,6 +439,34 @@
 - Open: `FileUploadField` keeps its help above the upload well; the Seed step's Amount and Due
   errors can fall back to Zod's English.
 
+## Step 14: fact rows (PRD-1280)
+
+- `feature/app-cockpit-fact-rows`, cut from `develop` at `3c4fd4b62`:
+  - **The shape.** `FactList` (a `<dl>`, its own card or inset in a frame that exists) and `FactRow`
+    (`label`, `value`, `valueTitle`, `description`, `icon`, `action`, `labelId`) on the new leaf
+    `@green-goods/shared/components/Cards/FactRow`; rules `.gg-fact-*` in Shared `theme.css`. A
+    label is `type-label-sm` in the sub ink and a value `type-body` at 500, and the rows share one
+    label column through subgrid. A row with no value is a setting whose label takes
+    `gg-field-label`. Stories: `Shared/Cards/FactRow`.
+  - **Moved onto it**, every review, detail and settings screen that lists facts on both surfaces;
+    the pull request lists each row and why the rest stayed.
+  - **Left out**: the public website's editorial rows, metric strips with large numbers, the
+    assessment outcome legend, `PoolTarget`, the cockpit's setup checklist, rows that open a record,
+    step 18's position stat rows, step 19's `StatCard`, and the account status rows (`AccountRow`,
+    `SignedOutRow`, the Profile's `AccountInfo`).
+- Proof: focused tests for every screen whose test read the old rows, the FactRow story plays, and
+  142 rendered pairs, **Storybook** for the cockpit and the app's components and **mock-auth
+  localhost** for the Profile's settings, no authenticated class
+  ([eval.md](../eval.md#step-14-build-fact-rows)).
+- Guides: DL-109, root `DESIGN.md`, both surface guides, Rules 9 and 15, the cockpit's prompt
+  contract, the design architecture map and the defect grammar are the standards-only
+  `feature/app-cockpit-fact-rows-guides` (#1232). No token change.
+- Calls the pairs raise, each with a recommendation in the pairs artifact: values sit left in one
+  column; the label column follows the labels rather than the mock's fixed split; divided rows make
+  long reviews taller; the Profile's settings become one card while its account, garden and help
+  cards stay; the send review's Change moves to an icon button; the account status rows stay status
+  cards; and pool readiness now shows its words.
+
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker

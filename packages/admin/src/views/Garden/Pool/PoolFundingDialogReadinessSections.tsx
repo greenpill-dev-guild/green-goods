@@ -1,9 +1,9 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { PoolFundingControllerView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
-import { PoolFundingDialogFact as Fact } from "./PoolFundingDialogFinancialSections";
 import {
   fundingReadIssueMessage,
   readinessReasonMessage,
@@ -38,29 +38,29 @@ export function PoolFundingDialogReadinessSections({
             defaultMessage: "Account and Route Readiness",
           })}
         </AdminCardTitle>
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Fact
+        <FactList frame="inset">
+          <FactRow
             label={formatMessage({
               id: "cockpit.garden.pool.funding.route.account",
               defaultMessage: "Registered account",
             })}
             value={address(snapshot?.routeAddresses.account ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
               id: "cockpit.garden.pool.funding.route.indexed",
               defaultMessage: "Indexed Celo route",
             })}
             value={address(snapshot?.routeAddresses.indexed ?? null)}
           />
-          <Fact
+          <FactRow
             label={formatMessage({
               id: "cockpit.garden.pool.funding.route.live",
               defaultMessage: "Live Celo route",
             })}
             value={address(snapshot?.routeAddresses.live ?? null)}
           />
-        </dl>
+        </FactList>
         {settlementReady ? (
           <p className="type-body text-text-sub">
             {formatMessage({
@@ -95,17 +95,19 @@ export function PoolFundingDialogReadinessSections({
             defaultMessage: "Network Fees",
           })}
         </AdminCardTitle>
-        <Fact
-          label={formatMessage({
-            id: "cockpit.garden.pool.funding.nativeReserve",
-            defaultMessage: "Celo acknowledgment reserve",
-          })}
-          value={
-            snapshot?.nativeFeeBalance === null || snapshot?.nativeFeeBalance === undefined
-              ? "—"
-              : `${formatTokenAmount(snapshot.nativeFeeBalance, 18, 18, locale, true)} CELO`
-          }
-        />
+        <FactList frame="inset">
+          <FactRow
+            label={formatMessage({
+              id: "cockpit.garden.pool.funding.nativeReserve",
+              defaultMessage: "Celo acknowledgment reserve",
+            })}
+            value={
+              snapshot?.nativeFeeBalance === null || snapshot?.nativeFeeBalance === undefined
+                ? "—"
+                : `${formatTokenAmount(snapshot.nativeFeeBalance, 18, 18, locale, true)} CELO`
+            }
+          />
+        </FactList>
         <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.funding.nativeReserve.note",
