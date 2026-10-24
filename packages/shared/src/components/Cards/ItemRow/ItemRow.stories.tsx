@@ -1,4 +1,11 @@
-import { RiDeleteBinLine, RiHandHeartLine, RiImageLine, RiSeedlingLine } from "@remixicon/react";
+import {
+  RiBankLine,
+  RiCupLine,
+  RiDeleteBinLine,
+  RiHandHeartLine,
+  RiImageLine,
+  RiSeedlingLine,
+} from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ReactNode } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
@@ -194,6 +201,125 @@ export const Densities: Story = {
   },
 };
 
+/** A jar, a jar paused and a vault, in each language, as both surfaces list them. */
+const AMOUNT_ROWS: Record<"en" | "es" | "pt", ItemRowProps[]> = {
+  en: [
+    {
+      lead: { kind: "icon", icon: <RiCupLine /> },
+      title: "DAI",
+      status: { label: "Active", tone: "success" },
+      details: ["0.01 DAI a claim"],
+      amount: { value: "9.98 DAI", caption: "Jar Balance" },
+    },
+    {
+      lead: { kind: "icon", icon: <RiCupLine /> },
+      title: "WETH",
+      status: { label: "Paused", tone: "warning" },
+      details: ["0.004 WETH a claim"],
+      amount: { value: "0.004 WETH", caption: "Available now" },
+    },
+    {
+      lead: { kind: "icon", icon: <RiBankLine /> },
+      title: "WETH",
+      details: ["8 depositors"],
+      amount: { value: "0.4213 WETH", caption: "Net deposited" },
+    },
+  ],
+  es: [
+    {
+      lead: { kind: "icon", icon: <RiCupLine /> },
+      title: "DAI",
+      status: { label: "Activo", tone: "success" },
+      details: ["0.01 DAI por reclamo"],
+      amount: { value: "9.98 DAI", caption: "Saldo del tarro" },
+    },
+    {
+      lead: { kind: "icon", icon: <RiCupLine /> },
+      title: "WETH",
+      status: { label: "Pausado", tone: "warning" },
+      details: ["0.004 WETH por reclamo"],
+      amount: { value: "0.004 WETH", caption: "Disponible ahora" },
+    },
+    {
+      lead: { kind: "icon", icon: <RiBankLine /> },
+      title: "WETH",
+      details: ["8 depositantes"],
+      amount: { value: "0.4213 WETH", caption: "Depósito neto" },
+    },
+  ],
+  pt: [
+    {
+      lead: { kind: "icon", icon: <RiCupLine /> },
+      title: "DAI",
+      status: { label: "Ativo", tone: "success" },
+      details: ["0.01 DAI por reivindicação"],
+      amount: { value: "9.98 DAI", caption: "Saldo do pote" },
+    },
+    {
+      lead: { kind: "icon", icon: <RiCupLine /> },
+      title: "WETH",
+      status: { label: "Pausado", tone: "warning" },
+      details: ["0.004 WETH por reivindicação"],
+      amount: { value: "0.004 WETH", caption: "Disponível agora" },
+    },
+    {
+      lead: { kind: "icon", icon: <RiBankLine /> },
+      title: "WETH",
+      details: ["8 depositantes"],
+      amount: { value: "0.4213 WETH", caption: "Depósito líquido" },
+    },
+  ],
+};
+
+/**
+ * Jars, vaults and their deposits carry an amount on the right, in the action's slot (they
+ * have no action on the row): the value with its asset, never cut, and what it is under it.
+ * The body gives way first. Shown at both surfaces' phone list widths in three languages.
+ */
+export const Amounts: Story = {
+  render: () => (
+    <div className="flex flex-col gap-8">
+      {(
+        [
+          ["Installed app", undefined, [288, 328, 358]],
+          ["Cockpit", "admin", [296, 366]],
+        ] as const
+      ).map(([label, scope, widths]) => (
+        <section key={label} className="flex flex-col gap-3" data-surface-scope={scope}>
+          <h3 className="type-label-sm text-text-sub-600">{label}</h3>
+          <div className="flex flex-wrap gap-6">
+            {widths.flatMap((width) =>
+              (["en", "es", "pt"] as const).map((locale) => (
+                <Column key={`${width}-${locale}`} width={width}>
+                  {AMOUNT_ROWS[locale].map((amountRow, index) => (
+                    <ItemRow
+                      key={`${locale}-${amountRow.title}-${index}`}
+                      {...amountRow}
+                      onOpen={fn()}
+                    />
+                  ))}
+                </Column>
+              ))
+            )}
+          </div>
+        </section>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
+    for (const value of canvasElement.querySelectorAll<HTMLElement>(".gg-item-row-amount-value")) {
+      const row = value.closest(".gg-item-row") as HTMLElement;
+      await expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth + 0.5);
+      await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(
+        row.getBoundingClientRect().right
+      );
+    }
+    const [jar] = within(canvasElement).getAllByRole("button");
+    await expect(jar).toHaveAccessibleName(/DAI.*Active.*0\.01 DAI a claim.*9\.98 DAI/);
+  },
+};
+
 /**
  * A detail line never wraps. At 288px the second detail no longer fits beside the first, so
  * it drops whole, separator and all; a first detail too long on its own ends in an ellipsis.
@@ -233,24 +359,31 @@ export const DetailLineDropsWhole: Story = {
 
 /**
  * While a list loads, each row is its own frame with nothing in it: the loaded row's height,
- * and its photo where the loaded row's photo lands, inside the same status edge.
+ * and its photo where the loaded row's photo lands, inside the same status edge. A list of
+ * rows that lead with an icon tile and carry an amount draws those frames instead.
  */
 export const Loading: Story = {
   render: () => (
     <Column width={358}>
       <ItemRow {...workRow} onOpen={fn()} />
       <ItemRowSkeleton edge="neutral" />
+      <ItemRow {...AMOUNT_ROWS.en[0]} onOpen={fn()} />
+      <ItemRowSkeleton lead="icon" amount />
     </Column>
   ),
   play: async ({ canvasElement }) => {
-    const [row, skeleton] = [...canvasElement.querySelectorAll<HTMLElement>(".gg-item-row")];
+    const [row, skeleton, jar, jarSkeleton] = [
+      ...canvasElement.querySelectorAll<HTMLElement>(".gg-item-row"),
+    ];
     await expect(skeleton.getBoundingClientRect().height).toBe(row.getBoundingClientRect().height);
-    const photo = (element: HTMLElement) => {
-      const box = (
-        element.querySelector(".gg-item-row-photo") as HTMLElement
-      ).getBoundingClientRect();
-      return { left: box.left - element.getBoundingClientRect().left, width: box.width };
+    const box = (element: HTMLElement, part: string) => {
+      const rect = (element.querySelector(part) as HTMLElement).getBoundingClientRect();
+      return { left: rect.left - element.getBoundingClientRect().left, width: rect.width };
     };
-    await expect(photo(skeleton)).toEqual(photo(row));
+    await expect(box(skeleton, ".gg-item-row-photo")).toEqual(box(row, ".gg-item-row-photo"));
+    await expect(jarSkeleton.getBoundingClientRect().height).toBe(
+      jar.getBoundingClientRect().height
+    );
+    await expect(box(jarSkeleton, ".gg-item-row-tile")).toEqual(box(jar, ".gg-item-row-tile"));
   },
 };

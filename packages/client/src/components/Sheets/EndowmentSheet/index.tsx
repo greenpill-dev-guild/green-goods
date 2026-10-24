@@ -52,7 +52,12 @@ export function EndowmentSheet({
     moduleConfigured: jarsModuleConfigured,
     hasDetailReadFailure: jarsDetailReadFailure,
   } = useGardenCookieJars(gardenAddress, { enabled: isOpen });
-  const { deposits } = useVaultDeposits(gardenAddress, {
+  const {
+    deposits,
+    isLoading: depositsLoading,
+    isError: depositsError,
+    refetch: refetchDeposits,
+  } = useVaultDeposits(gardenAddress, {
     userAddress: primaryAddress ?? undefined,
     enabled: isOpen && Boolean(primaryAddress),
   });
@@ -176,6 +181,9 @@ export function EndowmentSheet({
           vaultsError={vaultsError}
           refetchVaults={refetchVaults}
           myDeposits={myDeposits}
+          depositsLoading={depositsLoading}
+          depositsError={depositsError}
+          refetchDeposits={refetchDeposits}
           gardenAddress={gardenAddress}
           primaryAddress={primaryAddress}
           selectedAsset={selectedAsset}

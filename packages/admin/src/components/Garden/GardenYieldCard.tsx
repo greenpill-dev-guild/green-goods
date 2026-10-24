@@ -1,3 +1,4 @@
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
@@ -202,9 +203,11 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
             ))}
           </div>
         ) : allocations.length === 0 ? (
-          <p className="mt-2 text-center type-body text-text-soft">
-            {formatMessage({ id: "app.yield.noAllocations" })}
-          </p>
+          <EmptyState
+            placement="list"
+            icon={<RiPieChart2Line />}
+            title={formatMessage({ id: "app.yield.noAllocations" })}
+          />
         ) : (
           <div className="mt-2 space-y-2">
             {visibleAllocations.map((allocation) => (

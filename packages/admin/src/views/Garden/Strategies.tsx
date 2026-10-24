@@ -1,5 +1,6 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
 import { useSetConvictionStrategies } from "@green-goods/shared/hooks/conviction/useSetConvictionStrategies";
@@ -8,7 +9,7 @@ import { useGardenPermissions } from "@green-goods/shared/hooks/garden/useGarden
 import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiDeleteBinLine } from "@remixicon/react";
+import { RiDeleteBinLine, RiLoader4Line, RiScales3Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
@@ -150,13 +151,16 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
         <div className="p-4 sm:p-6">
           {strategiesLoading ? (
-            <p className="py-4 text-center type-body text-text-soft">
-              {formatMessage({ id: "app.conviction.loadingStrategies" })}
-            </p>
+            <EmptyState
+              busy
+              icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+              title={formatMessage({ id: "app.conviction.loadingStrategies" })}
+            />
           ) : strategies.length === 0 ? (
-            <p className="py-4 text-center type-body text-text-soft">
-              {formatMessage({ id: "app.conviction.noStrategies" })}
-            </p>
+            <EmptyState
+              icon={<RiScales3Line />}
+              title={formatMessage({ id: "app.conviction.noStrategies" })}
+            />
           ) : (
             <div className="space-y-2">
               {strategies.map((strategy, index) => (
