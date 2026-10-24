@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:0314d604dbe274cfe76687b39879c0eb034d1e79dd441df29f5d120f7623eb28"
+source_digest: "sha256:6fc2cad1b172e5a576b68b493eac4bd0c5b995b04d2bac3b990bea20954e402c"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -174,11 +174,11 @@ Options: `--manifest <value>`, `--source-upgrades-plan <value>`, `--steward-safe
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release pilot --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan |
 
-Options: `--recover-lock`, `--manifest <value>`, `--plan <value>`, `--output <value>`, `--rehearsal <value>`, `--safe-pins <value>`, `--other-reserved-wei <value>`, `--envelope <value>`, `--step <value>`, `--expected-nonce <value>`, `--receipt <value>`.
+Options: `--recover-lock`, `--manifest <value>`, `--plan <value>`, `--output <value>`, `--rehearsal <value>`, `--safe-pins <value>`, `--other-reserved-wei <value>`, `--envelope <value>`, `--step <value>`, `--expected-nonce <value>`, `--receipt <value>`, `--signer-account <value>`, `--owner-signature <value>`, `--signature-one <value>`, `--signature-two <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- release source-upgrades --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate, prepare-execution, broadcast, export-safe, adopt |
+| <CopyCommand command="bun run contracts -- release source-upgrades --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate, prepare-execution, broadcast, export-safe, sign-safe, broadcast-safe, adopt |
 
 ### Settlement (23)
 

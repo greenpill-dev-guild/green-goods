@@ -31,6 +31,8 @@ import {
 } from "./source-upgrade-release";
 import { materializeSourceUpgradeRuntimes } from "./source-upgrade-runtime";
 import { voucherDigest } from "./voucher-release";
+import { collectSourceSafeSignature, sourceSafeSubmission } from "./source-upgrade-safe-operator";
+import { sourceSafeTypedData } from "./source-upgrade-safe-execution";
 
 type Options = Record<string, string | boolean | undefined>;
 type Loaded = {
@@ -58,7 +60,7 @@ export function sourceUpgradeOutputPath(root: string, options: Options, fallback
   const output = releaseJsonPath(root, typeof options.output === "string" ? options.output : fallback);
   if (Object.values(SOURCE_EXECUTION_FILES).some((file) => path.basename(output).toLowerCase() === file))
     throw new Error("Source output cannot overwrite the shared journal or execution locks");
-  for (const key of ["plan", "rehearsal", "envelope"])
+  for (const key of ["plan", "rehearsal", "envelope", "signature-one", "signature-two", "typed-data"])
     if (typeof options[key] === "string" && output.toLowerCase() === releaseJsonPath(root, options[key]).toLowerCase())
       throw new Error("Source output cannot overwrite its reviewed input");
   if (
@@ -184,7 +186,8 @@ export async function runSourceUpgradeOperator(input: Loaded) {
     if (!boundary) throw new Error("Unknown source execution boundary");
     if (o.mode === "broadcast" && boundary.kind !== "create")
       throw new Error("Safe boundaries require external signatures and receipt adoption");
-    if (o.mode === "export-safe" && boundary.kind !== "safe") throw new Error("Only Safe boundaries can be exported");
+    if (["export-safe", "sign-safe", "broadcast-safe"].includes(String(o.mode)) && boundary.kind !== "safe")
+      throw new Error("Only Safe owner boundaries support this mode");
     const store = createSourceExecutionStore({ directory, context });
     const port = createSourceUpgradeReadback({
       provider,
@@ -202,10 +205,23 @@ export async function runSourceUpgradeOperator(input: Loaded) {
         throw new Error("Deployer balance cannot cover remaining gas and shared CCIP reservations");
     }
     const args = { step, expectedNonce, port, ...(typeof o.receipt === "string" ? { receiptHash: o.receipt } : {}) };
+    const safeSubmission =
+      o.mode === "broadcast-safe"
+        ? sourceSafeSubmission({
+            context,
+            step,
+            directory,
+            signatureOne: required(o, "signature-one"),
+            signatureTwo: required(o, "signature-two"),
+            provider,
+            rpcUrl: input.rpcUrl,
+          })
+        : undefined;
     const result = o["recover-lock"]
       ? await store.recoverBoundary({ ...args, receiptHash: required(o, "receipt") })
       : await store.executeBoundary({
           ...args,
+          ...(safeSubmission ? { safeSubmission } : {}),
           ...(o.mode === "broadcast"
             ? {
                 operatorSubmitCreate: async (deployment, bound) => {
@@ -220,7 +236,8 @@ export async function runSourceUpgradeOperator(input: Loaded) {
             : {}),
         });
     if (result.state === "needs-external-safe-signatures") {
-      if (o.mode !== "export-safe") throw new Error("Use export-safe for a Safe boundary");
+      if (!["export-safe", "sign-safe"].includes(String(o.mode)))
+        throw new Error("Use export-safe or sign-safe for a Safe boundary");
       const recipe = result.boundary;
       const head = await provider.getBlock("latest");
       if (!head?.hash) throw new Error("Missing canonical Safe export block");
@@ -245,6 +262,47 @@ export async function runSourceUpgradeOperator(input: Loaded) {
         (await provider.getBlock(head.number))?.hash !== head.hash
       )
         throw new Error("Canonical Safe transaction hash mismatch");
+      const typedDataPath = sourceUpgradeOutputPath(
+        directory,
+        {
+          ...o,
+          output: `.generated/source-upgrades/${plan.releaseId}.safe-step-${step}.typed-data.json`,
+        },
+        "unused.json",
+      );
+      writeReleaseJsonAtomic(
+        typedDataPath,
+        sourceSafeTypedData(plan.ownerCalls[step - plan.deployments.length - 1], boundary, manifest.authority.address),
+      );
+      if (o.mode === "sign-safe") {
+        if (typeof o.output === "string")
+          sourceUpgradeOutputPath(directory, { ...o, "typed-data": typedDataPath }, "unused.json");
+        console.log(
+          `Review Safe ${recipe.safe} step ${step}, SafeTx ${recipe.safeTransactionHash}; signing does not broadcast.`,
+        );
+        const signature = collectSourceSafeSignature(context, step, {
+          typedDataPath,
+          account: typeof o["signer-account"] === "string" ? o["signer-account"] : undefined,
+          signature: typeof o["owner-signature"] === "string" ? o["owner-signature"] : undefined,
+        });
+        await regenerateBindings();
+        await port.assertPreconditions(step, store.readJournal());
+        if ((await port.getPendingNonce(boundary.from)) !== expectedNonce)
+          throw new Error("Pending nonce changed during owner signing");
+        const output = sourceUpgradeOutputPath(
+          directory,
+          { ...o, "typed-data": typedDataPath },
+          `.generated/source-upgrades/${plan.releaseId}.safe-step-${step}.signature-${signature.owner.toLowerCase()}.json`,
+        );
+        writeReleaseJsonAtomic(output, signature);
+        return {
+          state: "owner-signature-verified",
+          output: path.relative(CONTRACTS_ROOT, output),
+          owner: signature.owner,
+          safeTransactionHash: signature.safeTransactionHash,
+          liveBroadcast: false,
+        };
+      }
       const output = sourceUpgradeOutputPath(
         directory,
         o,
@@ -261,12 +319,17 @@ export async function runSourceUpgradeOperator(input: Loaded) {
       return {
         state: result.state,
         output: path.relative(CONTRACTS_ROOT, output),
+        typedDataOutput: path.relative(CONTRACTS_ROOT, typedDataPath),
         safeTransactionHash: recipe.safeTransactionHash,
         liveBroadcast: false,
         activationIncluded: false,
       };
     }
-    return { ...result, liveBroadcast: o.mode === "broadcast", activationIncluded: false };
+    return {
+      ...result,
+      liveBroadcast: ["broadcast", "broadcast-safe"].includes(String(o.mode)),
+      activationIncluded: false,
+    };
   } finally {
     provider.destroy();
   }

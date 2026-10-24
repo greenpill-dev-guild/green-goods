@@ -169,4 +169,9 @@ export type SourceBoundaryInput = SourceExecutionContext & {
   port: SourceExecutionReadPort;
   writeJournal(journal: SourceExecutionJournal): Promise<void>;
   operatorSubmitCreate?: (deployment: SourceUpgradeDeployment, boundary: SourceExecutionBoundary) => Promise<string>;
+  safeSubmission?: {
+    data: string;
+    preflight(): Promise<void>;
+    submit(): Promise<string>;
+  };
 };

@@ -1674,3 +1674,55 @@ Agent/model: Codex; model unknown | Coverage: continuation observed from 01:38:1
 Human corrections: 1 observed in this segment, deferring onboarding inputs instead of treating
 them as current blockers; attention: unknown. Intervals overlap and are not effort totals.
 No source upgrade, member activation, publication or merge is claimed by this checkpoint.
+
+## Safe owner signing and submission — 23 October Pacific continuation
+
+The existing source executor now owns the previously missing Safe submission path. `export-safe`
+also writes the canonical EIP-712 request. Each original owner uses `sign-safe` with their normal
+Foundry keystore alias, or imports one public EIP-712 signature from their normal signer. The
+wrapper recovers and verifies the owner and binds the signature record to the plan, envelope,
+step and Safe transaction hash. It accepts two distinct original-owner ECDSA signatures and sorts
+them by address. Passwords and authenticator actions remain in the operator terminal; signature
+files stay in the ignored release directory and are not collected in chat.
+
+`broadcast-safe` reads the two reviewed records, simulates the exact signed `execTransaction`
+from the approved deployer, rechecks state and nonce, persists its Safe intent, then sends through
+the existing deployer keystore with the exact outer nonce, gas limit and fee cap. It verifies and
+adopts the receipt before returning. An ambiguous result retains the existing lock and explicit
+receipt-adoption boundary. Safe pending intents bind the EIP-712 operation hash; CREATE intents
+continue to bind init code. External receipt adoption still supports normal Safe signatures and
+has not been restricted to the new ECDSA submission route.
+
+The pinned singleton's real bytecode exposed a receipt-ABI gap: it indexes `ExecutionSuccess`'s
+transaction hash, whereas the older decoder expected both fields in data. The demonstrated RED
+case now passes; receipt verification accepts those two event layouts while still requiring one
+success, no failure, the exact Safe/hash, zero refund and canonical authority/state readback.
+No Solidity, ownership, activation, delay, native budget or fee policy changed.
+
+The new signing and submission behavior has thirteen focused cases within the complete 706-case
+contracts script suite, plus the 37 CLI checks. The installed Cast signed an isolated encrypted
+synthetic keystore request successfully. A separate local Anvil probe executed the observed,
+hash-pinned singleton behind a synthetic EIP-1167 proxy with five synthetic owners and threshold
+two. It exercised the production Cast transaction fields using a fixture-only unlocked sender
+adapter, verified the actual indexed receipt, and rejected stale signatures. This is binary and
+operator-adapter conformance, not a live fork or a real-owner signing claim. The existing code,
+proxy and authority pins remain mandatory for every real operation.
+
+Reuse boundary: `source-upgrade-safe-execution.ts` already owns Safe hashing and receipts;
+`source-upgrade-execution.ts` and its store own ordered intent, spend and recovery. They now
+accept a signed Safe submission through the same durable boundary. The new signing helper owns
+public signature validation, and the operator adapter alone owns Cast and signature-file I/O.
+No new dependency or parallel deployment architecture is introduced. The dated
+[source Safe proof](../artifacts/source-safe-operator-proof-2026-10-23.json) records exact inputs
+and validation. Regenerate the source plan after the signed checkpoint; do not use the older
+6327e48cb execution package against a different HEAD.
+
+Task record: Cosmo-local live pilot | Type: feature/fix | Outcome: partial; Safe operator route and local proof complete, signed regeneration and operator-network execution next
+Agent/model: Codex; model unknown | Coverage: this Safe operator continuation
+
+| Phase | Start → end (UTC, 24 October 2026) | Result / evidence |
+|---|---|---|
+| investigate/implement/review | unknown → 05:56:40 | Normal Cast owner signing, two-owner assembly, bound submission, durable Safe intent and indexed receipt correction |
+| verify | 05:16:16 → 06:03:35 | Pinned-binary conformance; 2,211 Solidity, three gas, 37 CLI and 706 script cases; types, ABI, lint, source/test quality and Docs proof |
+
+Human corrections: 1 observed, completing the previously missing Safe execution route; attention unknown. Intervals overlap and are not effort totals. The final complete verifier used all final inputs frozen before it started; current hashes match that snapshot. An earlier superseded verifier received corrected TypeScript inputs before its script-test phase, with Solidity/compiler/lint/gas inputs unchanged. Publication and live signing remain operator actions, with the existing network/environment access limits.

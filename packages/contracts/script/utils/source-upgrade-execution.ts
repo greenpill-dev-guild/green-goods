@@ -10,6 +10,7 @@ export { SOURCE_SAFE_EXECUTION, sourceSafeTransactionHash, exportSourceSafeBound
 import { getCreateAddress, keccak256 } from "ethers";
 import { SOURCE_UPGRADE_TARGETS } from "./source-upgrade-release";
 import { voucherDigest } from "./voucher-release";
+import { assertSourceSignedSafeCalldata } from "./source-upgrade-safe-signing";
 import type {
   SourceExecutionContext,
   SourceExecutionEnvelope,
@@ -242,6 +243,17 @@ export function verifySourceBoundaryEvidence(
 ) {
   return verifyBoundary({ ...input, recordMatchedAttempt: async () => {} }, input.entirePrefixLength ?? input.step);
 }
+/** Pending Safe intents bind the EIP-712 operation, independent of which valid owner signatures encode it. */
+export function sourceBoundaryIntentHash(context: SourceExecutionContext, step: number) {
+  const b = context.envelope.boundaries[step - 1];
+  return b.kind === "create"
+    ? keccak256(context.plan.deployments[step - 1].data)
+    : sourceSafeTransactionHash(
+        context.plan.ownerCalls[step - context.plan.deployments.length - 1],
+        b,
+        context.manifest.authority.address,
+      );
+}
 export async function runSourceExecutionBoundary(input: SourceBoundaryInput) {
   const { plan, manifest, envelope, step, expectedNonce, receiptHash, journal, port, writeJournal } = input;
   await port.revalidateBindings();
@@ -274,7 +286,7 @@ export async function runSourceExecutionBoundary(input: SourceBoundaryInput) {
     await port.assertPreconditions(step, journal);
     check((await port.getPendingNonce(b.from)) === expectedNonce, "live pending EOA nonce drift");
     await port.revalidateBindings();
-    if (b.kind === "safe")
+    if (b.kind === "safe" && !input.safeSubmission)
       return {
         state: "needs-external-safe-signatures" as const,
         boundary: exportSourceSafeBoundary(
@@ -283,18 +295,30 @@ export async function runSourceExecutionBoundary(input: SourceBoundaryInput) {
           manifest.authority.address,
         ),
       };
-    check(input.operatorSubmitCreate, "normal operator signer adapter required");
+    if (b.kind === "safe") {
+      assertSourceSignedSafeCalldata(input, step, input.safeSubmission!.data);
+      await input.safeSubmission!.preflight();
+      await port.revalidateBindings();
+      await port.assertPreconditions(step, journal);
+      check(
+        (await port.getPendingNonce(b.from)) === expectedNonce,
+        "live pending EOA nonce drift after Safe simulation",
+      );
+    } else check(input.operatorSubmitCreate && !input.safeSubmission, "normal operator signer adapter required");
     journal.pending = {
       step,
       from: b.from,
       nonce: expectedNonce,
-      dataHash: keccak256(plan.deployments[step - 1].data),
+      dataHash: sourceBoundaryIntentHash(input, step),
       gasLimit: b.gasLimit,
       maxFeeWei: b.maxFeeWei,
     };
     await writeJournal(journal);
     await port.revalidateBindings();
-    transactionHash = await input.operatorSubmitCreate(plan.deployments[step - 1], b);
+    transactionHash =
+      b.kind === "safe"
+        ? await input.safeSubmission!.submit()
+        : await input.operatorSubmitCreate!(plan.deployments[step - 1], b);
     check(/^0x[\da-f]{64}$/i.test(transactionHash), "invalid submitted transaction hash; reconcile only");
     journal.pending.transactionHash = transactionHash;
     await writeJournal(journal);

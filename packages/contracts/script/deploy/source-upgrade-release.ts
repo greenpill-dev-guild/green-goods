@@ -32,6 +32,12 @@ async function main() {
       "prepare-execution": { type: "boolean" },
       broadcast: { type: "boolean" },
       "export-safe": { type: "boolean" },
+      "sign-safe": { type: "boolean" },
+      "broadcast-safe": { type: "boolean" },
+      "signer-account": { type: "string" },
+      "owner-signature": { type: "string" },
+      "signature-one": { type: "string" },
+      "signature-two": { type: "string" },
       adopt: { type: "boolean" },
       "recover-lock": { type: "boolean" },
       manifest: { type: "string" },
@@ -53,6 +59,8 @@ async function main() {
     "prepare-execution": "prepare-execution",
     broadcast: "broadcast",
     "export-safe": "export-safe",
+    "sign-safe": "sign-safe",
+    "broadcast-safe": "broadcast-safe",
     adopt: "adopt",
   };
   const selected = Object.keys(modes).filter((key) => values[key as keyof typeof values]);

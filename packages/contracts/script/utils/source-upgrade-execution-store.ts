@@ -1,11 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { keccak256 } from "ethers";
 import { releaseJsonPath } from "./release-inputs";
 import { writeReleaseJsonAtomic } from "./release-artifacts";
 import { voucherDigest } from "./voucher-release";
-import { runSourceExecutionBoundary, validateSourceExecutionEnvelope } from "./source-upgrade-execution";
+import {
+  runSourceExecutionBoundary,
+  sourceBoundaryIntentHash,
+  validateSourceExecutionEnvelope,
+} from "./source-upgrade-execution";
 import type {
   SourceBoundaryInput,
   SourceExecutionContext,
@@ -31,9 +34,10 @@ export const SOURCE_EXECUTION_FILES = Object.freeze({
 
 type ClaimedBoundary = SourceExecutionClaim & { uncertain?: true };
 type Boundary = Omit<SourceBoundaryInput, keyof SourceExecutionContext | "journal" | "writeJournal">;
-type Recovery = Omit<Boundary, "operatorSubmitCreate" | "receiptHash"> & {
+type Recovery = Omit<Boundary, "operatorSubmitCreate" | "safeSubmission" | "receiptHash"> & {
   receiptHash: string;
   operatorSubmitCreate?: never;
+  safeSubmission?: never;
 };
 const isHash = (value: unknown): value is string => typeof value === "string" && /^0x[\da-f]{64}$/i.test(value);
 const isInteger = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) >= 0;
@@ -133,15 +137,15 @@ function validateJournal(
     keys(pending, ["step", "from", "nonce", "dataHash", "gasLimit", "maxFeeWei", "transactionHash"]);
     check(isInteger(pending.step) && pending.step === value.completed.length + 1, "pending prefix");
     const boundary = context.envelope.boundaries[pending.step - 1];
-    check(boundary?.kind === "create", "pending CREATE boundary");
+    check(boundary, "pending boundary");
     equal(
       [pending.from, pending.nonce, pending.gasLimit, pending.maxFeeWei, pending.dataHash],
       [
         boundary.from,
-        boundary.nonce,
+        boundary.kind === "create" ? boundary.nonce : boundary.outerNonce,
         boundary.gasLimit,
         boundary.maxFeeWei,
-        keccak256(context.plan.deployments[pending.step - 1].data),
+        sourceBoundaryIntentHash(context, pending.step),
       ],
       "pending intent binding",
     );
@@ -268,7 +272,10 @@ export function createSourceExecutionStore({
       }
     },
     async recoverBoundary(boundary: Recovery) {
-      check(!("operatorSubmitCreate" in boundary), "recovery cannot accept a signer");
+      check(
+        !("operatorSubmitCreate" in boundary) && !("safeSubmission" in boundary),
+        "recovery cannot accept a signer",
+      );
       check(isHash(boundary.receiptHash), "recovery requires an exact receipt");
       readJournal();
       const original = readSourceExecutionFile(paths.lock),

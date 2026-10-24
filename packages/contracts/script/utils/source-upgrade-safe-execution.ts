@@ -15,6 +15,11 @@ export const SOURCE_SAFE_EXECUTION = new Interface([
   "event ExecutionSuccess(bytes32 txHash,uint256 payment)",
   "event ExecutionFailure(bytes32 txHash,uint256 payment)",
 ]);
+// The pinned live singleton indexes txHash; older Safe receipts used two data words.
+const INDEXED_SAFE_EVENTS = new Interface([
+  "event ExecutionSuccess(bytes32 indexed txHash,uint256 payment)",
+  "event ExecutionFailure(bytes32 indexed txHash,uint256 payment)",
+]);
 function check(condition: unknown, label: string): asserts condition {
   if (!condition) throw new Error(`Source execution ${label}`);
 }
@@ -44,28 +49,15 @@ export function assertSourceSafeAuthority(
   same(state.moduleGuard, ZeroAddress, "Safe module guard");
   check(state.modules.length === 0, "Safe modules");
 }
-function safeMessage(call: OwnerCall, b: SourceExecutionEnvelope["boundaries"][number]) {
+export function sourceSafeTypedData(call: OwnerCall, b: SourceExecutionEnvelope["boundaries"][number], safe: string) {
   return {
-    to: call.to,
-    value: 0,
-    data: call.data,
-    operation: 0,
-    safeTxGas: BigInt(b.safeTxGas!),
-    baseGas: BigInt(b.baseGas!),
-    gasPrice: 0,
-    gasToken: ZeroAddress,
-    refundReceiver: ZeroAddress,
-    nonce: call.safeNonce,
-  };
-}
-export function sourceSafeTransactionHash(
-  call: OwnerCall,
-  b: SourceExecutionEnvelope["boundaries"][number],
-  safe: string,
-): string {
-  return TypedDataEncoder.hash(
-    { chainId: 42161, verifyingContract: safe },
-    {
+    domain: { chainId: 42161, verifyingContract: safe },
+    primaryType: "SafeTx",
+    types: {
+      EIP712Domain: [
+        { name: "chainId", type: "uint256" },
+        { name: "verifyingContract", type: "address" },
+      ],
       SafeTx: [
         { name: "to", type: "address" },
         { name: "value", type: "uint256" },
@@ -79,8 +71,30 @@ export function sourceSafeTransactionHash(
         { name: "nonce", type: "uint256" },
       ],
     },
-    safeMessage(call, b),
-  );
+    message: safeMessage(call, b),
+  };
+}
+function safeMessage(call: OwnerCall, b: SourceExecutionEnvelope["boundaries"][number]) {
+  return {
+    to: call.to,
+    value: 0,
+    data: call.data,
+    operation: 0,
+    safeTxGas: b.safeTxGas!,
+    baseGas: b.baseGas!,
+    gasPrice: 0,
+    gasToken: ZeroAddress,
+    refundReceiver: ZeroAddress,
+    nonce: call.safeNonce,
+  };
+}
+export function sourceSafeTransactionHash(
+  call: OwnerCall,
+  b: SourceExecutionEnvelope["boundaries"][number],
+  safe: string,
+): string {
+  const typed = sourceSafeTypedData(call, b, safe);
+  return TypedDataEncoder.hash(typed.domain, { SafeTx: typed.types.SafeTx }, typed.message);
 }
 export function exportSourceSafeBoundary(
   call: OwnerCall,
@@ -134,12 +148,15 @@ export async function verifySourceSafeReceipt(
   const events = receipt.logs
     .filter((log) => log.address.toLowerCase() === manifest.authority.address.toLowerCase())
     .flatMap((log) => {
-      try {
-        const parsed = SOURCE_SAFE_EXECUTION.parseLog(log);
-        return parsed ? [parsed] : [];
-      } catch {
-        return [];
+      for (const abi of [SOURCE_SAFE_EXECUTION, INDEXED_SAFE_EVENTS]) {
+        try {
+          const parsed = abi.parseLog(log);
+          if (parsed) return [parsed];
+        } catch {
+          // Try the other supported event layout; both still require exact Safe/hash/payment checks.
+        }
       }
+      return [];
     });
   const successes = events.filter((event) => event.name === "ExecutionSuccess");
   check(
