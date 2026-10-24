@@ -349,6 +349,48 @@
   `--surface-raised` mirror (neutral-900, where the cockpit uses the card step) skewed the dark
   pairs' footer, so the step corrects it.
 
+## Step 15: commitment cards (PRD-1281)
+
+- `feature/app-cockpit-commitment-cards`, cut from `develop` `3c4fd4b62`; the guide wording and
+  DL-110 are the standards-only `feature/app-cockpit-commitment-cards-guides`, which merges first.
+- **One home.** Shared's `CommitmentRow` (new leaf `components/Cards/CommitmentRow/CommitmentRow`)
+  is the commitment card on both surfaces: the item row led by the offer or request icon (named
+  for screen readers through the item row's new `lead.label`), one pill that "Needs you", "Past
+  due" or a queue or act state replaces (`pending`: "Confirming…", "Not sent", "Didn't send"),
+  the edge in the pill's tone, and the due date, then the other person from the reader's seat
+  (`selectCommitmentOtherParty`) named through `useAddressDisplayName`, the lookup
+  `AddressDisplay` now shares. A queue or act state's words (`note`) lead the line instead, and
+  a group (`group`) marks its size on the tile and gives its counts in the person's place. The
+  app's commitment cards live in `components/Features/Commitments` (`PromiseRow`, renamed from
+  `CommitmentRow`; `PromiseGroupRow`; `PendingCreationRow` and `QueuedActRow`, moved there; the
+  pinned promise); the cockpit keeps only route assembly (`PoolCommitmentsCard`, the
+  `PoolGroupRow` adapter, `queuedCreationPill` and `rowDueDetail`).
+- **What stays the object's own.** Each surface's state words; the act phase line, whose sentence
+  leads a queued row's details while `ActPhaseLine` still announces it; the queue's recovery
+  (Discard and the send as icon buttons in the right slot); who a promise is between, on its
+  page or dialog. The promise page's queue notice (`QueuedActRow`) stays a notice: the page is
+  where its full explanation belongs. The decision rows (Review Promises, the Hub's Confirm
+  queue) and the promise picker in Submit Work are out of the step.
+- **State blocks left by step 11.** Moved: `PoolStatusCasts` (4), `PoolCommitmentsCard` (2),
+  `CommitmentDialogStates` (2), `CommunityPools` (2), `SignalPool` (2), `ConvictionSheet`'s
+  empty pool (its failed read, beside content, became the shared `Alert`), `LinkWorkSheet` and
+  the proof flow's loading. Left as text on purpose: `PoolClaimsCard`'s "Nothing to review."
+  (DL-067's one quiet line), and the one-line notes inside `ClaimContextSheet`'s choices and
+  `CommitmentHistory`'s section (DL-106's exception).
+- **Found on the way.** Plus Jakarta Sans's contextual alternates draw the x of "0x2" as a times
+  sign, so the item row's detail line turns them off; short addresses set elsewhere in the face
+  still do it. `PendingCreationRow` led every request with the offer's seedling. Every
+  `StatusBadge` is a polite live region, so a pill that changes is announced.
+- **Calls for the maintainer's review of the pairs**, each a recommendation made in the build:
+  the status edge replaces DL-052's direction edge (the census drew it); the seat sentences ("You
+  took this up") leave the rows for the other person's name; a queued promise's reason ends in an
+  ellipsis on a phone, its full words on hover, and its acts are icon buttons; the pinned
+  promise reads its title first with "Proof for" under it and loses its tint, and in Submit Work
+  it leads with an unnamed seedling because the work link carries no direction; a group's
+  remaining counts drop in Spanish and Portuguese at 384px; the cockpit's "Queued" and "Failed
+  to send" become the shared "Not sent" and "Didn't send"; a To confirm row's kind leads its
+  details in place of the second pill.
+
 ## Step 21: bottom bar active pill (PRD-1288)
 
 - `feature/app-cockpit-bar-pill`, cut from `develop` `d84d48398`: `AppBar` draws each tab's line

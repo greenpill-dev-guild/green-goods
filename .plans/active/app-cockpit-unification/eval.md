@@ -680,3 +680,51 @@ measured again.
 - The capture-only client dev server, restarted by Vite when `design-md.generated.json` changed
   under it, came back serving 404 for every page until the process was restarted. This is rig
   behaviour, not the product's.
+
+## Step 15 build: commitment cards
+
+Run on 2026-10-24 against `develop` `3c4fd4b62`, with step 15 on
+`feature/app-cockpit-commitment-cards` (`bec8aa00c`, the glyph fix `cb32a9374` and the queued
+units `e1dd6c661`). The picks were locked on 18 October, so the pairs are acceptance evidence. The
+before frames come from a detached `develop` worktree served beside the branch. Frames that show
+live gardens stay out of the repository; the pairs went to the maintainer as a private artifact.
+
+**Pairs.** Headless Chromium (Playwright) at device scale 2 with reduced motion.
+
+- **Storybook**, both surfaces: every commitment list's component stories before and after, in
+  light and dark. The app's promise row in every seat and state (needs you, named, a long title,
+  a request, a confirmer waiting, on the team, didn't send, settled, record only, quantities),
+  the group row (available, none, unknown, in a list, four counts in English, Spanish and
+  Portuguese), the pinned promise (proof and work), the promise page's queue notice in all eleven
+  queue states, the garden's Promises tab (live, three queued creations, settled, visitor,
+  protocol pool, loading, empty, failed, offline) and a group's page; the cockpit's Offers and
+  Requests (open, a group, a group whose copy didn't send, past due, needs recovery, queued,
+  queued while sending, queued needing attention, empty, a deferred reward, partial
+  documentation), the group row (five days in, one didn't send, finishing) and the Promises tab.
+  129 before frames and 139 after frames at 390, 768 and 1280px, the after set adding the shared
+  row's stories and the app's To confirm row.
+
+**Fit after** (Storybook, each row's box measured in Chromium; a detail counts as dropped when it
+sits below its line's clip):
+
+| List | Columns | Rows | Height | Dropped whole | Ellipsis | Cut or wrapped |
+|---|---|---|---|---|---|---|
+| App promise rows, four seats and states | 288, 328, 358px in en, es, pt | 36 | 88px | none | none | 0 |
+| Shared row, every queue and act state | 288, 328, 358px in en, es, pt | 54 | 88px | the due date after a queued promise's reason, at every width | the queued reason, at every width | 0 |
+| App group row, four counts | 384px in en, es, pt | 3 | 88px | the remaining counts in es and pt | none | 0 |
+
+Titles keep one line and end in an ellipsis with the full title on hover, as the picks set.
+
+**Behavior.** The promise rows open their promise as before; the group row opens its group; a
+queued row's Discard and send keep their guards (Discard only where the queue allows it, the send
+disabled while offline, busy, deferred or past the group's deadline); the cockpit's Expire Now…
+and Finish Creating keep theirs. The focused tests check the shared row's rules (the direction
+named, the pill precedence and its edge, the other person from each seat, a state's words leading
+the line), the app's rows in the Promises sheet and the garden's tab, and the cockpit's queued
+row, whose act phase line still announces each phase.
+
+**Found on the way.** Plus Jakarta Sans's contextual alternates drew the x of a short address
+("0x2") as a times sign on the detail line; the line now turns them off (`cb32a9374`). The app's
+queued creation led every request with the offer's seedling. Every `StatusBadge` pill is a polite
+live region, so a pill that changes is announced.
+
