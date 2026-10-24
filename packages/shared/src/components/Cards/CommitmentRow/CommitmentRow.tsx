@@ -9,7 +9,8 @@
  * send gave up. The 2px edge follows the pill. The detail line gives the due date, then the
  * other person, named as the shared address display names them; a queue or act state's own
  * words lead the line instead, and a group gives its counts in the person's place. A promise
- * still on the device has no page yet to show its units, so they lead its line.
+ * still on the device has no page yet to show its units, so they lead its line, unless
+ * something stops its send: then what stops it leads and the units follow.
  *
  * What only commitments have stays with them: each surface's state words, the act phase
  * line, the queue's recovery, and who a promise is between.
@@ -25,7 +26,6 @@ import {
   selectCommitmentOtherParty,
 } from "../../../modules/commitment-pooling/selectors";
 import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types-core";
-import type { Address } from "../../../types/domain";
 import {
   ItemRow,
   type ItemRowDetail,
@@ -76,6 +76,12 @@ export interface CommitmentRowProps
    * has no page yet to show them, so they lead the line and the note or the due date follows.
    */
   units?: ItemRowDetail | null;
+  /**
+   * Something stops the send as it stands (a failed send, the garden membership it waits for,
+   * a reward that cannot be sent yet, a send that may already have gone). The note says what,
+   * so it leads the line, ahead of the units: the line keeps one row and drops from its end.
+   */
+  blocked?: boolean;
   /** Copies made together: how many, marked on the tile, and their counts in the person's place. */
   group?: { size: number; counts: ItemRowDetail } | null;
 }
@@ -104,7 +110,7 @@ type RowViewProps = Omit<CommitmentRowProps, "party"> & {
 };
 
 const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
-  { direction, status, pending, due, personName, note, units, group, ...rest },
+  { direction, status, pending, due, personName, note, units, blocked, group, ...rest },
   ref
 ) {
   const { formatMessage } = useIntl();
@@ -113,10 +119,11 @@ const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
     ? { label: formatMessage({ id: PENDING[pending].id }), tone: PENDING[pending].tone }
     : status;
   const count = group ? Math.max(group.size, 0) : 0;
-  const details = units
-    ? detailLine(units, note ?? due)
-    : note
-      ? detailLine(note, due)
+  const noteLeads = Boolean(note) && (blocked || !units);
+  const details = noteLeads
+    ? detailLine(note, units ?? due)
+    : units
+      ? detailLine(units, note ?? due)
       : detailLine(due, group ? group.counts : personName);
 
   return (
@@ -152,26 +159,16 @@ const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
   );
 });
 
-/** A row that names someone reads their name the way the shared address display does. */
-const NamedRow = React.forwardRef<HTMLElement, RowViewProps & { person: Address }>(
-  function NamedRow({ person, ...props }, ref) {
-    // A list's rows read their Green Goods names together, in one batch.
-    const { display } = useAddressDisplayName(person, { list: true });
-    return <RowView ref={ref} {...props} personName={display} />;
-  }
-);
-
 export const CommitmentRow = React.forwardRef<HTMLElement, CommitmentRowProps>(
   function CommitmentRow({ party, ...props }, ref) {
-    // Only a row whose line names someone reads names: a row with nobody yet (a promise
+    // Only a row whose line names someone looks a name up: a row with nobody yet (a promise
     // still on this device, a pinned promise), or whose line gives the person's place to
-    // something else, needs no name lookups at all.
+    // something else, reads none. The row is one component either way, so a promise someone
+    // takes up keeps its row, and the reader's focus with it. A list's rows read their names
+    // together, in one batch.
     const person = party && lineNamesPerson(props) ? selectCommitmentOtherParty(party) : null;
-    return person ? (
-      <NamedRow ref={ref} {...props} person={person} personName={null} />
-    ) : (
-      <RowView ref={ref} {...props} personName={null} />
-    );
+    const { display } = useAddressDisplayName(person, { list: true });
+    return <RowView ref={ref} {...props} personName={person ? display : null} />;
   }
 );
 

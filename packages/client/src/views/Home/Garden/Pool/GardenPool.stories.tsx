@@ -169,8 +169,8 @@ export const QueuedCreation: Story = {
 
 /**
  * The same request for a wallet reader after its send failed on the wallet's network. Nothing
- * sends it for them, so the row says it was not sent, leads its details with its units and
- * names the network after them (whole on hover), and offers both acts.
+ * sends it for them, so the row says it was not sent, leads its details with why (the network
+ * to switch to) so a phone keeps it in view, gives its units after it, and offers both acts.
  */
 export const QueuedCreationWalletNotSent: Story = {
   tags: ["storybook-ci"],
@@ -189,8 +189,14 @@ export const QueuedCreationWalletNotSent: Story = {
       canvasElement.querySelector("[data-component=PendingCreationRow]") as HTMLElement
     );
     await expect(row.getByText("Not sent")).toBeVisible();
-    await expect(row.getByText("6 hours")).toBeVisible();
-    await expect(row.getByText(/needs to be on Arbitrum One/)).toBeVisible();
+    // At the story's phone width the line keeps one row and drops from its end, so the
+    // reason must sit on that row; the units follow it, and the line holds both on hover.
+    const reason = row.getByText(/needs to be on Arbitrum One/);
+    const line = reason.closest(".gg-item-row-details") as HTMLElement;
+    await expect(reason.getBoundingClientRect().top).toBeLessThan(
+      line.getBoundingClientRect().bottom
+    );
+    await expect(line).toHaveAttribute("title", expect.stringMatching(/Arbitrum One.*6 hours/));
     await expect(row.queryByText(/sends when you are connected/i)).toBeNull();
     await expect(row.getByRole("button", { name: "Send Now" })).toBeEnabled();
     await expect(row.getByRole("button", { name: "Discard" })).toBeEnabled();

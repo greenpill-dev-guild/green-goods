@@ -5,6 +5,7 @@
  * This is the work submission flow view at /garden.
  */
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -283,18 +284,24 @@ const messages = {
 };
 
 const renderWithProviders = (initialRoute = "/home/garden") => {
+  // The app renders under a query client; the pinned promise's row reads its name hook there.
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
+      QueryClientProvider,
+      { client: queryClient },
       createElement(
-        IntlProvider,
-        { locale: "en", messages },
+        MemoryRouter,
+        { initialEntries: [initialRoute] },
         createElement(
-          Routes,
-          null,
-          createElement(Route, { path: "/home/garden", element: createElement(Work) }),
-          createElement(Route, { path: "/home", element: createElement("div", null, "Home") })
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/garden", element: createElement(Work) }),
+            createElement(Route, { path: "/home", element: createElement("div", null, "Home") })
+          )
         )
       )
     )

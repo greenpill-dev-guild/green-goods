@@ -492,6 +492,10 @@ describe("GardenPool", () => {
           "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
         )
       ).toBeInTheDocument();
+      // Why it failed leads the row's one-line details, so a phone keeps it; the units follow.
+      expect(
+        document.querySelector("[data-component=PendingCreationRow] .gg-item-row-details")
+      ).toHaveTextContent(/^Your wallet needs to be on Arbitrum One.*6 hours$/);
       // Nothing sends it for them, so nothing may say it will.
       expect(screen.queryByText("Waiting to send")).not.toBeInTheDocument();
       expect(screen.queryByText(/sends when you are connected/i)).not.toBeInTheDocument();
