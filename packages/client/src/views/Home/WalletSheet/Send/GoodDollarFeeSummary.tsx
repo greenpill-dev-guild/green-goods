@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { GoodDollarFeeQuote } from "@green-goods/shared/modules/wallet/good-dollar-fees";
 import { Button } from "@green-goods/shared/components/Button";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
@@ -51,16 +52,15 @@ export function GoodDollarFeeSummary({
           </p>
         ) : null}
         {!loading && !error && quote ? (
-          <dl className="space-y-2">
+          <FactList frame="inset">
             {amounts.map(([id, amount]) => (
-              <div key={id} className="flex flex-wrap justify-between gap-2">
-                <dt>{formatMessage({ id })}</dt>
-                <dd className="font-medium text-text-strong-950">
-                  {formatTokenAmount(amount, decimals, decimals, locale)} G$
-                </dd>
-              </div>
+              <FactRow
+                key={id}
+                label={formatMessage({ id })}
+                value={`${formatTokenAmount(amount, decimals, decimals, locale)} G$`}
+              />
             ))}
-          </dl>
+          </FactList>
         ) : null}
         {insufficient ? (
           <p className="text-error-dark">

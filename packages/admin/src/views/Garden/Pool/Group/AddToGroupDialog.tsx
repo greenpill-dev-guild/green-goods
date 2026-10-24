@@ -2,6 +2,7 @@ import {
   type GroupToAddTo,
   useAddToGroup,
 } from "@green-goods/shared/hooks/admin-ui/pool/useAddToGroup";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { MAX_COMMITMENT_SET_SIZE } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Address } from "@green-goods/shared/types/domain";
 import { useEffect, useId, useState } from "react";
@@ -329,14 +330,11 @@ export function AddToGroupDialog({
               defaultMessage: "Same as the group",
             })}
           </AdminCardTitle>
-          <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
+          <FactList frame="inset">
             {terms.map(([label, value]) => (
-              <div key={label} className="contents">
-                <dt className="type-body text-text-soft">{label}</dt>
-                <dd className="type-body text-text-strong">{value}</dd>
-              </div>
+              <FactRow key={label} label={label} value={value} />
             ))}
-          </dl>
+          </FactList>
         </section>
       </div>
     </AdminDialog>

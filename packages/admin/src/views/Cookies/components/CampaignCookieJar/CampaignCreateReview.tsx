@@ -1,9 +1,9 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { ReactNode } from "react";
 import { AdminCard } from "@/components/AdminCard";
 import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
-import { ReviewLine } from "./ReviewLine";
 
 export interface CampaignCreateReviewProps extends CampaignCookieJarCreateFormProps {
   /** Where the send stands, in the one row that changes while it works. */
@@ -29,42 +29,44 @@ export function CampaignCreateReview({ status, outcome, ...props }: CampaignCrea
         description={status.description}
       />
       {outcome}
-      <AdminCard variant="outlined" className="space-y-2">
-        <ReviewLine
-          label={formatMessage({
-            id: "cockpit.community.cookies.reviewPayout",
-            defaultMessage: "Payout",
-          })}
-          value={payoutLabel}
-        />
-        <ReviewLine
-          label={formatMessage({
-            id: "cockpit.community.cookies.selectedGardens",
-            defaultMessage: "Selected gardens",
-          })}
-          value={aggregation.sources.length}
-        />
-        <ReviewLine
-          label={formatMessage({
-            id: "cockpit.community.cookies.generatedStewards",
-            defaultMessage: "Stewards who can claim",
-          })}
-          value={aggregation.allowlist.length}
-        />
-        <ReviewLine
-          label={formatMessage({
-            id: "cockpit.community.cookies.missingStewards",
-            defaultMessage: "Gardens without a steward",
-          })}
-          value={aggregation.missingStewardGardens.length}
-        />
-        <ReviewLine
-          label={formatMessage({
-            id: "cockpit.community.cookies.generatedCampaignLink",
-            defaultMessage: "Campaign page",
-          })}
-          value={publicCampaignUrl}
-        />
+      <AdminCard variant="outlined">
+        <FactList frame="inset">
+          <FactRow
+            label={formatMessage({
+              id: "cockpit.community.cookies.reviewPayout",
+              defaultMessage: "Payout",
+            })}
+            value={payoutLabel}
+          />
+          <FactRow
+            label={formatMessage({
+              id: "cockpit.community.cookies.selectedGardens",
+              defaultMessage: "Selected gardens",
+            })}
+            value={aggregation.sources.length}
+          />
+          <FactRow
+            label={formatMessage({
+              id: "cockpit.community.cookies.generatedStewards",
+              defaultMessage: "Stewards who can claim",
+            })}
+            value={aggregation.allowlist.length}
+          />
+          <FactRow
+            label={formatMessage({
+              id: "cockpit.community.cookies.missingStewards",
+              defaultMessage: "Gardens without a steward",
+            })}
+            value={aggregation.missingStewardGardens.length}
+          />
+          <FactRow
+            label={formatMessage({
+              id: "cockpit.community.cookies.generatedCampaignLink",
+              defaultMessage: "Campaign page",
+            })}
+            value={publicCampaignUrl}
+          />
+        </FactList>
       </AdminCard>
     </div>
   );

@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
@@ -15,7 +16,6 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { DetailRow } from "@/views/Garden/WorkDetail/helpers";
 import { assessmentDomainLabelId } from "../assessmentDisplay";
 
 export type HubAssessmentRecord = Pick<
@@ -62,9 +62,9 @@ export function HubAssessmentInspector({
           <p className="break-words type-body text-text-sub">{assessment.description}</p>
         ) : null}
 
-        <section className="surface-inset space-y-2 sm:p-6">
+        <FactList frame="inset" className="surface-inset sm:p-6">
           {domainLabelId ? (
-            <DetailRow
+            <FactRow
               icon={<RiPlantLine />}
               label={formatMessage({
                 id: "app.admin.assessment.domainAction.domainTitle",
@@ -73,7 +73,7 @@ export function HubAssessmentInspector({
               value={formatMessage({ id: domainLabelId })}
             />
           ) : null}
-          <DetailRow
+          <FactRow
             icon={<RiCalendarLine />}
             label={formatMessage({
               id: "app.garden.assessments.dateRange",
@@ -88,7 +88,7 @@ export function HubAssessmentInspector({
             }
           />
           {location ? (
-            <DetailRow
+            <FactRow
               icon={<RiMapPinLine />}
               label={formatMessage({
                 id: "app.admin.assessment.strategyKernel.locationLabel",
@@ -101,7 +101,7 @@ export function HubAssessmentInspector({
               }
             />
           ) : null}
-          <DetailRow
+          <FactRow
             icon={<RiUserLine />}
             label={formatMessage({
               id: "cockpit.hub.assessments.author",
@@ -110,7 +110,7 @@ export function HubAssessmentInspector({
             value={<AddressDisplay address={assessment.authorAddress} />}
           />
           {Number.isNaN(recordedMs) ? null : (
-            <DetailRow
+            <FactRow
               icon={<RiTimeLine />}
               label={formatMessage({
                 id: "cockpit.hub.assessments.recordedLabel",
@@ -123,7 +123,7 @@ export function HubAssessmentInspector({
               }
             />
           )}
-        </section>
+        </FactList>
 
         <a
           href={getEASExplorerUrl(chainId, assessment.id)}

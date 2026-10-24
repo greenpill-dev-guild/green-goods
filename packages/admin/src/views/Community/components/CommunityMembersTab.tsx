@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -200,12 +201,12 @@ export function CommunityMembersTab({
             <AdminCardTitle>
               {formatMessage({ id: "cockpit.community.members.coverage" })}
             </AdminCardTitle>
-            <div className="garden-stat-row">
-              <span className="garden-stat-row-label">
-                {formatMessage({ id: "cockpit.community.members.total" })}
-              </span>
-              <span className="garden-stat-row-value">{memberCount}</span>
-            </div>
+            <FactList frame="inset">
+              <FactRow
+                label={formatMessage({ id: "cockpit.community.members.total" })}
+                value={memberCount}
+              />
+            </FactList>
             {missingCriticalRoles.length > 0 ? (
               <Alert variant="warning" className="p-3">
                 {formatMessage(

@@ -747,6 +747,61 @@ zone, so it reserves no message line: its slot grows from 64 to 72px, and the fi
 width. The first pass found seven of the fourteen; Codex's review of `770812271` found the rest of
 the bottom-aligned and top-aligned rows and the sign-in slot, and the sweep found the centred ones.
 
+## Step 14 build: fact rows
+
+Run on 2026-10-24 against `develop` `3c4fd4b62`, with step 14 on `feature/app-cockpit-fact-rows` at
+`5f7dd0e04`. Each checkout ran its own Storybook, and two capture-only client dev servers served the
+app; the before frames came from a detached worktree at `develop`. The frames went to the maintainer
+as a private artifact, outside the repository.
+
+**Pairs.** 142, headless Chromium (Playwright) at device scale 2:
+
+- Cockpit, **Storybook**: 36 screens at 390px in light and dark and at 1280px in light, with Add to
+  This Group in Spanish and the Group inspector in Portuguese at 390px.
+- App, **Storybook**: 12 screens at 390px in light and dark, and at 768px in light where the screen
+  has room. Four are capture-only stories kept out of Git: the G$ fee summary, pool readiness, and a
+  garden's claim pending and declined.
+- App, **mock-auth localhost**: the Profile's settings on `?mockAuth=deployer&presentation=pwa`,
+  Arbitrum One with the production indexer, at 390px in English in light and dark, at 768px in
+  English, at 320px in Spanish and Portuguese, and at 390px in Portuguese.
+
+**Measured.**
+
+- Type: a label at 14px in the app and 12px in the cockpit, a value at 16px and 14px at weight 500
+  (the `Shared/Cards/FactRow` Densities play); a setting's title at 14px and 500 in the cockpit's
+  Garden settings, the field title's size (DL-105).
+- The Profile's settings: every row 74px (75 with its rule) at 320 and 390px in English, Spanish and
+  Portuguese, no title cut, and the list 48px shorter. Before, five 72px cards stood 16px apart, and
+  two titles were cut at 320px in Spanish and Portuguese.
+- Taller: divided rows with 10px of padding replace rows 4px apart, so the Seed review grew 286px
+  at 390px, the pool funding sections 263px at 1280px, the compose review 163px at 390px and
+  Create Assessment's review 48px.
+
+**Found on the way.**
+
+- The census mock split every row 0.9 to 1.4. In the 390px cockpit dialog that wrapped short values
+  ("Household water survey", a due date) that fitted on one line before, so the rows share one label
+  column through subgrid, as wide as the longest label up to 40%, and keep the split only where a
+  browser lacks subgrid. DL-109 records it.
+- Five test files and the campaign review story's play read a value through its label's parent or
+  sibling; they read the fact row now. The settings test counted cards and the pool readiness test
+  found its list by role; they count fact rows and find the list by its label, since a description
+  list has no list role.
+- The Storybook runner caught a row the search had missed: the campaign jar review's `ReviewLine`,
+  whose story play still read the old markup. It is a fact row now, with its two screens in the pairs.
+- CI's full Storybook run caught two more: the Design System's cockpit Components and Shared pieces
+  pages still imported `AdminSettingRow` for their switch specimens. Shared's typecheck covers only
+  `src/`, so nothing local flagged them. Both specimens are setting rows on the fact row now, and the
+  page links to its Settings story.
+- Rig: a story added while Storybook runs reloads its page once (Vite optimizes the new imports), so
+  those frames were taken by direct URL. This is rig behaviour, not the product's.
+
+**Checks.** The focused Vitest files for every changed screen (63 admin and 47 client files at
+first, then the files each later change touched), the three typechecks, oxlint, the react-patterns,
+design-token, story, source-structure and seam checks, and the `storybook-ci` plays of the 102 story
+files that render a changed screen (`vitest --project=storybook`): 153 tests, all passing after the
+`ReviewLine` change, with two load timeouts that passed on a rerun.
+
 ## Step 17 build: people rows
 
 Run on 2026-10-24 against `develop` `a3645441c`, with step 17 on `feature/app-cockpit-people-rows`

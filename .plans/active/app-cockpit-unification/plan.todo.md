@@ -252,6 +252,18 @@ row wrap in English, Spanish and Portuguese ([eval.md](eval.md#step-10-proof-out
 code is `feature/app-cockpit-outlined-fields`; DL-105 and its guide lines are the standards-only
 `feature/app-cockpit-outlined-fields-guides`.
 
+**Step 14 (24 October).** `feature/app-cockpit-fact-rows` gives both surfaces one fact row: Shared's
+`FactList` and `FactRow` on the new leaf `./components/Cards/FactRow`, a label beside its value in
+divided rows, the labels in one column as wide as the longest (up to 40%), and the row's one action
+in its right slot; a row with no value is a setting. The search found more local rows than the
+census's eleven, and all of them moved: the cockpit's `AdminSettingRow` (retired), `FlowStatusRow`'s
+summary, `DetailRow`, `InfoRow`, both `ReviewRow`s, `ReviewLine` (retired), `DetailField`, `PoolFundingDialogFact`, the
+commitment and settlement fact rows, `ChangeSummary` and the rails' stat rows; the app's `Fact`
+(retired), `SummaryRow`, `ReadinessRow`, the settings rows and the claim panel's rows; and the inline
+fact lists on the same screens. The 142 pairs and the measurements are in
+[eval.md](eval.md#step-14-build-fact-rows). DL-109 and the guide wording are the standards-only
+`feature/app-cockpit-fact-rows-guides` (#1232).
+
 **Step 17 (24 October).** `feature/app-cockpit-people-rows` puts every list of people on Shared's
 new `PersonRow`: the item row led by the person's 56px round avatar, their name from the shared
 address display (which gains a render-prop for it), their highest role as the row's one chip and

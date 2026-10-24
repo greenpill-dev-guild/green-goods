@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
@@ -25,7 +26,6 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { useIntl } from "react-intl";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
 import { AdminSelectableCard } from "@/components/AdminSelectableCard";
-import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import {
   adoptRefreshedGarden,
@@ -486,63 +486,70 @@ export const GardenSettingsEditor = forwardRef<
         <div className="border-t border-stroke-soft" />
 
         {/* Open joining */}
-        <AdminSettingRow
-          labelId="garden-settings-open-joining-label"
-          label={formatMessage({
-            id: "app.garden.settings.openJoining",
-            defaultMessage: "Open joining",
-          })}
-          description={formatMessage({
-            id: "app.garden.settings.openJoiningDescription",
-            defaultMessage: "Allow anyone to join this garden without an invitation",
-          })}
-        >
-          <Switch
-            disabled={disabledProfileField}
-            checked={draft.openJoining}
-            onCheckedChange={(checked) =>
-              setDraft((current) => ({ ...current, openJoining: checked === true }))
+        <FactList frame="inset">
+          <FactRow
+            labelId="garden-settings-open-joining-label"
+            label={formatMessage({
+              id: "app.garden.settings.openJoining",
+              defaultMessage: "Open joining",
+            })}
+            description={formatMessage({
+              id: "app.garden.settings.openJoiningDescription",
+              defaultMessage: "Allow anyone to join this garden without an invitation",
+            })}
+            action={
+              <Switch
+                disabled={disabledProfileField}
+                checked={draft.openJoining}
+                onCheckedChange={(checked) =>
+                  setDraft((current) => ({ ...current, openJoining: checked === true }))
+                }
+                surface="admin"
+                aria-labelledby="garden-settings-open-joining-label"
+                className={cn(disabledProfileField && "cursor-not-allowed opacity-50")}
+              />
             }
-            surface="admin"
-            aria-labelledby="garden-settings-open-joining-label"
-            className={cn(disabledProfileField && "cursor-not-allowed opacity-50")}
           />
-        </AdminSettingRow>
+        </FactList>
 
         <div className="border-t border-stroke-soft" />
 
         {/* Limit gardeners — a toggle that reveals the cap field. Off saves 0
             (unlimited); no magic number in the input. */}
         <div className="space-y-3">
-          <AdminSettingRow
-            labelId="garden-settings-limit-gardeners-label"
-            label={formatMessage({
-              id: "app.garden.settings.limitGardeners",
-              defaultMessage: "Limit gardeners",
-            })}
-            description={
-              draft.capRead
-                ? formatMessage({
-                    id: "app.garden.settings.maxGardenersDescription",
-                    defaultMessage: "Cap how many gardeners can join. Off means unlimited.",
-                  })
-                : formatMessage({
-                    id: "app.garden.settings.maxGardenersUnread",
-                    defaultMessage: "The current limit hasn't loaded yet, so it can't be changed.",
-                  })
-            }
-          >
-            <Switch
-              disabled={capLocked}
-              checked={draft.limitGardeners}
-              onCheckedChange={(checked) =>
-                setDraft((current) => ({ ...current, limitGardeners: checked === true }))
+          <FactList frame="inset">
+            <FactRow
+              labelId="garden-settings-limit-gardeners-label"
+              label={formatMessage({
+                id: "app.garden.settings.limitGardeners",
+                defaultMessage: "Limit gardeners",
+              })}
+              description={
+                draft.capRead
+                  ? formatMessage({
+                      id: "app.garden.settings.maxGardenersDescription",
+                      defaultMessage: "Cap how many gardeners can join. Off means unlimited.",
+                    })
+                  : formatMessage({
+                      id: "app.garden.settings.maxGardenersUnread",
+                      defaultMessage:
+                        "The current limit hasn't loaded yet, so it can't be changed.",
+                    })
               }
-              surface="admin"
-              aria-labelledby="garden-settings-limit-gardeners-label"
-              className={cn(capLocked && "cursor-not-allowed opacity-50")}
+              action={
+                <Switch
+                  disabled={capLocked}
+                  checked={draft.limitGardeners}
+                  onCheckedChange={(checked) =>
+                    setDraft((current) => ({ ...current, limitGardeners: checked === true }))
+                  }
+                  surface="admin"
+                  aria-labelledby="garden-settings-limit-gardeners-label"
+                  className={cn(capLocked && "cursor-not-allowed opacity-50")}
+                />
+              }
             />
-          </AdminSettingRow>
+          </FactList>
 
           {draft.limitGardeners ? (
             <AdminTextField

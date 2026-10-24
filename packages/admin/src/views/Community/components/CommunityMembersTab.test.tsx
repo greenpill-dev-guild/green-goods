@@ -72,7 +72,9 @@ describe("CommunityMembersTab", () => {
       </MemoryRouter>
     );
 
-    const total = screen.getByText("Total members").parentElement as HTMLElement;
+    const total = screen
+      .getByText("Total members")
+      .closest('[data-component="FactRow"]') as HTMLElement;
     expect(within(total).getByText("2")).toBeInTheDocument();
     // The rail no longer repeats role counts or the header's member actions (D9, D15).
     expect(screen.queryByRole("link", { name: /^Stewards/ })).not.toBeInTheDocument();
