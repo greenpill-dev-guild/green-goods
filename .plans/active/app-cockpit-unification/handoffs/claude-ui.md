@@ -844,6 +844,37 @@ Human corrections: 0 observed; attention: unknown.
   from before their components moved to `AdminButton` (`DepositModal`, `AttestationSelector`,
   `CreateAction`), so they exercise a mock, not the adapter.
 
+## Step 20, call-site pass: buttons (PRD-1287)
+
+- `feature/app-cockpit-button-call-sites`, cut from `develop` `f7af3e567` (#1256 merged); its guide
+  wording (DL-119, Rule 18, the cockpit guide, the prompt contract, step 20's row and A19) is the
+  standards-only `feature/app-cockpit-button-call-sites-guides`.
+- **The codemod.** A Babel pass over 145 files rewrote 374 renders with DL-115's table and the
+  shared defaults in mind: every button names its size (the shared default is the 40px md) and,
+  outside a link, `type="button"`; a leading glyph takes 16px at 28px and 18px otherwise, with
+  `aria-hidden`; an icon button's label is its `aria-label` and `title`. By hand: the conditional
+  variants, `AdminViewActions`, `ConnectButton` (its `size` prop now takes the shared sizes),
+  `FlowSendFooter`'s `sendButtonProps`, ImpactFunders' chevrons, four icon links (`IconButton
+  asChild`, the link holding its glyph) and the design-system pages. The three tonal choices are
+  `AdminFilterChip`s; the two story-only tonal actions are secondary.
+- **Scoping without the adapter.** The cap and the reserve sit on the cockpit's `:root`. Shared
+  marks the 22 buttons its pieces lay out (`data-piece-control`), and `theme.css` resets both
+  tokens on them. Two unlayered rules in `index.css` make the glyph tier and the disabled pair win
+  over call-site utilities; `surfaces.css` mirrors them, and its app and website scopes reset the
+  cockpit's button tokens.
+- **Guards.** The design token check's retired-name sweep; `AdminDensityScale.guard`'s scans for
+  the mark on shared pieces' buttons and for `type` on every cockpit `Button`; the Buttons story's
+  browser checks for the three fixes.
+- Proof: the admin, Shared and client suites, the typechecks, lint, the design token check, the story
+  checks, the admin build, the docs checks, and a full-catalog Storybook sweep with its pairs, all
+  **Storybook** ([eval.md](../eval.md#step-20-call-site-pass-proof-buttons)). No authenticated
+  class: none of the changed files is on a browser-proof path.
+- Calls for the maintainer: the chosen options as filter chips (outlined at rest, the tone fill when
+  chosen, 4px taller than the tonal pill); `IconButton asChild`, the one new Shared prop; and the
+  duplicated label expression where an icon button's name is also its tooltip.
+- Not in the step: the other `Admin*` composites, which stay under DL-116, DL-117 and DL-118;
+  `admin-hit-target` stays for the cockpit's own chips and close buttons.
+
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker

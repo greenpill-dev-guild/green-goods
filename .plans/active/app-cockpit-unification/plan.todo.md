@@ -382,3 +382,16 @@ look, each falling back to the app's value. DL-115 and its guide wording are the
 `feature/app-cockpit-shared-buttons-guides`, #1253
 ([handoff](handoffs/claude-ui.md#step-20-phase-1-shared-buttons-prd-1287),
 [eval.md](eval.md#step-20-phase-1-proof-shared-buttons)).
+
+**Step 20, call-site pass (24 October).** `feature/app-cockpit-button-call-sites` finishes the
+buttons: every cockpit button renders the shared `Button` or `IconButton` directly, and
+`AdminButton` and `AdminIconButton` are deleted, with the design token check failing if either
+name returns. A codemod applied DL-115's table to the call sites, which now name their size, their
+`type` and their glyph sizes; the three tonal choices became `AdminFilterChip`s. With no adapter to
+mark a cockpit button, the cap and the hit-target reserve moved to the cockpit's `:root`, and a
+shared piece marks the buttons it lays out itself (`data-piece-control`), which take neither. It
+also fixes the three looks Codex found on #1256: a wrapped toast action held at 32px, copy icons
+drawn at 16px, and a busy warning action keeping its colours. DL-119 and its guide wording are the
+standards-only `feature/app-cockpit-button-call-sites-guides`
+([handoff](handoffs/claude-ui.md#step-20-call-site-pass-buttons-prd-1287),
+[eval.md](eval.md#step-20-call-site-pass-proof-buttons)).

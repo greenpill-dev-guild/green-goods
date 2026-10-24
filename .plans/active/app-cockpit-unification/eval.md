@@ -1232,3 +1232,36 @@ across twelve scenes, light and dark, and the new family matrix).
 - **What changes, as DL-115 records.** Outlined and text labels take the shared neutral inks and an
   outlined button the card's white fill; the filled hover is its tone's measured hover step;
   buttons drop the elevation shadow; and a loading button stays focusable.
+
+## Step 20 call-site pass proof: buttons
+
+Run on 2026-10-24 against `develop` `f7af3e567`, where step 20 phase 1 had merged, with the call-site
+pass on `feature/app-cockpit-button-call-sites`, both as static Storybook builds. Every frame is
+**Storybook**; none shows a real garden. The pairs are a private artifact:
+https://claude.ai/artifact/9sJA5HgGfciGq7W7YT7d8k (the 38 stories the pass changes, and the three
+fixes).
+
+- **Every story compared.** The two builds share 2,295 stories (the cockpit's, the design system's,
+  Shared's, the app's and the website's), each captured at 1280px in light and compared pixel for
+  pixel: 2,183 identical. Of the other 112, fourteen fail to render in both builds (FunderRow,
+  GardenSupporters, ImpactFunders, CreateListingDialog, AccountSurface, AdminAccessStateRenderer,
+  Splash, EditorialReadDeeper), and their error screens differ only in chunk names. The other 98
+  were captured again from the final build after a 2.5s settle, and 47 of them matched.
+- **What the other 51 are.** 38 are this change: GardenMetadata's and EditGardenDialog's copy icons
+  at 18px (6); the chosen options as filter chips in OverviewTab, the garden workspace and the
+  custom-token section (10); story-only actions still drawn as the tonal pill, now the secondary as
+  the shipped components draw them (PositionCard, the cookie jar list: 8); stories that draw their
+  own shared buttons, which now take the cockpit's reserve (FormFlow, HypercertWizard,
+  ListPrimitives' cockpit column: 11); and the rewritten design-system pages (3). The other 13 have
+  no code change of their own and vary between captures: a play function's focus step, a scroll
+  fade, data that loads on one capture and not the other, an animated banner, and 1 to 43px of
+  antialiasing.
+- **The three fixes on the real components.** The shared toast's action in the cockpit scope, its
+  label wrapped in 160px: a 32px box with the label spilling 3px above and below before, 52px with
+  the label inside after. GardenMetadata's copy icons: 16px glyphs before, 18px after. The vault
+  position's warning action (Enable auto-allocate) made busy in place: its warning fill and ink
+  before, the neutral pair after. The Buttons story's `CallSiteClassesLose` checks all three in
+  the browser.
+- **The installed app and the website do not change.** No app or website story differs beyond the
+  eight captures whose timing varies, and the two ListPrimitives stories change only in their
+  cockpit column.
