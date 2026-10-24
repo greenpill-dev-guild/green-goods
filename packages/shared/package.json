@@ -87,6 +87,7 @@
     "./components/Cards/ActionPicker": "./src/components/Cards/ActionPicker.tsx",
     "./components/Cards/CardBase": "./src/components/Cards/CardBase.tsx",
     "./components/Cards/ItemRow/ItemRow": "./src/components/Cards/ItemRow/ItemRow.tsx",
+    "./components/Cards/FactRow": "./src/components/Cards/FactRow.tsx",
     "./components/Cards/MediaCard": "./src/components/Cards/MediaCard.tsx",
     "./components/Cards/WorkCard/WorkCard": "./src/components/Cards/WorkCard/WorkCard.tsx",
     "./components/Conviction/ConvictionMeter": "./src/components/Conviction/ConvictionMeter.tsx",

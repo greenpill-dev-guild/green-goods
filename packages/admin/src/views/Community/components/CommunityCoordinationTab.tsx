@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import {
@@ -68,21 +69,23 @@ export function CommunityCoordinationTab({
               <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.coordination.status" })}
               </AdminCardTitle>
-              <div className="garden-stat-row">
-                <span className="garden-stat-row-label">
-                  {formatMessage({ id: "cockpit.community.coordination.community" })}
-                </span>
-                <span className="inline-flex items-center gap-1 type-meta font-medium text-text-strong">
-                  {communityConfig ? (
-                    <RiCheckLine className="h-4 w-4 text-success-dark" />
-                  ) : (
-                    <RiQuestionLine className="h-4 w-4 text-text-sub" />
-                  )}
-                  {communityConfig
-                    ? formatMessage({ id: "app.community.statusConnected" })
-                    : formatMessage({ id: "app.community.statusNotConnected" })}
-                </span>
-              </div>
+              <FactList frame="inset">
+                <FactRow
+                  label={formatMessage({ id: "cockpit.community.coordination.community" })}
+                  value={
+                    <span className="inline-flex items-center gap-1">
+                      {communityConfig ? (
+                        <RiCheckLine className="h-4 w-4 text-success-dark" />
+                      ) : (
+                        <RiQuestionLine className="h-4 w-4 text-text-sub" />
+                      )}
+                      {communityConfig
+                        ? formatMessage({ id: "app.community.statusConnected" })
+                        : formatMessage({ id: "app.community.statusNotConnected" })}
+                    </span>
+                  }
+                />
+              </FactList>
 
               {weightScheme !== undefined && weightSchemeLabel && weightSchemeValues ? (
                 <AdminCard variant="outlined" density="compact">

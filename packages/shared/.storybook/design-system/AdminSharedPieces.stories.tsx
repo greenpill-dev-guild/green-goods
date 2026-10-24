@@ -3,12 +3,12 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useState } from "react";
 import { expect, within } from "storybook/test";
 import { AdminButton } from "../../../admin/src/components/AdminButton";
-import { AdminSettingRow } from "../../../admin/src/components/AdminSettingRow";
 import { AdminSortSelect } from "../../../admin/src/components/AdminSortSelect";
 import { AddressDisplay } from "../../src/components/AddressDisplay";
 import { Alert } from "../../src/components/Alert";
 import { AudioRecorder } from "../../src/components/Audio/AudioRecorder";
 import { EmptyStateShell } from "../../src/components/Canvas/EmptyStateShell";
+import { FactList, FactRow } from "../../src/components/Cards/FactRow";
 import { DatePicker } from "../../src/components/DatePicker/DatePicker";
 import { ImagePreviewDialog } from "../../src/components/Dialog/ImagePreviewDialog";
 import { FileUploadField } from "../../src/components/FileUploadField";
@@ -167,11 +167,16 @@ function Pieces() {
               ]}
             />
           </Specimen>
-          <Specimen title="Switch in AdminSettingRow · M3 track" target='[role="switch"]' expect={ADMIN.sharedSwitch()} wide>
+          <Specimen title="Switch in a setting FactRow · M3 track" target='[role="switch"]' expect={ADMIN.sharedSwitch()} wide>
             <div style={{ width: "100%", maxWidth: 480 }}>
-              <AdminSettingRow labelId="ds-shared-open-joining" label="Open joining" description="Anyone can join without approval.">
-                <Switch surface="admin" aria-labelledby="ds-shared-open-joining" checked={on} onCheckedChange={setOn} />
-              </AdminSettingRow>
+              <FactList>
+                <FactRow
+                  labelId="ds-shared-open-joining"
+                  label="Open joining"
+                  description="Anyone can join without approval."
+                  action={<Switch surface="admin" aria-labelledby="ds-shared-open-joining" checked={on} onCheckedChange={setOn} />}
+                />
+              </FactList>
             </div>
           </Specimen>
         </Row>
