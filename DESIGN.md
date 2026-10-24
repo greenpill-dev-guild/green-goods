@@ -30,6 +30,11 @@ typography:
     fontSize: 12px
     fontWeight: 500
     lineHeight: 16px
+  count:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 11px
+    fontWeight: 600
+    lineHeight: 16px
   app-title:
     fontFamily: Plus Jakarta Sans
     fontSize: 22px
@@ -81,7 +86,7 @@ components:
   count-badge:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
-    typography: "{typography.label-md}"
+    typography: "{typography.count}"
     rounded: "{rounded.full}"
   accent-ink:
     textColor: "{colors.on-tertiary}"
@@ -328,6 +333,7 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 
 - **Shape**: *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and color carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
 - **Controls**: fields, chips and secondary buttons draw a control-grade outline (`--gg-control-outline`, 3:1 or better in both themes), and focus is one solid 2px ring with a 2px offset: the installed app's green (mint in dark) and the cockpit's workspace tone. The installed app's button labels are weight 500, the cockpit's. The public website keeps its hairline and its focus halo.
+- **Counts**: one count badge (`CountBadge`) on both surfaces: a capsule 16px tall and at least 16px wide, with 11px numerals at weight 600 (`typography.count`), on the green action pair in the installed app and on the workspace tone's accent in the cockpit. Where it sits on an icon or a control's edge it draws a 2px ring of the surface behind it; beside a label it draws none. It reads 99+ above 99, and 9+ on the installed app's bottom bar.
 - **Motion**: Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
 - **Material**: Solid surfaces everywhere: cards, sheets, dialogs, menus, and bars draw an opaque fill, and depth comes from shadow and the scrim. The one translucent surface is the cockpit's nav dock (Navigation/FAB chrome: an 85% fill with a 12px blur); the admin `AppBar` root stays transparent over the canvas (DL-108).
 - **Elevation**: Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
