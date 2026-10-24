@@ -710,5 +710,16 @@ tests (members counted as people, the place, content when it opens nothing) and 
 listing, approval, preview, GreenWill and details-editor suites (72 cases) pass with the states on
 the block.
 
-The rendered pairs (**Storybook** for the cockpit, **mock-auth localhost** for the app) go to the
-maintainer as a private artifact.
+**Pairs.** 60 pairs, headless Chromium (Playwright) at device scale 2, before at `develop`
+`3c4fd4b62` and after on the branch, sent to the maintainer as a private artifact because the app's
+frames show live gardens:
+
+- **Storybook**, 52 pairs: the cockpit's Submit Work chooser (390 and 768px), the shared picker in
+  the cockpit, the Hub's two record tabs, the Impact tab (with data, loading, none yet), the
+  assessments and hypercerts panels, five states (listings, trades, the approval check, the
+  assessments panel loading and failed), and the app's action cards, garden cards, garden picker and
+  assessments, in light and dark.
+- **mock-auth localhost**, 8 pairs: `?mockAuth=deployer&presentation=pwa` on Arbitrum One with the
+  production indexer, Home's garden list and Submit Work at 390px in English (light and dark),
+  Spanish and Portuguese. The garden's Insights tab timed out under load at a 30 to 32 load average,
+  so the app's assessments pair is the Storybook story alone.

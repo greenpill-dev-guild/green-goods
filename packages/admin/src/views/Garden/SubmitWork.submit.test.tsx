@@ -1111,7 +1111,7 @@ describe("SubmitWorkPanel submit behavior", () => {
 
     // Two eligible actions → chooser shown; select one (select-in-place) then Next
     // to enter the Media step.
-    await user.click(screen.getByRole("radio", { name: /Site Assessment \(Before\)/ }));
+    await user.click(screen.getByRole("option", { name: /Site Assessment \(Before\)/ }));
     await clickNext(user);
     uploadFile(container, "large.png", "image/png");
 
@@ -1299,7 +1299,7 @@ describe("SubmitWorkPanel submit behavior", () => {
     // Single action → no chooser; auto-selected onto the Media step. The Plot code
     // field lives on the later Details step, so it is not visible yet.
     expect(await screen.findByRole("button", { name: "Next" })).toBeInTheDocument();
-    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
   });
 
@@ -1321,17 +1321,20 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.getAllByRole("option")).toHaveLength(2);
     expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("radio", { name: /Site Assessment \(After\)/ }));
+    await user.click(screen.getByRole("option", { name: /Site Assessment \(After\)/ }));
 
     // Select-in-place: the chooser stays on the Action step with the card marked;
     // the footer Next then advances to Media (chooser gone).
-    expect(screen.getByRole("radio", { name: /Site Assessment \(After\)/ })).toBeChecked();
-    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.getByRole("option", { name: /Site Assessment \(After\)/ })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    expect(screen.getAllByRole("option")).toHaveLength(2);
     await user.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
   });
 

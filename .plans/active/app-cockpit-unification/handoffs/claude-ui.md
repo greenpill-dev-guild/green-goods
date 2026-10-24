@@ -389,7 +389,7 @@
     same leaf chooses a garden on the picker's listbox. Home's list (12px apart), a work's page
     and Submit Work render it. The app's wrapper `GardenCard`, `GardenCardSkeleton`, `ActionCard`
     and `ActionCardSkeleton` are deleted.
-  - **Records on the item row.** The app's Assessments tab, the Hub's two record tabs, the garden's
+  - **Records on the item row.** The Assessments list on the app's Insights tab, the Hub's two record tabs, the garden's
     Impact tab and its two panels: the record's icon, its title, no pill, and its date, then the
     assessment's domain or the works a hypercert bundles. The panels keep their EAS and Hypercerts
     links in the row's right slot.
@@ -409,7 +409,7 @@
 - Calls for the maintainer: an assessment row's second detail is its domain, not its outcome count
   (the cockpit's lists never read the stored detail that holds the outcomes, and an earlier fix
   names every assessment's domain); a hypercert row's is the works it bundles, not its units; the
-  app's Assessments tab and both pickers lose their carousels for a list and native rows; a
+  app's Assessments list (Insights tab) and both pickers lose their carousels for a list and native rows; a
   selected domain with no actions no longer holds the old card's height. The commitment composer's multi-select action
   rail and the Actions workspace's `WorkbenchCard` list are outside this step.
 

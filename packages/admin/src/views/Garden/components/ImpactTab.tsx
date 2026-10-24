@@ -175,6 +175,10 @@ export function ImpactTab({
                             record.mintedAt
                               ? formatDate(record.mintedAt * 1000, { dateStyle: "medium" })
                               : formatMessage({ id: "app.hypercerts.list.dateUnknown" }),
+                            formatMessage(
+                              { id: "app.hypercerts.list.workCount" },
+                              { count: record.attestationCount ?? 0 }
+                            ),
                           ]}
                           selected={Boolean(selectedItem) && record.id === selectedItem}
                           onOpen={() =>
