@@ -57,7 +57,7 @@ The cockpit speaks the installed app's Warm Earth language at a denser setting. 
 - One count badge, the shared `CountBadge`, on the workspace tone's accent here (DL-099, § Workspace Tinting).
 - The app's equal-width tabs: the tinted active cell under its accent label and underline, at the cockpit's 36px height (DL-100, § Admin Component Pattern).
 - Capsule chips with one selected fill: `AdminFilterChip` is a 32px capsule that a selection fills with the workspace tone's action pair, the app's selected look in the tone (DL-101).
-- One card surface and one item row: the shared `.gg-card` with the app's 24px corner, edge and faint shadow, and the shared `ItemRow` in every list (DL-102, § Card and selection grammar).
+- One card surface and one item row: the shared `.gg-card` with the app's 24px corner, edge and faint shadow, and the shared `ItemRow` for every record in a list, the row you look at and open (DL-102, § Card and selection grammar).
 - The phone sheet: below 640px every dialog and the side sheet take the app's bottom sheet material, grip and header, at the cockpit's own 22px title (DL-104, § Admin Component Pattern).
 - One field anatomy: the label above an outlined box and a message line that reserves two lines, at the cockpit's 8px corner and heights (DL-105, § Cockpit M3 1a Invariants).
 - The active-tab pill on both bottom bars: the workspace tone's container here, the green container in the app (DL-107, § Navigation).
@@ -74,7 +74,7 @@ Each shared piece that follows joins this list with its decision-log row.
 - **Motion**: the Standard scheme on the spring tokens; a hover is an elevation step or the neutral ink layer, never a lift, and a card or item row takes the ink layer only (DL-102).
 - **Navigation**: the AppBar, the NavigationBar dock and its FAB (§ Navigation).
 
-**What leaves with the rule.** Each piece that Material 3 used to justify is replaced by the shared piece in its own change: the gray count chip has given way to the shared count badge (DL-099), the underline tab rail to the app's equal-width tabs (DL-100), the 8px chip to the capsule chip (DL-101), elevation as a card's surface and the 12px card corner to the shared card (DL-102), the warm gray phone sheet to the app's bottom sheet (DL-104), and the filled field with an underline to the outlined field with the label above (DL-105). Until its replacement lands, a piece keeps the anatomy this guide gives it.
+**What leaves with the rule.** Each piece that Material 3 used to justify is replaced by the shared piece in its own change: the gray count chip gives way to the shared count badge (DL-099), the underline tab rail to the app's equal-width tabs (DL-100), the 8px chip to the capsule chip (DL-101), elevation as a card's surface and the 12px card corner to the shared card (DL-102), the warm gray phone sheet to the app's bottom sheet (DL-104), and the filled field with an underline to the outlined field with the label above (DL-105). Until its replacement lands, a piece keeps the anatomy this guide gives it.
 
 **Tokens keep their names.** The `--m3-*` tokens are an internal layer under the shared names the views read, and a name changes only when a change has to touch it. Shape, depth and motion read from that layer and the admin aliases beside it:
 
@@ -144,7 +144,7 @@ Color roles:
 - `--tone-on-action` is the text/icon color on filled action backgrounds and a selected filter chip, and the count badge's ink.
 - `--tone-primary-container` / `--tone-on-primary-container` are the active-selection container pair (the nav pill).
 - `--tone-on-surface-accent` is for colored text/icons on solid surfaces, fills the count badge (DL-099), and at 10% tints the active tab's cell (DL-100). It equals the action fill in every tone but Community, where it is orange-800 (white at 7.09:1 on the cockpit's amber ramp) beside the orange-700 fill (5.02:1).
-- `--tone-focus-ring` is the cockpit's value of the one focus role; it resolves to action tone in light mode and on-surface accent in dark mode, and the shared controls draw it as one solid 2px ring (DL-098). A card or row also draws it as the 3px border that marks the record its list has open (DL-103). The installed app sets the same role to its green.
+- `--tone-focus-ring` is the cockpit's value of the one focus role; it resolves to action tone in light mode and on-surface accent in dark mode, and the shared controls draw it as one solid 2px ring (DL-098). A card or row also draws it as the border that marks the record its list has open: 3px on the shared media card and item row (DL-102, DL-103), and the older 2px `--edge-focus` on `WorkbenchCard` and `WorkbenchRow` until they move onto them. The installed app sets the same role to its green.
 - `--tone-surface-tint-color` feeds only the canvas wash.
 - `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons; the shared fields, chips and secondary buttons draw it through `--gg-control-outline` (DL-098).
 - `--m3-outline-variant` is a decorative hairline, not a control boundary.

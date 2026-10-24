@@ -46,7 +46,7 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A20 | Detail lines | Every item row's detail line stays on one line at 320, 360 and 390px in English, Spanish and Portuguese; each card type shows its details in the accepted order, and a detail that does not fit drops whole; an age is always a number. |
 | A21 | One height | Every card in a list is the same height on both surfaces, in every state, action and language; the pill under the title never makes a row grow. |
 | A22 | One pill per card | A card shows one pill, its status; an error, a retry or a pending state replaces it, feedback is a detail, and the photo count sits on the photo. |
-| A23 | Field messages (F3) | Fields reserve two message lines in the app and one in the cockpit; a message that fits the reserve never moves the form, and a longer one grows the slot rather than scrolling; the longest Spanish and Portuguese cockpit messages are measured in two-column forms at 640px. |
+| A23 | Field messages (F3) | Fields reserve two message lines in the app and in the cockpit (DL-105, since 6 of the cockpit's 32 messages under side-by-side fields wrap at 640px); a message that fits the reserve never moves the form, and a longer one grows the slot rather than scrolling; the longest Spanish and Portuguese cockpit messages are measured in two-column forms at 640px. |
 
 ## Guards the work trips
 
