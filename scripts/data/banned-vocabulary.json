@@ -342,9 +342,12 @@
       "trading floor",
       "financial terminal",
       "gamification",
-      "dark pattern"
+      "dark pattern",
+      "liquid",
+      "glass",
+      "frosted"
     ],
-    "rationale": "The client PWA is a garden journal, not a steward cockpit. It shares the cockpit's typeface but keeps warm narrative copy; cockpit and KPI language belongs to admin."
+    "rationale": "The client PWA is a garden journal, not a steward cockpit. It shares the cockpit's typeface but keeps warm narrative copy; cockpit and KPI language belongs to admin. Its surfaces are solid (DL-108), so glass, liquid and frosted framing is out too."
   },
   "consumers": [
     {

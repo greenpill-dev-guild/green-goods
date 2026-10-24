@@ -4,8 +4,9 @@
  *
  * A filled header action, the FAB, a step marker and the shared primary
  * buttons put `--tone-on-action` (white in light, the tone's -900 ink in dark,
- * DL-009) on `--tone-action`. Shared buttons hover on `--tone-action-hover`.
- * The cockpit's filled AdminButton, AdminIconButton and FAB keep their fill
+ * DL-009) on `--tone-action`, as a selected filter chip does (DL-101). Shared
+ * buttons hover on `--tone-action-hover`. The cockpit's filled AdminButton,
+ * AdminIconButton and FAB and a selected AdminFilterChip keep their fill
  * and lay the neutral ink layer (`--m3-on-surface`, Rule 18) over it at the
  * state opacities, beneath their content (`.m3-state-layer-beneath`): the
  * layer deepens a light fill and lifts a dark one while the label keeps its
@@ -27,6 +28,7 @@ const app = read("../../index.css");
 const storybook = read("../../../../shared/.storybook/surfaces.css");
 const adminButton = read("../../components/AdminButton.tsx");
 const fabButton = read("../../components/Shell/FabButton.tsx");
+const filterChip = read("../../components/AdminFilterChip.tsx");
 
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -107,6 +109,7 @@ const FILLED_CONTROLS: Record<string, string> = {
   "AdminIconButton filled": filledVariants[1] ?? "",
   FabButton:
     fabButton.match(/data-slot="fab-button"[\s\S]*?className=\{cn\(([\s\S]*?)\n\s*\)\}/)?.[1] ?? "",
+  "AdminFilterChip selected": filterChip.match(/\bselected\s*\?\s*\[([\s\S]*?)\]\s*:/)?.[1] ?? "",
 };
 
 /** Whether the stylesheet paints an opted-in control's state layer beneath its content. */
