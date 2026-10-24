@@ -251,7 +251,8 @@ export function PoolCommitmentsCard({
                 id: "cockpit.garden.pool.queued.sent",
                 defaultMessage: "Sent. This row leaves once the index shows the promise.",
               });
-              // What the row says first: the act in flight, then why it cannot go.
+              // What the row says first: the act in flight, then why it cannot go, else how
+              // much it promises, since a promise not created yet has no dialog to tell it.
               const note =
                 actPhaseText(intl, { phase, chainId: pool.chainId, confirmed: sentLine }) ??
                 (expired
@@ -262,7 +263,7 @@ export function PoolCommitmentsCard({
                     })
                   : row.settlementDeferred
                     ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
-                    : null);
+                    : `${row.targetUnits} ${row.unitLabel}`.trim());
               const sendLabel = row.failed
                 ? formatMessage({
                     id: "cockpit.garden.pool.queued.retry",
