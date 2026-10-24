@@ -1,6 +1,6 @@
 # Grove: implementation sequence
 
-**Status:** proposed; no implementation started. **Created:** 2026-10-11. **Updated:** 2026-10-16.
+**Status:** proposed; no implementation started. **Created:** 2026-10-11. **Updated:** 2026-10-23.
 **Architecture and decision log:** [spec.md](spec.md).
 **Acceptance gates:** [eval.md](eval.md).
 
@@ -10,7 +10,9 @@ Each unchecked step is a future independently verifiable checkpoint. Proposed ne
 
 Confirm the bounded build and dependencies, select the isolated implementation checkout without changing another session's branch, and resolve the Coop source revision/license. This planning request is not an instruction to install dependencies or start product code.
 
-This is Grove's canonical idea-stage hub. Once product execution is explicitly accepted, promote this hub and update its lane statuses. Run `node scripts/harness/plan-hub.mjs linear-sync --feature grove --json` and follow its actual create/update/preserve instructions under the repository's implementation start gate. Do not create a second active plan for the same extension feature. No Linear change is part of this planning PR.
+This is Grove's canonical idea-stage hub. The [Grove project](https://linear.app/green-goods/project/grove-garden-knowledge-8582c2970974) is connected to Community Evidence Mesh; RESR-103 remains parent-only tracking, and the five project milestones mirror the table below. Once product execution is explicitly accepted, promote this hub and update its lane statuses. Run `node scripts/harness/plan-hub.mjs linear-sync --feature grove --json` and follow its actual create/update/preserve instructions under the repository's implementation start gate. Do not create a second active plan for the same extension feature.
+
+Review the [Mesh mapping](mesh-alignment.md) before defining S2 contracts. A0 can use synthetic fixtures to test runtime mechanics without claiming Mesh evidence conformance. A real evidence pilot still requires the initiative's applicable metric, authority, consent and correction gates; personal graph review cannot satisfy them.
 
 Before committing to the graph composition, use the [Claude Code design exploration](handoffs/claude-design-exploration.md). Its reviewable prototypes do not mark an implementation checkpoint complete. Compare the same garden fixture in both renderer candidates during S0, including label/edge readability as well as performance.
 

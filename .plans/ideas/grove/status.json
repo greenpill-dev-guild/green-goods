@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-10-18T03:16:57.089Z"
+    "updated_at": "2026-10-24T02:32:26.326Z"
   },
   "links": {
     "brief": "brief.md",
@@ -20,10 +20,10 @@
   },
   "linear": {
     "parentIssue": "RESR-103",
-    "project": null,
-    "initiative": null,
+    "project": "P-RESR-36",
+    "initiative": "a0a00795-ef64-46c4-ae9a-7a18bef9d760",
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-10-18T03:16:57.089Z",
+    "lastSyncedAt": "2026-10-24T02:32:26.326Z",
     "lanes": {},
     "laneSyncMode": "parent_only"
   },
@@ -43,7 +43,9 @@
     "KOI partial-node architecture selected for planning: browser-owned history and inference, optional controlled full node, explicit sharing and scoped reconciliation.",
     "User authorized updating draft PR #1073; K1/K2 and E9–E11 remain unrun. No production peer, dependency installation or runtime implementation is authorized by this plan revision.",
     "User selected Pi Durable for resumable local investigations; Dexie retains garden knowledge/history and idempotent graph-command receipts, and KOI retains scoped exchange.",
-    "P0–P2 and E12–E14 are planned browser storage, execution, recovery and privacy gates. Pi installation and product implementation remain unstarted; no lane is completed."
+    "P0–P2 and E12–E14 are planned browser storage, execution, recovery and privacy gates. Pi installation and product implementation remain unstarted; no lane is completed.",
+    "2026-10-23: accepted focused Grove — Garden Knowledge project within Community Evidence Mesh; RESR-103 stays Backlog with parent-only tracking, five undated A0–A4 milestones and all 18 checkpoints pending.",
+    "Published portable public-safe HTML design studies and a next-session handoff. Private-note-derived fixtures were replaced with synthetic records; no runtime, dependency or product gate is complete."
   ],
   "lanes": {
     "ui": {
@@ -189,6 +191,30 @@
     },
     {
       "timestamp": "2026-10-18T03:16:57.089Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    },
+    {
+      "timestamp": "2026-10-24T02:26:29.599Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-24T02:31:56.039Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    },
+    {
+      "timestamp": "2026-10-24T02:32:26.326Z",
       "actor": "codex",
       "lane": "system",
       "status": "linear_sync_confirmed",
