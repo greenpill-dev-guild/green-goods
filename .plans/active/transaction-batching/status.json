@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-24T01:40:34Z"
+    "updated_at": "2026-10-24T02:17:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,7 +37,7 @@
   "notes": [
     "Phase 1 implementation authorized on 2026-10-23 in the transaction-batching worktree; later product phases remain planned. No agents dispatched.",
     "PRD-1344 is the explicitly approved parent-only Linear mirror. No branch switch, commit, publication, or broadcast is authorized.",
-    "Shared batching/recovery and reviewed-budget enforcement are implemented locally. Focused proof: 180 pass, 6 skipped; both Kernel profiles passed eight isolated-fork execution cases. The full critical gate is not passing: seven Shared failures passed focused recheck, but a language failure recurred in the interrupted full rerun. Downstream suites are unrun on this source. Live account/sponsorship certification remains externally owned.",
+    "Phase 1 batching/recovery/budget source is isolated on develop. Clean implementation commit 382cdc08ec1a4264168ebef0d1741e39ee5933df passed 203 focused tests with six existing skips. Current-head push/CI validation remains pending; earlier full-suite failures and auth-policy violations describe the original base only. Settings, members, and bulk review UI remain unimplemented.",
     "Existing source-structure and test-quality failures are recorded in handoffs/phase-1.md; unrelated auth, contract tests, and governance baselines remain untouched.",
     "No production contract/schema or dependency versions changed. Worktree dependencies reuse existing installed packages through ignored local links.",
     "User scope correction: further live Gnosis/account/profile QA belongs to another session. Owned standalone probes stopped and tabs closed; continue only batching source, required validation, and local evidence."
@@ -71,7 +71,7 @@
       "status": "in_progress",
       "branch": "feature/transaction-batching-foundation",
       "depends_on": [],
-      "handoff": "handoffs/state-api.md",
+      "handoff": "handoffs/publication.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
@@ -244,6 +244,14 @@
       "status": "in_progress",
       "branch": null,
       "note": "Full gate not passing. Initial Shared run: 7736 pass, 7 fail, 16 skipped; five-file focused recheck: 39 pass. Full two-worker rerun reproduced the unchanged language failure and was stopped by the agent, exit 130. Current downstream suites unrun. Typechecks/lint and independent ontology pass; two inherited source-policy failures remain. Evidence is working-copy only."
+    },
+    {
+      "timestamp": "2026-10-24T02:17:00Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/transaction-batching-foundation",
+      "note": "Prepared isolated develop-based batching checkpoint 382cdc08ec1a4264168ebef0d1741e39ee5933df with 203 passing focused tests and six existing skips. Thirty-five unrelated unpublished parent commits were excluded; push and draft PR pending."
     }
   ],
   "execution_sub_lanes": {
@@ -253,7 +261,7 @@
       "status": "in_progress",
       "branch": "feature/transaction-batching-foundation",
       "depends_on": [],
-      "handoff": "handoffs/phase-1-compatibility.md"
+      "handoff": "handoffs/publication.md"
     },
     "phase_2_settings": {
       "machine_lane": "ui",

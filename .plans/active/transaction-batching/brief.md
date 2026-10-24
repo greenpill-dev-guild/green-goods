@@ -25,7 +25,7 @@ Success means fewer signing requests for the same completed action, no retry of 
 
 No contract deployment, schema change, wallet upgrade, dependency change, new relayer, or cross-chain transaction is planned. Role removal, assessment batching, deposits, marketplace expansion, and automatic offline submission of admin decisions are outside this hub.
 
-Phase 1 implementation is underway in the dedicated worktree. Its current budget and compatibility proof is recorded in [the follow-up handoff](handoffs/phase-1-compatibility.md), following [the foundation handoff](handoffs/phase-1.md). Real Kernel execution passed on an isolated fork; authenticated signing and configured paymaster acceptance remain pending. [status.json](status.json) retains execution truth for all phases.
+Phase 1 implementation is underway in the dedicated worktree. Its develop-based checkpoint and current proof are recorded in [the publication handoff](handoffs/publication.md). [The limits follow-up](handoffs/phase-1-compatibility.md) and [foundation handoff](handoffs/phase-1.md) remain historical. Real Kernel execution passed on an isolated fork; authenticated signing and configured paymaster acceptance remain pending. [status.json](status.json) retains execution truth for all phases.
 
 ## Related ownership
 

@@ -4,7 +4,7 @@ Finish the remaining plan from this batching checkpoint. Read `status.json`, `pl
 
 ## Start here
 
-1. Confirm the current branch, PR base, clean working tree, and current validation evidence. The original snapshot was based on local commit `73f05a9177125d6509105659f5a724472343cc31`, with 35 parent commits absent from `origin/develop`; those parent commits belong to other work. The publication attempt isolates this task onto `develop`. Verify the final publication handoff before selecting a base or claiming current compatibility.
+1. Start with [publication.md](publication.md) for the isolated `develop` base, implementation commit, and current proof. Confirm the PR head, clean working tree, and validation status. The original 35 unpublished parent commits were excluded from this branch.
 2. Read [the Phase 1 foundation](phase-1.md) and [limits follow-up](phase-1-compatibility.md) as historical evidence for that source snapshot. Current source/receipt evidence must be refreshed after any base migration. Do not infer that old full-suite results establish current readiness.
 3. Complete the remaining Phase 1 composition/validation work, then implement garden settings, adding members, and bulk work reviews in that order. Follow the plan skill start gate and repository validation selector. Later-phase checkboxes remain open.
 
