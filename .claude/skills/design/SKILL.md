@@ -182,7 +182,7 @@ What kind of design work?
 │   ├── Choose material metaphor (Obsidian / Vellum / Holographic / Carbon)
 │   ├── Apply Inclusive Design lens (who gets excluded? what's the fallback?)
 │   ├── Define disclosure layers (glance → scan → engage → deep dive)
-│   └── Implement per implementation.md (Pane pattern + adaptive density)
+│   └── Implement per implementation.md § New Component Runbook (solid panes + adaptive density from surfaces.md)
 │
 ├─► New component?
 │   ├── What Z-layer? (ground / surface / floating / overlay) → surfaces.md
