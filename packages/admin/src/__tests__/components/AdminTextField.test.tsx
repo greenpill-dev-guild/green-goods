@@ -225,9 +225,10 @@ describe("AdminSelect", () => {
     const control = screen.getByRole("combobox", { name: "Cycle" });
     expect(control.tagName).toBe("SELECT");
     expect(screen.getByText("Cycle")).toHaveClass("gg-field-label");
-    // Shared's select on the admin surface, with its own chevron.
+    // Shared's select on the admin surface, with its own chevron and no icon of the field's.
     expect(control).toHaveAttribute("data-surface", "admin");
     expect(control).toHaveClass("gg-control", "gg-control-select");
+    expect(control.parentElement?.querySelector("span[aria-hidden]")).toBeNull();
     // Option-row colours are not a utility on this control: a Tailwind class
     // would land in @layer utilities and beat the shared rule, putting the
     // cockpit field on a different surface from every other select. The contract
