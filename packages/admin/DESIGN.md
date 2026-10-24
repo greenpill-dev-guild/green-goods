@@ -116,7 +116,7 @@ Color roles:
 - `--tone-action` is for filled action backgrounds.
 - `--tone-on-action` is the text/icon color on filled action backgrounds and the count badge's ink.
 - `--tone-primary-container` / `--tone-on-primary-container` are the active-selection container pair (the nav pill).
-- `--tone-on-surface-accent` is for colored text/icons on solid surfaces, and fills the count badge (DL-099): it equals the action fill in every tone but Community, where the action fill (orange-700) carries white numerals at only 4.0:1 and the accent (orange-800) at 4.9:1.
+- `--tone-on-surface-accent` is for colored text/icons on solid surfaces, and fills the count badge (DL-099). It equals the action fill in every tone but Community, where it is orange-800 (white at 7.09:1 on the cockpit's amber ramp) beside the orange-700 fill (5.02:1).
 - `--tone-focus-ring` is the cockpit's value of the one focus role; it resolves to action tone in light mode and on-surface accent in dark mode, and the shared controls draw it as one solid 2px ring (DL-098). The installed app sets the same role to its green.
 - `--tone-surface-tint-color` feeds only the canvas wash.
 - `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons; the shared fields, chips and secondary buttons draw it through `--gg-control-outline` (DL-098).
