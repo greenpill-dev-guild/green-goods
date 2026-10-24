@@ -1,3 +1,4 @@
+import { decodeFunctionResult, encodeFunctionData, type Hex, multicall3Abi } from "viem";
 import { describe, expect, it } from "vitest";
 import {
   assertExplorationNavigation,
@@ -63,6 +64,42 @@ describe("exploration ENS transport boundary", () => {
       id: 7,
       error: { code: 3, message: "No reverse ENS name in this scenario" },
     });
+  });
+  it("answers a list's reverse-name reads batched into one multicall, each read failing", () => {
+    const read = { target: request.params[0].to, allowFailure: true, callData: "0xb7d6ca640000" };
+    const batched = (reads: (typeof read)[]) => ({
+      ...request,
+      params: [
+        {
+          to: "0xcA11bde05977b3631167028862bE2a173976CA11",
+          data: encodeFunctionData({
+            abi: multicall3Abi,
+            functionName: "aggregate3",
+            args: [reads],
+          }),
+        },
+        "latest",
+      ],
+    });
+    const answer = explorationEnsRejection(
+      "https://ethereum-rpc.publicnode.com",
+      "POST",
+      JSON.stringify(batched([read, read]))
+    ) as { result: Hex };
+    expect(
+      decodeFunctionResult({ abi: multicall3Abi, functionName: "aggregate3", data: answer.result })
+    ).toEqual([
+      { success: false, returnData: "0x" },
+      { success: false, returnData: "0x" },
+    ]);
+    // A batch may carry only that read.
+    expect(() =>
+      explorationEnsRejection(
+        "https://ethereum-rpc.publicnode.com",
+        "POST",
+        JSON.stringify(batched([read, { ...read, callData: "0xdeadbeef" }]))
+      )
+    ).toThrow(/Unsupported/);
   });
   it("leaves unknown providers to the exploration's rejecting network gate", () => {
     for (const url of [
