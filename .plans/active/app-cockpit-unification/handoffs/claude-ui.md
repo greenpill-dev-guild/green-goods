@@ -389,7 +389,8 @@
   - **On the row now:** the installed app's garden members (`GardenGardeners`: when a gardener joined
     as the one fact, the app's default avatar for someone with no photo, and the member dialog's title
     from the same display) and send recipients (`MemberRow`: the garden that tells two people apart;
-    the chosen recipient is the row the list has open, `aria-current` in place of `aria-pressed`), and
+    the chosen recipient wears the open row's border and still reads as pressed, through the item
+    row's additive `pressed` prop, since choosing is not opening a record), and
     the cockpit's member directory (`CommunityMembersTab`: Manage Roles as an icon button in the right
     slot, how many roles a person holds when it is more than one) and funder lists (`FunderRow` in
     `GardenSupporters` and `ImpactFunders`, which take the shared card and avatar skeletons). Each list

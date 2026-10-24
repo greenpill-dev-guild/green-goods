@@ -401,7 +401,10 @@ describe("SendTab", () => {
     // The "To" row is the first tappable "Change" affordance on the review step.
     await user.click(screen.getAllByRole("button", { name: "Change" })[0]);
 
-    expect(await screen.findByRole("button", { name: /alice\.eth/i })).toBeInTheDocument();
+    // The recipient you chose is still chosen, and reads as pressed, not as an open record.
+    expect(
+      await screen.findByRole("button", { name: /alice\.eth/i, pressed: true })
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("opens on the Balance view listing ordinary holdings without governance", async () => {

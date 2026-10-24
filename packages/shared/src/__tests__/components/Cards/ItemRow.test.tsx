@@ -87,6 +87,18 @@ describe("ItemRow", () => {
     expect(screen.getByRole("button")).not.toHaveAttribute("aria-current");
   });
 
+  it("tells a screen reader which row the reader chose, as pressed rather than open", () => {
+    const { rerender } = renderRow({ onOpen: vi.fn(), pressed: true });
+    expect(screen.getByRole("button", { pressed: true })).not.toHaveAttribute("aria-current");
+
+    rerender(
+      <IntlProvider locale="en">
+        <ItemRow {...row} onOpen={vi.fn()} pressed={false} />
+      </IntlProvider>
+    );
+    expect(screen.getByRole("button", { pressed: false })).toBeInTheDocument();
+  });
+
   it("is content when it has nothing to open: only its action takes focus", () => {
     const { rerender } = renderRow();
     expect(screen.queryByRole("button")).toBeNull();

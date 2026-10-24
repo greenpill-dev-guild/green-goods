@@ -98,6 +98,12 @@ export interface ItemRowProps
    * opens it, so a screen reader hears which record is open.
    */
   selected?: boolean;
+  /**
+   * A choice the reader made, such as the recipient chosen to send to: the open record's
+   * border, and `aria-pressed` on what makes the choice, since choosing is not opening a record.
+   * A row that can be chosen passes `false` until it is.
+   */
+  pressed?: boolean;
 }
 
 function normalizeDetail(detail: ItemRowDetail): Exclude<ItemRowDetail, string> {
@@ -232,6 +238,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
     onOpen,
     openLabel,
     selected = false,
+    pressed,
     className,
     ...rest
   },
@@ -241,7 +248,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
     ...rest,
     className: cn("gg-card gg-item-row", className),
     "data-edge": edge,
-    "data-selected": selected ? "true" : undefined,
+    "data-selected": selected || pressed ? "true" : undefined,
   };
   const content = <RowContent lead={lead} title={title} status={status} details={details} />;
 
@@ -255,6 +262,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
         data-pressable="card"
         aria-label={openLabel}
         aria-current={selected ? "true" : undefined}
+        aria-pressed={pressed}
         onClick={onOpen}
       >
         {content}
@@ -271,6 +279,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
           data-pressable="row"
           aria-label={openLabel}
           aria-current={selected ? "true" : undefined}
+          aria-pressed={pressed}
           onClick={onOpen}
         >
           {content}

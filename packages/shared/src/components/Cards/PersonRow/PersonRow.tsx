@@ -4,8 +4,9 @@
  * A person is an item row led by their avatar: their profile photo, the surface's own picture
  * or a person glyph when they have none, and nothing while the photo is looked up. The title
  * is their name as the shared address display resolves it (their Green Goods name, then their
- * ENS name, then a short address), so a person reads the same in every list. The row's one
- * pill is their highest role, and the detail line holds the list's one count.
+ * ENS name, then the name the list holds for them, then a short address), so a person reads the
+ * same in every list. The row's one pill is their highest role, and the detail line holds the
+ * list's one count.
  *
  * @module components/Cards/PersonRow
  */

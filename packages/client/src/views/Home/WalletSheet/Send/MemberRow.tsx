@@ -22,7 +22,8 @@ const DEFAULT_AVATAR = "/images/avatar.png";
 /**
  * One person to send to, as a person row (DL-112): their avatar, their name from the shared
  * address display, their highest role as the chip, and the garden that tells two people
- * apart as the row's one detail. The chosen recipient is the row the list has open.
+ * apart as the row's one detail. The chosen recipient wears the open row's border but reads as
+ * pressed: choosing someone to send to is not opening a record.
  */
 export function MemberRow({
   address,
@@ -50,7 +51,7 @@ export function MemberRow({
       roles={roles}
       fallbackAvatar={DEFAULT_AVATAR}
       details={contextLine ? [contextLine] : undefined}
-      selected={selected}
+      pressed={selected}
       onOpen={onSelect}
     />
   );
