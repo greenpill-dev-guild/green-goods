@@ -38,5 +38,18 @@
   "sourceStructure": "passed on develop-based source; 6 baseline findings matched, 22 changed non-test paths checked",
   "sharedSourceTypecheck": "passed on the ported working tree before commit; current-head push gate remains authoritative",
   "pushGate": "pending; results belong in PR body and current-head CI",
-  "historicalEvidence": "Other phase-1 artifacts describe the original 73f05a9-based snapshots. Their whole-gate results do not certify this develop-based commit."
+  "historicalEvidence": "Other phase-1 artifacts describe the original 73f05a9-based snapshots. Their whole-gate results do not certify this develop-based commit.",
+  "seamCertification": {
+    "entry": "shared-work-provider-command",
+    "changedEvidence": "packages/shared/src/modules/transactions/__tests__/sender-conformance.test.ts",
+    "otherDeclaredInputs": "unchanged from develop base 207835e2b8fe6a7abf9d458d7adb9e62dceb0ff4",
+    "command": "bun run --cwd packages/shared test -- src/__tests__/modules/submit-work-command.test.ts src/__tests__/providers/WorkProvider.test.tsx src/modules/transactions/__tests__/sender-conformance.test.ts",
+    "result": {
+      "files": 3,
+      "passed": 85,
+      "skipped": 6
+    },
+    "fingerprint": "sha256:e4aa3650e4d70438e57d385ce1ab4cdc81fd4387f4e147ba17324b33f016c56a",
+    "review": "Direct non-self-mocking subject proof, unchanged production composition, and unchanged adapter conformance laws inspected; evidence hash only refreshed."
+  }
 }
