@@ -9,6 +9,8 @@ export function EmptyStateShell({
   children: ReactNode;
   className?: string;
 }) {
+  // The cockpit paints its own opaque gradient (--admin-empty-state-bg); anywhere else the frame
+  // keeps the ground level's fill.
   return (
     <Surface
       elevation="ground"
@@ -22,7 +24,7 @@ export function EmptyStateShell({
         justifyContent: "center",
         minHeight: "var(--canvas-empty-state-min-height, 24rem)",
         boxShadow: "var(--edge-rest)",
-        background: "var(--admin-empty-state-bg, var(--color-material-thin))",
+        background: "var(--admin-empty-state-bg, rgb(var(--bg-weak-50)))",
       }}
     >
       {children}

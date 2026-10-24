@@ -1020,3 +1020,55 @@ show. Two stories still looked for what the rows replaced (`2e961e4b2`, `8120d6e
 caught by Storybook CI). Submit Work's pinned promise drew every promise with an unnamed seedling;
 the live work-link choice is built from the full commitment, so it now carries the direction and a
 request's pin leads with the helping hand, named (`e80272b9d`).
+
+## Step 19 proof: unused card code and solid surfaces
+
+Run on 2026-10-24 for step 19's first pass, `feature/app-cockpit-unused-card-code` (`84cf1a9d0` and
+`31df7a87b`), against `develop` `a3645441c`. Capture-only servers ran from the step's worktree:
+Storybook, the app and the cockpit, the last two on Arbitrum One with the production indexer. The
+Storybook and app before frames were taken before the change; the cockpit's before frames from
+`develop`'s versions of the seven files its frames depend on, written into the worktree and restored
+after. Frames that show live gardens went to the maintainer as a private artifact.
+
+**Pairs.** 77 pairs, headless Chromium (Playwright) at device scale 2:
+
+- **mock-auth localhost**, cockpit (`?mockAuth=deployer`, Green Goods Community Garden): the Hub's
+  Assessments stage, which has no assessments, at 390, 768 and 1280px, and its garden menu and
+  Settings tooltip at 1280px, in light and dark: 10 pairs.
+- **mock-auth localhost**, app (`?mockAuth=deployer&presentation=pwa` in an iPhone 13 browser
+  context): Home with the install strip, offline, and back online, in light and dark: 6 pairs.
+- **Storybook**: the AppBar, GardenChip and FabButton stories with the menu open or a tooltip shown;
+  the Hub's work, confirm and record queues when empty and when a read fails, at 390, 768 and
+  1280px; the strip component's four states; `Surface`'s levels; `FormFlow`; and the Foundation
+  token story, in light and dark: 61 pairs.
+
+**Computed after** (`getComputedStyle`; every surface reports `backdrop-filter: none`):
+
+| Surface | Light | Dark |
+|---|---|---|
+| Garden menu, cockpit | 255 255 255 | 42 35 28 |
+| Hub frame, cockpit | 255 255 255 to 251 249 244 | 28 25 23 to 12 10 9 |
+| Hub frame, Storybook fallback | 250 250 249 | 22 20 18 |
+| AppBar tooltip, cockpit | 28 25 23 | 245 245 244 |
+| Surface ground; raised, floating and overlay | 250 250 249; 255 255 255 | 24 19 13; 42 35 28 |
+| Install strip; offline strip, app | 255 255 255; 12 10 9 | not measured |
+
+Before, measured in the cockpit the same way: the garden menu `rgba(255, 255, 255, 0.55)` in light and
+`rgba(28, 25, 23, 0.45)` in dark, both under `blur(20px) saturate(1.5)` (in light the Hub's heading
+shows through it, and in dark it nearly disappears into the canvas); the Hub frame a gradient at 62
+and 82% in light and 72 and 86% in dark under `blur(8px) saturate(1.1)`; the AppBar tooltip at 0.9
+alpha. The strips were 95% fills with a blur. `FormFlow`'s four pairs are pixel-identical: it moves
+from `solid-raised` to `raised`, which draws the same card.
+
+**Found on the way.**
+
+- The garden menu's divider took the stroke token, which equals the cockpit's dark card (41 37 36 on
+  42 35 28), so the solid menu hid it. It now takes the raised surface's hairline: 58 52 45 on the
+  dark card, and 238 on white in light, where it was 245.
+- Storybook does not declare the cockpit's `--admin-empty-state-bg`, so the Hub stories have always
+  drawn `EmptyStateShell`'s fallback, not the cockpit's gradient; the cockpit's own frames carry it.
+- Offline in a phone browser, the 16px offline strip covers only the top of the 24px install strip.
+  Before, the install strip's text showed through the offline strip.
+- The Foundation token story drew `CardBase` without padding, its header beside its controls. It now
+  draws its panels on `.gg-card` with padding; the docs page's capture of it
+  (`shared-tokens-foundation-controls.webp`) still shows the old layout in the previous typeface.

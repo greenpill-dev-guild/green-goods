@@ -1,19 +1,3 @@
-// Card Base Components
-export {
-  CardBase,
-  Card,
-  type CardProps,
-  type CardBaseProps,
-  CardContent,
-  CardBody,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  type CardVariantProps,
-  cardVariants,
-  surfaceCardVariants,
-} from "./CardBase";
 // CommitmentRow: one promise in a list on both surfaces, on the item row
 export {
   CommitmentRow,
@@ -56,7 +40,6 @@ export { PersonRow, type PersonRowProps } from "./PersonRow";
 export { VaultPositionCard, type VaultPositionCardProps } from "./VaultPositionCard";
 // WorkCard
 export {
-  getStatusBorderClass,
   WorkCard,
   type WorkCardData,
   type WorkCardLabels,

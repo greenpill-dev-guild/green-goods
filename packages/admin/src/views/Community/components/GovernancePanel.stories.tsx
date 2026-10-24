@@ -31,7 +31,7 @@ const meta: Meta<typeof GovernancePanel> = {
       description: {
         component:
           "Integration story. Composes the Tier 3 conviction " +
-          "components (WeightAllocator + ProposalCardConviction + ConvictionMeter) with " +
+          "components (WeightAllocator + ConvictionMeter) with " +
           "the Tier-5 adapter hooks (useConvictionProposalsForPool + " +
           "useConvictionWeightAllocator). " +
           "The hooks fetch from the on-chain registry; in Storybook with no live " +
