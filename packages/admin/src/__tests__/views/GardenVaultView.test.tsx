@@ -169,6 +169,37 @@ describe("GardenVaultView", () => {
     ).toHaveLength(1);
   });
 
+  it("announces a failed vault read with its retry, and says when the garden has no vault", () => {
+    mockUseLocation.mockReturnValue({ state: null });
+    const refetch = vi.fn();
+    mockUseGardenVaults.mockReturnValue({
+      vaults: [],
+      isLoading: false,
+      isError: true,
+      refetch,
+      isFetching: false,
+    });
+    const { unmount } = renderWithProviders(<GardenVaultView />);
+
+    // A failed read is not an empty endowment: it is announced, and Try Again reads again.
+    expect(screen.getByRole("alert")).toHaveTextContent("Failed to load vault data");
+    expect(screen.queryByText("No vault available yet")).not.toBeInTheDocument();
+    screen.getByRole("button", { name: "Try Again" }).click();
+    expect(refetch).toHaveBeenCalledOnce();
+    unmount();
+
+    mockUseGardenVaults.mockReturnValue({
+      vaults: [],
+      isLoading: false,
+      isError: false,
+      refetch,
+      isFetching: false,
+    });
+    renderWithProviders(<GardenVaultView />);
+    expect(screen.getByText("No vault available yet")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("defaults back to the selected garden endowment card without explicit return state", () => {
     mockUseLocation.mockReturnValue({ state: null });
 

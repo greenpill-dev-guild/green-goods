@@ -1,5 +1,7 @@
+import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
-import type { Garden } from "@green-goods/shared/types/domain";
+import { RiCookieLine, RiErrorWarningLine, RiSearchLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import type { IntlShape } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
@@ -14,7 +16,6 @@ interface CampaignCookieJarPanelListProps {
   campaignSearch: string;
   setCampaignSearch: (value: string) => void;
   visibleCampaigns: readonly CampaignCookieJarCampaign[];
-  gardensByAddress: Map<string, Garden>;
   onSelectCampaign: (campaign: CampaignCookieJarCampaign) => void;
   headerAction?: ReactNode;
 }
@@ -27,7 +28,6 @@ export function CampaignCookieJarPanelList({
   campaignSearch,
   setCampaignSearch,
   visibleCampaigns,
-  gardensByAddress,
   onSelectCampaign,
   headerAction,
 }: CampaignCookieJarPanelListProps) {
@@ -71,7 +71,12 @@ export function CampaignCookieJarPanelList({
         />
       </div>
       {campaignsLoading ? (
-        <div className="flex-1 space-y-3 p-4 sm:p-5" role="status" aria-live="polite">
+        // The rows' own frames while they load, so the jars land where these stood.
+        <div
+          className="flex flex-1 flex-col gap-(--gg-list-gap) p-4 sm:p-5"
+          role="status"
+          aria-live="polite"
+        >
           <span className="sr-only">
             {formatMessage({
               id: "cockpit.community.cookies.loadingCampaigns",
@@ -79,56 +84,59 @@ export function CampaignCookieJarPanelList({
             })}
           </span>
           {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={`cookie-jar-skeleton-${index}`}
-              className="h-20 rounded-sm skeleton-shimmer"
-            />
+            <ItemRowSkeleton key={`cookie-jar-skeleton-${index}`} amount />
           ))}
         </div>
       ) : null}
       {!campaignsLoading && campaignsError ? (
-        <div className="flex-1 p-5 type-meta text-error-dark">
-          {formatMessage({
-            id: "cockpit.community.cookies.loadFailed",
-            defaultMessage: "Could not load campaign cookie jars. Direct jar links still work.",
+        <EmptyState
+          className="flex-1"
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({
+            id: "cockpit.community.cookies.loadFailed.title",
+            defaultMessage: "Could not load campaign cookie jars",
           })}
-        </div>
+          description={formatMessage({
+            id: "cockpit.community.cookies.loadFailed.description",
+            defaultMessage: "Direct jar links still work.",
+          })}
+        />
       ) : null}
       {!campaignsLoading && !campaignsError && campaigns.length === 0 ? (
-        <div className="flex flex-1 flex-col items-start justify-center gap-3 p-5">
-          <p className="type-title-sm font-semibold text-text-strong">
-            {formatMessage({
-              id: "cockpit.community.cookies.emptyTitle",
-              defaultMessage: "No campaign cookie jars yet",
-            })}
-          </p>
-          <p className="max-w-xl type-meta text-text-sub">
-            {formatMessage({
-              id: "cockpit.community.cookies.emptyDescription",
-              defaultMessage:
-                "Create the first campaign jar, then it will appear here once the indexer sees it.",
-            })}
-          </p>
-        </div>
+        <EmptyState
+          className="flex-1"
+          icon={<RiCookieLine />}
+          title={formatMessage({
+            id: "cockpit.community.cookies.emptyTitle",
+            defaultMessage: "No campaign cookie jars yet",
+          })}
+          description={formatMessage({
+            id: "cockpit.community.cookies.emptyDescription",
+            defaultMessage:
+              "Create the first campaign jar, then it will appear here once the indexer sees it.",
+          })}
+        />
       ) : null}
       {!campaignsLoading &&
       !campaignsError &&
       campaigns.length > 0 &&
       visibleCampaigns.length === 0 ? (
-        <div className="flex-1 p-5 type-meta text-text-sub">
-          {formatMessage({
+        <EmptyState
+          className="flex-1"
+          icon={<RiSearchLine />}
+          title={formatMessage({
             id: "cockpit.community.cookies.noCampaignMatches",
             defaultMessage: "No cookie jars match that search.",
           })}
-        </div>
+        />
       ) : null}
       {!campaignsLoading && visibleCampaigns.length > 0 ? (
-        <div>
+        <div className="flex flex-col gap-(--gg-list-gap) p-4 sm:p-5">
           {visibleCampaigns.map((campaign) => (
             <CampaignJarListRow
               key={campaign.address}
               campaign={campaign}
-              gardensByAddress={gardensByAddress}
               onSelect={onSelectCampaign}
             />
           ))}
