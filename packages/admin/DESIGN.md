@@ -132,7 +132,7 @@ The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface
 5. **Count badges**: the shared `CountBadge` on every `AdminTabRail` tab that counts, active or not, filled with `--tone-on-surface-accent` and inked with `--tone-on-action` (DL-099).
 6. **A selected filter chip**: `AdminFilterChip` while it is selected, filled with `--tone-action` and labeled in `--tone-on-action`, the installed app's selected look in the workspace tone (DL-101).
 
-One atmospheric allowance on top: a faint top-of-canvas wash from `--tone-surface-tint-color` (5% light / 10% dark) fading to transparent by 320px. Everything else on the canvas stays neutral ink and stone.
+One atmospheric allowance on top: a faint top-of-canvas wash from `--tone-surface-tint-color` (5% light / 10% dark) fading to transparent by 320px. Everything else on the canvas stays neutral ink and stone. The focus role (`--tone-focus-ring`, below) is not one of the six: it rings focus and marks the record a list has open (DL-098, DL-103).
 
 Color roles:
 
@@ -159,7 +159,7 @@ Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminCon
 ### Card and selection grammar
 
 - `WorkbenchCard` (a shared Canvas primitive from `@green-goods/shared`, not an Admin* wrapper) is for workbench records and action/assessment queue items that stewards scan, compare, and act on in a grid or list.
-- `HubWorkCard`, the Hub's work card, is the shared media card (`MediaCard`, the card for an object with a picture of its own) with the work's photo mosaic as its picture and the domain and photo count as marks on it. Below 1024px it stacks the mosaic on top; from 1024px it lies wide, the mosaic in a 144px column and the title, status, action, gardener and age centered beside it, two to a row at 1280px. Every card in the queue keeps one height (DL-103).
+- `HubWorkCard`, the Hub's work card, is the shared media card (`MediaCard`, the card for an object with a picture of its own) with the work's photo mosaic as its picture and the domain and photo count as marks on it. From 600 to 1023px it stacks the mosaic on top, and on a phone the queue takes the work row (F7); from 1024px it lies wide, the mosaic in a 144px column and the title, status, action, gardener and age centered beside it, two to a row at 1280px. Every card in the queue keeps one height (DL-103).
 - `AdminCard` is for compact modules, stats, settings, status panels, and supporting detail regions.
 - `AdminSelectableCard` is for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
 - `AdminListRow` is for a list row that opens its record: the whole row is the button, its height follows its content, and the open record is marked current. Actions stay `AdminButton`; choices stay `AdminSelectableCard`.
@@ -200,7 +200,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 
 - **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow.
 - **Radius set**: 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
-- **Six-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), the nav-shell FAB fill, the tab rail's count badges (DL-099) and a selected filter chip (DL-101), plus the faint canvas wash.
+- **Six-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), the nav-shell FAB fill, the tab rail's count badges (DL-099) and a selected filter chip (DL-101), plus the faint canvas wash; the focus role, which also marks the record a list has open (DL-103), is not counted.
 - **Hover rule**: hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; never translate/scale lifts or hue shifts.
 - **AdminButton only**: pill-shaped, Title Case action labels in en (DL-012; es/pt keep native casing); admin views never render the shared `Button` (`gg-button`).
 - **Shared pieces ride the shared family (DL-031)**: the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy; `index.css` sets the family's `--gg-*` tokens (pills, one 14px / 500 label, lg and md on 40, sm on 32, compact on 28, a 44px finger box) and `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track. Never restyle a shared piece from admin; move the token.
