@@ -93,7 +93,7 @@ Entity references in lists (gardens, actions) include small thumbnails — 40px 
 
 Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). That scale is the type roles: shared components use them on both surfaces (root `DESIGN.md` § Typography), and in admin each is at the cockpit's density (`packages/admin/DESIGN.md` § Typography):
 
-- `type-title-lg` 22/28 for dialog, sheet, flow, and step titles and full-page state headings; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063) · `type-title-md` 16/24 for route headers, card and section titles, and metric values · `type-title-sm` 14/20. Titles are weight 600.
+- `type-title-lg` 22/28 for dialog, sheet, flow, and step titles; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063) · `type-title-md` 16/24 for route headers, card and section titles, state titles (the state block, DL-106), and metric values · `type-title-sm` 14/20. Titles are weight 600.
 - `type-body` 14px body · `type-label` 14px labels (500), every button size · `type-label-sm` 12px label (500) · `type-meta` 12px meta and supporting text · `type-meta-sm` 11px for chips and the smallest supporting lines.
 - `type-field` for field text and checkbox and choice labels: 16px on touch widths, 14px from 640px (DL-030).
 
