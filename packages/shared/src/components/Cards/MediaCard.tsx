@@ -49,7 +49,7 @@ export interface MediaCardProps {
 
 const mediaCardVariants = tv({
   slots: {
-    root: "gg-card flex h-full w-full min-w-0 text-left",
+    root: "gg-card gg-media-card flex h-full w-full min-w-0 text-left",
     frame: "relative shrink-0 overflow-hidden bg-bg-weak",
     body: "flex min-w-0 flex-1 flex-col gap-1.5 px-3.5 pt-3 pb-3.5",
     count:
@@ -108,7 +108,7 @@ export function MediaCard({
         <div className="absolute inset-0">{media}</div>
         {mediaLabel ? (
           <span
-            className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-[rgb(var(--gg-card-bg,var(--bg-white-0))/0.9)] px-2.5 py-0.75 type-meta-sm font-semibold text-text-sub"
+            className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-[rgb(var(--gg-card-surface,var(--bg-white-0))/0.9)] px-2.5 py-0.75 type-meta-sm font-semibold text-text-sub"
             title={mediaLabel}
           >
             {mediaLabel}
