@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-24T03:45:56.000Z"
+    "updated_at": "2026-10-24T21:14:25.026Z"
   },
   "links": {
     "brief": "brief.md",
@@ -123,25 +123,23 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": false,
-      "manual_blocked": true,
-      "branch": null,
+      "manual_blocked": false,
+      "branch": "fix/app-cockpit-acceptance-pass-1",
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": ["testing", "review"],
-      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+      "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": false,
-      "manual_blocked": true,
+      "manual_blocked": false,
       "branch": null,
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": ["testing", "review"],
-      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+      "skill_tags": ["testing", "review"]
     }
   },
   "history": [
@@ -320,6 +318,22 @@
       "status": "in_progress",
       "branch": "feature/app-cockpit-chips",
       "note": "Step 6's capsule chips built on feature/app-cockpit-chips, on develop with #1206; guide wording and DL-101 on feature/app-cockpit-chips-guides"
+    },
+    {
+      "timestamp": "2026-10-24T21:14:23.917Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": "fix/app-cockpit-acceptance-pass-1",
+      "note": "Acceptance pass 1 ran on develop 8476dbd80 (steps 1 to 19 and 21 with step 12's look, plus step 20's phases 3 and 4); results in eval.md. Recheck step 20's phases 1 and 2 and the call-site pass when they merge; authenticated Brave stays pending."
+    },
+    {
+      "timestamp": "2026-10-24T21:14:25.027Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": null,
+      "note": "The regression review ran on develop 8476dbd80 and asks for changes: one medium finding (a failed queued promise hides its reason at phone width), five low and four calls. Findings: https://claude.ai/artifact/WTnYosMJSaicyEArM3wnPX"
     }
   ]
 }

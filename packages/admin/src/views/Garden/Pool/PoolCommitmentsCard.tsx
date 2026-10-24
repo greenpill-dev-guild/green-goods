@@ -5,6 +5,7 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import {
+  RiCalendarCloseLine,
   RiDeleteBinLine,
   RiFilterOffLine,
   RiRefreshLine,
@@ -79,6 +80,10 @@ export function PoolCommitmentsCard({
   const { formatMessage } = intl;
   const now = Date.now();
   const { model, titles, isOnline, isActing, acts } = pool;
+  const expireLabel = formatMessage({
+    id: "cockpit.garden.pool.row.act.expire",
+    defaultMessage: "Expire Now…",
+  });
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -241,7 +246,7 @@ export function PoolCommitmentsCard({
         </AdminSearchToolbar>
 
         {pendingCreates.length > 0 && scope === "open" && focus === null ? (
-          <ul className="flex flex-col gap-(--gg-list-gap)" data-testid="pool-queued">
+          <ul className="@container flex flex-col gap-(--gg-list-gap)" data-testid="pool-queued">
             {pendingCreates.map((row) => {
               const phase = pool.queuedPhase(row.jobId);
               const pill = queuedCreationPill(row, phase.status, formatMessage);
@@ -254,7 +259,7 @@ export function PoolCommitmentsCard({
               });
               // What the row says first: the act in flight, then why it cannot go, else how
               // much it promises, since a promise not created yet has no dialog to tell it.
-              const note =
+              const said =
                 actPhaseText(intl, { phase, chainId: pool.chainId, confirmed: sentLine }) ??
                 (expired
                   ? formatMessage({
@@ -265,6 +270,9 @@ export function PoolCommitmentsCard({
                   : row.settlementDeferred
                     ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
                     : null);
+              // A failed act says so in the error color, as its phase line did.
+              const note =
+                said && phase.status === "failed" ? { text: said, tone: "error" as const } : said;
               const units = note ? null : `${row.targetUnits} ${row.unitLabel}`.trim() || null;
               const sendLabel = row.failed
                 ? formatMessage({
@@ -295,7 +303,8 @@ export function PoolCommitmentsCard({
                       row.groupDueDate ? rowDueDetail(intl, BigInt(row.groupDueDate), now) : null
                     }
                     action={
-                      <span className="flex items-center gap-1">
+                      // Stacked below 480px of row, so two acts take one button's width.
+                      <span className="flex flex-col items-center gap-1 @[480px]:flex-row">
                         {row.discardable ? (
                           <IconButton
                             size="sm"
@@ -377,7 +386,7 @@ export function PoolCommitmentsCard({
             }
           />
         ) : (
-          <ul className="flex flex-col gap-(--gg-list-gap)">
+          <ul className="@container flex flex-col gap-(--gg-list-gap)">
             {rows.map((entry) => {
               if (entry.kind === "group") {
                 return (
@@ -426,20 +435,31 @@ export function PoolCommitmentsCard({
                     onOpen={() => onOpenCommitment(commitment)}
                     action={
                       isDue ? (
-                        // Outlined where it sits: the red is for the confirm inside
-                        // the dialog, which names the blast radius first.
-                        <Button
-                          type="button"
-                          emphasis="secondary"
-                          size="compact"
-                          onClick={() => setExpireTarget(commitment)}
-                          disabled={actDisabled}
-                        >
-                          {formatMessage({
-                            id: "cockpit.garden.pool.row.act.expire",
-                            defaultMessage: "Expire Now…",
-                          })}
-                        </Button>
+                        // Outlined where it sits: the red is for the confirm inside the
+                        // dialog, which names the blast radius first. Below 480px of row it
+                        // is its icon, so the title, pill and date keep their room.
+                        <>
+                          <IconButton
+                            emphasis="secondary"
+                            size="sm"
+                            className="@[480px]:hidden"
+                            aria-label={expireLabel}
+                            title={expireLabel}
+                            onClick={() => setExpireTarget(commitment)}
+                            disabled={actDisabled}
+                            icon={<RiCalendarCloseLine aria-hidden="true" />}
+                          />
+                          <Button
+                            type="button"
+                            emphasis="secondary"
+                            size="compact"
+                            className="hidden @[480px]:inline-flex"
+                            onClick={() => setExpireTarget(commitment)}
+                            disabled={actDisabled}
+                          >
+                            {expireLabel}
+                          </Button>
+                        </>
                       ) : undefined
                     }
                   />
