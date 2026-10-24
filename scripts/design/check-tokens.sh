@@ -524,6 +524,16 @@ collect_admin_chrome_violations() {
   check_collection_statuses 2 "${PIPESTATUS[@]}"
 }
 
+if ! ADMIN_CHROME_VIOLATIONS="$(collect_optional_hits collect_admin_chrome_violations)"; then exit 2; fi
+if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
+  echo "❌ Admin Controlled Chrome violation found:"
+  echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
+  echo
+  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css, admin-m3-tokens.css, admin-m3-components.css, or admin-layout.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
+  echo "Route cards, forms, tables, records, and dense content must use solid semantic surfaces."
+  exit 1
+fi
+
 # ----------------------------------------------------------------------------
 # Retired cockpit buttons (DL-119)
 #
@@ -550,16 +560,6 @@ if [[ -n "$RETIRED_ADMIN_BUTTON_HITS" ]]; then
   echo "$RETIRED_ADMIN_BUTTON_HITS" | sed 's/^/  /'
   echo
   echo "Admin views render the shared Button (emphasis primary / secondary / tertiary, tone danger, size compact / sm / lg) and IconButton directly; the cockpit's tokens in packages/admin/src/index.css set their look."
-  exit 1
-fi
-
-if ! ADMIN_CHROME_VIOLATIONS="$(collect_optional_hits collect_admin_chrome_violations)"; then exit 2; fi
-if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
-  echo "❌ Admin Controlled Chrome violation found:"
-  echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
-  echo
-  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css, admin-m3-tokens.css, admin-m3-components.css, or admin-layout.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
-  echo "Route cards, forms, tables, records, and dense content must use solid semantic surfaces."
   exit 1
 fi
 
