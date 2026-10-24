@@ -101,8 +101,10 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Feedback | `Skeleton`, `Spinner`, `HydrationFallback` |
 | Input | `FileUploadField`, `ListPrimitives`, `DatePicker`, form components |
 | Surfaces | `Surface` with a `solid-*` elevation; its glass elevations are residue, and its own story and the Glass story still show them until they go |
-| Identity | `AddressDisplay`, `PersonRow` (a person in a list, DL-112), `DomainBadge` |
+| Identity | `AddressDisplay`, `DomainBadge` |
 | Audio | `Audio/*` (voice capture primitives) |
+
+A person in a list is the shared person row (`PersonRow`, DL-112), imported from its own leaf, `@green-goods/shared/components/Cards/PersonRow/PersonRow`, not the package root.
 
 **Type roles** (the `type-*` utilities in shared `theme.css`, at the app's density; root `DESIGN.md` § Typography):
 - `type-title-lg` · `type-title-md` · `type-title-sm` (24, 18, and 16px at 600) · `type-body` 16px · `type-label` 16px at 500 · `type-label-sm` 14px (field labels, secondary lines) · `type-meta` 12px · `type-meta-sm` 11px (chips, status pills) · `type-field` for field text.
