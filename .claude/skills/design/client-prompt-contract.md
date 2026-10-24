@@ -97,7 +97,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Family | Components |
 |--------|-----------|
 | Dialogs | `DialogShell` (default: mobile bottom-sheet + desktop centered, solid) |
-| Cards / status | `ItemRow`, `MediaCard`, `StatusBadge`, `Alert` |
+| Cards / status | `ItemRow`, `MediaCard`, `FactList` and `FactRow` (the facts about one thing, `components/Cards/FactRow`, with DL-109's code change), `StatusBadge`, `Alert` |
 | Feedback | `EmptyState` (the state block), `Skeleton`, `Spinner`, `HydrationFallback` |
 | Input | `FileUploadField`, `DatePicker`, form components |
 | Surfaces | `Surface` at its four solid levels: ground, raised, floating and overlay |

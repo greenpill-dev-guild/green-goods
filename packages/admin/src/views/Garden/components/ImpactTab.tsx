@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { DomainBadge } from "@green-goods/shared/components/DomainBadge";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -312,30 +313,22 @@ export function ImpactTab({
                 </AdminCardTitle>
               </AdminCardHeader>
               <AdminCardBody className="space-y-3">
-                <div className="space-y-2">
-                  <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.impactSummary.totalAssessments" })}
-                    </span>
-                    <span className="garden-stat-row-value">
-                      {assessmentsUnread ? "—" : assessments.length}
-                    </span>
-                  </div>
-                  <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.impactSummary.totalHypercerts" })}
-                    </span>
-                    <span className="garden-stat-row-value">
-                      {hypercertsUnread ? "—" : hypercerts.length}
-                    </span>
-                  </div>
-                  <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.metric.approvedIn30d" })}
-                    </span>
-                    <span className="garden-stat-row-value">{approvedInLastThirtyDays}</span>
-                  </div>
-                </div>
+                <FactList frame="inset">
+                  <FactRow
+                    label={formatMessage({
+                      id: "app.garden.detail.impactSummary.totalAssessments",
+                    })}
+                    value={assessmentsUnread ? "—" : assessments.length}
+                  />
+                  <FactRow
+                    label={formatMessage({ id: "app.garden.detail.impactSummary.totalHypercerts" })}
+                    value={hypercertsUnread ? "—" : hypercerts.length}
+                  />
+                  <FactRow
+                    label={formatMessage({ id: "app.garden.detail.metric.approvedIn30d" })}
+                    value={approvedInLastThirtyDays}
+                  />
+                </FactList>
                 {domainLabels.length > 0 ? (
                   <div className="border-t border-stroke-soft pt-3">
                     <p className="mb-2 type-label-sm text-text-soft">

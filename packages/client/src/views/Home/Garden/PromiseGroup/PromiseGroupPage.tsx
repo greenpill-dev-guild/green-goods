@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentReadModel, InboxCommitment } from "@green-goods/shared/commitment-pooling";
 import type { DisplayGroupCounts } from "@green-goods/shared/modules/commitment-pooling/display-groups";
@@ -7,7 +8,6 @@ import { RiHandHeartLine, RiRefreshLine, RiSeedlingLine, RiTimeLine } from "@rem
 import { type ReactNode, useId } from "react";
 import { useIntl } from "react-intl";
 
-import { Fact } from "@/components/Display";
 import { CommitmentRow, groupCountsText } from "@/components/Features/Commitments";
 import { CommitmentActionBar } from "../Commitment/CommitmentActionBar";
 import { CommitmentDetailShell } from "../Commitment/CommitmentDetailShell";
@@ -115,9 +115,9 @@ export function PromiseGroupPage({
         <h2 id={asksId} className="text-sm font-semibold leading-5 text-text-strong-950">
           {formatMessage({ id: "app.pool.group.eachAsks" })}
         </h2>
-        <dl className="mt-1 divide-y divide-stroke-soft-200">
+        <FactList frame="inset" className="mt-1">
           {units ? (
-            <Fact
+            <FactRow
               icon={isRequest ? <RiHandHeartLine /> : <RiSeedlingLine />}
               label={formatMessage({
                 id: isRequest
@@ -128,7 +128,7 @@ export function PromiseGroupPage({
             />
           ) : null}
           {sample.dueDate ? (
-            <Fact
+            <FactRow
               icon={<RiTimeLine />}
               label={formatMessage({ id: "app.commitment.people.due" })}
               value={formatDate(new Date(Number(sample.dueDate) * 1000), {
@@ -138,7 +138,7 @@ export function PromiseGroupPage({
               })}
             />
           ) : null}
-        </dl>
+        </FactList>
         {note ? <p className="mt-2 text-sm leading-relaxed text-text-sub-600">{note}</p> : null}
         {cap !== null && isRequest ? (
           <p className="mt-2 text-xs text-text-sub-600">

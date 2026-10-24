@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { useActionsByUID } from "@green-goods/shared/hooks/action/useAction";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -236,32 +237,24 @@ export function OverviewTab({
                     </dd>
                   </div>
                 </dl>
-                <dl className="mt-4 grid grid-cols-1 gap-x-6 border-t border-stroke-soft pt-2 sm:grid-cols-2">
-                  <div className="garden-stat-row">
-                    <dt className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
-                    </dt>
-                    <dd className="garden-stat-row-value">{pendingWorkCount}</dd>
-                  </div>
-                  <div className="garden-stat-row">
-                    <dt className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
-                    </dt>
-                    <dd className="garden-stat-row-value">{assessmentCount30d}</dd>
-                  </div>
-                  <div className="garden-stat-row">
-                    <dt className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
-                    </dt>
-                    <dd className="garden-stat-row-value">{gardenerCount}</dd>
-                  </div>
-                  <div className="garden-stat-row">
-                    <dt className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
-                    </dt>
-                    <dd className="garden-stat-row-value">{treasuryBalance}</dd>
-                  </div>
-                </dl>
+                <FactList frame="inset" className="mt-4 border-t border-stroke-soft">
+                  <FactRow
+                    label={formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
+                    value={pendingWorkCount}
+                  />
+                  <FactRow
+                    label={formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
+                    value={assessmentCount30d}
+                  />
+                  <FactRow
+                    label={formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
+                    value={gardenerCount}
+                  />
+                  <FactRow
+                    label={formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
+                    value={treasuryBalance}
+                  />
+                </FactList>
               </AdminCardBody>
             </AdminCard>
           )}
@@ -423,32 +416,24 @@ export function OverviewTab({
               </AdminCardHeader>
               <AdminCardBody className="space-y-2">
                 {isActivityMode ? (
-                  <>
-                    <div className="garden-stat-row">
-                      <span className="garden-stat-row-label">
-                        {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
-                      </span>
-                      <span className="garden-stat-row-value">{pendingWorkCount}</span>
-                    </div>
-                    <div className="garden-stat-row">
-                      <span className="garden-stat-row-label">
-                        {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
-                      </span>
-                      <span className="garden-stat-row-value">{assessmentCount30d}</span>
-                    </div>
-                    <div className="garden-stat-row">
-                      <span className="garden-stat-row-label">
-                        {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
-                      </span>
-                      <span className="garden-stat-row-value">{gardenerCount}</span>
-                    </div>
-                    <div className="garden-stat-row">
-                      <span className="garden-stat-row-label">
-                        {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
-                      </span>
-                      <span className="garden-stat-row-value">{treasuryBalance}</span>
-                    </div>
-                  </>
+                  <FactList frame="inset">
+                    <FactRow
+                      label={formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
+                      value={pendingWorkCount}
+                    />
+                    <FactRow
+                      label={formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
+                      value={assessmentCount30d}
+                    />
+                    <FactRow
+                      label={formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
+                      value={gardenerCount}
+                    />
+                    <FactRow
+                      label={formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
+                      value={treasuryBalance}
+                    />
+                  </FactList>
                 ) : (
                   <>
                     {filteredActivityEvents.slice(0, 3).map((event) => {

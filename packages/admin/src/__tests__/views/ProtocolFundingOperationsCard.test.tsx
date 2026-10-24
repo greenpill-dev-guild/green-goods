@@ -131,7 +131,9 @@ describe("ProtocolFundingOperationsCard", () => {
     );
 
     expect(screen.getByDisplayValue("Aiyeloja")).toBeInTheDocument();
-    expect(screen.getByText("Protocol Safe").parentElement).toHaveTextContent("4,120 G$");
+    expect(
+      screen.getByText("Protocol Safe").closest('[data-component="FactRow"]')
+    ).toHaveTextContent("4,120 G$");
     expect(screen.getByText("0xa237…cc37")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Review Seed or Top-Up…" }));
     const dialog = await screen.findByRole("alertdialog");
@@ -167,9 +169,9 @@ describe("ProtocolFundingOperationsCard", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("More than the per-transfer cap.");
     expect(amount).toHaveAttribute("aria-invalid", "true");
     expect(review).toBeDisabled();
-    expect(screen.getByText("Period allowance remaining").parentElement).toHaveTextContent(
-      "15,000,000 G$"
-    );
+    expect(
+      screen.getByText("Period allowance remaining").closest('[data-component="FactRow"]')
+    ).toHaveTextContent("15,000,000 G$");
 
     // A cap that could not be read does not block: the review opens as it did before.
     rerender(card(storyProtocolSafeFunding({ cap: null })));

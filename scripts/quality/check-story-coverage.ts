@@ -145,8 +145,8 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   // `SubmissionDetails` (both of which have dedicated stories).
   "Garden/WorkDetail/index.tsx",
 
-  // Pure helpers — small visual primitives (`DetailRow`, `ReviewSummary`,
-  // `TabBadge`, `SectionStateCard`, etc.) plus
+  // Pure helpers — small visual primitives (`ReviewSummary`,
+  // `SectionStateCard`, etc.) plus
   // non-visual utilities (zod schemas, parsers). Reviewed implicitly
   // through the tab stories that consume them.
   "Garden/components/GardenDetailHelpers.tsx",

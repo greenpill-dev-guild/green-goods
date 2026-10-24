@@ -39,13 +39,13 @@ Narrow candidates by:
 | "that button" / "the CTA" | `data-component="AdminButton"`; the nav-shell FAB is `data-component="FabButton"` |
 | "the input" / "the field" | `data-component="AdminTextField"` (+ `data-variant`) |
 | "the dropdown" / "the select" | `data-component="AdminSelect"` (form) or `AdminSortSelect` (toolbar sort pill) |
-| "the list item" / "the row" | `data-component="AdminSettingRow"` for settings/toggle rows; workbench queue rows are the card grammar above |
+| "the list item" / "the row" | `data-component="FactRow"` for a fact or a setting (`data-kind="fact"` or `"setting"`, DL-109; `AdminSettingRow` until DL-109's code change lands); workbench queue rows are the card grammar above |
 | "the chip" / "filter" | `data-component="AdminFilterChip"` |
 | "the progress bar" | `data-component="AdminLinearProgress"` |
 | "the modal" / "the dialog" | `data-component="AdminDialog"` |
 | "the tooltip" | `data-component="AdminTooltip"` |
 | "the badge" / "status chip" | shared `StatusBadge` (no `data-component` tag, so narrow by visible text/rect) |
-| "the toggle row" / "the setting row" | `data-component="AdminSettingRow"` |
+| "the toggle row" / "the setting row" | `data-component="FactRow"` with `data-kind="setting"` (`AdminSettingRow` until DL-109's code change lands) |
 | "the choice chips" / "the option group" | `data-component="AdminChoiceGroup"` |
 | "the selectable card" | `data-component="AdminSelectableCard"` |
 | "the picker card" / "the action card" | a card of the shared action or garden picker: `.gg-media-card[role="option"]` inside the `role="listbox"` (DL-111) |
