@@ -126,8 +126,8 @@ changes, FAB menus, dialogs, and interaction state ride the admin motion role al
 
 Each workspace carries an accent hue (Hub=blue, Garden=green, Community=orange, Actions=purple),
 but the canvas itself never tints: it stays constant linen (`--m3-surface-container-low`) in
-light and m3 surface in dark. Tone spends a **5-use budget**: (1) the active tab underline and
-label, (2) the active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (3) the
+light and m3 surface in dark. Tone spends a **5-use budget**: (1) the active tab: its 10% tint,
+label and underline (DL-100), (2) the active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (3) the
 single filled header action (`--tone-action`), (4) the nav-shell FAB fill (`Shell/FabButton`), the
 one tone-filled control in the floating chrome, and (5) the count badge on every tab of the rail
 (the shared `CountBadge` on `--tone-on-surface-accent`, DL-099). Outside the budget, a faint canvas
