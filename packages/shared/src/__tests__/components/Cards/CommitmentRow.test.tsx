@@ -79,6 +79,26 @@ describe("CommitmentRow", () => {
       </IntlProvider>
     );
     expect(screen.getByRole("button")).toHaveAccessibleName(/due 24 Oct$/);
+
+    // The one who asked, on their own request nobody has taken up, never reads their own name.
+    rerender(
+      <IntlProvider locale="en" messages={messages}>
+        <CommitmentRow
+          {...base}
+          direction="REQUEST"
+          party={{
+            commitment: {
+              direction: "REQUEST",
+              creator: MAKER,
+              leadProvider: null,
+              counterparty: null,
+            },
+            seat: "confirmer",
+          }}
+        />
+      </IntlProvider>
+    );
+    expect(screen.getByRole("button")).toHaveAccessibleName(/due 24 Oct$/);
   });
 
   it("puts a queue or act state in the one pill, edged in its tone, its words leading the line", () => {

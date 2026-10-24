@@ -137,9 +137,10 @@ export function selectCommitmentSeat(input: {
 
 /**
  * The other person on a commitment, as its row names them: whoever is on the far side from
- * the reader's seat. A provider reads the person they do it for; anyone else reads the person
- * who does it, or, before anyone has taken it up, the person who asked. A reader with no seat
- * (a steward's list, a visitor) reads the same way. Null when nobody is there yet.
+ * the reader's seat. A provider reads the person they do it for; a confirmer or a helper reads
+ * the person who does it, and nobody before anyone has taken it up, since the one who asked is
+ * often the reader. A reader with no seat (a steward's list, a visitor) reads whoever does it,
+ * else whoever asked. Null when nobody is there yet.
  *
  * The provider is the lead provider once one is set: on a request taken up as a garden
  * claim, the counterparty is the garden's account, not the person (the cockpit's
@@ -155,6 +156,7 @@ export function selectCommitmentOtherParty(input: {
     commitment.leadProvider ?? (isRequest ? commitment.counterparty : commitment.creator) ?? null;
   const receiver = (isRequest ? commitment.creator : commitment.counterparty) ?? null;
   if (seat === "provider") return receiver;
+  if (seat === "confirmer" || seat === "contributor") return provider;
   return provider ?? receiver;
 }
 
