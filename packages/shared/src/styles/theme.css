@@ -1177,12 +1177,34 @@
     }
   }
 
+  /* The admin surface's outline, fill and text come after the shared error and
+     disabled states, so it sets each state again, as the editorial surface does
+     (DL-116): an error draws the box in the field family's error role, the red
+     of its label and message line, and a disabled control takes the shared
+     disabled fill. */
+  .gg-control[data-surface="admin"][data-invalid="true"] {
+    border-color: rgb(var(--m3-error));
+  }
+
+  .gg-control[data-surface="admin"][data-invalid="true"]:focus-visible {
+    outline-color: rgb(var(--m3-error));
+  }
+
+  .gg-control[data-surface="admin"]:disabled {
+    background-color: rgb(var(--bg-soft-200));
+    color: rgb(var(--text-sub-600));
+  }
+
   .gg-control-textarea {
     min-height: 5rem;
     resize: vertical;
   }
 
-  .gg-control-select {
+  /* A disabled select on the admin surface keeps one chevron (DL-116): the shared
+     disabled rule's background shorthand would clear it in light and, with the
+     dark chevron restored over it, tile it across the box in dark. */
+  .gg-control-select,
+  select.gg-control-select[data-surface="admin"]:disabled {
     /* Custom chevron with breathing room — the browser-default arrow sits
        flush against the control edge with no inset. Same glyph light + dark
        via a mid-gray stroke; padding reserves its lane so option text never
@@ -1263,7 +1285,8 @@
   }
 
   :root[data-theme="dark"] .gg-control-select,
-  [data-theme="dark"] .gg-control-select {
+  [data-theme="dark"] .gg-control-select,
+  [data-theme="dark"] select.gg-control-select[data-surface="admin"]:disabled {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 

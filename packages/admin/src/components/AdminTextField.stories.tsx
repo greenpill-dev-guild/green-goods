@@ -86,14 +86,14 @@ export const StateCatalog: Story = {
   ),
 };
 
+/** A field's root: the control inside it is Shared's and carries its own data-component. */
+const FIELD_ROOT = '[data-component="AdminTextField"], [data-component="AdminSelect"]';
+
 /**
  * The label sits above the outlined box, so it never covers a placeholder, a
  * value or a select's option text, and focus redraws the ring without moving
  * anything. Runs in addon-vitest browser mode, where real layout applies.
  */
-/** A field's root: the control inside it is Shared's and carries its own data-component. */
-const FIELD_ROOT = '[data-component="AdminTextField"], [data-component="AdminSelect"]';
-
 export const LabelAboveGeometry: Story = {
   tags: ["storybook-ci"],
   render: () => (
@@ -320,4 +320,57 @@ export const SelectStates: Story = {
       </AdminSelect>
     </div>
   ),
+};
+
+/**
+ * Each state shows on the shared control's box (DL-116): an error draws the box
+ * in the red of its message, a disabled field takes the shared disabled fill,
+ * and a disabled select keeps its one chevron. Checked in browser mode, where
+ * the cascade applies.
+ */
+export const StatesShowOnTheBox: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="grid max-w-3xl items-start gap-5 sm:grid-cols-3">
+      <AdminTextField label="Name, rest" defaultValue="North Meadow" />
+      <AdminTextArea label="Reason, rest" />
+      <AdminSelect label="Role, rest" defaultValue="gardener">
+        {ROLE_OPTIONS}
+      </AdminSelect>
+      <AdminTextField label="Name, error" defaultValue="N" error="Enter a longer name." />
+      <AdminTextArea label="Reason, error" error="Give a reason." />
+      <AdminSelect label="Role, error" defaultValue="" error="Pick a role.">
+        {ROLE_OPTIONS}
+      </AdminSelect>
+      <AdminTextField label="Name, disabled" defaultValue="North Meadow" disabled />
+      <AdminTextArea label="Reason, disabled" defaultValue="Turned the soil." disabled />
+      <AdminSelect label="Role, disabled" defaultValue="evaluator" disabled>
+        {ROLE_OPTIONS}
+      </AdminSelect>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const cases = [
+      ["textbox", "Name", "Enter a longer name."],
+      ["textbox", "Reason", "Give a reason."],
+      ["combobox", "Role", "Pick a role."],
+    ] as const;
+
+    for (const [role, field, message] of cases) {
+      const rest = getComputedStyle(canvas.getByRole(role, { name: `${field}, rest` }));
+      const error = getComputedStyle(canvas.getByRole(role, { name: `${field}, error` }));
+      const disabled = getComputedStyle(canvas.getByRole(role, { name: `${field}, disabled` }));
+      await expect(error.borderTopColor).not.toBe(rest.borderTopColor);
+      await expect(error.borderTopColor).toBe(getComputedStyle(canvas.getByText(message)).color);
+      await expect(disabled.backgroundColor).not.toBe(rest.backgroundColor);
+    }
+
+    // A disabled select keeps its one chevron.
+    const disabledSelect = getComputedStyle(
+      canvas.getByRole("combobox", { name: "Role, disabled" })
+    );
+    await expect(disabledSelect.backgroundImage).not.toBe("none");
+    await expect(disabledSelect.backgroundRepeat).toBe("no-repeat");
+  },
 };
