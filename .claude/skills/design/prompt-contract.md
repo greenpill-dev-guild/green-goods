@@ -190,7 +190,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 
 Form selects use `AdminSelect` (full field anatomy, the label above, chevron slot, empty-value option as the placeholder row); `AdminSortSelect` is the toolbar sort pill only, never a form control.
 
-**Field anatomy** (DL-105): one look, the installed app's: the label above an outlined 8px box, then a message line that reserves two lines. The filled field with its underline is retired, and so is the `variant` prop. All fields share the responsive tier (44px with 16px text on touch widths, 40px with 14px from 640px) and one error anatomy: the label and the ring recolor to `--m3-error`, with the message on the reserved line (`AdminInlineField` and `AdminFieldGroup` included).
+**Field anatomy** (DL-105): one look, the installed app's: the label above an outlined 8px box, then a message line that reserves two lines. The filled field with its underline is retired, and so is the `variant` prop. Full-size fields share the responsive tier (44px with 16px text on touch widths, 40px with 14px from 640px), and `AdminInlineField` stays on its 32px inline axis. Every field shares one error anatomy: the label and the ring recolor to `--m3-error`, with the message on the reserved line (`AdminInlineField` and `AdminFieldGroup` included).
 
 (`AdminBadge`, `AdminFab`, and `AdminListItem` were deleted 2026-08-29. Do not reintroduce them; the nav-shell FAB is `Shell/FabButton`.)
 
