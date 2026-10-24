@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { useCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
@@ -8,7 +9,6 @@ import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { publicJarLink } from "./helpers";
-import { ReviewLine } from "./ReviewLine";
 
 /**
  * What a created jar is, shown on the Review under its status row (DL-080):
@@ -67,29 +67,29 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
             })}
           </p>
         ) : jar ? (
-          <div>
-            <ReviewLine
+          <FactList frame="inset">
+            <FactRow
               label={formatMessage({
                 id: "cockpit.community.cookies.rowBalance",
                 defaultMessage: "Jar balance",
               })}
               value={`${formatTokenAmount(jar.balance, jar.decimals, 4)} ${jar.symbol}`}
             />
-            <ReviewLine
+            <FactRow
               label={formatMessage({
                 id: "cockpit.community.cookies.claimAmountPerSteward",
                 defaultMessage: "Claim amount per steward",
               })}
               value={`${formatTokenAmount(jar.fixedAmount, jar.decimals, 4)} ${jar.symbol}`}
             />
-            <ReviewLine
+            <FactRow
               label={formatMessage({
                 id: "cockpit.community.cookies.generatedStewards",
                 defaultMessage: "Stewards who can claim",
               })}
               value={jar.allowlist.length}
             />
-          </div>
+          </FactList>
         ) : (
           <p className="type-meta text-error-dark">
             {formatMessage({
