@@ -205,12 +205,18 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [useGardenDerivedState.ts](../../../packages/shared/src/hooks/garden/useGardenDerivedState.ts)
   and the rows of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
   of them.
-- **A commitment row's edge tells its direction (DL-052).** A 3px edge on the row's inline start
-  marks offers in the primary tone and requests in the information tone. The state chip is
-  unchanged, and the direction word stays where the chip does not already say it, so direction
-  never rests on color alone. Markers such as "Needs you" sit at the 12px label size in sentence
-  case. Proof: `CommitmentRow` in
-  [CommitmentRow.tsx](../../../packages/client/src/components/Features/Commitments/CommitmentRow.tsx).
+- **A promise leads with its direction (DL-110).** Every promise in a list is the shared
+  commitment row, the item row of DL-102: the 56px tile carries an offer's seedling or a
+  request's helping hand, named for screen readers, so direction never rests on color and no
+  detail repeats it. Its one pill is the state, or what takes the state's place: "Needs you"
+  when the row waits on the reader, "Past due" when a steward can expire it, and while a
+  queue or act state lasts, "Confirming…", "Not sent" or "Didn't send". The 2px edge follows
+  the pill, as on every row with a status edge. The detail line gives the due date, then the
+  other person (in a steward's list, whoever does it, else whoever asked); a queue or act
+  state's own words lead it instead. This replaces the record row's chips and meta for
+  promises: who is involved and how much live in the promise's dialog, except on a promise
+  still on the device, which has no dialog yet and keeps its units on its row. Proof: the
+  shared `CommitmentRow`, which Offers and Requests and the app's lists render.
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect: encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)
