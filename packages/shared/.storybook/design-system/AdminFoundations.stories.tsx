@@ -155,7 +155,7 @@ export const Tokens: Story = {
               <RiAddLine />
             </AdminIconButton>
           </Specimen>
-          <Specimen title="field · 40 (44 on touch widths)" target='[data-component="AdminTextField"] > div:first-child' expect={ADMIN.fieldContainer()}>
+          <Specimen title="field · 40 (44 on touch widths)" target='[data-component="AdminTextField"] [data-region="field-container"]' expect={ADMIN.fieldContainer()}>
             <div style={{ width: 240 }}>
               <AdminTextField label="Location" />
             </div>

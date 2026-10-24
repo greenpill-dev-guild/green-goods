@@ -238,7 +238,7 @@ export function WithdrawModal({
           <AdminButton
             variant="outlined"
             size="sm"
-            className="w-full sm:mt-2 sm:w-auto"
+            className="w-full sm:mt-8 sm:w-auto"
             onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
           >
             {formatMessage({ id: "app.treasury.max" })}

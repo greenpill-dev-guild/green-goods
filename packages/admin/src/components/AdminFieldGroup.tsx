@@ -4,9 +4,9 @@ import { useId } from "react";
 export interface AdminFieldGroupProps {
   /** Group label — rendered as the fieldset legend (sentence case; DL-012 scope). */
   label: string;
-  /** Supporting copy under the label. */
+  /** Supporting copy, on the message line under the content; an error replaces it. */
   hint?: string;
-  /** Error message — recolors the legend and renders an alert row, matching the field family. */
+  /** Error message — recolors the legend and takes the message line, matching the field family. */
   error?: string;
   required?: boolean;
   /**
@@ -23,11 +23,13 @@ export interface AdminFieldGroupProps {
 }
 
 /**
- * Group-shaped member of the admin field family (DL-011): label + hint +
- * content + error anatomy for controls that are not a single text control —
- * checkbox grids, selectable-card sets, repeating-row editors, upload wells.
- * Shares the family's type roles and `--m3-error` state so a group never
- * reads different from the AdminTextField beside it.
+ * Group-shaped member of the admin field family (DL-011): the family's label,
+ * content and message anatomy for controls that are not a single text
+ * control — checkbox grids, selectable-card sets, repeating-row editors,
+ * upload wells. The label is the shared field title above the content and
+ * the hint or error sits on the shared message line under it, reserved like
+ * a field's (`gg-field-message`), so a group never reads different from the
+ * AdminTextField beside it and an error never moves the form.
  */
 export function AdminFieldGroup({
   label,
@@ -43,17 +45,16 @@ export function AdminFieldGroup({
   const autoId = useId();
   const groupId = id ?? autoId;
   const labelId = `${groupId}-label`;
-  const errorId = `${groupId}-error`;
+  const messageId = `${groupId}-message`;
   const Root = as;
-  const labelClasses = cn(
-    "type-label-sm font-medium",
-    error ? "[color:rgb(var(--m3-error))]" : "text-text-strong"
-  );
+  const message = error ?? hint;
+  // Margins, not a flex gap: a fieldset's legend is not one of its flex items.
+  const labelClasses = cn("gg-field-label mb-1", error && "[color:rgb(var(--m3-error))]");
 
   const labelNode = (
     <>
       {label}
-      {required ? <span aria-hidden="true">{" *"}</span> : null}
+      {required ? <span aria-hidden="true">{" *"}</span> : null}
     </>
   );
 
@@ -61,9 +62,9 @@ export function AdminFieldGroup({
     <Root
       id={groupId}
       data-component="AdminFieldGroup"
-      className={cn("space-y-2", className)}
+      className={className}
       {...(as === "div" ? { role: "group", "aria-labelledby": labelId } : {})}
-      aria-describedby={error ? errorId : undefined}
+      aria-describedby={message ? messageId : undefined}
     >
       {as === "fieldset" ? (
         <legend className={labelClasses}>{labelNode}</legend>
@@ -72,13 +73,17 @@ export function AdminFieldGroup({
           {labelNode}
         </p>
       )}
-      {hint ? <p className="type-body text-text-sub">{hint}</p> : null}
       <div className={contentClassName}>{children}</div>
-      {error ? (
-        <p id={errorId} role="alert" className="type-body [color:rgb(var(--m3-error))]">
-          {error}
-        </p>
-      ) : null}
+      <p
+        id={messageId}
+        role={error ? "alert" : undefined}
+        className={cn(
+          "gg-field-help gg-field-message mt-1",
+          error ? "[color:rgb(var(--m3-error))]" : "text-text-sub"
+        )}
+      >
+        {message}
+      </p>
     </Root>
   );
 }

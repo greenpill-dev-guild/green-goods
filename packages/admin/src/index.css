@@ -147,6 +147,11 @@
   --gg-control-outline: var(--m3-outline);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
+  /* The message line under every field (F3) reserves this many lines, so a
+     message that fits never moves the form. Two, like the installed app's: at
+     640px, 6 of the 32 messages under side-by-side fields wrap in English,
+     Spanish and Portuguese, so one line would let them move the form. */
+  --gg-field-message-lines: 2;
 
   /* The type roles at the cockpit's density: the app's names (shared theme.css)
      on the cockpit's 14px scale. Titles 22 / 16 / 14, body and labels 14, small

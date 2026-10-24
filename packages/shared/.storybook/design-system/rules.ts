@@ -119,7 +119,7 @@ export const ADMIN = {
   rules: [
     "AdminButton pills at 28 / 32 / 40, each with a 44px finger box (DL-011, DL-030)",
     "One 14px label on every button size; 11px only inside chips",
-    "Fields 44px / 16px text on touch widths, 40px / 14px from 640px, 12px floating label (DL-030)",
+    "Fields 44px / 16px text on touch widths, 40px / 14px from 640px (DL-030), the 14px label above and a two-line message line (F3)",
     "Inline fields 32px; toolbar pills and tabs 36px; chips 32px with 8px corners; identity pill 36px",
     "Corners only from 4 / 8 / 12 / 16 / 9999px; rounded-xl and rounded-2xl land on 16px",
     "Plus Jakarta Sans; admin views use the Admin* family, never the shared Button (Rule 18)",
@@ -143,7 +143,6 @@ export const ADMIN = {
     height: typeof window !== "undefined" && window.innerWidth < 640 ? 44 : 40,
     radius: 8,
   }),
-  fieldLabel: (): Expectation => ({ labelSize: 12, family: "Plus Jakarta Sans" }),
   fieldInput: (): Expectation => ({
     labelSize: typeof window !== "undefined" && window.innerWidth < 640 ? 16 : 14,
     family: "Plus Jakarta Sans",
@@ -155,7 +154,7 @@ export const ADMIN = {
   identityPill: (): Expectation => ({ height: 36, radius: "pill" }),
   close: (): Expectation => ({ height: 40, radius: "circle", hit: 44 }),
   checkbox: (): Expectation => ({ hit: 44 }),
-  /** A shared field's title above the control (`gg-field-label`): the setting-row title. */
+  /** The label above every field, the family's and the shared pieces' (`gg-field-label`): the setting-row title. */
   fieldTitle: (): Expectation => ({ labelSize: 14, weight: 500, family: "Plus Jakarta Sans" }),
   /** The shared Button at its sm size, which the cockpit lands on the 32px md pill (DL-031). */
   sharedButton: (): Expectation => ({

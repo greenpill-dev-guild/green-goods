@@ -87,7 +87,7 @@ export function AssessmentOutcomeFields({
       </AdminSelect>
 
       <AdminTextField
-        className="[grid-area:target] [&_[data-region=supporting-line]]:min-h-8"
+        className="[grid-area:target]"
         type="number"
         label={formatMessage({
           id: "app.admin.assessment.strategyKernel.targetFieldLabel",

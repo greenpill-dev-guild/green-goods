@@ -81,18 +81,21 @@ export const NearTheLimit: Story = { args: { count: 388 } };
 /**
  * At the limit the field takes no more, and the status says so once. Runs in
  * browser mode, where real layout applies (jsdom has none): the count ends on
- * the same inset as the text above it, at the end of the supporting row.
+ * the outlined box's right edge, at the end of the message line, as the
+ * message starts on its left edge (F3).
  */
 export const AtTheLimit: Story = {
   args: { count: 420 },
   play: async ({ canvasElement }) => {
     const field = within(canvasElement).getByRole("textbox", { name: "What this pool is for" });
+    const box = field.closest<HTMLElement>('[data-region="field-container"]');
     const counter = canvasElement.querySelector<HTMLElement>('[data-component="CharacterCounter"]');
+    await expect(box).not.toBeNull();
     await expect(counter).not.toBeNull();
-    if (!counter) return;
+    if (!box || !counter) return;
     await expect(within(counter).getByText("420 / 420")).toBeVisible();
-    const fieldRight = field.getBoundingClientRect().right;
-    await expect(Math.abs(counter.getBoundingClientRect().right - fieldRight)).toBeLessThan(1);
+    const boxRight = box.getBoundingClientRect().right;
+    await expect(Math.abs(counter.getBoundingClientRect().right - boxRight)).toBeLessThan(1);
   },
 };
 

@@ -96,6 +96,7 @@
   --gg-control-outline: var(--m3-outline);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
+  --gg-field-message-lines: 2;
 
   /* The type roles at the cockpit's density, as index.css `:root` sets them,
      with its 640px media rule for field text below. */
@@ -191,6 +192,7 @@
   --gg-icon-size-sm: initial;
   --gg-icon-size-compact: initial;
   --gg-hit-block: initial;
+  --gg-field-message-lines: initial;
 }
 
 [data-surface-scope="app"] {
