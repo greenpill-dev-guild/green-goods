@@ -1,12 +1,12 @@
 # Grove by Green Goods: MVP architecture
 
 **Status:** implementation proposal; planning requested, product build not started.
-**Updated:** 16 October 2026. **Owner:** Grove idea hub. **Package:** `packages/extension` (proposed).
+**Updated:** 23 October 2026. **Owner:** Grove idea hub. **Package:** `packages/extension` (proposed).
 **Companions:** [implementation sequence](plan.todo.md), [evaluation and evidence](eval.md), [ontology alignment](ontology-alignment.md), [learning loops](architecture-flows.md), [dependency map](dependencies.md), [visual exploration](visual-design.md), [KOI contract](koi-integration.md), [Pi Durable execution](durable-execution.md), [Vida Verde/TAS spike](first-spike.md).
 
 Build a local browser extension whose main interface is a living garden graph. A steward can connect a garden from the Admin Hub, preserve useful research, inspect the relationships between research and recorded work, review suggested connections, and see what changed over time.
 
-Grove is the user-selected brand for this extension: **Grove by Green Goods — Your garden’s living knowledge.** The living graph is its primary workspace. This self-contained hub records the architecture and implementation sequence for that scope; broader OS, sensor, mesh and publishing proposals are outside this plan. The user authorized a dedicated planning branch and draft PR. Product implementation and dependency installation remain unstarted.
+Grove is the user-selected brand for this extension: **Grove by Green Goods — Your garden’s living knowledge.** The living graph is its primary workspace. Grove is a focused project within Community Evidence Mesh; the initiative coordinates shared evidence, privacy and authority principles. Grove owns the local knowledge workspace, while Framework, Messaging and publishing projects retain their delivery authority. Read the [Mesh alignment and evidence mapping](mesh-alignment.md). Broader OS, sensor, edge and publishing implementation is outside this plan. Product implementation and dependency installation remain unstarted.
 
 ## MVP boundary
 

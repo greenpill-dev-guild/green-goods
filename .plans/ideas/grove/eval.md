@@ -28,6 +28,8 @@ The local graph can function with the model unavailable, but this is a degradati
 
 ## First-slice observation sheet
 
+The [Mesh mapping](mesh-alignment.md) adds explicit cases for E1/E5/E11/E14: local acceptance is not community review or WorkApproval; ordinary articles need no fabricated metric; signatures and completed runs confer no evidence authority; pending inference cannot restore withdrawn content. These cases remain unrun with the other product gates.
+
 - Browser/OS/device/RAM/GPU: pending.
 - Extension version and artifact hash: pending.
 - Model repository revision, tokenizer/runtime versions and artifact hashes: pending.
@@ -64,7 +66,7 @@ Public Sigma and Cytoscape demo screenshots were captured in the Codex in-app Ch
 
 This hub is published separately from the earlier OS research. All implementation steps and product gates remain unrun. Validation of this planning PR covers hub structure, local links, formatting, scope and the repository-selected push checks. Current results are recorded in the draft PR; they do not establish runtime or model readiness.
 
-No dependency was installed, no application source was changed and no implementation lane was marked complete. Grove runtime browser proof: none. Public-demo reference screenshots are labeled separately above; this change contains planning documents and reference assets only.
+No dependency was installed, no application source was changed and no implementation lane was marked complete. Grove runtime browser proof: none. Public-demo reference screenshots are labeled separately above. The 23 October follow-up also publishes [standalone interactive design source](artifacts/demos/README.md), with synthetic replacements for private-note-derived records. Static-demo browser proof is separate from all product gates.
 
 ## KOI planning revision
 
