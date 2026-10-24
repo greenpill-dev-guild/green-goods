@@ -53,7 +53,7 @@ const meta: Meta<typeof ActionChooserGrid> = {
     docs: {
       description: {
         component:
-          "The Choose step of Submit Work — a scannable grid of selectable action cards (title, description, capitals, photo requirement) that replaces the legacy <select>.",
+          "The Choose step of Submit Work: the shared action picker the installed app uses, as a grid. Each action is a media card with its banner (its photo, or its domain's gradient), the domain on the banner, a one-line title and what it asks for; one radio group with one tab stop, where the arrow keys move and Space, Enter or a press chooses.",
       },
     },
   },

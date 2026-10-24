@@ -27,10 +27,7 @@ export {
 export {
   GardenCard,
   type GardenCardData,
-  type GardenCardLabels,
   type GardenCardProps,
-  type GardenCardVariantProps,
-  gardenCardVariants,
 } from "./GardenCard";
 // MediaCard: the card shape for an object with a picture of its own
 export { MediaCard, type MediaCardLayout, type MediaCardProps } from "./MediaCard";

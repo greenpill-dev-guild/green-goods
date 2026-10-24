@@ -1,8 +1,8 @@
 /**
  * WorkIntro Component Tests
  *
- * Tests the intro step of the work submission flow: action carousel,
- * garden selection, domain filtering, and click handler delegation.
+ * Tests the intro step of the work submission flow: the action and garden
+ * pickers, domain filtering, and click handler delegation.
  */
 
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -47,52 +47,10 @@ vi.mock("@green-goods/shared/utils/action/translations", () => ({
   localizeAction: (action: Action) => action,
 }));
 
-// Mock child components used by WorkIntro
-vi.mock("@/components/Cards/Action/ActionCard", () => ({
-  ActionCard: ({ action, selected }: { action: { title: string }; selected: boolean }) =>
-    createElement(
-      "div",
-      { "data-testid": `action-card-${action.title}`, "data-selected": String(selected) },
-      action.title
-    ),
-}));
-
-vi.mock("@/components/Cards/Action/ActionCardSkeleton", () => ({
-  ActionCardSkeleton: () => createElement("div", { "data-testid": "action-skeleton" }),
-}));
-
+// Mock child components used by WorkIntro; the shared pickers render for real.
 vi.mock("@/components/Cards/Form/FormInfo", () => ({
   FormInfo: ({ title }: { title: string }) =>
     createElement("div", { "data-testid": "form-info" }, title),
-}));
-
-vi.mock("@/components/Cards/Garden/GardenCard", () => ({
-  GardenCard: ({ garden, selected }: { garden: { name: string }; selected: boolean }) =>
-    createElement(
-      "div",
-      { "data-testid": `garden-card-${garden.name}`, "data-selected": String(selected) },
-      garden.name
-    ),
-}));
-
-vi.mock("@/components/Cards/Garden/GardenCardSkeleton", () => ({
-  GardenCardSkeleton: () => createElement("div", { "data-testid": "garden-skeleton" }),
-}));
-
-vi.mock("@/components/Display", () => ({
-  Carousel: ({ children }: { children: React.ReactNode }) =>
-    createElement("div", { "data-testid": "carousel" }, children),
-  CarouselContent: ({ children }: { children: React.ReactNode }) =>
-    createElement("div", { "data-testid": "carousel-content" }, children),
-  CarouselItem: ({
-    children,
-    className,
-    onClick,
-  }: {
-    children: React.ReactNode;
-    className?: string;
-    onClick?: () => void;
-  }) => createElement("div", { "data-testid": "carousel-item", className, onClick }, children),
 }));
 
 vi.mock("@/components/Navigation", () => ({
@@ -166,6 +124,8 @@ const messages: Record<string, string> = {
   "app.domain.tab.agro": "Agroforestry",
   "app.gardenIntro.domain.agroShort": "Agro",
   "app.domain.tab.waste": "Waste",
+  "app.actions.picker.photosOptional": "Photos optional",
+  "app.garden.memberCount": "{count, plural, one {# member} other {# members}}",
 };
 
 const now = Date.now();
@@ -267,8 +227,9 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions });
 
-    expect(screen.getByTestId("action-card-Plant Trees")).toBeInTheDocument();
-    expect(screen.getByTestId("action-card-Water Garden")).toBeInTheDocument();
+    const picker = screen.getByRole("radiogroup", { name: "Select Your Action" });
+    expect(within(picker).getByRole("radio", { name: /Plant Trees/ })).toBeInTheDocument();
+    expect(within(picker).getByRole("radio", { name: /Water Garden/ })).toBeInTheDocument();
   });
 
   it("filters out expired actions", () => {
@@ -283,8 +244,8 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions });
 
-    expect(screen.getByTestId("action-card-Active Action")).toBeInTheDocument();
-    expect(screen.queryByTestId("action-card-Expired Action")).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Active Action/ })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /Expired Action/ })).not.toBeInTheDocument();
   });
 
   it("skips an action with a missing id instead of crashing", () => {
@@ -295,11 +256,11 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions });
 
-    expect(screen.getByTestId("action-card-Valid Action")).toBeInTheDocument();
-    expect(screen.queryByTestId("action-card-Broken Action")).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Valid Action/ })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /Broken Action/ })).not.toBeInTheDocument();
   });
 
-  it("reserves selection-card space when a selected domain has no active actions", () => {
+  it("says so in place of the picker when a selected domain has no active actions", () => {
     const actions = [makeAction({ id: "action-1", title: "Repair Event", domain: Domain.WASTE })];
     const gardens = [
       makeGarden({
@@ -310,15 +271,15 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions, gardens, selectedDomain: Domain.SOLAR });
 
-    // The state block holds the selection card's height, so the step does not jump.
-    const emptyState = screen
-      .getByRole("heading", { name: "No active actions at this time." })
-      .closest("[data-component='EmptyState']") as HTMLElement;
-    expect(emptyState.className).toContain("h-[13.25rem]");
-    expect(emptyState.closest("[data-testid='carousel-item']")?.className).toContain("basis-full");
+    expect(
+      screen.getByRole("heading", { name: "No active actions at this time." })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("radiogroup", { name: "Select Your Action" })
+    ).not.toBeInTheDocument();
   });
 
-  it("chooses an action from its toggle and marks the chosen one pressed", () => {
+  it("chooses an action from the picker and marks the chosen one checked", () => {
     const setActionUID = vi.fn();
     const actions = [
       makeAction({ id: "action-1", title: "Plant Trees" }),
@@ -327,26 +288,27 @@ describe("WorkIntro", () => {
 
     renderIntro({ actions, setActionUID, selectedActionUID: 2 });
 
-    fireEvent.click(screen.getByRole("button", { name: "Plant Trees" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Plant Trees/ }));
 
     expect(setActionUID).toHaveBeenCalledWith(1);
-    expect(screen.getByRole("button", { name: "Plant Trees" })).toHaveAttribute(
-      "aria-pressed",
+    expect(screen.getByRole("radio", { name: /Plant Trees/ })).toHaveAttribute(
+      "aria-checked",
       "false"
     );
-    expect(screen.getByRole("button", { name: "Water Beds" })).toHaveAttribute(
-      "aria-pressed",
+    expect(screen.getByRole("radio", { name: /Water Beds/ })).toHaveAttribute(
+      "aria-checked",
       "true"
     );
   });
 
-  it("chooses a garden from its toggle", () => {
+  it("chooses a garden from the garden picker", () => {
     const setGardenAddress = vi.fn();
     const gardens = [makeGarden({ id: "0xABC" as Address, name: "My Garden" })];
 
     renderIntro({ gardens, setGardenAddress });
 
-    fireEvent.click(screen.getByRole("button", { name: "My Garden" }));
+    const picker = screen.getByRole("radiogroup", { name: "Select Your Garden" });
+    fireEvent.click(within(picker).getByRole("radio", { name: /My Garden/ }));
 
     expect(setGardenAddress).toHaveBeenCalledWith("0xABC");
   });
@@ -486,7 +448,7 @@ describe("WorkIntro", () => {
       onJoinCommunityGarden: vi.fn(),
     });
 
-    expect(screen.getByTestId("action-card-Plant Trees")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Plant Trees/ })).toBeInTheDocument();
     expect(screen.getByText("Join the Community Garden")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Join Community Garden" })).toBeInTheDocument();
   });

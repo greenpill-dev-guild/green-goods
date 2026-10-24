@@ -314,7 +314,7 @@ const Home: React.FC = () => {
             <WorkDashboardIcon />
           </div>
         </div>
-        <div className="padded flex flex-col gap-4">
+        <div className="padded flex flex-col gap-(--gg-list-gap)">
           <GardenList
             gardens={filteredGardens}
             selectedGardenId={selectedGardenId}

@@ -4,7 +4,7 @@
 
 import { type Action, Capital, Domain } from "@green-goods/shared/types/domain";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 import { ActionChooserGrid } from "@/views/Garden/components/ActionChooserGrid";
@@ -65,7 +65,7 @@ const ACTIONS: Action[] = [
 ];
 
 describe("ActionChooserGrid", () => {
-  it("localizes canonical action titles and descriptions across all four domains", () => {
+  it("titles canonical actions in the cockpit's words across all four domains", () => {
     render(
       <IntlProvider locale="pt" messages={ptMessages}>
         <ActionChooserGrid
@@ -77,16 +77,35 @@ describe("ActionChooserGrid", () => {
       </IntlProvider>
     );
 
-    expect(screen.getByText("Verificação de energia e disponibilidade")).toBeInTheDocument();
-    expect(screen.getByText("Atividade de manutenção")).toBeInTheDocument();
-    expect(screen.getByText("Oficina realizada")).toBeInTheDocument();
-    expect(screen.getByText("Triagem e detalhamento")).toBeInTheDocument();
+    const group = screen.getByRole("radiogroup", { name: "Ação" });
+    expect(group).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Documente os resultados da triagem de resíduos com a divisão do peso por categoria. Use uma lista repetível para entradas categoria por categoria."
-      )
+      screen.getByRole("radio", { name: /Verificação de energia e disponibilidade/ })
     ).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Atividade de manutenção/ })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Oficina realizada/ })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Triagem e detalhamento/ })).toBeInTheDocument();
     expect(screen.queryByText("Energy & Uptime Check")).not.toBeInTheDocument();
     expect(screen.queryByText("Sorting & Breakdown")).not.toBeInTheDocument();
+  });
+
+  it("chooses an action by id, and treats an empty selection as nothing chosen", () => {
+    const onSelect = vi.fn();
+    render(
+      <IntlProvider locale="pt" messages={ptMessages}>
+        <ActionChooserGrid
+          actions={ACTIONS}
+          selectedActionId=""
+          onSelect={onSelect}
+          groupLabel="Ação"
+        />
+      </IntlProvider>
+    );
+
+    const radios = screen.getAllByRole("radio");
+    expect(radios.every((radio) => radio.getAttribute("aria-checked") === "false")).toBe(true);
+    expect(radios[0]).toHaveAttribute("tabindex", "0");
+    fireEvent.click(screen.getByRole("radio", { name: /Oficina realizada/ }));
+    expect(onSelect).toHaveBeenCalledWith("edu");
   });
 });
