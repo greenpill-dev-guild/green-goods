@@ -197,10 +197,10 @@ function AdminColumn() {
             targets={[
               {
                 name: "container",
-                selector: '[data-component="AdminTextField"] > div:first-child',
+                selector: '[data-component="AdminTextField"] [data-region="field-container"]',
                 expect: ADMIN.fieldContainer(),
               },
-              { name: "label", selector: "label", expect: ADMIN.fieldLabel() },
+              { name: "label", selector: "label", expect: ADMIN.fieldTitle() },
               { name: "input", selector: "input", expect: ADMIN.fieldInput() },
             ]}
           >
@@ -318,7 +318,7 @@ export const ThreeSystems: Story = {
     await expect(px(getComputedStyle(editorial).borderTopLeftRadius)).toBe(0);
 
     // Admin cockpit (DL-030): one 14px label at every size, Plus Jakarta Sans,
-    // 32px pills, a 12px floating label, and xl / 2xl on the 16px step.
+    // 32px pills, the 14px field label above the box (F3), and xl / 2xl on the 16px step.
     const admin = within(column("admin") as HTMLElement);
     const adminMd = admin.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(adminMd.getBoundingClientRect().height).toBe(32);
@@ -330,7 +330,8 @@ export const ThreeSystems: Story = {
     const adminField = admin.getByRole("textbox", { name: "Garden name" });
     await expect(getComputedStyle(adminField).fontSize).toBe(window.innerWidth < 640 ? "16px" : "14px");
     const adminLabel = admin.getByText("Garden name", { selector: "label" });
-    await expect(getComputedStyle(adminLabel).fontSize).toBe("12px");
+    await expect(getComputedStyle(adminLabel).fontSize).toBe("14px");
+    await expect(getComputedStyle(adminLabel).fontWeight).toBe("500");
     const scope = column("admin") as HTMLElement;
     await expect(getComputedStyle(scope).getPropertyValue("--radius-xl").trim()).toBe("16px");
     await expect(getComputedStyle(scope).getPropertyValue("--radius-2xl").trim()).toBe("16px");

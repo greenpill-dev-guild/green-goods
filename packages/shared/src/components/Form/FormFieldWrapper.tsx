@@ -37,17 +37,15 @@ export function FormFieldWrapper({
         id={id ? `${id}-helper-text` : undefined}
         role={error ? "alert" : undefined}
         tabIndex={helperText || error ? 0 : undefined}
-        // Reserve two lines so hints and errors appear without moving the form; a rare third
-        // line grows the slot instead of scrolling inside it (DL-018).
+        // The shared message line reserves the surface's lines (two in the app), so hints and
+        // errors appear without moving the form; a rare longer one grows the line instead of
+        // scrolling inside it (DL-018).
         style={{
-          minBlockSize: "2lh",
-          flexShrink: 0,
           fontSize: "var(--type-body-sm)",
           letterSpacing: "var(--type-body-sm-ls)",
           lineHeight: "var(--type-body-sm-lh)",
-          overflowWrap: "anywhere",
         }}
-        className={cn("gg-field-feedback", error ? "text-error-dark" : "text-text-sub-600")}
+        className={cn("gg-field-message", error ? "text-error-dark" : "text-text-sub-600")}
       >
         {error || helperText}
       </p>

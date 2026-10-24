@@ -31,7 +31,9 @@ describe("AdminInlineField error anatomy", () => {
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("Enter a numeric id.");
     expect(alert.className).toContain("--m3-error");
-    expect(alert).toHaveClass("px-3");
+    // The family's message line, flush with the label above it (F3).
+    expect(alert).toHaveClass("gg-field-help", "gg-field-message");
+    expect(alert).not.toHaveClass("px-3");
     expect(input).toHaveAttribute("aria-describedby", alert.id);
 
     // The label recolors with the field, and nothing rides the retired
@@ -53,8 +55,8 @@ describe("AdminInlineField error anatomy", () => {
 
     const slot = () => document.querySelector("p[id$='-helper-text']");
     expect(slot()).not.toBeNull();
-    // The reserve and the text's line are the same 16px; the story lane checks the real height.
-    expect(slot()).toHaveClass("min-h-4", "type-meta");
+    // The shared message line reserves the surface's lines; the story lane checks the real height.
+    expect(slot()).toHaveClass("gg-field-message");
 
     rerender(
       <AdminInlineField

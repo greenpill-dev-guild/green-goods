@@ -96,6 +96,7 @@
   --gg-control-outline: var(--m3-outline);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
+  --gg-field-message-lines: 2;
   --gg-state-mark-fill: rgb(var(--text-strong-950) / 0.06);
   --gg-state-mark-ink: rgb(var(--text-sub-600));
 
@@ -283,6 +284,8 @@
   --gg-icon-size-sm: initial;
   --gg-icon-size-compact: initial;
   --gg-hit-block: initial;
+  --gg-field-message-lines: initial;
+
   /* The card surface falls back to the scope's own card and hairline. */
   --gg-card-surface: initial;
   --gg-card-edge: initial;
