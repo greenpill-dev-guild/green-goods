@@ -30,6 +30,12 @@ test.describe("Admin Authentication", () => {
   });
 
   test.describe("Dev mock-auth flow", () => {
+    // Each test boots the signed-in cockpit one to three times, and each boot shows "Opening
+    // your workspace…" for 10 to 20 seconds on the clean-room dev server; the first also
+    // compiles the signed-in module graph, which the global warm-up (a signed-out boot) never
+    // reaches. The default 30s left the three-load reload test no headroom in CI.
+    test.describe.configure({ timeout: 90_000 });
+
     // Real wagmi reconnection coverage belongs to the anvil-fork project. This
     // clean-room check exercises the deterministic dev-auth persistence seam.
     test("maintains mock auth state across page reloads", async ({ page }) => {
