@@ -2,7 +2,7 @@
 name: design
 user-invocable: false
 description: "Green Goods design direction: the Warm Earth design language (shape, motion, color, material tokens), admin cockpit vs client PWA surface identities, paradigm selection, layout composition, AI design-tool prompt contracts, and design review lenses. Use for design direction, visual language decisions, what paradigm or material a view should use, new views or components, UI polish passes, and preparing prompts for AI design tools."
-token_version: "2.32.0"
+token_version: "2.33.0"
 ---
 
 # Design Skill
@@ -182,7 +182,7 @@ What kind of design work?
 │   ├── Choose material metaphor (Obsidian / Vellum / Holographic / Carbon)
 │   ├── Apply Inclusive Design lens (who gets excluded? what's the fallback?)
 │   ├── Define disclosure layers (glance → scan → engage → deep dive)
-│   └── Implement per implementation.md (Pane pattern + adaptive density)
+│   └── Implement per implementation.md § New Component Runbook (solid panes + adaptive density from surfaces.md)
 │
 ├─► New component?
 │   ├── What Z-layer? (ground / surface / floating / overlay) → surfaces.md

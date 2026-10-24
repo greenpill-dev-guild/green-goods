@@ -278,7 +278,7 @@ function ChipsTabsChoices() {
       <Section
         id="chips-tabs"
         title="Chips and tabs"
-        lede="AdminFilterChip is the 32px toolbar filter with 8px corners and a 14px label; AdminTabRail is the route-local mode control on the 36px tier."
+        lede="AdminFilterChip is the 32px toolbar filter, a capsule with a 14px label, filled with the workspace tone when selected (DL-101); AdminTabRail is the route-local mode control on the 36px tier."
       >
         <Row>
           <Specimen title="filter chip · unselected" expect={ADMIN.chip()}>

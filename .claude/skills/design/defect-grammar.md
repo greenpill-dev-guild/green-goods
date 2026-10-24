@@ -101,7 +101,7 @@ The left column is what the user says. The right column is the internal statemen
 
 | User says | Agent's internal statement |
 |-----------|----------------------------|
-| "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16dp) per M3 card anatomy, currently p-3 (12dp)` |
+| "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16px), AdminCard's default padding, currently p-3 (12px)` |
 | "The top bar on Garden feels detached from the page." | `canvas-area-top in /garden → hierarchy: AppBar reads detached from the canvas (expected: transparent root over the --tone-surface-tint-color wash); check the wash gradient and sticky-header transparency` |
 | "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: hover/active text transition hardcodes ease-out 200ms instead of --spring-effects-fast (each cell draws its own underline: there is no sliding indicator to animate)` |
 | "The input label looks wrong at phone width." | `AdminTextField (outlined) in AdminDialog create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |

@@ -2,7 +2,7 @@ import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../../shared/.storybook/decorators";
 import { AppBar } from "./AppBar";
 
@@ -106,6 +106,35 @@ export const ProfileActive: Story = {
     const nav = canvas.getByTestId("authenticated-nav");
     expect(nav.className).not.toContain("translate-y-full");
     await expectActivePill(canvasElement, /profile/i);
+  },
+};
+
+/**
+ * Keyboard focus rings every tab in the app's focus role (DL-098), the active tab included:
+ * one solid 2px ring with a 2px offset in `--focus-ring`, green in light and mint in dark.
+ */
+export const KeyboardFocus: Story = {
+  decorators: [withRouter(["/home"])],
+  play: async ({ canvasElement }) => {
+    const nav = within(canvasElement).getByTestId("authenticated-nav");
+    const ring = getComputedStyle(nav)
+      .getPropertyValue("--focus-ring")
+      .trim()
+      .split(/\s+/)
+      .join(", ");
+    const links = within(nav).getAllByRole("link");
+    const current = links.filter((link) => link.getAttribute("aria-current") === "page");
+    await expect(current).toHaveLength(1);
+    for (const link of links) {
+      await userEvent.tab();
+      await expect(link).toHaveFocus();
+      await expect(link.matches(":focus-visible")).toBe(true);
+      const style = getComputedStyle(link);
+      await expect(style.outlineStyle).toBe("solid");
+      await expect(style.outlineWidth).toBe("2px");
+      await expect(style.outlineOffset).toBe("2px");
+      await expect(style.outlineColor).toBe(`rgb(${ring})`);
+    }
   },
 };
 

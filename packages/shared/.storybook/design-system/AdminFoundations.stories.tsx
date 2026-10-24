@@ -65,10 +65,10 @@ export const Tokens: Story = {
         <TokenTable
           tokens={[
             { name: "--m3-shape-xs", expected: "4px", note: "checkbox, tooltip" },
-            { name: "--m3-shape-sm", expected: "8px", note: "chips, filled field top corners, outlined fields" },
+            { name: "--m3-shape-sm", expected: "8px", note: "filled field top corners, outlined fields" },
             { name: "--m3-shape-md", expected: "12px", note: "cards, choice rows, selectable cards" },
             { name: "--m3-shape-lg", expected: "16px", note: "dialogs, page containers" },
-            { name: "--m3-shape-full", expected: "9999px", note: "buttons, toolbar pills, FAB" },
+            { name: "--m3-shape-full", expected: "9999px", note: "buttons, chips, toolbar pills, FAB" },
             { name: "--radius-xs", expected: "4px", note: "remapped in index.css" },
             { name: "--radius-sm", expected: "8px", note: "remapped in index.css" },
             { name: "--radius-xl", expected: "16px", note: "rounded-xl, remapped in index.css" },
@@ -163,7 +163,7 @@ export const Tokens: Story = {
         </div>
       </Section>
 
-      <Section id="tones" title="Workspace tones" lede="The tone appears in exactly five places: the active tab, the active nav pill, one filled header action, the FAB fill, and the count badge on every tab of the rail, plus the faint canvas wash. Each card below sets data-tone and shows its filled action and its tab rail with a count.">
+      <Section id="tones" title="Workspace tones" lede="The tone appears in exactly six places: the active tab, the active nav pill, one filled header action, the FAB fill, the count badge on every tab of the rail, and a selected filter chip (DL-101), plus the faint canvas wash. Each card below sets data-tone and shows its filled action, a selected chip, and its tab rail with a count.">
         <div className="sb-ds-row">
           {TONES.map((tone) => (
             <div key={tone} data-tone={tone} className="sb-specimen" style={{ flexBasis: 220 }}>
@@ -182,6 +182,10 @@ export const Tokens: Story = {
                 }}
               >
                 <AdminButton size="sm">Primary Act</AdminButton>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <AdminFilterChip label="Pending" selected onToggle={() => {}} />
+                  <AdminFilterChip label="Approved" selected={false} onToggle={() => {}} />
+                </div>
                 <AdminTabRail
                   ariaLabel={`${tone} tabs`}
                   activeId="a"

@@ -77,8 +77,10 @@ export const AppBar = () => {
             data-pressable="tab"
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex flex-col items-center",
-              isActive && "text-text-strong-950 focus:outline-hidden",
+              // Keyboard focus rings every tab, active or not, in the app's focus role
+              // (DL-098): one solid 2px ring with a 2px offset, around the pill and label.
+              "flex flex-col items-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--focus-ring))]",
+              isActive && "text-text-strong-950",
               !isActive && "text-text-soft-400"
             )}
           >
