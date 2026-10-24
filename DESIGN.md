@@ -30,6 +30,11 @@ typography:
     fontSize: 12px
     fontWeight: 500
     lineHeight: 16px
+  count:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 11px
+    fontWeight: 600
+    lineHeight: 16px
   card-title:
     fontFamily: Plus Jakarta Sans
     fontSize: 15px
@@ -86,7 +91,7 @@ components:
   count-badge:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
-    typography: "{typography.label-md}"
+    typography: "{typography.count}"
     rounded: "{rounded.full}"
   accent-ink:
     textColor: "{colors.on-tertiary}"
@@ -341,6 +346,7 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 
 - **Shape**: *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and color carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
 - **Controls**: fields, chips and secondary buttons draw a control-grade outline (`--gg-control-outline`, 3:1 or better in both themes), and focus is one solid 2px ring with a 2px offset: the installed app's green (mint in dark) and the cockpit's workspace tone. The installed app's button labels are weight 500, the cockpit's. The public website keeps its hairline and its focus halo.
+- **Counts**: one count badge (`CountBadge`) on both surfaces: a capsule 16px tall and at least 16px wide, with 11px numerals at weight 600 (`typography.count`), on the green action pair in the installed app and on the workspace tone's accent in the cockpit. Where it sits on an icon or a control's edge it draws a 2px ring of the surface behind it; beside a label it draws none. It reads 99+ above 99, and 9+ on the installed app's bottom bar.
 - **Cards**: one card surface on both surfaces (`.gg-card`): white, or the lifted card in dark, with a 1px edge that reads in both themes, a faint shadow in light, and the 24px corner (`rounded.2xl`). A list of items is a column of item rows (`ItemRow`): 88px tall in every state and language, a 16px corner (`rounded.lg`), the item's own 88px photo or a centered 56px icon tile, a one-line title (`typography.card-title`, 15px in the installed app and 13px in the cockpit), the one status pill under it, one 11px detail line of at most two details that drops a detail whole rather than wrap, and the row's one action in its right slot; a work row adds the 2px status edge. Every card list keeps 12px between its cards (`--gg-list-gap`).
 - **Motion**: Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
 - **Material**: Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.

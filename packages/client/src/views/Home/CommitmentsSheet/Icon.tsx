@@ -1,10 +1,8 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiHandHeartLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
-
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export interface CommitmentsSheetIconProps {
   onClick: () => void;
@@ -40,16 +38,7 @@ export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
       icon={<RiHandHeartLine aria-hidden="true" />}
       badge={
         hasActs ? (
-          <span
-            className={cn(
-              "inline-flex items-center justify-center text-xs font-semibold rounded-full min-w-[18px] h-[18px] px-1",
-              pwaStatusStyles.primary.badge,
-              "shadow-sm border-2 border-bg-white-0"
-            )}
-            data-testid="commitments-notification-badge"
-          >
-            {actCount > 99 ? "99+" : actCount}
-          </span>
+          <CountBadge count={actCount} ring data-testid="commitments-notification-badge" />
         ) : undefined
       }
     />

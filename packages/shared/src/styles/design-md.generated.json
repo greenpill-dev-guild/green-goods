@@ -53,6 +53,12 @@
       "fontWeight": 500,
       "lineHeight": "20px"
     },
+    "count": {
+      "fontFamily": "Plus Jakarta Sans",
+      "fontSize": "11px",
+      "fontWeight": 600,
+      "lineHeight": "16px"
+    },
     "editorial": {
       "fontFamily": "Fraunces",
       "fontSize": "48px",

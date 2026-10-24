@@ -1,9 +1,9 @@
-import type { TabBadgeSeverity, TabBadgeState } from "@green-goods/shared/types/garden-detail";
+import type { TabBadgeSeverity } from "@green-goods/shared/types/garden-detail";
 import { RiAlertLine, RiArrowRightSLine, RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardBody, AdminCardTitle } from "@/components/AdminCard";
-import { ALERT_LABEL_CLASSES, BADGE_TONE_CLASSES } from "./gardenDetail.constants";
+import { ALERT_LABEL_CLASSES } from "./gardenDetail.constants";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -21,20 +21,6 @@ export function formatReviewTime(
   return formatMessage(
     { id: "app.garden.detail.metric.weeksValue" },
     { weeks: Math.round(days / 7) }
-  );
-}
-
-export function TabBadge({ badge }: { badge: TabBadgeState }) {
-  if (badge.severity === "none" || !badge.count) {
-    return null;
-  }
-
-  return (
-    <span
-      className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 type-meta-sm font-semibold ${BADGE_TONE_CLASSES[badge.severity]}`}
-    >
-      {badge.count}
-    </span>
   );
 }
 

@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope design`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:e41e87677d22f6bd64dd0988f1576195a29d48e5ef03a4d6b1c7003e2a7c267c",
+  "digest": "sha256:8df2c7055eaec837fe2c462d3b9af70c3e058d3f5ff6051e781176a81eec6678",
   "source": "DESIGN.md",
   "name": "Green Goods Warm Earth Core",
   "colors": {
@@ -40,6 +40,12 @@
       "fontSize": "15px",
       "fontWeight": 500,
       "lineHeight": "20px"
+    },
+    "count": {
+      "fontFamily": "Plus Jakarta Sans",
+      "fontSize": "11px",
+      "fontWeight": 600,
+      "lineHeight": "16px"
     },
     "editorial": {
       "fontFamily": "Fraunces",

@@ -1,6 +1,7 @@
 import { RiCloseLine, RiShareLine, RiStopFill, RiTaskLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, within } from "storybook/test";
+import { CountBadge } from "./Badge/Badge";
 import type { ButtonEmphasis, ButtonSize } from "./Button";
 import { IconButton } from "./IconButton";
 
@@ -77,14 +78,7 @@ export const WithBadge: Story = {
     emphasis: "secondary",
     size: "compact",
     icon: <RiTaskLine aria-hidden="true" />,
-    badge: (
-      <span
-        data-testid="count"
-        className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-bg-white-0 bg-primary-action px-1 text-xs font-semibold text-primary-action-foreground"
-      >
-        3
-      </span>
-    ),
+    badge: <CountBadge count={3} ring data-testid="count" />,
   },
   render: (args) => (
     <div className="p-4">
