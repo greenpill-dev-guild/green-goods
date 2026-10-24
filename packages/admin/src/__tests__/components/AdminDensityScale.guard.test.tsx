@@ -157,6 +157,10 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-control-outline": "var(--m3-outline)",
       "--gg-focus-ring-width": "2px",
       "--gg-focus-halo-alpha": "0",
+      // The shared card surface (F7) on the cockpit's card ground, edged with the
+      // installed app's hairline.
+      "--gg-card-bg": "var(--admin-surface-0)",
+      "--gg-card-edge": "var(--neutral-200)",
       // The type roles at the cockpit's density: titles 22 / 16 / 14, body and
       // labels 14 at -0.006em, small labels and meta 12 (labels at 500), chips 11,
       // and field text 16px on touch widths (14px from 640px, a media rule).

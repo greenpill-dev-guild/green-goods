@@ -1,3 +1,4 @@
+import type { MediaCardLayout } from "@green-goods/shared/components/Cards/MediaCard";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -5,6 +6,7 @@ import type { HubWorkScope } from "@green-goods/shared/hooks/admin-ui/hub/hub.ut
 import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiCheckboxCircleLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -57,6 +59,7 @@ interface HubWorkQueueItemProps {
   work: Work;
   actionSummary?: HubActionSummary;
   selectedGardenName?: string;
+  layout: MediaCardLayout;
   selected: boolean;
   eagerImages?: boolean;
   onOpenWorkDetail: (workId: string) => void;
@@ -66,6 +69,7 @@ function HubWorkQueueItem({
   work,
   actionSummary,
   selectedGardenName,
+  layout,
   selected,
   eagerImages,
   onOpenWorkDetail,
@@ -87,6 +91,7 @@ function HubWorkQueueItem({
       // The card reads its own state: a waiting card is a neutral Pending with
       // its age, since age is metadata and never an alarm (DL-044); an
       // approved card says Approved.
+      layout={layout}
       selected={selected}
       eagerImages={eagerImages}
       onClick={() => onOpenWorkDetail(work.id)}
@@ -108,6 +113,10 @@ export function HubWorkQueue({
   onClearSearch,
 }: HubWorkQueueProps) {
   const { formatMessage } = useIntl();
+  // From the cockpit's desktop breakpoint each card lies wide, its mosaic on
+  // the left, and the grid holds two to a row at 1280px (F12).
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const cardLayout: MediaCardLayout = isDesktop ? "wide" : "stacked";
 
   if (hasDataError) {
     return (
@@ -123,7 +132,7 @@ export function HubWorkQueue({
   }
 
   if (worksLoading) {
-    return <HubWorkbenchSkeletonRows count={5} variant="media-card" />;
+    return <HubWorkbenchSkeletonRows count={5} variant="media-card" layout={cardLayout} />;
   }
 
   if (normalizedSearch && items.length === 0) {
@@ -165,7 +174,7 @@ export function HubWorkQueue({
 
   return (
     // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
-    <ul className="hub-workbench-grid" role="list">
+    <ul className="hub-workbench-grid" data-card-layout={cardLayout} role="list">
       {items.map((work, index) => {
         const actionSummary = actionsMap.get(work.actionUID);
         return (
@@ -174,6 +183,7 @@ export function HubWorkQueue({
               work={work}
               actionSummary={actionSummary}
               selectedGardenName={selectedGardenName}
+              layout={cardLayout}
               selected={selectedWorkId === work.id}
               eagerImages={index < 6}
               onOpenWorkDetail={onOpenWorkDetail}

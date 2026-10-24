@@ -96,6 +96,10 @@
   --gg-control-outline: var(--m3-outline);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
+  /* The shared card surface on the cockpit's card ground (index.css `:root`);
+     the dark block below gives it the lifted card's hairline. */
+  --gg-card-bg: var(--admin-surface-0);
+  --gg-card-edge: var(--neutral-200);
 
   /* The type roles at the cockpit's density, as index.css `:root` sets them,
      with its 640px media rule for field text below. */
@@ -148,6 +152,7 @@
   --g-soft-bg: rgb(var(--green-400) / 0.16);
   --g-soft-fg: rgb(var(--green-300));
   --g-on-action: rgb(var(--neutral-950));
+  --gg-card-edge: var(--earth-700);
 }
 
 /* The cockpit body font. Production sets it on <body> in `@layer base` and has
