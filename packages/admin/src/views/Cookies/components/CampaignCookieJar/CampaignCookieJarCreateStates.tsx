@@ -168,7 +168,7 @@ export function CampaignCookieJarSubmittedState({
           type="button"
           onClick={onUseManualAddress}
           disabled={!manualAddress}
-          className="md:mb-5"
+          className="md:mb-9"
         >
           {formatMessage({
             id: "cockpit.community.cookies.useCreatedJar",

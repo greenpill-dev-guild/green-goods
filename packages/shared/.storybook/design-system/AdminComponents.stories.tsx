@@ -155,22 +155,17 @@ function ButtonSections() {
   );
 }
 
-/** A resting label (empty field) reads at the control's own size; a floating label is 12px. */
+/** The label above the outlined box, at the field title's 14px / 500, in every state (F3). */
 const FIELD_TARGETS = (
   component: "AdminTextField" | "AdminSelect",
-  control: "input" | "select" | "textarea",
-  floating = true
+  control: "input" | "select" | "textarea"
 ) => [
   {
     name: "container",
-    selector: `[data-component="${component}"] > div:first-child`,
+    selector: `[data-component="${component}"] [data-region="field-container"]`,
     expect: control === "textarea" ? { radius: 8 } : ADMIN.fieldContainer(),
   },
-  {
-    name: "label",
-    selector: "label",
-    expect: floating ? ADMIN.fieldLabel() : { ...ADMIN.fieldInput(), labelSize: [14, 16] },
-  },
+  { name: "label", selector: "label", expect: ADMIN.fieldTitle() },
   { name: control, selector: control, expect: ADMIN.fieldInput() },
 ];
 
@@ -179,42 +174,37 @@ function Fields() {
     <Section
       id="fields"
       title="Fields"
-      lede="AdminTextField, AdminTextArea, and AdminSelect on the responsive tier (DL-030): 44px with 16px text on touch widths, 40px with 14px text from 640px, a 12px floating label. AdminInlineField shares the 32px md-button axis. Use the viewport toolbar to see the touch tier."
+      lede="AdminTextField, AdminTextArea, and AdminSelect in the installed app's anatomy (F3): the 14px label above, an outlined box on the responsive tier (DL-030), 44px with 16px text on touch widths and 40px with 14px text from 640px, and a two-line message line. AdminInlineField shares the 32px md-button axis. Use the viewport toolbar to see the touch tier."
     >
       <Row>
-        <Specimen title="filled · empty" targets={FIELD_TARGETS("AdminTextField", "input", false)}>
+        <Specimen title="empty" targets={FIELD_TARGETS("AdminTextField", "input")}>
           <div style={{ width: "100%" }}>
             <AdminTextField label="Garden name" placeholder="e.g., Rio Claro" />
           </div>
         </Specimen>
-        <Specimen title="filled · value" targets={FIELD_TARGETS("AdminTextField", "input")}>
+        <Specimen title="value" targets={FIELD_TARGETS("AdminTextField", "input")}>
           <div style={{ width: "100%" }}>
             <AdminTextField label="Garden name" defaultValue="Rio Claro Community Garden" />
           </div>
         </Specimen>
-        <Specimen title="filled · error" targets={FIELD_TARGETS("AdminTextField", "input", false)}>
+        <Specimen title="error" targets={FIELD_TARGETS("AdminTextField", "input")}>
           <div style={{ width: "100%" }}>
             <AdminTextField label="Garden name" defaultValue="" error="Enter a garden name" />
           </div>
         </Specimen>
-        <Specimen title="filled · disabled" targets={FIELD_TARGETS("AdminTextField", "input")}>
+        <Specimen title="disabled" targets={FIELD_TARGETS("AdminTextField", "input")}>
           <div style={{ width: "100%" }}>
             <AdminTextField label="Garden name" defaultValue="Rio Claro" disabled />
           </div>
         </Specimen>
-        <Specimen title="filled · required + helper" targets={FIELD_TARGETS("AdminTextField", "input", false)}>
+        <Specimen title="required + helper" targets={FIELD_TARGETS("AdminTextField", "input")}>
           <div style={{ width: "100%" }}>
             <AdminTextField label="Location" required helperText="City and country" />
           </div>
         </Specimen>
-        <Specimen title="filled · leading icon" targets={FIELD_TARGETS("AdminTextField", "input", false)}>
+        <Specimen title="leading icon" targets={FIELD_TARGETS("AdminTextField", "input")}>
           <div style={{ width: "100%" }}>
             <AdminTextField label="Search members" leadingIcon={RiSearchLine} />
-          </div>
-        </Specimen>
-        <Specimen title="outlined · value" targets={FIELD_TARGETS("AdminTextField", "input")}>
-          <div style={{ width: "100%" }}>
-            <AdminTextField label="Garden name" variant="outlined" defaultValue="Rio Claro" />
           </div>
         </Specimen>
         <Specimen title="select" targets={FIELD_TARGETS("AdminSelect", "select")}>

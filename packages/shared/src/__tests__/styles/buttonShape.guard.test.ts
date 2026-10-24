@@ -278,12 +278,17 @@ describe("field shape guard (DL-022, DL-023)", () => {
     );
   });
 
-  it("gives the upload well and the field label their own shared classes (DL-031)", () => {
+  it("gives the upload well, the field label and the message line their own shared classes (DL-031)", () => {
     expect(declaration(block(".gg-control-dropzone"), "border-style")).toBe("dashed");
     expect(declaration(block(".gg-field-label"), "font-size")).toBe("var(--gg-label-sm)");
     expect(declaration(block(".gg-field-label"), "font-weight")).toBe(
       "var(--text-label-md--font-weight, 500)"
     );
+    // The message line reserves the surface's lines, two unless a surface sets its own (F3).
+    expect(declaration(block(".gg-field-message"), "min-block-size")).toBe(
+      "calc(var(--gg-field-message-lines, 2) * 1lh)"
+    );
+    expect(declaration(block(".gg-field-help"), "font-size")).toBe("var(--gg-type-meta-size)");
   });
 });
 

@@ -407,7 +407,7 @@ export function AddMembersDialog({
                   "aria-describedby": statusId,
                 }}
               />
-              <div className="flex items-center gap-2 pt-1.5">
+              <div className="flex items-center gap-2 pt-1.5 sm:pt-7.5">
                 <AdminIconButton
                   onClick={handlePaste}
                   disabled={busy}
