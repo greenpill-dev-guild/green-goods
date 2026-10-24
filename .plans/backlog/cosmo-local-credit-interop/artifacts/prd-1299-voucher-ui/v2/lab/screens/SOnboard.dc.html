@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your service setup</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: {{padBottom}}" inert="{{baseHidden}}">
+    <div class="topnav">
+      <a class="close" href="SWallet.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-user-line"/></svg>{{kindLine}}</span>
+      <h1>{{title}}</h1>
+      <p class="para">{{desc}}</p>
+    </div>
+    <div class="stack" style="margin-top: 12px">
+      <div class="notice {{nextCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{nextIcon}}"/></svg>{{nextT}}</span><p>{{nextB}}</p></div>
+    </div>
+    <sc-if value="{{showProgress}}" hint-placeholder-val="{{false}}">
+      <div class="sec"><h2>{{progressTitle}}</h2></div>
+      <sc-if value="{{progPhases}}" hint-placeholder-val="{{true}}">
+        <div class="mx16 card">
+          <ol class="ladder ph" style="margin: 0; padding-left: 0; list-style: none">
+            <sc-for list="{{phases}}" as="p" hint-placeholder-count="5">
+              <li class="ls {{p.cls}}">
+                <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+                <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                  <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+                </span>
+              </li>
+            </sc-for>
+          </ol>
+        </div>
+      </sc-if>
+      <sc-if value="{{progFlat}}" hint-placeholder-val="{{false}}">
+        <div class="mx16 card">
+          <ol class="ladder ph flat" style="margin: 0; padding-left: 0; list-style: none">
+            <sc-for list="{{flat}}" as="s" hint-placeholder-count="8">
+              <li class="ls {{s.cls}}"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg></span><span class="lt"><b>{{s.text}}</b><span class="ph">{{s.ph}} · {{s.state}}</span></span></li>
+            </sc-for>
+          </ol>
+        </div>
+      </sc-if>
+      <sc-if value="{{progSummary}}" hint-placeholder-val="{{false}}">
+        <div class="mx16 card">
+          <div class="psum"><b>{{sumText}}</b><div class="pbar" role="img" aria-label="{{sumText}}"><span style="width: {{sumPct}}%"></span></div></div>
+          <details class="plist">
+            <summary>{{showSteps}}</summary>
+            <ol class="ladder ph" style="margin: 0; padding-left: 0; list-style: none">
+              <sc-for list="{{phases}}" as="p" hint-placeholder-count="5">
+                <li class="ls {{p.cls}}">
+                  <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+                  <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                    <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+                  </span>
+                </li>
+              </sc-for>
+            </ol>
+          </details>
+        </div>
+      </sc-if>
+    </sc-if>
+    <div class="sec"><h2>{{promiseT}}</h2></div>
+    <div class="mx16 card">
+      <div class="facts">
+        <sc-for list="{{facts}}" as="f" hint-placeholder-count="9"><div class="fact {{f.cls}}"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small><sc-if value="{{f.chg}}" hint-placeholder-val="{{false}}"><span class="pill warn">{{changedPill}}</span></sc-if></span></div></sc-for>
+        <div class="fact"><span class="k">{{termsLabel}}</span><span class="v"><a class="tlink" href="#">{{readTerms}}</a></span></div>
+      </div>
+    </div>
+    <div class="sec"><h2>{{yoursT}}</h2></div>
+    <div class="mx16 card">
+      <div class="qa">
+        <sc-for list="{{yours}}" as="q" hint-placeholder-count="4">
+          <div class="qrow"><span class="qi"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{q.icon}}"/></svg></span><span class="qt"><span class="qk">{{q.k}}</span><span class="qv">{{q.v}}</span><span class="qs">{{q.s}}</span></span></div>
+        </sc-for>
+      </div>
+      <div class="tech"><span>{{stewardNote}}</span></div>
+      <details class="tech">
+        <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
+        <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
+      </details>
+    </div>
+  </div>
+  <sc-if value="{{hasActs}}" hint-placeholder-val="{{true}}">
+    <div class="fbar col">
+      <sc-if value="{{hasWhy}}" hint-placeholder-val="{{false}}">
+        <div class="why {{whyCls}}" role="status"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{whyIcon}}"/></svg><span><b>{{whyT}}</b> {{whyB}}</span></div>
+      </sc-if>
+      <div class="fbtns">
+        <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{true}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
+        <sc-if value="{{primaryOff}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{primary}}</button></sc-if>
+        <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{true}}"><a class="btn sec" href="#">{{secondary}}</a></sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <div class="scrim"></div>
+    <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="ob-title">
+      <div class="grip"></div>
+      <div class="shead">
+        <div><h2 class="stitle" id="ob-title">{{shTitle}}</h2><p class="sdesc">{{title}}</p></div>
+        <a class="close" href="#" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+      </div>
+      <sc-if value="{{stepsStrip}}" hint-placeholder-val="{{true}}">
+        <ol class="jstrip" aria-label="{{journeyLabel}}">
+          <sc-for list="{{journey}}" as="j" hint-placeholder-count="5"><li class="jstep {{j.cls}}" aria-current="{{j.cur}}"><span class="bar"></span><span>{{j.label}}</span></li></sc-for>
+        </ol>
+      </sc-if>
+      <sc-if value="{{stepsList}}" hint-placeholder-val="{{false}}">
+        <ol class="jlist" aria-label="{{journeyLabel}}">
+          <sc-for list="{{journey}}" as="j" hint-placeholder-count="5"><li class="{{j.cls}}" aria-current="{{j.cur}}"><span class="n">{{j.n}}</span><span>{{j.label}} <span class="jw">· {{j.who}}</span></span></li></sc-for>
+        </ol>
+      </sc-if>
+      <sc-if value="{{stepsCount}}" hint-placeholder-val="{{false}}">
+        <p class="jcount"><b>{{countLine}}</b> · {{countNext}}</p>
+      </sc-if>
+      <div class="sbody">
+        <div class="card"><div class="facts">
+          <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="6"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
+        </div></div>
+        <button type="button" class="chk {{chkOn}}" role="checkbox" aria-checked="{{chkAria}}" onClick="{{toggle}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{chkText}}</span></button>
+        <p class="small" style="font-size: 13px; line-height: 18px">{{consent}}</p>
+      </div>
+      <div class="sacts">
+        <sc-if value="{{shCanGo}}" hint-placeholder-val="{{false}}"><a class="btn" href="#">{{shCta}}</a></sc-if>
+        <sc-if value="{{shBlocked}}" hint-placeholder-val="{{true}}"><button type="button" class="btn off" disabled>{{shCta}}</button></sc-if>
+        <a class="btn sec" href="#">{{cancel}}</a>
+        <p class="foot">{{passkey}}</p>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Draft to review","Approve","Approved, setup pending","Your setup","Listed","Draft changed","Declined","Signing not available"],"default":"Draft to review","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Draft to review';
+    var dark = this.props.dark ?? false;
+    var self = this;
+    var checked = !!(this.state && this.state.checked);
+    var changed = st === 'Draft changed';
+    var IC = { done: '#ri-check-line', now: '#ri-time-line', warn: '#ri-alert-line', fail: '#ri-close-line', todo: '#ri-checkbox-blank-circle-line' };
+    // Where the setup stands: 0 approved, 1 token, 2 registered, 3 admitted, 4 the member's own setup, 5 listed
+    var pos = { 'Approved, setup pending': 1, 'Your setup': 4, 'Listed': 5 }[st];
+    var showProgress = pos != null;
+    function sub(text, state, label) { return { text: text, cls: state === 'todo' ? '' : state, icon: IC[state], state: label || t('pu.s.' + state) }; }
+    function phase(title, who, subs) {
+      var c = subs.every(function (s) { return s.cls === 'done'; }) ? 'done' : subs.some(function (s) { return s.cls === 'now' || s.cls === 'done'; }) ? 'now' : 'todo';
+      return { title: title, who: who, subs: subs, cls: c, icon: IC[c] };
+    }
+    var at = function (i) { return pos > i ? 'done' : pos === i ? 'now' : 'todo'; };
+    var phases = showProgress ? [
+      phase(t('ob.p.approved'), t('rd.who.you'), [sub(t('ob.sub.approved', { date: t.d('2026-10-24') }), 'done')]),
+      phase(t('ob.p.setup'), t('ob.who.gg'), [sub(t('ob.sub.token'), at(1))]),
+      phase(t('ob.j.register'), t('ob.who.safe'), [sub(t('ob.sub.registered'), at(2))]),
+      phase(t('ob.j.admit'), t('ob.who.pool'), [sub(t('ob.sub.admitted'), at(3))]),
+      phase(t('ob.p.yours'), t('rd.who.you'), [sub(t('ob.sub.enable'), at(4)), sub(t('ob.sub.allow'), pos > 4 ? 'done' : 'todo'), sub(t('ob.sub.place'), pos > 4 ? 'done' : 'todo'), sub(t('ob.sub.listed'), pos > 4 ? 'done' : 'todo')])
+    ] : [];
+    var flat = [];
+    phases.forEach(function (p) { p.subs.forEach(function (s) { flat.push({ text: s.text, cls: s.cls || 'todo', icon: s.icon, state: s.state, ph: p.title }); }); });
+    var doneCount = flat.filter(function (s) { return s.cls === 'done'; }).length;
+    var F = function (k, v, s, chg) { return { k: k, v: v, s: s || '', cls: chg ? 'chg' : '', chg: !!chg }; };
+    var facts = [
+      F(t('ob.f.unit'), t('ob.f.unitV'), t('ob.f.unitS')), F(t('ob.f.cap'), t('ob.f.capV'), t('ob.f.capS')), F(t('ob.f.issue'), t('ob.f.issueV'), t('ob.f.issueS')),
+      F(t('ob.f.allow'), t('ob.f.allowV'), t('ob.f.allowS')), F(t('ob.f.rate'), t('ob.f.rateV'), t('ob.f.rateS'), changed), F(t('ob.f.fees'), t('ob.f.feesV'), t('ob.f.feesS')),
+      F(t('ob.f.pool'), t('ob.f.poolV'), t('ob.f.poolS')), F(t('ob.f.reply'), t('ob.f.replyV'), t('ob.f.replyS')), F(t('ob.f.short'), t('ob.f.shortV'), t('ob.f.shortS'))
+    ];
+    var yours = [
+      { icon: '#ri-user-line', k: t('ob.y.token'), v: t('ob.y.you'), s: '' },
+      { icon: '#ri-wallet-3-line', k: t('ob.y.reserve'), v: t('ob.y.reserveV'), s: '' },
+      { icon: '#ri-checkbox-circle-line', k: t('ob.y.bookings'), v: t('ob.y.you'), s: '' },
+      { icon: '#ri-settings-3-line', k: t('ob.y.upgrade'), v: t('ob.y.upgradeV'), s: t('ob.y.upgradeS') }
+    ];
+    var NX = {
+      'Draft to review': ['info', '#ri-arrow-right-circle-line', 'draft'], 'Approve': ['info', '#ri-arrow-right-circle-line', 'draft'],
+      'Approved, setup pending': ['ok', '#ri-check-line', 'approved'], 'Your setup': ['info', '#ri-arrow-right-circle-line', 'setup'], 'Listed': ['ok', '#ri-check-line', 'listed'],
+      'Draft changed': ['warn', '#ri-alert-line', 'changed'], 'Declined': ['info', '#ri-information-line', 'declined'], 'Signing not available': ['warn', '#ri-alert-line', 'unavail']
+    }[st];
+    // Actions: the member approves, asks for changes or declines; later enables the reserve; then sees the service
+    var A = {
+      'Draft to review': [t('ob.a.review'), 'link', t('ob.a.changes')], 'Approve': [t('ob.a.review'), 'link', t('ob.a.changes')],
+      'Draft changed': [t('ob.a.review'), 'link', t('ob.a.decline')], 'Your setup': [t('ob.a.enable'), 'link', null], 'Listed': [t('ob.a.service'), 'link', null],
+      'Signing not available': [t('ob.a.review'), 'off', t('ob.a.changes')]
+    }[st];
+    var why = st === 'Signing not available' ? ['warn', '#ri-alert-line', t('ob.n.unavail.t'), t('ob.n.unavail.b')] : null;
+    var sheet = st === 'Approve';
+    var stepsKind = this.props.steps ?? 'strip', progKind = this.props.progress ?? 'phases';
+    var labels = [t('ob.j.approve'), t('ob.j.setup'), t('ob.j.register'), t('ob.j.admit'), t('ob.j.enable')];
+    var whos = [t('rd.who.you'), t('ob.who.gg'), t('ob.who.safe'), t('ob.who.pool'), t('rd.who.you')];
+    var journey = labels.map(function (l, i) { return { label: l, cls: i === 0 ? 'now' : i === 4 ? '' : 'wait', cur: i === 0 ? 'step' : 'false', n: String(i + 1), who: whos[i] }; });
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'), cancel: t('c.cancel'),
+      baseHidden: sheet ? 'true' : 'false',
+      kindLine: t('ob.kind', { name: t('who.ade'), garden: t('who.sun') }), title: t('ob.title'), desc: t('ob.desc'),
+      nextCls: NX[0], nextIcon: NX[1], nextT: t('ob.n.' + NX[2] + '.t'), nextB: t('ob.n.' + NX[2] + '.b'),
+      showProgress: showProgress, progressTitle: t('pu.progress'), phases: phases, flat: flat,
+      progPhases: progKind === 'phases', progFlat: progKind === 'flat', progSummary: progKind === 'summary',
+      sumText: t('pu.sum', { done: t.n(doneCount), total: t.n(flat.length) }), sumPct: String(Math.round(100 * doneCount / Math.max(1, flat.length))), showSteps: t('pu.showSteps'),
+      promiseT: t('ob.promise.t'), facts: facts, changedPill: t('pay.changed'), termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
+      yoursT: t('ob.yours.t'), yours: yours, stewardNote: t('ob.y.steward'), techLabel: t('c.tech'), tech: [t('ob.x.token'), t('ob.x.source'), t('ob.x.record')],
+      hasActs: !!A && !sheet, hasWhy: !!why, whyCls: why ? why[0] : '', whyIcon: why ? why[1] : '', whyT: why ? why[2] : '', whyB: why ? why[3] : '',
+      hasPrimary: !!A && A[1] === 'link', primaryOff: !!A && A[1] === 'off', primary: A ? A[0] : '', primaryHref: st === 'Listed' ? 'SMyService.dc.html' : '#',
+      hasSecondary: !!(A && A[2]), secondary: A && A[2] ? A[2] : '',
+      padBottom: A && !sheet ? (why ? '176px' : '104px') : '40px',
+      sheet: sheet, shTitle: t('ob.sh.title'), journeyLabel: t('pay.journey'), journey: journey,
+      stepsStrip: stepsKind === 'strip', stepsList: stepsKind === 'list', stepsCount: stepsKind === 'count',
+      countLine: t('pay.j.count', { n: t.n(1), total: t.n(journey.length), label: journey[0].label }), countNext: t('pay.j.next', { label: journey[1].label, who: journey[1].who }),
+      shFacts: facts.slice(0, 5).concat([facts[6]]).map(function (f) { return { k: f.k, v: f.v, s: f.s }; }).concat([{ k: t('ob.sh.yours'), v: t('ob.sh.yoursV'), s: t('ob.sh.yoursS') }]),
+      chkOn: checked ? 'on' : '', chkAria: checked ? 'true' : 'false', chkText: t('ob.sh.chk'), toggle: function () { self.setState({ checked: !checked }); },
+      consent: t('ob.sh.consent'), shCta: t('ob.sh.cta'), shCanGo: checked, shBlocked: !checked, passkey: t('c.passkey')
+    });
+  }
+}
+</script>
+</body>
+</html>

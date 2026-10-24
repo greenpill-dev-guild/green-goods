@@ -26,6 +26,7 @@ const notes = [];
 
 // 1 and 2: self-test, then fit at four sizes
 const views = [['openFlow', 's-earn', 0], ['openFlow', 's-redeem', 10], ['openFlow', 's-redeem', 4], ['openFlow', 's-exchange', 1], ['openFlow', 's-partial', 3], ['openFlow', 's-gd', 5],
+  ['openFlow', 's-issue', 0], ['openFlow', 's-issue', 2], ['openFlow', 's-issue', 10], ['openFlow', 's-project', 4], ['openFlow', 's-project', 14], ['openScreen', 'SIssuers'],
   ['openFlow', 's-wrong', 8], ['openPair', 'p-pay'], ['openPair', 'p-split'], ['openQuestion', 'offer'], ['openScreen', 'SIssuer'], ['openDoc', 'scenarios'], ['openDoc', 'crosswalk'], ['openDoc', 'answers'], ['openDoc', 'changes']];
 for (const [width, height] of [[1440, 900], [1280, 720], [1024, 768], [390, 844]]) {
   const page = await browser.newPage({ viewport: { width, height } });
@@ -144,14 +145,20 @@ const sweep = await page.evaluate(() => {
   }
   // 6. Every dial option, on each screen it applies to, at that screen's default state and a few telling ones
   const EXTRA = {
-    SRedeem: [{ kind: 'Course', state: 'Approve split' }, { kind: 'Session', state: 'Approve split' }, { kind: 'Course', state: 'Transfers pending' }, { kind: 'Course', state: 'Return failed' }, { kind: 'Course', state: 'In progress' }, { kind: 'Session', state: 'Closed' }],
-    SPay: [{ kind: 'Voucher session', state: 'Pay or deposit' }, { kind: 'Voucher session', state: 'Sent or deposited' }],
-    SIssuer: [{ state: 'Approve booking' }, { state: 'Accept' }, { state: 'Propose return' }, { state: 'Above terms' }, { state: 'Reserve short' }, { state: 'Raise allowance' }],
-    SOffer: [{ kind: 'Voucher course', state: 'Open' }, { kind: 'Voucher session', state: 'Not enough' }],
+    SRedeem: [{ kind: 'Course', state: 'Approve split' }, { kind: 'Session', state: 'Approve split' }, { kind: 'Course', state: 'Transfers pending' }, { kind: 'Course', state: 'Return failed' }, { kind: 'Course', state: 'In progress' }, { kind: 'Session', state: 'Closed' }, { kind: 'Lesson', state: 'Approve split' }, { kind: 'Lesson', state: 'Closed' }, { kind: 'Lesson', state: 'Return proposed' }],
+    SPay: [{ kind: 'Voucher session', state: 'Pay or deposit' }, { kind: 'Voucher session', state: 'Sent or deposited' }, { kind: 'Member lesson', state: 'Agree' }, { kind: 'Member lesson', state: 'Waiting for issuer' }],
+    SIssuer: [{ state: 'Approve booking' }, { state: 'Accept' }, { state: 'Accept member booking' }, { state: 'Propose return' }, { state: 'Above terms' }, { state: 'Reserve short' }, { state: 'Raise allowance' }],
+    SIssuers: [{ state: 'Prepare draft' }, { state: 'Awaiting Teo' }, { state: 'Owner Safe drafts' }, { state: 'Admitted' }, { state: 'Delist' }],
+    SOnboard: [{ state: 'Approve' }, { state: 'Approved, setup pending' }, { state: 'Your setup' }, { state: 'Listed' }, { state: 'Draft changed' }],
+    SMyService: [{ state: 'Approve booking' }, { state: 'Propose return' }, { state: 'Capacity full' }, { state: 'Delisted' }, { state: 'Reserve short' }],
+    SServices: [{ state: 'Issuer paused' }, { state: 'Empty' }],
+    SBrief: [{ state: 'One kept' }],
+    SExchange: [{ pair: 'Maya to Teo', state: 'Quote' }, { pair: 'Maya to Teo', state: 'Done' }],
+    SOffer: [{ kind: 'Voucher course', state: 'Open' }, { kind: 'Voucher session', state: 'Not enough' }, { kind: 'Member lesson', state: 'Open' }, { kind: 'Member lesson', state: 'Paused' }],
     SPurchase: [{ state: 'Access active' }, { state: 'Refund failed' }, { state: 'Terms changed' }, { state: 'Paid out' }],
     SRequests: [{ state: 'Accept' }, { state: 'Decline' }, { state: 'Mark ready' }, { state: 'Dispute' }],
     SFunds: [{ state: 'Check payment' }, { state: 'Assign payment' }, { state: 'Refund failed' }, { state: 'Reward payout failed' }],
-    SReward: [{ kind: 'Vouchers only', state: 'Open' }, { kind: 'Vouchers + G$', state: 'Reserve short' }]
+    SReward: [{ kind: 'Vouchers only', state: 'Open' }, { kind: 'Vouchers + G$', state: 'Reserve short' }, { kind: 'Member voucher', state: 'Reserve short' }, { kind: 'Member voucher', state: 'Agree' }]
   };
   out.dialCombos = 0;
   for (const t of window.__lab.tweaks()) for (const o of t.options) {

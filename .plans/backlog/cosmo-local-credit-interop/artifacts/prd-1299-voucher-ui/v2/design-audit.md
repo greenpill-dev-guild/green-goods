@@ -99,6 +99,30 @@ after the "Lab dials" comment as data-attribute overrides, so the pilot's defaul
 before. The check sweeps every dial option on each screen it applies to, and a new rule fails the
 check when the side panel needs scrolling at desktop sizes.
 
+## Member issuers, 24 Oct 2026
+
+Five screens were added (`SServices`, `SOnboard`, `SMyService`, `SBrief` for members; `SIssuers`
+for the cockpit) and six gained member variants. They reuse the corrected kit and the pilot patterns
+above; the few additions sit in `lab/gg.css` after the "Member issuers" comment:
+
+| Pattern | Where | What it does |
+|---|---|---|
+| Person tile | `SServices`, `SWallet`, `SMyService`, `SBrief` | A seed-toned 40px tile with the user glyph marks a service promised by a person; a garden keeps its sun or seedling tile. |
+| Capacity figures and strip | `SMyService` | Four figures (promised, booked, delivered, left) over the lessons strip, with delivered in green and booked in blue, kept apart from the voucher locations below. |
+| Member field | `SMyService` | A 48px, 16px-cornered field for an amount in a member sheet, with its unit inside and a hint under it; the cockpit keeps its 40px filled field. |
+| Filter chips | `SServices` | The app's capsule chips with a selected state in the accent tint. |
+| Loading rows | `SServices` | Skeleton rows on the weak surface, hidden from assistive technology, with a status line. |
+| Status pill in the title | `SMyService` | Listed, Paused or Delisted beside the service's unit line, so the page's state reads before the notice. |
+| Cockpit page badge | `SIssuers` | The "Fictional rehearsal" policy badge in the page header, mirroring the Admin component's own note. |
+
+Admin and Client copy the lab mirrors where it exists: the Admin issuer labels (token owner and
+reserve, source approval authority, finite adapter allowance, pool holding cap, price index, upgrade
+administrator, the pause note and "copying sends nothing") and the Client's issuer notes (reserve and
+holdings overlap, services owed unknown, returned vouchers don't confirm capacity, one pending
+action at a time). The lab's wording is warmer, as the member surface asks, but keeps the same facts.
+
+## Kept on purpose
+
 ## Kept on purpose
 
 - **The v1 reference screens keep chain and wallet names** (Celo, Gnosis, the Gnosis wallet,
@@ -129,7 +153,13 @@ These need a local checkout, a running app, or a decision.
    and the Promises tab cards against the current admin source.
 6. **Fonts.** The lab loads Plus Jakarta Sans from Google Fonts; the installed app bundles its
    own copy. Compare text rendering side by side.
-7. **Running-app comparison.** The pilot revision didn't compare against a running app or
-   Storybook, so items 1, 2, 5 and 6 are still open. A mock-auth localhost walk would cover them.
+7. **Running-app comparison.** Neither the pilot revision nor the member-issuer revision compared
+   against a running app or Storybook, so items 1, 2, 5 and 6 are still open. A mock-auth localhost
+   walk would cover them, and the Admin `VoucherIssuerOnboarding` story is the closest shipped
+   reference for `SIssuers`.
 8. **Screen reader.** Not tested. `check.mjs` covers control names, focus behind dialogs and
-   contrast, and a keyboard walk covered focus order, but no assistive technology was run.
+   contrast, and keyboard walks covered focus order on the lab panel and the new sheets, but no
+   assistive technology was run.
+9. **Community route.** `SIssuers` places voucher issuers on the cockpit's Community page with the
+   dock's Community item active, as the Admin component's location suggests. The page's own tabs
+   and header on `develop` weren't checked.

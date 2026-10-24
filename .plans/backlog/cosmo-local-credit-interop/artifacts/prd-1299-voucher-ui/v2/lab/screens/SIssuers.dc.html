@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voucher issuers</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app" inert="{{baseHidden}}">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">{{initial}}</span></span>
+  </header>
+  <main class="c-route" inert="{{baseHidden}}">
+    <div class="c-head"><div><h1>{{pageTitle}}</h1><p>{{pageSub}}</p></div><span class="sb pol">{{fictional}}</span></div>
+    <div class="c-grid">
+      <div class="c-col">
+        <section class="acard" data-focus="{{focusList}}">
+          <div class="ah"><div><h2>{{listTitle}}</h2><p>{{listDesc}}</p></div></div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+            <div class="arow offer {{r.openCls}}">
+              <div class="l1"><span class="nm">{{r.who}}</span><span class="sb neu">{{r.kind}}</span><span class="sb {{r.sb}}">{{r.tag}}</span></div>
+              <div class="l2">{{r.meta}}</div>
+              <div class="acts"><button type="button" class="abtn {{r.cls}}">{{r.act}}</button></div>
+              <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
+                <div class="expand">
+                  <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><div class="afacts">
+                    <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+                  </div></sc-if>
+                  <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks">
+                    <sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for>
+                  </div></sc-if>
+                  <sc-if value="{{dField}}" hint-placeholder-val="{{false}}">
+                    <div class="fieldA"><label for="iss-f2">{{fLabel}}</label><div class="inp" id="iss-f2" role="textbox" aria-describedby="iss-h2">{{fValue}}</div><span class="hl" id="iss-h2">{{fHint}}</span></div>
+                  </sc-if>
+                  <sc-if value="{{dWarn}}" hint-placeholder-val="{{false}}"><div class="why warn"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg><span>{{dWarnText}}</span></div></sc-if>
+                  <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                  <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><button type="button" class="abtn {{dCtaCls}}">{{dCta}}</button></div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>{{stepsTitle}}</h2><p>{{stepsDesc}}</p></div></div>
+          <div class="ab"><div class="checks">
+            <sc-for list="{{steps}}" as="s" hint-placeholder-count="5"><div class="ckr {{s.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg></span><span>{{s.t}}</span></div></sc-for>
+          </div></div>
+        </section>
+        <section class="acard">
+          <div class="ah"><div><h2>{{poolTitle}}</h2><p>{{poolDesc}}</p></div></div>
+          <div class="ab"><div class="afacts">
+            <sc-for list="{{pool}}" as="f" hint-placeholder-count="3"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+          </div></div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <nav class="dock" aria-label="{{dockLabel}}" inert="{{baseHidden}}">
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>{{dHub}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>{{dGarden}}</span>
+    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>{{dCommunity}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>{{dActions}}</span>
+  </nav>
+  <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="iss-dlg" data-focus="1">
+      <div class="dh"><div><h2 id="iss-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><div class="afacts">
+          <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+        </div></sc-if>
+        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks">
+          <sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for>
+        </div></sc-if>
+        <sc-if value="{{dField}}" hint-placeholder-val="{{false}}">
+          <div class="fieldA"><label for="iss-f1">{{fLabel}}</label><div class="inp" id="iss-f1" role="textbox" aria-describedby="iss-h1">{{fValue}}</div><span class="hl" id="iss-h1">{{fHint}}</span></div>
+        </sc-if>
+        <sc-if value="{{dWarn}}" hint-placeholder-val="{{false}}"><div class="why warn"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg><span>{{dWarnText}}</span></div></sc-if>
+        <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+      </div>
+      <div class="df"><span class="note">{{dNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button><button type="button" class="abtn lg {{dCtaCls}}">{{dCta}}</button></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Issuers","Prepare draft","Awaiting Teo","Owner Safe drafts","Admitted","Delist"],"default":"Issuers","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Issuers';
+    var dark = this.props.dark ?? false;
+    // Ade, a Sunroot steward, prepares the draft with Teo; Kaya, at Green Goods, prepares the owner Safe calls that admit the token
+    var sunroot = st === 'Prepare draft' || st === 'Awaiting Teo';
+    var teoTag = { 'Owner Safe drafts': ['info', t('iss.t.approved'), t('iss.m.teoApproved', { date: t.d('2026-10-24') })], 'Admitted': ['ok', t('iss.t.listed'), t('iss.m.teoListed')], 'Delist': ['ok', t('iss.t.listed'), t('iss.m.teoListed')] }[st]
+      || ['warn', t('iss.t.draft'), t('iss.m.teo', { date: t.d('2026-10-23') })];
+    var teoAct = { 'Prepare draft': t('iss.a.prepare'), 'Owner Safe drafts': t('iss.a.drafts') }[st] || t('iss.a.view');
+    var rows = [
+      { who: t('who.sun'), kind: t('iss.k.garden'), sb: 'ok', tag: t('iss.t.listed'), meta: t('iss.m.sun'), act: t('iss.a.view'), cls: '' },
+      { who: t('who.teoFull'), kind: t('iss.k.member'), sb: teoTag[0], tag: teoTag[1], meta: teoTag[2], act: teoAct, cls: st === 'Issuers' ? '' : 'fill' },
+      { who: t('who.mayaFull'), kind: t('iss.k.member'), sb: 'ok', tag: t('iss.t.listed'), meta: t('iss.m.maya'), act: t('iss.a.delist'), cls: '' }
+    ];
+    var OK = '#ri-check-line', INFO = '#ri-information-line';
+    var ck = function (text, s, cls) { return { t: text, s: s || '', cls: cls || 'ok', icon: cls === 'pol' ? INFO : OK }; };
+    var fieldFacts = [[t('ob.f.unit'), t('ob.f.unitV'), t('ob.f.unitS')], [t('ob.f.cap'), t('ob.f.capV'), ''], [t('ob.f.issue'), t('ob.f.issueV'), t('ob.f.issueS')], [t('ob.f.allow'), t('ob.f.allowV'), ''],
+      [t('ob.f.rate'), t('ob.f.rateV'), t('ob.f.rateS')], [t('ob.f.fees'), t('ob.f.feesV'), t('ob.f.feesS')], [t('ob.f.pool'), t('ob.f.poolV'), ''], [t('ob.f.reply'), t('ob.f.replyV'), t('ob.f.replyS')], [t('ob.f.short'), t('ob.f.shortV'), '']];
+    var D = {
+      'Prepare draft': { title: t('iss.d.prepare.t'), sub: t('iss.d.prepare.sub'), facts: fieldFacts, note: t('iss.d.note'), fsr: ['info', t('iss.f.prepare.t'), t('iss.f.prepare.b')], cta: t('iss.a.send'), ctaCls: 'fill' },
+      'Awaiting Teo': { title: t('iss.d.wait.t'), sub: t('iss.d.prepare.sub'), facts: [[t('iss.w.sent'), t.d('2026-10-23'), ''], [t('iss.w.terms'), t('iss.w.termsV'), ''], [t('iss.w.account'), t('iss.w.accountV'), '']],
+        note: t('iss.d.note'), fsr: ['info', t('iss.f.wait.t'), t('iss.f.wait.b')], cta: t('iss.a.remind'), ctaCls: '' },
+      'Owner Safe drafts': { title: t('iss.d.drafts.t'), sub: t('iss.d.drafts.sub'), facts: [[t('iss.dr.source'), t('iss.dr.sourceS'), ''], [t('iss.dr.register'), t('iss.dr.registerS'), ''], [t('iss.dr.cap'), t('iss.dr.registerS'), ''], [t('iss.dr.price'), t('iss.dr.priceS'), '']],
+        warn: t('iss.d.pause'), note: t('c.safe25'), fsr: ['info', t('iss.f.drafts.t'), t('iss.f.drafts.b')], cta: t('iss.a.copy'), ctaCls: 'fill' },
+      'Admitted': { title: t('iss.d.admitted.t'), sub: t('iss.d.prepare.sub'), facts: [], checks: [ck(t('ob.sub.registered'), t.d('2026-10-24')), ck(t('ob.sub.admitted'), t.d('2026-10-24')), ck(t('iss.dr.cap')), ck(t('iss.dr.price'))],
+        note: '', fsr: ['ok', t('iss.d.admitted.t'), t('iss.d.admitted.b')], cta: t('c.done'), ctaCls: 'fill' },
+      'Delist': { title: t('iss.d.delist.t'), sub: t('iss.d.delist.sub'), facts: [], checks: [ck(t('iss.c.hold')), ck(t('iss.c.book')), ck(t('iss.c.ex'), '', 'pol'), ck(t('iss.c.obl'))],
+        field: [t('rq.reason'), t('iss.reasonV'), t('rq.reasonHint')], note: t('c.safe25'), fsr: ['info', t('iss.f.delist.t'), t('iss.f.delist.b')], cta: t('iss.d.delist.cta'), ctaCls: 'dng' }
+    }[st];
+    // The lab's confirm dial: the dialog, or the same review opened in the row itself
+    var inline = (this.props.confirm ?? 'dialog') === 'inline' && !!D;
+    var openIdx = st === 'Delist' ? 2 : 1;
+    rows.forEach(function (r, i) { r.open = inline && openIdx === i; r.openCls = r.open ? 'open' : ''; });
+    var steps = [t('iss.st.prepare'), t('iss.st.approve'), t('iss.st.register'), t('iss.st.admit'), t('iss.st.enable')];
+    var doneSteps = { 'Issuers': 1, 'Prepare draft': 1, 'Awaiting Teo': 1, 'Owner Safe drafts': 2, 'Admitted': 4, 'Delist': 5 }[st];
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, closeLabel: t('c.close'), cancel: t('c.cancel'),
+      garden: sunroot ? t('who.sun') : t('who.gg'), initial: sunroot ? 'A' : 'K',
+      baseHidden: D && !inline ? 'true' : 'false', focusList: !D || inline ? '1' : '',
+      pageTitle: t('iss.title'), pageSub: t('iss.sub'), fictional: t('iss.fictional'),
+      listTitle: t('iss.list.t'), listDesc: t('iss.list.d'), rows: rows,
+      stepsTitle: t('iss.steps.t'), stepsDesc: t('iss.steps.d'),
+      steps: steps.map(function (s, i) { return { t: s, cls: i < doneSteps ? 'ok' : 'wait', icon: i < doneSteps ? OK : '#ri-time-line' }; }),
+      poolTitle: t('iss.pool.t'), poolDesc: t('iss.pool.d'),
+      pool: [{ k: t('iss.p.assets'), v: t('iss.p.assetsV'), s: t('iss.p.assetsS') }, { k: t('iss.p.fees'), v: t('iss.p.feesV'), s: t('iss.p.feesS') }, { k: t('iss.p.caps'), v: t('iss.p.capsV'), s: t('iss.p.capsS') }],
+      dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
+      showDlg: !!D && !inline, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: D ? D.note : '',
+      dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
+      dHasChecks: !!(D && D.checks), dChecks: D && D.checks ? D.checks : [],
+      dField: !!(D && D.field), fLabel: D && D.field ? D.field[0] : '', fValue: D && D.field ? D.field[1] : '', fHint: D && D.field ? D.field[2] : '',
+      dWarn: !!(D && D.warn), dWarnText: D && D.warn ? D.warn : '',
+      fsrCls: D ? D.fsr[0] : 'info', fsrT: D ? D.fsr[1] : '', fsrB: D ? D.fsr[2] : '',
+      dCta: D ? D.cta : '', dCtaCls: D ? D.ctaCls : 'fill'
+    });
+  }
+}
+</script>
+</body>
+</html>

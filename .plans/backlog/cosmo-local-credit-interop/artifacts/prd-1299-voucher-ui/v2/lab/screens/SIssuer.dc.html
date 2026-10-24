@@ -112,7 +112,7 @@
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Bookings","Approve booking","Accept","Report lesson","Propose return","Above terms","Transfer failed","Reserve short","Raise allowance"],"default":"Bookings","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Bookings","Approve booking","Accept","Accept member booking","Report lesson","Propose return","Above terms","Transfer failed","Reserve short","Raise allowance"],"default":"Bookings","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
 class Component extends DCLogic {
   renderVals() {
     var t = GGT(this.props.lang);
@@ -123,7 +123,9 @@ class Component extends DCLogic {
       { who: t('is.r.linaS'), sb: 'warn', tag: t('is.tag.approve'), meta: t('is.m.linaS', { date: t.d('2026-10-23'), due: t.d('2026-10-29') }), act: t('is.a.approve'), cls: 'fill' },
       { who: t('is.r.linaC'), sb: 'ok', tag: t('is.tag.deposited'), meta: t('is.m.linaC', { due: t.d('2026-11-02') }), act: t('is.a.accept'), cls: 'fill' },
       { who: t('is.r.mara'), sb: 'info', tag: t('is.tag.lessons', { done: n(6) }), meta: t('is.m.mara', { date: t.d('2026-10-30') }), act: t('is.a.report'), cls: '' },
-      { who: t('is.r.kwesi'), sb: 'warn', tag: t('is.tag.ended'), meta: t('is.m.kwesi'), act: t('is.a.propose'), cls: '' }
+      { who: t('is.r.kwesi'), sb: 'warn', tag: t('is.tag.ended'), meta: t('is.m.kwesi'), act: t('is.a.propose'), cls: '' },
+      // A booking on a member's service: Teo approved it himself; the pool's steward accepts
+      { who: t('is.r.mayaT'), sb: 'ok', tag: t('is.tag.deposited'), meta: t('is.m.mayaT', { due: t.d('2026-11-01') }), act: t('is.a.accept'), cls: 'fill' }
     ];
     if (st === 'Transfer failed') rows.push({ who: t('is.r.linaC2'), sb: 'err', tag: t('is.tag.failed'), meta: t('is.m.failed', { n: n(60) }), act: t('is.a.retry'), cls: 'fill' });
     var short = st === 'Reserve short' || st === 'Raise allowance';
@@ -136,6 +138,8 @@ class Component extends DCLogic {
         facts: [[t('is.d.f.vouchers'), n(10) + ' ' + t('u.sunMany'), ''], [t('is.d.f.from'), t('is.d.f.fromV'), t('is.d.f.fromS')], [t('is.d.f.due'), t.d('2026-10-29'), t('is.d.f.dueS')], [t('c.terms'), t('is.d.f.termsV'), '']], fsr: 'is.f.approve' },
       'Accept': { title: t('is.d.accept.t'), sub: t('of.c.title'), cta: t('is.d.accept.cta'), note: t('c.wallet'), facts: [],
         checks: [{ t: t('is.c.terms'), s: t('is.c.termsS') }, { t: t('is.c.approved'), s: t.d('2026-10-24') }, { t: t('is.c.deposit', { n: n(100) }), s: t('is.c.depositS') }, { t: t('is.c.due'), s: t.d('2026-11-02') }], fsr: 'is.f.accept' },
+      'Accept member booking': { title: t('is.d.acceptM.t'), sub: t('of.m.title'), cta: t('is.d.acceptM.cta'), note: t('c.wallet'), facts: [],
+        checks: [{ t: t('is.c.termsM'), s: t('is.c.termsS') }, { t: t('is.c.teo'), s: t.d('2026-10-26') }, { t: t('is.c.depositM'), s: t('is.c.depositS') }, { t: t('is.c.due'), s: t.d('2026-11-01') }], fsr: 'is.f.acceptM' },
       'Report lesson': { title: t('is.d.report.t'), sub: t('is.d.report.sub'), cta: t('is.d.report.cta'), note: t('c.wallet'),
         facts: [[t('is.d.f.date'), t.d('2026-10-30'), ''], [t('is.d.f.attend'), t('is.d.f.attendV'), ''], [t('is.d.f.evidence'), t('is.d.f.evidenceV'), '']], fsr: 'is.f.report' },
       'Propose return': { title: t('is.d.propose.t'), sub: t('is.d.propose.sub'), cta: t('is.d.propose.cta'), note: t('c.safe23'), facts: [[t('is.d.f.lessons'), t('is.d.f.lessonsV'), t('is.d.f.lessonsS')]],
@@ -148,7 +152,7 @@ class Component extends DCLogic {
     }[st];
     // The lab's confirm dial: the dialog, or the same checks opened in the row itself
     var inline = (this.props.confirm ?? 'dialog') === 'inline' && !!D;
-    var openIdx = { 'Approve booking': 0, 'Accept': 1, 'Report lesson': 2, 'Propose return': 3, 'Above terms': 3 }[st];
+    var openIdx = { 'Approve booking': 0, 'Accept': 1, 'Report lesson': 2, 'Propose return': 3, 'Above terms': 3, 'Accept member booking': 4 }[st];
     rows.forEach(function (r, i) { r.open = inline && openIdx === i; r.openCls = r.open ? 'open' : ''; });
     var resOpen = inline && st === 'Raise allowance';
     // Where the lab's focus crop looks: the dialog when one is open, else the card in play

@@ -164,7 +164,7 @@
     "Los jueves, en persona en Sunroot.",
     "Às quintas, presenciais na Sunroot."
   ],
-  "of.v.give": ["{n} Sunroot vouchers", "{n} vales de Sunroot", "{n} vales da Sunroot"],
+  "of.v.give": ["{n} {unit}", "{n} {unit}", "{n} {unit}"],
   "of.v.giveS": ["You hold {held}.", "Tienes {held}.", "Você tem {held}."],
   "of.v.held": [
     "A voucher escrow for this booking",
@@ -172,14 +172,14 @@
     "Um depósito em garantia para esta reserva"
   ],
   "of.v.heldS": [
-    "Sunroot can't use them until you approve the final split.",
-    "Sunroot no puede usarlos hasta que apruebes el reparto final.",
-    "A Sunroot não pode usá-los até você aprovar a divisão final."
+    "{issuer} can't use them until you approve the final split.",
+    "{issuer} no puede usarlos hasta que apruebes el reparto final.",
+    "{issuer} não pode usá-los até você aprovar a divisão final."
   ],
   "of.v.next": [
-    "Sunroot approves, then accepts you",
-    "Sunroot aprueba y luego te acepta",
-    "A Sunroot aprova e depois aceita você"
+    "{issuer} approves, then accepts you",
+    "{issuer} aprueba y luego te acepta",
+    "{issuer} aprova e depois aceita você"
   ],
   "of.v.nextS": [
     "It accepts only after your deposit arrives.",
@@ -187,9 +187,9 @@
     "Ela só aceita depois que seu depósito chegar."
   ],
   "of.v.back": [
-    "All of them, if you cancel before Sunroot accepts",
-    "Todos, si cancelas antes de que Sunroot acepte",
-    "Todos, se você cancelar antes de a Sunroot aceitar"
+    "All of them, if you cancel before {issuer} accepts",
+    "Todos, si cancelas antes de que {issuer} acepte",
+    "Todos, se você cancelar antes de {issuer} aceitar"
   ],
   "of.s.backS": [
     "After that, Sunroot's terms set what can come back, and you approve the split.",
@@ -202,9 +202,9 @@
     "Depois disso, as condições da Sunroot permitem devolver até 60 após 3 aulas. Você aprova a divisão."
   ],
   "of.v.starts": [
-    "When Sunroot accepts you",
-    "Cuando Sunroot te acepta",
-    "Quando a Sunroot aceitar você"
+    "When {issuer} accepts you",
+    "Cuando {issuer} te acepta",
+    "Quando {issuer} aceitar você"
   ],
   "of.s.startsS": [
     "Sessions run on Thursdays",
@@ -222,9 +222,9 @@
     "Jardineiros e responsáveis"
   ],
   "of.f.whoSv": [
-    "Of any garden, holding Sunroot vouchers",
-    "De cualquier jardín, con vales de Sunroot",
-    "De qualquer jardim, com vales da Sunroot"
+    "Of any garden, holding {unit}",
+    "De cualquier jardín, con {unit}",
+    "De qualquer jardim, com {unit}"
   ],
   "of.s.places": ["3 open this week", "3 libres esta semana", "3 livres esta semana"],
   "of.c.places": ["12 of 20 open", "12 de 20 libres", "12 de 20 livres"],
@@ -246,11 +246,7 @@
     "Isto exige {gross} G$, com a taxa incluída."
   ],
   "of.a.getGd": ["Open Wallet", "Abrir billetera", "Abrir carteira"],
-  "of.r.shortV.t": [
-    "You hold {have} Sunroot vouchers.",
-    "Tienes {have} vales de Sunroot.",
-    "Você tem {have} vales da Sunroot."
-  ],
+  "of.r.shortV.t": ["You hold {have} {unit}.", "Tienes {have} {unit}.", "Você tem {have} {unit}."],
   "of.r.shortV.bc": [
     "This course takes 100. You can exchange other vouchers in the shared pool, or earn more.",
     "Este curso requiere 100. Puedes cambiar otros vales en el fondo compartido o ganar más.",
@@ -310,9 +306,9 @@
     "Sua etapa: enviar seu pagamento"
   ],
   "pay.step.wait": [
-    "Sunroot's step: approve the booking",
-    "Paso de Sunroot: aprobar la reserva",
-    "Etapa da Sunroot: aprovar a reserva"
+    "{issuer}'s step: approve the booking",
+    "Paso de {issuer}: aprobar la reserva",
+    "Etapa de {issuer}: aprovar a reserva"
   ],
   "pay.step.deposit": [
     "Your step: deposit the vouchers",
@@ -325,9 +321,9 @@
     "Agora: seu jardim verifica seu pagamento"
   ],
   "pay.step.accept": [
-    "Next: Sunroot accepts you",
-    "Ahora: Sunroot te acepta",
-    "Agora: a Sunroot aceita você"
+    "Next: {issuer} accepts you",
+    "Ahora: {issuer} te acepta",
+    "Agora: {issuer} aceita você"
   ],
   "pay.f.get": ["You get", "Recibes", "Você recebe"],
   "pay.f.pay": ["You pay", "Pagas", "Você paga"],
@@ -405,15 +401,15 @@
   "pay.cta.deposit": ["Deposit {n} Vouchers", "Depositar {n} vales", "Depositar {n} vales"],
   "pay.n.sent.t": ["Sent.", "Enviado.", "Enviado."],
   "pay.n.sent.b": [
-    "Riverside Commons' stewards check that it arrived. Each step shows on your purchase page.",
-    "Los responsables de Riverside Commons verifican que llegó. Cada paso aparece en la página de tu compra.",
-    "Os responsáveis do Riverside Commons verificam que chegou. Cada etapa aparece na página da sua compra."
+    "{garden}'s stewards check that it arrived. Each step shows on your purchase page.",
+    "Los responsables de {garden} verifican que llegó. Cada paso aparece en la página de tu compra.",
+    "Os responsáveis de {garden} verificam que chegou. Cada etapa aparece na página da sua compra."
   ],
   "pay.n.deposited.t": ["Deposited.", "Depositado.", "Depositado."],
   "pay.n.deposited.b": [
-    "Green Goods checks the deposit first. Then Sunroot can accept you.",
-    "Primero Green Goods revisa el depósito. Después Sunroot puede aceptarte.",
-    "Primeiro o Green Goods confere o depósito. Depois a Sunroot pode aceitar você."
+    "Green Goods checks the deposit first. Then {issuer} can accept you.",
+    "Primero Green Goods revisa el depósito. Después {issuer} puede aceptarte.",
+    "Primeiro o Green Goods confere o depósito. Depois {issuer} pode aceitar você."
   ],
   "pay.n.nores.t": [
     "We can't tell if it went through.",
@@ -457,11 +453,7 @@
     "Esto requiere {gross} G$.",
     "Isto exige {gross} G$."
   ],
-  "pay.r.shortV.t": [
-    "You hold {have} Sunroot vouchers.",
-    "Tienes {have} vales de Sunroot.",
-    "Você tem {have} vales da Sunroot."
-  ],
+  "pay.r.shortV.t": ["You hold {have} {unit}.", "Tienes {have} {unit}.", "Você tem {have} {unit}."],
   "pay.r.shortV.b": ["This takes {n}.", "Esto requiere {n}.", "Isto exige {n}."],
   "pay.r.unavail.t": [
     "Depositing isn't available yet.",
@@ -487,8 +479,8 @@
   "pay.changed": ["Changed", "Cambió", "Mudou"],
   "pay.s.get": ["One 60-minute session", "Una sesión de 60 minutos", "Uma sessão de 60 minutos"],
   "pay.c.get": ["10 weekly lessons", "10 lecciones semanales", "10 aulas semanais"],
-  "pay.v.getS": ["With Sunroot Skills Hub", "Con Sunroot Skills Hub", "Com a Sunroot Skills Hub"],
-  "pay.v.give": ["{n} Sunroot vouchers", "{n} vales de Sunroot", "{n} vales da Sunroot"],
+  "pay.v.getS": ["With {issuerFull}", "Con {issuerFull}", "Com {issuerFull}"],
+  "pay.v.give": ["{n} {unit}", "{n} {unit}", "{n} {unit}"],
   "pay.v.giveS": [
     "You hold {held}. They stay with you until you deposit them.",
     "Tienes {held}. Siguen contigo hasta que los deposites.",
@@ -501,14 +493,14 @@
     "Um depósito em garantia para esta reserva"
   ],
   "pay.v.heldS": [
-    "Sunroot can't use them until you approve the final split",
-    "Sunroot no puede usarlos hasta que apruebes el reparto final",
-    "A Sunroot não pode usá-los até você aprovar a divisão final"
+    "{issuer} can't use them until you approve the final split",
+    "{issuer} no puede usarlos hasta que apruebes el reparto final",
+    "{issuer} não pode usá-los até você aprovar a divisão final"
   ],
   "pay.v.deadlineS": [
-    "Before Sunroot accepts, you can cancel any time and get all {n} back.",
-    "Antes de que Sunroot acepte, puedes cancelar cuando quieras y recuperar los {n}.",
-    "Antes de a Sunroot aceitar, você pode cancelar quando quiser e recuperar os {n}."
+    "Before {issuer} accepts, you can cancel any time and get all {n} back.",
+    "Antes de que {issuer} acepte, puedes cancelar cuando quieras y recuperar los {n}.",
+    "Antes de {issuer} aceitar, você pode cancelar quando quiser e recuperar os {n}."
   ],
   "pay.s.after": [
     "Sunroot's terms set any return",
@@ -531,9 +523,9 @@
     "Concordar registra seu consentimento a estas condições exatas. Seus vales ainda não se movem."
   ],
   "pay.v.wait.t": [
-    "Sunroot approves the booking next.",
-    "Ahora Sunroot aprueba la reserva.",
-    "Agora a Sunroot aprova a reserva."
+    "{issuer} approves the booking next.",
+    "Ahora {issuer} aprueba la reserva.",
+    "Agora {issuer} aprova a reserva."
   ],
   "pay.v.wait.b": [
     "Its Safe needs 2 of 3 signatures, so it can take a day. Nothing has left your account. We'll let you know when you can deposit.",
@@ -547,9 +539,9 @@
     "O depósito em garantia desta reserva"
   ],
   "pay.v.intoS": [
-    "Sunroot approved it on {date}",
-    "Sunroot lo aprobó el {date}",
-    "A Sunroot aprovou em {date}"
+    "{issuer} approved it on {date}",
+    "{issuer} lo aprobó el {date}",
+    "{issuer} aprovou em {date}"
   ],
   "pay.v.depNote": [
     "You may be asked to approve twice: once to allow exactly {n} vouchers, then to deposit them.",
@@ -856,9 +848,9 @@
   "rd.p.session": ["Session", "Sesión", "Sessão"],
   "rd.p.close": ["Closing", "Cierre", "Encerramento"],
   "rd.p.canceled": ["Canceled", "Cancelado", "Cancelado"],
-  "rd.who.booked": ["You and Sunroot", "Tú y Sunroot", "Você e a Sunroot"],
-  "rd.who.sun": ["Sunroot", "Sunroot", "Sunroot"],
-  "rd.who.sunReports": ["Reported by Sunroot", "Informado por Sunroot", "Informado pela Sunroot"],
+  "rd.who.booked": ["You and {issuer}", "Tú y {issuer}", "Você e {issuer}"],
+  "rd.who.sun": ["{issuer}", "{issuer}", "{issuer}"],
+  "rd.who.sunReports": ["Reported by {issuer}", "Informado por {issuer}", "Informado por {issuer}"],
   "rd.who.you": ["You", "Tú", "Você"],
   "rd.who.youThen": [
     "You approve; the transfers follow",
@@ -871,9 +863,9 @@
     "Você concordou com as condições · {date}"
   ],
   "rd.sub.approved": [
-    "Sunroot approved the booking",
-    "Sunroot aprobó la reserva",
-    "A Sunroot aprovou a reserva"
+    "{issuer} approved the booking",
+    "{issuer} aprobó la reserva",
+    "{issuer} aprovou a reserva"
   ],
   "rd.sub.deposited": [
     "You deposited {n} vouchers into escrow",
@@ -891,7 +883,7 @@
     "{n} vales de vuelta para ti",
     "{n} vales de volta para você"
   ],
-  "rd.sub.accepted": ["Sunroot accepted you", "Sunroot te aceptó", "A Sunroot aceitou você"],
+  "rd.sub.accepted": ["{issuer} accepted you", "{issuer} te aceptó", "{issuer} aceitou você"],
   "rd.sub.started": [
     "Booking started: terms are fixed",
     "Reserva iniciada: las condiciones quedan fijas",
@@ -919,9 +911,9 @@
     "Você confirma que a promessa foi cumprida"
   ],
   "rd.sub.closedEarly": [
-    "Sunroot's stewards close the promise as ended early",
-    "Los responsables de Sunroot cierran la promesa como terminada antes",
-    "Os responsáveis da Sunroot encerram a promessa como terminada antes"
+    "The garden's stewards close the promise as ended early",
+    "Los responsables del jardín cierran la promesa como terminada antes",
+    "Os responsáveis do jardim encerram a promessa como terminada antes"
   ],
   "rd.legs": ["Transfers", "Transferencias", "Transferências"],
   "rd.leg.done": ["Arrived", "Recibida", "Recebida"],
@@ -939,60 +931,56 @@
     "Qualquer pessoa pode tentar de novo esta transferência. Ela só pode enviar os mesmos {n} para você."
   ],
   "rd.leg.rel": [
-    "{n} to Sunroot's reserve",
-    "{n} a la reserva de Sunroot",
-    "{n} para a reserva da Sunroot"
+    "{n} to {issuer}'s reserve",
+    "{n} a la reserva de {issuer}",
+    "{n} para a reserva de {issuer}"
   ],
   "rd.leg.relSub": ["For what you received.", "Por lo que recibiste.", "Pelo que você recebeu."],
   "rd.b.yours": [
-    "Sunroot vouchers, still in your account",
-    "vales de Sunroot, aún en tu cuenta",
-    "vales da Sunroot, ainda na sua conta"
+    "{unit}, still in your account",
+    "{unit}, aún en tu cuenta",
+    "{unit}, ainda na sua conta"
   ],
   "rd.b.held": [
-    "Sunroot vouchers held in escrow for this booking",
-    "vales de Sunroot en garantía para esta reserva",
-    "vales da Sunroot em garantia para esta reserva"
+    "{unit} held in escrow for this booking",
+    "{unit} en garantía para esta reserva",
+    "{unit} em garantia para esta reserva"
   ],
   "rd.b.back": [
-    "Sunroot vouchers back in your account",
-    "vales de Sunroot de vuelta en tu cuenta",
-    "vales da Sunroot de volta na sua conta"
+    "{unit} back in your account",
+    "{unit} de vuelta en tu cuenta",
+    "{unit} de volta na sua conta"
   ],
   "rd.b.coming": [
-    "Sunroot vouchers on their way back to you",
-    "vales de Sunroot en camino de vuelta a ti",
-    "vales da Sunroot a caminho de volta para você"
+    "{unit} on their way back to you",
+    "{unit} en camino de vuelta a ti",
+    "{unit} a caminho de volta para você"
   ],
   "rd.b.toSun": [
-    "Sunroot vouchers on their way to Sunroot's reserve",
-    "vales de Sunroot en camino a la reserva de Sunroot",
-    "vales da Sunroot a caminho da reserva da Sunroot"
+    "{unit} on their way to {issuer}'s reserve",
+    "{unit} en camino a la reserva de {issuer}",
+    "{unit} a caminho da reserva de {issuer}"
   ],
   "rd.b.retry": [
-    "Sunroot vouchers owed back to you, waiting for a retry",
-    "vales de Sunroot que se te deben, esperando un reintento",
-    "vales da Sunroot devidos a você, aguardando nova tentativa"
+    "{unit} owed back to you, waiting for a retry",
+    "{unit} que se te deben, esperando un reintento",
+    "{unit} devidos a você, aguardando nova tentativa"
   ],
-  "rd.b.backDone": [
-    "Sunroot vouchers back with you",
-    "vales de Sunroot de vuelta contigo",
-    "vales da Sunroot de volta com você"
-  ],
+  "rd.b.backDone": ["{unit} back with you", "{unit} de vuelta contigo", "{unit} de volta com você"],
   "rd.b.sunDone": [
-    "Sunroot vouchers went to Sunroot's reserve",
-    "vales de Sunroot fueron a la reserva de Sunroot",
-    "vales da Sunroot foram para a reserva da Sunroot"
+    "{unit} went to {issuer}'s reserve",
+    "{unit} fueron a la reserva de {issuer}",
+    "{unit} foram para a reserva de {issuer}"
   ],
   "rd.n.approval.t": [
-    "Next: Sunroot approves your booking",
-    "Ahora: Sunroot aprueba tu reserva",
-    "Agora: a Sunroot aprova sua reserva"
+    "Next: {issuer} approves your booking",
+    "Ahora: {issuer} aprueba tu reserva",
+    "Agora: {issuer} aprova sua reserva"
   ],
   "rd.n.approval.b": [
-    "Sunroot's Safe needs 2 of 3 signatures. Your vouchers are still in your account. You can cancel any time before Sunroot accepts.",
-    "El Safe de Sunroot necesita 2 de 3 firmas. Tus vales siguen en tu cuenta. Puedes cancelar cuando quieras antes de que Sunroot acepte.",
-    "O Safe da Sunroot precisa de 2 de 3 assinaturas. Seus vales continuam na sua conta. Você pode cancelar quando quiser antes de a Sunroot aceitar."
+    "{issuer}'s Safe needs 2 of 3 signatures. Your vouchers are still in your account. You can cancel any time before {issuer} accepts.",
+    "El Safe de {issuer} necesita 2 de 3 firmas. Tus vales siguen en tu cuenta. Puedes cancelar cuando quieras antes de que {issuer} acepte.",
+    "O Safe de {issuer} precisa de 2 de 3 assinaturas. Seus vales continuam na sua conta. Você pode cancelar quando quiser antes de {issuer} aceitar."
   ],
   "rd.n.deposit.t": [
     "Next: deposit your vouchers",
@@ -1000,9 +988,9 @@
     "Agora: deposite seus vales"
   ],
   "rd.n.deposit.b": [
-    "Sunroot approved. Deposit {n} vouchers into the escrow for this booking. Sunroot must accept by {d1}.",
-    "Sunroot aprobó. Deposita {n} vales en la garantía de esta reserva. Sunroot debe aceptar antes del {d1}.",
-    "A Sunroot aprovou. Deposite {n} vales na garantia desta reserva. A Sunroot deve aceitar até {d1}."
+    "{issuer} approved. Deposit {n} vouchers into the escrow for this booking. {issuer} must accept by {d1}.",
+    "{issuer} aprobó. Deposita {n} vales en la garantía de esta reserva. {issuer} debe aceptar antes del {d1}.",
+    "{issuer} aprovou. Deposite {n} vales na garantia desta reserva. {issuer} deve aceitar até {d1}."
   ],
   "rd.n.confirming.t": [
     "Confirming your deposit",
@@ -1010,31 +998,31 @@
     "Confirmando seu depósito"
   ],
   "rd.n.confirming.b": [
-    "Your vouchers are in escrow. Green Goods confirms the deposit before Sunroot can accept. This can take a few minutes.",
-    "Tus vales están en garantía. Green Goods confirma el depósito antes de que Sunroot pueda aceptar. Puede tardar unos minutos.",
-    "Seus vales estão em garantia. O Green Goods confirma o depósito antes de a Sunroot poder aceitar. Pode levar alguns minutos."
+    "Your vouchers are in escrow. Green Goods confirms the deposit before {issuer} can accept. This can take a few minutes.",
+    "Tus vales están en garantía. Green Goods confirma el depósito antes de que {issuer} pueda aceptar. Puede tardar unos minutos.",
+    "Seus vales estão em garantia. O Green Goods confirma o depósito antes de {issuer} poder aceitar. Pode levar alguns minutos."
   ],
   "rd.n.acceptance.t": [
-    "Next: Sunroot accepts you",
-    "Ahora: Sunroot te acepta",
-    "Agora: a Sunroot aceita você"
+    "Next: {issuer} accepts you",
+    "Ahora: {issuer} te acepta",
+    "Agora: {issuer} aceita você"
   ],
   "rd.n.acceptance.b": [
-    "Your deposit is confirmed. Sunroot accepts by {d1}. Until then, you can cancel and get all {n} back.",
-    "Tu depósito está confirmado. Sunroot acepta antes del {d1}. Hasta entonces, puedes cancelar y recuperar los {n}.",
-    "Seu depósito está confirmado. A Sunroot aceita até {d1}. Até lá, você pode cancelar e recuperar os {n}."
+    "Your deposit is confirmed. {issuer} accepts by {d1}. Until then, you can cancel and get all {n} back.",
+    "Tu depósito está confirmado. {issuer} acepta antes del {d1}. Hasta entonces, puedes cancelar y recuperar los {n}.",
+    "Seu depósito está confirmado. {issuer} aceita até {d1}. Até lá, você pode cancelar e recuperar os {n}."
   ],
   "rd.n.starting.t": ["Starting your booking", "Iniciando tu reserva", "Iniciando sua reserva"],
   "rd.n.starting.b": [
-    "Sunroot accepted you. The booking is starting on the voucher network. Starting fixes the terms; it doesn't mean the service happened.",
-    "Sunroot te aceptó. La reserva se está iniciando en la red de los vales. Iniciar fija las condiciones; no significa que el servicio ocurrió.",
-    "A Sunroot aceitou você. A reserva está sendo iniciada na rede dos vales. Iniciar fixa as condições; não significa que o serviço aconteceu."
+    "{issuer} accepted you. The booking is starting on the voucher network. Starting fixes the terms; it doesn't mean the service happened.",
+    "{issuer} te aceptó. La reserva se está iniciando en la red de los vales. Iniciar fija las condiciones; no significa que el servicio ocurrió.",
+    "{issuer} aceitou você. A reserva está sendo iniciada na rede dos vales. Iniciar fixa as condições; não significa que o serviço aconteceu."
   ],
   "rd.n.sessionOn.t": ["You're booked", "Tienes la reserva", "Sua reserva está feita"],
   "rd.n.sessionOn.b": [
-    "Thursday {d2}, 10:00, at Sunroot. After the session, Sunroot reports it, then you close it here.",
-    "Jueves {d2}, 10:00, en Sunroot. Después de la sesión, Sunroot la informa y tú la cierras aquí.",
-    "Quinta, {d2}, 10:00, na Sunroot. Depois da sessão, a Sunroot informa e você encerra aqui."
+    "Thursday {d2}, 10:00, at {issuer}. After the session, {issuer} reports it, then you close it here.",
+    "Jueves {d2}, 10:00, en {issuer}. Después de la sesión, {issuer} la informa y tú la cierras aquí.",
+    "Quinta, {d2}, 10:00, em {issuer}. Depois da sessão, {issuer} informa e você encerra aqui."
   ],
   "rd.n.courseOn.t": [
     "Your course is under way",
@@ -1052,19 +1040,19 @@
     "Agora: encerre a reserva"
   ],
   "rd.n.close.b": [
-    "Sunroot reported the delivery. Approve the final split, then confirm the promise was kept. Each needs its own approval.",
-    "Sunroot informó la entrega. Aprueba el reparto final y luego confirma que la promesa se cumplió. Cada paso necesita su propia aprobación.",
-    "A Sunroot informou a entrega. Aprove a divisão final e depois confirme que a promessa foi cumprida. Cada etapa precisa da sua própria aprovação."
+    "{issuer} reported the delivery. Approve the final split, then confirm the promise was kept. Each needs its own approval.",
+    "{issuer} informó la entrega. Aprueba el reparto final y luego confirma que la promesa se cumplió. Cada paso necesita su propia aprobación.",
+    "{issuer} informou a entrega. Aprove a divisão final e depois confirme que a promessa foi cumprida. Cada etapa precisa da sua própria aprovação."
   ],
   "rd.n.proposed.t": [
-    "Sunroot proposes a return",
-    "Sunroot propone una devolución",
-    "A Sunroot propõe uma devolução"
+    "{issuer} proposes a return",
+    "{issuer} propone una devolución",
+    "{issuer} propõe uma devolução"
   ],
   "rd.n.proposed.b": [
-    "Sunroot ended the course after 3 of 10 lessons and proposes {back} back to you and {rel} to its reserve, within its terms. Nothing moves until you approve the split or report a problem.",
-    "Sunroot terminó el curso tras 3 de 10 lecciones y propone {back} de vuelta para ti y {rel} para su reserva, dentro de sus condiciones. Nada se mueve hasta que apruebes el reparto o informes un problema.",
-    "A Sunroot encerrou o curso após 3 de 10 aulas e propõe {back} de volta para você e {rel} para a reserva dela, dentro das condições. Nada se move até você aprovar a divisão ou informar um problema."
+    "{issuer} ended the course after 3 of 10 lessons and proposes {back} back to you and {rel} to its reserve, within its terms. Nothing moves until you approve the split or report a problem.",
+    "{issuer} terminó el curso tras 3 de 10 lecciones y propone {back} de vuelta para ti y {rel} para su reserva, dentro de sus condiciones. Nada se mueve hasta que apruebes el reparto o informes un problema.",
+    "{issuer} encerrou o curso após 3 de 10 aulas e propõe {back} de volta para você e {rel} para a reserva dela, dentro das condições. Nada se move até você aprovar a divisão ou informar um problema."
   ],
   "rd.n.legsBack.t": [
     "Your return is pending",
@@ -1072,9 +1060,9 @@
     "Sua devolução está pendente"
   ],
   "rd.n.legsBack.b": [
-    "You approved the split. {back} vouchers come back to you and {rel} go to Sunroot's reserve. Each transfer shows here until it arrives.",
-    "Aprobaste el reparto. {back} vales vuelven a ti y {rel} van a la reserva de Sunroot. Cada transferencia aparece aquí hasta que llegue.",
-    "Você aprovou a divisão. {back} vales voltam para você e {rel} vão para a reserva da Sunroot. Cada transferência aparece aqui até chegar."
+    "You approved the split. {back} vouchers come back to you and {rel} go to {issuer}'s reserve. Each transfer shows here until it arrives.",
+    "Aprobaste el reparto. {back} vales vuelven a ti y {rel} van a la reserva de {issuer}. Cada transferencia aparece aquí hasta que llegue.",
+    "Você aprovou a divisão. {back} vales voltam para você e {rel} vão para a reserva de {issuer}. Cada transferência aparece aqui até chegar."
   ],
   "rd.n.legsSun.t": [
     "The transfer is pending",
@@ -1082,9 +1070,9 @@
     "A transferência está pendente"
   ],
   "rd.n.legsSun.b": [
-    "You approved the split. {rel} vouchers go to Sunroot's reserve. It shows here until it arrives.",
-    "Aprobaste el reparto. {rel} vales van a la reserva de Sunroot. Aparece aquí hasta que llegue.",
-    "Você aprovou a divisão. {rel} vales vão para a reserva da Sunroot. Aparece aqui até chegar."
+    "You approved the split. {rel} vouchers go to {issuer}'s reserve. It shows here until it arrives.",
+    "Aprobaste el reparto. {rel} vales van a la reserva de {issuer}. Aparece aquí hasta que llegue.",
+    "Você aprovou a divisão. {rel} vales vão para a reserva de {issuer}. Aparece aqui até chegar."
   ],
   "rd.n.legFailed.t": [
     "Your return didn't go through",
@@ -1092,21 +1080,21 @@
     "Sua devolução não foi concluída"
   ],
   "rd.n.legFailed.b": [
-    "The {back} vouchers for you didn't arrive. Anyone can retry the same transfer; it can't send more or go anywhere else. The {rel} to Sunroot arrived.",
-    "Los {back} vales para ti no llegaron. Cualquiera puede reintentar la misma transferencia; no puede enviar más ni ir a otro lugar. Los {rel} para Sunroot llegaron.",
-    "Os {back} vales para você não chegaram. Qualquer pessoa pode tentar de novo a mesma transferência; ela não pode enviar mais nem ir para outro lugar. Os {rel} para a Sunroot chegaram."
+    "The {back} vouchers for you didn't arrive. Anyone can retry the same transfer; it can't send more or go anywhere else. The {rel} to {issuer} arrived.",
+    "Los {back} vales para ti no llegaron. Cualquiera puede reintentar la misma transferencia; no puede enviar más ni ir a otro lugar. Los {rel} para {issuer} llegaron.",
+    "Os {back} vales para você não chegaram. Qualquer pessoa pode tentar de novo a mesma transferência; ela não pode enviar mais nem ir para outro lugar. Os {rel} para {issuer} chegaram."
   ],
   "rd.n.closedEarly.t": ["Settled", "Liquidado", "Liquidado"],
   "rd.n.closedEarly.b": [
-    "{back} vouchers are back with you and {rel} went to Sunroot's reserve. Sunroot's stewards closed the promise as ended early.",
-    "{back} vales volvieron a ti y {rel} fueron a la reserva de Sunroot. Los responsables de Sunroot cerraron la promesa como terminada antes.",
-    "{back} vales voltaram para você e {rel} foram para a reserva da Sunroot. Os responsáveis da Sunroot encerraram a promessa como terminada antes."
+    "{back} vouchers are back with you and {rel} went to {issuer}'s reserve. The garden's stewards closed the promise as ended early.",
+    "{back} vales volvieron a ti y {rel} fueron a la reserva de {issuer}. Los responsables del jardín cerraron la promesa como terminada antes.",
+    "{back} vales voltaram para você e {rel} foram para a reserva de {issuer}. Os responsáveis do jardim encerraram a promessa como terminada antes."
   ],
   "rd.n.kept.t": ["Kept", "Cumplida", "Cumprida"],
   "rd.n.kept.b": [
-    "You confirmed the session was kept, and {rel} vouchers went to Sunroot's reserve.",
-    "Confirmaste que la sesión se cumplió, y {rel} vales fueron a la reserva de Sunroot.",
-    "Você confirmou que a sessão foi cumprida, e {rel} vales foram para a reserva da Sunroot."
+    "You confirmed the session was kept, and {rel} vouchers went to {issuer}'s reserve.",
+    "Confirmaste que la sesión se cumplió, y {rel} vales fueron a la reserva de {issuer}.",
+    "Você confirmou que a sessão foi cumprida, e {rel} vales foram para a reserva de {issuer}."
   ],
   "rd.n.canceling.t": ["Canceling your booking", "Cancelando tu reserva", "Cancelando sua reserva"],
   "rd.n.canceling.b": [
@@ -1120,16 +1108,20 @@
     "Los {n} vales volvieron a tu cuenta.",
     "Os {n} vales voltaram para sua conta."
   ],
-  "rd.n.race.t": ["Sunroot accepted first", "Sunroot aceptó primero", "A Sunroot aceitou primeiro"],
+  "rd.n.race.t": [
+    "{issuer} accepted first",
+    "{issuer} aceptó primero",
+    "{issuer} aceitou primeiro"
+  ],
   "rd.n.race.b": [
-    "Sunroot's acceptance arrived before your cancellation, so the booking started. To end it now, ask Sunroot for a return under its terms, or report a problem.",
-    "La aceptación de Sunroot llegó antes que tu cancelación, así que la reserva empezó. Para terminarla ahora, pide a Sunroot una devolución según sus condiciones o informa un problema.",
-    "A aceitação da Sunroot chegou antes do seu cancelamento, então a reserva começou. Para encerrá-la agora, peça à Sunroot uma devolução conforme as condições ou informe um problema."
+    "{issuer}'s acceptance arrived before your cancellation, so the booking started. To end it now, ask {issuer} for a return under its terms, or report a problem.",
+    "La aceptación de {issuer} llegó antes que tu cancelación, así que la reserva empezó. Para terminarla ahora, pide a {issuer} una devolución según sus condiciones o informa un problema.",
+    "A aceitação de {issuer} chegou antes do seu cancelamento, então a reserva começou. Para encerrá-la agora, peça a {issuer} uma devolução conforme as condições ou informe um problema."
   ],
   "rd.n.changed.t": [
-    "Sunroot changed the terms",
-    "Sunroot cambió las condiciones",
-    "A Sunroot mudou as condições"
+    "{issuer} changed the terms",
+    "{issuer} cambió las condiciones",
+    "{issuer} mudou as condições"
   ],
   "rd.n.changed.b": [
     "Your deposit was made under the old terms, so this booking can't start. Cancel to get your {n} vouchers back, then book again.",
@@ -1142,9 +1134,9 @@
     "Você informou um problema"
   ],
   "rd.n.problem.b": [
-    "{d3}: {quote} The promise is disputed; Sunroot Skills Hub's stewards review it. Your vouchers stay in escrow. Only you can approve how they're split, within Sunroot's terms.",
-    "{d3}: {quote} La promesa está en disputa; los responsables de Sunroot Skills Hub la revisan. Tus vales siguen en garantía. Solo tú puedes aprobar cómo se reparten, dentro de las condiciones de Sunroot.",
-    "{d3}: {quote} A promessa está em disputa; os responsáveis da Sunroot Skills Hub a revisam. Seus vales continuam em garantia. Só você pode aprovar como eles são divididos, dentro das condições da Sunroot."
+    "{d3}: {quote} The promise is disputed; the garden's stewards review it. Your vouchers stay in escrow. Only you can approve how they're split, within {issuer}'s terms.",
+    "{d3}: {quote} La promesa está en disputa; los responsables del jardín la revisan. Tus vales siguen en garantía. Solo tú puedes aprobar cómo se reparten, dentro de las condiciones de {issuer}.",
+    "{d3}: {quote} A promessa está em disputa; os responsáveis do jardim a revisam. Seus vales continuam em garantia. Só você pode aprovar como eles são divididos, dentro das condições de {issuer}."
   ],
   "rd.quote": [
     "“Lesson 4 was canceled without notice.”",
@@ -1157,7 +1149,7 @@
     "{done} de 10 aulas informadas"
   ],
   "rd.f.gave": ["You gave", "Diste", "Você deu"],
-  "rd.f.gaveV": ["{n} Sunroot vouchers", "{n} vales de Sunroot", "{n} vales da Sunroot"],
+  "rd.f.gaveV": ["{n} {unit}", "{n} {unit}", "{n} {unit}"],
   "rd.f.gaveS": [
     "Held in escrow until you approve a split",
     "En garantía hasta que apruebes un reparto",
@@ -1165,9 +1157,9 @@
   ],
   "rd.f.deadline": ["Acceptance deadline", "Fecha límite para aceptar", "Prazo para aceitar"],
   "rd.f.deadlineS": [
-    "Before Sunroot accepts, you can cancel",
-    "Antes de que Sunroot acepte, puedes cancelar",
-    "Antes de a Sunroot aceitar, você pode cancelar"
+    "Before {issuer} accepts, you can cancel",
+    "Antes de que {issuer} acepte, puedes cancelar",
+    "Antes de {issuer} aceitar, você pode cancelar"
   ],
   "rd.f.back": ["If it falls short", "Si no se cumple", "Se não for cumprido"],
   "rd.f.backC": [
@@ -1176,9 +1168,9 @@
     "Até 60 de volta após 3 aulas"
   ],
   "rd.f.backS": [
-    "Sunroot's terms set any return",
-    "Las condiciones de Sunroot fijan cualquier devolución",
-    "As condições da Sunroot definem qualquer devolução"
+    "{issuer}'s terms set any return",
+    "Las condiciones de {issuer} fijan cualquier devolución",
+    "As condições de {issuer} definem qualquer devolução"
   ],
   "rd.f.backSub": [
     "You approve the final split",
@@ -1225,30 +1217,34 @@
     "Confirmar que foi cumprido"
   ],
   "rd.sh.bar": [
-    "{rel} to Sunroot's reserve, {back} back to you",
-    "{rel} a la reserva de Sunroot, {back} de vuelta para ti",
-    "{rel} para a reserva da Sunroot, {back} de volta para você"
+    "{rel} to {issuer}'s reserve, {back} back to you",
+    "{rel} a la reserva de {issuer}, {back} de vuelta para ti",
+    "{rel} para a reserva de {issuer}, {back} de volta para você"
   ],
-  "rd.sh.relShort": ["{rel} to Sunroot", "{rel} a Sunroot", "{rel} para a Sunroot"],
+  "rd.sh.relShort": ["{rel} to {issuer}", "{rel} a {issuer}", "{rel} para {issuer}"],
   "rd.sh.backShort": ["{back} back to you", "{back} para ti", "{back} para você"],
   "rd.sh.delivered": ["You received", "Recibiste", "Você recebeu"],
   "rd.sh.deliveredC": ["3 of 10 lessons", "3 de 10 lecciones", "3 de 10 aulas"],
   "rd.sh.deliveredS": ["The full session", "La sesión completa", "A sessão completa"],
   "rd.sh.deliveredSub": [
-    "As Sunroot reported",
-    "Según informó Sunroot",
-    "Conforme a Sunroot informou"
+    "As {issuer} reported",
+    "Según informó {issuer}",
+    "Conforme {issuer} informou"
   ],
-  "rd.sh.toSun": ["To Sunroot's reserve", "A la reserva de Sunroot", "Para a reserva da Sunroot"],
-  "rd.sh.toSunV": ["{rel} Sunroot vouchers", "{rel} vales de Sunroot", "{rel} vales da Sunroot"],
+  "rd.sh.toSun": [
+    "To {issuer}'s reserve",
+    "A la reserva de {issuer}",
+    "Para a reserva de {issuer}"
+  ],
+  "rd.sh.toSunV": ["{rel} {unit}", "{rel} {unit}", "{rel} {unit}"],
   "rd.sh.toSunC": [
-    "For 3 lessons, within Sunroot's terms",
-    "Por 3 lecciones, dentro de las condiciones de Sunroot",
-    "Por 3 aulas, dentro das condições da Sunroot"
+    "For 3 lessons, within {issuer}'s terms",
+    "Por 3 lecciones, dentro de las condiciones de {issuer}",
+    "Por 3 aulas, dentro das condições de {issuer}"
   ],
   "rd.sh.toSunS": ["For the session", "Por la sesión", "Pela sessão"],
   "rd.sh.toYou": ["Back to you", "De vuelta para ti", "De volta para você"],
-  "rd.sh.toYouV": ["{back} Sunroot vouchers", "{back} vales de Sunroot", "{back} vales da Sunroot"],
+  "rd.sh.toYouV": ["{back} {unit}", "{back} {unit}", "{back} {unit}"],
   "rd.sh.toYouSub": [
     "Pending until the transfer arrives",
     "Pendiente hasta que llegue la transferencia",
@@ -1262,9 +1258,9 @@
   "rd.sh.promise": ["Promise", "Promesa", "Promessa"],
   "rd.sh.splitDone": ["Final split", "Reparto final", "Divisão final"],
   "rd.sh.splitDoneV": [
-    "{rel} to Sunroot's reserve",
-    "{rel} a la reserva de Sunroot",
-    "{rel} para a reserva da Sunroot"
+    "{rel} to {issuer}'s reserve",
+    "{rel} a la reserva de {issuer}",
+    "{rel} para a reserva de {issuer}"
   ],
   "rd.sh.splitDoneS": [
     "Approved; the transfer is pending",
@@ -1321,17 +1317,17 @@
     "Percorra os canteiros e desenhe por onde passam os canos e as torneiras, para que novos jardineiros os encontrem."
   ],
   "rw.get": ["What You Get", "Lo que recibes", "O que você recebe"],
-  "rw.vou": ["{n} Sunroot vouchers", "{n} vales de Sunroot", "{n} vales da Sunroot"],
+  "rw.vou": ["{n} {unit}", "{n} {unit}", "{n} {unit}"],
   "rw.vouS": [
-    "From Sunroot's reserve. 10 book one 60-minute session.",
-    "De la reserva de Sunroot. Con 10 reservas una sesión de 60 minutos.",
-    "Da reserva da Sunroot. Com 10 você reserva uma sessão de 60 minutos."
+    "From {issuer}'s reserve. 10 book one 60-minute session.",
+    "De la reserva de {issuer}. Con 10 reservas una sesión de 60 minutos.",
+    "Da reserva de {issuer}. Com 10 você reserva uma sessão de 60 minutos."
   ],
   "rw.gd": ["{amt} G$", "{amt} G$", "{amt} G$"],
   "rw.gdS": [
-    "From Riverside Commons' pool, by its payout plan",
-    "Del fondo de Riverside Commons, según su plan de pagos",
-    "Do fundo do Riverside Commons, conforme o plano de pagamentos"
+    "From {garden}'s pool, by its payout plan",
+    "Del fondo de {garden}, según su plan de pagos",
+    "Do fundo de {garden}, conforme o plano de pagamentos"
   ],
   "rw.route": ["Before You Start", "Antes de empezar", "Antes de começar"],
   "rw.q.give": ["You give", "Das", "Você dá"],
@@ -1349,9 +1345,9 @@
   ],
   "rw.q.review": ["Who confirms", "Quién confirma", "Quem confirma"],
   "rw.reviewV": [
-    "Riverside Commons' stewards",
-    "Los responsables de Riverside Commons",
-    "Os responsáveis do Riverside Commons"
+    "{garden}'s stewards",
+    "Los responsables de {garden}",
+    "Os responsáveis de {garden}"
   ],
   "rw.reviewS": [
     "They review your work before any reward is sent.",
@@ -1374,16 +1370,16 @@
     "Os G$ e os vales não esperam um pelo outro."
   ],
   "rw.arriveSV": [
-    "Sent from Sunroot's reserve when your work is confirmed.",
-    "Se envía desde la reserva de Sunroot cuando se confirma tu trabajo.",
-    "Enviada da reserva da Sunroot quando seu trabalho for confirmado."
+    "Sent from {issuer}'s reserve when your work is confirmed.",
+    "Se envía desde la reserva de {issuer} cuando se confirma tu trabajo.",
+    "Enviada da reserva de {issuer} quando seu trabalho for confirmado."
   ],
   "rw.q.aside": ["Set aside for you?", "¿Apartados para ti?", "Separados para você?"],
   "rw.asideV": ["Not yet", "Todavía no", "Ainda não"],
   "rw.asideS": [
-    "Sunroot sends vouchers from its reserve when your work is confirmed. If it runs short, they wait until Sunroot tops it up.",
-    "Sunroot envía vales desde su reserva cuando se confirma tu trabajo. Si no alcanza, esperan hasta que Sunroot la reponga.",
-    "A Sunroot envia vales da reserva dela quando seu trabalho for confirmado. Se faltar, eles esperam até a Sunroot repor."
+    "{issuer} sends vouchers from its reserve when your work is confirmed. If it runs short, they wait until {issuer} tops it up.",
+    "{issuer} envía vales desde su reserva cuando se confirma tu trabajo. Si no alcanza, esperan hasta que {issuer} la reponga.",
+    "{issuer} envia vales da reserva dela quando seu trabalho for confirmado. Se faltar, eles esperam até {issuer} repor."
   ],
   "rw.s.pending": ["On the way", "En camino", "A caminho"],
   "rw.s.received": ["Received", "Recibido", "Recebido"],
@@ -1392,19 +1388,19 @@
   "rw.s.notYet": ["After the work", "Tras el trabajo", "Após o trabalho"],
   "rw.r.recv": ["Received {date}", "Recibido el {date}", "Recebido em {date}"],
   "rw.r.vouPend": [
-    "Being sent from Sunroot's reserve",
-    "Enviándose desde la reserva de Sunroot",
-    "Sendo enviados da reserva da Sunroot"
+    "Being sent from {issuer}'s reserve",
+    "Enviándose desde la reserva de {issuer}",
+    "Sendo enviados da reserva de {issuer}"
   ],
   "rw.r.vouShort": [
-    "Sunroot's reserve is short. Sent when Sunroot tops it up.",
-    "La reserva de Sunroot no alcanza. Se envía cuando Sunroot la reponga.",
-    "A reserva da Sunroot não basta. Enviados quando a Sunroot repor."
+    "{issuer}'s reserve is short. Sent when {issuer} tops it up.",
+    "La reserva de {issuer} no alcanza. Se envía cuando {issuer} la reponga.",
+    "A reserva de {issuer} não basta. Enviados quando {issuer} repor."
   ],
   "rw.r.gdPend": [
-    "Riverside Commons' payout is running",
-    "El pago de Riverside Commons está en curso",
-    "O pagamento do Riverside Commons está em andamento"
+    "{garden}'s payout is running",
+    "El pago de {garden} está en curso",
+    "O pagamento de {garden} está em andamento"
   ],
   "rw.r.gdDelayed": [
     "The payout didn't go through. It's being retried.",
@@ -1413,9 +1409,9 @@
   ],
   "rw.n.prog.t": ["You're accepted", "Te aceptaron", "Você foi aceito"],
   "rw.n.prog.b": [
-    "Do the work and add it when you're done. Riverside Commons' stewards review it.",
-    "Haz el trabajo y agrégalo cuando termines. Los responsables de Riverside Commons lo revisan.",
-    "Faça o trabalho e adicione quando terminar. Os responsáveis do Riverside Commons o revisam."
+    "Do the work and add it when you're done. {garden}'s stewards review it.",
+    "Haz el trabajo y agrégalo cuando termines. Los responsables de {garden} lo revisan.",
+    "Faça o trabalho e adicione quando terminar. Os responsáveis de {garden} o revisam."
   ],
   "rw.n.both.t": [
     "Your work is confirmed",
@@ -1429,9 +1425,9 @@
   ],
   "rw.n.vin.t": ["Vouchers received", "Vales recibidos", "Vales recebidos"],
   "rw.n.vin.b": [
-    "{n} Sunroot vouchers arrived. The G$ is still on its way.",
-    "Llegaron {n} vales de Sunroot. Los G$ siguen en camino.",
-    "Chegaram {n} vales da Sunroot. Os G$ ainda estão a caminho."
+    "{n} {unit} arrived. The G$ is still on its way.",
+    "Llegaron {n} {unit}. Los G$ siguen en camino.",
+    "Chegaram {n} {unit}. Os G$ ainda estão a caminho."
   ],
   "rw.n.short.t": [
     "Your vouchers are waiting",
@@ -1439,20 +1435,20 @@
     "Seus vales estão aguardando"
   ],
   "rw.n.short.b": [
-    "Sunroot's reserve is short right now, so Sunroot needs to top it up. Your reward is unchanged, and your G$ already arrived.",
-    "La reserva de Sunroot no alcanza ahora, así que Sunroot debe reponerla. Tu recompensa no cambia y tus G$ ya llegaron.",
-    "A reserva da Sunroot não basta agora, então a Sunroot precisa repor. Sua recompensa não muda, e seus G$ já chegaram."
+    "{issuer}'s reserve is short right now, so {issuer} needs to top it up. Your reward is unchanged, and your G$ already arrived.",
+    "La reserva de {issuer} no alcanza ahora, así que {issuer} debe reponerla. Tu recompensa no cambia y tus G$ ya llegaron.",
+    "A reserva de {issuer} não basta agora, então {issuer} precisa repor. Sua recompensa não muda, e seus G$ já chegaram."
   ],
   "rw.n.shortV.b": [
-    "Sunroot's reserve is short right now, so Sunroot needs to top it up. Your reward is unchanged.",
-    "La reserva de Sunroot no alcanza ahora, así que Sunroot debe reponerla. Tu recompensa no cambia.",
-    "A reserva da Sunroot não basta agora, então a Sunroot precisa repor. Sua recompensa não muda."
+    "{issuer}'s reserve is short right now, so {issuer} needs to top it up. Your reward is unchanged.",
+    "La reserva de {issuer} no alcanza ahora, así que {issuer} debe reponerla. Tu recompensa no cambia.",
+    "A reserva de {issuer} não basta agora, então {issuer} precisa repor. Sua recompensa não muda."
   ],
   "rw.n.delayed.t": ["Your G$ is delayed", "Tus G$ están retrasados", "Seus G$ estão atrasados"],
   "rw.n.delayed.b": [
-    "The payout didn't go through. Riverside Commons' stewards retry the same payout. Your vouchers already arrived.",
-    "El pago no se completó. Los responsables de Riverside Commons reintentan el mismo pago. Tus vales ya llegaron.",
-    "O pagamento não foi concluído. Os responsáveis do Riverside Commons tentam de novo o mesmo pagamento. Seus vales já chegaram."
+    "The payout didn't go through. {garden}'s stewards retry the same payout. Your vouchers already arrived.",
+    "El pago no se completó. Los responsables de {garden} reintentan el mismo pago. Tus vales ya llegaron.",
+    "O pagamento não foi concluído. Os responsáveis de {garden} tentam de novo o mesmo pagamento. Seus vales já chegaram."
   ],
   "rw.n.done.t": [
     "Both rewards received",
@@ -1460,15 +1456,15 @@
     "As duas recompensas recebidas"
   ],
   "rw.n.done.b": [
-    "{n} Sunroot vouchers and {amt} G$ are in your account.",
-    "{n} vales de Sunroot y {amt} G$ están en tu cuenta.",
-    "{n} vales da Sunroot e {amt} G$ estão na sua conta."
+    "{n} {unit} and {amt} G$ are in your account.",
+    "{n} {unit} y {amt} G$ están en tu cuenta.",
+    "{n} {unit} e {amt} G$ estão na sua conta."
   ],
   "rw.n.doneV.t": ["Reward received", "Recompensa recibida", "Recompensa recebida"],
   "rw.n.doneV.b": [
-    "{n} Sunroot vouchers are in your account.",
-    "{n} vales de Sunroot están en tu cuenta.",
-    "{n} vales da Sunroot estão na sua conta."
+    "{n} {unit} are in your account.",
+    "{n} {unit} están en tu cuenta.",
+    "{n} {unit} estão na sua conta."
   ],
   "rw.sh.title": [
     "Agree to the Rewards",
@@ -1478,40 +1474,40 @@
   "rw.sh.work": ["Work", "Trabajo", "Trabalho"],
   "rw.sh.vou": ["Vouchers", "Vales", "Vales"],
   "rw.sh.vouV": [
-    "{n} Sunroot vouchers to your account",
-    "{n} vales de Sunroot para tu cuenta",
-    "{n} vales da Sunroot para sua conta"
+    "{n} {unit} to your account",
+    "{n} {unit} para tu cuenta",
+    "{n} {unit} para sua conta"
   ],
   "rw.sh.vouS": [
-    "From Sunroot's reserve, which Sunroot lets Riverside Commons use",
-    "De la reserva de Sunroot, que Sunroot deja usar a Riverside Commons",
-    "Da reserva da Sunroot, que a Sunroot deixa o Riverside Commons usar"
+    "From {issuer}'s reserve, which {issuer} lets {garden} use",
+    "De la reserva de {issuer}, que {issuer} deja usar a {garden}",
+    "Da reserva de {issuer}, que {issuer} deixa {garden} usar"
   ],
   "rw.sh.gd": ["G$", "G$", "G$"],
   "rw.sh.gdV": ["{amt} G$ to your account", "{amt} G$ para tu cuenta", "{amt} G$ para sua conta"],
   "rw.sh.gdS": [
-    "From Riverside Commons' pool, by its payout plan",
-    "Del fondo de Riverside Commons, según su plan de pagos",
-    "Do fundo do Riverside Commons, conforme o plano de pagamentos"
+    "From {garden}'s pool, by its payout plan",
+    "Del fondo de {garden}, según su plan de pagos",
+    "Do fundo de {garden}, conforme o plano de pagamentos"
   ],
   "rw.sh.consent": [
-    "Agreeing records these exact rewards with your request. Riverside Commons' stewards then accept you.",
-    "Aceptar registra estas recompensas exactas con tu solicitud. Luego los responsables de Riverside Commons te aceptan.",
-    "Concordar registra estas recompensas exatas com seu pedido. Depois os responsáveis do Riverside Commons aceitam você."
+    "Agreeing records these exact rewards with your request. {garden}'s stewards then accept you.",
+    "Aceptar registra estas recompensas exactas con tu solicitud. Luego los responsables de {garden} te aceptan.",
+    "Concordar registra estas recompensas exatas com seu pedido. Depois os responsáveis de {garden} aceitam você."
   ],
   "rw.sh.cta": ["Agree and Take It Up", "Aceptar y asumirla", "Concordar e assumir"],
   "rw.a.take": ["Take It Up", "Asumirla", "Assumir"],
   "rw.a.work": ["Add Your Work", "Agregar tu trabajo", "Adicionar seu trabalho"],
   "rw.a.wallet": ["See Your Vouchers", "Ver tus vales", "Ver seus vales"],
   "rw.x.vou": [
-    "Vouchers: delivered from Sunroot's reserve on Gnosis, within Riverside Commons' allowance",
-    "Vales: entregados desde la reserva de Sunroot en Gnosis, dentro del permiso de Riverside Commons",
-    "Vales: entregues da reserva da Sunroot na Gnosis, dentro da permissão do Riverside Commons"
+    "Vouchers: delivered from {issuer}'s reserve on Gnosis, within {garden}'s allowance",
+    "Vales: entregados desde la reserva de {issuer} en Gnosis, dentro del permiso de {garden}",
+    "Vales: entregues da reserva de {issuer} na Gnosis, dentro da permissão de {garden}"
   ],
   "rw.x.gd": [
-    "G$: paid on Celo by Riverside Commons' payout plan",
-    "G$: pagados en Celo según el plan de pagos de Riverside Commons",
-    "G$: pagos na Celo conforme o plano de pagamentos do Riverside Commons"
+    "G$: paid on Celo by {garden}'s payout plan",
+    "G$: pagados en Celo según el plan de pagos de {garden}",
+    "G$: pagos na Celo conforme o plano de pagamentos de {garden}"
   ],
   "rw.x.rec": [
     "Record: request #1026, reward terms version 2, on Arbitrum",
@@ -1536,14 +1532,14 @@
   "ex.quote": ["Quote", "Cotización", "Cotação"],
   "ex.quoteUsed": ["Quote you used", "Cotización usada", "Cotação usada"],
   "ex.f.fees": ["Fees", "Comisiones", "Taxas"],
-  "ex.f.feesV": ["{fee} Sunroot vouchers", "{fee} vales de Sunroot", "{fee} vales da Sunroot"],
+  "ex.f.feesV": ["{fee} {outUnit}", "{fee} {outUnit}", "{fee} {outUnit}"],
   "ex.f.feesS": [
     "Pool {pool} + protocol {proto}",
     "Fondo {pool} + protocolo {proto}",
     "Fundo {pool} + protocolo {proto}"
   ],
   "ex.f.min": ["At least", "Como mínimo", "No mínimo"],
-  "ex.f.minV": ["{min} Sunroot vouchers", "{min} vales de Sunroot", "{min} vales da Sunroot"],
+  "ex.f.minV": ["{min} {outUnit}", "{min} {outUnit}", "{min} {outUnit}"],
   "ex.f.minS": [
     "If the pool can't give this much, nothing happens.",
     "Si el fondo no puede dar esto, no pasa nada.",
@@ -1576,9 +1572,9 @@
   ],
   "ex.n.done.t": ["Exchanged", "Cambiado", "Trocado"],
   "ex.n.done.b": [
-    "{in} Hilltop vouchers for {out} Sunroot vouchers, fees included. This didn't book anything: redeem your Sunroot vouchers on an offer.",
-    "{in} vales de Hilltop por {out} vales de Sunroot, con comisiones incluidas. Esto no reservó nada: canjea tus vales de Sunroot en una oferta.",
-    "{in} vales da Hilltop por {out} vales da Sunroot, com taxas incluídas. Isto não reservou nada: resgate seus vales da Sunroot em uma oferta."
+    "{in} {inUnit} for {out} {outUnit}, fees included. This didn't book anything: redeem your {outUnit} on an offer.",
+    "{in} {inUnit} por {out} {outUnit}, con comisiones incluidas. Esto no reservó nada: canjea tus {outUnit} en una oferta.",
+    "{in} {inUnit} por {out} {outUnit}, com taxas incluídas. Isto não reservou nada: resgate seus {outUnit} em uma oferta."
   ],
   "ex.n.expired.t": ["This quote expired", "Esta cotización venció", "Esta cotação expirou"],
   "ex.n.expired.b": [
@@ -1587,9 +1583,9 @@
     "Os preços podem ter mudado desde {time}. Nada se moveu. Peça uma nova cotação antes de trocar."
   ],
   "ex.n.short.t": [
-    "The pool has only {avail} Sunroot vouchers right now",
-    "El fondo solo tiene {avail} vales de Sunroot ahora",
-    "O fundo só tem {avail} vales da Sunroot agora"
+    "The pool has only {avail} {outUnit} right now",
+    "El fondo solo tiene {avail} {outUnit} ahora",
+    "O fundo só tem {avail} {outUnit} agora"
   ],
   "ex.n.short.b": [
     "Try a smaller amount, or earn more. Nothing moved.",
@@ -1597,9 +1593,9 @@
     "Tente uma quantidade menor ou ganhe mais. Nada se moveu."
   ],
   "ex.n.limit.t": [
-    "The pool can't take more Hilltop vouchers right now",
-    "El fondo no puede recibir más vales de Hilltop ahora",
-    "O fundo não pode receber mais vales da Hilltop agora"
+    "The pool can't take more {inUnit} right now",
+    "El fondo no puede recibir más {inUnit} ahora",
+    "O fundo não pode receber mais {inUnit} agora"
   ],
   "ex.n.limit.b": [
     "It has reached its holding limit for them. Nothing moved.",
@@ -1607,9 +1603,9 @@
     "Ele atingiu o limite para eles. Nada se moveu."
   ],
   "ex.n.listed.t": [
-    "Hilltop vouchers aren't listed in the pool",
-    "Los vales de Hilltop no están en el fondo",
-    "Os vales da Hilltop não estão no fundo"
+    "{inUnit} aren't listed in the pool",
+    "Los {inUnit} no están en el fondo",
+    "Os {inUnit} não estão no fundo"
   ],
   "ex.n.listed.b": [
     "The pool's curators haven't admitted them. Nothing moved.",
@@ -1629,9 +1625,9 @@
   "ex.rc.when": ["When", "Cuándo", "Quando"],
   "ex.sh.title": ["Review the Exchange", "Revisar el cambio", "Revisar a troca"],
   "ex.sh.note": [
-    "You may be asked to approve twice: once to allow exactly {in} Hilltop vouchers, then to exchange.",
-    "Puede que te pidan aprobar dos veces: una para permitir exactamente {in} vales de Hilltop y otra para cambiar.",
-    "Talvez peçam sua aprovação duas vezes: uma para permitir exatamente {in} vales da Hilltop e outra para trocar."
+    "You may be asked to approve twice: once to allow exactly {in} {inUnit}, then to exchange.",
+    "Puede que te pidan aprobar dos veces: una para permitir exactamente {in} {inUnit} y otra para cambiar.",
+    "Talvez peçam sua aprovação duas vezes: uma para permitir exatamente {in} {inUnit} e outra para trocar."
   ],
   "ex.sh.cta": ["Exchange", "Cambiar", "Trocar"],
   "ex.x.pool": [
@@ -1672,14 +1668,14 @@
   "wl.backS": ["Return from your course", "Devolución de tu curso", "Devolução do seu curso"],
   "wl.pending": ["Pending", "Pendiente", "Pendente"],
   "wl.offers": [
-    "Offers that take Sunroot vouchers",
-    "Ofertas que aceptan vales de Sunroot",
-    "Ofertas que aceitam vales da Sunroot"
+    "Services you can book",
+    "Servicios que puedes reservar",
+    "Serviços que você pode reservar"
   ],
   "wl.offersS": [
-    "3 in gardens you can visit",
-    "3 en jardines que puedes visitar",
-    "3 em jardins que você pode visitar"
+    "5 in the shared pool · 3 with vouchers you hold",
+    "5 en el fondo compartido · 3 con vales que tienes",
+    "5 no fundo compartilhado · 3 com vales que você tem"
   ],
   "wl.ex": [
     "Exchange in the shared pool",
@@ -2642,19 +2638,19 @@
   "pu.s.disputed": ["Disputed", "En disputa", "Em disputa"],
   "pu.s.review": ["Review", "Revisar", "Revisar"],
   "rd.n.proposedS.t": [
-    "Sunroot proposes a return",
-    "Sunroot propone una devolución",
-    "A Sunroot propõe uma devolução"
+    "{issuer} proposes a return",
+    "{issuer} propone una devolución",
+    "{issuer} propõe uma devolução"
   ],
   "rd.n.proposedS.b": [
-    "Sunroot says the session didn't happen and proposes all {back} back to you, within its terms. Nothing moves until you approve the split or report a problem.",
-    "Sunroot dice que la sesión no se realizó y propone devolverte los {back}, dentro de sus condiciones. Nada se mueve hasta que apruebes el reparto o reportes un problema.",
-    "A Sunroot diz que a sessão não aconteceu e propõe devolver os {back} para você, dentro das condições dela. Nada se move até você aprovar a divisão ou relatar um problema."
+    "{issuer} says the session didn't happen and proposes all {back} back to you, within its terms. Nothing moves until you approve the split or report a problem.",
+    "{issuer} dice que la sesión no se realizó y propone devolverte los {back}, dentro de sus condiciones. Nada se mueve hasta que apruebes el reparto o reportes un problema.",
+    "{issuer} diz que a sessão não aconteceu e propõe devolver os {back} para você, dentro das condições dela. Nada se move até você aprovar a divisão ou relatar um problema."
   ],
   "rd.n.legFailedS.t": [
-    "The transfer to Sunroot didn't go through",
-    "La transferencia a Sunroot no se completó",
-    "A transferência para a Sunroot não foi concluída"
+    "The transfer to {issuer} didn't go through",
+    "La transferencia a {issuer} no se completó",
+    "A transferência para {issuer} não foi concluída"
   ],
   "rd.n.legFailedS.b": [
     "The {rel} vouchers are still in escrow. Anyone can retry the same transfer; it can't send more or go anywhere else.",
@@ -2662,19 +2658,19 @@
     "Os {rel} vales continuam em garantia. Qualquer pessoa pode tentar de novo a mesma transferência; ela não pode enviar mais nem ir para outro lugar."
   ],
   "rd.b.retryS": [
-    "Sunroot vouchers for Sunroot's reserve, waiting for a retry",
-    "vales de Sunroot para la reserva de Sunroot, esperando un reintento",
-    "vales da Sunroot para a reserva da Sunroot, aguardando nova tentativa"
+    "{unit} for {issuer}'s reserve, waiting for a retry",
+    "{unit} para la reserva de {issuer}, esperando un reintento",
+    "{unit} para a reserva de {issuer}, aguardando nova tentativa"
   ],
   "rd.leg.relFail": [
-    "Anyone can retry this transfer. It can only send the same {n} to Sunroot's reserve.",
-    "Cualquiera puede reintentar esta transferencia. Solo puede enviar los mismos {n} a la reserva de Sunroot.",
-    "Qualquer pessoa pode tentar de novo esta transferência. Ela só pode enviar os mesmos {n} para a reserva da Sunroot."
+    "Anyone can retry this transfer. It can only send the same {n} to {issuer}'s reserve.",
+    "Cualquiera puede reintentar esta transferencia. Solo puede enviar los mismos {n} a la reserva de {issuer}.",
+    "Qualquer pessoa pode tentar de novo esta transferência. Ela só pode enviar os mesmos {n} para a reserva de {issuer}."
   ],
   "ex.sh.atLeast": [
-    "At least {min} Sunroot vouchers",
-    "Como mínimo {min} vales de Sunroot",
-    "No mínimo {min} vales da Sunroot"
+    "At least {min} {outUnit}",
+    "Como mínimo {min} {outUnit}",
+    "No mínimo {min} {outUnit}"
   ],
   "pay.j.count": [
     "Step {n} of {total}: {label}",
@@ -2690,5 +2686,1371 @@
   ],
   "pu.showSteps": ["Show all steps", "Ver todos los pasos", "Ver todos os passos"],
   "rd.sh.received": ["Received", "Recibido", "Recebido"],
-  "rd.sh.nextSplit": ["See the Split", "Ver la división", "Ver a divisão"]
+  "rd.sh.nextSplit": ["See the Split", "Ver la división", "Ver a divisão"],
+  "who.sunShort": ["Sunroot", "Sunroot", "Sunroot"],
+  "who.teo": ["Teo", "Teo", "Teo"],
+  "who.teoFull": ["Teo Alves", "Teo Alves", "Teo Alves"],
+  "who.maya": ["Maya", "Maya", "Maya"],
+  "who.mayaFull": ["Maya Ruiz", "Maya Ruiz", "Maya Ruiz"],
+  "who.noor": ["Noor", "Noor", "Noor"],
+  "who.ade": ["Ade", "Ade", "Ade"],
+  "who.stewards": [
+    "The garden's stewards",
+    "Los responsables del jardín",
+    "Os responsáveis do jardim"
+  ],
+  "u.teoMany": ["Teo vouchers", "vales de Teo", "vales do Teo"],
+  "u.teoOne": ["1 Teo voucher", "1 vale de Teo", "1 vale do Teo"],
+  "u.mayaMany": ["Maya vouchers", "vales de Maya", "vales da Maya"],
+  "u.ggMany": ["Green Goods vouchers", "vales de Green Goods", "vales do Green Goods"],
+  "c.safe25": [
+    "The Green Goods Safe needs 2 of 5 signatures.",
+    "El Safe de Green Goods necesita 2 de 5 firmas.",
+    "O Safe do Green Goods precisa de 2 de 5 assinaturas."
+  ],
+  "c.loading": ["Loading…", "Cargando…", "Carregando…"],
+  "sv.kind": [
+    "Services in the shared pool",
+    "Servicios en el fondo compartido",
+    "Serviços no fundo compartilhado"
+  ],
+  "sv.title": ["Services", "Servicios", "Serviços"],
+  "sv.desc": [
+    "Book with a voucher you hold, or exchange first. Each service is promised by a named person or by a garden.",
+    "Reserva con un vale que tienes, o cambia primero. Cada servicio lo promete una persona con nombre o un jardín.",
+    "Reserve com um vale que você tem, ou troque primeiro. Cada serviço é prometido por uma pessoa com nome ou por um jardim."
+  ],
+  "sv.f.all": ["All", "Todos", "Todos"],
+  "sv.f.hold": ["You can redeem", "Puedes canjear", "Você pode resgatar"],
+  "sv.f.ex": ["Exchange first", "Cambia primero", "Troque primeiro"],
+  "sv.by.member": [
+    "{name} · member of {garden}",
+    "{name} · miembro de {garden}",
+    "{name} · membro de {garden}"
+  ],
+  "sv.by.garden": ["{garden} · garden", "{garden} · jardín", "{garden} · jardim"],
+  "sv.s.lesson": ["Integration lesson", "Lección de integración", "Aula de integração"],
+  "sv.s.lessonS": [
+    "60 min, remote · 1 Teo voucher · next Tue",
+    "60 min, a distancia · 1 vale de Teo · próximo martes",
+    "60 min, remota · 1 vale do Teo · próxima terça"
+  ],
+  "sv.s.coach": ["Measurement coaching", "Asesoría de medición", "Mentoria de medição"],
+  "sv.s.coachS": [
+    "60 min, remote · 1 Maya voucher · next week",
+    "60 min, a distancia · 1 vale de Maya · próxima semana",
+    "60 min, remota · 1 vale da Maya · próxima semana"
+  ],
+  "sv.s.sessionS": [
+    "60 min, at Sunroot · 10 Sunroot vouchers · Thursdays",
+    "60 min, en Sunroot · 10 vales de Sunroot · jueves",
+    "60 min, na Sunroot · 10 vales da Sunroot · quintas"
+  ],
+  "sv.s.courseS": [
+    "10 lessons · 100 Sunroot vouchers · starts {date}",
+    "10 lecciones · 100 vales de Sunroot · empieza el {date}",
+    "10 aulas · 100 vales da Sunroot · começa em {date}"
+  ],
+  "sv.p.hold": ["You hold {n}", "Tienes {n}", "Você tem {n}"],
+  "sv.p.ex": ["Exchange first", "Cambia primero", "Troque primeiro"],
+  "sv.p.paused": ["Paused", "En pausa", "Em pausa"],
+  "sv.p.delisted": ["No longer listed", "Ya no está en la lista", "Não está mais listado"],
+  "sv.pausedS": [
+    "No new bookings. Booked lessons go ahead.",
+    "Sin nuevas reservas. Las lecciones reservadas siguen.",
+    "Sem novas reservas. As aulas reservadas seguem."
+  ],
+  "sv.delistedS": [
+    "Out of the pool. Your vouchers keep their terms.",
+    "Fuera del fondo. Tus vales conservan sus condiciones.",
+    "Fora do fundo. Seus vales mantêm as condições."
+  ],
+  "sv.who.t": ["Who promises delivery", "Quién promete la entrega", "Quem promete a entrega"],
+  "sv.who.b": [
+    "A person's name means that person delivers and keeps the reserve. A garden's name means its stewards do.",
+    "El nombre de una persona significa que esa persona entrega y guarda la reserva. El de un jardín, que lo hacen sus responsables.",
+    "O nome de uma pessoa significa que ela entrega e guarda a reserva. O de um jardim, que os responsáveis dele fazem isso."
+  ],
+  "sv.loading": ["Reading services…", "Leyendo servicios…", "Lendo serviços…"],
+  "sv.empty.t": [
+    "No verified services yet.",
+    "Aún no hay servicios verificados.",
+    "Ainda não há serviços verificados."
+  ],
+  "sv.empty.b": [
+    "Issuer terms and deployment receipts still need confirmation. Nothing can be booked until then.",
+    "Las condiciones de los emisores y los recibos de despliegue aún deben confirmarse. Hasta entonces no se puede reservar nada.",
+    "As condições dos emissores e os recibos de implantação ainda precisam de confirmação. Até lá nada pode ser reservado."
+  ],
+  "sv.own": ["Offer a service of your own", "Ofrece un servicio propio", "Ofereça um serviço seu"],
+  "sv.ownS": [
+    "A steward helps you set it up. You approve the terms.",
+    "Un responsable te ayuda a prepararlo. Tú apruebas las condiciones.",
+    "Um responsável ajuda você a preparar. Você aprova as condições."
+  ],
+  "of.m.kind": [
+    "Offer · {name}, member of {garden}",
+    "Oferta · {name}, miembro de {garden}",
+    "Oferta · {name}, membro de {garden}"
+  ],
+  "of.m.title": [
+    "Integration lesson, 60 minutes",
+    "Lección de integración, 60 minutos",
+    "Aula de integração, 60 minutos"
+  ],
+  "of.m.desc": [
+    "One remote session to wire your project into the Green Goods API, with Teo. Teo delivers it himself.",
+    "Una sesión a distancia para conectar tu proyecto a la API de Green Goods, con Teo. Teo la da personalmente.",
+    "Uma sessão remota para ligar seu projeto à API do Green Goods, com Teo. O próprio Teo a dá."
+  ],
+  "of.m.get": [
+    "One 60-minute lesson with Teo",
+    "Una lección de 60 minutos con Teo",
+    "Uma aula de 60 minutos com Teo"
+  ],
+  "of.m.getS": [
+    "Remote, within 2 weeks of booking.",
+    "A distancia, dentro de las 2 semanas tras reservar.",
+    "Remota, até 2 semanas após a reserva."
+  ],
+  "of.m.next": [
+    "Teo approves, then Sunroot's stewards accept you",
+    "Teo aprueba y luego los responsables de Sunroot te aceptan",
+    "Teo aprova, depois os responsáveis de Sunroot aceitam você"
+  ],
+  "of.m.nextS": [
+    "A steward can't approve for Teo. Teo answers within 2 business days: policy, not enforced.",
+    "Un responsable no puede aprobar por Teo. Teo responde en 2 días hábiles: política, no se aplica automáticamente.",
+    "Um responsável não pode aprovar por Teo. Teo responde em 2 dias úteis: política, não imposta."
+  ],
+  "of.m.backS": [
+    "After that, by minutes delivered: 30 of 60 returns half. You approve the split.",
+    "Después, según los minutos dados: 30 de 60 devuelve la mitad. Tú apruebas el reparto.",
+    "Depois, pelos minutos dados: 30 de 60 devolve metade. Você aprova a divisão."
+  ],
+  "of.m.startsS": [
+    "Teo offers times within 2 business days",
+    "Teo propone horarios en 2 días hábiles",
+    "Teo propõe horários em 2 dias úteis"
+  ],
+  "of.m.places": [
+    "3 lessons left this month",
+    "Quedan 3 lecciones este mes",
+    "Restam 3 aulas este mês"
+  ],
+  "of.m.placesS": [
+    "What Teo can still deliver, from his terms",
+    "Lo que Teo aún puede dar, según sus condiciones",
+    "O que Teo ainda pode dar, pelas condições dele"
+  ],
+  "of.r.shortV.bm": [
+    "This lesson takes 1. You can exchange other vouchers in the shared pool.",
+    "Esta lección vale 1. Puedes cambiar otros vales en el fondo compartido.",
+    "Esta aula custa 1. Você pode trocar outros vales no fundo compartilhado."
+  ],
+  "of.r.paused.t": [
+    "New bookings are paused.",
+    "Las nuevas reservas están en pausa.",
+    "Novas reservas estão em pausa."
+  ],
+  "of.r.paused.b": [
+    "{issuer} paused new bookings. Your voucher keeps its terms, and booked services go ahead.",
+    "{issuer} pausó las nuevas reservas. Tu vale conserva sus condiciones y los servicios reservados siguen.",
+    "{issuer} pausou novas reservas. Seu vale mantém as condições e os serviços reservados seguem."
+  ],
+  "pay.step.acceptM": [
+    "Next: the garden's stewards accept you",
+    "Ahora: los responsables del jardín te aceptan",
+    "Agora: os responsáveis do jardim aceitam você"
+  ],
+  "pay.v.waitM.b": [
+    "Teo approves from his own account, usually within 2 business days. Nothing has left your account. We'll let you know when you can deposit.",
+    "Teo aprueba desde su propia cuenta, normalmente en 2 días hábiles. Nada ha salido de tu cuenta. Te avisaremos cuando puedas depositar.",
+    "Teo aprova da própria conta, normalmente em 2 dias úteis. Nada saiu da sua conta. Avisaremos quando você puder depositar."
+  ],
+  "pay.n.depositedM.b": [
+    "Green Goods checks the deposit first. Then the garden's stewards can accept you.",
+    "Primero Green Goods revisa el depósito. Después los responsables del jardín pueden aceptarte.",
+    "Primeiro o Green Goods confere o depósito. Depois os responsáveis do jardim podem aceitar você."
+  ],
+  "pay.m.get": ["One 60-minute lesson", "Una lección de 60 minutos", "Uma aula de 60 minutos"],
+  "pay.m.after": ["By minutes delivered", "Según los minutos dados", "Pelos minutos dados"],
+  "rd.p.lesson": ["Lesson", "Lección", "Aula"],
+  "rd.sub.acceptedM": [
+    "The garden's stewards accepted you",
+    "Los responsables del jardín te aceptaron",
+    "Os responsáveis do jardim aceitaram você"
+  ],
+  "rd.sub.minutes": [
+    "{done} of 60 minutes reported",
+    "{done} de 60 minutos informados",
+    "{done} de 60 minutos informados"
+  ],
+  "rd.sub.lessonAt": [
+    "Lesson {date}, 18:00, remote",
+    "Lección {date}, 18:00, a distancia",
+    "Aula {date}, 18:00, remota"
+  ],
+  "rd.n.approvalM.b": [
+    "{issuer} approves from their own account. Your voucher is still in your account. You can cancel any time before the booking is accepted.",
+    "{issuer} aprueba desde su propia cuenta. Tu vale sigue en tu cuenta. Puedes cancelar cuando quieras antes de que acepten la reserva.",
+    "{issuer} aprova da própria conta. Seu vale continua na sua conta. Você pode cancelar quando quiser antes de a reserva ser aceita."
+  ],
+  "rd.n.acceptanceM.t": [
+    "Next: the garden's stewards accept you",
+    "Ahora: los responsables del jardín te aceptan",
+    "Agora: os responsáveis do jardim aceitam você"
+  ],
+  "rd.n.acceptanceM.b": [
+    "Your deposit is confirmed and {issuer} approved. Sunroot's stewards accept by {d1}. Until then, you can cancel and get your voucher back.",
+    "Tu depósito está confirmado y {issuer} aprobó. Los responsables de Sunroot aceptan antes del {d1}. Hasta entonces, puedes cancelar y recuperar tu vale.",
+    "Seu depósito está confirmado e {issuer} aprovou. Os responsáveis de Sunroot aceitam até {d1}. Até lá, você pode cancelar e recuperar seu vale."
+  ],
+  "rd.n.startingM.b": [
+    "You're accepted. The booking is starting on the voucher network. Starting fixes the terms; it doesn't mean the lesson happened.",
+    "Te aceptaron. La reserva se está iniciando en la red de los vales. Iniciar fija las condiciones; no significa que la lección ocurrió.",
+    "Você foi aceito. A reserva está sendo iniciada na rede dos vales. Iniciar fixa as condições; não significa que a aula aconteceu."
+  ],
+  "rd.n.lessonOn.b": [
+    "Tuesday {d2}, 18:00, remote. After the lesson, {issuer} reports it, then you close it here.",
+    "Martes {d2}, 18:00, a distancia. Después de la lección, {issuer} la informa y tú la cierras aquí.",
+    "Terça, {d2}, 18:00, remota. Depois da aula, {issuer} informa e você encerra aqui."
+  ],
+  "rd.n.proposedL.b": [
+    "The lesson stopped after 30 of 60 minutes. {issuer} proposes {back} back to you and {rel} to their reserve, by minutes delivered. Nothing moves until you approve the split or report a problem.",
+    "La lección se detuvo a los 30 de 60 minutos. {issuer} propone {back} de vuelta para ti y {rel} para su reserva, según los minutos dados. Nada se mueve hasta que apruebes el reparto o informes un problema.",
+    "A aula parou aos 30 de 60 minutos. {issuer} propõe {back} de volta para você e {rel} para a reserva dele, pelos minutos dados. Nada se move até você aprovar a divisão ou informar um problema."
+  ],
+  "rd.n.closedEarlyL.b": [
+    "{back} vouchers are back with you and {rel} went to {issuer}'s reserve. The garden's stewards closed the promise as ended early. Your earlier exchange isn't reversed, and {issuer}'s lesson capacity isn't restored.",
+    "{back} vales volvieron a ti y {rel} fueron a la reserva de {issuer}. Los responsables del jardín cerraron la promesa como terminada antes. Tu cambio anterior no se revierte y la capacidad de {issuer} no se restaura.",
+    "{back} vales voltaram para você e {rel} foram para a reserva de {issuer}. Os responsáveis do jardim encerraram a promessa como terminada antes. Sua troca anterior não é revertida e a capacidade de {issuer} não é restaurada."
+  ],
+  "rd.sh.deliveredL": ["30 of 60 minutes", "30 de 60 minutos", "30 de 60 minutos"],
+  "rd.sh.toSunL": [
+    "For 30 minutes, within {issuer}'s terms",
+    "Por 30 minutos, dentro de las condiciones de {issuer}",
+    "Por 30 minutos, dentro das condições de {issuer}"
+  ],
+  "rd.sh.chkL": [
+    "I received 30 of the 60 minutes",
+    "Recibí 30 de los 60 minutos",
+    "Recebi 30 dos 60 minutos"
+  ],
+  "rd.f.backL": ["By minutes delivered", "Según los minutos dados", "Pelos minutos dados"],
+  "rd.quoteL": [
+    "“We lost the connection after half an hour.”",
+    "«Perdimos la conexión después de media hora.»",
+    "“Perdemos a conexão depois de meia hora.”"
+  ],
+  "rd.x.exchange": [
+    "Exchange: the voucher came from the shared pool. A return doesn't undo that exchange.",
+    "Cambio: el vale vino del fondo compartido. Una devolución no deshace ese cambio.",
+    "Troca: o vale veio do fundo compartilhado. Uma devolução não desfaz essa troca."
+  ],
+  "rw.m.title": [
+    "Design the impact website",
+    "Diseñar el sitio de impacto",
+    "Desenhar o site de impacto"
+  ],
+  "rw.m.desc": [
+    "Design the landing page and impact section for Sunroot's website, with a reviewed handoff for the build.",
+    "Diseña la página principal y la sección de impacto del sitio de Sunroot, con una entrega revisada para el desarrollo.",
+    "Desenhe a página inicial e a seção de impacto do site de Sunroot, com uma entrega revisada para o desenvolvimento."
+  ],
+  "rw.m.give": ["One reviewed design", "Un diseño revisado", "Um design revisado"],
+  "rw.m.giveS": [
+    "Landing page and impact section, as files the engineer can build from.",
+    "Página principal y sección de impacto, en archivos que el ingeniero pueda usar.",
+    "Página inicial e seção de impacto, em arquivos que o engenheiro possa usar."
+  ],
+  "rw.m.vou": ["1 Teo voucher", "1 vale de Teo", "1 vale do Teo"],
+  "rw.m.vouS": [
+    "From Teo's reserve. 1 books one 60-minute lesson.",
+    "De la reserva de Teo. Con 1 reservas una lección de 60 minutos.",
+    "Da reserva do Teo. Com 1 você reserva uma aula de 60 minutos."
+  ],
+  "rw.m.brief": [
+    "Part of the Impact website brief. Each of its three promises is accepted and rewarded on its own.",
+    "Parte del brief del sitio de impacto. Cada una de sus tres promesas se acepta y se recompensa por separado.",
+    "Parte do brief do site de impacto. Cada uma das três promessas é aceita e recompensada separadamente."
+  ],
+  "rw.n.shortM.b": [
+    "Teo's allowance for {garden} is used up, so the reward waits until Teo approves more from his reserve. Your reward is unchanged.",
+    "El permiso de Teo para {garden} se agotó, así que la recompensa espera hasta que Teo apruebe más desde su reserva. Tu recompensa no cambia.",
+    "A permissão de Teo para {garden} acabou, então a recompensa espera até Teo aprovar mais da reserva dele. Sua recompensa não muda."
+  ],
+  "rw.r.vouShortM": [
+    "Teo's allowance is used up. Sent when Teo approves more.",
+    "El permiso de Teo se agotó. Se envía cuando Teo apruebe más.",
+    "A permissão de Teo acabou. Enviado quando Teo aprovar mais."
+  ],
+  "rw.n.consent.t": [
+    "Agreeing isn't available here yet",
+    "Aceptar aún no está disponible aquí",
+    "Concordar ainda não está disponível aqui"
+  ],
+  "rw.n.consent.b": [
+    "Your account can't sign the voucher agreement on the source network from this app yet, and a steward's account can't sign it for you. A Green Goods operator helps you record it. Approving a booking later doesn't replace it.",
+    "Tu cuenta aún no puede firmar el acuerdo de los vales en la red de origen desde esta app, y la cuenta de un responsable no puede firmarlo por ti. Un operador de Green Goods te ayuda a registrarlo. Aprobar una reserva después no lo reemplaza.",
+    "Sua conta ainda não pode assinar o acordo dos vales na rede de origem por este app, e a conta de um responsável não pode assinar por você. Um operador do Green Goods ajuda você a registrá-lo. Aprovar uma reserva depois não o substitui."
+  ],
+  "rw.a.help": ["Ask for Help", "Pedir ayuda", "Pedir ajuda"],
+  "rw.sh.source": [
+    "This agreement is recorded on the source network. Approving a booking on the voucher network later doesn't replace it.",
+    "Este acuerdo se registra en la red de origen. Aprobar una reserva después en la red de los vales no lo reemplaza.",
+    "Este acordo é registrado na rede de origem. Aprovar uma reserva depois na rede dos vales não o substitui."
+  ],
+  "wl.teoS": [
+    "Teo Alves · 1 books a 60-minute lesson",
+    "Teo Alves · con 1 reservas una lección de 60 minutos",
+    "Teo Alves · com 1 você reserva uma aula de 60 minutos"
+  ],
+  "ex.f.rate": ["Rate", "Tasa", "Taxa"],
+  "ex.f.rateV": [
+    "2 Maya vouchers for 1 Teo voucher",
+    "2 vales de Maya por 1 vale de Teo",
+    "2 vales da Maya por 1 vale do Teo"
+  ],
+  "ex.f.rateVH": [
+    "2 Hilltop vouchers for 1 Sunroot voucher, before fees",
+    "2 vales de Hilltop por 1 vale de Sunroot, antes de comisiones",
+    "2 vales da Hilltop por 1 vale da Sunroot, antes das taxas"
+  ],
+  "ex.f.rateS": [
+    "Agreed per offer; no automatic 1:1",
+    "Acordada por oferta; sin 1:1 automático",
+    "Acordada por oferta; sem 1:1 automático"
+  ],
+  "ex.f.feesZero": [
+    "Zero fees proposed; the pool may still charge a protocol fee",
+    "Se proponen comisiones cero; el fondo aún puede cobrar una de protocolo",
+    "Taxas zero propostas; o fundo ainda pode cobrar uma de protocolo"
+  ],
+  "ex.n.own.t": [
+    "These are your own vouchers",
+    "Estos son tus propios vales",
+    "Estes são seus próprios vales"
+  ],
+  "ex.n.own.b": [
+    "Spending them promises your coaching to whoever ends up holding them. It's separate from your project work.",
+    "Gastarlos promete tu asesoría a quien termine teniéndolos. Es aparte de tu trabajo en el proyecto.",
+    "Gastá-los promete sua mentoria a quem acabar com eles. É separado do seu trabalho no projeto."
+  ],
+  "ex.a.backL": ["Back to the Lesson", "Volver a la lección", "Voltar à aula"],
+  "br.kind": [
+    "Project brief · {garden}",
+    "Brief del proyecto · {garden}",
+    "Brief do projeto · {garden}"
+  ],
+  "br.title": ["Impact website", "Sitio de impacto", "Site de impacto"],
+  "br.desc": [
+    "Three separate promises under one brief. Each is accepted, reviewed and rewarded on its own.",
+    "Tres promesas separadas bajo un mismo brief. Cada una se acepta, se revisa y se recompensa por separado.",
+    "Três promessas separadas sob um mesmo brief. Cada uma é aceita, revisada e recompensada por conta própria."
+  ],
+  "br.promises": ["The promises", "Las promesas", "As promessas"],
+  "br.r.design": ["Design · Noor", "Diseño · Noor", "Design · Noor"],
+  "br.r.designS": [
+    "Reward: 1 Teo voucher, from Teo's reserve",
+    "Recompensa: 1 vale de Teo, de la reserva de Teo",
+    "Recompensa: 1 vale do Teo, da reserva do Teo"
+  ],
+  "br.r.analysis": [
+    "Impact summary · Maya",
+    "Resumen de impacto · Maya",
+    "Resumo de impacto · Maya"
+  ],
+  "br.r.analysisS": [
+    "Reward: 1 Sunroot voucher",
+    "Recompensa: 1 vale de Sunroot",
+    "Recompensa: 1 vale da Sunroot"
+  ],
+  "br.r.build": [
+    "Website build · Teo",
+    "Desarrollo del sitio · Teo",
+    "Desenvolvimento do site · Teo"
+  ],
+  "br.r.buildS": [
+    "Reward: 1 Green Goods voucher · needs the design and data first",
+    "Recompensa: 1 vale de Green Goods · necesita antes el diseño y los datos",
+    "Recompensa: 1 vale do Green Goods · precisa antes do design e dos dados"
+  ],
+  "br.p.open": ["Open", "Abierta", "Aberta"],
+  "br.p.prog": ["In progress", "En curso", "Em andamento"],
+  "br.p.review": ["Under review", "En revisión", "Em revisão"],
+  "br.p.kept": [
+    "Kept · reward sent",
+    "Cumplida · recompensa enviada",
+    "Cumprida · recompensa enviada"
+  ],
+  "br.p.wait": ["Waiting", "En espera", "Aguardando"],
+  "br.p.partial": ["Partly delivered", "Entregada en parte", "Entregue em parte"],
+  "br.n.t": ["How the brief works", "Cómo funciona el brief", "Como o brief funciona"],
+  "br.n.b": [
+    "The brief groups the work for people. It isn't a contract: nothing pays out as a team, and one promise finishing doesn't finish the others. Ade confirms each prerequisite before the next work is booked.",
+    "El brief agrupa el trabajo para las personas. No es un contrato: nada se paga en equipo, y que una promesa termine no termina las otras. Ade confirma cada requisito antes de que se reserve el siguiente trabajo.",
+    "O brief agrupa o trabalho para as pessoas. Não é um contrato: nada é pago em equipe, e uma promessa terminar não termina as outras. Ade confirma cada pré-requisito antes de o próximo trabalho ser reservado."
+  ],
+  "br.f.coord": ["Coordinator", "Coordinación", "Coordenação"],
+  "br.f.coordV": [
+    "Ade, a Sunroot steward",
+    "Ade, responsable de Sunroot",
+    "Ade, responsável de Sunroot"
+  ],
+  "br.f.coordS": [
+    "Accepts each request and reviews each result",
+    "Acepta cada solicitud y revisa cada resultado",
+    "Aceita cada pedido e revisa cada resultado"
+  ],
+  "br.f.rewards": ["Rewards", "Recompensas", "Recompensas"],
+  "br.f.rewardsV": [
+    "Three different vouchers, each from its issuer's reserve",
+    "Tres vales distintos, cada uno de la reserva de su emisor",
+    "Três vales diferentes, cada um da reserva do seu emissor"
+  ],
+  "br.f.rewardsS": [
+    "No team payout and no project token",
+    "Sin pago en equipo ni token del proyecto",
+    "Sem pagamento em equipe nem token do projeto"
+  ],
+  "br.peer": [
+    "Peer help, kept apart",
+    "Ayuda entre miembros, aparte",
+    "Ajuda entre membros, à parte"
+  ],
+  "br.peerS": [
+    "Maya booked Teo's integration lesson with vouchers she exchanged. That's a service promise between them, with its own capacity and evidence, not project work.",
+    "Maya reservó la lección de integración de Teo con vales que cambió. Es una promesa de servicio entre ellos, con su propia capacidad y evidencia, no trabajo del proyecto.",
+    "Maya reservou a aula de integração de Teo com vales que trocou. É uma promessa de serviço entre eles, com capacidade e evidência próprias, não trabalho do projeto."
+  ],
+  "br.peerRow": [
+    "Integration lesson · Maya with Teo",
+    "Lección de integración · Maya con Teo",
+    "Aula de integração · Maya com Teo"
+  ],
+  "br.peerRowS": [
+    "Booked with 1 Teo voucher",
+    "Reservada con 1 vale de Teo",
+    "Reservada com 1 vale do Teo"
+  ],
+  "ob.kind": [
+    "Your service · drafted with {name}, a {garden} steward",
+    "Tu servicio · preparado con {name}, responsable de {garden}",
+    "Seu serviço · preparado com {name}, responsável de {garden}"
+  ],
+  "ob.title": ["Integration lesson", "Lección de integración", "Aula de integração"],
+  "ob.desc": [
+    "One 60-minute remote session, promised by you. Ade prepared this draft with you; only you can approve it.",
+    "Una sesión a distancia de 60 minutos, prometida por ti. Ade preparó este borrador contigo; solo tú puedes aprobarlo.",
+    "Uma sessão remota de 60 minutos, prometida por você. Ade preparou este rascunho com você; só você pode aprová-lo."
+  ],
+  "ob.promise.t": ["What you promise", "Lo que prometes", "O que você promete"],
+  "ob.f.unit": ["One voucher buys", "Un vale compra", "Um vale compra"],
+  "ob.f.unitV": ["One 60-minute lesson", "Una lección de 60 minutos", "Uma aula de 60 minutos"],
+  "ob.f.unitS": [
+    "Remote, within 2 weeks of booking",
+    "A distancia, dentro de las 2 semanas tras reservar",
+    "Remota, até 2 semanas após a reserva"
+  ],
+  "ob.f.cap": ["Lessons you can deliver", "Lecciones que puedes dar", "Aulas que você pode dar"],
+  "ob.f.capV": [
+    "6 over the next 4 weeks",
+    "6 en las próximas 4 semanas",
+    "6 nas próximas 4 semanas"
+  ],
+  "ob.f.capS": [
+    "Your estimate. Bookings count against it; returned vouchers don't restore it.",
+    "Tu estimación. Las reservas la consumen; los vales devueltos no la restauran.",
+    "Sua estimativa. As reservas a consomem; vales devolvidos não a restauram."
+  ],
+  "ob.f.issue": ["Vouchers to issue", "Vales a emitir", "Vales a emitir"],
+  "ob.f.issueV": ["6 Teo vouchers", "6 vales de Teo", "6 vales do Teo"],
+  "ob.f.issueS": [
+    "2 go to the shared pool, 4 stay in your reserve",
+    "2 van al fondo compartido, 4 quedan en tu reserva",
+    "2 vão para o fundo compartilhado, 4 ficam na sua reserva"
+  ],
+  "ob.f.allow": ["For rewards", "Para recompensas", "Para recompensas"],
+  "ob.f.allowV": ["1 at a time", "1 por vez", "1 por vez"],
+  "ob.f.allowS": [
+    "A finite allowance from your reserve. You raise it when you choose.",
+    "Un permiso finito desde tu reserva. Lo aumentas cuando quieras.",
+    "Uma permissão finita da sua reserva. Você a aumenta quando quiser."
+  ],
+  "ob.f.rate": ["Exchange rate", "Tasa de cambio", "Taxa de troca"],
+  "ob.f.rateV": [
+    "1 Teo voucher = 2 Maya vouchers",
+    "1 vale de Teo = 2 vales de Maya",
+    "1 vale do Teo = 2 vales da Maya"
+  ],
+  "ob.f.rateS": [
+    "Proposed for this offer. No automatic 1:1.",
+    "Propuesta para esta oferta. Sin 1:1 automático.",
+    "Proposta para esta oferta. Sem 1:1 automático."
+  ],
+  "ob.f.fees": ["Fees", "Comisiones", "Taxas"],
+  "ob.f.feesV": [
+    "0 pool fee proposed",
+    "Se propone 0 de comisión del fondo",
+    "Taxa do fundo 0 proposta"
+  ],
+  "ob.f.feesS": [
+    "A protocol fee may still apply",
+    "Aún puede aplicarse una comisión de protocolo",
+    "Uma taxa de protocolo ainda pode se aplicar"
+  ],
+  "ob.f.pool": ["Pool limit", "Límite del fondo", "Limite do fundo"],
+  "ob.f.poolV": ["6 Teo vouchers", "6 vales de Teo", "6 vales do Teo"],
+  "ob.f.poolS": [
+    "The most the pool may hold. Not how many exist, not a promise of demand.",
+    "Lo máximo que el fondo puede tener. No cuántos existen ni una promesa de demanda.",
+    "O máximo que o fundo pode ter. Não quantos existem, nem uma promessa de demanda."
+  ],
+  "ob.f.reply": ["Booking reply", "Respuesta a reservas", "Resposta a reservas"],
+  "ob.f.replyV": ["Within 2 business days", "En 2 días hábiles", "Em 2 dias úteis"],
+  "ob.f.replyS": [
+    "Policy you publish, not enforced",
+    "Política que publicas; no se aplica automáticamente",
+    "Política que você publica; não imposta"
+  ],
+  "ob.f.short": [
+    "If a lesson falls short",
+    "Si una lección queda corta",
+    "Se uma aula ficar curta"
+  ],
+  "ob.f.shortV": ["By minutes delivered", "Según los minutos dados", "Pelos minutos dados"],
+  "ob.f.shortS": [
+    "You propose the most that can come back; the holder approves one final split.",
+    "Tú propones lo máximo que puede volver; quien tiene el vale aprueba un reparto final.",
+    "Você propõe o máximo que pode voltar; quem tem o vale aprova uma divisão final."
+  ],
+  "ob.yours.t": ["What stays yours", "Lo que sigue siendo tuyo", "O que continua seu"],
+  "ob.y.token": ["Token owner", "Dueño del token", "Dono do token"],
+  "ob.y.you": ["You", "Tú", "Você"],
+  "ob.y.reserve": ["Reserve", "Reserva", "Reserva"],
+  "ob.y.reserveV": ["Your account", "Tu cuenta", "Sua conta"],
+  "ob.y.bookings": ["Approves each booking", "Aprueba cada reserva", "Aprova cada reserva"],
+  "ob.y.upgrade": [
+    "Upgrades and recovery",
+    "Actualizaciones y recuperación",
+    "Atualizações e recuperação"
+  ],
+  "ob.y.upgradeV": ["You, directly", "Tú, directamente", "Você, diretamente"],
+  "ob.y.upgradeS": [
+    "No Safe and no waiting period. Record how you'd recover this account.",
+    "Sin Safe ni periodo de espera. Registra cómo recuperarías esta cuenta.",
+    "Sem Safe e sem período de espera. Registre como você recuperaria esta conta."
+  ],
+  "ob.y.steward": [
+    "Ade can prepare and publish. Ade can't issue, spend your reserve or approve for you.",
+    "Ade puede preparar y publicar. No puede emitir, gastar tu reserva ni aprobar por ti.",
+    "Ade pode preparar e publicar. Não pode emitir, gastar sua reserva nem aprovar por você."
+  ],
+  "ob.a.review": ["Review and Approve", "Revisar y aprobar", "Revisar e aprovar"],
+  "ob.a.changes": ["Ask for Changes", "Pedir cambios", "Pedir mudanças"],
+  "ob.a.decline": ["Decline", "Rechazar", "Recusar"],
+  "ob.a.enable": ["Enable Reserve", "Activar reserva", "Ativar reserva"],
+  "ob.a.allow": [
+    "Approve 1 for Rewards",
+    "Aprobar 1 para recompensas",
+    "Aprovar 1 para recompensas"
+  ],
+  "ob.a.place": ["Place 2 in the Pool", "Poner 2 en el fondo", "Colocar 2 no fundo"],
+  "ob.a.service": ["See Your Service", "Ver tu servicio", "Ver seu serviço"],
+  "ob.sh.title": ["Approve Your Service", "Aprobar tu servicio", "Aprovar seu serviço"],
+  "ob.j.approve": ["You approve", "Tú apruebas", "Você aprova"],
+  "ob.j.setup": ["Set up", "Preparación", "Preparação"],
+  "ob.j.register": ["Registered", "Registro", "Registro"],
+  "ob.j.admit": ["Admitted", "Admisión", "Admissão"],
+  "ob.j.enable": ["You enable", "Tú activas", "Você ativa"],
+  "ob.who.gg": ["Green Goods", "Green Goods", "Green Goods"],
+  "ob.who.safe": ["Green Goods Safe", "Safe de Green Goods", "Safe do Green Goods"],
+  "ob.who.pool": ["Pool administrator", "Administración del fondo", "Administração do fundo"],
+  "ob.sh.consent": [
+    "Approving records these exact terms, from this account, as your promise. Nothing is issued until the setup finishes.",
+    "Aprobar registra estas condiciones exactas, desde esta cuenta, como tu promesa. No se emite nada hasta que termine la preparación.",
+    "Aprovar registra estas condições exatas, a partir desta conta, como sua promessa. Nada é emitido até a preparação terminar."
+  ],
+  "ob.sh.chk": [
+    "I read the terms and the controls above",
+    "Leí las condiciones y los controles de arriba",
+    "Li as condições e os controles acima"
+  ],
+  "ob.sh.cta": ["Approve My Service", "Aprobar mi servicio", "Aprovar meu serviço"],
+  "ob.n.draft.t": ["Next: you", "Ahora: tú", "Agora: você"],
+  "ob.n.draft.b": [
+    "Read what you'd promise and what stays yours. Approving records your exact terms; it issues nothing yet.",
+    "Lee lo que prometerías y lo que sigue siendo tuyo. Aprobar registra tus condiciones exactas; aún no emite nada.",
+    "Leia o que você prometeria e o que continua seu. Aprovar registra suas condições exatas; ainda não emite nada."
+  ],
+  "ob.n.approved.t": [
+    "Approved. Next: Green Goods sets up your token",
+    "Aprobado. Ahora: Green Goods prepara tu token",
+    "Aprovado. Agora: o Green Goods prepara seu token"
+  ],
+  "ob.n.approved.b": [
+    "Your token is created with you as its owner, then registered during a short paused window and admitted to the pool. You'll be asked to enable your reserve after that.",
+    "Tu token se crea contigo como dueño, luego se registra durante una breve pausa y se admite en el fondo. Después te pediremos activar tu reserva.",
+    "Seu token é criado com você como dono, depois registrado durante uma breve pausa e admitido no fundo. Depois disso pediremos que você ative sua reserva."
+  ],
+  "ob.n.setup.t": [
+    "Next: enable your reserve",
+    "Ahora: activa tu reserva",
+    "Agora: ative sua reserva"
+  ],
+  "ob.n.setup.b": [
+    "Your token exists and you own it. Enable your reserve, approve 1 lesson for rewards, and place 2 in the pool. Each is its own approval from your account.",
+    "Tu token existe y es tuyo. Activa tu reserva, aprueba 1 lección para recompensas y pon 2 en el fondo. Cada paso es una aprobación aparte desde tu cuenta.",
+    "Seu token existe e é seu. Ative sua reserva, aprove 1 aula para recompensas e coloque 2 no fundo. Cada etapa é uma aprovação à parte da sua conta."
+  ],
+  "ob.n.listed.t": ["Listed", "Publicado", "Listado"],
+  "ob.n.listed.b": [
+    "Your lesson is in the shared pool: 2 vouchers there, 4 in your reserve. Bookings wait for your approval, one at a time.",
+    "Tu lección está en el fondo compartido: 2 vales allí, 4 en tu reserva. Las reservas esperan tu aprobación, una por una.",
+    "Sua aula está no fundo compartilhado: 2 vales lá, 4 na sua reserva. As reservas esperam sua aprovação, uma de cada vez."
+  ],
+  "ob.n.changed.t": [
+    "The draft changed after you approved",
+    "El borrador cambió después de tu aprobación",
+    "O rascunho mudou depois da sua aprovação"
+  ],
+  "ob.n.changed.b": [
+    "Ade changed the exchange rate. Your approval was for the old draft, so nothing continues until you approve the new one or decline.",
+    "Ade cambió la tasa de cambio. Tu aprobación era para el borrador anterior, así que nada sigue hasta que apruebes el nuevo o lo rechaces.",
+    "Ade mudou a taxa de troca. Sua aprovação era para o rascunho anterior, então nada continua até você aprovar o novo ou recusar."
+  ],
+  "ob.n.declined.t": ["Declined", "Rechazado", "Recusado"],
+  "ob.n.declined.b": [
+    "Nothing was created and nothing was issued. Ade can prepare a new draft with you.",
+    "No se creó ni se emitió nada. Ade puede preparar un nuevo borrador contigo.",
+    "Nada foi criado nem emitido. Ade pode preparar um novo rascunho com você."
+  ],
+  "ob.n.unavail.t": [
+    "Approving isn't available yet",
+    "Aprobar aún no está disponible",
+    "Aprovar ainda não está disponível"
+  ],
+  "ob.n.unavail.b": [
+    "Your account can't sign on the voucher network yet. The draft waits; a steward can't approve it for you.",
+    "Tu cuenta aún no puede firmar en la red de los vales. El borrador espera; un responsable no puede aprobarlo por ti.",
+    "Sua conta ainda não pode assinar na rede dos vales. O rascunho espera; um responsável não pode aprová-lo por você."
+  ],
+  "ob.p.approved": ["Approved", "Aprobado", "Aprovado"],
+  "ob.p.setup": ["Set up", "Preparación", "Preparação"],
+  "ob.p.yours": ["Your setup", "Tu preparación", "Sua preparação"],
+  "ob.p.live": ["Listed", "Publicado", "Listado"],
+  "ob.sub.approved": [
+    "You approved the exact terms · {date}",
+    "Aprobaste las condiciones exactas · {date}",
+    "Você aprovou as condições exatas · {date}"
+  ],
+  "ob.sub.token": ["Token created, owned by you", "Token creado, tuyo", "Token criado, seu"],
+  "ob.sub.registered": [
+    "Registered as an issuer, during a paused window",
+    "Registrado como emisor, durante una pausa",
+    "Registrado como emissor, durante uma pausa"
+  ],
+  "ob.sub.admitted": [
+    "Admitted to the pool: rate, limit, fees",
+    "Admitido en el fondo: tasa, límite, comisiones",
+    "Admitido no fundo: taxa, limite, taxas"
+  ],
+  "ob.sub.enable": ["You enable your reserve", "Activas tu reserva", "Você ativa sua reserva"],
+  "ob.sub.allow": [
+    "You approve 1 for rewards",
+    "Apruebas 1 para recompensas",
+    "Você aprova 1 para recompensas"
+  ],
+  "ob.sub.place": ["You place 2 in the pool", "Pones 2 en el fondo", "Você coloca 2 no fundo"],
+  "ob.sub.listed": ["Your lesson is listed", "Tu lección está publicada", "Sua aula está listada"],
+  "ob.x.token": [
+    "Token: your own voucher contract on Gnosis, owned by your account",
+    "Token: tu propio contrato de vales en Gnosis, de tu cuenta",
+    "Token: seu próprio contrato de vales na Gnosis, da sua conta"
+  ],
+  "ob.x.source": [
+    "Source authority: your account, registered on Arbitrum by the Green Goods Safe",
+    "Autoridad de origen: tu cuenta, registrada en Arbitrum por el Safe de Green Goods",
+    "Autoridade de origem: sua conta, registrada na Arbitrum pelo Safe do Green Goods"
+  ],
+  "ob.x.record": [
+    "Record: issuer draft #7, approval reference kept with your terms",
+    "Registro: borrador de emisor #7, referencia de aprobación guardada con tus condiciones",
+    "Registro: rascunho de emissor #7, referência de aprovação guardada com suas condições"
+  ],
+  "ms.kind": ["Your service", "Tu servicio", "Seu serviço"],
+  "ms.sub": [
+    "60 minutes · 1 Teo voucher · in the shared pool",
+    "60 minutos · 1 vale de Teo · en el fondo compartido",
+    "60 minutos · 1 vale do Teo · no fundo compartilhado"
+  ],
+  "ms.p.listed": ["Listed", "Publicado", "Listado"],
+  "ms.p.paused": ["Paused", "En pausa", "Em pausa"],
+  "ms.p.delisted": ["Delisted", "Retirado", "Retirado"],
+  "ms.cap.t": ["What you can still deliver", "Lo que aún puedes dar", "O que você ainda pode dar"],
+  "ms.cap.promised": ["Promised", "Prometidas", "Prometidas"],
+  "ms.cap.booked": ["Booked", "Reservadas", "Reservadas"],
+  "ms.cap.delivered": ["Delivered", "Dadas", "Dadas"],
+  "ms.cap.left": ["Left", "Quedan", "Restam"],
+  "ms.cap.unit": ["lessons", "lecciones", "aulas"],
+  "ms.cap.bar": [
+    "{delivered} delivered, {booked} booked, {left} left of {promised} lessons",
+    "{delivered} dadas, {booked} reservadas, {left} quedan de {promised} lecciones",
+    "{delivered} dadas, {booked} reservadas, {left} restam de {promised} aulas"
+  ],
+  "ms.cap.note": [
+    "From your terms and verified bookings. Vouchers out there don't change this; returned ones don't add to it.",
+    "Según tus condiciones y las reservas verificadas. Los vales en circulación no cambian esto; los devueltos no lo aumentan.",
+    "Pelas suas condições e reservas verificadas. Vales em circulação não mudam isto; devolvidos não aumentam."
+  ],
+  "ms.vou.t": ["Where your vouchers are", "Dónde están tus vales", "Onde estão seus vales"],
+  "ms.v.issued": ["Issued", "Emitidos", "Emitidos"],
+  "ms.v.pool": ["In the pool", "En el fondo", "No fundo"],
+  "ms.v.reserve": ["In your reserve", "En tu reserva", "Na sua reserva"],
+  "ms.v.out": ["Held by others", "En manos de otros", "Com outras pessoas"],
+  "ms.v.escrow": ["In escrow for bookings", "En garantía por reservas", "Em garantia por reservas"],
+  "ms.v.allow": [
+    "Approved for rewards",
+    "Aprobados para recompensas",
+    "Aprovados para recompensas"
+  ],
+  "ms.v.note": [
+    "Reserve and holdings can overlap; don't add them up. Token balances don't show what you owe.",
+    "La reserva y lo que tienes pueden solaparse; no los sumes. Los saldos del token no muestran lo que debes.",
+    "Reserva e saldo podem se sobrepor; não os some. Saldos do token não mostram o que você deve."
+  ],
+  "ms.book.t": ["Bookings", "Reservas", "Reservas"],
+  "ms.book.note": [
+    "Verified bookings found so far. The list may be incomplete.",
+    "Reservas verificadas hasta ahora. La lista puede estar incompleta.",
+    "Reservas verificadas até agora. A lista pode estar incompleta."
+  ],
+  "ms.r.maya": [
+    "Maya · Tue {date}, 18:00",
+    "Maya · martes {date}, 18:00",
+    "Maya · terça, {date}, 18:00"
+  ],
+  "ms.r.kai": ["Kai · {date}", "Kai · {date}", "Kai · {date}"],
+  "ms.r.rafa": ["Rafa · {date}", "Rafa · {date}", "Rafa · {date}"],
+  "ms.t.active": ["In progress", "En curso", "Em andamento"],
+  "ms.t.done": [
+    "Delivered · 1 to your reserve",
+    "Dada · 1 a tu reserva",
+    "Dada · 1 para sua reserva"
+  ],
+  "ms.t.short": [
+    "Stopped at 30 min · propose a return",
+    "Se detuvo a los 30 min · propón una devolución",
+    "Parou aos 30 min · proponha uma devolução"
+  ],
+  "ms.t.proposed": [
+    "Return proposed · Maya decides",
+    "Devolución propuesta · Maya decide",
+    "Devolução proposta · Maya decide"
+  ],
+  "ms.t.pending": [
+    "Approval sent · not confirmed",
+    "Aprobación enviada · sin confirmar",
+    "Aprovação enviada · não confirmada"
+  ],
+  "ms.a.approve": ["Approve Booking", "Aprobar reserva", "Aprovar reserva"],
+  "ms.a.propose": ["Propose Return", "Proponer devolución", "Propor devolução"],
+  "ms.a.issue": ["Issue More", "Emitir más", "Emitir mais"],
+  "ms.a.allow": ["Approve for Rewards", "Aprobar para recompensas", "Aprovar para recompensas"],
+  "ms.a.pause": ["Pause New Bookings", "Pausar nuevas reservas", "Pausar novas reservas"],
+  "ms.a.resume": ["Resume Bookings", "Reanudar reservas", "Retomar reservas"],
+  "ms.a.check": ["Check Status", "Ver estado", "Ver status"],
+  "ms.sh.approve.t": [
+    "Approve Maya's Booking",
+    "Aprobar la reserva de Maya",
+    "Aprovar a reserva de Maya"
+  ],
+  "ms.sh.holder": ["Holder", "Quien reserva", "Quem reserva"],
+  "ms.sh.lesson": ["Lesson", "Lección", "Aula"],
+  "ms.sh.lessonV": ["60 minutes, remote", "60 minutos, a distancia", "60 minutos, remota"],
+  "ms.sh.vou": ["Vouchers", "Vales", "Vales"],
+  "ms.sh.vouS": [
+    "Still in Maya's account. She deposits after you approve.",
+    "Siguen en la cuenta de Maya. Ella deposita después de que apruebes.",
+    "Ainda na conta de Maya. Ela deposita depois que você aprovar."
+  ],
+  "ms.sh.termsV": [
+    "Version 1, your listed terms",
+    "Versión 1, tus condiciones publicadas",
+    "Versão 1, suas condições listadas"
+  ],
+  "ms.sh.termsS": [
+    "Checked against the hash you approved",
+    "Comparado con el hash que aprobaste",
+    "Comparado com o hash que você aprovou"
+  ],
+  "ms.sh.dueS": [
+    "Maya chose this when agreeing",
+    "Maya lo eligió al aceptar",
+    "Maya escolheu isso ao concordar"
+  ],
+  "ms.sh.consent": [
+    "I approve this exact booking from this account. Approving isn't accepting: the garden's stewards accept after the deposit is confirmed.",
+    "Apruebo esta reserva exacta desde esta cuenta. Aprobar no es aceptar: los responsables del jardín aceptan después de confirmarse el depósito.",
+    "Aprovo esta reserva exata a partir desta conta. Aprovar não é aceitar: os responsáveis do jardim aceitam depois de o depósito ser confirmado."
+  ],
+  "ms.sh.propose.t": [
+    "Propose a Return to Maya",
+    "Proponer una devolución a Maya",
+    "Propor uma devolução a Maya"
+  ],
+  "ms.sh.min": ["Minutes delivered", "Minutos dados", "Minutos dados"],
+  "ms.sh.minV": ["30 of 60", "30 de 60", "30 de 60"],
+  "ms.fl.back": [
+    "Most that can come back",
+    "Lo máximo que puede volver",
+    "O máximo que pode voltar"
+  ],
+  "ms.fl.hint": [
+    "Your terms: by minutes. 30 of 60 is {half}.",
+    "Tus condiciones: por minutos. 30 de 60 es {half}.",
+    "Suas condições: por minutos. 30 de 60 é {half}."
+  ],
+  "ms.sh.proposeNote": [
+    "Maya approves the split. You can't move the vouchers yourself, and this only raises the ceiling for this booking.",
+    "Maya aprueba el reparto. No puedes mover los vales tú mismo, y esto solo sube el tope de esta reserva.",
+    "Maya aprova a divisão. Você não pode mover os vales, e isto só eleva o teto desta reserva."
+  ],
+  "ms.sh.issue.t": ["Issue More Vouchers", "Emitir más vales", "Emitir mais vales"],
+  "ms.fl.issue": ["How many", "Cuántos", "Quantos"],
+  "ms.sh.issueCap": [
+    "Promised {promised} lessons · {issued} issued · {left} left to deliver",
+    "Prometidas {promised} lecciones · {issued} emitidos · {left} por dar",
+    "Prometidas {promised} aulas · {issued} emitidos · {left} por dar"
+  ],
+  "ms.r.capFull.t": [
+    "Issuing more would promise lessons you can't deliver.",
+    "Emitir más prometería lecciones que no puedes dar.",
+    "Emitir mais prometeria aulas que você não pode dar."
+  ],
+  "ms.r.capFull.b": [
+    "You promised 6 and 6 are issued. Review your capacity with Ade first; returned vouchers don't count as new lessons.",
+    "Prometiste 6 y hay 6 emitidos. Revisa primero tu capacidad con Ade; los vales devueltos no cuentan como nuevas lecciones.",
+    "Você prometeu 6 e há 6 emitidos. Revise primeiro sua capacidade com Ade; vales devolvidos não contam como novas aulas."
+  ],
+  "ms.sh.issueNote": [
+    "Issuing creates service promises within your confirmed limit. It doesn't record delivered work.",
+    "Emitir crea promesas de servicio dentro de tu límite confirmado. No registra trabajo entregado.",
+    "Emitir cria promessas de serviço dentro do seu limite confirmado. Não registra trabalho entregue."
+  ],
+  "ms.sh.issueCta": ["Issue {n} Vouchers", "Emitir {n} vales", "Emitir {n} vales"],
+  "ms.sh.pause.t": ["Pause New Bookings", "Pausar nuevas reservas", "Pausar novas reservas"],
+  "ms.sh.pauseB": [
+    "While paused: no new bookings, and no reward pulls from your reserve. Booked lessons go ahead, your vouchers keep their terms, and the pool still lists them.",
+    "Mientras esté en pausa: sin nuevas reservas ni retiros de tu reserva para recompensas. Las lecciones reservadas siguen, tus vales conservan sus condiciones y el fondo sigue listándolos.",
+    "Em pausa: sem novas reservas e sem retiradas da sua reserva para recompensas. As aulas reservadas seguem, seus vales mantêm as condições e o fundo continua a listá-los."
+  ],
+  "ms.sh.pauseCta": ["Pause", "Pausar", "Pausar"],
+  "ms.n.ok.t": ["Nothing waiting for you", "Nada pendiente para ti", "Nada esperando por você"],
+  "ms.n.ok.b": [
+    "{booked} lessons booked, {left} left to deliver. New bookings arrive here for your approval.",
+    "{booked} lecciones reservadas, {left} por dar. Las nuevas reservas llegan aquí para tu aprobación.",
+    "{booked} aulas reservadas, {left} por dar. Novas reservas chegam aqui para sua aprovação."
+  ],
+  "ms.n.approve.t": [
+    "Next: approve Maya's booking",
+    "Ahora: aprueba la reserva de Maya",
+    "Agora: aprove a reserva de Maya"
+  ],
+  "ms.n.approve.b": [
+    "Maya agreed to your exact terms on {date}. Approve from your account; a steward can't do it for you. Then Maya deposits and the garden's stewards accept.",
+    "Maya aceptó tus condiciones exactas el {date}. Aprueba desde tu cuenta; un responsable no puede hacerlo por ti. Luego Maya deposita y los responsables del jardín aceptan.",
+    "Maya concordou com suas condições exatas em {date}. Aprove da sua conta; um responsável não pode fazer isso por você. Depois Maya deposita e os responsáveis do jardim aceitam."
+  ],
+  "ms.n.propose.t": [
+    "Next: propose a return to Maya",
+    "Ahora: propón una devolución a Maya",
+    "Agora: proponha uma devolução a Maya"
+  ],
+  "ms.n.propose.b": [
+    "The lesson stopped after 30 minutes. Propose the most that can come back, within your terms. Maya approves the final split; you can't move the vouchers.",
+    "La lección se detuvo a los 30 minutos. Propón lo máximo que puede volver, dentro de tus condiciones. Maya aprueba el reparto final; tú no puedes mover los vales.",
+    "A aula parou aos 30 minutos. Proponha o máximo que pode voltar, dentro das suas condições. Maya aprova a divisão final; você não pode mover os vales."
+  ],
+  "ms.n.paused.t": [
+    "New bookings are paused",
+    "Nuevas reservas en pausa",
+    "Novas reservas em pausa"
+  ],
+  "ms.n.paused.b": [
+    "Since {date}. Booked lessons go ahead. Resume when you're ready.",
+    "Desde el {date}. Las lecciones reservadas siguen. Reanuda cuando quieras.",
+    "Desde {date}. As aulas reservadas seguem. Retome quando quiser."
+  ],
+  "ms.n.delisted.t": ["Delisted from the pool", "Retirado del fondo", "Retirado do fundo"],
+  "ms.n.delisted.b": [
+    "Since {date}, by the pool administrator. Holders keep their vouchers and their terms, and your 2 booked lessons go ahead. Nothing was erased.",
+    "Desde el {date}, por la administración del fondo. Quienes tienen vales los conservan con sus condiciones, y tus 2 lecciones reservadas siguen. No se borró nada.",
+    "Desde {date}, pela administração do fundo. Quem tem vales os mantém com suas condições, e suas 2 aulas reservadas seguem. Nada foi apagado."
+  ],
+  "ms.n.pending.t": [
+    "An earlier action still needs checking",
+    "Una acción anterior aún debe verificarse",
+    "Uma ação anterior ainda precisa de verificação"
+  ],
+  "ms.n.pending.b": [
+    "Your approval of Maya's booking was sent but not confirmed. Check its status; don't send it again.",
+    "Tu aprobación de la reserva de Maya se envió pero no está confirmada. Verifica su estado; no la envíes de nuevo.",
+    "Sua aprovação da reserva de Maya foi enviada, mas não confirmada. Verifique o status; não envie de novo."
+  ],
+  "ms.n.short.t": [
+    "A reward is waiting on your allowance",
+    "Una recompensa espera tu permiso",
+    "Uma recompensa espera sua permissão"
+  ],
+  "ms.n.short.b": [
+    "Noor's design reward needs 1 voucher from your reserve, and the allowance you approved is used up. Approve more within your remaining lessons; it creates nothing new.",
+    "La recompensa de Noor por el diseño necesita 1 vale de tu reserva, y el permiso que aprobaste se agotó. Aprueba más dentro de tus lecciones restantes; no crea nada nuevo.",
+    "A recompensa de Noor pelo design precisa de 1 vale da sua reserva, e a permissão que você aprovou acabou. Aprove mais dentro das suas aulas restantes; isso não cria nada novo."
+  ],
+  "ms.x.token": [
+    "Token: your voucher contract on Gnosis, owned by your account",
+    "Token: tu contrato de vales en Gnosis, de tu cuenta",
+    "Token: seu contrato de vales na Gnosis, da sua conta"
+  ],
+  "ms.x.bookings": [
+    "Bookings: read from the escrow on Gnosis and the indexer; an incomplete list stays labeled",
+    "Reservas: leídas de la garantía en Gnosis y del indexador; una lista incompleta se indica",
+    "Reservas: lidas da garantia na Gnosis e do indexador; uma lista incompleta fica indicada"
+  ],
+  "ms.x.record": [
+    "Record: issuer #7, terms version 1, on Arbitrum",
+    "Registro: emisor #7, condiciones versión 1, en Arbitrum",
+    "Registro: emissor #7, condições versão 1, na Arbitrum"
+  ],
+  "iss.title": ["Voucher Issuers", "Emisores de vales", "Emissores de vales"],
+  "iss.sub": [
+    "Community · the shared Gnosis pool",
+    "Comunidad · el fondo compartido en Gnosis",
+    "Comunidade · o fundo compartilhado na Gnosis"
+  ],
+  "iss.list.t": ["Issuers", "Emisores", "Emissores"],
+  "iss.list.d": [
+    "Each issuer keeps its token and reserve and approves its own terms. Stewards prepare; they can't approve or issue for a member.",
+    "Cada emisor conserva su token y su reserva y aprueba sus propias condiciones. Los responsables preparan; no pueden aprobar ni emitir por un miembro.",
+    "Cada emissor mantém seu token e sua reserva e aprova as próprias condições. Os responsáveis preparam; não podem aprovar nem emitir por um membro."
+  ],
+  "iss.k.garden": ["Garden issuer", "Emisor jardín", "Emissor jardim"],
+  "iss.k.member": ["Member issuer", "Emisor miembro", "Emissor membro"],
+  "iss.m.sun": [
+    "Solar session, solar course · 20 vouchers · 2 of 3 Safe",
+    "Sesión y curso solar · 20 vales · Safe 2 de 3",
+    "Sessão e curso solar · 20 vales · Safe 2 de 3"
+  ],
+  "iss.m.teo": [
+    "Integration lesson · draft sent {date}",
+    "Lección de integración · borrador enviado el {date}",
+    "Aula de integração · rascunho enviado em {date}"
+  ],
+  "iss.m.teoApproved": [
+    "Integration lesson · approved {date} · owner Safe calls pending",
+    "Lección de integración · aprobada el {date} · llamadas del Safe pendientes",
+    "Aula de integração · aprovada em {date} · chamadas do Safe pendentes"
+  ],
+  "iss.m.teoListed": [
+    "Integration lesson · 6 issued · 2 in the pool",
+    "Lección de integración · 6 emitidos · 2 en el fondo",
+    "Aula de integração · 6 emitidos · 2 no fundo"
+  ],
+  "iss.m.maya": [
+    "Measurement coaching · 6 issued · 4 in the pool",
+    "Asesoría de medición · 6 emitidos · 4 en el fondo",
+    "Mentoria de medição · 6 emitidos · 4 no fundo"
+  ],
+  "iss.t.listed": ["Listed", "Publicado", "Listado"],
+  "iss.t.draft": ["Draft · awaiting Teo", "Borrador · espera a Teo", "Rascunho · aguardando Teo"],
+  "iss.t.approved": [
+    "Approved · setup pending",
+    "Aprobado · preparación pendiente",
+    "Aprovado · preparação pendente"
+  ],
+  "iss.t.delisted": ["Delisted", "Retirado", "Retirado"],
+  "iss.a.prepare": ["Prepare Draft…", "Preparar borrador…", "Preparar rascunho…"],
+  "iss.a.view": ["View", "Ver", "Ver"],
+  "iss.a.drafts": ["Owner Safe Drafts…", "Borradores del Safe…", "Rascunhos do Safe…"],
+  "iss.a.delist": ["Delist…", "Retirar…", "Retirar…"],
+  "iss.a.copy": [
+    "Copy Owner Safe Drafts",
+    "Copiar borradores del Safe",
+    "Copiar rascunhos do Safe"
+  ],
+  "iss.a.send": ["Send to Teo", "Enviar a Teo", "Enviar para Teo"],
+  "iss.a.remind": ["Remind Teo", "Recordar a Teo", "Lembrar Teo"],
+  "iss.steps.t": ["Who does what", "Quién hace qué", "Quem faz o quê"],
+  "iss.steps.d": [
+    "For a member's service",
+    "Para el servicio de un miembro",
+    "Para o serviço de um membro"
+  ],
+  "iss.st.prepare": [
+    "Steward prepares the draft with the member",
+    "El responsable prepara el borrador con el miembro",
+    "O responsável prepara o rascunho com o membro"
+  ],
+  "iss.st.approve": [
+    "Member approves the exact terms from their account",
+    "El miembro aprueba las condiciones exactas desde su cuenta",
+    "O membro aprova as condições exatas da própria conta"
+  ],
+  "iss.st.register": [
+    "Owner Safe registers the issuer, during a paused window",
+    "El Safe registra al emisor, durante una pausa",
+    "O Safe registra o emissor, durante uma pausa"
+  ],
+  "iss.st.admit": [
+    "Pool administrator admits the token: rate, fees, limit",
+    "La administración del fondo admite el token: tasa, comisiones, límite",
+    "A administração do fundo admite o token: taxa, taxas, limite"
+  ],
+  "iss.st.enable": [
+    "Member enables the reserve and approves a finite allowance",
+    "El miembro activa la reserva y aprueba un permiso finito",
+    "O membro ativa a reserva e aprova uma permissão finita"
+  ],
+  "iss.pool.t": ["Pool settings", "Ajustes del fondo", "Configurações do fundo"],
+  "iss.pool.d": [
+    "Shared exchange pool · Green Goods Safe, 2 of 5",
+    "Fondo de cambio compartido · Safe de Green Goods, 2 de 5",
+    "Fundo de troca compartilhado · Safe do Green Goods, 2 de 5"
+  ],
+  "iss.p.assets": ["Assets", "Activos", "Ativos"],
+  "iss.p.assetsV": ["4 admitted", "4 admitidos", "4 admitidos"],
+  "iss.p.assetsS": ["2 gardens, 2 members", "2 jardines, 2 miembros", "2 jardins, 2 membros"],
+  "iss.p.fees": ["Pool fee", "Comisión del fondo", "Taxa do fundo"],
+  "iss.p.feesV": ["0 proposed", "Se propone 0", "Proposta 0"],
+  "iss.p.feesS": [
+    "The protocol fee is read separately",
+    "La comisión de protocolo se lee aparte",
+    "A taxa de protocolo é lida à parte"
+  ],
+  "iss.p.caps": ["Holding limits", "Límites de tenencia", "Limites de retenção"],
+  "iss.p.capsV": ["Per asset", "Por activo", "Por ativo"],
+  "iss.p.capsS": [
+    "Not issuance limits or delivery guarantees",
+    "No son límites de emisión ni garantías de entrega",
+    "Não são limites de emissão nem garantias de entrega"
+  ],
+  "iss.d.prepare.t": [
+    "Prepare Teo's Draft",
+    "Preparar el borrador de Teo",
+    "Preparar o rascunho de Teo"
+  ],
+  "iss.d.prepare.sub": [
+    "Integration lesson · member issuer",
+    "Lección de integración · emisor miembro",
+    "Aula de integração · emissor membro"
+  ],
+  "iss.d.note": [
+    "Teo approves from his own account. You can't approve or issue for him.",
+    "Teo aprueba desde su propia cuenta. No puedes aprobar ni emitir por él.",
+    "Teo aprova da própria conta. Você não pode aprovar nem emitir por ele."
+  ],
+  "iss.f.prepare.t": [
+    "Sending records a draft",
+    "Enviar registra un borrador",
+    "Enviar registra um rascunho"
+  ],
+  "iss.f.prepare.b": [
+    "Nothing is deployed or issued. Teo's approval binds the exact terms.",
+    "No se despliega ni se emite nada. La aprobación de Teo fija las condiciones exactas.",
+    "Nada é implantado ou emitido. A aprovação de Teo fixa as condições exatas."
+  ],
+  "iss.d.wait.t": [
+    "Awaiting Teo's Approval",
+    "Esperando la aprobación de Teo",
+    "Aguardando a aprovação de Teo"
+  ],
+  "iss.f.wait.t": ["Only Teo can approve", "Solo Teo puede aprobar", "Só Teo pode aprovar"],
+  "iss.f.wait.b": [
+    "Membership or stewardship doesn't substitute for his signature. Remind him, or change the draft.",
+    "Ser miembro o responsable no sustituye su firma. Recuérdaselo o cambia el borrador.",
+    "Ser membro ou responsável não substitui a assinatura dele. Lembre-o ou mude o rascunho."
+  ],
+  "iss.d.drafts.t": [
+    "Owner Safe Drafts for Teo's Token",
+    "Borradores del Safe para el token de Teo",
+    "Rascunhos do Safe para o token de Teo"
+  ],
+  "iss.d.drafts.sub": [
+    "Prepared calls. Copying sends nothing and is no member signature.",
+    "Llamadas preparadas. Copiar no envía nada y no es una firma del miembro.",
+    "Chamadas preparadas. Copiar não envia nada e não é assinatura do membro."
+  ],
+  "iss.dr.source": [
+    "Source authority binding",
+    "Vínculo de autoridad de origen",
+    "Vínculo de autoridade de origem"
+  ],
+  "iss.dr.sourceS": [
+    "Arbitrum · Green Goods Safe · needs the source endpoint paused",
+    "Arbitrum · Safe de Green Goods · requiere pausar el extremo de origen",
+    "Arbitrum · Safe do Green Goods · requer o endpoint de origem pausado"
+  ],
+  "iss.dr.register": [
+    "Pool asset admission",
+    "Admisión del activo en el fondo",
+    "Admissão do ativo no fundo"
+  ],
+  "iss.dr.registerS": [
+    "Gnosis · Green Goods Safe",
+    "Gnosis · Safe de Green Goods",
+    "Gnosis · Safe do Green Goods"
+  ],
+  "iss.dr.cap": [
+    "Pool holding limit: 6 Teo vouchers",
+    "Límite de tenencia del fondo: 6 vales de Teo",
+    "Limite de retenção do fundo: 6 vales do Teo"
+  ],
+  "iss.dr.price": [
+    "Pool price index: 2",
+    "Índice de precio del fondo: 2",
+    "Índice de preço do fundo: 2"
+  ],
+  "iss.dr.priceS": [
+    "1 Teo voucher for 2 Maya vouchers, as Teo approved",
+    "1 vale de Teo por 2 vales de Maya, como aprobó Teo",
+    "1 vale do Teo por 2 vales da Maya, como Teo aprovou"
+  ],
+  "iss.d.pause": [
+    "Source authority changes need the source endpoint paused. Review state, rates, fees and each exact call in the normal owner Safe workflow before signing.",
+    "Los cambios de autoridad de origen requieren pausar el extremo de origen. Revisa el estado, las tasas, las comisiones y cada llamada exacta en el flujo normal del Safe antes de firmar.",
+    "Mudanças de autoridade de origem exigem o endpoint de origem pausado. Revise estado, taxas e cada chamada exata no fluxo normal do Safe antes de assinar."
+  ],
+  "iss.f.drafts.t": [
+    "Copying prepares the Safe's work",
+    "Copiar prepara el trabajo del Safe",
+    "Copiar prepara o trabalho do Safe"
+  ],
+  "iss.f.drafts.b": [
+    "The Safe signs 2 of 5. Teo enables his reserve after the admission lands.",
+    "El Safe firma 2 de 5. Teo activa su reserva cuando la admisión se confirme.",
+    "O Safe assina 2 de 5. Teo ativa a reserva quando a admissão for confirmada."
+  ],
+  "iss.d.admitted.t": ["Admitted. Next: Teo", "Admitido. Ahora: Teo", "Admitido. Agora: Teo"],
+  "iss.d.admitted.b": [
+    "Registration and admission are confirmed. Teo enables his reserve, approves 1 lesson for rewards and places 2 in the pool from his own account.",
+    "El registro y la admisión están confirmados. Teo activa su reserva, aprueba 1 lección para recompensas y pone 2 en el fondo desde su propia cuenta.",
+    "Registro e admissão estão confirmados. Teo ativa a reserva, aprova 1 aula para recompensas e coloca 2 no fundo da própria conta."
+  ],
+  "iss.d.delist.t": [
+    "Delist Maya's Coaching from the Pool?",
+    "¿Retirar la asesoría de Maya del fondo?",
+    "Retirar a mentoria de Maya do fundo?"
+  ],
+  "iss.d.delist.sub": [
+    "Measurement coaching · member issuer",
+    "Asesoría de medición · emisor miembro",
+    "Mentoria de medição · emissor membro"
+  ],
+  "iss.c.hold": [
+    "Holders keep their vouchers and their terms",
+    "Quienes tienen vales los conservan con sus condiciones",
+    "Quem tem vales os mantém com suas condições"
+  ],
+  "iss.c.book": [
+    "2 accepted bookings go ahead, with their returns",
+    "2 reservas aceptadas siguen, con sus devoluciones",
+    "2 reservas aceitas seguem, com suas devoluções"
+  ],
+  "iss.c.ex": [
+    "No new exchanges for this token in the pool",
+    "Sin nuevos cambios de este token en el fondo",
+    "Sem novas trocas deste token no fundo"
+  ],
+  "iss.c.obl": [
+    "Maya's remaining obligations stay recorded",
+    "Las obligaciones pendientes de Maya siguen registradas",
+    "As obrigações restantes de Maya continuam registradas"
+  ],
+  "iss.reasonV": [
+    "Maya can't deliver this month and asked to stop new bookings.",
+    "Maya no puede dar el servicio este mes y pidió detener nuevas reservas.",
+    "Maya não pode atender este mês e pediu para parar novas reservas."
+  ],
+  "iss.f.delist.t": [
+    "Delisting stops new exchanges only",
+    "Retirar solo detiene nuevos cambios",
+    "Retirar só interrompe novas trocas"
+  ],
+  "iss.f.delist.b": [
+    "It erases no balance, booking or recovery path. Prepared as an owner Safe call.",
+    "No borra saldos, reservas ni vías de recuperación. Se prepara como una llamada del Safe.",
+    "Não apaga saldos, reservas nem caminhos de recuperação. Preparado como uma chamada do Safe."
+  ],
+  "iss.d.delist.cta": ["Prepare Delisting", "Preparar retiro", "Preparar retirada"],
+  "iss.fictional": [
+    "Fictional rehearsal. These accounts, receipts and terms are examples.",
+    "Ensayo ficticio. Estas cuentas, recibos y condiciones son ejemplos.",
+    "Ensaio fictício. Estas contas, recibos e condições são exemplos."
+  ],
+  "is.r.mayaT": [
+    "Maya · Teo's integration lesson",
+    "Maya · lección de integración de Teo",
+    "Maya · aula de integração de Teo"
+  ],
+  "is.m.mayaT": [
+    "1 Teo voucher in escrow · Teo approved · accept by {due}",
+    "1 vale de Teo en garantía · Teo aprobó · aceptar antes del {due}",
+    "1 vale do Teo em garantia · Teo aprovou · aceitar até {due}"
+  ],
+  "is.d.acceptM.t": ["Accept Maya?", "¿Aceptar a Maya?", "Aceitar Maya?"],
+  "is.c.termsM": [
+    "Maya agreed to Teo's current terms",
+    "Maya aceptó las condiciones vigentes de Teo",
+    "Maya concordou com as condições atuais de Teo"
+  ],
+  "is.c.teo": [
+    "Teo approved the booking from his account",
+    "Teo aprobó la reserva desde su cuenta",
+    "Teo aprovou a reserva da própria conta"
+  ],
+  "is.c.depositM": [
+    "1 Teo voucher deposited in escrow",
+    "1 vale de Teo depositado en garantía",
+    "1 vale do Teo depositado em garantia"
+  ],
+  "is.f.acceptM.t": [
+    "Accepting starts the booking",
+    "Aceptar inicia la reserva",
+    "Aceitar inicia a reserva"
+  ],
+  "is.f.acceptM.b": [
+    "You accept as the pool's steward. Teo's approval was required first; you couldn't give it for him.",
+    "Aceptas como responsable del fondo. La aprobación de Teo era necesaria antes; no podías darla por él.",
+    "Você aceita como responsável do fundo. A aprovação de Teo era necessária antes; você não podia dá-la por ele."
+  ],
+  "is.d.acceptM.cta": ["Accept Maya", "Aceptar a Maya", "Aceitar Maya"],
+  "u.teo": ["Teo voucher", "vale de Teo", "vale do Teo"],
+  "of.m.heldS": [
+    "Teo can't use it until you approve the final split.",
+    "Teo no puede usarlo hasta que apruebes el reparto final.",
+    "Teo não pode usá-lo até você aprovar a divisão final."
+  ],
+  "of.m.back": [
+    "All of it, if you cancel before the booking is accepted",
+    "Todo, si cancelas antes de que acepten la reserva",
+    "Tudo, se você cancelar antes de a reserva ser aceita"
+  ],
+  "of.m.starts": [
+    "When the garden's stewards accept you",
+    "Cuando los responsables del jardín te acepten",
+    "Quando os responsáveis do jardim aceitarem você"
+  ],
+  "pay.m.deadlineS": [
+    "Before the garden's stewards accept, you can cancel and get your voucher back.",
+    "Antes de que los responsables del jardín acepten, puedes cancelar y recuperar tu vale.",
+    "Antes de os responsáveis do jardim aceitarem, você pode cancelar e recuperar seu vale."
+  ],
+  "pay.m.depNote": [
+    "You may be asked to approve twice: once to allow exactly 1 voucher, then to deposit it.",
+    "Puede que te pidan aprobar dos veces: una para permitir exactamente 1 vale y otra para depositarlo.",
+    "Talvez peçam sua aprovação duas vezes: uma para permitir exatamente 1 vale e outra para depositá-lo."
+  ],
+  "pay.m.deposit": ["Deposit 1 Voucher", "Depositar 1 vale", "Depositar 1 vale"],
+  "rd.n.raceM.t": [
+    "The booking was accepted first",
+    "La reserva se aceptó primero",
+    "A reserva foi aceita primeiro"
+  ],
+  "rd.n.raceM.b": [
+    "The garden's stewards accepted before your cancellation arrived, so the booking started. To end it now, ask {issuer} for a return under their terms, or report a problem.",
+    "Los responsables del jardín aceptaron antes de que llegara tu cancelación, así que la reserva empezó. Para terminarla ahora, pide a {issuer} una devolución según sus condiciones o informa un problema.",
+    "Os responsáveis do jardim aceitaram antes de o seu cancelamento chegar, então a reserva começou. Para encerrá-la agora, peça a {issuer} uma devolução conforme as condições dele ou informe um problema."
+  ],
+  "rd.n.depositM.b": [
+    "{issuer} approved. Deposit your voucher into the escrow for this booking. The garden's stewards must accept by {d1}.",
+    "{issuer} aprobó. Deposita tu vale en la garantía de esta reserva. Los responsables del jardín deben aceptar antes del {d1}.",
+    "{issuer} aprovou. Deposite seu vale na garantia desta reserva. Os responsáveis do jardim devem aceitar até {d1}."
+  ],
+  "rd.n.confirmingM.b": [
+    "Your voucher is in escrow. Green Goods confirms the deposit before the garden's stewards can accept. This can take a few minutes.",
+    "Tu vale está en garantía. Green Goods confirma el depósito antes de que los responsables del jardín puedan aceptar. Puede tardar unos minutos.",
+    "Seu vale está em garantia. O Green Goods confirma o depósito antes de os responsáveis do jardim poderem aceitar. Pode levar alguns minutos."
+  ],
+  "rd.n.canceledM.b": [
+    "Your voucher is back in your account.",
+    "Tu vale está de vuelta en tu cuenta.",
+    "Seu vale está de volta na sua conta."
+  ],
+  "rd.sub.depositedM": [
+    "You deposited your voucher into escrow",
+    "Depositaste tu vale en garantía",
+    "Você depositou seu vale em garantia"
+  ],
+  "rd.sub.returnedM": [
+    "Your voucher back to you",
+    "Tu vale de vuelta a ti",
+    "Seu vale de volta para você"
+  ],
+  "rw.m.vouV": [
+    "1 Teo voucher to your account",
+    "1 vale de Teo para tu cuenta",
+    "1 vale do Teo para sua conta"
+  ],
+  "rw.n.doneM.b": [
+    "Your Teo voucher is in your account.",
+    "Tu vale de Teo está en tu cuenta.",
+    "Seu vale do Teo está na sua conta."
+  ],
+  "sv.s.aiS": [
+    "1 month · {amt} G$ · pay with your own G$",
+    "1 mes · {amt} G$ · paga con tus propios G$",
+    "1 mês · {amt} G$ · pague com seus próprios G$"
+  ],
+  "sv.p.gd": ["Pay with G$", "Paga con G$", "Pague com G$"],
+  "sv.filter": ["Filter", "Filtrar", "Filtrar"],
+  "sv.sec": ["In the shared pool", "En el fondo compartido", "No fundo compartilhado"],
+  "sv.ownSec": ["Your own service", "Tu propio servicio", "Seu próprio serviço"],
+  "ms.t.booked": ["Booked", "Reservada", "Reservada"],
+  "iss.w.sent": ["Sent", "Enviado", "Enviado"],
+  "iss.w.terms": ["Terms", "Condiciones", "Condições"],
+  "iss.w.termsV": ["Version 1 · 9 settings", "Versión 1 · 9 ajustes", "Versão 1 · 9 configurações"],
+  "iss.w.account": ["Member account", "Cuenta del miembro", "Conta do membro"],
+  "iss.w.accountV": [
+    "Teo Alves · 0x9b4…e21c, the same address on every network",
+    "Teo Alves · 0x9b4…e21c, la misma dirección en todas las redes",
+    "Teo Alves · 0x9b4…e21c, o mesmo endereço em todas as redes"
+  ],
+  "ms.sh.chk": [
+    "I checked this exact booking",
+    "Revisé esta reserva exacta",
+    "Conferi esta reserva exata"
+  ],
+  "ob.sh.yours": ["Stays yours", "Sigue siendo tuyo", "Continua seu"],
+  "ob.sh.yoursV": [
+    "Token, reserve, each booking approval, upgrades and recovery",
+    "Token, reserva, cada aprobación de reserva, actualizaciones y recuperación",
+    "Token, reserva, cada aprovação de reserva, atualizações e recuperação"
+  ],
+  "ob.sh.yoursS": [
+    "Ade prepares and publishes only",
+    "Ade solo prepara y publica",
+    "Ade só prepara e publica"
+  ],
+  "ms.sh.issueRoom": [
+    "Promised {promised} lessons · {issued} issued · {room} more can be issued",
+    "Prometidas {promised} lecciones · {issued} emitidos · {room} más pueden emitirse",
+    "Prometidas {promised} aulas · {issued} emitidos · {room} a mais podem ser emitidos"
+  ],
+  "ms.sh.issueRoomS": [
+    "After the capacity review with Ade",
+    "Tras la revisión de capacidad con Ade",
+    "Após a revisão de capacidade com Ade"
+  ],
+  "pay.m.giveS": [
+    "You hold 1. It stays with you until you deposit it.",
+    "Tienes 1. Se queda contigo hasta que lo deposites.",
+    "Você tem 1. Ele fica com você até você depositá-lo."
+  ],
+  "rw.m.asideS": [
+    "Teo sends the voucher from his reserve when your work is confirmed. If his allowance runs short, it waits until he approves more.",
+    "Teo envía el vale desde su reserva cuando se confirma tu trabajo. Si su permiso se agota, espera hasta que apruebe más.",
+    "Teo envia o vale da reserva dele quando seu trabalho for confirmado. Se a permissão dele acabar, ele espera até Teo aprovar mais."
+  ]
 }

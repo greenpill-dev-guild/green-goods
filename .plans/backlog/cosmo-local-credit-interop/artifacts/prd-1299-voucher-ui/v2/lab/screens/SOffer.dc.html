@@ -16,10 +16,10 @@
   <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;{{offlineMode}}</div></sc-if>
   <div class="scr" style="padding-bottom: {{padBottom}}">
     <div class="topnav">
-      <a class="close" href="Visit.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+      <a class="close" href="SServices.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
     </div>
     <div class="ident">
-      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>{{kindLine}}</span>
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{kindIcon}}"/></svg>{{kindLine}}</span>
       <h1>{{title}}</h1>
       <p class="para">{{desc}}</p>
     </div>
@@ -53,21 +53,27 @@
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$ purchase","Voucher session","Voucher course"],"default":"G$ purchase","section":"State"},"state":{"editor":"enum","options":["Open","Not a gardener","Not enough","Gardens only","No places","Offline"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$ purchase","Voucher session","Voucher course","Member lesson"],"default":"G$ purchase","section":"State"},"state":{"editor":"enum","options":["Open","Not a gardener","Not enough","Gardens only","No places","Paused","Offline"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    var t = GGT(this.props.lang);
+    var t0 = GGT(this.props.lang);
     var kind = this.props.kind ?? 'G$ purchase';
     var st = this.props.state ?? 'Open';
     var dark = this.props.dark ?? false;
+    var gd = kind === 'G$ purchase', course = kind === 'Voucher course', member = kind === 'Member lesson';
+    // Who promises delivery: a named member, or a garden. The copy names them through {issuer} and {unit}.
+    var ISS = member ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
+      : { issuer: gd ? t0('who.gg') : t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc') };
+    var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
+    t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
     var I = { give: '#ri-wallet-3-line', get: '#ri-gift-line', held: '#ri-lock-line', next: '#ri-user-follow-line', back: '#ri-arrow-go-back-line' };
-    var gd = kind === 'G$ purchase', course = kind === 'Voucher course';
     var price = 450, fee = 0.45;
-    var held = st === 'Not enough' ? (course ? 20 : 6) : (course ? 100 : 30);
+    var n = course ? 100 : member ? 1 : 10;
+    var held = st === 'Not enough' ? (course ? 20 : member ? 0 : 6) : (course ? 100 : member ? 1 : 30);
     var K;
     if (gd) {
       K = {
-        garden: t('who.gg'), title: t('of.g.title'), desc: t('of.g.desc'), amt: t.g(price), unit: t('of.g.unit'), cta: t('of.cta.pay'),
+        garden: t('who.gg'), kindLine: t('of.kind', { garden: t('who.gg') }), kindIcon: '#ri-hand-heart-line', title: t('of.g.title'), desc: t('of.g.desc'), amt: t.g(price), unit: t('of.g.unit'), cta: t('of.cta.pay'),
         qa: [
           [I.get, t('of.q.get'), t('of.g.get'), t('of.g.getS')],
           [I.give, t('of.q.give'), t('of.g.give', { gross: t.g(price + fee) }), t('of.g.giveS', { price: t.g(price), fee: t.g(fee) })],
@@ -77,13 +83,26 @@ class Component extends DCLogic {
         ],
         facts: [[t('of.f.starts'), t('of.g.starts'), t('of.g.startsS')], [t('of.f.who'), t('of.f.whoV'), t('of.f.whoS')], [t('of.f.places'), t('of.g.places'), t('of.f.placesS')]]
       };
+    } else if (member) {
+      K = {
+        garden: t('who.sun'), kindLine: t('of.m.kind', { name: t('who.teoFull'), garden: t('who.sun') }), kindIcon: '#ri-user-line', title: t('of.m.title'), desc: t('of.m.desc'),
+        amt: t.v(1), unit: t('u.teo'), cta: t('of.cta.redeem', { n: t.v(1) }),
+        qa: [
+          [I.get, t('of.q.get'), t('of.m.get'), t('of.m.getS')],
+          [I.give, t('of.q.give'), t('u.teoOne'), t('of.v.giveS', { held: t.v(held) })],
+          [I.held, t('of.q.held'), t('of.v.held'), t('of.m.heldS')],
+          [I.next, t('of.q.next'), t('of.m.next'), t('of.m.nextS')],
+          [I.back, t('of.q.back'), t('of.m.back'), t('of.m.backS')]
+        ],
+        facts: [[t('of.f.starts'), t('of.m.starts'), t('of.m.startsS')], [t('of.f.who'), t('of.f.whoVv'), t('of.f.whoSv')], [t('of.f.places'), t('of.m.places'), t('of.m.placesS')]]
+      };
     } else {
       K = {
-        garden: t('who.sun'), title: t(course ? 'of.c.title' : 'of.s.title'), desc: t(course ? 'of.c.desc' : 'of.s.desc'),
-        amt: t.n(course ? 100 : 10), unit: t('u.sunMany'), cta: t('of.cta.redeem', { n: t.n(course ? 100 : 10) }),
+        garden: t('who.sun'), kindLine: t('of.kind', { garden: t('who.sun') }), kindIcon: '#ri-hand-heart-line', title: t(course ? 'of.c.title' : 'of.s.title'), desc: t(course ? 'of.c.desc' : 'of.s.desc'),
+        amt: t.n(n), unit: t('u.sunMany'), cta: t('of.cta.redeem', { n: t.n(n) }),
         qa: [
           [I.get, t('of.q.get'), t(course ? 'of.c.get' : 'of.s.get'), t(course ? 'of.c.getS' : 'of.s.getS')],
-          [I.give, t('of.q.give'), t('of.v.give', { n: t.n(course ? 100 : 10) }), t('of.v.giveS', { held: t.n(held) })],
+          [I.give, t('of.q.give'), t('of.v.give', { n: t.n(n) }), t('of.v.giveS', { held: t.n(held) })],
           [I.held, t('of.q.held'), t('of.v.held'), t('of.v.heldS')],
           [I.next, t('of.q.next'), t('of.v.next'), t('of.v.nextS')],
           [I.back, t('of.q.back'), t('of.v.back'), t(course ? 'of.c.backS' : 'of.s.backS')]
@@ -91,12 +110,15 @@ class Component extends DCLogic {
         facts: [[t('of.f.starts'), t('of.v.starts'), t(course ? 'of.c.startsS' : 'of.s.startsS')], [t('of.f.who'), t('of.f.whoVv'), t('of.f.whoSv')], [t('of.f.places'), t(course ? 'of.c.places' : 'of.s.places'), t('of.f.placesS')]]
       };
     }
+    var fmtHeld = gd ? t.g(300.12) : member ? t.v(held) : t.n(held);
     var W = {
       'Not a gardener': ['info', '#ri-information-line', t('of.r.noGarden.t'), t('of.r.noGarden.b'), [t('of.a.findGarden'), '#', '']],
-      'Not enough': gd ? ['warn', '#ri-alert-line', t('of.r.shortG.t', { have: t.g(300.12) }), t('of.r.shortG.b', { gross: t.g(price + fee) }), [t('of.a.getGd'), 'SWallet.dc.html', '']]
-        : ['warn', '#ri-alert-line', t('of.r.shortV.t', { have: t.n(held) }), t(course ? 'of.r.shortV.bc' : 'of.r.shortV.bs'), [t('of.a.exchange'), 'SExchange.dc.html', ''], [t('of.a.earn'), 'SWallet.dc.html']],
+      'Not enough': gd ? ['warn', '#ri-alert-line', t('of.r.shortG.t', { have: fmtHeld }), t('of.r.shortG.b', { gross: t.g(price + fee) }), [t('of.a.getGd'), 'SWallet.dc.html', '']]
+        : ['warn', '#ri-alert-line', t('of.r.shortV.t', { have: fmtHeld }), t(member ? 'of.r.shortV.bm' : course ? 'of.r.shortV.bc' : 'of.r.shortV.bs'), [t('of.a.exchange'), 'SExchange.dc.html', ''], [t('of.a.earn'), 'SWallet.dc.html']],
       'Gardens only': ['info', '#ri-information-line', t('of.r.gardens.t'), t('of.r.gardens.b', { garden: K.garden }), [t('of.a.back'), 'Visit.dc.html', 'sec']],
       'No places': ['info', '#ri-information-line', t('of.r.full.t'), t('of.r.full.b', { garden: K.garden }), [t('of.a.back'), 'Visit.dc.html', 'sec']],
+      // The provider paused new bookings: holders keep their vouchers and their terms, and booked services go ahead
+      'Paused': ['warn', '#ri-pause-circle-line', t('of.r.paused.t'), t('of.r.paused.b'), [t('of.a.back'), 'SServices.dc.html', 'sec']],
       'Offline': ['info', '#ri-cloud-off-line', t('of.r.offline.t'), t('of.r.offline.b')]
     };
     var w = W[st];
@@ -110,12 +132,12 @@ class Component extends DCLogic {
     return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
       offline: st === 'Offline', offlineMode: t('c.offline'), backLabel: t('c.back'),
-      kindLine: t('of.kind', { garden: K.garden }), title: K.title, desc: K.desc, amt: K.amt, unit: K.unit,
+      kindLine: K.kindLine, kindIcon: K.kindIcon, title: K.title, desc: K.desc, amt: K.amt, unit: K.unit,
       routeTitle: t('of.route'), qa: qa.map(function (q) { return { icon: q[0], k: q[1], v: q[2], s: q[3] }; }),
       detailsTitle: t('c.details'), facts: facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }),
       termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
       hasWhy: !!w, whyCls: w ? w[0] : '', whyIcon: w ? w[1] : '', whyT: w ? w[2] : '', whyB: w ? w[3] : '',
-      cta: K.cta, canGo: st === 'Open', blocked: st === 'Offline',
+      cta: K.cta, canGo: st === 'Open', blocked: st === 'Offline' || st === 'Paused',
       hasAlt: !!a1, alt: a1 ? a1[0] : '', altHref: a1 ? a1[1] : '#', altCls: a1 ? a1[2] : '',
       hasAlt2: !!a2, alt2: a2 ? a2[0] : '', alt2Href: a2 ? a2[1] : '#',
       padBottom: w ? '176px' : '112px'

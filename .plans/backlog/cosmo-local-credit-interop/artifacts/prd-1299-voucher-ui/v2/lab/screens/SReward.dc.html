@@ -15,12 +15,13 @@
 <div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="scr" style="padding-bottom: {{padBottom}}" inert="{{baseHidden}}">
     <div class="topnav">
-      <a class="close" href="Visit.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+      <a class="close" href="{{backHref}}" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
     </div>
     <div class="ident">
       <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>{{kindLine}}</span>
       <h1>{{title}}</h1>
       <p class="para">{{desc}}</p>
+      <sc-if value="{{hasBrief}}" hint-placeholder-val="{{false}}"><p class="small">{{brief}}</p></sc-if>
     </div>
     <sc-if value="{{hasNext}}" hint-placeholder-val="{{false}}">
       <div class="stack" style="margin-top: 12px">
@@ -65,6 +66,7 @@
           <div class="fact"><span class="k">{{termsLabel}}</span><span class="v"><a class="tlink" href="#">{{readTerms}}</a></span></div>
         </div></div>
         <p class="small" style="font-size: 13px; line-height: 18px">{{consent}}</p>
+        <p class="small" style="font-size: 13px; line-height: 18px">{{source}}</p>
       </div>
       <div class="sacts">
         <a class="btn" href="#">{{shCta}}</a>
@@ -74,24 +76,31 @@
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["Vouchers + G$","Vouchers only"],"default":"Vouchers + G$","section":"State"},"state":{"editor":"enum","options":["Open","Agree","In progress","Both on the way","Vouchers in, G$ on the way","Reserve short","G$ delayed","Received"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["Vouchers + G$","Vouchers only","Member voucher"],"default":"Vouchers + G$","section":"State"},"state":{"editor":"enum","options":["Open","Agree","Agreement unavailable","In progress","Both on the way","Vouchers in, G$ on the way","Reserve short","G$ delayed","Received"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    var t = GGT(this.props.lang);
-    var both = (this.props.kind ?? 'Vouchers + G$') === 'Vouchers + G$';
+    var t0 = GGT(this.props.lang);
+    var kind = this.props.kind ?? 'Vouchers + G$';
+    var both = kind === 'Vouchers + G$', member = kind === 'Member voucher';
     var st = this.props.state ?? 'Open';
     var dark = this.props.dark ?? false;
+    // A member's voucher as a reward: Teo's reserve, under a finite allowance, for a Sunroot request
+    var ISS = member ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
+      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc') };
+    var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
+    t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
     if (!both && (st === 'Vouchers in, G$ on the way' || st === 'G$ delayed')) st = 'Received';
-    var n = both ? 20 : 10, amt = 120;
+    var n = both ? 20 : member ? 1 : 10, amt = 120;
     var after = { 'Both on the way': 1, 'Vouchers in, G$ on the way': 1, 'Reserve short': 1, 'G$ delayed': 1, 'Received': 1 }[st];
     var P = { pend: ['info', t('rw.s.pending')], recv: ['ok', t('rw.s.received')], wait: ['warn', t('rw.s.waiting')], late: ['warn', t('rw.s.delayed')], later: ['neu', t('rw.s.notYet')] };
     var vs = !after ? 'later' : st === 'Reserve short' ? 'wait' : st === 'Both on the way' ? 'pend' : 'recv';
     var gs = !after ? 'later' : st === 'G$ delayed' ? 'late' : (st === 'Received' || st === 'Reserve short') ? 'recv' : 'pend';
-    var vsub = { later: t('rw.vouS'), pend: t('rw.r.vouPend'), recv: t('rw.r.recv', { date: t.d('2026-12-12') }), wait: t('rw.r.vouShort') }[vs];
+    var vsub = { later: member ? t('rw.m.vouS') : t('rw.vouS'), pend: t('rw.r.vouPend'), recv: t('rw.r.recv', { date: t.d('2026-12-12') }), wait: member ? t('rw.r.vouShortM') : t('rw.r.vouShort') }[vs];
     var gsub = { later: t('rw.gdS'), pend: t('rw.r.gdPend'), recv: t('rw.r.recv', { date: t.d('2026-12-12') }), late: t('rw.r.gdDelayed') }[gs];
-    var rewards = [{ tile: 'sun', icon: '#ri-coupon-3-line', name: t('rw.vou', { n: t.n(n) }), sub: vsub, cls: P[vs][0], state: P[vs][1] }];
+    var rewards = [{ tile: member ? 'person' : 'sun', icon: '#ri-coupon-3-line', name: member ? t('rw.m.vou') : t('rw.vou', { n: t.n(n) }), sub: vsub, cls: P[vs][0], state: P[vs][1] }];
     if (both) rewards.push({ tile: 'gd', icon: '#ri-coins-line', name: t('rw.gd', { amt: t.g(amt) }), sub: gsub, cls: P[gs][0], state: P[gs][1] });
     var NX = {
+      'Agreement unavailable': ['warn', '#ri-alert-line', 'consent'],
       'In progress': ['info', '#ri-time-line', 'prog'],
       'Both on the way': ['ok', '#ri-check-line', 'both'],
       'Vouchers in, G$ on the way': ['info', '#ri-time-line', 'vin'],
@@ -100,30 +109,36 @@ class Component extends DCLogic {
       'Received': ['ok', '#ri-check-line', both ? 'done' : 'doneV']
     }[st];
     var vars = { n: t.n(n), amt: t.g(amt) };
-    var act = { 'Open': [t('rw.a.take'), '#'], 'In progress': [t('rw.a.work'), '#'], 'Received': [t('rw.a.wallet'), 'SWallet.dc.html'] }[st];
+    var bKey = NX ? 'rw.n.' + NX[2] + '.b' : '';
+    if (member && st === 'Reserve short') bKey = 'rw.n.shortM.b';
+    if (member && st === 'Received') bKey = 'rw.n.doneM.b';
+    var act = { 'Open': [t('rw.a.take'), '#'], 'Agreement unavailable': [t('rw.a.help'), '#'], 'In progress': [t('rw.a.work'), '#'], 'Received': [t('rw.a.wallet'), 'SWallet.dc.html'] }[st];
     var sheet = st === 'Agree';
-    var shFacts = [{ k: t('rw.sh.work'), v: both ? t('rw.vg.give') : t('rw.v.give'), s: both ? t('rw.vg.giveS') : t('rw.v.giveS') },
-      { k: t('rw.sh.vou'), v: t('rw.sh.vouV', vars), s: t('rw.sh.vouS') }];
+    var give = member ? t('rw.m.give') : both ? t('rw.vg.give') : t('rw.v.give'), giveS = member ? t('rw.m.giveS') : both ? t('rw.vg.giveS') : t('rw.v.giveS');
+    var shFacts = [{ k: t('rw.sh.work'), v: give, s: giveS },
+      { k: t('rw.sh.vou'), v: member ? t('rw.m.vouV') : t('rw.sh.vouV', vars), s: t('rw.sh.vouS') }];
     if (both) shFacts.push({ k: t('rw.sh.gd'), v: t('rw.sh.gdV', vars), s: t('rw.sh.gdS') });
-    var qa = [{ icon: '#ri-hammer-line', k: t('rw.q.give'), v: both ? t('rw.vg.give') : t('rw.v.give'), s: both ? t('rw.vg.giveS') : t('rw.v.giveS') },
+    var qa = [{ icon: '#ri-hammer-line', k: t('rw.q.give'), v: give, s: giveS },
       { icon: '#ri-user-follow-line', k: t('rw.q.review'), v: t('rw.reviewV'), s: t('rw.reviewS') },
       { icon: '#ri-git-branch-line', k: t('rw.q.arrive'), v: t('rw.arriveV'), s: both ? t('rw.arriveS') : t('rw.arriveSV') },
-      { icon: '#ri-archive-line', k: t('rw.q.aside'), v: t('rw.asideV'), s: t('rw.asideS') }];
+      { icon: '#ri-archive-line', k: t('rw.q.aside'), v: t('rw.asideV'), s: member ? t('rw.m.asideS') : t('rw.asideS') }];
     var tech = both ? [t('rw.x.vou'), t('rw.x.gd'), t('rw.x.rec')] : [t('rw.x.vou'), t('rw.x.rec')];
     // The lab's copy density dial: minimal keeps three answers and moves who confirms under Transaction details
     if ((this.props.density ?? 'full') === 'minimal') { qa = [qa[0], qa[2], qa[3]]; tech = [t('rw.q.review') + ': ' + t('rw.reviewV') + '. ' + t('rw.reviewS')].concat(tech); }
     return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
+      backHref: member ? 'SBrief.dc.html' : 'Visit.dc.html',
       baseHidden: sheet ? 'true' : 'false',
-      kindLine: t('rw.kind', { garden: t('who.rc') }), title: both ? t('rw.vg.title') : t('rw.v.title'), desc: both ? t('rw.vg.desc') : t('rw.v.desc'),
-      hasNext: !!NX, nextCls: NX ? NX[0] : '', nextIcon: NX ? NX[1] : '', nextT: NX ? t('rw.n.' + NX[2] + '.t', vars) : '', nextB: NX ? t('rw.n.' + NX[2] + '.b', vars) : '',
+      kindLine: t('rw.kind', { garden: member ? t('who.sun') : t('who.rc') }), title: member ? t('rw.m.title') : both ? t('rw.vg.title') : t('rw.v.title'), desc: member ? t('rw.m.desc') : both ? t('rw.vg.desc') : t('rw.v.desc'),
+      hasBrief: member, brief: t('rw.m.brief'),
+      hasNext: !!NX, nextCls: NX ? NX[0] : '', nextIcon: NX ? NX[1] : '', nextT: NX ? t('rw.n.' + NX[2] + '.t', vars) : '', nextB: NX ? t(bKey, vars) : '',
       getTitle: t('rw.get'), rewards: rewards, routeTitle: t('rw.route'),
       qa: qa,
       techLabel: t('c.tech'), tech: tech,
       hasAct: !!act && !sheet, act: act ? act[0] : '', actHref: act ? act[1] : '#',
       padBottom: act ? '104px' : '40px',
       sheet: sheet, shTitle: t('rw.sh.title'), shFacts: shFacts, termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
-      consent: t('rw.sh.consent'), shCta: t('rw.sh.cta'), passkey: t('c.passkey')
+      consent: t('rw.sh.consent'), source: t('rw.sh.source'), shCta: t('rw.sh.cta'), passkey: t('c.passkey')
     });
   }
 }

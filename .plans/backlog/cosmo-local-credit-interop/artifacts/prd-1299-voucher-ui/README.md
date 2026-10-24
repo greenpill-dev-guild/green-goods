@@ -7,14 +7,14 @@ PRD-1324 implement it after approval.
 | Version | Date | Status | Start with | Published artifact |
 |---|---|---|---|---|
 | [v1](v1/handoff.md) | 22 Oct 2026 | Superseded by v2's direction; kept for comparison | [`v1/prototype.html`](v1/prototype.html) (open in a browser) | [Cosmo-Local Voucher Design](https://claude.ai/artifact/3XWy9GQoAPSsJjikSzomWZ), artifact version 1 (private until shared) |
-| [v2](v2/handoff.md) | 22 Oct 2026, revised 23 Oct | Draft for Afo's review; not approved. Revised in place to follow the locked pilot architecture. | [`v2/voucher-lab.html`](v2/voucher-lab.html) (open in a browser) | [Voucher Lab](https://claude.ai/artifact/3pwUYy43vdb91q6qdH3H9G), artifact version 4 (anyone with the link), shows the 22 Oct draft. The 23 Oct revision is local only. |
+| [v2](v2/handoff.md) | 22 Oct 2026, revised 23 and 24 Oct | Draft for Afo's review; not approved. Revised in place to follow the locked pilot architecture, then to add member-owned service vouchers beside garden vouchers. | [`v2/voucher-lab.html`](v2/voucher-lab.html) (open in a browser) | [Voucher Pilot Design](https://claude.ai/artifact/12BURCmGX2Ddnzt7Uv4USC), artifact version 4 (private), shows the 23 Oct build with the dials. The 24 Oct member-issuer revision is local only. The older [Voucher Lab](https://claude.ai/artifact/3pwUYy43vdb91q6qdH3H9G) shows the 22 Oct draft. |
 
 Each approved version is a frozen folder, and a later revision gets its own folder beside it.
-v2 isn't approved yet, so its pilot revision replaced the 22 Oct draft in place.
+v2 isn't approved yet, so its revisions replaced the 22 Oct draft in place.
 
 ## What a version holds
 
-v2 is a design lab: one page with every pilot screen and state, six pilot journeys,
+v2 is a design lab: one page with every pilot screen and state, eight pilot journeys,
 before-and-after pairs against v1, written pages (how it works, the screen and state crosswalk,
 decisions and gaps, future ideas), dials that vary each screen's patterns, copy and the
 design-system forks, and a feedback panel. It holds:

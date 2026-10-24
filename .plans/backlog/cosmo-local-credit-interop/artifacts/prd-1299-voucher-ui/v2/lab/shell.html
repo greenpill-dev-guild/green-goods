@@ -293,6 +293,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     var nf2 = new Intl.NumberFormat(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var nf0 = new Intl.NumberFormat(loc, { maximumFractionDigits: 0 });
     var df = new Intl.DateTimeFormat(loc, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    var nfv = new Intl.NumberFormat(loc, { maximumFractionDigits: 2 });
     function t(key, vars) {
       var row = GG_COPY[key];
       if (!row) { copyMissing.push(key); return '\u27E6' + key + '\u27E7'; }
@@ -304,6 +305,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     t.code = code;
     t.g = function (x) { return nf2.format(x); };
     t.n = function (x) { return nf0.format(x); };
+    /* Voucher amounts: whole when whole, otherwise up to two decimals (0.5 Teo vouchers) */
+    t.v = function (x) { return nfv.format(x); };
     t.d = function (iso) { return df.format(new Date(iso + 'T12:00:00Z')); };
     return t;
   };
@@ -420,10 +423,11 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     VSetup: 'Voucher setup', Holder: 'Voucher promise', Split: 'Final split', IssuerDesk: 'Issuer requests', EscrowInspector: 'Escrow record',
     Wallet: 'Wallet vouchers', Exchange: 'Voucher exchange', Rewards: 'Rewards', RewardsDesk: 'Reward receipts', IssuersDesk: 'Voucher issuers',
     SOffer: 'Offer', SPay: 'Review sheet', SPurchase: 'G$ purchase', SRedeem: 'Voucher booking', SReward: 'Request rewards',
-    SExchange: 'Exchange', SWallet: 'Wallet', SFunds: 'Funds (home garden)', SRequests: 'Requests to accept', SIssuer: 'Voucher bookings (issuer)'
+    SExchange: 'Exchange', SWallet: 'Wallet', SFunds: 'Funds (home garden)', SRequests: 'Requests to accept', SIssuer: 'Voucher bookings (issuer)',
+    SServices: 'Services', SOnboard: 'Your service setup', SMyService: 'Your service', SBrief: 'Project brief', SIssuers: 'Voucher issuers (cockpit)'
   };
-  var SIMPLE = { SOffer: 1, SPay: 1, SPurchase: 1, SRedeem: 1, SReward: 1, SExchange: 1, SWallet: 1, SFunds: 1, SRequests: 1, SIssuer: 1 };
-  var PROP_LABEL = { variant: 'Direction', state: 'State', dialog: 'Dialog', step: 'Step', issue: 'Problem', open: 'Sheet open', kind: 'Offer type', tab: 'Tab' };
+  var SIMPLE = { SOffer: 1, SPay: 1, SPurchase: 1, SRedeem: 1, SReward: 1, SExchange: 1, SWallet: 1, SFunds: 1, SRequests: 1, SIssuer: 1, SServices: 1, SOnboard: 1, SMyService: 1, SBrief: 1, SIssuers: 1 };
+  var PROP_LABEL = { variant: 'Direction', state: 'State', dialog: 'Dialog', step: 'Step', issue: 'Problem', open: 'Sheet open', kind: 'Offer type', tab: 'Tab', pair: 'Pair' };
 
   var QUESTIONS = [
     { id: 'offer', title: 'How an offer shows its payment', screen: 'Offer', preset: { state: 'Open' },
@@ -455,6 +459,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       suggest: 'Funds page card', why: 'Members’ money sits next to the garden’s money but visibly apart. Pick Hub queue if stewards work from the Hub.' }
   ];
   var L = 'Lina · member', T = 'Tomás · Riverside Commons steward', K = 'Kaya · Green Goods Community Garden steward', A = 'Ade · Sunroot Skills Hub steward';
+  var TE = 'Teo · member issuer', MA = 'Maya · member', NO = 'Noor · member';
   function s(screen, props, who, say) { return { screen: screen, props: props || {}, who: who, say: say }; }
   var FLOWS = [
     { id: 'gflow', title: 'G$ purchase, start to finish', note: 'Lina, a gardener at Riverside Commons, buys a month of an AI assistant from Green Goods Community Garden with her own G$. Both gardens’ stewards appear where they act.', steps: [
@@ -571,7 +576,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       s('SWallet', { tab: 'Vouchers' }, L, 'Lina holds 30 Sunroot vouchers. 10 book a 60-minute session.'),
       s('SOffer', { kind: VSN, state: 'Open' }, L, 'The offer answers five questions: what you get, what you give, who holds it, who acts next and what can come back.'),
       s('SPay', { kind: VSN, state: 'Agree' }, L, 'Step 1 is Lina’s: agree to the exact terms, including the acceptance deadline. The vouchers don’t move yet.'),
-      s('SPay', { kind: VSN, state: 'Waiting for Sunroot' }, L, 'Step 2 is Sunroot’s: approve the booking. Lina can close the sheet and come back.'),
+      s('SPay', { kind: VSN, state: 'Waiting for issuer' }, L, 'Step 2 is Sunroot’s: approve the booking. Lina can close the sheet and come back.'),
       s('SIssuer', { state: 'Approve booking' }, A, 'Ade approves. Sunroot’s Safe needs 2 of 3 signatures. Approving isn’t accepting.'),
       s('SPay', { kind: VSN, state: 'Pay or deposit' }, L, 'Step 3 is Lina’s again: deposit 10 vouchers into the escrow. There may be two prompts.'),
       s('SRedeem', { kind: 'Session', state: 'Confirming deposit' }, L, 'The deposit is confirmed on Green Goods before Sunroot can accept.'),
@@ -602,6 +607,42 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       s('SRedeem', { kind: 'Course', state: 'Return failed' }, L, 'The return didn’t go through. Anyone can retry the same 60.'),
       s('SIssuer', { state: 'Transfer failed' }, A, 'Ade can retry it too. It can’t send more or go anywhere else.'),
       s('SRedeem', { kind: 'Course', state: 'Closed' }, L, 'Settled. Sunroot’s stewards close the promise as ended early; it isn’t marked kept.')
+    ] },
+    { id: 's-issue', simple: true, remap: REMAP, title: 'Offer your own service', note: 'Teo, a Sunroot gardener, offers a 60-minute integration lesson. Ade drafts it with him, Teo approves the exact obligation from his own account, the Green Goods Safe registers and admits the token, and Teo keeps the reserve and approves each booking.', steps: [
+      s('SIssuers', { state: 'Prepare draft' }, A, 'Ade prepares the draft with Teo in the cockpit: unit, capacity, issuance, inventory, allowance, rate, fees, pool limit and remedies. He can’t approve or issue for Teo.'),
+      s('SOnboard', { state: 'Draft to review' }, TE, 'Teo reads what he’d promise and what stays his: the token, the reserve, each booking approval, and upgrades and recovery.'),
+      s('SOnboard', { state: 'Approve' }, TE, 'Teo approves the exact terms from his own account. Approving records his promise; nothing is issued yet.'),
+      s('SIssuers', { state: 'Awaiting Teo' }, A, 'Until Teo approves, the cockpit can only remind him or change the draft. Membership or stewardship doesn’t substitute for his signature.'),
+      s('SOnboard', { state: 'Approved, setup pending' }, TE, 'Approved. Next the token is created with Teo as owner, registered during a paused window, and admitted to the pool.'),
+      s('SIssuers', { state: 'Owner Safe drafts' }, K, 'Kaya prepares the four owner Safe calls: source authority on Arbitrum, admission, holding limit and price index on Gnosis. Copying sends nothing.'),
+      s('SIssuers', { state: 'Admitted' }, K, 'Registered and admitted. The next step is Teo’s.'),
+      s('SOnboard', { state: 'Your setup' }, TE, 'Teo enables his reserve, approves 1 lesson for rewards and places 2 in the pool. Each is its own approval.'),
+      s('SOnboard', { state: 'Listed' }, TE, 'Listed: 2 in the pool, 4 in Teo’s reserve.'),
+      s('SServices', { state: 'Browse' }, L, 'Lina sees the lesson among the services, promised by Teo himself, and that she holds the voucher for it.'),
+      s('SMyService', { state: 'Overview' }, TE, 'Teo’s page keeps four numbers apart: lessons promised, booked, delivered and left. Vouchers out there don’t change them.'),
+      s('SMyService', { state: 'Approve booking' }, TE, 'Maya booked. Teo approves the exact booking from his account; then Maya deposits and Sunroot’s stewards accept.'),
+      s('SMyService', { state: 'Propose return' }, TE, 'A lesson stopped at 30 minutes. Teo proposes the most that can come back; the holder approves the split.'),
+      s('SMyService', { state: 'Paused' }, TE, 'Teo pauses new bookings. Booked lessons go ahead and every voucher keeps its terms.'),
+      s('SIssuers', { state: 'Delist' }, K, 'Delisting Maya’s coaching stops new exchanges only: holders keep their vouchers and her bookings go ahead.')
+    ] },
+    { id: 's-project', simple: true, remap: REMAP, title: 'A project with three promises', note: 'Sunroot’s impact website: one brief, three separate requests for Noor, Maya and Teo, each with its own reward and outcome. Maya exchanges her own coaching vouchers for Teo’s lesson, books it, and half is delivered.', steps: [
+      s('SBrief', { state: 'Open' }, NO, 'One brief groups three requests. Each is accepted, reviewed and rewarded on its own; nothing pays out as a team.'),
+      s('SReward', { kind: 'Member voucher', state: 'Open' }, NO, 'Noor’s design pays 1 Teo voucher from Teo’s reserve, within the allowance Teo approved.'),
+      s('SReward', { kind: 'Member voucher', state: 'Agree' }, NO, 'Noor agrees to the exact reward. The agreement is recorded on the source network; a later booking approval doesn’t replace it.'),
+      s('SReward', { kind: 'Member voucher', state: 'Received' }, NO, 'Her design is confirmed and the voucher arrives from Teo’s reserve.'),
+      s('SExchange', { pair: 'Maya to Teo', state: 'Quote' }, MA, 'Maya needs Teo’s help. She exchanges 2 of her own coaching vouchers for 1 Teo voucher, at the rate each approved. Spending them promises her coaching; it isn’t project work.'),
+      s('SExchange', { pair: 'Maya to Teo', state: 'Done' }, MA, 'Exchanged, with zero fees proposed. The receipt says it booked nothing.'),
+      s('SOffer', { kind: 'Member lesson', state: 'Open' }, MA, 'Teo’s lesson, promised by Teo. Maya holds the voucher, so she redeems directly.'),
+      s('SPay', { kind: 'Member lesson', state: 'Agree' }, MA, 'Maya agrees to the exact terms. Teo approves next, then she deposits, then Sunroot’s stewards accept.'),
+      s('SMyService', { state: 'Approve booking' }, TE, 'Teo approves Maya’s booking from his own account.'),
+      s('SPay', { kind: 'Member lesson', state: 'Pay or deposit' }, MA, 'Maya deposits her one voucher into the escrow.'),
+      s('SIssuer', { state: 'Accept member booking' }, A, 'Ade accepts as the pool’s steward. Teo’s approval was required first; Ade couldn’t give it for him.'),
+      s('SRedeem', { kind: 'Lesson', state: 'In progress' }, MA, 'Booked. Starting fixes the terms; it doesn’t mean the lesson happened.'),
+      s('SMyService', { state: 'Propose return' }, TE, 'The lesson stops after 30 minutes. Teo proposes half back, by minutes, within his terms.'),
+      s('SRedeem', { kind: 'Lesson', state: 'Return proposed' }, MA, 'Maya sees the proposal and decides.'),
+      s('SRedeem', { kind: 'Lesson', state: 'Approve split' }, MA, 'Maya approves one final split: 0.5 to Teo’s reserve, 0.5 back to her. It moves nothing by itself.'),
+      s('SRedeem', { kind: 'Lesson', state: 'Closed' }, MA, 'Settled. Her exchange isn’t reversed and Teo’s capacity isn’t restored; the stewards close the promise as ended early.'),
+      s('SBrief', { state: 'One kept' }, NO, 'The brief shows each promise’s own outcome, and the peer help kept apart from the project work.')
     ] },
     { id: 's-gd', simple: true, remap: REMAP, title: 'Buy with your own G$', note: 'Lina buys a month of the AI assistant from another garden with personal G$. The home garden’s Safe holds the payment and its stewards check it; the provider accepts; Lina confirms it was kept before anyone is paid.', steps: [
       s('SOffer', { kind: GP, state: 'Open' }, L, 'The offer says Lina’s own garden’s Safe holds the payment, what comes back if it doesn’t go ahead, and that the token fee isn’t refunded.'),
@@ -635,7 +676,17 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       s('SExchange', { state: 'Quote expired' }, L, 'A stale quote can’t be used. Nothing moved.'),
       s('SExchange', { state: 'Pool short' }, L, 'The pool is short. Nothing moved.'),
       s('SIssuer', { state: 'Above terms' }, A, 'A return above Sunroot’s terms can’t be proposed.'),
-      s('SRedeem', { kind: 'Course', state: 'Problem reported' }, L, 'A dispute doesn’t move Lina’s vouchers. Only the split Lina approves can.')
+      s('SRedeem', { kind: 'Course', state: 'Problem reported' }, L, 'A dispute doesn’t move Lina’s vouchers. Only the split Lina approves can.'),
+      s('SReward', { kind: 'Vouchers only', state: 'Agreement unavailable' }, L, 'The voucher agreement on the source network can’t be signed from the app yet, and a steward can’t sign it for Lina. An operator helps; a booking approval doesn’t replace it.'),
+      s('SOnboard', { state: 'Draft changed' }, TE, 'Ade changed the draft after Teo approved. Nothing continues until Teo approves the new one or declines.'),
+      s('SOnboard', { state: 'Signing not available' }, TE, 'Teo’s account can’t sign on the voucher network yet, so the draft waits. A steward can’t approve it for him.'),
+      s('SMyService', { state: 'Capacity full' }, TE, 'Issuing more would promise lessons Teo can’t deliver. Returned vouchers don’t count as new lessons.'),
+      s('SMyService', { state: 'Pending transaction' }, TE, 'An approval was sent but not confirmed. Teo checks its status; he doesn’t send it again.'),
+      s('SMyService', { state: 'Reserve short' }, TE, 'A reward is waiting on Teo’s allowance. Approving more creates nothing new.'),
+      s('SServices', { state: 'Issuer paused' }, L, 'Teo paused new bookings. Lina’s voucher keeps its terms; booked lessons go ahead.'),
+      s('SOffer', { kind: 'Member lesson', state: 'Paused' }, L, 'The reason sits beside the disabled action.'),
+      s('SExchange', { pair: 'Maya to Teo', state: 'Limit reached' }, MA, 'The pool is at its holding limit for Maya’s vouchers. Nothing moved.'),
+      s('SMyService', { state: 'Delisted' }, TE, 'Delisted from the pool: holders keep their vouchers and their terms, and the 2 booked lessons go ahead. Nothing was erased.')
     ] }
   ];
   PILOT_FLOWS.reverse().forEach(function (f) { FLOWS.unshift(f); });
@@ -742,11 +793,11 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
   /* ---------- Dials: what the lab lets you vary, with the pilot's picks as the defaults ---------- */
   var TWEAKS = [
-    { group: 'Patterns', key: 'steps', code: 'V1', label: 'Sheet steps', screens: ['SPay', 'SRedeem'], rec: 'strip', options: [
+    { group: 'Patterns', key: 'steps', code: 'V1', label: 'Sheet steps', screens: ['SPay', 'SRedeem', 'SOnboard'], rec: 'strip', options: [
       ['strip', 'Strip', 'A bar per step. The current step is dark; another person’s step is dashed.'],
       ['list', 'List', 'Every step on its own line, numbered, with who acts.'],
       ['count', 'Counter', 'One line: “Step 2 of 4: Deposit”, then what comes next. The least space.']] },
-    { group: 'Patterns', key: 'progress', code: 'V2', label: 'Progress', screens: ['SRedeem', 'SPurchase'], rec: 'phases', options: [
+    { group: 'Patterns', key: 'progress', code: 'V2', label: 'Progress', screens: ['SRedeem', 'SPurchase', 'SOnboard'], rec: 'phases', options: [
       ['phases', 'Phases', 'Steps grouped into phases, each naming who acts.'],
       ['flat', 'Flat', 'Every step in one list, in order, with its phase as a small label.'],
       ['summary', 'Summary', 'A count of steps done and a bar, with the list behind a tap.']] },
@@ -758,10 +809,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       ['rows', 'Rows', 'One row per transfer with its own pill: pending, arrived or didn’t go through.'],
       ['bar', 'Bar', 'The split bar again, with each leg’s state under its share.'],
       ['band', 'In the band', 'No card: each transfer’s state as a line in the summary band at the top.']] },
-    { group: 'Patterns', key: 'confirm', code: 'V5', label: 'Confirm', screens: ['SIssuer', 'SRequests', 'SFunds'], rec: 'dialog', options: [
+    { group: 'Patterns', key: 'confirm', code: 'V5', label: 'Confirm', screens: ['SIssuer', 'SRequests', 'SFunds', 'SIssuers'], rec: 'dialog', options: [
       ['dialog', 'Dialog', 'The cockpit’s confirm dialog with its checks and flow status.'],
       ['inline', 'In the row', 'The row opens in place with the same checks and the action; nothing covers the page.']] },
-    { group: 'Copy', key: 'density', code: 'D1', label: 'Copy', screens: ['SOffer', 'SReward', 'SPay', 'SRedeem', 'SPurchase', 'SWallet', 'SExchange', 'SIssuer', 'SRequests', 'SFunds'], rec: 'full', options: [
+    { group: 'Copy', key: 'density', code: 'D1', label: 'Copy', screens: ['SOffer', 'SReward', 'SPay', 'SRedeem', 'SPurchase', 'SWallet', 'SExchange', 'SIssuer', 'SRequests', 'SFunds', 'SServices', 'SOnboard', 'SMyService', 'SBrief', 'SIssuers'], rec: 'full', options: [
       ['full', 'Full', 'Every answer with its line of detail.'],
       ['compact', 'Compact', 'Answers only; the detail lines go.'],
       ['minimal', 'Minimal', 'Three answers on an offer (get, give, back); the rest moves under Details.']] },
@@ -886,8 +937,11 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           '**Your own G$ for a purchase** goes to your home garden’s Safe. Its stewards check it arrived, keep it for the purchase, and refund it if the purchase doesn’t go ahead. It is earmarked in the Safe, not locked.',
           '**Vouchers for a booking** go into an escrow for that booking. Only the split you approve can move them, within the issuer’s terms.',
           '**Rewards** come from the issuer’s reserve and the garden’s pool after the work is confirmed. Nothing is set aside before that, so a short reserve makes a reward wait.',
-          '**Exchanging** happens in one shared pool. It swaps one issuer’s vouchers for another’s and books nothing.'
+          '**Exchanging** happens in one shared pool. It swaps one issuer’s vouchers for another’s and books nothing.',
+          '**A member’s own service** is a voucher that member issues and keeps the reserve for. A steward prepares and publishes it, and the Green Goods Safe admits it to the pool; only the member approves the exact terms and each booking.'
         ]],
+        ['h', 'Who promises delivery'],
+        ['p', 'Every service names who promises it: a person, or a garden. A person’s name means that person delivers, keeps the reserve and approves each booking from their own account. A garden’s name means its stewards do. A member delivering a garden’s service doesn’t become its issuer, and a garden doesn’t answer for a member’s promise. Token addresses and chain names stay under Transaction details.'],
         ['h', 'The journeys'],
         ['scen', 'Lina earns vouchers, with optional G$', [
           'A Riverside Commons request pays 20 Sunroot vouchers and 120 G$. Lina agrees to the exact rewards before being accepted.',
@@ -910,6 +964,17 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           'Lina approves one final split: 40 to Sunroot’s reserve and 60 back to Lina. Approving moves nothing by itself.',
           'Each transfer is tracked until it arrives, and a failed one can be retried without sending more.'
         ], 's-partial'],
+        ['scen', 'Teo offers his own service', [
+          'Ade, a Sunroot steward, drafts Teo’s 60-minute integration lesson with him: one voucher per lesson, six lessons over four weeks, two vouchers in the pool and four in reserve, one at a time for rewards, a rate agreed for this offer, zero pool fee proposed, and returns by minutes delivered.',
+          'Teo approves the exact terms from his own account. Only he can; Ade can prepare and publish, not approve or issue.',
+          'The token is created with Teo as owner, the Green Goods Safe registers and admits it, and Teo enables his reserve, approves one lesson for rewards and places two in the pool.',
+          'Teo’s page keeps lessons promised, booked, delivered and left apart from where the vouchers are. He approves each booking, proposes any return, and can pause new bookings without touching anyone’s vouchers.'
+        ], 's-issue'],
+        ['scen', 'A project with three promises', [
+          'Sunroot posts one brief, the impact website, as three separate requests: Noor designs it for 1 Teo voucher, Maya writes the impact summary for 1 Sunroot voucher, Teo builds it for 1 Green Goods voucher. Each is accepted, reviewed and rewarded on its own.',
+          'Maya needs Teo’s help with the integration. She exchanges 2 of her own coaching vouchers for 1 Teo voucher in the shared pool, books the lesson, and Teo approves it before Sunroot’s stewards accept.',
+          'The lesson stops after 30 minutes. Teo proposes half back; Maya approves 0.5 to Teo’s reserve and 0.5 back to her. Her exchange isn’t reversed and Teo’s capacity isn’t restored.'
+        ], 's-project'],
         ['scen', 'Lina buys a month of the AI assistant with personal G$', [
           'Lina agrees to the exact terms, then sends 450.45 G$ (450.00 plus a token fee) to the home garden’s Safe.',
           'A Riverside Commons steward checks it arrived. Green Goods Community Garden accepts Lina. The home garden’s stewards assign the payment to the purchase.',
@@ -947,7 +1012,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           '**Acceptance deadline:** propose 7 days from agreeing, shown before the member agrees. The contract takes whatever deadline the setup chooses.',
           '**Disputes:** for G$ purchases, suggest a 7-day response and escalation after 14 days, labeled as policy. For vouchers, the working terms propose a help acknowledgment within two business days and a remedy proposal within five. The pool’s stewards resolve the promise; they can’t move a holder’s vouchers.',
           '**Kept** only after the member confirms. Provider reports, payouts and transfers have their own words.',
-          '**Redeem** for vouchers. The vault verb stays unresolved; the review recommends “Withdraw from [vault]”. In Spanish and Portuguese the Redeem verbs (canjear, resgatar) collide with today’s vault strings.'
+          '**Redeem** for vouchers. The vault verb stays unresolved; the review recommends “Withdraw from [vault]”. In Spanish and Portuguese the Redeem verbs (canjear, resgatar) collide with today’s vault strings.',
+          '**Name who promises delivery.** A person’s name on a service means that person delivers and keeps the reserve; a garden’s name means its stewards do. The offer leads with the service, its unit, availability and terms.',
+          '**Member defaults as proposals.** The onboarding draft carries the recommended starting points (one service unit per voucher, six units at most, two in the pool, a one-unit allowance, a per-offer rate, zero pool fee, a two-business-day reply) labeled as proposals the member approves or changes, never as accepted terms.',
+          '**What stays the member’s.** Token owner, reserve, each booking approval, and upgrades and recovery are shown as separate facts before the member approves. A steward’s role is prepare and publish.',
+          '**Four numbers, kept apart.** A member’s service page shows lessons promised, booked, delivered and left, and separately where the vouchers are: issued, in the pool, in the reserve, in escrow, approved for rewards. Token balances never stand in for capacity.',
+          '**Pause and delist without erasing.** Pausing stops new bookings and reward pulls; delisting stops new exchanges. Neither touches holdings, accepted bookings or their returns.'
         ]],
         ['h', 'How the working pilot terms map onto these screens'],
         ['ul', [
@@ -966,15 +1036,22 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           'The acceptance-deadline default (the lab shows 7 days; the working terms propose a two-business-day booking response) and the vault verb.',
           'Who calls the reward retry after a reserve or allowance repair. Anyone can; the issuer’s Safe has a fallback.',
           'Whether to restyle the lab’s fictional services as the working pilot services once issuers accept their terms.',
-          'Whether Accept-after-check should become a contract rule rather than a design rule.'
+          'Whether Accept-after-check should become a contract rule rather than a design rule.',
+          'Who performs core acceptance of a booking on a member’s service: the garden’s stewards, as today’s steward-controlled acceptance does, or the member. The lab keeps the stewards and requires the member’s approval first.',
+          'Which control model a member accepts: the simple one the lab shows (the member’s account is token owner, reserve, approver and upgrade administrator), or a delegated recovery authority.',
+          'Whether the in-app approval of a draft (Approve My Service) becomes a signed record, or stays the reviewed approval reference and digest the issuer metadata carries today.',
+          'How initial pool inventory is placed: the lab shows the member placing two vouchers; no Shared action exists for it yet.',
+          'What delisting is in the pool: a registry or limiter change prepared for the owner Safe. The lab shows its consequences, not the call.'
         ]],
-        ['h', 'Live blockers'],
+        ['h', 'Live state and blockers'],
         ['ul', [
-          'As the implementation lane recorded them at 10:13 a.m. Pacific on 23 October; not rerun here. That lane is preparing a controlled live pilot for 24 October and has sent no live transaction.',
-          '**Same address.** The member address must match on Arbitrum, Gnosis and Celo. The legacy validator that would preserve it can’t be deployed safely, and no safe address-preserving bootstrap is selected. The intended member has no account code on Gnosis or Celo.',
-          '**Signing and fees.** Chain 100 is excluded from the app’s chain and Pimlico configuration. Hosted bundler or paymaster acceptance, a funded native route, actual member possession, signing and recovery, and helper provenance are unproven.',
-          '**Issuers.** The release owner accepted the working terms’ prices and ceilings. Issuer capacity, accountable addresses and acceptance are unconfirmed, and COM-46 is In Progress.',
-          '**Delivery and data.** No live cross-chain delivery is proven, and the app and indexer have no reviewed Gnosis voucher endpoints yet.',
+          'As the implementation lane recorded them through 24 October UTC in its deployment handoff and the member-issuer proof; not rerun here. No voucher, pool or member-issuer transaction has been broadcast.',
+          '**Accounts.** The same-address requirement was superseded on 23 October: the pilot cohort uses new patched passkey accounts, with a member-owned connected wallet as fallback. The selected pilot account completed an authenticated, sponsored Gnosis proof. That proves one account, not every member issuer’s possession or approval.',
+          '**Deployment.** The Hats upgrade is live on Arbitrum. The source, voucher and pool deployments are prepared, not broadcast. The release planner still accepts two garden issuers, so member tokens are not yet in an executable candidate.',
+          '**Routes and data.** The app’s issuer and service routes are empty until receipts exist, and Gnosis indexing is unbound, so every member-issuer screen here is a design, not a read.',
+          '**Issuers.** Sunroot and Green Goods stand in for the pilot issuers, whose capacity, addresses and acceptance are unconfirmed (COM-46). No real member has accepted terms; the recommended defaults are proposals.',
+          '**Earned consent.** Agreeing to a voucher reward on the source network stays operator-assisted; approving a booking on Gnosis doesn’t replace it.',
+          '**Proof.** The member-issuer rehearsal passed 21 cases on owned forks with fictional accounts, plus Shared, Client and Admin focused tests and a Storybook rehearsal. No live issuance, exchange or redemption.',
           'This design authorizes no deployment, broadcast, production auth activation or live financial action, and claims no readiness.'
         ]],
         ['h', 'Text owners'],
@@ -993,7 +1070,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           ['Automatic completion after a review window.', 'A purchase would pay out after a set number of days unless the member reported a problem.', 'The member’s explicit confirmation and split approval.', 'Timed release in settlement and escrow, and a problem flag that reliably pauses every cross-chain payment.'],
           ['On-the-spot redemption.', 'A voucher handed over in person, with a bounded receipt the issuer can check.', 'The booking steps for small immediate services.', 'A supported consent, acceptance and delivery path, and a receipt that can’t be replayed or faked with a screenshot.'],
           ['A fee reserve.', 'Members would pre-pay the payout fee so refunds and payouts are always the full price.', 'Refunds that are a little less than what was sent.', 'A funding rule for the reserve and proof it is never spent twice.'],
-          ['Other currencies and multi-pool routes.', 'Paying in other assets, and exchanges that cross pools.', 'Exchanging first.', 'Explicit asset, payer, recipient and settlement evidence; executable routing. G$ to voucher swaps, cash-out guarantees and mixed checkouts stay excluded.']
+          ['Other currencies and multi-pool routes.', 'Paying in other assets, and exchanges that cross pools.', 'Exchanging first.', 'Explicit asset, payer, recipient and settlement evidence; executable routing. G$ to voucher swaps, cash-out guarantees and mixed checkouts stay excluded.'],
+          ['Self-service issuer setup.', 'A member would deploy and configure their own token without a steward’s draft or the owner Safe’s admission calls.', 'The steward’s draft and the owner Safe step.', 'An issuer factory or registry, member-side authority proof, and pool admission rules.'],
+          ['A project token or team payout.', 'One token or one payout for a whole project, split among its participants.', 'Three separate requests under one brief.', 'One accountable issuer, accepted team obligations, replacement rules and project-wide remedies.']
         ]]
       ] }
   };
@@ -1251,7 +1330,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     var f = FMAP[view.id];
     f.steps.forEach(function (x, i) {
       var b = el('button', /steward/.test(x.who) ? 'steward' : ''); b.type = 'button'; b.textContent = String(i + 1);
-      var detail = x.props.state || x.props.dialog || x.props.step || x.props.tab || '';
+      var detail = x.props.state || x.props.dialog || x.props.step || x.props.tab || x.props.pair || '';
       b.title = (i + 1) + '. ' + x.who.split(' · ')[0] + ': ' + SHORT[x.screen] + (detail ? ' · ' + detail : '');
       b.setAttribute('aria-label', 'Step ' + b.title);
       if (i === view.step) b.setAttribute('aria-current', 'step');
@@ -1427,7 +1506,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     if (view.mode === 'doc') return '';
     var sid = currentScreen(), parts = [], o = variantOptions(sid);
     if (o) parts.push(view.mode === 'question' && view.compare ? 'side by side' : letterOf(sid, view.variant) + ' · ' + view.variant);
-    ['state', 'dialog', 'step', 'issue', 'kind', 'tab'].forEach(function (k) { if (SCREENS[sid].meta[k] && view.props[k] != null) parts.push(view.props[k]); });
+    ['state', 'dialog', 'step', 'issue', 'kind', 'tab', 'pair'].forEach(function (k) { if (SCREENS[sid].meta[k] && view.props[k] != null) parts.push(view.props[k]); });
     if (screenDark) parts.push('dark');
     if (SIMPLE[sid] && screenLang !== 'EN') parts.push(screenLang);
     if (SIMPLE[sid]) TWEAKS.forEach(function (t) { if (tweaks[t.key] !== t.rec) parts.push(t.code + ' ' + optionLabel(t, tweaks[t.key])); });
@@ -1563,6 +1642,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         if (/\bundefined\b|\bNaN\b|\[object Object\]/.test(t)) errs.push(id + ' ' + JSON.stringify(p) + ': bad text');
         if (t.indexOf('\u27E6') >= 0) errs.push(id + ' ' + JSON.stringify(p) + ': missing copy ' + (t.match(/\u27E6[^\u27E7]*\u27E7/) || [''])[0]);
         if (SIMPLE[id] && t.indexOf('\u2014') >= 0) errs.push(id + ' ' + JSON.stringify(p) + ': em dash in copy');
+        if (SIMPLE[id] && /\{\w+\}/.test(t)) errs.push(id + ' ' + JSON.stringify(p) + ': unfilled placeholder ' + (t.match(/\{\w+\}/) || [''])[0]);
       });
     });
     TWEAKS.forEach(function (t) {
@@ -1575,7 +1655,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           var html = host.innerHTML, tx = host.textContent;
           if (!host.querySelector('.gg')) errs.push(id + ' ' + t.code + '=' + o[0] + ': nothing drawn');
           if (html.indexOf('{{') >= 0) errs.push(id + ' ' + t.code + '=' + o[0] + ': unfilled hole');
-          if (/\bundefined\b|\bNaN\b|\[object Object\]/.test(tx) || tx.indexOf('\u27E6') >= 0) errs.push(id + ' ' + t.code + '=' + o[0] + ': bad text');
+          if (/\bundefined\b|\bNaN\b|\[object Object\]/.test(tx) || tx.indexOf('\u27E6') >= 0 || /\{\w+\}/.test(tx)) errs.push(id + ' ' + t.code + '=' + o[0] + ': bad text');
           if (host.querySelector('.gg').getAttribute('data-' + t.key.toLowerCase()) !== o[0] && ['density', 'chain', 'font', 'ground', 'corners', 'gap', 'darkcards'].indexOf(t.key) >= 0) errs.push(id + ' ' + t.code + '=' + o[0] + ': dial not on the root');
         });
       });

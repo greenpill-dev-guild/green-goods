@@ -17,7 +17,7 @@
   <div class="scr" inert>
     <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span></div>
     <div class="ident">
-      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>{{kindLine}}</span>
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{kindIcon}}"/></svg>{{kindLine}}</span>
       <h1>{{offerTitle}}</h1>
     </div>
   </div>
@@ -66,27 +66,34 @@
   </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$ purchase","Voucher session","Voucher course"],"default":"G$ purchase","section":"State"},"state":{"editor":"enum","options":["Agree","Agreeing","Waiting for Sunroot","Pay or deposit","Sending","Sent or deposited","No result","Terms changed","Not enough","Signing not available","Canceled","Offline"],"default":"Agree","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$ purchase","Voucher session","Voucher course","Member lesson"],"default":"G$ purchase","section":"State"},"state":{"editor":"enum","options":["Agree","Agreeing","Waiting for issuer","Pay or deposit","Sending","Sent or deposited","No result","Terms changed","Not enough","Signing not available","Canceled","Offline"],"default":"Agree","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    var t = GGT(this.props.lang);
+    var t0 = GGT(this.props.lang);
     var kind = this.props.kind ?? 'G$ purchase';
     var st = this.props.state ?? 'Agree';
     var dark = this.props.dark ?? false;
-    var gd = kind === 'G$ purchase', course = kind === 'Voucher course';
+    var gd = kind === 'G$ purchase', course = kind === 'Voucher course', member = kind === 'Member lesson';
+    // The issuer is a garden (Sunroot) or a named member (Teo); the copy names them through {issuer} and {unit}
+    var ISS = member ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
+      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc') };
+    var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
+    t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
     // G$ purchases have no issuer approval, so that state shows the payment step
-    if (gd && st === 'Waiting for Sunroot') st = 'Pay or deposit';
+    if (gd && st === 'Waiting for issuer') st = 'Pay or deposit';
     var price = st === 'Terms changed' ? 480 : 450, fee = st === 'Terms changed' ? 0.48 : 0.45, gross = price + fee;
-    var n = course ? 100 : (st === 'Terms changed' ? 12 : 10), held = st === 'Not enough' ? (course ? 20 : 6) : (course ? 100 : 30);
+    var n = course ? 100 : member ? 1 : (st === 'Terms changed' ? 12 : 10), held = st === 'Not enough' ? (course ? 20 : member ? 0 : 6) : (course ? 100 : member ? 1 : 30);
+    var fv = member ? t.v : t.n;
     var WARN = '#ri-alert-line', INFO = '#ri-information-line', OK = '#ri-checkbox-circle-line';
     // Which step of the four the sheet is on: 0 agree, 1 send or issuer approval, 2 deposit or steward check, 3 acceptance
     var agreeStates = { 'Agree': 1, 'Agreeing': 1, 'Terms changed': 1, 'Canceled': 1 };
-    var at = agreeStates[st] ? 0 : gd ? 1 : (st === 'Waiting for Sunroot' ? 1 : 2);
+    var at = agreeStates[st] ? 0 : gd ? 1 : (st === 'Waiting for issuer' ? 1 : 2);
     if (!gd && st === 'Not enough') at = 0;
     if (gd && st === 'Sent or deposited') at = 2;
     if (!gd && st === 'Sent or deposited') at = 3;
     var labels = gd ? [t('pay.j.agree'), t('pay.j.send'), t('pay.j.checked'), t('pay.j.accepted')] : [t('pay.j.agree'), t('pay.j.approved'), t('pay.j.deposit'), t('pay.j.accepted')];
-    var whos = gd ? [t('rd.who.you'), t('rd.who.you'), t('pay.g.toS'), t('who.gg')] : [t('rd.who.you'), t('rd.who.sun'), t('rd.who.you'), t('rd.who.sun')];
+    // A member's offer: the member approves, and the garden's stewards accept once the deposit is confirmed
+    var whos = gd ? [t('rd.who.you'), t('rd.who.you'), t('pay.g.toS'), t('who.gg')] : [t('rd.who.you'), t('rd.who.sun'), t('rd.who.you'), member ? t('who.stewards') : t('rd.who.sun')];
     var journey = labels.map(function (l, i) {
       var cls = i < at ? 'done' : i === at ? ((gd && i >= 2) || (!gd && (i === 1 || i === 3)) ? 'wait' : 'now') : '';
       return { label: l, cls: cls, cur: i === at ? 'step' : 'false', n: String(i + 1), who: whos[i] };
@@ -95,6 +102,7 @@ class Component extends DCLogic {
     var nextStep = journey[at + 1];
     var F = function (k, v, s, chg) { return { k: k, v: v, s: s || '', cls: chg ? 'chg' : '', chg: !!chg }; };
     var R = { facts: [], terms: false, note: '', notice: null, why: null, btn: '', href: '#', mode: 'link', foot: t('c.passkey') };
+    var giveV = member ? t('u.teoOne') : t('pay.v.give', { n: t.n(n) });
     if (gd) {
       if (at === 0 || st === 'Not enough' && at === 0) {
         R.step = t('pay.step.agree');
@@ -110,30 +118,30 @@ class Component extends DCLogic {
     } else {
       if (at === 0) {
         R.step = t('pay.step.agree');
-        R.facts = [F(t('pay.f.get'), t(course ? 'pay.c.get' : 'pay.s.get'), t('pay.v.getS')), F(t('pay.f.give'), t('pay.v.give', { n: t.n(n) }), st === 'Terms changed' ? t('pay.v.was', { n: t.n(10) }) : t('pay.v.giveS', { held: t.n(held) }), st === 'Terms changed'),
-          F(t('pay.f.held'), t('pay.v.held'), t('pay.v.heldS')), F(t('pay.f.deadline'), t.d('2026-10-29'), t('pay.v.deadlineS', { n: t.n(n) })),
-          F(t('pay.f.after'), t(course ? 'pay.c.after' : 'pay.s.after'), t('pay.v.afterS'))];
+        R.facts = [F(t('pay.f.get'), t(member ? 'pay.m.get' : course ? 'pay.c.get' : 'pay.s.get'), t('pay.v.getS')), F(t('pay.f.give'), giveV, st === 'Terms changed' ? t('pay.v.was', { n: t.n(10) }) : member ? t('pay.m.giveS') : t('pay.v.giveS', { held: fv(held) }), st === 'Terms changed'),
+          F(t('pay.f.held'), t('pay.v.held'), member ? t('of.m.heldS') : t('pay.v.heldS')), F(t('pay.f.deadline'), t.d('2026-10-29'), member ? t('pay.m.deadlineS') : t('pay.v.deadlineS', { n: t.n(n) })),
+          F(t('pay.f.after'), t(member ? 'pay.m.after' : course ? 'pay.c.after' : 'pay.s.after'), t('pay.v.afterS'))];
         R.terms = true; R.note = t('pay.v.consent'); R.btn = t('pay.cta.agree');
       } else if (at === 1) {
         R.step = t('pay.step.wait'); R.facts = []; R.note = '';
-        R.notice = ['info', '#ri-time-line', t('pay.v.wait.t'), t('pay.v.wait.b')]; R.btn = t('c.done'); R.href = 'SRedeem.dc.html'; R.foot = '';
+        R.notice = ['info', '#ri-time-line', t('pay.v.wait.t'), t(member ? 'pay.v.waitM.b' : 'pay.v.wait.b')]; R.btn = t('c.done'); R.href = 'SRedeem.dc.html'; R.foot = '';
       } else {
         R.step = t('pay.step.deposit');
-        R.facts = [F(t('pay.f.deposit'), t('pay.v.give', { n: t.n(n) }), t('pay.v.depositS')), F(t('pay.f.into'), t('pay.v.into'), t('pay.v.intoS', { date: t.d('2026-10-23') })), F(t('pay.f.deadline'), t.d('2026-10-29'), '')];
-        R.note = t('pay.v.depNote', { n: t.n(n) }); R.btn = t('pay.cta.deposit', { n: t.n(n) });
+        R.facts = [F(t('pay.f.deposit'), giveV, t('pay.v.depositS')), F(t('pay.f.into'), t('pay.v.into'), t('pay.v.intoS', { date: t.d('2026-10-23') })), F(t('pay.f.deadline'), t.d('2026-10-29'), '')];
+        R.note = member ? t('pay.m.depNote') : t('pay.v.depNote', { n: t.n(n) }); R.btn = member ? t('pay.m.deposit') : t('pay.cta.deposit', { n: t.n(n) });
       }
     }
     if (st === 'Agreeing' || st === 'Sending') R.mode = 'busy';
     if (st === 'Sent or deposited') {
-      R.facts = []; R.terms = false; R.note = ''; R.step = gd ? t('pay.step.checked') : t('pay.step.accept');
-      R.notice = gd ? ['ok', OK, t('pay.n.sent.t'), t('pay.n.sent.b')] : ['ok', OK, t('pay.n.deposited.t'), t('pay.n.deposited.b')];
+      R.facts = []; R.terms = false; R.note = ''; R.step = gd ? t('pay.step.checked') : member ? t('pay.step.acceptM') : t('pay.step.accept');
+      R.notice = gd ? ['ok', OK, t('pay.n.sent.t'), t('pay.n.sent.b')] : ['ok', OK, t('pay.n.deposited.t'), t(member ? 'pay.n.depositedM.b' : 'pay.n.deposited.b')];
       R.btn = gd ? t('pay.cta.view') : t('pay.cta.viewB'); R.href = gd ? 'SPurchase.dc.html' : 'SRedeem.dc.html'; R.foot = '';
     }
     if (st === 'No result') { R.notice = ['warn', WARN, t('pay.n.nores.t'), gd ? t('pay.n.nores.b') : t('pay.n.noresD.b')]; R.btn = gd ? t('pay.cta.check') : t('pay.cta.checkD'); R.href = gd ? 'SPurchase.dc.html' : 'SRedeem.dc.html'; R.foot = ''; }
     if (st === 'Terms changed') R.notice = ['warn', WARN, t('pay.n.changed.t'), gd ? t('pay.n.changed.b') : t('pay.n.changedV.b')];
     if (st === 'Canceled') { R.notice = ['info', INFO, t('pay.n.cancel.t'), t('pay.n.cancel.b')]; R.btn = t('pay.cta.retry'); }
     if (st === 'Not enough') {
-      R.why = gd ? ['warn', WARN, t('pay.r.short.t', { have: t.g(300.12) }), t('pay.r.short.b', { gross: t.g(gross) })] : ['warn', WARN, t('pay.r.shortV.t', { have: t.n(held) }), t('pay.r.shortV.b', { n: t.n(n) })];
+      R.why = gd ? ['warn', WARN, t('pay.r.short.t', { have: t.g(300.12) }), t('pay.r.short.b', { gross: t.g(gross) })] : ['warn', WARN, t('pay.r.shortV.t', { have: fv(held) }), t('pay.r.shortV.b', { n: fv(n) })];
       R.btn = gd ? t('of.a.getGd') : t('of.a.exchange'); R.href = gd ? 'SWallet.dc.html' : 'SExchange.dc.html'; R.foot = '';
     }
     if (st === 'Signing not available') { R.why = gd ? ['warn', WARN, t('pay.r.unavailG.t'), t('pay.r.unavailG.b')] : ['warn', WARN, t('pay.r.unavail.t'), t('pay.r.unavail.b')]; R.mode = 'off'; R.foot = ''; }
@@ -141,7 +149,8 @@ class Component extends DCLogic {
     return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
       offline: st === 'Offline', offlineMode: t('c.offline'),
-      kindLine: t('of.kind', { garden: gd ? t('who.gg') : t('who.sun') }), offerTitle: gd ? t('of.g.title') : t(course ? 'of.c.title' : 'of.s.title'),
+      kindLine: member ? t('of.m.kind', { name: t('who.teoFull'), garden: t('who.sun') }) : t('of.kind', { garden: gd ? t('who.gg') : t('who.sun') }), kindIcon: member ? '#ri-user-line' : '#ri-hand-heart-line',
+      offerTitle: gd ? t('of.g.title') : member ? t('of.m.title') : t(course ? 'of.c.title' : 'of.s.title'),
       sheetTitle: gd ? t('pay.titleG') : t('pay.titleV'), closeLabel: t('c.close'), journeyLabel: t('pay.journey'), journey: journey,
       stepsStrip: stepsKind === 'strip', stepsList: stepsKind === 'list', stepsCount: stepsKind === 'count',
       countLine: t('pay.j.count', { n: t.n(at + 1), total: t.n(journey.length), label: journey[at].label }),

@@ -678,3 +678,25 @@
 .gg .arow .expand .xacts { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
 .gg .arow .expand .xacts .note { margin-right: auto; font-size: 12px; color: var(--muted); }
 .gg .acard .expand { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); background: var(--weak); }
+
+/* ================= Member issuers (revision of 24 Oct) =================
+   A person's tile, a capacity strip and figures, a member-app field, filter chips and a loading row. */
+.gg .hrow .ht.person { background: var(--seed-soft); color: var(--seed); }
+.gg .lessons span.b { background: var(--edge-info); border-color: transparent; }
+.gg .capnums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 14px 16px 0; }
+.gg .capnums > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gg .capnums b { font-size: 20px; line-height: 26px; font-weight: 600; color: var(--strong); font-variant-numeric: tabular-nums; }
+.gg .capnums span span { font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .mfield { display: flex; flex-direction: column; gap: 6px; }
+.gg .mfield label { font-size: 12px; font-weight: 500; color: var(--muted); }
+.gg .mfield .inp { height: 48px; border: 1px solid var(--line2); border-radius: 16px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--card); color: var(--strong); font-size: 16px; font-weight: 500; }
+.gg .mfield .hl { font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .chip.on { background: var(--accent-10); border-color: var(--on); color: var(--on); }
+.gg .ident .chips { align-items: center; }
+.gg .ident .chips .small { line-height: 20px; }
+.gg .skel .bar { display: block; height: 12px; border-radius: 6px; background: var(--neu-bg); }
+.gg .skel .hn.bar { width: 60%; height: 14px; }
+.gg .skel .hd.bar { width: 85%; }
+.gg .skel .ht { background: var(--neu-bg); }
+.gg .ckr.wait .cm { background: var(--neu-bg); color: var(--muted); }
+.gg .c-head .sb { flex: 0 0 auto; margin-top: 2px; }

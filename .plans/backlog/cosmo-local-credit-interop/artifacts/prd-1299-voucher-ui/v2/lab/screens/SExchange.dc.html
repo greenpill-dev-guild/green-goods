@@ -42,7 +42,7 @@
     <div class="sec"><h2>{{quoteTitle}}</h2></div>
     <div class="mx16 card">
       <div class="facts">
-        <sc-for list="{{facts}}" as="f" hint-placeholder-count="5"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
+        <sc-for list="{{facts}}" as="f" hint-placeholder-count="6"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
       </div>
       <details class="tech">
         <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
@@ -77,22 +77,31 @@
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Quote","Review","Approving","Waiting for result","Done","Quote expired","Pool short","Limit reached","Not listed"],"default":"Quote","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"pair":{"editor":"enum","options":["Hilltop to Sunroot","Maya to Teo"],"default":"Hilltop to Sunroot","section":"State"},"state":{"editor":"enum","options":["Quote","Review","Approving","Waiting for result","Done","Quote expired","Pool short","Limit reached","Not listed"],"default":"Quote","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    var t = GGT(this.props.lang);
+    var t0 = GGT(this.props.lang);
     var st = this.props.state ?? 'Quote';
     var dark = this.props.dark ?? false;
-    var Q = { inA: 163.6, out: 80, pool: 1.64, proto: 0.16, fee: 1.8, min: 79.6, time: '14:05', avail: 42.1 };
-    var v = { in: t.g(Q.inA), out: t.g(Q.out), pool: t.g(Q.pool), proto: t.g(Q.proto), fee: t.g(Q.fee), min: t.g(Q.min), time: Q.time, avail: t.g(Q.avail), n: t.n(250) };
+    // Two pairs in the one shared pool: Lina's Hilltop vouchers for Sunroot's, and Maya's own coaching vouchers for Teo's lesson
+    var member = (this.props.pair ?? 'Hilltop to Sunroot') === 'Maya to Teo';
+    var ISS = member ? { inUnit: t0('u.mayaMany'), outUnit: t0('u.teoMany'), unit: t0('u.teoMany'), issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), garden: t0('who.sun') }
+      : { inUnit: t0('u.hillMany'), outUnit: t0('u.sunMany'), unit: t0('u.sunMany'), issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), garden: t0('who.rc') };
+    var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
+    t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
+    var f = member ? t.v : t.g;
+    var Q = member ? { inA: 2, out: 1, pool: 0, proto: 0, fee: 0, min: 1, time: '14:05', avail: 0, hold: 6 } : { inA: 163.6, out: 80, pool: 1.64, proto: 0.16, fee: 1.8, min: 79.6, time: '14:05', avail: 42.1, hold: 250 };
+    var v = { in: f(Q.inA), out: f(Q.out), pool: f(Q.pool), proto: f(Q.proto), fee: f(Q.fee), min: f(Q.min), time: Q.time, avail: f(Q.avail), n: t.n(Q.hold) };
     var facts = [
-      { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: t('ex.f.feesS', v) },
+      { k: t('ex.f.rate'), v: member ? t('ex.f.rateV') : t('ex.f.rateVH'), s: t('ex.f.rateS') },
+      { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: member ? t('ex.f.feesZero') : t('ex.f.feesS', v) },
       { k: t('ex.f.min'), v: t('ex.f.minV', v), s: t('ex.f.minS') },
       { k: t('ex.f.until'), v: Q.time, s: t('ex.f.untilS') },
       { k: t('ex.f.to'), v: t('ex.f.toV'), s: '' },
       { k: t('ex.f.pool'), v: t('ex.f.poolV'), s: t('ex.f.poolS') }
     ];
     var NT = {
+      'Quote': member ? ['info', '#ri-information-line', 'own', 'review'] : null,
       'Waiting for result': ['warn', '#ri-time-line', 'wait', 'check'],
       'Done': ['ok', '#ri-check-line', 'done', 'back'],
       'Quote expired': ['warn', '#ri-alert-line', 'expired', 'requote'],
@@ -102,22 +111,23 @@ class Component extends DCLogic {
     }[st];
     var sheet = st === 'Review' || st === 'Approving';
     var primary = NT ? NT[3] : 'review';
-    var receipt = [{ k: t('ex.rc.spent'), v: t.g(Q.inA) + ' ' + t('u.hillMany') }, { k: t('ex.rc.got'), v: t.g(Q.out) + ' ' + t('u.sunMany') },
-      { k: t('ex.rc.fees'), v: t.g(Q.fee) + ' ' + t('u.sunMany') }, { k: t('ex.rc.when'), v: t.d('2026-10-25') + ' · 14:03' }];
+    var gotV = member ? t('u.teoOne') : f(Q.out) + ' ' + t('u.sunMany');
+    var receipt = [{ k: t('ex.rc.spent'), v: f(Q.inA) + ' ' + ISS.inUnit }, { k: t('ex.rc.got'), v: gotV },
+      { k: t('ex.rc.fees'), v: f(Q.fee) + ' ' + ISS.outUnit }, { k: t('ex.rc.when'), v: t.d('2026-10-25') + ' · 14:03' }];
     return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
       baseHidden: sheet ? 'true' : 'false',
       kindLine: t('ex.kind'), title: t('ex.title'), desc: t('ex.desc'),
-      spendLabel: t('ex.spend'), inAmt: t.g(Q.inA), inUnit: t('u.hillMany'), holdIn: t('ex.hold', v),
-      getLabel: t('ex.receive'), outAmt: t.g(Q.out), outUnit: t('u.sunMany'), afterFees: t('ex.afterFees'),
+      spendLabel: t('ex.spend'), inAmt: f(Q.inA), inUnit: ISS.inUnit, holdIn: t('ex.hold', v),
+      getLabel: t('ex.receive'), outAmt: f(Q.out), outUnit: ISS.outUnit, afterFees: t('ex.afterFees'),
       hasNotice: !!NT, noticeCls: NT ? NT[0] : '', noticeIcon: NT ? NT[1] : '', noticeT: NT ? t('ex.n.' + NT[2] + '.t', v) : '', noticeB: NT ? t('ex.n.' + NT[2] + '.b', v) : '',
       isDone: st === 'Done', rcTitle: t('ex.rc.title'), receipt: receipt,
       quoteTitle: st === 'Done' ? t('ex.quoteUsed') : t('ex.quote'), facts: facts, techLabel: t('c.tech'), tech: [t('ex.x.pool'), t('ex.x.min', v)],
-      hasPrimary: !!primary, primary: primary ? t('ex.a.' + primary) : '', primaryHref: primary === 'back' ? 'SOffer.dc.html' : '#',
+      hasPrimary: !!primary, primary: primary === 'back' ? t(member ? 'ex.a.backL' : 'ex.a.back') : primary ? t('ex.a.' + primary) : '', primaryHref: primary === 'back' ? 'SOffer.dc.html' : '#',
       hasSecondary: !!(NT && NT[4]), secondary: NT && NT[4] ? t('ex.a.' + NT[4]) : '',
       sheet: sheet, shTitle: t('ex.sh.title'), shSub: t('ex.title'),
-      shFacts: [{ k: t('ex.spend'), v: t.g(Q.inA) + ' ' + t('u.hillMany'), s: '', cls: '' }, { k: t('ex.receive'), v: t.g(Q.out) + ' ' + t('u.sunMany'), s: t('ex.sh.atLeast', v), cls: '' },
-        { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: t('ex.f.feesS', v), cls: '' }, { k: t('ex.f.until'), v: Q.time, s: '', cls: '' }, { k: t('ex.f.to'), v: t('ex.f.toV'), s: '', cls: '' }],
+      shFacts: [{ k: t('ex.spend'), v: f(Q.inA) + ' ' + ISS.inUnit, s: '', cls: '' }, { k: t('ex.receive'), v: gotV, s: t('ex.sh.atLeast', v), cls: '' },
+        { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: member ? t('ex.f.feesZero') : t('ex.f.feesS', v), cls: '' }, { k: t('ex.f.until'), v: Q.time, s: '', cls: '' }, { k: t('ex.f.to'), v: t('ex.f.toV'), s: '', cls: '' }],
       shNote: t('ex.sh.note', v), shCta: t('ex.sh.cta'), busy: st === 'Approving', notBusy: st !== 'Approving', passkey: t('c.passkey')
     });
   }
