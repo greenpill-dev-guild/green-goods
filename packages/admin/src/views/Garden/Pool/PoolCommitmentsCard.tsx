@@ -84,7 +84,10 @@ export function PoolCommitmentsCard({
     id: "cockpit.garden.pool.row.act.expire",
     defaultMessage: "Expire Now…",
   });
-  const discardLabel = formatMessage({ id: "cockpit.garden.pool.queued.discard" });
+  const discardLabel = formatMessage({
+    id: "cockpit.garden.pool.queued.discard",
+    defaultMessage: "Discard",
+  });
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -426,9 +429,8 @@ export function PoolCommitmentsCard({
                     onOpen={() => onOpenCommitment(commitment)}
                     action={
                       isDue ? (
-                        // Outlined where it sits: the red is for the confirm inside the
-                        // dialog, which names the blast radius first. Below 480px of row it
-                        // is its icon, so the title, pill and date keep their room.
+                        // Outlined: the red is for the dialog's confirm, which names the blast radius first.
+                        // Below 480px of row it is its icon, so the title, pill and date keep their room.
                         <>
                           <IconButton
                             emphasis="secondary"
