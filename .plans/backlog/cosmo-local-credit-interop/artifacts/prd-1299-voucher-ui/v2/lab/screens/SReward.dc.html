@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Request rewards</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="pp-nav" inert="{{baseHidden}}"><a class="close" href="{{backHref}}" aria-label="{{backLabel}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a></div>
+  <div class="scr" style="padding-bottom: {{padBottom}}" inert="{{baseHidden}}">
+    <div class="pp-body">
+      <h1 class="pp-title">{{title}}</h1>
+      <p class="pp-place"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{cycleIcon}}"/></svg><span>{{cycle}}</span><span aria-hidden="true">·</span><span>{{garden}}</span></p>
+      <section class="pp-band" data-tone="{{bandTone}}" aria-label="{{bandLabel}}">
+        <div class="pp-badges"><span class="gg-badge" data-tone="{{pillTone}}">{{pill}}</span><sc-if value="{{needsYou}}" hint-placeholder-val="{{false}}"><span class="gg-needs">{{needsYouLabel}}</span></sc-if></div>
+        <p>{{bandText}}</p>
+      </section>
+      <sc-if value="{{hasDoor}}" hint-placeholder-val="{{false}}">
+        <section class="pp-door" aria-label="{{doorT}}"><p><b>{{doorT}}</b> {{doorB}}</p><div class="pp-door-acts"><a class="btn sm sec" href="#">{{doorAct}}</a></div></section>
+      </sc-if>
+      <section class="pp-sec" aria-labelledby="rw-promised">
+        <h2 id="rw-promised">{{promisedTitle}}</h2>
+        <dl class="gg-fact-list" data-frame="inset">
+          <sc-for list="{{promised}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="{{f.icon}}"/></svg></span>{{f.k}}</span></dt><dd class="gg-fact-value"><span class="{{f.cls}}">{{f.v}}</span><sc-if value="{{f.role}}" hint-placeholder-val="{{false}}"><span class="gg-role"><svg class="i" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-shield-check-line"/></svg>{{stewardLabel}}</span></sc-if></dd></div></sc-for>
+        </dl>
+        <p class="pp-note">{{desc}}</p>
+        <sc-if value="{{hasBrief}}" hint-placeholder-val="{{false}}"><p class="pp-note pp-group"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-group-line"/></svg><span>{{brief}}</span></p></sc-if>
+      </section>
+      <section class="pp-sec" aria-labelledby="rw-rewards">
+        <div class="pp-head"><h2 id="rw-rewards">{{rewardsTitle}}</h2></div>
+        <div class="gg-list pp-items">
+          <sc-for list="{{rewards}}" as="r" hint-placeholder-count="2">
+            <div class="gg-item-row gg-card" data-edge="{{r.tone}}">
+              <span class="gg-item-row-lead"><span class="gg-item-row-tile"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{r.icon}}"/></svg></span></span>
+              <span class="gg-item-row-body"><span class="gg-item-row-title">{{r.name}}</span><span class="gg-badge" data-tone="{{r.tone}}">{{r.state}}</span><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><span class="gg-item-row-detail"><span>{{r.sub}}</span></span></span></span></span>
+            </div>
+          </sc-for>
+        </div>
+        <dl class="gg-fact-list" data-frame="inset" style="margin-top: 8px">
+          <sc-for list="{{qa}}" as="q" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="{{q.icon}}"/></svg></span>{{q.k}}</span></dt><dd class="gg-fact-value">{{q.v}}<sc-if value="{{q.s}}" hint-placeholder-val="{{true}}"><small>{{q.s}}</small></sc-if></dd></div></sc-for>
+        </dl>
+        <details class="tech pp-tech">
+          <summary>{{techLabel}}</summary>
+          <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
+        </details>
+      </section>
+    </div>
+  </div>
+  <sc-if value="{{hasAct}}" hint-placeholder-val="{{true}}">
+    <div class="pp-bar"><div class="pp-acts"><a class="btn" href="{{actHref}}">{{act}}</a></div></div>
+  </sc-if>
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <div class="scrim"></div>
+    <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="rw-title">
+      <div class="grip"></div>
+      <div class="shead">
+        <div><h2 class="stitle" id="rw-title">{{shTitle}}</h2><p class="sdesc">{{title}}</p></div>
+        <a class="close" href="#" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+      </div>
+      <div class="sbody">
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<small>{{f.s}}</small></dd></div></sc-for>
+          <div class="gg-fact-row" data-kind="fact" data-has-action="true"><dt class="gg-fact-term"><span class="gg-fact-label">{{termsLabel}}</span></dt><dd class="gg-fact-value">{{termsVersion}}</dd><dd class="gg-fact-action"><a class="tlink" href="#">{{readTerms}}</a></dd></div>
+        </dl>
+        <p class="small" style="font-size: 13px; line-height: 18px">{{consent}}</p>
+        <p class="small" style="font-size: 13px; line-height: 18px">{{source}}</p>
+      </div>
+      <div class="sacts">
+        <a class="btn" href="#">{{shCta}}</a>
+        <p class="foot">{{passkey}}</p>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["Vouchers + G$","Vouchers only","Member voucher"],"default":"Vouchers + G$","section":"State"},"state":{"editor":"enum","options":["Open","Agree","Agreement unavailable","In progress","Both on the way","Vouchers in, G$ on the way","Reserve short","G$ delayed","Received"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t0 = GGT(this.props.lang);
+    var kind = this.props.kind ?? 'Vouchers + G$';
+    var both = kind === 'Vouchers + G$', member = kind === 'Member voucher';
+    var st = this.props.state ?? 'Open';
+    var dark = this.props.dark ?? false;
+    // A member's voucher as a reward: Teo's reserve, under a finite allowance, for a Tech and Sun request
+    var ISS = member ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
+      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc') };
+    var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
+    t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
+    if (!both && (st === 'Vouchers in, G$ on the way' || st === 'G$ delayed')) st = 'Received';
+    var n = both ? 2 : member ? 1 : 2, amt = 120;
+    var after = { 'Both on the way': 1, 'Vouchers in, G$ on the way': 1, 'Reserve short': 1, 'G$ delayed': 1, 'Received': 1 }[st];
+    // Each reward is its own record on the item row: its status pill, and the 2px edge follows the pill
+    var P = { pend: ['info', t('rw.s.pending')], recv: ['success', t('rw.s.received')], wait: ['warning', t('rw.s.waiting')], late: ['warning', t('rw.s.delayed')], later: ['neutral', t('rw.s.notYet')] };
+    var vs = !after ? 'later' : st === 'Reserve short' ? 'wait' : st === 'Both on the way' ? 'pend' : 'recv';
+    var gs = !after ? 'later' : st === 'G$ delayed' ? 'late' : (st === 'Received' || st === 'Reserve short') ? 'recv' : 'pend';
+    // One short detail per reward: where it comes from, or what it waits on. The band sentence carries the rest.
+    var vsub = { later: t('rw.d.fromReserve'), pend: t('rw.d.sending'), recv: t('rw.r.recv', { date: t.d('2026-12-12') }), wait: t('rw.d.waits') }[vs];
+    var gsub = { later: t('rw.d.fromPool'), pend: t('rw.d.paying'), recv: t('rw.r.recv', { date: t.d('2026-12-12') }), late: t('rw.d.retrying') }[gs];
+    var rewards = [{ icon: '#ri-coupon-3-line', name: member ? t('rw.m.vou') : t('rw.vou', { n: t.n(n) }), sub: vsub, tone: P[vs][0], state: P[vs][1] }];
+    if (both) rewards.push({ icon: '#ri-coins-line', name: t('rw.gd', { amt: t.g(amt) }), sub: gsub, tone: P[gs][0], state: P[gs][1] });
+    var NX = {
+      'In progress': 'prog', 'Both on the way': 'both', 'Vouchers in, G$ on the way': 'vin',
+      'Reserve short': both ? 'short' : 'shortV', 'G$ delayed': 'delayed', 'Received': both ? 'done' : 'doneV'
+    }[st];
+    var vars = { n: t.n(n), amt: t.g(amt) };
+    var bKey = NX ? 'rw.n.' + NX + '.b' : 'rw.band.open';
+    if (member && st === 'Reserve short') bKey = 'rw.n.shortM.b';
+    if (member && st === 'Received') bKey = 'rw.n.doneM.b';
+    var unavailable = st === 'Agreement unavailable';
+    var act = { 'Open': [t('rw.a.take'), '#'], 'In progress': [t('rw.a.work'), '#'], 'Received': [t('rw.a.wallet'), 'SWallet.dc.html'] }[st];
+    var sheet = st === 'Agree';
+    var give = member ? t('rw.m.give') : both ? t('rw.vg.give') : t('rw.v.give'), giveS = member ? t('rw.m.giveS') : both ? t('rw.vg.giveS') : t('rw.v.giveS');
+    var shFacts = [{ k: t('rw.sh.work'), v: give, s: giveS },
+      { k: t('rw.sh.vou'), v: member ? t('rw.m.vouV') : t('rw.sh.vouV', vars), s: t('rw.sh.vouS') }];
+    if (both) shFacts.push({ k: t('rw.sh.gd'), v: t('rw.sh.gdV', vars), s: t('rw.sh.gdS') });
+    // The request's own facts: what is asked, by when, who asked, who does it and who confirms it
+    var taken = !!after || st === 'In progress';
+    var promised = [{ icon: '#ri-hand-heart-line', k: t('sh.askedFor'), v: give, cls: '', role: false },
+      { icon: '#ri-time-line', k: t('sh.due'), v: t.d(member ? '2026-11-20' : both ? '2026-12-15' : '2026-11-30'), cls: '', role: false },
+      { icon: '#ri-question-answer-line', k: t('sh.askedBy'), v: member ? t('who.sun') : t('who.rc'), cls: '', role: false }];
+    if (taken) promised.push({ icon: '#ri-user-line', k: t('sh.doing'), v: t('sh.you'), cls: 'you', role: false });
+    promised.push({ icon: '#ri-shield-check-line', k: t('sh.confirms'), v: t('rw.reviewV'), cls: '', role: true });
+    var qa = [{ icon: '#ri-git-branch-line', k: t('rw.q.arrive'), v: t('rw.arriveV'), s: both ? t('rw.arriveS') : t('rw.arriveSV') },
+      { icon: '#ri-archive-line', k: t('rw.q.aside'), v: t('rw.asideV'), s: member ? t('rw.m.asideS') : t('rw.asideS') }];
+    var tech = both ? [t('rw.x.vou'), t('rw.x.gd'), t('rw.x.rec')] : [t('rw.x.vou'), t('rw.x.rec')];
+    // The lab's copy density dial: minimal keeps how rewards arrive and drops whether they are set aside
+    if ((this.props.density ?? 'full') === 'minimal') qa = [qa[0]];
+    var S = after ? ['sh.st.kept', 'success'] : st === 'In progress' ? ['sh.st.inProgress', 'info'] : ['sh.st.requested', 'info'];
+    var bandTone = st === 'In progress' ? 'attention' : st === 'Received' ? 'kept' : after ? 'waiting' : 'neutral';
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
+      backHref: member ? 'SBrief.dc.html' : 'SServices.dc.html',
+      baseHidden: sheet ? 'true' : 'false',
+      title: member ? t('rw.m.title') : both ? t('rw.vg.title') : t('rw.v.title'), desc: member ? t('rw.m.desc') : both ? t('rw.vg.desc') : t('rw.v.desc'),
+      cycle: member ? t('pp.cycle.web') : t('pp.cycle.rc'), cycleIcon: member ? '#ri-flag-line' : '#ri-sun-line', garden: member ? t('who.sun') : t('who.rc'),
+      bandLabel: t('sh.where'), bandTone: bandTone, pill: t(S[0]), pillTone: S[1], needsYou: st === 'In progress', needsYouLabel: t('sh.needsYou'),
+      bandText: t(bKey, vars),
+      hasDoor: unavailable, doorT: t('rw.n.consent.t'), doorB: t('rw.n.consent.b'), doorAct: t('rw.a.help'),
+      promisedTitle: t('sh.promised'), promised: promised, stewardLabel: t('sh.steward'),
+      hasBrief: member, brief: t('rw.m.brief'),
+      rewardsTitle: t('rw.rewards'), rewards: rewards, qa: qa,
+      techLabel: t('c.tech'), tech: tech,
+      hasAct: !!act && !sheet && !unavailable, act: act ? act[0] : '', actHref: act ? act[1] : '#',
+      padBottom: act && !unavailable ? '104px' : '24px',
+      sheet: sheet, shTitle: t('rw.sh.title'), shFacts: shFacts, termsLabel: t('c.terms'), termsVersion: t('pp.version', { v: t.n(2) }), readTerms: t('c.readTerms'),
+      consent: t('rw.sh.consent'), source: t('rw.sh.source'), shCta: t('rw.sh.cta'), passkey: t('c.passkey')
+    });
+  }
+}
+</script>
+</body>
+</html>

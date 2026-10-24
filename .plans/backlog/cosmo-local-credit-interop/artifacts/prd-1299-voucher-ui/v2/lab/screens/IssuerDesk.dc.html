@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Issuer approves and accepts voucher promises</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Sunroot Skills Hub</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">A</span></span>
+  </header>
+  <main class="c-route">
+    <div class="c-head"><div><h1>Promises</h1><p>Offers paid with Sunroot vouchers</p></div></div>
+    <div class="c-tabs"><span>Open</span><span class="on">Asks · 2</span><span>Under way · 1</span><span>Kept</span></div>
+    <div class="c-grid">
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Voucher requests</h2><p>Approving a setup lets someone deposit. Accepting is a separate decision.</p></div></div>
+          <div class="arow offer">
+            <div class="l1"><span class="nm">Lina</span><span class="sb {{linaSb}}">{{linaTag}}</span></div>
+            <div class="l2">{{linaMeta}}</div>
+            <div class="acts"><button type="button" class="abtn fill" onClick="{{linaOpen}}">{{linaAct}}</button></div>
+          </div>
+          <div class="arow offer">
+            <div class="l1"><span class="nm">Mara</span><span class="sb ok">Escrow ready</span></div>
+            <div class="l2">Solar basics course · 100 Sunroot vouchers in escrow · accept by Oct 25, 5:00 PM</div>
+            <div class="acts"><button type="button" class="abtn">Accept…</button></div>
+          </div>
+          <div class="arow offer">
+            <div class="l1"><span class="nm">Kwesi</span><span class="sb neu">Under way</span></div>
+            <div class="l2">Solar basics course · 3 of 10 lessons reported · last proof Oct 28</div>
+            <div class="acts"><button type="button" class="abtn">End Early…</button></div>
+          </div>
+        </section>
+      </div>
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Sunroot vouchers</h2><p>Issued by this hub on Gnosis</p></div><span class="sb pol">Policy</span></div>
+          <div class="ab">
+            <div class="afacts">
+              <div class="afact"><span class="k">Outstanding</span><span class="v">1,240 of a 2,000 cap<small>Published policy, monitored. Not enforced yet.</small></span></div>
+              <div class="afact"><span class="k">In escrow</span><span class="v">300 across 3 promises</span></div>
+              <div class="afact"><span class="k">Reserve</span><span class="v">380, reusable within budget</span></div>
+              <div class="afact"><span class="k">Signs as</span><span class="v">Sunroot Skills Hub's Safe · 2 of 3</span></div>
+            </div>
+            <div class="meter" aria-hidden="true"><span style="width: 62%"></span></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <sc-if value="{{showSmall}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-label="{{dTitle}}">
+      <div class="dh"><div><h2>{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="Close" onClick="{{close}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <div class="target"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>{{dTarget}}</div>
+        <div class="afacts">
+          <div class="afact"><span class="k">Holder</span><span class="v">{{who}} · Green Goods account 0x3C1e…7A2e<small>Deposits from Gnosis wallet 0x9A40…41bD</small></span></div>
+          <div class="afact"><span class="k">Escrow</span><span class="v">Green Goods voucher escrow for this promise</span></div>
+        </div>
+        <div class="dsec">
+          <h3>Before you {{verb}}</h3>
+          <div class="checks">
+            <sc-for list="{{checks}}" as="c" hint-placeholder-count="3">
+              <div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div>
+            </sc-for>
+          </div>
+        </div>
+        <p style="margin: 0">{{conseq}}</p>
+        <div class="flowrow {{flowCls}}">{{flow}}</div>
+      </div>
+      <div class="df"><span class="note">Your wallet asks once.</span><button type="button" class="abtn lg" onClick="{{close}}">Cancel</button><button type="button" class="abtn lg fill {{primaryOff}}">{{primary}}</button></div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{showSplitDlg}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg lg" role="dialog" aria-modal="true" aria-label="End early and propose a split">
+      <div class="dh"><div><h2>End Early and Propose a Split</h2><p>Lina · Solar basics course, 10 lessons</p></div><button type="button" class="close" aria-label="Close" onClick="{{close}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); flex: 1 1 auto; min-height: 0; border-top: 1px solid var(--line)">
+        <div class="rail">
+          <span class="rs"><b>1</b>Delivered</span>
+          <span class="rs on"><b>2</b>Split</span>
+          <span class="rs"><b>3</b>Review</span>
+          <span class="tgt">Writing to Sunroot Skills Hub's pool and its voucher escrow</span>
+        </div>
+        <div class="db" style="padding-top: 16px">
+          <div class="dsec">
+            <h3>Split the 100 vouchers in escrow</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+              <div class="fieldA"><label>To Sunroot's reserve</label><span class="inp"><span>{{toRes}}</span><span class="small">vouchers</span></span></div>
+              <div class="fieldA"><label>Back to Lina</label><span class="inp"><span>{{toBack}}</span><span class="small">vouchers</span></span></div>
+            </div>
+            <div class="splitbar" style="margin-top: 4px"><span class="a" style="width: {{resPct}}">{{toRes}} to reserve</span><span class="b" style="width: {{backPct}}">{{toBack}} back</span></div>
+            <span class="small">Total 100 of 100 · 3 of 10 lessons delivered</span>
+          </div>
+          <div class="flowrow {{remCls}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{remIcon}}"/></svg>{{remText}}</div>
+          <p class="small" style="margin: 0">Lessons and vouchers are separate. Enter the split your remedy terms set; nothing is calculated per lesson.</p>
+          <div class="afacts">
+            <div class="afact"><span class="k">Issuer authorization</span><span class="v">Signs as Sunroot Skills Hub's Safe on Gnosis · 2 of 3</span></div>
+          </div>
+          <p style="margin: 0">Lina reviews and freezes this. Until then, you can withdraw or change the proposal. After it's frozen, nobody can change it.</p>
+        </div>
+      </div>
+      <div class="df"><span class="note">Your wallet asks once; the Safe needs 2 signatures.</span><button type="button" class="abtn lg">Back</button><button type="button" class="abtn lg fill {{sendOff}}">Send Proposal</button></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dialog":{"editor":"enum","options":["None","Approve setup","1 of 2 signatures","Accept","No proof","Race","Window closed","Propose split","Above authorization"],"default":"Approve setup","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) {
+    if (prev.dialog !== this.props.dialog) this.setState({ dlg: undefined });
+  }
+  renderVals() {
+    var dark = this.props.dark ?? false;
+    var s = this.state || {};
+    var dlg = s.dlg !== undefined ? s.dlg : (this.props.dialog ?? 'Approve setup');
+    var self = this;
+    var OK = '#ri-check-line', NO = '#ri-close-line', WAIT = '#ri-time-line', POL = '#ri-alert-line';
+    function ck(cls, icon, t, sub) { return { cls: cls, icon: icon, t: t, s: sub }; }
+    var consent = ck('ok', OK, 'Agreed to version 2, the current terms', 'From the signed request');
+    var cap = ck('pol', POL, 'Outstanding Sunroot vouchers: 1,240 of a 2,000 cap', "Published policy, monitored. The contracts don't enforce this cap yet.");
+    var proof = ck('ok', OK, 'Escrow proof received from Gnosis', '100 Sunroot vouchers held for this promise · received Today, 11:24 AM');
+    var win = ck('ok', OK, 'Acceptance window open until Oct 25, 5:00 PM', '2 days left');
+    var setupConseq = 'Approving lets Lina deposit 100 vouchers into escrow for this promise. Accepting her request is a separate decision once the escrow is ready.';
+    var acceptConseq = "Accepting starts the promise, on Gnosis too. Lina can't cancel setup after this; missed lessons go through your remedy and the final split.";
+    var D = {
+      'Approve setup': { t: "Approve Lina's Voucher Setup?", sub: "Lets her deposit vouchers into escrow for this promise. It doesn't accept her request.", target: "Signing as Sunroot Skills Hub's Safe on Gnosis · 2 of 3 signers", who: 'Lina', verb: 'approve', checks: [consent, cap], conseq: setupConseq, flow: ['', 'Ready. The Safe needs 2 signatures.'], primary: 'Approve Setup' },
+      '1 of 2 signatures': { t: "Approve Lina's Voucher Setup?", sub: "Lets her deposit vouchers into escrow for this promise. It doesn't accept her request.", target: "Signing as Sunroot Skills Hub's Safe on Gnosis · 2 of 3 signers", who: 'Lina', verb: 'approve', checks: [consent, cap], conseq: setupConseq, flow: ['info', '1 of 2 signatures · waiting for another Sunroot signer'], primary: 'Approve Setup', off: true },
+      'Accept': { t: "Accept Lina's Voucher Request?", sub: 'Solar basics course, 10 lessons', target: "Writing to Sunroot Skills Hub's pool", who: 'Lina', verb: 'accept', checks: [consent, proof, win], conseq: acceptConseq, flow: ['', 'Ready to accept.'], primary: 'Accept Request' },
+      'No proof': { t: "Accept Lina's Voucher Request?", sub: 'Solar basics course, 10 lessons', target: "Writing to Sunroot Skills Hub's pool", who: 'Lina', verb: 'accept', checks: [consent, ck('no', NO, 'Escrow proof not received yet', "Sent from Gnosis at 11:21 AM; Green Goods hasn't received it. A sent message isn't proof."), win], conseq: acceptConseq, flow: ['', 'Accept stays off until the proof arrives.'], primary: 'Accept Request', off: true },
+      'Race': { t: "Accept Lina's Voucher Request?", sub: 'Solar basics course, 10 lessons', target: "Writing to Sunroot Skills Hub's pool", who: 'Lina', verb: 'accept', checks: [consent, proof, ck('wait', WAIT, 'Lina asked to cancel at 4:57 PM', 'If your approval lands first, the promise starts; if her cancellation does, her vouchers go back. Only one counts.')], conseq: acceptConseq, flow: ['', 'Ready. Only one of these can count.'], primary: 'Accept Request' },
+      'Window closed': { t: "Accept Lina's Voucher Request?", sub: 'Solar basics course, 10 lessons', target: "Writing to Sunroot Skills Hub's pool", who: 'Lina', verb: 'accept', checks: [consent, proof, ck('no', NO, 'The acceptance window closed Oct 25, 5:00 PM', "Accepting now isn't allowed. Lina can cancel and get her vouchers back.")], conseq: acceptConseq, flow: ['', "Accepting isn't allowed after the window."], primary: 'Accept Request', off: true },
+    };
+    var isSplit = dlg === 'Propose split' || dlg === 'Above authorization';
+    var scen = this.props.dialog ?? 'Approve setup';
+    var stage = (scen === 'Propose split' || scen === 'Above authorization') ? 'split' : (['Accept', 'No proof', 'Race', 'Window closed'].indexOf(scen) >= 0 ? 'accept' : 'setup');
+    var stageDlg = { setup: 'Approve setup', accept: 'Accept', split: 'Propose split' };
+    var above = dlg === 'Above authorization';
+    var d = D[dlg] || D['Approve setup'];
+    var res = above ? 30 : 40;
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      showSmall: dlg !== 'None' && !isSplit, showSplitDlg: isSplit,
+      dTitle: d.t, dSub: d.sub, dTarget: d.target, who: d.who, verb: d.verb, checks: d.checks, conseq: d.conseq,
+      flowCls: d.flow[0], flow: d.flow[1], primary: d.primary, primaryOff: d.off ? 'off' : '',
+      toRes: res, toBack: 100 - res, resPct: res + '%', backPct: (100 - res) + '%',
+      remCls: above ? 'err' : 'ok', remIcon: above ? NO : OK,
+      remText: above ? 'Above the 60 Sunroot authorized. Lower it, or update the authorization first.' : 'Within your remedy: returning up to 60 is authorized for 3 of 10 lessons',
+      sendOff: above ? 'off' : '',
+      linaSb: { setup: 'info', accept: 'ok', split: 'neu' }[stage],
+      linaTag: { setup: 'Setup to approve', accept: 'Escrow ready', split: 'Under way' }[stage],
+      linaMeta: { setup: 'Solar basics course · 100 Sunroot vouchers · asked Today, 11:02 AM', accept: 'Solar basics course · 100 Sunroot vouchers in escrow · accept by Oct 25, 5:00 PM', split: 'Solar basics course · 3 of 10 lessons reported · last proof Oct 28' }[stage],
+      linaAct: { setup: 'Approve Setup…', accept: 'Accept…', split: 'End Early…' }[stage],
+      linaOpen: function () { self.setState({ dlg: stageDlg[stage] }); },
+      openSetup: function () { self.setState({ dlg: 'Approve setup' }); },
+      openAccept: function () { self.setState({ dlg: 'Accept' }); },
+      openSplit: function () { self.setState({ dlg: 'Propose split' }); },
+      close: function () { self.setState({ dlg: 'None' }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wallet</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" aria-hidden="true"><header class="hdr"><span class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span></span></header></div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="wl-title">
+    <div class="grip"></div>
+    <div class="shead"><div><h2 class="stitle" id="wl-title">{{title}}</h2><p class="sdesc">{{sub}}</p></div><a class="close" href="Main.dc.html" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a></div>
+    <div class="stabs" role="tablist">
+      <button type="button" role="tab" aria-selected="false"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cookie-line"/></svg>{{tCookies}}</button>
+      <button type="button" role="tab" aria-selected="false"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg>{{tTokens}}</button>
+      <button type="button" role="tab" class="on" aria-selected="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg>{{tVouchers}}</button>
+    </div>
+    <div class="sbody">
+      <div class="gg-list">
+        <sc-for list="{{hold}}" as="h" hint-placeholder-count="3">
+          <div class="gg-item-row gg-card" data-selected="{{h.sel}}" data-edge="{{h.edge}}">
+            <button type="button" class="gg-item-row-open" aria-expanded="{{h.sel}}" onClick="{{h.toggle}}">
+              <span class="gg-item-row-lead"><span class="gg-item-row-tile"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{h.icon}}"/></svg></span></span>
+              <span class="gg-item-row-body"><span class="gg-item-row-title">{{h.name}}</span><sc-if value="{{h.hasPill}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="{{h.edge}}">{{h.pill}}</span></sc-if><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><sc-for list="{{h.details}}" as="d" hint-placeholder-count="2"><span class="gg-item-row-detail"><span>{{d}}</span></span></sc-for></span></span></span>
+              <span class="gg-item-row-amount"><span class="gg-item-row-amount-value">{{h.amt}}</span><span class="gg-item-row-amount-caption">{{h.cap}}</span></span>
+            </button>
+          </div>
+          <sc-if value="{{h.open}}" hint-placeholder-val="{{false}}">
+            <div class="gg-item-row-page gg-card">
+              <dl class="gg-fact-list" data-frame="inset">
+                <sc-for list="{{h.facts}}" as="f" hint-placeholder-count="2"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}</dd></div></sc-for>
+              </dl>
+              <div class="wl-acts"><a class="btn sm" href="{{h.bookHref}}">{{bookLabel}}</a><a class="btn sm sec" href="SExchange.dc.html">{{exLabel}}</a></div>
+            </div>
+          </sc-if>
+        </sc-for>
+      </div>
+      <p class="wl-where"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg><span>{{where}} <a class="tlink" href="SRedeem.dc.html">{{whereLink}}</a></span></p>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["Vouchers","Voucher open","Vouchers, return pending"],"default":"Vouchers","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var self = this;
+    var tab = this.props.tab ?? 'Vouchers';
+    var dark = this.props.dark ?? false;
+    var later = tab === 'Vouchers, return pending';
+    // A holding is a record on the item row with its amount in the right slot (DL-113); it opens in place
+    var openId = this.state && this.state.open != null ? this.state.open : (tab === 'Voucher open' ? 'sun' : '');
+    var toggle = function (id) { return function () { self.setState({ open: openId === id ? '' : id }); }; };
+    var hold = [
+      { id: 'sun', icon: '#ri-sun-line', name: t('u.sunMany'), details: [t('who.sun'), t('wl.sunS')], amt: later ? t.v(0.99) : t.n(9), cap: t('wl.avail'), bookHref: 'SServices.dc.html',
+        facts: [{ k: t('wl.f.issuer'), v: t('who.sun') }, { k: t('wl.f.books'), v: t('wl.sunS') }] },
+      { id: 'teo', icon: '#ri-user-line', name: t('u.teoMany'), details: [t('who.teoFull'), t('wl.teoB')], amt: t.v(1), cap: t('wl.avail'), bookHref: 'SOffer.dc.html',
+        facts: [{ k: t('wl.f.issuer'), v: t('wl.f.member', { name: t('who.teoFull'), garden: t('who.sun') }) }, { k: t('wl.f.books'), v: t('wl.teoB') }] },
+      { id: 'gg', icon: '#ri-seedling-line', name: t('u.ggMany'), details: [t('who.ggShort'), t('wl.ggS')], amt: t.n(later ? 0 : 2), cap: t('wl.avail'), bookHref: 'SOffer.dc.html',
+        facts: [{ k: t('wl.f.issuer'), v: t('who.gg') }, { k: t('wl.f.books'), v: t('wl.ggB') }] }
+    ];
+    hold.forEach(function (h) { h.sel = openId === h.id ? 'true' : 'false'; h.open = openId === h.id; h.toggle = toggle(h.id); h.hasPill = false; h.pill = ''; h.edge = ''; });
+    // A return still on its way is its own row: pending until it arrives
+    if (later) hold.splice(1, 0, { id: 'back', icon: '#ri-arrow-go-back-line', name: t('wl.back', { n: t.n(6) }), details: [t('wl.backS')], amt: t.n(6), cap: t('wl.coming'), hasPill: true, pill: t('wl.pending'), edge: 'info',
+      sel: 'false', open: false, toggle: function () {}, bookHref: '#', facts: [] });
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.rc'),
+      title: t('sh.w.title'), sub: t('sh.w.sub'), closeLabel: t('c.close'),
+      tCookies: t('sh.w.cookies'), tTokens: t('sh.w.tokens'), tVouchers: t('wl.t.vouchers'),
+      hold: hold, bookLabel: t('wl.book'), exLabel: t('wl.exchange'),
+      where: t('wl.where'), whereLink: t('wl.whereLink')
+    });
+  }
+}
+</script>
+</body>
+</html>

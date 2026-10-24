@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voucher issuers</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app" inert="{{baseHidden}}">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">K</span></span>
+  </header>
+  <main class="c-route" inert="{{baseHidden}}">
+    <div class="c-head"><div><h1>{{pageTitle}}</h1><p>{{garden}}</p></div><span class="gg-badge" data-tone="warning">{{fictional}}</span></div>
+    <div class="c-tabs" role="tablist"><span role="tab" aria-selected="false">{{tMembers}}</span><span class="on" role="tab" aria-selected="true">{{tCoordination}}</span><span role="tab" aria-selected="false">{{tEndowment}}</span><span role="tab" aria-selected="false">{{tPayouts}}</span></div>
+    <div class="c-grid" data-component="CommunityPools">
+      <div class="ck-main">
+        <section class="ck-card" aria-labelledby="iss-conf">
+          <h2 id="iss-conf">{{confTitle}}</h2>
+          <p class="ckd">{{confHint}}</p>
+          <p class="ck-meta">{{confEmpty}}</p>
+        </section>
+        <section class="ck-card" aria-labelledby="iss-how">
+          <h2 id="iss-how">{{stepsTitle}}</h2>
+          <p class="ckd">{{stepsDesc}}</p>
+          <div class="checks" style="margin-top: 10px"><sc-for list="{{steps}}" as="s" hint-placeholder-count="5"><div class="ckr {{s.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg></span><span>{{s.t}}<small>{{s.who}}</small></span></div></sc-for></div>
+        </section>
+      </div>
+      <aside class="ck-rail">
+        <section class="ck-card" aria-labelledby="iss-pool" data-testid="current-garden-pool">
+          <div class="ckh"><h2 id="iss-pool">{{garden}}</h2><span class="gg-badge" data-tone="success"><svg class="i" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg>{{taking}}</span></div>
+          <div class="ck-acts" style="justify-content: flex-start"><button type="button" class="abtn"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-line"/></svg>{{openConsole}}</button></div>
+        </section>
+        <section class="ck-card" aria-labelledby="iss-vi" data-focus="{{focusList}}" data-component="VoucherIssuerOnboarding">
+          <h2 id="iss-vi">{{viTitle}}</h2>
+          <p class="ckd">{{viHelp}}</p>
+          <ul class="ck-decide iss-rows">
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+              <li class="{{r.edge}}">
+                <span class="who">{{r.name}}<small>{{r.kind}}</small></span>
+                <span class="what">{{r.meta}}<span class="gg-badge" data-tone="{{r.tone}}">{{r.tag}}</span></span>
+                <span class="acts"><button type="button" class="abtn {{r.cls}}">{{r.act}}</button></span>
+                <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
+                  <div class="ck-xp" style="grid-column: 1 / -1">
+                    <sc-if value="{{dWarn}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{dWarnT}}</span><p>{{dWarnText}}</p></div></sc-if>
+                    <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                    <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
+                    <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="iss-f2">{{fLabel}}</label><div class="ctl" id="iss-f2" role="textbox" aria-describedby="iss-h2">{{fValue}}</div><span class="msg" id="iss-h2">{{fHint}}</span></div></sc-if>
+                    <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                    <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><button type="button" class="abtn {{dCtaCls}}">{{dCta}}</button></div>
+                  </div>
+                </sc-if>
+              </li>
+            </sc-for>
+          </ul>
+          <p class="ck-meta">{{stewardOnly}}</p>
+        </section>
+        <section class="ck-card" aria-labelledby="iss-set">
+          <h2 id="iss-set">{{poolTitle}}</h2>
+          <p class="ckd">{{poolDesc}}</p>
+          <dl class="gg-fact-list" data-frame="inset" style="margin-top: 6px"><sc-for list="{{pool}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <nav class="dock" aria-label="{{dockLabel}}" inert="{{baseHidden}}">
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>{{dHub}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>{{dGarden}}</span>
+    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>{{dCommunity}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>{{dActions}}</span>
+  </nav>
+  <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg {{dlgSize}}" role="dialog" aria-modal="true" aria-labelledby="iss-dlg" data-focus="1">
+      <div class="dh"><div><h2 id="iss-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <sc-if value="{{dWarn}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{dWarnT}}</span><p>{{dWarnText}}</p></div></sc-if>
+        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
+        <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="iss-f1">{{fLabel}}</label><div class="ctl" id="iss-f1" role="textbox" aria-describedby="iss-h1">{{fValue}}</div><span class="msg" id="iss-h1">{{fHint}}</span></div></sc-if>
+        <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+      </div>
+      <div class="df"><span class="note">{{dNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button><button type="button" class="abtn lg {{dCtaCls}}">{{dCta}}</button></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Issuers","Prepare draft","Awaiting Teo","Owner Safe drafts","Admitted","Delist"],"default":"Issuers","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Issuers';
+    var dark = this.props.dark ?? false;
+    // Community, Coordination, for the protocol garden: the Voucher Issuers card sits in the pooling rail, where a protocol
+    // steward prepares a member's draft and the owner Safe calls. The member approves in their own Profile; nobody approves for them.
+    var teoTag = { 'Owner Safe drafts': ['info', t('iss.t.approved'), t('iss.m.teoApproved', { date: t.d('2026-10-24') })], 'Admitted': ['success', t('iss.t.listed'), t('iss.m.teoListed')], 'Delist': ['success', t('iss.t.listed'), t('iss.m.teoListed')] }[st]
+      || ['warning', t('iss.t.draft'), t('iss.m.teo', { date: t.d('2026-10-23') })];
+    var teoAct = { 'Prepare draft': t('iss.a.prepare'), 'Awaiting Teo': t('iss.a.remindRow'), 'Owner Safe drafts': t('iss.a.drafts') }[st] || t('sh.ck.viReview');
+    var rows = [
+      { name: t('u.sunMany'), kind: t('sh.ck.viCollective'), tone: 'success', tag: t('iss.t.listed'), meta: t('iss.m.sun'), act: t('sh.ck.viReview'), cls: '', edge: 'offer', key: '' },
+      { name: t('u.ggMany'), kind: t('sh.ck.viCollective'), tone: 'success', tag: t('iss.t.listed'), meta: t('iss.m.gg'), act: t('sh.ck.viReview'), cls: '', edge: 'offer', key: '' },
+      { name: t('u.teoMany'), kind: t('sh.ck.viMember'), tone: teoTag[0], tag: teoTag[1], meta: teoTag[2], act: teoAct, cls: st === 'Issuers' || st === 'Admitted' || st === 'Delist' ? '' : 'fill', edge: 'offer', key: 'teo' },
+      { name: t('u.mayaMany'), kind: t('sh.ck.viMember'), tone: 'success', tag: t('iss.t.listed'), meta: t('iss.m.maya'), act: st === 'Delist' ? t('iss.a.delist') : t('sh.ck.viReview'), cls: '', edge: 'offer', key: 'maya' }
+    ];
+    var OK = '#ri-check-line', INFO = '#ri-information-line';
+    var ck = function (text, s, cls) { return { t: text, s: s || '', cls: cls || 'ok', icon: cls === 'pol' ? INFO : OK }; };
+    var fieldFacts = [[t('ob.f.unit'), t('ob.f.unitV'), t('ob.f.unitS')], [t('ob.f.cap'), t('ob.f.capV'), ''], [t('ob.f.issue'), t('ob.f.issueV'), t('ob.f.issueS')], [t('ob.f.allow'), t('ob.f.allowV'), ''],
+      [t('ob.f.rate'), t('ob.f.rateV'), t('ob.f.rateS')], [t('ob.f.fees'), t('ob.f.feesV'), t('ob.f.feesS')], [t('ob.f.pool'), t('ob.f.poolV'), ''], [t('ob.f.reply'), t('ob.f.replyV'), t('ob.f.replyS')], [t('pay.f.deadline'), t('ob.f.deadlineV'), ''], [t('ob.f.short'), t('ob.f.shortV'), '']];
+    var D = {
+      'Prepare draft': { title: t('iss.d.prepare.t'), sub: t('iss.d.prepare.sub'), facts: fieldFacts, note: t('iss.d.note'), fsr: ['info', t('iss.f.prepare.t'), t('iss.f.prepare.b')], cta: t('iss.a.send'), ctaCls: 'fill', at: 'teo', size: 'lg' },
+      'Awaiting Teo': { title: t('iss.d.wait.t'), sub: t('iss.d.prepare.sub'), facts: [[t('iss.w.sent'), t.d('2026-10-23'), ''], [t('iss.w.terms'), t('iss.w.termsV'), ''], [t('iss.w.account'), t('iss.w.accountV'), '']],
+        note: t('iss.d.note'), fsr: ['info', t('iss.f.wait.t'), t('iss.f.wait.b')], cta: t('iss.a.remind'), ctaCls: '', at: 'teo', size: '' },
+      'Owner Safe drafts': { title: t('iss.d.drafts.t'), sub: t('sh.ck.viDraftOnly'), facts: [[t('iss.dr.source'), t('iss.dr.sourceS'), ''], [t('iss.dr.register'), t('iss.dr.registerS'), ''], [t('iss.dr.cap'), t('iss.dr.registerS'), ''], [t('iss.dr.price'), t('iss.dr.priceS'), '']],
+        warn: [t('iss.d.pauseT'), t('iss.d.pause')], note: t('c.safe25'), fsr: ['info', t('iss.f.drafts.t'), t('iss.f.drafts.b')], cta: t('sh.ck.viCopy'), ctaCls: 'fill', at: 'teo', size: 'lg' },
+      'Admitted': { title: t('iss.d.admitted.t'), sub: t('iss.d.prepare.sub'), facts: [], checks: [ck(t('ob.sub.registered'), t.d('2026-10-24')), ck(t('ob.sub.admitted'), t.d('2026-10-24')), ck(t('iss.dr.cap')), ck(t('iss.dr.price'))],
+        note: '', fsr: ['ok', t('iss.d.admitted.t'), t('iss.d.admitted.b')], cta: t('c.done'), ctaCls: 'fill', at: 'teo', size: '' },
+      'Delist': { title: t('iss.d.delist.t'), sub: t('iss.d.delist.sub'), facts: [], checks: [ck(t('iss.c.hold')), ck(t('iss.c.book')), ck(t('iss.c.ex'), '', 'pol'), ck(t('iss.c.obl'))],
+        field: [t('rq.reason'), t('iss.reasonV'), t('rq.reasonHint')], note: t('c.safe25'), fsr: ['info', t('iss.f.delist.t'), t('iss.f.delist.b')], cta: t('iss.d.delist.cta'), ctaCls: 'dng', at: 'maya', size: '' }
+    }[st];
+    // The lab's confirm dial: the dialog, or the same review opened in the row itself
+    var inline = (this.props.confirm ?? 'dialog') === 'inline' && !!D;
+    rows.forEach(function (r) { r.open = inline && D.at === r.key; });
+    var steps = [[t('iss.st.prepare'), t('iss.who.steward')], [t('iss.st.approve'), t('iss.who.member')], [t('iss.st.register'), t('iss.who.safe')], [t('iss.st.admit'), t('iss.who.pool')], [t('iss.st.enable'), t('iss.who.member')]];
+    var doneSteps = { 'Issuers': 1, 'Prepare draft': 0, 'Awaiting Teo': 1, 'Owner Safe drafts': 2, 'Admitted': 4, 'Delist': 5 }[st];
+    var dlgOpen = !!D && !inline;
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, closeLabel: t('c.close'), cancel: t('c.cancel'),
+      garden: t('who.gg'), baseHidden: dlgOpen ? 'true' : 'false', focusList: !dlgOpen ? '1' : '',
+      pageTitle: t('sh.ck.community'), fictional: t('iss.fictional'),
+      tMembers: t('sh.ck.members'), tCoordination: t('sh.ck.coordination'), tEndowment: t('sh.ck.endowment'), tPayouts: t('sh.ck.payouts'),
+      confTitle: t('iss.conf.t'), confHint: t('iss.conf.d'), confEmpty: t('iss.conf.empty'),
+      stepsTitle: t('iss.steps.t'), stepsDesc: t('iss.steps.d'),
+      steps: steps.map(function (s, i) { return { t: s[0], who: s[1], cls: i < doneSteps ? 'ok' : 'wait', icon: i < doneSteps ? OK : '#ri-time-line' }; }),
+      taking: t('sh.ck.taking'), openConsole: t('sh.ck.openConsole'),
+      viTitle: t('sh.ck.vi'), viHelp: t('sh.ck.viHelp'), rows: rows, stewardOnly: t('iss.stewardOnly'),
+      poolTitle: t('iss.pool.t'), poolDesc: t('iss.pool.d'),
+      pool: [{ k: t('iss.p.assets'), v: t('iss.p.assetsV'), s: t('iss.p.assetsS') }, { k: t('iss.p.fees'), v: t('iss.p.feesV'), s: t('iss.p.feesS') }, { k: t('iss.p.caps'), v: t('iss.p.capsV'), s: t('sh.ck.viCapacityHelp') }],
+      dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
+      showDlg: dlgOpen, dlgSize: D ? D.size : '', dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: D ? D.note : '',
+      dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
+      dHasChecks: !!(D && D.checks), dChecks: D && D.checks ? D.checks : [],
+      dField: !!(D && D.field), fLabel: D && D.field ? D.field[0] : '', fValue: D && D.field ? D.field[1] : '', fHint: D && D.field ? D.field[2] : '',
+      dWarn: !!(D && D.warn), dWarnT: D && D.warn ? D.warn[0] : '', dWarnText: D && D.warn ? D.warn[1] : '',
+      fsrCls: D ? D.fsr[0] : 'info', fsrT: D ? D.fsr[1] : '', fsrB: D ? D.fsr[2] : '',
+      dCta: D ? D.cta : '', dCtaCls: D ? D.ctaCls : 'fill'
+    });
+  }
+}
+</script>
+</body>
+</html>

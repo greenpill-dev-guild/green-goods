@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Services</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: 32px">
+    <div class="banner"><div class="over"><a class="rb" href="SWallet.dc.html" aria-label="{{backLabel}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a></div></div>
+    <div class="gtitle">
+      <h1>{{garden}}</h1>
+      <span class="meta"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-map-pin-2-fill"/></svg>{{place}}</span>
+    </div>
+    <div class="gtabs" role="tablist" aria-label="{{tabsLabel}}"><span role="tab" aria-selected="false">{{tWork}}</span><span class="on" role="tab" aria-selected="true">{{tPromises}}</span><span role="tab" aria-selected="false">{{tInsights}}</span><span role="tab" aria-selected="false">{{tGardeners}}</span></div>
+    <sc-if value="{{hasCycles}}" hint-placeholder-val="{{true}}">
+      <div class="gp-cycles">
+        <sc-for list="{{cycles}}" as="c" hint-placeholder-count="2">
+          <button type="button" class="gp-cycle" aria-pressed="{{c.on}}"><span class="ch"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg>{{c.kind}}<span class="gg-badge" data-tone="success">{{c.state}}</span></span><b>{{c.title}}</b><small>{{c.meta}}</small></button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div class="gp-head">
+      <span class="gp-count">{{countLine}}<sc-if value="{{hasInfo}}" hint-placeholder-val="{{true}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg></sc-if></span>
+      <sc-if value="{{hasSelects}}" hint-placeholder-val="{{true}}"><span class="gp-sels"><span class="gp-sel">{{selLive}}<svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></span><span class="gp-sel">{{selKind}}<svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></span></span></sc-if>
+    </div>
+    <sc-if value="{{hasRows}}" hint-placeholder-val="{{true}}">
+      <div class="gp-rows">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+          <a class="gg-item-row gg-card" data-edge="{{r.tone}}" href="{{r.href}}" data-component="CommitmentRow">
+            <span class="gg-item-row-lead"><span class="gg-item-row-tile" role="img" aria-label="{{r.dir}}"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{r.icon}}"/></svg></span></span>
+            <span class="gg-item-row-body"><span class="gg-item-row-title">{{r.title}}</span><span class="gg-badge" data-tone="{{r.tone}}">{{r.pill}}</span><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><sc-for list="{{r.details}}" as="d" hint-placeholder-count="2"><span class="gg-item-row-detail" data-tone="{{d.tone}}"><span>{{d.text}}</span></span></sc-for></span></span></span>
+          </a>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{loading}}" hint-placeholder-val="{{false}}">
+      <div class="gp-rows" role="status" aria-label="{{loadingText}}">
+        <sc-for list="{{skeleton}}" as="k" hint-placeholder-count="3"><div class="gg-item-row gg-card loading" aria-hidden="true"><span class="gg-item-row-lead"><span class="gg-item-row-tile"></span></span><span class="gg-item-row-body" style="gap: 8px; width: 100%"><span class="lb" style="width: 70%"></span><span class="lb" style="width: 40%"></span></span></div></sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div class="gg-empty"><span class="et"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><h3>{{emptyT}}</h3><p>{{emptyB}}</p></div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Browse","Issuer paused","Delisted","Loading","Empty"],"default":"Browse","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Browse';
+    var dark = this.props.dark ?? false;
+    var paused = st === 'Issuer paused', delisted = st === 'Delisted';
+    var D = function (text, tone) { return { text: text, tone: tone || '' }; };
+    // A service is an offer in its garden's Promises tab, on the shared promise row (DL-110): a seedling for an offer,
+    // the promise's state as the pill, and the detail line naming what booking takes first, then who promises it.
+    var offer = t('sh.ck.offer'), request = t('sh.ck.request'), offered = t('sh.st.offered');
+    var rows = [
+      { dir: offer, icon: '#ri-seedling-line', title: t('of.m.title'), pill: offered, tone: 'info', href: 'SOffer.dc.html',
+        details: [paused ? D(t('sv.d.paused'), 'error') : D(t('sv.p.hold', { n: t.v(1) })), D(t('who.teoFull'))] },
+      { dir: offer, icon: '#ri-seedling-line', title: t('sv.s.coachT'), pill: offered, tone: 'info', href: 'SExchange.dc.html',
+        details: [delisted ? D(t('sv.d.delisted'), 'error') : D(t('sv.p.ex')), D(t('who.mayaFull'))] },
+      { dir: offer, icon: '#ri-seedling-line', title: t('of.s.title'), pill: offered, tone: 'info', href: 'SOffer.dc.html',
+        details: [D(t('sv.p.hold', { n: t.n(9) })), D(t('who.sun'))] },
+      { dir: request, icon: '#ri-hand-heart-line', title: t('gp.r.shelves'), pill: t('sh.st.requested'), tone: 'info', href: '#',
+        details: [D(t('gp.d.due', { date: t.d('2026-11-12') })), D(t('who.ade'))] }
+    ];
+    var cycles = [
+      { icon: '#ri-sun-line', kind: t('sh.g.season'), state: t('sh.g.open'), title: t('pp.cycle.sun'), meta: t('gp.cyc.meta', { from: t.d('2026-10-25'), to: t.d('2026-11-30'), kept: t.n(2), all: t.n(6) }), on: 'true' },
+      { icon: '#ri-flag-line', kind: t('sh.g.campaign'), state: t('sh.g.open'), title: t('pp.cycle.web'), meta: t('gp.cyc.meta', { from: t.d('2026-10-25'), to: t.d('2026-11-30'), kept: t.n(0), all: t.n(3) }), on: 'false' }
+    ];
+    var loading = st === 'Loading', empty = st === 'Empty';
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'),
+      garden: t('who.sun'), place: t('gp.place'),
+      tabsLabel: t('gp.tabs'), tWork: t('sh.g.work'), tPromises: t('sh.g.promises'), tInsights: t('sh.g.insights'), tGardeners: t('sh.g.gardeners'),
+      hasCycles: !empty, cycles: cycles,
+      countLine: loading ? t('sh.g.gathering') : t('sh.g.liveCount', { count: t.n(empty ? 0 : rows.length) }), hasInfo: !loading,
+      hasSelects: !empty && !loading, selLive: t('sh.g.live'), selKind: t('sh.g.allKinds'),
+      hasRows: !loading && !empty, rows: rows,
+      loading: loading, loadingText: t('sh.g.gathering'), skeleton: [1, 2, 3],
+      empty: empty, emptyT: t('sh.g.emptyT'), emptyB: t('sh.g.emptyB')
+    });
+  }
+}
+</script>
+</body>
+</html>

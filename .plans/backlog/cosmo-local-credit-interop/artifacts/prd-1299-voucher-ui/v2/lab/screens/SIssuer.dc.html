@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voucher bookings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app" inert="{{baseHidden}}">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">{{me}}</span></span>
+  </header>
+  <main class="c-route" inert="{{baseHidden}}">
+    <div class="c-head"><div><h1>{{pageTitle}}</h1><p>{{garden}}</p></div></div>
+    <div class="c-tabs" role="tablist"><span role="tab" aria-selected="false">{{tHealth}}</span><span role="tab" aria-selected="false">{{tImpact}}</span><span role="tab" aria-selected="false">{{tActivity}}</span><span class="on" role="tab" aria-selected="true">{{tPromises}}</span></div>
+    <div class="c-grid" data-component="GardenPoolTab">
+      <div class="ck-main">
+        <section class="ck-card ck-stats" aria-label="{{needsLabel}}">
+          <sc-for list="{{stats}}" as="x" hint-placeholder-count="3"><button type="button"><b>{{x.n}}</b><span>{{x.k}}</span></button></sc-for>
+        </section>
+        <section class="ck-card" aria-label="{{cyclesLabel}}">
+          <div class="ck-cycle"><div class="ct2">{{seasonTitle}}<span class="gg-badge">{{seasonKind}}</span><span class="gg-badge" data-tone="success">{{cycleOpen}}</span></div><small>{{seasonMeta}}</small></div>
+          <div class="ck-cycle"><div class="ck-cyrow"><small>{{campaignsLine}}</small><button type="button" class="abtn">{{startCampaign}}</button></div>
+            <sc-if value="{{hasCampaign}}" hint-placeholder-val="{{true}}"><div class="ct2" style="margin-top: 8px">{{campaignTitle}}<span class="gg-badge">{{campaignKind}}</span><span class="gg-badge" data-tone="success">{{cycleOpen}}</span></div><small>{{campaignMeta}}</small></sc-if></div>
+        </section>
+        <section class="ck-card" aria-labelledby="ck-prom" data-focus="{{focusRows}}">
+          <div class="ckh"><h2 id="ck-prom">{{promTitle}}</h2><button type="button" class="abtn"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg>{{seed}}</button></div>
+          <div class="ck-filters"><span class="ck-search"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg>{{search}}</span><sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><span class="chipf {{c.cls}}">{{c.label}}</span></sc-for></div>
+          <div class="ck-rows">
+            <sc-for list="{{prows}}" as="r" hint-placeholder-count="5">
+              <div class="gg-item-row gg-card" data-edge="{{r.tone}}" data-selected="{{r.sel}}" data-component="CommitmentRow">
+                <span class="gg-item-row-open">
+                  <span class="gg-item-row-lead"><span class="gg-item-row-tile" role="img" aria-label="{{r.dir}}"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{r.icon}}"/></svg></span></span>
+                  <span class="gg-item-row-body"><span class="gg-item-row-title">{{r.title}}</span><span class="gg-badge" data-tone="{{r.tone}}">{{r.pill}}</span><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><sc-for list="{{r.details}}" as="d" hint-placeholder-count="2"><span class="gg-item-row-detail" data-tone="{{d.tone}}"><span>{{d.text}}</span></span></sc-for></span></span></span>
+                </span>
+                <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{false}}"><span class="gg-item-row-action"><button type="button" class="abtn {{r.actCls}}">{{r.act}}</button></span></sc-if>
+                <sc-if value="{{r.chev}}" hint-placeholder-val="{{true}}"><span class="gg-item-row-chev"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></sc-if>
+              </div>
+              <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
+                <div class="ck-xp">
+                  <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
+                  <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                  <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
+                  <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="ck-f1">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f1" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h1">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h1">{{fHint}}</span></div>
+                    <sc-if value="{{dBar}}" hint-placeholder-val="{{true}}"><div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: 40">{{barA}}</span><span class="b" style="flex: 60">{{barB}}</span></div></sc-if></sc-if>
+                  <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}"><div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div><div class="gg-field"><label for="ck-r1">{{reasonLabel}}</label><div class="ctl" id="ck-r1" role="textbox">{{reasonV}}</div><span class="msg">{{reasonHint}}</span></div></sc-if>
+                  <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                  <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                </div>
+              </sc-if>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+      <aside class="ck-rail">
+        <section class="ck-card" aria-labelledby="ck-claims" data-focus="{{focusClaims}}" data-component="PoolClaimsCard">
+          <div class="ckh"><h2 id="ck-claims">{{claimsTitle}}</h2><sc-if value="{{hasClaimsBadge}}" hint-placeholder-val="{{false}}"><span class="gg-badge">{{claimsBadge}}</span></sc-if></div>
+          <p class="ckd">{{claimsDesc}}</p>
+          <sc-if value="{{hasClaims}}" hint-placeholder-val="{{true}}">
+            <ul class="ck-decide">
+              <sc-for list="{{claims}}" as="c" hint-placeholder-count="3">
+                <li class="{{c.cls}}">
+                  <span class="who">{{c.who}}<small>{{c.when}}</small></span>
+                  <span class="what">{{c.what}}<sc-if value="{{c.hasTag}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="{{c.tagTone}}">{{c.tag}}</span></sc-if></span>
+                  <span class="acts"><sc-if value="{{c.canDecline}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn link">{{decline}}</button></sc-if><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn {{c.actCls}}">{{c.act}}</button></sc-if><sc-if value="{{c.blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled aria-describedby="{{c.whyId}}">{{c.act}}</button></sc-if></span>
+                  <sc-if value="{{c.hasWhy}}" hint-placeholder-val="{{false}}"><span class="why2 {{c.whyCls}}" id="{{c.whyId}}">{{c.why}}</span></sc-if>
+                  <sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
+                    <div class="ck-xp" style="grid-column: 1 / -1">
+                      <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
+                      <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                      <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="k" hint-placeholder-count="4"><div class="ckr {{k.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{k.icon}}"/></svg></span><span>{{k.t}}<small>{{k.s}}</small></span></div></sc-for></div></sc-if>
+                      <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}"><div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div><div class="gg-field"><label for="ck-r3">{{reasonLabel}}</label><div class="ctl" id="ck-r3" role="textbox">{{reasonV}}</div><span class="msg">{{reasonHint}}</span></div></sc-if>
+                      <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                      <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                    </div>
+                  </sc-if>
+                </li>
+              </sc-for>
+            </ul>
+          </sc-if>
+        </section>
+        <sc-if value="{{hasEx}}" hint-placeholder-val="{{false}}">
+          <section class="ck-card" aria-labelledby="ck-ex" data-focus="{{focusEx}}">
+            <h2 id="ck-ex">{{exTitle}}</h2>
+            <p class="ckd">{{exDesc}}</p>
+            <dl class="gg-fact-list" data-frame="inset" style="margin-top: 6px"><sc-for list="{{exFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl>
+            <sc-if value="{{exShort}}" hint-placeholder-val="{{false}}"><div class="notice warn" role="status" style="margin-top: 10px"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{exShortT}}</span><p>{{exShortB}}</p></div></sc-if>
+            <sc-if value="{{exHasRows}}" hint-placeholder-val="{{false}}">
+              <ul class="ck-decide">
+                <sc-for list="{{exRows}}" as="c" hint-placeholder-count="2">
+                  <li class="{{c.cls}}">
+                    <span class="who">{{c.who}}<small>{{c.when}}</small></span>
+                    <span class="what">{{c.what}}<sc-if value="{{c.hasTag}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="{{c.tagTone}}">{{c.tag}}</span></sc-if></span>
+                    <span class="acts"><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn {{c.actCls}}">{{c.act}}</button></sc-if></span>
+                    <sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
+                      <div class="ck-xp" style="grid-column: 1 / -1">
+                        <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
+                        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="k" hint-placeholder-count="4"><div class="ckr {{k.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{k.icon}}"/></svg></span><span>{{k.t}}<small>{{k.s}}</small></span></div></sc-for></div></sc-if>
+                        <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                        <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                      </div>
+                    </sc-if>
+                  </li>
+                </sc-for>
+              </ul>
+            </sc-if>
+            <sc-if value="{{exHasAct}}" hint-placeholder-val="{{false}}"><div class="ck-acts"><button type="button" class="abtn fill">{{exAct}}</button></div></sc-if>
+            <sc-if value="{{exOpen}}" hint-placeholder-val="{{false}}">
+              <div class="ck-xp">
+                <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="ck-f3">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f3" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h3">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h3">{{fHint}}</span></div></sc-if>
+                <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+              </div>
+            </sc-if>
+          </section>
+        </sc-if>
+        <section class="ck-card" aria-labelledby="ck-status" data-component="PoolStatusCard">
+          <div class="ckh"><h2 id="ck-status">{{statusTitle}}</h2><span class="gg-badge" data-tone="success"><svg class="i" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg>{{statusChip}}</span></div>
+          <dl class="gg-fact-list" data-frame="inset" style="margin-top: 6px"><sc-for list="{{statusFacts}}" as="f" hint-placeholder-count="2"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}</dd></div></sc-for></dl>
+          <div class="ck-acts"><button type="button" class="abtn">{{editPool}}</button><button type="button" class="abtn">{{pausePool}}</button></div>
+        </section>
+        <section class="ck-card" aria-labelledby="ck-funding" data-component="PoolFundingSection">
+          <div class="ckh"><h2 id="ck-funding">{{fundingTitle}}</h2><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-refresh-line"/></svg></div>
+          <p class="ckd" style="margin-top: 8px">{{fundingAvail}}</p>
+          <p class="ck-amt">{{fundingValue}}</p>
+          <p class="ck-meta">{{fundingNote}} <a class="tlink" href="#">{{viewDetails}}</a></p>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <nav class="dock" aria-label="{{dockLabel}}" inert="{{baseHidden}}">
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>{{dHub}}</span>
+    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>{{dGarden}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>{{dCommunity}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>{{dActions}}</span>
+  </nav>
+  <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="ck-dlg" data-focus="1">
+      <div class="dh"><div><h2 id="ck-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
+        <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
+        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
+        <sc-if value="{{dField}}" hint-placeholder-val="{{false}}">
+          <div class="gg-field"><label for="ck-f2">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f2" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h2">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h2">{{fHint}}</span></div>
+          <sc-if value="{{dBar}}" hint-placeholder-val="{{true}}"><div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: 40">{{barA}}</span><span class="b" style="flex: 60">{{barB}}</span></div></sc-if>
+        </sc-if>
+        <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}">
+          <div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div>
+          <div class="gg-field"><label for="ck-r2">{{reasonLabel}}</label><div class="ctl" id="ck-r2" role="textbox" aria-describedby="ck-rh2">{{reasonV}}</div><span class="msg" id="ck-rh2">{{reasonHint}}</span></div>
+        </sc-if>
+        <sc-if value="{{dHasKeep}}" hint-placeholder-val="{{false}}"><div class="target"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>{{keepNote}}</div></sc-if>
+        <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+      </div>
+      <div class="df"><span class="note">{{dNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button>
+        <sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn lg fill {{dCtaCls}}">{{dCta}}</button></sc-if>
+        <sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn lg fill off" disabled>{{dCta}}</button></sc-if>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Bookings","Approve booking","Accept","Accept member booking","Report visit","Propose return","Above terms","Transfer failed","Reserve short","Raise allowance"],"default":"Bookings","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Bookings';
+    var dark = this.props.dark ?? false;
+    var n = t.n;
+    var failed = st === 'Transfer failed', short = st === 'Reserve short' || st === 'Raise allowance';
+    // Claude access is Green Goods' service, so its states open Green Goods' console, where Kaya acts and the Safe signs 2 of 5.
+    // Every other state is Tech and Sun's console, where Ade acts on hub days and accepts members' lessons.
+    var gg = { 'Propose return': 1, 'Above terms': 1, 'Transfer failed': 1 }[st] === 1;
+    var unitMany = gg ? t('u.ggMany') : t('u.sunMany'), unitOne = gg ? t('u.ggOne') : t('u.sunOne');
+    var D2 = function (text, tone) { return { text: text, tone: tone || '' }; };
+    // Offers and Requests: the garden's live promises on the shared promise row (DL-110), the service's own act in the right slot
+    var prows = gg ? [
+      { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.c.title'), pill: t('sh.needsYou'), tone: 'warning', details: [D2(t('is.tag.ended')), D2(t('who.lina'))], act: t('is.a.propose'), actCls: '', key: 'propose' },
+      { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.c.title'), pill: t('sh.st.inProgress'), tone: 'info', details: [D2(t('is.tag.lessons', { done: n(18) })), D2(t('who.kwesi'))], act: '', key: '' },
+      { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.a.title'), pill: t('sh.st.offered'), tone: 'info', details: [D2(t('is.d.asked')), D2(t('who.rafa'))], act: '', key: '' }
+    ] : [
+      { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.s.title'), pill: t('sh.st.inProgress'), tone: 'info', details: [D2(t('is.m.visit', { date: t.d('2026-10-30') })), D2(t('who.mara'))], act: t('is.a.report'), actCls: '', key: 'report' },
+      { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.m.title'), pill: t('sh.st.offered'), tone: 'info', details: [D2(t('is.d.booked')), D2(t('who.mayaFull'))], act: '', key: '' },
+      { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.s.title'), pill: t('sh.st.offered'), tone: 'info', details: [D2(t('is.d.asked')), D2(t('who.lina'))], act: '', key: '' }
+    ];
+    // Once Lina approved the split, her row is the return that didn't arrive, retried from here
+    if (failed) prows[0] = { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.c.title'), pill: t('sh.ck.recovery'), tone: 'error', details: [D2(t('is.tag.failed'), 'error'), D2(t('who.lina'))], act: t('is.a.retry'), actCls: 'fill', key: 'retry' };
+    // Review Promises: the asks waiting on a steward. A voucher booking needs the issuer's approval first, then acceptance after the deposit.
+    var accepting = st === 'Accept';
+    var claims = gg ? [
+      { who: t('who.mara'), when: t('is.cl.ago', { n: n(1) }), what: t('is.cl.what', { title: t('wl.p.course') }), tag: t('is.tag.deposited'), tagTone: 'success', why: t('is.m.linaC', { due: t.d('2026-11-02') }), act: t('is.a.accept'), actCls: 'fill', key: 'acceptG' }
+    ] : [
+      { who: t('who.lina'), when: t('is.cl.ago', { n: n(2) }), what: t('is.cl.what', { title: t('wl.p.session') }), tag: accepting ? t('is.tag.deposited') : t('is.tag.approve'), tagTone: accepting ? 'success' : 'warning',
+        why: accepting ? t('is.m.dep1', { due: t.d('2026-11-02') }) : t('is.m.linaS', { date: t.d('2026-10-26'), due: t.d('2026-11-02') }), act: accepting ? t('is.a.accept') : t('is.a.approve'), actCls: 'fill', key: accepting ? 'accept' : 'approve' },
+      { who: t('who.kwesi'), when: t('is.cl.ago', { n: n(3) }), what: t('is.cl.what', { title: t('wl.p.session') }), tag: t('is.tag.deposited'), tagTone: 'success', why: t('is.m.dep1', { due: t.d('2026-11-01') }), act: t('is.a.accept'), actCls: 'fill', key: 'acceptK' },
+      { who: t('who.mayaFull'), when: t('is.cl.today'), what: t('is.cl.what', { title: t('sv.s.lesson') }), tag: t('is.tag.deposited'), tagTone: 'success', why: t('is.m.mayaT', { due: t.d('2026-11-02') }), act: t('is.a.accept'), actCls: 'fill', key: 'acceptM', cls: 'offer' }
+    ];
+    // While the reserve is short, the moment in play is the reserve card, so only the newest ask waits beside it
+    if (short) claims = claims.slice(2);
+    var D = {
+      'Approve booking': { title: t('is.d.approve.t'), sub: t('of.s.title'), cta: t('is.d.approve.cta'), note: t('c.safe23'),
+        facts: [[t('is.d.f.vouchers'), n(1) + ' ' + unitOne, ''], [t('is.d.f.from'), t('is.d.f.fromV'), t('is.d.f.fromS')], [t('is.d.f.due'), t.d('2026-11-02'), t('is.d.f.dueS')], [t('c.terms'), t('is.d.f.termsV'), '']], fsr: 'is.f.approve', at: 'approve' },
+      'Accept': { title: t('is.d.accept.t'), sub: t('of.s.title'), cta: t('is.d.accept.cta'), note: t('c.wallet'), facts: [],
+        checks: [{ t: t('is.c.terms'), s: t('is.c.termsS') }, { t: t('is.c.approved'), s: t.d('2026-10-27') }, { t: t('is.c.deposit'), s: t('is.c.depositS') }, { t: t('is.c.due'), s: t.d('2026-11-02') }], fsr: 'is.f.accept', at: 'accept' },
+      'Accept member booking': { title: t('is.d.acceptM.t'), sub: t('of.m.title'), cta: t('is.d.acceptM.cta'), note: t('c.wallet'), facts: [],
+        checks: [{ t: t('is.c.termsM'), s: t('is.c.termsS') }, { t: t('is.c.teo'), s: t.d('2026-10-27') }, { t: t('is.c.depositM'), s: t('is.c.depositS') }, { t: t('is.c.due'), s: t.d('2026-11-02') }], fsr: 'is.f.acceptM', at: 'acceptM' },
+      'Report visit': { title: t('is.d.report.t'), sub: t('is.d.report.sub'), cta: t('is.d.report.cta'), note: t('c.wallet'),
+        facts: [[t('is.d.f.date'), t.d('2026-10-30'), ''], [t('is.d.f.attend'), t('is.d.f.attendV'), ''], [t('is.d.f.usable'), t('is.d.f.usableV'), ''], [t('is.d.f.evidence'), t('is.d.f.evidenceV'), '']], fsr: 'is.f.report', at: 'report' },
+      'Propose return': { title: t('is.d.propose.t'), sub: t('is.d.propose.sub'), cta: t('is.d.propose.cta'), note: t('c.safe25'), facts: [[t('is.d.f.lessons'), t('is.d.f.lessonsV'), t('is.d.f.lessonsS')]],
+        field: [t('is.fl.back'), n(6), t('is.fl.hint'), false], bar: true, fsr: 'is.f.propose', at: 'propose' },
+      'Above terms': { title: t('is.d.propose.t'), sub: t('is.d.propose.sub'), cta: t('is.d.propose.cta'), note: t('c.safe25'), facts: [[t('is.d.f.lessons'), t('is.d.f.lessonsV'), t('is.d.f.lessonsS')]],
+        field: [t('is.fl.back'), n(7), t('is.fl.err'), true], bar: false, fsr: 'is.f.propose', off: true, at: 'propose' },
+      'Raise allowance': { title: t('is.d.raise.t'), sub: t('who.rc'), cta: t('is.d.raise.cta'), note: t('c.safe23'),
+        facts: [[t('is.d.f.allow'), t('is.d.f.allowV', { n: n(4) }), ''], [t('is.d.f.waiting'), t('is.d.f.waitingV', { n: n(2) }), t('is.d.f.waitingS')], [t('is.res.reserve'), n(8), '']],
+        field: [t('is.fl.new'), n(6), t('is.fl.newHint'), false], bar: false, fsr: 'is.f.raise', at: 'raise' }
+    }[st];
+    // The lab's confirm dial: the cockpit's confirm dialog, or the same checks opened in the row itself
+    var inline = (this.props.confirm ?? 'dialog') === 'inline' && !!D;
+    var at = D ? D.at : '';
+    prows.forEach(function (r) { r.hasAct = !!r.act; r.chev = !r.act; r.open = inline && r.key === at; r.sel = r.open ? 'true' : 'false'; });
+    claims.forEach(function (c, i) { c.hasTag = true; c.hasWhy = true; c.canDecline = true; c.hasAct = true; c.blocked = false; c.whyId = 'is-w' + i; c.whyCls = ''; c.cls = c.cls || ''; c.open = inline && c.key === at; });
+    var exOpen = inline && at === 'raise';
+    // The issuer's own reserve, kept apart from bookings: the pilot's twenty-voucher ceiling, half issued to the pool
+    var res = gg ? [{ k: t('is.res.reserve'), v: n(10) + ' ' + unitMany, s: '' },
+      { k: t('is.res.promised'), v: n(2), s: t('is.res.promisedS') },
+      { k: t('is.res.allow'), v: t('is.res.allowV', { left: n(4), of: n(6) }), s: t('is.res.allowS') },
+      { k: t('is.res.open'), v: n(2), s: t('is.res.openS') },
+      { k: t('is.s.terms'), v: t('is.s.termsV'), s: t('is.s.termsSG') },
+      { k: t('is.s.approvals'), v: t('is.s.approvalsV'), s: t('is.s.approvalsS', { sigs: t('c.sigs25') }) },
+      { k: t('is.s.cap'), v: t('is.s.capV', { a: n(20), b: n(20) }), s: t('is.s.capS') }]
+      : [{ k: t('is.res.reserve'), v: n(8) + ' ' + unitMany, s: '' },
+      { k: t('is.res.promised'), v: n(3), s: t('is.res.promisedS') },
+      { k: t('is.res.allow'), v: short ? t('is.res.allowV', { left: n(0), of: n(4) }) : t('is.res.allowV', { left: n(2), of: n(4) }), s: t('is.res.allowS') },
+      { k: t('is.res.open'), v: n(3), s: t('is.res.openS') },
+      { k: t('is.s.terms'), v: t('is.s.termsV'), s: t('is.s.termsS') },
+      { k: t('is.s.approvals'), v: t('is.s.approvalsV'), s: t('is.s.approvalsS', { sigs: t('c.sigs23') }) },
+      { k: t('is.s.cap'), v: t('is.s.capV', { a: n(20), b: n(20) }), s: t('is.s.capS') }];
+    // Where the lab's focus crop looks: the dialog when one is open, else the card in play
+    var focusEx = short && !(D && !inline) && (st === 'Reserve short' || exOpen);
+    var focusRows = !focusEx && (failed || (inline && (at === 'report' || at === 'propose')));
+    var focusClaims = !focusEx && !focusRows && (!D || inline);
+    var dlgOpen = !!D && !inline;
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: gg ? t('who.gg') : t('who.sun'), me: gg ? 'K' : 'A', closeLabel: t('c.close'),
+      baseHidden: dlgOpen ? 'true' : 'false', pageTitle: t('sh.ck.garden'),
+      tHealth: t('sh.ck.health'), tImpact: t('sh.ck.impact'), tActivity: t('sh.ck.activity'), tPromises: t('sh.ck.promisesTab'),
+      needsLabel: t('sh.ck.needs'), stats: [{ n: n(claims.length), k: t('sh.ck.toReview') }, { n: n(failed ? 1 : 0), k: t('sh.ck.recovery') }, { n: n(0), k: t('sh.ck.pastDue') }],
+      cyclesLabel: t('ck.cycles'), seasonTitle: t(gg ? 'pp.cycle.gg' : 'pp.cycle.sun'), seasonKind: t('sh.ck.season'), cycleOpen: t('sh.ck.cycleOpen'),
+      seasonMeta: t('ck.cyc.meta', { count: n(gg ? 4 : 6), kept: n(2), date: t.d('2026-11-30') }),
+      campaignsLine: t('sh.ck.campaigns', { open: n(gg ? 0 : 1), waiting: n(0) }), hasCampaign: !gg, startCampaign: t('sh.ck.startCampaign'),
+      campaignTitle: t('pp.cycle.web'), campaignKind: t('sh.ck.campaign'), campaignMeta: t('ck.cyc.meta', { count: n(3), kept: n(0), date: t.d('2026-11-30') }),
+      promTitle: t('sh.ck.promises'), seed: t('sh.ck.seed'), search: t('sh.ck.search'),
+      chips: [{ label: t('sh.ck.open'), cls: 'on' }, { label: t('sh.ck.confirmed'), cls: '' }, { label: t('sh.ck.past'), cls: '' }, { label: t('sh.ck.pastDueN', { count: n(0) }), cls: '' }, { label: t('sh.ck.recoveryN', { count: n(failed ? 1 : 0) }), cls: '' }],
+      prows: prows, focusRows: focusRows ? '1' : '',
+      claimsTitle: t('sh.ck.review'), claimsDesc: t('sh.ck.reviewDesc'), hasClaims: true, claims: claims, decline: t('sh.ck.decline'), focusClaims: focusClaims ? '1' : '',
+      hasEx: true, exTitle: t('is.res.t'), exDesc: t('is.res.d'), exFacts: res, exShort: short && (!D || inline) && !exOpen, exShortT: t('is.short.t', { n: n(2) }), exShortB: t('is.short.b'),
+      exHasRows: false, exRows: [], exHasAct: short && !exOpen, exAct: t('is.a.raise'), exOpen: exOpen, focusEx: focusEx ? '1' : '',
+      statusTitle: t('sh.ck.status'), statusChip: t('sh.ck.taking'),
+      statusFacts: [{ k: t('sh.ck.charter'), v: t(gg ? 'is.st.charterG' : 'is.st.charter') }, { k: t('sh.ck.cap'), v: t('ck.st.capV', { n: n(24) }) }], editPool: t('sh.ck.editPool'), pausePool: t('sh.ck.pause'),
+      fundingTitle: t('sh.ck.funding'), fundingAvail: t('sh.ck.available'), fundingValue: t.g(1200) + ' G$', fundingNote: t('ck.fund.safe', { garden: gg ? t('who.gg') : t('who.sun') }), viewDetails: t('sh.ck.viewDetails'),
+      dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
+      showDlg: dlgOpen, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: D ? D.note : '', dHasErr: false, dErrT: '', dErrB: '', dHasKeep: false, keepNote: '',
+      dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
+      dHasChecks: !!(D && D.checks), dChecks: D && D.checks ? D.checks.map(function (c) { return { t: c.t, s: c.s, cls: 'ok', icon: '#ri-check-line' }; }) : [],
+      dField: !!(D && D.field), fLabel: D && D.field ? D.field[0] : '', fValue: D && D.field ? D.field[1] : '', fUnit: unitMany,
+      fHint: D && D.field ? D.field[2] : '', fBad: D && D.field && D.field[3] ? 'bad' : '', fInvalid: D && D.field && D.field[3] ? 'true' : 'false', fHintCls: D && D.field && D.field[3] ? 'err' : '',
+      dBar: !!(D && D.bar), barLabel: t('rd.sh.bar', { rel: n(4), back: n(6), issuer: t('who.ggShort') }), barA: t('is.bar.sun', { n: n(4) }), barB: t('is.bar.back', { n: n(6) }),
+      fsrCls: 'info', fsrIcon: '#ri-information-line', fsrT: D ? t(D.fsr + '.t') : '', fsrB: D ? t(D.fsr + '.b') : '',
+      dProtocol: false, ptT: '', ptB: '', dChoices: false, choices: [], choiceLabel: '', reasonLabel: '', reasonV: '', reasonHint: '', hasClaimsBadge: false, claimsBadge: '',
+      cancel: t('c.cancel'), dCta: D ? D.cta : '', dCtaCls: '', dCan: !!(D && !D.off), dCannot: !!(D && D.off)
+    });
+  }
+}
+</script>
+</body>
+</html>

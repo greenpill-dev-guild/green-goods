@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Exchange</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="pp-nav" inert><span class="close"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span></div>
+  <div class="scr" inert>
+    <div class="pp-body">
+      <h1 class="pp-title">{{baseTitle}}</h1>
+      <p class="pp-place"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-sun-line"/></svg><span>{{cycle}}</span><span aria-hidden="true">·</span><span>{{garden}}</span></p>
+      <section class="pp-band" data-tone="neutral"><div class="pp-badges"><span class="gg-badge" data-tone="info">{{pill}}</span></div><p>{{bandText}}</p></section>
+      <section class="pp-door"><p><b>{{doorT}}</b> {{doorB}}</p></section>
+    </div>
+  </div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="ex-title">
+    <div class="grip"></div>
+    <div class="shead">
+      <div><h2 class="stitle" id="ex-title">{{shTitle}}</h2><p class="sdesc">{{shSub}}</p></div>
+      <a class="close" href="SOffer.dc.html" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+    </div>
+    <div class="sbody">
+      <sc-if value="{{quoteView}}" hint-placeholder-val="{{true}}">
+        <p class="small" style="font-size: 13px; line-height: 18px">{{desc}}</p>
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="#ri-coupon-3-line"/></svg></span>{{spendLabel}}</span></dt><dd class="gg-fact-value">{{inAmt}} {{inUnit}}<small>{{holdIn}}</small></dd></div>
+          <div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="#ri-exchange-line"/></svg></span>{{getLabel}}</span></dt><dd class="gg-fact-value">{{outAmt}} {{outUnit}}<small>{{afterFees}}</small></dd></div>
+        </dl>
+        <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
+          <div class="notice {{noticeCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+        </sc-if>
+        <sc-if value="{{isDone}}" hint-placeholder-val="{{false}}">
+          <h3 class="pp-sub" style="margin-top: 4px">{{rcTitle}}</h3>
+          <dl class="gg-fact-list gg-card" data-frame="card">
+            <sc-for list="{{receipt}}" as="r" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{r.k}}</span></dt><dd class="gg-fact-value">{{r.v}}</dd></div></sc-for>
+          </dl>
+        </sc-if>
+        <h3 class="pp-sub" style="margin-top: 4px">{{quoteTitle}}</h3>
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="6"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for>
+        </dl>
+        <details class="tech gg-card ex-tech">
+          <summary>{{techLabel}}</summary>
+          <sc-for list="{{tech}}" as="x" hint-placeholder-count="2"><span>{{x}}</span></sc-for>
+        </details>
+      </sc-if>
+      <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row {{f.cls}}" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for>
+        </dl>
+        <p class="small" style="font-size: 13px; line-height: 18px">{{shNote}}</p>
+      </sc-if>
+    </div>
+    <div class="sacts">
+      <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+        <sc-if value="{{busy}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" disabled aria-busy="true"><svg class="i spin" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-loader-4-line"/></svg>{{shCta}}</button></sc-if>
+        <sc-if value="{{notBusy}}" hint-placeholder-val="{{true}}"><a class="btn" href="#">{{shCta}}</a></sc-if>
+        <p class="foot">{{passkey}}</p>
+      </sc-if>
+      <sc-if value="{{quoteView}}" hint-placeholder-val="{{true}}">
+        <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{true}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
+        <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="SOffer.dc.html">{{secondary}}</a></sc-if>
+      </sc-if>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"pair":{"editor":"enum","options":["Tech and Sun to Green Goods","Maya to Teo"],"default":"Tech and Sun to Green Goods","section":"State"},"state":{"editor":"enum","options":["Quote","Review","Approving","Waiting for result","Done","Quote expired","Pool short","Limit reached","Not listed"],"default":"Quote","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t0 = GGT(this.props.lang);
+    var st = this.props.state ?? 'Quote';
+    var dark = this.props.dark ?? false;
+    // Two pairs in the one shared pool: Lina's Tech and Sun vouchers for Green Goods' at the pilot's 1:1, and Maya's own coaching vouchers for Teo's lesson
+    var member = (this.props.pair ?? 'Tech and Sun to Green Goods') === 'Maya to Teo';
+    var ISS = member ? { inUnit: t0('u.mayaMany'), outUnit: t0('u.teoMany'), unit: t0('u.teoMany'), issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), garden: t0('who.sun') }
+      : { inUnit: t0('u.sunMany'), outUnit: t0('u.ggMany'), unit: t0('u.ggMany'), issuer: t0('who.ggShort'), issuerFull: t0('who.gg'), garden: t0('who.rc') };
+    var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
+    t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
+    var f = t.v;
+    var Q = member ? { inA: 2, out: 1, pool: 0, proto: 0, fee: 0, min: 1, time: '14:05', avail: 0, hold: 6 } : { inA: 8.01, out: 8, pool: 0, proto: 0.01, fee: 0.01, min: 8, time: '14:05', avail: 6, hold: 9 };
+    var v = { in: f(Q.inA), out: f(Q.out), pool: f(Q.pool), proto: f(Q.proto), fee: f(Q.fee), min: f(Q.min), time: Q.time, avail: f(Q.avail), n: t.n(Q.hold) };
+    var facts = [
+      { k: t('ex.f.rate'), v: member ? t('ex.f.rateV') : t('ex.f.rateVH'), s: member ? t('ex.f.rateS') : t('ex.f.rateSH') },
+      { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: member ? t('ex.f.feesZero') : t('ex.f.feesS', v) },
+      { k: t('ex.f.min'), v: t('ex.f.minV', v), s: t('ex.f.minS') },
+      { k: t('ex.f.until'), v: Q.time, s: t('ex.f.untilS') },
+      { k: t('ex.f.to'), v: t('ex.f.toV'), s: '' },
+      { k: t('ex.f.pool'), v: t('ex.f.poolV'), s: t('ex.f.poolS') }
+    ];
+    var NT = {
+      'Quote': member ? ['info', '#ri-information-line', 'own', 'review'] : null,
+      'Waiting for result': ['warn', '#ri-time-line', 'wait', 'check'],
+      'Done': ['ok', '#ri-check-line', 'done', 'back'],
+      'Quote expired': ['warn', '#ri-alert-line', 'expired', 'requote'],
+      'Pool short': ['warn', '#ri-alert-line', 'short', 'smaller'],
+      'Limit reached': ['warn', '#ri-alert-line', 'limit', null, 'back2'],
+      'Not listed': ['warn', '#ri-alert-line', 'listed', null, 'back2']
+    }[st];
+    var sheet = st === 'Review' || st === 'Approving';
+    var primary = NT ? NT[3] : 'review';
+    var gotV = member ? t('u.teoOne') : f(Q.out) + ' ' + t('u.ggMany');
+    var receipt = [{ k: t('ex.rc.spent'), v: f(Q.inA) + ' ' + ISS.inUnit }, { k: t('ex.rc.got'), v: gotV },
+      { k: t('ex.rc.fees'), v: f(Q.fee) + ' ' + ISS.outUnit }, { k: t('ex.rc.when'), v: t.d('2026-10-25') + ' · 14:03' }];
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
+      baseHidden: sheet ? 'true' : 'false',
+      kindLine: t('ex.kind'), title: t('ex.title'), desc: t('ex.desc'),
+      spendLabel: t('ex.spend'), inAmt: f(Q.inA), inUnit: ISS.inUnit, holdIn: t('ex.hold', v),
+      getLabel: t('ex.receive'), outAmt: f(Q.out), outUnit: ISS.outUnit, afterFees: t('ex.afterFees'),
+      hasNotice: !!NT, noticeCls: NT ? NT[0] : '', noticeIcon: NT ? NT[1] : '', noticeT: NT ? t('ex.n.' + NT[2] + '.t', v) : '', noticeB: NT ? t('ex.n.' + NT[2] + '.b', v) : '',
+      isDone: st === 'Done', rcTitle: t('ex.rc.title'), receipt: receipt,
+      quoteTitle: st === 'Done' ? t('ex.quoteUsed') : t('ex.quote'), facts: facts, techLabel: t('c.tech'), tech: [t('ex.x.pool'), t('ex.x.min', v)],
+      hasPrimary: !!primary, primary: primary === 'back' ? t(member ? 'ex.a.backL' : 'ex.a.back') : primary ? t('ex.a.' + primary) : '', primaryHref: primary === 'back' ? 'SOffer.dc.html' : '#',
+      hasSecondary: !!(NT && NT[4]), secondary: NT && NT[4] ? t('ex.a.' + NT[4]) : '',
+      // The exchange opens as a sheet over the promise page that sent the reader here; its review is the sheet's second step
+      quoteView: !sheet, baseTitle: member ? t('of.m.title') : t('of.c.title'), cycle: member ? t('pp.cycle.sun') : t('pp.cycle.gg'), garden: member ? t('who.sun') : t('who.gg'), pill: t('sh.st.offered'), bandText: t('pp.band.openV'),
+      doorT: t('of.r.shortV.t', { have: member ? t.v(0) : t.n(2) }), doorB: member ? t('of.r.shortV.bm') : t('of.r.shortV.bc'),
+      sheet: sheet, shTitle: sheet ? t('ex.sh.title') : t('ex.title'), shSub: sheet ? t('ex.title') : t('ex.kind'),
+      shFacts: [{ k: t('ex.spend'), v: f(Q.inA) + ' ' + ISS.inUnit, s: '', cls: '' }, { k: t('ex.receive'), v: gotV, s: t('ex.sh.atLeast', member ? Object.assign({}, v, { unit: t0('u.teo') }) : v), cls: '' },
+        { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: member ? t('ex.f.feesZero') : t('ex.f.feesS', v), cls: '' }, { k: t('ex.f.until'), v: Q.time, s: '', cls: '' }, { k: t('ex.f.to'), v: t('ex.f.toV'), s: '', cls: '' }],
+      shNote: t('ex.sh.note', v), shCta: t('ex.sh.cta'), busy: st === 'Approving', notBusy: st !== 'Approving', passkey: t('c.passkey')
+    });
+  }
+}
+</script>
+</body>
+</html>

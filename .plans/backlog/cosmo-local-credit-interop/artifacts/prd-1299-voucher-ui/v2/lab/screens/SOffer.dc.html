@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;{{offlineMode}}</div></sc-if>
+  <div class="pp-nav"><a class="close" href="SServices.dc.html" aria-label="{{backLabel}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a></div>
+  <div class="scr" style="padding-bottom: {{padBottom}}">
+    <div class="pp-body">
+      <h1 class="pp-title">{{title}}</h1>
+      <p class="pp-place"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-sun-line"/></svg><span>{{cycle}}</span><span aria-hidden="true">·</span><span>{{garden}}</span></p>
+      <section class="pp-band" data-tone="neutral" aria-label="{{bandLabel}}">
+        <div class="pp-badges"><span class="gg-badge" data-tone="info">{{pill}}</span></div>
+        <p>{{bandText}}</p>
+      </section>
+      <sc-if value="{{hasDoor}}" hint-placeholder-val="{{false}}">
+        <section class="pp-door" aria-label="{{doorLabel}}">
+          <p><b>{{doorT}}</b> {{doorB}}</p>
+          <sc-if value="{{hasDoorAct}}" hint-placeholder-val="{{false}}"><div class="pp-door-acts"><a class="btn sm {{doorCls}}" href="{{doorHref}}">{{doorAct}}</a><sc-if value="{{hasDoorLink}}" hint-placeholder-val="{{false}}"><a class="tlink" href="{{doorLinkHref}}">{{doorLink}}</a></sc-if></div></sc-if>
+        </section>
+      </sc-if>
+      <section class="pp-sec" aria-labelledby="of-promised">
+        <h2 id="of-promised">{{promisedTitle}}</h2>
+        <dl class="gg-fact-list" data-frame="inset">
+          <sc-for list="{{promised}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="{{f.icon}}"/></svg></span>{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}</dd></div></sc-for>
+        </dl>
+        <p class="pp-note">{{note}}</p>
+      </section>
+      <section class="pp-sec" aria-labelledby="of-service">
+        <div class="pp-head"><h2 id="of-service">{{serviceTitle}}</h2></div>
+        <dl class="gg-fact-list" data-frame="inset">
+          <sc-for list="{{service}}" as="f" hint-placeholder-count="5"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="{{f.icon}}"/></svg></span>{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for>
+          <div class="gg-fact-row" data-kind="fact" data-has-action="true"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="#ri-file-list-line"/></svg></span>{{termsLabel}}</span></dt><dd class="gg-fact-value">{{termsVersion}}</dd><dd class="gg-fact-action"><a class="tlink" href="#">{{readTerms}}</a></dd></div>
+        </dl>
+      </section>
+    </div>
+  </div>
+  <sc-if value="{{hasBar}}" hint-placeholder-val="{{true}}">
+    <div class="pp-bar">
+      <sc-if value="{{hasReason}}" hint-placeholder-val="{{false}}"><p class="pp-reason" role="status">{{reason}}</p></sc-if>
+      <div class="pp-acts">
+        <sc-if value="{{canGo}}" hint-placeholder-val="{{true}}"><a class="btn" href="SPay.dc.html">{{cta}}</a></sc-if>
+        <sc-if value="{{blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{cta}}</button></sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$ purchase","Hub day","Claude access","Member lesson"],"default":"G$ purchase","section":"State"},"state":{"editor":"enum","options":["Open","Not a gardener","Not enough","Gardens only","No places","Paused","Offline"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t0 = GGT(this.props.lang);
+    var kind = this.props.kind ?? 'G$ purchase';
+    var st = this.props.state ?? 'Open';
+    var dark = this.props.dark ?? false;
+    var gd = kind === 'G$ purchase', course = kind === 'Claude access', member = kind === 'Member lesson';
+    // Who promises delivery: a named member, or a garden. The copy names them through {issuer} and {unit}.
+    // A hub day is Tech and Sun's and Claude access is Green Goods'; a G$ purchase names its provider garden
+    var ISS = member ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
+      : gd ? { issuer: t0('who.gg'), issuerFull: t0('who.gg'), unit: t0('u.ggMany'), garden: t0('who.rc') }
+      : course ? { issuer: t0('who.ggShort'), issuerFull: t0('who.gg'), unit: t0('u.ggMany'), garden: t0('who.rc') }
+      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc') };
+    var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
+    t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
+    var I = { offer: '#ri-seedling-line', due: '#ri-time-line', doing: '#ri-user-line', give: '#ri-wallet-3-line', get: '#ri-gift-line', held: '#ri-lock-line', next: '#ri-user-follow-line', back: '#ri-arrow-go-back-line', places: '#ri-calendar-line', who: '#ri-team-line' };
+    var price = 450, fee = 0.45;
+    var n = course ? 10 : 1;
+    var held = st === 'Not enough' ? (course ? 2 : 0) : (course ? 10 : member ? 1 : 9);
+    // The promise page answers what was promised, by when and by whom; Service Access answers how a booking works.
+    var K;
+    if (gd) {
+      K = { garden: t('who.gg'), cycle: t('pp.cycle.gg'), title: t('of.g.title'), note: t('of.g.desc'), cta: t('of.cta.pay'), band: t('pp.band.openG'),
+        promised: [[I.offer, t('sh.offered'), t('pp.u.g')], [I.due, t('sh.due'), t('pp.due.g')], [I.doing, t('sh.doing'), t('who.gg')]],
+        service: [
+          [I.get, t('of.q.get'), t('of.g.get'), t('of.g.getS')],
+          [I.give, t('of.q.give'), t('of.g.give', { gross: t.g(price + fee) }), t('of.g.giveS', { price: t.g(price), fee: t.g(fee) })],
+          [I.held, t('of.q.held'), t('of.g.held'), t('of.g.heldS')],
+          [I.next, t('of.q.next'), t('of.g.next'), t('of.g.nextS')],
+          [I.back, t('of.q.back'), t('of.g.back', { price: t.g(price) }), t('of.g.backS', { fee: t.g(fee) })],
+          [I.who, t('of.f.who'), t('of.f.whoV'), t('of.f.whoS')],
+          [I.places, t('of.f.places'), t('of.g.places'), t('of.f.placesS')]
+        ], version: 3 };
+    } else if (member) {
+      K = { garden: t('who.sun'), cycle: t('pp.cycle.sun'), title: t('of.m.title'), note: t('of.m.desc'), cta: t('of.cta.redeem', { n: t.v(1) }), band: t('pp.band.openV'),
+        promised: [[I.offer, t('sh.offered'), t('pp.u.m')], [I.due, t('sh.due'), t('pp.due.m')], [I.doing, t('sh.doing'), t('who.teoFull')]],
+        service: [
+          [I.get, t('of.q.get'), t('of.m.get'), t('of.m.getS')],
+          [I.give, t('of.q.give'), t('u.teoOne'), t('of.v.giveS', { held: t.v(held) })],
+          [I.held, t('of.q.held'), t('of.v.held'), t('of.m.heldS')],
+          [I.next, t('of.q.next'), t('of.m.next'), t('of.m.nextS')],
+          [I.back, t('of.q.back'), t('of.m.back'), t('of.m.backS')],
+          [I.places, t('of.f.places'), t('of.m.places'), t('of.m.placesS')]
+        ], version: 2 };
+    } else {
+      K = { garden: course ? t('who.gg') : t('who.sun'), cycle: t(course ? 'pp.cycle.gg' : 'pp.cycle.sun'), title: t(course ? 'of.c.title' : 'of.s.title'), note: t(course ? 'of.c.desc' : 'of.s.desc'), cta: t('of.cta.redeem', { n: t.n(n) }), band: t('pp.band.openV'),
+        promised: [[I.offer, t('sh.offered'), t(course ? 'pp.u.c' : 'pp.u.s')], [I.due, t('sh.due'), course ? t('pp.due.c') : t('pp.due.s', { date: t.d('2026-11-30') })], [I.doing, t('sh.doing'), course ? t('who.gg') : t('who.sun')]],
+        service: [
+          [I.get, t('of.q.get'), t(course ? 'of.c.get' : 'of.s.get'), t(course ? 'of.c.getS' : 'of.s.getS')],
+          [I.give, t('of.q.give'), t('of.v.give', { n: t.n(n), unit: n === 1 ? t0('u.sunOne') : ISS.unit }), t('of.v.giveS', { held: t.n(held) })],
+          [I.held, t('of.q.held'), t('of.v.held'), t('of.v.heldS')],
+          [I.next, t('of.q.next'), t('of.v.next'), t('of.v.nextS')],
+          [I.back, t('of.q.back'), t('of.v.back'), t(course ? 'of.c.backS' : 'of.s.backS')],
+          [I.places, t('of.f.places'), t(course ? 'of.c.places' : 'of.s.places'), t('of.f.placesS')]
+        ], version: 2 };
+    }
+    // The lab's copy density dial: minimal keeps the three answers that decide a booking (get, give, back)
+    var service = K.service;
+    if ((this.props.density ?? 'full') === 'minimal') service = [K.service[0], K.service[1], K.service[4]];
+    var fmtHeld = gd ? t.g(300.12) : member ? t.v(held) : t.n(held);
+    // Where the reader cannot act, one sentence and one door sit under the status band instead of a bar (JoinToAct).
+    var DOOR = {
+      'Not a gardener': [t('of.r.noGarden.t'), t('of.r.noGarden.b'), [t('of.a.findGarden'), '#', 'sec']],
+      'Not enough': gd ? [t('of.r.shortG.t', { have: fmtHeld }), t('of.r.shortG.b', { gross: t.g(price + fee) }), [t('of.a.getGd'), 'SWallet.dc.html', '']]
+        : [t('of.r.shortV.t', { have: fmtHeld }), t(member ? 'of.r.shortV.bm' : course ? 'of.r.shortV.bc' : 'of.r.shortV.bs'), [t('of.a.exchange'), 'SExchange.dc.html', ''], [t('of.a.earn'), 'SWallet.dc.html']],
+      'Gardens only': [t('of.r.gardens.t'), t('of.r.gardens.b', { garden: K.garden })],
+      'No places': [t('of.r.full.t'), t('of.r.full.b', { garden: K.garden })]
+    };
+    var d = DOOR[st];
+    // A reason outside the act keeps the bar on screen, disabled, with the reason above it.
+    var REASON = { 'Paused': t('of.r.paused.b'), 'Offline': t('pp.reason.offline') };
+    var reason = REASON[st] || '';
+    var hasBar = !d;
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
+      offline: st === 'Offline', offlineMode: t('c.offline'), backLabel: t('c.back'),
+      title: K.title, cycle: K.cycle, garden: K.garden, bandLabel: t('sh.where'), pill: t('sh.st.offered'), bandText: K.band,
+      hasDoor: !!d, doorLabel: d ? d[0] : '', doorT: d ? d[0] : '', doorB: d ? d[1] : '',
+      hasDoorAct: !!(d && d[2]), doorAct: d && d[2] ? d[2][0] : '', doorHref: d && d[2] ? d[2][1] : '#', doorCls: d && d[2] ? d[2][2] : '',
+      hasDoorLink: !!(d && d[3]), doorLink: d && d[3] ? d[3][0] : '', doorLinkHref: d && d[3] ? d[3][1] : '#',
+      promisedTitle: t('sh.promised'), promised: K.promised.map(function (f) { return { icon: f[0], k: f[1], v: f[2] }; }), note: K.note,
+      serviceTitle: t('sh.service'), service: service.map(function (f) { return { icon: f[0], k: f[1], v: f[2], s: f[3] || '' }; }),
+      termsLabel: t('c.terms'), termsVersion: t('pp.version', { v: t.n(K.version) }), readTerms: t('c.readTerms'),
+      hasBar: hasBar, hasReason: !!reason, reason: reason, cta: K.cta, canGo: st === 'Open', blocked: st === 'Paused' || st === 'Offline',
+      padBottom: hasBar ? (reason ? '136px' : '104px') : '24px'
+    });
+  }
+}
+</script>
+</body>
+</html>

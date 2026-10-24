@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Purchase detail in the cockpit</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app">
+    <button type="button" class="gchip"><span class="av">{{gInit}}</span><span class="lbl">{{gName}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">{{me}}</span></span>
+  </header>
+  <main class="c-route">
+    <div class="c-head">
+      <div><p style="margin: 0 0 4px">Promises › Under way</p><h1>AI assistant membership, 1 month</h1><p>Offer at Green Goods Community Garden · taken up by Lina</p></div>
+      <span style="display: flex; gap: 6px"><span class="sb {{claimSb}}">{{claimTag}}</span><span class="sb neu">Own G$</span></span>
+    </div>
+    <div class="c-grid">
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Payment</h2><p>{{payNote}}</p></div></div>
+          <div class="ab">
+            <div class="afacts">
+              <div class="afact"><span class="k">Paid by</span><span class="v">Lina, with her own G$</span></div>
+              <div class="afact"><span class="k">Held by</span><span class="v">Riverside Commons Garden · Safe 0xA77c…19F0</span></div>
+              <div class="afact"><span class="k">Recorded</span><span class="v">450.00 G$ by Tomás, Oct 22<small>A steward's check</small></span></div>
+              <div class="afact"><span class="k">Applied</span><span class="v">{{applied}}</span></div>
+              <div class="afact"><span class="k">Outcome</span><span class="v">{{outcome}}</span></div>
+            </div>
+          </div>
+        </section>
+
+        <sc-if value="{{showPayout}}" hint-placeholder-val="{{true}}">
+          <section class="acard">
+            <div class="ah"><div><h2>Payout Plan</h2><p>Paid to the people who kept the promise, split by recognition. The provider garden's Safe doesn't receive it as one sum.</p></div></div>
+            <div class="ab">
+              <div class="checks">
+                <sc-for list="{{plan}}" as="p" hint-placeholder-count="5">
+                  <div class="ckr {{p.cls}}"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span><span>{{p.t}}<small>{{p.s}}</small></span></div>
+                </sc-for>
+              </div>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{showRefund}}" hint-placeholder-val="{{false}}">
+          <section class="acard">
+            <div class="ah"><div><h2>Refund</h2><p>To 0x3C1e…7A2e on Celo · full recorded amount</p></div></div>
+            <div class="ab">
+              <div class="flowrow {{refundCls}}">{{refundText}}</div>
+              <sc-if value="{{refundFail}}" hint-placeholder-val="{{false}}">
+                <div style="display: flex; align-items: center; gap: 12px"><span class="small" style="flex: 1">Requeues this refund. It can't create a second one or change the amount.</span><button type="button" class="abtn fill">Requeue Same Refund</button></div>
+              </sc-if>
+            </div>
+          </section>
+        </sc-if>
+      </div>
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Access (outside Green Goods)</h2><p>Green Goods' membership system reports this. Payment alone never marks access active.</p></div></div>
+          <div class="ab">
+            <div class="afacts"><div class="afact"><span class="k">Access</span><span class="v">{{access}}</span></div></div>
+            <sc-if value="{{provider}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill" style="align-self: flex-start">Record Access Active…</button></sc-if>
+          </div>
+        </section>
+        <section class="acard">
+          <div class="ah"><div><h2>Technical details</h2><p>For stewards checking a record</p></div></div>
+          <div class="ab">
+            <div class="afacts">
+              <div class="afact"><span class="k">Promise</span><span class="v"><span class="mono">#2207 · Arbitrum</span></span></div>
+              <div class="afact"><span class="k">Funding</span><span class="v"><span class="mono">{{funding}}</span></span></div>
+              <div class="afact"><span class="k">Terms</span><span class="v">Version 3, agreed Oct 22</span></div>
+              <div class="afact"><span class="k">Celo leg</span><span class="v"><span class="mono">{{celo}}</span></span></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Funded","Payout","Refund queued","Refund failed","Provider view"],"default":"Funded","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var st = this.props.state ?? 'Funded';
+    var dark = this.props.dark ?? false;
+    var OK = '#ri-check-line';
+    var CLOCK = '#ri-time-line';
+    var DOT = '#ri-time-line';
+    var payout = st === 'Payout';
+    var refund = st === 'Refund queued' || st === 'Refund failed';
+    var provider = st === 'Provider view';
+    var plan = [
+      { t: 'Create payout plan', s: payout ? 'Oct 30' : 'Waiting for Lina to confirm kept', cls: payout ? 'ok' : 'wait', icon: payout ? OK : CLOCK },
+      { t: 'Contributor split (default from recognition)', s: 'Joy 50% · Kwesi 30% · Ana 20% (sample people)', cls: payout ? 'ok' : 'wait', icon: payout ? OK : DOT },
+      { t: 'Finalize payout plan', s: payout ? 'Oct 30, by Kaya' : 'After the split', cls: payout ? 'ok' : 'wait', icon: payout ? OK : DOT },
+      { t: 'Dispatch to Celo', s: payout ? 'Oct 30, 4:12 PM' : 'Riverside Commons Safe pays each person', cls: payout ? 'ok' : 'wait', icon: payout ? OK : DOT },
+      { t: 'Celo acknowledgment', s: payout ? 'Sent, waiting for confirmation' : 'Closes the funding record', cls: 'wait', icon: payout ? CLOCK : DOT },
+    ];
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      gName: provider ? 'Green Goods Community Garden' : 'Riverside Commons Garden', gInit: provider ? 'GG' : 'RC', me: provider ? 'K' : 'T',
+      claimSb: refund ? 'neu' : 'ok', claimTag: refund ? 'Declined' : (payout ? 'Kept' : 'Under way'),
+      payNote: provider ? "Lina's own G$, held by her garden. Not yours to move." : "Lina's own G$. Not garden funds.",
+      applied: refund ? 'Not applied' : 'Oct 22, 2:20 PM',
+      outcome: refund ? 'Refund of the full 450.00 G$' : 'Payout, after the promise is kept',
+      showPayout: !refund, plan: plan,
+      showRefund: refund, refundFail: st === 'Refund failed',
+      refundCls: st === 'Refund failed' ? 'err' : 'info',
+      refundText: st === 'Refund failed' ? 'Attempt 1 failed on Celo · Today, 3:10 PM · executor reported: transfer reverted' : 'Refund queued · ready to dispatch',
+      access: provider ? 'Not active' : (refund ? 'Never activated' : 'Active since Oct 24'),
+      provider: provider,
+      funding: refund ? 'RefundQueued' : (payout ? 'Consumed · payout sent' : 'Consumed'),
+      celo: refund ? (st === 'Refund failed' ? 'Refund attempt 1 · reverted' : 'Refund not yet dispatched') : (payout ? 'Payout command sent · ack pending' : 'None yet'),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Provider approves a G$ purchase</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Green Goods Community Garden</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">K</span></span>
+  </header>
+  <main class="c-route">
+    <div class="c-head"><div><h1>Promises</h1><p>Offers and requests at Green Goods Community Garden</p></div><span class="sb pol">Protocol pool</span></div>
+    <div class="c-tabs"><span>Open</span><span class="on">Asks · 2</span><span>Under way</span><span>Kept</span></div>
+    <div class="c-grid">
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Asks waiting for you</h2><p>People asking to take up your offers. Approving starts the promise.</p></div></div>
+          <div class="arow offer {{linaSel}}">
+            <div class="l1"><span class="nm">Lina · AI assistant membership, 1 month</span><span class="sb {{linaSb}}">{{linaTag}}</span><span class="sb neu">Own G$</span></div>
+            <div class="l2">Gardener at Riverside Commons Garden · 450.00 G$ held by Riverside Commons · asked Today, 10:40 AM</div>
+            <div class="acts"><sc-if value="{{rowBtn}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">Review…</button></sc-if></div>
+          </div>
+          <sc-if value="{{isRow}}" hint-placeholder-val="{{false}}">
+            <div class="xrow">
+              <div class="xin">
+                <div class="checks">
+                  <div class="ckr {{cTermsCls}}"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{cTermsIcon}}"/></svg></span><span>{{cTermsT}}<small>{{cTermsS}}</small></span></div>
+                  <div class="ckr {{cDepCls}}"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{cDepIcon}}"/></svg></span><span>{{cDepT}}<small>{{cDepS}}</small></span></div>
+                  <div class="ckr wait"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg></span><span>Riverside Commons applies her deposit after you approve<small>Until then, the service shouldn't start.</small></span></div>
+                </div>
+                <div class="flowrow {{flowCls}}">{{flowText}}</div>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end">
+                <span class="small" style="margin-right: auto">Writes to the protocol pool · your wallet asks once</span>
+                <button type="button" class="abtn">Decline…</button>
+                <button type="button" class="abtn fill {{approveOff}}">{{approveLabel}}</button>
+              </div>
+            </div>
+          </sc-if>
+          <div class="arow offer">
+            <div class="l1"><span class="nm">Kofi · AI assistant membership, 1 month</span><span class="sb neu">No deposit yet</span><span class="sb neu">Own G$</span></div>
+            <div class="l2">Gardener at Hilltop Orchard · asked Yesterday</div>
+            <div class="acts"><button type="button" class="abtn">Review…</button></div>
+          </div>
+        </section>
+      </div>
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>AI assistant membership, 1 month</h2><p>Individual offer · approval needed</p></div></div>
+          <div class="ab">
+            <div class="afacts">
+              <div class="afact"><span class="k">Price</span><span class="v">450.00 G$ · version {{ver}}</span></div>
+              <div class="afact"><span class="k">Who can pay</span><span class="v"><span class="chips"><span class="chip">Garden pools</span><span class="chip">Own G$ route</span></span></span></div>
+              <div class="afact"><span class="k">Seats</span><span class="v">12 · 7 taken</span></div>
+              <div class="afact"><span class="k">Access</span><span class="v">Set up by email<small>Recorded here once active</small></span></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <nav class="dock" aria-label="Cockpit">
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>Hub</span>
+    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>Garden</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>Community</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>Actions</span>
+  </nav>
+
+  <sc-if value="{{isDialog}}" hint-placeholder-val="{{true}}">
+    <div class="dscrim"></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-label="Approve Lina's request">
+      <div class="dh"><div><h2>Approve Lina's Request?</h2><p>AI assistant membership, 1 month</p></div><button type="button" class="close" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <div class="target protocol"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>Writing to Green Goods Community Garden's pool, the protocol pool</div>
+        <div class="afacts">
+          <div class="afact"><span class="k">Asked by</span><span class="v">Lina, gardener at Riverside Commons Garden</span></div>
+          <div class="afact"><span class="k">Payment</span><span class="v">450.00 G$ of her own, held by Riverside Commons Garden</span></div>
+        </div>
+        <div class="dsec">
+          <h3>Before you approve</h3>
+          <div class="checks">
+            <div class="ckr {{cTermsCls}}"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{cTermsIcon}}"/></svg></span><span>{{cTermsT}}<small>{{cTermsS}}</small></span></div>
+            <div class="ckr {{cDepCls}}"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{cDepIcon}}"/></svg></span><span>{{cDepT}}<small>{{cDepS}}</small></span></div>
+            <div class="ckr wait"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg></span><span>Riverside Commons applies her deposit after you approve<small>Until then, the service shouldn't start.</small></span></div>
+          </div>
+        </div>
+        <p style="margin: 0">Approving starts this promise with Lina and closes 1 other ask on it. Her G$ stays in Riverside Commons Garden's Safe until the promise is kept or ends, then pays this promise's team under its payout plan, or goes back to her.</p>
+        <div class="flowrow {{flowCls}}">{{flowText}}</div>
+      </div>
+      <div class="df"><span class="note">Your wallet asks once.</span><button type="button" class="abtn lg">{{cancelLabel}}</button><sc-if value="{{showApprove}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn lg fill {{approveOff}}">{{approveLabel}}</button></sc-if></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Dialog with checks","Expanded row"],"default":"Dialog with checks","section":"Direction"},"state":{"editor":"enum","options":["Ready","No deposit","Old terms","Approving","Approved"],"default":"Ready","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = this.props.variant ?? 'Dialog with checks';
+    var st = this.props.state ?? 'Ready';
+    var dark = this.props.dark ?? false;
+    var OK = '#ri-check-line';
+    var NO = '#ri-close-line';
+    var noDep = st === 'No deposit';
+    var old = st === 'Old terms';
+    var blocked = noDep || old;
+    var flows = {
+      'Ready': ['', 'Ready to approve.'],
+      'No deposit': ['', 'Approve stays off until a deposit is recorded.'],
+      'Old terms': ['', 'Approve stays off until Lina agrees to version 4.'],
+      'Approving': ['info', 'Approving… waiting for your wallet'],
+      'Approved': ['ok', "Approved. Lina's request is accepted; Riverside Commons applies her deposit next."],
+    };
+    var isRow = v === 'Expanded row';
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      isDialog: !isRow, isRow: isRow, rowBtn: !isRow, linaSel: isRow ? 'sel' : '',
+      linaSb: st === 'Approved' ? 'ok' : (blocked ? 'warn' : 'ok'),
+      linaTag: st === 'Approved' ? 'Approved' : (noDep ? 'No deposit yet' : (old ? 'Old terms' : 'Deposit checked')),
+      ver: old ? '4' : '3',
+      cTermsCls: old ? 'no' : 'ok', cTermsIcon: old ? NO : OK,
+      cTermsT: old ? 'Lina agreed to version 3; the offer is now version 4' : 'Lina agreed to version 3, the current terms',
+      cTermsS: old ? 'She has to agree again before you can approve.' : 'From her signed request',
+      cDepCls: noDep ? 'no' : 'ok', cDepIcon: noDep ? NO : OK,
+      cDepT: noDep ? 'No deposit recorded yet' : 'A Riverside Commons steward recorded 450.00 G$ arriving',
+      cDepS: noDep ? 'Approving without it would start the service before anyone is paid.' : "Tomás, Today, 10:58 AM. A steward's check, not automatic proof.",
+      flowCls: flows[st][0], flowText: flows[st][1],
+      approveOff: blocked || st === 'Approving' ? 'off' : '',
+      approveLabel: st === 'Approving' ? 'Approving…' : 'Approve Request',
+      showApprove: st !== 'Approved', cancelLabel: st === 'Approved' ? 'Close' : 'Cancel',
+    };
+  }
+}
+</script>
+</body>
+</html>
