@@ -340,7 +340,9 @@ collect_admin_invariant_hits() {
 #      choices ride AdminFilterChip/AdminChoiceGroup/AdminSelectableCard,
 #      tabs ride AdminTabRail. (m3-state-layer row/card buttons are folded
 #      into the baseline until a dedicated row primitive exists.)
-#   3. Legacy shared Card renders — cockpit surfaces are AdminCard.
+#   3. Legacy shared Card renders (the retired shared `Card`) — cockpit cards
+#      are AdminCard, which renders the shared card surface `.gg-card` (DL-102,
+#      DL-118); the pattern matches a `<Card` render, never that class.
 # Scope is packages/admin/src production code only; tests and stories are
 # exercise scaffolding, not adoption surface. The wrapper implementations
 # themselves (components/Admin*.tsx) and the shell chrome (components/Shell —

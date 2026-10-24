@@ -335,3 +335,15 @@ Portuguese with a long name, and the cockpit column is pixel-identical to `devel
 (RESR-93) was accepted with #1140 but its implementation is not authorized, so nothing mounts the
 chip in the app and selection stays with the PWA simplification hub
 ([handoff](handoffs/claude-ui.md#step-12-garden-context-chip-prd-1278)).
+
+**Step 20, phase 4 (24 October).** The cockpit's cards and tabs go onto the shared family (PRD-1287),
+adapters first: each component keeps its name and props for its call sites. `AdminCard` has
+rendered the shared card surface since step 7, so its 72 call sites already draw the shared card;
+`AdminListRow` takes the shared row corner and stays a row whose height follows its content, since
+the item row holds every row at 88px; `AdminSelectableCard` keeps its anatomy, since the shared
+picker is for objects with a picture and none of its choices has one; and `AdminTabRail`,
+`AdminTooltip`, `AdminLinearProgress`, `AdminLoadingScreen`, `AdminViewActions` and `AdminSignIn`
+have no shared counterpart. DL-118 records each reason. The code is `feature/app-cockpit-shared-cards`
+and the guide wording the standards-only `feature/app-cockpit-shared-cards-guides`. The pairs show
+no change: 30 Storybook frames, every measured box and every pixel the same
+([eval.md](eval.md#step-20-phase-4-proof-cards-and-tabs)).

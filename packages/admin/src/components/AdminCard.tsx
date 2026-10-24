@@ -69,6 +69,9 @@ export interface AdminCardProps
  * - filled: a tinted card on the same corner, with no edge and no shadow
  *
  * The interactive prop adds the neutral ink state layer and cursor-pointer.
+ * The name and props stay for the cockpit's call sites while the card itself is
+ * the shared `.gg-card`; its cockpit values (fill, edge) are tokens in the
+ * unlayered `:root` block of `index.css` (DL-118).
  */
 export function AdminCard({
   className,

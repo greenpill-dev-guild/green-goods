@@ -15,6 +15,12 @@ export interface AdminSelectableCardProps
   meta?: ReactNode;
 }
 
+/**
+ * AdminSelectableCard — a choice that needs a title, a description, an icon or
+ * metadata: a toggle in a multi-select set, or a radio. It keeps its own anatomy
+ * (DL-118): the shared picker is for objects with a picture of their own (an
+ * action's or a garden's banner), and none of these choices has one.
+ */
 export const AdminSelectableCard = React.forwardRef<HTMLButtonElement, AdminSelectableCardProps>(
   (
     {
