@@ -388,10 +388,10 @@ describe("linking an account", () => {
     expect(acts()).toEqual(["Sign to Continue"]);
     fireEvent.click(screen.getByRole("button", { name: /^Not 0x.+\? Use a different account$/ }));
     expect(connected.changeAccount).toHaveBeenCalledTimes(1);
-    // The same act is with the account in the sheet, where signing out of the page also lives.
+    // The sheet lets the same account go as signing this browser out of it, as before Continue.
     fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
     fireEvent.click(
-      within(screen.getByRole("dialog")).getByRole("button", { name: "Use a Different Account" })
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Sign Out of This Browser" })
     );
     expect(connected.changeAccount).toHaveBeenCalledTimes(2);
   });
@@ -408,9 +408,11 @@ describe("linking an account", () => {
       })
     );
     fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
+    const sheet = screen.getByRole("dialog");
     expect(
-      within(screen.getByRole("dialog")).queryByRole("button", { name: "Use a Different Account" })
+      within(sheet).queryByRole("button", { name: "Use a Different Account" })
     ).not.toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: /^Sign Out/ })).not.toBeInTheDocument();
     // A join on its way to the chain is signed by the connected account: it stays connected.
     rerender(
       view({
@@ -481,6 +483,30 @@ describe("top bar", () => {
     expect(within(banner).queryByRole("list")).not.toBeInTheDocument();
   });
 
+  it("names the browser's account before Continue, and signs the browser out of it there", () => {
+    const props: Props = {
+      ...makeProps(),
+      stage: "intro",
+      purpose: null,
+      grant: null,
+      sessionAccount: null,
+    };
+    render(view(props));
+    fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).getByText("Connected, not signed in yet")).toBeInTheDocument();
+    expect(within(sheet).getByTitle(ACCOUNT)).toBeInTheDocument();
+    // No session yet, so there is no page to sign out of: only the browser's own sign-in.
+    expect(
+      within(sheet).queryByRole("button", { name: "Sign Out of This Page" })
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Sign Out of This Browser" }));
+    expect(props.changeAccount).toHaveBeenCalledTimes(1);
+    // Nothing is opened or signed for it.
+    expect(props.start).not.toHaveBeenCalled();
+    expect(props.prove).not.toHaveBeenCalled();
+  });
+
   it("marks a signed-in page on the profile button and keeps the account's acts in its sheet", () => {
     const props = { ...makeProps(), resource, operation };
     const { rerender } = render(view({ ...props, stage: "connect", sessionAccount: null }));
@@ -492,6 +518,10 @@ describe("top bar", () => {
     const sheet = screen.getByRole("dialog");
     expect(within(sheet).getByText("Signed in to this page")).toBeInTheDocument();
     expect(within(sheet).getByRole("link", { name: /Manage Permissions/ })).toBeInTheDocument();
+    // Signed in, the page's session is what ends; the browser's sign-out was for before.
+    expect(
+      within(sheet).queryByRole("button", { name: "Sign Out of This Browser" })
+    ).not.toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Sign Out of This Page" }));
     expect(props.leave).toHaveBeenCalledTimes(1);
   });
