@@ -4,7 +4,7 @@
 
 - Owner: Claude (sessions the orchestrator starts; questions go to the orchestrator)
 - Branch: set when work begins using `<type>/<work-description>`
-- Status: in progress. Merged: step 3 (#1289, `feature/pwa-home-shell`), step 6 (#1280), step 11 (#1290), step 16 (#1279), step 19 (#1296 when merged); in review: steps 7 and 9 (#1292), step 8 (#1295). Each PR body holds that step's RED/GREEN record, validation receipt and labeled rendered proof; the lane's machine-readable TDD record below is the shell's.
+- Status: in progress. Merged: step 3 (#1289, `feature/pwa-home-shell`), step 6 (#1280), step 11 (#1290), step 16 (#1279); in review: steps 7 and 9 (#1292), step 8 (#1295), step 19 (#1296). Each PR body holds that step's RED/GREEN record, validation receipt and labeled rendered proof; the lane's machine-readable TDD record below is the shell's.
 
 ## Scope (first slice)
 
