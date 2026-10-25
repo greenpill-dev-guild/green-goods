@@ -161,6 +161,13 @@ function inSentOrder(core: ReportingCore, draftId: string, content: ReportConten
   };
 }
 
+/** Whether the open question still applies: one about another subject, or about this revision. */
+function questionStands(core: ReportingCore, conversationId: string, draft: DraftRecord): boolean {
+  const prompt = openPrompt(core, conversationId);
+  if (!prompt) return false;
+  return prompt.subjectKind !== "draft" || prompt.subjectRevision === draft.revision;
+}
+
 /** The draft's other files that are part of this batch, by whether they are still processing. */
 function batchOf(core: ReportingCore, asset: ProcessedAsset): { pending: number; used: number } {
   return core.db
@@ -263,9 +270,12 @@ function commitInTransaction(
     if (!editable) return done;
     // A report that can still change is never left with nothing asked. When the file that could
     // not be used was all it had to go on, its next step is put as it is after one that could.
-    // A question that is already open stays as it is, unless this file ends a batch whose other
-    // files were used: the batch's reply comes now.
-    if (openPrompt(core, asset.conversationId) && (batch.pending > 0 || batch.used === 0)) {
+    // A question still open about the report as it is stays as it is, unless this file ends a
+    // batch whose other files were used: the batch's reply comes now. One asked about an earlier
+    // revision, such as the question a caption answered or a summary the files reopened, is not
+    // left standing: the next step is put again.
+    const stands = questionStands(core, asset.conversationId, draft);
+    if (stands && (batch.pending > 0 || batch.used === 0)) {
       if (batch.pending === 0) acknowledgeBatch(core, writer, draft);
       return done;
     }

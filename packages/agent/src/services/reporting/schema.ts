@@ -5,6 +5,11 @@ import { WORKFLOW_TABLES } from "./schema-workflow";
 export interface ReportingMigration {
   version: number;
   name: string;
+  /**
+   * Columns added before the statements run, each only when its table lacks it: a development
+   * database may already have one from a branch build that gave its migration another number.
+   */
+  columns?: ReadonlyArray<{ table: string; column: string; definition: string }>;
   statements: readonly string[];
 }
 
@@ -103,11 +108,11 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
   {
     version: 6,
     name: "one acknowledgement per batch of files",
+    columns: [{ table: "media_assets", column: "acknowledged_at", definition: "INTEGER" }],
     statements: [
-      "ALTER TABLE media_assets ADD COLUMN acknowledged_at INTEGER",
       // Files already handled were answered one at a time when they were processed.
-      `UPDATE media_assets SET acknowledged_at = updated_at
-       WHERE state IN ('ready','needs_clarification','failed','unsupported','deleted')`,
+      `UPDATE media_assets SET acknowledged_at = updated_at WHERE acknowledged_at IS NULL
+       AND state IN ('ready','needs_clarification','failed','unsupported','deleted')`,
     ],
   },
 ];

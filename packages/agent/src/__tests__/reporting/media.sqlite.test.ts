@@ -175,6 +175,25 @@ describe("limits", () => {
     ]);
   });
 
+  it("puts the next question after a file it cannot use whose caption answered the open one", async () => {
+    await plantingDraft();
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "caption" });
+    harness.interpreter.responses = [
+      {
+        intent: "report_content",
+        gardenKey: null,
+        actionUID: null,
+        facts: [{ field: "details.seedlings", value: 12, kind: "reported", original: "12" }],
+        models: ["fixture-model"],
+      },
+    ];
+    const replies = await send("clip-3", VIDEO_CLIP, "video/mp4", "12 seedlings");
+    expect(replies).toHaveLength(2);
+    expect(replies[0]).toContain("I can't use that kind of file.");
+    expect(replies[1]).toContain("Main species");
+    expect(draft()?.content.details.seedlings).toBe(12);
+  });
+
   it("names a PDF that is too long instead of reading part of it", async () => {
     await plantingDraft();
     harness.documents.pages.set("long-report", { ok: false, reason: "too_many_pages", pages: 42 });
@@ -427,19 +446,28 @@ describe("documents", () => {
 });
 
 describe("albums", () => {
-  /** Sends an album as Telegram does: one event per photo, in the order given, nothing run yet. */
+  /**
+   * Sends an album as Telegram does: one event per file, in the order given, nothing run yet.
+   * Each file is a photo of its own unless it names other bytes, or is missing from the provider.
+   */
   async function postAlbum(
     album: string,
-    photos: Array<{ message: number; caption?: string; missing?: boolean }>
+    files: Array<{
+      message: number;
+      caption?: string;
+      missing?: boolean;
+      file?: { bytes: Uint8Array; mime: string; declaredSize?: number };
+    }>
   ): Promise<void> {
-    for (const { message, caption, missing } of photos) {
+    for (const { message, caption, missing, file } of files) {
       const id = `${album}-${message}`;
-      if (!missing) harness.mediaFiles.set(id, await shadedPhoto(message));
+      if (!missing) harness.mediaFiles.set(id, file?.bytes ?? (await shadedPhoto(message)));
+      const declared = file?.declaredSize ? { declaredSize: file.declaredSize } : {};
       await harness.post(
         harness.message(ADA, {
           providerMessageId: String(message),
           mediaGroupId: album,
-          media: [{ providerMediaId: id, declaredMime: "image/jpeg" }],
+          media: [{ providerMediaId: id, declaredMime: file?.mime ?? "image/jpeg", ...declared }],
           ...(caption ? { text: caption } : {}),
         })
       );
@@ -517,6 +545,27 @@ describe("albums", () => {
     expect(harness.transport.texts().at(-1)).toContain("• Photos: 3");
   });
 
+  it("puts the summary again after an album of files it can use none of", async () => {
+    const shown = await reportUntilSummary(harness);
+    await postAlbum("unusable", [
+      { message: 91, file: { bytes: VIDEO_CLIP, mime: "video/mp4" } },
+      {
+        message: 92,
+        file: { bytes: new Uint8Array(1), mime: "application/pdf", declaredSize: 11 * 1024 * 1024 },
+      },
+    ]);
+    // Each file's reason, then a summary that can be confirmed: the one shown before the album
+    // was withdrawn when it arrived.
+    const replies = await whenQuiet();
+    expect(replies).toHaveLength(3);
+    expect(replies[0]).toContain("I can't use that kind of file.");
+    expect(replies[1]).toContain("larger than 10 MB");
+    expect(replies[2]).toContain("• Photos: 0");
+    expect(summaryToken(replies)).not.toBe(summaryToken(shown));
+    await harness.say(ADA, `CONFIRM ${summaryToken(replies)}`);
+    expect(currentConfirmation(harness.core, { draftId: draft()?.id as string })).not.toBeNull();
+  });
+
   it("reads an album that keeps arriving after a bounded wait, and a late photo on its own", async () => {
     harness.catalog.actions.set(TAS.key, [
       snapshot(planting({ media: { required: false, minImageCount: 0, maxImageCount: 10 } })),
@@ -530,6 +579,8 @@ describe("albums", () => {
       await harness.drain();
     }
     expect(harness.transport.sent.length).toBe(before);
+    // The album held back is in the database, so a restart while it waits loses none of it.
+    harness.restart();
     harness.clock.advance(500);
     await harness.drain();
     const read = harness.transport.texts().slice(before);
@@ -546,20 +597,29 @@ describe("albums", () => {
     );
   });
 
-  it("takes a caption that is a command as one, and still reads the album's other photos", async () => {
+  it("takes a caption that is a command first, then reads the album's other photos together", async () => {
     await plantingDraft();
-    await postAlbum("asked", [
+    const cancelled = draft()?.id as string;
+    // The caption arrives on the album's second photo; the first must not join the report it
+    // cancels, nor the third start another alone.
+    await postAlbum("cancel", [
       { message: 81 },
-      { message: 82, caption: "STATUS" },
+      { message: 82, caption: "CANCEL" },
       { message: 83 },
     ]);
-    const replies = await whenQuiet();
-    expect(replies).toHaveLength(3);
-    expect(replies[0]).toContain("TAS");
-    expect(replies[1]).toBe("2 photos added to your report.");
-    expect(replies[2]).toContain("Seedlings planted?");
+    expect(await whenQuiet()).toEqual([
+      "Report canceled. Unpublished content will be removed.",
+      "2 photos added to your report.",
+      "Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden",
+    ]);
+    const next = harness.core.db
+      .query("SELECT id FROM work_drafts WHERE id <> $cancelled")
+      .get({ cancelled }) as { id: string };
     // The photo carrying the command goes with it, as a captioned photo always has.
-    expect(evidenceFiles(harness.core, draft())).toEqual(["asked-81", "asked-83"]);
+    expect(evidenceFiles(harness.core, loadDraft(harness.core, next.id))).toEqual([
+      "cancel-81",
+      "cancel-83",
+    ]);
   });
 
   it("holds a first-contact album for consent, reads it once and names a photo it cannot fetch", async () => {

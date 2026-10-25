@@ -421,7 +421,7 @@ async function runTurn(
   try {
     return inTransaction(core.db, () => {
       if (!holdsLease(core, lease)) return "fenced" as const;
-      const now = loadTurnContext(core, event, { wholeAlbum });
+      const now = loadTurnContext(core, ctx.event, { wholeAlbum });
       if (
         !now ||
         now.draft?.id !== ctx.draft?.id ||

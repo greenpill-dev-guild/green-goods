@@ -214,9 +214,9 @@ export function loadTurnContext(
 
 /**
  * Plans the turn an inbox event opens. An album is read as one report message. Words that answer
- * the consent notice or name a command are taken as they always were, from the file carrying
- * them, so the album's other files are read after them instead of being consumed by a reply that
- * reads none of them.
+ * the consent notice or name a command are taken as they always were: the file whose caption
+ * carries them is read first and alone, whatever order the album arrived in, and the album's
+ * other files are then read together, instead of being consumed by a reply that reads none.
  */
 export function planEventTurn(
   core: ReportingCore,
@@ -226,7 +226,11 @@ export function planEventTurn(
   if (loaded.album.length === 0 || !["consent_answer", "command"].includes(plan.kind)) {
     return { ctx: loaded, plan, wholeAlbum: true };
   }
-  const single = loadTurnContext(core, loaded.event, { wholeAlbum: false }) as TurnContext;
+  const captioned =
+    [loaded.event, ...loaded.album].find((row) =>
+      readInboxPayload<InboundMessageEvent>(core, row)?.text?.trim()
+    ) ?? loaded.event;
+  const single = loadTurnContext(core, captioned, { wholeAlbum: false }) as TurnContext;
   return { ctx: single, plan: planTurn(single), wholeAlbum: false };
 }
 
