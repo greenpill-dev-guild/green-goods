@@ -59,6 +59,8 @@ const authSetup = setup({
         return null;
       },
       smartAccountAddress: null,
+      passkeyAccountProfile: null,
+      originalAccount: false,
       walletAddress: null,
       embeddedAddress: null,
       error: null,
@@ -75,6 +77,7 @@ const authSetup = setup({
         return null;
       },
       smartAccountAddress: null,
+      passkeyAccountProfile: null,
     }),
 
     /** Clear only wallet auth (keep external wallet tracking) */
@@ -100,6 +103,7 @@ const authSetup = setup({
         smartAccountClient: output.smartAccountClient,
         resolveSmartAccountClient: output.resolveSmartAccountClient ?? null,
         smartAccountAddress: output.smartAccountAddress,
+        passkeyAccountProfile: output.accountProfile ?? "kernel-0.3.1-legacy",
         userName: output.userName,
         error: null,
         retryCount: 0,
@@ -134,6 +138,7 @@ const authSetup = setup({
 
     /** Store userName for registration/login */
     storeUserName: assign({
+      originalAccount: ({ event }) => "originalAccount" in event && event.originalAccount === true,
       userName: ({ event }) => {
         const e = event as { userName: string };
         return e.userName;
@@ -263,6 +268,7 @@ export const authMachine = authSetup.createMachine({
     smartAccountClient: null,
     resolveSmartAccountClient: null,
     smartAccountAddress: null,
+    passkeyAccountProfile: null,
     walletAddress: input?.restoreAuthMode === "wallet" ? (input.restoreAddress ?? null) : null,
     embeddedAddress: input?.restoreAuthMode === "embedded" ? (input.restoreAddress ?? null) : null,
     externalWalletConnected: false,
@@ -339,6 +345,7 @@ export const authMachine = authSetup.createMachine({
         input: ({ context }): PasskeyOperationInput => ({
           userName: context.userName,
           chainId: context.chainId,
+          originalAccount: context.originalAccount,
         }),
         onDone: {
           target: "authenticated.passkey",
@@ -372,6 +379,7 @@ export const authMachine = authSetup.createMachine({
         input: ({ context }): PasskeyOperationInput => ({
           userName: context.userName,
           chainId: context.chainId,
+          originalAccount: context.originalAccount,
         }),
         onDone: {
           target: "authenticated.passkey",
@@ -444,6 +452,7 @@ export const authMachine = authSetup.createMachine({
         // ─────────────────────────────────────────────────────────────────────────
         passkey: {
           on: {
+            SELECT_PILOT_ACCOUNT: { actions: "storePasskeySession" },
             // User explicitly wants to switch to wallet
             SWITCH_TO_WALLET: [
               {

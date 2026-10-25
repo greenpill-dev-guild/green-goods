@@ -13,6 +13,7 @@ import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 import type { AuthMode, SmartAccountClientResolver } from "../types/auth";
+import type { PasskeyAccountProfileId } from "../modules/auth/account-profile";
 
 export type WalletConnectionType = "wallet" | "embedded";
 type RestorableAuthMode = Extract<AuthMode, WalletConnectionType>;
@@ -28,6 +29,8 @@ export interface AuthContext {
   smartAccountClient: SmartAccountClient | null;
   resolveSmartAccountClient: SmartAccountClientResolver | null;
   smartAccountAddress: Hex | null;
+  passkeyAccountProfile?: PasskeyAccountProfileId | null;
+  originalAccount?: boolean;
 
   // Wallet session state (when authenticated via wallet)
   walletAddress: Hex | null;
@@ -60,12 +63,13 @@ export type AuthEvent =
   // User-initiated actions
   // ─────────────────────────────────────────────────────────────────────────
   | { type: "LOGIN_PASSKEY_NEW"; userName: string }
-  | { type: "LOGIN_PASSKEY_EXISTING"; userName: string }
+  | { type: "LOGIN_PASSKEY_EXISTING"; userName: string; originalAccount?: boolean }
   | { type: "LOGIN_WALLET" }
   | { type: "LOGIN_EMBEDDED"; address: Hex } // Login via AppKit embedded wallet (email/social)
   | { type: "SWITCH_TO_WALLET" } // Switch from passkey to wallet (requires external wallet)
   | { type: "SWITCH_TO_PASSKEY"; userName: string } // Switch from wallet to passkey
   | { type: "SIGN_OUT" }
+  | { type: "SELECT_PILOT_ACCOUNT"; output: PasskeySessionResult }
   | { type: "RETRY" }
   | { type: "DISMISS_ERROR" }
   // ─────────────────────────────────────────────────────────────────────────
@@ -87,6 +91,7 @@ export type AuthEvent =
 
 // Service result types
 export interface PasskeySessionResult {
+  accountProfile?: PasskeyAccountProfileId;
   credential: P256Credential;
   smartAccountClient: SmartAccountClient;
   resolveSmartAccountClient?: SmartAccountClientResolver;
@@ -109,6 +114,7 @@ export interface RestoreSessionInput {
 export interface PasskeyOperationInput {
   userName: string | null;
   chainId: number;
+  originalAccount?: boolean;
 }
 
 // ============================================================================
