@@ -1,8 +1,9 @@
 import { channelControl, channelOfRealm } from "./channels";
 import { activeConsentId } from "./consent";
 import { readControl } from "./controls";
+import { isPauseControl } from "./coordinator/commands";
 import { inTransaction } from "./database";
-import { resolveChannelSubject, resolveConversation } from "./identity-store";
+import { findChannelSubject, resolveChannelSubject, resolveConversation } from "./identity-store";
 import type { ReportingCore } from "./runtime";
 import type { InboundMessageEvent, NormalizedInboundEvent } from "./transport";
 
@@ -100,8 +101,10 @@ export function acceptInboundEvent(
 /**
  * Intake for a real chat channel: a message is taken only while its channel's operator control
  * is on. A closed channel's messages are not recorded at all, so the adapter can leave them to
- * whatever else serves that channel, such as the existing Telegram bot's own commands. Delivery
- * statuses always pass, because they settle messages the Agent already sent.
+ * whatever else serves that channel, such as the existing Telegram bot's own commands. The
+ * exception is STOP, DELETE and CANCEL from someone reporting already knows, which reporting
+ * carries out whatever the channel's state. Delivery statuses always pass, because they settle
+ * messages the Agent already sent.
  */
 export function acceptChannelEvent(
   core: ReportingCore,
@@ -109,11 +112,18 @@ export function acceptChannelEvent(
 ): IntakeResult | { status: "channel_closed" } {
   if (event.kind === "message") {
     const channel = channelOfRealm(event.providerRealm);
-    if (!channel || !readControl(core, channelControl(channel)).enabled) {
+    if (!channel) return { status: "channel_closed" };
+    // A paused channel still hands reporting STOP, DELETE and CANCEL from someone it knows, so
+    // the menu's consent controls keep working; a stranger's go to the bot's own handlers.
+    const paused = !readControl(core, channelControl(channel)).enabled;
+    if (paused && !(isPauseControl(event) && knownSender(core, event)))
       return { status: "channel_closed" };
-    }
   }
   return acceptInboundEvent(core, event);
+}
+
+function knownSender(core: ReportingCore, event: InboundMessageEvent): boolean {
+  return findChannelSubject(core, event.providerRealm, event.sender.externalSubjectId) !== null;
 }
 
 export function readInboxPayload<T extends NormalizedInboundEvent = InboundMessageEvent>(

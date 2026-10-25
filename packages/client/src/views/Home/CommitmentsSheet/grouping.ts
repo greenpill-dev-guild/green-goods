@@ -1,5 +1,18 @@
 import type { Garden } from "@green-goods/shared/types/domain";
-import type { CommitmentPoolRecord, InboxCommitment } from "@green-goods/shared/commitment-pooling";
+import type {
+  CommitmentPoolRecord,
+  CommitmentsToConfirm,
+  InboxCommitment,
+} from "@green-goods/shared/commitment-pooling";
+
+/**
+ * What the To confirm tab lists, and so what its badge and the launcher count:
+ * the confirmations its gardens make as the party. The reasoned fallbacks and
+ * disputes that `count` adds are the cockpit's queue, which this tab does not list.
+ */
+export function listedToConfirmCount(toConfirm: Pick<CommitmentsToConfirm, "groups">): number {
+  return toConfirm.groups.reduce((sum, group) => sum + group.rows.length, 0);
+}
 
 export interface GardenGroup {
   key: string;

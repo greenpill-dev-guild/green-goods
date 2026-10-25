@@ -72,9 +72,9 @@ test.describe("Client PWA", () => {
   });
 
   test.describe("Gardens Data", () => {
-    test("displays gardens list when authenticated", async ({ page }) => {
+    test("lists gardens in Explore when authenticated", async ({ page }) => {
       const helper = await setupAuthenticatedClient(page);
-      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
+      await page.goto("/home/explore?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
       await expect(page).not.toHaveURL(/\/home\/login/);

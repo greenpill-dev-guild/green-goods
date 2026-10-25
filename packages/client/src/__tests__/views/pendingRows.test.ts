@@ -59,6 +59,7 @@ function proof(overrides: Partial<PendingProof>): PendingProof {
     source: "queued",
     commitmentId: 7n,
     garden: "0x2222222222222222222222222222222222222222",
+    savedGarden: "0x2222222222222222222222222222222222222222",
     commitment: null,
     title: "Repair the north fence panel",
     savedAt: Date.now(),

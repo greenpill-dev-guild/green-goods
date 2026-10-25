@@ -107,6 +107,19 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
   },
   {
     version: 6,
+    name: "sent questions in the outbox",
+    // Once a question is sent, the dispatcher takes the buttons off the question sent before it in
+    // the same conversation. Only sent questions are indexed, so that lookup reads one entry and
+    // the dispatcher's other lookups keep their state index. IF NOT EXISTS lets a database that
+    // already built the index under another version number open again.
+    statements: [
+      `CREATE INDEX IF NOT EXISTS delivery_outbox_sent_questions
+        ON delivery_outbox(conversation_id, dispatch_seq)
+        WHERE prompt_id IS NOT NULL AND state IN ('accepted','sent','delivered','read')`,
+    ],
+  },
+  {
+    version: 7,
     name: "one acknowledgement per batch of files",
     columns: [{ table: "media_assets", column: "acknowledged_at", definition: "INTEGER" }],
     statements: [

@@ -8,6 +8,7 @@ import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { fetchApprovalsByRecipients } from "@green-goods/shared/hooks/work/useAggregatedApprovals";
 import { useMyWorks } from "@green-goods/shared/hooks/work/useMyWorks";
@@ -73,6 +74,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const activeAddress = user?.id;
   // The queue and the proof drafts are kept under the primary address.
   const viewer = usePrimaryAddress();
+  // Your Work lists the active garden's work (DL-129); another garden's waits for the chip.
+  const { garden: activeGarden, inScope } = useActiveGarden();
+  const inGarden = (work: Work) => inScope([work.gardenAddress]);
 
   // Helper to check if an address matches the current user (wrapping shared util)
   const isUserAddress = (address: Address | undefined): boolean =>
@@ -93,7 +97,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const { count: onPhoneCount } = useYourWorkCount();
 
   // Queued work and decisions go out together from the Pending header.
-  const uploads = useWorkUploads();
+  const uploads = useWorkUploads({ inScope });
   const uploadAction = buildUploadAction(
     uploads,
     {
@@ -128,9 +132,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const restoredScrollRef = useRef(false);
 
   // Needs review reads each garden you review the way its Work tab does, so a review
-  // made on this device leaves the list at once — the same list the arrival toast counts.
-  const { reviewerGardenIds, isLoading: isLoadingReviewerGardens } =
+  // made on this device leaves the list at once. Only the active garden's are read, so
+  // another garden's slow or failed read never holds this list or its Refresh.
+  const { reviewerGardenIds: reviewedGardens, isLoading: isLoadingReviewerGardens } =
     useReviewerGardenIds(activeAddress);
+  const reviewerGardenIds = useMemo(
+    () => reviewedGardens.filter((gardenId) => inScope([gardenId])),
+    [reviewedGardens, inScope]
+  );
   const needsReview = useNeedsReview(reviewerGardenIds, activeAddress);
 
   // Include offline queued submissions so the Pending tab still reflects the
@@ -156,9 +165,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const reviewWorksById = useMemo(() => buildWorkMap(needsReview.allWorks), [needsReview.allWorks]);
 
-  const pendingNeedsReview = needsReview.works;
-  const queuedDecisions = needsReview.decidedHere.filter((work) =>
-    uploads.waitingDecisionWorkIds.has(work.id.toLowerCase())
+  const pendingNeedsReview = needsReview.works.filter(inGarden);
+  const queuedDecisions = needsReview.decidedHere.filter(
+    (work) => inGarden(work) && uploads.waitingDecisionWorkIds.has(work.id.toLowerCase())
   );
 
   // Reviewed by you: the history, plus decisions made here until the history has them.
@@ -171,9 +180,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       .filter((work) => !inHistory.has(work.id))
       .map((work) => ({ ...work, createdAt: decidedAt }));
     return [...decidedHere, ...history].filter(
-      (work) => !uploads.waitingDecisionWorkIds.has(work.id.toLowerCase())
+      (work) =>
+        inScope([work.gardenAddress]) && !uploads.waitingDecisionWorkIds.has(work.id.toLowerCase())
     );
-  }, [completedApprovals, needsReview.decidedHere, uploads.waitingDecisionWorkIds]);
+  }, [completedApprovals, needsReview.decidedHere, uploads.waitingDecisionWorkIds, inScope]);
 
   const myWorkGardenIds = useMemo(() => extractWorkGardenIds(myWorks || []), [myWorks]);
   const myWorksById = useMemo(() => buildWorkMap(myWorks || []), [myWorks]);
@@ -209,15 +219,18 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // definition; anything already on chain needs a successful review read first, so a
   // failed read never shows a reviewed submission as pending.
   const pendingMySubmissions: Work[] = (myWorks || []).filter((work) => {
-    if (!isUserAddress(work.gardenerAddress)) return false;
+    if (!isUserAddress(work.gardenerAddress) || !inGarden(work)) return false;
     if (work.status === "approved" || work.status === "rejected") return false;
     if (isOnThisDevice(work)) return true;
     return allApprovals !== undefined && !reviewedForMe.has(work.id);
   });
 
   const completedMyWorkReviewed: Work[] = useMemo(
-    () => receivedApprovalsToWorks(myReceivedApprovals, myWorksById),
-    [myReceivedApprovals, myWorksById]
+    () =>
+      receivedApprovalsToWorks(myReceivedApprovals, myWorksById).filter((work) =>
+        inScope([work.gardenAddress])
+      ),
+    [myReceivedApprovals, myWorksById, inScope]
   );
 
   // All is both lists, newest first. A steward never reviews their own work, so
@@ -425,6 +438,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       default:
         return (
           <PendingTab
+            inScope={inScope}
             submissions={pendingMySubmissions}
             isOnThisDevice={isOnThisDevice}
             toReview={pendingNeedsReview}
@@ -473,6 +487,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       onRequestClose={handleClose}
       covered={dashboardNavigation.isDashboardCovered}
       restored={Boolean(returnState)}
+      gardenName={activeGarden?.name}
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}

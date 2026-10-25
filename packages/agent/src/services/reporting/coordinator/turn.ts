@@ -37,6 +37,7 @@ import {
   answerConnectionOffer,
   answerGrantChoice,
   confirmPublication,
+  describeAccount,
   disconnectAccount,
   handlePairing,
   requestConnection,
@@ -360,6 +361,7 @@ function routeCommand(
     return withdrawProcessing(writer, command.kind);
   if (command.kind === "pair") return handlePairing(writer, command.code, external);
   if (command.kind === "connect") return requestConnection(writer, command.account);
+  if (command.kind === "account") return describeAccount(writer);
   if (command.kind === "disconnect" || command.kind === "switch")
     return disconnectAccount(writer, command.kind === "switch");
   if (command.kind === "publish") return confirmPublication(writer, command.token, false);

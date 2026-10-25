@@ -6,12 +6,12 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.copyButton": "Copiar enlace",
   "link.copyAddress": "Copiar dirección",
   "chat.welcomeLinked":
-    "¡Hola! Este chat está conectado a {account}.{gardens}\nCuéntame en tus palabras qué trabajo hiciste y envía fotos si tienes. Para usar otra cuenta, envía SWITCH.",
+    "¡Hola! Este chat está conectado a {account}.{gardens}\nCuéntame en tus palabras qué trabajo hiciste y envía fotos si tienes. Para usar otra cuenta, envía SWITCH.{menu}",
   "chat.hello": "¡Hola! Tu reporte sigue abierto, así que seguimos donde íbamos.",
   "link.notLinked":
-    "Este chat no está conectado a ninguna cuenta. Envía CONNECT para vincular una.",
+    "Este chat no está conectado a ninguna cuenta. Envía CONNECT para vincular una.{menu}",
   "link.disconnected":
-    "Listo. Este chat ya no está conectado a {account}, y cualquier permiso de reportes por chat que aprobaste para ella queda en pausa. Envía CONNECT para vincular una cuenta.",
+    "Listo. Este chat ya no está conectado a {account}, y cualquier permiso de reportes por chat que aprobaste para ella queda en pausa. Envía CONNECT para vincular una cuenta.{menu}",
   "link.disconnectBusy":
     "Hay un reporte o una revisión en camino con esta cuenta, así que todavía no puedo desconectarla. Termínalo o cancélalo y envía DISCONNECT otra vez.",
   "link.disconnectHint":
@@ -39,7 +39,15 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Detuviste el asistente. No leeré mensajes nuevos hasta que envíes START. Los reportes publicados siguen siendo públicos; los borradores sin publicar se están eliminando. Soporte: {support}",
   "consent.deleted":
     "Se están eliminando tus borradores y archivos sin publicar. Los reportes publicados siguen públicos en la cadena e IPFS y no se pueden borrar. Soporte: {support}",
-  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• GARDEN cambia el jardín de tu reporte, y JOIN muestra cómo unirte a otro jardín.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• CONNECT, o la dirección de tu cuenta sola, vincula tu cuenta de Green Goods: abre el enlace de verificación que te envío y envía aquí solo el código de seis dígitos. Puedes conectar Telegram y WhatsApp a la misma cuenta. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• DISCONNECT desvincula tu cuenta de este chat, y SWITCH vincula otra.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.\nSoporte: {support}",
+  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• GARDEN cambia el jardín de tu reporte, y JOIN muestra cómo unirte a otro jardín.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• CONNECT, o la dirección de tu cuenta sola, vincula tu cuenta de Green Goods: abre el enlace de verificación que te envío y envía aquí solo el código de seis dígitos. Puedes conectar Telegram y WhatsApp a la misma cuenta. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• ACCOUNT muestra qué cuenta usa este chat, DISCONNECT la desvincula y SWITCH vincula otra.\n• LANGUAGE te deja elegir inglés, español o portugués.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.{menu}\nSoporte: {support}",
+  "menu.commands": "\n• Toca Menú, junto a donde escribes, para ver estos comandos.",
+  "menu.account":
+    " Los comandos de cuenta también están en el Menú: /account, /connect, /switch y /disconnect.",
+  "language.ask": "¿En qué idioma quieres que te escriba?{how}",
+  "language.askWords": " Envía LANG EN (English), LANG ES (Español) o LANG PT (Português).",
+  "language.en": "English",
+  "language.es": "Español",
+  "language.pt": "Português",
   "intake.paused":
     "Los reportes están en pausa por mantenimiento. Tu mensaje está guardado y responderé cuando se reanuden. Soporte: {support}",
   "media.photoAdded": "Foto agregada a tu reporte.",
@@ -216,7 +224,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "¡Hola! Te ayudo a reportar el trabajo del jardín en Green Goods. ¿Quieres conectar tu cuenta primero, para mostrarte tus jardines? También puedes contarme lo que hiciste y te pediré conectarla cuando publiques.",
   "link.offerLabel": "Conectar cuenta",
   "link.offerDeclined":
-    "No hay problema. Cuéntame el trabajo que hiciste; puedes enviar texto y fotos. Envía CONNECT cuando quieras vincular tu cuenta.",
+    "No hay problema. Cuéntame el trabajo que hiciste; puedes enviar texto y fotos. Envía CONNECT cuando quieras vincular tu cuenta.{menu}",
   "link.connect":
     "Para conectar tu cuenta de Green Goods (billetera o passkey), verifícala aquí. El enlace caduca en 10 minutos y nunca mueve fondos.",
   "link.connectNamed":
@@ -224,7 +232,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.connectNamedNoGardens":
     "Todavía no veo {account} en ningún jardín.\nPara conectarla a este chat, verifícala aquí con esa cuenta. El enlace caduca en 10 minutos y nunca mueve fondos.",
   "link.already":
-    "Este chat está conectado a {account}.{gardens}\nPara usar otra cuenta, envía SWITCH.",
+    "Este chat está conectado a {account}.{gardens}\nPara usar otra cuenta, envía SWITCH.{menu}",
   "link.pairFailed":
     "Ese código no coincide con ninguna verificación abierta. Revisa el código en la página de Green Goods.",
   "link.accountMismatch":
@@ -269,6 +277,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "El permiso de reportes de este jardín se agotó por ahora. Te pediré publicar con tu passkey.",
   "review.pendingList": "Trabajo esperando tu revisión en {garden}. Elige uno para empezar:",
   "review.none": "No hay trabajo esperando tu revisión.",
+  "review.resumeFirst":
+    "Tienes una revisión en curso. Envía CANCEL para descartarla o continúa con ella.",
   "review.askDecision": "¿Apruebas o rechazas «{title}» de {gardener}?",
   "review.approve": "Aprobar",
   "review.reject": "Rechazar",
