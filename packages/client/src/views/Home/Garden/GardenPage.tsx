@@ -4,13 +4,8 @@ import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageW
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { useGardenAssessmentRecords } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import {
-  useActions,
-  useGardeners,
-  useGardens,
-} from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
 import { GardenTab, useGardenTabs } from "@green-goods/shared/hooks/garden/useGardenTabs";
 import {
@@ -28,18 +23,11 @@ import { RiCalendarEventFill, RiMapPin2Fill } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import {
-  GardenAssessments,
-  GardenGardeners,
-  GardenJoinRequestDialog,
-  type GardenMember,
-  GardenWork,
-  JoinGardenButton,
-} from "@/components/Features";
+import { GardenJoinRequestDialog, JoinGardenButton } from "@/components/Features";
 import { StandardTabs, TopNav } from "@/components/Navigation";
 import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
+import { GardenSection } from "./GardenSection";
 import { buildGardenTabs } from "./gardenTabs";
-import { GardenPool } from "./Pool";
 import { shareGarden } from "./shareGarden";
 
 export interface GardenPageProps {
@@ -88,49 +76,9 @@ export function GardenPage({
   const { activeTab, setActiveTab } = useGardenTabs();
   const chainId = DEFAULT_CHAIN_ID;
   const { isFetching: gardensLoading } = useGardens(chainId);
-  // Read only once the reader opens Insights: an EAS read, then two IPFS files
-  // per assessment, is too much to spend on a tab most visits never open.
-  const { records: assessmentRecords, status: assessmentStatus } = useGardenAssessmentRecords(
-    activeTab === GardenTab.Insights ? garden.id : undefined,
-    chainId
-  );
-  const { data: allGardeners = [] } = useGardeners();
-  const { data: actions = [] } = useActions(chainId);
+  // One read of the garden's work serves the Work tab, the rail and the reviewers' notifications.
   const workRead = useWorks(garden.id, { offline: true });
-  const { works: mergedWorks, isFetching: worksFetching, refetch: refetchWorks } = workRead;
-  const members = useMemo<GardenMember[]>(() => {
-    const stewardSet = new Set((garden.stewards ?? []).map((addr) => addr.toLowerCase()));
-    const gardenerSet = new Set((garden.gardeners ?? []).map((addr) => addr.toLowerCase()));
-    const seen = new Set<string>();
-    const orderedAddresses: string[] = [];
-
-    for (const list of [garden.stewards ?? [], garden.gardeners ?? []]) {
-      for (const address of list) {
-        const normalized = address.toLowerCase();
-        if (seen.has(normalized)) continue;
-        seen.add(normalized);
-        orderedAddresses.push(address);
-      }
-    }
-
-    return orderedAddresses.map((address) => {
-      const normalized = address.toLowerCase();
-      const match = allGardeners.find((g) => g.account?.toLowerCase() === normalized);
-
-      return {
-        id: match?.id || address,
-        account: address as Address,
-        username: match?.username || undefined,
-        email: match?.email || undefined,
-        phone: match?.phone || undefined,
-        avatar: match?.avatar || undefined,
-        registeredAt: match?.registeredAt ?? null,
-        isSteward: stewardSet.has(normalized),
-        isGardener: gardenerSet.has(normalized),
-      };
-    });
-  }, [allGardeners, garden]);
-
+  const { works: mergedWorks, isFetching: worksFetching } = workRead;
   const { vaults: gardenVaults = [] } = useGardenVaults(garden.id as Address, {
     enabled: Boolean(garden.id),
   });
@@ -208,46 +156,10 @@ export function GardenPage({
     });
   };
 
-  const { name, bannerImage, location, createdAt, description } = garden;
+  const { name, bannerImage, location, createdAt } = garden;
   const foundedLabel = `${intl.formatMessage({ id: "app.home.founded" })} ${new Date(createdAt).toLocaleDateString()}`;
 
   const tabs = buildGardenTabs(intl, { hasPool: Boolean(commitmentPool) });
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case GardenTab.Work: {
-        return (
-          <GardenWork
-            actions={actions}
-            works={mergedWorks}
-            isFetching={worksFetching}
-            readState={workRead}
-            gardenId={garden.id}
-            chainId={chainId}
-            onRefresh={refetchWorks}
-          />
-        );
-      }
-      case GardenTab.Pool:
-        return commitmentPool ? <GardenPool pool={commitmentPool} /> : null;
-      case GardenTab.Insights:
-        return (
-          <GardenAssessments
-            assessmentFetchStatus={assessmentStatus}
-            records={assessmentRecords}
-            description={description}
-          />
-        );
-      case GardenTab.Gardeners:
-        return (
-          <GardenGardeners
-            members={members}
-            garden={garden}
-            canManageRequests={canManageRequests}
-          />
-        );
-    }
-  };
 
   const isHome = layout === "home";
   // The page actions, without Back on Home, where the chip carries the garden.
@@ -351,7 +263,13 @@ export function GardenPage({
         {titleBlock}
         <div className="w-full bg-bg-canvas">{tabRail}</div>
         <div className="px-4 sm:px-5 md:px-6 pt-3 sm:pt-4 pb-6" aria-busy={worksFetching}>
-          {renderTabContent()}
+          <GardenSection
+            garden={garden}
+            tab={activeTab}
+            workRead={workRead}
+            pool={commitmentPool}
+            canManageRequests={canManageRequests}
+          />
         </div>
         {sheets}
       </div>
@@ -414,7 +332,13 @@ export function GardenPage({
             className="flex-1 min-h-0 px-4 sm:px-5 md:px-6 pt-3 sm:pt-4 pb-24 overflow-y-auto overflow-x-hidden"
             aria-busy={worksFetching}
           >
-            {renderTabContent()}
+            <GardenSection
+              garden={garden}
+              tab={activeTab}
+              workRead={workRead}
+              pool={commitmentPool}
+              canManageRequests={canManageRequests}
+            />
           </div>
         </>
       ) : null}

@@ -3,10 +3,14 @@
  * over the account's gardens, the requests waiting for a steward, and the active garden.
  */
 
-import type { MyGarden } from "@green-goods/shared/modules/garden/membership";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { describe, expect, it } from "vitest";
-import { awaitingGardens, exploreGardens, switcherRows } from "../../views/Home/homeGardens";
+import {
+  awaitingGardens,
+  exploreGardens,
+  type MemberGarden,
+  switcherRows,
+} from "../../views/Home/homeGardens";
 
 // Only what the rules read: an id, a name and whether anyone can join.
 const garden = (suffix: string, overrides: Partial<Garden> = {}) =>
@@ -17,7 +21,7 @@ const garden = (suffix: string, overrides: Partial<Garden> = {}) =>
   }) as Garden;
 
 const ids = (set: string[]) => new Set(set.map((id) => id.toLowerCase()));
-const mine = (g: Garden, roles: MyGarden<Garden>["membership"]["roles"], pendingJoin = false) => ({
+const mine = (g: Garden, roles: MemberGarden["membership"]["roles"], pendingJoin = false) => ({
   garden: g,
   membership: { roles, pendingJoin },
 });

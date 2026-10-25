@@ -1,11 +1,14 @@
-import { useLayoutEffect, useRef } from "react";
-import { useQuery, useQueryClient, type Query } from "@tanstack/react-query";
+import { useLayoutEffect, useMemo, useRef } from "react";
+import { useQueries, useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
 import type {
   GardenJoinProofEnvelope,
   GardenJoinRequestSelfRecord,
   GardenJoinRequestKind,
 } from "../../public-contracts/join-requests";
+import { useAuth } from "../auth/useAuth";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useCurrentChain } from "../blockchain/useChainConfig";
 
 type Status = {
   request: GardenJoinRequestSelfRecord | null;
@@ -22,7 +25,7 @@ const sessions = new WeakMap<Query, { proof?: GardenJoinProofEnvelope; operation
  * The join dialog's session and the lists that mark a garden awaiting review observe the same
  * record, so both build it from here.
  */
-export function joinRequestStatusQuery(
+function joinRequestStatusQuery(
   chainId: number,
   garden: string,
   account: string,
@@ -108,4 +111,31 @@ export function useGardenJoinRequestSession(
       delete privateSession.proof;
     },
   };
+}
+
+/**
+ * The gardens among `gardenIds` where the signed-in account's request to join waits for a
+ * steward, as this device knows it: a request sent or checked in this session (DL-125). The
+ * service shows a request only to the account's signature, so this reads the session's own
+ * records and never asks for one; observing them keeps them while a list shows them. Ids come
+ * back lowercased.
+ */
+export function useAwaitingJoinRequests(gardenIds: readonly string[]): ReadonlySet<string> {
+  const chainId = useCurrentChain();
+  const account = usePrimaryAddress();
+  const { authMode } = useAuth();
+  const records = useQueries({
+    queries: account
+      ? gardenIds.map((gardenId) =>
+          joinRequestStatusQuery(chainId, gardenId, account, authMode ?? "none")
+        )
+      : [],
+  });
+  // One string per answer, so the set keeps its identity until a request changes.
+  const awaiting = records
+    .flatMap((record, index) =>
+      record.data?.request?.state === "pending" ? [gardenIds[index].toLowerCase()] : []
+    )
+    .join(",");
+  return useMemo(() => new Set(awaiting ? awaiting.split(",") : []), [awaiting]);
 }
