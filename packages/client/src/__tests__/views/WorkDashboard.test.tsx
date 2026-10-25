@@ -13,6 +13,11 @@ const mockUseMyWorks = vi.fn();
 const mockUseMyOnlineWorks = vi.fn();
 let mockReviewerGardenIds: string[] = [];
 let mockProofs: PendingProof[] = [];
+let mockDrafts: Array<Record<string, unknown>> = [];
+let mockActions: Array<{ id: string; title: string }> = [];
+/** The garden the chip on Home has chosen; null before a member has one. */
+let mockActiveGarden: { id: string; name: string } | null = null;
+let mockUploadOptions: unknown;
 let mockQueueUnreadable = false;
 let mockInitialPendingFilter: string | undefined;
 let mockReturnState: WorkDashboardReturnState | undefined;
@@ -174,7 +179,17 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOrigi
 });
 
 vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
-  useDrafts: () => ({ drafts: [], draftCount: 0, deleteDraft: vi.fn(), isDeleting: false }),
+  useDrafts: () => ({ drafts: mockDrafts, deleteDraft: vi.fn(), isDeleting: false }),
+  useDraftThumbnail: () => ({ ref: { current: null }, url: null }),
+}));
+
+// The scope rule is proven in Shared; here the active garden's own items show.
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({
+    garden: mockActiveGarden,
+    inScope: (gardens: readonly (string | null | undefined)[]) =>
+      !mockActiveGarden || gardens.some((garden) => garden?.toLowerCase() === mockActiveGarden?.id),
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/client-ui/commitment/usePendingProof", () => ({
@@ -198,7 +213,7 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling", () 
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
-  useActions: () => ({ data: [] }),
+  useActions: () => ({ data: mockActions }),
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useYourWorkCount", () => ({
@@ -269,7 +284,10 @@ vi.mock("@green-goods/shared/hooks/work/useWorkApprovals", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useWorkUploads", () => ({
-  useWorkUploads: () => mockUploads,
+  useWorkUploads: (options: unknown) => {
+    mockUploadOptions = options;
+    return mockUploads;
+  },
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
@@ -282,6 +300,9 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
 });
 
 vi.mock("../../components/Cards", () => ({
+  // Which drafts are listed is the subject here; the card's own anatomy has its own tests.
+  DraftCard: ({ actionTitle, onResume }: { actionTitle?: string; onResume: () => void }) =>
+    createElement("button", { type: "button", onClick: onResume }, actionTitle ?? "Untitled"),
   MinimalWorkCard: ({
     work,
     onClick,
@@ -325,6 +346,10 @@ describe("WorkDashboard", () => {
     vi.clearAllMocks();
     mockReviewerGardenIds = [];
     mockProofs = [];
+    mockDrafts = [];
+    mockActions = [];
+    mockActiveGarden = null;
+    mockUploadOptions = undefined;
     mockQueueUnreadable = false;
     mockInitialPendingFilter = undefined;
     mockReturnState = undefined;
@@ -401,6 +426,95 @@ describe("WorkDashboard", () => {
     expect(screen.getByText("Queued tree planting")).toBeInTheDocument();
     expect(mockUseMyWorks).toHaveBeenCalledWith({ includeOffline: true });
     expect(mockUseMyOnlineWorks).not.toHaveBeenCalled();
+  });
+
+  it("names the active garden and lists only its work, the rest waiting until the chip switches", () => {
+    const here = "0x00000000000000000000000000000000000000a1";
+    const there = "0x00000000000000000000000000000000000000b2";
+    const proof = (id: string, title: string, savedGarden: string): PendingProof => ({
+      id,
+      source: "queued",
+      commitmentId: 7n,
+      garden: savedGarden as `0x${string}`,
+      savedGarden: savedGarden as `0x${string}`,
+      commitment: null,
+      title,
+      savedAt: Date.now(),
+      contents: { photos: 1, videos: 0, voiceNotes: 0, links: 0, words: false },
+      waitingReason: null,
+      failed: false,
+      sending: false,
+      discardable: true,
+      firstPhoto: null,
+    });
+    const draft = (id: string, actionUID: number, gardenAddress: string) => ({
+      id,
+      actionUID,
+      gardenAddress,
+      images: [],
+      thumbnailUrl: null,
+      currentStep: "media",
+      firstIncompleteStep: "media",
+      updatedAt: Date.now(),
+    });
+    mockActions = [
+      { id: "42161-11", title: "Compost Turn" },
+      { id: "42161-12", title: "Seed Swap" },
+    ];
+    mockReviewerGardenIds = [here, there];
+    mockNeedsReviewState = {
+      ...mockNeedsReviewState,
+      works: [
+        work({ id: "0xreview-here", title: "Review here", gardenAddress: here }),
+        work({ id: "0xreview-there", title: "Review there", gardenAddress: there }),
+      ],
+    };
+    mockUseMyWorks.mockReturnValue({
+      data: [
+        work({ id: "job-here", title: "Queued here", gardenerAddress: "0xabc", status: "syncing" }),
+        work({
+          id: "job-there",
+          title: "Queued there",
+          gardenerAddress: "0xabc",
+          gardenAddress: there,
+          status: "syncing",
+        }),
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+    mockDrafts = [draft("draft-here", 11, here), draft("draft-there", 12, there)];
+    mockProofs = [
+      proof("proof-here", "Proof here", here),
+      proof("proof-there", "Proof there", there),
+    ];
+    const items = {
+      [here]: ["Review here", "Queued here", "Compost Turn", "Proof here"],
+      [there]: ["Review there", "Queued there", "Seed Swap", "Proof there"],
+    };
+    const sheet = () => screen.getByRole("dialog", { name: "Your Work" });
+
+    mockActiveGarden = { id: here, name: "TAS HUB" };
+    const first = renderDashboard();
+
+    // The garden line takes the description's place under the title.
+    expect(sheet()).toHaveAccessibleDescription("In TAS HUB");
+    for (const title of items[here]) expect(screen.getByText(title)).toBeInTheDocument();
+    for (const title of items[there]) expect(screen.queryByText(title)).not.toBeInTheDocument();
+    // Upload all sends what this list shows, never another garden's work.
+    const { inScope } = mockUploadOptions as { inScope: (gardens: string[]) => boolean };
+    expect(inScope([here])).toBe(true);
+    expect(inScope([there])).toBe(false);
+    first.unmount();
+
+    // Nothing was lost: switching the chip lists the other garden's.
+    mockActiveGarden = { id: there, name: "Vida Verde" };
+    renderDashboard();
+
+    expect(sheet()).toHaveAccessibleDescription("In Vida Verde");
+    for (const title of items[there]) expect(screen.getByText(title)).toBeInTheDocument();
+    for (const title of items[here]) expect(screen.queryByText(title)).not.toBeInTheDocument();
   });
 
   it("keeps queued submissions visible when review-side queries fail", () => {
@@ -650,6 +764,7 @@ describe("WorkDashboard", () => {
         source: "queued",
         commitmentId: 7n,
         garden: "0x00000000000000000000000000000000000000a1",
+        savedGarden: "0x00000000000000000000000000000000000000a1",
         commitment: null,
         title: "Repair the north fence panel",
         savedAt: Date.now(),
@@ -694,6 +809,7 @@ describe("WorkDashboard", () => {
         source: "draft",
         commitmentId: 7n,
         garden: "0x00000000000000000000000000000000000000a1",
+        savedGarden: "0x00000000000000000000000000000000000000a1",
         commitment: null,
         title: "Repair the north fence panel",
         savedAt: Date.now(),

@@ -3,6 +3,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
   type ActiveGardenStatus,
   activeGardenScope,
+  isInGardenListScope,
   resolveActiveGarden,
 } from "../../modules/garden/active-garden";
 import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
@@ -26,6 +27,12 @@ export interface ActiveGarden {
    * that is not the account's is ignored: visiting a garden never switches it.
    */
   selectGarden: (gardenId: string) => void;
+  /**
+   * Whether a garden-scoped list (DL-129: the Promises and Your Work sheets and their badges)
+   * shows an item that names these gardens (`isInGardenListScope`). It hides only what the chip
+   * can show by switching, so nothing on the phone is stranded.
+   */
+  inScope: (gardens: readonly (string | null | undefined)[]) => boolean;
 }
 
 /**
@@ -43,10 +50,24 @@ export function useActiveGarden(chainId: number = DEFAULT_CHAIN_ID): ActiveGarde
   const rememberGarden = useActiveGardenStore((state) => state.rememberGarden);
 
   const { gardens, isLoaded, isError } = myGardens;
-  const resolution = useMemo(
-    () => resolveActiveGarden({ scope, remembered, myGardens: { gardens, isLoaded, isError } }),
-    [scope, remembered, gardens, isLoaded, isError]
-  );
+  const { resolution, inScope } = useMemo(() => {
+    const resolution = resolveActiveGarden({
+      scope,
+      remembered,
+      myGardens: { gardens, isLoaded, isError },
+    });
+    const listScope = {
+      activeGardenId: resolution.gardenId,
+      memberGardenIds: isLoaded
+        ? new Set(gardens.map(({ garden }) => garden.id.toLowerCase()))
+        : null,
+    };
+    return {
+      resolution,
+      inScope: (named: readonly (string | null | undefined)[]) =>
+        isInGardenListScope(listScope, named),
+    };
+  }, [scope, remembered, gardens, isLoaded, isError]);
 
   // The one garden an account has selects itself and is remembered.
   const autoSelected = resolution.status === "ready" && resolution.remember;
@@ -73,5 +94,6 @@ export function useActiveGarden(chainId: number = DEFAULT_CHAIN_ID): ActiveGarde
     garden,
     myGardens,
     selectGarden,
+    inScope,
   };
 }

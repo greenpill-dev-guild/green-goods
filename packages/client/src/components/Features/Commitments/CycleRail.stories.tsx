@@ -4,8 +4,8 @@ import {
   AUTUMN_PLANTING,
   JOURNEY_CYCLE_NAMES,
   JOURNEY_CYCLES,
-} from "../../../../../../shared/.storybook/clientJourneyFixtures";
-import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
+} from "../../../../../shared/.storybook/clientJourneyFixtures";
+import { withSeededQueryClient } from "../../../../../shared/.storybook/decorators";
 import { CycleRail } from "./CycleRail";
 
 /**
