@@ -106,7 +106,7 @@ const membersOnly = new Set(
 );
 
 /** True when PWA discovery should show a garden only to its own members. */
-export function isGardenMembersOnly(address: string): boolean {
+export function isGardenMembersOnly(address: Address): boolean {
   return membersOnly.has(address.toLowerCase());
 }
 

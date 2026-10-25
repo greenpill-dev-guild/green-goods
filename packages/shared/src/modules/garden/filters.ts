@@ -1,5 +1,5 @@
 import { isGardenMembersOnly } from "../../config/garden-visibility";
-import { Domain, type Garden } from "../../types/domain";
+import { Domain, type Address, type Garden } from "../../types/domain";
 import { gardenHasMember } from "../../utils/app/garden";
 import { expandDomainMask } from "../../utils/domain";
 
@@ -78,7 +78,7 @@ export function filterGardens(
   const { scope, sort, domains = [] } = filters;
   const visibleGardens = gardens.filter(
     (garden) =>
-      !isGardenMembersOnly(garden.id) ||
+      !isGardenMembersOnly(garden.id as Address) ||
       gardenHasMember(userAddress, garden.gardeners, garden.stewards)
   );
 
