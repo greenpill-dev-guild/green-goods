@@ -75,6 +75,97 @@ export const getWorkListPage = async (
   );
 };
 
+/** The most works, and the most decisions, one activity read lists. */
+const GARDEN_ACTIVITY_LIMIT = 200;
+
+export interface GardenActivityPage {
+  /** Works submitted to the garden since the moment, newest first. */
+  works: EASWork[];
+  /** Decisions given on the garden's works since the moment, newest first. */
+  decisions: EASWorkApproval[];
+  /** Either list ran past the limit, so earlier entries of the window are missing. */
+  truncated: boolean;
+}
+
+/**
+ * What happened in one garden since a moment, in one bounded request: the works submitted to
+ * it and the decisions given on its works, however far back each decided work was submitted.
+ * Decisions are found by garden: the approval resolver refuses a decision whose recipient is
+ * not its work's garden. `since` is in seconds.
+ */
+export const getGardenActivitySince = async (
+  gardenAddress: string,
+  options: { chainId?: number | string; since: number; take?: number },
+  reader: GraphQLReader = createEasClient(options.chainId)
+): Promise<GardenActivityPage> => {
+  const { chainId, since, take = GARDEN_ACTIVITY_LIMIT } = options;
+  const QUERY = easGraphQL(/* GraphQL */ `
+    query GardenActivity(
+      $works: AttestationWhereInput
+      $decisions: AttestationWhereInput
+      $take: Int!
+    ) {
+      works: attestations(where: $works, orderBy: [{ timeCreated: desc }, { id: asc }], take: $take) {
+        id
+        attester
+        recipient
+        timeCreated
+        decodedDataJson
+      }
+      decisions: attestations(
+        where: $decisions
+        orderBy: [{ timeCreated: desc }, { id: asc }]
+        take: $take
+      ) {
+        id
+        attester
+        recipient
+        timeCreated
+        decodedDataJson
+      }
+    }
+  `);
+  const easConfig = getEASConfig(chainId);
+  if (isZeroBytes32(easConfig.WORK.uid)) return { works: [], decisions: [], truncated: false };
+  const inWindow = {
+    recipient: { equals: easStoredAddress(gardenAddress) },
+    revoked: { equals: false },
+    timeCreated: { gt: since },
+  };
+  const { data, error } = await reader.query(
+    QUERY,
+    {
+      works: { schemaId: { equals: easConfig.WORK.uid }, ...inWindow },
+      decisions: { schemaId: { equals: easConfig.WORK_APPROVAL.uid }, ...inWindow },
+      // The extra row says the window holds more than one read lists.
+      take: take + 1,
+    },
+    "getGardenActivitySince"
+  );
+  if (error || !Array.isArray(data?.works) || !Array.isArray(data?.decisions)) {
+    throw new EASFetchError(
+      `Failed to fetch garden activity: ${error?.message ?? "Invalid attestations response"}`,
+      "getGardenActivitySince",
+      error
+    );
+  }
+  return {
+    works: validatedAttestations(data.works.slice(0, take), "getGardenActivitySince").map(
+      ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+        parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
+    ),
+    decisions: validatedAttestations(data.decisions.slice(0, take), "getGardenActivitySince").map(
+      ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+        parseDataToWorkApproval(
+          id,
+          { attester, recipient, time: Number(timeCreated) },
+          decodedDataJson
+        )
+    ),
+    truncated: data.works.length > take || data.decisions.length > take,
+  };
+};
+
 const APPROVAL_LOOKUP_BATCH = 50;
 
 export interface WorkApprovalReadResult {

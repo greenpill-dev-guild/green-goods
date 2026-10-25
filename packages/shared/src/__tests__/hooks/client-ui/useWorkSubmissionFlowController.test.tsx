@@ -38,6 +38,28 @@ const mocks = vi.hoisted(() => ({
   joinGarden: vi.fn(),
   joinState: { isJoining: false, joiningGardenId: null as string | null },
   askAgain: vi.fn(),
+  activeDraftId: null as string | null,
+  gardens: [] as Array<{ id: string; name: string; domainMask?: number }>,
+  allGardens: [] as Array<{ id: string; name: string }>,
+  gardenRecord: null as null | { id: string; name: string },
+  activeGarden: {
+    status: "choose" as "loading" | "error" | "none" | "choose" | "ready",
+    gardenId: null as string | null,
+  },
+}));
+
+vi.mock("../../../hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({ ...mocks.activeGarden, garden: null, selectGarden: vi.fn() }),
+}));
+
+vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({ data: mocks.allGardens }),
+}));
+
+vi.mock("../../../hooks/garden/useGardenRecord", () => ({
+  useGardenRecord: (_gardenId: string | null, options: { enabled?: boolean } = {}) => ({
+    data: options.enabled === false ? undefined : mocks.gardenRecord,
+  }),
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -162,9 +184,15 @@ vi.mock("../../../stores/useWorkFlowStore", () => ({
         audioNotes: [],
         setAudioNotes: vi.fn(),
         draftLinkCleared: mocks.linkCleared,
+        activeDraftId: mocks.activeDraftId,
       }),
     {
-      getState: () => ({ audioNotes: [], reset: mocks.reset, setActionUID: mocks.setDraftAction }),
+      getState: () => ({
+        audioNotes: [],
+        reset: mocks.reset,
+        setActionUID: mocks.setDraftAction,
+        gardenAddress: mocks.gardenAddress,
+      }),
       setState: mocks.setFlowState,
     }
   ),
@@ -193,7 +221,7 @@ vi.mock("../../../providers/Work", () => ({
   }),
   useWorkSelection: () => ({
     actions: [],
-    gardens: [],
+    gardens: mocks.gardens,
     hasJoinedGardens: false,
     joinableCommunityGarden: mocks.communityGarden,
     isLoading: false,
@@ -326,6 +354,11 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.autoSaveEnabled = true;
     mocks.isResumingFromUrl = false;
     mocks.linkCleared = false;
+    mocks.activeDraftId = null;
+    mocks.gardens = [];
+    mocks.allGardens = [];
+    mocks.gardenRecord = null;
+    mocks.activeGarden = { status: "choose", gardenId: null };
     mocks.toastError.mockReset();
     navigateShareRoute = null;
     exitPath = "";
@@ -371,6 +404,7 @@ describe("useWorkSubmissionFlowController", () => {
   });
 
   it("projects selection and owns the intro progress gate", () => {
+    mocks.gardens = [{ id: "garden-1", name: "Riverside" }];
     const view = renderHook(
       () =>
         useWorkSubmissionFlowController({
@@ -386,6 +420,12 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.gardenAddress = "garden-1";
     view.rerender();
     expect(view.result.current.canProceed).toBe(true);
+
+    // A garden the member can no longer submit work to reopens the question and holds Start.
+    mocks.gardenAddress = "garden-2";
+    view.rerender();
+    expect(view.result.current.submissionGardenSettled).toBe(false);
+    expect(view.result.current.canProceed).toBe(false);
   });
 
   it("owns tab transitions", async () => {
@@ -1005,5 +1045,155 @@ describe("useWorkSubmissionFlowController", () => {
     expect(view.result.current.isSchedulingDependentLink).toBe(false);
     expect(view.result.current.linkSchedulingSucceeded).toBe(true);
     expect(view.result.current.linkSchedulingWorkSent).toBe(queueing);
+  });
+
+  const ACTIVE_GARDEN = "0x4444444444444444444444444444444444444444";
+  const DRAFT_GARDEN = "0x5555555555555555555555555555555555555555";
+  const NAVIGATION_GARDEN = "0x6666666666666666666666666666666666666666";
+  const memberGardens = [
+    { id: ACTIVE_GARDEN, name: "Riverside" },
+    { id: DRAFT_GARDEN, name: "Hilltop" },
+    { id: NAVIGATION_GARDEN, name: "Orchard" },
+    { id: commitmentLinkIntent.garden, name: "Creekside" },
+  ];
+  const linkSearch = `?${new URLSearchParams({
+    linkCommitmentId: "9",
+    linkRequirementIndex: "0",
+    linkActionUID: "1",
+    linkGarden: commitmentLinkIntent.garden,
+    linkCommitmentTitle: "Trees",
+    linkRequirementLabel: "1",
+    returnTo: commitmentLinkIntent.returnTo,
+  })}`;
+  const enterFlow = ({ search = "", state = null }: { search?: string; state?: unknown } = {}) =>
+    renderFlow(({ children }: { children: ReactNode }) =>
+      createElement(
+        MemoryRouter,
+        { initialEntries: [{ pathname: "/home/garden", search, state }] },
+        createElement(IntlProvider, { locale: "en", messages: {} }, children)
+      )
+    );
+
+  it.each([
+    { entry: "a fresh visit", active: ACTIVE_GARDEN, writes: [ACTIVE_GARDEN] },
+    {
+      entry: "an active garden the account cannot submit work to",
+      active: "0x7777777777777777777777777777777777777777",
+      writes: [],
+    },
+    {
+      entry: "navigation state",
+      active: ACTIVE_GARDEN,
+      navigation: NAVIGATION_GARDEN,
+      writes: [NAVIGATION_GARDEN],
+    },
+    {
+      // History hands state back as it was saved, so a value that is no garden id is ignored.
+      entry: "navigation state that is not a garden id",
+      active: ACTIVE_GARDEN,
+      navigation: 42 as unknown as string,
+      writes: [ACTIVE_GARDEN],
+    },
+    {
+      entry: "a resumed draft",
+      active: ACTIVE_GARDEN,
+      navigation: NAVIGATION_GARDEN,
+      draft: DRAFT_GARDEN,
+      writes: [],
+    },
+    {
+      entry: "a promise link",
+      active: ACTIVE_GARDEN,
+      navigation: NAVIGATION_GARDEN,
+      draft: DRAFT_GARDEN,
+      linked: true,
+      writes: [commitmentLinkIntent.garden],
+    },
+  ])("chooses the garden for $entry in the precedence order", (entry) => {
+    mocks.gardens = memberGardens;
+    mocks.activeGarden = { status: "ready", gardenId: entry.active };
+    mocks.choices = entry.linked ? [commitmentLinkIntent] : [];
+    if (entry.draft) {
+      mocks.activeDraftId = "draft-1";
+      mocks.gardenAddress = entry.draft;
+    }
+
+    enterFlow({
+      search: entry.linked ? linkSearch : "",
+      state: entry.navigation ? { gardenId: entry.navigation } : null,
+    });
+
+    // A promise link, a resumed draft and navigation state each come before the active garden,
+    // which never moves a draft's garden.
+    expect(mocks.setDraftGarden.mock.calls.map(([garden]) => garden)).toEqual(entry.writes);
+  });
+
+  it.each([
+    {
+      flow: "a resumed draft from another garden",
+      garden: DRAFT_GARDEN,
+      draft: true,
+      named: "Hilltop",
+    },
+    {
+      flow: "a promise link to another garden",
+      garden: commitmentLinkIntent.garden,
+      linked: true,
+      named: "Creekside",
+    },
+    {
+      flow: "a promise link to a garden the account is not a member of",
+      garden: commitmentLinkIntent.garden,
+      linked: true,
+      member: false,
+      named: "Creekside",
+    },
+    {
+      flow: "a promise link to a garden past the chain's newest gardens",
+      garden: commitmentLinkIntent.garden,
+      linked: true,
+      member: false,
+      listed: false,
+      named: "Creekside",
+    },
+    { flow: "work in the active garden", garden: ACTIVE_GARDEN, named: null },
+    {
+      flow: "a draft while the active garden is still unknown",
+      garden: DRAFT_GARDEN,
+      draft: true,
+      activeUnknown: true,
+      named: null,
+    },
+  ])("names the submission garden under the steps for $flow", (flow) => {
+    mocks.gardens =
+      flow.member === false
+        ? memberGardens.filter(({ id }) => id !== commitmentLinkIntent.garden)
+        : memberGardens;
+    // The chain's list holds its newest gardens; an older one is read by its id.
+    mocks.allGardens = flow.listed === false ? [] : memberGardens;
+    mocks.gardenRecord =
+      flow.listed === false ? { id: commitmentLinkIntent.garden, name: "Creekside" } : null;
+    mocks.activeGarden = flow.activeUnknown
+      ? { status: "loading", gardenId: null }
+      : { status: "ready", gardenId: ACTIVE_GARDEN };
+    mocks.choices = flow.linked ? [commitmentLinkIntent] : [];
+    mocks.activeDraftId = flow.draft ? "draft-1" : null;
+    mocks.gardenAddress = flow.garden;
+
+    const { result } = enterFlow({ search: flow.linked ? linkSearch : "" });
+
+    expect(result.current.namedSubmissionGarden?.name ?? null).toBe(flow.named);
+  });
+
+  it("asks no garden question while the flow's garden is one the member can submit work to", () => {
+    mocks.gardens = memberGardens;
+    mocks.activeGarden = { status: "ready", gardenId: ACTIVE_GARDEN };
+    mocks.gardenAddress = ACTIVE_GARDEN;
+    const view = enterFlow();
+    expect(view.result.current.submissionGardenSettled).toBe(true);
+
+    mocks.gardenAddress = "0x7777777777777777777777777777777777777777";
+    view.rerender();
+    expect(view.result.current.submissionGardenSettled).toBe(false);
   });
 });

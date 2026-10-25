@@ -105,9 +105,29 @@ describe("useActiveGarden", () => {
     const { result } = renderActiveGarden();
 
     expect(result.current).toMatchObject({ status: "loading", gardenId: shared.id });
+    // Until the gardens are known, a scoped list shows the remembered garden's items only.
+    expect(result.current.inScope([shared.id])).toBe(true);
+    expect(result.current.inScope([bobsOwn.id])).toBe(false);
     await act(async () => answer([shared, alicesOwn]));
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.gardenId).toBe(shared.id);
+  });
+
+  it("scopes lists to the active garden, keeping what no garden of the account's can show", async () => {
+    getGardens.mockResolvedValue([shared, alicesOwn, bobsOwn]);
+
+    const { result } = renderActiveGarden();
+    await waitFor(() => expect(result.current.status).toBe("choose"));
+    // No garden chosen yet: nothing is hidden.
+    expect(result.current.inScope([alicesOwn.id])).toBe(true);
+
+    act(() => result.current.selectGarden(shared.id));
+    expect(result.current.inScope([shared.id])).toBe(true);
+    // The chip can switch to Alice's own garden, so its items wait there.
+    expect(result.current.inScope([alicesOwn.id])).toBe(false);
+    // Bob's garden has no place on Alice's chip, so nothing of it is stranded.
+    expect(result.current.inScope([bobsOwn.id])).toBe(true);
+    expect(result.current.inScope([null])).toBe(true);
   });
 
   it("switches only to one of the account's own gardens", async () => {

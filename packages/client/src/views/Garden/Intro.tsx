@@ -46,6 +46,11 @@ interface WorkIntroProps {
   onJoinCommunityGarden?: () => void;
   selectedActionUID: number | null;
   selectedGardenAddress: string | null;
+  /**
+   * The chosen garden can take the chosen action, so the step asks no garden question and
+   * offers that garden's domains (decision 28).
+   */
+  gardenSettled?: boolean;
   selectedDomain: Domain | null;
   setActionUID: (value: number | null) => void;
   setGardenAddress: (value: string | null) => void;
@@ -73,6 +78,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   onJoinCommunityGarden,
   selectedActionUID,
   selectedGardenAddress,
+  gardenSettled = false,
   selectedDomain,
   setActionUID,
   setGardenAddress,
@@ -101,9 +107,14 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       );
 
       // Derive available domains from gardens' domain masks (decision 13),
-      // falling back to action-derived domains for backward compatibility
+      // falling back to action-derived domains for backward compatibility. A
+      // settled garden offers its own domains only, so every action shown is
+      // one it takes.
+      const offeringGardens = gardenSettled
+        ? gardens.filter((g) => g.id.toLowerCase() === selectedGardenAddress?.toLowerCase())
+        : gardens;
       const gardenDomainSet = new Set(
-        gardens.flatMap((g) => (g.domainMask ? expandDomainMask(g.domainMask) : []))
+        offeringGardens.flatMap((g) => (g.domainMask ? expandDomainMask(g.domainMask) : []))
       );
       const domainSet =
         gardenDomainSet.size > 0
@@ -146,7 +157,15 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         filteredGardens: domainGardens,
         effectiveDomain: effective,
       };
-    }, [actions, gardens, selectedDomain, selectedActionUID, intl.locale]);
+    }, [
+      actions,
+      gardens,
+      gardenSettled,
+      selectedGardenAddress,
+      selectedDomain,
+      selectedActionUID,
+      intl.locale,
+    ]);
 
   // Build tab items from available domains (resolved via intl)
   const domainTabItems: StandardTab[] = useMemo(
@@ -202,9 +221,10 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           onTabChange={(tabId) => {
             const domain = Number(tabId) as Domain;
             setSelectedDomain(domain);
-            // Clear action/garden selection when switching domains
+            // A new domain clears the action. A settled garden takes every domain
+            // offered, so only a garden the step still asks for is cleared.
             setActionUID(null);
-            setGardenAddress(null);
+            if (!gardenSettled) setGardenAddress(null);
           }}
           ariaLabel={intl.formatMessage({
             id: "app.gardenIntro.domains.label",
@@ -277,75 +297,81 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           />
         </>
       )}
-      <FormInfo
-        title={intl.formatMessage({
-          id: "app.garden.selectYourGarden",
-          defaultMessage: "Select Your Garden",
-        })}
-        info={intl.formatMessage({
-          id: "app.garden.whichGarden",
-          defaultMessage: "Which garden are you submitting for?",
-        })}
-        Icon={RiPlantFill}
-      />
-      {filteredGardens.length === 0 &&
-      gardensStatus === "success" &&
-      showCommunityOnramp &&
-      communityGardenSelected &&
-      joinableCommunityGarden ? (
-        <GardenCard garden={joinableCommunityGarden} selected />
-      ) : filteredGardens.length === 0 && gardensStatus === "success" && showCommunityOnramp ? (
-        <EmptyState
-          icon={<RiPlantLine />}
-          title={intl.formatMessage({
-            id: "app.garden.communityOnramp.title",
-            defaultMessage: "Join the Community Garden",
-          })}
-          description={intl.formatMessage({
-            id: "app.garden.communityOnramp.description",
-            defaultMessage:
-              "The Community Garden is open to everyone and gives you a place to submit your first work.",
-          })}
-          action={
-            <Button
-              type="button"
-              size="sm"
-              onClick={onJoinCommunityGarden}
-              loading={isJoiningCommunityGarden}
-              leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
-            >
-              {intl.formatMessage({
-                id: "app.garden.communityOnramp.action",
-                defaultMessage: "Join Garden",
+      {/* The flow names no garden it already has (decision 28): the chip on Home
+          carries it, and the flow says so under its steps when it differs. */}
+      {gardenSettled ? null : (
+        <>
+          <FormInfo
+            title={intl.formatMessage({
+              id: "app.garden.selectYourGarden",
+              defaultMessage: "Select Your Garden",
+            })}
+            info={intl.formatMessage({
+              id: "app.garden.whichGarden",
+              defaultMessage: "Which garden are you submitting for?",
+            })}
+            Icon={RiPlantFill}
+          />
+          {filteredGardens.length === 0 &&
+          gardensStatus === "success" &&
+          showCommunityOnramp &&
+          communityGardenSelected &&
+          joinableCommunityGarden ? (
+            <GardenCard garden={joinableCommunityGarden} selected />
+          ) : filteredGardens.length === 0 && gardensStatus === "success" && showCommunityOnramp ? (
+            <EmptyState
+              icon={<RiPlantLine />}
+              title={intl.formatMessage({
+                id: "app.garden.communityOnramp.title",
+                defaultMessage: "Join the Community Garden",
               })}
-            </Button>
-          }
-        />
-      ) : filteredGardens.length === 0 && gardensStatus === "success" ? (
-        <EmptyState
-          icon={<RiPlantLine />}
-          title={intl.formatMessage({
-            id: "app.garden.noGardensAvailable.title",
-            defaultMessage: "No gardens available",
-          })}
-          description={intl.formatMessage({
-            id: "app.garden.noGardensAvailable.description",
-            defaultMessage: "You may need to join a garden first.",
-          })}
-        />
-      ) : (
-        <GardenPicker
-          gardens={filteredGardens}
-          value={selectedGardenAddress}
-          onChange={setGardenAddress}
-          label={intl.formatMessage({
-            id: "app.garden.selectYourGarden",
-            defaultMessage: "Select Your Garden",
-          })}
-          layout="row"
-          loading={gardensStatus === "pending"}
-          className={PICKER_ROW_CLASS}
-        />
+              description={intl.formatMessage({
+                id: "app.garden.communityOnramp.description",
+                defaultMessage:
+                  "The Community Garden is open to everyone and gives you a place to submit your first work.",
+              })}
+              action={
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={onJoinCommunityGarden}
+                  loading={isJoiningCommunityGarden}
+                  leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
+                >
+                  {intl.formatMessage({
+                    id: "app.garden.communityOnramp.action",
+                    defaultMessage: "Join Garden",
+                  })}
+                </Button>
+              }
+            />
+          ) : filteredGardens.length === 0 && gardensStatus === "success" ? (
+            <EmptyState
+              icon={<RiPlantLine />}
+              title={intl.formatMessage({
+                id: "app.garden.noGardensAvailable.title",
+                defaultMessage: "No gardens available",
+              })}
+              description={intl.formatMessage({
+                id: "app.garden.noGardensAvailable.description",
+                defaultMessage: "You may need to join a garden first.",
+              })}
+            />
+          ) : (
+            <GardenPicker
+              gardens={filteredGardens}
+              value={selectedGardenAddress}
+              onChange={setGardenAddress}
+              label={intl.formatMessage({
+                id: "app.garden.selectYourGarden",
+                defaultMessage: "Select Your Garden",
+              })}
+              layout="row"
+              loading={gardensStatus === "pending"}
+              className={PICKER_ROW_CLASS}
+            />
+          )}
+        </>
       )}
 
       {showCommitmentChoices ? (

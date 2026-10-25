@@ -104,6 +104,7 @@ import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUser } from "../../hooks/auth/useUser";
 import { useTransactionSender } from "../../hooks/blockchain/useTransactionSender";
 import { connectivityStore } from "../../stores/connectivity";
+import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
 import { createFakeJobQueueHandle } from "../test-utils/job-queue-fakes";
 import type { JobQueueHandle } from "../../modules/job-queue";
 import type { Job, QueueEvent } from "@green-goods/shared/types";
@@ -378,6 +379,37 @@ describe("providers/JobQueueProvider", () => {
       await waitFor(() =>
         expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith(drafts)
       );
+    });
+
+    it("reports a failed upload in any garden, not only the one the chip has chosen", async () => {
+      const subscribedHandlers = new Set<(event: QueueEvent) => void>();
+      mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
+        subscribedHandlers.add(handler);
+        return () => subscribedHandlers.delete(handler);
+      });
+      // The sheets and badges show garden A (DL-129); the upload that failed was for garden B.
+      useActiveGardenStore.getState().rememberGarden("11155111:0xsmartaccount", "0xgardena");
+      const work = {
+        id: "work-in-b",
+        kind: "work",
+        chainId: 11155111,
+        payload: { actionUID: 1, gardenAddress: "0xgardenb", feedback: "" },
+        createdAt: Date.now(),
+        attempts: 3,
+        synced: false,
+        userAddress: "0xSmartAccount",
+      } as Job;
+      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        subscribedHandlers.forEach((handler) =>
+          handler({ type: "job_failed", jobId: work.id, job: work, error: "network" })
+        );
+        await Promise.resolve();
+      });
+
+      expect(queueToasts.jobFailed).toHaveBeenCalledWith("work", "network");
+      useActiveGardenStore.setState({ gardenIdsByScope: {} });
     });
 
     it("invalidates recipient-scoped approval reads when an approval job completes", async () => {
