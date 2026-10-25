@@ -85,7 +85,9 @@ Both isolated temporary copies contain the same shared context and synthetic
 `qa-triage/fixtures/example-product-sync.md`, plus their revision's complete QA instruction tree.
 The prompt and response schema are identical. No live notes or service credentials are supplied.
 The fixture SHA-256 is `32e6b09b779ec1cfa1cf1085d13147b004eacbe82071763621fc6817ec937fb0`
-in both copies; the retained local manifest records each instruction file and prompt/schema hash.
+in both copies. The durable [prompt](qa-comparison.prompt.txt), [schema](qa-comparison.schema.json),
+and [manifest](qa-comparison.manifest.json) retain the exact synthetic inputs and hashes. The schema
+is reconstructed with its original JSON serialization before hash verification.
 
 Score each proposal against the same rubric:
 
@@ -104,8 +106,110 @@ approved read-only retry reached transport initialization; preserving the existi
 settings then exposed HTTP 403 `Method not allowed in limited mode` from the model endpoint.
 The before variant exited 1 without a proposal, so the after variant was not launched. This is a
 network capability block; current credit availability and model identity are unknown. No token,
-equivalence, or performance claim is available. Local prompt/schema/manifest and failure logs are
-retained outside Git for resume. The original October 24 credit failure remains historical.
+equivalence, or performance claim is available. The manifest records the exact redacted argv,
+closed stdin, environment-name allowlist, timeout, and CLI version observed during review. The
+failed run did not capture its effective CLI version. Original stdout/stderr
+logs stay private outside Git; they are not needed to reconstruct the inputs. Effective historical
+model/reasoning settings were not captured and remain unknown. A resumed comparison must rerun
+both variants with explicit matching settings. The original October 24 credit failure remains
+historical.
+
+### Reconstruct or resume the comparison
+
+Run this one-shot recipe from the repository root. Its default prepares and verifies the inputs
+without calling a model. The two pinned Git revisions must be locally available; if `git show`
+cannot read one, retrieve that exact revision through the normal authorized GitHub path or stop
+as blocked. Preparation creates temporary copies only.
+
+For a later authorized model run, set `QA_COMPARE_MODE=run`, `QA_COMPARE_MODEL` to one exact
+available model ID, and `QA_COMPARE_EFFORT` to its supported reasoning setting for both variants.
+These values must be selected at resume time, not inferred from the failed historical call.
+Keep the same CLI/configuration throughout the pair; the local run manifest records version,
+requested settings, timestamps, exit codes, and hashes. Stop on a failed call, retain its logs,
+and score neither variant as a completed pair. Raw logs and local paths remain outside Git.
+The [official CLI reference](https://learn.chatgpt.com/docs/developer-commands#codex-exec) and
+`codex exec --help` own flag availability; verify them if the CLI version changes.
+
+```python
+from pathlib import Path
+import datetime, hashlib, json, os, subprocess, tempfile
+
+repo = Path.cwd()
+assets = repo / ".plans/active/codebase-architecture-skills/handoffs"
+manifest = json.loads((assets / "qa-comparison.manifest.json").read_text())
+prompt = (assets / "qa-comparison.prompt.txt").read_bytes()
+schema = (json.dumps(json.loads((assets / "qa-comparison.schema.json").read_text()), indent=2) + "\n").encode()
+digest = lambda value: hashlib.sha256(value).hexdigest()
+assert digest(prompt) == manifest["prompt_sha256"]
+assert digest(schema) == manifest["schema_sha256"]
+
+mode = os.environ.get("QA_COMPARE_MODE", "prepare")
+assert mode in ("prepare", "run")
+model = os.environ.get("QA_COMPARE_MODEL")
+effort = os.environ.get("QA_COMPARE_EFFORT")
+if mode == "run" and not (model and effort):
+    raise SystemExit("Set an exact QA_COMPARE_MODEL and QA_COMPARE_EFFORT before running either variant")
+
+def git(*args):
+    return subprocess.check_output(["git", *args], cwd=repo)
+
+root = Path(tempfile.mkdtemp(prefix="gg-prd835-comparison-"))
+context = manifest["common_context"]
+common = {}
+for name in git("ls-tree", "-r", "--name-only", context["revision"], "--", *context["paths"]).decode().splitlines():
+    common[name] = git("show", f"{context['revision']}:{name}")
+for variant, case in manifest["variants"].items():
+    target = root / variant
+    for name, content in common.items():
+        dest = target / name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(content)
+    for name, expected in case["instruction_files"].items():
+        content = git("show", f"{case['sha']}:{name}")
+        assert digest(content) == expected, name
+        dest = target / name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(content)
+    (target / "prompt.txt").write_bytes(prompt)
+    (target / "schema.json").write_bytes(schema)
+
+run = {"inputs": manifest, "common_context_hashes": {name: digest(value) for name, value in common.items()},
+       "mode": mode, "model": model, "reasoning_effort": effort, "results": []}
+(root / "run-manifest.json").write_text(json.dumps(run, indent=2) + "\n")
+print(root, flush=True)
+if mode == "run":
+    binary = subprocess.check_output([str(repo / ".claude/scripts/resolve-codex-binary.sh")], cwd=repo, text=True).strip()
+    env = {name: os.environ[name] for name in manifest["original_runtime"]["retained_environment_names"] if name in os.environ}
+    run["cli_version"] = subprocess.check_output([binary, "--version"], env=env, text=True).strip()
+    for variant in ("before", "after"):
+        target = root / variant
+        args = [binary, "exec", "-s", "read-only", "--ephemeral", "--skip-git-repo-check",
+                "-C", str(target), "--json", "-o", str(target / "result.json"),
+                "--output-schema", str(target / "schema.json"), "--model", model,
+                "-c", "model_reasoning_effort=" + json.dumps(effort), prompt.decode()]
+        result = {"variant": variant, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+        try:
+            with (target / "events.jsonl").open("w") as out, (target / "stderr.log").open("w") as err:
+                completed = subprocess.run(args, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                                           env=env, timeout=manifest["original_runtime"]["timeout_seconds"])
+            result["exit_code"] = completed.returncode
+            if completed.returncode != 0:
+                raise RuntimeError("Model call failed; retain logs and stop the pair")
+            output = json.loads((target / "result.json").read_text())
+            if not isinstance(output.get("items"), list):
+                raise ValueError("Missing items array; do not score this pair")
+        except Exception as error:
+            result["error_type"] = type(error).__name__
+            raise
+        finally:
+            result["ended_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            run["results"].append(result)
+            (root / "run-manifest.json").write_text(json.dumps(run, indent=2) + "\n")
+```
+
+Run the block with `python3` (for example, paste it into `python3 - <<'PY' ... PY`). After a
+successful paired run, validate both responses against the schema and the five-point rubric
+above before recording the comparison outcome. A preparation pass is not model-behavior proof.
 
 The semantic description-classifier receipt is a separate historical limit: its August run was
 truncated. Deterministic routing proof is retained; no semantic PASS is inferred. PR #1273 did
