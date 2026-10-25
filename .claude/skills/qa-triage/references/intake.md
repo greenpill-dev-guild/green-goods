@@ -30,6 +30,8 @@ Contents:
 - `sheet-test-backfill.csv` — Phase 5 Test-tab `Defect Link` backfills
 - `schema-bootstrap.csv` — emitted only when the Defects tab needs the 6 new PostHog/Linear columns
 - `codex-merge.json` — idempotency ledger for the background Codex result (result digest, stable item keys, assigned item numbers, and merge status)
+- `codex-scratch-path.txt` / `codex-success-path.txt` — current attempt and successfully published attempt; consume automatic output only when both identify the same completed directory
+- `manual-prompt.md` — fallback prompt with readable absolute notes and schema paths
 - `report.md` — Phase 7 final summary
 - `catalog-feedback.md` — call mode only: the `catalog` observations from Phase 2b; copied de-attributed into the catalog-owning plan hub at Phase 7 before cleanup
 
@@ -146,8 +148,9 @@ Show the candidate list (max 5, last 14 days) with title + modified date. Confir
    exclude parent service credentials, and close stdin. Continue Phase 3 while it runs.
    On resume, inspect the recorded child/result before considering another dispatch.
 
-   If delegation is unavailable, prohibited, or fails, record why in `report.md` and retain
-   the rendered prompt for an optional manual pass. `--no-codex` uses that same fallback.
+   If delegation is unavailable, prohibited, or fails, record why in `report.md` and render
+   `manual-prompt.md` using [the manual fallback](../codex-prompt.md#manual-fallback), with
+   readable absolute paths to the notes and schema. `--no-codex` uses that same fallback.
    A child failure never blocks the primary extraction. Process returned items through the
    idempotent completion handler; never merge them ad hoc.
 
@@ -161,7 +164,12 @@ Use the merge contract in [codex-prompt.md § Idempotent completion handler](../
 2. after Phase 3 enrichment, before first presenting the Phase 4 triage gate; and
 3. immediately before Phase 7 finalization and current-run scratch cleanup.
 
-The handler reads the `items` array out of the result object, validates the records, computes the file digest and stable item keys, and records them in `codex-merge.json`. A digest already recorded as handled is a no-op. Net-new items are added once to `extraction.md`, then enriched or replaced by item key in `cross-ref.md`; never append a second copy of an existing item or block.
+Before consuming automatic output, the handler verifies matching scratch/success pointers, the
+current attempt's completion marker, and that its result matches the published file. Failed or
+prior-attempt results are evidence only.
+It then reads the `items` array, validates the records, computes the file digest and stable item
+keys, and records them in `codex-merge.json`. A digest already handled is a no-op. Net-new items
+are added once to `extraction.md`, then enriched or replaced by key in `cross-ref.md`.
 
 If completion arrives after Phase 3, reopen Phase 3 only for net-new Codex items. If the Phase 4 list was already shown or `triage.md` already contains a scope lock, present an additive triage gate for only those new item numbers and append the response to `triage.md`; preserve every earlier disposition. Do not let late Codex output silently enter Phase 5 payloads.
 

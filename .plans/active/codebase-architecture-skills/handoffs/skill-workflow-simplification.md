@@ -80,3 +80,40 @@ Agent: Codex; exact model unknown | Coverage: this implementation segment
 | Verify | Unknown → 2026-10-25 03:11:21 | Working-tree proof above; committed publication gate follows separately |
 
 Human corrections: 0 observed; human attention: unknown.
+
+## Requested review corrections
+
+The user authorized both P2 findings from the follow-up review of PR #1273. Extraction now
+writes into the current attempt's scratch and publishes only after a successful child exit.
+Redispatch invalidates the success pointer before setup; the completion handler requires matching
+attempt pointers, a completion marker, and matching result contents. Previous results and scratch
+pointers remain evidence, including when setup or the child fails.
+
+The manual fallback now renders a separate prompt with absolute paths to the existing notes and
+schema. It works when automatic dispatch is skipped or fails before input copies. Unreadable
+inputs stop rendering and withdraw an older manual prompt. Manual responses still require parent
+validation, deduplication, and the additive scope gate.
+
+Before correction, nine existing tests passed and four new regression tests failed. After
+correction and an additional scratch-allocation failure case, all 14 focused tests pass. They
+exercise the documented recipes, including failed redispatch, CLI/input setup failure, partial
+output, recovery, paths with spaces, and manual input resolution from another directory. Test
+growth exceeds executable recipe growth to cover these failure and fallback boundaries.
+
+The working-tree QA selector passed all five selected checks: formatting, lint, docs authority,
+docs build, and agent guidance. Docs authority passed 81 tests, the docs build indexed 78 routes,
+and guidance passed 15 scenarios, 15 routes, and 97 files. Existing advisory warnings remain as
+recorded above. Committed Push Gate and current-head CI evidence belong in the PR. These fixes do
+not fill the remaining real-task or model-comparison pilot rows.
+
+Task record: PR #1273 review corrections | Type: fix | Outcome: implemented; publication follows
+Agent: Codex; exact model unknown | Coverage: this review-correction segment
+
+| Phase | Start → end (UTC) | Evidence |
+|---|---|---|
+| Investigate | 2026-10-25 04:33:02 → unknown | Both accepted review findings traced to the documented recipes |
+| Implement | Unknown → 2026-10-25 04:38:11 | Attempt-scoped publication and portable manual fallback |
+| Verify | 2026-10-25 04:38:11 → 2026-10-25 04:41:53 | Focused regressions and selected QA checks passed |
+| Review | 2026-10-25 04:41:53 → ongoing | Final diff and failure boundaries inspected before publication |
+
+Human corrections: 0 observed; human attention: unknown.

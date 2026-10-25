@@ -2,7 +2,9 @@
 
 Render the template as `tmp/qa-triage/<slug>/codex-prompt.md` before dispatch. Set `{notes_path}` to `qa-notes.md`, relative to the child working root, and substitute `{meeting_title}`, `{meeting_date}`, and `{slug}`. Write the companion schema beside it.
 
-When Codex auto-dispatch fails or `--no-codex` is set, the skill copies this rendered prompt to `tmp/qa-triage/<slug>/codex-prompt.md` and surfaces the path for manual copy-paste.
+When automatic dispatch is unavailable, fails, or is skipped with `--no-codex`, use
+[Manual fallback](#manual-fallback) to produce `manual-prompt.md` with existing absolute input
+paths. The automatic prompt's relative paths are valid only inside the copied scratch directory.
 
 ---
 
@@ -12,10 +14,17 @@ Pattern source: this repository's QA-triage skill and the rendered prompt below.
 
 ```bash
 set -euo pipefail
-CODEX="$(.claude/scripts/resolve-codex-binary.sh)"
 RUN_DIR="$(pwd)/tmp/qa-triage/<slug>"
+rm -f -- "$RUN_DIR/codex-success-path.txt"
 EXTRACT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/gg-codex-qa.XXXXXX")"
+if [ -f "$RUN_DIR/codex-scratch-path.txt" ]; then
+  cp -- "$RUN_DIR/codex-scratch-path.txt" "$EXTRACT_DIR/previous-scratch-path.txt"
+fi
+if [ -f "$RUN_DIR/codex-result.md" ]; then
+  mv -- "$RUN_DIR/codex-result.md" "$EXTRACT_DIR/previous-result.md"
+fi
 printf '%s\n' "$EXTRACT_DIR" > "$RUN_DIR/codex-scratch-path.txt"
+CODEX="$(.claude/scripts/resolve-codex-binary.sh)"
 
 # Copy contents, including a symlinked notes source, into the isolated working root.
 # Render codex-prompt.md beforehand with {notes_path} set to qa-notes.md.
@@ -36,9 +45,16 @@ CODEX_ENV=(
 # The scratch directory has no Git checkout. Closed stdin avoids waiting for more input.
 env -i "${CODEX_ENV[@]}" \
   "$CODEX" exec -s read-only --ephemeral --skip-git-repo-check -C "$EXTRACT_DIR" \
-  -o "$RUN_DIR/codex-result.md" \
+  -o "$EXTRACT_DIR/codex-result.md" \
   --output-schema "$EXTRACT_DIR/schema.json" \
   "$(cat "$EXTRACT_DIR/qa-prompt.md")" < /dev/null
+
+# Only a successful child may publish a result for the completion handler.
+test -s "$EXTRACT_DIR/codex-result.md"
+cp -- "$EXTRACT_DIR/codex-result.md" "$RUN_DIR/codex-result.pending"
+mv -- "$RUN_DIR/codex-result.pending" "$RUN_DIR/codex-result.md"
+touch "$EXTRACT_DIR/completed"
+printf '%s\n' "$EXTRACT_DIR" > "$RUN_DIR/codex-success-path.txt"
 ```
 
 Fire via `Bash` with `run_in_background: true`, keeping the `< /dev/null` redirect. The clean
@@ -56,9 +72,42 @@ releases and a rejected flag fails the run before any model call.
 ### Scratch ownership and completion
 
 Record the current child's directory in `codex-scratch-path.txt`; never infer ownership from a
-glob or a slug. Keep that directory on failure, dry run, or while the child is running. After its
-result is handled and the confirmed writes succeed, remove only the recorded current-run scratch.
+glob or a slug. Keep one active child per run; resume a pending child before redispatching.
+A redispatch withdraws `codex-success-path.txt` before any fallible setup and retains the previous
+pointer and result in its new attempt directory before resolving the CLI or copying inputs. Keep
+scratch on failure, dry run, or while the child is running. After its result is handled and the
+confirmed writes succeed, remove only the recorded current-run scratch. Previous-attempt links
+preserve evidence; they do not authorize recursive cleanup.
 Prior Git worktrees belong to their original runs and require a separately authorized cleanup.
+
+## Manual fallback
+
+Prepare the automatic prompt and companion schema in the run workspace even when skipping
+automatic dispatch. Run this from the repository root to render a separate manual prompt:
+
+```bash
+set -euo pipefail
+RUN_DIR="$(pwd)/tmp/qa-triage/<slug>"
+rm -f -- "$RUN_DIR/codex-success-path.txt" "$RUN_DIR/manual-prompt.md"
+python3 - "$RUN_DIR" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+run = Path(sys.argv[1]).resolve()
+paths = {"qa-notes.md": run / "notes.md", "schema.json": run / "schema.json"}
+for path in paths.values():
+    path.read_text()
+prompt = (run / "codex-prompt.md").read_text()
+manual = re.sub(r"qa-notes\.md|schema\.json", lambda match: str(paths[match[0]]), prompt)
+(run / "manual-prompt.md").write_text(manual)
+PY
+```
+
+Surface `manual-prompt.md` for copy-paste into the manual session. Both inputs resolve from any
+working directory. If an input cannot be read, report that missing input instead of presenting a
+broken prompt. Manual responses return to the parent for schema validation, deduplication, and
+an additive scope gate; they are never mistaken for a successful automatic attempt.
 
 ---
 
@@ -217,7 +266,15 @@ property is required; optional fields stay optional by allowing `null`.
 
 ## Idempotent completion handler
 
-When Codex's result file lands at `tmp/qa-triage/{slug}/codex-result.md`, handle it through this contract whether Phase 3 is still running or has already completed:
+For an automatic result, first require `codex-success-path.txt` to name the same directory as the
+current `codex-scratch-path.txt`. That directory must have the `completed` marker written after
+the child exits successfully, and the published
+`tmp/qa-triage/{slug}/codex-result.md` must match that attempt's `codex-result.md`. If any check
+fails, keep a running attempt pending or record a failed attempt and use the manual fallback. Never
+consume `previous-result.md`, a `.pending` file, or a failed child's partial output.
+
+Apply the following contract to a verified automatic result or a separately identified manual
+response, whether Phase 3 is still running or has already completed:
 
 1. Parse the result as JSON and take its `items` array (a bare top-level array from a pre-2026-08 run is accepted as the same thing); validate the records against `schema.json`. If the completed dispatch has no result, malformed JSON, or an empty `items` array, record the failure in `report.md`'s `⚠ Codex failures` block and continue with Claude's extraction only.
 2. Compute a SHA-256 digest of the result file. If `tmp/qa-triage/{slug}/codex-merge.json` already records that digest as `handled`, return without changing any artifact.
