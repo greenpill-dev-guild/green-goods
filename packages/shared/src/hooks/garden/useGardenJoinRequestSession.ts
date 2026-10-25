@@ -27,7 +27,8 @@ const sessions = new WeakMap<Query, { proof?: GardenJoinProofEnvelope; operation
  * This session's record of one account's request to join one garden: in memory only, outside
  * the persisted namespace, and removed with the account's other private queries at sign-out.
  * The join dialog's session and the lists that mark a garden awaiting review observe the same
- * record, so both build it from here.
+ * record, so both build it from here. Setting it also notes the device's own record of the
+ * request (`useAwaitingJoinRequestsStore`), which holds no proof and outlives the session.
  */
 function joinRequestStatusQuery(
   chainId: number,
@@ -91,6 +92,16 @@ export function useGardenJoinRequestSession(
     if (!isCurrentScope(scopeKey)) return;
     client.setQueryData<Status>(key, (current) => ({ ...(current ?? EMPTY), ...patch }));
   }
+  // The device keeps which gardens the account asked to join, so Awaiting review outlives this
+  // session (DL-123). The record follows the session's own answer, for a membership request with
+  // a real garden and account; a steward-access ask is no join.
+  function noteOnDevice(request: GardenJoinRequestSelfRecord | null) {
+    if (kind !== "garden_membership" || garden === "none" || account === "none") return;
+    const scope = awaitingJoinRequestScope(chainId, account);
+    if (scope) {
+      useAwaitingJoinRequestsStore.getState().noteRequest(scope, garden, request, Date.now());
+    }
+  }
   return {
     ...observed.data,
     scopeKey,
@@ -98,7 +109,11 @@ export function useGardenJoinRequestSession(
     beginOperation: () => ++privateSession.operation,
     isCurrentOperation: (operation: number) => privateSession.operation === operation,
     isCurrentScope,
-    setRequest: (request: GardenJoinRequestSelfRecord | null) => update({ request }),
+    setRequest: (request: GardenJoinRequestSelfRecord | null) => {
+      if (!isCurrentScope(scopeKey)) return;
+      update({ request });
+      noteOnDevice(request);
+    },
     setHasCheckedStatus: (hasCheckedStatus: boolean) => update({ hasCheckedStatus }),
     setOutcomeUnknown: (outcomeUnknown: boolean) => update({ outcomeUnknown }),
     readAuthorization() {
