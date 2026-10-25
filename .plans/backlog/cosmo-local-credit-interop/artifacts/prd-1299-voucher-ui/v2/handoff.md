@@ -1,8 +1,8 @@
 # PRD-1299 voucher design lab, v2: handoff
 
-**Status:** draft for Afo's review; the direction is not approved yet. This file opens with the
+**Status:** design direction approved by Afo on 25 October 2026. This file opens with the
 build brief for PRD-1297. The sections after it are the reference the brief rests on, and the
-history of each revision, from 22 to 24 October 2026, is at the end. Nothing here changes
+history of each revision, from 22 to 25 October 2026, is at the end. Nothing here changes
 contracts, production code, live configuration or Linear.
 
 PRD-1299 owns design approval and PRD-1297 implements it. PRD-1323 and PRD-1324 own linked
@@ -15,14 +15,16 @@ rewards. Gui reviews the Portuguese copy (PRD-1312).
   string in English, Spanish and Portuguese.
 - **See it rendered:** [`evidence/`](evidence/) holds labeled static-prototype screenshots.
 - **Change it:** edit [`lab/`](lab/), then [rebuild and check](#rebuild-and-check).
-- **Published:** the [Voucher Pilot Design](https://claude.ai/artifact/12BURCmGX2Ddnzt7Uv4USC)
-  (artifact version 6, private) shows the fourth pass of 24 October, not this revision. The older
+- **Published:** the [Voucher Pilot Design](https://claude.ai/artifact/4JsufnSDH2uym3arusVpdE)
+  (private) shows this revision beside the lab. It replaces an
+  [earlier page of that name](https://claude.ai/artifact/12BURCmGX2Ddnzt7Uv4USC), whose version 6 shows the
+  fourth pass and which the approving session could not open. The older
   [Voucher Lab](https://claude.ai/artifact/3pwUYy43vdb91q6qdH3H9G) shows the 22 October draft.
 
 ## Build this
 
 The brief PRD-1297 builds from. Everything after it in this file is the reference it rests on.
-Approving the direction is still Afo's call ([Decisions](#decisions)).
+Afo approved the direction on 25 October 2026 ([Decisions](#decisions)).
 
 ### Pilot scope
 
@@ -269,13 +271,13 @@ Gaps the shipped surfaces exposed:
 
 | Item | Owner |
 |---|---|
-| Approving the direction | Afo |
 | Delisting's mechanism; the lab recommends a zero pool holding limit | PRD-1297 |
 | Portuguese and Spanish review | Gui (PRD-1312); a native Spanish speaker |
 | Each issuer's acceptance of the terms, its capacity and its addresses | The issuers, at onboarding |
 | The downstream deployment, its owner packets and their adoption | The implementation lane |
 | The Promises sheet scoped to the active garden | The Home redesign |
 | The two shipped contrast gaps | The design system's owner |
+| The hub spec's item 4 and the plan's PRD-1299 wording item still call the voucher wording undecided; the approved design's copy answers them | The hub's owner |
 
 ## Decisions
 
@@ -325,8 +327,8 @@ capacity and addresses are onboarding inputs, not blockers to implementation or 
 Placement is settled by the no-regression rule: each piece lives on the shipped surface the
 contract branch extends.
 
-**Still open: the direction.** Afo approves the rebuilt screens and the eight journeys, or marks
-what to change.
+**Approved on 25 October: the direction.** Afo approved the rebuilt screens, the eight journeys
+and [Build this](#build-this).
 
 **For PRD-1297 to choose:** delisting's mechanism. The lab recommends a zero pool holding limit,
 prepared as an owner Safe draft beside the onboarding drafts, which keeps every balance.
@@ -524,7 +526,7 @@ Where the lab and the implementation differ, the lab records it instead of chang
 
 ## Copy and text owners
 
-- English is a draft for Afo, and the first cohort gets English (decision 9). Portuguese awaits
+- English is the approved design's copy, and the first cohort gets English (decision 9). Portuguese awaits
   Gui's review (PRD-1312), and Spanish awaits a native speaker. The [copy sheet](copy-sheet.md)
   marks both. The app's locale test needs every key in all three catalogs, so the drafts ship with
   the English and reviewed text replaces them ([Copy](#copy)). The 24 October keys include
@@ -619,8 +621,17 @@ These files are design artifacts. Code, tests and CI must not depend on them.
 
 ## History
 
-Each revision of this draft, newest first. Where an earlier pass describes a screen's first form,
+Each revision of this design, newest first. Where an earlier pass describes a screen's first form,
 a later pass gives its current one, and [Build this](#build-this) is the current brief.
+
+### What changed on 25 October: approval and the published page
+
+Afo confirmed the build brief is clear and approved the direction. This file, the lab's header and
+its Decisions and gaps page, the copy sheet and the artifact README now say so. Version 6 of the
+published page could not be opened from this session, so at Afo's choice the summary page was
+rebuilt for the fifth pass and published as a new artifact, [Voucher Pilot Design](https://claude.ai/artifact/4JsufnSDH2uym3arusVpdE),
+with its 31 screen frames rendered again from this lab and the two comparison images from
+`evidence/`.
 
 ### What changed on 24 October, fifth pass: the build brief
 
@@ -845,8 +856,8 @@ v1 stays frozen in its own folder, and the lab keeps v1's screens under **v1 ref
 
 ## Task record
 
-Task record: PRD-1299 v2 pilot revision | Type: design | Outcome: complete as a draft; approval pending
-Agent/model: Claude Code / claude-opus-5-5 and claude-fable-5-1, in four sessions | Coverage: the revision from 22 October 23:54 UTC to the build brief of 25 October UTC
+Task record: PRD-1299 v2 pilot revision | Type: design | Outcome: complete; direction approved on 25 October
+Agent/model: Claude Code / claude-opus-5-5 and claude-fable-5-1, in four sessions | Coverage: the revision from 22 October 23:54 UTC to the approval of 25 October UTC
 
 | Phase | Start → end (UTC) | Result / evidence or blocker |
 |---|---|---|
@@ -884,6 +895,11 @@ Agent/model: Claude Code / claude-opus-5-5 and claude-fable-5-1, in four session
 | Implement | about 02:13 → 02:31 | The cockpit rollout, the wallet's booking row and journey step, the crosswalk and live-state corrections, the Safe threshold copy, the hub-day wording, and the lab-code fixes. Times from file changes, approximate. |
 | Verify | about 02:28 → 02:34 | `check.mjs` failed on a removed key, the target line's ellipsis and three contrast findings, two of them in shipped pieces; after the fixes it passed (1,707 renders, 719 dial settings). Renders reviewed; keyboard walk, 37 stops. |
 | Document | about 02:34 → 02:48 | Build this; the reference sections and the history reordered; evidence re-rendered from the built page with today's Storybook; evidence README, design audit and artifact README. |
+| Ship | about 02:44 → 02:55 | Push gate passed; committed `6bf015e42`; pushed; PR description updated and checked against the live text. |
+| Wait | 2026-10-25 02:55 → 03:03 | Afo's read of the brief; resolved: "The build brief is clear." |
+| Decide | 04:22 → about 04:26 | Afo approved the direction and asked for the review's dismissal, the merge and a republish. Version 6 could not be read from this session, so Afo chose a new artifact. |
+| Publish | about 04:26 → 04:39 | Lab, copy sheet and docs marked approved; `check.mjs` passing (1,707 renders, 719 dial settings); 31 frames rendered again; the summary page rebuilt and published as a new artifact after one look at two widths. |
+| Document | 04:40 → about 04:50 | This record, the handoff's status, open items and history, and the artifact README; the commit, push and merge follow. |
 
 Human corrections: 2 observed in the third session (the designs had lost the existing promise and
 pool components; the published page still asked settled questions and listed cleared blockers);

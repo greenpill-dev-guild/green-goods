@@ -250,7 +250,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   <aside class="lab-nav" id="nav" aria-label="Lab contents">
     <div class="lab-brand">
       <span class="lab-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8a2 2 0 0 0 2-2h12a2 2 0 0 0 2 2v2.5a1.5 1.5 0 0 0 0 3V16a2 2 0 0 0-2 2H6a2 2 0 0 0-2-2v-2.5a1.5 1.5 0 0 0 0-3z"/><path d="M12 15v-4"/><path d="M12 11c0-2 1.2-3.2 3.2-3.2 0 2-1.2 3.2-3.2 3.2zM12 11c0-2-1.2-3.2-3.2-3.2 0 2 1.2 3.2 3.2 3.2z"/></svg></span>
-      <div><b>Voucher Lab</b><span>Cosmo-Local · PRD-1299 draft, not approved</span></div>
+      <div><b>Voucher Lab</b><span>Cosmo-Local · PRD-1299, approved 25 Oct 2026</span></div>
     </div>
     <div class="lab-group"><h2>Pilot design</h2><div id="nav-simple"></div></div>
     <div class="lab-group"><h2>What changed from v1</h2><div id="nav-p"></div></div>
@@ -1034,8 +1034,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     crosswalk: { title: 'Screens and states', meta: 'What is built, proved and blocked',
       note: 'Each pilot screen and state, the implemented behavior it shows and its source, the recorded local proof and its evidence class, what remains unproven or blocked, and ideas kept outside the pilot. The same table is in crosswalk.md.',
       blocks: [['crosswalk']] },
-    answers: { title: 'Decisions and gaps', meta: 'Recommendations and what Afo decides',
-      note: 'What the pilot design follows, the recommendations it makes inside that architecture, what is settled, the decisions left for Afo, the gaps it found in the implementation, and the live blockers.',
+    answers: { title: 'Decisions and gaps', meta: 'Recommendations and what Afo decided',
+      note: 'What the pilot design follows, the recommendations it makes inside that architecture, what is settled, what Afo decided and approved, the gaps it found in the implementation, and the live blockers.',
       blocks: [
         ['h', 'What the design follows'],
         ['ul', [
@@ -1099,8 +1099,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           '**A booking at another garden is reached from the wallet.** Home’s Promises sheet will show the active garden only, so the wallet’s Vouchers tab shows a voucher a booking holds as its own row, which opens the booking.',
           '**Services show wherever the garden’s promises are listed:** the Promises sheet over Home for its members, the garden page for visitors, on the same rows. The lab draws the visitor’s view.'
         ]],
-        ['h', 'Still open'],
-        ['p', '**The direction.** Afo approves the rebuilt screens and the eight journeys, or marks what to change.'],
+        ['h', 'Approved by Afo on 25 October'],
+        ['p', '**The direction.** Afo approved the rebuilt screens, the eight journeys and the build brief that opens the handoff, which PRD-1297 builds from.'],
         ['h', 'For PRD-1297 to choose'],
         ['ul', [
           '**Delisting’s mechanism.** The lab recommends a zero pool holding limit, prepared as an owner Safe draft beside the onboarding drafts, which keeps every balance.'
