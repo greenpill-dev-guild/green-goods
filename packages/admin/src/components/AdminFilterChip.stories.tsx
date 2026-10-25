@@ -177,6 +177,13 @@ export const WorkspaceToneMatrix: Story = {
             Number.parseFloat(getComputedStyle(chip).borderTopLeftRadius)
           ).toBeGreaterThanOrEqual(chip.getBoundingClientRect().height / 2);
         }
+        // A resting chip draws the cockpit's control outline (DL-098), in the dark
+        // section too, where theme.css would otherwise lay its dark hairline.
+        await waitFor(() =>
+          expect(getComputedStyle(approved).borderTopColor).toBe(
+            channelColor(scope, "--m3-outline")
+          )
+        );
         await expect(pending).toHaveAttribute("aria-pressed", "true");
         await expect(getComputedStyle(pending).backgroundColor).toBe(
           channelColor(scope, "--tone-action")

@@ -31,6 +31,9 @@ export const worksKeys = {
     ["greengoods", "works", "window", gardenSegment(gardenId), chainId] as const,
   reviewQueue: (gardenId: string, chainId: number) =>
     ["greengoods", "works", "reviewQueue", gardenSegment(gardenId), chainId] as const,
+  /** The garden's works and decisions of the last week, for the bell (`readGardenActivity`). */
+  activity: (gardenId: string, chainId: number) =>
+    ["greengoods", "works", "activity", gardenSegment(gardenId), chainId] as const,
   byUID: (uid: string, chainId: number) =>
     ["greengoods", "works", "byUID", uid.toLowerCase(), chainId] as const,
   offline: (gardenId: string, chainId?: number, account?: string) =>
