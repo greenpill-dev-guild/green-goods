@@ -279,7 +279,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    > {quoted message text — verbatim, no editorializing}
 
    ## Reporter context
-   - Customer / garden: {garden name and Linear customer record if linked, else "unknown"}
+   - Customer: {the customer whose speaker external ID matches, else "unresolved"}
    - Role: {gardener | operator | guild | unknown}
 
    ## Affected surface
@@ -330,7 +330,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    {one sentence Afo can paste into a public update without exposing PII; no usernames, garden addresses, replay URLs, session IDs, distinct IDs, wallet addresses, or identifying screenshots}
    ```
 
-   Associate the Customer Need with the customer/garden when known. Customer Needs live unprojected on the Product team — do not associate with the retired `Green Goods` umbrella project or any other staging/completed project. The Customer Need carries **no labels** — `save_customer_need` has no `labels` field; provenance and triage metadata live in the body, and the canonical labels go on the linked Issue created in step 6. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
+   Resolve the `customer` parameter from the speaker external IDs on the customer records per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules): a reporter with no alias who is a workspace member gets no Customer Need, and any other unmatched reporter keeps the `Customer: unresolved` line for a person to attach later. Customer Needs live unprojected on the Product team, never associated with the retired `Green Goods` umbrella project or any other staging/completed project. The Customer Need carries **no labels**, because `save_customer_need` has no `labels` field; provenance and triage metadata live in the body, and the canonical labels go on the linked Issue created in step 6. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
 
 6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led sentence with no prefix. Body follows the contract in [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure — clear, simple, concise, human-friendly (**backstops: 6 headings / 600 words**), and a `PreToolUse` hook rejects writes that break it:
 
@@ -415,7 +415,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
    ```
    The agent proxies the bytes from Telegram with the right `Content-Type` (the bot token never appears in the URL). Upload the bytes to Linear using whichever attachment surface the harness exposes — Linear MCP `create_attachment`, the GraphQL `fileUpload` mutation, or the REST file-upload endpoint, in that preference order. Record the resulting Linear-hosted URL and place it under `## Evidence` in the Customer Need body. Cap at 4 attachments per message — drop the rest with a `[+N more attachments not uploaded]` line in the body. **Never** put the agent download URL (Bearer-gated) in the Linear body — anyone viewing the Customer Need without the bot's API token would 401.
 
-7. **Create Customer Need** unprojected on the Product team, associated with the customer/garden when one can be matched (best-effort — most reporters are not yet onboarded, so `Reporter context` will commonly read `unknown — not onboarded`). Use the same body template as Phase 1, with the following overrides:
+7. **Create Customer Need** unprojected on the Product team, with `customer` resolved from the speaker external IDs per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules) (most Telegram reporters have no alias yet, so the body will commonly read `Customer: unresolved`). Use the same body template as Phase 1, with the following overrides:
 
    ```markdown
    ## Source
@@ -481,7 +481,7 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
 5. **Enrich with PostHog + optional Sentry (private context, fuzzy only)** — Drive notes rarely contain stack traces, so use only the free-text fuzzy match (curated question 5 in `## PostHog telemetry enrichment`) against verbatim quotes, plus Sentry message/title search when the connector is available. If a high-confidence match comes back, include the safe-summary block in the Customer Need body. Skip reporter session/user lookup — meeting attendees are not consenting telemetry subjects.
 
-6. **Create Customer Need** unprojected on the Product team, associated with the customer/garden when known. Body uses the same template (including the `## PostHog evidence (safe summary)` block when step 5 returned a match), with `## Source` set to:
+6. **Create Customer Need** unprojected on the Product team, with `customer` resolved from the speaker external IDs per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules); a workspace member with no alias gets the tracking Issue alone. Body uses the same template (including the `## PostHog evidence (safe summary)` block when step 5 returned a match), with `## Source` set to:
 
    ```markdown
    ## Source
@@ -543,7 +543,7 @@ The parent Issue body never carries replay URLs, session IDs, distinct IDs, wall
 
 After Phases 1–4, before posting the summary:
 
-1. List every Customer Need this run created and confirm it is associated with the expected project/customer context and includes source, evidence, dedupe notes, and privacy-safe summary.
+1. List every Customer Need this run created and confirm its `customer` matches the speaker's external ID (or its body carries `Customer: unresolved`), that none quotes a workspace member with no alias, and that it includes source, evidence, dedupe notes, and privacy-safe summary.
 2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, project (per [Project routing](README.md#project-routing)), source URL, and Customer Need link.
 3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed, that each Issue this run re-routed now sits in the project [Project routing](README.md#project-routing) picks (or in none only when no bounded project owns it and no release project is started), and that each Issue already in a live project stayed there.
 4. List every rejection — every signal you read but did not act on — and the reason.

@@ -22,7 +22,14 @@ routine limits; this file owns interactive routing and issue execution.
      decision support that precedes accepted product scope → Linear **Issue**,
      **Research** team, using the *Accepted Research Task* structure.
    - Raw customer or telemetry signal → Linear **Customer Need** (Product
-     team), not a product Issue, until accepted.
+     team), not a product Issue, until accepted. Resolve the need's `customer` from Linear,
+     never from a list in this repository: slug the speaker's name (lowercase ASCII; every
+     run of other characters becomes one hyphen) and look the customer up by the external
+     ID `green-goods:speaker:<slug>` with `list_customers` and `externalIds`. Speaker
+     aliases live on the customer record, where the workspace can edit them. A speaker
+     with no alias who is a non-guest workspace member is internal and gets the Issue but
+     no need; anyone else gets the need without `customer` and a `Customer: unresolved`
+     line in its body for a person to attach later.
    - Explicitly scoped community coordination → **Community**. Do not route
      engineering or product delivery there merely because a community reported it.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
