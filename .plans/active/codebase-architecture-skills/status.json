@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-24T20:01:54.686Z",
-    "updated_at": "2026-10-25T03:05:57Z"
+    "updated_at": "2026-10-25T21:52:27.106Z"
   },
   "links": {
     "brief": "brief.md",
@@ -23,7 +23,7 @@
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-08-24T20:07:55.873Z",
+    "lastSyncedAt": "2026-10-25T21:52:27.106Z",
     "laneSyncMode": "parent_only",
     "operationalCheckpoints": {},
     "lanes": {}
@@ -44,7 +44,8 @@
     "2026-09-26 authorized agent workflow reliability follow-up: handoffs/agent-workflow-reliability.md. Historical lane proof is preserved; live session confirmation and five-task pilot are pending.",
     "2026-10-04 Software Factory follow-through: actual Codex app SessionStart context and PreToolUse/PostToolUse edit notices observed in the implementation conversation and matched to their owning scripts. No synthetic-event substitution or hook/config changes. Claude Desktop Code and unobserved events remain pending. The ordinary bug-fix pilot category is recorded from the smoke-fixture repair; four categories remain. See eval.md for scope and evidence.",
     "2026-10-06 reconciliation: Corrected the obsolete ratchet-only summary. Current work is Claude Desktop hook observation and four remaining ordinary-task pilot categories; existing certification and concurrent changes are preserved.",
-    "2026-10-24 accepted skills audit follow-up: user authorized an isolated worktree and draft PR. Cleanup proof/validation and scratch-only QA extraction are implemented; QA triage discloses conditional references. Personal duplicate discovery was consolidated locally. Documentation pilot observation added; remaining real-task categories, Claude Desktop observation, and credit-blocked before/after comparison remain pending. See handoffs/skill-workflow-simplification.md. Earlier branch instructions apply to their original phase."
+    "2026-10-24 accepted skills audit follow-up: user authorized an isolated worktree and draft PR. Cleanup proof/validation and scratch-only QA extraction are implemented; QA triage discloses conditional references. Personal duplicate discovery was consolidated locally. Documentation pilot observation added; remaining real-task categories, Claude Desktop observation, and credit-blocked before/after comparison remain pending. See handoffs/skill-workflow-simplification.md. Earlier branch instructions apply to their original phase.",
+    "2026-10-25 user-authorized pilot reconciliation: PR #1273 merged as f912e3fac41b2d1c52c49bf04a0b01dd27f04b2b. Recovered October 8 domain/UI observations and the bounded join-request extraction in PR #1289; all five task categories now have observations with limits. Actual Claude Desktop Code hook loading and the independent QA before/after comparison remain pending. The comparison retry is network-blocked by Method not allowed in limited mode, not a verified credit failure. Historical semantic routing PASS remains unverified. No new product work. See handoffs/pilot-reconciliation.md."
   ],
   "lanes": {
     "ui": {
@@ -212,6 +213,38 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "Corrected the obsolete ratchet-only summary. Current work is Claude Desktop hook observation and four remaining ordinary-task pilot categories; existing certification and concurrent changes are preserved."
+    },
+    {
+      "timestamp": "2026-10-25T21:47:36Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Reconciled PR #1273 merge and recovered all five ordinary-task observations with original limits. Desktop Code hook observation and network-blocked QA comparison keep the hub active; no new product work."
+    },
+    {
+      "timestamp": "2026-10-25T21:49:17.046Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-25T21:51:24.851Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    },
+    {
+      "timestamp": "2026-10-25T21:52:27.106Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ]
 }
