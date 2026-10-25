@@ -4,8 +4,10 @@ Pitch material for the SustainableFinance.Live 2026 entry (Problem Statement 2).
 9 October 2026; full story restored and redesigned 23 October; rebuilt on 24 October 2026
 (Pacific) after Afo's slide review into a 16-slide deck in five acts, with a six-page companion
 brief; **revised after his 25 October review** into 18 slides, with a solution slide, the roles
-before the loop, a world map and a closing slide whose QR code opens the beta. The pitch is
-scheduled for 28 October from 10 AM London; submission is due 27 October.
+before the loop, a world map and a closing slide whose QR code opens the beta; then checked
+against primary sources in the [RESR-94 evidence pass](../research/diaspora-evidence-pass-2026-10-25.md)
+and completed the same day. The pitch is scheduled for 28 October from 10 AM London; submission
+is due 27 October.
 
 The [claim ledger](../research/claim-ledger.md), current addendum first, owns wording boundaries.
 The [event research](../research/hackathon-pitch-research-2026-10-23.md) explains the strategy and
@@ -24,6 +26,7 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | [`brief/index.html`](brief/index.html) | The companion brief: six A4 pages in the same style; page 1 doubles as the one-page mentor brief |
 | [`brief/render.mjs`](brief/render.mjs) | Checks the brief and renders its PDF and page PNGs |
 | [`review-2026-10-25.md`](review-2026-10-25.md) | Afo's 25 October slide and brief review, with the Tech and Sun research; implemented in [the revision](#the-revision--25-october-2026) |
+| [`../research/diaspora-evidence-pass-2026-10-25.md`](../research/diaspora-evidence-pass-2026-10-25.md) | The RESR-94 evidence pass: every diaspora, remittance, hub and funding claim checked against primary sources, with proposed ledger rows and open questions; applied in [the evidence pass](#the-evidence-pass--25-october-2026) |
 
 Rendered files go to `deck/output/` and `brief/output/`, which the repository ignores: run the
 commands below to produce them.
@@ -138,6 +141,33 @@ UTC), in the order its follow-up brief set: structure, copy, accepted polish, br
   pooling note now matches the code (`confirmFulfillmentAsFallback` in `ConfirmLib.sol`) and claim
   C06: a steward can confirm only as a recorded fallback, never their own work.
 
+## The evidence pass · 25 October 2026
+
+A research session checked every diaspora, remittance, hub and funding claim against primary
+sources for RESR-94 and recorded the results in the
+[evidence note](../research/diaspora-evidence-pass-2026-10-25.md). Afo accepted its findings 1 to 7
+for the deck, notes and brief and left the ledger rows to their owner. The pitch was then
+completed on the same branch.
+
+- **Remittances:** slide 12, its note and brief pages 5 and 6 use the World Bank's personal
+  remittances series: $22.1bn reached Nigeria in 2024 (updated 8 October 2026). The African
+  Development Bank's $21.3bn is gone, because its source table could not be opened and the bank
+  compiles rather than produces the data. Series are never mixed.
+- **Rewards:** the app says sending G$ reward promises "is unavailable in this release", so slide
+  13's commitment pool earns "agreed recognition" and builds the record. Brief pages 2 to 5 say
+  money rewards for new promises are deferred; pages 3 and 4 were aligned at completion.
+- **Omo Yoruba:** "a Yoruba community nonprofit in Los Angeles", without "since 1997", which the
+  IRS-derived record does not support. Associations in general, not Omo Yoruba, "can pool
+  members' gifts behind one program", since it files the smallest return and has agreed to
+  nothing.
+- **Smaller fixes:** part of the endowment's earnings goes to the garden; public goods funds "have
+  backed" Green Goods; the exchange-pool arc says "could add funds"; brief page 5 names the labeled
+  steward fallback.
+- **Completion:** the notes gain an untimed context reference for Q&A with the evidence pass's
+  transfer-cost, diaspora-size and power-and-internet lines (Afo's picks from its optional
+  findings; the giving-gap line was left out). The brief names `contact@greengoods.app` on pages
+  1 and 6. The screens were re-captured at 09:00 UTC on 25 October; the counts are unchanged.
+
 ## The rebuild · 24 October 2026
 
 Superseded in part by the revision above. Applied from Afo's review and two rounds of questions;
@@ -169,19 +199,21 @@ reproduced exactly.
 Rendered proof is **headless Playwright Chromium 148, clean profile, file URLs**. Neither
 artifact has an authenticated surface, so authenticated Brave proof does not apply.
 
-- **Deck:** source checks pass (18 slides, 18 notes, 8:00, no em dashes). All 18 slides, the
-  contact sheet and the 18-page PDF were rendered, and the slides and the new PDF pages were
-  inspected one by one; the probe is clean. In print mode every slide is one 1920 x 1080 page. In
-  screen mode `End`, `Home`, the arrow keys, number keys, `#15` deep links, the notes panel and
-  the progress line work.
+- **Deck:** source checks pass (18 slides, 18 notes, 8:00, no em dashes). After the evidence pass
+  all 18 slides, the contact sheet and the 18-page PDF were rendered again with a clean probe, and
+  the changed slides (8, 11, 12 and 13) were inspected; every slide was inspected after the
+  revision. In print mode every slide is one 1920 x 1080 page. In screen mode `End`, `Home`, the
+  arrow keys, number keys, `#15` deep links, the notes panel and the progress line work.
 - **QR code:** Core Image's QR detector decodes the rendered closing slide to
   `https://beta.greengoods.app`; the beta home and Tech and Sun's beta garden page both loaded
-  in headless Chromium.
-- **Brief:** six A4 pages rendered to PDF and PNG and inspected page by page; the probe is clean.
-- **Screens:** re-captured on 25 October UTC. Tech and Sun's live page still reads 16 approved
-  submissions, 14 members, 0 assessments and 0 certificates.
-- **Arithmetic:** no figure changed. The revision relabels the community allocation as the
-  garden's, so the rebuild's 15 recomputed checks still cover every number.
+  in headless Chromium. The closing slide has not changed since.
+- **Brief:** six A4 pages rendered to PDF and PNG and inspected page by page after the evidence
+  pass; the probe is clean.
+- **Screens:** re-captured at 09:00 UTC on 25 October. Tech and Sun's live page still reads 16
+  approved submissions, 14 members, 0 assessments and 0 certificates.
+- **Arithmetic:** the program figures are unchanged, so the rebuild's 15 recomputed checks still
+  cover them. The one new headline figure, $22.1bn, matches the World Bank's $22,126,757,545 for
+  2024 as read on 25 October.
 - **Pacing:** every note runs between 122 and 150 words a minute.
 - **Copy:** no em dashes, US spelling, lowercase roles in running text, "promise" in user-facing
   copy, no hand-typed garden counts, every financial example labeled illustrative, no chain names
@@ -196,27 +228,32 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    solar-powered hubs, with the Awka hub live and Enugu and Abuja as its site's next locations.
    C48 should drop the fiscal-sponsor role and keep Omo Yoruba as the first diaspora community.
    For C05, techandsun.com's founder line reads "Tech and Sun Initiative"; confirm whether that is
-   the registered string before using it anywhere.
+   the registered string before using it anywhere. The
+   [evidence note](../research/diaspora-evidence-pass-2026-10-25.md#proposed-ledger-row-changes)
+   proposes changes to C33, C37 to C40, C47 and C48, retires the African Development Bank figure,
+   adds C90 to C94, and asks for the addendum's reused IDs (C68 to C80) to be renumbered.
 3. **Nsukka.** The Greenpill Nigeria round page names the University of Nigeria, Nsukka, as a
    second university; techandsun.com does not. Nothing mentions it until Afo confirms.
-4. **Status refresh before submission.** The slides carry no voucher deployment status beyond
+4. **Omo Yoruba facts.** Its founding year, exemption history, California charity registration,
+   gift method and board approval for any role are unconfirmed; the slides say only "a Yoruba
+   community nonprofit in Los Angeles".
+5. **Status refresh before submission.** The slides carry no voucher deployment status beyond
    "in pilot". Re-check the [live-pilot handoff](../handoffs/codex-live-pilot-deployment.md) on
    27 October and update the notes' claims list, which says what to say on slide 7, and brief
-   pages 1, 3, 4 and 6 if vouchers go live.
-5. **Slot length.** The 2026 per-team time is unconfirmed; the notes run 8:00 and include a
+   pages 1, 3, 4 and 6 if vouchers go live. Check whether Remittance Prices Worldwide has
+   published a quarter after Q3 2025 for the Q&A transfer-cost line.
+6. **Slot length.** The 2026 per-team time is unconfirmed; the notes run 8:00 and include a
    five-minute cut.
-6. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
+7. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
    gift method (the Omo Yoruba donate page has no payment form).
-7. **Live counts.** Re-capture the Tech and Sun page before presenting; its counts are live.
-8. **Brief contact.** Page 1 lists greengoods.app, beta.greengoods.app and docs.greengoods.app;
-   add a named contact if mentors should reply to a person.
+8. **Live counts.** Re-capture the Tech and Sun page before presenting; its counts are live.
 9. **Recorded clip.** The stretch-goal clip of the rehearsed voucher flow was not made; the notes
    say where it would go.
 10. **Member-proof timestamp.** The claim ledger's C89 cites 01:17:19 UTC on 24 October; the proof
     record says its tests completed at 01:08:44 UTC and it was written at 02:09:22 UTC. The ledger
     line is the ledger owner's to reconcile; the deck states no time of day.
 11. **Fonts offline.** Fraunces and Inter load from Google Fonts. Vendoring the OFL files would
-    remove that dependency; it needs a download this task did not authorize.
+    remove that dependency; it needs a download this task did not authorize. The PDFs embed both.
 
 ## Task record · 18-slide revision
 
@@ -233,6 +270,22 @@ local images, on branch `claude/sf-live-pitch-polish-a689a5`
 
 Human corrections: 0 observed in this segment; attention unknown. Phase boundaries before the
 final render were not recorded.
+
+## Task record · evidence pass and completion
+
+Task record: SF.Live pitch completion after the RESR-94 evidence pass | Type: documentation |
+Outcome: complete locally; the inputs above wait on Afo or the 27 October refresh
+Agent/model: Claude Code / Claude Opus 5.5 | Coverage: merging the research session's two commits
+(`692f25e9f`, `46da6af29`) and completing the deck, notes, brief and README; the research itself
+has its own record in the evidence note
+
+| Phase | Start → end (UTC, 25 October 2026) | Result / evidence |
+|---|---|---|
+| investigate | unknown → unknown | Research session's report, transcript and diff read; Afo's choices collected (merge and push, Q&A lines 8, 9 and 11, `contact@greengoods.app`) |
+| implement | unknown → 09:01:28 | Research commits fast-forwarded; Q&A context added; brief contact and rewards wording aligned; screens re-captured |
+| verify | 09:01:28 → unknown | Deck and brief renders exit 0; slides 8, 11, 12 and 13 and every brief page inspected |
+
+Human corrections: 0 observed in this segment; attention unknown.
 
 ## Task record · 16-slide rebuild and companion brief
 

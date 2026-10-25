@@ -95,7 +95,8 @@ Thank you for listening. Scan the code to see commitment pooling live on our bet
 - **A five-minute version.** Keep slides 1, 2, 6, 7, 8, 9, 13, 14, 17 and 18 at full length. Say
   one line each for slides 3, 4, 5, 10, 11, 12, 15 and 16, and click through without stopping.
 - **Questions.** Judges weigh the business model. Keep the brief's worked example ready: a
-  $50,000 six-month program, $40,000 to the garden and a separate $10,000 fee.
+  $50,000 six-month program, $40,000 to the garden and a separate $10,000 fee. For transfer
+  costs, diaspora size or the hub's context, use the [context reference](#context-reference-for-qa--read-25-october-2026).
 
 ## Claims to keep straight · as of 25 October 2026
 
@@ -135,6 +136,28 @@ Thank you for listening. Scan the code to see commitment pooling live on our bet
   the live page's counts.
 - Refresh this list against the [live-pilot handoff](../../handoffs/codex-live-pilot-deployment.md)
   on Monday 27 October before submission.
+
+## Context reference for Q&A · read 25 October 2026
+
+Answers for questions the slides leave out. Every figure here is national or regional context:
+never our market, a pipeline or a promise of funds. Sources and limits are in the
+[RESR-94 evidence note](../../research/diaspora-evidence-pass-2026-10-25.md).
+
+- **Transfer costs.** "Sending money home is already cheap. In the World Bank's latest survey,
+  sending $200 from the US to Nigeria cost 2.72 percent on average, and £120 from the UK 1.96
+  percent, against 6.36 percent worldwide. We don't compete on transfer cost. We add a record of
+  what the money did." Source: World Bank, Remittance Prices Worldwide, Q3 2025 (collected 8 to
+  22 August 2025), still the latest period on 25 October. Check for a newer quarter before
+  submission.
+- **Diaspora size.** "About 533,000 people born in Nigeria live in the United States (2024
+  estimate) and about 271,000 in England and Wales (2021 census). About 14,000 live in Los Angeles
+  County." Sources: US Census Bureau, American Community Survey 2024 1-year, table B05006 (532,602,
+  margin ±26,797; Los Angeles County 14,248, ±3,852), read through Census Reporter; ONS, Census
+  2021, table TS012 (270,768). These count country of birth, not ancestry or giving.
+- **Power and internet.** "Nationally, about six in ten Nigerians had electricity in 2024, and
+  about four in ten used the internet." Source: World Bank, World Development Indicators, 62.5%
+  access to electricity and 41.2% internet use in 2024, updated 8 October 2026. National figures,
+  not Awka: they explain why members put power and internet first, nothing more.
 
 ## Business model reference for Q&A · illustrative USD assumptions
 
