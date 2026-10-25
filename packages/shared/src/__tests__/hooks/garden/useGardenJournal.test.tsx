@@ -135,6 +135,18 @@ describe("useGardenJournal", () => {
     );
   });
 
+  it("lists no promise while the garden's pool is paused", async () => {
+    mocks.getCommitmentPools.mockResolvedValue([{ ...gardenPool, state: "PAUSED" }]);
+    mocks.getCommitments.mockResolvedValue([
+      promise(9, { direction: "REQUEST", onchainState: "REQUESTED", derivedState: "REQUESTED" }),
+    ]);
+
+    const { result } = renderHookWithProviders(() => useGardenOpenPromises(GARDEN));
+
+    await waitFor(() => expect(result.current.state.status).toBe("empty"));
+    expect(result.current.ask).toBeNull();
+  });
+
   it("reads nothing where promises do not run, and says so rather than none", async () => {
     mocks.capability = { ...availableCapability, availability: "unavailable" };
 

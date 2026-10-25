@@ -12,7 +12,6 @@ import {
   useGardenRecentActivity,
 } from "@green-goods/shared/hooks/garden/useGardenJournal";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
-import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Work } from "@green-goods/shared/types/domain";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { type ReactNode, useState } from "react";
@@ -20,13 +19,13 @@ import { type IntlShape, useIntl } from "react-intl";
 
 import { getWorkCardLabels } from "@/components/Cards/Work/MinimalWorkCard";
 import {
-  CycleDetailsSheet,
   CycleIdentity,
   groupCountsText,
   presentState,
   promiseDueDetail,
 } from "@/components/Features/Commitments";
 import { HighlightCard, HighlightPhoto } from "./HighlightCard";
+import { JournalCycleDetails } from "./JournalCycleDetails";
 import { JournalSection } from "./JournalSection";
 import { takePartPath } from "./TakePart";
 
@@ -48,7 +47,6 @@ export interface HighlightsCarouselProps {
 export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigateToTop();
-  const openCommitmentsSheet = useUIStore((state) => state.openCommitmentsSheet);
   const cycles = useGardenOpenCycles(gardenId);
   const activity = useGardenRecentActivity(gardenId);
   const promises = useGardenOpenPromises(gardenId);
@@ -75,14 +73,10 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
       layout="carousel"
     >
       {cards}
-      <CycleDetailsSheet
+      <JournalCycleDetails
         cycle={details.cycle}
         isOpen={details.open}
         onClose={() => setDetails((current) => ({ ...current, open: false }))}
-        onShowPromises={(cycleId) => {
-          setDetails((current) => ({ ...current, open: false }));
-          openCommitmentsSheet({ cycleId: cycleId.toString() });
-        }}
       />
     </JournalSection>
   );
@@ -95,7 +89,7 @@ function cycleCards(
   if (state.status !== "ready") return [];
   return state.items.map(({ cycle, name, daysLeft }) => (
     <CycleHighlight
-      key={cycle.id}
+      key={`cycle:${cycle.id}`}
       cycle={cycle}
       name={name}
       daysLeft={daysLeft}
@@ -111,7 +105,7 @@ function workCard(
   if (!featured) return [];
   return [
     <WorkHighlight
-      key={featured.id}
+      key={`work:${featured.id}`}
       work={featured}
       actionTitle={actionTitleOf(featured)}
       onOpen={() => onOpen(featured)}
@@ -126,7 +120,7 @@ function askCard(
   if (!ask) return [];
   return [
     <AskHighlight
-      key={ask.kind === "single" ? ask.row.commitment.id : ask.group.key}
+      key={`ask:${ask.kind === "single" ? ask.row.commitment.id : ask.group.key}`}
       entry={ask}
       titleOf={titleOf}
       onOpen={() => onOpen(ask)}
@@ -218,8 +212,8 @@ function AskHighlight({
   onOpen: () => void;
 }) {
   const intl = useIntl();
-  const commitment = entry.kind === "single" ? entry.row.commitment : entry.group.children[0];
-  if (!commitment) return null;
+  // A group stands for its copy still open to take up, which may not be its first child.
+  const commitment = entry.copy;
   const due = promiseDueDetail(intl, commitment.dueDate);
   return (
     <HighlightCard

@@ -47,7 +47,11 @@ export function HighlightCard({
         type="button"
         data-pressable="card"
         data-highlight={kind}
-        onClick={onOpen}
+        onClick={(event) => {
+          // Safari does not focus a pressed button; a sheet this opens hands focus back to it.
+          event.currentTarget.focus({ preventScroll: true });
+          onOpen();
+        }}
         className={cn(CARD_FRAME, "gg-media-card text-start")}
       >
         {media ? (

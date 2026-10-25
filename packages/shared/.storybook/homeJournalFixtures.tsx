@@ -151,6 +151,7 @@ const TITLES = new Map(
 export const JOURNAL_ENTRIES: TakePartEntry[] = OPEN_ROWS.map(({ row }) => ({
   kind: "single",
   row: { ...row, seat: "bystander", needsYou: false },
+  copy: row.commitment,
 }));
 
 export function openPromisesFixture(
@@ -160,9 +161,7 @@ export function openPromisesFixture(
     state,
     ask:
       state.status === "ready"
-        ? (JOURNAL_ENTRIES.find(
-            (entry) => entry.kind === "single" && entry.row.commitment.direction === "REQUEST"
-          ) ?? null)
+        ? (JOURNAL_ENTRIES.find((entry) => entry.copy.direction === "REQUEST") ?? null)
         : null,
     titleOf: (cid) => (cid ? (TITLES.get(cid) ?? null) : null),
     refetch: () => undefined,

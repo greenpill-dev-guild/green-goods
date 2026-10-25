@@ -190,6 +190,7 @@ function promise(id: number, overrides: Partial<CommitmentReadModel> = {}): Comm
 const single = (commitment: CommitmentReadModel): TakePartEntry => ({
   kind: "single",
   row: { commitment, seat: "bystander", needsYou: false },
+  copy: commitment,
 });
 
 const OFFER = single(promise(21));
@@ -209,6 +210,17 @@ function promises(overrides: Partial<GardenOpenPromises> = {}): GardenOpenPromis
     refetch: vi.fn(),
     ...overrides,
   };
+}
+
+/** What held focus as the Promises sheet opened: the opener it hands focus back to on close. */
+function recordPromisesOpener() {
+  const recorded: { opener: Element | null } = { opener: null };
+  const stop = useUIStore.subscribe((state, previous) => {
+    if (state.isCommitmentsSheetOpen && !previous.isCommitmentsSheetOpen) {
+      recorded.opener = document.activeElement;
+    }
+  });
+  return { recorded, stop };
 }
 
 describe("Home journal", () => {
@@ -366,13 +378,21 @@ describe("Home journal", () => {
 
       render(<TakePart gardenId={GARDEN} withCycleLines />);
       expect(screen.getByRole("button", { name: /Seed Swap Weekend/ })).toBeInTheDocument();
-      await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+      const line = screen.getByRole("button", { name: /Autumn Planting 2026/ });
+      await user.click(line);
       const sheet = await screen.findByRole("dialog");
+      const promises = recordPromisesOpener();
       await user.click(within(sheet).getByRole("button", { name: "Show Its Promises" }));
-      expect(useUIStore.getState()).toMatchObject({
-        isCommitmentsSheetOpen: true,
-        commitmentsSheetOpening: { cycleId: SEASON.cycle.cycleId.toString() },
-      });
+      await waitFor(() =>
+        expect(useUIStore.getState()).toMatchObject({
+          isCommitmentsSheetOpen: true,
+          commitmentsSheetOpening: { cycleId: SEASON.cycle.cycleId.toString() },
+        })
+      );
+      promises.stop();
+      // The details close first and hand focus back to the line, so the Promises sheet
+      // returns focus there rather than to the details' own button, which unmounts.
+      expect(promises.recorded.opener).toBe(line);
     });
   });
 
@@ -409,14 +429,67 @@ describe("Home journal", () => {
       await user.click(screen.getByRole("button", { name: /Two hours sorting the seed library/ }));
       expect(mocks.navigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/20`);
 
-      await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+      const card = screen.getByRole("button", { name: /Autumn Planting 2026/ });
+      await user.click(card);
       const sheet = await screen.findByRole("dialog");
+      const promises = recordPromisesOpener();
       await user.click(within(sheet).getByRole("button", { name: "Show Its Promises" }));
-      // The Promises sheet opens filtered to the season (step 11), not whole.
-      expect(useUIStore.getState()).toMatchObject({
-        isCommitmentsSheetOpen: true,
-        commitmentsSheetOpening: { cycleId: SEASON.cycle.cycleId.toString() },
-      });
+      // The Promises sheet opens filtered to the season (step 11), not whole, and once the
+      // details have closed, so it returns focus to the card.
+      await waitFor(() =>
+        expect(useUIStore.getState()).toMatchObject({
+          isCommitmentsSheetOpen: true,
+          commitmentsSheetOpening: { cycleId: SEASON.cycle.cycleId.toString() },
+        })
+      );
+      promises.stop();
+      expect(promises.recorded.opener).toBe(card);
+    });
+
+    it("keys each card by what it shows, so a season and an ask with one indexer id stay apart", () => {
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      // A cycle's and a promise's indexer ids are both `${chainId}-${id}`: this season's matches
+      // the ask's, `42161-20`.
+      const season = journalCycle("42161-20", "SEASON", "Autumn Planting 2026", 36);
+      mocks.cycles.mockReturnValue(
+        cycles({ state: { status: "ready", items: [season], savedAt: null } })
+      );
+
+      render(<HighlightsCarousel gardenId={GARDEN} />);
+
+      expect(within(screen.getByRole("list")).getAllByRole("button")).toHaveLength(3);
+      expect(errors.mock.calls.flat().join(" ")).not.toContain("same key");
+      errors.mockRestore();
+    });
+
+    it("shows and opens a grouped ask at the copy still open to take up", async () => {
+      const user = userEvent.setup();
+      const asked = { direction: "REQUEST", metadataCID: "cid-20" } as const;
+      const kept = promise(23, { ...asked, onchainState: "FULFILLED", derivedState: "FULFILLED" });
+      const open = promise(22, { ...asked, onchainState: "REQUESTED", derivedState: "REQUESTED" });
+      const counts = { published: 2, available: 1, inProgress: 0, kept: 1, ended: 0, other: 0 };
+      // The newer copy was kept, so the group's first child is not the one open to take up.
+      const grouped: TakePartEntry = {
+        kind: "group",
+        group: {
+          kind: "group",
+          key: "set-1",
+          displayGroupId: "set-1",
+          children: [kept, open],
+          counts,
+        },
+        copy: open,
+      };
+      mocks.promises.mockReturnValue(promises({ ask: grouped }));
+
+      render(<HighlightsCarousel gardenId={GARDEN} />);
+      const card = screen.getByRole("button", { name: /Two hours sorting the seed library/ });
+      expect(card).toHaveTextContent("Asked for");
+      await user.click(card);
+
+      expect(mocks.navigate).toHaveBeenLastCalledWith(
+        `/home/${GARDEN}/commitments/group/set-1?copy=22`
+      );
     });
 
     it("is absent when it has no card", () => {

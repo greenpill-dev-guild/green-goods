@@ -263,6 +263,7 @@ describe("Take Part", () => {
       commitments: [promise(30), copy(29), copy(28), promise(27), promise(26), promise(25)],
       metadataByCID: metadata,
       viewer: READER,
+      poolOpen: true,
     });
 
     expect(
@@ -286,10 +287,51 @@ describe("Take Part", () => {
       ],
       metadataByCID: NO_METADATA,
       viewer: READER,
+      poolOpen: true,
     });
 
     const ask = openAsk(entries);
     expect(ask?.kind === "single" && ask.row.commitment.commitmentId).toBe(11n);
     expect(openAsk(entries.slice(0, 1))).toBeNull();
+  });
+
+  it("stands a group for its first copy the reader could take up", () => {
+    const metadata = new Map<string, CommitmentMetadataV1>([
+      ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
+    ]);
+    const copy = (id: number, state: "REQUESTED" | "FULFILLED") =>
+      promise(id, {
+        direction: "REQUEST",
+        onchainState: state,
+        derivedState: state,
+        metadataCID: "cid-set",
+      });
+
+    // The newer copy was kept; the older one is still asked for.
+    const entries = takePartEntries({
+      commitments: [copy(41, "FULFILLED"), copy(40, "REQUESTED")],
+      metadataByCID: metadata,
+      viewer: READER,
+      poolOpen: true,
+    });
+
+    expect(entries.map((entry) => [entry.kind, entry.copy?.commitmentId])).toEqual([
+      ["group", 40n],
+    ]);
+    expect(openAsk(entries)?.copy.commitmentId).toBe(40n);
+  });
+
+  it("takes nothing up while the pool is not open, as the promise page's take-up gate reads it", () => {
+    const entries = takePartEntries({
+      commitments: [
+        promise(9),
+        promise(8, { direction: "REQUEST", onchainState: "REQUESTED", derivedState: "REQUESTED" }),
+      ],
+      metadataByCID: NO_METADATA,
+      viewer: READER,
+      poolOpen: false,
+    });
+
+    expect(entries).toEqual([]);
   });
 });

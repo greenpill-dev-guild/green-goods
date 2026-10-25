@@ -174,7 +174,14 @@ export interface TakePartRow {
   needsYou: boolean;
 }
 
-export type TakePartEntry = PoolListEntry<TakePartRow>;
+/** A Take Part entry: a promise as the Pool tab's row, or copies of one set as one group. */
+export type TakePartEntry = PoolListEntry<TakePartRow> & {
+  /**
+   * The copy the entry stands for and opens: the promise itself, or a group's first copy the
+   * reader could take up, which may not be its first child.
+   */
+  copy: CommitmentReadModel;
+};
 
 /** The promises open to take up that the reader did not make, in the read's order. */
 export function takePartPromises(
@@ -190,19 +197,25 @@ export function takePartPromises(
 
 /**
  * Take Part's entries: the open promises as the Pool tab's rows, copies of one set folded
- * into one group, counted across every copy in the pool.
+ * into one group, counted across every copy in the pool. A pool that is not open takes nothing
+ * up, as the promise page's take-up gate reads it, so then there are none.
  */
 export function takePartEntries(input: {
   commitments: readonly CommitmentReadModel[];
   metadataByCID: ReadonlyMap<string, CommitmentMetadataV1>;
   viewer: Address | null | undefined;
+  /** The pool's state is OPEN. */
+  poolOpen: boolean;
 }): TakePartEntry[] {
+  if (!input.poolOpen) return [];
   const viewer = input.viewer ?? undefined;
-  const rows = takePartPromises(input.commitments, viewer).map((commitment) => {
+  const open = takePartPromises(input.commitments, viewer);
+  const openIds = new Set(open.map((commitment) => commitment.id));
+  const rows = open.map((commitment) => {
     const seat = selectCommitmentSeat({ commitment, contributors: [], viewer });
     return { commitment, seat, needsYou: commitmentNeedsSeat({ commitment, seat }) };
   });
-  return selectPoolListEntries({
+  const entries = selectPoolListEntries({
     rows,
     grouped: groupCommitmentsForDisplay({
       commitments: input.commitments,
@@ -210,16 +223,15 @@ export function takePartEntries(input: {
     }),
     viewer,
   });
+  // A group is listed for a copy among `rows`, so it always has one the reader could take up.
+  return entries.flatMap((entry): TakePartEntry[] => {
+    if (entry.kind === "single") return [{ ...entry, copy: entry.row.commitment }];
+    const copy = entry.group.children.find((child) => openIds.has(child.id));
+    return copy ? [{ ...entry, copy }] : [];
+  });
 }
 
 /** The newest ask among Take Part's entries, for the carousel's last card. */
 export function openAsk(entries: readonly TakePartEntry[]): TakePartEntry | null {
-  return (
-    entries.find(
-      (entry) =>
-        (entry.kind === "single"
-          ? entry.row.commitment.direction
-          : entry.group.children[0]?.direction) === "REQUEST"
-    ) ?? null
-  );
+  return entries.find((entry) => entry.copy.direction === "REQUEST") ?? null;
 }

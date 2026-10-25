@@ -153,9 +153,10 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   );
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
+  const poolOpen = pool?.state === "OPEN";
   const entries = useMemo(
-    () => takePartEntries({ commitments: listed, metadataByCID: byCID, viewer }),
-    [listed, byCID, viewer]
+    () => takePartEntries({ commitments: listed, metadataByCID: byCID, viewer, poolOpen }),
+    [listed, byCID, viewer, poolOpen]
   );
 
   const state = poolSectionState({

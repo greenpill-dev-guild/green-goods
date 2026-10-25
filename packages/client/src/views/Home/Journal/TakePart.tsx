@@ -14,13 +14,13 @@ import { useIntl } from "react-intl";
 
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import {
-  CycleDetailsSheet,
   CycleIdentity,
   cycleDates,
   PromiseGroupRow,
   PromiseRow,
   PromiseRowSkeleton,
 } from "@/components/Features/Commitments";
+import { JournalCycleDetails } from "./JournalCycleDetails";
 import { JournalSection } from "./JournalSection";
 import { JournalLoadingRows, JournalStateRow } from "./JournalStateRow";
 
@@ -33,12 +33,13 @@ export interface TakePartProps {
   withCycleLines?: boolean;
 }
 
-/** Where a Take Part entry goes: the promise's own page, or its group's, as from the Pool tab. */
+/**
+ * Where a Take Part entry goes: the promise's own page, or its group's, as from the Pool tab,
+ * at the group's copy still open to take up.
+ */
 export function takePartPath(gardenId: string, entry: TakePartEntry): string {
-  if (entry.kind === "single") {
-    return `/home/${gardenId}/commitments/${entry.row.commitment.commitmentId.toString()}`;
-  }
-  const copy = entry.group.children[0]?.commitmentId.toString() ?? "";
+  const copy = entry.copy.commitmentId.toString();
+  if (entry.kind === "single") return `/home/${gardenId}/commitments/${copy}`;
   return `/home/${gardenId}/commitments/group/${encodeURIComponent(entry.group.displayGroupId)}?copy=${copy}`;
 }
 
@@ -146,7 +147,7 @@ function TakePartRows({
           <li key={entry.group.key}>
             <PromiseGroupRow
               group={entry.group}
-              title={titleOf(entry.group.children[0]?.metadataCID)}
+              title={titleOf(entry.copy.metadataCID)}
               onOpen={() => onOpen(entry)}
             />
           </li>
@@ -162,7 +163,6 @@ function TakePartRows({
 function CycleLines({ gardenId }: { gardenId: string }) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const openCommitmentsSheet = useUIStore((state) => state.openCommitmentsSheet);
   const { state } = useGardenOpenCycles(gardenId);
   // The last cycle stays drawn while its sheet closes.
   const [details, setDetails] = useState<{ cycle: CommitmentCycleRecord | null; open: boolean }>({
@@ -187,7 +187,11 @@ function CycleLines({ gardenId }: { gardenId: string }) {
             <button
               type="button"
               data-pressable="row"
-              onClick={() => setDetails({ cycle, open: true })}
+              onClick={(event) => {
+                // Safari does not focus a pressed button; the details hand focus back to it.
+                event.currentTarget.focus({ preventScroll: true });
+                setDetails({ cycle, open: true });
+              }}
               className="flex min-h-12 w-full min-w-0 items-center gap-2 text-start"
             >
               <span className="flex shrink-0">
@@ -210,14 +214,10 @@ function CycleLines({ gardenId }: { gardenId: string }) {
           </li>
         );
       })}
-      <CycleDetailsSheet
+      <JournalCycleDetails
         cycle={details.cycle}
         isOpen={details.open}
         onClose={() => setDetails((current) => ({ ...current, open: false }))}
-        onShowPromises={(cycleId) => {
-          setDetails((current) => ({ ...current, open: false }));
-          openCommitmentsSheet({ cycleId: cycleId.toString() });
-        }}
       />
     </>
   );
