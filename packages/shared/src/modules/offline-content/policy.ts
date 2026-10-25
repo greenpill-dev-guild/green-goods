@@ -1,4 +1,5 @@
 import type { Garden } from "../../types/domain";
+import { gardenMembership, isMyGarden } from "../garden/membership";
 
 /** The photo cache removes its oldest unprotected copies above this size. */
 export const OFFLINE_MEDIA_BUDGET_BYTES = 150 * 1024 * 1024;
@@ -13,11 +14,11 @@ export interface OfflinePlan {
 }
 
 /**
- * Tiered preparation: work lists, approvals and details for every garden the
- * account belongs to, plus photos for the garden in view and the account's own
- * work. Garden identifiers keep the gardens list's spelling, which is what the
- * screens use in their query keys. Content is public, so nothing here is keyed
- * by account; the account only decides what comes first.
+ * Tiered preparation: work lists, approvals and details for every garden that is
+ * the account's own (`modules/garden/membership`), plus photos for the garden in
+ * view and the account's own work. Garden identifiers keep the gardens list's
+ * spelling, which is what the screens use in their query keys. Content is public,
+ * so nothing here is keyed by account; the account only decides what comes first.
  */
 export function planOfflineContent(
   gardens: Garden[],
@@ -25,14 +26,9 @@ export function planOfflineContent(
   chainId: number,
   activeGarden?: string
 ): OfflinePlan {
-  const member = account.toLowerCase();
   const onChain = gardens.filter((garden) => garden.chainId === chainId);
   const joined = onChain
-    .filter((garden) =>
-      [...garden.gardeners, ...garden.stewards, ...garden.owners].some(
-        (address) => address.toLowerCase() === member
-      )
-    )
+    .filter((garden) => isMyGarden(gardenMembership(garden, account)))
     .map((garden) => garden.id);
   const active = activeGarden
     ? (onChain.find((garden) => garden.id.toLowerCase() === activeGarden.toLowerCase())?.id ??

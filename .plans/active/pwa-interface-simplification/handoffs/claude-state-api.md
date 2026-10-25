@@ -3,8 +3,8 @@
 ## Lane
 
 - Owner: Claude (a session the orchestrator starts; questions go to the orchestrator)
-- Branch: set when work begins using `<type>/<work-description>`
-- Status: ready (opened at the start gate on 2026-10-24)
+- Branch: `feature/pwa-membership-owner` (step 1); step 2 follows on its own branch
+- Status: in progress (step 1 green and out for review; step 2 next)
 
 ## Scope (first slice)
 
@@ -47,26 +47,96 @@ grants nothing; decision 2 shows it as awaiting review in the switcher and Explo
 The cockpit's selection pattern, to copy in shape and not in code: `hooks/garden/useAdminGardenContext.ts`,
 `hooks/garden/useAdminGardenWorkspaceSelection.ts` and `hooks/navigation/useGardenUrlSync.ts`.
 
+## Step 1: what changed
+
+- `packages/shared/src/modules/garden/membership.ts` is the membership owner. `gardenMembership`
+  reads the owner, steward, evaluator and gardener roles from a garden record, owner first, and
+  tolerates a missing or malformed list; `isMyGarden` is "mine" (decision 2); `canSubmitWork`
+  leaves out an evaluator alone, whom the work resolver rejects; `listMyGardens` keeps the list's
+  order. Funders and community members are not members.
+- `packages/shared/src/hooks/garden/useMyGardens.ts` returns the account's gardens with
+  `isLoaded`, `isError` and `isStale`, and `refetch`. Another chain's placeholder list is never
+  an answer. A fresh open join (the local pending-join record, read by the new
+  `pendingJoinGardenIds` in `useJoinGarden.ts`) counts until the roster lists the account, then
+  `forgetListedPendingJoins` drops it. A join request waiting for a steward never counts. It is
+  a new declared leaf, `@green-goods/shared/hooks/garden/useMyGardens`, so Profile can read it;
+  the API index and the four seam fingerprints were regenerated with it.
+- The five derivations now delegate: Home's filter and #1162's members-only check
+  (`modules/garden/filters.ts`, which adds owners and evaluators), Profile's list
+  (`client/src/views/Profile/GardensList.tsx`), the arrival state (`hooks/app/useArrivalState.ts`),
+  Submit Work's member check and its Community Garden offer (`hooks/work/useWorkSubmissionFlow.ts`),
+  and the offline plan and its reschedule trigger (`modules/offline-content/policy.ts`,
+  `hooks/offline/useOfflineContent.ts`). `gardenHasMember` is gone.
+- PRD-1311: the offline spreads now go through the owner, and `hooks/garden/karmaIntegration.ts`
+  guards its two spreads.
+- Left on the record or the chain, as permission checks: the garden page's predicates
+  (`client/src/views/Home/Garden/index.tsx`), `useCommitmentViewerRoles` (six roles, the
+  contract's own test), the on-chain `useGardenMembership`, Karma's reconcile permission and the
+  public people counts in `usePublicGardens`.
+- Behavior changes to note: owners and evaluators now count in Home's "mine" filter and
+  members-only check, Profile's list, the arrival's garden ids and the offline lists; owners can
+  pick their garden in Submit Work (the resolver accepts them) while an evaluator alone still
+  cannot; Profile shows its loading state, not "No gardens yet", while the list is unknown.
+
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
-- Proof limit: none recorded
+- RED (step 1), 2026-10-25, from `packages/shared`: `bun run test
+  src/__tests__/modules/garden/membership.test.ts src/__tests__/hooks/garden/useMyGardens.test.tsx
+  src/__tests__/modules/garden-filters.test.ts src/__tests__/hooks/useArrivalState.test.ts
+  src/__tests__/modules/offline-content.test.ts src/__tests__/hooks/garden/useKarmaIntegration.test.ts`
+  → 44 failed: membership 22/22 and useMyGardens 8/8 against "not implemented" stubs, filters 2
+  (an owner or evaluator of a test garden is not a member), arrival 10 (still reads the gardens
+  list), offline 1 (`TypeError: garden.gardeners is not iterable`) and Karma 1
+  (`TypeError: input.owners is not iterable`), the PRD-1311 class. From `packages/client`:
+  `bun run test src/__tests__/views/GardensList.test.tsx` → 9 failed (the list still read
+  `useGardens`).
+- GREEN (step 1): the same Shared command plus `src/__tests__/hooks/garden/useJoinGarden.test.ts`
+  → 7 files, 122 passed; the client command → 9 passed. A mutation check (dropping the
+  placeholder guard in `useMyGardens`) failed the chain-switch case, then was restored.
+- Proof limit: none
 
 ## Validation
 
-- Pending lane implementation.
+- Step 1, before commit: full suites passed (Shared 7,635 with 16 skipped, client 1,747,
+  admin 1,383); Shared and client typecheck in both scopes; `test-quality`, `source-structure`
+  and `docs-generated` passed.
+- Step 1 push gate: critical tier, the full override (31 checks). The first run, on
+  `80db26067`, failed only `design-guardrails`, on colours develop's Grove spike had added to
+  `packages/extension/src/graph/canvas.ts`; develop's own Design run failed the same way. After
+  #1272 baselined them, the rerun below passed.
+- Step 1 review round (CodeRabbit on #1274): the storage write in `forgetListedPendingJoins` now
+  survives a refusal (RED: an uncaught `QuotaExceededError`; GREEN: the join and hook tests, 16
+  passed). Not applied: counting the open join in Home's old filter, which never counted it;
+  step 3 replaces that scope with the switcher and Explore, which read `useMyGardens`.
+- Rendered proof: none (state only). `browser-proof` is advisory and pending: the offline content
+  paths and Profile's list are in the authenticated class; acceptance (step 20) carries that
+  proof.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+Step 1 (`feature/pwa-membership-owner`):
+
+- Tested implementation commit SHA: `d2433563114ddeaa53bc444b7bec371a118abc17` (step 1's commits
+  merged with develop `99884497b`, plus the review fix that guards the pending-join write; the
+  first green run was on `ffdbd834a` at 03:40:51Z)
+- Run at (UTC): `2026-10-25T04:30:33Z`
+- Exact command(s): `VITE_PIMLICO_API_KEY=test PATH="$HOME/.local/share/mise/installs/node/22.22.1/bin:$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push`
+- Result: passed, 30 of 31 selected checks fresh (format, lint, validation-system-test,
+  test-quality, typecheck, test-typecheck, test and build for Shared, client, admin and Agent,
+  docs-authority, docs-test, docs-build, staged-modules, source-structure, design-guardrails,
+  agent-guidance, supply-chain, docs-generated, em-dashes); `browser-proof` pending (manual,
+  advisory)
+- Validated paths: the 28 paths of `git diff --name-only origin/develop d24335631`: the
+  membership module and hook, the join reader, the Home filter, the arrival state, Submit Work,
+  the offline policy and hook, Karma, the visibility config, the barrels and the Shared
+  manifest, Profile's list, their tests, the API index and commands digests, the seam registry,
+  and this hub's `status.json` and handoff
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  packages docs scripts` → empty
+- Evidence-only diff command and result: `git diff --exit-code d24335631 -- packages docs
+  scripts` → exit 0 (this record changes only `.plans/`)
+- Evidence-only worktree-status command and result: `git status --porcelain=v1
+  --untracked-files=all -- packages docs scripts` → empty
 
 ## Risks / Blockers
 
