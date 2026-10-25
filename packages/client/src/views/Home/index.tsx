@@ -43,6 +43,8 @@ import { HomeHeader } from "./HomeHeader";
 import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./HomeStates";
 import { awaitingGardens, switcherRows } from "./homeGardens";
 import { HomeJournal } from "./Journal";
+import { NotificationsIcon } from "./Notifications/Icon";
+import type { NotificationsLauncherProps } from "./Notifications/Launcher";
 import { WalletSheetIcon } from "./WalletSheet/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
@@ -59,30 +61,45 @@ const CommitmentsSheetLauncher = lazy(
       // hide it rather than failing the whole Home route.
       .catch(() => ({ default: () => null }))
 );
+const NotificationsLauncher = lazy(
+  (): Promise<{ default: ComponentType<NotificationsLauncherProps> }> =>
+    import("./Notifications/Launcher")
+      .then(({ NotificationsLauncher }) => ({ default: NotificationsLauncher }))
+      // Ambient adjunct: without its chunk the bell stays, with nothing counted.
+      .catch(() => ({
+        default: ({ onOpen }: NotificationsLauncherProps) => <NotificationsIcon onClick={onOpen} />,
+      }))
+);
 const WalletSheet = lazy(() =>
   import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
 );
 
-function DeferredCommitmentsSheetLauncher({ onClick }: { onClick: () => void }) {
-  const [loadCounts, setLoadCounts] = useState(false);
+/**
+ * Mounts a launcher's reads at an idle moment, so Home's first paint waits on none of them. The
+ * placeholder is the same icon with nothing counted, so nothing moves when the reads land.
+ */
+function DeferredLauncher({
+  placeholder,
+  children,
+}: {
+  placeholder: ReactNode;
+  children: ReactNode;
+}) {
+  const [loadReads, setLoadReads] = useState(false);
 
   useEffect(() => {
     const idleCallback =
       window.requestIdleCallback ??
       ((callback: IdleRequestCallback) => window.setTimeout(callback, 1_000));
-    const handle = idleCallback(() => setLoadCounts(true));
+    const handle = idleCallback(() => setLoadReads(true));
     return () => {
       if (window.cancelIdleCallback) window.cancelIdleCallback(handle);
       else window.clearTimeout(handle);
     };
   }, []);
 
-  if (!loadCounts) return <CommitmentsSheetIcon onClick={onClick} actCount={0} />;
-  return (
-    <Suspense fallback={<CommitmentsSheetIcon onClick={onClick} actCount={0} />}>
-      <CommitmentsSheetLauncher onClick={onClick} />
-    </Suspense>
-  );
+  if (!loadReads) return <>{placeholder}</>;
+  return <Suspense fallback={placeholder}>{children}</Suspense>;
 }
 
 type SwitcherMode = "switch" | "choose";
@@ -149,6 +166,10 @@ const Home: React.FC = () => {
   });
   const openSwitcher = useCallback(() => setSwitcher({ open: true, mode: "switch" }), []);
   const closeSwitcher = useCallback(() => setSwitcher((s) => ({ ...s, open: false })), []);
+  // The bell's sheet (DL-130) is Home's drawer like the others: it closes with them.
+  const [isNotificationsOpen, setNotificationsOpen] = useState(false);
+  const openNotifications = useCallback(() => setNotificationsOpen(true), []);
+  const closeNotifications = useCallback(() => setNotificationsOpen(false), []);
 
   // Each sheet stays mounted until its exit has played; unmounting it on close
   // removed it before the slide-out could run.
@@ -180,8 +201,9 @@ const Home: React.FC = () => {
     if (!isHomeRoute) {
       closeWalletSheet();
       closeSwitcher();
+      closeNotifications();
     }
-  }, [closeSwitcher, closeWalletSheet, isHomeRoute]);
+  }, [closeNotifications, closeSwitcher, closeWalletSheet, isHomeRoute]);
 
   const visitGarden = useCallback(
     (id: string) => {
@@ -352,8 +374,28 @@ const Home: React.FC = () => {
           launchers={
             <>
               <WalletSheetIcon onClick={openWalletSheet} />
-              <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
+              <DeferredLauncher
+                placeholder={<CommitmentsSheetIcon onClick={openCommitmentsSheet} actCount={0} />}
+              >
+                <CommitmentsSheetLauncher onClick={openCommitmentsSheet} />
+              </DeferredLauncher>
               <WorkDashboardIcon />
+              {/* The bell reads the active garden's events once the garden is known: a
+                  remembered one while the list loads, or the chosen one. Without a garden it
+                  keeps its place with nothing to list (DL-130). */}
+              {gardenId ? (
+                <DeferredLauncher placeholder={<NotificationsIcon onClick={openNotifications} />}>
+                  <NotificationsLauncher
+                    gardenId={gardenId}
+                    gardenName={garden?.name}
+                    open={isNotificationsOpen}
+                    onOpen={openNotifications}
+                    onClose={closeNotifications}
+                  />
+                </DeferredLauncher>
+              ) : (
+                <NotificationsIcon disabled />
+              )}
             </>
           }
         />
