@@ -434,12 +434,16 @@ function focusedProofMissing(
   policy,
   { ownersRequiringFocus = new Set(), exemptSurfaces = new Set() } = {},
 ) {
-  if (requestedChecks.length > 0) return [];
+  // An explicit --check stands in for an ordinary owner's focus, never for a critical owner, whose
+  // mandatory suite must still run focused on a named test.
+  const explicit = requestedChecks.length > 0;
+  if (explicit && ownersRequiringFocus.size === 0) return [];
   const missing = new Set();
   for (const path of changedPaths) {
     if (!/^packages\/[^/]+\/src\//.test(path) || isValidationOnlyPath(path)) continue;
     const surface = owningSurface(path);
     if (!surface || exemptSurfaces.has(surface) || testPaths[surface]?.length > 0) continue;
+    if (explicit && !ownersRequiringFocus.has(surface)) continue;
     // Compile proof stands in for a barrel or entry change, except for a critical owner, whose
     // mandatory suite must run focused rather than whole.
     if (!ownersRequiringFocus.has(surface) && needsOwnerCompileProof(changedPaths, surface)) continue;
@@ -461,6 +465,7 @@ function focusedProofMissing(
     if (!surface || surface === "docs" || exemptSurfaces.has(surface) || testPaths[surface]?.length > 0) {
       continue;
     }
+    if (explicit && !ownersRequiringFocus.has(surface)) continue;
     const suite = policy.checks.find((check) => check.id === `${surface}-test`);
     if (suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
     missing.add(surface);
@@ -576,8 +581,16 @@ export function selectValidation(input = {}, options = {}) {
   // local gate on top of that, because its verify step has no pull-request CI equivalent yet. It
   // is active only when a contract override rule matched a contracts-owned path, so a README or an
   // ordinary test under packages/contracts/ beside a critical Shared change does not count.
+  // The policy's surface rules own contracts paths, including scripts/contracts/, which
+  // owningSurface does not map to a package.
+  const contractsSurfaceRules = (policy.surfaceRules ?? []).filter(
+    (rule) => rule.surface === "contracts",
+  );
+  const contractsOwned = (path) =>
+    owningSurface(path) === "contracts" ||
+    contractsSurfaceRules.some((rule) => groupMatches(path, rule));
   const contractsCritical = hardRules.some((rule) =>
-    changedPaths.some((path) => owningSurface(path) === "contracts" && groupMatches(path, rule)),
+    changedPaths.some((path) => contractsOwned(path) && groupMatches(path, rule)),
   );
   const criticalPush = intent === "push" && risk === "critical";
   const criticalQa = intent === "qa" && risk === "critical";

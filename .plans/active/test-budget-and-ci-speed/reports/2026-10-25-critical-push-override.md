@@ -78,6 +78,15 @@ with no matched rule treats every owner as a critical owner with its typecheck a
 contracts gate's check set is unchanged; its format and lint are now scoped to the changed paths
 like every push.
 
+## Review round three (Codex, 2026-10-25)
+
+Two findings on the third head, both accepted: an explicit `--check` exempted every owner from
+focus through the early return in `focusedProofMissing`, so a critical owner could run its
+mandatory suite whole or, when manually critical, skip it; an explicit check now stands in only for
+ordinary owners. And `scripts/contracts/` paths are contract-owned by the policy's surface rules but
+not by `owningSurface`, so a critical script change with a contracts test path focused the
+whole-suite gate; the contracts flag now reads ownership from the surface rules.
+
 ## What to measure next
 
 After a week of merges, re-run the receipt analysis and compare the critical push span against the

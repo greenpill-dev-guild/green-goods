@@ -3146,3 +3146,51 @@ test("a manual critical risk makes every owner a critical owner with a typecheck
   assert.ok(!ids(plan).includes("client-build"));
   assert.ok(!ids(plan).includes("contracts-test"));
 });
+
+test("an explicit --check never exempts a critical owner from naming its test", () => {
+  const changedPaths = ["packages/shared/src/providers/Auth.tsx"];
+  const bypass = selectValidation({ intent: "push", changedPaths, checkIds: ["ontology"] });
+  assert.equal(bypass.risk, "critical");
+  assert.equal(bypass.status, "needs-focus");
+  assert.equal(bypass.stopReason, "focused-proof-required");
+
+  const sharedTest = "src/__tests__/providers/Auth.test.tsx";
+  const plan = selectValidation({ intent: "push", changedPaths, checkIds: ["ontology"], testPaths: { shared: [sharedTest] } });
+  assert.equal(plan.status, "ready");
+  assert.ok(plan.checks.find((check) => check.id === "ontology")?.selectedBy.includes("explicit-request"));
+  assert.deepEqual(plan.checks.find((check) => check.id === "shared-test").focusedPaths, [sharedTest]);
+
+  // A manually critical owner cannot drop its suite behind an explicit check either.
+  const manual = selectValidation({
+    intent: "push",
+    risk: "critical",
+    changedPaths: ["packages/client/src/components/Panel.tsx"],
+    checkIds: ["ontology"],
+  });
+  assert.equal(manual.status, "needs-focus");
+
+  // An ordinary owner's explicit check still stands in for its focus, as before.
+  const sensitive = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/hooks/garden/useFilteredGardens.ts"],
+    checkIds: ["ontology"],
+  });
+  assert.notEqual(sensitive.risk, "critical");
+  assert.equal(sensitive.status, "ready");
+});
+
+test("a critical scripts/contracts change keeps the whole contracts suite despite a contracts test path", () => {
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: ["scripts/contracts/deploy.mjs"],
+    testPaths: { contracts: ["test/modules/HatsModule.t.sol"] },
+  });
+  assert.equal(plan.risk, "critical");
+  assert.equal(plan.status, "ready");
+  for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]) {
+    assert.ok(plan.checks.find((check) => check.id === id)?.mandatory, id);
+  }
+  const suite = plan.checks.find((check) => check.id === "contracts-test");
+  assert.equal(suite.command, "bun run test");
+  assert.deepEqual(suite.focusedPaths, []);
+});
