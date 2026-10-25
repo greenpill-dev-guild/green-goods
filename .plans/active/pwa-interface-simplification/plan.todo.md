@@ -1,5 +1,11 @@
 # PWA Interface Simplification Plan
 
+**2026-10-25 wave A:** steps 1 and 2 merged (#1274, #1275), with PRD-1311's fix. The maintainer
+asked for every step that can run in parallel to run in parallel, so seven sessions build steps 3,
+4, 5 and 6, 11, 14 and 16, 7 and 9, and 8 and 19 at once, each on its own files; step 3 owns the
+stories for the five Home states and step 6 the Profile list and locale coverage. The remaining
+design rules are DL-127 to DL-131. Next: step 10 after the About review, then 15, 18, 13, 17 and 12.
+
 **2026-10-24 start gate:** the maintainer gave the execution go for both slices and answered the
 start gate, recorded in [spec.md](spec.md#start-gate-on-24-october-2026): the app's chip is 32px
 with a 48px hit area, amending the 44px app density that #1251 merged; the chip shows the garden's
