@@ -29,7 +29,8 @@ export interface WorkCardPresentation {
   supportingText?: string;
 }
 
-function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
+/** The work row's words, in the reader's language: its untitled name and its status pills. */
+export function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
   return {
     untitledWork: formatMessage({
       id: "app.workCard.untitledWork",

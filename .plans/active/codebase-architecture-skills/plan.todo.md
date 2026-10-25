@@ -135,4 +135,16 @@ below remain historical. Execution and proof: [follow-up handoff](handoffs/agent
   the pre-existing Git-environment test failure is recorded in the handoff.
 - [x] Observe Codex session-context and pre/post-edit hook loading in a normal Codex app session; see the October 4 observation in `eval.md` for the event boundary.
 - [ ] Observe hook loading in a normal Claude Desktop Code session (pending).
-- [ ] Observe the five next authorized task scenarios in the evaluation rubric (one bug-fix observation recorded; four categories pending).
+- [ ] Observe the five next authorized task scenarios in the evaluation rubric (bug-fix and documentation observations recorded; domain, UI, and bounded runtime refactor remain pending).
+
+## Skill workflow follow-up — 2026-10-24
+
+- [x] Replace passing-suite severity downgrades with consumer/runtime proof.
+- [x] Delegate cleanup validation to the canonical selector.
+- [x] Replace auxiliary QA extraction worktrees with copied scratch inputs and focused failure proof.
+- [x] Consolidate the four duplicate personal discovery entries locally, preserving backups and metadata.
+- [x] Move QA call, intake, and filing branches behind conditional references.
+- [ ] Finish the existing pilot on normally authorized domain, UI, and bounded runtime-refactor work.
+- [ ] Complete the independent before/after QA proposal comparison when workspace credits permit.
+
+Proof and publication state: [workflow handoff](handoffs/skill-workflow-simplification.md).
