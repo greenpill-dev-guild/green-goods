@@ -2,11 +2,26 @@
 
 **Feature Slug**: `codebase-architecture-skills`
 **Stage**: `active`
-**Status**: `ACTIVE — agent workflow observations and four remaining pilot categories`
+**Status**: `ACTIVE — five task observations recorded; Desktop hook observation and QA comparison pending`
 **Created**: `2026-08-24`
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-10-25`
 **Historical predecessor**: `module-seams-and-velocity`, closed `completed` on 2026-08-24 — see the [archive ledger](../../ARCHIVE.md); the hub itself lives only in Git history.
 **Coordination boundary**: `../client-structure-and-agent-guides/` owns AGENTS/CLAUDE consolidation.
+
+## Status reconciliation (2026-10-25)
+
+PR [#1273](https://github.com/greenpill-dev-guild/green-goods/pull/1273) merged into `develop` as
+`f912e3fac41b2d1c52c49bf04a0b01dd27f04b2b`. The five ordinary-task categories now have observations:
+the existing documentation and bug-fix entries, recovered October 8 domain and UI evidence, and
+the bounded join-request module extraction in merged PR #1289. These are observations with stated
+limits, not five independent measurements of skill effectiveness. No product work was created.
+
+PRD-835 remains In Progress for actual Claude Desktop Code hook-loading evidence and the
+independent QA before/after comparison. The latter was retried on October 25 but the model service
+was blocked by the network policy (`Method not allowed in limited mode`); credits could not be
+assessed. The historical semantic-routing run still has no usable passing receipt. The September
+coverage checkpoint remains closed. Detailed sources, corrections, and next actions are in the
+[pilot reconciliation](handoffs/pilot-reconciliation.md).
 
 ## Status reconciliation (2026-10-06)
 
@@ -135,7 +150,7 @@ below remain historical. Execution and proof: [follow-up handoff](handoffs/agent
   the pre-existing Git-environment test failure is recorded in the handoff.
 - [x] Observe Codex session-context and pre/post-edit hook loading in a normal Codex app session; see the October 4 observation in `eval.md` for the event boundary.
 - [ ] Observe hook loading in a normal Claude Desktop Code session (pending).
-- [ ] Observe the five next authorized task scenarios in the evaluation rubric (bug-fix and documentation observations recorded; domain, UI, and bounded runtime refactor remain pending).
+- [x] Record all five ordinary-task scenarios: documentation, bug fix, domain change, UI correction, and bounded runtime refactor. Recovery sources and proof limits are in `eval.md` and the pilot reconciliation handoff.
 
 ## Skill workflow follow-up — 2026-10-24
 
@@ -144,7 +159,7 @@ below remain historical. Execution and proof: [follow-up handoff](handoffs/agent
 - [x] Replace auxiliary QA extraction worktrees with copied scratch inputs and focused failure proof.
 - [x] Consolidate the four duplicate personal discovery entries locally, preserving backups and metadata.
 - [x] Move QA call, intake, and filing branches behind conditional references.
-- [ ] Finish the existing pilot on normally authorized domain, UI, and bounded runtime-refactor work.
-- [ ] Complete the independent before/after QA proposal comparison when workspace credits permit.
+- [x] Recover normally authorized domain and UI observations from Steward Access Requests and the bounded runtime-refactor observation from merged PR #1289; preserve the original receipts and limits.
+- [ ] Complete the independent before/after QA proposal comparison when the model service is reachable. October 25 retry failed before a proposal with `Method not allowed in limited mode`; frozen inputs and scoring criteria are prepared.
 
 Proof and publication state: [workflow handoff](handoffs/skill-workflow-simplification.md).

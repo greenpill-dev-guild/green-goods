@@ -6,7 +6,7 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import { grantPublicationConsent } from "../consent";
 import { invalidateConfirmation, recordConfirmation } from "../confirmations";
-import { type ReportingCopyKey, reportingText } from "../copy";
+import type { ReportingCopyKey } from "../copy";
 import type { DraftRecord } from "../drafts";
 import { enqueueJob } from "../jobs";
 import { setParticipantLocale } from "../participants";
@@ -126,6 +126,31 @@ export function recordDraftConfirmation(
   });
 }
 
+/** The languages the chat speaks, each offered by its own name. */
+const LANGUAGES = [
+  { locale: "en", label: "language.en" },
+  { locale: "es", label: "language.es" },
+  { locale: "pt", label: "language.pt" },
+] as const;
+
+/**
+ * LANG on its own asks which language to use. A choice sends LANG with that language, so it stays
+ * good whatever question is open, and the open question is left as it was.
+ */
+function askLanguage(writer: TurnWriter): void {
+  const buttons = writer.usesButtons();
+  writer.sayWithCommands(
+    "language.ask",
+    { how: buttons ? "" : writer.text("language.askWords") },
+    buttons
+      ? LANGUAGES.map(({ locale, label }) => ({
+          word: `lang ${locale}`,
+          label: writer.text(label),
+        }))
+      : []
+  );
+}
+
 function cancelDraft(writer: TurnWriter): void {
   const { core, ctx } = writer;
   const draft = ctx.draft;
@@ -196,12 +221,11 @@ export function handleReportCommand(
       return handleReportCommand(writer, { kind: "status" }, external);
     }
     case "locale":
+      if (!command.locale) return askLanguage(writer);
       if (ctx.binding) setParticipantLocale(core, ctx.binding.participantId, command.locale);
-      writer.reply(
-        { text: reportingText(command.locale, "help", { support: core.settings.supportContact }) },
-        "help"
-      );
-      return;
+      // Every reply from here on, this one's included, is in the language just chosen.
+      ctx.locale = command.locale;
+      return writer.say("help");
     default:
       return writer.say("help");
   }
