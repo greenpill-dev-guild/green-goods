@@ -20,7 +20,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, within } from "../test-utils";
+import { renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN = "0x5000000000000000000000000000000000000001";
 const NEIGHBOUR = "0xb0b0000000000000000000000000000000000002" as Address;
@@ -47,6 +47,11 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJournal", () => ({
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitmentCycleNames: () => mocks.cycleNames(),
+}));
+
+// The garden's own page closes the journal until About lands; it stands in as a marker here.
+vi.mock("../../views/Home/Garden/GardenPage", () => ({
+  GardenPage: () => <div data-component="GardenPage" />,
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
@@ -439,16 +444,22 @@ describe("Home journal", () => {
     });
   });
 
-  it("mounts Highlights, Recent Activity and Take Part on Home in DL-127's order", () => {
+  it("mounts Highlights, Recent Activity and Take Part in DL-127's order, then the garden's page", async () => {
     const garden = { id: GARDEN, name: "Riverside Commons Garden" } as Garden;
     const { container } = render(
       <HomeJournal garden={garden} membership={{ roles: ["gardener"], pendingJoin: false }} />
     );
 
-    const sections = [...container.querySelectorAll("section[data-component]")].map((section) =>
-      section.getAttribute("data-component")
+    // Until step 10's About entry, the garden's own page keeps its tabs and actions within reach.
+    await waitFor(() =>
+      expect(container.querySelector("[data-component='GardenPage']")).not.toBeNull()
     );
-    expect(sections).toEqual(["HighlightsCarousel", "RecentActivity", "TakePart"]);
+    const order = [...container.querySelectorAll("[data-component]")]
+      .map((node) => node.getAttribute("data-component"))
+      .filter((name) =>
+        ["HighlightsCarousel", "RecentActivity", "TakePart", "GardenPage"].includes(name ?? "")
+      );
+    expect(order).toEqual(["HighlightsCarousel", "RecentActivity", "TakePart", "GardenPage"]);
     for (const read of [mocks.cycles, mocks.recent, mocks.promises]) {
       expect(read).toHaveBeenCalledWith(GARDEN);
     }
