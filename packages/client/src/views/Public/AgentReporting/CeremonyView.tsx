@@ -3,7 +3,7 @@ import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { RiPlantLine } from "@remixicon/react";
 import { type ReactNode, useId } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
-import { FlowForward } from "@/components/Features/Work";
+import { FlowForward } from "@/components/Features/Work/FlowBar";
 import { AccountEntry, type EntryScreen } from "./AccountEntry";
 import { AccountActions, PageAccount } from "./CeremonyActs";
 import { BLOCKED_ID, CeremonyFrame } from "./CeremonyFrame";

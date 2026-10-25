@@ -3,7 +3,7 @@ import { RiPlantLine, RiShieldCheckLine } from "@remixicon/react";
 import { type ReactNode, useId } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { formatEther } from "viem";
-import { FormCard } from "@/components/Cards";
+import { FormCard } from "@/components/Cards/Form/FormCard";
 import { LineValue } from "./PublicationSummary";
 
 /** The permission window's length in the largest unit that reads plainly. */

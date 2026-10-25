@@ -40,6 +40,22 @@ const FORBIDDEN_PUBLIC_MODULES = [
 // The website's frame is a lazy route, so the entry's closure does not hold it, yet no public
 // page can draw until it and everything it imports have loaded. It answers to the same list.
 const PUBLIC_SHELL_SOURCE = "src/routes/PublicShell.tsx";
+// The reporting pages a chat link opens need sign-in and the wallet kit, so they answer to a
+// shorter list: the work queue and the app's work, garden and action cards, which catch-all
+// imports once brought them and which none of them uses.
+const REPORTING_PAGE_SOURCES = [
+  "src/views/Public/AgentReporting/index.tsx",
+  "src/views/Public/AgentReporting/PermissionsPage.tsx",
+];
+const FORBIDDEN_REPORTING_MODULES = [
+  "/providers/JobQueue",
+  "/modules/job-queue/",
+  "/components/Cards/Work/",
+  "/components/Cards/WorkCard/",
+  "/components/Cards/GardenCard/",
+  "/components/Cards/ActionPicker",
+  "/components/Cards/MediaCard",
+];
 
 // The shape of every lazy chunk's file name, set by `chunkFileNames` in
 // vite.config.ts. Privacy filters match a site's own files by name (Brave's
@@ -198,6 +214,12 @@ try {
   if (!publicShellKey) {
     throw new Error(`The website frame (${PUBLIC_SHELL_SOURCE}) is missing from Vite manifest`);
   }
+  // Nor must a reporting page that has moved.
+  const reportingPageKeys = REPORTING_PAGE_SOURCES.map((source) => {
+    const key = findManifestKey(manifest, source);
+    if (!key) throw new Error(`The reporting page (${source}) is missing from Vite manifest`);
+    return { source, key };
+  });
 
   const mainClosure = collectManifestClosure(manifest, [mainKey]);
   const publicClosure = collectManifestClosure(manifest, [mainKey, publicKey]);
@@ -308,11 +330,11 @@ try {
     failures.push(`offline shell gzip ${formatBytes(shellGzip)} exceeds ${formatBytes(LIMITS.shellGzip)}`);
   }
 
-  const forbiddenUnder = (files) => {
+  const forbiddenUnder = (files, patterns = FORBIDDEN_PUBLIC_MODULES) => {
     const found = new Set();
     for (const file of collectChunkClosure(graph, files)) {
       for (const moduleId of graph.chunks[file]?.modules ?? []) {
-        if (FORBIDDEN_PUBLIC_MODULES.some((pattern) => moduleId.includes(pattern))) {
+        if (patterns.some((pattern) => moduleId.includes(pattern))) {
           found.add(moduleId);
         }
       }
@@ -331,6 +353,15 @@ try {
     failures.push(
       `forbidden public dependencies under the website frame (${PUBLIC_SHELL_SOURCE}):\n  ${forbiddenUnderShell.join("\n  ")}`
     );
+  }
+  for (const { source, key } of reportingPageKeys) {
+    const page = collectManifestClosure(manifest, [key]);
+    const forbiddenUnderPage = forbiddenUnder(page.files, FORBIDDEN_REPORTING_MODULES);
+    if (forbiddenUnderPage.length) {
+      failures.push(
+        `forbidden dependencies under the reporting page (${source}):\n  ${forbiddenUnderPage.join("\n  ")}`
+      );
+    }
   }
 
   if (failures.length) {
