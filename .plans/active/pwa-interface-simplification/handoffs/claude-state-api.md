@@ -4,7 +4,7 @@
 
 - Owner: Claude (a session the orchestrator starts; questions go to the orchestrator)
 - Branch: `feature/pwa-membership-owner` (step 1); step 2 follows on its own branch
-- Status: in progress (step 1 built; step 2 next)
+- Status: in progress (step 1 green and out for review; step 2 next)
 
 ## Scope (first slice)
 
@@ -97,18 +97,41 @@ The cockpit's selection pattern, to copy in shape and not in code: `hooks/garden
 
 ## Validation
 
-- Pending lane implementation.
+- Step 1, before commit: full suites passed (Shared 7,635 with 16 skipped, client 1,747,
+  admin 1,383); Shared and client typecheck in both scopes; `test-quality`, `source-structure`
+  and `docs-generated` passed.
+- Step 1 push gate: critical tier, the full override (31 checks). The first run, on
+  `80db26067`, failed only `design-guardrails`, on colours develop's Grove spike had added to
+  `packages/extension/src/graph/canvas.ts`; develop's own Design run failed the same way. After
+  #1272 baselined them, the rerun below passed.
+- Rendered proof: none (state only). `browser-proof` is advisory and pending: the offline content
+  paths and Profile's list are in the authenticated class; acceptance (step 20) carries that
+  proof.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+Step 1 (`feature/pwa-membership-owner`):
+
+- Tested implementation commit SHA: `ffdbd834a1bbf02721f733ad8180dd9b409b15c1` (step 1's commits
+  merged with develop `99884497b`)
+- Run at (UTC): `2026-10-25T03:40:51Z`
+- Exact command(s): `PATH="$HOME/.local/share/mise/installs/node/22.22.1/bin:$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push`
+- Result: passed, 30 of 31 selected checks fresh (format, lint, validation-system-test,
+  test-quality, typecheck, test-typecheck, test and build for Shared, client, admin and Agent,
+  docs-authority, docs-test, docs-build, staged-modules, source-structure, design-guardrails,
+  agent-guidance, supply-chain, docs-generated, em-dashes); `browser-proof` pending (manual,
+  advisory)
+- Validated paths: the 27 paths of `git diff --name-only origin/develop ffdbd834a`: the
+  membership module and hook, the join reader, the Home filter, the arrival state, Submit Work,
+  the offline policy and hook, Karma, the visibility config, the barrels and the Shared
+  manifest, Profile's list, their tests, the API index and commands digests, the seam registry,
+  and this hub's `status.json` and handoff
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  packages docs scripts` → empty
+- Evidence-only diff command and result: `git diff --exit-code ffdbd834a -- packages docs
+  scripts` → exit 0 (this record changes only `.plans/`)
+- Evidence-only worktree-status command and result: `git status --porcelain=v1
+  --untracked-files=all -- packages docs scripts` → empty
 
 ## Risks / Blockers
 
