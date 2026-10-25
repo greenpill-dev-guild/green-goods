@@ -133,7 +133,7 @@ export function FocusedAccountSheet({
       open={open}
       onOpenChange={onOpenChange}
       placement="right"
-      // The app's tallest sheet: an account, its acts and six questions want the room.
+      // The app's tallest sheet: an account, its acts and seven questions want the room.
       sheetSize="full"
       // From 640px, clear of the 5rem top bar, so the bar and its steps stay in view above the
       // sheet. Below that it is the bottom sheet, which this does not touch.

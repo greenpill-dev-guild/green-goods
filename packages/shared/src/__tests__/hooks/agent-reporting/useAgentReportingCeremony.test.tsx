@@ -572,7 +572,7 @@ describe("reporting ceremony page", () => {
     expect(calls).toEqual([]);
   });
 
-  it("replays an outcome it could not deliver, with its key and author, after the browser switches accounts", async () => {
+  it("replays an outcome it could not deliver unchanged after the browser switches accounts, and sends it for no one else", async () => {
     wallet("send");
     agent.dropOutcomes = 2;
     const first = render();
@@ -597,9 +597,11 @@ describe("reporting ceremony page", () => {
       outcome: { kind: "broadcast", transactionHash: TX_HASH },
     });
     expect(agent.operation.state).toBe("reconciling");
-    // The send stays the first account's, and the page follows it until the chain settles it.
-    expect(result.current.sessionAccount).toBe(ACCOUNT);
-    expect(result.current.operation?.envelope?.accountAddress).toBe(ACCOUNT);
+    // Its author is the envelope's, frozen by the Agent and settled by the chain. The page's part
+    // is to report the send as it was, never send it again for the account now connected, and
+    // follow it until it settles.
+    await act(() => result.current.publish());
+    expect(result.current.error).toBe("wrong_account");
     agent.operation = { ...agent.operation, state: "published", transactionHash: TX_HASH };
     await waitFor(() => expect(result.current.stage).toBe("published"));
     expect(agent.requests("POST", "/operations/op-1/attempts")).toHaveLength(1);
@@ -676,6 +678,26 @@ describe("reporting ceremony page", () => {
     expect(
       agent.requests("POST", "/execution-grants/g-1/activation/outcome").at(-1)?.body
     ).toMatchObject({ idempotencyKey: "at-1:uncertain", outcome: { userOperationHash: TX_HASH } });
+  });
+
+  it("never lets the account the browser switched to allow a permission another account proved", async () => {
+    wallet("send");
+    const first = render();
+    await reachGrant(first.result);
+    // The first report is prepared for the account that proved; nothing is signed yet.
+    await act(() => first.result.current.installGrant());
+    await act(() => first.result.current.changeAccount());
+    // Another account signing in remounts every screen; the page resumes what was prepared.
+    first.unmount();
+    mocks.account = OTHER_ACCOUNT;
+    const { result } = render();
+    await waitFor(() => expect(result.current.resource?.title).toBe("Planted seedlings"));
+    expect(result.current.stage).toBe("grant_ready");
+    await act(() => result.current.installGrant());
+    expect(result.current.error).toBe("wrong_account");
+    // Refused before the activation is reserved or anyone is asked to sign.
+    expect(agent.requests("POST", "/execution-grants/g-1/activation/attempts")).toEqual([]);
+    expect(mocks.sendActivation).not.toHaveBeenCalled();
   });
 
   it("reports an owner decline before delegate signing and closes the grant", async () => {

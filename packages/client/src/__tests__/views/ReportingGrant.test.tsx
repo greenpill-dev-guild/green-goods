@@ -507,6 +507,29 @@ describe("top bar", () => {
     expect(props.prove).not.toHaveBeenCalled();
   });
 
+  it.each<[string, Props]>([
+    [
+      "proving",
+      {
+        ...makeProps(),
+        stage: "proving",
+        purpose: "link_account",
+        grant: null,
+        sessionAccount: null,
+      },
+    ],
+    ["signing", { ...review(), stage: "signing" }],
+    ["grant_signing", { ...makeProps(), resource, operation, stage: "grant_signing" }],
+  ])("offers no way to sign out or switch while %s waits on a signature", (_, props) => {
+    render(view(props));
+    fireEvent.click(screen.getByRole("button", { name: /^Account and Help/ }));
+    expect(
+      within(screen.getByRole("dialog")).queryByRole("button", {
+        name: /^(Sign Out|Use a Different Account)/,
+      })
+    ).not.toBeInTheDocument();
+  });
+
   it("marks a signed-in page on the profile button and keeps the account's acts in its sheet", () => {
     const props = { ...makeProps(), resource, operation };
     const { rerender } = render(view({ ...props, stage: "connect", sessionAccount: null }));
