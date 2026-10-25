@@ -1018,7 +1018,10 @@ fi
   try {
     if (command === "test") assert.equal(rootScripts.test, "node scripts/dev/test.js");
     const result = spawnSync(command === "test" ? "node" : "bun", command === "test" ? ["scripts/dev/test.js"] : ["--no-env-file", "run", command], {
-      cwd: fixture, encoding: "utf8", timeout: 10_000,
+      // The chain spawns five to seven `bun run` processes; under the load of several push gates
+      // at once each spawn slows and a 10s cap failed runs whose diffs never touched this file.
+      // The tests check order, not speed, so the cap only has to catch a hang.
+      cwd: fixture, encoding: "utf8", timeout: 90_000,
       env: { ...process.env, CALL_LOG: log, AGGREGATE_PATH: process.env.PATH, PATH: `${join(fixture, "bin")}:${process.env.PATH}` },
     });
     return { ...result, calls: readFileSync(log, "utf8").trim().split("\n") };
