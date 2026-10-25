@@ -78,6 +78,27 @@ describe("chat channels", () => {
       status: "terminal",
       errorCode: "channel_unavailable",
     });
+
+    // Taking a replaced question's buttons off goes to its channel's adapter too. A channel that
+    // cannot edit a sent message, or has no adapter here, keeps its buttons.
+    const retired: string[] = [];
+    const telegram: TransportAdapter = {
+      transport: {
+        send: async () => ({ status: "accepted", providerMessageId: "41" }),
+        retireChoices: async ({ providerMessageId }) => void retired.push(providerMessageId),
+      },
+      mediaFetcher: { fetch: async () => ({ bytes: new Uint8Array() }) },
+    };
+    const both = routeChannels(
+      new Map<ReportingChannel, TransportAdapter>([...adapters, ["telegram", telegram]])
+    );
+    for (const providerRealm of ["telegram:bot-1", "whatsapp:15550001", "sms:15550002"])
+      await both.transport.retireChoices?.({
+        providerRealm,
+        externalChatId: "chat-1",
+        providerMessageId: "41",
+      });
+    expect(retired).toEqual(["41"]);
   });
 
   it("continues accepting delivery status while the source channel is paused", () => {

@@ -83,14 +83,15 @@ statistical comparison of agents or repositories.
 |---|---|---|
 | Documentation correction | Narrow change; working links and consistent routing | 2026-10-24 skills follow-up: cleanup proof and validation guidance corrected; conditional QA references preserve fourteen entrypoints and fifteen routes. Codex app working-tree checks: 15 static contracts/routes and 97 guidance files; see [workflow handoff](handoffs/skill-workflow-simplification.md). No human correction observed. This proves guidance consistency, not live QA filing. |
 | Bug fix | Reproduced defect; useful regression proof | Software Factory batch 4: Codex app, smoke fixture identity mismatch reproduced in the full browser project; one-line repair, 12 pass / one declared skip, zero retries. No human correction during the repair; earlier loader cause remains unproven. See fourth-batch handoff |
-| Domain change | Owning rule identified; accepted and rejected behavior checked | Pending |
-| UI correction | Local design guidance applied; rendered proof labeled | Pending |
-| Bounded refactor | Behavior preserved; concrete maintenance cost reduced | Pending |
+| Domain change | Owning rule identified; accepted and rejected behavior checked | Recovered 2026-10-25 from the October 8 Steward Access Requests task: stewardship requires Operator/Owner confirmation; a gardener alone stays pending, existing stewards are rejected, and request creation grants no role. Codex, model unknown; domain feature segment records zero human corrections. Original RED/GREEN and commit receipt remain authoritative; live signing/API/role grants unverified. See [recovery evidence](handoffs/pilot-reconciliation.md#domain-change). |
+| UI correction | Local design guidance applied; rendered proof labeled | Recovered 2026-10-25 from the October 8 stable-geometry correction: desktop and mobile selection/review/pending states use stable regions and the existing AdminDialog. Original proof: Storybook in Brave with synthetic fixtures; Codex, model unknown; one human correction for sizing and missing mobile-selection evidence. Original committed QA and 529-story-test receipt retained; authenticated actions unverified. See [recovery evidence](handoffs/pilot-reconciliation.md#ui-correction). |
+| Bounded refactor | Behavior preserved; concrete maintenance cost reduced | Recovered 2026-10-25 from commit `5fac24a633e60442818c90e997ae45e5543ea96b`, merged in PR #1289: move availability queries to their module and the awaiting reader beside its session record; retain the public leaf. Moved function bodies are byte-identical, leaf shrinks 527 to 480 lines, and the three hook files match the PR’s tested head. Claude Code attribution; model and corrections for this substep unknown. See [recovery evidence](handoffs/pilot-reconciliation.md#bounded-runtime-refactor). |
 
-The 2026-10-24 QA instruction extraction is a guidance refactor, not the pending bounded runtime
-refactor task. Its independent proposal comparison is incomplete because the second agent could
-not start after workspace credits were exhausted. The first proposal recovered six fixture items
-and kept live enrichment unverified. Do not count it as an after-variant pass or real QA evidence.
+The 2026-10-24 QA instruction extraction is a guidance refactor and does not supply the runtime
+refactor observation. At that checkpoint its independent proposal comparison was incomplete:
+the second agent could not start after workspace credits were exhausted. The first proposal
+recovered six fixture items and kept live enrichment unverified. The October 25 update below
+records the current blocker; neither attempt establishes an after-variant pass or real QA evidence.
 
 For each task, record its reference, agent/session, acceptance outcome, scope adherence,
 verification, and human corrections. Record skill use only when observable; an agent saying it
@@ -123,3 +124,25 @@ the user was asked for it during this batch. The five-task pilot remains separat
 
 Browser qualification and commands for this ordinary bug-fix task are recorded in the
 [fourth-batch handoff](../test-budget-and-ci-speed/handoffs/software-factory-batch-4.md).
+
+## Pilot reconciliation — 2026-10-25
+
+All five ordinary-task categories now have bounded observations. Domain/UI observations were
+recovered from the existing October 8 handoffs; the runtime refactor was recovered from merged
+PR #1289. Original outcomes, human corrections, validation limits, and timestamps are retained.
+No skill invocation or causal improvement is inferred from a skill file being present. The
+historical task records support the behavior described, not a cross-agent ranking or latency gain.
+This recovery does not certify the October 24 QA extraction change through those earlier tasks.
+
+Remaining execution: observe actual Claude Desktop Code hooks and complete the independent QA
+comparison. The October 25 comparison used frozen before/after instruction trees and identical
+synthetic inputs; the first model call failed with HTTP 403 `Method not allowed in limited mode`
+after transport setup. Neither variant produced a proposal, so no comparison pass, token count,
+or credit diagnosis is claimed. The original credit-blocked attempt remains historical. See the
+[reconciliation handoff](handoffs/pilot-reconciliation.md) for the input revisions and rubric.
+
+AC-1 retains a historical proof limit: the semantic classifier was invoked in August, but its
+receipt was truncated. The grouped historical PASS row above does not establish semantic PASS.
+Current descriptions were unchanged by PR #1273; deterministic routing remains the usable proof.
+A future description change selects the existing `bun run check --only skill-evaluation` command;
+a synthetic classifier result cannot replace a real-task or live Desktop observation.

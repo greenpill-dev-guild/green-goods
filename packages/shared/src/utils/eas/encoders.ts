@@ -5,6 +5,7 @@ import {
   validateWorkAttachments,
   hashWorkBytes,
   identifyWorkFile,
+  publishableWorkFile,
   roundWorkLocation,
 } from "../../modules/work/work-attachments";
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
@@ -212,10 +213,16 @@ export async function encodeWorkData(
     throw error;
   }
 
+  // Every photo loses its location and camera metadata before anything is
+  // pinned, including work queued before intake removed it. One at a time, so
+  // only one photo's bytes are read into memory at once.
+  const publishedFiles: File[] = [];
+  for (const file of normalizedFiles) publishedFiles.push(await publishableWorkFile(file));
+
   // Upload files with adaptive concurrency based on connection quality.
   // On slow connections (2g/3g), limits parallel uploads to avoid overwhelming bandwidth.
-  const concurrency = getUploadConcurrency(normalizedFiles.length);
-  const uploadTasks = normalizedFiles.map(
+  const concurrency = getUploadConcurrency(publishedFiles.length);
+  const uploadTasks = publishedFiles.map(
     (file, index) => () =>
       uploadCachedFile(file, {
         fileIndex: index,

@@ -9,6 +9,7 @@ import {
 } from "../../modules/work/submission-flow";
 import { WorkTab } from "../../stores/workFlowTypes";
 import { Domain } from "../../types/domain";
+import { cleanPhoto, photoFile } from "../test-utils/photo-fixtures";
 
 const ACTIVE = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const NAVIGATION = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -144,7 +145,7 @@ describe("work submission flow", () => {
   });
 
   it("normalizes submission media through the shared media contract", async () => {
-    const photo = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
+    const photo = photoFile(cleanPhoto("image/jpeg"), "photo.jpg", "image/jpeg");
     const result = await prepareWorkSubmission([photo]);
 
     expect(result.accepted.map((item) => item.file)).toEqual([photo]);
