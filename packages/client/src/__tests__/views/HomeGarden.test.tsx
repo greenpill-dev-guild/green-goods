@@ -169,7 +169,8 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentPools: () => ({ pools: [], availability: { status: "unknown-chain" } }),
 }));
 
-vi.mock("viem", () => ({
+vi.mock("viem", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("viem")>()),
   isAddress: () => true,
 }));
 
