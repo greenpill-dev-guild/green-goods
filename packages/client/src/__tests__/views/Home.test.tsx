@@ -5,7 +5,9 @@
  * does.
  */
 
+import type { ArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
 import messages from "@green-goods/shared/i18n/en.json";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
@@ -38,7 +40,7 @@ const state = vi.hoisted(() => ({
   active: {} as Record<string, unknown>,
   listed: [] as unknown[],
   awaiting: new Set<string>(),
-  arrival: "none" as "none" | "draft",
+  arrival: { kind: "none" } as ArrivalState,
   rootGarden: "",
 }));
 
@@ -65,7 +67,7 @@ vi.mock("@green-goods/shared/config/blockchain", async (importOriginal) => {
   };
 });
 vi.mock("@green-goods/shared/hooks/app/useArrivalState", () => ({
-  useArrivalState: () => ({ kind: state.arrival, myGardenIds: [], needsReviewCount: 0 }),
+  useArrivalState: () => state.arrival,
 }));
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => ({ isAuthenticated: true }),
@@ -171,8 +173,9 @@ beforeEach(() => {
   sessionStorage.clear();
   state.listed = [TAS, AIYELOJA, VIDA, COMMUNITY];
   state.awaiting = new Set();
-  state.arrival = "none";
+  state.arrival = { kind: "none" };
   state.rootGarden = COMMUNITY.id;
+  useUIStore.getState().resetForAccountChange();
   setActive("ready", [[TAS, ["steward"]]], TAS.id);
 });
 
@@ -400,18 +403,55 @@ describe("Home under its child routes", () => {
 describe("arrival toast", () => {
   // Home waits 700 ms after an arrival resolves before it shows the toast.
   const passArrivalDelay = () => act(() => vi.advanceTimersByTime(700));
+  const shownToast = () => vi.mocked(toastService.info).mock.calls.at(-1)?.[0];
 
   beforeEach(() => {
-    state.arrival = "draft";
+    state.arrival = { kind: "queue", orientation: { target: "yourWork" } };
   });
 
-  it("shows the arrival toast to a session that opens on Home", () => {
+  it("tells a session that opens on Home about its uploads, and Review opens Your Work on Pending", () => {
     renderHome();
     passArrivalDelay();
 
-    expect(toastService.info).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ title: "You have a draft saved" })
+    expect(toastService.info).toHaveBeenCalledOnce();
+    expect(shownToast()).toMatchObject({
+      title: "Work is waiting to sync",
+      message: "Some of your work hasn't uploaded yet.",
+      action: { label: "Review" },
+    });
+    act(() => shownToast()?.action?.onClick());
+    expect(useUIStore.getState()).toMatchObject({
+      isWorkDashboardOpen: true,
+      workDashboardInitialTab: "pending",
+    });
+  });
+
+  it("names the other garden its uploads wait in, and opens the switcher there without switching", async () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["gardener"]],
+      ],
+      TAS.id
     );
+    state.arrival = {
+      kind: "queue",
+      orientation: { target: "switcher", gardenId: VIDA.id, gardenName: VIDA.name },
+    };
+
+    renderHome();
+    passArrivalDelay();
+
+    expect(shownToast()).toMatchObject({
+      title: "Work is waiting to sync",
+      message: "Some of your work in Vida Verde hasn't uploaded yet.",
+      action: { label: "See Your Gardens" },
+    });
+    act(() => shownToast()?.action?.onClick());
+    expect(await screen.findByRole("dialog", { name: "Your Gardens" })).toBeInTheDocument();
+    expect(selectGarden).not.toHaveBeenCalled();
+    expect(useUIStore.getState().gardenSwitcherRequested).toBe(false);
   });
 
   it("stays quiet on Home once the session has arrived on another screen", () => {
@@ -430,5 +470,29 @@ describe("arrival toast", () => {
     passArrivalDelay();
 
     expect(toastService.info).not.toHaveBeenCalled();
+  });
+});
+
+describe("the switcher a toast asked for", () => {
+  it("opens once Home shows, and not over a garden page Home holds open", async () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["gardener"]],
+      ],
+      TAS.id
+    );
+    act(() => useUIStore.getState().requestGardenSwitcher());
+
+    const visit = renderHome(`/home/${VIDA.id}`);
+    expect(screen.queryByRole("dialog", { name: "Your Gardens" })).not.toBeInTheDocument();
+    expect(useUIStore.getState().gardenSwitcherRequested).toBe(true);
+    visit.unmount();
+
+    renderHome();
+    expect(await screen.findByRole("dialog", { name: "Your Gardens" })).toBeInTheDocument();
+    expect(useUIStore.getState().gardenSwitcherRequested).toBe(false);
+    expect(selectGarden).not.toHaveBeenCalled();
   });
 });

@@ -154,6 +154,8 @@ export interface CommitmentQueueState {
    * taken and reports no failures when it cannot see any.
    */
   isUnavailable: boolean;
+  /** The queue has not been read yet for this reader: nothing above is an answer. */
+  isLoading: boolean;
   refresh: () => void;
 }
 
@@ -362,7 +364,9 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       proofJobs,
       linkedWorkIds,
       isUnavailable: Boolean(viewer) && query.isError,
+      // Pending covers a first read that is running or paused; without a reader nothing runs.
+      isLoading: Boolean(viewer) && query.isPending,
       refresh,
     };
-  }, [query.data, query.isError, viewer, refresh]);
+  }, [query.data, query.isError, query.isPending, viewer, refresh]);
 }

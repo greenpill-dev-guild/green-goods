@@ -6,7 +6,10 @@ import { useDocumentScrollLockLifecycle } from "@green-goods/shared/hooks/ui/use
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
 import { WorkProvider } from "@green-goods/shared/providers/Work";
-import { useDashboardRestoration } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
+import {
+  useDashboardNavigation,
+  useDashboardRestoration,
+} from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication/Offline/OfflineIndicator";
@@ -65,6 +68,8 @@ export default function AppShell() {
   const { pathname } = useLocation();
   useEffect(() => configureConnectivityProbe("/connectivity-check.txt"), []);
   useDashboardRestoration();
+  // The queue's failure toast opens Home's switcher for an upload waiting in another garden.
+  const { openGardenSwitcher } = useDashboardNavigation();
   const primaryAddress = usePrimaryAddress();
   useWalletNetworkAlignment();
 
@@ -85,7 +90,7 @@ export default function AppShell() {
   }, [pathname]);
 
   return (
-    <JobQueueProvider>
+    <JobQueueProvider onOpenGardenSwitcher={openGardenSwitcher}>
       <Suspense fallback={null}>
         <OfflineContentPreparation />
       </Suspense>

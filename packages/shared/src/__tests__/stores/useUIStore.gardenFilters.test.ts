@@ -57,6 +57,7 @@ describe("Home garden filters in the UI store", () => {
     store.openGardenFilter();
     store.openWalletSheet();
     store.openWorkDashboard("completed");
+    store.requestGardenSwitcher();
     store.rememberWorkDashboard({
       tab: "completed",
       pendingFilter: "all",
@@ -74,6 +75,7 @@ describe("Home garden filters in the UI store", () => {
     expect(after.isWorkDashboardOpen).toBe(false);
     expect(after.workDashboardInitialTab).toBeUndefined();
     expect(after.workDashboardReturnState).toBeUndefined();
+    expect(after.gardenSwitcherRequested).toBe(false);
     expect(after.debugMode).toBe(true);
     after.setDebugMode(false);
   });

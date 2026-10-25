@@ -1,300 +1,126 @@
 /**
- * useArrivalState Hook Tests
- *
- * Covers the truth-gated priority ladder (resolveArrivalKind) exhaustively, plus the hook's
- * derivation of per-source readiness/signals — including the failure modes that must NOT surface
- * a wrong orientation (a gardens error must never read as "signed in, no membership"; an
- * steward with unready review data must get silence, never "all caught up").
+ * The arrival toast's one remaining orientation (PWA Home step 12): uploads still on this phone.
+ * Home's chip and Continue show the member's garden and drafts, so those branches are gone. Where
+ * the toast points is `orientUploads`, tested with the rest of Your Work on this phone; here the
+ * queue's jobs reach it, and silence holds until the answer is known.
  */
 
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  type ArrivalInputs,
-  resolveArrivalKind,
-  useArrivalState,
-} from "../../hooks/app/useArrivalState";
+import { useArrivalState } from "../../hooks/app/useArrivalState";
+import type { Job } from "../../types/job-queue";
 
-type MyGardenFixture = {
-  garden: { id: string };
-  membership: { roles: string[]; pendingJoin: boolean };
-};
-
-/** One of the account's gardens as the membership owner reports it. */
-function myGarden(id: string, roles: string[], pendingJoin = false): MyGardenFixture {
-  return { garden: { id }, membership: { roles, pendingJoin } };
-}
-
-// Mutable mock state, read lazily by the module factories so each test can tweak a source.
-const { mocks } = vi.hoisted(() => ({
+const { ACCOUNT, CHAIN, GARDEN, OTHER_GARDEN, THIRD_GARDEN, mocks } = vi.hoisted(() => ({
+  ACCOUNT: "0xAbC0000000000000000000000000000000000001",
+  CHAIN: 42161,
+  GARDEN: "0x6a7de00000000000000000000000000000000aaa",
+  OTHER_GARDEN: "0x0757e00000000000000000000000000000000bbb",
+  THIRD_GARDEN: "0x7a1de00000000000000000000000000000000ccc",
   mocks: {
-    primaryAddress: "0xAbC0000000000000000000000000000000000001" as string | null,
-    myGardens: {
-      gardens: [] as MyGardenFixture[],
-      isLoaded: true,
-      isError: false,
-      isStale: false,
-      refetch: () => {},
-    },
-    drafts: { draftCount: 0, isLoading: false },
-    queue: { data: { pending: 0, failed: 0 } as Record<string, number>, isSuccess: true },
-    review: { count: 0, ready: true, isSteward: false },
+    account: null as string | null,
+    queue: { data: undefined as Job[] | undefined, isSuccess: false },
+    gardensLoaded: true,
   },
 }));
 
-vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
-  usePrimaryAddress: () => mocks.primaryAddress,
-}));
-// The membership owner has its own tests; here it stands for "the account's gardens".
-vi.mock("../../hooks/garden/useMyGardens", () => ({
-  useMyGardens: (account: string | null) =>
-    account ? mocks.myGardens : { ...mocks.myGardens, gardens: [] },
-}));
-vi.mock("../../hooks/work/useDrafts", () => ({
-  useDrafts: () => mocks.drafts,
-}));
-vi.mock("../../hooks/work/useWorks", () => ({
-  useQueueStatistics: () => mocks.queue,
-}));
-vi.mock("../../hooks/work/usePendingReviewCount", () => ({
-  usePendingReviewCount: () => mocks.review,
-}));
-
-type SourceOverrides = {
-  queue?: Partial<ArrivalInputs["queue"]>;
-  drafts?: Partial<ArrivalInputs["drafts"]>;
-  gardens?: Partial<ArrivalInputs["gardens"]>;
-  review?: Partial<ArrivalInputs["review"]>;
-};
-
-// Baseline: every source ready, every signal absent (→ "signedIn"). Override per case.
-function makeInputs(overrides: SourceOverrides = {}): ArrivalInputs {
+vi.mock("../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.account }));
+vi.mock("../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => CHAIN }));
+// The queue is this phone's IndexedDB; the live query is its edge.
+vi.mock("../../hooks/utils/useLiveQuery", () => ({ useLiveQuery: () => mocks.queue }));
+// The active garden's own rule over the member's gardens: GARDEN is active, the others switch.
+vi.mock("../../hooks/garden/useActiveGarden", async () => {
+  const { isInGardenListScope } = await vi.importActual<
+    typeof import("../../modules/garden/active-garden")
+  >("../../modules/garden/active-garden");
+  const gardens = [
+    { id: GARDEN, name: "TAS HUB" },
+    { id: OTHER_GARDEN, name: "Vida Verde" },
+    { id: THIRD_GARDEN, name: "Ilhas" },
+  ];
   return {
-    queue: { ready: true, hasPendingOrFailed: false, ...overrides.queue },
-    drafts: { ready: true, hasDraft: false, ...overrides.drafts },
-    gardens: { ready: true, isSteward: false, isGardener: false, ...overrides.gardens },
-    review: { ready: true, needsReviewCount: 0, ...overrides.review },
+    useActiveGarden: () => ({
+      inScope: (named: readonly (string | null | undefined)[]) =>
+        isInGardenListScope(
+          {
+            activeGardenId: GARDEN,
+            memberGardenIds: mocks.gardensLoaded ? new Set(gardens.map(({ id }) => id)) : null,
+          },
+          named
+        ),
+      myGardens: {
+        gardens: mocks.gardensLoaded
+          ? gardens.map((garden) => ({ garden, membership: { roles: ["gardener"] } }))
+          : [],
+        isLoaded: mocks.gardensLoaded,
+      },
+    }),
   };
+});
+
+function job(kind: string, gardenAddress: string, createdAt: number, chainId = CHAIN): Job {
+  return {
+    id: `${kind}-${createdAt}`,
+    kind,
+    chainId,
+    payload: { gardenAddress },
+    meta: {},
+    createdAt,
+    attempts: 0,
+    synced: false,
+    userAddress: ACCOUNT,
+  } as Job;
 }
 
-describe("resolveArrivalKind", () => {
-  it("returns signedIn only when every source is ready and every signal absent", () => {
-    expect(resolveArrivalKind(makeInputs())).toBe("signedIn");
-  });
-
-  it("returns none when an absence claim can't be fully trusted (a source not ready)", () => {
-    expect(resolveArrivalKind(makeInputs({ drafts: { ready: false } }))).toBe("none");
-    expect(resolveArrivalKind(makeInputs({ gardens: { ready: false } }))).toBe("none");
-  });
-
-  it("fires queue from IndexedDB even when gardens is unready (offline)", () => {
-    expect(
-      resolveArrivalKind(
-        makeInputs({
-          queue: { ready: true, hasPendingOrFailed: true },
-          gardens: { ready: false, isGardener: true },
-        })
-      )
-    ).toBe("queue");
-  });
-
-  it("stays silent (no premature lower-priority toast) until the queue source is ready", () => {
-    // A user with both a failed-sync job and a draft must not see "draft" before the queue
-    // resolves — the higher-priority queue would preempt it. Stay silent until queue is ready.
-    expect(
-      resolveArrivalKind(
-        makeInputs({
-          queue: { ready: false, hasPendingOrFailed: true },
-          drafts: { ready: true, hasDraft: true },
-        })
-      )
-    ).toBe("none");
-  });
-
-  it("orders queue > draft > review > gardener", () => {
-    const all = {
-      queue: { hasPendingOrFailed: true },
-      drafts: { hasDraft: true },
-      gardens: { isSteward: true, isGardener: true },
-      review: { needsReviewCount: 3 },
-    };
-    expect(resolveArrivalKind(makeInputs(all))).toBe("queue");
-    expect(resolveArrivalKind(makeInputs({ ...all, queue: { hasPendingOrFailed: false } }))).toBe(
-      "draft"
-    );
-    expect(
-      resolveArrivalKind(
-        makeInputs({ gardens: { isSteward: true }, review: { needsReviewCount: 3 } })
-      )
-    ).toBe("review");
-    expect(resolveArrivalKind(makeInputs({ gardens: { isGardener: true } }))).toBe("gardener");
-  });
-
-  it("resolves the steward with both a draft and review work to draft (local truth first)", () => {
-    // Device-local unfinished work outranks the network-backed review queue: this session may
-    // be the only chance to recover it, and review work stays reachable via the dashboard.
-    expect(
-      resolveArrivalKind(
-        makeInputs({
-          drafts: { hasDraft: true },
-          gardens: { isSteward: true },
-          review: { needsReviewCount: 5 },
-        })
-      )
-    ).toBe("draft");
-  });
-
-  it("never reads a gardens error as signedIn or gardener for an actual member", () => {
-    const kind = resolveArrivalKind(makeInputs({ gardens: { ready: false, isGardener: true } }));
-    expect(kind).not.toBe("signedIn");
-    expect(kind).not.toBe("gardener");
-    expect(kind).toBe("none");
-  });
-
-  it("gates stewards on review readiness — silence, never a premature claim", () => {
-    // A steward whose review data is unready must not get "stewardClear" (a false
-    // "all caught up") nor fall through to "gardener" (preemptable once review resolves).
-    const kind = resolveArrivalKind(
-      makeInputs({
-        gardens: { isSteward: true, isGardener: true },
-        review: { ready: false, needsReviewCount: 0 },
-      })
-    );
-    expect(kind).toBe("none");
-  });
-
-  it("splits the steward branch on the review count: review vs stewardClear", () => {
-    expect(
-      resolveArrivalKind(
-        makeInputs({ gardens: { isSteward: true }, review: { needsReviewCount: 1 } })
-      )
-    ).toBe("review");
-    expect(
-      resolveArrivalKind(
-        makeInputs({ gardens: { isSteward: true }, review: { needsReviewCount: 0 } })
-      )
-    ).toBe("stewardClear");
-  });
-
-  it("never makes a gardener (non-steward) wait on review readiness", () => {
-    expect(
-      resolveArrivalKind(
-        makeInputs({
-          gardens: { isGardener: true },
-          review: { ready: false, needsReviewCount: 0 },
-        })
-      )
-    ).toBe("gardener");
-  });
-
-  it("resolves a user who both operates and gardens via the steward branch", () => {
-    expect(
-      resolveArrivalKind(
-        makeInputs({
-          gardens: { isSteward: true, isGardener: true },
-          review: { needsReviewCount: 0 },
-        })
-      )
-    ).toBe("stewardClear");
-  });
-});
+function arriveWith(jobs: Job[] | undefined) {
+  mocks.queue = { data: jobs, isSuccess: jobs !== undefined };
+  return renderHook(() => useArrivalState()).result.current;
+}
 
 describe("useArrivalState", () => {
   beforeEach(() => {
-    mocks.primaryAddress = "0xAbC0000000000000000000000000000000000001";
-    mocks.myGardens = {
-      gardens: [],
-      isLoaded: true,
-      isError: false,
-      isStale: false,
-      refetch: () => {},
-    };
-    mocks.drafts = { draftCount: 0, isLoading: false };
-    mocks.queue = { data: { pending: 0, failed: 0 }, isSuccess: true };
-    mocks.review = { count: 0, ready: true, isSteward: false };
+    mocks.account = ACCOUNT;
+    mocks.gardensLoaded = true;
   });
 
-  it("returns none when there is no resolved address yet", () => {
-    mocks.primaryAddress = null;
-    mocks.myGardens.gardens = [myGarden("g1", ["gardener"])];
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("none");
-    expect(result.current.myGardenIds).toEqual([]);
+  it("stays silent until the queue answers, and when nothing waits on this phone", () => {
+    expect(arriveWith(undefined)).toEqual({ kind: "none" });
+    expect(arriveWith([])).toEqual({ kind: "none" });
+
+    mocks.account = null;
+    expect(arriveWith([job("work", GARDEN, 1)])).toEqual({ kind: "none" });
   });
 
-  it("derives gardener from the gardener role or an open join this device sent", () => {
-    mocks.myGardens.gardens = [myGarden("g1", ["gardener"])];
-    const listed = renderHook(() => useArrivalState());
-    expect(listed.result.current.kind).toBe("gardener");
-    expect(listed.result.current.myGardenIds).toEqual(["g1"]);
+  it("speaks only for what Your Work lists: work, reviews and proof queued on this chain", () => {
+    expect(
+      arriveWith([
+        job("claim", GARDEN, 1),
+        job("commitment", GARDEN, 2),
+        job("work", GARDEN, 3, 10),
+      ])
+    ).toEqual({ kind: "none" });
 
-    mocks.myGardens.gardens = [myGarden("g2", [], true)];
-    const joining = renderHook(() => useArrivalState());
-    expect(joining.result.current.kind).toBe("gardener");
-    expect(joining.result.current.myGardenIds).toEqual(["g2"]);
+    for (const kind of ["work", "approval", "evidence"]) {
+      expect(arriveWith([job(kind, GARDEN, 4)])).toEqual({
+        kind: "queue",
+        orientation: { target: "yourWork" },
+      });
+    }
   });
 
-  it("derives steward from the steward role", () => {
-    mocks.myGardens.gardens = [myGarden("g1", ["steward"])];
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("stewardClear");
-    expect(result.current.myGardenIds).toEqual(["g1"]);
+  it("names the garden the newest upload waits in when the active garden's list holds none of them", () => {
+    expect(arriveWith([job("work", OTHER_GARDEN, 1), job("approval", THIRD_GARDEN, 2)])).toEqual({
+      kind: "queue",
+      orientation: { target: "switcher", gardenId: THIRD_GARDEN, gardenName: "Ilhas" },
+    });
   });
 
-  it("counts an owner's and an evaluator's gardens as theirs without a role orientation", () => {
-    mocks.myGardens.gardens = [myGarden("g1", ["owner"]), myGarden("g2", ["evaluator"])];
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("signedIn");
-    expect(result.current.myGardenIds).toEqual(["g1", "g2"]);
-  });
-
-  it("surfaces review with its count when a steward has submissions waiting", () => {
-    mocks.myGardens.gardens = [myGarden("g1", ["steward"])];
-    mocks.review = { count: 3, ready: true, isSteward: true };
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("review");
-    expect(result.current.needsReviewCount).toBe(3);
-  });
-
-  it("stays silent for a steward whose review data is not ready", () => {
-    mocks.myGardens.gardens = [myGarden("g1", ["steward"])];
-    mocks.review = { count: 0, ready: false, isSteward: true };
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("none");
-  });
-
-  it("reports needsReviewCount 0 when a higher-priority kind preempts review", () => {
-    mocks.myGardens.gardens = [myGarden("g1", ["steward"])];
-    mocks.review = { count: 5, ready: true, isSteward: true };
-    mocks.queue = { data: { pending: 1, failed: 0 }, isSuccess: true };
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("queue");
-    expect(result.current.needsReviewCount).toBe(0);
-  });
-
-  it("stays silent (none) when the gardens read failed, even for a member", () => {
-    mocks.myGardens = {
-      ...mocks.myGardens,
-      gardens: [myGarden("g1", ["gardener"])],
-      isError: true,
-      isStale: true,
-    };
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("none");
-    // membership is still computed from cached data, but not asserted as an orientation
-    expect(result.current.myGardenIds).toEqual(["g1"]);
-  });
-
-  it("fires queue while gardens are still loading", () => {
-    mocks.queue = { data: { pending: 1, failed: 0 }, isSuccess: true };
-    mocks.myGardens = { ...mocks.myGardens, isLoaded: false };
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("queue");
-  });
-
-  it("falls through to signedIn when all sources succeed and nothing is pending", () => {
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("signedIn");
+  it("waits for the member's gardens before pointing at an upload outside the active garden", () => {
+    mocks.gardensLoaded = false;
+    expect(arriveWith([job("work", OTHER_GARDEN, 1)])).toEqual({ kind: "none" });
+    expect(arriveWith([job("work", GARDEN, 1)])).toEqual({
+      kind: "queue",
+      orientation: { target: "yourWork" },
+    });
   });
 });

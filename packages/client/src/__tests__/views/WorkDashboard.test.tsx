@@ -18,8 +18,10 @@ let mockActions: Array<{ id: string; title: string }> = [];
 /** The garden the chip on Home has chosen; null before a member has one. */
 let mockActiveGarden: { id: string; name: string } | null = null;
 let mockUploadOptions: unknown;
-/** The gardens Your Work asked to read reviews for. */
-let mockNeedsReviewGardenIds: string[] = [];
+/** The gardens each review read asked for: reviewer gardens, and gardens waiting reviews name. */
+let mockNeedsReviewReads: string[][] = [];
+/** The member's gardens, which the chip can switch to; a garden the member left is not one. */
+let mockMemberGardenIds: string[] = [];
 let mockQueueUnreadable = false;
 let mockInitialPendingFilter: string | undefined;
 let mockReturnState: WorkDashboardReturnState | undefined;
@@ -92,6 +94,7 @@ function idleUploads() {
     isPreparing: false,
     isUploading: false,
     waitingDecisionWorkIds: new Set<string>() as ReadonlySet<string>,
+    waitingDecisionGardenIds: [] as string[],
     decisionFor: () => undefined,
     statusOf: () => undefined,
     upload: vi.fn(async () => undefined),
@@ -185,12 +188,15 @@ vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
   useDraftThumbnail: () => ({ ref: { current: null }, url: null }),
 }));
 
-// The scope rule is proven in Shared; here the active garden's own items show.
+// The scope rule is proven in Shared; here the active garden's own items show, and so do items
+// in a garden the member left, while another of the member's gardens waits for the chip.
 vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
   useActiveGarden: () => ({
     garden: mockActiveGarden,
     inScope: (gardens: readonly (string | null | undefined)[]) =>
-      !mockActiveGarden || gardens.some((garden) => garden?.toLowerCase() === mockActiveGarden?.id),
+      !mockActiveGarden ||
+      gardens.some((garden) => garden?.toLowerCase() === mockActiveGarden?.id) ||
+      !gardens.some((garden) => garden && mockMemberGardenIds.includes(garden.toLowerCase())),
   }),
 }));
 
@@ -242,10 +248,18 @@ vi.mock("@green-goods/shared/hooks/work/useReviewerGardenIds", () => ({
   useReviewerGardenIds: () => ({ reviewerGardenIds: mockReviewerGardenIds, isLoading: false }),
 }));
 
+// A garden's read lists only that garden's works.
 vi.mock("@green-goods/shared/hooks/work/useNeedsReview", () => ({
   useNeedsReview: (gardenIds: string[]) => {
-    mockNeedsReviewGardenIds = gardenIds;
-    return mockNeedsReviewState;
+    mockNeedsReviewReads.push(gardenIds);
+    const read = new Set(gardenIds.map((garden) => garden.toLowerCase()));
+    const inRead = (item: Work) => read.has(item.gardenAddress.toLowerCase());
+    return {
+      ...mockNeedsReviewState,
+      allWorks: mockNeedsReviewState.allWorks.filter(inRead),
+      works: mockNeedsReviewState.works.filter(inRead),
+      decidedHere: mockNeedsReviewState.decidedHere.filter(inRead),
+    };
   },
 }));
 
@@ -350,6 +364,11 @@ describe("WorkDashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReviewerGardenIds = [];
+    mockNeedsReviewReads = [];
+    mockMemberGardenIds = [
+      "0x00000000000000000000000000000000000000a1",
+      "0x00000000000000000000000000000000000000b2",
+    ];
     mockProofs = [];
     mockDrafts = [];
     mockActions = [];
@@ -512,15 +531,18 @@ describe("WorkDashboard", () => {
     expect(inScope([here])).toBe(true);
     expect(inScope([there])).toBe(false);
     // Reviews are read for this garden only, so another garden's slow read never holds the list.
-    expect(mockNeedsReviewGardenIds).toEqual([here]);
+    expect(mockNeedsReviewReads).toContainEqual([here]);
+    expect(mockNeedsReviewReads.flat()).not.toContain(there);
     first.unmount();
 
     // Nothing was lost: switching the chip lists the other garden's.
     mockActiveGarden = { id: there, name: "Vida Verde" };
+    mockNeedsReviewReads = [];
     renderDashboard();
 
     expect(sheet()).toHaveAccessibleDescription("In Vida Verde");
-    expect(mockNeedsReviewGardenIds).toEqual([there]);
+    expect(mockNeedsReviewReads).toContainEqual([there]);
+    expect(mockNeedsReviewReads.flat()).not.toContain(here);
     for (const title of items[there]) expect(screen.getByText(title)).toBeInTheDocument();
     for (const title of items[here]) expect(screen.queryByText(title)).not.toBeInTheDocument();
   });
@@ -630,6 +652,7 @@ describe("WorkDashboard", () => {
   });
 
   it("marks a decision made here as waiting to upload until Upload all sends it", () => {
+    mockReviewerGardenIds = ["0x00000000000000000000000000000000000000a1"];
     mockNeedsReviewState = {
       ...mockNeedsReviewState,
       decidedHere: [
@@ -642,6 +665,7 @@ describe("WorkDashboard", () => {
       readyCount: 1,
       queuedCount: 1,
       waitingDecisionWorkIds: new Set(["0xdecided"]),
+      waitingDecisionGardenIds: ["0x00000000000000000000000000000000000000a1"],
     };
 
     renderDashboard();
@@ -654,6 +678,42 @@ describe("WorkDashboard", () => {
     expect(screen.queryByRole("button", { name: /Queued approval/ })).not.toBeInTheDocument();
     const sent = screen.getByRole("button", { name: /Sent approval/ });
     expect(within(sent).queryByText("Your review isn't sent yet")).not.toBeInTheDocument();
+  });
+
+  it("lists a review queued for a garden the member left, as the badge counts it", () => {
+    const here = "0x00000000000000000000000000000000000000a1";
+    const left = "0x00000000000000000000000000000000000000c3";
+    mockActiveGarden = { id: here, name: "TAS HUB" };
+    // The member reviews here only; they reviewed in the other garden before leaving it.
+    mockReviewerGardenIds = [here];
+    mockNeedsReviewState = {
+      ...mockNeedsReviewState,
+      decidedHere: [
+        work({
+          id: "0xLEFT-REVIEW",
+          title: "Review from a garden I left",
+          status: "approved",
+          gardenAddress: left,
+        }),
+      ],
+    };
+    mockUploads = {
+      ...idleUploads(),
+      attentionCount: 1,
+      queuedCount: 1,
+      waitingDecisionWorkIds: new Set(["0xleft-review"]),
+      waitingDecisionGardenIds: [left],
+    };
+    mockOnPhone = 1;
+
+    renderDashboard();
+
+    expect(mockNeedsReviewReads).toContainEqual([left]);
+    const row = screen
+      .getByText("Review from a garden I left")
+      .closest("[data-component='PendingCard']");
+    if (!(row instanceof HTMLElement)) throw new Error("The queued review has no row");
+    expect(within(row).getByText("Your review")).toBeInTheDocument();
   });
 
   it("keeps an on-chain submission out of Pending until its review read lands", () => {

@@ -308,14 +308,3 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     },
   };
 }
-
-/**
- * Queue statistics for the current primary address as a live view of the
- * queue table: every write, in this tab or another, re-emits them.
- */
-export function useQueueStatistics() {
-  const primaryAddress = usePrimaryAddress();
-  return useLiveQuery(primaryAddress?.toLowerCase() ?? null, () =>
-    jobQueueDB.observeStats(primaryAddress ?? "")
-  );
-}

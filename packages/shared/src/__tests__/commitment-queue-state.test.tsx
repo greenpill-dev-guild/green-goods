@@ -87,6 +87,21 @@ describe("useCommitmentQueueState", () => {
     ).toBeUndefined();
   });
 
+  it("is loading until the queue is first read for a known reader, then reports what it holds", async () => {
+    let answer: (jobs: Job[]) => void = () => undefined;
+    mocks.getJobs.mockReturnValueOnce(new Promise<Job[]>((resolve) => (answer = resolve)));
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.proofJobs).toEqual([]);
+
+    answer([creation({ id: "proof", kind: "evidence", payload: { commitmentId: 7n } })]);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.proofJobs.map((job) => job.id)).toEqual(["proof"]);
+
+    const anonymous = renderHookWithProviders(() => useCommitmentQueueState(null));
+    expect(anonymous.result.current.isLoading).toBe(false);
+  });
+
   it("re-reads the stored job when a flush ends without completing or failing it", async () => {
     // A flush that only parks a creation on its membership preflight rewrites
     // the record without a completed or failed event. The query never goes

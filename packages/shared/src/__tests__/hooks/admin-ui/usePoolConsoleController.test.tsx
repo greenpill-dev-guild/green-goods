@@ -197,6 +197,7 @@ function queueState(overrides: Partial<CommitmentQueueState> = {}): CommitmentQu
     proofJobs: [],
     linkedWorkIds: new Set<string>(),
     isUnavailable: false,
+    isLoading: false,
     refresh: vi.fn(),
     ...overrides,
   };

@@ -113,6 +113,10 @@ export const toastMessageIds = {
       title: "app.toast.queue.jobFailed.title",
       workMessage: "app.toast.queue.jobFailed.workMessage",
       approvalMessage: "app.toast.queue.jobFailed.approvalMessage",
+      workMessageInGarden: "app.toast.queue.jobFailed.workMessageInGarden",
+      approvalMessageInGarden: "app.toast.queue.jobFailed.approvalMessageInGarden",
+      /** The switcher's own words, as Home's chooser prompt opens it. */
+      seeGardens: "app.home.chooser.action",
     },
     retryFailed: {
       title: "app.toast.queue.retryFailed.title",
