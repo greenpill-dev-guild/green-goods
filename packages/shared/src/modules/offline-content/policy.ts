@@ -15,23 +15,36 @@ export interface OfflinePlan {
 
 /** The gardens the member is in, which decide whose photos are kept. */
 export interface OfflineFocus {
+  /** The active garden, the one Home opens in (`hooks/garden/useActiveGarden`). */
+  activeGarden?: string;
   /** The garden on screen, which can be any garden. */
   gardenInView?: string;
 }
 
 const sameGarden = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
 
-/** The gardens whose photos are kept, in download order. */
-export function offlinePhotoGardens({ gardenInView }: OfflineFocus): string[] {
-  return gardenInView ? [gardenInView] : [];
+/**
+ * The gardens whose photos are kept, in download order: the active garden first, since
+ * the member works there, then the garden in view when it is another.
+ */
+export function offlinePhotoGardens({ activeGarden, gardenInView }: OfflineFocus): string[] {
+  const photoGardens = activeGarden ? [activeGarden] : [];
+  if (gardenInView && !(activeGarden && sameGarden(activeGarden, gardenInView))) {
+    photoGardens.push(gardenInView);
+  }
+  return photoGardens;
 }
 
 /**
  * Tiered preparation: work lists, approvals and details for every garden that is
- * the account's own (`modules/garden/membership`), plus photos for the garden in
- * view and the account's own work. Garden identifiers keep the gardens list's
- * spelling, which is what the screens use in their query keys. Content is public,
- * so nothing here is keyed by account; the account only decides what comes first.
+ * the account's own (`modules/garden/membership`), plus photos for the photo
+ * gardens (the active garden, then the garden in view) and the account's own work.
+ * A photo garden's list is kept and read first. The active garden is one of the
+ * account's own, whose lists are kept anyway, so it orders the lists without adding
+ * one, unless it is an open join the roster does not list yet. Garden identifiers
+ * keep the gardens list's spelling, which is what the screens use in their query
+ * keys. Content is public, so nothing here is keyed by account; the account only
+ * decides what comes first.
  */
 export function planOfflineContent(
   gardens: Garden[],

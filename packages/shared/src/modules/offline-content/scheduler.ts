@@ -25,6 +25,8 @@ export interface OfflineSchedulerPorts {
   client: QueryClient;
   chainId: number;
   account(): string | undefined;
+  /** The garden Home opens in, read on every step so a switch mid-run is followed. */
+  activeGarden(): string | undefined;
   gardens(): Garden[] | undefined;
   avatarUrl(): string | undefined;
   online(): boolean;
@@ -56,9 +58,9 @@ class RunStopped extends Error {}
 
 /**
  * Downloads offline content without competing with the screen. Every task waits
- * until nothing in the app is fetching and the browser is idle, the garden in
- * view moves to the front of the queue, photos pause under Data Saver, and each
- * read is written to the reading cache once it has landed.
+ * until nothing in the app is fetching and the browser is idle, the active garden
+ * and then the garden in view move to the front of the queue, photos pause under
+ * Data Saver, and each read is written to the reading cache once it has landed.
  */
 export class OfflineScheduler {
   private gardenInView?: string;
@@ -83,7 +85,7 @@ export class OfflineScheduler {
     return this.lastRunAt;
   }
 
-  /** The garden on screen, whose photos are kept too. */
+  /** The garden on screen, whose photos are kept too, after the active garden's. */
   setGardenInView(garden?: string): void {
     if (sameAddress(garden, this.gardenInView) || (!garden && !this.gardenInView)) return;
     this.gardenInView = garden;
@@ -182,7 +184,10 @@ export class OfflineScheduler {
     const account = ports.account();
     const gardens = ports.gardens();
     if (!account || !gardens) return;
-    const focus = (): OfflineFocus => ({ gardenInView: this.gardenInView });
+    const focus = (): OfflineFocus => ({
+      activeGarden: ports.activeGarden(),
+      gardenInView: this.gardenInView,
+    });
     const queue = new OfflineRunQueue(
       { client: ports.client, account, gardens, photoGardens: () => offlinePhotoGardens(focus()) },
       planOfflineContent(gardens, account, ports.chainId, focus()),

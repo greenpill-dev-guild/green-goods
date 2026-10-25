@@ -34,7 +34,7 @@ interface RunQueueContext {
   gardens: Garden[];
   /**
    * The gardens whose photos are kept, in download order (`offlinePhotoGardens`).
-   * Read on every step, so a garden opened mid-run moves to the front.
+   * Read on every step, so a garden opened or switched to mid-run moves to the front.
    */
   photoGardens(): string[];
 }
