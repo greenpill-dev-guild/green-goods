@@ -247,7 +247,8 @@ describe("useSubmissionFlowController", () => {
       { disabled: false, loading: true, blockedReasonId: "app.proof.draft.saving" },
     ],
   ] as const)("names the evidence kind's forward act on %s with %o and says why it waits", (stage, overrides, expected) => {
-    const { result } = renderEvidence(evidenceController(overrides));
+    // The table is `as const`, so its arrays are readonly; the controller takes plain ones.
+    const { result } = renderEvidence(evidenceController(overrides as Partial<EvidenceController>));
     const hops = { media: 0, details: 1, review: 2 }[stage];
     for (let hop = 0; hop < hops; hop += 1) act(() => result.current.forward.run());
     expect(result.current.stage).toBe(stage);
