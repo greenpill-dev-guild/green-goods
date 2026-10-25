@@ -13,6 +13,7 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { ADMIN_WORKSPACE_ROOTS } from "@green-goods/shared/utils/navigation/admin-routes";
 import { describe, expect, it, vi } from "vitest";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminInlineField } from "@/components/AdminInlineField";
@@ -65,6 +66,26 @@ describe("admin focus-ring role", () => {
     takesSharedRing(input);
     // No wrapper draws a second ring around it.
     expect((input.parentElement as HTMLElement).className).not.toContain("ring-");
+  });
+
+  it("re-points the focus ring on workspace scopes only, never on a piece's own tone", () => {
+    // The shared Button and the state block carry a data-tone of their own (danger,
+    // neutral). Matched by a bare [data-tone] rule, a danger button re-derived its
+    // ring from the green fallback and kept the light ring in dark outside a workspace.
+    const tokens = readFileSync(resolve(__dirname, "../../styles/admin-m3-tokens.css"), "utf-8");
+    const rules = Array.from(
+      tokens.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g),
+      ([, selector, body]) => ({ selector, body })
+    );
+    const tonedRepoints = rules.filter(
+      ({ selector, body }) => selector.includes("data-tone") && body.includes("--focus-ring:")
+    );
+
+    expect(tonedRepoints).toHaveLength(1);
+    const [{ selector }] = tonedRepoints;
+    expect(selector).not.toContain("[data-tone]");
+    const named = Array.from(selector.matchAll(/\[data-tone="([^"]+)"\]/g), ([, tone]) => tone);
+    expect(named.sort()).toEqual(Object.keys(ADMIN_WORKSPACE_ROOTS).sort());
   });
 
   it("no elevation token voids the focus ring that shares its box-shadow", () => {
