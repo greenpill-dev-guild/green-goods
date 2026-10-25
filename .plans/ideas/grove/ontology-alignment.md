@@ -12,6 +12,8 @@ The draft covers Article, Playbook, Pattern, CaseStudy, Organization/Network, Pe
 
 ## The composed profile
 
+Community Evidence Mesh adds an evidence lifecycle and authority boundary, not a third ontology to merge indiscriminately. The [Mesh mapping](mesh-alignment.md) keeps ordinary knowledge, personal relevance review, community review and protocol records distinct. The Commons draft still owns its proposed editorial meanings; Framework and the Mesh ADR own the eventual impact-evidence definitions.
+
 ```mermaid
 flowchart TB
   GG["Green Goods canon<br/>Garden · Action · Work · WorkApproval"] --> P["Grove application profile v0<br/>Type schemas · allowed predicates · mappings · labels"]
