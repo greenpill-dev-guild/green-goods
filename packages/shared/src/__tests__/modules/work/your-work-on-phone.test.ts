@@ -1,11 +1,12 @@
 /**
- * Your Work on this phone, in one garden: what Home's Continue lists (PWA Home step 8) and the
- * Your Work badge counts once it counts the active garden (decisions 4 and 15, DL-061).
+ * Your Work on this phone, in the active garden's scope: what Home's Continue lists (PWA Home
+ * step 8) and the Your Work badge counts (DL-061 as DL-129 amends it). Which gardens the scope
+ * shows is the active garden's rule (`useActiveGarden().inScope`); this asks it about each item's
+ * own garden.
  */
 
 import { describe, expect, it } from "vitest";
 import {
-  isInGarden,
   isWorkOnThisDevice,
   selectYourWorkOnPhone,
 } from "../../../modules/work/your-work-on-phone";
@@ -16,6 +17,10 @@ const ME = "0xA11CE00000000000000000000000000000000001";
 const SOMEONE_ELSE = "0xB0B0000000000000000000000000000000000002";
 const GARDEN = "0x6A7DE00000000000000000000000000000000AAA";
 const OTHER_GARDEN = "0x0757E00000000000000000000000000000000BBB";
+
+/** A scope that shows the active garden and what names none, as the active garden's rule does. */
+const inScope = (gardens: readonly (string | null | undefined)[]) =>
+  gardens.every((garden) => !garden || garden.toLowerCase() === GARDEN.toLowerCase());
 
 function work(overrides: Partial<Work> & { id: string }): Work {
   return createMockWork({
@@ -29,7 +34,7 @@ function work(overrides: Partial<Work> & { id: string }): Work {
 
 function select(input: Partial<Parameters<typeof selectYourWorkOnPhone>[0]>) {
   return selectYourWorkOnPhone({
-    gardenId: GARDEN,
+    inScope,
     viewer: ME,
     works: [],
     decidedHere: [],
@@ -53,26 +58,10 @@ describe("isWorkOnThisDevice", () => {
   });
 });
 
-describe("isInGarden", () => {
-  it("matches the garden whatever the address's case, and never another garden", () => {
-    expect(isInGarden(GARDEN.toLowerCase(), GARDEN)).toBe(true);
-    expect(isInGarden(OTHER_GARDEN, GARDEN)).toBe(false);
-  });
-
-  it("keeps an item whose garden is not known yet in every garden", () => {
-    expect(isInGarden(null, GARDEN)).toBe(true);
-    expect(isInGarden(undefined, OTHER_GARDEN)).toBe(true);
-  });
-});
-
 describe("selectYourWorkOnPhone", () => {
-  it("lists the reader's own queued work in the garden, and nothing on the record or elsewhere", () => {
+  it("lists the reader's own queued work the scope shows, and nothing on the record or elsewhere", () => {
     const queuedHere = work({ id: "0xoffline_0001", status: "offline" });
-    const queuedLowercase = work({
-      id: "0xoffline_0002",
-      status: "sync_failed",
-      gardenAddress: GARDEN.toLowerCase(),
-    });
+    const stopped = work({ id: "0xoffline_0002", status: "sync_failed" });
     const queuedElsewhere = work({
       id: "0xoffline_0003",
       status: "offline",
@@ -87,13 +76,13 @@ describe("selectYourWorkOnPhone", () => {
     });
 
     const { submissions } = select({
-      works: [queuedHere, queuedLowercase, queuedElsewhere, sentInReview, approved, someoneElses],
+      works: [queuedHere, stopped, queuedElsewhere, sentInReview, approved, someoneElses],
     });
 
     expect(submissions.map((item) => item.id)).toEqual(["0xoffline_0001", "0xoffline_0002"]);
   });
 
-  it("lists a review made here only while its upload waits, and only in its garden", () => {
+  it("lists a review made here only while its upload waits, and only where the scope shows it", () => {
     const waiting = work({ id: "0xDEC1", status: "approved", gardenerAddress: SOMEONE_ELSE });
     const alreadySent = work({ id: "0xdec2", status: "rejected", gardenerAddress: SOMEONE_ELSE });
     const waitingElsewhere = work({
@@ -112,22 +101,22 @@ describe("selectYourWorkOnPhone", () => {
     expect(decisions.map((item) => item.id)).toEqual(["0xDEC1"]);
   });
 
-  it("lists drafts and unsent proof in the garden, and those whose garden is not known yet", () => {
+  it("asks the scope about a draft's garden, and about the garden saved with proof, not its pool's", () => {
     const drafts = [
       { id: "here", gardenAddress: GARDEN.toLowerCase() },
       { id: "elsewhere", gardenAddress: OTHER_GARDEN },
       { id: "no-garden-yet", gardenAddress: null },
     ];
     const proofs = [
-      { id: "proof-here", garden: GARDEN },
-      { id: "proof-elsewhere", garden: OTHER_GARDEN },
-      { id: "promise-unread", garden: null },
+      { id: "saved-here", garden: OTHER_GARDEN, savedGarden: GARDEN },
+      { id: "saved-elsewhere", garden: GARDEN, savedGarden: OTHER_GARDEN },
+      { id: "older-draft", garden: null, savedGarden: null },
     ];
 
     const selected = select({ drafts, proofs });
 
     expect(selected.drafts.map((draft) => draft.id)).toEqual(["here", "no-garden-yet"]);
-    expect(selected.proofs.map((proof) => proof.id)).toEqual(["proof-here", "promise-unread"]);
+    expect(selected.proofs.map((proof) => proof.id)).toEqual(["saved-here", "older-draft"]);
   });
 
   it("lists nothing of the reader's work before the reader is known", () => {

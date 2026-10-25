@@ -1,9 +1,11 @@
 /**
- * Your Work on this phone, in one garden: the reader's own work the queue holds, reviews they
- * made here that are still on their way, their work drafts and their unsent proof (DL-061).
- * Home's Continue lists it, and the Your Work badge counts the same items, scoped to the active
- * garden (PWA Home decisions 4 and 15). Sent work waiting for a review and work waiting for the
- * reader's review stay in the Your Work sheet: neither is on this phone.
+ * Your Work on this phone, in the active garden's scope: the reader's own work the queue holds,
+ * reviews they made here that are still on their way, their work drafts and their unsent proof
+ * (DL-061). Home's Continue lists it, and the Your Work badge counts the same items (DL-129).
+ * Each item is shown when the active garden's scope (`useActiveGarden().inScope`) shows the
+ * garden it names: a work's or a review's garden, a draft's, and the garden saved with proof.
+ * Sent work waiting for a review and work waiting for the reader's review stay in the Your Work
+ * sheet: neither is on this phone.
  */
 
 import type { Work } from "../../types/domain";
@@ -25,17 +27,11 @@ export function isWorkOnThisDevice(work: Pick<Work, "id" | "status">): boolean {
   );
 }
 
-/**
- * Whether an item belongs to a garden. An item names its own garden; one whose garden is not
- * known yet (a draft saved before a garden was chosen, proof whose promise has not been read)
- * shows in every garden, so nothing on this phone drops out of sight.
- */
-export function isInGarden(itemGarden: string | null | undefined, gardenId: string): boolean {
-  return !itemGarden || itemGarden.toLowerCase() === gardenId.toLowerCase();
-}
+/** Whether the active garden's scope shows an item naming these gardens. */
+export type GardenScope = (gardens: readonly (string | null | undefined)[]) => boolean;
 
 export interface YourWorkOnPhoneInput<D, P> {
-  gardenId: string;
+  inScope: GardenScope;
   /** The reader, whose own work is listed; nothing is until they are known. */
   viewer: string | null | undefined;
   /** The reader's work with the queue's merged in (`useMyWorks({ includeOffline: true })`). */
@@ -59,10 +55,9 @@ export interface YourWorkOnPhoneItems<D, P> {
 
 export function selectYourWorkOnPhone<
   D extends { gardenAddress?: string | null },
-  P extends { garden: string | null },
+  P extends { savedGarden: string | null },
 >(input: YourWorkOnPhoneInput<D, P>): YourWorkOnPhoneItems<D, P> {
-  const inGarden = (itemGarden: string | null | undefined) =>
-    isInGarden(itemGarden, input.gardenId);
+  const { inScope } = input;
   return {
     submissions: input.works.filter(
       (work) =>
@@ -70,13 +65,14 @@ export function selectYourWorkOnPhone<
         work.status !== "approved" &&
         work.status !== "rejected" &&
         isWorkOnThisDevice(work) &&
-        inGarden(work.gardenAddress)
+        inScope([work.gardenAddress])
     ),
     decisions: input.decidedHere.filter(
       (work) =>
-        input.waitingDecisionWorkIds.has(work.id.toLowerCase()) && inGarden(work.gardenAddress)
+        input.waitingDecisionWorkIds.has(work.id.toLowerCase()) && inScope([work.gardenAddress])
     ),
-    drafts: input.drafts.filter((draft) => inGarden(draft.gardenAddress)),
-    proofs: input.proofs.filter((proof) => inGarden(proof.garden)),
+    drafts: input.drafts.filter((draft) => inScope([draft.gardenAddress])),
+    // Proof follows the garden saved with it, as the Your Work count does.
+    proofs: input.proofs.filter((proof) => inScope([proof.savedGarden])),
   };
 }

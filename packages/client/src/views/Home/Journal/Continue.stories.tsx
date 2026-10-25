@@ -12,7 +12,6 @@ import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { expect, fn, mocked, within } from "storybook/test";
-import { JOURNEY_GARDEN } from "../../../../../shared/.storybook/clientJourneyFixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import {
   PENDING_ACTIONS,
@@ -74,7 +73,7 @@ interface ContinueStoryProps {
 function ContinueStory(_props: ContinueStoryProps) {
   return (
     <div className="min-h-dvh bg-bg-canvas pb-6">
-      <Continue gardenId={JOURNEY_GARDEN} />
+      <Continue />
     </div>
   );
 }
@@ -90,9 +89,10 @@ const withLocale: Decorator = (Story, context) => {
 };
 
 /**
- * Home's Continue (PWA Home step 8): the member's own work still on this phone in the active
- * garden, the rows Your Work › Pending lists first (DL-061), at most three, with Open Your
- * Work. Each scene draws the real section; only its data hooks return the frames' records.
+ * Home's Continue (PWA Home step 8, DL-127): the member's own work still on this phone in the
+ * active garden's scope, the rows Your Work › Pending lists first (DL-061), at most three, with
+ * Open Your Work. Each scene draws the real section; only its data hooks return the frames'
+ * records.
  */
 const meta: Meta<typeof ContinueStory> = {
   title: "Client/PWA/Home/Continue",

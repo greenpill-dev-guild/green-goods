@@ -1,6 +1,6 @@
 /**
- * Home's Continue (PWA Home step 8): the garden's Your Work still on this phone, in the order
- * Your Work › Pending lists it (DL-061), at most three rows, with Open Your Work.
+ * Home's Continue (PWA Home step 8): the active garden's Your Work still on this phone, in the
+ * order Your Work › Pending lists it (DL-061), at most three rows, with Open Your Work.
  */
 
 import type { PendingProof } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
@@ -86,6 +86,7 @@ function proofDraft(id: string, title: string): PendingProof {
     source: "draft",
     commitmentId: 7n,
     garden: GARDEN,
+    savedGarden: GARDEN,
     commitment: null,
     title,
     savedAt: 1_700_000_000_000,
@@ -125,11 +126,7 @@ function renderContinue() {
     createElement(
       MemoryRouter,
       null,
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: en },
-        createElement(Continue, { gardenId: GARDEN })
-      )
+      createElement(IntlProvider, { locale: "en", messages: en }, createElement(Continue))
     )
   );
 }
@@ -182,11 +179,16 @@ describe("Home Continue", () => {
     fireEvent.click(within(rows[0]).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/work/0xoffline_0001`, {
       state: { from: "home", returnTo: "/home" },
+      viewTransition: true,
     });
     fireEvent.click(within(rows[1]).getByRole("button"));
-    expect(mockNavigate).toHaveBeenLastCalledWith("/home/garden?draftId=d1");
+    expect(mockNavigate).toHaveBeenLastCalledWith("/home/garden?draftId=d1", {
+      viewTransition: true,
+    });
     fireEvent.click(within(rows[2]).getByRole("button"));
-    expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/7/proof`);
+    expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/7/proof`, {
+      viewTransition: true,
+    });
   });
 
   it("says nothing waits on this phone, and what to do instead, and still links to Your Work", () => {

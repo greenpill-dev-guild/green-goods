@@ -1,7 +1,7 @@
 /**
- * Your Work on this phone, in one garden (PWA Home step 8): the reads behind Home's Continue,
- * and what they say about loading and failure. Which items belong is the selector's, tested in
- * modules/work/your-work-on-phone.test.ts.
+ * Your Work on this phone, in the active garden's scope (PWA Home step 8): the reads behind
+ * Home's Continue, and what they say about loading and failure. Which items belong is the
+ * selector's, tested in modules/work/your-work-on-phone.test.ts.
  *
  * @vitest-environment happy-dom
  */
@@ -18,6 +18,7 @@ const GARDEN = "0x6a7de00000000000000000000000000000000aaa";
 const OTHER_GARDEN = "0x0757e00000000000000000000000000000000bbb";
 
 const mocks = vi.hoisted(() => ({
+  activeGardenId: null as string | null,
   works: [] as Work[],
   myWorksLoading: false,
   myWorksError: false,
@@ -25,7 +26,7 @@ const mocks = vi.hoisted(() => ({
   drafts: [] as Array<{ id: string; gardenAddress: string | null }>,
   draftsLoading: false,
   refetchDrafts: vi.fn(async () => undefined),
-  proofs: [] as Array<{ id: string; garden: string | null }>,
+  proofs: [] as Array<{ id: string; garden: string | null; savedGarden: string | null }>,
   queueUnavailable: false,
   waitingDecisionWorkIds: new Set<string>() as ReadonlySet<string>,
   decisionFor: vi.fn(() => undefined),
@@ -39,6 +40,16 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => ({ user: { id: ME } }) }));
+// The active garden's scope shows its own garden and what names none, as its rule does.
+vi.mock("../../../hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({
+    gardenId: mocks.activeGardenId,
+    inScope: (gardens: readonly (string | null | undefined)[]) =>
+      gardens.every(
+        (garden) => !garden || garden.toLowerCase() === mocks.activeGardenId?.toLowerCase()
+      ),
+  }),
+}));
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => ME }));
 // The reads are the edges: the indexer and the queue behind them are not this hook's.
 vi.mock("../../../hooks/work/useMyWorks", () => ({
@@ -83,7 +94,7 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
   }),
 }));
 
-const render = () => renderHook(() => useYourWorkOnPhone(GARDEN)).result.current;
+const render = () => renderHook(() => useYourWorkOnPhone()).result.current;
 
 function queuedWork(id: string, overrides: Partial<Work> = {}): Work {
   return createMockWork({
@@ -97,6 +108,7 @@ function queuedWork(id: string, overrides: Partial<Work> = {}): Work {
 
 describe("useYourWorkOnPhone", () => {
   beforeEach(() => {
+    mocks.activeGardenId = GARDEN;
     mocks.works = [];
     mocks.myWorksLoading = false;
     mocks.myWorksError = false;
@@ -113,7 +125,7 @@ describe("useYourWorkOnPhone", () => {
     vi.clearAllMocks();
   });
 
-  it("lists and counts the garden's items still on this phone", () => {
+  it("lists and counts the active garden's items still on this phone", () => {
     mocks.works = [
       queuedWork("0xoffline_0001"),
       queuedWork("0xoffline_0002", { gardenAddress: OTHER_GARDEN }),
@@ -122,7 +134,10 @@ describe("useYourWorkOnPhone", () => {
       { id: "d1", gardenAddress: GARDEN },
       { id: "d2", gardenAddress: OTHER_GARDEN },
     ];
-    mocks.proofs = [{ id: "p1", garden: GARDEN }];
+    mocks.proofs = [
+      { id: "p1", garden: OTHER_GARDEN, savedGarden: GARDEN },
+      { id: "p2", garden: GARDEN, savedGarden: OTHER_GARDEN },
+    ];
 
     const onPhone = render();
 
@@ -132,9 +147,15 @@ describe("useYourWorkOnPhone", () => {
     expect(onPhone.count).toBe(3);
   });
 
-  it("reads the garden's work for reviews only while a review from this phone waits", () => {
+  it("reads the active garden's work for reviews only while a review from this phone waits", () => {
     render();
     expect(mocks.needsReviewGardens.at(-1)).toEqual([]);
+
+    mocks.waitingDecisionWorkIds = new Set(["0xdec1"]);
+    mocks.activeGardenId = null;
+    render();
+    expect(mocks.needsReviewGardens.at(-1)).toEqual([]);
+    mocks.activeGardenId = GARDEN;
 
     mocks.waitingDecisionWorkIds = new Set(["0xdec1"]);
     mocks.decidedHere = [

@@ -1,10 +1,11 @@
 /**
  * useYourWorkOnPhone Hook
  *
- * The reader's Your Work still on this phone, in one garden (DL-061; PWA Home decisions 4 and
- * 15): their own work the queue holds, reviews they made here on their way, work drafts and
- * unsent proof. Home's Continue lists these. They are read the way Your Work › Pending reads
- * them, so the two show the same items.
+ * The reader's Your Work still on this phone, in the active garden's scope (DL-061 as DL-129
+ * amends it): their own work the queue holds, reviews they made here on their way, work drafts
+ * and unsent proof. Home's Continue lists these. They are read the way Your Work › Pending reads
+ * them and scoped by the active garden's one rule (`useActiveGarden().inScope`), the one the Your
+ * Work badge counts by, so the three show the same items.
  *
  * @module hooks/work/useYourWorkOnPhone
  */
@@ -21,6 +22,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
 import { type PendingProof, usePendingProof } from "../client-ui/commitment/usePendingProof";
 import { useCommitmentQueueState } from "../commitment-pooling/useCommitmentQueueState";
+import { useActiveGarden } from "../garden/useActiveGarden";
 import { type DraftWithImages, useDrafts } from "./useDrafts";
 import { useMyWorks } from "./useMyWorks";
 import { useNeedsReview } from "./useNeedsReview";
@@ -33,7 +35,7 @@ export interface YourWorkOnPhone extends YourWorkOnPhoneItems<DraftWithImages, P
   decisionFor: WorkUploads["decisionFor"];
   /** Work a promise counts through a link queued on this phone. */
   isLinked: (work: Work) => boolean;
-  /** Everything listed: what the Your Work badge counts in this garden. */
+  /** Everything listed: what the Your Work badge counts in the active garden. */
   count: number;
   /** A read that could add to the list has not answered yet. */
   isLoading: boolean;
@@ -45,8 +47,9 @@ export interface YourWorkOnPhone extends YourWorkOnPhoneItems<DraftWithImages, P
   refetch: () => void;
 }
 
-export function useYourWorkOnPhone(gardenId: string): YourWorkOnPhone {
+export function useYourWorkOnPhone(): YourWorkOnPhone {
   const { user } = useUser();
+  const { gardenId, inScope } = useActiveGarden();
   // The queue and the proof drafts are kept under the primary address.
   const viewer = usePrimaryAddress();
   const myWorks = useMyWorks({ includeOffline: true });
@@ -54,15 +57,15 @@ export function useYourWorkOnPhone(gardenId: string): YourWorkOnPhone {
   const proofs = usePendingProof({ chainId: DEFAULT_CHAIN_ID, viewer });
   const queue = useCommitmentQueueState(viewer);
   const uploads = useWorkUploads();
-  // A review made here is listed with its work, which the garden's own list holds. That list is
-  // read only while such a review waits; otherwise nothing here could come from it.
+  // A review made here is listed with its work, which the garden's own list holds. The active
+  // garden's list is read only while such a review waits; otherwise nothing here could come from it.
   const reviewsWait = uploads.waitingDecisionWorkIds.size > 0;
-  const needsReview = useNeedsReview(reviewsWait ? [gardenId] : NO_GARDENS, user?.id);
+  const needsReview = useNeedsReview(reviewsWait && gardenId ? [gardenId] : NO_GARDENS, user?.id);
 
   const items = useMemo(
     () =>
       selectYourWorkOnPhone({
-        gardenId,
+        inScope,
         viewer: user?.id,
         works: myWorks.data ?? [],
         decidedHere: needsReview.decidedHere,
@@ -71,7 +74,7 @@ export function useYourWorkOnPhone(gardenId: string): YourWorkOnPhone {
         proofs: proofs.items,
       }),
     [
-      gardenId,
+      inScope,
       user?.id,
       myWorks.data,
       needsReview.decidedHere,

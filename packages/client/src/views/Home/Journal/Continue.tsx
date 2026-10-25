@@ -1,6 +1,7 @@
 import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
@@ -9,7 +10,6 @@ import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import { RiErrorWarningLine, RiRefreshLine, RiTaskLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import {
   decisionRow,
@@ -30,15 +30,16 @@ const CONTINUE_ROWS = 3;
 const NO_REVIEW_WORKS = new Map();
 
 /**
- * Continue (PWA Home step 8): the reader's own work still on this phone in the active garden,
- * the rows Your Work › Pending lists first (DL-061), at most three, with Open Your Work for the
- * rest. Rows open what the sheet's rows open; Discard stays in Your Work.
+ * Continue (PWA Home step 8, DL-127): the reader's own work still on this phone in the active
+ * garden's scope, the rows Your Work › Pending lists first (DL-061), at most three, with Open
+ * Your Work for the rest. It lists what the Your Work badge counts (DL-129). Rows open what the
+ * sheet's rows open; Discard stays in Your Work.
  */
-export function Continue({ gardenId }: { gardenId: string }) {
+export function Continue() {
   const intl = useIntl();
-  const navigate = useNavigate();
+  const navigate = useNavigateToTop();
   const isOnline = useOnlineStatus();
-  const onPhone = useYourWorkOnPhone(gardenId);
+  const onPhone = useYourWorkOnPhone();
   const { sendsFromTap } = useCommitmentJobs({ chainId: DEFAULT_CHAIN_ID });
   const { data: actions = [] } = useActions();
   const openWorkDashboard = useUIStore((state) => state.openWorkDashboard);
