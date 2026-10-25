@@ -2123,6 +2123,7 @@
   "app.garden.settings.save.keepEditing": "Continuar editando",
   "app.garden.settings.saveFailedMessage": "Suas edições continuam aqui. Revise o erro e salve novamente.",
   "app.garden.settings.saving": "Salvando alterações…",
+  "app.garden.submit.gardenLine": "Registrando trabalho em {garden}",
   "app.garden.submit.tab.details.instruction": "Forneça informações detalhadas e feedback",
   "app.garden.submit.tab.details.label": "Revisar trabalho",
   "app.garden.submit.tab.intro.label": "Começar Jardinagem",

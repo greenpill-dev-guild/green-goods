@@ -3,7 +3,7 @@ import { useDashboardNavigation } from "../useDashboardNavigation";
 import { isHeicFile, roundWorkLocation } from "../../../modules/work/work-attachments";
 import { getWorkMediaId } from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toastService } from "../../../components/Toast/toast.service";
@@ -22,6 +22,7 @@ import {
 import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
 import { useWorkFormContext, useWorkSelection } from "../../../providers/Work";
 import { useShareTargetIntake } from "./useShareTargetIntake";
+import { useSubmissionGarden } from "./useSubmissionGarden";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { WorkTab } from "../../../stores/workFlowTypes";
 import { findActionByUID } from "../../../utils/action/parsers";
@@ -221,24 +222,21 @@ export function useWorkSubmissionFlowController({
   });
 
   useEffect(() => void ensureWorkSubmissionJourneyId(), [ensureWorkSubmissionJourneyId]);
-  useEffect(() => {
-    if (isResumingFromUrl) return;
-    if (linkIntent) {
-      setGardenAddressStable(linkIntent.garden);
+  // A confirmed promise link names its action as well as its garden, in the same pass.
+  useLayoutEffect(() => {
+    if (!isResumingFromUrl && linkIntent)
       useWorkFlowStore.getState().setActionUID(linkIntent.actionUID);
-    } else {
-      const state = location.state as { gardenId?: string } | null;
-      if (!hasLinkIntentParams && state?.gardenId && gardens.length > 0)
-        setGardenAddressStable(state.gardenId as Address);
-    }
-  }, [
+  }, [isResumingFromUrl, linkIntent]);
+  const { namedSubmissionGarden, submissionGardenSettled } = useSubmissionGarden({
+    gardens,
+    actions,
+    actionUID,
+    gardenAddress,
+    setGardenAddress: setGardenAddressStable,
+    hasPromiseLink: hasLinkIntentParams,
+    promiseGarden: linkIntent?.garden ?? null,
     isResumingFromUrl,
-    linkIntent,
-    hasLinkIntentParams,
-    gardens.length,
-    location.state,
-    setGardenAddressStable,
-  ]);
+  });
   useWorkDraftRetirement({
     completed: submissionCompleted,
     paused: isSchedulingDependentLink || !!pendingLinkRecovery,
@@ -479,6 +477,7 @@ export function useWorkSubmissionFlowController({
     mediaClickRef: media.mediaClickRef,
     mediaConfig,
     minRequired,
+    namedSubmissionGarden,
     queueStatusMessage,
     recordingElapsed: audio.elapsed,
     removeBrokenMedia: media.removeBrokenMedia,
@@ -489,6 +488,7 @@ export function useWorkSubmissionFlowController({
     showSkeleton:
       isResumingFromUrl || (selection.isLoading && actions.length === 0 && gardens.length === 0),
     submissionCompleted,
+    submissionGardenSettled,
     submit,
     toggleAudioRecording: audio.toggle,
     workSubmissionJourneyId,
