@@ -77,7 +77,8 @@ export interface CommitmentsInbox {
    * see any.
    */
   queueUnavailable: boolean;
-  refetch: ReturnType<typeof useCommitments>["refetch"];
+  /** Reads the commitments again, and a scoped inbox's pools with them. */
+  refetch: () => Promise<unknown>;
 }
 
 /**
@@ -114,8 +115,11 @@ export function useCommitmentsInbox({
   // return every commitment on the chain rather than none. Signed out means no
   // inbox, so the query never runs.
   const query = useCommitments({ chainId, account: viewer }, { enabled: Boolean(viewer) });
-  // A promise names its pool, and the pool names its garden.
+  // A promise names its pool, and the pool names its garden. Without the pools a
+  // scoped list cannot tell another garden's promise from its own, so a failed
+  // read is the list's error rather than a list of promises it cannot place.
   const pools = useCommitmentPools({ chainId }, { enabled: Boolean(inScope) });
+  const poolsUnavailable = Boolean(inScope) && pools.isError && pools.data === undefined;
 
   // Read from the queue rather than counted from events: a counter incremented
   // on job:failed never resets, is lost on unmount, and double-counts because
@@ -136,7 +140,8 @@ export function useCommitmentsInbox({
       !inScope ||
       inScope([poolGarden(commitment.poolId), commitment.providerGarden, commitment.payerGarden]);
 
-    for (const commitment of viewer ? commitments.filter(involvesScope) : []) {
+    const listed = viewer && !poolsUnavailable ? commitments.filter(involvesScope) : [];
+    for (const commitment of listed) {
       const seat = seatOnOwnList(commitment, viewer);
       const isSettled = isSettledCommitmentState(commitment.derivedState);
       // Asked of the one act table, so this count and the detail screen's
@@ -181,6 +186,7 @@ export function useCommitmentsInbox({
     viewer,
     inScope,
     pools.data,
+    poolsUnavailable,
     failedCount,
     failedCommitmentIds,
     hasPendingCreate,
@@ -193,10 +199,10 @@ export function useCommitmentsInbox({
     availability: query.availability,
     // A scoped list waits for the pools, or it would show promises it cannot place yet.
     isLoading: query.isLoading || pools.isLoading,
-    isError: query.isError,
+    isError: query.isError || poolsUnavailable,
     failedJobCount: failedCount,
     failedCommitmentIds,
     queueUnavailable: isUnavailable,
-    refetch: query.refetch,
+    refetch: () => Promise.all([query.refetch(), inScope ? pools.refetch() : undefined]),
   };
 }

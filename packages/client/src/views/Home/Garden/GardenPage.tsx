@@ -249,8 +249,9 @@ export function GardenPage({
   if (isHome) {
     return (
       <div className="flex w-full flex-col" data-testid="home-garden-page">
-        {/* The banner keeps the page's actions; Home's header above it carries the garden. */}
-        <div className="padded relative h-36 overflow-hidden rounded-2xl md:h-44">
+        {/* The banner keeps the page's actions and grows to fit their stack; Home's header
+            above it carries the garden. */}
+        <div className="padded relative min-h-36 overflow-hidden rounded-2xl md:min-h-44">
           <ImageWithFallback
             src={bannerImage || ""}
             alt={`${name} banner`}
@@ -258,7 +259,7 @@ export function GardenPage({
             className="absolute inset-0 w-full h-full object-cover object-center"
             backgroundFallback={<GardenBannerFallback name={name} className="rounded-2xl" />}
           />
-          <div className="absolute top-0 left-0 right-0 z-10">{pageActions}</div>
+          <div className="relative z-10">{pageActions}</div>
         </div>
         {titleBlock}
         <div className="w-full bg-bg-canvas">{tabRail}</div>

@@ -385,6 +385,24 @@ describe("commitment read-model materialization boundary", () => {
     expect(selectSeenCommitments([placeholder])).toEqual([]);
   });
 
+  it("reads when a Commitment was taken up, and null before anyone took it up", () => {
+    const row = {
+      id: "42161-9",
+      chainId: "42161",
+      commitmentId: "9",
+      creationSeen: true,
+      approvedUnits: "0",
+      evidenceCount: "0",
+      targetUnits: "1",
+    };
+
+    expect(mapCommitment({ ...row, state: "FULFILLED", acceptanceAt: "1800000000" })).toMatchObject(
+      { acceptanceAt: 1_800_000_000 }
+    );
+    expect(mapCommitment({ ...row, state: "OFFERED", acceptanceAt: null }).acceptanceAt).toBeNull();
+    expect(mapCommitment({ ...row, state: "OFFERED" }).acceptanceAt).toBeNull();
+  });
+
   it("normalizes indexed scalar types without collapsing exact unit-label identity", () => {
     const lower = mapUnitSummary({
       id: "42161-POOL-7-0xAB",

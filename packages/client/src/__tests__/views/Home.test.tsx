@@ -381,6 +381,15 @@ describe("Home under its child routes", () => {
     expect(host).not.toBeVisible();
   });
 
+  // A garden page under Home renders its own sheets, and the Endowment sheet opens from one
+  // app-wide flag: a journal left mounted would open a second sheet for the active garden.
+  it("leaves the journal while a garden page shows", () => {
+    renderHome(`/home/${AIYELOJA.id}`);
+
+    expect(screen.getByText(`Visiting ${AIYELOJA.id}`)).toBeInTheDocument();
+    expect(screen.queryByTestId("home-journal")).not.toBeInTheDocument();
+  });
+
   it.each(["/home", "/home/"])("shows Home at the compatible entry %s", (entry) => {
     renderHome(entry);
 

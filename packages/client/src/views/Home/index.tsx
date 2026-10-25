@@ -335,8 +335,10 @@ const Home: React.FC = () => {
       body = <HomeChoosePrompt onChoose={() => setSwitcher({ open: true, mode: "choose" })} />;
       break;
     case "ready":
+      // The journal leaves while a child route shows: a garden page there renders its own
+      // sheets, and the Endowment sheet opens from one app-wide flag.
       body =
-        garden && activeMembership ? (
+        isHomeRoute && garden && activeMembership ? (
           <HomeJournal garden={garden} membership={activeMembership} />
         ) : null;
       break;

@@ -18,6 +18,8 @@ let mockActions: Array<{ id: string; title: string }> = [];
 /** The garden the chip on Home has chosen; null before a member has one. */
 let mockActiveGarden: { id: string; name: string } | null = null;
 let mockUploadOptions: unknown;
+/** The gardens Your Work asked to read reviews for. */
+let mockNeedsReviewGardenIds: string[] = [];
 let mockQueueUnreadable = false;
 let mockInitialPendingFilter: string | undefined;
 let mockReturnState: WorkDashboardReturnState | undefined;
@@ -241,7 +243,10 @@ vi.mock("@green-goods/shared/hooks/work/useReviewerGardenIds", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useNeedsReview", () => ({
-  useNeedsReview: () => mockNeedsReviewState,
+  useNeedsReview: (gardenIds: string[]) => {
+    mockNeedsReviewGardenIds = gardenIds;
+    return mockNeedsReviewState;
+  },
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
@@ -506,6 +511,8 @@ describe("WorkDashboard", () => {
     const { inScope } = mockUploadOptions as { inScope: (gardens: string[]) => boolean };
     expect(inScope([here])).toBe(true);
     expect(inScope([there])).toBe(false);
+    // Reviews are read for this garden only, so another garden's slow read never holds the list.
+    expect(mockNeedsReviewGardenIds).toEqual([here]);
     first.unmount();
 
     // Nothing was lost: switching the chip lists the other garden's.
@@ -513,6 +520,7 @@ describe("WorkDashboard", () => {
     renderDashboard();
 
     expect(sheet()).toHaveAccessibleDescription("In Vida Verde");
+    expect(mockNeedsReviewGardenIds).toEqual([there]);
     for (const title of items[there]) expect(screen.getByText(title)).toBeInTheDocument();
     for (const title of items[here]) expect(screen.queryByText(title)).not.toBeInTheDocument();
   });
