@@ -18,11 +18,18 @@ import {
 } from "../../services/reporting/identity-store";
 import { acceptInboundEvent } from "../../services/reporting/inbox";
 import { enqueueJob } from "../../services/reporting/jobs";
+import { dispatchOutbox } from "../../services/reporting/outbox";
 import {
   acquireConversationLease,
   holdsLease,
   renewConversationLease,
 } from "../../services/reporting/leases";
+import type {
+  OutboundRequest,
+  OutboundResult,
+  OutboundTransport,
+  RetiredQuestion,
+} from "../../services/reporting/transport";
 import { tick } from "../../services/reporting/worker";
 import { TestBrowser } from "./support/browser";
 import {
@@ -214,6 +221,66 @@ describe("shutdown", () => {
       one("SELECT state FROM processing_jobs WHERE dedupe_key = 'retention:shutdown'")
     ).toEqual({ state: "succeeded" });
     expect(harness.transport.sent.length).toBeGreaterThan(sent);
+  });
+});
+
+/**
+ * A channel that can edit what it sent, recording each send and when each edit settles. Sends go
+ * through the harness's transport, so provider message IDs stay unique.
+ */
+class EditingTransport implements OutboundTransport {
+  readonly events: string[] = [];
+
+  constructor(
+    private readonly sender: OutboundTransport,
+    private readonly edit: () => Promise<void>
+  ) {}
+
+  async send(request: OutboundRequest): Promise<OutboundResult> {
+    this.events.push(`sent: ${request.message.text.split("\n")[0]}`);
+    return this.sender.send(request);
+  }
+
+  async retireChoices(question: RetiredQuestion): Promise<void> {
+    this.events.push(`retiring ${question.providerMessageId}: ${question.message?.text}`);
+    await this.edit();
+    this.events.push("retired");
+  }
+}
+
+describe("taking a replaced question's buttons off", () => {
+  it.each([
+    ["slow", () => new Promise<void>((resolve) => setTimeout(resolve, 50))],
+    [
+      "failing",
+      async () => {
+        throw new Error("Bot API unavailable");
+      },
+    ],
+  ])("holds up no reply after it when the edit is %s", async (kind, edit) => {
+    await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(ADA, "I agree");
+    // The next question and a reply after it wait to go out in the same pass.
+    setControl(harness.core, "outbound_messages", false, { actor: "test", reason: "hold" });
+    await harness.say(ADA, "1");
+    await harness.say(ADA, "STATUS");
+    setControl(harness.core, "outbound_messages", true, { actor: "test", reason: "release" });
+    const { id: gardenQuestion } = one<{ id: string }>(
+      `SELECT a.provider_message_id AS id FROM delivery_outbox o
+       JOIN delivery_attempts a ON a.outbox_id = o.id WHERE o.reply_kind = 'prompt:select_garden'`
+    );
+
+    const transport = new EditingTransport(harness.transport, edit);
+    expect(await dispatchOutbox(harness.core, transport)).toEqual({ sent: 2, held: false });
+    // The status reply goes out while the garden question's edit is still under way, and a
+    // failed edit neither stops the pass nor reaches the reply.
+    expect(transport.events).toEqual([
+      "sent: Which activity in TAS best matches your work?",
+      // The question goes with its sent text, so a channel can keep its links.
+      `retiring ${gardenQuestion}: Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden`,
+      "sent: Your report for TAS is still being filled in.",
+      ...(kind === "slow" ? ["retired"] : []),
+    ]);
   });
 });
 
