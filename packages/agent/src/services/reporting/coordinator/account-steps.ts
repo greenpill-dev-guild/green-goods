@@ -132,6 +132,16 @@ export function requestConnection(writer: TurnWriter, named: Address | null): vo
   if (hadAccount(writer, ctx.binding.participantId)) writer.say("link.otherAccountHint");
 }
 
+/**
+ * `ACCOUNT` says which account this chat reports as and which gardens it is in, or that none is
+ * linked yet. Unlike CONNECT it never sends a verification link: it only shows where things stand.
+ */
+export function describeAccount(writer: TurnWriter): void {
+  const linked = writer.ctx.account?.address;
+  if (!linked) return writer.say("link.notLinked");
+  writer.sayWithAccount("link.already", { gardens: linkedGardens(writer, linked) }, linked);
+}
+
 /** Whether this chat's person was linked to an account before, which they have since let go. */
 function hadAccount(writer: TurnWriter, participantId: string): boolean {
   return (

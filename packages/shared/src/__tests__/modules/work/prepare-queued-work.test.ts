@@ -5,7 +5,9 @@ import {
   type PrepareQueuedJobDependencies,
 } from "../../../modules/work/prepare-queued-work";
 import { mergeUploadProgress } from "../../../modules/work/upload-kinds";
+import { queuedUploadStatus } from "../../../modules/work/upload-state";
 import { SimulationRejected } from "../../../modules/work/simulation-rejected";
+import { UnpublishablePhotoError } from "../../../modules/work/work-attachments";
 import type { Job } from "../../../types/job-queue";
 import {
   QUEUED_JOB_GARDEN,
@@ -92,6 +94,21 @@ describe("preparing a queued item for Upload all", () => {
     await expect(prepareQueuedJob(work, 42161, CLAIM, deps)).resolves.toBe("photo-pending");
     expect(raw.simulateWork).not.toHaveBeenCalled();
     expect(raw.encodeWork).not.toHaveBeenCalled();
+  });
+
+  it("holds work whose photo cannot be published, naming the photo, instead of retrying", async () => {
+    const work = queuedWork();
+    const { deps } = dependencies({
+      encodeWork: vi.fn().mockRejectedValue(new UnpublishablePhotoError("beds.png")),
+    });
+
+    await expect(prepareQueuedJob(work, 42161, CLAIM, deps)).resolves.toBe("photo-needs-attention");
+    expect(work.meta?.preparation).toEqual({
+      status: "photo-needs-attention",
+      photo: "beds.png",
+      checkedAt: CHECKED_AT,
+    });
+    expect(queuedUploadStatus(work)).toEqual({ state: "photo-needs-attention", photo: "beds.png" });
   });
 
   it("blocks work the chain would refuse, with the reason, before uploading anything", async () => {
