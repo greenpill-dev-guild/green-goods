@@ -32,7 +32,7 @@ Codebase cleanup in two explicit phases: 8 focused lanes assess the code read-on
 Before assessment:
 
 1. **Inspect repository state**: `git status --short --branch`. If unrelated or unknown changes overlap the requested scope, stop and surface them; do not format, stash, branch, or edit around them.
-2. **Run a non-mutating baseline**: `bun run format --check`, `bun run lint`, and `bun run test` — capture pass/fail counts without rewriting files.
+2. **Select a non-mutating baseline** for the approved assessment scope using [the validation pipeline](../../context/validation-pipeline.md#partial-rungs-qa-speed-mode). Render the selector plan before running its scoped checks; record failures without expanding into unrelated suites. Dry runs use the diagnosis rung.
 3. **Load prior accepted findings when requested**: query current Linear issues in the approved scope; do not treat old repo-local reports as a registry.
 4. **Stay on the current branch**: never create or switch branches during pre-flight.
 5. **Record the assessment base**: `CHECKPOINT_SHA="$(git rev-parse HEAD)"`.
@@ -63,7 +63,7 @@ mode, lanes stop after Phase 2 and do not write files.
 
 Every implementation report records its execution mode plus checkpoint/implementation SHAs — the full provenance block spec lives in [worktree-protocol.md](./worktree-protocol.md).
 
-Agent missions are short by design — the agents are strong models; give them the lane and the repo-specific rules, not a tutorial. Every agent: respect AGENTS.md + `.claude/context/*.md` invariants, run `bun run test` in affected packages after implementing.
+Agent missions are short by design — the agents are strong models; give them the lane and the repo-specific rules, not a tutorial. Every agent: respect AGENTS.md + `.claude/context/*.md` invariants and run the selected focused proof for its approved findings after implementing.
 
 ### Agent 1: Deduplication & DRY
 
@@ -110,7 +110,7 @@ digraph clean_flow {
     scope [label="Human scope lock\n(approved finding IDs)" shape=diamond];
     implement [label="Implement approved findings\n(current branch by default)" shape=box];
     merge [label="Merge approved worktrees\n(if separately authorized)" shape=box];
-    validate [label="Validate\nShip Gate\n(validation-pipeline.md)" shape=box];
+    validate [label="Validate\nSelected proof\n(validation-pipeline.md)" shape=box];
     codex [label="Codex final review\n(regression + miss hunt,\nparallel lanes)" shape=box];
     triage [label="Triage Codex findings\n(auto-revert regressions,\nuser-confirm misses)" shape=box];
     summary [label="Summary to user\n(changes, findings, skipped,\nCodex callouts)" shape=box];
@@ -193,7 +193,7 @@ under `.plans/`.
 - **REGRESSION-HIGH** → revert only the cited approved lines at the implementation head, then re-run validation. If validation now fails, escalate to user.
 - **REGRESSION-MED / -LOW** → list in summary, do not auto-revert.
 - **Miss-hunt findings (any confidence)** → never auto-apply. Surface in summary, let user pick which to feed into a follow-up `/clean --agents N` or a manual edit.
-- If Codex flags an "agent removed dead code that was actually used" and the test suite still passes, trust the test suite first; surface the finding as REGRESSION-LOW for human review.
+- For a report that removed code still has consumers, trace the cited caller, dynamic/config entrypoint, or runtime path and run the narrowest check that would expose the removal. Classify by the verified consequence and confidence. A passing suite does not lower severity; unresolved consumer evidence stays open for human review.
 
 ### When to skip
 
@@ -207,14 +207,10 @@ Use `--no-codex` when:
 
 ## Post-Clean Validation
 
-```bash
-git diff --check                # Whitespace / conflict marker sanity
-bun run format --check && bun run lint    # Non-mutating style gate
-bun run test                    # Correctness
-bun run build                   # Build integrity
-madge --circular --extensions ts,tsx packages/  # Only when locally installed or explicitly approved
-bunx knip --reporter compact    # Checked-in dependency; reduced dead code
-```
+Use the [validation pipeline](../../context/validation-pipeline.md) for intent, selected checks,
+critical overrides, and publication proof. Run `git diff --check` and the targeted removed-symbol
+scans below. Add locally installed cycle or unused-export tooling only when it proves an approved
+cleanup finding; unavailable optional tooling stays `UNAVAILABLE`.
 
 Required checks must pass or be explicitly documented as a pre-existing failure before reporting completion. Optional tooling that is not installed is `UNAVAILABLE`, not permission to install it. If an approved change causes a failure, fix or revert that change. Codex regression-revert (above) runs **before** this final validation, so the post-clean numbers reflect the corrected state.
 
@@ -229,7 +225,7 @@ For symbol-removal agents (dead code, legacy, type consolidation), add targeted 
 - **Checkpoint base** — every agent worktree must use the checkpoint SHA as its merge base
 - **Worktree authorization** — use isolated worktrees only after explicit human approval; otherwise implement sequentially on the current branch
 - **No stale-base default** — re-dispatch stale worktrees unless the human explicitly approves stale-base salvage
-- **Test after implement** — each agent runs `bun run test` in affected packages
+- **Test after implement** — each agent runs the selector-chosen proof for its approved findings
 - **No cross-agent dependencies** — agents don't depend on each other's output
 - **HIGH-confidence only** — agents only implement findings they're confident about
 - **Preserve invariants** — all AGENTS.md rules apply (hook boundary, declared public imports, Address types, single .env)

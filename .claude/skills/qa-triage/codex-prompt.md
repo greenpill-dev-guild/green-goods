@@ -1,6 +1,6 @@
 # Codex Prompt Template — `/qa-triage`
 
-The skill renders this template into the Codex worktree at `/tmp/gg-codex-qa-<slug>/qa-prompt.md`. Substitute `{notes_path}`, `{meeting_title}`, `{meeting_date}`, and `{slug}` before dispatch.
+Render the template as `tmp/qa-triage/<slug>/codex-prompt.md` before dispatch. Set `{notes_path}` to `qa-notes.md`, relative to the child working root, and substitute `{meeting_title}`, `{meeting_date}`, and `{slug}`. Write the companion schema beside it.
 
 When Codex auto-dispatch fails or `--no-codex` is set, the skill copies this rendered prompt to `tmp/qa-triage/<slug>/codex-prompt.md` and surfaces the path for manual copy-paste.
 
@@ -11,20 +11,18 @@ When Codex auto-dispatch fails or `--no-codex` is set, the skill copies this ren
 Pattern source: this repository's QA-triage skill and the rendered prompt below. Do not depend on maintainer-specific paths or private memory files.
 
 ```bash
+set -euo pipefail
 CODEX="$(.claude/scripts/resolve-codex-binary.sh)"
-WORKTREE=/tmp/gg-codex-qa-<slug>
-BRANCH=chore/qa-triage-<slug>
-NOTES_SOURCE="$(pwd)/tmp/qa-triage/<slug>/notes.md"
+RUN_DIR="$(pwd)/tmp/qa-triage/<slug>"
+EXTRACT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/gg-codex-qa.XXXXXX")"
+printf '%s\n' "$EXTRACT_DIR" > "$RUN_DIR/codex-scratch-path.txt"
 
-git worktree add "$WORKTREE" -b "$BRANCH" "$(git branch --show-current)"
+# Copy contents, including a symlinked notes source, into the isolated working root.
+# Render codex-prompt.md beforehand with {notes_path} set to qa-notes.md.
+cp -L -- "$RUN_DIR/notes.md" "$EXTRACT_DIR/qa-notes.md"
+cp -- "$RUN_DIR/schema.json" "$EXTRACT_DIR/schema.json"
+cp -- "$RUN_DIR/codex-prompt.md" "$EXTRACT_DIR/qa-prompt.md"
 
-# Keep every delegated input inside the checkout passed to `-C`. `notes.md` may be a
-# symlink in the primary workspace, so copy its contents rather than recreating the link.
-NOTES_COPY="$WORKTREE/qa-notes.md"
-cp -- "$NOTES_SOURCE" "$NOTES_COPY"
-
-# Render the template below with {notes_path} set to the absolute $NOTES_COPY path,
-# and copy schema.json into the worktree, then:
 CODEX_ENV=(
   "HOME=$HOME"
   "PATH=$PATH"
@@ -34,15 +32,13 @@ CODEX_ENV=(
 )
 [ -n "${CODEX_HOME:-}" ] && CODEX_ENV+=("CODEX_HOME=$CODEX_HOME")
 
-# `codex exec` (0.149+) has no `--full-auto`; the extraction only reads, so a read-only
-# sandbox is enough. `--ephemeral` keeps the meeting transcript out of Codex session
-# files. `< /dev/null` matters: with an open stdin pipe (background shells, CI), `exec`
-# blocks on "Reading additional input from stdin..." forever.
+# The CLI writes the final result for the parent; model-generated shell work is read-only.
+# The scratch directory has no Git checkout. Closed stdin avoids waiting for more input.
 env -i "${CODEX_ENV[@]}" \
-  "$CODEX" exec -s read-only --ephemeral -C "$WORKTREE" \
-  -o "$WORKTREE/codex-result.md" \
-  --output-schema "$WORKTREE/schema.json" \
-  "$(cat "$WORKTREE/qa-prompt.md")" < /dev/null
+  "$CODEX" exec -s read-only --ephemeral --skip-git-repo-check -C "$EXTRACT_DIR" \
+  -o "$RUN_DIR/codex-result.md" \
+  --output-schema "$EXTRACT_DIR/schema.json" \
+  "$(cat "$EXTRACT_DIR/qa-prompt.md")" < /dev/null
 ```
 
 Fire via `Bash` with `run_in_background: true`, keeping the `< /dev/null` redirect. The clean
@@ -51,27 +47,22 @@ a configured `CODEX_HOME` so the CLI retains its own authentication, configurati
 skills. A machine-level privacy profile can be layered with `-p <name>` only if that profile still
 loads (`codex exec -p <name> --version` is a cheap check). This extraction pass needs only the
 rendered notes and schema. The shared resolver honors a valid `CODEX` override, then checks the
-installed ChatGPT.app and Codex.app bundles before falling back to `codex` on `PATH`. Fallbacks and
-Phase 7 cleanup rules stay in `SKILL.md`.
+installed ChatGPT.app and Codex.app bundles before falling back to `codex` on `PATH`. The child receives only the three copied inputs; this flow creates no branch or worktree.
+Fallbacks and Phase 7 cleanup rules stay in the skill workflow references.
 
 Verify flags against `codex exec --help` before changing this snippet; the CLI renames them between
 releases and a rejected flag fails the run before any model call.
 
-### Orphan worktree sweep (Phase 0 step 3a)
+### Scratch ownership and completion
 
-```bash
-for wt in /tmp/gg-codex-qa-*; do
-  [ -d "$wt" ] || continue
-  slug=$(basename "$wt" | sed 's/^gg-codex-qa-//')
-  # Skip the current run's own worktree
-  [ "$slug" = "<current-slug>" ] && continue
-  printf '%s\n' "$wt"
-done
-```
+Record the current child's directory in `codex-scratch-path.txt`; never infer ownership from a
+glob or a slug. Keep that directory on failure, dry run, or while the child is running. After its
+result is handled and the confirmed writes succeed, remove only the recorded current-run scratch.
+Prior Git worktrees belong to their original runs and require a separately authorized cleanup.
 
 ---
 
-## Template (render this into the worktree)
+## Template (copy the rendered prompt into scratch)
 
 ```markdown
 You are a parallel extraction pass on QA meeting notes for the Green Goods project. The main Claude Code session has already produced its own extraction; your output is a cross-check, not a primary record.
@@ -129,7 +120,7 @@ Be more aggressive than the main session — false positives are cheap (the huma
 
 ## Companion JSON schema (`schema.json`)
 
-The skill writes this to the worktree at `/tmp/gg-codex-qa-{slug}/schema.json`.
+Write this to `tmp/qa-triage/{slug}/schema.json`; dispatch copies it into the child scratch directory.
 
 `--output-schema` is enforced by OpenAI's strict structured-output mode, which rejects two things a
 plain JSON Schema allows: a top-level array (the root must be an object) and a `required` list that
@@ -226,7 +217,7 @@ property is required; optional fields stay optional by allowing `null`.
 
 ## Idempotent completion handler
 
-When Codex's result file lands at `/tmp/gg-codex-qa-{slug}/codex-result.md`, handle it through this contract whether Phase 3 is still running or has already completed:
+When Codex's result file lands at `tmp/qa-triage/{slug}/codex-result.md`, handle it through this contract whether Phase 3 is still running or has already completed:
 
 1. Parse the result as JSON and take its `items` array (a bare top-level array from a pre-2026-08 run is accepted as the same thing); validate the records against `schema.json`. If the completed dispatch has no result, malformed JSON, or an empty `items` array, record the failure in `report.md`'s `⚠ Codex failures` block and continue with Claude's extraction only.
 2. Compute a SHA-256 digest of the result file. If `tmp/qa-triage/{slug}/codex-merge.json` already records that digest as `handled`, return without changing any artifact.
@@ -237,4 +228,4 @@ When Codex's result file lands at `/tmp/gg-codex-qa-{slug}/codex-result.md`, han
 
 Invoke the handler on the background-completion notification, before the first Phase 4 triage gate, and immediately before Phase 7 finalization. A result that adds items after Phase 3 reopens enrichment only for those items. If Phase 4 was already presented or locked, present an additive gate for the new numbers and append that decision to `triage.md`; do not rewrite prior choices or silently add the items to Phase 5.
 
-If the finalization checkpoint finds the dispatch still running, do not poll indefinitely and do not clean up its worktree. Keep the run pending and re-enter this handler on the completion notification. Dispatch failure and invalid completed output remain non-blocking fallbacks.
+If the finalization checkpoint finds the dispatch still running, do not poll indefinitely and do not clean up its scratch directory. Keep the run pending and re-enter this handler on the completion notification. Dispatch failure and invalid completed output remain non-blocking fallbacks.
