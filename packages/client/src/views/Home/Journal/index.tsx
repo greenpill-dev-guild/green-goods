@@ -1,10 +1,12 @@
+import { useStewardDuties } from "@green-goods/shared/hooks/garden/useStewardDuties";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { lazy, Suspense } from "react";
 import { HomeLoading } from "../HomeStates";
 import type { MemberGarden } from "../homeGardens";
+import { NeedsYourAttention } from "./NeedsYourAttention";
 
-// The interim body is the whole garden page (tabs, sheets, pools), so it loads on its own and
-// stays out of the installed app's startup bundle.
+// The interim end of the journal is the whole garden page (tabs, sheets, pools), so it loads on
+// its own and stays out of the installed app's startup bundle.
 const GardenPage = lazy(() =>
   import("../Garden/GardenPage").then(({ GardenPage }) => ({ default: GardenPage }))
 );
@@ -23,14 +25,25 @@ export interface HomeJournalProps {
  *
  * This is the one place the compact journal's sections mount, in this order: Needs Your
  * Attention for stewards (step 19), the Highlights carousel and Recent Activity (step 7),
- * Continue (step 8), Take Part (step 9), then the About entry (step 10). Until they land it shows
- * the garden's own page, its banner, tabs and actions without Back, the way the lab's promoted
- * garden page draws it.
+ * Continue (step 8), Take Part (step 9), then the About entry (step 10), whose place is reviewed
+ * once the first slice renders. Until About lands, the garden's own page closes the journal in
+ * its place, its banner, tabs and actions without Back, so nothing that page offers is out of
+ * reach from Home.
+ *
+ * The garden's duties are read once here, so Needs Your Attention and the carousel's duty card
+ * (step 7) show one count.
  */
 export function HomeJournal({ garden }: HomeJournalProps) {
+  const duties = useStewardDuties(garden);
   return (
-    <Suspense fallback={<HomeLoading remembered />}>
-      <GardenPage garden={garden} layout="home" />
-    </Suspense>
+    <div className="flex flex-col">
+      <NeedsYourAttention garden={garden} duties={duties} />
+      {/* Spaced from a section above it, and flush under the header when nothing waits. */}
+      <div className="pt-4 first:pt-0">
+        <Suspense fallback={<HomeLoading remembered />}>
+          <GardenPage garden={garden} layout="home" />
+        </Suspense>
+      </div>
+    </div>
   );
 }
