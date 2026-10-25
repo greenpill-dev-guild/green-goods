@@ -27,6 +27,7 @@ import {
 } from "../../modules/garden/journal";
 import type { CommitmentReadModel } from "../../modules/commitment-pooling/types-core";
 import type { Address, Work } from "../../types/domain";
+import { findActionByUID } from "../../utils/action/parsers";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useActions } from "../blockchain/useBaseLists";
@@ -37,7 +38,6 @@ import {
   useCommitmentPools,
   useCommitments,
 } from "../commitment-pooling/useCommitmentPooling";
-import { findActionByUID } from "../../utils/action/parsers";
 import { useDocumentEvent } from "../utils/useEventListener";
 import { useWorks } from "../work/useWorks";
 
