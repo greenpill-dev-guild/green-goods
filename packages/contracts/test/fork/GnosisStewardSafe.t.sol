@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { CCIPReceiver } from "@chainlink/contracts-ccip/contracts/applications/CCIPReceiver.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import { StewardSafeReceiver } from "../../src/accounts/StewardSafeReceiver.sol";
 import { IHatsSignerGateV2, IStewardSafe } from "../../src/interfaces/IHatsSignerGateV2.sol";
@@ -58,7 +59,8 @@ contract GnosisStewardSafeForkTest is Test {
     StewardSafeReceiver private receiver;
     IHatsSignerGateV2 private gate;
     IStewardSafe private safe;
-    address private constant ROUTER = address(0x11111);
+    // The real Gnosis CCIP router, so the receiver's router code check runs against fork code.
+    address private constant ROUTER = 0x4aAD6071085df840abD9Baf1697d5D5992bDadce;
     address private constant PUBLISHER = address(0x22222);
     address private constant GARDEN = address(0x33333);
     uint256 private constant A = 0xA11CE;
@@ -73,7 +75,6 @@ contract GnosisStewardSafeForkTest is Test {
         vm.createSelectFork(rpc, 48_897_095);
         assertEq(block.chainid, 100);
         assertEq(block.number, 48_897_095);
-        vm.etch(ROUTER, hex"00");
         (bool ok, bytes memory result) =
             address(0x3bc1A0Ad72417f2d411118085256fC53CBdDd137).staticcall(abi.encodeWithSignature("lastTopHatId()"));
         require(ok, "top Hat counter");
@@ -146,7 +147,7 @@ contract GnosisStewardSafeForkTest is Test {
 
     function testGnosisStewardSafe_rejectsWrongRouterSenderSelectorDomainGardenAndAttachedTokens() public {
         Client.Any2EVMMessage memory message = _message(vm.addr(A), 1, true);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(CCIPReceiver.InvalidRouter.selector, address(this)));
         receiver.ccipReceive(message);
         message.sender = abi.encode(address(0xBAD));
         _reject(message);

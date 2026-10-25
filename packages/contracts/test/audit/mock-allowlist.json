@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-30",
+  "updated_at": "2026-10-25",
   "entries": [
     {
       "file": "packages/contracts/test/fork/ArbitrumCommitmentPooling.t.sol",
@@ -69,6 +69,54 @@
         }
       ],
       "replacement_recommendation": "Use a dedicated CI ENS node delegation path if introduced."
+    },
+    {
+      "file": "packages/contracts/test/fork/GnosisStewardSafe.t.sol",
+      "pattern": "import-src-mocks",
+      "reason": "The source-to-destination lifecycle test runs the real Arbitrum HatsModule and StewardRolePublisher inside a Gnosis fork under vm.chainId(42161). Granting and revoking the garden's steward roles there needs a Hats instance the test administers, which the Arbitrum tree's keys do not allow in CI, so MockHats stands in for Arbitrum Hats only. The destination Hats, Hats Signer Gate, Safe, receiver and CCIP router are real Gnosis contracts at the pinned block.",
+      "owner": "contracts-core",
+      "expires_on": "2026-11-30",
+      "network_scope": ["gnosis"],
+      "classification": "necessary",
+      "source_boundaries": [
+        {
+          "selector": "<file>",
+          "occurrences": 1
+        }
+      ],
+      "replacement_recommendation": "Mint a fork-local Hats tree for the source garden (top hat, role hats, the module as admin) and drive the source module against the real Hats contract."
+    },
+    {
+      "file": "packages/contracts/test/fork/GnosisVoucherPurchase.t.sol",
+      "pattern": "vm.mockCall",
+      "reason": "The test proves that a failed learner transfer rolls back the pool's earlier, real protocol-fee transfer. The published CLC token reverts instead of returning false, so the pool's false-return path is reachable only by making that one learner transfer report failure. The fee transfer, the pool and the rollback under test are real fork code.",
+      "owner": "contracts-core",
+      "expires_on": "2026-11-30",
+      "network_scope": ["gnosis"],
+      "classification": "necessary",
+      "source_boundaries": [
+        {
+          "selector": "testGnosisVoucherPurchase_lateLearnerTransferFailureAlsoRollsBackActualProtocolFeeTransfer",
+          "occurrences": 1
+        }
+      ],
+      "replacement_recommendation": "Use a published token deployment that returns false on transfer, if one becomes available at a pinned Gnosis block, instead of mocking the learner leg."
+    },
+    {
+      "file": "packages/contracts/test/fork/GnosisVoucherReserve.t.sol",
+      "pattern": "vm.mockCall",
+      "reason": "The test proves that a failed second reserve transfer rolls back the adapter's real first transfer and that a retry then succeeds. The published CLC token reverts instead of returning false, so the adapter's false-return path is reachable only by making that one transferFrom report failure. The first transfer, the adapter, the rollback and the retry are real fork code.",
+      "owner": "contracts-core",
+      "expires_on": "2026-11-30",
+      "network_scope": ["gnosis"],
+      "classification": "necessary",
+      "source_boundaries": [
+        {
+          "selector": "testGnosisVoucherReserve_secondTransferFailureRollsBackRealFirstTransfer",
+          "occurrences": 1
+        }
+      ],
+      "replacement_recommendation": "Use a published token deployment that returns false on transferFrom, if one becomes available at a pinned Gnosis block, instead of mocking the second reserve leg."
     }
   ]
 }

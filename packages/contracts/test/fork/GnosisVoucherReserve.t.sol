@@ -236,7 +236,7 @@ contract GnosisVoucherReserveForkTest is Test {
     function testGnosisVoucherReserve_adapterCannotMintIssuerInventory() public {
         assertFalse(voucher.isWriter(address(adapter)));
         vm.prank(address(adapter));
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("Unauthorized()")));
         voucher.mintTo(RECIPIENT_A, 1);
         assertEq(voucher.totalSupply(), 100);
         assertEq(voucher.balanceOf(RECIPIENT_A), 0);

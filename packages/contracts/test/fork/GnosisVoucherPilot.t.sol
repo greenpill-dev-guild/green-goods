@@ -10,6 +10,7 @@ import { VoucherRedemptionModule } from "../../src/modules/VoucherRedemptionModu
 import { GnosisVoucherAdapter } from "../../src/modules/GnosisVoucherAdapter.sol";
 import { CLCMemberProjectFixture } from "../helpers/CLCMemberProjectFixture.sol";
 import { GnosisVoucherEscrow } from "../../src/modules/GnosisVoucherEscrow.sol";
+import { VoucherRedemptionReceiver } from "../../src/modules/VoucherRedemptionReceiver.sol";
 import { VoucherEntitlementModule } from "../../src/modules/VoucherEntitlementModule.sol";
 import { ICommitmentServiceOffers as Services } from "../../src/interfaces/ICommitmentServiceOffers.sol";
 import { ICommitmentVoucherAcceptance as Acceptance } from "../../src/interfaces/ICommitmentVoucherAcceptance.sol";
@@ -222,7 +223,7 @@ contract GnosisVoucherPilotForkTest is CLCVoucherPilotFixture {
         for (uint256 i; i < 3; ++i) {
             _approveExchange(i == 1 ? EXCHANGE_INPUT - 1 : 0);
             EconomicState memory beforeState = _state();
-            vm.expectRevert();
+            vm.expectRevert(bytes4(keccak256("InsufficientAllowance()")));
             _exchange(SERVICE_VOUCHERS, block.timestamp);
             _assertSameState(beforeState);
             if (i == 1) _approveExchange(EXCHANGE_INPUT); // subsequently revoked in the next iteration
@@ -232,7 +233,7 @@ contract GnosisVoucherPilotForkTest is CLCVoucherPilotFixture {
     }
 
     function testGnosisVoucherPilot_sharedPoolOwnerCannotMintAnotherIssuersVoucher() public {
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("Unauthorized()")));
         vm.prank(_communitySafeStandIn);
         voucherA.mintTo(_learner, 1);
         assertFalse(voucherA.isWriter(address(_primary.pool)));
@@ -246,7 +247,7 @@ contract GnosisVoucherPilotForkTest is CLCVoucherPilotFixture {
         vm.prank(_learner);
         voucherA.transfer(issuerA, 1);
         EconomicState memory beforeState = _state();
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("InsufficientBalance()")));
         _exchange(SERVICE_VOUCHERS, block.timestamp);
         _assertSameState(beforeState);
         vm.prank(issuerA);
@@ -260,7 +261,7 @@ contract GnosisVoucherPilotForkTest is CLCVoucherPilotFixture {
         _prepareService();
         vm.prank(_learner);
         _voucher.approve(address(escrow), SERVICE_VOUCHERS);
-        vm.expectRevert();
+        vm.expectRevert(VoucherRedemptionReceiver.IssuerApprovalRequired.selector);
         vm.prank(_learner);
         escrow.presentSetup(setupId, authorizationHash);
         assertEq(_voucher.balanceOf(_learner), SERVICE_VOUCHERS);
@@ -301,7 +302,7 @@ contract GnosisVoucherPilotForkTest is CLCVoucherPilotFixture {
         escrow.executeFinalLeg(setupId, decision, Codec.FinalLeg.ReleaseToIssuer);
         assertEq(uint256(escrow.getFinalAllocation(setupId).release.state), uint256(Codec.LegState.Failed));
         assertEq(_voucher.balanceOf(_issuerSafeStandIn), 0);
-        vm.expectRevert();
+        vm.expectRevert(GnosisVoucherEscrow.ConflictingFinalAllocation.selector);
         vm.prank(_learner);
         escrow.finalizeAllocation(setupId, authorizationHash, Codec.FinalAllocation(60, SERVICE_VOUCHERS, 0));
         vm.prank(_communitySafeStandIn);
@@ -404,7 +405,7 @@ contract GnosisVoucherJourneyForkTest is CLCVoucherJourneyFixture {
         _prepareJourneyService();
         vm.prank(journeyMember);
         journeyB.approve(address(journeyEscrow), JOURNEY_REWARD);
-        vm.expectRevert();
+        vm.expectRevert(VoucherRedemptionReceiver.IssuerApprovalRequired.selector);
         vm.prank(journeyMember);
         journeyEscrow.presentSetup(journeySetupId, journeyAuthorizationHash);
         assertEq(journeyB.balanceOf(journeyMember), JOURNEY_REWARD);
@@ -706,7 +707,7 @@ contract GnosisVoucherMemberProjectForkTest is CLCMemberProjectFixture {
                 false
             )
         );
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("Unauthorized()")));
         vm.prank(projectAnalyst);
         engineerHelp.mintTo(projectAnalyst, 1);
         vm.prank(projectEngineer);

@@ -60,7 +60,8 @@ contract GnosisVoucherPurchaseForkTest is CLCPurchaseFixture {
         _purchase(_primary.pool, _payer, _learner, INPUT, OUTPUT, block.timestamp);
         assertEq(_wxdai.allowance(_payer, address(_primary.pool)), 0);
         PurchaseBalances memory afterFirst = _balances(_primary.pool, _payer, _learner);
-        vm.expectRevert();
+        // WXDAI's transferFrom reverts with empty data when the allowance falls short.
+        vm.expectRevert(bytes(""));
         _purchase(_primary.pool, _payer, _learner, INPUT, OUTPUT, block.timestamp);
         _assertUnchanged(afterFirst, _primary.pool, _payer, _learner);
 
@@ -74,13 +75,14 @@ contract GnosisVoucherPurchaseForkTest is CLCPurchaseFixture {
         _approvePurchase(_primary.pool, _payer, INPUT);
         _approvePurchase(_primary.pool, _payer, 0);
         PurchaseBalances memory revoked = _balances(_primary.pool, _payer, _learner);
-        vm.expectRevert();
+        // WXDAI's transferFrom reverts with empty data for a revoked or short allowance.
+        vm.expectRevert(bytes(""));
         _purchase(_primary.pool, _payer, _learner, INPUT, OUTPUT, block.timestamp);
         _assertUnchanged(revoked, _primary.pool, _payer, _learner);
 
         _approvePurchase(_primary.pool, _payer, INPUT - 1);
         PurchaseBalances memory insufficient = _balances(_primary.pool, _payer, _learner);
-        vm.expectRevert();
+        vm.expectRevert(bytes(""));
         _purchase(_primary.pool, _payer, _learner, INPUT, OUTPUT, block.timestamp);
         _assertUnchanged(insufficient, _primary.pool, _payer, _learner);
         _approvePurchase(_primary.pool, _payer, INPUT);
@@ -92,7 +94,8 @@ contract GnosisVoucherPurchaseForkTest is CLCPurchaseFixture {
         _wxdai.transfer(_attacker, 100 ether);
         _approvePurchase(_primary.pool, _payer, INPUT);
         PurchaseBalances memory beforeState = _balances(_primary.pool, _payer, _learner);
-        vm.expectRevert();
+        // WXDAI's transferFrom reverts with empty data when the balance falls short.
+        vm.expectRevert(bytes(""));
         _purchase(_primary.pool, _payer, _learner, INPUT, OUTPUT, block.timestamp);
         _assertUnchanged(beforeState, _primary.pool, _payer, _learner);
         _fundBuyer(_payer, INPUT);
@@ -234,13 +237,13 @@ contract GnosisVoucherPurchaseForkTest is CLCPurchaseFixture {
         assertFalse(_voucher.isWriter(_communitySafeStandIn));
         assertFalse(_primary.limiter.isWriter(_issuerSafeStandIn));
         vm.prank(_communitySafeStandIn);
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("Unauthorized()")));
         _voucher.mintTo(_attacker, 1);
         vm.prank(_attacker);
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("Unauthorized()")));
         _primary.quoter.setPriceIndexValue(address(_voucher), 1);
         vm.prank(_attacker);
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("Unauthorized()")));
         _primary.pool.withdrawLiquidity(address(_voucher), _attacker, 1);
         assertEq(_voucher.totalSupply(), INVENTORY);
     }
