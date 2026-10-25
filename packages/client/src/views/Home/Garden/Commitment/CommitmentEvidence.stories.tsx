@@ -129,6 +129,8 @@ export const LinksOnly: Story = {
     const rows = canvas.getAllByRole("link");
     await expect(rows).toHaveLength(2);
     for (const row of rows) await expect(row.getBoundingClientRect().height).toBe(44);
+    // The rows are the links, so the caption does not count them as well.
+    await expect(canvas.getByText(/Added today, 9:05/)).not.toHaveTextContent(/link/);
   },
 };
 

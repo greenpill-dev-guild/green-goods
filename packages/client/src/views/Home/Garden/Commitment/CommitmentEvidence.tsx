@@ -24,11 +24,14 @@ function clock(seconds: number): string {
   return `${Math.floor(whole / 60)}:${(whole % 60).toString().padStart(2, "0")}`;
 }
 
-/** "Added today, 10:24 AM, by Amara · 1 link" */
+/**
+ * "Added today, 10:24 AM, by Amara". The links are listed above it, one row
+ * each, so the caption does not count them as well.
+ */
 function caption(intl: IntlShape, item: ResolvedEvidence) {
   const at = new Date(item.createdAt * 1000);
   const who = item.attacher ?? item.contributor;
-  const added = intl.formatMessage(
+  return intl.formatMessage(
     { id: "app.commitment.evidence.added" },
     {
       day: at.toDateString() === new Date().toDateString() ? "today" : "other",
@@ -39,16 +42,6 @@ function caption(intl: IntlShape, item: ResolvedEvidence) {
         <AddressDisplay address={who} interactive={false} className="inline text-[1em]" />
       ) : null,
     }
-  );
-  const links = item.document?.links?.length ?? 0;
-  return links > 0 ? (
-    <>
-      {added}
-      {" · "}
-      {intl.formatMessage({ id: "app.proof.contents.links" }, { count: links })}
-    </>
-  ) : (
-    added
   );
 }
 

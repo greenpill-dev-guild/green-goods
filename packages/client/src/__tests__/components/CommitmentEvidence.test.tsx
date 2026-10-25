@@ -43,7 +43,7 @@ describe("CommitmentEvidence", () => {
     expect(screen.getByText(/^Added /)).toBeInTheDocument();
   });
 
-  it("opens each link of a proof that has only links", () => {
+  it("opens each link of a proof that has only links, and stops counting them", () => {
     renderWithProviders(
       <CommitmentEvidence
         attributions={[
@@ -63,6 +63,8 @@ describe("CommitmentEvidence", () => {
       screen.getByRole("link", { name: "https://example.org/riverside/photos" })
     ).toHaveAttribute("href", "https://example.org/riverside/photos");
     expect(screen.queryByRole("list", { name: "Submitted proof" })).toBeNull();
+    // The rows are the links, so the caption no longer counts them.
+    expect(screen.getByText(/^Added /)).not.toHaveTextContent(/link/);
   });
 
   it("keeps the media tiles beside the note and the links", () => {
