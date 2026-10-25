@@ -82,7 +82,7 @@ html.split(/<section class="slide/).slice(1).forEach((block, i) => {
   const body = block.split("</section>")[0];
   if (!/class="corner"/.test(body)) note(`slide ${i + 1} has no corner symbol`);
   if (i === 0) return; // the title carries the event line instead of a number
-  if (block.startsWith(" s-thanks")) return; // the closing slide keeps only the thank-you, the link, its code and the symbol
+  if (block.startsWith(" s-thanks")) return; // the closing slide keeps only its headline, the brand line, its code, the link and the symbol
   const m = body.match(/<span class="num">(\d+) \/ (\d+)<\/span>/);
   if (!m) note(`slide ${i + 1} has no slide number`);
   else if (Number(m[1]) !== i + 1 || Number(m[2]) !== EXPECTED_SLIDES) note(`slide ${i + 1} is numbered "${m[1]} / ${m[2]}"`);

@@ -65,7 +65,7 @@ In 2024, 22.1 billion dollars in remittances reached Nigeria, according to the W
 
 ## 13. Four mechanisms · 0:40
 
-Four mechanisms turn support into lasting capacity. The endowment: supporters deposit, the capital stays invested, and part of its earnings, which vary, goes to the garden. Nothing is guaranteed. The commitment pool: members promise work, and kept promises earn agreed rewards in G$ and build the record. The exchange pool, in pilot: members swap service vouchers in one pool; later, supporters and endowment earnings could add money members swap vouchers for. That is future work, not a cash-out promise. And certificates: a garden documents a season's impact, supporters can hold a share; minting exists, buying in the app is unfinished.
+Four mechanisms turn support into lasting capacity. The endowment: supporters deposit, the capital stays invested, and part of its earnings, which vary, goes to the garden. Nothing is guaranteed. The commitment pool: members promise work, and kept promises earn agreed rewards in G$ and build the record. The exchange pool, in pilot: members swap service vouchers, like an hour of help for a career call. Later, supporters and endowment earnings could add funds; that's future work, not a cash-out promise. And certificates: a garden turns a season's impact into a certificate, and next, supporters can buy a share.
 
 ## 14. Business model · 0:30
 
@@ -77,15 +77,15 @@ Where are we today? The app is live, and promises and chat reporting joined it i
 
 ## 16. Technical roadmap · 0:20
 
-Our technical goal is simple: report once, and let the record count everywhere. Communities report by app or chat, and Green Goods carries the record to networks they already use: Cosmo-Local Credit now, Ma Earth next, and Bloom Network and Regen Network in conversation about the record and ecological claims.
+Our technical goal is simple: report once, and let the record count everywhere. Communities report by app or chat, and Green Goods carries the record to networks they already use: Cosmo-Local Credit now, then Ma Earth through Hypercerts Certified, and Bloom Network and Regen Network, both in conversation.
 
 ## 17. What we need · 0:25
 
 Beyond funding, here is what would help us most: business development mentorship; introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods; and marketing support to help us tell our story. So help us find the first supporter, and tell us what would make you the second.
 
-## 18. Thank you · 0:10
+## 18. Let's grow together · 0:10
 
-Thank you. Scan the code to see commitment pooling live on our beta, and we'd love your questions.
+Let's grow together. Thank you. Scan the code to see commitment pooling live on our beta, and we'd love your questions.
 
 ## Fitting the slot
 
@@ -125,9 +125,9 @@ Thank you. Scan the code to see commitment pooling live on our beta, and we'd lo
   agreed rewards" and, if asked, that G$ rewards are being switched on for this season.
 - **Screens.** The two phone screens on slide 6 show demo data (Riverside Commons Garden). The
   slide no longer says so; say it if asked.
-- **Certificates.** A garden can document a season's impact as a certificate and supporters can
-  hold a share; minting exists, nobody can buy a share through Green Goods today, and demand is
-  unproven. Say "partly built". Never equity, land, a carbon offset or audited impact.
+- **Certificates.** A garden turns a season's impact into a certificate, and part of the
+  endowment's earnings is set aside for them. Gardens can mint them today; nobody can buy a share
+  through Green Goods yet ("next, supporters can buy a share"), and demand is unproven. Say "partly built". Never equity, land, a carbon offset or audited impact.
 - **Remittances.** Say 22.1 billion dollars in 2024, from the World Bank's personal remittances
   series, and that Nigeria is where Tech and Sun builds. Never mix it with central bank or African
   Development Bank figures, and never call it our pipeline or share.
@@ -149,7 +149,9 @@ Thank you. Scan the code to see commitment pooling live on our beta, and we'd lo
   is a small nonprofit, and no agreement to fund exists. The photos are from the Odunde Festival
   2026 in Leimert Park; the ledger's C50 spelling, "Odun De", is the ledger owner's to fix.
 - **Partners.** Each context line on slide 16 comes from the partner's own site, read 25 October.
-  Ma Earth is the first publishing target; Bloom Network and Regen Network are in conversation.
+  Ma Earth is the first publishing target: approved work reaches it through Hypercerts Certified,
+  the Hypercerts Foundation's portable account system, which lists Ma Earth as a partner
+  (certified.app, read 25 October). Bloom Network and Regen Network are in conversation.
 - **Places.** Greenpill Kenya, AgroforestDAO and Growecosystems keep public gardens on Green
   Goods; Kenya and Brazil stay "exploring" because no hub season is agreed there.
 - **Never say:** guaranteed principal or returns, cash-out of vouchers, carbon credits, "proven

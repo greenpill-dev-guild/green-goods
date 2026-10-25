@@ -240,13 +240,17 @@ fourth mechanism, "cockpit" becomes "steward dashboard" in the brief, and the br
   caption names the Odunde Festival 2026 in Leimert Park, a procession and a language class. The
   remittance slide drops "not our market size". The mechanisms slide has four circles: the
   endowment loses "which vary", the commitment pool earns "agreed rewards in G$", the exchange
-  pool is explained in plainer words, and certificates are "partly built" (minting exists, buying
-  in the app is unfinished, part of the endowment's earnings is set aside for them). The business
+  pool reads "Members swap service vouchers in a shared pool, like an hour of help for a career
+  call.", and certificates are "partly built": "A garden turns a season's impact into a
+  certificate. Next, supporters can buy a share." Each fits three lines; the arc carries the
+  future funding, and the notes and brief carry the caveats. The business
   model headline reads "Our revenue model: funders pay Green Goods to reach more local
   initiatives." The places slide lists Kenya and Brazil separately, both agroforestry, with
   Greenpill Kenya, AgroforestDAO and Growecosystems named in the note and brief as gardens already
-  on Green Goods. Bloom Network and Regen Network are "in conversation". The closing slide is a
-  centered column: THANK YOU, "From good intentions to green outcomes.", a smaller QR code (9px a
+  on Green Goods. Ma Earth's stage line names Hypercerts Certified, the Hypercerts Foundation's
+  portable account system that lists Ma Earth as a partner (certified.app, read 25 October), and
+  Bloom Network and Regen Network are "in conversation". The closing slide is a centered column:
+  "Let's Grow Together", "From good intentions to green outcomes.", a smaller QR code (9px a
   module, still decoded by Core Image) and the beta link under it.
 - **Notes.** Slide 13 takes 0:40 and slide 11 gives back 5 seconds, so the total stays 8:00. The
   claims list gains the G$ switch, the demo-data reminder, certificates, the Odunde spelling, the
@@ -257,8 +261,9 @@ fourth mechanism, "cockpit" becomes "steward dashboard" in the brief, and the br
   screenshots, no demo-data line. "Money stays separate" became "Two kinds of reward" (G$ and
   vouchers, both carried by this season's promises). "Evidence so far" is in plain words with no
   test counts or chain names. Page 5 has four mechanism boxes, the certificate share described in
-  words, and a tighter "How Green Goods earns" paragraph; page 6 has four places, "in conversation"
-  for Bloom and Regen, and an "Impact certificate" term. Pages 5 and 6 sit a little tighter
+  words, and a tighter "How Green Goods earns" paragraph; page 6 has four places, Ma Earth "with
+  Hypercerts Certified" (linked to certified.app), "in conversation" for Bloom and Regen, and an
+  "Impact certificate" term. Pages 5 and 6 sit a little tighter
   (`.p5`, `.p6`) so the additions fit.
 - **G$ rewards, the one claim to watch.** The deck and brief now say kept promises earn agreed
   rewards in G$. The G$ path is live and paid its first reward in August (claim C08), but creating
@@ -315,7 +320,7 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
 - **Brief:** six A4 pages rendered to PDF and PNG with a clean probe after the final polish, and
   pages 2, 3, 5 and 6 inspected (pages 1 and 4 changed only in the footer line, a link and one
   evidence-table phrase).
-- **Links:** the 24 addresses the brief links or cites returned HTTP 200 on 25 October.
+- **Links:** the 25 addresses the brief links or cites returned HTTP 200 on 25 October.
 - **Screens:** the two Storybook screens were re-captured at 09:23 UTC on 25 October. The live
   garden page is no longer shown.
 - **Chain state:** the deployment facts in the notes and brief rest on public RPC reads at 09:28
@@ -323,7 +328,7 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
 - **Arithmetic:** the program figures are unchanged, so the rebuild's 15 recomputed checks still
   cover them. The one new headline figure, $22.1bn, matches the World Bank's $22,126,757,545 for
   2024 as read on 25 October.
-- **Pacing:** every note runs between 108 and 158 words a minute.
+- **Pacing:** every note runs between 125 and 158 words a minute.
 - **Copy:** no em dashes, US spelling, lowercase roles in running text, "promise" in user-facing
   copy, no hand-typed garden counts, every financial example labeled illustrative, no chain names
   on slides.
@@ -386,6 +391,7 @@ scripts and this README, from `7ff3e82ed`
 | investigate | unknown → unknown | Title-slide PDF cut-off reproduced in both PDFs; gardens listed from greengoods.app; festival name, link targets and the G$ gate checked; outline and four decisions agreed with Afo |
 | implement | unknown → unknown | Slides 1, 3, 6, 8, 11 to 16 and 18 edited; notes and claims list rewritten; brief renamed, linked and re-fitted; render checks extended; live-page capture retired |
 | verify | unknown → unknown | Deck and brief renders exit 0 with the new checks; slides and pages inspected; QR decoded |
+| follow-up | unknown → unknown | "Let's Grow Together" closing, Hypercerts Certified with Ma Earth, three-line exchange pool and certificates text; renders exit 0 |
 
 Human corrections: 0 observed in this segment (the review itself was the request); attention unknown.
 
