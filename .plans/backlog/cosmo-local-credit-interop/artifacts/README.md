@@ -124,8 +124,9 @@ UTC), in the order its follow-up brief set: structure, copy, accepted polish, br
 - **Map:** the status row went, since the mechanisms slide and the brief carry it. The dot map
   marks Nigeria now, South Africa next, and Kenya and Brazil exploring, in the old roadmap's
   marker styles, with each place named on the map and in the list beside it.
-- **Closing slide:** the thank-you, the beta link in words and its QR code. Core Image decodes the
-  rendered slide to exactly `https://beta.greengoods.app`. The slide carries no number.
+- **Closing slide:** the thank-you, the beta link in words and its QR code. Afo confirmed the beta
+  home, `https://beta.greengoods.app`, as the link on 25 October. Core Image decodes the rendered
+  slide to exactly that URL. The slide carries no number.
 - **Sources checked on 25 October:** techandsun.com describes the initiative building
   solar-powered hubs, the Awka hub near UNIZIK as live, and Enugu and Abuja as next locations
   still being confirmed. It names neither Lagos nor Nsukka, so the review's Lagos line was not
@@ -188,42 +189,39 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
 
 ## Unresolved presentation inputs
 
-1. **QR link.** The closing slide's code opens the beta home, `https://beta.greengoods.app`, the
-   review's default. Afo to confirm it, or to switch it to Tech and Sun's garden page on the beta
-   (a longer link and a denser code); see [Render and check](#render-and-check).
-2. **Claim sources.** The deck follows the claim ledger's 23 October addendum, the event research
+1. **Claim sources.** The deck follows the claim ledger's 23 October addendum, the event research
    note and the live-pilot handoff. If one of them is missing from `../research/` or `../handoffs/`,
    it has not landed from the Cosmo-Local contracts work yet; read the current copy there.
-3. **Ledger owner's updates.** C01 should describe Tech and Sun as an initiative building
+2. **Ledger owner's updates.** C01 should describe Tech and Sun as an initiative building
    solar-powered hubs, with the Awka hub live and Enugu and Abuja as its site's next locations.
    C48 should drop the fiscal-sponsor role and keep Omo Yoruba as the first diaspora community.
    For C05, techandsun.com's founder line reads "Tech and Sun Initiative"; confirm whether that is
    the registered string before using it anywhere.
-4. **Nsukka.** The Greenpill Nigeria round page names the University of Nigeria, Nsukka, as a
+3. **Nsukka.** The Greenpill Nigeria round page names the University of Nigeria, Nsukka, as a
    second university; techandsun.com does not. Nothing mentions it until Afo confirms.
-5. **Status refresh before submission.** The slides carry no voucher deployment status beyond
+4. **Status refresh before submission.** The slides carry no voucher deployment status beyond
    "in pilot". Re-check the [live-pilot handoff](../handoffs/codex-live-pilot-deployment.md) on
    27 October and update the notes' claims list, which says what to say on slide 7, and brief
    pages 1, 3, 4 and 6 if vouchers go live.
-6. **Slot length.** The 2026 per-team time is unconfirmed; the notes run 8:00 and include a
+5. **Slot length.** The 2026 per-team time is unconfirmed; the notes run 8:00 and include a
    five-minute cut.
-7. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
+6. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
    gift method (the Omo Yoruba donate page has no payment form).
-8. **Live counts.** Re-capture the Tech and Sun page before presenting; its counts are live.
-9. **Brief contact.** Page 1 lists greengoods.app, beta.greengoods.app and docs.greengoods.app;
+7. **Live counts.** Re-capture the Tech and Sun page before presenting; its counts are live.
+8. **Brief contact.** Page 1 lists greengoods.app, beta.greengoods.app and docs.greengoods.app;
    add a named contact if mentors should reply to a person.
-10. **Recorded clip.** The stretch-goal clip of the rehearsed voucher flow was not made; the
-    notes say where it would go.
-11. **Member-proof timestamp.** The claim ledger's C89 cites 01:17:19 UTC on 24 October; the proof
+9. **Recorded clip.** The stretch-goal clip of the rehearsed voucher flow was not made; the notes
+   say where it would go.
+10. **Member-proof timestamp.** The claim ledger's C89 cites 01:17:19 UTC on 24 October; the proof
     record says its tests completed at 01:08:44 UTC and it was written at 02:09:22 UTC. The ledger
     line is the ledger owner's to reconcile; the deck states no time of day.
-12. **Fonts offline.** Fraunces and Inter load from Google Fonts. Vendoring the OFL files would
+11. **Fonts offline.** Fraunces and Inter load from Google Fonts. Vendoring the OFL files would
     remove that dependency; it needs a download this task did not authorize.
 
 ## Task record · 18-slide revision
 
 Task record: SF.Live pitch revision after the 25 October review | Type: documentation/design |
-Outcome: complete locally; the QR link and the inputs above wait on Afo
+Outcome: complete locally; the inputs above wait on Afo
 Agent/model: Claude Code / Claude Opus 5.5 | Coverage: the pitch artifacts in this folder and
 local images, on branch `claude/sf-live-pitch-polish-a689a5`
 
