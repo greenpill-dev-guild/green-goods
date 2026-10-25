@@ -14,7 +14,11 @@ import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
 import { buildCommitmentEvidenceDocument, evidenceMediaKind } from "../commitment-pooling/evidence";
 import type { EvidenceJobPayload } from "../commitment-pooling/jobs";
-import { identifyWorkFile, publishableWorkFile } from "../work/work-attachments";
+import {
+  identifyWorkFile,
+  publishableWorkFile,
+  UnpublishablePhotoError,
+} from "../work/work-attachments";
 import { jobQueueDB } from "./db";
 import { convertQueuedHeicMedia } from "./job-media-conversion";
 import { MAX_RETRIES } from "./queue-policy";
@@ -40,7 +44,8 @@ interface EvidenceUploads {
  * Failure is reported as waiting, never thrown: a dead gateway has nothing to
  * do with this proof and must not spend one of the job's own attempts. The
  * publish attempts are counted separately, so a gateway that never returns
- * still lets the job fail once it has tried as many times as any other.
+ * still lets the job fail once it has tried as many times as any other. A
+ * photo that cannot be published without its metadata ends the job at once.
  */
 export async function publishPendingEvidence(jobId: string, job: Job): Promise<PublishOutcome> {
   if (job.kind !== "evidence") return { published: true };
@@ -108,6 +113,10 @@ export async function publishPendingEvidence(jobId: string, job: Job): Promise<P
     await jobQueueDB.updateJob({ ...job, payload });
     return { published: true };
   } catch (error) {
+    // A photo that cannot be published is the proof's own problem, not a gateway's:
+    // no attempt is spent on it, and it ends at once rather than retrying.
+    if (error instanceof UnpublishablePhotoError)
+      return { published: false, reason: "photo-unreadable", terminal: true };
     const attempts = Number(job.meta?.evidenceAttempts ?? 0) + 1;
     // Mutated, not replaced, for the same reason the metadata step does it:
     // the caller rewrites the job on the waiting path with the meta it holds.

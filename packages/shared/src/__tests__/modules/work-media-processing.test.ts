@@ -4,6 +4,7 @@ const heicToMocks = vi.hoisted(() => ({
   heicTo: vi.fn(),
   isHeic: vi.fn(),
 }));
+const canvas = vi.hoisted(() => ({ redraw: vi.fn() }));
 
 // The connection is confirmed, so importing the decoder is worth attempting.
 vi.mock("../../stores/connectivity", () => ({
@@ -16,6 +17,8 @@ vi.mock("../../stores/connectivity", () => ({
 }));
 
 vi.mock("heic-to/csp", () => heicToMocks);
+// The compressor's canvas, which a Node test does not have.
+vi.mock("../../utils/work/image-compression", () => ({ imageCompressor: canvas }));
 
 import {
   HEIC_JPEG_QUALITY,
@@ -32,6 +35,8 @@ import {
   cleanPhoto,
   leakedCameraDetails,
   photoFile,
+  photoVariants,
+  unreadableCameraPng,
 } from "../test-utils/photo-fixtures";
 
 const PHOTO_NAMES: Record<PhotoType, string> = {
@@ -45,6 +50,7 @@ describe("normalizeWorkMediaFiles", () => {
     vi.clearAllMocks();
     heicToMocks.isHeic.mockResolvedValue(false);
     heicToMocks.heicTo.mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" }));
+    canvas.redraw.mockResolvedValue(null);
   });
 
   it("keeps photos with no metadata, and videos, exactly as they were picked", async () => {
@@ -99,6 +105,20 @@ describe("normalizeWorkMediaFiles", () => {
     expect(await bytesOf(originalFile)).toEqual(await bytesOf(picked));
   });
 
+  it.each(
+    photoVariants()
+  )("strips $name, keeping what draws it, and gives the same file back a second time", async ({
+    type,
+    picked,
+    published,
+  }) => {
+    const [first] = (await normalizeWorkMediaFiles([photoFile(picked, "variant", type)])).accepted;
+    expect(await bytesOf(first.file)).toEqual(published);
+    expect(leakedCameraDetails(await bytesOf(first.file))).toEqual([]);
+    const [second] = (await normalizeWorkMediaFiles([first.file])).accepted;
+    expect(second.file).toBe(second.originalFile);
+  });
+
   it("queues a photo below the compression threshold without its metadata", async () => {
     const picked = photoFile(cameraPhoto("image/jpeg"), "beds.jpg", "image/jpeg");
     const compressor = { shouldCompress: vi.fn(() => false), compressImages: vi.fn() };
@@ -110,11 +130,31 @@ describe("normalizeWorkMediaFiles", () => {
     expect(await bytesOf(prepared.files[0])).toEqual(cleanPhoto("image/jpeg", { orientation: 6 }));
   });
 
-  it("refuses a photo whose bytes it cannot read, since it cannot tell what they carry", async () => {
+  it("redraws a photo whose chunks cannot be read, and queues it without the camera's details", async () => {
+    const picked = photoFile(unreadableCameraPng(), "beds.png", "image/png");
+    expect(leakedCameraDetails(await bytesOf(picked))).toContain(CAMERA_DETAILS.serial);
+    // The browser draws it leniently; the canvas writes the picture back with nothing else.
+    canvas.redraw.mockImplementation(async (file: File) =>
+      photoFile(cleanPhoto("image/png"), file.name, "image/png")
+    );
+
+    const result = await normalizeWorkMediaFiles([picked]);
+
+    expect(canvas.redraw).toHaveBeenCalledOnce();
+    expect(await bytesOf(canvas.redraw.mock.calls[0][0])).toEqual(await bytesOf(picked));
+    expect(result.rejected).toEqual([]);
+    const { file } = result.accepted[0];
+    expect([file.name, file.type]).toEqual(["beds.png", "image/png"]);
+    expect(leakedCameraDetails(await bytesOf(file))).toEqual([]);
+    expect(await bytesOf(file)).toEqual(cleanPhoto("image/png"));
+  });
+
+  it("refuses a photo neither the rewrite nor a canvas can read, since it cannot tell what it carries", async () => {
     const unreadable = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
 
     const result = await normalizeWorkMediaFiles([unreadable]);
 
+    expect(canvas.redraw).toHaveBeenCalledOnce();
     expect(result.accepted).toEqual([]);
     expect(result.rejected).toEqual([
       expect.objectContaining({ reason: "unsupported", file: expect.any(File) }),

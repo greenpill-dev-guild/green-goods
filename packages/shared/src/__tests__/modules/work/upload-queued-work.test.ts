@@ -15,8 +15,10 @@ import {
   uploadQueuedWork,
   type UploadQueuedWorkPorts,
 } from "../../../modules/work/upload-queued-work";
+import { queuedUploadStatus } from "../../../modules/work/upload-state";
 import { retainedWorkBroadcast } from "../../../modules/work/work-confirmation";
 import type { Job, SendCheckpoint, WorkJobPayload } from "../../../types/job-queue";
+import type { WorkUploadCheckpoint } from "../../../types/work-media";
 import {
   bytesOf,
   cameraPhoto,
@@ -760,17 +762,17 @@ describe("Upload all publishing a photo", () => {
   }
 
   /** A work queued with one photo, its attestation built the way the app builds it. */
-  function queuedWithPhoto(photo: File) {
+  function queuedWithPhoto(photo: File, uploaded: WorkUploadCheckpoint["files"] = {}) {
     const queued = queuedWorkJob({
       id: "work-photo",
       meta: READY,
       payload: {
         // Where the gardener stood, as precisely as the device knew it.
         location: { lat: 52.37403, lng: 4.88969 },
-        uploadCheckpoint: { submittedAt: "2026-09-17T09:00:00.000Z", files: {} },
+        uploadCheckpoint: { submittedAt: "2026-09-17T09:00:00.000Z", files: uploaded },
       },
     });
-    const { ports } = harness([queued]);
+    const { ports, store } = harness([queued]);
     ports.attestation = (job, { chainId, claim, authMode }) =>
       uploadKindOf(job)!.attestation(job, {
         chainId,
@@ -779,7 +781,13 @@ describe("Upload all publishing a photo", () => {
         save: ports.save,
         dependencies: { images: async () => [{ file: photo }], easConfig: () => EAS_CONFIG },
       });
-    return ports;
+    return { ports, store };
+  }
+
+  /** The fields of the one work attestation the call carried. */
+  function attested(sender: TransactionSender) {
+    const [call] = vi.mocked(sender.sendContractCall).mock.calls[0];
+    return decodeAbiParameters(WORK_FIELDS, (call.args[0] as { data: { data: Hex } }).data.data);
   }
 
   beforeEach(() => {
@@ -795,7 +803,7 @@ describe("Upload all publishing a photo", () => {
     const { pinned } = await pinningService();
     const picked = photoFile(cameraPhoto("image/jpeg"), "beds.jpg", "image/jpeg");
     expect(picked.size).toBeLessThan(1_000_000);
-    const ports = queuedWithPhoto(picked);
+    const { ports } = queuedWithPhoto(picked);
     const sender = createMockTransactionSender();
 
     await expect(upload(ports, sender)).resolves.toEqual({
@@ -805,9 +813,7 @@ describe("Upload all publishing a photo", () => {
     });
 
     // The media the attestation names are the bytes Pinata received.
-    const [call] = vi.mocked(sender.sendContractCall).mock.calls[0];
-    const request = call.args[0] as { data: { data: Hex } };
-    const [, , , metadataCid, media] = decodeAbiParameters(WORK_FIELDS, request.data.data);
+    const [, , , metadataCid, media] = attested(sender);
     expect(media).toHaveLength(1);
     const published = pinned.get(media[0])!;
     expect([published.name, published.type]).toEqual(["beds.jpg", "image/jpeg"]);
@@ -825,12 +831,39 @@ describe("Upload all publishing a photo", () => {
     ]);
   });
 
-  it("pins nothing and sends nothing when a queued photo's bytes cannot be read", async () => {
-    const { fetchMock } = await pinningService();
-    const ports = queuedWithPhoto(new File(["jpeg"], "beds.jpg", { type: "image/jpeg" }));
+  it("pins a photo prepared before stripping again, and attests the stripped bytes", async () => {
+    const { pinned } = await pinningService();
+    const picked = photoFile(cameraPhoto("image/jpeg"), "beds.jpg", "image/jpeg");
+    // An earlier build pinned the photo as picked, under the hash of those bytes.
+    const digest = await webcrypto.subtle.digest("SHA-256", await picked.arrayBuffer());
+    const asPicked = Buffer.from(digest).toString("hex");
+    const { ports } = queuedWithPhoto(picked, {
+      [asPicked]: { attachmentId: "photo-1", contentHash: asPicked, cid: "bafy-as-picked" },
+    });
     const sender = createMockTransactionSender();
 
-    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-sent", flagged: 0 });
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "uploaded", sent: 1 });
+
+    const [, , , , media] = attested(sender);
+    expect(media).not.toContain("bafy-as-picked");
+    expect(await bytesOf(pinned.get(media[0])!)).toEqual(
+      cleanPhoto("image/jpeg", { orientation: 6 })
+    );
+  });
+
+  it("holds a queued photo it cannot publish, named, and pins and sends nothing", async () => {
+    const { fetchMock } = await pinningService();
+    const { ports, store } = queuedWithPhoto(
+      new File(["jpeg"], "beds.jpg", { type: "image/jpeg" })
+    );
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-sent", flagged: 1 });
+    // Not back to preparing, which would refuse it again on every retry: it waits on the photo.
+    expect(queuedUploadStatus(store.get("work-photo")!)).toEqual({
+      state: "photo-needs-attention",
+      photo: "beds.jpg",
+    });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });

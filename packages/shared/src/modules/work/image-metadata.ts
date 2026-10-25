@@ -69,8 +69,8 @@ const COM = 0xfe;
  * A JPEG's segments without metadata. Kept: the tables, frames and scans the
  * image is decoded from, a JFIF header without a thumbnail, the color profile
  * and Adobe's color transform. Removed: EXIF, XMP, IPTC, every other application
- * segment, comments, and anything after the image ends, where phones append
- * second pictures such as depth maps.
+ * segment, comments, stray bytes between segments, and anything after the image
+ * ends, where phones append second pictures such as depth maps.
  */
 function rewriteJpeg(bytes: Bytes): Rewrite | null {
   const view = viewOf(bytes);
@@ -80,8 +80,14 @@ function rewriteJpeg(bytes: Bytes): Rewrite | null {
   let scanned = false;
   let position = 2;
   while (position < bytes.length) {
+    if (bytes[position] !== 0xff) {
+      // Stray bytes between segments, which decoders skip too, are dropped.
+      const marker = bytes.indexOf(0xff, position);
+      if (marker === -1) break;
+      changed = true;
+      position = marker;
+    }
     const start = position;
-    if (bytes[position] !== 0xff) return null;
     // Any number of 0xFF fill bytes may come before a marker.
     while (bytes[position] === 0xff) position += 1;
     const marker = bytes[position];

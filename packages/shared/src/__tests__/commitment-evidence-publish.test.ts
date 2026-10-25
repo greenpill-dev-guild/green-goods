@@ -241,6 +241,18 @@ describe("publishing proof at sync", () => {
     );
   });
 
+  it("ends a proof whose photo cannot be published, without spending a gateway attempt", async () => {
+    const unreadable = new File(["jpeg"], "beds.jpg", { type: "image/jpeg" });
+    images.set("job-evidence", [{ id: "img-1", file: unreadable, url: "blob:photo" }]);
+
+    const result = await executeCommitmentQueueJob("job-evidence", job(), 42161, {} as never);
+
+    expect(result).toEqual({ status: "unavailable", reason: "photo-unreadable" });
+    expect(mocks.uploadFileToIPFS).not.toHaveBeenCalled();
+    expect(mocks.executeCommitmentJob).not.toHaveBeenCalled();
+    expect(store.get("job-evidence")).toBeUndefined();
+  });
+
   it("waits for a HEIC photo to convert before uploading anything, without spending an attempt", async () => {
     images.set("job-evidence", [{ id: "img-1", file: photo, url: "blob:photo" }]);
     mocks.convertQueuedHeicMedia.mockResolvedValue({ status: "pending" });

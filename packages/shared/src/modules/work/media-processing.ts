@@ -4,8 +4,7 @@ import {
   convertHeicToJpeg,
   loadHeicDecoder,
 } from "./heic-conversion";
-import { withoutImageMetadata } from "./image-metadata";
-import { captureWorkFile, isHeicFile } from "./work-attachments";
+import { captureWorkFile, isHeicFile, withoutPhotoMetadata } from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
 export type MediaRejectedReason = "unsupported" | "heic_conversion_failed";
@@ -151,8 +150,9 @@ export async function normalizeWorkMediaFiles(
     if (isSupportedImage(file)) {
       // Location and camera metadata come off as the photo is picked, so the
       // draft, the queue and the upload all hold the bytes that publish. A photo
-      // whose bytes cannot be read is refused: it could not be checked.
-      const published = await withoutImageMetadata(file);
+      // that neither the rewrite nor a canvas can read is refused: it could not
+      // be checked.
+      const published = await withoutPhotoMetadata(file);
       if (published) {
         accepted.push({
           file: published,
