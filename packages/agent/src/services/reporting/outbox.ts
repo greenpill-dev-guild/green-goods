@@ -194,9 +194,12 @@ export async function dispatchOutbox(
     )
     .all({ now: core.clock.now(), limit }) as Array<{ conversation_id: string }>;
   let sent = 0;
+  // Each question sent takes the buttons off the one before it. Those edits start at once and run
+  // beside the sends after them, so none holds up a reply; the pass waits for them only at its end.
+  const retiring: Array<Promise<void>> = [];
   for (const { conversation_id: conversationId } of conversations) {
     for (;;) {
-      if (stopping?.aborted) return { sent, held: false };
+      if (stopping?.aborted) return settled(retiring, { sent, held: false });
       const claim = claimNext(core, conversationId);
       if (!claim) break;
       const chat = decryptConversationChat(core, conversationId);
@@ -224,17 +227,25 @@ export async function dispatchOutbox(
       if (result.status !== "accepted") break;
       sent += 1;
       if (chat && claim.row.prompt_id && transport.retireChoices)
-        await retireEarlierQuestion(core, transport, claim.row, chat);
+        retiring.push(retireEarlierQuestion(core, transport, claim.row, chat));
     }
   }
-  return { sent, held: false };
+  return settled(retiring, { sent, held: false });
+}
+
+/** The pass's outcome once its edits have settled; they never reject. */
+async function settled<T>(retiring: Array<Promise<void>>, outcome: T): Promise<T> {
+  await Promise.allSettled(retiring);
+  return outcome;
 }
 
 /**
  * A question just sent replaces the one sent before it, so that one's buttons come off. Each
- * question is retired by the next question to reach the chat, once; a question that drew no buttons
- * is left alone. Retiring is best effort and never stops the replies after it: a button left
- * behind only puts the open question again.
+ * question is retired by the next question to reach the chat, once; a question with no choices is
+ * left alone. Whether it had choices is read from the question itself, which outlives the purge
+ * of a cancelled report's sent text. The lookup runs when this is called, before its first await.
+ * Retiring is best effort and never rejects: a button left behind only puts the open question
+ * again.
  */
 async function retireEarlierQuestion(
   core: ReportingCore,
@@ -245,11 +256,15 @@ async function retireEarlierQuestion(
   try {
     const earlier = core.db
       .query(
-        `SELECT o.id, o.payload_ciphertext, a.provider_message_id
-         FROM delivery_outbox o JOIN delivery_attempts a ON a.outbox_id = o.id
-         WHERE o.conversation_id = $conversation AND o.prompt_id IS NOT NULL
-           AND o.prompt_id <> $prompt AND o.dispatch_seq < $seq
-           AND o.state IN ('accepted','sent','delivered','read')
+        // The prompt and state terms match the index of sent questions word for word, so the
+        // newest earlier question is the first entry read.
+        `SELECT p.options_json, a.provider_message_id
+         FROM delivery_outbox o
+           JOIN conversation_prompts p ON p.id = o.prompt_id
+           JOIN delivery_attempts a ON a.outbox_id = o.id
+         WHERE o.conversation_id = $conversation AND o.dispatch_seq < $seq
+           AND o.prompt_id IS NOT NULL AND o.state IN ('accepted','sent','delivered','read')
+           AND o.prompt_id <> $prompt
            AND a.state IN ('accepted','sent','delivered','read') AND a.provider_message_id IS NOT NULL
          ORDER BY o.dispatch_seq DESC LIMIT 1`
       )
@@ -257,12 +272,8 @@ async function retireEarlierQuestion(
         conversation: sent.conversation_id,
         prompt: sent.prompt_id,
         seq: sent.dispatch_seq,
-      }) as { id: string; payload_ciphertext: string | null; provider_message_id: string } | null;
-    if (!earlier?.payload_ciphertext) return;
-    const message = JSON.parse(
-      core.keyring.open(earlier.payload_ciphertext, payloadContext(earlier.id))
-    ) as OutboundMessage;
-    if (!message.choices?.length) return;
+      }) as { options_json: string; provider_message_id: string } | null;
+    if (!earlier || (JSON.parse(earlier.options_json) as unknown[]).length === 0) return;
     await transport.retireChoices?.({
       providerRealm: chat.providerRealm,
       externalChatId: chat.chatId,

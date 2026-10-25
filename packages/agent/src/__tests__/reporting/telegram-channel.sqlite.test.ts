@@ -254,6 +254,29 @@ describe("Telegram reporting on the existing bot", () => {
     expect(api.keyboardsRemoved()).not.toContain(api.messageIdOf("TAS is your only garden"));
   });
 
+  it("takes the buttons off a cancelled report's summary, whose copy is purged, at the next question", async () => {
+    openTelegramChannel();
+    const telegraf = bot();
+    const tell = async (update: Update) => {
+      await telegraf.handleUpdate(update);
+      await drainThroughTelegram();
+    };
+    await tell(direct({ text: "Today I planted twelve baobab seedlings by the fence" }));
+    await tell(press("I agree"));
+    await tell(direct({ text: "1" }));
+    await tell(press("Tree planting"));
+    for (const text of ["12", "2", "3 hours"]) await tell(direct({ text }));
+    const summary = api.messageIdOf("Please check your report for TAS");
+    expect(summary).toBeDefined();
+    // CANCEL purges the report's private copy, the summary's sent text among it.
+    await tell(direct({ text: "/cancel" }));
+    expect(sentTexts().at(-1)).toBe("Report canceled. Unpublished content will be removed.");
+    expect(api.keyboardsRemoved()).not.toContain(summary);
+    await tell(direct({ text: "Weeded the beds this morning" }));
+    expect(sentTexts().at(-1)).toContain("Which garden is this report for?");
+    expect(api.keyboardsRemoved().at(-1)).toBe(summary);
+  });
+
   it("leads /language to a choice of languages, then names the Menu in the language chosen", async () => {
     openTelegramChannel();
     const telegraf = bot();

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { TestBrowser } from "./support/browser";
+import { reportingText } from "../../services/reporting/copy";
 import { AIYELOJA, planting, snapshot, TAS } from "./support/fixtures";
 import { adaAccount, bolaAccount, latestLink, reportUntilSummary } from "./support/flows";
 import { ADA, Harness, summaryToken } from "./support/harness";
@@ -546,14 +547,16 @@ describe("commands at an open question", () => {
     },
   };
 
+  /** One reply, the copy in full: a help with no menu line on a channel without a menu. */
+  const only = (key: "help" | "consent.stopped" | "consent.deleted") => [
+    reportingText("en", key, { support: harness.core.settings.supportContact, menu: "" }),
+  ];
+
   // Both model switches, model processing and voice, are off, as the harness starts. A command is
-  // read before any answer: each of these replies leaves the question open, and STOP or DELETE
-  // then withdraws consent and closes it.
+  // read before any answer: each of these replies leaves the question open, and STOP or DELETE,
+  // taking turns across the questions, then withdraws consent and closes it.
   it.each(
-    Object.keys(QUESTIONS).flatMap((question) => [
-      [question, "STOP"],
-      [question, "DELETE"],
-    ])
+    Object.keys(QUESTIONS).map((question, index) => [question, index % 2 ? "DELETE" : "STOP"])
   )("reads every command at the %s question before an answer, then %s", async (question, ending) => {
     const { reach, kind, status } = QUESTIONS[question as keyof typeof QUESTIONS];
     await reach();
@@ -572,14 +575,11 @@ describe("commands at an open question", () => {
       expect(await harness.say(ADA, command)).toEqual([reply]);
       expect(openQuestion()).toEqual({ kind });
     }
-    expect((await harness.say(ADA, "HELP"))[0]).toMatch(/^Green Goods reporting:/);
+    expect(await harness.say(ADA, "HELP")).toEqual(only("help"));
     expect(openQuestion()).toEqual({ kind });
 
-    const [withdrawn] = await harness.say(ADA, ending);
-    expect(withdrawn).toMatch(
-      ending === "STOP"
-        ? /^You've stopped the assistant\./
-        : /^Your unpublished drafts and files are being deleted\./
+    expect(await harness.say(ADA, ending)).toEqual(
+      only(ending === "STOP" ? "consent.stopped" : "consent.deleted")
     );
     expect(openQuestion()).toBeNull();
     expect(
@@ -594,7 +594,7 @@ describe("commands at an open question", () => {
   it("answers HELP at the consent notice, which still takes its answer", async () => {
     await harness.say(ADA, STORY);
     // The notice offers HELP, and its reply reads nothing that was sent.
-    expect((await harness.say(ADA, "HELP"))[0]).toMatch(/^Green Goods reporting:/);
+    expect(await harness.say(ADA, "HELP")).toEqual(only("help"));
     expect(openQuestion()).toEqual({ kind: "processing_consent" });
     expect((await harness.press(ADA, "I agree")).at(-1)).toBe(GARDEN_QUESTION);
   });

@@ -25,7 +25,6 @@ describe("Telegram private command menus", () => {
       { command: "start", description: "Start or resume Green Goods" },
       { command: "new", description: "Start a new report" },
       { command: "status", description: "Check your progress" },
-      { command: "cancel", description: "Cancel the current report" },
       { command: "garden", description: "Change your report's garden" },
       { command: "join", description: "See how to join another garden" },
       { command: "review", description: "Stewards: see work waiting for review" },
@@ -35,8 +34,13 @@ describe("Telegram private command menus", () => {
       { command: "disconnect", description: "Disconnect your account" },
       { command: "language", description: "Change the language" },
       { command: "help", description: "Get help and available commands" },
-      { command: "stop", description: "Stop the assistant" },
-      { command: "delete", description: "Delete your unpublished data" },
+      // A tap sends a command at once, so the three that discard work say so and come last.
+      { command: "cancel", description: "Cancel and discard the current report" },
+      { command: "stop", description: "Stop the assistant and discard the current report" },
+      {
+        command: "delete",
+        description: "Delete every unpublished report and file, and stop the assistant",
+      },
     ]);
   });
 

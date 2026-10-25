@@ -104,6 +104,11 @@ describe("steward review", () => {
       "How confident are you in this work?\n1. Low\n2. Medium\n3. High",
     ]);
     await harness.press(BOLA, "High");
+    // ACCOUNT at the feedback question is a command, so the word never becomes public feedback:
+    // it shows the account, and the question stays open for the real feedback.
+    expect(await harness.say(BOLA, "ACCOUNT")).toEqual([
+      `This chat is connected to ${stewardAccount.address.toLowerCase()}.\nYour gardens: TAS.\nTo use a different account, send SWITCH.`,
+    ]);
     const summary = await harness.say(BOLA, "Well documented, thank you");
     expect(harness.catalog.calls).toBe(activityReads);
     expect(summary[0]).toContain(
