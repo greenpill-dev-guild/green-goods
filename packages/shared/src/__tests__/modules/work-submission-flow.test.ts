@@ -72,14 +72,15 @@ describe("work submission flow", () => {
       DRAFT,
     ],
     [
-      "a draft saved before any garden takes navigation state",
+      // A draft whose garden was curated away resumes without one, so the member chooses again.
+      "a draft without a garden waits for the member's choice, not navigation state",
       { hasDraft: true, navigation: NAVIGATION, active: ACTIVE },
-      NAVIGATION,
+      null,
     ],
     [
-      "a draft saved before any garden takes the active garden",
+      "a draft without a garden waits for the member's choice, not the active garden",
       { hasDraft: true, active: ACTIVE },
-      ACTIVE,
+      null,
     ],
     [
       "a promise link names its own garden over a draft's",

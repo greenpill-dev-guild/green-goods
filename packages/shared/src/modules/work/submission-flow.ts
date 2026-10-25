@@ -74,7 +74,9 @@ export function resolveSubmissionGarden({
 }: SubmissionGardenSources): string | null {
   // A promise names its own garden, and while its link is checked nothing takes its place.
   if (promise) return promise.garden ?? current;
-  if (hasDraft && current) return current;
+  // A draft keeps the garden it was saved with. One without a garden, such as a draft whose garden
+  // was curated away, waits for the member to choose one: no source picks it for them.
+  if (hasDraft) return current;
   // Until the work has a draft, its garden follows the sources rather than an earlier visit's.
   return navigation ?? active ?? current;
 }
