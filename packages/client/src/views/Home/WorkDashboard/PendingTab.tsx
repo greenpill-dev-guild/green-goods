@@ -14,17 +14,14 @@ import { useLinkedWorkUIDs } from "@green-goods/shared/hooks/commitment-pooling/
 import { useCommitmentQueueState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
 import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
 import { useQueuedWorkActions } from "@green-goods/shared/hooks/work/useQueuedWorkActions";
-import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
 import type { WorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { WorkDashboardPendingFilter } from "@green-goods/shared/stores/useUIStore";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import { RiErrorWarningLine, RiLoader4Line, RiRefreshLine, RiTaskLine } from "@remixicon/react";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { DraftCard } from "@/components/Cards";
-import { PendingCard } from "@/components/Cards/Work/PendingCard";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { APP_ROUTES } from "@/config/pwaRouting";
@@ -45,6 +42,7 @@ import {
   readsBehindFilter,
   sortPendingRows,
 } from "./pendingRows";
+import { PendingRowCard } from "./PendingRowCard";
 import type { UploadAction } from "./uploadActions";
 import { WorkListHeader } from "./WorkListTab";
 
@@ -361,73 +359,6 @@ export const PendingTab: React.FC<PendingTabProps> = ({
     </div>
   );
 };
-
-/** One row: work, a review, a draft or proof, each in the pending card. */
-function PendingRowCard({
-  row,
-  actionTitle,
-  onOpen,
-  onDiscard,
-}: {
-  row: PendingRow;
-  actionTitle?: string;
-  onOpen: () => void;
-  onDiscard?: () => void;
-}) {
-  const intl = useIntl();
-  if (row.type === "draft") {
-    return (
-      <DraftCard
-        draft={row.draft}
-        actionTitle={actionTitle}
-        onResume={onOpen}
-        onDelete={() => onDiscard?.()}
-      />
-    );
-  }
-  if (row.type === "proof") return <ProofCard row={row} onOpen={onOpen} onDiscard={onDiscard} />;
-  return (
-    <PendingCard
-      {...row.card}
-      thumbnailUrl={row.work.media[0] ?? null}
-      onOpen={onOpen}
-      onDiscard={onDiscard}
-      discardLabel={intl.formatMessage(
-        { id: "app.pending.discardLabel" },
-        { title: row.card.title }
-      )}
-    />
-  );
-}
-
-/** Queued proof shows its first photo, read from the queue. */
-function ProofCard({
-  row,
-  onOpen,
-  onDiscard,
-}: {
-  row: Extract<PendingRow, { type: "proof" }>;
-  onOpen: () => void;
-  onDiscard?: () => void;
-}) {
-  const intl = useIntl();
-  // The preview hook keys its URLs by the array it's handed, so it must stay the same array.
-  const { firstPhoto } = row.proof;
-  const photos = useMemo(() => (firstPhoto ? [firstPhoto] : []), [firstPhoto]);
-  const [thumbnailUrl] = useWorkPreviewUrls(photos);
-  return (
-    <PendingCard
-      {...row.card}
-      thumbnailUrl={thumbnailUrl ?? null}
-      onOpen={row.proof.garden ? onOpen : undefined}
-      onDiscard={onDiscard}
-      discardLabel={intl.formatMessage(
-        { id: "app.pending.discardLabel" },
-        { title: row.card.title }
-      )}
-    />
-  );
-}
 
 function discardCopy(intl: IntlShape, row: PendingRow | null) {
   const text = (id: string) => intl.formatMessage({ id });
