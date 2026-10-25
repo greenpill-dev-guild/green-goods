@@ -2456,6 +2456,8 @@
   "app.home.notifications.event.workRejected": "Rejeitado",
   "app.home.notifications.event.workSubmitted": "Novo envio",
   "app.home.notifications.noWork": "Nada para revisar",
+  "app.home.notifications.offline.description": "Não conseguimos verificar os eventos deste jardim agora. Eles aparecem quando a conexão voltar.",
+  "app.home.notifications.offline.title": "Você está sem conexão",
   "app.home.notifications.openButtonNew": "Notificações, {count, plural, one {# nova} other {# novas}}",
   "app.home.notifications.partial": "Alguns eventos não puderam ser lidos. Nada foi perdido.",
   "app.home.notifications.pendingCount": "{count, plural, one {# pendente} other {# pendentes}}",

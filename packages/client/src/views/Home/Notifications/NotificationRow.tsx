@@ -52,7 +52,8 @@ function personOf(notification: GardenNotification): Address | null {
       return selectCommitmentOtherParty({ commitment, seat });
     }
     case "takeUpRequested":
-      return notification.claim.claimant;
+      // A garden's claim names the garden account as claimant; the steward who asked is the person.
+      return notification.claim.requestedBy ?? notification.claim.claimant;
     default:
       return null;
   }

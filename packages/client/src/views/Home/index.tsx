@@ -76,13 +76,17 @@ const WalletSheet = lazy(() =>
 
 /**
  * Mounts a launcher's reads at an idle moment, so Home's first paint waits on none of them. The
- * placeholder is the same icon with nothing counted, so nothing moves when the reads land.
+ * placeholder is the same icon with nothing counted, so nothing moves when the reads land. A tap
+ * on the placeholder before that moment asks for the launcher's sheet, so `requested` mounts the
+ * launcher at once instead of leaving the tap to a later idle period.
  */
 function DeferredLauncher({
   placeholder,
+  requested = false,
   children,
 }: {
   placeholder: ReactNode;
+  requested?: boolean;
   children: ReactNode;
 }) {
   const [loadReads, setLoadReads] = useState(false);
@@ -98,7 +102,7 @@ function DeferredLauncher({
     };
   }, []);
 
-  if (!loadReads) return <>{placeholder}</>;
+  if (!loadReads && !requested) return <>{placeholder}</>;
   return <Suspense fallback={placeholder}>{children}</Suspense>;
 }
 
@@ -384,7 +388,10 @@ const Home: React.FC = () => {
                   remembered one while the list loads, or the chosen one. Without a garden it
                   keeps its place with nothing to list (DL-130). */}
               {gardenId ? (
-                <DeferredLauncher placeholder={<NotificationsIcon onClick={openNotifications} />}>
+                <DeferredLauncher
+                  placeholder={<NotificationsIcon onClick={openNotifications} />}
+                  requested={isNotificationsOpen}
+                >
                   <NotificationsLauncher
                     gardenId={gardenId}
                     gardenName={garden?.name}

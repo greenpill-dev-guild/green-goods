@@ -2456,6 +2456,8 @@
   "app.home.notifications.event.workRejected": "Rejected",
   "app.home.notifications.event.workSubmitted": "New submission",
   "app.home.notifications.noWork": "Nothing to review",
+  "app.home.notifications.offline.description": "We cannot check this garden's events right now. They will appear when you are back online.",
+  "app.home.notifications.offline.title": "You are offline",
   "app.home.notifications.openButtonNew": "Notifications, {count, plural, one {# new} other {# new}}",
   "app.home.notifications.partial": "Some events couldn't be read. Nothing was lost.",
   "app.home.notifications.pendingCount": "{count, plural, one {# pending} other {# pending}}",

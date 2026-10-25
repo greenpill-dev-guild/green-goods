@@ -95,6 +95,8 @@ function claim(
 }
 
 const mockNavigate = vi.hoisted(() => vi.fn());
+// Connectivity as the sheet reads it; offline, the reads pause and the block says so.
+const online = vi.hoisted(() => ({ value: true }));
 const bell = vi.hoisted(() => ({ state: {} as GardenNotifications }));
 
 vi.mock("react-router-dom", async (importOriginal) => ({
@@ -110,6 +112,9 @@ vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
 }));
 vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: () => ({ data: undefined }),
+}));
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => online.value,
 }));
 // A promise's words live at its metadata CID.
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
@@ -370,6 +375,20 @@ describe("the sheet", () => {
 
     expect(sheet.querySelector("[data-skeleton='item-row']")).not.toBeNull();
     expect(within(sheet).queryByRole("heading", { name: "Nothing New" })).toBeNull();
+  });
+
+  it("says the events cannot be checked offline instead of reporting an empty inbox", () => {
+    online.value = false;
+    try {
+      setBell({ notifications: [] });
+      renderBell();
+      const sheet = openSheet();
+
+      expect(within(sheet).getByRole("heading", { name: "You are offline" })).toBeInTheDocument();
+      expect(within(sheet).queryByRole("heading", { name: "Nothing New" })).toBeNull();
+    } finally {
+      online.value = true;
+    }
   });
 
   it("keeps the rows under a quiet notice when a read failed or answered only in part", () => {

@@ -5,13 +5,13 @@ import type {
   CommitmentReadModel,
 } from "../src/modules/commitment-pooling/types-core";
 import type { Address, Work } from "../src/types/domain";
-import { FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_WASTE } from "./fixtures";
+import { FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_WASTE, STORYBOOK_NOW_SECONDS } from "./fixtures";
 import { STORY_ACCOUNT, TAS_HUB } from "./homeFixtures";
 
 /**
  * The bell's story fixtures (PWA Home step 15, DL-130): one event of each kind for the deployer
  * mock in TAS HUB, newest first, as `useGardenNotifications` lists them. Ages are relative to
- * now, so the rows read "2 hr. ago" whenever the story renders.
+ * the fixed Storybook clock, so the rows read "2 hr. ago" whenever the story renders.
  */
 
 export const KOFI = "0xb0b0000000000000000000000000000000000002" as Address;
@@ -108,7 +108,7 @@ function claim(
 }
 
 /** One event of each kind, newest first, for a steward of TAS HUB. */
-export function notificationEvents(now = Math.floor(Date.now() / 1000)): GardenNotification[] {
+export function notificationEvents(now = STORYBOOK_NOW_SECONDS): GardenNotification[] {
   return [
     {
       kind: "takeUpRequested",
