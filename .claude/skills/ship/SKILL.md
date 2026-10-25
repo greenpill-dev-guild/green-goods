@@ -96,7 +96,8 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
   --test-path <surface>:<focused-test-path>
 ```
 
-Routine work has a 90-second hard limit; sensitive work has 180 seconds. `needs-focus` and
+Routine work has a 90-second hard limit; sensitive work has 180 seconds; a saturated host (1-minute
+load above 1.5× the host CPU count) suspends the limit and the plan runs in full. `needs-focus` and
 `budget-exceeded` block publication. Passing receipts are reusable only when the commit,
 working-tree fingerprint, command, policy, toolchain, validated paths, and environment match
 exactly. The pre-push hook calls the same command and may reuse that exact pass.
