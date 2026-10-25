@@ -6,12 +6,15 @@
  */
 
 import type {
+  CommitmentClaimRequestRecord,
+  CommitmentReadModel,
+} from "@green-goods/shared/commitment-pooling";
+import type {
   GardenNotification,
   GardenNotifications,
 } from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import en from "@green-goods/shared/i18n/en.json";
-import { claimFixture, commitmentFixture, createMockWork } from "@green-goods/shared/testing";
-import type { Address } from "@green-goods/shared/types/domain";
+import type { Address, Work } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement, useState } from "react";
@@ -29,6 +32,67 @@ const TITLES: Record<string, string> = {
   "bafy-workday": "Weekend workday",
   "bafy-seedlings": "Seedlings for the school",
 };
+
+/** A work as the garden's reads list it, in the active garden. */
+function work(
+  overrides: Partial<Work> & Pick<Work, "id" | "title" | "gardenerAddress" | "status" | "createdAt">
+): Work {
+  return {
+    actionUID: 1,
+    gardenAddress: GARDEN,
+    feedback: "",
+    metadata: "{}",
+    media: [],
+    ...overrides,
+  };
+}
+
+/** The fields the bell's rows read of a promise, over a record the rest of the test ignores. */
+function promise(
+  overrides: Partial<CommitmentReadModel> & Pick<CommitmentReadModel, "commitmentId">
+): CommitmentReadModel {
+  return {
+    id: `42161-${overrides.commitmentId.toString()}`,
+    chainId: 42161,
+    creationSeen: true,
+    onchainState: "ACCEPTED",
+    state: "ACCEPTED",
+    derivedState: "ACCEPTED",
+    approvedUnits: 0n,
+    evidenceCount: 0,
+    cycleId: null,
+    declaredUnitValue: null,
+    declaredValueBasis: null,
+    targetUnits: 6n,
+    unitLabel: "hours",
+    poolId: 101n,
+    direction: "OFFER",
+    creator: ALICE,
+    leadProvider: ALICE,
+    counterparty: null,
+    ...overrides,
+  } as unknown as CommitmentReadModel;
+}
+
+/** A pending take-up request on a promise. */
+function claim(
+  overrides: Pick<CommitmentClaimRequestRecord, "commitmentId" | "claimant" | "requestedAt">
+): CommitmentClaimRequestRecord {
+  return {
+    id: `claim-${overrides.commitmentId.toString()}`,
+    chainId: 42161,
+    requestSeen: true,
+    requestedBy: overrides.claimant,
+    claimType: "INDIVIDUAL",
+    gardenContext: null,
+    state: "PENDING",
+    reasonCID: null,
+    resolutionCode: null,
+    resolvedAt: null,
+    updatedAt: overrides.requestedAt,
+    ...overrides,
+  } as CommitmentClaimRequestRecord;
+}
 
 const mockNavigate = vi.hoisted(() => vi.fn());
 const bell = vi.hoisted(() => ({ state: {} as GardenNotifications }));
@@ -71,7 +135,7 @@ const EVENTS: GardenNotification[] = [
     kind: "takeUpRequested",
     id: `takeUp:21:${NOW - HOUR}`,
     at: NOW - HOUR,
-    commitment: commitmentFixture({
+    commitment: promise({
       commitmentId: 21n,
       direction: "REQUEST",
       creator: BOB,
@@ -80,13 +144,13 @@ const EVENTS: GardenNotification[] = [
       onchainState: "REQUESTED",
       metadataCID: "bafy-workday",
     }),
-    claim: claimFixture({ commitmentId: 21n, claimant: CAROL, requestedAt: NOW - HOUR }),
+    claim: claim({ commitmentId: 21n, claimant: CAROL, requestedAt: NOW - HOUR }),
   },
   {
     kind: "workSubmitted",
     id: "submission:0xw2",
     at: NOW - 2 * HOUR,
-    work: createMockWork({
+    work: work({
       id: "0xw2",
       title: "Hedge Planting",
       gardenerAddress: BOB,
@@ -100,7 +164,7 @@ const EVENTS: GardenNotification[] = [
     kind: "promiseTakenUp",
     id: `takenUp:11:${NOW - 3 * HOUR}`,
     at: NOW - 3 * HOUR,
-    commitment: commitmentFixture({
+    commitment: promise({
       commitmentId: 11n,
       creator: ALICE,
       leadProvider: ALICE,
@@ -113,7 +177,7 @@ const EVENTS: GardenNotification[] = [
     kind: "workRejected",
     id: `review:0xw4:${NOW - 5 * HOUR}`,
     at: NOW - 5 * HOUR,
-    work: createMockWork({
+    work: work({
       id: "0xw4",
       title: "Compost Turn",
       gardenerAddress: ALICE,
@@ -129,7 +193,7 @@ const EVENTS: GardenNotification[] = [
     kind: "workApproved",
     id: `review:0xw1:${NOW - 26 * HOUR}`,
     at: NOW - 26 * HOUR,
-    work: createMockWork({
+    work: work({
       id: "0xw1",
       title: "Seed Swap",
       gardenerAddress: ALICE,
