@@ -139,6 +139,22 @@ async function place(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(screen.getByRole("button", { name }));
 }
 
+/** A ride request, named and counted, on the step that asks who can take it up. */
+async function walkRequestToWhoCanTakeItUp(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText("Name it"), "Ride to the market");
+  await user.click(next());
+  await user.click(screen.getByRole("button", { name: "rides" }));
+}
+
+/** The review's answer to who can take it up. */
+function reviewedWhoCanTakeItUp() {
+  const row = screen
+    .getByText("Who can take this up")
+    .closest<HTMLElement>('[data-component="FactRow"]');
+  if (!row) throw new Error("The review has no row for who can take it up");
+  return within(row).getByRole("definition");
+}
+
 /** A service offer, named and counted, through to the review. */
 async function walkServiceToReview(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: /A service/ }));
@@ -338,20 +354,40 @@ describe("ComposeCommitment", () => {
       "aria-pressed",
       "true"
     );
-    await user.type(screen.getByLabelText("Name it"), "Ride to the market");
+    await walkRequestToWhoCanTakeItUp(user);
+    // Open is the default; the stewards' choice is the asker's opt-in (DL-131).
+    const open = screen.getByRole("radio", { name: /Any neighbor in this garden/ });
+    const gated = screen.getByRole("radio", { name: /A neighbor your stewards choose/ });
+    expect(open).toBeChecked();
+    expect(gated).not.toBeChecked();
+    await user.click(gated);
     await user.click(next());
-    await user.click(screen.getByRole("button", { name: "rides" }));
-    await user.click(screen.getByRole("radio", { name: /Stewards review who takes it/ }));
     await user.click(next());
-    await user.click(next());
+    expect(reviewedWhoCanTakeItUp()).toHaveTextContent("A neighbor your stewards choose");
     await place(user, "Make This Request");
 
+    // Placed approval-gated, taking it up records a pending claim for the
+    // stewards to decide rather than accepting it (ClaimsLib.requestClaim).
     const call = mockEnqueue.mock.calls[0]?.[0] as {
       payload: { direction: number; claimMode: number; commitmentType: number };
     };
     expect(call.payload.direction).toBe(1);
     expect(call.payload.claimMode).toBe(1);
     expect(call.payload.commitmentType).toBe(1);
+  });
+
+  it("leaves a request open to any neighbor unless the asker opts in", async () => {
+    const user = userEvent.setup();
+    render("request");
+
+    await walkRequestToWhoCanTakeItUp(user);
+    await user.click(next());
+    await user.click(next());
+    expect(reviewedWhoCanTakeItUp()).toHaveTextContent("Any neighbor in this garden");
+    await place(user, "Make This Request");
+
+    const call = mockEnqueue.mock.calls[0]?.[0] as { payload: { claimMode: number } };
+    expect(call.payload.claimMode).toBe(0);
   });
 
   it("offers the open season and keeps running on its own as a choice", async () => {

@@ -30,6 +30,7 @@ import type { Garden } from "../../types/domain";
 import { useConnectivityStatus, useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useGardens } from "../blockchain/useBaseLists";
+import { useActiveGarden } from "../garden/useActiveGarden";
 import { useResolvedProfileAvatar } from "../profile/useProfileAvatar";
 import {
   networkInformation,
@@ -39,7 +40,8 @@ import {
 /** The first run waits for the app to settle after launch. */
 const STARTUP_DELAY_MS = 4_000;
 const RECONNECT_DELAY_MS = 2_000;
-const MEMBERSHIP_DELAY_MS = 5_000;
+/** Joining or leaving a garden, or switching Home to another, reruns the plan after this. */
+const PLAN_CHANGE_DELAY_MS = 5_000;
 /** Opening a garden never starts downloads right away; its photos follow once the screen settles. */
 const GARDEN_IN_VIEW_DELAY_MS = 8_000;
 
@@ -63,13 +65,21 @@ function waitForIdle(): Promise<void> {
   });
 }
 
-/** The gardens whose lists the offline plan keeps, so the scheduler reruns when they change. */
-function joinedGardens(gardens: Garden[] | undefined, account: string | null, chainId: number) {
+/**
+ * What the offline plan keeps, the gardens whose lists it keeps and its photo gardens in
+ * order, so the scheduler reruns when it changes.
+ */
+function keptGardens(
+  gardens: Garden[] | undefined,
+  account: string | null,
+  chainId: number,
+  activeGarden: string | undefined
+) {
   if (!gardens || !account) return "";
-  return planOfflineContent(gardens, account, chainId)
-    .lists.map((gardenId) => gardenId.toLowerCase())
-    .sort()
-    .join(",");
+  const { lists, photoGardens } = planOfflineContent(gardens, account, chainId, { activeGarden });
+  if (lists.length === 0) return "";
+  const ids = (gardenIds: string[]) => gardenIds.map((gardenId) => gardenId.toLowerCase());
+  return `${ids(lists).sort().join(",")}|${ids(photoGardens).join(",")}`;
 }
 
 /**
@@ -81,6 +91,9 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
   const restoring = useIsRestoring();
   const account = usePrimaryAddress();
   const gardens = useGardens(chainId);
+  const activeGardenId = useActiveGarden(chainId).gardenId ?? undefined;
+  const activeGarden = useRef<string | undefined>(undefined);
+  activeGarden.current = activeGardenId;
   const avatar = useResolvedProfileAvatar(account, "/images/avatar.png", chainId);
   const avatarUrl = useRef<string | undefined>(undefined);
   avatarUrl.current = avatar.avatarUri ?? undefined;
@@ -94,6 +107,7 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
       client,
       chainId,
       account: () => account,
+      activeGarden: () => activeGarden.current,
       gardens: () => client.getQueryData<Garden[]>(gardensKeys.byChain(chainId)),
       avatarUrl: () => avatarUrl.current,
       online: () => connectivityStore.getSnapshot(),
@@ -122,7 +136,7 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
       idle: waitForIdle,
       now: Date.now,
     });
-    scheduler.setActiveGarden(gardenInView);
+    scheduler.setGardenInView(gardenInView);
     activeScheduler = scheduler;
 
     const refreshStats = () =>
@@ -178,27 +192,30 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
     };
   }, [client, account, chainId, restoring]);
 
-  // Joining or leaving a garden changes what is kept offline.
-  const membership = useMemo(
-    () => joinedGardens(gardens.data, account, chainId),
-    [gardens.data, account, chainId]
+  // Joining or leaving a garden, or switching Home to another, changes what is kept offline.
+  const kept = useMemo(
+    () => keptGardens(gardens.data, account, chainId, activeGardenId),
+    [gardens.data, account, chainId, activeGardenId]
   );
   useEffect(() => {
-    if (membership) activeScheduler?.schedule(MEMBERSHIP_DELAY_MS);
-  }, [membership]);
+    if (kept) activeScheduler?.schedule(PLAN_CHANGE_DELAY_MS);
+  }, [kept]);
 }
 
-/** Marks the garden on screen so its photos are kept too, once the screen settles. */
-export function useActiveOfflineGarden(gardenId?: string): void {
+/**
+ * Marks the garden on screen so its photos are kept too, after the active garden's, once
+ * the screen settles.
+ */
+export function useOfflineGardenInView(gardenId?: string): void {
   useEffect(() => {
     if (!gardenId) return;
     gardenInView = gardenId;
-    activeScheduler?.setActiveGarden(gardenId);
+    activeScheduler?.setGardenInView(gardenId);
     activeScheduler?.schedule(GARDEN_IN_VIEW_DELAY_MS);
     return () => {
       if (gardenInView !== gardenId) return;
       gardenInView = undefined;
-      activeScheduler?.setActiveGarden(undefined);
+      activeScheduler?.setGardenInView(undefined);
     };
   }, [gardenId]);
 }
