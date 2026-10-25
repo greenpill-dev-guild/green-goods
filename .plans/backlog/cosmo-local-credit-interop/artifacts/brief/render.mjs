@@ -1,0 +1,70 @@
+// Renders the companion brief to PDF and one PNG per page, after checking it.
+// Usage, from the repository root (needs a Playwright install on NODE_PATH and the deck's local
+// photos and screens; see ../README.md):
+//   node .plans/backlog/cosmo-local-credit-interop/artifacts/brief/render.mjs
+// Checks: six A4 pages, nothing past a page's margins or into its footer, every image loaded,
+// and no em dash. A failed check exits with status 1 after rendering.
+import { createRequire } from "node:module";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { mkdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+
+const EXPECTED_PAGES = 6;
+const here = dirname(fileURLToPath(import.meta.url));
+const htmlPath = join(here, "index.html");
+const out = join(here, "output");
+const problems = [];
+const html = readFileSync(htmlPath, "utf8");
+if (/\u2014/.test(html)) problems.push("an em dash (U+2014) is present; the brand voice forbids it");
+
+const require = createRequire(import.meta.url);
+let pw;
+try { pw = require("playwright"); } catch { pw = require("@playwright/test"); }
+mkdirSync(out, { recursive: true });
+const browser = await pw.chromium.launch({ args: ["--allow-file-access-from-files"] });
+const page = await browser.newPage({ viewport: { width: 900, height: 1200 }, deviceScaleFactor: 2 });
+await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "load" });
+await page.evaluate(() => document.fonts.ready);
+await page.emulateMedia({ media: "print" });
+await page.waitForTimeout(300);
+const report = await page.evaluate(() => {
+  const issues = [];
+  const pages = [...document.querySelectorAll(".page")];
+  pages.forEach((pg, i) => {
+    const box = pg.getBoundingClientRect();
+    const cs = getComputedStyle(pg);
+    const left = box.left + parseFloat(cs.paddingLeft) - 0.5;
+    const right = box.right - parseFloat(cs.paddingRight) + 0.5;
+    const foot = pg.querySelector(".foot").getBoundingClientRect();
+    for (const el of pg.querySelectorAll("h1, h2, h3, p, li, td, th, dt, dd, figure, img, table, svg, .box, .chain")) {
+      if (el.closest(".foot, defs")) continue;
+      if (el.matches("img") && el.closest(".frame, .hero")) continue; // measured by their clipping frame
+      const r = el.getBoundingClientRect();
+      if (!r.width && !r.height) continue;
+      const name = `${el.tagName.toLowerCase()} "${(el.textContent || el.getAttribute("alt") || "").trim().slice(0, 40)}"`;
+      if (r.bottom > foot.top - 6) issues.push(`page ${i + 1}: runs into the footer (bottom ${Math.round(r.bottom - box.top)}px): ${name}`);
+      if (r.left < left || r.right > right) issues.push(`page ${i + 1}: outside the side margins: ${name}`);
+    }
+    for (const img of pg.querySelectorAll("img")) if (!(img.complete && img.naturalWidth > 0)) issues.push(`page ${i + 1}: image did not load: ${img.getAttribute("src")}`);
+  });
+  return { count: pages.length, issues: [...new Set(issues)] };
+});
+if (report.count !== EXPECTED_PAGES) problems.push(`expected ${EXPECTED_PAGES} pages, found ${report.count}`);
+problems.push(...report.issues);
+
+const pdf = join(out, "brief.pdf");
+await page.pdf({ path: pdf, format: "A4", printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
+console.log(pdf);
+const handles = await page.$$(".page");
+for (let i = 0; i < handles.length; i += 1) {
+  const file = join(out, `page-${i + 1}.png`);
+  await handles[i].screenshot({ path: file });
+  console.log(file);
+}
+await browser.close();
+if (problems.length) {
+  console.log(`${problems.length} problem(s):`);
+  for (const p of problems) console.log(`  ${p}`);
+  process.exit(1);
+}
+console.log(`brief checks: ${report.count} pages, nothing past the margins or into a footer, images loaded`);
