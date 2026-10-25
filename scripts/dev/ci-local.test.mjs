@@ -338,6 +338,34 @@ test("a needs-focus plan starts no checks and exits non-zero", async () => {
   assert.deepEqual(calls, []);
 });
 
+test("a saturated host suspends the hard deadline and runs the plan in full", async () => {
+  const input = plan(["fast", "slow"]);
+  input.requestedIntent = "push";
+  input.effectiveIntent = "push";
+  input.budget = {
+    hardLimitSeconds: 0.03,
+    enforced: true,
+    estimatedWallSeconds: 0.02,
+    automatedSeconds: 0.02,
+    manualSeconds: 0,
+  };
+
+  const result = await executePlan(input, {
+    host: { loadAverage: 40, cpuCount: 10 },
+    runCheck: async (check, { signal }) => {
+      if (check.id === "fast") return { ok: true, exitCode: 0, durationSeconds: 0.001 };
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      assert.equal(signal?.aborted ?? false, false);
+      return { ok: true, exitCode: 0, durationSeconds: 0.06 };
+    },
+  });
+
+  assert.equal(result.status, "passed");
+  assert.deepEqual(result.results.map((entry) => entry.id), ["fast", "slow"]);
+  assert.equal(ciLocal.deadlineSuspendedBy({ loadAverage: 15, cpuCount: 10 }), false);
+  assert.equal(ciLocal.deadlineSuspendedBy({ loadAverage: 16, cpuCount: 10 }), true);
+});
+
 test("hard deadline stops noncritical work and preserves completed passing receipts", async () => {
   const receiptStore = new Map();
   const input = plan(["fast", "slow"]);
@@ -354,6 +382,7 @@ test("hard deadline stops noncritical work and preserves completed passing recei
   const result = await executePlan(input, {
     reusePassingReceipts: true,
     receiptStore,
+    host: { loadAverage: 1, cpuCount: 10 },
     runCheck: async (check, { signal }) => {
       if (check.id === "fast") return { ok: true, exitCode: 0, durationSeconds: 0.001 };
       return new Promise((resolve) => {

@@ -768,6 +768,20 @@ export async function runCommandCheck(
   });
 }
 
+/**
+ * A push gate's hard limit assumes a host with room to run it. When the 1-minute load average
+ * runs past one and a half times the CPU count, every check slows and the limit only produces
+ * repeated budget-exceeded runs (five sessions' gates at once reached loads of 100 to 240 on ten
+ * cores). The plan then runs in full with no deadline, and says so, instead of timing out.
+ */
+export function liveHost() {
+  return { loadAverage: loadavg()[0], cpuCount: availableParallelism() };
+}
+
+export function deadlineSuspendedBy(host) {
+  return host.loadAverage > 1.5 * host.cpuCount;
+}
+
 export async function executePlan(plan, options = {}) {
   const failFast = options.failFast !== false;
   const runCheck = options.runCheck ?? runCommandCheck;
@@ -789,7 +803,9 @@ export async function executePlan(plan, options = {}) {
     return { status: "needs-focus", exitCode: 2, results, blocked };
   }
 
-  const deadlineController = plan.budget?.enforced ? new AbortController() : null;
+  const host = options.host ?? liveHost();
+  const deadlineSuspended = Boolean(plan.budget?.enforced) && deadlineSuspendedBy(host);
+  const deadlineController = plan.budget?.enforced && !deadlineSuspended ? new AbortController() : null;
   const signal = deadlineController
     ? externalSignal
       ? AbortSignal.any([externalSignal, deadlineController.signal])
@@ -1026,7 +1042,7 @@ export function savePassingReceiptStore(store, path = defaultReceiptPath) {
   renameSync(temporaryPath, path);
 }
 
-function printPlan(plan) {
+function printPlan(plan, host = liveHost()) {
   console.log(
     `${colors.blue}Validation plan${colors.reset}: ${plan.effectiveIntent} · ${plan.risk} · ${plan.changedPaths.length} changed path(s)`,
   );
@@ -1035,7 +1051,9 @@ function printPlan(plan) {
       ` (${plan.budget.automatedSeconds}s summed)` +
       (plan.budget.hardLimitSeconds === null
         ? " / uncapped"
-        : ` / ${plan.budget.hardLimitSeconds}s hard limit`),
+        : deadlineSuspendedBy(host)
+          ? ` / ${plan.budget.hardLimitSeconds}s hard limit suspended: 1-minute load ${host.loadAverage.toFixed(1)} on ${host.cpuCount} CPUs`
+          : ` / ${plan.budget.hardLimitSeconds}s hard limit`),
   );
   for (const check of plan.checks) {
     const flags = [
@@ -1107,7 +1125,8 @@ async function main() {
     return;
   }
 
-  printPlan(plan);
+  const host = liveHost();
+  printPlan(plan, host);
   if (options.planOnly) return;
   if (options.generateIndexer) {
     console.log(
@@ -1141,6 +1160,7 @@ async function main() {
   }
   const receiptStore = options.reusePassingReceipts ? loadPassingReceiptStore() : new Map();
   const execution = await executePlan(plan, {
+    host,
     failFast: options.failFast,
     signal: abortController.signal,
     reusePassingReceipts: options.reusePassingReceipts,
