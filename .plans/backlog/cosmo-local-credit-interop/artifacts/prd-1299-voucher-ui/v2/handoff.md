@@ -633,6 +633,9 @@ rebuilt for the fifth pass and published as a new artifact, [Voucher Pilot Desig
 with its 31 screen frames rendered again from this lab and the two comparison images from
 `evidence/`.
 
+CodeRabbit's review of the fifth pass found that a paused issuer's row in `SServices` opened the
+member offer as open. The row now opens the offer's Paused state, where booking is disabled.
+
 ### What changed on 24 October, fifth pass: the build brief
 
 Afo reviewed version 6 and asked for a design PRD-1297 can build from one short brief. This pass:
@@ -899,7 +902,8 @@ Agent/model: Claude Code / claude-opus-5-5 and claude-fable-5-1, in four session
 | Wait | 2026-10-25 02:55 → 03:03 | Afo's read of the brief; resolved: "The build brief is clear." |
 | Decide | 04:22 → about 04:26 | Afo approved the direction and asked for the review's dismissal, the merge and a republish. Version 6 could not be read from this session, so Afo chose a new artifact. |
 | Publish | about 04:26 → 04:39 | Lab, copy sheet and docs marked approved; `check.mjs` passing (1,707 renders, 719 dial settings); 31 frames rendered again; the summary page rebuilt and published as a new artifact after one look at two widths. |
-| Document | 04:40 → about 04:50 | This record, the handoff's status, open items and history, and the artifact README; the commit, push and merge follow. |
+| Document | 04:40 → 04:42 | This record, the handoff's status, open items and history, and the artifact README; committed `65b1e9740` after the push gate and pushed. |
+| Fix | 04:43 → about 04:50 | CodeRabbit's finding on `6bf015e42` verified: a paused issuer's row opened the open offer. Fixed and followed in the built lab; `check.mjs` passing (1,707 renders, 719 dial settings); the published lab updated to version 2. The dismissals and the merge follow. |
 
 Human corrections: 2 observed in the third session (the designs had lost the existing promise and
 pool components; the published page still asked settled questions and listed cleared blockers);
