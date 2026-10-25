@@ -15,7 +15,6 @@ import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits"
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Work } from "@green-goods/shared/types/domain";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
-import { RiErrorWarningLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 
@@ -23,7 +22,7 @@ import { getWorkCardLabels } from "@/components/Cards/Work/MinimalWorkCard";
 import { groupCountsText, presentState, promiseDueDetail } from "@/components/Features/Commitments";
 import { CycleDetailsSheet } from "@/views/Home/Garden/Pool/CycleDetailsSheet";
 import { CycleIdentity } from "@/views/Home/Garden/Pool/CycleRail";
-import { HighlightCard, HighlightCardSkeleton, HighlightPhoto } from "./HighlightCard";
+import { HighlightCard, HighlightPhoto } from "./HighlightCard";
 import { JournalSection } from "./JournalSection";
 import { takePartPath } from "./TakePart";
 
@@ -35,11 +34,11 @@ export interface HighlightsCarouselProps {
  * The Highlights carousel: one row of equal 280×112 cards with the next one peeking. The pool's
  * open season and campaigns lead, each opening its details sheet; then the garden's newest
  * work with a photo, opening the work; then the newest ask open to take up, opening its page.
- * With no card it is absent (decision 32), so it never stands empty.
  *
- * A read that fails is drawn where it failed and only as large as what failed (DL-085): the
- * seasons get one card that tries again, while a failed work or promise read leaves its card
- * out, because Recent Activity and Take Part below draw those failures.
+ * It appears only when it has something to show (DL-127): a read still loading or one that
+ * failed adds no card. Recent Activity and Take Part draw those reads' states in their own
+ * place, and the cycles show only once read, as on the Pool tab's rail. With no card the
+ * carousel is absent.
  */
 export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
   const { formatMessage } = useIntl();
@@ -63,23 +62,12 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
   ];
   if (cards.length === 0) return null;
 
-  const loading =
-    cycles.state.status === "loading" ||
-    activity.state.status === "loading" ||
-    promises.state.status === "loading";
-
   return (
     <JournalSection
       data-component="HighlightsCarousel"
       title={formatMessage({ id: "app.home.journal.highlights" })}
       layout="carousel"
-      busy={loading}
     >
-      {loading ? (
-        <li role="status" className="sr-only">
-          {formatMessage({ id: "app.home.journal.highlights.loading" })}
-        </li>
-      ) : null}
       {cards}
       <CycleDetailsSheet
         cycle={details.cycle}
@@ -96,12 +84,9 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
 }
 
 function cycleCards(
-  { state, refetch }: GardenOpenCycles,
+  { state }: GardenOpenCycles,
   onOpen: (cycle: CommitmentCycleRecord) => void
 ): ReactNode[] {
-  if (state.status === "loading") return [<HighlightCardSkeleton key="cycles-loading" />];
-  if (state.status === "error")
-    return [<CyclesFailedHighlight key="cycles-error" onRetry={refetch} />];
   if (state.status !== "ready") return [];
   return state.items.map(({ cycle, name, daysLeft }) => (
     <CycleHighlight
@@ -115,10 +100,9 @@ function cycleCards(
 }
 
 function workCard(
-  { state, featured, actionTitleOf }: GardenRecentActivity,
+  { featured, actionTitleOf }: GardenRecentActivity,
   onOpen: (work: Work) => void
 ): ReactNode[] {
-  if (state.status === "loading") return [<HighlightCardSkeleton key="work-loading" />];
   if (!featured) return [];
   return [
     <WorkHighlight
@@ -131,10 +115,9 @@ function workCard(
 }
 
 function askCard(
-  { state, ask, titleOf }: GardenOpenPromises,
+  { ask, titleOf }: GardenOpenPromises,
   onOpen: (entry: TakePartEntry) => void
 ): ReactNode[] {
-  if (state.status === "loading") return [<HighlightCardSkeleton key="ask-loading" />];
   if (!ask) return [];
   return [
     <AskHighlight
@@ -272,28 +255,5 @@ function unitsOf(
 function Eyebrow({ children }: { children: ReactNode }) {
   return (
     <span className="block truncate type-meta-sm font-semibold text-text-sub-600">{children}</span>
-  );
-}
-
-/** A seasons read that failed: one card in the cycles' place, whose press reads them again. */
-function CyclesFailedHighlight({ onRetry }: { onRetry: () => void }) {
-  const { formatMessage } = useIntl();
-  return (
-    <HighlightCard
-      kind="error"
-      eyebrow={
-        <span className="flex min-w-0 items-center gap-1 type-meta-sm font-semibold text-error-base">
-          <RiErrorWarningLine className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">{formatMessage({ id: "app.pool.rail.label" })}</span>
-        </span>
-      }
-      title={formatMessage({ id: "app.home.journal.highlights.cyclesError" })}
-      detail={
-        <span className="font-semibold text-primary-on-surface">
-          {formatMessage({ id: "app.common.tryAgain" })}
-        </span>
-      }
-      onOpen={onRetry}
-    />
   );
 }

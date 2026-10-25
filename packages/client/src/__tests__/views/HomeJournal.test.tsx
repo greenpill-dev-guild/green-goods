@@ -144,7 +144,6 @@ const CAMPAIGN = journalCycle("c-camp", "CAMPAIGN", "Seed Swap Weekend", null);
 function cycles(overrides: Partial<GardenOpenCycles> = {}): GardenOpenCycles {
   return {
     state: { status: "ready", items: [SEASON, CAMPAIGN], savedAt: null },
-    refetch: vi.fn(),
     ...overrides,
   };
 }
@@ -409,16 +408,14 @@ describe("Home journal", () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it("holds placeholders while it loads, and a failed seasons read is a card that tries again", async () => {
-      const user = userEvent.setup();
-      const refetch = vi.fn();
+    it("adds no card for a read still loading or one that failed", () => {
       mocks.cycles.mockReturnValue(cycles({ state: { status: "loading" } }));
       mocks.recent.mockReturnValue(recent({ state: { status: "loading" }, featured: null }));
       mocks.promises.mockReturnValue(promises({ state: { status: "loading" }, ask: null }));
-      const { rerender } = render(<HighlightsCarousel gardenId={GARDEN} />);
-      expect(screen.getByRole("status")).toHaveTextContent("Gathering highlights…");
+      const { container, rerender } = render(<HighlightsCarousel gardenId={GARDEN} />);
+      expect(container).toBeEmptyDOMElement();
 
-      mocks.cycles.mockReturnValue(cycles({ state: { status: "error" }, refetch }));
+      mocks.cycles.mockReturnValue(cycles({ state: { status: "error" } }));
       mocks.recent.mockReturnValue(recent());
       mocks.promises.mockReturnValue(promises());
       rerender(
@@ -426,8 +423,8 @@ describe("Home journal", () => {
           <HighlightsCarousel gardenId={GARDEN} />
         </MemoryRouter>
       );
-      await user.click(screen.getByRole("button", { name: /Couldn't load them/ }));
-      expect(refetch).toHaveBeenCalled();
+      const cards = within(screen.getByRole("list")).getAllByRole("button");
+      expect(cards.map((card) => card.getAttribute("data-highlight"))).toEqual(["work", "ask"]);
     });
   });
 });

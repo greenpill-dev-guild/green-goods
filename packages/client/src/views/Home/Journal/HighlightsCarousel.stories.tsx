@@ -38,8 +38,9 @@ const withReads =
 /**
  * The Highlights carousel at the top of Home's journal (DL-127): one row of equal 280×112 cards
  * with the next one peeking. The garden's open season and campaign lead, each opening its
- * details sheet, then its newest work with a photo and the newest ask open to take up. With no
- * card it is absent. Fictional data from the client journeys.
+ * details sheet, then its newest work with a photo and the newest ask open to take up. A read
+ * still loading or one that failed adds no card, and with no card the carousel is absent.
+ * Fictional data from the client journeys.
  */
 const meta: Meta<typeof HighlightsCarousel> = {
   title: "Client/Home/HighlightsCarousel",
@@ -103,28 +104,6 @@ export const Locales: Story = {
 /** A garden with no open season or campaign: the newest work and the open ask only. */
 export const WithoutSeasons: Story = {
   beforeEach: withReads({ cycles: openCyclesFixture({ status: "empty" }) }),
-  render: (args) => <JournalLocales render={() => <HighlightsCarousel {...args} />} />,
-};
-
-/** While the reads load, one placeholder holds each card's place in the same frame. */
-export const Loading: Story = {
-  beforeEach: withReads({
-    cycles: openCyclesFixture({ status: "loading" }),
-    activity: recentActivityFixture({ status: "loading" }),
-    promises: openPromisesFixture({ status: "loading" }),
-  }),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByRole("status")).toHaveTextContent("Gathering highlights…");
-    for (const card of canvasElement.querySelectorAll("[data-skeleton='highlight-card']")) {
-      await expect(Math.round(card.getBoundingClientRect().height)).toBe(112);
-    }
-  },
-};
-
-/** The seasons could not be read: one card in their place that tries again. */
-export const SeasonsFailed: Story = {
-  beforeEach: withReads({ cycles: openCyclesFixture({ status: "error" }) }),
   render: (args) => <JournalLocales render={() => <HighlightsCarousel {...args} />} />,
 };
 

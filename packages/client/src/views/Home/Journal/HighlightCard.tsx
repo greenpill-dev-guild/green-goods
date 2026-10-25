@@ -11,7 +11,7 @@ const CARD_FRAME = "gg-card flex h-28 w-70 shrink-0 snap-start items-stretch ove
 
 export interface HighlightCardProps {
   /** What the card shows, for the design checks and the stories. */
-  kind: "cycle" | "work" | "ask" | "error";
+  kind: "cycle" | "work" | "ask";
   /** What the card is, above its title. */
   eyebrow?: ReactNode;
   title: string;
@@ -21,7 +21,7 @@ export interface HighlightCardProps {
   detail?: ReactNode;
   /** The item's one status pill, in the detail line's place. */
   status?: { label: string; tone: ItemRowTone };
-  /** The item's own photo or a state's mark, 96px wide and the card's full height. */
+  /** The item's own photo, 96px wide and the card's full height. */
   media?: ReactNode;
   onOpen: () => void;
 }
@@ -95,21 +95,5 @@ export function HighlightPhoto({ src }: { src: string }) {
       className="absolute inset-0 h-full w-full object-cover"
       fallbackClassName="absolute inset-0 h-full w-full"
     />
-  );
-}
-
-/** The card's frame with nothing in it, while the carousel's reads load. */
-export function HighlightCardSkeleton() {
-  return (
-    <li className="flex" aria-hidden="true">
-      <span
-        data-skeleton="highlight-card"
-        className={cn(CARD_FRAME, "flex-col justify-center gap-2 px-3.5 py-3")}
-      >
-        <span className="block h-3 w-24 rounded bg-bg-soft-200" />
-        <span className="block h-4 w-44 rounded bg-bg-soft-200" />
-        <span className="block h-3 w-32 rounded bg-bg-soft-200" />
-      </span>
-    </li>
   );
 }

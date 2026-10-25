@@ -87,7 +87,6 @@ export interface JournalCycle extends OpenCycle {
 
 export interface GardenOpenCycles {
   state: JournalSectionState<JournalCycle>;
-  refetch: () => void;
 }
 
 /** The pool's open season and campaigns, read the way the Pool tab reads its rail. */
@@ -107,6 +106,7 @@ export function useGardenOpenCycles(gardenId: string): GardenOpenCycles {
   const openRecords = useMemo(() => open.map(({ cycle }) => cycle), [open]);
   const { byCycleId } = useCommitmentCycleNames(openRecords);
 
+  // Home draws the cycles only once read, so nothing here offers to read them again.
   const state = poolSectionState({
     available: pools.availability.status === "available",
     isOnline,
@@ -127,13 +127,7 @@ export function useGardenOpenCycles(gardenId: string): GardenOpenCycles {
     })),
   });
 
-  return {
-    state,
-    refetch: () => {
-      if (pools.isError) void pools.refetch();
-      if (cycles.isError) void cycles.refetch();
-    },
-  };
+  return { state };
 }
 
 export interface GardenOpenPromises {

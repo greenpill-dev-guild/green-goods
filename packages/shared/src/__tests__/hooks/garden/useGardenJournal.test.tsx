@@ -6,7 +6,7 @@
  * @vitest-environment happy-dom
  */
 
-import { act, waitFor } from "@testing-library/react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGardenOpenCycles, useGardenOpenPromises } from "../../../hooks/garden/useGardenJournal";
 import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types-core";
@@ -103,15 +103,12 @@ describe("useGardenJournal", () => {
     expect(mocks.getCommitmentCycles).not.toHaveBeenCalled();
   });
 
-  it("says a failed cycles read failed, and reads it again on Try Again", async () => {
+  it("says a failed cycles read failed, so no season shows as read", async () => {
     mocks.getCommitmentCycles.mockRejectedValueOnce(new Error("indexer down"));
 
     const { result } = renderHookWithProviders(() => useGardenOpenCycles(GARDEN));
 
     await waitFor(() => expect(result.current.state.status).toBe("error"));
-    mocks.getCommitmentCycles.mockResolvedValue([cycleFixture({ id: "c-7", poolId: 7n })]);
-    act(() => result.current.refetch());
-    await waitFor(() => expect(result.current.state.status).toBe("ready"));
   });
 
   it("previews three open promises and keeps the newest ask for the carousel past them", async () => {

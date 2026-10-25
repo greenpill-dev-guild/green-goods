@@ -137,7 +137,7 @@ export const JOURNAL_CYCLES: JournalCycle[] = [
 export function openCyclesFixture(
   state: GardenOpenCycles["state"] = { status: "ready", items: JOURNAL_CYCLES, savedAt: null }
 ): GardenOpenCycles {
-  return { state, refetch: () => undefined };
+  return { state };
 }
 
 /** The live promises still open to take up, and their titles by metadata CID. */

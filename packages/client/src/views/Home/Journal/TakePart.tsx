@@ -152,8 +152,7 @@ function TakePartRows({
 
 /**
  * The open seasons and campaigns as one line each, opening the cycle's details sheet, for a
- * Home without the carousel (decision 32). They show only once read: the carousel's own card
- * is where a seasons read that failed says so.
+ * Home without the carousel (decision 32). They show only once read, as on the Pool tab's rail.
  */
 function CycleLines({ gardenId }: { gardenId: string }) {
   const intl = useIntl();
