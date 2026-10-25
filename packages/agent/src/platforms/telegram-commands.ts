@@ -1,39 +1,100 @@
 import type { Telegraf } from "telegraf";
 import type { AgentLocale } from "../i18n";
+import { recordCommandMenu } from "../services/reporting/channels";
+import { telegramRealm } from "./telegram-reporting";
 
-// START, STATUS and HELP work in both reporting and legacy mode. The account commands are
-// reporting's own: they are in the menu so linking, switching and unlinking an account is one tap,
-// and a chat that reaches the legacy bot during a channel pause gets its help reply for them.
-// HELP and chat buttons teach NEW/REVIEW/PAIR.
-const REPORTING_DM_COMMANDS: Record<
-  AgentLocale,
-  Array<{ command: string; description: string }>
-> = {
-  en: [
-    { command: "start", description: "Start or resume Green Goods" },
-    { command: "connect", description: "Connect your account" },
-    { command: "switch", description: "Use a different account" },
-    { command: "disconnect", description: "Disconnect your account" },
-    { command: "status", description: "Check your progress" },
-    { command: "help", description: "Get help and available commands" },
-  ],
-  es: [
-    { command: "start", description: "Iniciar o retomar Green Goods" },
-    { command: "connect", description: "Conectar tu cuenta" },
-    { command: "switch", description: "Usar otra cuenta" },
-    { command: "disconnect", description: "Desconectar tu cuenta" },
-    { command: "status", description: "Consultar tu progreso" },
-    { command: "help", description: "Ver ayuda y comandos disponibles" },
-  ],
-  pt: [
-    { command: "start", description: "Iniciar ou retomar Green Goods" },
-    { command: "connect", description: "Conectar sua conta" },
-    { command: "switch", description: "Usar outra conta" },
-    { command: "disconnect", description: "Desconectar sua conta" },
-    { command: "status", description: "Consultar seu progresso" },
-    { command: "help", description: "Ver ajuda e comandos disponíveis" },
-  ],
+/**
+ * The reporting chat's private command menu, in the order a person meets the commands: reporting,
+ * then the account, then help. Each is a command the reporting core reads, so no entry falls back
+ * to HELP. CANCEL, STOP and DELETE come last, apart from STATUS: a tap sends a command at once, and
+ * these three discard unpublished work, so each description says what it removes. STOP keeps an
+ * open review for when the steward comes back; CANCEL and DELETE discard it too. Names stay
+ * English in every language, as the chat's typed command words do; only the descriptions are
+ * translated. The menu stays up during a channel pause, when the legacy bot answers private chats:
+ * it knows START, STATUS and HELP, and no description here promises the wallet its START creates.
+ */
+const REPORTING_MENU = [
+  "start",
+  "new",
+  "status",
+  "garden",
+  "join",
+  "review",
+  "account",
+  "connect",
+  "switch",
+  "disconnect",
+  "language",
+  "help",
+  "cancel",
+  "stop",
+  "delete",
+] as const;
+
+type MenuCommand = (typeof REPORTING_MENU)[number];
+
+// Telegram allows 1-256 characters for a description; these stay short enough to read at a glance.
+const MENU_DESCRIPTIONS: Record<AgentLocale, Record<MenuCommand, string>> = {
+  en: {
+    start: "Start or resume Green Goods",
+    new: "Start a new report",
+    status: "Check your progress",
+    garden: "Change your report's garden",
+    join: "See how to join another garden",
+    review: "Stewards: see work waiting for review",
+    account: "See which account this chat uses",
+    connect: "Connect your account",
+    switch: "Use a different account",
+    disconnect: "Disconnect your account",
+    language: "Change the language",
+    help: "Get help and available commands",
+    cancel: "Cancel and discard the current report or review",
+    stop: "Stop the assistant and discard the current report",
+    delete: "Delete every unpublished report, review and file, and stop the assistant",
+  },
+  es: {
+    start: "Iniciar o retomar Green Goods",
+    new: "Empezar un reporte nuevo",
+    status: "Consultar tu progreso",
+    garden: "Cambiar el jardín de tu reporte",
+    join: "Ver cómo unirte a otro jardín",
+    review: "Responsables: ver trabajos pendientes de revisión",
+    account: "Ver qué cuenta usa este chat",
+    connect: "Conectar tu cuenta",
+    switch: "Usar otra cuenta",
+    disconnect: "Desconectar tu cuenta",
+    language: "Cambiar el idioma",
+    help: "Ver ayuda y comandos disponibles",
+    cancel: "Cancelar y descartar el reporte o la revisión actual",
+    stop: "Detener el asistente y descartar el reporte actual",
+    delete:
+      "Borrar todos tus reportes, revisiones y archivos no publicados, y detener el asistente",
+  },
+  pt: {
+    start: "Iniciar ou retomar Green Goods",
+    new: "Começar um relato novo",
+    status: "Consultar seu progresso",
+    garden: "Trocar o jardim do seu relato",
+    join: "Ver como entrar em outro jardim",
+    review: "Responsáveis: ver trabalhos aguardando revisão",
+    account: "Ver qual conta este chat usa",
+    connect: "Conectar sua conta",
+    switch: "Usar outra conta",
+    disconnect: "Desconectar sua conta",
+    language: "Mudar o idioma",
+    help: "Ver ajuda e comandos disponíveis",
+    cancel: "Cancelar e descartar o relato ou a revisão atual",
+    stop: "Parar o assistente e descartar o relato atual",
+    delete: "Apagar todos os seus relatos, revisões e arquivos não publicados e parar o assistente",
+  },
 };
+
+function reportingMenu(locale: AgentLocale): Array<{ command: string; description: string }> {
+  return REPORTING_MENU.map((command) => ({
+    command,
+    description: MENU_DESCRIPTIONS[locale][command],
+  }));
+}
 
 export async function registerTelegramCommands(
   bot: Telegraf,
@@ -44,11 +105,14 @@ export async function registerTelegramCommands(
   for (const locale of ["en", "es", "pt"] as const) {
     const language = locale === "en" ? {} : { language_code: locale };
     await bot.telegram.setMyCommands(
-      reportingAvailable ? REPORTING_DM_COMMANDS[locale] : legacyCommands(locale),
+      reportingAvailable ? reportingMenu(locale) : legacyCommands(locale),
       { scope, ...language }
     );
   }
   // Explicitly clear the group autocomplete menu so retired /bug + /idea
   // commands and any historical state are removed.
   await bot.telegram.setMyCommands([], { scope: { type: "all_group_chats" } });
+  // Only now may reporting's replies point to the menu: a failure above leaves it unregistered.
+  const realm = reportingAvailable ? telegramRealm(bot.telegram.token) : null;
+  if (realm) recordCommandMenu(realm);
 }

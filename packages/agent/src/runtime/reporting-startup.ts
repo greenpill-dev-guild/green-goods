@@ -63,6 +63,10 @@ export function routeChannels(
           ? adapter.transport.send(request)
           : { status: "terminal", errorCode: "channel_unavailable" };
       },
+      // A channel whose adapter cannot edit a sent message keeps its old buttons.
+      async retireChoices(question) {
+        await adapterFor(question.providerRealm)?.transport.retireChoices?.(question);
+      },
     },
     mediaFetcher: {
       async fetch(realm, media, limits) {
