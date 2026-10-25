@@ -1,7 +1,7 @@
 ---
 name: ship
 user-invocable: false
-description: Publish changes safely with targeted local proof, a budgeted push gate, and current-head GitHub CI. Runs the explicit full local gate only for offline/full-readiness requests, critical surfaces, or releases.
+description: Publish changes safely with targeted local proof, a budgeted push gate, and current-head GitHub CI. Runs the explicit full local gate only for offline/full-readiness requests or releases; critical surfaces run the selector's mandatory override.
 argument-hint: "[--dry-run] [--no-commit] [--pr] [--full-local]"
 ---
 

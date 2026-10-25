@@ -65,6 +65,19 @@ selects their typechecks and a suite only for a named test; `contractsCritical` 
 override rule; and format, lint and the CI-owned design and supply-chain conditionals were not
 scoped the fast-push way for critical pushes.
 
+## Review round two (Codex, 2026-10-25)
+
+Three findings on the second head, all accepted: critical qa accepted a plan with no named owner
+test and ran the whole Shared suite, so critical qa now requires focus like critical push; the ship
+skill's frontmatter description and README, and the plan and clean skills, still reserved the full
+gate for critical surfaces, so all four now name the mandatory override and the skills catalog is
+regenerated; and a change that was critical for both Shared and contracts fell back to the strict
+shape, so the two shapes now compose: the Shared part keeps its focused owner suite and consumer
+typechecks while the matched contracts gate runs whole beside it, and a manual `--risk critical`
+with no matched rule treats every owner as a critical owner with its typecheck and no build. The
+contracts gate's check set is unchanged; its format and lint are now scoped to the changed paths
+like every push.
+
 ## What to measure next
 
 After a week of merges, re-run the receipt analysis and compare the critical push span against the
