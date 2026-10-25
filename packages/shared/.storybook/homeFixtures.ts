@@ -1,5 +1,6 @@
 import { fn } from "storybook/test";
 import type { ActiveGarden } from "../src/hooks/garden/useActiveGarden";
+import { isInGardenListScope } from "../src/modules/garden/active-garden";
 import { DEV_MOCK_AUTH_ADDRESSES } from "../src/providers/DevAuthProvider";
 import type { Garden } from "../src/types/domain";
 import {
@@ -92,6 +93,11 @@ export function activeGarden(
   gardenId: string | null = null
 ): ActiveGarden {
   const known = status !== "loading" && status !== "error";
+  // Garden-scoped lists (DL-129) read the same rule the hook applies.
+  const listScope = {
+    activeGardenId: gardenId,
+    memberGardenIds: known ? new Set(gardens.map(({ garden }) => garden.id.toLowerCase())) : null,
+  };
   return {
     status,
     gardenId,
@@ -105,5 +111,6 @@ export function activeGarden(
       refetch: fn(),
     },
     selectGarden: fn(),
+    inScope: (named) => isInGardenListScope(listScope, named),
   };
 }
