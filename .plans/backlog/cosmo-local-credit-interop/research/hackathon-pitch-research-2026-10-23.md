@@ -140,6 +140,11 @@ This research did not send a message, submit an entry or change Linear.
 
 ## Market-data correction
 
+**Superseded on 25 October.** The
+[evidence pass](diaspora-evidence-pass-2026-10-25.md#which-remittance-series-to-present) retired
+the $21.3bn figure below, and the delivered pitch uses the World Bank's $22.1bn for 2024 (claim
+ledger C33 and C107).
+
 The previous deck's $22.8bn figure for 2025 and its corridor fee comparisons were not independently
 re-established in this pass. They remain in the historical ledger, not the updated slide claims.
 The revised Nigeria slide uses **$21.3bn for 2024**, as listed in table 2.4 of the African
