@@ -57,9 +57,9 @@ Routine pushes have a 90-second hard limit; sensitive pushes have 180 seconds. C
 uncapped and cannot be suppressed by a budget or compatibility flag. The hard limit assumes a host
 with room to run the plan: when the 1-minute load average exceeds one and a half times the host's
 CPU count, sampled when the plan starts and again when the limit fires, the runner suspends the
-limit, runs the plan in full and says so in its Budget line or a closing note. A suspended limit
-skips no check; it only removes the stop. Where the host CPU count is unknown the limit stays in
-force. The manual `browser-proof`
+limit and says so in its Budget line or a closing note. A suspended limit stops no check and skips
+none; failures and cancellation end the run as they always do. Where the host CPU count is unknown
+the limit stays in force. The manual `browser-proof`
 check is advisory: it is reported separately, never blocks a local plan, and is not part of the
 automated deadline.
 

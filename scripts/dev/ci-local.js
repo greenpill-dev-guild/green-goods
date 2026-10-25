@@ -1214,7 +1214,7 @@ async function main() {
   if (execution.deadlineSuspension?.at === "deadline") {
     const { host: saturated } = execution.deadlineSuspension;
     console.log(
-      `\n${colors.yellow}The ${plan.budget.hardLimitSeconds}s hard limit was suspended when it fired: 1-minute load ${saturated.loadAverage.toFixed(1)} on ${saturated.cpuCount} CPUs; the plan ran in full.${colors.reset}`,
+      `\n${colors.yellow}The ${plan.budget.hardLimitSeconds}s hard limit was suspended when it fired: 1-minute load ${saturated.loadAverage.toFixed(1)} on ${saturated.cpuCount} CPUs; it stopped no check.${colors.reset}`,
     );
   }
   if (execution.status === "blocked") {
