@@ -34,8 +34,6 @@ The code and documentation are available under the MIT License. Read the [Licens
 
 ## Core Team
 
-<span id="greenpill-dev-guild" />
-
 ### The Green Goods team
 
 Development happens in the open on [GitHub](https://github.com/greenpill-dev-guild/green-goods). The work includes the app, steward dashboard, contracts, infrastructure, documentation, and community support.
