@@ -2,6 +2,7 @@ import type { Garden } from "@green-goods/shared/types/domain";
 import { lazy, Suspense } from "react";
 import { HomeLoading } from "../HomeStates";
 import type { MemberGarden } from "../homeGardens";
+import { Continue } from "./Continue";
 import { HighlightsCarousel } from "./HighlightsCarousel";
 import { RecentActivity } from "./RecentActivity";
 import { TakePart } from "./TakePart";
@@ -36,6 +37,7 @@ export function HomeJournal({ garden }: HomeJournalProps) {
     <div className="flex flex-col">
       <HighlightsCarousel gardenId={garden.id} />
       <RecentActivity gardenId={garden.id} />
+      <Continue />
       <TakePart gardenId={garden.id} />
       <div className="pt-4">
         <Suspense fallback={<HomeLoading remembered />}>

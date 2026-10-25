@@ -49,7 +49,11 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentCycleNames: () => mocks.cycleNames(),
 }));
 
-// The garden's own page closes the journal until About lands; it stands in as a marker here.
+// Continue (step 8, its own tests) and the garden's own page, which closes the journal until
+// About lands, stand in as markers here.
+vi.mock("../../views/Home/Journal/Continue", () => ({
+  Continue: () => <section data-component="Continue" />,
+}));
 vi.mock("../../views/Home/Garden/GardenPage", () => ({
   GardenPage: () => <div data-component="GardenPage" />,
 }));
@@ -444,7 +448,7 @@ describe("Home journal", () => {
     });
   });
 
-  it("mounts Highlights, Recent Activity and Take Part in DL-127's order, then the garden's page", async () => {
+  it("mounts the journal's sections in DL-127's order, then the garden's page", async () => {
     const garden = { id: GARDEN, name: "Riverside Commons Garden" } as Garden;
     const { container } = render(
       <HomeJournal garden={garden} membership={{ roles: ["gardener"], pendingJoin: false }} />
@@ -457,9 +461,17 @@ describe("Home journal", () => {
     const order = [...container.querySelectorAll("[data-component]")]
       .map((node) => node.getAttribute("data-component"))
       .filter((name) =>
-        ["HighlightsCarousel", "RecentActivity", "TakePart", "GardenPage"].includes(name ?? "")
+        ["HighlightsCarousel", "RecentActivity", "Continue", "TakePart", "GardenPage"].includes(
+          name ?? ""
+        )
       );
-    expect(order).toEqual(["HighlightsCarousel", "RecentActivity", "TakePart", "GardenPage"]);
+    expect(order).toEqual([
+      "HighlightsCarousel",
+      "RecentActivity",
+      "Continue",
+      "TakePart",
+      "GardenPage",
+    ]);
     for (const read of [mocks.cycles, mocks.recent, mocks.promises]) {
       expect(read).toHaveBeenCalledWith(GARDEN);
     }

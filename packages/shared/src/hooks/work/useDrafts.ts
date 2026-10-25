@@ -67,6 +67,7 @@ export function useDrafts() {
   const {
     data: drafts = [],
     isLoading,
+    isError,
     refetch: refetchDrafts,
   } = useQuery({
     queryKey: draftsKeys.list(userAddress || "", chainId),
@@ -293,6 +294,8 @@ export function useDrafts() {
     drafts,
     activeDraftId,
     isLoading,
+    /** The phone's draft store could not be read, so `drafts` may be missing some. */
+    isError,
     draftCount: drafts.length,
 
     // Actions
