@@ -12,7 +12,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { createConnection } from "node:net";
-import { availableParallelism, loadavg } from "node:os";
+import { availableParallelism, cpus, loadavg } from "node:os";
 import { delimiter, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -768,6 +768,26 @@ export async function runCommandCheck(
   });
 }
 
+/**
+ * A push gate's hard limit assumes a host with room to run it. When the 1-minute load average
+ * runs past one and a half times the CPU count, every check slows and the limit only produces
+ * repeated budget-exceeded runs (five sessions' gates at once reached loads of 100 to 240 on ten
+ * cores). The plan then runs in full with no deadline, and says so, instead of timing out.
+ *
+ * The load average is the host's run queue, so it is compared with the host's CPU count.
+ * `availableParallelism()` can be this process's affinity mask or container quota, which would
+ * read unrelated host work as saturation for a pinned process. Where the platform reports no
+ * CPUs the two signals cannot be compared and the deadline stays in force.
+ */
+export function liveHost() {
+  return { loadAverage: loadavg()[0], cpuCount: cpus().length };
+}
+
+export function deadlineSuspendedBy(host) {
+  if (!Number.isFinite(host?.loadAverage) || !Number.isInteger(host?.cpuCount) || host.cpuCount <= 0) return false;
+  return host.loadAverage > 1.5 * host.cpuCount;
+}
+
 export async function executePlan(plan, options = {}) {
   const failFast = options.failFast !== false;
   const runCheck = options.runCheck ?? runCommandCheck;
@@ -789,7 +809,15 @@ export async function executePlan(plan, options = {}) {
     return { status: "needs-focus", exitCode: 2, results, blocked };
   }
 
-  const deadlineController = plan.budget?.enforced ? new AbortController() : null;
+  // The start sample is the one the printed plan used, so the reported and the enforced rule
+  // agree. The deadline samples the host again when it fires: the 1-minute load lags a burst of
+  // gates that start together on a quiet machine, so saturation that begins during the run still
+  // suspends the deadline. Tests pass a fixed host and, when they need one, their own sampler.
+  const hostAtStart = options.host ?? liveHost();
+  const sampleHost = options.sampleHost ?? (options.host ? () => options.host : liveHost);
+  let deadlineSuspension =
+    Boolean(plan.budget?.enforced) && deadlineSuspendedBy(hostAtStart) ? { at: "start", host: hostAtStart } : null;
+  const deadlineController = plan.budget?.enforced && !deadlineSuspension ? new AbortController() : null;
   const signal = deadlineController
     ? externalSignal
       ? AbortSignal.any([externalSignal, deadlineController.signal])
@@ -798,13 +826,18 @@ export async function executePlan(plan, options = {}) {
   let budgetExpired = false;
   const deadlineTimer = deadlineController
     ? setTimeout(() => {
+        const hostAtDeadline = sampleHost();
+        if (deadlineSuspendedBy(hostAtDeadline)) {
+          deadlineSuspension = { at: "deadline", host: hostAtDeadline };
+          return;
+        }
         budgetExpired = true;
         deadlineController.abort();
       }, plan.budget.hardLimitSeconds * 1000)
     : null;
   const finish = (result) => {
     if (deadlineTimer) clearTimeout(deadlineTimer);
-    return { pendingManual, ignoredAttestations, ...result };
+    return { pendingManual, ignoredAttestations, deadlineSuspension, ...result };
   };
 
   // The selector owns receipt policy; a plan that does not allow reuse runs every check fresh.
@@ -1026,7 +1059,7 @@ export function savePassingReceiptStore(store, path = defaultReceiptPath) {
   renameSync(temporaryPath, path);
 }
 
-function printPlan(plan) {
+function printPlan(plan, host = liveHost()) {
   console.log(
     `${colors.blue}Validation plan${colors.reset}: ${plan.effectiveIntent} · ${plan.risk} · ${plan.changedPaths.length} changed path(s)`,
   );
@@ -1035,7 +1068,9 @@ function printPlan(plan) {
       ` (${plan.budget.automatedSeconds}s summed)` +
       (plan.budget.hardLimitSeconds === null
         ? " / uncapped"
-        : ` / ${plan.budget.hardLimitSeconds}s hard limit`),
+        : deadlineSuspendedBy(host)
+          ? ` / ${plan.budget.hardLimitSeconds}s hard limit suspended: 1-minute load ${host.loadAverage.toFixed(1)} on ${host.cpuCount} CPUs`
+          : ` / ${plan.budget.hardLimitSeconds}s hard limit`),
   );
   for (const check of plan.checks) {
     const flags = [
@@ -1107,7 +1142,8 @@ async function main() {
     return;
   }
 
-  printPlan(plan);
+  const host = liveHost();
+  printPlan(plan, host);
   if (options.planOnly) return;
   if (options.generateIndexer) {
     console.log(
@@ -1141,6 +1177,8 @@ async function main() {
   }
   const receiptStore = options.reusePassingReceipts ? loadPassingReceiptStore() : new Map();
   const execution = await executePlan(plan, {
+    host,
+    sampleHost: liveHost,
     failFast: options.failFast,
     signal: abortController.signal,
     reusePassingReceipts: options.reusePassingReceipts,
@@ -1171,6 +1209,12 @@ async function main() {
     console.log(
       `\n${colors.yellow}--attest ${ignored.id} was ignored:${colors.reset} only the release gate` +
         ` consumes a manual attestation, so this ${ignored.intent} plan leaves the proof pending.`,
+    );
+  }
+  if (execution.deadlineSuspension?.at === "deadline") {
+    const { host: saturated } = execution.deadlineSuspension;
+    console.log(
+      `\n${colors.yellow}The ${plan.budget.hardLimitSeconds}s hard limit was suspended when it fired: 1-minute load ${saturated.loadAverage.toFixed(1)} on ${saturated.cpuCount} CPUs; it stopped no check.${colors.reset}`,
     );
   }
   if (execution.status === "blocked") {
