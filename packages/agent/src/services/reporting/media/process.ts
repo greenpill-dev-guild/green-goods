@@ -331,7 +331,7 @@ export async function processMedia(deps: MediaDeps, job: ClaimedJob): Promise<Jo
       sourceEntryId: asset.source_entry_id,
       sourceEventId: cause.inbox_event_id,
     },
-    { limitation, evidence, extraction, transcript, warnings, sourceKind: source?.kind ?? null }
+    { limitation, evidence, extraction, transcript, warnings }
   );
 }
 

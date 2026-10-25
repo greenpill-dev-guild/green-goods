@@ -1,11 +1,16 @@
 import ExcelJS from "exceljs";
 import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { currentConfirmation } from "../../services/reporting/confirmations";
 import { setControl } from "../../services/reporting/controls";
+import { ALBUM_QUIET_MS } from "../../services/reporting/coordinator/context";
+import { lifecycleState } from "../../services/reporting/coordinator/draft-commit";
 import { loadDraft } from "../../services/reporting/drafts";
 import { modelSpend } from "../../services/reporting/model-spend";
-import { ADA, Harness, spendDailyModelCap } from "./support/harness";
-import { scriptedOpenAI, VIDEO_CLIP, zip } from "./support/media";
+import { planting, snapshot, TAS } from "./support/fixtures";
+import { reportUntilSummary } from "./support/flows";
+import { ADA, Harness, spendDailyModelCap, summaryToken } from "./support/harness";
+import { evidenceFiles, scriptedOpenAI, shadedPhoto, VIDEO_CLIP, zip } from "./support/media";
 
 /**
  * Attachments through the real coordinator, stores and media job. Photos run through Sharp for
@@ -418,5 +423,166 @@ describe("documents", () => {
     expect(
       harness.core.db.query("SELECT state FROM media_assets WHERE asset_kind = 'docx'").get()
     ).toEqual({ state: "ready" });
+  });
+});
+
+describe("albums", () => {
+  /** Sends an album as Telegram does: one event per photo, in the order given, nothing run yet. */
+  async function postAlbum(
+    album: string,
+    photos: Array<{ message: number; caption?: string; missing?: boolean }>
+  ): Promise<void> {
+    for (const { message, caption, missing } of photos) {
+      const id = `${album}-${message}`;
+      if (!missing) harness.mediaFiles.set(id, await shadedPhoto(message));
+      await harness.post(
+        harness.message(ADA, {
+          providerMessageId: String(message),
+          mediaGroupId: album,
+          media: [{ providerMediaId: id, declaredMime: "image/jpeg" }],
+          ...(caption ? { text: caption } : {}),
+        })
+      );
+    }
+  }
+
+  /** Runs every queue once an album has gone quiet, after checking nothing is sent before. */
+  async function whenQuiet(): Promise<string[]> {
+    const before = harness.transport.sent.length;
+    await harness.drain();
+    expect(harness.transport.sent.length).toBe(before);
+    harness.clock.advance(ALBUM_QUIET_MS);
+    await harness.drain();
+    return harness.transport.texts().slice(before);
+  }
+
+  const KEPT = "This activity accepts up to 3 photos, so your report keeps the first 3 you sent.";
+
+  it("keeps the first photos an activity accepts, whether they came before it or after", async () => {
+    await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(ADA, "I agree");
+    await harness.say(ADA, "1");
+    await postAlbum(
+      "before",
+      [21, 22, 23, 24].map((message) => ({ message }))
+    );
+    const added = await whenQuiet();
+    expect(added).toHaveLength(2);
+    expect(added[0]).toBe("4 photos added to your report.");
+    expect(added[1]).toContain("Which activity in TAS");
+
+    // Tree planting accepts three, so choosing it takes the photo sent last off the report.
+    expect(await harness.press(ADA, "Tree planting")).toContain(KEPT);
+    expect(evidenceFiles(harness.core, draft())).toEqual(["before-21", "before-22", "before-23"]);
+
+    // An album with no room left changes nothing; it is named and the question put again.
+    const revision = draft()?.revision;
+    await postAlbum("after", [{ message: 31 }, { message: 32 }]);
+    const full = await whenQuiet();
+    expect(full).toHaveLength(2);
+    expect(full[0]).toBe(KEPT);
+    expect(full[1]).toContain("Seedlings planted?");
+    expect(draft()?.revision).toBe(revision);
+    expect(evidenceFiles(harness.core, draft())).toEqual(["before-21", "before-22", "before-23"]);
+  });
+
+  it("withdraws a summary or confirmation when photos follow it, until they are in", async () => {
+    const shown = await reportUntilSummary(harness);
+    await postAlbum("late", [{ message: 41 }, { message: 42 }]);
+    await harness.drain();
+    harness.clock.advance(ALBUM_QUIET_MS);
+    // Confirm on the summary the album followed confirms nothing; the new one shows both photos.
+    const pressed = await harness.press(ADA, "Confirm");
+    expect(pressed.slice(0, 2)).toEqual([
+      "I'm still adding your files. I'll show you the summary as soon as they're in.",
+      "2 photos added to your report.",
+    ]);
+    expect(pressed[2]).toContain("• Photos: 2");
+    expect(summaryToken(pressed)).not.toBe(summaryToken(shown));
+    const id = draft()?.id as string;
+    expect(currentConfirmation(harness.core, { draftId: id })).toBeNull();
+
+    // A confirmation waiting on the account is withdrawn as the next photo arrives, before it
+    // has even downloaded, so it cannot be published without that photo.
+    await harness.say(ADA, `CONFIRM ${summaryToken(pressed)}`);
+    expect(currentConfirmation(harness.core, { draftId: id })).not.toBeNull();
+    harness.mediaFailures.remaining = 1;
+    await postAlbum("later", [{ message: 43 }]);
+    expect(await whenQuiet()).toEqual([]);
+    expect(currentConfirmation(harness.core, { draftId: id })).toBeNull();
+    expect(lifecycleState(draft() as NonNullable<ReturnType<typeof draft>>)).toBe("review");
+    harness.clock.advance(20_000);
+    await harness.drain();
+    expect(harness.transport.texts().slice(-2)[0]).toBe("Photo added to your report.");
+    expect(harness.transport.texts().at(-1)).toContain("• Photos: 3");
+  });
+
+  it("reads an album that keeps arriving after a bounded wait, and a late photo on its own", async () => {
+    harness.catalog.actions.set(TAS.key, [
+      snapshot(planting({ media: { required: false, minImageCount: 0, maxImageCount: 10 } })),
+    ]);
+    await plantingDraft();
+    // A photo every 1.9 seconds never leaves the album quiet; it is read 10 seconds in anyway.
+    const before = harness.transport.sent.length;
+    for (const message of [51, 52, 53, 54, 55, 56]) {
+      if (message > 51) harness.clock.advance(1_900);
+      await postAlbum("slow", [{ message }]);
+      await harness.drain();
+    }
+    expect(harness.transport.sent.length).toBe(before);
+    harness.clock.advance(500);
+    await harness.drain();
+    const read = harness.transport.texts().slice(before);
+    expect(read).toHaveLength(2);
+    expect(read[0]).toBe("6 photos added to your report.");
+
+    // The same album's photo arriving after that is a message of its own; nothing repeats.
+    await postAlbum("slow", [{ message: 57 }]);
+    const late = await whenQuiet();
+    expect(late).toHaveLength(2);
+    expect(late[0]).toBe("Photo added to your report.");
+    expect(evidenceFiles(harness.core, draft())).toEqual(
+      [51, 52, 53, 54, 55, 56, 57].map((message) => `slow-${message}`)
+    );
+  });
+
+  it("takes a caption that is a command as one, and still reads the album's other photos", async () => {
+    await plantingDraft();
+    await postAlbum("asked", [
+      { message: 81 },
+      { message: 82, caption: "STATUS" },
+      { message: 83 },
+    ]);
+    const replies = await whenQuiet();
+    expect(replies).toHaveLength(3);
+    expect(replies[0]).toContain("TAS");
+    expect(replies[1]).toBe("2 photos added to your report.");
+    expect(replies[2]).toContain("Seedlings planted?");
+    // The photo carrying the command goes with it, as a captioned photo always has.
+    expect(evidenceFiles(harness.core, draft())).toEqual(["asked-81", "asked-83"]);
+  });
+
+  it("holds a first-contact album for consent, reads it once and names a photo it cannot fetch", async () => {
+    await postAlbum("first", [{ message: 61 }, { message: 62 }, { message: 63, missing: true }]);
+    const notice = await whenQuiet();
+    expect(notice).toHaveLength(1);
+    expect(notice[0]).toContain("Do you agree?");
+
+    expect(await harness.press(ADA, "I agree")).toEqual([
+      "Thank you! Tell me about the work you did. You can send text and photos.",
+    ]);
+    // The photo that cannot be fetched is retried within the job's budget, then named; the
+    // photos that arrived are answered once, with the report's next question.
+    const before = harness.transport.sent.length;
+    for (let retry = 0; retry < 4; retry += 1) {
+      harness.clock.advance(20_000);
+      await harness.drain();
+    }
+    expect(harness.transport.texts().slice(before)).toEqual([
+      "I couldn't download your file. Please send it again.",
+      "2 photos added to your report.",
+      "Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden",
+    ]);
+    expect(evidenceFiles(harness.core, draft())).toEqual(["first-61", "first-62"]);
   });
 });

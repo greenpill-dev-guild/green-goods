@@ -169,12 +169,84 @@ export function nextConversationEvent(
   return row && row.next_attempt_at <= core.clock.now() ? row : null;
 }
 
+/** How many of a conversation's waiting events are read to find an album's other files. */
+const ALBUM_SCAN_LIMIT = 50;
+
+/**
+ * The other files of the album an event belongs to: the messages of its conversation waiting in
+ * the same state, from the same sender, with the same album ID, in arrival order. Only events in
+ * the same state join, so a file held for consent is never read with consented ones.
+ */
+export function albumItems(
+  core: ReportingCore,
+  first: InboxEventRow,
+  mediaGroupId: string
+): Array<{ row: InboxEventRow; message: InboundMessageEvent }> {
+  const rows = core.db
+    .query(
+      `SELECT id, provider_realm, kind, conversation_id, channel_subject_id, payload_ciphertext, state,
+              attempts, arrival_seq, received_at
+       FROM inbox_events
+       WHERE conversation_id = $conversation AND channel_subject_id = $subject AND kind = 'message'
+         AND state = $state AND id <> $first AND (expires_at IS NULL OR expires_at > $now)
+       ORDER BY arrival_seq LIMIT $limit`
+    )
+    .all({
+      conversation: first.conversation_id,
+      subject: first.channel_subject_id,
+      state: first.state,
+      first: first.id,
+      now: core.clock.now(),
+      limit: ALBUM_SCAN_LIMIT,
+    }) as InboxEventRow[];
+  return rows.flatMap((row) => {
+    const message = readInboxPayload<InboundMessageEvent>(core, row);
+    return message?.mediaGroupId === mediaGroupId ? [{ row, message }] : [];
+  });
+}
+
+/**
+ * Leaves events waiting until `at` without counting an attempt: an album still arriving waits
+ * whole, so its first file holds back the messages that follow it.
+ */
+export function waitInboxEvents(
+  core: ReportingCore,
+  inboxEventIds: readonly string[],
+  at: number
+): void {
+  for (const id of inboxEventIds) {
+    core.db.query("UPDATE inbox_events SET next_attempt_at = $at WHERE id = $id").run({ id, at });
+  }
+}
+
 export function consumeInboxEvent(core: ReportingCore, inboxEventId: string): void {
   core.db
     .query(
       "UPDATE inbox_events SET state = 'consumed', consumed_at = $now, last_error_code = NULL WHERE id = $id"
     )
     .run({ id: inboxEventId, now: core.clock.now() });
+}
+
+/**
+ * Consumes an album's other files with its first. Their words and files are recorded once, under
+ * the first file's source entry, which retention purges with the report; their own copies go now.
+ */
+export function consumeAlbumItems(core: ReportingCore, inboxEventIds: readonly string[]): void {
+  for (const id of inboxEventIds) {
+    consumeInboxEvent(core, id);
+    core.db.query("UPDATE inbox_events SET payload_ciphertext = NULL WHERE id = $id").run({ id });
+  }
+}
+
+/** Holds events until consent releases them or their pre-consent window expires. */
+export function quarantineInboxEvents(core: ReportingCore, inboxEventIds: readonly string[]): void {
+  for (const id of inboxEventIds) {
+    core.db
+      .query(
+        "UPDATE inbox_events SET state = 'quarantined', next_attempt_at = COALESCE(expires_at, $far) WHERE id = $id"
+      )
+      .run({ id, far: core.clock.now() + core.settings.preConsentRetentionMs });
+  }
 }
 
 /** Records a failed turn; after the attempt budget the event is parked for an operator, not lost. */

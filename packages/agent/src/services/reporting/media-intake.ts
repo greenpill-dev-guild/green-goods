@@ -30,6 +30,24 @@ function declaredAssetKind(mime: string | undefined): AssetKind {
   return "unsupported";
 }
 
+/**
+ * Whether files sent for a draft are still being processed: received, with their processing job
+ * still to run. A voice note held for its own consent is not, and nor is a file whose processing
+ * gave up, so neither can keep a report from its summary for good.
+ */
+export function filesInProgress(core: ReportingCore, draftId: string): boolean {
+  return (
+    core.db
+      .query(
+        `SELECT 1 FROM processing_jobs j JOIN media_assets a ON a.id = j.subject_id
+         WHERE j.state IN ('pending','leased') AND j.kind = 'process_media' AND a.draft_id = $draft
+           AND a.state IN ('received','inspecting','converting','extracting')
+         LIMIT 1`
+      )
+      .get({ draft: draftId }) !== null
+  );
+}
+
 export function recordMediaIntake(
   core: ReportingCore,
   input: {

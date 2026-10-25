@@ -100,4 +100,14 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
       `CREATE INDEX model_calls_day ON model_calls(day)`,
     ],
   },
+  {
+    version: 6,
+    name: "one acknowledgement per batch of files",
+    statements: [
+      "ALTER TABLE media_assets ADD COLUMN acknowledged_at INTEGER",
+      // Files already handled were answered one at a time when they were processed.
+      `UPDATE media_assets SET acknowledged_at = updated_at
+       WHERE state IN ('ready','needs_clarification','failed','unsupported','deleted')`,
+    ],
+  },
 ];

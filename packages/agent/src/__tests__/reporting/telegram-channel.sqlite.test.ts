@@ -10,15 +10,17 @@ import {
 } from "../../platforms/telegram-reporting";
 import { channelControl } from "../../services/reporting/channels";
 import { setControl } from "../../services/reporting/controls";
+import { ALBUM_QUIET_MS } from "../../services/reporting/coordinator/context";
 import { loadDraft } from "../../services/reporting/drafts";
 import { processMedia } from "../../services/reporting/media/process";
 import type { ReportingCore } from "../../services/reporting/runtime";
 import { drain } from "../../services/reporting/worker";
 import { textResponse } from "../../types";
 import { TestBrowser } from "./support/browser";
-import { TAS } from "./support/fixtures";
+import { planting, snapshot, TAS } from "./support/fixtures";
 import { adaAccount } from "./support/flows";
 import { Harness } from "./support/harness";
+import { evidenceFiles, shadedPhoto } from "./support/media";
 import { FakeTelegramApi, TEST_BOT_REALM, TEST_BOT_TOKEN } from "./support/telegram-api";
 
 /**
@@ -205,6 +207,77 @@ describe("Telegram reporting on the existing bot", () => {
     expect(sentTexts()).toContain("Photo added to your report.");
     const { id } = harness.core.db.query("SELECT id FROM work_drafts").get() as { id: string };
     expect(loadDraft(harness.core, id)?.content.evidence).toHaveLength(1);
+  });
+
+  it("answers a ten-photo album once, in the order sent, however its updates arrive", async () => {
+    openTelegramChannel();
+    // Ten photos fit this activity, so each of them reaches the report.
+    harness.catalog.actions.set(TAS.key, [
+      snapshot(planting({ media: { required: false, minImageCount: 0, maxImageCount: 10 } })),
+    ]);
+    const telegraf = bot();
+    const tell = async (update: () => Update) => {
+      await telegraf.handleUpdate(update());
+      await drainThroughTelegram();
+    };
+    await tell(() => direct({ text: "Today I planted twelve baobab seedlings by the fence" }));
+    await tell(() => press("I agree"));
+    await tell(() => direct({ text: "1" }));
+    await tell(() => press("Tree planting"));
+    // The album's one caption is read by the model, once; its photos are not.
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "album" });
+    harness.interpreter.responses = [
+      {
+        intent: "report_content",
+        gardenKey: null,
+        actionUID: null,
+        facts: [{ field: "details.seedlings", value: 12, kind: "reported", original: "twelve" }],
+        models: ["fixture-model"],
+      },
+    ];
+
+    const sent = [101, 102, 103, 104, 105, 106, 107, 108, 109, 110];
+    const updates = new Map<number, Update>();
+    for (const message of sent) {
+      api.files.set(`files/album-${message}`, { body: await shadedPhoto(message) });
+      updateId += 1;
+      const photo = [
+        { file_id: `album-${message}`, file_unique_id: `u${message}`, width: 32, height: 24 },
+      ];
+      const caption = message === 105 ? { caption: "Twelve seedlings along the fence" } : {};
+      const update = { message_id: message, date: 1_790_000_000, chat: DM, from: PERSON };
+      updates.set(message, {
+        update_id: updateId,
+        message: { ...update, media_group_id: "13960531", photo, ...caption },
+      } as unknown as Update);
+    }
+    // One photo's first download fails, so it is processed after the others.
+    api.files.set("files/album-102", { status: 502 });
+    const before = api.messages().length;
+    // Telegram delivers an album's updates in any order, and may deliver one twice.
+    for (const message of [103, 101, 110, 102, 104, 105, 106, 103, 107, 109, 108]) {
+      await telegraf.handleUpdate(updates.get(message) as Update);
+    }
+    await drainThroughTelegram();
+    harness.clock.advance(ALBUM_QUIET_MS);
+    await drainThroughTelegram();
+    expect(api.messages()).toHaveLength(before);
+    api.files.set("files/album-102", { body: await shadedPhoto(102) });
+    harness.clock.advance(20_000);
+    await drainThroughTelegram();
+
+    expect(sentTexts().slice(before)).toEqual([
+      "10 photos added to your report.",
+      expect.stringContaining("Main species"),
+    ]);
+    expect(harness.interpreter.requests.map((request) => request.message.text)).toEqual([
+      "Twelve seedlings along the fence",
+    ]);
+    expect(api.calls.filter((call) => call.method === "getFile")).toHaveLength(11);
+    const { id } = harness.core.db.query("SELECT id FROM work_drafts").get() as { id: string };
+    const draft = loadDraft(harness.core, id);
+    expect(draft?.content.details.seedlings).toBe(12);
+    expect(evidenceFiles(harness.core, draft)).toEqual(sent.map((message) => `album-${message}`));
   });
 
   it("keeps changing the garden a tap away after taking an account's only garden", async () => {

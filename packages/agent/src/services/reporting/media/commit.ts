@@ -1,6 +1,7 @@
 import {
   applyReportChanges,
   type FieldChange,
+  type ReportContent,
   withEvidence,
 } from "@green-goods/shared/modules/agent-reporting";
 import {
@@ -11,24 +12,26 @@ import {
 } from "../coordinator/draft-commit";
 import { announceGarden, readOwnGardens } from "../coordinator/garden-step";
 import { type CatalogView, promptNextStepFor } from "../coordinator/prompting";
-import { takeSoleGarden, type Working } from "../coordinator/report-work";
+import { keepAcceptedPhotos, takeSoleGarden, type Working } from "../coordinator/report-work";
+import type { ConversationWriter } from "../coordinator/writer";
 import { createLogger } from "../../logger";
 import { inTransaction } from "../database";
-import { DraftContentUnavailableError, loadDraft } from "../drafts";
+import { DraftContentUnavailableError, type DraftRecord, loadDraft } from "../drafts";
 import { participantWriter } from "../notify";
 import { activeAccount } from "../participants";
 import { openPrompt } from "../prompts";
 import { findGarden, gardenScope, soleGarden } from "../gardens";
 import type { ReportingCore } from "../runtime";
 import type { JobOutcome } from "../worker";
-import type { MediaExtraction, MediaSource } from "./extract";
+import type { MediaExtraction } from "./extract";
 
 /**
  * Applies one processed asset to its draft: the sanitized photo as candidate evidence and any
  * proposed values with their exact sources, committed only on the draft's current revision. A
  * concurrent turn wins and the job resumes from the stored asset. A file that cannot be used is
- * explained and the draft is kept. The next question is asked once, after the last file of a
- * batch; after a file that could not be used, only when the report has no question open.
+ * explained and the draft is kept. Files processed together, such as an album, are a batch: its
+ * last file says once what the batch added and asks the next question once; after a batch that
+ * added nothing, only when the report has no question open.
  */
 export type Limitation =
   | "media.tooLarge"
@@ -60,7 +63,6 @@ export interface ProcessingResult {
   /** What a voice note said, shown back to the gardener to check. */
   transcript: { text: string; model: string } | null;
   warnings: string[];
-  sourceKind: MediaSource["kind"] | null;
 }
 
 const log = createLogger("reporting");
@@ -137,6 +139,95 @@ function changesFrom(asset: ProcessedAsset, result: ProcessingResult): FieldChan
   }));
 }
 
+/** Evidence in the order its files were sent: by their message's arrival, then place in it. */
+function inSentOrder(core: ReportingCore, draftId: string, content: ReportContent): ReportContent {
+  const sent = (
+    core.db
+      .query(
+        `SELECT a.id FROM media_assets a
+         JOIN source_entries s ON s.id = a.source_entry_id
+         JOIN inbox_events e ON e.id = s.inbox_event_id
+         WHERE a.draft_id = $draft ORDER BY e.arrival_seq, a.ordinal`
+      )
+      .all({ draft: draftId }) as Array<{ id: string }>
+  ).map((row) => row.id);
+  const place = (assetId: string) => {
+    const at = sent.indexOf(assetId);
+    return at < 0 ? sent.length : at;
+  };
+  return {
+    ...content,
+    evidence: [...content.evidence].sort((a, b) => place(a.assetId) - place(b.assetId)),
+  };
+}
+
+/** The draft's other files that are part of this batch, by whether they are still processing. */
+function batchOf(core: ReportingCore, asset: ProcessedAsset): { pending: number; used: number } {
+  return core.db
+    .query(
+      `SELECT
+         count(*) FILTER (WHERE state IN ('received','quarantined','inspecting','converting','extracting')) AS pending,
+         count(*) FILTER (WHERE state = 'ready') AS used
+       FROM media_assets WHERE draft_id = $draft AND id <> $id AND acknowledged_at IS NULL`
+    )
+    .get({ draft: asset.draftId, id: asset.id }) as { pending: number; used: number };
+}
+
+/**
+ * The batch's one acknowledgement, said with its last file: how many photos the report took, the
+ * activity's limit when it had no room for some, and whether other files were read or only kept.
+ */
+function acknowledgeBatch(
+  core: ReportingCore,
+  writer: ConversationWriter,
+  draft: DraftRecord
+): void {
+  const files = core.db
+    .query(
+      `SELECT id, asset_kind, state, sanitized_digest, processing_manifest FROM media_assets
+       WHERE draft_id = $draft AND acknowledged_at IS NULL`
+    )
+    .all({ draft: draft.id }) as Array<{
+    id: string;
+    asset_kind: string;
+    state: string;
+    sanitized_digest: string | null;
+    processing_manifest: string;
+  }>;
+  core.db
+    .query(
+      "UPDATE media_assets SET acknowledged_at = $now WHERE draft_id = $draft AND acknowledged_at IS NULL"
+    )
+    .run({ draft: draft.id, now: core.clock.now() });
+  const used = files.filter((file) => file.state === "ready");
+  const photos = used.filter((file) => file.asset_kind === "image");
+  const added = photos.filter((photo) =>
+    draft.content.evidence.some((item) => item.assetId === photo.id)
+  ).length;
+  // A photo already in the report under another file is a repeat, not one left out.
+  const leftOut = photos.some(
+    (photo) =>
+      photo.sanitized_digest !== null &&
+      !draft.content.evidence.some((item) => item.sanitizedDigest === photo.sanitized_digest)
+  );
+  const maximum = draft.snapshot?.definition.media.maxImageCount ?? null;
+  const said = [
+    ...(added === 1 ? [writer.text("media.photoAdded")] : []),
+    ...(added > 1 ? [writer.text("media.photosAdded", { count: added })] : []),
+    ...(leftOut && maximum !== null ? [writer.text("report.photosKept", { maximum })] : []),
+  ];
+  if (said.length > 0) writer.reply({ text: said.join(" ") }, "media.photosAdded");
+  // A voice note's words were shown back as it was heard.
+  const documents = used.filter((file) => !["image", "audio"].includes(file.asset_kind));
+  if (documents.length > 0) {
+    // Without an extraction (model processing off or unavailable) a file was only kept.
+    const read = documents.some(
+      (file) => (JSON.parse(file.processing_manifest) as { model?: string | null }).model
+    );
+    writer.say(read ? "media.fileRead" : "media.fileKept");
+  }
+}
+
 function commitInTransaction(
   core: ReportingCore,
   asset: ProcessedAsset,
@@ -166,12 +257,18 @@ function commitInTransaction(
   });
   if (!draft || !writer) return done;
   const editable = EDITABLE_STATES.has(lifecycleState(draft));
+  const batch = batchOf(core, asset);
   if (result.limitation) {
     writer.say(result.limitation);
+    if (!editable) return done;
     // A report that can still change is never left with nothing asked. When the file that could
     // not be used was all it had to go on, its next step is put as it is after one that could.
-    // A question that is already open stays as it is.
-    if (!editable || openPrompt(core, asset.conversationId)) return done;
+    // A question that is already open stays as it is, unless this file ends a batch whose other
+    // files were used: the batch's reply comes now.
+    if (openPrompt(core, asset.conversationId) && (batch.pending > 0 || batch.used === 0)) {
+      if (batch.pending === 0) acknowledgeBatch(core, writer, draft);
+      return done;
+    }
   } else if (!editable) {
     writer.say("media.late");
     return done;
@@ -179,11 +276,22 @@ function commitInTransaction(
   const used = result.limitation === null;
   let content = draft.content;
   if (result.evidence) {
-    content = withEvidence(content, {
+    const added = withEvidence(content, {
       assetId: asset.id,
       sanitizedDigest: result.evidence.digest,
       mime: "image/jpeg",
     });
+    // An album's photos finish one by one and a download may be retried, so each takes its place
+    // in the order sent. One past the activity's limit in that order finds no room, and the batch's
+    // reply says so.
+    const placed: Working = {
+      content: added === content ? content : inSentOrder(core, asset.draftId, added),
+      snapshot: draft.snapshot,
+      changed: false,
+    };
+    keepAcceptedPhotos(placed);
+    if (placed.content.evidence.some((photo) => photo.assetId === asset.id))
+      content = placed.content;
   }
   let changes = changesFrom(asset, result);
   if (result.transcript && !content.feedback) {
@@ -207,8 +315,12 @@ function commitInTransaction(
   }
   const account = activeAccount(core, asset.participantId, core.settings.chainId);
   const work: Working = {
-    // A file that could not be used adds nothing to the report.
-    content: used ? applyReportChanges(content, changes, draft.snapshot).content : draft.content,
+    // A file that could not be used adds nothing to the report, and nor does a photo that found
+    // no room or repeats one already there, so none of them writes a revision.
+    content:
+      used && changes.length > 0
+        ? applyReportChanges(content, changes, draft.snapshot).content
+        : content,
     snapshot: draft.snapshot,
     changed: false,
   };
@@ -248,23 +360,9 @@ function commitInTransaction(
     )
   )
     writer.say("media.partial");
-  const pending = core.db
-    .query(
-      `SELECT count(*) AS n FROM media_assets WHERE draft_id = $draft AND id <> $id
-       AND state IN ('received','quarantined','inspecting','converting','extracting')`
-    )
-    .get({ draft: asset.draftId, id: asset.id }) as { n: number };
-  // One reply after the last file of a batch, not one question per photo.
-  if (pending.n === 0) {
-    // Without an extraction (model processing off or unavailable) the file was only kept.
-    if (used && !result.transcript)
-      writer.say(
-        result.sourceKind === "image"
-          ? "media.photoAdded"
-          : result.extraction
-            ? "media.fileRead"
-            : "media.fileKept"
-      );
+  // One reply after the last file of a batch, not one per photo, and then one question.
+  if (batch.pending === 0) {
+    acknowledgeBatch(core, writer, next);
     promptNextStepFor(writer, next, catalog, account?.address ?? null);
   }
   return done;
