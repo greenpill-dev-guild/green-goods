@@ -160,6 +160,9 @@ export function planTurn(ctx: TurnContext): TurnPlan {
   if (!ctx.processingConsent) {
     if (command?.kind === "stop" || command?.kind === "delete")
       return { kind: "consent_answer", answer: "decline" };
+    // The notice offers HELP, and its reply reads nothing of what was sent, so it is answered
+    // before consent too. Every other command waits for the answer to the notice.
+    if (command?.kind === "help") return { kind: "command", command };
     if (prompt?.kind === "processing_consent") {
       const option = matchReply(prompt, message.replyId);
       const answer = option ? (option.value as "agree" | "decline") : consentAnswer(message.text);

@@ -2,7 +2,7 @@ import sharp from "sharp";
 import { Telegram, type Telegraf } from "telegraf";
 import type { Update } from "telegraf/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createTelegramBot } from "../../platforms/telegram";
+import { createTelegramBot, registerSlashCommands } from "../../platforms/telegram";
 import {
   createTelegramMediaFetcher,
   createTelegramReporting,
@@ -198,7 +198,15 @@ describe("Telegram reporting on the existing bot", () => {
 
     expect(legacy.direct).not.toHaveBeenCalled();
     expect(api.calls.filter((call) => call.method === "answerCallbackQuery")).toHaveLength(2);
-    expect(api.calls.filter((call) => call.method === "editMessageReplyMarkup")).toHaveLength(2);
+    // A tap takes its own message's keyboard off (this file's presses come from message 1). Each
+    // question sent takes the buttons off the question before it, the one answered by typing too.
+    expect(api.keyboardsRemoved()).toEqual([
+      1,
+      api.messageIdOf("Hi! I'm the Green Goods reporting assistant."),
+      api.messageIdOf("Which garden is this report for?"),
+      1,
+      api.messageIdOf("Which activity in TAS"),
+    ]);
     expect(api.calls.find((call) => call.method === "getFile")?.payload).toEqual({
       file_id: "photo-large",
     });
@@ -211,6 +219,8 @@ describe("Telegram reporting on the existing bot", () => {
     openTelegramChannel();
     harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true });
     const telegraf = bot();
+    // Startup registers the menu, which the account card then points to.
+    await registerSlashCommands(telegraf, true);
     const tell = async (update: Update) => {
       await telegraf.handleUpdate(update);
       await drainThroughTelegram();
@@ -227,6 +237,11 @@ describe("Telegram reporting on the existing bot", () => {
     await browser.open(link);
     const proof = await browser.prove(adaAccount);
     await tell(direct({ text: String(proof.body.pairingCode) }));
+    // The account card points to the Menu, as the replies for a chat with no account do.
+    await tell(direct({ text: "/account" }));
+    expect(sentTexts().at(-1)).toBe(
+      `This chat is connected to ${adaAccount.address.toLowerCase()}.\nYour gardens: TAS.\nTo use a different account, send SWITCH. Account commands are in the Menu too: /account, /connect, /switch and /disconnect.`
+    );
     await tell(direct({ text: "Today I planted twelve baobab seedlings by the fence" }));
 
     // With buttons to tap, the announcement names no command words.
@@ -242,6 +257,136 @@ describe("Telegram reporting on the existing bot", () => {
     expect(sentTexts().at(-1)).toBe(
       "Which of your gardens is this report for?\n1. TAS\n2. Join another garden"
     );
+    // Its buttons send command words, so no later question takes them off.
+    expect(api.keyboardsRemoved()).not.toContain(api.messageIdOf("TAS is your only garden"));
+  });
+
+  it("takes the buttons off a cancelled report's summary, whose copy is purged, at the next question", async () => {
+    openTelegramChannel();
+    const telegraf = bot();
+    const tell = async (update: Update) => {
+      await telegraf.handleUpdate(update);
+      await drainThroughTelegram();
+    };
+    await tell(direct({ text: "Today I planted twelve baobab seedlings by the fence" }));
+    await tell(press("I agree"));
+    await tell(direct({ text: "1" }));
+    await tell(press("Tree planting"));
+    for (const text of ["12", "2", "3 hours"]) await tell(direct({ text }));
+    const summary = api.messageIdOf("Please check your report for TAS");
+    expect(summary).toBeDefined();
+    // CANCEL purges the report's private copy, the summary's sent text among it.
+    await tell(direct({ text: "/cancel" }));
+    expect(sentTexts().at(-1)).toBe("Report canceled. Unpublished content will be removed.");
+    expect(api.keyboardsRemoved()).not.toContain(summary);
+    await tell(direct({ text: "Weeded the beds this morning" }));
+    expect(sentTexts().at(-1)).toContain("Which garden is this report for?");
+    expect(api.keyboardsRemoved().at(-1)).toBe(summary);
+  });
+
+  it("takes only the choices off a pressed message, as Telegram shows it, and keeps its link", async () => {
+    openTelegramChannel();
+    const link = { text: "Join the Community Garden", url: "https://www.greengoods.app/join" };
+    const choice = { text: "I've joined", callback_data: "p:prompt-1:joined" };
+    const message = {
+      message_id: 50,
+      date: 0,
+      chat: DM,
+      reply_markup: { inline_keyboard: [[choice], [link]] },
+    };
+    const query = {
+      id: "press-link",
+      from: PERSON,
+      chat_instance: "chat",
+      data: choice.callback_data,
+      message,
+    };
+    await bot().handleUpdate({ update_id: 901, callback_query: query } as unknown as Update);
+    expect(
+      api.calls
+        .filter((call) => call.method === "editMessageReplyMarkup")
+        .map((call) => call.payload)
+    ).toEqual([{ chat_id: 7001, message_id: 50, reply_markup: { inline_keyboard: [[link]] } }]);
+  });
+
+  it("leads /language to a choice of languages, then names the Menu in the language chosen", async () => {
+    openTelegramChannel();
+    const telegraf = bot();
+    await registerSlashCommands(telegraf, true);
+    const tell = async (update: Update) => {
+      await telegraf.handleUpdate(update);
+      await drainThroughTelegram();
+    };
+    await tell(direct({ text: "/start" }));
+    await tell(press("I agree"));
+    await tell(direct({ text: "/language" }));
+    const choice = api.messages().at(-1);
+    expect(choice?.text).toBe("Which language would you like me to use?");
+    expect(buttonsOf(choice).map((button) => button.text)).toEqual([
+      "English",
+      "Español",
+      "Português",
+    ]);
+
+    await tell(press("Español"));
+    expect(sentTexts().at(-1)).toMatch(/^Reportes de Green Goods:/);
+    expect(sentTexts().at(-1)).toContain(
+      "\n• Toca Menú, junto a donde escribes, para ver estos comandos.\nSoporte:"
+    );
+    await tell(direct({ text: "/account" }));
+    expect(sentTexts().at(-1)).toBe(
+      "Este chat no está conectado a ninguna cuenta. Envía CONNECT para vincular una. Los comandos de cuenta también están en el Menú: /account, /connect, /switch y /disconnect."
+    );
+  });
+
+  it.each([
+    ["/stop", "You've stopped the assistant."],
+    ["/delete", "Your unpublished drafts and files are being deleted."],
+  ])("keeps CANCEL and %s with reporting while the channel is paused", async (control, done) => {
+    openTelegramChannel();
+    const telegraf = bot();
+    const tell = async (update: Update) => {
+      await telegraf.handleUpdate(update);
+      await drainThroughTelegram();
+    };
+    const count = (sql: string) => harness.core.db.query(sql).get();
+    await tell(direct({ text: "Today I planted twelve baobab seedlings by the fence" }));
+    await tell(press("I agree"));
+    setControl(harness.core, channelControl("telegram"), false, {
+      actor: "operator",
+      reason: "pause",
+    });
+    // An ordinary message goes to the bot's own handlers, and so does a stranger's STOP.
+    await tell(direct({ text: "Hello" }));
+    const stranger = { id: 7002, is_bot: false, first_name: "Bo", language_code: "en" };
+    await tell({
+      update_id: 990,
+      message: {
+        message_id: 990,
+        date: 0,
+        chat: { id: 7002, type: "private", first_name: "Bo" },
+        from: stranger,
+        text: "/stop",
+      },
+    } as unknown as Update);
+    expect(legacy.direct).toHaveBeenCalledTimes(2);
+
+    // CANCEL, STOP and DELETE stay with reporting, which carries them out: none needs a model.
+    await tell(direct({ text: "/cancel" }));
+    expect(sentTexts().at(-1)).toBe("Report canceled. Unpublished content will be removed.");
+    await tell(direct({ text: control }));
+    expect(sentTexts().at(-1)?.startsWith(done)).toBe(true);
+    expect(legacy.direct).toHaveBeenCalledTimes(2);
+    expect(
+      count(
+        "SELECT count(*) AS n FROM consent_records WHERE purpose = 'processing' AND withdrawn_at IS NULL"
+      )
+    ).toEqual({ n: 0 });
+    // DELETE also removes what was sent; STOP leaves that to the discarded report's own purge.
+    if (control === "/delete")
+      expect(
+        count("SELECT count(*) AS n FROM source_entries WHERE content_ciphertext IS NOT NULL")
+      ).toEqual({ n: 0 });
   });
 
   it("does not acknowledge an update it could not store", async () => {
