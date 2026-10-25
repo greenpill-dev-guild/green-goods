@@ -37,10 +37,10 @@ const DUTY_ICONS = {
 } satisfies Record<StewardDuty["kind"], unknown>;
 
 /**
- * What a duty says, the same on its Needs Your Attention row and on the Highlights carousel's
- * duty card: its count as the title ("2 submissions to review") and its kind as the pill.
+ * What a duty says: its count as the title ("2 submissions to review") and its kind as the pill.
+ * The Highlights carousel's duty card says the same, so export this when that card uses it.
  */
-export function describeStewardDuty(intl: IntlShape, duty: StewardDuty) {
+function describeStewardDuty(intl: IntlShape, duty: StewardDuty) {
   const message = (id: string) => intl.formatMessage({ id }, { count: duty.count });
   switch (duty.kind) {
     case "review":
