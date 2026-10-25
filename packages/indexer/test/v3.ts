@@ -334,6 +334,10 @@ export const CreditRegistry = createContract("CreditRegistry", [
   "PausedSet",
 ] as const);
 export const CommitmentPoolingModule = createContract("CommitmentPoolingModule", [
+  "ServiceOfferTermsSet",
+  "ServiceClaimConsentRequested",
+  "ServiceClaimConsentAccepted",
+  "ServiceClaimConsentWithdrawn",
   "PoolRegistered",
   "PoolCharterUpdated",
   "PoolReady",

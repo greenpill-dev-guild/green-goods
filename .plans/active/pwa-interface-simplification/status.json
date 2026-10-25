@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-25T03:50:38.949Z"
+    "updated_at": "2026-10-25T07:17:36.954Z"
   },
   "links": {
     "brief": "brief.md",
@@ -52,6 +52,8 @@
     "depends_on_features": []
   },
   "notes": [
+    "2026-10-25 (overnight): the maintainer asked for every phase to complete tonight, reviewed and merged into develop, with a standing OK to dismiss CodeRabbit's stale change requests once threads are settled and the current-head CI Gate is green. Merged so far: steps 5 (#1278), 6 (#1280) and 16 (#1279), guides DL-127 to DL-131 (#1277). Steps 3, 4, 7 and 9, 8 and 19, 11 and 14 are in their push gates or waiting on the shell and step 11. Join requests cannot be counted or listed without a signed proof (the agent claims a nonce per read), so Needs Your Attention ships three rows and the bell five event kinds; a signature-free source is a scope question for the maintainer. Steward rows and events follow each act's existing permission check.",
+    "2026-10-25 (wave A): steps 1 and 2 merged (#1274, #1275; PRD-1311 In Review with its closeout). The maintainer asked for every independent step to run in parallel, so seven sessions build steps 3, 4, 5 and 6, 11, 14 and 16, 7 and 9, and 8 and 19 at once, each on its own files; sessions leave .plans to the orchestrator and put their proof in their PR bodies. The remaining design rules are DL-127 to DL-131 (#1277). Next wave: steps 10 (after the About review), 15, 18, 13, 17 and 12.",
     "2026-10-24 (start gate): the maintainer gave the execution go for both slices and answered the start gate: the app's chip is 32px with a 48px hit area, amending #1251's 44px app density; the banner avatar on both surfaces (decision 33); step 18 before step 13, then 17 (decision 34). The hub moved to active; state_api is ready for steps 1 and 2, ui waits on it. #1162 merged with a gardener-and-steward members-only check that step 1 moves onto the membership owner. Linear: PRD-1296's Done-when rewritten for decisions 4, 22, 27 and 32; sub-issues PRD-1345 to PRD-1349 filed under PRD-1260 for steps 13, 14-15, 16-17, 18 and 19; both slices' hub links point at develop.",
     "2026-10-21 (lock): the maintainer took the rail for seasons and campaigns (decision 32) and locked the plan and scope; the design rounds are closed and the hub PR is marked ready to merge into develop. Implementation still awaits a separate go; the next step is the implementation start gate (Linear sync for the parent record, promotion to active, the first slice's lane).",
     "2026-10-21 (picks): the maintainer pasted the lab's picks (decision 27) and called the design good enough to implement: the carousel back (decision 14 reversed), cards, the compact promise card, Log Work on Its Own, Needs Your Attention, the wallet in the header, the Insights banner, no Work-for pin (decision 6 amended by 28). Three tweaks recorded as decisions 29 to 31: the compact card folds its needs into +N, the info panel keeps one height, the progressor uses its width. Seasons and campaigns, which are commitment-pool cycles shown today only on the old Pool tab, are proposed as decision 32 (the rail in the Promises sheet, the open cycles leading the carousel, the shipped details sheet) and drawn in the lab for a pick. Implementation still awaits a separate go.",
@@ -77,7 +79,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "in_progress",
       "branch": null,
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
@@ -101,7 +103,7 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/pwa-active-garden",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
       "tdd": {
@@ -341,6 +343,22 @@
       "status": "tdd_recorded",
       "branch": "feature/pwa-active-garden",
       "note": "Slice 1, steps 1 and 2 recorded (membership owner, active-garden store and resolver); the state parts of steps 4 and 5 follow their merge."
+    },
+    {
+      "timestamp": "2026-10-25T07:17:34.927Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/pwa-active-garden",
+      "note": "Steps 1 and 2 merged (#1274 at a8e3900b5, #1275 at 4f8197ac5); their TDD proof and receipts are in handoffs/claude-state-api.md. In flight in parallel sessions: step 4 (Submit Work precedence), step 5 (offline photo garden) and step 14 (notification events read model)."
+    },
+    {
+      "timestamp": "2026-10-25T07:17:36.956Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Wave A dispatched 2026-10-25 in parallel sessions, each recording its RED/GREEN proof and receipt in its PR body for the orchestrator to copy here after merge: step 3 (Home shell), step 6 (Profile list), step 11 (scoped sheets), steps 7 and 9 (carousel, Recent Activity, Take Part), steps 8 and 19 (Continue, Needs Your Attention), step 16 (Compose's Open default)."
     }
   ]
 }

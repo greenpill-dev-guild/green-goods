@@ -6,6 +6,7 @@ import { CommitmentPoolingAcceptanceLib } from "./AcceptanceLib.sol";
 import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
 import { CommitmentPoolingCreationChecksLib } from "./CreationChecksLib.sol";
 import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
+import { CommitmentPoolingServiceOfferStorageLib } from "./ServiceOfferStorageLib.sol";
 
 /// @title CommitmentPoolingExchangeLib
 /// @notice Deployed behavior library: atomic bilateral Offer x Offer acceptance.
@@ -37,6 +38,8 @@ library CommitmentPoolingExchangeLib {
         if (offerA.state == ICommitmentPoolingModule.CommitmentState.None || offerA.poolId != offerB.poolId) {
             revert ICommitmentPoolingModule.ExchangeCounterpartMismatch(exchangeCommitmentId);
         }
+        CommitmentPoolingServiceOfferStorageLib.requireNoExchange(counterCommitmentId);
+        CommitmentPoolingServiceOfferStorageLib.requireNoExchange(exchangeCommitmentId);
         CommitmentPoolingGuardLib.requirePoolState(
             offerB.poolId, pools[offerB.poolId], ICommitmentPoolingModule.PoolState.Open
         );

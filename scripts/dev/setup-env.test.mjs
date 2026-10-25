@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
@@ -30,6 +30,21 @@ function nodeOnPath(t, version) {
   return directory;
 }
 
+// This test concerns tool detection, not the developer's environment. Execute the unchanged
+// doctor in a fixture whose missing .env cannot expose or depend on real credentials.
+function doctorWorkspace(t) {
+  const root = mkdtempSync(path.join(os.tmpdir(), "gg-doctor-node-pin-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(path.join(root, "scripts/dev"), { recursive: true });
+  for (const file of [".mise.toml", "package.json", "scripts/dev/doctor.js"]) {
+    copyFileSync(path.join(projectRoot, file), path.join(root, file));
+  }
+  for (const file of ["scripts/lib", "scripts/contracts", "scripts/dev/surface-leases.mjs"]) {
+    symlinkSync(path.join(projectRoot, file), path.join(root, file));
+  }
+  return root;
+}
+
 /**
  * Run a dev script under Bun with `version` first on PATH.
  *
@@ -40,8 +55,9 @@ function nodeOnPath(t, version) {
  */
 function runUnderBun(t, script, args, version) {
   assert.ok(bun, "bun is required to run repository scripts");
+  const cwd = script === "doctor.js" ? doctorWorkspace(t) : projectRoot;
   return spawnSync(bun, [`scripts/dev/${script}`, ...args], {
-    cwd: projectRoot,
+    cwd,
     encoding: "utf8",
     env: {
       ...process.env,
@@ -86,6 +102,8 @@ test("setup stops when the Node major differs from the .mise.toml pin", (t) => {
 
 test("the doctor reports the Node on PATH against the pin, not Bun's emulated version", (t) => {
   const nodeCheck = (result) => {
+    assert.ifError(result.error);
+    assert.ok(result.stdout.trim(), result.stderr || "doctor produced no JSON");
     const payload = JSON.parse(result.stdout);
     return payload.results.find((entry) => entry.check === "tool:node");
   };

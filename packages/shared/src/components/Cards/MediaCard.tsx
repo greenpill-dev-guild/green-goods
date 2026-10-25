@@ -137,6 +137,7 @@ export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function 
           <span
             className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-[rgb(var(--gg-card-surface,var(--bg-white-0))/0.9)] px-2.5 py-0.75 type-meta-sm font-semibold text-text-sub"
             title={mediaLabel}
+            data-slot="media-label"
           >
             {mediaLabel}
           </span>

@@ -5,10 +5,8 @@
  */
 
 import { useSelector } from "@xstate/react";
-import type { SmartAccountClient } from "permissionless";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Hex } from "viem";
-import type { P256Credential } from "viem/account-abstraction";
 import { useAccount, useConfig } from "wagmi";
 
 import { getAppKit } from "../config/appkit";
@@ -34,56 +32,33 @@ import {
   setEmbeddedAddress,
   setStoredWalletAddress,
 } from "../modules/auth/session";
-import type { SmartAccountClientResolver } from "../types/auth";
-import type { PasskeyAdapters } from "../workflows/auth-passkey-adapters";
+import { defaultPasskeyAdapters, type PasskeyAdapters } from "../workflows/auth-passkey-adapters";
 import type { AuthActor } from "../workflows/authActor";
 import type { WalletConnectionType } from "../workflows/authMachine";
+import { createPilotAccountEnrollment } from "../modules/auth/pilot-account-enrollment";
+import {
+  AuthStateContext,
+  AuthActionsContext,
+  AuthContext,
+  type AuthStateValue,
+  type AuthActionsValue,
+  type AuthContextType,
+} from "./authContext";
 
-/** Read state without subscribing to action-reference changes. */
-export interface AuthStateValue {
-  /** An abandoned connector needs an explicit fresh-page retry. */
-  walletReleaseStalled?: boolean;
-  authMode: AuthMode;
-  isReady: boolean;
-  isAuthenticated: boolean;
-  isAuthenticating: boolean;
-  error: Error | null;
-  credential: P256Credential | null;
-  smartAccountAddress: Hex | null;
-  smartAccountClient: SmartAccountClient | null;
-  resolveSmartAccountClient: SmartAccountClientResolver | null;
-  userName: string | null;
-  hasStoredCredential: boolean;
-  walletAddress: Hex | null;
-  eoaAddress: Hex | undefined;
-  embeddedAddress: Hex | null;
-  externalWalletConnected: boolean;
-  externalWalletAddress: Hex | null;
-}
-
-/** Stable mutations for consumers that do not need auth state. */
-export interface AuthActionsValue {
-  createAccount: (userName: string) => Promise<void>;
-  loginWithPasskey: (userName?: string) => Promise<void>;
-  loginWithWallet: () => void;
-  loginWithEmbedded: () => void;
-  signOut: () => Promise<void>;
-  switchToWallet: () => void;
-  switchToPasskey: (userName?: string) => void;
-  retry: () => void;
-  dismissError: () => void;
-
-  // Session management
-  clearPasskey: () => void;
-  disconnectWallet: () => Promise<void>;
-}
-
-/** Combined auth context retained for existing consumers. */
-export interface AuthContextType extends AuthStateValue, AuthActionsValue {}
-
-export const AuthStateContext = createContext<AuthStateValue | undefined>(undefined);
-export const AuthActionsContext = createContext<AuthActionsValue | undefined>(undefined);
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export {
+  AuthStateContext,
+  AuthActionsContext,
+  AuthContext,
+  type AuthStateValue,
+  type AuthActionsValue,
+  type AuthContextType,
+} from "./authContext";
+export {
+  useAuthState,
+  useAuthActions,
+  useAuthContext,
+  useOptionalAuthContext,
+} from "../hooks/auth/useAuthContext";
 
 // Pinned to @reown/appkit ^1.8.14 (see packages/{client,admin,shared}/
 // package.json). The auth connector exposes its ID as "ID_AUTH" via
@@ -96,39 +71,6 @@ function isAppKitEmbeddedConnector(connector?: { id?: string } | null): boolean 
   return Boolean(
     connector?.id && (APPKIT_EMBEDDED_CONNECTOR_IDS as readonly string[]).includes(connector.id)
   );
-}
-
-// HOOKS
-
-/** Read-only auth state. Use for components that only display auth info. */
-export function useAuthState(): AuthStateValue {
-  const context = useContext(AuthStateContext);
-  if (!context) {
-    throw new Error("useAuthState must be used within AuthProvider");
-  }
-  return context;
-}
-
-/** Auth mutation actions. Use for components that only trigger auth flows. */
-export function useAuthActions(): AuthActionsValue {
-  const context = useContext(AuthActionsContext);
-  if (!context) {
-    throw new Error("useAuthActions must be used within AuthProvider");
-  }
-  return context;
-}
-
-/** Combined auth context (backward compatible). */
-export function useAuthContext(): AuthContextType {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuthContext must be used within AuthProvider");
-  }
-  return context;
-}
-
-export function useOptionalAuthContext(): AuthContextType | undefined {
-  return useContext(AuthContext);
 }
 
 export interface AuthProviderProps {
@@ -147,6 +89,32 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   } = useAccount();
 
   const actor = useAuthActor(adapters);
+  const pilotEnrollment = useMemo(
+    () =>
+      createPilotAccountEnrollment({
+        adapters: adapters ?? defaultPasskeyAdapters,
+        getSession: () => {
+          const active = actor?.getSnapshot();
+          if (
+            !active?.matches({ authenticated: "passkey" }) ||
+            !active.context.credential ||
+            !active.context.smartAccountAddress
+          )
+            return null;
+          return {
+            credential: active.context.credential,
+            address: active.context.smartAccountAddress,
+            userName: active.context.userName || "",
+            chainId: active.context.chainId,
+          };
+        },
+        selectSession: (output) => {
+          actor?.send({ type: "SELECT_PILOT_ACCOUNT", output });
+        },
+      }),
+    [actor, adapters]
+  );
+  useEffect(() => () => pilotEnrollment.cancel(), [pilotEnrollment]);
 
   const snapshot = useSelector(actor as AuthActor, (s) => s);
   // A passkey saved or cleared during this session, not only the one found when the page loaded.
@@ -365,6 +333,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
 
   const endSession = useCallback(() => {
     if (!actor) return;
+    pilotEnrollment.cancel();
     const session = actor.getSnapshot().context;
     loginGenerationRef.current += 1;
     cancelDeferredLogin();
@@ -390,7 +359,14 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         (group === "workApprovals" && source === "offline"),
     });
     queryClient.getMutationCache().clear();
-  }, [actor, clearRestoreAttempt, releaseWallet, cancelDeferredLogin, isConnecting]);
+  }, [
+    actor,
+    clearRestoreAttempt,
+    releaseWallet,
+    cancelDeferredLogin,
+    isConnecting,
+    pilotEnrollment,
+  ]);
 
   const { syncSignOut, notifySignOut } = useCrossTabSignOut(
     endSession,
@@ -426,7 +402,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   );
 
   const loginWithPasskey = useCallback(
-    async (userName?: string) => {
+    async (userName?: string, originalAccount = false) => {
       if (!actor) return;
       syncSignOut();
       const generation = loginGenerationRef.current;
@@ -446,10 +422,19 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       syncSignOut();
       if (generation !== loginGenerationRef.current) return;
       // Send event to machine
-      actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
+      actor.send({
+        type: "LOGIN_PASSKEY_EXISTING",
+        userName: finalUserName,
+        ...(originalAccount ? { originalAccount: true } : {}),
+      });
       saveAuthModeToStorage("passkey");
     },
     [actor, isConnected, disconnectWallet, cancelDeferredLogin, syncSignOut]
+  );
+
+  const loginWithOriginalPasskey = useCallback(
+    (userName?: string) => loginWithPasskey(userName, true),
+    [loginWithPasskey]
   );
 
   const loginWithWallet = useCallback(() => {
@@ -530,10 +515,11 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
 
   const switchToWallet = useCallback(() => {
     if (!actor) return;
+    pilotEnrollment.cancel();
     syncSignOut();
     actor.send({ type: "SWITCH_TO_WALLET" });
     saveAuthModeToStorage("wallet");
-  }, [actor, syncSignOut]);
+  }, [actor, syncSignOut, pilotEnrollment]);
 
   const switchToPasskey = useCallback(
     (userName?: string) => {
@@ -597,6 +583,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         error: null,
         credential: null,
         smartAccountAddress: null,
+        passkeyAccountProfile: null,
         smartAccountClient: null,
         resolveSmartAccountClient: null,
         userName: null,
@@ -649,6 +636,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       error: snapshot.context.error,
       credential: snapshot.context.credential,
       smartAccountAddress: snapshot.context.smartAccountAddress,
+      passkeyAccountProfile: snapshot.context.passkeyAccountProfile ?? null,
       smartAccountClient: snapshot.context.smartAccountClient,
       resolveSmartAccountClient: snapshot.context.resolveSmartAccountClient,
       userName: snapshot.context.userName,
@@ -675,6 +663,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       error: computedValues.error,
       credential: computedValues.credential,
       smartAccountAddress: computedValues.smartAccountAddress,
+      passkeyAccountProfile: computedValues.passkeyAccountProfile,
       smartAccountClient: computedValues.smartAccountClient,
       resolveSmartAccountClient: computedValues.resolveSmartAccountClient,
       userName: computedValues.userName,
@@ -691,8 +680,15 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   // Actions value — stable references, only changes when actor/disconnectWallet change
   const actionsValue: AuthActionsValue = useMemo(
     () => ({
+      preparePilotAccount: pilotEnrollment.prepare,
+      findExistingPilotAccount: pilotEnrollment.findExisting,
+      quotePilotAccount: pilotEnrollment.quote,
+      confirmPilotAccount: pilotEnrollment.confirm,
+      reconcilePilotAccount: pilotEnrollment.reconcile,
+      cancelPilotAccountEnrollment: pilotEnrollment.cancel,
       createAccount,
       loginWithPasskey,
+      loginWithOriginalPasskey,
       loginWithWallet,
       loginWithEmbedded,
       signOut,
@@ -706,8 +702,10 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       disconnectWallet,
     }),
     [
+      pilotEnrollment,
       createAccount,
       loginWithPasskey,
+      loginWithOriginalPasskey,
       loginWithWallet,
       loginWithEmbedded,
       signOut,

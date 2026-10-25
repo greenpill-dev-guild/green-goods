@@ -1,0 +1,404 @@
+# Gnosis account/provider review and root signing proof
+
+Eleven Gnosis root-signing boundary cases and 45 Shared boundary tests pass. The traces
+identify the patched validator actually authorizing local operations at the original
+fictional address. Actual member signing and hosted provider readiness remain unproved.
+
+This continuation starts at signed checkpoint `c40697f6e`. It reviews the existing
+Kernel 0.3.1 / EntryPoint 0.7 account path without activating production Gnosis auth,
+changing the accepted member address, selecting a new provider, or deploying anything.
+The prompt-preparation chat confirms no newer accepted provider or architecture choice.
+
+## Bounded plan and inventory
+
+1. Recheck the selected account's Gnosis dependencies through the approved Alchemy app.
+   Separate node RPC from exact account/EntryPoint bundler and sponsorship support.
+2. Trace the validator actually called by local signed operations after a controlled root
+   change. Test patched-root operation, legacy-module removal, explicit legacy selection,
+   signature binding and replay on the existing pinned Gnosis fork.
+3. Run focused proof and the repository validation selector, then commit only owned proof
+   and handoff paths with signing required. Preserve unrelated changes and live gates.
+
+The existing `proofs/member-migration/fixture.mjs` owns the isolated Anvil fixture,
+synthetic WebAuthn owner, canonical legacy initializer and real EntryPoint submission.
+The new root-signing runner consumes it without changing production account/provider
+interfaces. Installed permissionless owns nonce encoding; the verified Kernel compiler
+input explains root-mode dispatch. Existing Shared account-profile, provider and passkey
+adapter tests protect the current production rejection of chain 100.
+
+## Findings
+
+**Established: root signing differs from explicit module selection.** Installed permissionless
+0.2.57 encodes mode/type `0x0000` in its user-operation nonce. Kernel 0.3.1 substitutes the active
+root validator in that mode. Its embedded legacy-address bytes select a nonce sequence, not
+legacy-validator authority. Real EntryPoint call traces show `0x7ab16Ff354AcB328452F1D445b3Ddee9a91e9e69`
+returning successful validation after the controlled root change and after legacy uninstall.
+The patched-client root nonce uses another sequence and also succeeds at the original address
+`0x9546b80b2faf5d5a9905c752d26b60296d6bc305`.
+
+**Established: rejection and repair.** Explicit module mode `0x0001` selects the removed legacy
+validator, which returns validation failure. Kernel rejects with `InvalidValidator()` inside
+EntryPoint `AA23 reverted`. Identical operation replay gives `AA25 invalid account nonce`.
+Wrong chain, wrong sender-account signature and changed payload each give `AA24 signature error`
+through the patched validator. Every rejection preserves observed account/module/key/nonce state.
+A corrected patched signature succeeds with the unconsumed nonce. Legacy module/key removal
+survives all these operations. This is not a complete permission inventory or migration approval.
+
+**Established: current production boundaries remain closed.** Chain 100 has no production
+settlement account profile or Pimlico client mapping. Existing passkey-adapter construction rejects
+it. A policy identifier alone establishes neither support nor sponsorship. The profile assertion
+by itself does not reject an unknown chain; downstream supported-chain/client construction supplies
+the rejection. No production auth, dependency, initializer, address or provider mapping changed.
+
+**Established: node reads are available; deployment prerequisites are unresolved.** Fresh read-only
+Alchemy observations use Gnosis 100 block **48,892,415 (`0x2ea09ff`)**, hash
+`0xe420e6be6351e11cb1326fa62eb9271e33ca6fffb0cc2719c9e6747f21fb1b36`.
+The selected legacy validator and fictional account both have empty code. The canonical factory's
+address view returns the original address; direct factory and meta-factory simulations both revert.
+The connector omits revert data, so these reads establish no decoded cause or successful deployment.
+
+**Published provider evidence:** [Pimlico's Gnosis matrix](https://docs.pimlico.io/guides/supported-chains#gnosis),
+checked 22 October, lists EntryPoint 0.7 bundler/paymaster support but marks Kernel 0.3.1 unsupported.
+[Alchemy's Wallet API matrix](https://www.alchemy.com/docs/wallets/supported-chains) omits Gnosis.
+The selected Alchemy connector's `supportedEntryPoints` call returns an unsupported-method error
+on `gnosis-mainnet`. This limited probe is not a test of every canonical ERC-4337 endpoint or custom
+provider arrangement. Successful node RPC cannot certify the selected account, paymaster policy,
+sponsorship or recovery. No new provider is selected.
+
+[ZeroDev's current passkey example](https://docs.zerodev.app/onboarding/passkeys/overview) names
+Kernel `V3_3` and `V0_0_3_PATCHED`. That example does not certify this selected 0.3.1 profile,
+the historical initializer or the unverified migration helper. No SDK upgrade or profile change follows.
+
+## Proof and provenance
+
+The [evidence artifact](../artifacts/member-gnosis-account-provider-proof-2026-10-22.json) retains
+fresh node/provider responses, eleven local cases, validator-call traces, exact source/dependency
+hashes, configuration and proof limits. The new
+[runner](../proofs/member-migration/root-signing-proof.mjs) reuses the unchanged failure fixture.
+Canonical legacy creation and the controlled existing-Kernel root-change/uninstall steps execute
+only on its owned loopback Anvil node. They are not an adopted migration or the unverified helper.
+
+Local execution is pinned separately to Gnosis 100 block **48,888,476 (`0x2e9fa9c`)**, hash
+`0x11a68d53c3dc81c412402cc1393e379358763ede55ab53fe0a9e361b21878867`, Anvil 1.7.1/Bpo1.
+The upstream block was rechecked through Alchemy. Most dependency state comes from the genuine
+historical Foundry cache; eighteen missing storage reads were supplied through the read-only
+Alchemy queue. This is not fresh independent full-state authentication or a cold-cache recipe.
+Earlier complete runtime provenance remains in the helper/failure handoff. No CLC source was read.
+
+The owner uses public P-256 scalar 1 and synthetic `greengoods.test` WebAuthn responses. No actual
+member credential, browser ceremony, private key, root secret file, live funds, hosted bundler or
+paymaster is involved. A public Anvil EOA submits to the real forked EntryPoint. Signatures are
+omitted from recorded operations. Rendered evidence: **none**; prior fictional Storybook evidence
+does not prove member signing. No helper execution, certification or production migration is claimed.
+
+## Commands and attribution
+
+Run from the repository root. The temporary wrapper changes to that root before invoking the
+Plan Hub runner so the repository-pinned Anvil resolves. It has no dependencies. The session-operated
+read-only bridge is a disposable copy of the existing gateway with a separate queue directory;
+no credential-bearing RPC URL or API key is extracted. Its loopback endpoint is not the signing node.
+
+```sh
+bun --no-env-file run --cwd /private/tmp/green-goods-root-signing-20261022/wrapper test --guards
+MEMBER_MIGRATION_RPC_URL=http://127.0.0.1:62297/ PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd /private/tmp/green-goods-root-signing-20261022/wrapper test
+PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/settlement-aa-profile.test.ts src/__tests__/config/pimlico.test.ts src/__tests__/workflows/auth-passkey-adapters.test.ts src/__tests__/workflows/authPasskeyOwner.test.ts src/__tests__/modules/agent-reporting/owner-validator.test.ts src/__tests__/service-access-voucher-recovery.test.ts
+node scripts/harness/plan-hub.mjs validate --feature cosmo-local-credit-interop
+```
+
+Signed source checkpoint: **`b569e613e107ddb64cf2f442ead38f6f21ff93a2`**, signature **G**.
+Both committed blobs match the reviewed and validated hashes; the index is empty afterward.
+
+Results: nonce/confinement guards pass; **11/11** local cases; **45/45** Shared tests in six files
+(1.79 seconds); Plan Hub validation passes for all 34 hubs. The selected QA checks are `format`
+and `lint`, selected by automatic hygiene; there is no new mandatory production critical override.
+The final exact seven-path selector/execution passes **2/2 fresh**, 0 reused/unrun. Format
+processes two JSON files and lint processes zero files under the existing policy; neither replaces
+the executable proof. All **42** local links resolve, all lane objects remain unchanged and all
+**222** pre-existing dirty/untracked file hashes are preserved. Logs and consistency proof remain under
+`/private/tmp/green-goods-root-signing-20261022/`. No receipt reuse or protected environment
+fingerprint read is used. Existing production critical receipts retain their preceding dated scope.
+
+The repository ignores Plan Hub `.mjs` files in Biome. Explicit included-JavaScript stdin checking
+with `--write` produces byte-identical source; selector hygiene alone is not meaningful script proof.
+Initial excluded `.mjs` stdin attempts and the temporary wrapper's first Anvil resolution failure
+(exit 127 outside the repo) are retained. Neither is a product RED/GREEN claim. Call traces correct
+the earlier evidence interpretation; the old failure matrix is preserved as historical evidence.
+
+Proof ran in the working tree at `c40697f6e` with exact input hashes. The unrelated Shared manifest
+export is dirty and preserved; no clean whole-commit execution receipt is claimed. The signed
+`b569e613e` checkpoint attributes the unchanged owned proof/evidence blobs, not the unrelated manifest.
+No push, deployment, provider activation or external tracker write occurred.
+
+## Remaining gate and next bounded work
+
+Resolve an approved same-address bootstrap/migration path with exact source/build/security and
+privilege provenance, then obtain support for that exact Kernel/EntryPoint/validator combination,
+configured sponsorship and recovery. Only then can an authenticated actual-member ceremony prove
+possession and signing. Replacing the initializer's validator or changing account type is not an
+accepted address-preserving fallback. A community Safe remains a distinct custody model.
+
+Helper provenance, actual member possession, browser ceremony, hosted provider acceptance,
+sponsorship, recovery and COM-46 issuer approval remain open. COM-46's last recorded read is
+In Progress with no approved evidence supplied; no newer issuer approval is asserted here.
+Contracts remain in progress; broader UI/state API/manual/release blockers and overall backlog
+are preserved. The prompt-preparation chat receives the root-mode clarification and these limits.
+
+## Native batch candidate review, 22 October Pacific
+
+The two-call native Kernel candidate is insufficient to guarantee atomic credential cleanup.
+This is a source review and offline encoding result, not an executed or approved migration.
+The [review artifact](../artifacts/member-native-batch-review-2026-10-22.json) records exact
+source hashes, source locations, the encoded mode and current primary provider references.
+
+All 23 Kernel source hashes and the complete compiler-input hash match the earlier verified
+rebuild. Kernel's existing `execute` can call its own `changeRootValidator` followed by
+`uninstallModule`; the entrypoint/self/root-hook guards still own authority. The installed
+permissionless 0.2.57 encoder produces default batch mode `0x0100`, which propagates subcall
+reverts. Its misleading `revertOnError=true` option instead produces Kernel TRY mode `0x0101`,
+which records failed subcalls and continues. Inspect bytes rather than inferring semantics
+from that option name.
+
+There is a separate failure boundary inside uninstall: `_uninstallValidation` clears the
+module's validation hook, then ignores `ModuleLib.uninstallModule`'s boolean result.
+`ModuleLib` emits `ModuleUninstallResult` when the validator's `onUninstall` fails, without
+propagating that failure. **Inference from source:** even default batch mode can finish with
+the legacy module disabled but its validator-local owner key uncleared. This does not
+establish remaining signing authority; it does disprove an unconditional cleanup guarantee.
+A candidate needs explicit, exact postconditions and their failure proof before adoption.
+No replacement helper, account initializer, validator deployment or production policy was added.
+
+Four checks in the [offline runner](../proofs/member-migration/native-batch-encoding-proof.mjs)
+cover the actual installed encoder's default mode, ordered zero-value account self-calls and
+fixture owner data, TRY-mode distinction, and empty-call rejection. They use no signer, RPC
+or account deployment. They prove encoding, not EVM rollback, authorization, replay, retry,
+recovery, credential possession or provider acceptance. The existing execution proofs retain
+their dated scope: account creation and nonce consumption can survive an execution failure.
+The first offline attempt exposed a mixed-case hex assertion in this fixture; its corrected
+byte-equivalent comparison passes. This is no product RED/GREEN claim.
+
+Primary documentation rechecked on 22 October Pacific still lists Gnosis EntryPoint 0.7
+bundler/paymaster support and marks Kernel 0.3.1 unsupported in
+[Pimlico's account matrix](https://docs.pimlico.io/guides/supported-chains#gnosis).
+[Alchemy's Wallet API matrix](https://www.alchemy.com/docs/wallets/supported-chains) still
+omits Gnosis. No hosted endpoint or sponsorship policy was tested. These references clear
+no account, provider, recovery, actual-member, issuer or live gate.
+
+The replacement continuation preserves the preceding platform error: content was flagged
+for possible cybersecurity risk without identifying a specific unsafe operation. It grants
+no authority to circumvent a safety decision, alter permissions or disable safeguards.
+Action-specific rejections remain binding. Private chat identifiers and transcripts stay
+outside repository artifacts.
+
+Task record: Cosmo-Local account/provider proof | Type: investigation/proof | Outcome: partial
+Agent/model: Codex / exact model unknown | Coverage: this continuation only
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| investigate | unknown → 2026-10-22 23:57:12 | First observed clock 23:55:25; source and primary provider review |
+| implement | after 23:57:12 → unknown | Bounded local proof runner; production interfaces unchanged |
+| verify | 2026-10-23 00:00:22 → 00:08:40 | Eleven cases, 45 tests, 2/2 fresh selector checks, links and lane/preservation checks pass |
+| review | 2026-10-23 00:05:35 → 00:09:40 | Evidence correction, exact staged/committed proof blobs and signature G verified |
+| publish (local only) | unknown → 2026-10-23 00:09:40 | Signed proof checkpoint `b569e613e`; plan/evidence handoff checkpoint follows |
+
+Human corrections: 0 observed in this segment; attention: unknown.
+
+## Local consolidation checkpoint, 22 October Pacific
+
+Four independent groups are committed locally with verified `G` signatures:
+
+- `e3a964dde499463508d7e4942aabf8246e97040f`: native batch encoding proof and its limits.
+- `5103d1e82a0e0a6dc1d8171cc3156303c44efdc9`: preserved Cosmo planning/review provenance and current handoff index.
+- `795714f8099857246137cedfa7d8104623ea7a5a`: historical local signing-setup source and disposable fixture proof.
+- `914ba20187bdd558c83abc0943425d81ea4570ae`: contributor attribution and reconciled release context.
+
+The [consolidation record](../artifacts/local-consolidation-validation-2026-10-22.json) owns
+commands, source hashes, selector reasons and retained failures. Four offline encoding checks,
+13 signing-tool fixture checks and six Shared boundary files with 45 tests pass. The offline
+proof also passes at `e3a964dde` with clean tracked source paths; a path-scoped diff confirms
+those inputs are unchanged through `914ba2018`. This is narrow source attribution, not a clean
+whole-checkout receipt. All 34 hubs validate; 103 local file-link checks pass. Selected group
+hygiene passes 2/2, 1/1, 2/2 and 1/1 fresh, without receipt reuse. Plan Hub JavaScript is excluded
+by ordinary hygiene; explicit included-path formatting and strict lint provide its source checks.
+
+Direct strict lint found CLI output, control-regex and redundant-escape warnings in the historical
+signing setup. Standard output/error, equivalent explicit NUL rejection and import ordering
+resolve them; its final 13 fixture checks pass. These source edits do not install, unlock or
+roll back the real setup, access a protected key, alter signing settings or change permissions.
+The existing agent signs through scoped approval. The reviewed temporary hook copy retains the
+identity and formatter checks, disables automatic stash/hiding, and leaves persistent hooks intact.
+
+**Public Docs proof remains blocked.** Its selected authority check reports 66 passing and 15
+failing tests because this checkout cannot resolve the declared `@babel/parser` 8.0.4 dependency.
+The dependent Docs build is unrun. No dependency was installed or upgraded. Three public-page
+edits remain uncommitted. The independent release-context snapshot matches the original backup
+bytes and does not replace the later implementation/publication record. The post-commit push
+plan selects format, lint and Docs authority; execution remains blocked by that same known
+dependency. It was not retried without a capability change. Nothing was pushed or published.
+
+**Active app work remains separate.** Ninety dirty startup, public-site, auth/cache and baseline
+paths belong to the active performance owner, which is preparing its own isolated review.
+The current checkout's full critical plan retains all 22 selected checks, including Shared,
+Client, Admin and Agent critical tests plus authenticated browser obligations. They are unrun
+in this chat; that other checkout's progress is not a receipt for this one. The three Admin
+implementation components remain untracked, so the earlier story commit is still not a standalone
+reproducible app checkpoint. New rendered proof here is **none**; no UI runtime source was committed.
+
+All **207** remaining dirty paths match their initial SHA-256: 90 active app/baseline paths,
+109 research/pitch artifacts, three unfinished PWA planning files, three public Docs files,
+one independent Portuguese edit and one pre-existing harness plugin setting. Exact private
+path inventory and expanded commands remain under `/private/tmp/green-goods-consolidation-20261022/`.
+The baseline edits shrink debt entries; their ownership stays with the runtime change. The Shared
+manifest adds one public leaf without a dependency change; seam fingerprints and the local
+code-simplifier setting were inspected and preserved. No ceiling or safeguard was weakened.
+
+A cross-chat ownership message was rejected because explicit authorization to message that chat
+was absent. It was not retried or routed around. This leaves ownership coordination pending;
+the prior general cybersecurity flag also remains recorded above. No private chat identifier or
+transcript is included in repository evidence. Helper provenance, exact supported hosted account
+profile, actual member possession/ceremony/sponsorship/recovery, COM-46 evidence and every live
+gate remain open. All existing lane objects and overall backlog state remain unchanged.
+
+Task record: cosmo-local-credit-interop | Type: investigation/consolidation | Outcome: partial
+Agent/model: Codex / exact model unknown | Coverage: native candidate review and local consolidation continuation
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| investigate | unknown → 2026-10-23 00:54:02 | First clock 00:49:06; 222-path inventory, source/build and provider review |
+| implement | unknown → unknown | Offline encoder proof; bounded CLI lint repairs; historical records reconciled |
+| verify/review | unknown → 2026-10-23 01:09:56 | Focused proof, final record hygiene and 34-hub validation pass; public Docs dependency and active ownership remain open |
+| publish locally | unknown → 2026-10-23 01:05:03 | Four signed source groups verified; evidence-only follow-up follows |
+| wait | unknown → ongoing | Specific-chat messaging authorization and declared Docs dependency remain unresolved |
+
+Human corrections: 0 observed in this segment; attention: unknown.
+
+### Later ownership confirmation, 22 October Pacific
+
+The user subsequently authorized the specific ownership question, and the narrow message was
+delivered. At 02:30:51 UTC on 23 October, the active owner confirmed that it retains all 90
+performance/startup/auth/baseline files and their untracked Admin dependencies. It is fixing
+five authorized review findings, including two auth races, only in its isolated PR worktree.
+The draft snapshot is not a completed, regression-free group. Leave the original group unstaged;
+the owner confirmed it will leave this checkout untouched. Messaging authorization is resolved;
+consolidation of that group remains blocked on its completion and ownership handoff.
+
+Automatic review rejected an earlier, broader coordination message because it included local
+paths and validation details beyond the approved ownership question. Only the narrower question
+was delivered. No rejected payload was shared through another route. All 207 preserved files
+still match the preceding checkpoint; no app/runtime source or release gate changed here.
+
+Task/phase follow-up: coordinate | 2026-10-23 02:26:18 → 02:30:51 UTC | ownership confirmed retained;
+same consolidation task, partial outcome, 0 observed human corrections, human attention unknown.
+
+The first evidence-only signed follow-up could not commit: the identity/format hook passed, but the
+Git SSH signer had no key available. A scoped public `ssh-add -l` check confirmed that the
+dedicated agent had no identities. HEAD stayed at `147ff7403`, with the two reviewed evidence
+paths staged. The user subsequently confirmed the existing signer was unlocked in Terminal and
+authorized a signed retry; the chat records its resulting commit and signature after verification. No unsigned fallback,
+key-file access, install/unlock execution or settings change was attempted here. The active
+90-path group remains unstaged, and all 207 pre-existing remaining file hashes are preserved.
+
+Earlier root-signing selector argv (the Bun shim is first on PATH as in the commands above):
+
+```sh
+bun --no-env-file run check --plan -- --intent qa --changed .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/root-signing-proof.mjs,.plans/backlog/cosmo-local-credit-interop/artifacts/member-gnosis-account-provider-proof-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-gnosis-account-provider-proof.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-helper-provenance-and-failure-safety.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md,.plans/backlog/cosmo-local-credit-interop/status.json --json
+bun --no-env-file run check -- --intent qa --changed .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/root-signing-proof.mjs,.plans/backlog/cosmo-local-credit-interop/artifacts/member-gnosis-account-provider-proof-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-gnosis-account-provider-proof.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-helper-provenance-and-failure-safety.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md,.plans/backlog/cosmo-local-credit-interop/status.json
+```
+
+### Released performance group reconciled, 22 October Pacific
+
+The owner subsequently released the 90-path group and its Admin dependencies. All original
+hashes still matched at handoff: 66 files matched isolated commit
+`000cdfa6143180a7a5347c65d3671fe8c9fbe32a`, while 24 differed. Reviewed patches brought the
+five approved fixes into this checkout. Independent Cosmo exports, Storybook service-access
+isolation, typography and branch-specific baselines were preserved. The installed app retains
+Inter; its four local faces are precached and tested offline instead of importing the isolated
+branch's different PWA typography. Three font licenses lost trailing spaces only, retaining
+every license word. No dependency version, lockfile, permission or safety setting changed.
+
+Signed local commit `a6461989e983e397eeebd268fc77172a38ac2c1c` contains 107 reconciled paths,
+including the previously untracked Admin implementations, public Docs edits and nine regenerated
+projections. Its signature is `G`; all committed blobs match their final reviewed hashes. The
+Shared manifest adds only the cache-clear leaf export. Both debt baselines shrink. The auth seam
+fingerprint was recomputed from this branch's evidence rather than copied from the isolated tree.
+
+**Docs is unblocked.** The approved frozen offline dependency restoration repaired seven missing
+declared Docs links, including `@babel/parser` 8.0.4. Public manifests and the lockfile were copied
+into a dependency-only temporary directory for Bun resolution; package lifecycle scripts did not
+run. Repository dependency declarations, lockfile and Bun settings stayed unchanged. All 81
+authority fixtures, 99 Docs tests, the audit, generated projections, production build and search
+index pass. The audit retains two advisory endpoint warnings.
+
+All 31 selected automated critical checks pass across the recorded runs, plus the additional
+Storybook build. Shared passes 7,577 tests, Client 1,789 and Admin 1,335; Agent passes both projects.
+The initial Client watcher failure was a sandbox listener denial. After scoped permission, the
+unchanged gate passed 29 checks before its browser startup rejected the manual dev servers on
+ports it needed to own. Those task-owned services were stopped; the exact remaining browser
+commands then passed three passkey tests and one production offline-preview test. Failed proof
+was never reused. The retry reused the unchanged Shared Turbo pass from this checkout's first
+run, not another checkout's result. The
+[consolidation record](../artifacts/local-consolidation-validation-2026-10-22.json) preserves
+commands, check names, failures, source attribution and limits.
+
+Rendered proof: **authenticated Brave real profile, signed-out public route** for the homepage;
+**Brave, mock-auth localhost** for disconnected Admin entry and its recoverable missing-indexer
+state; **CI Playwright, clean-room** for passkey and offline-preview checks. The offline test loads
+both upright and italic Inter with page and worker requests blocked. Actual-member sessions and
+the installed Brave PWA matrix remain pending. No real-member credential ceremony, wallet
+signature, transaction or migration was performed for this rendered proof.
+
+All 114 unrelated remaining paths retain their original hashes: 109 research/pitch artifacts,
+three unfinished PWA planning files, the harness plugin setting and the independent Portuguese
+edit. The branch remains `feature/cosmo-local-contracts`. Nothing was pushed, merged, deployed or activated;
+no current-head remote CI claim follows. Gnosis cleanup execution, helper provenance, supported
+hosted account acceptance, member possession/sponsorship/recovery, COM-46 and every live gate
+remain open. All hub lane objects and backlog state remain unchanged.
+
+Task record: cosmo-local-credit-interop | Type: investigation/consolidation | Outcome: partial
+Agent/model: Codex / exact model unknown | Coverage: ownership release through local reconciliation
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| investigate | 2026-10-23 03:29:26 → unknown | Released manifest verified; branch-specific differences reviewed |
+| implement/review | unknown → unknown | Bounded reconciliation; Docs regenerated; Inter and feature authorities preserved |
+| verify | unknown → 2026-10-23 03:49:25 | All selected automated checks and Storybook pass; committed source hashes verified |
+| publish locally | unknown → 2026-10-23 03:49:25 | `a6461989e` signed and verified; evidence follow-up follows |
+| wait | unknown → ongoing | Actual-member, hosted-provider, migration and live gates remain unresolved |
+
+Human corrections: 0 observed in this segment; attention: unknown.
+
+## Native execution continuation, 22 October Pacific
+
+The [native execution proof](../proofs/member-migration/native-batch-execution-proof.mjs)
+passes nine isolated Gnosis cases at the pinned block 48,888,476, using only the public synthetic
+credential and canonical account/validator bytecode. The
+[recorded result](../artifacts/member-native-batch-execution-2026-10-22.json) binds source hashes,
+dependency runtime hashes, calls, state, operation receipts and the base revision; it is
+working-tree evidence rather than a clean-head or live receipt.
+
+The candidate uses the installed Kernel default atomic batch, ordered as:
+
+1. Self-call `changeRootValidator` with the exact patched validator and owner coordinates.
+2. Account-origin call to legacy `onUninstall` to clear its stored credential, with failure
+   propagated by the batch.
+3. Self-call `uninstallModule` to disable the old validation configuration.
+
+The direct cleanup must precede module removal. The old validator rejects duplicate cleanup;
+Kernel's second callback inside `uninstallModule` can therefore report failure after the explicit
+cleanup already succeeded. The trace and postconditions, rather than that callback event alone,
+prove both zero legacy keys and disabled authority. Reversing those final two operations causes
+execution failure and batch rollback; the earlier two-call candidate can report success while
+retaining legacy keys under a forced callback failure.
+
+A local callback-only fault delegates all other selectors to a code copy of the original
+validator. It is injected only into the owned Anvil instance, never a deployment candidate.
+Under that fault the three-call migration rolls back root/key/module changes. EntryPoint retains
+the operation nonce and, for an initially absent account, its creation and original validator
+control. Recovery uses the next nonce; it must not blindly repeat factory initialization.
+After restoring the callback, retry succeeds and the patched root signs a subsequent operation
+at the original fictional address.
+
+This removes the specific unexecuted-native-candidate evidence gap. It neither selects the
+unverified external helper nor proves actual member possession, a hosted bundler/paymaster,
+sponsorship, live Gnosis validator availability, a browser ceremony or a production migration.
+The [live deployment package](codex-live-pilot-deployment.md) owns those remaining inputs under
+the newer accepted hackathon release policy.

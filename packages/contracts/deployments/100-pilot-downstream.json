@@ -1,0 +1,269 @@
+{
+  "releaseId": "green-goods-tech-and-sun-voucher-pilot",
+  "chainId": 100,
+  "sourceCommit": "c2eafb2ccb6f99c89b59e9bbb97bf969c0a922c2",
+  "planHash": "2268465b82b83f87763e2b223a55d31a77653dab74fbeeb459e7ef8d922fe0eb",
+  "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "endpointOwner": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+  "pauseGuardian": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "contracts": [
+    {
+      "contract": "StewardSafeReceiver",
+      "address": "0x115819bCcaab03Be49107c69c00Bc4c21009839C",
+      "runtimeHash": "0x9ad623b22771874183ec38297f694dcb5150ac6daa1e76cd9988c9325772186b"
+    },
+    {
+      "contract": "VoucherRedemptionTransfers",
+      "address": "0x40F2dBc4992eBAC9Bc6C997517d0Bc1bC051e8A1",
+      "runtimeHash": "0xc37e1f7deb2894bd72dbd274e3505b384853828f9a187a04bbd156d6513ec3e5"
+    },
+    {
+      "contract": "GnosisVoucherAdapter",
+      "address": "0x021368bf9958f4D535d39d571Bc45f74d20e4666",
+      "runtimeHash": "0x1a384cfbcf8d8bfe9eee1a652f9135ae8d3f0bb7e7a851144ec8b6ecacd19010"
+    },
+    {
+      "contract": "GnosisVoucherAdapter",
+      "address": "0x80a906C175ea875af8a2afcA8F91F60b201dc824",
+      "runtimeHash": "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7"
+    },
+    {
+      "contract": "GnosisVoucherEscrow",
+      "address": "0x988ea667E47f5079d8d6c3Fd6cD3743E34bc1E4E",
+      "runtimeHash": "0xfc6b433991381543d8dfcbb0dfd949ed9cf4e0a912a7c107ba1579cd48155d12"
+    },
+    {
+      "contract": "GnosisVoucherEscrow",
+      "address": "0x742c8935d314363e8c16df5b0791525109Fb9387",
+      "runtimeHash": "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7"
+    },
+    {
+      "contract": "greenGoodsTimelock",
+      "address": "0xFdF4273CD07f83f7792EEDeCB2Ee3D765a208b0D",
+      "runtimeHash": "0xac23cedaba842f6a02fb0e81ae7144eb9a25395dcc5593472024ad84be4ac3fc"
+    },
+    {
+      "contract": "techAndSunTimelock",
+      "address": "0x8118555d228944bde8Fc00c018bD364dfFFC7b02",
+      "runtimeHash": "0xac23cedaba842f6a02fb0e81ae7144eb9a25395dcc5593472024ad84be4ac3fc"
+    },
+    {
+      "contract": "greenGoodsToken",
+      "address": "0xbaF8c6f7c0cA8310Df725D90023C188FA8f1B590",
+      "runtimeHash": "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293"
+    },
+    {
+      "contract": "techAndSunToken",
+      "address": "0xB89300F212fcbdF3D5b73eADE290b3c0d6292143",
+      "runtimeHash": "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293"
+    },
+    {
+      "contract": "index",
+      "address": "0xf685212bB309F36F74B53ba0c9f1E49B4222d036",
+      "runtimeHash": "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293"
+    },
+    {
+      "contract": "limiter",
+      "address": "0xbA96741cc022F48a1F936a085b7549AEa3B01b9C",
+      "runtimeHash": "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293"
+    },
+    {
+      "contract": "quoter",
+      "address": "0xC425a1d3296632062D22376106EA3778d9A3ACDa",
+      "runtimeHash": "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293"
+    },
+    {
+      "contract": "feePolicy",
+      "address": "0x7f1aa0f1C4628fD0931a871b1474352b8AF30a2e",
+      "runtimeHash": "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293"
+    },
+    {
+      "contract": "protocolFee",
+      "address": "0x753Ed323a3ac014Fc206B9FCb7d0D1eF95fe0C31",
+      "runtimeHash": "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293"
+    },
+    {
+      "contract": "pool",
+      "address": "0x6AFc963B583fBB536F05B2D7ae832880662b98A4",
+      "runtimeHash": "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293"
+    }
+  ],
+  "receipts": [
+    {
+      "chainId": 100,
+      "nonce": 0,
+      "transactionHash": "0x44d243198dfa1e2f1a6d8f0afbaa020f0b3e004fa7c094f8a3ca2a18130d6264",
+      "blockNumber": 48925690,
+      "blockHash": "0xc329ef57aed12cf3457ed0c382819d0971142f52a9c1333db14b4e429c62fc56",
+      "status": 1,
+      "actualCostWei": "2169781019528029"
+    },
+    {
+      "chainId": 100,
+      "nonce": 1,
+      "transactionHash": "0xf29bb3b657122afd0ad160c1172748bd3eee53211c5568a580cd497187be87dd",
+      "blockNumber": 48925697,
+      "blockHash": "0xb221e8ce65b05537ffed4f37e3898b937bd785a077841ddfd09778b3d3793e38",
+      "status": 1,
+      "actualCostWei": "518851005188510"
+    },
+    {
+      "chainId": 100,
+      "nonce": 2,
+      "transactionHash": "0x015a54e4ae961b0173904dd002a858cca4a95b083b8c40d62d91c0315406736c",
+      "blockNumber": 48925699,
+      "blockHash": "0xdaa59f52c1c785822be63ff6f9b90b8b52706835443caa9179f966831a282da8",
+      "status": 1,
+      "actualCostWei": "3342939033429390"
+    },
+    {
+      "chainId": 100,
+      "nonce": 3,
+      "transactionHash": "0xccc83bcd2a4778a113d8e42c993fa7d190d01d62df8d00452e2783baf581479f",
+      "blockNumber": 48925701,
+      "blockHash": "0xe07a1f695e069e79216d978179761237007a6e0fa473ef1f197c1e055a770045",
+      "status": 1,
+      "actualCostWei": "270385002703850"
+    },
+    {
+      "chainId": 100,
+      "nonce": 4,
+      "transactionHash": "0xda707f6af18199f0a6b5dd468348a65c6f1c65ff9590b88728fea00c1b9139dd",
+      "blockNumber": 48925703,
+      "blockHash": "0xa114c9eaa22f1ac5c73d0a3cf3001c10cf0103ab87dc2f54bb63badfe0b870fc",
+      "status": 1,
+      "actualCostWei": "5347929053479290"
+    },
+    {
+      "chainId": 100,
+      "nonce": 5,
+      "transactionHash": "0xa8f6972088526fbb41c5348eb8e5361425ad9da09439f06e0269c06253293ce1",
+      "blockNumber": 48925705,
+      "blockHash": "0xdad1c7a4452276a57b7055812d30be629fb49724ae0d5dfb9ac65a86c90f8ab4",
+      "status": 1,
+      "actualCostWei": "270557002976127"
+    },
+    {
+      "chainId": 100,
+      "nonce": 6,
+      "transactionHash": "0xaf9171575371478037b8d9446266f3c3cd1d1d7294745b82185bfbb9f9bbd3d8",
+      "blockNumber": 48925707,
+      "blockHash": "0x9b3d88c32a228dfa20e70b94552034fd300345fb6d36bec9b7c76e6db31fcaca",
+      "status": 1,
+      "actualCostWei": "1669673018366403"
+    },
+    {
+      "chainId": 100,
+      "nonce": 7,
+      "transactionHash": "0xf9b204c759bd7f7810af83e6b88f83a6199a8efe11db4048332cc2b0e6a2dfa9",
+      "blockNumber": 48925709,
+      "blockHash": "0x75180b4c672ab9d1a9bb2ed6889704002b156bf6d8ef65cfd1f4ec2a85e3b450",
+      "status": 1,
+      "actualCostWei": "1669673018366403"
+    },
+    {
+      "chainId": 100,
+      "nonce": 8,
+      "transactionHash": "0x926204086298225833dc08330f4b78ab316fb4dc491b579fdaeba404fcf317ea",
+      "blockNumber": 48925710,
+      "blockHash": "0xb2ba5cdb552d8933154dcc760033fa74a45d95d23ba2e595bd9d33d64b9a8191",
+      "status": 1,
+      "actualCostWei": "249804002747844"
+    },
+    {
+      "chainId": 100,
+      "nonce": 9,
+      "transactionHash": "0x6ea6507597f2a631092692692aecbf05ad8c5eb50543d0fbd7c24705660cf016",
+      "blockNumber": 48925712,
+      "blockHash": "0x1f897c35019bf415cc4c93b8817a8296ce44774c515df787296b1ecc0b5589ee",
+      "status": 1,
+      "actualCostWei": "249804002747844"
+    },
+    {
+      "chainId": 100,
+      "nonce": 10,
+      "transactionHash": "0xa2511a6ff3ca135e1f8f6c60d2c96b51b58a8de8bfa0ef446418888ac05cc0f9",
+      "blockNumber": 48925714,
+      "blockHash": "0xba08f5639585a9b7bfaba6de6cf939918c560e06a5296af4a0b7ba2682a62a86",
+      "status": 1,
+      "actualCostWei": "228338002740056"
+    },
+    {
+      "chainId": 100,
+      "nonce": 11,
+      "transactionHash": "0x1ece577f802aa3fad56c5f00973ad08c5eb28ecc64dac189f7056b38cf440f25",
+      "blockNumber": 48925716,
+      "blockHash": "0x0f6743ba765c5ccbfea95e566083e898a0c7daa1c375e519c5b1cac2334b03ea",
+      "status": 1,
+      "actualCostWei": "178155002137860"
+    },
+    {
+      "chainId": 100,
+      "nonce": 12,
+      "transactionHash": "0xb4d9906422761152e9074a45d2443ba2f9f4f4d98267f412f1e1e2971d83c4c2",
+      "blockNumber": 48925717,
+      "blockHash": "0xc3fcec8c17ead9b459be63469f764864776e3522c443906784e2e3f7770003aa",
+      "status": 1,
+      "actualCostWei": "178111002137332"
+    },
+    {
+      "chainId": 100,
+      "nonce": 13,
+      "transactionHash": "0x28264caa67e8cc2e7dd58d70e89e3effc5dd32de859cf996c08ef79130895aba",
+      "blockNumber": 48925719,
+      "blockHash": "0xb358b267f757ed7c3ca1f46c0090c9788b5073b24cfcce308b5fcea3be90002c",
+      "status": 1,
+      "actualCostWei": "181881002546334"
+    },
+    {
+      "chainId": 100,
+      "nonce": 14,
+      "transactionHash": "0x158c3071c600642c537d193318cee37e31408c9b312061d8a4a1495fe3dbe1a4",
+      "blockNumber": 48925721,
+      "blockHash": "0x9f3eda2abb4e22392ff237581ddf753e690341b2b9ed935047b5ad83ed096cec",
+      "status": 1,
+      "actualCostWei": "207159003107385"
+    },
+    {
+      "chainId": 100,
+      "nonce": 15,
+      "transactionHash": "0xe5da2e573df9d75c5e71edd7dac28f1ff503d273f22c8dc558fdb96108ca2354",
+      "blockNumber": 48925723,
+      "blockHash": "0xf85bf4029398fc9e4ed68d333e88f756583fc31068f0f121591dfecc906b090c",
+      "status": 1,
+      "actualCostWei": "472555006615770"
+    },
+    {
+      "chainId": 100,
+      "nonce": 16,
+      "transactionHash": "0x5edeccff02e08a390b1516a4aa0a4b58d0052041ee7be5e2a9b90a28cdcddc88",
+      "blockNumber": 48925728,
+      "blockHash": "0x3ac870ebbe6492d7ac2a7a32bc20c254b04229fd9059a79008fc6b77060113b1",
+      "status": 1,
+      "actualCostWei": "25916000336908"
+    },
+    {
+      "chainId": 100,
+      "nonce": 17,
+      "transactionHash": "0xc1660f7277a8cad7a293be3a120d04d63f27f1a8948e04dd4cd8fa1211498843",
+      "blockNumber": 48925730,
+      "blockHash": "0x66609adb85083f42d174315abf8f858b10b0de8f58fa72e53dbf9eee8d2c5886",
+      "status": 1,
+      "actualCostWei": "25916000310992"
+    }
+  ],
+  "voucherEndpointsPaused": true,
+  "initialTokenSupply": "0",
+  "initialPoolInventory": "0",
+  "reserveAllowances": "0",
+  "techAndSunBootstrap": {
+    "safe": "0x9BE5f0D6B95Ea3735df71023F5dFED53b4c1aABf",
+    "signer": "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+    "initialThreshold": 1,
+    "finalThreshold": 2,
+    "finalization": "only approved bootstrap signer, after two authenticated steward owners"
+  },
+  "issuerTermsAccepted": false,
+  "issuerCapacityConfirmed": false,
+  "ownerActivationPending": true
+}

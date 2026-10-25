@@ -5,6 +5,7 @@ import { AppSettings } from "./AppSettings";
 import { ENSSection } from "./ENSSection";
 import { GardensList } from "./GardensList";
 import { InstallCta } from "./InstallCta";
+import { ServiceAssets } from "./ServiceAssets";
 
 export const ProfileAccount: React.FC = () => {
   const primaryAddress = usePrimaryAddress() as Address | undefined;
@@ -15,6 +16,7 @@ export const ProfileAccount: React.FC = () => {
       <AppSettings />
       <GardensList primaryAddress={primaryAddress} />
       <ENSSection key={primaryAddress} primaryAddress={primaryAddress} />
+      <ServiceAssets />
       <AccountInfo />
     </>
   );

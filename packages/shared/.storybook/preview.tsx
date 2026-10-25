@@ -1,6 +1,8 @@
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
-import { sb } from "storybook/test";
+import { mocked, sb } from "storybook/test";
+import { useServiceAccess, useServiceAccessMutation } from "../src/hooks/commitment-pooling/useServiceAccess";
+import { unavailableServiceAccess } from "../src/modules/commitment-pooling/data-service-access";
 import {
   withAdminStoryIsolation,
   withI18n,
@@ -14,6 +16,7 @@ import {
 // for every story that does not override it. Storybook only clears a module mock's call history
 // between stories, so a story that overrides hooks returns `resetHookMocks(...)` (./moduleMocks)
 // from `beforeEach`.
+sb.mock(import("../src/hooks/app/useArrivalState.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOffline.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOnlineStatus.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts"), { spy: true });
@@ -49,6 +52,7 @@ sb.mock(import("../src/hooks/commitment-pooling/useCommitmentJobs.ts"), { spy: t
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMetadata.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentPooling.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentQueueState.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useServiceAccess.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useAllocateHypercertSupport.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useConvictionStrategies.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useGardenCommunity.ts"), { spy: true });
@@ -63,6 +67,7 @@ sb.mock(import("../src/hooks/ens/useENSReleaseName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useGreenGoodsEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useProtocolMemberStatus.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useSlugAvailability.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useActiveGarden.ts"), { spy: true });
 sb.mock(import("../src/hooks/garden/useGardenJoinRequests.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useClaimGreenWillBadge.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useGreenWillBadges.ts"), { spy: true });
@@ -79,6 +84,7 @@ sb.mock(import("../src/hooks/vault/useVaultPreview.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useVaultWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useDrafts.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useMyWorks.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/useWorks.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useYourWorkCount.ts"), { spy: true });
 sb.mock(import("../src/hooks/yield/useYieldAllocations.ts"), { spy: true });
 // The public vault panel mounts the wallet runtime itself; its stories render the panel without it.
@@ -89,6 +95,18 @@ sb.mock(import("../../admin/src/App.tsx"), { spy: true });
 sb.mock(import("../src/modules/app/posthog-browser.ts"), { spy: true });
 
 const preview: Preview = {
+  beforeEach: () => {
+    // Every story starts without service RPC/signing. Individual stories may replace these facts.
+    mocked(useServiceAccess).mockImplementation((key) => ({
+      data: key ? unavailableServiceAccess(key) : undefined,
+      isLoading: false, isError: false, error: null,
+      refetch: async () => ({ data: key ? unavailableServiceAccess(key) : undefined }),
+    }) as ReturnType<typeof useServiceAccess>);
+    mocked(useServiceAccessMutation).mockReturnValue({
+      isPending: false, error: null,
+      mutateAsync: async () => { throw new Error("Service signing unavailable in Storybook"); },
+    } as unknown as ReturnType<typeof useServiceAccessMutation>);
+  },
   globalTypes: {
     theme: {
       description: "Global theme for components",

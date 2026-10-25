@@ -57,6 +57,17 @@ describe("GardenCard", () => {
     expect(onClick).toHaveBeenCalledOnce();
   });
 
+  // Explore's cards carry one tag on the photo: Member, Awaiting review or Open (DL-125).
+  it("carries its one tag on the photo, outside the detail line", () => {
+    renderWithIntl(<GardenCard garden={GARDEN} tag="Awaiting review" onClick={vi.fn()} />);
+
+    const tag = screen.getByText("Awaiting review");
+    expect(tag).toHaveAttribute("data-slot", "media-label");
+    expect(screen.getByText("3 members").closest("[title]")).not.toHaveTextContent(
+      "Awaiting review"
+    );
+  });
+
   it("says only the members when the garden names no place", () => {
     renderWithIntl(
       <GardenCard garden={{ ...GARDEN, location: " ", gardeners: ["0xA"], stewards: [] }} />

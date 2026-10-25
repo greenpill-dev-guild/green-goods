@@ -27,6 +27,10 @@ vi.mock("../../views/Profile/InstallCta", () => ({
   InstallCta: () => createElement("section", { "data-testid": "install-cta" }),
 }));
 
+vi.mock("../../views/Profile/ServiceAssets", () => ({
+  ServiceAssets: () => createElement("section", { "data-testid": "service-assets" }),
+}));
+
 import { ProfileAccount } from "../../views/Profile/Account";
 
 describe("ProfileAccount", () => {
@@ -41,6 +45,7 @@ describe("ProfileAccount", () => {
 
     expect(screen.getByTestId("install-cta")).toBeInTheDocument();
     expect(screen.getByTestId("app-settings")).toBeInTheDocument();
+    expect(screen.getByTestId("service-assets")).toBeInTheDocument();
     expect(screen.queryByTestId("profile-badges")).not.toBeInTheDocument();
   });
 });

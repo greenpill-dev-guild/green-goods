@@ -198,6 +198,91 @@ describe("GardenChip", () => {
     expect(onCreateGarden).not.toHaveBeenCalled();
   });
 
+  // --------------------------------------------------------------------------
+  // The garden's banner as the avatar (DL-124) and the app's switcher callback
+  // --------------------------------------------------------------------------
+
+  const avatarOf = () =>
+    document.querySelector<HTMLElement>("[data-component='GardenChip'] [data-slot='avatar']");
+
+  it("shows the garden's banner as its avatar", () => {
+    const garden = { ...GARDEN_A, bannerImage: "https://example.org/meadow.jpg" };
+    render(<GardenChip gardens={[garden]} selectedGarden={garden} onSelectGarden={() => {}} />);
+
+    expect(avatarOf()?.querySelector("img")).toHaveAttribute("src", garden.bannerImage);
+    expect(avatarOf()?.querySelector("svg")).toBeNull();
+  });
+
+  it("draws the banner fallback tile, not the seedling, for a garden without a banner", () => {
+    const garden = { ...GARDEN_A, bannerImage: "" };
+    render(<GardenChip gardens={[garden]} selectedGarden={garden} onSelectGarden={() => {}} />);
+
+    const avatar = avatarOf();
+    expect(avatar?.querySelector("img")).toBeNull();
+    expect(avatar?.querySelector("svg")).toBeNull();
+    expect(avatar?.innerHTML).toContain("linear-gradient");
+  });
+
+  it("keeps the seedling tile for a caller that passes no banner", () => {
+    render(<GardenChip gardens={[GARDEN_A]} selectedGarden={GARDEN_A} onSelectGarden={() => {}} />);
+
+    expect(avatarOf()?.querySelector("svg")).not.toBeNull();
+    expect(avatarOf()?.querySelector("img")).toBeNull();
+  });
+
+  it("opens the caller's switcher with one garden too", async () => {
+    const onOpen = vi.fn();
+    render(
+      <GardenChip
+        gardens={[GARDEN_A]}
+        selectedGarden={GARDEN_A}
+        onSelectGarden={() => {}}
+        onOpen={onOpen}
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: /Wildflower Meadow/ });
+    expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    await user.click(trigger);
+
+    expect(onOpen).toHaveBeenCalledOnce();
+    expect(document.querySelector("[data-component='GardenChip'][data-slot='menu']")).toBeNull();
+  });
+
+  it("hands several gardens to the caller's switcher instead of its own menu", async () => {
+    const onOpen = vi.fn();
+    const onSelectGarden = vi.fn();
+    render(
+      <GardenChip
+        gardens={[GARDEN_A, GARDEN_B]}
+        selectedGarden={GARDEN_A}
+        onSelectGarden={onSelectGarden}
+        onOpen={onOpen}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /Wildflower Meadow/ }));
+
+    expect(onOpen).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Urban Composting")).toBeNull();
+    expect(onSelectGarden).not.toHaveBeenCalled();
+  });
+
+  it("names an empty choice with the caller's label", () => {
+    render(
+      <GardenChip
+        gardens={[GARDEN_A, GARDEN_B]}
+        selectedGarden={null}
+        onSelectGarden={() => {}}
+        onOpen={() => {}}
+        emptyLabel="Choose a Garden"
+      />
+    );
+
+    expect(screen.getByRole("button")).toHaveTextContent("Choose a Garden");
+    expect(screen.getByRole("button")).not.toHaveTextContent("Select Garden");
+  });
+
   it("truncates long garden names with title attribute", () => {
     const longNameGarden = {
       id: "0x3333",

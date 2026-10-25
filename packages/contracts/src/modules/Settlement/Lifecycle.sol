@@ -8,10 +8,31 @@ import { SettlementFundingLib } from "../../lib/Settlement/FundingLib.sol";
 import { SettlementLifecycleLib } from "../../lib/Settlement/LifecycleLib.sol";
 import { SettlementLoanLib } from "../../lib/Settlement/LoanLib.sol";
 import { SettlementPlans } from "./Plans.sol";
+import { ISettlementPersonalServicePurchases as Personal } from "../../interfaces/ISettlementPersonalServicePurchases.sol";
 
 /// @title SettlementLifecycle
 /// @notice Funding, batching, dispatch, retry, cancellation, fee reserve, and acknowledgment receive.
-abstract contract SettlementLifecycle is SettlementPlans {
+abstract contract SettlementLifecycle is SettlementPlans, Personal {
+    function pledgePersonalServicePurchase(PersonalPurchaseConsent calldata consent)
+        external
+        override
+        nonReentrant
+        returns (uint256 fundingId, bytes32 purchaseId)
+    {
+        return SettlementFundingLib.pledgePersonalServicePurchase(_settlementAccounts, _fundingConfig(), consent);
+    }
+
+    function recordPersonalServiceDeposit(
+        uint256 fundingId,
+        VerifiedCeloDeposit calldata deposit
+    )
+        external
+        override
+        nonReentrant
+    {
+        SettlementFundingLib.recordPersonalServiceDeposit(_fundingConfig(), fundingId, deposit);
+    }
+
     function queueFunding(address garden, uint256 amount) external override nonReentrant returns (uint256 disbursementId) {
         _requireNotPaused();
         if (msg.sender != owner()) _requireSteward(protocolGarden);
@@ -126,37 +147,45 @@ abstract contract SettlementLifecycle is SettlementPlans {
 
     function retryCommand(uint256 disbursementId) external override nonReentrant returns (bytes32 messageId) {
         _requireNotPaused();
-        Disbursement storage disbursement = _knownDisbursement(disbursementId);
-        _requireDispatcherOrSteward(disbursement.executorGarden);
-        if (disbursement.state != DisbursementState.Dispatched) {
-            revert DisbursementNotInState(disbursementId, disbursement.state);
-        }
-        if (disbursement.batchId != 0) revert BatchEntryMismatch(disbursementId);
-        messageId = SettlementLifecycleLib.retry(
-            _commandRecords, _commandPayloads, commandExecutionKeys, _lifecycleConfig(), disbursement.executionKey
+        _requireDispatcherOrSteward(_knownDisbursement(disbursementId).executorGarden);
+        return SettlementLifecycleLib.retry(
+            _disbursements,
+            _batches,
+            _commandRecords,
+            _commandPayloads,
+            commandExecutionKeys,
+            _settlementAccounts,
+            _planState,
+            _lifecycleConfig(),
+            false,
+            disbursementId
         );
-        disbursement.commandMessageId = messageId;
     }
 
     function retryBatchCommand(uint256 batchId) external override nonReentrant returns (bytes32 messageId) {
         _requireNotPaused();
-        Batch storage batch = _knownBatch(batchId);
-        _requireDispatcherOrSteward(batch.executorGarden);
-        if (batch.state != DisbursementState.Dispatched) revert BatchNotInState(batchId, batch.state);
-        messageId = SettlementLifecycleLib.retry(
-            _commandRecords, _commandPayloads, commandExecutionKeys, _lifecycleConfig(), batch.executionKey
+        _requireDispatcherOrSteward(_knownBatch(batchId).executorGarden);
+        return SettlementLifecycleLib.retry(
+            _disbursements,
+            _batches,
+            _commandRecords,
+            _commandPayloads,
+            commandExecutionKeys,
+            _settlementAccounts,
+            _planState,
+            _lifecycleConfig(),
+            true,
+            batchId
         );
-        batch.commandMessageId = messageId;
-        for (uint256 index; index < batch.disbursementIds.length; ++index) {
-            _disbursements[batch.disbursementIds[index]].commandMessageId = messageId;
-        }
     }
 
     function requeue(uint256 disbursementId) external override nonReentrant {
         _requireNotPaused();
         Disbursement storage disbursement = _knownDisbursement(disbursementId);
         _requireSteward(disbursement.executorGarden);
-        SettlementLifecycleLib.requeue(_disbursements, _planState, disbursementId);
+        SettlementLifecycleLib.requeue(
+            _disbursements, _planState, _settlementAccounts, _commandRecords, _lifecycleConfig(), disbursementId
+        );
     }
 
     function cancelDisbursement(uint256 disbursementId, string calldata reasonCID) external override nonReentrant {
@@ -189,15 +218,5 @@ abstract contract SettlementLifecycle is SettlementPlans {
         SettlementAcknowledgmentLib.receiveAcknowledgment(
             _disbursements, _batches, _commandRecords, commandExecutionKeys, _planState, _ccipRoute, message
         );
-    }
-
-    function _fundingConfig() private view returns (SettlementFundingLib.RuntimeConfig memory) {
-        return SettlementFundingLib.RuntimeConfig({
-            hatsModule: hatsModule,
-            poolingModule: commitmentPoolingModule,
-            gDollarToken: gDollarToken,
-            destinationEvmChainId: DESTINATION_EVM_CHAIN_ID,
-            paused: paused
-        });
     }
 }

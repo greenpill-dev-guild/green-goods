@@ -117,6 +117,27 @@ async function startAndSettle(
 // ============================================================================
 
 describe("workflows/authMachine", () => {
+  it("carries original-account intent only for the explicit sign-in attempt", async () => {
+    const attempts: unknown[] = [];
+    const machine = createTestMachine().provide({
+      actors: {
+        authenticatePasskey: fromPromise(async ({ input }) => {
+          attempts.push(input);
+          return createMockPasskeySessionResult();
+        }),
+      },
+    });
+    const actor = await startAndSettle(machine);
+    actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME, originalAccount: true });
+    await flushPromises();
+    expect(attempts[0]).toMatchObject({ userName: MOCK_USERNAME, originalAccount: true });
+    actor.send({ type: "SIGN_OUT" });
+    actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
+    await flushPromises();
+    expect(attempts[1]).toMatchObject({ userName: MOCK_USERNAME, originalAccount: false });
+    actor.stop();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockLocalStorage.clear();
