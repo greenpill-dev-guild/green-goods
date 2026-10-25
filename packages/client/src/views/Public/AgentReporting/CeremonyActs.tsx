@@ -2,7 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { RiLogoutBoxRLine, RiUserFollowLine, RiUserLine, RiUserSharedLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { FlowForward } from "@/components/Features/Work";
+import { FlowForward } from "@/components/Features/Work/FlowBar";
 import {
   AccountRow,
   ManagePermissionsLink,

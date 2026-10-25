@@ -2,7 +2,7 @@ import { useDocumentEvent, useWindowEvent } from "@green-goods/shared/hooks/util
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { FlowBar } from "@/components/Features/Work";
+import { FlowBar } from "@/components/Features/Work/FlowBar";
 
 /**
  * The app's flow bar, fixed to the bottom of the viewport at every width, its content held to the
