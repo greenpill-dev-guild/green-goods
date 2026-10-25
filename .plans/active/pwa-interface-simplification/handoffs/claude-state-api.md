@@ -3,8 +3,9 @@
 ## Lane
 
 - Owner: Claude (a session the orchestrator starts; questions go to the orchestrator)
-- Branch: `feature/pwa-membership-owner` (step 1); step 2 follows on its own branch
-- Status: in progress (step 1 green and out for review; step 2 next)
+- Branch: `feature/pwa-membership-owner` (step 1, PR #1274); `feature/pwa-active-garden` (step 2,
+  stacked on step 1)
+- Status: in progress (steps 1 and 2 built; the state parts of steps 4 and 5 follow their merge)
 
 ## Scope (first slice)
 
@@ -78,6 +79,25 @@ The cockpit's selection pattern, to copy in shape and not in code: `hooks/garden
   pick their garden in Submit Work (the resolver accepts them) while an evaluator alone still
   cannot; Profile shows its loading state, not "No gardens yet", while the list is unknown.
 
+## Step 2: what changed
+
+- `packages/shared/src/stores/useActiveGardenStore.ts` keeps one garden id per `chainId:address`
+  scope in local storage under `green-goods:active-garden`, apart from the UI store and the
+  cockpit's key. Saved choices are read as untrusted input; nothing in it forgets a garden.
+- `packages/shared/src/modules/garden/active-garden.ts` is the pure resolver: `loading` while the
+  account's gardens are unknown (keeping the remembered garden, after a failed read too),
+  `error` when the read failed with nothing remembered, `none` for zero gardens, `ready` with the
+  remembered garden while it is still the account's or with the one garden (which selects itself
+  and is remembered), and `choose` otherwise. No account reads as `loading`.
+- `packages/shared/src/hooks/garden/useActiveGarden.ts` wires the signed-in account, the store and
+  the resolver, writes the one-garden choice, and exposes `selectGarden`, which accepts only one
+  of the account's own gardens. It is a new declared leaf for step 3.
+- `hooks/auth/useIdentityChangeReset.ts` names the store among what stays when another account
+  signs in (keyed by chain and address), as `packages/shared/AGENTS.md` asks.
+- Nothing reads the active garden yet: Home and the chip (step 3), Submit Work's fallback
+  (step 4) and the offline photo garden (step 5) do. Drafts, queued jobs, promise links and
+  permission checks never read it.
+
 ## TDD Proof
 
 - RED (step 1), 2026-10-25, from `packages/shared`: `bun run test
@@ -93,7 +113,20 @@ The cockpit's selection pattern, to copy in shape and not in code: `hooks/garden
 - GREEN (step 1): the same Shared command plus `src/__tests__/hooks/garden/useJoinGarden.test.ts`
   → 7 files, 122 passed; the client command → 9 passed. A mutation check (dropping the
   placeholder guard in `useMyGardens`) failed the chain-switch case, then was restored.
-- Proof limit: none
+- RED (step 2), 2026-10-25, from `packages/shared`: `bun run test
+  src/__tests__/modules/garden/active-garden.test.ts src/__tests__/stores/useActiveGardenStore.test.ts
+  src/__tests__/hooks/garden/useActiveGarden.test.tsx` → 20 failed against "not implemented"
+  stubs: the resolver 11 (zero, one, several, stored-eligible, stored-stale, a stale id replaced by
+  the one garden, none with a remembered id kept, cached-while-loading, error-without-cache,
+  an account switch, the scope's case), the store 4 and the hook 5.
+- GREEN (step 2): the same command → 3 files, 20 passed; the full Shared suite → 7,655 passed.
+  Two mutation checks (dropping the hook's eligibility guard, and reading any account's
+  remembered garden) failed three cases, then were restored.
+- Proof limit (step 2): drafts and queued jobs live in IndexedDB, which the hook test does not
+  open. Their protection is structural: the store, the resolver and the hook import no draft,
+  job-queue or commitment module directly, and the store writes only its own key. The hook test
+  asserts that the work flow store (the submission in progress and its promise link) and every
+  other local-storage record stay identical after a switch.
 
 ## Validation
 
