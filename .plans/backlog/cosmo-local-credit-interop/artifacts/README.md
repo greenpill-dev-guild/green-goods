@@ -21,6 +21,7 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | `deck/assets/screens/`, `deck/assets/photos/` | Local images, not committed; see [Photos and screens](#photos-and-screens) |
 | [`brief/index.html`](brief/index.html) | The companion brief: six A4 pages in the same style; page 1 doubles as the one-page mentor brief |
 | [`brief/render.mjs`](brief/render.mjs) | Checks the brief and renders its PDF and page PNGs |
+| [`review-2026-10-25.md`](review-2026-10-25.md) | Afo's 25 October slide and brief review, with the Tech and Sun research, recorded for the local implementation pass |
 
 Rendered files go to `deck/output/` and `brief/output/`, which the repository ignores: run the
 commands below to produce them.
