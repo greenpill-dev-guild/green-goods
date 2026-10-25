@@ -4,11 +4,11 @@ import {
   type ServiceIssuerAsset,
   type ServiceIssuerRoute,
 } from "@green-goods/shared/commitment-pooling";
+import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 
 interface Props {
@@ -83,15 +83,15 @@ export function VoucherIssuerOnboarding({
       aria-label={text("title")}
       data-component="VoucherIssuerOnboarding"
     >
-      <h3 className="text-title-sm text-text-strong">{text("title")}</h3>
-      <p className="text-body-sm text-text-soft">{text("help")}</p>
+      <h3 className="type-title-sm text-text-strong">{text("title")}</h3>
+      <p className="type-meta text-text-soft">{text("help")}</p>
       {rehearsal ? (
-        <p role="status" className="text-body-sm text-text-soft">
+        <p role="status" className="type-meta text-text-soft">
           {text("fictional")}
         </p>
       ) : null}
       {!rows.length ? (
-        <p role="status" className="text-body-sm text-text-soft">
+        <p role="status" className="type-meta text-text-soft">
           {text("empty")}
         </p>
       ) : (
@@ -102,14 +102,15 @@ export function VoucherIssuerOnboarding({
               className="flex flex-wrap items-center justify-between gap-2 py-3"
             >
               <div className="min-w-0">
-                <p className="text-body-md font-medium text-text-strong">{asset.name}</p>
-                <p className="text-body-sm text-text-soft">
+                <p className="type-body font-medium text-text-strong">{asset.name}</p>
+                <p className="type-meta text-text-soft">
                   {text(asset.kind)} · {asset.service.unit ?? text("unconfirmed")}
                 </p>
               </div>
-              <AdminButton
+              <Button
                 type="button"
-                variant="outlined"
+                emphasis="secondary"
+                size="sm"
                 disabled={!canPrepare}
                 onClick={() => {
                   setSelected({ route, asset });
@@ -117,12 +118,12 @@ export function VoucherIssuerOnboarding({
                 }}
               >
                 {text("review")}
-              </AdminButton>
+              </Button>
             </li>
           ))}
         </ul>
       )}
-      {!canPrepare ? <p className="text-body-sm text-text-soft">{text("stewardOnly")}</p> : null}
+      {!canPrepare ? <p className="type-meta text-text-soft">{text("stewardOnly")}</p> : null}
       <AdminDialog
         open={Boolean(current)}
         onOpenChange={(open) => !open && setSelected(null)}
@@ -132,19 +133,20 @@ export function VoucherIssuerOnboarding({
         size="lg"
         tone="community"
         actions={
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
+            emphasis="secondary"
+            size="sm"
             disabled={!canPrepare || rehearsal || !drafts}
             onClick={() => void copy()}
           >
             {text("copy")}
-          </AdminButton>
+          </Button>
         }
       >
         {current ? (
           <div className="space-y-4">
-            <dl className="space-y-2 text-body-sm">
+            <dl className="space-y-2 type-meta">
               {[
                 ["owner", current.asset.ownerReserve],
                 ["sourceAuthority", current.asset.sourceAuthority],
@@ -169,11 +171,11 @@ export function VoucherIssuerOnboarding({
                 </div>
               ))}
             </dl>
-            <p className="text-body-sm text-text-soft">{text("capacityHelp")}</p>
+            <p className="type-meta text-text-soft">{text("capacityHelp")}</p>
             {drafts ? (
               <ol className="space-y-3">
                 {drafts.map((draft) => (
-                  <li key={draft.purpose} className="space-y-1 text-body-sm break-all">
+                  <li key={draft.purpose} className="space-y-1 type-meta break-all">
                     <p className="font-medium">{text(draft.purpose)}</p>
                     <p>
                       {text("chain")}: {draft.call.chainId} · {text("safe")}: {draft.owner}
@@ -182,20 +184,20 @@ export function VoucherIssuerOnboarding({
                       {text("target")}: {draft.call.address}
                     </p>
                     <p>{text("nativeValue")}: 0</p>
-                    <code className="block whitespace-normal text-label-md">
+                    <code className="block whitespace-normal type-label-sm">
                       {draft.call.functionName}({draft.call.args?.map(String).join(", ")})
                     </code>
                   </li>
                 ))}
               </ol>
             ) : (
-              <p role="status" className="text-body-sm">
+              <p role="status" className="type-meta">
                 {text("incomplete")}
               </p>
             )}
-            <p className="text-body-sm text-text-soft">{text("pause")}</p>
+            <p className="type-meta text-text-soft">{text("pause")}</p>
             {copyFailed ? (
-              <p role="alert" className="text-body-sm text-error-dark">
+              <p role="alert" className="type-meta text-error-dark">
                 {text("copyFailed")}
               </p>
             ) : null}
