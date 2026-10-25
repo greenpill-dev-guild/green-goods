@@ -81,11 +81,16 @@ statistical comparison of agents or repositories.
 
 | Scenario | Useful evidence | Observation |
 |---|---|---|
-| Documentation correction | Narrow change; working links and consistent routing | Pending |
+| Documentation correction | Narrow change; working links and consistent routing | 2026-10-24 skills follow-up: cleanup proof and validation guidance corrected; conditional QA references preserve fourteen entrypoints and fifteen routes. Codex app working-tree checks: 15 static contracts/routes and 97 guidance files; see [workflow handoff](handoffs/skill-workflow-simplification.md). No human correction observed. This proves guidance consistency, not live QA filing. |
 | Bug fix | Reproduced defect; useful regression proof | Software Factory batch 4: Codex app, smoke fixture identity mismatch reproduced in the full browser project; one-line repair, 12 pass / one declared skip, zero retries. No human correction during the repair; earlier loader cause remains unproven. See fourth-batch handoff |
 | Domain change | Owning rule identified; accepted and rejected behavior checked | Pending |
 | UI correction | Local design guidance applied; rendered proof labeled | Pending |
 | Bounded refactor | Behavior preserved; concrete maintenance cost reduced | Pending |
+
+The 2026-10-24 QA instruction extraction is a guidance refactor, not the pending bounded runtime
+refactor task. Its independent proposal comparison is incomplete because the second agent could
+not start after workspace credits were exhausted. The first proposal recovered six fixture items
+and kept live enrichment unverified. Do not count it as an after-variant pass or real QA evidence.
 
 For each task, record its reference, agent/session, acceptance outcome, scope adherence,
 verification, and human corrections. Record skill use only when observable; an agent saying it

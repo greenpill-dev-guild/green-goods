@@ -80,6 +80,22 @@ governs TypeScript/JavaScript only. Solidity retains its Bun/Foundry review and 
 - Coverage is an outer-loop floor, never a substitute for direct or production-composition proof.
 - The client-guide plan owns AGENTS/CLAUDE consolidation. This hub does not edit those files.
 
+## Skill workflow follow-up — 2026-10-24
+
+The accepted skills audit adds a bounded follow-up to the original certification scope:
+repair cleanup's consumer-proof and validation rules, remove Git mutations from auxiliary QA
+extraction, consolidate duplicate personal discovery paths locally, and trial conditional QA
+triage references. This authorization supersedes the original requirement to leave `clean`
+unchanged for this follow-up only. The user requested an isolated worktree and a draft PR.
+
+Keep the fourteen repository entrypoints and existing task routes. Reuse the current reliability
+pilot; record only normally authorized task observations. Domain/UI work and Claude Desktop
+observations remain pending until a suitable real task or session supplies evidence. A synthetic
+forward test supplements the pilot and never fills its real-task rows.
+
+Execution, verification, and limitations live in
+[the workflow handoff](handoffs/skill-workflow-simplification.md).
+
 ## Risks
 
 - Registry staleness: bounded to four certified seams and selected hotspots; fingerprints fail
