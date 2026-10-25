@@ -235,6 +235,11 @@ describe("Telegram reporting on the existing bot", () => {
     await browser.open(link);
     const proof = await browser.prove(adaAccount);
     await tell(direct({ text: String(proof.body.pairingCode) }));
+    // The account card points to the Menu, as the replies for a chat with no account do.
+    await tell(direct({ text: "/account" }));
+    expect(sentTexts().at(-1)).toBe(
+      `This chat is connected to ${adaAccount.address.toLowerCase()}.\nYour gardens: TAS.\nTo use a different account, send SWITCH. Account commands are in the Menu too: /account, /connect, /switch and /disconnect.`
+    );
     await tell(direct({ text: "Today I planted twelve baobab seedlings by the fence" }));
 
     // With buttons to tap, the announcement names no command words.
@@ -275,6 +280,31 @@ describe("Telegram reporting on the existing bot", () => {
     await tell(direct({ text: "Weeded the beds this morning" }));
     expect(sentTexts().at(-1)).toContain("Which garden is this report for?");
     expect(api.keyboardsRemoved().at(-1)).toBe(summary);
+  });
+
+  it("takes only the choices off a pressed message, as Telegram shows it, and keeps its link", async () => {
+    openTelegramChannel();
+    const link = { text: "Join the Community Garden", url: "https://www.greengoods.app/join" };
+    const choice = { text: "I've joined", callback_data: "p:prompt-1:joined" };
+    const message = {
+      message_id: 50,
+      date: 0,
+      chat: DM,
+      reply_markup: { inline_keyboard: [[choice], [link]] },
+    };
+    const query = {
+      id: "press-link",
+      from: PERSON,
+      chat_instance: "chat",
+      data: choice.callback_data,
+      message,
+    };
+    await bot().handleUpdate({ update_id: 901, callback_query: query } as unknown as Update);
+    expect(
+      api.calls
+        .filter((call) => call.method === "editMessageReplyMarkup")
+        .map((call) => call.payload)
+    ).toEqual([{ chat_id: 7001, message_id: 50, reply_markup: { inline_keyboard: [[link]] } }]);
   });
 
   it("leads /language to a choice of languages, then names the Menu in the language chosen", async () => {

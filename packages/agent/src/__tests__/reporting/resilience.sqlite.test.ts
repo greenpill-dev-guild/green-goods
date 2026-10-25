@@ -242,7 +242,7 @@ class EditingTransport implements OutboundTransport {
   }
 
   async retireChoices(question: RetiredQuestion): Promise<void> {
-    this.events.push(`retiring ${question.providerMessageId}`);
+    this.events.push(`retiring ${question.providerMessageId}: ${question.message?.text}`);
     await this.edit();
     this.events.push("retired");
   }
@@ -276,7 +276,8 @@ describe("taking a replaced question's buttons off", () => {
     // failed edit neither stops the pass nor reaches the reply.
     expect(transport.events).toEqual([
       "sent: Which activity in TAS best matches your work?",
-      `retiring ${gardenQuestion}`,
+      // The question goes with its sent text, so a channel can keep its links.
+      `retiring ${gardenQuestion}: Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden`,
       "sent: Your report for TAS is still being filled in.",
       ...(kind === "slow" ? ["retired"] : []),
     ]);

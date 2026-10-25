@@ -227,7 +227,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.connectNamedNoGardens":
     "Todavía no veo {account} en ningún jardín.\nPara conectarla a este chat, verifícala aquí con esa cuenta. El enlace caduca en 10 minutos y nunca mueve fondos.",
   "link.already":
-    "Este chat está conectado a {account}.{gardens}\nPara usar otra cuenta, envía SWITCH.",
+    "Este chat está conectado a {account}.{gardens}\nPara usar otra cuenta, envía SWITCH.{menu}",
   "link.pairFailed":
     "Ese código no coincide con ninguna verificación abierta. Revisa el código en la página de Green Goods.",
   "link.accountMismatch":

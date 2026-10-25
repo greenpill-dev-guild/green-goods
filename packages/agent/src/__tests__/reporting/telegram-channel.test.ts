@@ -275,6 +275,38 @@ describe("Telegram delivery", () => {
     );
   });
 
+  it("keeps a replaced question's link, copy button and records, and takes only its choices off", async () => {
+    const production = "https://www.greengoods.app/agent/reporting/r1";
+    const attestation = "https://arbitrum.easscan.org/attestation/view/0xabc";
+    await createTelegramTransport(telegram).retireChoices?.({
+      providerRealm: TEST_BOT_REALM,
+      externalChatId: "7001",
+      providerMessageId: "105",
+      message: {
+        text: "Join the Community Garden, then tap I've joined.",
+        choices: [{ id: "p:q3:joined", label: "I've joined" }],
+        link: { url: production, label: "Join", copyLabel: "Copy link" },
+        records: [{ url: attestation, label: "View attestation" }],
+      },
+    });
+    expect(api.calls).toEqual([
+      {
+        method: "editMessageReplyMarkup",
+        payload: {
+          chat_id: "7001",
+          message_id: 105,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "Join", url: production }],
+              [{ text: "Copy link", copy_text: { text: production } }],
+              [{ text: "View attestation", url: attestation }],
+            ],
+          },
+        },
+      },
+    ]);
+  });
+
   it("retries rate limits and Telegram failures, stops on refusals and flags a lost response", async () => {
     api.reply({
       ok: false,

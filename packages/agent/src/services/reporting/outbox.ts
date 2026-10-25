@@ -243,7 +243,8 @@ async function settled<T>(retiring: Array<Promise<void>>, outcome: T): Promise<T
  * A question just sent replaces the one sent before it, so that one's buttons come off. Each
  * question is retired by the next question to reach the chat, once; a question with no choices is
  * left alone. Whether it had choices is read from the question itself, which outlives the purge
- * of a cancelled report's sent text. The lookup runs when this is called, before its first await.
+ * of a cancelled report's sent text; the text, while held, lets the channel keep the question's
+ * links. The lookup runs when this is called, before its first await.
  * Retiring is best effort and never rejects: a button left behind only puts the open question
  * again.
  */
@@ -258,7 +259,7 @@ async function retireEarlierQuestion(
       .query(
         // The prompt and state terms match the index of sent questions word for word, so the
         // newest earlier question is the first entry read.
-        `SELECT p.options_json, a.provider_message_id
+        `SELECT o.id, o.payload_ciphertext, p.options_json, a.provider_message_id
          FROM delivery_outbox o
            JOIN conversation_prompts p ON p.id = o.prompt_id
            JOIN delivery_attempts a ON a.outbox_id = o.id
@@ -272,12 +273,24 @@ async function retireEarlierQuestion(
         conversation: sent.conversation_id,
         prompt: sent.prompt_id,
         seq: sent.dispatch_seq,
-      }) as { options_json: string; provider_message_id: string } | null;
+      }) as {
+      id: string;
+      payload_ciphertext: string | null;
+      options_json: string;
+      provider_message_id: string;
+    } | null;
     if (!earlier || (JSON.parse(earlier.options_json) as unknown[]).length === 0) return;
+    // The question as sent lets the channel keep its links; a purge leaves only the question row.
+    const message = earlier.payload_ciphertext
+      ? (JSON.parse(
+          core.keyring.open(earlier.payload_ciphertext, payloadContext(earlier.id))
+        ) as OutboundMessage)
+      : null;
     await transport.retireChoices?.({
       providerRealm: chat.providerRealm,
       externalChatId: chat.chatId,
       providerMessageId: earlier.provider_message_id,
+      ...(message ? { message } : {}),
     });
   } catch (error) {
     log.warn({ error: errorCodeOf(error) }, "Could not retire an earlier question's buttons");

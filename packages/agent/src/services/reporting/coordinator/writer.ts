@@ -16,6 +16,7 @@ import type { TurnContext } from "./context";
 const MENU_HINTS: Partial<Record<ReportingCopyKey, ReportingCopyKey>> = {
   help: "menu.commands",
   "chat.welcomeLinked": "menu.account",
+  "link.already": "menu.account",
   "link.notLinked": "menu.account",
   "link.disconnected": "menu.account",
   "link.offerDeclined": "menu.account",

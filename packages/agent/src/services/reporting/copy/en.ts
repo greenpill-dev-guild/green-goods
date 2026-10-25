@@ -225,7 +225,7 @@ export const EN_REPORTING_COPY = {
   "link.connectNamedNoGardens":
     "I don't see {account} in a garden yet.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
   "link.already":
-    "This chat is connected to {account}.{gardens}\nTo use a different account, send SWITCH.",
+    "This chat is connected to {account}.{gardens}\nTo use a different account, send SWITCH.{menu}",
   "link.pairFailed":
     "That code doesn't match an open verification. Check the code on the Green Goods page.",
   "link.accountMismatch":
