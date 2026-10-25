@@ -2,9 +2,10 @@ import type { Garden } from "@green-goods/shared/types/domain";
 import { lazy, Suspense } from "react";
 import { HomeLoading } from "../HomeStates";
 import type { MemberGarden } from "../homeGardens";
+import { Continue } from "./Continue";
 
-// The interim body is the whole garden page (tabs, sheets, pools), so it loads on its own and
-// stays out of the installed app's startup bundle.
+// The interim end of the journal is the whole garden page (tabs, sheets, pools), so it loads on
+// its own and stays out of the installed app's startup bundle.
 const GardenPage = lazy(() =>
   import("../Garden/GardenPage").then(({ GardenPage }) => ({ default: GardenPage }))
 );
@@ -23,14 +24,20 @@ export interface HomeJournalProps {
  *
  * This is the one place the compact journal's sections mount, in this order: Needs Your
  * Attention for stewards (step 19), the Highlights carousel and Recent Activity (step 7),
- * Continue (step 8), Take Part (step 9), then the About entry (step 10). Until they land it shows
- * the garden's own page, its banner, tabs and actions without Back, the way the lab's promoted
- * garden page draws it.
+ * Continue (step 8), Take Part (step 9), then the About entry (step 10), whose place is reviewed
+ * once the first slice renders. Until About lands, the garden's own page closes the journal in
+ * its place, its banner, tabs and actions without Back, so nothing that page offers is out of
+ * reach from Home.
  */
 export function HomeJournal({ garden }: HomeJournalProps) {
   return (
-    <Suspense fallback={<HomeLoading remembered />}>
-      <GardenPage garden={garden} layout="home" />
-    </Suspense>
+    <div className="flex flex-col">
+      <Continue />
+      <div className="pt-4">
+        <Suspense fallback={<HomeLoading remembered />}>
+          <GardenPage garden={garden} layout="home" />
+        </Suspense>
+      </div>
+    </div>
   );
 }
