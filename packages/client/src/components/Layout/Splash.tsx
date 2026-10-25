@@ -163,6 +163,9 @@ export const Splash: React.FC<SplashProps> = ({
 
   // Secondary renders only on entry screens; the reserve pattern (opacity +
   // tabIndex + aria-hidden) keeps the slot stable when no action is offered.
+  // The label sits in a span, as the primary's does: opening a form turns this
+  // button into the primary, and React cannot remove a bare text node that
+  // page translation has already swapped for its own.
   const secondaryButton = usernameInput ? null : (
     <Button
       type="button"
@@ -180,7 +183,7 @@ export const Splash: React.FC<SplashProps> = ({
       aria-hidden={!secondaryAction}
       tabIndex={secondaryAction ? 0 : -1}
     >
-      {secondaryAction?.label || "Login with wallet"}
+      <span>{secondaryAction?.label || "Login with wallet"}</span>
     </Button>
   );
 
