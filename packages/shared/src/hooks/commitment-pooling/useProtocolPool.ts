@@ -57,13 +57,20 @@ async function readProtocolPool(chainId: number): Promise<ProtocolPool> {
   };
 }
 
-export function useProtocolPool(input: { chainId: number }) {
+export function useProtocolPool(
+  input: { chainId: number },
+  /** A caller that needs the protocol pool only some of the time gates here. */
+  options: { enabled?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const moduleAddress = getNetworkContracts(input.chainId).commitmentPoolingModule;
   const query = useQuery({
     queryKey: commitmentPoolingKeys.protocolPool(input.chainId),
     queryFn: () => readProtocolPool(input.chainId),
-    enabled: availability.status === "available" && !isZeroAddress(moduleAddress),
+    enabled:
+      options.enabled !== false &&
+      availability.status === "available" &&
+      !isZeroAddress(moduleAddress),
     staleTime: STALE_TIME_MEDIUM,
   });
   return {
