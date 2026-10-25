@@ -16,17 +16,29 @@ import {
   useArrivalState,
 } from "../../hooks/app/useArrivalState";
 
-const ADDRESS = "0xabc0000000000000000000000000000000000001";
+type MyGardenFixture = {
+  garden: { id: string };
+  membership: { roles: string[]; pendingJoin: boolean };
+};
+
+/** One of the account's gardens as the membership owner reports it. */
+function myGarden(id: string, roles: string[], pendingJoin = false): MyGardenFixture {
+  return { garden: { id }, membership: { roles, pendingJoin } };
+}
 
 // Mutable mock state, read lazily by the module factories so each test can tweak a source.
 const { mocks } = vi.hoisted(() => ({
   mocks: {
     primaryAddress: "0xAbC0000000000000000000000000000000000001" as string | null,
-    gardens: { data: [] as Array<Record<string, unknown>>, isSuccess: true },
+    myGardens: {
+      gardens: [] as MyGardenFixture[],
+      isLoaded: true,
+      isError: false,
+      isStale: false,
+      refetch: () => {},
+    },
     drafts: { draftCount: 0, isLoading: false },
     queue: { data: { pending: 0, failed: 0 } as Record<string, number>, isSuccess: true },
-    pendingJoinsVersion: 0,
-    isGardenMember: false,
     review: { count: 0, ready: true, isSteward: false },
   },
 }));
@@ -34,12 +46,10 @@ const { mocks } = vi.hoisted(() => ({
 vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => mocks.primaryAddress,
 }));
-vi.mock("../../hooks/blockchain/useBaseLists", () => ({
-  useGardens: () => mocks.gardens,
-}));
-vi.mock("../../hooks/garden/useJoinGarden", () => ({
-  isGardenMember: () => mocks.isGardenMember,
-  usePendingJoinsVersion: () => mocks.pendingJoinsVersion,
+// The membership owner has its own tests; here it stands for "the account's gardens".
+vi.mock("../../hooks/garden/useMyGardens", () => ({
+  useMyGardens: (account: string | null) =>
+    account ? mocks.myGardens : { ...mocks.myGardens, gardens: [] },
 }));
 vi.mock("../../hooks/work/useDrafts", () => ({
   useDrafts: () => mocks.drafts,
@@ -193,41 +203,54 @@ describe("resolveArrivalKind", () => {
 describe("useArrivalState", () => {
   beforeEach(() => {
     mocks.primaryAddress = "0xAbC0000000000000000000000000000000000001";
-    mocks.gardens = { data: [], isSuccess: true };
+    mocks.myGardens = {
+      gardens: [],
+      isLoaded: true,
+      isError: false,
+      isStale: false,
+      refetch: () => {},
+    };
     mocks.drafts = { draftCount: 0, isLoading: false };
     mocks.queue = { data: { pending: 0, failed: 0 }, isSuccess: true };
-    mocks.pendingJoinsVersion = 0;
-    mocks.isGardenMember = false;
     mocks.review = { count: 0, ready: true, isSteward: false };
   });
 
   it("returns none when there is no resolved address yet", () => {
     mocks.primaryAddress = null;
+    mocks.myGardens.gardens = [myGarden("g1", ["gardener"])];
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("none");
     expect(result.current.myGardenIds).toEqual([]);
   });
 
-  it("derives gardener from gardens + isGardenMember (gardeners/pending-join scope)", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [] }], isSuccess: true };
-    mocks.isGardenMember = true;
-    const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("gardener");
-    expect(result.current.myGardenIds).toEqual(["g1"]);
+  it("derives gardener from the gardener role or an open join this device sent", () => {
+    mocks.myGardens.gardens = [myGarden("g1", ["gardener"])];
+    const listed = renderHook(() => useArrivalState());
+    expect(listed.result.current.kind).toBe("gardener");
+    expect(listed.result.current.myGardenIds).toEqual(["g1"]);
+
+    mocks.myGardens.gardens = [myGarden("g2", [], true)];
+    const joining = renderHook(() => useArrivalState());
+    expect(joining.result.current.kind).toBe("gardener");
+    expect(joining.result.current.myGardenIds).toEqual(["g2"]);
   });
 
-  it("derives steward from the garden stewards array (case-insensitive)", () => {
-    mocks.gardens = {
-      data: [{ id: "g1", gardeners: [], stewards: [ADDRESS.toUpperCase().replace("0X", "0x")] }],
-      isSuccess: true,
-    };
+  it("derives steward from the steward role", () => {
+    mocks.myGardens.gardens = [myGarden("g1", ["steward"])];
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("stewardClear");
     expect(result.current.myGardenIds).toEqual(["g1"]);
   });
 
+  it("counts an owner's and an evaluator's gardens as theirs without a role orientation", () => {
+    mocks.myGardens.gardens = [myGarden("g1", ["owner"]), myGarden("g2", ["evaluator"])];
+    const { result } = renderHook(() => useArrivalState());
+    expect(result.current.kind).toBe("signedIn");
+    expect(result.current.myGardenIds).toEqual(["g1", "g2"]);
+  });
+
   it("surfaces review with its count when a steward has submissions waiting", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [ADDRESS] }], isSuccess: true };
+    mocks.myGardens.gardens = [myGarden("g1", ["steward"])];
     mocks.review = { count: 3, ready: true, isSteward: true };
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("review");
@@ -235,14 +258,14 @@ describe("useArrivalState", () => {
   });
 
   it("stays silent for a steward whose review data is not ready", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [ADDRESS] }], isSuccess: true };
+    mocks.myGardens.gardens = [myGarden("g1", ["steward"])];
     mocks.review = { count: 0, ready: false, isSteward: true };
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("none");
   });
 
   it("reports needsReviewCount 0 when a higher-priority kind preempts review", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [ADDRESS] }], isSuccess: true };
+    mocks.myGardens.gardens = [myGarden("g1", ["steward"])];
     mocks.review = { count: 5, ready: true, isSteward: true };
     mocks.queue = { data: { pending: 1, failed: 0 }, isSuccess: true };
     const { result } = renderHook(() => useArrivalState());
@@ -250,9 +273,13 @@ describe("useArrivalState", () => {
     expect(result.current.needsReviewCount).toBe(0);
   });
 
-  it("stays silent (none) when gardens errored, even for a member", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [] }], isSuccess: false };
-    mocks.isGardenMember = true;
+  it("stays silent (none) when the gardens read failed, even for a member", () => {
+    mocks.myGardens = {
+      ...mocks.myGardens,
+      gardens: [myGarden("g1", ["gardener"])],
+      isError: true,
+      isStale: true,
+    };
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("none");
     // membership is still computed from cached data, but not asserted as an orientation
@@ -261,7 +288,7 @@ describe("useArrivalState", () => {
 
   it("fires queue while gardens are still loading", () => {
     mocks.queue = { data: { pending: 1, failed: 0 }, isSuccess: true };
-    mocks.gardens = { data: [], isSuccess: false };
+    mocks.myGardens = { ...mocks.myGardens, isLoaded: false };
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("queue");
   });

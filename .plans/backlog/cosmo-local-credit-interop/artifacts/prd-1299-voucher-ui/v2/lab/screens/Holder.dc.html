@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your voucher promise</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: {{padBottom}}">
+    <div class="topnav">
+      <a class="close" href="Main.dc.html" aria-label="Back"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+      <span class="mid">Your promise</span>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg>Your promise · Sunroot Skills Hub</span>
+      <h1>Solar basics course, 10 lessons</h1>
+      <span class="pill {{pillCls}}">{{pill}}</span>
+    </div>
+
+    <sc-if value="{{isEscrow}}" hint-placeholder-val="{{false}}">
+      <div class="escrow" style="margin-top: 16px">
+        <div class="etop">
+          <span class="elock"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg></span>
+          <span><span class="ea">{{escrowAmt}}</span><span class="eu" style="display: block">{{escrowLabel}}</span></span>
+        </div>
+        <sc-if value="{{showSplitBar}}" hint-placeholder-val="{{false}}">
+          <div class="eband"><div class="splitbar"><span class="a" style="width: 40%">40 to Sunroot</span><span class="b" style="width: 60%">60 back to you</span></div></div>
+        </sc-if>
+        <div class="eband"><b style="font-size: 14px; color: var(--strong)">{{curTitle}}</b><span class="small">{{curMeta}}</span></div>
+      </div>
+    </sc-if>
+
+    <div class="stack" style="margin-top: 12px">
+      <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
+        <div class="notice {{noticeCls}}"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{isTimeline}}" hint-placeholder-val="{{true}}">
+      <div class="sec"><h2>Vouchers</h2></div>
+      <div class="mx16 card">
+        <div class="ladder">
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="9">
+            <div class="ls {{s.cls}}"><span class="lm"><sc-if value="{{s.isDone}}" hint-placeholder-val="{{true}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></sc-if><sc-if value="{{s.isFail}}" hint-placeholder-val="{{false}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></sc-if><sc-if value="{{s.isNum}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; font-weight: 600">{{s.n}}</span></sc-if></span><span class="lt"><b>{{s.title}}</b><span>{{s.meta}}</span></span></div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isTracks}}" hint-placeholder-val="{{false}}">
+      <div class="sec"><h2>Two things are moving</h2></div>
+      <div class="tracks">
+        <div class="track">
+          <span class="th"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg>Your vouchers</span>
+          <sc-for list="{{vTrack}}" as="m" hint-placeholder-count="4"><div class="tstep {{m.cls}}"><span class="tm"></span><span>{{m.short}}</span></div></sc-for>
+        </div>
+        <div class="track">
+          <span class="th"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-graduation-cap-line"/></svg>The course</span>
+          <sc-for list="{{cTrack}}" as="c" hint-placeholder-count="5"><div class="tstep {{c.cls}}"><span class="tm"></span><span>{{c.short}}</span></div></sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showLegs}}" hint-placeholder-val="{{false}}">
+      <div class="sec"><h2>Transfers from the escrow</h2></div>
+      <div class="mx16 card">
+        <div class="legs">
+          <div class="leg"><b>To Sunroot's reserve · 40</b><span class="pill {{leg1Cls}}">{{leg1}}</span></div>
+          <div class="leg"><b>Back to you · 60</b><span class="pill {{leg2Cls}}">{{leg2}}</span><sc-if value="{{retry}}" hint-placeholder-val="{{false}}"><span class="sub">Attempt 1 · Oct 30, 2:14 PM · a retry sends the same 60</span></sc-if></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <div class="sec"><h2>Escrow</h2></div>
+    <div class="mx16 card">
+      <div class="facts">
+        <div class="fact"><span class="k">Held in</span><span class="v">Green Goods voucher escrow on Gnosis</span></div>
+        <div class="fact"><span class="k">In escrow</span><span class="v">{{inEscrow}}</span></div>
+        <div class="fact"><span class="k">Accept by</span><span class="v">Oct 25, 5:00 PM</span></div>
+        <div class="fact"><span class="k">Your wallet</span><span class="v"><span class="mono">0x9A40…41bD</span><small>Gnosis</small></span></div>
+      </div>
+    </div>
+  </div>
+  <sc-if value="{{hasActs}}" hint-placeholder-val="{{false}}">
+    <div class="fbar">
+      <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{false}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
+      <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><button type="button" class="btn sec">{{secondary}}</button></sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Timeline","Escrow card","Two tracks"],"default":"Timeline","section":"Direction"},"state":{"editor":"enum","options":["Waiting for proof","Waiting for Sunroot","Terms revised","Window passed","Canceling","Canceled","Accepted first","Under way","Split to review","Moving","Retry","Settled"],"default":"Waiting for Sunroot","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = this.props.variant ?? 'Timeline';
+    var st = this.props.state ?? 'Waiting for Sunroot';
+    var dark = this.props.dark ?? false;
+    var S = {
+      agree: { t: 'c', title: 'You agreed to version 2', meta: 'Oct 22, 11:02 AM', short: 'Agreed' },
+      appr: { t: 'c', title: 'Sunroot approved the setup', meta: 'Ade · 11:05 AM', short: 'Setup approved' },
+      esc: { t: 'v', title: '100 Sunroot vouchers in escrow', meta: 'On Gnosis · 11:20 AM', short: 'In escrow' },
+      proof: { t: 'v', title: 'Escrow proof received by Green Goods', meta: 'Sent from Gnosis · not received yet', short: 'Proof received' },
+      acc: { t: 'c', title: 'Sunroot accepts', meta: 'By Oct 25 · 2 days left', short: 'Accepted' },
+      start: { t: 'c', title: 'Promise starts on Gnosis', meta: 'Escrow activated', short: 'Started' },
+      les: { t: 'c', title: 'Lessons', meta: '0 of 10 reported', short: 'Lessons' },
+      split: { t: 'v', title: 'You review and freeze the final split', meta: 'Only you can freeze it', short: 'Split frozen' },
+      move: { t: 'v', title: 'Vouchers move', meta: 'Two transfers, one for each side', short: 'Moved' },
+      c1: { t: 'c', title: 'Cancellation sent', meta: 'If Sunroot accepted first, the promise starts instead', short: 'You canceled' },
+      c2: { t: 'v', title: 'Setup canceled', meta: 'Oct 25, 5:40 PM', short: 'Setup canceled' },
+      c3: { t: 'v', title: '100 Sunroot vouchers back in your Gnosis wallet', meta: 'Oct 25', short: 'Back to you' },
+    };
+    var main = ['agree', 'appr', 'esc', 'proof', 'acc', 'start', 'les', 'split', 'move'];
+    var cancel = ['agree', 'appr', 'esc', 'proof', 'c1', 'c2', 'c3'];
+    var proofDone = { proof: ['Escrow proof received by Green Goods', 'Oct 22, 11:24 AM'] };
+    function O(extra) { return Object.assign({}, proofDone, extra || {}); }
+    var accDone = { acc: ['Sunroot accepted', 'Oct 23, 9:10 AM'], start: ['Promise started on Gnosis', 'Oct 23'] };
+    var M = {
+      'Waiting for proof': { keys: main, at: 3, pill: ['info', 'Waiting for escrow proof'], secondary: 'Cancel Setup' },
+      'Waiting for Sunroot': { keys: main, at: 4, over: O(), pill: ['info', 'Waiting for Sunroot'], secondary: 'Cancel Setup' },
+      'Terms revised': { keys: main, at: 4, mark: 'warn', over: O({ acc: ["Sunroot can't accept until you agree again", 'Version 3 is waiting for you'] }), pill: ['warn', 'Agree to new terms'],
+        notice: ['warn', 'Sunroot changed the terms', "Version 3 moves the start to within 4 weeks. Your vouchers stay in escrow. Sunroot can't accept until you agree to version 3, or you can cancel."], primary: ['Review Version 3', 'VSetup.dc.html'], secondary: 'Cancel and Get Vouchers Back' },
+      'Window passed': { keys: main, at: 4, mark: 'warn', over: O({ acc: ["Sunroot didn't accept by Oct 25", 'The window has closed'] }), pill: ['warn', 'Not accepted in time'],
+        notice: ['warn', 'Your vouchers are still in escrow', "Time running out doesn't return them on its own. Cancel the setup to get all 100 back."], primary: ['Cancel and Get Vouchers Back', '#'] },
+      'Canceling': { keys: cancel, at: 4, over: O(), pill: ['info', 'Canceling'],
+        notice: ['info', 'Cancellation on its way', "Your cancellation and Sunroot's acceptance can cross. Only one counts, and you'll see which here. Your vouchers can't be both returned and used."] },
+      'Canceled': { keys: cancel, at: 7, over: O({ c1: ['Cancellation sent', 'Oct 25, 5:02 PM'] }), pill: ['ok', 'Canceled · vouchers back'] },
+      'Accepted first': { keys: main, at: 6, over: O({ acc: ['Sunroot accepted', 'Oct 25, 4:58 PM, before your cancellation arrived'], start: ['Promise started on Gnosis', 'Oct 25'] }), pill: ['info', 'Promise under way'],
+        notice: ['info', 'Sunroot accepted first', "Your cancellation arrived after Sunroot accepted, so the promise has started and your cancellation didn't apply. If something's wrong, report a problem."], secondary: 'Report a Problem' },
+      'Under way': { keys: main, at: 6, over: O(Object.assign({}, accDone, { les: ['Lessons', '2 of 10 reported'] })), pill: ['info', 'Promise under way'], secondary: 'Report a Problem' },
+      'Split to review': { keys: main, at: 7, over: O(Object.assign({}, accDone, { les: ['3 of 10 lessons reported', 'With 3 proofs'], split: ['Sunroot proposes ending early', 'Review before anything moves'] })), pill: ['warn', 'Final split to review'],
+        notice: ['info', 'Sunroot proposed a final split', 'Sunroot reported 3 of 10 lessons and proposes ending the course early. Review it before anything moves.'], primary: ['Review Final Split', 'Split.dc.html'] },
+      'Moving': { keys: main, at: 8, over: O(Object.assign({}, accDone, { les: ['3 of 10 lessons reported', 'With 3 proofs'], split: ['Split frozen', 'Oct 30'] })), pill: ['info', 'Vouchers moving'], legs: ['info', 'Sent to Gnosis', 'info', 'Sent to Gnosis'] },
+      'Retry': { keys: main, at: 8, mark: 'fail', over: O(Object.assign({}, accDone, { les: ['3 of 10 lessons reported', 'With 3 proofs'], split: ['Split frozen', 'Oct 30'], move: ['One transfer needs a retry', '40 arrived at Sunroot; your 60 did not'] })), pill: ['warn', 'One transfer needs a retry'], legs: ['ok', 'Done on Gnosis', 'err', "Didn't complete"],
+        notice: ['warn', "Your 60 vouchers haven't moved yet", "The transfer to Sunroot's reserve finished; yours didn't. Trying again sends exactly 60 to the same wallet. It can't send more."], primary: ['Try Again', '#'] },
+      'Settled': { keys: main, at: 9, over: O(Object.assign({}, accDone, { les: ['3 of 10 lessons reported', 'With 3 proofs'], split: ['Split frozen', 'Oct 30'], move: ['Vouchers moved', 'Oct 30 · both transfers done'] })), pill: ['ok', 'Vouchers settled'], legs: ['ok', 'Done on Gnosis', 'ok', 'Done on Gnosis'],
+        notice: ['ok', 'Settled', "Both transfers are done. This settles the vouchers only: the promise's own confirmation and any outside service are separate."] },
+    };
+    var cfg = M[st];
+    var over = cfg.over || {};
+    var steps = cfg.keys.map(function (k, i) {
+      var b = S[k];
+      var cls = i < cfg.at ? 'done' : (i === cfg.at ? (cfg.mark || 'now') : 'todo');
+      var o = over[k];
+      return { n: i + 1, cls: cls, t: b.t, short: b.short, title: o ? o[0] : b.title, meta: o ? o[1] : b.meta,
+        isDone: cls === 'done', isFail: cls === 'fail', isNum: cls !== 'done' && cls !== 'fail' };
+    });
+    var cur = steps[Math.min(cfg.at, steps.length - 1)];
+    var after = cfg.at >= 8;
+    var canceled = st === 'Canceled';
+    var hasPrimary = !!cfg.primary;
+    var hasSecondary = !!cfg.secondary;
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      isTimeline: v === 'Timeline', isEscrow: v === 'Escrow card', isTracks: v === 'Two tracks',
+      pillCls: cfg.pill[0], pill: cfg.pill[1], steps: steps,
+      vTrack: steps.filter(function (s) { return s.t === 'v'; }),
+      cTrack: steps.filter(function (s) { return s.t === 'c'; }),
+      curTitle: cur.title, curMeta: cur.meta,
+      escrowAmt: canceled || st === 'Settled' ? '0' : '100',
+      escrowLabel: canceled ? 'In escrow · all 100 came back to you' : (st === 'Settled' ? 'In escrow · split and moved' : (after ? 'Sunroot vouchers, split and frozen' : 'Sunroot vouchers in escrow')),
+      showSplitBar: after,
+      inEscrow: canceled || st === 'Settled' ? 'None' : (st === 'Retry' ? '60 Sunroot vouchers, waiting to move' : '100 Sunroot vouchers'),
+      hasNotice: !!cfg.notice, noticeCls: cfg.notice ? cfg.notice[0] : '', noticeT: cfg.notice ? cfg.notice[1] : '', noticeB: cfg.notice ? cfg.notice[2] : '',
+      showLegs: !!cfg.legs, retry: st === 'Retry',
+      leg1Cls: cfg.legs ? cfg.legs[0] : '', leg1: cfg.legs ? cfg.legs[1] : '', leg2Cls: cfg.legs ? cfg.legs[2] : '', leg2: cfg.legs ? cfg.legs[3] : '',
+      hasActs: hasPrimary || hasSecondary, hasPrimary: hasPrimary, hasSecondary: hasSecondary,
+      primary: hasPrimary ? cfg.primary[0] : '', primaryHref: hasPrimary ? cfg.primary[1] : '#', secondary: cfg.secondary || '',
+      padBottom: hasPrimary || hasSecondary ? '170px' : '40px',
+    };
+  }
+}
+</script>
+</body>
+</html>

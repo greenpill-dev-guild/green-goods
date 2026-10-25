@@ -142,6 +142,18 @@ describe("offline plan", () => {
       photoGarden: visited,
     });
   });
+
+  it("keeps an owner's and an evaluator's gardens, and reads gardens missing a role list", () => {
+    // PRD-1311: a garden restored from an older build's cache had no `stewards` list, and
+    // spreading the lists threw `e.stewards is not iterable` on /home.
+    const gardens = [
+      { id: gardenA, chainId, owners: [account] },
+      { id: gardenB, chainId, evaluators: [account], stewards: null },
+      { id: visited, chainId, gardeners: [neighbour], stewards: {} },
+    ] as unknown as Garden[];
+
+    expect(planOfflineContent(gardens, account, chainId)).toEqual({ lists: [gardenA, gardenB] });
+  });
 });
 
 describe("offline scheduler", () => {

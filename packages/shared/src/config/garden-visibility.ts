@@ -25,7 +25,8 @@
  *     It is unlisted, not unreachable: its own page still opens by its link,
  *     says it is not in the lists, and asks crawlers not to index it.
  *     Entries marked `membersOnly` also stay out of PWA garden discovery
- *     unless the signed-in account is a gardener or steward of that garden.
+ *     unless the garden is one of the signed-in account's own
+ *     (`modules/garden/membership`).
  *
  * To change a garden's visibility, edit the relevant list. Every entry carries
  * the reason it is there.
@@ -56,7 +57,7 @@ interface CuratedGarden {
   /** Garden name when curated. Documentation only — never used to match. */
   name: string;
   reason: string;
-  /** PWA discovery is limited to the garden's gardeners and stewards. */
+  /** PWA discovery is limited to the garden's members: owners, stewards, evaluators and gardeners. */
   membersOnly?: boolean;
 }
 

@@ -12,24 +12,22 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Track mock state
-const mockGardensState = {
-  data: [] as any[],
+// Track mock state: the membership owner's answer for the signed-in account.
+const mockMyGardens = {
+  gardens: [] as Array<{ garden: any; membership: { roles: string[]; pendingJoin: boolean } }>,
+  isLoaded: true,
   isError: false,
-  isLoading: false,
-  isFetching: false,
+  isStale: false,
   refetch: vi.fn(),
 };
 const mockNavigate = vi.fn();
+const asMine = (garden: any) => ({
+  garden,
+  membership: { roles: ["gardener"], pendingJoin: false },
+});
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared/hooks/garden/useJoinGarden", () => ({
-  isGardenMember: (address: string, gardeners: string[], _stewards: string[], _id: string) =>
-    gardeners.includes(address),
-  usePendingJoinsVersion: () => 0,
-}));
-
-vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
-  useGardens: () => mockGardensState,
+vi.mock("@green-goods/shared/hooks/garden/useMyGardens", () => ({
+  useMyGardens: () => mockMyGardens,
 }));
 
 // Mock @tanstack/react-query
@@ -83,10 +81,10 @@ describe("GardensList", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useUIStore.getState().resetGardenFilters();
-    mockGardensState.data = [];
-    mockGardensState.isError = false;
-    mockGardensState.isLoading = false;
-    mockGardensState.isFetching = false;
+    mockMyGardens.gardens = [];
+    mockMyGardens.isLoaded = true;
+    mockMyGardens.isError = false;
+    mockMyGardens.isStale = false;
   });
 
   afterEach(() => {
@@ -99,16 +97,17 @@ describe("GardensList", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("shows loading state", () => {
-    mockGardensState.isLoading = true;
+  it("shows loading state while the account's gardens are unknown", () => {
+    mockMyGardens.isLoaded = false;
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
     expect(screen.getByText(/loading gardens/i)).toBeInTheDocument();
+    expect(screen.queryByText(/no gardens yet/i)).not.toBeInTheDocument();
   });
 
   it("shows empty state when no gardens available", () => {
-    mockGardensState.data = [];
+    mockMyGardens.gardens = [];
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
@@ -118,7 +117,8 @@ describe("GardensList", () => {
 
   it("shows a retry state when gardens cannot load without a cache", async () => {
     const user = userEvent.setup();
-    mockGardensState.isError = true;
+    mockMyGardens.isLoaded = false;
+    mockMyGardens.isError = true;
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
@@ -126,11 +126,22 @@ describe("GardensList", () => {
     expect(screen.queryByText(/no gardens yet/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Retry" }));
-    expect(mockGardensState.refetch).toHaveBeenCalledOnce();
+    expect(mockMyGardens.refetch).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the last good list when a refresh fails", () => {
+    mockMyGardens.isError = true;
+    mockMyGardens.isStale = true;
+    mockMyGardens.gardens = [asMine({ id: "0xgarden1", name: "My Garden" })];
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+
+    expect(screen.getByText("My Garden")).toBeInTheDocument();
+    expect(screen.queryByText("Gardens are unavailable right now.")).not.toBeInTheDocument();
   });
 
   it("applies the open scope and clears restrictive filters before opening home", async () => {
-    mockGardensState.data = [];
+    mockMyGardens.gardens = [];
     useUIStore.getState().setGardenFilters(() => ({ scope: "mine", sort: "recent", domains: [0] }));
     mockNavigate.mockImplementationOnce(() => {
       expect(useUIStore.getState().gardenFilters).toEqual({ scope: "open", sort: "recent" });
@@ -143,40 +154,30 @@ describe("GardensList", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/home");
   });
 
-  it("lists only the gardens the account belongs to, open or not", () => {
-    mockGardensState.data = [
+  it("lists the gardens the membership owner returns, in its order, with no join offer", () => {
+    mockMyGardens.gardens = [
+      asMine({ id: "0xgarden1", name: "My Garden", location: "Berlin" }),
       {
-        id: "0xgarden1",
-        name: "My Garden",
-        location: "Berlin",
-        openJoining: false,
-        gardeners: [MOCK_ADDRESS],
-        stewards: [],
-      },
-      {
-        id: "0xgarden2",
-        name: "Open Garden",
-        location: "Lagos",
-        openJoining: true,
-        gardeners: [],
-        stewards: [],
+        garden: { id: "0xgarden2", name: "Reviewed Garden", location: "Lagos" },
+        membership: { roles: ["evaluator"], pendingJoin: false },
       },
     ];
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
-    expect(screen.getByText("My Garden")).toBeInTheDocument();
+    const rows = screen.getAllByRole("button", { name: /garden/i });
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining("My Garden"),
+      expect.stringContaining("Reviewed Garden"),
+    ]);
     expect(screen.getByText("Berlin")).toBeInTheDocument();
-    // Joining lives on the garden itself, so an open garden is not offered here.
-    expect(screen.queryByText("Open Garden")).not.toBeInTheDocument();
+    // Joining lives on the garden itself, so this list offers no join.
     expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
   });
 
   it("opens the garden when its row is pressed", async () => {
     const user = userEvent.setup();
-    mockGardensState.data = [
-      { id: "0xgarden1", name: "My Garden", gardeners: [MOCK_ADDRESS], stewards: [] },
-    ];
+    mockMyGardens.gardens = [asMine({ id: "0xgarden1", name: "My Garden" })];
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
     await user.click(screen.getByRole("button", { name: /my garden/i }));
@@ -187,14 +188,8 @@ describe("GardensList", () => {
   it("constrains long garden names and locations inside the row", () => {
     const longName = "RegenerativeBioregionStewardshipGardenCollective2026";
     const longLocation = "RuaDasCooperativasNeighborhoodWithLongUnbrokenPlaceNameLisbonPortugal";
-    mockGardensState.data = [
-      {
-        id: "0xgarden-long",
-        name: longName,
-        location: longLocation,
-        gardeners: [MOCK_ADDRESS],
-        stewards: [],
-      },
+    mockMyGardens.gardens = [
+      asMine({ id: "0xgarden-long", name: longName, location: longLocation }),
     ];
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));

@@ -14,7 +14,7 @@ import {
   subscribeMediaWorker,
   sweepMedia,
 } from "../../modules/offline-content/media";
-import { OFFLINE_REFRESH_MS } from "../../modules/offline-content/policy";
+import { OFFLINE_REFRESH_MS, planOfflineContent } from "../../modules/offline-content/policy";
 import { persistPreparedQuery } from "../../modules/offline-content/query-writer";
 import { OfflineScheduler } from "../../modules/offline-content/scheduler";
 import {
@@ -63,18 +63,11 @@ function waitForIdle(): Promise<void> {
   });
 }
 
+/** The gardens whose lists the offline plan keeps, so the scheduler reruns when they change. */
 function joinedGardens(gardens: Garden[] | undefined, account: string | null, chainId: number) {
   if (!gardens || !account) return "";
-  const member = account.toLowerCase();
-  return gardens
-    .filter(
-      (garden) =>
-        garden.chainId === chainId &&
-        [...garden.gardeners, ...garden.stewards, ...garden.owners].some(
-          (address) => address.toLowerCase() === member
-        )
-    )
-    .map((garden) => garden.id.toLowerCase())
+  return planOfflineContent(gardens, account, chainId)
+    .lists.map((gardenId) => gardenId.toLowerCase())
     .sort()
     .join(",");
 }
