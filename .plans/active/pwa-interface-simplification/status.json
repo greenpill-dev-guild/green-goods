@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-25T02:29:25.614Z"
+    "updated_at": "2026-10-25T03:44:41.020Z"
   },
   "links": {
     "brief": "brief.md",
@@ -106,16 +106,16 @@
       "handoff": "handoffs/claude-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "packages/shared: bun run test src/__tests__/modules/garden/membership.test.ts src/__tests__/hooks/garden/useMyGardens.test.tsx src/__tests__/modules/garden-filters.test.ts src/__tests__/hooks/useArrivalState.test.ts src/__tests__/modules/offline-content.test.ts src/__tests__/hooks/garden/useKarmaIntegration.test.ts; packages/client: bun run test src/__tests__/views/GardensList.test.tsx",
+          "evidence": "Step 1: 44 Shared and 9 client tests failed before the membership owner existed: membership 22 and useMyGardens 8 against not-implemented stubs, filters 2, arrival 10, offline 1 (TypeError: garden.gardeners is not iterable) and Karma 1 (TypeError: input.owners is not iterable), Profile 9."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "The same commands, plus packages/shared src/__tests__/hooks/garden/useJoinGarden.test.ts; then node scripts/dev/ci-local.js --intent push",
+          "evidence": "Step 1: 122 Shared tests in 7 files and 9 client tests passed; full suites Shared 7,635, client 1,747, admin 1,383; push gate passed at ffdbd834a (30 of 31 fresh, browser-proof pending)."
         },
-        "note": "Slice 1 (steps 1 and 2, then the state parts of 4 and 5) is behavior-changing: focused RED/GREEN proof is required and recorded in the handoff and with record-tdd."
+        "note": "Slice 1, step 1 (membership owner) recorded; step 2's proof follows on its own PR, then the state parts of steps 4 and 5."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"],
       "ready_when_dependencies_met": true,
@@ -317,6 +317,14 @@
       "status": "in_progress",
       "branch": "feature/pwa-membership-owner",
       "note": null
+    },
+    {
+      "timestamp": "2026-10-25T03:44:41.026Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/pwa-membership-owner",
+      "note": "Slice 1, step 1 (membership owner) recorded; step 2's proof follows on its own PR, then the state parts of steps 4 and 5."
     }
   ]
 }
