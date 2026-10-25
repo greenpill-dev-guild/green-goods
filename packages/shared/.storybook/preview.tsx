@@ -108,6 +108,19 @@ const preview: Preview = {
     } as unknown as ReturnType<typeof useServiceAccessMutation>);
   },
   globalTypes: {
+    locale: {
+      description: "The language every story reads in",
+      toolbar: {
+        title: "Language",
+        icon: "globe",
+        items: [
+          { value: "en", title: "English" },
+          { value: "es", title: "Español" },
+          { value: "pt", title: "Português" },
+        ],
+        dynamicTitle: true,
+      },
+    },
     theme: {
       description: "Global theme for components",
       toolbar: {
@@ -122,6 +135,7 @@ const preview: Preview = {
     },
   },
   initialGlobals: {
+    locale: "en",
     theme: "light",
   },
   parameters: {

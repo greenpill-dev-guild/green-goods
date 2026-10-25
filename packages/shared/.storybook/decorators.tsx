@@ -32,6 +32,8 @@ import { type ListingSubmission, listingSubmissionKey, useListingSubmissionStore
 import { resetAdminStoryState } from "./adminStoryIsolation";
 import { STORYBOOK_NOW_SECONDS } from "./fixtures";
 import messages from "../src/i18n/en.json";
+import es from "../src/i18n/es.json";
+import pt from "../src/i18n/pt.json";
 
 export { DEV_MOCK_AUTH_ADDRESSES };
 
@@ -104,11 +106,19 @@ function createStorybookQueryClient() {
   });
 }
 
-export const withI18n: Decorator = (Story) => (
-  <IntlProvider locale="en" messages={messages}>
-    <Story />
-  </IntlProvider>
-);
+const MESSAGES = { en: messages, es, pt } as const;
+type StorybookLocale = keyof typeof MESSAGES;
+
+/** Every story reads in the toolbar's language (`globals.locale`); English until one is picked. */
+export const withI18n: Decorator = (Story, context) => {
+  const picked = context.globals.locale as string | undefined;
+  const locale: StorybookLocale = picked && picked in MESSAGES ? (picked as StorybookLocale) : "en";
+  return (
+    <IntlProvider locale={locale} messages={MESSAGES[locale]}>
+      <Story />
+    </IntlProvider>
+  );
+};
 
 export const withQueryClient: Decorator = (Story, context) => {
   const queryClient = useMemo(() => createStorybookQueryClient(), [context.id]);

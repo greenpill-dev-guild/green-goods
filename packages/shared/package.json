@@ -438,6 +438,7 @@
     "./hooks/client-ui/pool/usePromiseGroupController": "./src/hooks/client-ui/pool/usePromiseGroupController.ts",
     "./hooks/client-ui/pool/usePromiseGroups": "./src/hooks/client-ui/pool/usePromiseGroups.ts",
     "./hooks/client-ui/profile/useUsernameController": "./src/hooks/client-ui/profile/useUsernameController.ts",
+    "./hooks/client-ui/submission/useSubmissionFlowController": "./src/hooks/client-ui/submission/useSubmissionFlowController.ts",
     "./hooks/client-ui/wallet/useCeloWallet": "./src/hooks/client-ui/wallet/useCeloWallet.ts",
     "./hooks/client-ui/wallet/useSendFlowController": "./src/hooks/client-ui/wallet/useSendFlowController.ts",
     "./hooks/client-ui/work/useWorkDetailController": "./src/hooks/client-ui/work/useWorkDetailController.ts",
