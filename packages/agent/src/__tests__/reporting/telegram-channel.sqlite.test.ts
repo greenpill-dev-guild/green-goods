@@ -339,6 +339,56 @@ describe("Telegram reporting on the existing bot", () => {
     );
   });
 
+  it.each([
+    ["/stop", "You've stopped the assistant."],
+    ["/delete", "Your unpublished drafts and files are being deleted."],
+  ])("keeps CANCEL and %s with reporting while the channel is paused", async (control, done) => {
+    openTelegramChannel();
+    const telegraf = bot();
+    const tell = async (update: Update) => {
+      await telegraf.handleUpdate(update);
+      await drainThroughTelegram();
+    };
+    const count = (sql: string) => harness.core.db.query(sql).get();
+    await tell(direct({ text: "Today I planted twelve baobab seedlings by the fence" }));
+    await tell(press("I agree"));
+    setControl(harness.core, channelControl("telegram"), false, {
+      actor: "operator",
+      reason: "pause",
+    });
+    // An ordinary message goes to the bot's own handlers, and so does a stranger's STOP.
+    await tell(direct({ text: "Hello" }));
+    const stranger = { id: 7002, is_bot: false, first_name: "Bo", language_code: "en" };
+    await tell({
+      update_id: 990,
+      message: {
+        message_id: 990,
+        date: 0,
+        chat: { id: 7002, type: "private", first_name: "Bo" },
+        from: stranger,
+        text: "/stop",
+      },
+    } as unknown as Update);
+    expect(legacy.direct).toHaveBeenCalledTimes(2);
+
+    // CANCEL, STOP and DELETE stay with reporting, which carries them out: none needs a model.
+    await tell(direct({ text: "/cancel" }));
+    expect(sentTexts().at(-1)).toBe("Report canceled. Unpublished content will be removed.");
+    await tell(direct({ text: control }));
+    expect(sentTexts().at(-1)?.startsWith(done)).toBe(true);
+    expect(legacy.direct).toHaveBeenCalledTimes(2);
+    expect(
+      count(
+        "SELECT count(*) AS n FROM consent_records WHERE purpose = 'processing' AND withdrawn_at IS NULL"
+      )
+    ).toEqual({ n: 0 });
+    // DELETE also removes what was sent; STOP leaves that to the discarded report's own purge.
+    if (control === "/delete")
+      expect(
+        count("SELECT count(*) AS n FROM source_entries WHERE content_ciphertext IS NOT NULL")
+      ).toEqual({ n: 0 });
+  });
+
   it("does not acknowledge an update it could not store", async () => {
     openTelegramChannel();
     const failing = {

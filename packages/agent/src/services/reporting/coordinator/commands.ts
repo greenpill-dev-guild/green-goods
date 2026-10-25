@@ -118,6 +118,16 @@ export function replyCommand(replyId: string | undefined): ChatCommand | null {
     : null;
 }
 
+/**
+ * STOP, DELETE and CANCEL, typed or tapped: they withdraw consent, remove data or discard a report,
+ * and need no model, so reporting takes them from someone it knows even while their chat channel
+ * is paused. A paused channel's other messages go to the bot's own handlers.
+ */
+export function isPauseControl(message: { text?: string; replyId?: string }): boolean {
+  const kind = (parseCommand(message.text) ?? replyCommand(message.replyId))?.kind;
+  return kind === "stop" || kind === "delete" || kind === "cancel";
+}
+
 const LOCALES = new Set(["en", "es", "pt"]);
 const LANGUAGE_WORDS = new Set(["lang", "language", "idioma"]);
 const ACCOUNT = /^0x[0-9a-f]{40}$/;
