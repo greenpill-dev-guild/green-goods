@@ -40,7 +40,7 @@ export interface UseMyWorksOptions {
   timeFilter?: TimeFilter;
 
   /**
-   * Limit number of results
+   * How many of the record's works to return. Work still on this phone is returned past it.
    * @default 50
    */
   limit?: number;
@@ -241,7 +241,10 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     });
     let rows: Work[] = includeOffline ? mergeAndDeduplicateByClientId(remote, localRows) : remote;
     if (timeFilter) rows = filterByTimeRange(rows, timeFilter);
-    return sortByCreatedAt(rows).slice(0, limit);
+    // The limit pages the record. Work still in this phone's queue stays past it: nothing else
+    // lists it, and the Your Work badge counts it.
+    const queuedIds = new Set(localRows.map((work) => work.id));
+    return sortByCreatedAt(rows).filter((work, index) => index < limit || queuedIds.has(work.id));
   }, [
     remoteRows,
     queuedPreviews,

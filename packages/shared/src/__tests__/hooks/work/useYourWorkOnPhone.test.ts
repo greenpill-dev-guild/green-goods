@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   myWorksRefetch: vi.fn(async () => ({ status: "success" })),
   drafts: [] as Array<{ id: string; gardenAddress: string | null }>,
   draftsLoading: false,
+  draftsError: false,
   refetchDrafts: vi.fn(async () => undefined),
   proofs: [] as Array<{ id: string; garden: string | null; savedGarden: string | null }>,
   queueUnavailable: false,
@@ -64,6 +65,7 @@ vi.mock("../../../hooks/work/useDrafts", () => ({
   useDrafts: () => ({
     drafts: mocks.drafts,
     isLoading: mocks.draftsLoading,
+    isError: mocks.draftsError,
     refetchDrafts: mocks.refetchDrafts,
   }),
 }));
@@ -114,6 +116,7 @@ describe("useYourWorkOnPhone", () => {
     mocks.myWorksError = false;
     mocks.drafts = [];
     mocks.draftsLoading = false;
+    mocks.draftsError = false;
     mocks.proofs = [];
     mocks.queueUnavailable = false;
     mocks.waitingDecisionWorkIds = new Set();
@@ -184,7 +187,7 @@ describe("useYourWorkOnPhone", () => {
     expect(render().isLoading).toBe(true);
   });
 
-  it("fails when the queue or a waiting review's garden cannot be read, not when only the record's read of the reader's work does", () => {
+  it("fails when the queue, the drafts or a waiting review's garden cannot be read, not when only the record's read of the reader's work does", () => {
     mocks.myWorksError = true;
     expect(render().isError).toBe(false);
 
@@ -194,6 +197,12 @@ describe("useYourWorkOnPhone", () => {
     expect(queueFailed.queueUnreadable).toBe(true);
 
     mocks.queueUnavailable = false;
+    mocks.draftsError = true;
+    const draftsFailed = render();
+    expect(draftsFailed.isError).toBe(true);
+    expect(draftsFailed.queueUnreadable).toBe(true);
+
+    mocks.draftsError = false;
     mocks.needsReviewError = true;
     mocks.waitingDecisionWorkIds = new Set(["0xdec1"]);
     const gardenFailed = render();

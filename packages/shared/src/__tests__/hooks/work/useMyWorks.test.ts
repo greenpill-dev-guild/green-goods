@@ -381,6 +381,35 @@ describe("useMyWorks", () => {
 
       expect(result.current.data).toHaveLength(5);
     });
+
+    it("keeps work still on this phone past the limit, which pages only the record", async () => {
+      const recorded = Array.from({ length: 5 }, (_, i) =>
+        createMockWork({ id: `0xrecorded${i}`, createdAt: Date.now() - i })
+      );
+      const queued = createMockWork({
+        id: "0xoffline_old",
+        status: "offline",
+        createdAt: Date.now() - 1_000,
+      });
+      mockGetWorksByGardener.mockResolvedValue(recorded);
+      mockFetchOfflineWorks.mockResolvedValue([queued]);
+      mockDeduplicateById.mockReturnValue(recorded);
+      mockMergeAndDeduplicateByClientId.mockReturnValue([...recorded, queued]);
+
+      const { result } = renderHookWithQueryClient(
+        () => useMyWorks({ includeOffline: true, limit: 3 }),
+        { queryClient }
+      );
+
+      await waitFor(() => {
+        expect(result.current.data?.map((work) => work.id)).toEqual([
+          "0xrecorded0",
+          "0xrecorded1",
+          "0xrecorded2",
+          "0xoffline_old",
+        ]);
+      });
+    });
   });
 
   // ------------------------------------------

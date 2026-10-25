@@ -41,7 +41,7 @@ export interface YourWorkOnPhone extends YourWorkOnPhoneItems<DraftWithImages, P
   isLoading: boolean;
   /** A read that could add to the list failed, so the list may be missing items. */
   isError: boolean;
-  /** The failure is this phone's queue: trying again needs no connection. */
+  /** The failure is this phone's own queue or drafts: trying again needs no connection. */
   queueUnreadable: boolean;
   /** Read everything again. */
   refetch: () => void;
@@ -53,7 +53,12 @@ export function useYourWorkOnPhone(): YourWorkOnPhone {
   // The queue and the proof drafts are kept under the primary address.
   const viewer = usePrimaryAddress();
   const myWorks = useMyWorks({ includeOffline: true });
-  const { drafts, isLoading: isLoadingDrafts, refetchDrafts } = useDrafts();
+  const {
+    drafts,
+    isLoading: isLoadingDrafts,
+    isError: draftsUnreadable,
+    refetchDrafts,
+  } = useDrafts();
   const proofs = usePendingProof({ chainId: DEFAULT_CHAIN_ID, viewer });
   const queue = useCommitmentQueueState(viewer);
   const uploads = useWorkUploads();
@@ -106,7 +111,7 @@ export function useYourWorkOnPhone(): YourWorkOnPhone {
     if (reviewsWait) void refetchNeedsReview();
   }, [refreshQueue, refetchMyWorks, refetchDrafts, refetchNeedsReview, reviewsWait]);
 
-  const queueUnreadable = proofs.isUnavailable;
+  const queueUnreadable = proofs.isUnavailable || draftsUnreadable;
   return {
     ...items,
     decisionFor: uploads.decisionFor,
