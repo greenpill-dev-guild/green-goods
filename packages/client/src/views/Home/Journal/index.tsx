@@ -3,6 +3,7 @@ import type { Garden } from "@green-goods/shared/types/domain";
 import { lazy, Suspense } from "react";
 import { HomeLoading } from "../HomeStates";
 import type { MemberGarden } from "../homeGardens";
+import { Continue } from "./Continue";
 import { NeedsYourAttention } from "./NeedsYourAttention";
 
 // The interim end of the journal is the whole garden page (tabs, sheets, pools), so it loads on
@@ -38,8 +39,8 @@ export function HomeJournal({ garden }: HomeJournalProps) {
   return (
     <div className="flex flex-col">
       <NeedsYourAttention garden={garden} duties={duties} />
-      {/* Spaced from a section above it, and flush under the header when nothing waits. */}
-      <div className="pt-4 first:pt-0">
+      <Continue />
+      <div className="pt-4">
         <Suspense fallback={<HomeLoading remembered />}>
           <GardenPage garden={garden} layout="home" />
         </Suspense>
