@@ -1,21 +1,24 @@
 import type { Telegraf } from "telegraf";
 import { describe, expect, it, vi } from "vitest";
 import { registerSlashCommands } from "../platforms/telegram";
+import { offersCommandMenu } from "../services/reporting/channels";
 import { parseCommand } from "../services/reporting/coordinator/commands";
 
 /** Bot API requests only: no production menu or webhook is modified by these tests. */
-function botRecorder() {
+function botRecorder(token = "4242:test-token") {
   const setMyCommands = vi.fn().mockResolvedValue(true);
-  return { bot: { telegram: { setMyCommands } } as unknown as Telegraf, setMyCommands };
+  return { bot: { telegram: { setMyCommands, token } } as unknown as Telegraf, setMyCommands };
 }
 
 describe("Telegram private command menus", () => {
   it("keeps the existing legacy menu when the reporting runtime is absent", async () => {
-    const { bot, setMyCommands } = botRecorder();
+    const { bot, setMyCommands } = botRecorder("7171:legacy-token");
     await registerSlashCommands(bot);
     expect(
       setMyCommands.mock.calls[0]?.[0].map((item: { command: string }) => item.command)
     ).toEqual(["start", "join", "status", "pending", "approve", "reject", "help"]);
+    // That menu lists none of reporting's commands, so reporting's replies do not point to it.
+    expect(offersCommandMenu("telegram:7171")).toBe(false);
   });
 
   it("shows every reporting command, without promising a custodial wallet during a channel pause", async () => {
@@ -35,11 +38,11 @@ describe("Telegram private command menus", () => {
       { command: "language", description: "Change the language" },
       { command: "help", description: "Get help and available commands" },
       // A tap sends a command at once, so the three that discard work say so and come last.
-      { command: "cancel", description: "Cancel and discard the current report" },
+      { command: "cancel", description: "Cancel and discard the current report or review" },
       { command: "stop", description: "Stop the assistant and discard the current report" },
       {
         command: "delete",
-        description: "Delete every unpublished report and file, and stop the assistant",
+        description: "Delete every unpublished report, review and file, and stop the assistant",
       },
     ]);
   });
@@ -73,8 +76,10 @@ describe("Telegram private command menus", () => {
   });
 
   it("registers private menus in English, Spanish and Portuguese and keeps groups empty", async () => {
-    const { bot, setMyCommands } = botRecorder();
+    const { bot, setMyCommands } = botRecorder("6161:working-token");
     await registerSlashCommands(bot, true);
+    // Registered, the menu is one reporting's replies may point to.
+    expect(offersCommandMenu("telegram:6161")).toBe(true);
     expect(setMyCommands.mock.calls.map((call) => call[1])).toEqual([
       { scope: { type: "all_private_chats" } },
       { scope: { type: "all_private_chats" }, language_code: "es" },
@@ -87,9 +92,12 @@ describe("Telegram private command menus", () => {
   });
 
   it("surfaces Bot API failure so startup can report that menu registration is pending", async () => {
-    const { bot, setMyCommands } = botRecorder();
+    const { bot, setMyCommands } = botRecorder("5151:failing-token");
     setMyCommands.mockRejectedValueOnce(new Error("Bot API unavailable"));
     await expect(registerSlashCommands(bot, true)).rejects.toThrow("Bot API unavailable");
     expect(setMyCommands).toHaveBeenCalledTimes(1);
+    // The bot may show no menu, or an older one without the newer commands, so replies name only
+    // the words to type.
+    expect(offersCommandMenu("telegram:5151")).toBe(false);
   });
 });

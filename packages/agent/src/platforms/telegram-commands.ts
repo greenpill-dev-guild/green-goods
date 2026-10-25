@@ -1,11 +1,14 @@
 import type { Telegraf } from "telegraf";
 import type { AgentLocale } from "../i18n";
+import { recordCommandMenu } from "../services/reporting/channels";
+import { telegramRealm } from "./telegram-reporting";
 
 /**
  * The reporting chat's private command menu, in the order a person meets the commands: reporting,
  * then the account, then help. Each is a command the reporting core reads, so no entry falls back
  * to HELP. CANCEL, STOP and DELETE come last, apart from STATUS: a tap sends a command at once, and
- * these three discard unpublished work, so each description says what it removes. Names stay
+ * these three discard unpublished work, so each description says what it removes. STOP keeps an
+ * open review for when the steward comes back; CANCEL and DELETE discard it too. Names stay
  * English in every language, as the chat's typed command words do; only the descriptions are
  * translated. The menu stays up during a channel pause, when the legacy bot answers private chats:
  * it knows START, STATUS and HELP, and no description here promises the wallet its START creates.
@@ -45,9 +48,9 @@ const MENU_DESCRIPTIONS: Record<AgentLocale, Record<MenuCommand, string>> = {
     disconnect: "Disconnect your account",
     language: "Change the language",
     help: "Get help and available commands",
-    cancel: "Cancel and discard the current report",
+    cancel: "Cancel and discard the current report or review",
     stop: "Stop the assistant and discard the current report",
-    delete: "Delete every unpublished report and file, and stop the assistant",
+    delete: "Delete every unpublished report, review and file, and stop the assistant",
   },
   es: {
     start: "Iniciar o retomar Green Goods",
@@ -62,9 +65,10 @@ const MENU_DESCRIPTIONS: Record<AgentLocale, Record<MenuCommand, string>> = {
     disconnect: "Desconectar tu cuenta",
     language: "Cambiar el idioma",
     help: "Ver ayuda y comandos disponibles",
-    cancel: "Cancelar y descartar el reporte actual",
+    cancel: "Cancelar y descartar el reporte o la revisión actual",
     stop: "Detener el asistente y descartar el reporte actual",
-    delete: "Borrar todos tus reportes y archivos no publicados, y detener el asistente",
+    delete:
+      "Borrar todos tus reportes, revisiones y archivos no publicados, y detener el asistente",
   },
   pt: {
     start: "Iniciar ou retomar Green Goods",
@@ -79,9 +83,9 @@ const MENU_DESCRIPTIONS: Record<AgentLocale, Record<MenuCommand, string>> = {
     disconnect: "Desconectar sua conta",
     language: "Mudar o idioma",
     help: "Ver ajuda e comandos disponíveis",
-    cancel: "Cancelar e descartar o relato atual",
+    cancel: "Cancelar e descartar o relato ou a revisão atual",
     stop: "Parar o assistente e descartar o relato atual",
-    delete: "Apagar todos os seus relatos e arquivos não publicados e parar o assistente",
+    delete: "Apagar todos os seus relatos, revisões e arquivos não publicados e parar o assistente",
   },
 };
 
@@ -108,4 +112,7 @@ export async function registerTelegramCommands(
   // Explicitly clear the group autocomplete menu so retired /bug + /idea
   // commands and any historical state are removed.
   await bot.telegram.setMyCommands([], { scope: { type: "all_group_chats" } });
+  // Only now may reporting's replies point to the menu: a failure above leaves it unregistered.
+  const realm = reportingAvailable ? telegramRealm(bot.telegram.token) : null;
+  if (realm) recordCommandMenu(realm);
 }

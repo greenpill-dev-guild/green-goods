@@ -2,7 +2,7 @@ import sharp from "sharp";
 import { Telegram, type Telegraf } from "telegraf";
 import type { Update } from "telegraf/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createTelegramBot } from "../../platforms/telegram";
+import { createTelegramBot, registerSlashCommands } from "../../platforms/telegram";
 import {
   createTelegramMediaFetcher,
   createTelegramReporting,
@@ -219,6 +219,8 @@ describe("Telegram reporting on the existing bot", () => {
     openTelegramChannel();
     harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true });
     const telegraf = bot();
+    // Startup registers the menu, which the account card then points to.
+    await registerSlashCommands(telegraf, true);
     const tell = async (update: Update) => {
       await telegraf.handleUpdate(update);
       await drainThroughTelegram();
@@ -310,6 +312,7 @@ describe("Telegram reporting on the existing bot", () => {
   it("leads /language to a choice of languages, then names the Menu in the language chosen", async () => {
     openTelegramChannel();
     const telegraf = bot();
+    await registerSlashCommands(telegraf, true);
     const tell = async (update: Update) => {
       await telegraf.handleUpdate(update);
       await drainThroughTelegram();

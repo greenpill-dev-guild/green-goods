@@ -208,6 +208,26 @@ describe("steward review", () => {
     });
   });
 
+  it("keeps an open decision ahead of a new report after STOP, START and consent", async () => {
+    await publishedWork();
+    await linkedSteward();
+    await harness.say(BOLA, "REVIEW");
+    await harness.say(BOLA, "1");
+    const decision = `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`;
+    // STOP closes the decision's question and leaves the decision open.
+    expect((await harness.say(BOLA, "STOP"))[0]).toMatch(/^You've stopped the assistant\./);
+    expect((await harness.say(BOLA, "START"))[0]).toContain("Do you agree?");
+    await harness.press(BOLA, "I agree");
+    expect(await harness.say(BOLA, "NEW")).toEqual([
+      "You have a review in progress. Send CANCEL to discard it or keep going with it.",
+      decision,
+    ]);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([decision]);
+    // With its question showing again, a story goes to the decision, not to a report beside it.
+    expect(await harness.say(BOLA, "Weeded the beds this morning")).toEqual([decision]);
+    expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 1 });
+  });
+
   it("never offers or accepts a steward's own work", async () => {
     await publishedWork();
     harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true, operator: true });

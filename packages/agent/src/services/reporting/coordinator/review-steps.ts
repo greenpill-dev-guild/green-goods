@@ -31,6 +31,9 @@ const EDITABLE = new Set([
   "awaitingSignature",
 ]);
 
+/** The states in which a steward still answers a decision's questions, before confirming it. */
+const ANSWERING = new Set(["discussing", "needsClarification", "decisionPrepared"]);
+
 /** `REVIEW` lists pending work (after linking an account); `REVIEW n` picks from the open list. */
 export function requestReview(writer: TurnWriter, index: number | null): void {
   const { core, ctx } = writer;
@@ -160,15 +163,16 @@ export function handleReviewCommand(
       else nextReviewStep(writer, review, account.address);
       return true;
     }
-    // While a decision's question is showing, a story only puts that question again, so NEW says
-    // the review comes first and STATUS shows the question it is waiting on.
+    // A decision the steward is still answering comes first, whether or not its question is
+    // showing: STOP closes the question and leaves the decision open. NEW says so, and STATUS
+    // shows the question it waits on. A question no longer showing is put again, so the next
+    // story goes to the review and not to a report beside it.
     case "new":
-      if (!isReviewPrompt(writer.ctx.prompt?.kind)) return false;
-      writer.say("review.resumeFirst");
-      return true;
     case "status":
-      if (!isReviewPrompt(writer.ctx.prompt?.kind) || !account) return false;
-      nextReviewStep(writer, review, account.address);
+      if (!account || !ANSWERING.has(reviewState(review))) return false;
+      if (command.kind === "new") writer.say("review.resumeFirst");
+      if (command.kind === "status" || !isReviewPrompt(writer.ctx.prompt?.kind))
+        nextReviewStep(writer, review, account.address);
       return true;
     default:
       return false;
