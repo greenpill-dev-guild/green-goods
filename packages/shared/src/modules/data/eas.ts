@@ -17,6 +17,7 @@ import { createEasClient, type GraphQLReader } from "./graphql-client";
 
 export { EASFetchError } from "./eas-read-validation";
 export {
+  getGardenActivitySince,
   getWorkApprovalsForWorks,
   getWorkListPage,
   readWorkApprovalsForWorks,

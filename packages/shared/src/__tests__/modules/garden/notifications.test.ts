@@ -296,6 +296,15 @@ describe("seen state", () => {
     expect(isNotificationNew({ id: "g", at: later - 6 * DAY }, second, later)).toBe(true);
   });
 
+  it("never counts an event older than a week as new, however old the record is", () => {
+    const record = markNotificationsSeen(undefined, [{ id: "a", at: NOW - DAY }], NOW);
+    const later = NOW + 10 * DAY;
+
+    // Never shown, and after the record's own cutoff, but more than a week old by now.
+    expect(isNotificationNew({ id: "h", at: NOW + DAY }, record, later)).toBe(false);
+    expect(isNotificationNew({ id: "i", at: later - DAY }, record, later)).toBe(true);
+  });
+
   it("keeps one record per chain, account and garden", () => {
     expect(gardenNotificationsScope(42161, "0xAbC1", "0xDeF2")).toBe("42161:0xabc1:0xdef2");
     expect(gardenNotificationsScope(11155111, "0xabc1", "0xdef2")).toBe("11155111:0xabc1:0xdef2");

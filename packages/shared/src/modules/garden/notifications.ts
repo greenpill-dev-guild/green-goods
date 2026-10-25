@@ -8,8 +8,8 @@
  * - For an account that can act on it, under the predicate that gates the act on the phone: a
  *   new submission for whoever may approve the garden's work (the work page's
  *   `canManageGarden`: the garden's stewards and owners), and a take-up request on an
- *   approval-gated promise for whoever may accept or decline it (`isPoolSteward`, the pool's
- *   stewards and owners, which the claim panel reads as `stewardsPoolGarden`). Each is listed
+ *   approval-gated promise for whoever may accept or decline it (the claim panel's
+ *   `stewardsPoolGarden`, a live chain read of the pool's stewards and owners). Each is listed
  *   while it still waits and never to the account that made it. An evaluator or a gardener
  *   gets neither (decision 22).
  *
@@ -19,8 +19,8 @@
  * Seen state is a device record per chain, account and garden (`gardenNotificationsScope`):
  * the events the member was shown, by id, and a time at or before which everything counts as
  * seen. Marking by id keeps an event that was indexed late new, even when a newer one has
- * already been seen. A device that has never marked a garden's events counts the last week's
- * as new.
+ * already been seen. Only the last week's events can be new, on a device that has never marked
+ * a garden's events and on one that marked them long ago.
  */
 
 import type {
@@ -55,9 +55,9 @@ export interface GardenNotificationSources {
   account: string;
   /** Whether the account may approve the garden's work on the phone (`canManageGarden`). */
   canReviewWork: boolean;
-  /** Whether the account may accept or decline take-up requests in the pool (`isPoolSteward`). */
+  /** Whether the account may accept or decline take-up requests (`stewardsPoolGarden`). */
   canDecideTakeUps: boolean;
-  /** The garden's work list (`useWorks`). */
+  /** The garden's works: its page and the week's activity, each with its latest decision. */
   works: readonly Work[];
   /** The commitments in the garden's pool. */
   commitments: readonly CommitmentReadModel[];
@@ -69,7 +69,7 @@ export interface GardenNotificationSources {
   takeUpRequests: readonly PoolClaimRequestRow[];
 }
 
-/** A device that has never marked a garden's events seen counts the last week's as new. */
+/** How far back an event can still be new: a week, in seconds. */
 export const NEW_NOTIFICATION_WINDOW_SECONDS = 7 * 24 * 60 * 60;
 
 /** What one device has seen of one garden's events, for one account. */
@@ -141,14 +141,17 @@ export function deriveGardenNotifications(
   return notifications.sort((left, right) => right.at - left.at || left.id.localeCompare(right.id));
 }
 
-/** Whether this device has yet to show the member an event. `now` is in seconds. */
+/**
+ * Whether this device has yet to show the member an event. `now` is in seconds. An event older
+ * than the window never counts as new, however long ago the record was last written.
+ */
 export function isNotificationNew(
   notification: SeenNotification,
   record: GardenNotificationsSeen | undefined,
   now: number
 ): boolean {
-  const seenThrough = record?.seenThrough ?? now - NEW_NOTIFICATION_WINDOW_SECONDS;
-  return notification.at > seenThrough && !(record && Object.hasOwn(record.seen, notification.id));
+  const cutoff = Math.max(record?.seenThrough ?? 0, now - NEW_NOTIFICATION_WINDOW_SECONDS);
+  return notification.at > cutoff && !(record && Object.hasOwn(record.seen, notification.id));
 }
 
 /**

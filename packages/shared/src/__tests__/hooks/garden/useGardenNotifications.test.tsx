@@ -21,6 +21,7 @@ import {
   useGardenNotificationsSeenStore,
 } from "../../../stores/useGardenNotificationsSeenStore";
 import type { Address, Garden, Work } from "../../../types/domain";
+import type { EASWorkListRow } from "../../../types/eas-responses";
 import {
   claimFixture,
   commitmentFixture,
@@ -37,6 +38,10 @@ const reads = vi.hoisted(() => ({
   gardens: [] as Garden[],
   works: [] as Work[],
   worksFailed: false,
+  worksPartial: false,
+  activity: { rows: [] as EASWorkListRow[], complete: true },
+  /** Accounts the chain's steward read answers yes for, as the claim panel reads it. */
+  chainStewards: [] as string[],
   pools: [] as CommitmentPoolRecord[],
   commitments: [] as CommitmentReadModel[],
   takeUps: [] as PoolClaimRequestRow[],
@@ -52,11 +57,25 @@ vi.mock("../../../modules/data/greengoods", () => ({
   getActions: vi.fn(),
   getGardeners: vi.fn(),
 }));
+// The garden's page of works, as the garden screen reads it.
 vi.mock("../../../hooks/work/useWorks", () => ({
   useWorks: (gardenId: string) => ({
     works: reads.works.filter((work) => work.gardenAddress === gardenId),
     isLoading: false,
     isError: reads.worksFailed,
+    refreshWarning: reads.worksPartial,
+    hasUnknownStatuses: false,
+  }),
+}));
+// The week's activity, however far back each work began.
+vi.mock("../../../modules/work/work-list", () => ({
+  readGardenActivity: () => Promise.resolve(reads.activity),
+}));
+vi.mock("../../../hooks/roles/useHasRole", () => ({
+  useHasRole: (_garden: string, user: string | undefined, role: string) => ({
+    hasRole: role === "steward" && reads.chainStewards.includes(String(user).toLowerCase()),
+    isLoading: false,
+    error: null,
   }),
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
@@ -107,6 +126,10 @@ function renderNotifications(gardenId: string = GARDEN) {
 /** The garden's reads: Alice's approved work, Bob's submission, her promise taken up, Carol's ask. */
 function seedGarden(roles: Partial<Garden>) {
   reads.gardens = [createMockGarden({ id: GARDEN, gardeners: [BOB], stewards: [], ...roles })];
+  // The chain's inclusive steward read agrees with the roster unless a case says otherwise.
+  reads.chainStewards = [...(roles.stewards ?? []), ...(roles.owners ?? [])].map((who) =>
+    who.toLowerCase()
+  );
   reads.works = [
     createMockWork({
       id: "0xw1",
@@ -158,6 +181,8 @@ beforeEach(() => {
   useGardenNotificationsSeenStore.setState({ seenByScope: {} });
   reads.account = ALICE;
   reads.worksFailed = false;
+  reads.worksPartial = false;
+  reads.activity = { rows: [], complete: true };
   reads.commitmentReads = [];
   reads.takeUpReads = [];
 });
@@ -296,5 +321,97 @@ describe("useGardenNotifications", () => {
     await waitFor(() =>
       expect(result.current.notifications.map(({ kind }) => kind)).toContain("promiseTakenUp")
     );
+  });
+
+  it("lists the week's events in a garden with more works than its page holds", async () => {
+    seedGarden({ stewards: [ALICE] });
+    reads.takeUps = [];
+    reads.commitments = [];
+    // The page: Bob's 50 newest submissions.
+    reads.works = Array.from({ length: 50 }, (_, index) =>
+      createMockWork({
+        id: `0xpage${index}`,
+        gardenerAddress: BOB,
+        gardenAddress: GARDEN,
+        status: "pending",
+        createdAt: now - (index + 1) * 60,
+      })
+    );
+    // The week: the same 50, ten earlier submissions past the page, and Alice's work from
+    // three months ago, rejected an hour ago.
+    const row = (id: string, gardener: Address, createdAt: number) => ({
+      ...createMockWork({ id, gardenerAddress: gardener, gardenAddress: GARDEN, createdAt }),
+      approval: null,
+    });
+    reads.activity = {
+      complete: true,
+      rows: [
+        ...reads.works.map((work) => row(work.id, BOB, work.createdAt)),
+        ...Array.from({ length: 10 }, (_, index) =>
+          row(`0xearlier${index}`, BOB, now - 48 * HOUR - index)
+        ),
+        {
+          ...row("0xold", ALICE, now - 90 * 24 * HOUR),
+          approval: {
+            id: "0xdecision",
+            workUID: "0xold",
+            approved: false,
+            feedback: "The photo misses the new bed.",
+            createdAt: now - HOUR,
+            stewardAddress: BOB,
+            gardenerAddress: GARDEN,
+            actionUID: 1,
+            confidence: 0,
+            verificationMethod: 0,
+            reviewNotesCID: "",
+          },
+        },
+      ],
+    };
+
+    const { result } = renderNotifications();
+
+    await waitFor(() => expect(result.current.notifications).toHaveLength(61));
+    const count = (kind: string) =>
+      result.current.notifications.filter((event) => event.kind === kind).length;
+    expect(count("workSubmitted")).toBe(60);
+    expect(result.current.notifications.find(({ kind }) => kind === "workRejected")).toMatchObject({
+      id: `review:0xold:${now - HOUR}`,
+      work: { reviewFeedback: "The photo misses the new bed." },
+    });
+  });
+
+  it.each([
+    ["granted on chain before the roster shows it", { gardeners: [ALICE, BOB] }, [ALICE], true],
+    ["revoked on chain while the roster still shows it", { stewards: [ALICE] }, [], false],
+  ])("follows the claim panel's chain read for take-up requests: %s", async (_case, roles, chainStewards, decides) => {
+    seedGarden(roles);
+    reads.chainStewards = chainStewards.map((who) => who.toLowerCase());
+
+    const { result } = renderNotifications();
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(latest(reads.takeUpReads)?.options.enabled).toBe(decides);
+    expect(result.current.notifications.some(({ kind }) => kind === "takeUpRequested")).toBe(
+      decides
+    );
+  });
+
+  it("says when the work it read may be incomplete", async () => {
+    seedGarden({ stewards: [ALICE] });
+    const { result, rerender } = renderNotifications();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isIncomplete).toBe(false);
+
+    // Some decisions on the page could not be read.
+    reads.worksPartial = true;
+    rerender({ id: GARDEN });
+    expect(result.current.isIncomplete).toBe(true);
+
+    // The week ran past its limit.
+    reads.worksPartial = false;
+    reads.activity = { rows: [], complete: false };
+    await act(() => client.invalidateQueries());
+    await waitFor(() => expect(result.current.isIncomplete).toBe(true));
   });
 });
