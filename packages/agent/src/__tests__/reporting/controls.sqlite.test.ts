@@ -135,6 +135,11 @@ describe("operator controls", () => {
     expect(core.db.query("PRAGMA user_version").get()).toEqual({
       user_version: REPORTING_MIGRATIONS.at(-1)?.version,
     });
+    // Versions climb by one from 1. A number two branches both take, or one skipped for a branch
+    // not yet merged, would leave a database that already reached it without the other change.
+    expect(REPORTING_MIGRATIONS.map((migration) => migration.version)).toEqual(
+      REPORTING_MIGRATIONS.map((_, index) => index + 1)
+    );
     expect(readControl(core, "publication")).toEqual({ enabled: true, version: 3 });
     expect(readControl(core, "voice")).toEqual({ enabled: false, version: 1 });
     expect(setControl(core, "voice", true, { actor: "operator", reason: "pilot" })).toEqual({
