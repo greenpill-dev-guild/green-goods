@@ -1,8 +1,13 @@
+import { useStewardDuties } from "@green-goods/shared/hooks/garden/useStewardDuties";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { lazy, Suspense } from "react";
 import { HomeLoading } from "../HomeStates";
 import type { MemberGarden } from "../homeGardens";
 import { Continue } from "./Continue";
+import { HighlightsCarousel } from "./HighlightsCarousel";
+import { NeedsYourAttention } from "./NeedsYourAttention";
+import { RecentActivity } from "./RecentActivity";
+import { TakePart } from "./TakePart";
 
 // The interim end of the journal is the whole garden page (tabs, sheets, pools), so it loads on
 // its own and stays out of the installed app's startup bundle.
@@ -28,11 +33,19 @@ export interface HomeJournalProps {
  * once the first slice renders. Until About lands, the garden's own page closes the journal in
  * its place, its banner, tabs and actions without Back, so nothing that page offers is out of
  * reach from Home.
+ *
+ * The garden's duties are read once here. Needs Your Attention draws them, and a duty card in
+ * the carousel would take the first of the same read, so both show one count.
  */
 export function HomeJournal({ garden }: HomeJournalProps) {
+  const duties = useStewardDuties(garden);
   return (
     <div className="flex flex-col">
+      <NeedsYourAttention garden={garden} duties={duties} />
+      <HighlightsCarousel gardenId={garden.id} />
+      <RecentActivity gardenId={garden.id} />
       <Continue />
+      <TakePart gardenId={garden.id} />
       <div className="pt-4">
         <Suspense fallback={<HomeLoading remembered />}>
           <GardenPage garden={garden} layout="home" />

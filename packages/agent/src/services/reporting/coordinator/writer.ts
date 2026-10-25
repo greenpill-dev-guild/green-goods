@@ -1,4 +1,4 @@
-import { drawsChoiceButtons } from "../channels";
+import { drawsChoiceButtons, offersCommandMenu } from "../channels";
 import { type CopyValues, type ReportingCopyKey, reportingText } from "../copy";
 import { enqueueReply } from "../outbox";
 import type { ParticipantBinding } from "../participants";
@@ -7,6 +7,20 @@ import type { ReportingCore } from "../runtime";
 import type { OutboundLink, OutboundMessage } from "../transport";
 import { commandReplyId } from "./commands";
 import type { TurnContext } from "./context";
+
+/**
+ * Replies that point to the command menu on a channel that has one: help, and the account replies
+ * that name the account command to send next. Their copy holds a `{menu}` placeholder, which stays
+ * empty on a channel without a menu.
+ */
+const MENU_HINTS: Partial<Record<ReportingCopyKey, ReportingCopyKey>> = {
+  help: "menu.commands",
+  "chat.welcomeLinked": "menu.account",
+  "link.already": "menu.account",
+  "link.notLinked": "menu.account",
+  "link.disconnected": "menu.account",
+  "link.offerDeclined": "menu.account",
+};
 
 export interface ReplyTarget {
   conversationId: string;
@@ -32,15 +46,28 @@ export class ConversationWriter {
 
   /** Whether this conversation's channel draws choices as buttons, so no code needs typing. */
   usesButtons(): boolean {
+    const realm = this.realm();
+    return realm ? drawsChoiceButtons(realm) : false;
+  }
+
+  /** Whether this conversation's channel lists the bot's commands in a menu. */
+  hasCommandMenu(): boolean {
+    const realm = this.realm();
+    return realm ? offersCommandMenu(realm) : false;
+  }
+
+  private realm(): string | null {
     const row = this.core.db
       .query("SELECT provider_realm FROM conversations WHERE id = $id")
       .get({ id: this.target.conversationId }) as { provider_realm: string } | null;
-    return row ? drawsChoiceButtons(row.provider_realm) : false;
+    return row?.provider_realm ?? null;
   }
 
   text(key: ReportingCopyKey, values: CopyValues = {}): string {
+    const hint = MENU_HINTS[key];
     return reportingText(this.target.locale, key, {
       support: this.core.settings.supportContact,
+      ...(hint ? { menu: this.hasCommandMenu() ? this.text(hint) : "" } : {}),
       ...values,
     });
   }

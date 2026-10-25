@@ -13,7 +13,11 @@ import { COMMITMENT_JOB_KINDS } from "../commitment-pooling/jobs";
 import { createCommitmentQueueAdmission } from "../commitment-pooling/queue-admission";
 import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selectors";
 import { StrandedSendReopened } from "../work/stranded-intent";
-import { InvalidWorkAttachmentError, PendingHeicConversionError } from "../work/work-attachments";
+import {
+  InvalidWorkAttachmentError,
+  PendingHeicConversionError,
+  UnpublishablePhotoError,
+} from "../work/work-attachments";
 import {
   acquireWorkJobs,
   AwaitingWorkConfirmation,
@@ -70,6 +74,9 @@ function createDefaultExecutorRegistry() {
         if (waiting) return waiting;
         if (error instanceof PendingHeicConversionError)
           return { status: "waiting", reason: error.reason };
+        // A photo that cannot be published waits for the person, like one that will not convert.
+        if (error instanceof UnpublishablePhotoError)
+          return { status: "waiting", reason: "photo-needs-attention" };
         if (error instanceof WorkTransactionReverted)
           return { status: "unavailable", reason: "work-transaction-reverted" };
         if (error instanceof InvalidWorkAttachmentError)

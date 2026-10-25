@@ -1,0 +1,78 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "primary_surface": {
+            "type": "string"
+          },
+          "secondary_surface": {
+            "type": "string"
+          },
+          "test_id": {
+            "type": "string"
+          },
+          "proposed_record_shape": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "verification_limit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "type",
+          "primary_surface",
+          "secondary_surface",
+          "test_id",
+          "proposed_record_shape",
+          "rationale",
+          "verification_limit"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "pending_checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "write_gate": {
+      "type": "string"
+    },
+    "privacy_boundary": {
+      "type": "string"
+    },
+    "late_result_handling": {
+      "type": "string"
+    },
+    "instruction_files_read": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "items",
+    "pending_checks",
+    "write_gate",
+    "privacy_boundary",
+    "late_result_handling",
+    "instruction_files_read"
+  ],
+  "additionalProperties": false
+}
