@@ -209,7 +209,16 @@ export function forgetListedPendingJoins(account: string, listedGardenIds: reado
     }
   }
   if (!changed) return;
-  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  try {
+    localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  } catch (error) {
+    // Storage can refuse the write; the record then lapses with its time limit.
+    logger.warn("Could not forget a settled pending join", {
+      source: "forgetListedPendingJoins",
+      error,
+    });
+    return;
+  }
   notifyPendingJoinsChanged();
 }
 
