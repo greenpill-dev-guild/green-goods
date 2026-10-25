@@ -49,8 +49,14 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentCycleNames: () => mocks.cycleNames(),
 }));
 
-// Continue (step 8, its own tests) and the garden's own page, which closes the journal until
-// About lands, stand in as markers here.
+// Needs Your Attention (step 19) and Continue (step 8), each with its own tests, and the garden's
+// own page, which closes the journal until About lands, stand in as markers here.
+vi.mock("@green-goods/shared/hooks/garden/useStewardDuties", () => ({
+  useStewardDuties: () => ({ duties: [], isLoading: false, isError: false, refetch: () => {} }),
+}));
+vi.mock("../../views/Home/Journal/NeedsYourAttention", () => ({
+  NeedsYourAttention: () => <section data-component="HomeNeedsYourAttention" />,
+}));
 vi.mock("../../views/Home/Journal/Continue", () => ({
   Continue: () => <section data-component="Continue" />,
 }));
@@ -534,11 +540,17 @@ describe("Home journal", () => {
     const order = [...container.querySelectorAll("[data-component]")]
       .map((node) => node.getAttribute("data-component"))
       .filter((name) =>
-        ["HighlightsCarousel", "RecentActivity", "Continue", "TakePart", "GardenPage"].includes(
-          name ?? ""
-        )
+        [
+          "HomeNeedsYourAttention",
+          "HighlightsCarousel",
+          "RecentActivity",
+          "Continue",
+          "TakePart",
+          "GardenPage",
+        ].includes(name ?? "")
       );
     expect(order).toEqual([
+      "HomeNeedsYourAttention",
       "HighlightsCarousel",
       "RecentActivity",
       "Continue",
