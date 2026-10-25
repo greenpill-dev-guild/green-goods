@@ -225,6 +225,20 @@
   --gg-card-fill: var(--m3-surface-container-high);
 }
 
+/* The control outline in a dark scope below the cockpit root: Storybook's theme
+   frame (`withTheme` puts data-theme on .storybook-browser-preview) and a story's
+   own dark section. theme.css's dark block declares the outline again on every
+   [data-theme="dark"] element, so such a scope would draw the shared dark hairline
+   (--stroke-sub-300, about 1.9:1) in place of the cockpit's outline above. The
+   running cockpit has one dark scope, <html>, so every control there takes
+   index.css's :root outline, --m3-outline (#a8a29e in dark, DL-098); a nested
+   scope resolves the same here. :where() keeps the root out of the specificity,
+   so a scope column's own outline still wins. */
+:where(:root[data-surface="admin"]) [data-theme="dark"],
+:where([data-surface-scope="admin"]) [data-theme="dark"] {
+  --gg-control-outline: var(--m3-outline);
+}
+
 /* The cockpit body font. Production sets it on <body> in `@layer base` and has
    no `*` font rule, so everything inherits Plus Jakarta Sans; the Storybook
    frame and the <body> (for portaled dialogs and sheets) carry it here. */
