@@ -1,6 +1,13 @@
 import type { Garden } from "@green-goods/shared/types/domain";
-import { GardenPage } from "../Garden/GardenPage";
+import { lazy, Suspense } from "react";
+import { HomeLoading } from "../HomeStates";
 import type { MemberGarden } from "../homeGardens";
+
+// The interim body is the whole garden page (tabs, sheets, pools), so it loads on its own and
+// stays out of the installed app's startup bundle.
+const GardenPage = lazy(() =>
+  import("../Garden/GardenPage").then(({ GardenPage }) => ({ default: GardenPage }))
+);
 
 export interface HomeJournalProps {
   /** The active garden's record (`useActiveGarden().garden` once `ready`). */
@@ -21,5 +28,9 @@ export interface HomeJournalProps {
  * garden page draws it.
  */
 export function HomeJournal({ garden }: HomeJournalProps) {
-  return <GardenPage garden={garden} layout="home" />;
+  return (
+    <Suspense fallback={<HomeLoading remembered />}>
+      <GardenPage garden={garden} layout="home" />
+    </Suspense>
+  );
 }
