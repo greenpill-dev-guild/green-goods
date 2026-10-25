@@ -32,21 +32,25 @@ interface RunQueueContext {
   client: QueryClient;
   account: string;
   gardens: Garden[];
-  /** Read on every step, so a garden opened mid-run moves to the front. */
-  gardenInView(): string | undefined;
+  /**
+   * The gardens whose photos are kept, in download order (`offlinePhotoGardens`).
+   * Read on every step, so a garden opened or switched to mid-run moves to the front.
+   */
+  photoGardens(): string[];
 }
 
 /**
  * One run's remaining work, its order and its progress. Work lists (approvals
  * included) and details are queued for every planned garden; photos only for
- * the garden in view, the account's own work and its avatar.
+ * the photo gardens, the account's own work and its avatar.
  */
 export class OfflineRunQueue {
   private tasks: OfflineTask[];
   private readonly photos = new Set<string>();
   private readonly completedPhotoUrls = new Set<string>();
   private readonly listed = new Map<string, EASWork[]>();
-  private photoGarden: string | undefined;
+  /** The photo gardens as of the last step, so a garden is followed when it becomes one. */
+  private followedGardens: string[] = [];
   private total: number;
   private done = 0;
   private shownRatio = 0;
@@ -92,7 +96,7 @@ export class OfflineRunQueue {
    * at a time. Photos that may not download now are held back for a later run.
    */
   next({ photoLimit, photosAllowed }: { photoLimit: number; photosAllowed: boolean }) {
-    this.followGardenInView();
+    this.followPhotoGardens();
     this.sort();
     if (this.tasks[0]?.kind === "photo" && !photosAllowed) {
       const photoCount = this.tasks.filter((task) => task.kind === "photo").length;
@@ -146,7 +150,7 @@ export class OfflineRunQueue {
 
   private inPhotoScope(garden: string, work: EASWork): boolean {
     return (
-      sameAddress(garden, this.context.gardenInView()) ||
+      this.context.photoGardens().some((photoGarden) => sameAddress(garden, photoGarden)) ||
       sameAddress(work.gardenerAddress, this.context.account)
     );
   }
@@ -172,34 +176,45 @@ export class OfflineRunQueue {
     }
   }
 
-  private followGardenInView(): void {
-    const inView = this.context.gardenInView();
-    if (!inView || sameAddress(inView, this.photoGarden)) return;
-    this.photoGarden = inView;
-    const garden = this.context.gardens.find((candidate) => sameAddress(candidate.id, inView));
-    if (garden?.bannerImage) {
-      const banner = displayImageUrl(resolveIPFSUrl(garden.bannerImage));
-      if (isKeptMediaUrl(banner)) this.addPhoto(inView, banner);
+  /** A garden that has just become a photo garden adds its banner and its works' photos. */
+  private followPhotoGardens(): void {
+    const photoGardens = this.context.photoGardens();
+    for (const photoGarden of photoGardens) {
+      if (this.followedGardens.some((followed) => sameAddress(followed, photoGarden))) continue;
+      const garden = this.context.gardens.find((candidate) =>
+        sameAddress(candidate.id, photoGarden)
+      );
+      if (garden?.bannerImage) {
+        const banner = displayImageUrl(resolveIPFSUrl(garden.bannerImage));
+        if (isKeptMediaUrl(banner)) this.addPhoto(photoGarden, banner);
+      }
+      const works = this.listed.get(photoGarden.toLowerCase());
+      if (works) {
+        for (const work of works) this.addWork(photoGarden, work);
+      } else if (
+        !this.tasks.some((task) => task.kind === "list" && sameAddress(task.garden, photoGarden))
+      ) {
+        this.tasks.push({ kind: "list", garden: garden?.id ?? photoGarden });
+        this.total += 1;
+      }
     }
-    const works = this.listed.get(inView.toLowerCase());
-    if (works) {
-      for (const work of works) this.addWork(inView, work);
-    } else if (
-      !this.tasks.some((task) => task.kind === "list" && sameAddress(task.garden, inView))
-    ) {
-      this.tasks.push({ kind: "list", garden: garden?.id ?? inView });
-      this.total += 1;
-    }
+    this.followedGardens = photoGardens;
   }
 
-  /** Garden in view first, then every joined list, the account's own work, then other details. */
+  /**
+   * Each photo garden in turn, its list and then its photos and details, with the
+   * avatar among the first garden's photos; then every other list, the account's
+   * own work, then other details.
+   */
   private sort(): void {
-    const inView = this.context.gardenInView();
+    const photoGardens = this.context.photoGardens();
     const rank = (task: OfflineTask) => {
-      const viewed = sameAddress(task.garden, inView);
-      if (task.kind === "list") return viewed ? 1 : 3;
-      if (task.kind === "photo") return viewed || task.garden === "" ? 2 : 4;
-      return viewed ? 2 : sameAddress(task.work.gardenerAddress, this.context.account) ? 4 : 5;
+      const photoGarden = photoGardens.findIndex((garden) => sameAddress(task.garden, garden));
+      if (photoGarden === 0) return task.kind === "list" ? 1 : 2;
+      if (photoGarden === 1) return task.kind === "list" ? 3 : 4;
+      if (task.kind === "list") return 5;
+      if (task.kind === "photo") return task.garden === "" ? 2 : 6;
+      return sameAddress(task.work.gardenerAddress, this.context.account) ? 6 : 7;
     };
     this.tasks.sort((left, right) => rank(left) - rank(right));
   }
