@@ -583,8 +583,8 @@
       "prefixes": ["tests/"],
       "contains": ["/__tests__/", "/__mocks__/", "/test/", "/tests/", ".test.", ".spec."],
       "exact": [
+        "packages/client/src/views/Home/Garden/GardenPage.tsx",
         "packages/client/src/views/Home/Garden/WorkFulfills.tsx",
-        "packages/client/src/views/Home/Garden/index.tsx",
         "packages/shared/package.json",
         "packages/shared/src/commitment-pooling/index.ts",
         "packages/shared/src/config/passkeyServer.ts",
