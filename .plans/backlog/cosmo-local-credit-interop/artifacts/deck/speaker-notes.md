@@ -57,15 +57,15 @@ Hubs are rich in capital, but short of money. Around the hub, the community adds
 
 ## 11. Sources of capital · 0:25
 
-That money can come from people and programs who already care. Diaspora supporters give gifts and sponsor seasons. Diaspora associations, like Omo Yoruba, can commission a whole program themselves, with no institution needed. Institutions and programs fund climate, clean energy and skills. And public goods funds in our ecosystem already back Green Goods.
+That money can come from people and programs who already care. Diaspora supporters can give gifts and sponsor seasons. Diaspora associations can pool their members' gifts behind a whole program, with no institution needed. Institutions and programs fund climate, clean energy and skills. And public goods funds in our ecosystem have already backed Green Goods.
 
 ## 12. The Nigerian diaspora · 0:30
 
-The Nigerian diaspora sent 21.3 billion dollars home in 2024, according to the African Development Bank. That is national context, not our market. The diaspora also brings culture and connections. Our first diaspora community is Omo Yoruba of Southern California, a Los Angeles nonprofit since 1997. Here they are at a festival and in a Yoruba language class. Other diaspora associations can follow the same path.
+In 2024, 22.1 billion dollars in remittances reached Nigeria, according to the World Bank. That is national context, not our market. The diaspora also brings culture and connections. Our first diaspora community is Omo Yoruba of Southern California, a Yoruba community nonprofit in Los Angeles. Here they are at a festival and in a Yoruba language class. Other diaspora associations can follow the same path.
 
 ## 13. Three mechanisms · 0:35
 
-Three mechanisms turn that support into lasting capacity. First, the endowment: supporters deposit, the capital stays invested, and its earnings, which vary, go to the garden. Neither principal nor earnings is guaranteed. Second, the commitment pool, which is live: members promise work, and kept promises earn rewards and build the record. Third, the exchange pool, in pilot: members trade vouchers in one shared pool. Next, supporters and endowment earnings could add funds that members exchange vouchers into. That step is future work, not a cash-out promise.
+Three mechanisms turn that support into lasting capacity. First, the endowment: supporters deposit, the capital stays invested, and part of its earnings, which vary, goes to the garden's shared fund. Neither principal nor earnings is guaranteed. Second, the commitment pool, which is live: members promise work, and kept promises build the record. Third, the exchange pool, in pilot: members trade vouchers in one shared pool. Next, supporters and endowment earnings could add funds that members exchange vouchers into. That step is future work, not a cash-out promise.
 
 ## 14. Business model · 0:30
 
@@ -110,7 +110,12 @@ Thank you for listening. Scan the code to see commitment pooling live on our bet
 - **Not yet:** voucher contracts on the live network, real member approvals and capacity,
   supporter funds in the exchange pool, endowment earnings routed to the exchange pool,
   integrated milestone funding, certificate purchases in the app, and the combined capital
-  passport.
+  passport. Money rewards for new promises are deferred: the app says sending G$ reward
+  promises "is unavailable in this release", so kept promises build the record and agreed
+  recognition today.
+- **Remittances.** Say 22.1 billion dollars in 2024, from the World Bank's personal remittances
+  series. Never mix it with central bank or African Development Bank figures, and never call it
+  our market.
 - **Voucher status on the day.** The slides state no deployment status beyond "in pilot". If the
   voucher contracts are live by the pitch, say so on slide 7; if not, say the flow is rehearsed
   end to end with demo accounts. Either way, never call the flow live before it is.
@@ -122,10 +127,12 @@ Thank you for listening. Scan the code to see commitment pooling live on our bet
   Abuja as next locations still being confirmed: present them as its plan, never as hubs. Its site
   names neither Lagos nor Nsukka, so leave both out.
 - **Omo Yoruba of Southern California** is our first diaspora community. Do not describe it as
-  Tech and Sun's fiscal sponsor.
+  Tech and Sun's fiscal sponsor, say "since 1997", or say it funds or commissions a program: it
+  is a small nonprofit, and no agreement to fund exists.
 - **Partners.** Each context line on slide 16 comes from the partner's own site, read 25 October.
 - **Never say:** guaranteed principal or returns, cash-out of vouchers, carbon credits, "proven
-  demand", a named individual sponsor, or a hand-typed garden count. Use the live page's counts.
+  demand", a named individual sponsor, fee savings on transfers, or a hand-typed garden count. Use
+  the live page's counts.
 - Refresh this list against the [live-pilot handoff](../../handoffs/codex-live-pilot-deployment.md)
   on Monday 27 October before submission.
 
