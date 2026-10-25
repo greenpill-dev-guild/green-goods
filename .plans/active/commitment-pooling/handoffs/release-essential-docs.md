@@ -704,3 +704,9 @@ old glossary availability override was removed; campaigns and network program pe
 distinct. Eleven overlapping source/generated files were reconciled and projections regenerated.
 The user authorization to integrate current develop covers this refresh. Final SHA, fresh gate
 and current-head CI results follow on #1109; older passing heads are historical evidence.
+
+## Preserved local planning snapshot
+
+The pre-reconciliation checkout also held an earlier planning version. It is preserved
+[separately](release-essential-docs-local-snapshot.md) for its local context; the implemented and
+publication evidence above remains canonical. Original bytes and hashes are in the task backup.

@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-24T04:27:48.206Z",
+  "status": "exact-input-local-implementation-proof-passed",
+  "baselineCommit": "af3318854aa7164cdcd8c9ee63e95a19187268dc",
+  "proofClass": "fictional accounts on owned forks; published pinned dependencies; synthetic signers and manually relayed transport",
+  "project": {
+    "ownedFiles": {
+      "packages/contracts/test/helpers/CLCVoucherJourneyFixture.sol": "c8a5157f1951752b2528e40b21154b933d72e5be871649433d3724ee9a702052",
+      "packages/contracts/test/helpers/CLCMemberProjectFixture.sol": "1e7a6638e99555d94bd0d988e9cea8e50fbe22ca503847362e0fbfb74aafac31",
+      "packages/contracts/test/fork/GnosisVoucherPilot.t.sol": "30ff04b6585276accf357b0360503f523ecfc6b380468207fe5ab237294ebe4b"
+    },
+    "controls": {
+      "memberTokenOwnerReserveAndFactoryAdmin": "Same synthetic member EOA, initialized atomically; no new member Safe or Timelock. This fixture choice is not live control approval.",
+      "collectiveControls": "Published Safe singleton/factory with synthetic 2-of-2 signatures; published Hats core and production-built HatsModule with synthetic eligibility policy.",
+      "sourceAuthority": "Governance-only paused registration; member exact revision approval; reserve-origin configureAsset and finite allowance; pool administrator cannot substitute.",
+      "transport": "Two actual chain forks with manually relayed mock-router bytes; no live CCIP claim."
+    },
+    "finalEconomics": {
+      "decimals": 6,
+      "memberSupplyEach": "6000000",
+      "initialMemberPoolStockEach": "2000000",
+      "initialMemberReserveEach": "4000000",
+      "designerEarnedEngineerHelp": "1000000",
+      "analystEarnedTAS": "1000000",
+      "engineerEarnedGG": "1000000",
+      "analystOwnPromiseInput": "2000000",
+      "receivedEngineerHelp": "1000000",
+      "fictionalPriceIndexes": {
+        "analyst": "1000000",
+        "engineer": "2000000"
+      },
+      "fees": "0",
+      "lessonMinutes": 60,
+      "holderApprovedDeliveredMinutes": 30,
+      "releaseToEngineer": "500000",
+      "refundEngineerHelpToAnalyst": "500000",
+      "finalEngineerHelp": {
+        "engineerReserve": "3500000",
+        "pool": "1000000",
+        "designer": "1000000",
+        "analyst": "500000",
+        "escrow": "0"
+      },
+      "finalAnalystHelp": {
+        "analystReserve": "2000000",
+        "pool": "4000000"
+      },
+      "capacity": "Returned vouchers do not replenish service capacity or grant new mint authority; no global capacity enforcement is claimed."
+    }
+  },
+  "projectTests": {
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0,
+    "suites": 3,
+    "newMemberCases": 4,
+    "existingJourneyCases": 1,
+    "existingPilotCases": 16
+  },
+  "projectForks": [
+    {
+      "chainId": 42161,
+      "pin": 517696270,
+      "hash": "0xd75e2f135addcbf8ec7a07ae5fc50d8f82219bb26ea94bd16e50c32237babb3e"
+    },
+    {
+      "chainId": 100,
+      "pin": 48848261,
+      "hash": "0x03be75732ad238a0c04d6044a42d2fd7baec4b48f89afed9670886ca0477b60d"
+    }
+  ],
+  "releasePreparation": {
+    "startedAt": "2026-10-24T01:07:24.901Z",
+    "completedAt": "2026-10-24T01:08:44.378Z",
+    "upstreamGnosisBlock": 48910271,
+    "upstreamGnosisBlockHash": "0x719f024d2bfe147cf9a51154fc9023a0387d2067170ddda712c33335e4e221bf",
+    "freshDeployments": 12,
+    "resumedAdopted": 11,
+    "resumedCreated": 1,
+    "fullyAdoptedWithoutReplay": 12,
+    "rejections": ["unexplained existing deployment code", "issued or configured base"],
+    "inputSourceHashes": [
+      {
+        "path": "packages/contracts/script/utils/clc-member-inputs.ts",
+        "sha256": "506db341a2a205da797725e102a4368b16cdd01a5d71fbf4f394f5b147fddc15",
+        "lines": 230
+      },
+      {
+        "path": "packages/contracts/script/utils/clc-member-release.ts",
+        "sha256": "cf2b13fc516597c10b2cde5ea6b8a815ca209b25f24fa8760a755406bfba1917",
+        "lines": 267
+      },
+      {
+        "path": "packages/contracts/script/utils/clc-member-adoption.ts",
+        "sha256": "37c1650ded53b2b35cc898f08a6b527752bb70b94a7dbb5c773b3fa33ed90396",
+        "lines": 80
+      },
+      {
+        "path": "packages/contracts/script/utils/clc-member-readback.ts",
+        "sha256": "2aed63317e1cfdbb30fa5ca08d810aca5351dfe04d1779021c26b55db1d46cdf",
+        "lines": 139
+      },
+      {
+        "path": "packages/contracts/script/utils/clc-member-simulation.ts",
+        "sha256": "cdd8b095c8b79abfcbfb0b3c4180feae658815c95cfa2933fb5ca284def9e461",
+        "lines": 164
+      },
+      {
+        "path": "packages/contracts/script/utils/clc-member.fixtures.ts",
+        "sha256": "411d24f7984095b4e10c6f481535f1bf8801ce623b74df43b26b03d83462a6bc",
+        "lines": 71
+      },
+      {
+        "path": "packages/contracts/script/utils/clc-member-release.test.ts",
+        "sha256": "199ff040c2e39325cc8d6281acd991014e568d0ba5bc0b55f30514f8d2f9b7cc",
+        "lines": 182
+      },
+      {
+        "path": "packages/contracts/script/utils/clc-member-simulation.test.ts",
+        "sha256": "007584506516afb05d06a7e53ca5a5022e16c142399d9d9f2dd26b6fd96f90b1",
+        "lines": 297
+      },
+      {
+        "path": "packages/contracts/script/utils/clc-release-simulation.ts",
+        "sha256": "73f7c980b4aafdcd0274a873c13c090513813639741381602a073d0eea1e94ce",
+        "lines": 343
+      },
+      {
+        "path": "packages/contracts/script/utils/live-pilot-package.ts",
+        "sha256": "71a3aac757bbfc45b1193b473dcd6eb319158d0a8296277cf45d9983f6e89f27",
+        "lines": 413
+      },
+      {
+        "path": "packages/contracts/script/utils/live-pilot-package.test.ts",
+        "sha256": "9c06a6aedf14f9f82b5470d8bb5fd74113533c802ac7807e6d08645a2f36bf21",
+        "lines": 382
+      },
+      {
+        "path": "packages/contracts/script/deploy/clc-release.ts",
+        "sha256": "20455f2577b691a7112e604ca01bff16b61d4ae089b244e6cde5a9226f898a62",
+        "lines": 156
+      },
+      {
+        "path": "packages/contracts/script/deploy/live-pilot-package.ts",
+        "sha256": "78ddb55fbdb0799659ac2bbb8dba17ad1346b988c16017815ab45de96e0098db",
+        "lines": 158
+      },
+      {
+        "path": "packages/contracts/script/cli/operations.mjs",
+        "sha256": "2754c48f40f9ed35094c0623f8455e98799008d6529b248e7a209000e43e1da1",
+        "lines": 285
+      },
+      {
+        "path": "packages/contracts/script/cli/operations.node-check.mjs",
+        "sha256": "03f43ffa86ad34adb591f5e207890acf98ccd2174f7b5a832a8979ee471b877b",
+        "lines": 359
+      }
+    ],
+    "focusedTests": 108,
+    "cliTests": 37,
+    "planSourceCommit": "synthetic sentinel in the test harness; not a committed live candidate"
+  },
+  "criticalGate": {
+    "status": "selected-local-checks-passed; no live deployment or CI readiness claim",
+    "contractVerification": {
+      "passed": true,
+      "solidityTests": 2211,
+      "soliditySuites": 171,
+      "productionGasFixtures": 3,
+      "cliTests": 37,
+      "scriptTests": 693,
+      "scriptFiles": 51,
+      "totalSeconds": 2448,
+      "originalCompilerEvidenceReused": true,
+      "noRuntimeSourceOrTimeoutChange": true
+    },
+    "firstAttempt": {
+      "solidityPassed": 2211,
+      "gasFixturesPassed": 3,
+      "cliPassed": 37,
+      "scriptPassed": 687,
+      "scriptSkipped": 6,
+      "failedFiles": 1,
+      "reason": "Source-upgrade simulation beforeAll timed out at 600 seconds while rebuilding full compiler evidence"
+    },
+    "testSubjectAnnotation": "A comment-only declaration names the actual adoption/readback subjects. It was added before the successful gate reached Vitest; executable code and compiler inputs were unchanged.",
+    "docs": {
+      "build": {
+        "passed": true,
+        "indexedRoutes": 77
+      },
+      "tests": {
+        "passed": 99,
+        "failed": 0,
+        "command": "bun run --cwd docs test",
+        "defaultTimeout": true,
+        "elapsedSeconds": 19.24,
+        "priorAttempts": "Two earlier default-timeout attempts had varying timing failures; an additional 99-case pass used a local 30000ms override. No repository timeout changed."
+      }
+    },
+    "applicationAggregate": {
+      "status": "passed",
+      "completedAt": "2026-10-24T03:45:31.965Z",
+      "finalInputCheckAt": "2026-10-24T04:26:39.444Z",
+      "publicInputFiles": 4049,
+      "exactSourceAndCandidateHashesMatch": true,
+      "shared": {
+        "passed": 7756,
+        "skipped": 16,
+        "filesPassed": 635,
+        "filesSkipped": 2,
+        "selection": "Complete default scope through node-shared-graph, node and dom projects",
+        "priorCombinedAttempt": "Stopped after 24 minutes without results; log retained; no cases or critical overrides removed"
+      },
+      "client": {
+        "passed": 1820,
+        "files": 155
+      },
+      "admin": {
+        "passed": 1340,
+        "files": 147
+      },
+      "agent": {
+        "unitPassed": 558,
+        "unitSkipped": 1,
+        "sqlitePassed": 218
+      },
+      "builds": {
+        "client": true,
+        "admin": true,
+        "agent": true
+      },
+      "types": "Final Shared source and test types, Client source and test types, Admin full types and Agent source types passed"
+    }
+  },
+  "liveDeployment": false,
+  "liveIssuerApproval": false,
+  "capacityConfirmedForRealIssuers": false,
+  "liveCCIPDelivery": false,
+  "limits": [
+    "Strict authoritative v1 plan unchanged; no member defaults applied to live configuration",
+    "Only direct member factory administration is proved for new member controls; actual choice remains pending",
+    "Returned vouchers do not restore consumed capacity or permit automatic reissuance",
+    "New Gnosis indexing addresses and receipt-backed issuer routes remain unbound",
+    "Earlier selected profile proof is separate from issuer terms, issuance and booking signatures"
+  ],
+  "integration": {
+    "sharedFocused": {
+      "passed": 116,
+      "files": 5,
+      "class": "synthetic provider and external-chain fixtures; actual Shared behavior; no live issuer signing"
+    },
+    "clientFocused": {
+      "passed": 24,
+      "files": 3
+    },
+    "adminFocused": {
+      "passed": 13,
+      "files": 2
+    },
+    "indexer": {
+      "passed": 366,
+      "pending": 1,
+      "gnosisLiveIngestion": false
+    },
+    "browser": {
+      "storybook": "Brave; fictional member issuer balances, exact booking review and owner-Safe preparation observed",
+      "authenticatedIssuerSigning": "Later activation proof; selected account proof does not establish issuer consent"
+    },
+    "sourceEarnedApproval": "approveTerms on Arbitrum remains operator-assisted and separate from Gnosis approveSetupAuthorization"
+  },
+  "positiveFeeBinaryProbe": {
+    "chainId": 100,
+    "blockNumber": 48910443,
+    "pinnedDependencies": 8,
+    "amounts": {
+      "grossOutput": "10000000",
+      "poolFee": "1000000",
+      "protocolFee": "100000",
+      "nominalOutput": "8900000",
+      "observedOutput": "8900000"
+    },
+    "reservedOutputFeeLiquidity": {
+      "rawBalance": "91000000",
+      "reservedFees": "1000000",
+      "available": "90000000",
+      "rejectedGrossQuote": "90500000",
+      "netQuoteThatWouldMisleadRawBalanceCheck": "80545000"
+    },
+    "class": "Actual published binaries on an owned fork; synthetic signers; no live transaction"
+  },
+  "criticalClassification": {
+    "addedExactPaths": [
+      "packages/shared/src/hooks/commitment-pooling/useServiceIssuerOperations.ts",
+      "packages/shared/src/modules/commitment-pooling/service-issuer-operations.ts"
+    ],
+    "existingRegression": "RED before the two exact-path additions; 105 selector cases and the complete 406-case validation-system suite then passed.",
+    "safeguardsWeakened": false
+  },
+  "actualIssuerSigning": false,
+  "onboarding": "Real participants and accepted terms are later activation inputs; they do not block generalized implementation or independent deployment preparation. Recommended defaults are proposed operating terms, not live approvals.",
+  "contractCheckpoint": {
+    "commit": "bb6ce766bcc4d76cbfaf583bfce7c9ba1b20774e",
+    "signature": "good SSH signature",
+    "fileCount": 18,
+    "verifiedInputsMatchCommit": true,
+    "broadcast": false
+  }
+}

@@ -1,8 +1,6 @@
 import { useMemo } from "react";
-import { isAddressInList } from "../../utils/blockchain/address";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
-import { useGardens } from "../blockchain/useBaseLists";
-import { isGardenMember, usePendingJoinsVersion } from "../garden/useJoinGarden";
+import { useMyGardens } from "../garden/useMyGardens";
 import { useDrafts } from "../work/useDrafts";
 import { usePendingReviewCount } from "../work/usePendingReviewCount";
 import { useQueueStatistics } from "../work/useWorks";
@@ -91,8 +89,9 @@ export function resolveArrivalKind(inputs: ArrivalInputs): ArrivalKind {
 export interface ArrivalState {
   kind: ArrivalKind;
   /**
-   * Garden ids the user belongs to (optimistic-join aware). Lets the client route a single-garden
-   * member straight into their garden instead of the filtered list.
+   * The account's gardens (`useMyGardens`: owner, steward, evaluator, gardener, or an open join
+   * this device sent). Lets the client route a one-garden member straight into their garden
+   * instead of the filtered list.
    */
   myGardenIds: string[];
   /** Backing value for the review toast's "{count}" copy. 0 unless kind === "review". */
@@ -108,34 +107,23 @@ export function useArrivalState(): ArrivalState {
   const primaryAddress = usePrimaryAddress();
   const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
 
-  const gardensQuery = useGardens();
+  const myGardens = useMyGardens(normalizedAddress);
   const { draftCount, isLoading: draftsLoading } = useDrafts();
   const queueQuery = useQueueStatistics();
-  const pendingJoinsVersion = usePendingJoinsVersion();
   const review = usePendingReviewCount(primaryAddress ?? undefined);
 
-  // One pass over gardens for role flags + routing ids. pendingJoinsVersion subscribes to
-  // in-tab pending-join changes so this memo retriggers when a join confirms or expires
-  // (matches providers/Work.tsx). Gardener-role detection is gardeners + pending joins only;
-  // steward detection is the stewards array (no optimistic-join path exists for stewards).
+  // One pass over the account's gardens for role flags and routing ids. The gardener
+  // orientation comes from the gardener role or an open join this device sent; the steward
+  // one from the steward role alone (no optimistic-join path exists for stewards).
   const membership = useMemo(() => {
-    const myGardenIds: string[] = [];
     let isSteward = false;
     let isGardener = false;
-
-    if (normalizedAddress) {
-      for (const garden of gardensQuery.data ?? []) {
-        const operatesGarden = isAddressInList(normalizedAddress, garden.stewards);
-        const gardensIn = isGardenMember(normalizedAddress, garden.gardeners, [], garden.id);
-        if (operatesGarden) isSteward = true;
-        if (gardensIn) isGardener = true;
-        if (operatesGarden || gardensIn) myGardenIds.push(garden.id);
-      }
+    for (const { membership } of myGardens.gardens) {
+      if (membership.roles.includes("steward")) isSteward = true;
+      if (membership.pendingJoin || membership.roles.includes("gardener")) isGardener = true;
     }
-
-    return { myGardenIds, isSteward, isGardener };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
-  }, [normalizedAddress, gardensQuery.data, pendingJoinsVersion]);
+    return { myGardenIds: myGardens.gardens.map(({ garden }) => garden.id), isSteward, isGardener };
+  }, [myGardens.gardens]);
 
   const kind = useMemo<ArrivalKind>(() => {
     if (!normalizedAddress) return "none";
@@ -151,7 +139,7 @@ export function useArrivalState(): ArrivalState {
         hasDraft: draftCount > 0,
       },
       gardens: {
-        ready: gardensQuery.isSuccess,
+        ready: myGardens.isLoaded && !myGardens.isError,
         isSteward: membership.isSteward,
         isGardener: membership.isGardener,
       },
@@ -166,7 +154,8 @@ export function useArrivalState(): ArrivalState {
     queueQuery.data,
     draftsLoading,
     draftCount,
-    gardensQuery.isSuccess,
+    myGardens.isLoaded,
+    myGardens.isError,
     membership,
     review.ready,
     review.count,

@@ -3,547 +3,561 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Green Goods with Tech and Sun · SustainableFinance.Live 2026 · draft deck</title>
-<meta name="description" content="Draft pitch deck, 9 October 2026, updated 20 October (architecture and status) and 21 October (voucher direction). Editable HTML; see README.md beside this file." />
+<title>Green Goods: From Good Intentions to Green Outcomes · SustainableFinance.Live 2026</title>
+<meta name="description" content="Green Goods pitch for SustainableFinance.Live 2026, Problem Statement 2. Eighteen slides in five acts, rebuilt 24 October 2026 after review and revised after the 25 October review. Speaker notes are in the #speaker-notes block and speaker-notes.md; detail lives in the companion brief." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" />
 <style>
-  /* Warm Earth tokens (DESIGN.md): linen canvas, charcoal ink, stone metadata, garden green accent. */
+  /* Approved style, 24 October 2026: the symbol alone in the corner of every slide, regular-weight
+     Fraunces headlines with the website's green italic accent, Inter for everything else, one simple
+     surface style, solid lines only, nothing under 22px, chain names kept for the companion brief. */
   :root {
-    --linen: #FAF8F5; --paper: #FFFDF9; --ink: #292524; --stone: #78716C; --rule: #E7E1D9; --rule-strong: #CFC6BB;
-    --green: #1FC16B; --green-deep: #137A47; --green-wash: #E3F7EC;
-    --amber: #B45309; --amber-wash: #FDF1DC; --amber-line: #D97706;
-    --sky: #1D4ED8; --sky-wash: #E6EEFC; --sky-line: #3B82F6;
+    --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
+    --rule: #E7E1D9; --rule-2: #D9D1C5;
+    --green: #1FC16B; --green-action: #1A7544; --green-wash: #E3F7EC;
+    --band-1: #F7F3EC; --band-2: #F1ECE3; --band-3: #EAE3D8; --track: #EEE8DE; --sand: #F3EEE6;
     --serif: "Fraunces", Georgia, "Times New Roman", serif;
     --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --px: 128px;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: #1C1917; color: var(--ink); font-family: var(--sans); }
-  .stage { position: fixed; inset: 0; display: grid; place-items: center; overflow: hidden; }
-  .deck { position: relative; width: 1920px; height: 1080px; transform-origin: center center; background: var(--linen); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
-  .slide { position: absolute; inset: 0; padding: 92px 112px 88px; background: var(--linen); display: none; }
+  html, body { margin: 0; background: #1C1917; color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .stage { position: fixed; inset: 0; overflow: hidden; }
+  .deck { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; margin: -540px 0 0 -960px; transform-origin: center center; background: var(--linen); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+  .slide { position: absolute; inset: 0; padding: 104px var(--px) 0; background: var(--linen); display: none; overflow: hidden; }
   .slide.active { display: block; }
+  h1 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 76px; line-height: 1.06; letter-spacing: -0.02em; color: var(--ink); text-wrap: balance; max-width: 1664px; position: relative; z-index: 1; }
+  h1.md { font-size: 70px; }
+  em.accent { font-style: italic; color: var(--green-action); }
+  h2, h3 { font-weight: 400; }
+  p { margin: 0; }
 
-  /* Type */
-  .eyebrow { margin: 0 0 22px; font: 600 20px/1.3 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--stone); }
-  h1 { margin: 0 0 30px; font-family: var(--serif); font-weight: 600; font-size: 72px; line-height: 1.04; letter-spacing: -.01em; max-width: 24ch; text-wrap: balance; }
-  h1.xl { font-size: 86px; max-width: 18ch; }
-  h2 { margin: 0 0 12px; font: 700 28px/1.3 var(--sans); }
-  p, li { font-size: 30px; line-height: 1.45; margin: 0; }
-  .lede { font-size: 34px; max-width: 48ch; color: var(--ink); }
-  .small { font-size: 22px; line-height: 1.4; color: var(--stone); }
-  .muted { color: var(--stone); }
-  ul { margin: 0; padding-left: 1.1em; } li { margin: 0 0 10px; }
-  b { font-weight: 700; }
-  .cols { display: grid; gap: 56px; }
-  .cols.two { grid-template-columns: 1.05fr .95fr; }
-  .cols.three { grid-template-columns: repeat(3, 1fr); }
-  .cols.four { grid-template-columns: repeat(4, 1fr); gap: 32px; }
-  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .corner { position: absolute; left: 56px; bottom: 48px; width: 76px; height: auto; display: block; }
+  .num, .event { position: absolute; right: 56px; bottom: 52px; font: 500 20px/1 var(--sans); color: var(--stone); font-variant-numeric: tabular-nums; }
 
-  /* Status chips: the three statuses every diagram must distinguish. */
-  .chip { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 999px; font: 600 19px/1 var(--sans); letter-spacing: .02em; border: 2.5px solid transparent; white-space: nowrap; }
-  .chip::before { content: ""; width: 12px; height: 12px; border-radius: 50%; }
-  .chip.live { background: var(--green-wash); color: var(--green-deep); border-color: var(--green); } .chip.live::before { background: var(--green); }
-  .chip.planned { background: var(--amber-wash); color: var(--amber); border-style: dashed; border-color: var(--amber-line); } .chip.planned::before { background: var(--amber-line); }
-  .chip.stretch { background: var(--sky-wash); color: var(--sky); border-style: dotted; border-color: var(--sky-line); } .chip.stretch::before { background: var(--sky-line); }
-  .chip.scenario { background: #F1EDE7; color: var(--stone); border-color: var(--rule-strong); } .chip.scenario::before { background: var(--stone); }
-  .chip.sm { font-size: 16px; padding: 5px 12px; }
-  .legend { position: absolute; left: 112px; bottom: 150px; display: flex; gap: 14px; }
+  .icon { width: 48px; height: 48px; display: block; fill: none; stroke: var(--green-action); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .icon.lg { width: 46px; height: 46px; }
+  .icon.sm { width: 30px; height: 30px; display: inline-block; vertical-align: -7px; }
+  .grid { display: grid; column-gap: 56px; }
+  .grid.c3 { grid-template-columns: repeat(3, 1fr); }
+  .grid.c5 { grid-template-columns: repeat(5, 1fr); column-gap: 40px; }
+  .item.rule { padding-top: 30px; border-top: 1px solid var(--rule-2); }
+  .item h3 { margin: 22px 0 0; font: 400 40px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
+  .item p { margin: 12px 0 0; font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
+  .item .say { margin: 22px 0 0; font: 400 34px/1.35 var(--sans); color: var(--ink-2); }
+  .closing { font: italic 400 36px/1.3 var(--serif); color: var(--ink-2); text-wrap: balance; }
+  .closing.sm { font-size: 30px; }
+  .small { font: 400 22px/1.4 var(--sans); color: var(--stone); }
+  /* Stack slides centre their body between the headline and the footer. */
+  .slide.stack.active { display: flex; flex-direction: column; }
+  .stack > h1 { flex: none; }
+  .stack .body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-bottom: 136px; }
+  .stack .body > .closing { margin-top: 88px; }
+  svg.art { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; overflow: visible; }
 
-  /* Panels and tables */
-  .panel { background: var(--paper); border: 1.5px solid var(--rule-strong); border-radius: 18px; padding: 30px 34px; }
-  .panel.dashed { border-style: dashed; }
-  table { width: 100%; border-collapse: collapse; font-size: 26px; }
-  th, td { text-align: left; vertical-align: top; padding: 14px 18px 14px 0; border-bottom: 1.5px solid var(--rule); }
-  th { font: 600 19px/1.3 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--stone); }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; white-space: nowrap; }
-  tr.total td { font-weight: 700; border-bottom: 0; border-top: 2.5px solid var(--ink); }
+  /* 1 · Title */
+  .s-title .block { position: absolute; left: var(--px); top: 50%; transform: translateY(-55%); }
+  .s-title h1 { font-size: 124px; line-height: 1.0; letter-spacing: -0.025em; max-width: none; }
+  .s-title h1 .ln { display: block; }
+  .s-title .sub { margin: 52px 0 0; max-width: 1160px; font: 400 32px/1.46 var(--sans); color: var(--sub); text-wrap: pretty; }
 
-  /* Stat tiles */
-  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; }
-  .tile { background: var(--paper); border: 1.5px solid var(--rule-strong); border-radius: 18px; padding: 30px 34px; }
-  .tile .n { font-family: var(--serif); font-weight: 600; font-size: 64px; line-height: 1; margin-bottom: 10px; letter-spacing: -.01em; }
-  .tile .l { font-size: 24px; line-height: 1.35; }
-  .tile .s { font-size: 18px; color: var(--stone); margin-top: 12px; }
+  /* 3 · The solution: three circles in the mechanism styles below, each with a caption */
+  .s-solution .cap { position: absolute; top: 704px; width: 460px; text-align: center; font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
 
-  /* Steps */
-  .steps { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
-  .steps li { counter-increment: s; background: var(--paper); border: 1.5px solid var(--rule-strong); border-radius: 18px; padding: 26px 28px; font-size: 26px; line-height: 1.35; position: relative; }
-  .steps li::before { content: counter(s); display: block; font-family: var(--serif); font-size: 44px; font-weight: 600; line-height: 1; margin-bottom: 12px; color: var(--green-deep); }
-  .steps li .chip { position: absolute; top: 22px; right: 22px; }
+  /* 6 · Commitment pooling */
+  .s-pool .points { position: absolute; left: var(--px); top: 340px; width: 800px; }
+  .s-pool .pt { display: grid; grid-template-columns: 48px 1fr; column-gap: 26px; align-items: start; margin-bottom: 34px; }
+  .s-pool .pt p { font: 400 30px/1.4 var(--sans); color: var(--ink-2); text-wrap: pretty; }
+  .s-pool .points .closing { margin-top: 16px; font-size: 34px; }
+  .frame { overflow: hidden; border-radius: 26px; background: var(--paper); border: 1px solid var(--rule); box-shadow: 0 22px 44px -24px rgba(41,37,36,.35); }
+  .frame img { display: block; width: 100%; }
+  .phone { position: absolute; top: 300px; width: 340px; margin: 0; }
+  .phone.p1 { left: 1050px; } .phone.p2 { left: 1452px; }
+  .phone figcaption { margin: 0 0 14px 4px; font: 600 22px/1.2 var(--sans); color: var(--ink); }
+  .phone .frame { height: 540px; } /* ends between list cards; the sheet still shows both buttons */
+  .phone.p1 img { margin-top: -128px; } /* starts at the garden's name, below the demo photo */
+  .phone.p2 img { margin-top: -97px; }  /* starts at the top edge of the sheet */
+  .s-pool .screen-note { position: absolute; right: 128px; top: 912px; text-align: right; }
 
-  /* Diagrams */
-  svg.dg { display: block; width: 100%; height: auto; }
-  .dg text { font-family: var(--sans); fill: var(--ink); }
-  .dg .t { font-size: 24px; font-weight: 600; }
-  .dg .s { font-size: 19px; fill: var(--stone); }
-  .dg .lab { font-size: 21px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; fill: var(--stone); }
-  .dg .node { fill: var(--paper); stroke: var(--rule-strong); stroke-width: 2; }
-  .dg .node.live { stroke: var(--green); stroke-width: 3; }
-  .dg .node.planned { stroke: var(--amber-line); stroke-width: 3; stroke-dasharray: 12 8; }
-  .dg .node.stretch { stroke: var(--sky-line); stroke-width: 3; stroke-dasharray: 3 7; stroke-linecap: round; }
-  .dg .edge { fill: none; stroke: var(--ink); stroke-width: 3; }
-  .dg .edge.live { stroke: var(--green-deep); }
-  .dg .edge.planned { stroke: var(--amber-line); stroke-dasharray: 12 8; }
-  .dg .edge.stretch { stroke: var(--sky-line); stroke-dasharray: 3 7; stroke-linecap: round; }
-  .dg .lane { fill: #F3EFE8; stroke: none; }
-  .dg .ring { stroke: var(--ink); stroke-width: 2.5; }
+  /* 5 · The loop */
+  .s-cycle .track { fill: none; stroke: var(--track); stroke-width: 44; }
+  .s-cycle .arc { fill: none; stroke: var(--green-action); stroke-width: 3; }
+  .s-cycle .node { fill: var(--green-action); }
+  .s-cycle .node-n { font: 600 28px var(--sans); fill: #fff; }
+  .s-cycle .centre { font-family: var(--serif); font-style: italic; font-size: 34px; fill: var(--sub); }
+  .s-cycle .step { position: absolute; width: 470px; }
+  .s-cycle .step.left { text-align: right; }
+  .s-cycle .step h2 { margin: 0; font: 400 56px/1.05 var(--serif); letter-spacing: -0.02em; color: var(--ink); }
+  .s-cycle .step p { margin: 14px 0 0; font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
 
-  .cols.compact .panel { padding: 22px 26px; } .cols.compact h2 { font-size: 25px; margin-bottom: 8px; }
-  .cols.four.tight .panel { padding: 22px 24px; } .cols.four.tight li { font-size: 22px; margin-bottom: 6px; }
+  /* 4 · Roles */
+  .roles { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--rule-2); }
+  .roles li { display: grid; grid-template-columns: 48px 440px 1fr; column-gap: 32px; align-items: center; padding: 22px 0; border-top: 1px solid var(--rule-2); }
+  .roles h3 { margin: 0; font: 400 42px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
+  .roles p { margin: 0; font: 400 30px/1.4 var(--sans); color: var(--ink-2); }
 
-  figure.photo { margin: 0; position: relative; }
-  figure.photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; display: block; border: 1.5px solid var(--rule-strong); }
-  figure.photo figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 20px; border-radius: 0 0 18px 18px; background: linear-gradient(to top, rgba(41,37,36,.78), rgba(41,37,36,0)); color: #FFFDF9; font: 500 19px/1.3 var(--sans); }
+  /* 7 · Vouchers */
+  .s-vouchers .lede { margin-top: 26px; max-width: 1480px; font: 400 30px/1.45 var(--sans); color: var(--sub); }
+  .s-vouchers .flow { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 48px; margin-top: 128px; } /* centered in the space below the lede */
+  .s-vouchers .flow::before { content: ""; position: absolute; left: 56px; right: calc(25% - 8px); top: 56px; height: 3px; background: var(--green); }
+  .s-vouchers .stage-item { position: relative; }
+  .s-vouchers .disc { position: relative; z-index: 1; display: grid; place-items: center; width: 112px; height: 112px; border-radius: 50%; background: var(--green-wash); border: 3px solid var(--green); box-shadow: 0 0 0 12px var(--linen); }
+  .s-vouchers .stage-item h3 { margin: 28px 0 0; font: 400 40px/1.1 var(--serif); letter-spacing: -0.012em; }
+  .s-vouchers .stage-item p { margin: 12px 0 0; font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
 
-  /* Chrome */
-  .foot { position: absolute; left: 112px; right: 112px; bottom: 48px; display: flex; justify-content: space-between; font: 500 18px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--stone); }
-  .photo-ph { height: 100%; min-height: 520px; border: 2.5px dashed var(--rule-strong); border-radius: 18px; display: grid; place-items: center; text-align: center; padding: 40px; color: var(--stone); font-size: 24px; background: var(--paper); }
+  /* 8 · Tech and Sun */
+  .s-hub .hub-text { position: absolute; left: var(--px); top: 324px; width: 660px; } /* first line level with the top of the screenshot */
+  .s-hub .hub-text p { font: 400 30px/1.4 var(--sans); color: var(--ink-2); margin-bottom: 30px; text-wrap: pretty; }
+  .s-hub .hub-text p.small { font: 400 22px/1.4 var(--sans); color: var(--stone); margin-top: 8px; }
+  .browser { position: absolute; left: 880px; top: 290px; width: 912px; margin: 0; }
+  .browser .bar { display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 18px; background: #EFEAE3; border: 1px solid var(--rule); border-bottom: 0; border-radius: 14px 14px 0 0; }
+  .browser .bar span { width: 12px; height: 12px; border-radius: 50%; background: #D6CEC2; }
+  .browser .bar em { margin-left: 16px; font: 500 17px/1 var(--sans); font-style: normal; color: var(--stone); }
+  .browser img { display: block; width: 100%; border: 1px solid var(--rule); border-radius: 0 0 14px 14px; box-shadow: 0 26px 50px -30px rgba(41,37,36,.4); }
+  .browser figcaption { margin-top: 16px; font: 400 22px/1.4 var(--sans); color: var(--stone); }
 
-  /* Notes panel */
-  .notes { position: fixed; left: 24px; bottom: 24px; width: 560px; max-height: 44vh; overflow: auto; background: rgba(28,25,23,.94); color: #F5F5F4; padding: 18px 22px; border-radius: 14px; font: 400 16px/1.5 var(--sans); display: none; z-index: 20; }
+
+  /* 10 · Rings (approved option B). Each band takes its own step of one warm hue, light at the hub
+     and darker outward, and its legend glyph repeats that fill in the same position. */
+  .s-rings { --ring-1: #F8EFE2; --ring-2: #E4D7C5; --ring-3: #CFC0AA; }
+  .s-rings .band-3 { fill: var(--ring-3); } .s-rings .band-2 { fill: var(--ring-2); } .s-rings .band-1 { fill: var(--ring-1); }
+  .s-rings .sep { fill: none; stroke: var(--rule-2); stroke-width: 1.5; }
+  .s-rings .rays line { stroke: var(--green); stroke-width: 2.4; stroke-linecap: round; }
+  .s-rings .inflow line { stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; }
+  .hub { fill: var(--green-wash); stroke: var(--green); stroke-width: 3; }
+  .hub-name { font-family: var(--serif); font-size: 42px; letter-spacing: -0.015em; fill: var(--ink); }
+  .hub-forms { font: 400 22px var(--sans); fill: var(--ink-2); }
+  .s-rings .legend { position: absolute; left: 1060px; top: 50%; transform: translateY(-40%); width: 732px; }
+  .legend .lv { display: flex; gap: 26px; align-items: center; margin: 0 0 30px; }
+  .legend .glyph { flex: none; }
+  .legend .glyph circle { fill: none; } /* a small copy of the rings with only the entry's own band filled and outlined */
+  .legend .glyph .b1, .legend .glyph .b2, .legend .glyph .b3 { stroke-width: 8; }
+  .legend .glyph .b1 { stroke: var(--ring-1); } .legend .glyph .b2 { stroke: var(--ring-2); } .legend .glyph .b3 { stroke: var(--ring-3); }
+  .legend .glyph .sep { stroke: var(--rule-2); stroke-width: 1.5; }
+  .legend .glyph .edge { stroke: var(--ink-2); stroke-width: 2; }
+  .legend .glyph .core { fill: var(--green-wash); stroke: var(--green); stroke-width: 2; }
+  .legend h3 { margin: 0; font: 400 46px/1.08 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
+  .legend .lv p { margin: 6px 0 0; font: 400 28px/1.4 var(--sans); color: var(--sub); }
+  .legend .key { margin-top: 34px; padding-top: 28px; border-top: 1px solid var(--rule); display: grid; gap: 18px; }
+  .legend .ki { display: flex; align-items: center; gap: 18px; font: 600 26px/1.2 var(--sans); color: var(--ink); }
+  .legend .ki.out { color: var(--green-action); }
+
+  /* 11 · Sources */
+  .s-sources .conv { stroke: var(--ink-2); stroke-width: 2.6; }
+  .s-sources .src { position: absolute; width: 512px; }
+  .s-sources .src.right { text-align: right; }
+  .s-sources .src h3 { margin: 0; font: 400 40px/1.1 var(--serif); letter-spacing: -0.012em; }
+  .s-sources .src p { margin: 10px 0 0; font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
+
+  /* 12 · Diaspora */
+  .s-diaspora .dia-text { position: absolute; left: var(--px); top: 336px; width: 760px; }
+  .s-diaspora .figure { font: 400 132px/1 var(--serif); letter-spacing: -0.03em; color: var(--ink); }
+  .s-diaspora .figure-label { margin-top: 14px; font: 400 32px/1.3 var(--sans); color: var(--ink-2); }
+  .s-diaspora .small { margin-top: 10px; }
+  .s-diaspora .dia-body { margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--rule-2); font: 400 28px/1.45 var(--sans); color: var(--ink-2); text-wrap: pretty; }
+  .s-diaspora .closing { margin-top: 26px; font-size: 32px; }
+  .dia-photos { position: absolute; left: 1000px; top: 330px; width: 792px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; }
+  .dia-photos figure { margin: 0; height: 560px; overflow: hidden; background: var(--sand); }
+  .dia-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dia-photos figcaption { grid-column: 1 / -1; margin-top: 16px; font: 400 22px/1.4 var(--sans); color: var(--stone); }
+
+  /* 3 · The solution, 13 · Mechanisms and 14 · Business model share circles and flow lines */
+  .mech { fill: var(--sand); stroke: var(--rule-2); stroke-width: 2; }
+  .mech.hubby { fill: var(--green-wash); stroke: var(--green); stroke-width: 3; }
+  .mech.gg { fill: var(--paper); stroke: var(--green-action); stroke-width: 3; }
+  .mech-name { font-family: var(--serif); font-size: 32px; letter-spacing: -0.01em; fill: var(--ink); }
+  .flowline { stroke: var(--ink-2); stroke-width: 3; fill: none; }
+  .supportline { stroke: var(--green-action); stroke-width: 3; fill: none; }
+  .nextline { stroke: #A8A29E; stroke-width: 2.5; fill: none; }
+  .flow-label { font: 400 24px var(--sans); fill: var(--sub); }
+  .flow-label.green { fill: var(--green-action); font-weight: 600; }
+  .next-label { font: italic 400 26px var(--serif); fill: var(--stone); }
+  .s-mech .mcol { position: absolute; top: 676px; width: 460px; text-align: center; }
+  .s-mech .mcol p { font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
+  .state { font: 600 24px/1.2 var(--sans) !important; margin-bottom: 10px; }
+  .state.live { color: var(--green-action) !important; }
+  .state.pilot { color: #B45309 !important; }
+  .state.next { color: var(--stone) !important; }
+  .s-model .fee { position: absolute; left: 1150px; top: 316px; width: 642px; }
+  .s-model .fee .item { margin-bottom: 18px; }
+  .s-model .fee .item.rule { padding-top: 20px; }
+  .s-model .fee .item h3 { margin: 0; font-size: 36px; }
+  .s-model .fee .item p { margin-top: 6px; }
+  .s-model .fee .closing { margin-top: 26px; font-size: 32px; }
+
+  /* 15 · Roadmap: a dot map from hand-simplified outlines (Natural Earth projection); the list
+     beside it names each place, its work and its stage, in the same marker styles */
+  .s-road .land { fill: none; stroke: var(--rule-2); stroke-width: 7.4; stroke-linecap: round; } /* each zero-length segment draws one dot */
+  .s-road .stop.now { fill: var(--green-action); }
+  .s-road .stop.soon { fill: var(--linen); stroke: var(--green-action); stroke-width: 4; }
+  .s-road .stop.later { fill: var(--linen); stroke: var(--stone); stroke-width: 4; }
+  .s-road .halo { fill: var(--green); opacity: .2; }
+  .s-road .places { position: absolute; left: var(--px); top: 414px; width: 460px; list-style: none; margin: 0; padding: 0; }
+  .s-road .places li { display: grid; grid-template-columns: 40px 1fr; column-gap: 24px; align-items: start; margin-bottom: 46px; }
+  .s-road .places svg { margin-top: 12px; }
+  .s-road .places h3 { margin: 0; font: 400 46px/1.08 var(--serif); letter-spacing: -0.015em; color: var(--ink); }
+  .s-road .places p { margin-top: 8px; font: 400 26px/1.4 var(--sans); color: var(--sub); }
+  .s-road .tag { position: absolute; font: 500 24px/1 var(--sans); color: var(--ink-2); text-shadow: 0 0 2px var(--linen), 0 0 4px var(--linen), 0 0 8px var(--linen); }
+  .s-road .tag.left { transform: translate(-100%, -50%); } .s-road .tag.right { transform: translate(0, -50%); }
+
+  /* 16 · Technical roadmap */
+  .s-tech .spoke { stroke: var(--green); stroke-width: 2.6; }
+  .s-tech .spoke-dot { fill: var(--green-action); }
+  .s-tech .tech-left { position: absolute; left: var(--px); top: 570px; width: 420px; }
+  .s-tech .tech-left h3 { margin: 0; font: 400 40px/1.1 var(--serif); letter-spacing: -0.012em; }
+  .s-tech .tech-left p { margin-top: 12px; font: 400 26px/1.45 var(--sans); color: var(--sub); }
+  .s-tech .partner { position: absolute; width: 492px; }
+  .s-tech .partner h3 { margin: 0; font: 400 36px/1.1 var(--serif); letter-spacing: -0.01em; }
+  .s-tech .partner p { margin-top: 4px; font: 400 23px/1.35 var(--sans); color: var(--sub); }
+  .s-tech .partner p.what { margin-top: 6px; color: var(--ink-2); } /* what the partner is, from its own site */
+
+  /* 17 · What we need */
+  .s-ask .needs { position: absolute; left: var(--px); top: 340px; width: 900px; list-style: none; margin: 0; padding: 0; }
+  .s-ask .needs li { display: grid; grid-template-columns: 48px 1fr; column-gap: 26px; align-items: start; margin-bottom: 46px; font: 400 30px/1.4 var(--sans); color: var(--ink-2); }
+  .s-ask .contact { position: absolute; left: var(--px); top: 790px; font: 400 44px/1 var(--serif); color: var(--green-action); letter-spacing: -0.01em; } /* baseline level with the photo's foot */
+  .ask-photo { position: absolute; left: 1140px; top: 340px; width: 652px; margin: 0; }
+  .ask-photo img { display: block; width: 100%; height: 489px; object-fit: cover; }
+  .ask-photo figcaption { margin-top: 14px; font: 400 22px/1.4 var(--sans); color: var(--stone); }
+
+  /* 18 · Thank you: the link in words beside its code; the QR is generated once, see the README */
+  .s-thanks .block { position: absolute; left: var(--px); top: 50%; transform: translateY(-50%); }
+  .s-thanks h1 { font-size: 124px; line-height: 1.0; letter-spacing: -0.025em; max-width: none; }
+  .s-thanks .url { margin-top: 44px; font: 400 56px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--green-action); }
+  .s-thanks .qr { position: absolute; right: var(--px); top: 50%; margin: -242px 0 0; padding: 52px; background: var(--paper); border: 1px solid var(--rule); border-radius: 26px; box-shadow: 0 22px 44px -24px rgba(41,37,36,.35); }
+  .s-thanks .qr svg { display: block; width: 377px; height: 377px; } /* 13px a module */
+
+  .notes { position: fixed; left: 24px; bottom: 24px; width: 600px; max-height: 46vh; overflow: auto; background: rgba(28,25,23,.94); color: #F5F5F4; padding: 18px 22px; border-radius: 14px; font: 400 16px/1.5 var(--sans); display: none; z-index: 20; }
   .notes.show { display: block; }
   .notes b { color: #BBF7D0; }
   .hint { position: fixed; right: 20px; bottom: 16px; color: rgba(245,245,244,.55); font: 500 13px/1.4 var(--sans); z-index: 20; }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .slide.active > .eyebrow, .slide.active > h1 { animation: rise .5s cubic-bezier(.16,1,.3,1) both; }
-    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-  }
-  body.static .slide.active > * { animation: none !important; }
-
-  /* Print: one slide per 1920 x 1080 page. */
+  .progress { position: fixed; left: 0; bottom: 0; height: 4px; width: 0; background: var(--green); z-index: 30; transition: width .25s ease; }
+  body.static .progress, body.static .hint { display: none; }
   @page { size: 1920px 1080px; margin: 0; }
   @media print {
     html, body { background: var(--linen); }
-    .stage { position: static; display: block; overflow: visible; }
-    .deck { transform: none !important; box-shadow: none; width: 1920px; height: auto; }
+    .stage { position: static; overflow: visible; }
+    .deck { position: static; margin: 0; transform: none !important; box-shadow: none; height: auto; }
     .slide { position: relative; display: block !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+    .slide.stack { display: flex !important; flex-direction: column; }
     .slide:last-child { break-after: auto; page-break-after: auto; }
-    .notes, .hint { display: none !important; }
+    .notes, .hint, .progress { display: none !important; }
   }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <marker id="ah-deep" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1A7544"/></marker>
+    <marker id="ah-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#44403C"/></marker>
+    <marker id="ah-stone" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#A8A29E"/></marker>
+    <symbol id="i-agreement" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.6 2.6 5.6-5.3"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 5.5 5"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M3 5.5h6.5A2.5 2.5 0 0 1 12 8v12a2 2 0 0 0-2-2H3z"/><path d="M21 5.5h-6.5A2.5 2.5 0 0 0 12 8v12a2 2 0 0 1 2-2h7z"/></symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3.5 8a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v2.2a1.8 1.8 0 0 0 0 3.6V16a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-2.2a1.8 1.8 0 0 0 0-3.6z"/><path d="M14.5 6v2.5M14.5 10.75v2.5M14.5 15.5v2.5"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8.5h13.5M14.5 5.5l3 3-3 3"/><path d="M20 15.5H6.5M9.5 12.5l-3 3 3 3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="1.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-return" viewBox="0 0 24 24"><path d="M9 7.5 5.5 11 9 14.5"/><path d="M5.5 11h9a4 4 0 0 1 0 8h-3"/></symbol>
+    <symbol id="i-proof" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="M9 13l2.2 2.2L15.5 11"/></symbol>
+    <symbol id="i-office" viewBox="0 0 24 24"><path d="M4 21V6l8-3 8 3v15"/><path d="M9.5 21v-4h5v4"/><path d="M8 9h2M14 9h2M8 13h2M14 13h2"/><path d="M2.5 21h19"/></symbol>
+    <symbol id="i-silo" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="1.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2.5"/></symbol>
+    <symbol id="i-gardener" viewBox="0 0 24 24"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 7.5-6.5 0 4.5-3 6.5-7.5 6.5z"/><path d="M12 13c0-3.5-2.5-5.5-6.5-5.5 0 4 2.5 5.5 6.5 5.5z"/></symbol>
+    <symbol id="i-steward" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.4-3 7.8-7 9.5-4-1.7-7-5.1-7-9.5V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol>
+    <symbol id="i-evaluator" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/><path d="M8 10.5h5"/></symbol>
+    <symbol id="i-funder" viewBox="0 0 24 24"><path d="M12 20s-7-4.3-7-9.8A3.9 3.9 0 0 1 12 7.8a3.9 3.9 0 0 1 7 2.4C19 15.7 12 20 12 20z"/></symbol>
+    <symbol id="i-work" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/><path d="M3 12.5h18"/></symbol>
+    <symbol id="i-tools" viewBox="0 0 24 24"><rect x="4.5" y="5" width="15" height="10" rx="1.5"/><path d="M2.5 19h19"/><path d="M10 15l-.5 4M14 15l.5 4"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></symbol>
+    <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h2.5L13 19V5L7.5 9H5a1 1 0 0 0-1 1z"/><path d="M16.5 9a3.5 3.5 0 0 1 0 6"/><path d="M19 6.5a7 7 0 0 1 0 11"/></symbol>
+</defs></svg>
 <div class="stage">
 <div class="deck" id="deck">
 
 <!-- 1 · Title -->
-<section class="slide" data-label="Title">
-  <p class="eyebrow">SustainableFinance.Live 2026 · Problem Statement 2 · Draft, updated 21 October 2026</p>
-  <h1 class="xl">Fund useful services close to home, and follow what your support makes possible.</h1>
-  <p class="lede">Green Goods with Tech and Sun in Awka and Omo Yoruba of Southern California. A community hub makes its services accessible, and its funding and delivery understandable.</p>
-  <div class="row" style="margin-top:48px">
-    <span class="chip live">Live today: the record</span>
-    <span class="chip planned">Planned pilot: hub vouchers</span>
-    <span class="chip scenario">Decision 22 October</span>
+<section class="slide s-title" data-label="Title" data-time="0:25">
+  <div class="block">
+    <h1><span class="ln">Green Goods:</span><span class="ln">From <em class="accent">Good</em> Intentions</span><span class="ln">to <em class="accent">Green</em> Outcomes</span></h1>
+    <p class="sub">We built commitment pooling: communities promise useful work, prove it, and turn the record into support. Today we show it at a solar hub in Nigeria, and how capital can follow and sustain the work.</p>
   </div>
-  <p class="small" style="position:absolute; left:112px; bottom:150px; max-width:70ch">Working line, to test with a real supporter before it becomes copy. Every amount in this deck is a labeled scenario until the hub confirms its terms.</p>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>1 / 17</span></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="event">SustainableFinance.Live 2026 · Problem Statement 2</span>
 </section>
 
-<!-- 2 · The hub -->
-<section class="slide" data-label="The hub">
-  <p class="eyebrow">The hub</p>
-  <h1>Tech and Sun, Awka: power, internet and a place to learn.</h1>
-  <div class="cols two">
-    <div>
-      <p style="margin-bottom:24px">A solar-powered community hub with internet and shared workspace, run locally and now registered as an NGO. Members come for internet first, then learning, engineering, AI, steady power and a quiet place to work.</p>
-      <h2>The hub asks for</h2>
-      <ul style="margin-bottom:24px"><li>UN climate certification seats</li><li>A weekly climate discussion</li><li>Workshops on AI, agriculture and the environment</li></ul>
-      <h2>Members asked for most</h2>
-      <ul><li>Introductions to projects and work</li><li>One-to-one career and portfolio calls</li></ul>
-      <p class="small" style="margin-top:22px">Workshop poll, 8 September 2026 (about ten members); member survey, October 2026 (internal count). Hub photos used with Tech and Sun's permission; no participant is named without consent.</p>
+<!-- 2 · The problem -->
+<section class="slide s-problem stack" data-label="The problem" data-time="0:30">
+  <h1>Communities create value every season, but the record of it stays trapped.</h1>
+  <div class="body">
+    <div class="grid c3">
+      <div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-proof"/></svg><p class="say">Proving the work costs more than doing it.</p></div>
+      <div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-office"/></svg><p class="say">Reporting tools were built for the office, not the field.</p></div>
+      <div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-silo"/></svg><p class="say">The record sits on platforms the community doesn't own.</p></div>
     </div>
-    <figure class="photo" style="height:600px"><img src="assets/photos/awka-hub.jpg" alt="Students and builders standing in front of the solar-roofed container hub in Awka" /><figcaption>Students and builders at the Awka hub. Photo: Tech and Sun.</figcaption></figure>
+    <p class="closing">Inside the community, contribution is thanked but not valued. Outside, supporters can't read it.</p>
   </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>2 / 17</span></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">2 / 18</span>
 </section>
 
-<!-- 3 · The gap -->
-<section class="slide" data-label="The gap">
-  <p class="eyebrow">The gap</p>
-  <h1>Real value. Scattered records. No collateral.</h1>
-  <p class="lede" style="margin-bottom:44px">To a bank or a funder, a hub like this looks unbanked: relationships, skills and kept promises live in chat threads and memory. Supporters abroad send money on trust and rarely see what it did.</p>
-  <div class="cols three">
-    <div class="panel"><h2>A clear recipient</h2><p style="font-size:26px">Who exactly receives the support, and under what terms.</p></div>
-    <div class="panel"><h2>A confirmed service</h2><p style="font-size:26px">Delivery confirmed by the person who received it, not by the sender or by us.</p></div>
-    <div class="panel"><h2>A way to see what is owed</h2><p style="font-size:26px">What is still outstanding, what slipped, and how to raise a dispute.</p></div>
-  </div>
-  <p class="small" style="margin-top:40px">Sending $200 from the US to Nigeria averaged 2.72 percent in Q3 2025, and £120 from the UK 1.96 percent (World Bank). The gap is legibility, not fees.</p>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>3 / 17</span></div>
-</section>
-
-<!-- 4 · What works today -->
-<section class="slide" data-label="Live today">
-  <p class="eyebrow">Live today</p>
-  <h1>A promise, kept and confirmed by the person served.</h1>
-  <svg class="dg" viewBox="0 0 1700 300" role="img" aria-label="Five live steps: a promise is made as a Request or Offer, evidence is added, the person served confirms, G dollar support is paid, and the record is public.">
-    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#137A47"/></marker></defs>
-    <g>
-      <rect class="node live" x="20" y="70" width="280" height="130" rx="16"/><text class="t" x="160" y="125" text-anchor="middle">A promise</text><text class="s" x="160" y="158" text-anchor="middle">a Request or an Offer</text>
-      <rect class="node live" x="370" y="70" width="280" height="130" rx="16"/><text class="t" x="510" y="125" text-anchor="middle">Evidence</text><text class="s" x="510" y="158" text-anchor="middle">photos, notes, approved work</text>
-      <rect class="node live" x="720" y="70" width="280" height="130" rx="16"/><text class="t" x="860" y="118" text-anchor="middle">Confirmed</text><text class="s" x="860" y="150" text-anchor="middle">by the person served,</text><text class="s" x="860" y="176" text-anchor="middle">fallbacks stay visible</text>
-      <rect class="node live" x="1070" y="70" width="280" height="130" rx="16"/><text class="t" x="1210" y="125" text-anchor="middle">Support in G$</text><text class="s" x="1210" y="158" text-anchor="middle">paid when the promise is kept</text>
-      <rect class="node live" x="1420" y="70" width="260" height="130" rx="16"/><text class="t" x="1550" y="125" text-anchor="middle">Public record</text><text class="s" x="1550" y="158" text-anchor="middle">readable without a wallet</text>
-      <line class="edge live" x1="302" y1="135" x2="364" y2="135" marker-end="url(#ah)"/>
-      <line class="edge live" x1="652" y1="135" x2="714" y2="135" marker-end="url(#ah)"/>
-      <line class="edge live" x1="1002" y1="135" x2="1064" y2="135" marker-end="url(#ah)"/>
-      <line class="edge live" x1="1352" y1="135" x2="1414" y2="135" marker-end="url(#ah)"/>
-      <text class="s" x="860" y="260" text-anchor="middle">Commitments, evidence and confirmation on Arbitrum. G$ support settles on Celo. Direct support and endowment deposits exist on Arbitrum.</text>
-    </g>
+<!-- 3 · The solution -->
+<section class="slide s-solution" data-label="The solution" data-time="0:25">
+  <h1>Green Goods gives a community one record of what it promised, did and proved.</h1>
+  <svg class="art" viewBox="0 0 1920 1080" aria-hidden="true">
+    <line class="supportline" x1="526.0" y1="548.0" x2="832.0" y2="548.0" marker-end="url(#ah-deep)"/><line class="supportline" x1="1086.0" y1="548.0" x2="1392.0" y2="548.0" marker-end="url(#ah-deep)"/>
+    <circle class="mech hubby" cx="400" cy="548" r="112"/><text class="mech-name" x="400" y="559" text-anchor="middle">Garden</text>
+    <circle class="mech gg" cx="960" cy="548" r="112"/><text class="mech-name" x="960" y="559" text-anchor="middle">Record</text>
+    <circle class="mech" cx="1520" cy="548" r="112"/><text class="mech-name" x="1520" y="559" text-anchor="middle">Supporters</text>
   </svg>
-  <div class="cols three" style="margin-top:36px">
-    <div class="panel"><div class="chip live sm">Observed</div><p style="font-size:26px;margin-top:14px">14 gardens across five continents use the record today.</p></div>
-    <div class="panel"><div class="chip live sm">Observed</div><p style="font-size:26px;margin-top:14px">The first G$ support payment to a garden was acknowledged in August 2026.</p></div>
-    <div class="panel"><div class="chip live sm">Tested</div><p style="font-size:26px;margin-top:14px">275 passing foundation tests at the checked commit (appendix C).</p></div>
+  <p class="cap" style="left:170px">A place-based community, where gardeners do and document the work and stewards run it.</p>
+  <p class="cap" style="left:730px">Promises, work and proof in one place, owned by the garden.</p>
+  <p class="cap" style="left:1290px">They read the record and fund what it shows.</p>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">3 / 18</span>
+</section>
+
+<!-- 4 · Five roles -->
+<section class="slide s-roles stack" data-label="Five roles" data-time="0:15">
+  <h1>Five roles keep a garden going.</h1>
+  <div class="body">
+    <ul class="roles"><li><svg class="icon" aria-hidden="true"><use href="#i-gardener"/></svg><h3>Gardeners</h3><p>Do the work and document it, offline when they need to.</p></li><li><svg class="icon" aria-hidden="true"><use href="#i-steward"/></svg><h3>Stewards</h3><p>Run the garden: plan the season, welcome members, review work.</p></li><li><svg class="icon" aria-hidden="true"><use href="#i-evaluator"/></svg><h3>Evaluators</h3><p>Set the baseline and what good evidence looks like.</p></li><li><svg class="icon" aria-hidden="true"><use href="#i-funder"/></svg><h3>Funders</h3><p>See delivery before and after they give.</p></li><li><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><h3>Community members</h3><p>Witness the work and confirm what was done for them.</p></li></ul>
   </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>4 / 17</span></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">4 / 18</span>
 </section>
 
-<!-- 5 · The member -->
-<section class="slide" data-label="The member">
-  <p class="eyebrow">The member</p>
-  <h1>Join, do one useful thing, get confirmed, use a service, come back.</h1>
-  <ol class="steps">
-    <li><span class="chip live sm">Live</span>Join the hub with a passkey. No wallet words, no gas prompts.</li>
-    <li><span class="chip live sm">Live</span>Take up a useful request: host the weekly climate discussion.</li>
-    <li><span class="chip live sm">Live</span>The people who came confirm it. The record shows who confirmed and how.</li>
-    <li><span class="chip live sm">Live</span>Recognition for the work, and G$ support when the promise is kept.</li>
-    <li><span class="chip planned sm">Planned</span>Use a Tech and Sun voucher for a solar class seat. Presenting it opens a promise.</li>
-    <li><span class="chip planned sm">Planned</span>Confirm the seat was delivered. The voucher is discharged once.</li>
-  </ol>
-  <p class="small" style="margin-top:34px">No chain names on a member's screen. "Saved on this phone" and "Sent" are different states. A retry never duplicates a payment.</p>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>5 / 17</span></div>
-</section>
-
-<!-- 6 · The supporter -->
-<section class="slide" data-label="The supporter">
-  <p class="eyebrow">The supporter · planned passport</p>
-  <h1>Fund seats. See each one delivered. See what is still owed.</h1>
-  <div class="cols two">
-    <div class="panel dashed" aria-label="Illustration of the planned passport with placeholder values">
-      <div class="row" style="justify-content:space-between;margin-bottom:18px"><b style="font-size:26px">Season at Tech and Sun · passport</b><span class="chip planned sm">Illustration, placeholder values</span></div>
-      <table>
-        <tr><td>Seats sponsored</td><td class="num">[count]</td><td class="num"><span class="chip planned sm">Gnosis</span></td></tr>
-        <tr><td>Seats used, confirmed by the learner</td><td class="num">[count]</td><td class="num"><span class="chip planned sm">Gnosis</span></td></tr>
-        <tr><td>Seats remaining</td><td class="num">[count]</td><td class="num"><span class="chip planned sm">Gnosis</span></td></tr>
-        <tr><td>Promises kept this season</td><td class="num">[kept] of [due]</td><td class="num"><span class="chip live sm">Arbitrum</span></td></tr>
-        <tr><td>Support paid in G$</td><td class="num">[amount]</td><td class="num"><span class="chip live sm">Celo</span></td></tr>
-        <tr><td>Obligations outstanding</td><td class="num">[units]</td><td class="num"><span class="chip planned sm">Gnosis</span></td></tr>
-      </table>
-      <p class="small" style="margin-top:16px">Each figure: definition, unit, window, source, freshness. Rehearsal data is labeled rehearsal.</p>
-    </div>
-    <div>
-      <ul>
-        <li>Every figure carries a definition, unit, time window, source and freshness.</li>
-        <li>No member is ranked. No addresses are shown. Public reporting needs its own consent.</li>
-        <li>It is evidence for a decision. It is not a credit score, an audited impact claim or a financial return.</li>
-        <li>On a no-go, the Arbitrum and Celo figures are real and the Gnosis panel says "not yet live".</li>
-      </ul>
-    </div>
-  </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>6 / 17</span></div>
-</section>
-
-<!-- 7 · Vouchers -->
-<section class="slide" data-label="How vouchers work">
-  <p class="eyebrow">Planned pilot · rehearsal by 21 October · decision 22 October</p>
-  <h1 style="font-size:62px;max-width:34ch">Hub services as vouchers: earned or purchased, within what the hub can deliver.</h1>
-  <svg class="dg" viewBox="0 0 1700 330" role="img" aria-label="Planned voucher lifecycle: a kept promise, live today, can earn vouchers, and an issuer a steward admits issues vouchers within a cap that grows with kept promises; the member holds vouchers earned or bought and presents one, which opens a promise; the hub delivers, the presenter confirms, and the voucher is discharged once, or a remedy returns it.">
-    <defs><marker id="ahp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D97706"/></marker></defs>
-    <rect class="node live" x="20" y="20" width="300" height="110" rx="16"/><text class="t" x="170" y="68" text-anchor="middle">Kept promise</text><text class="s" x="170" y="100" text-anchor="middle">confirmed, live today</text>
-    <rect class="node planned" x="20" y="190" width="300" height="110" rx="16"/><text class="t" x="170" y="238" text-anchor="middle">Admitted issuer</text><text class="s" x="170" y="270" text-anchor="middle">cap grows with kept promises</text>
-    <rect class="node planned" x="400" y="105" width="260" height="110" rx="16"/><text class="t" x="530" y="153" text-anchor="middle">Member holds</text><text class="s" x="530" y="185" text-anchor="middle">earned or bought</text>
-    <rect class="node planned" x="740" y="105" width="260" height="110" rx="16"/><text class="t" x="870" y="153" text-anchor="middle">Presents</text><text class="s" x="870" y="185" text-anchor="middle">this opens a promise</text>
-    <rect class="node planned" x="1080" y="105" width="260" height="110" rx="16"/><text class="t" x="1210" y="153" text-anchor="middle">Hub delivers</text><text class="s" x="1210" y="185" text-anchor="middle">the presenter confirms</text>
-    <rect class="node planned" x="1420" y="105" width="260" height="110" rx="16"/><text class="t" x="1550" y="153" text-anchor="middle">Discharged once</text><text class="s" x="1550" y="185" text-anchor="middle">or a remedy returns it</text>
-    <path class="edge planned" d="M322,75 L360,75 L360,160 L394,160" marker-end="url(#ahp)"/>
-    <path class="edge planned" d="M322,245 L360,245 L360,160 L394,160"/>
-    <line class="edge planned" x1="662" y1="160" x2="734" y2="160" marker-end="url(#ahp)"/>
-    <line class="edge planned" x1="1002" y1="160" x2="1074" y2="160" marker-end="url(#ahp)"/>
-    <line class="edge planned" x1="1342" y1="160" x2="1414" y2="160" marker-end="url(#ahp)"/>
-    <text class="s" x="850" y="314" text-anchor="middle">A swap or a transfer changes who holds a voucher. Only presentment, delivery and confirmation discharge the hub's obligation, and only once.</text>
+<!-- 5 · The loop -->
+<section class="slide s-cycle" data-label="The loop" data-time="0:30">
+  <h1>A garden runs in four steps, season after season.</h1>
+  <svg class="art" viewBox="0 0 1920 1080" aria-hidden="true">
+    <circle class="track" cx="960" cy="584" r="230"/>
+    <path class="arc" d="M841.5,386.9 A230,230 0 0 1 1078.5,386.9" marker-end="url(#ah-deep)"/><path class="arc" d="M1157.1,465.5 A230,230 0 0 1 1157.1,702.5" marker-end="url(#ah-deep)"/><path class="arc" d="M1078.5,781.1 A230,230 0 0 1 841.5,781.1" marker-end="url(#ah-deep)"/><path class="arc" d="M762.9,702.5 A230,230 0 0 1 762.9,465.5" marker-end="url(#ah-deep)"/>
+    <circle class="node" cx="797.4" cy="421.4" r="34"/><text class="node-n" x="797.4" y="431.4" text-anchor="middle">1</text><circle class="node" cx="1122.6" cy="421.4" r="34"/><text class="node-n" x="1122.6" y="431.4" text-anchor="middle">2</text><circle class="node" cx="1122.6" cy="746.6" r="34"/><text class="node-n" x="1122.6" y="756.6" text-anchor="middle">3</text><circle class="node" cx="797.4" cy="746.6" r="34"/><text class="node-n" x="797.4" y="756.6" text-anchor="middle">4</text>
+    <text class="centre" x="960" y="544" text-anchor="middle">What was learned</text>
+    <text class="centre" x="960" y="588" text-anchor="middle">shapes the next</text>
+    <text class="centre" x="960" y="632" text-anchor="middle">season's needs.</text>
   </svg>
-  <div class="cols three compact" style="margin-top:18px">
-    <div class="panel"><h2>What a voucher is</h2><p style="font-size:25px">A claim on one issuer's future service, named with its issuer and unit: a Tech and Sun voucher, one solar class seat. Not money, not a wage, not a score.</p></div>
-    <div class="panel"><h2>Who issues</h2><p style="font-size:25px">Tech and Sun and Green Goods in the pilot, each through its community Safe. A steward may also admit gardeners, with published terms and a cap.</p></div>
-    <div class="panel"><h2>No cash-out</h2><p style="font-size:25px">Green Goods vouchers have none. Tech and Sun's swap-back is a rehearsal idea pending its own terms and legal review.</p></div>
-  </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>7 / 17</span></div>
+  <div class="step left" style="left:228px; top:391.4px"><h2>Needs</h2><p>Stewards and evaluators record what the place needs, from steady power to new skills, and where things stand today.</p></div>
+  <div class="step" style="left:1222px; top:391.4px"><h2>Promise</h2><p>Members promise work to each other and to the garden, like a repair or a website, and agree who does what by when.</p></div>
+  <div class="step" style="left:1222px; top:716.6px"><h2>Work</h2><p>The work is documented with photos and notes, reviewed by stewards and confirmed by the people it served.</p></div>
+  <div class="step left" style="left:228px; top:716.6px"><h2>Funding</h2><p>Supporters fund what the record shows: the garden's shared fund now, or an endowment whose earnings support the work.</p></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">5 / 18</span>
 </section>
 
-<!-- 8 · Four levels -->
-<section class="slide" data-label="Four levels of capital">
-  <p class="eyebrow">Four levels of capital</p>
-  <h1>Resources flow in. Evidence flows out. Ownership stays here.</h1>
-  <div class="cols two" style="grid-template-columns: 1fr 1.05fr; align-items:center">
-    <svg class="dg" style="max-height:600px;width:auto;justify-self:center" viewBox="0 0 920 700" role="img" aria-label="Four concentric rings: the hub at the center where ownership stays, then community, then the Nigerian diaspora, then institutions. An arrow points inward for resources and another outward for evidence.">
-      <defs><marker id="ahi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#292524"/></marker><marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#137A47"/></marker></defs>
-      <circle class="ring" cx="460" cy="350" r="320" fill="#F3EFE8"/>
-      <circle class="ring" cx="460" cy="350" r="240" fill="#E6EEFC"/>
-      <circle class="ring" cx="460" cy="350" r="160" fill="#FDF1DC"/>
-      <circle class="ring" cx="460" cy="350" r="86" fill="#E3F7EC"/>
-      <text class="lab" x="460" y="72" text-anchor="middle">Institutions</text>
-      <text class="lab" x="460" y="152" text-anchor="middle">Nigerian diaspora</text>
-      <text class="lab" x="460" y="232" text-anchor="middle">Community</text>
-      <text class="t" x="460" y="344" text-anchor="middle">The hub</text>
-      <text class="s" x="460" y="372" text-anchor="middle">ownership stays here</text>
-      <path class="edge" d="M60,640 C150,600 260,520 362,418" marker-end="url(#ahi)"/>
-      <text class="s" x="20" y="684">money, skills, equipment, introductions</text>
-      <path class="edge live" d="M558,282 C660,220 760,170 880,120" marker-end="url(#ahg)"/>
-      <text class="s" x="905" y="72" text-anchor="end">confirmed delivery,</text>
-      <text class="s" x="905" y="98" text-anchor="end">obligations, the passport</text>
-    </svg>
-    <div>
-      <table>
-        <tr><th>Level</th><th>What flows in</th><th>Status</th></tr>
-        <tr><td><b>Hub</b></td><td>time, skills, equipment, power, internet</td><td><span class="chip live sm">record live</span></td></tr>
-        <tr><td><b>Community</b></td><td>reciprocal work, shared equipment, vouchers where useful</td><td><span class="chip live sm">pairs live</span> <span class="chip planned sm">exchange</span></td></tr>
-        <tr><td><b>Diaspora</b></td><td>money, expertise, equipment, introductions; first community: Omo Yoruba of Southern California</td><td><span class="chip live sm">support live</span> <span class="chip planned sm">seats</span></td></tr>
-        <tr><td><b>Institutions</b></td><td>grants, program funding, endowment deposits, certificates</td><td><span class="chip live sm">routes live</span> <span class="chip planned sm">passport</span></td></tr>
-      </table>
-      <p class="small" style="margin-top:18px">Overlapping roles, not a hierarchy. No ring carries an amount until unique funding receipts exist.</p>
-    </div>
+<!-- 6 · Commitment pooling -->
+<section class="slide s-pool" data-label="Commitment pooling" data-time="0:35">
+  <h1 class="md">We built commitment pooling: promises a community can see, keep and fund.</h1>
+  <div class="points">
+    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-agreement"/></svg><p>Members offer or request specific work: a workshop, a repair, a planting.</p></div>
+    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-swap"/></svg><p>Members see what others can offer and need, so skills and help move between them.</p></div>
+    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><p>Anyone in the garden can take a promise up, as themselves or for their garden.</p></div>
+    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><p>Only the person it was made for can confirm it was kept.</p></div>
+    <p class="closing">Kept promises become a record that rewards and funding can follow.</p>
   </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>8 / 17</span></div>
+  <figure class="phone p1"><figcaption>See the garden's promises</figcaption><div class="frame"><img src="assets/screens/garden-promises.png" alt="A garden's Promises tab: a season card reading 3 of 7 kept, and promises marked Needs you, In progress and Offered" /></div></figure>
+  <figure class="phone p2"><figcaption>Confirm it was kept</figcaption><div class="frame"><img src="assets/screens/confirm.png" alt="A sheet asking Was the work you asked for done?, which only the person who asked can confirm" /></div></figure>
+  <p class="small screen-note">App screens with demo data</p>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">6 / 18</span>
 </section>
 
-<!-- 9 · Nigeria -->
-<section class="slide" data-label="Nigeria and the diaspora">
-  <p class="eyebrow">Nigeria and the diaspora</p>
-  <h1>The diaspora already sends home more than $22bn a year. What it cannot see is what the money did.</h1>
-  <div class="tiles">
-    <div class="tile"><div class="n">$22.8bn</div><div class="l">Personal remittances received by Nigeria in 2025</div><div class="s">World Bank WDI, updated 8 October 2026. National context, not our pipeline.</div></div>
-    <div class="tile"><div class="n">2.72% · 1.96%</div><div class="l">Average cost of sending $200 from the US, and £120 from the UK</div><div class="s">World Bank Remittance Prices Worldwide, Q3 2025. These corridors are already cheap.</div></div>
-    <div class="tile"><div class="n">+45%</div><div class="l">Formal operator (IMTO) inflows, Q1 2026 against Q1 2025, a record $1.29bn</div><div class="s">Central Bank of Nigeria bulletin as reported by Nairametrics, August 2026.</div></div>
-    <div class="tile"><div class="n">Trust</div><div class="l">Diaspora professionals name trust, transparency and structured channels as the barriers to investing at home</div><div class="s">NISER and NiDCOM survey summary, 2026.</div></div>
-  </div>
-  <p style="margin-top:34px; font-size:28px"><b>We do not compete on fees.</b> We add a clear recipient, a confirmed service and a way to dispute.</p>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>9 / 17</span></div>
+<!-- 7 · Cosmo-Local vouchers -->
+<section class="slide s-vouchers" data-label="Cosmo-Local vouchers" data-time="0:30">
+  <h1>We connected promises to Cosmo-Local service vouchers.</h1>
+  <p class="lede">Cosmo-Local Credit is the open voucher protocol from Grassroots Economics. With it, members and gardens offer their own services and trade access in one shared pool.</p>
+  <div class="flow"><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-ticket"/></svg></div><h3>Issue</h3><p>A member or a garden offers a service as vouchers, like an hour of help or a hub visit.</p></div><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-swap"/></svg></div><h3>Earn or exchange</h3><p>Kept promises earn vouchers. Members can also swap them in one shared pool.</p></div><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-lock"/></svg></div><h3>Book</h3><p>Booking holds the vouchers in escrow until the service happens.</p></div><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-return"/></svg></div><h3>Confirm</h3><p>Delivered units go back to the issuer. Anything undelivered returns to the holder.</p></div></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">7 / 18</span>
 </section>
 
-<!-- 10 · The offer -->
-<section class="slide" data-label="The offer">
-  <p class="eyebrow">The first offer · scenario</p>
-  <h1>Sponsor a season of seats at Tech and Sun.</h1>
-  <div class="cols two">
-    <div>
-      <table>
-        <tr><th>The hub's draft season plan</th><th class="num" style="text-align:right">Scenario</th></tr>
-        <tr><td>Ten climate-course certification seats</td><td class="num">$300</td></tr>
-        <tr><td>Twelve weekly climate discussions</td><td class="num">$120</td></tr>
-        <tr><td>Five workshops</td><td class="num">$200</td></tr>
-        <tr><td>Member offers and repair reserve</td><td class="num">$180</td></tr>
-        <tr class="total"><td>One season pack</td><td class="num">$800</td></tr>
-      </table>
-      <p class="small" style="margin-top:14px">One seat about $30. Draft allocation from the hub's own plan; the steward confirms prices and capacity by 21 October.</p>
-    </div>
-    <div>
-      <h2>What you get back</h2>
-      <ul style="margin-bottom:22px"><li>Each service confirmed by the person who received it.</li><li>Seats used, seats remaining, what slipped.</li><li>A season summary with sources and dates.</li></ul>
-      <h2>How to give today</h2>
-      <p style="font-size:26px;margin-bottom:20px">Through Omo Yoruba of Southern California, Tech and Sun's US fiscal sponsor, earmarked for the season. Prepaid vouchers are planned and wait for a recorded go.</p>
-      <div class="row"><span class="chip scenario">Ask 1: Tech and Sun season pack, $800</span><span class="chip scenario">Ask 2: Green Goods coordination, $1,200 per hub-season</span></div>
-      <p class="small" style="margin-top:14px">Two budgets, two receivers; both scenarios. Ask 2 is two onboarding sessions at $120, twelve support hours and twelve reporting hours at $40. The integration build stays grant-funded. The voucher, its terms, prices and Cosmo-Local pool stay with the hub.</p>
-    </div>
+<!-- 8 · Tech and Sun -->
+<section class="slide s-hub" data-label="Tech and Sun" data-time="0:30">
+  <h1 class="md">We're starting with Tech and Sun, which builds solar-powered hubs in Nigeria.</h1>
+  <div class="hub-text">
+    <p>Its first hub is live in Awka, with steady power and internet for students and builders.</p>
+    <p>Members told us internet and power come first, then learning, engineering and AI.</p>
+    <p>A member survey put introductions to work and one-to-one career calls first.</p>
+    <p class="small">From a member poll in September and a member survey in October 2026.</p>
   </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>10 / 17</span></div>
+  <figure class="browser"><div class="bar"><span></span><span></span><span></span><em>greengoods.app/gardens</em></div><img src="assets/screens/tas-garden.png" alt="Tech and Sun's live public garden page on greengoods.app: a group of members in front of the solar-roofed hub, with the garden's record below" /><figcaption>Tech and Sun's live garden page. The counts come from the record.</figcaption></figure>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">8 / 18</span>
 </section>
 
-<!-- 11 · Honest status -->
-<section class="slide" data-label="Honest status">
-  <p class="eyebrow">Where things stand on 21 October</p>
-  <h1 style="font-size:62px">What is live, what is rehearsed, what waits for a decision.</h1>
-  <div class="cols four tight">
-    <div class="panel"><span class="chip live">Live today</span><ul style="margin-top:18px;font-size:24px"><li>Commitments, evidence, confirmation</li><li>G$ support on Celo</li><li>Direct support to a garden</li><li>Endowment deposits</li><li>Certificate registration</li></ul></div>
-    <div class="panel dashed"><span class="chip planned">Rehearsal by 21 Oct</span><ul style="margin-top:18px;font-size:24px"><li>New voucher module and adapter on local copies of Arbitrum and Gnosis</li><li>Two Cosmo-Local pools from its published contracts</li><li>Earned issuance, once only</li><li>Purchases and exchange by bounded swap</li><li>Presentment at a stand-in desk; discharge and remedies</li></ul></div>
-    <div class="panel dashed"><span class="chip planned">Live only after a go</span><ul style="margin-top:18px;font-size:24px"><li>Both pools on Gnosis mainnet</li><li>Every gate addressed: audit, 3-of-5 Safe, 48-hour timelock, testnet time, tested rollback. None met on 21 October</li><li>A recorded go; none yet</li><li>Then, as planned: promises that accept or pay in vouchers; gardener issuers</li></ul></div>
-    <div class="panel"><span class="chip stretch">Stretch</span><ul style="margin-top:18px;font-size:24px"><li>Card donations by email sign-in</li><li>Provider not yet qualified</li><li>A slide, not a demo, unless a sandbox qualifies by 21 October</li></ul></div>
+<!-- 9 · Member use cases -->
+<section class="slide s-uses stack" data-label="Member use cases" data-time="0:35">
+  <h1>Kept promises build credibility members can carry.</h1>
+  <div class="body">
+    <div class="grid c3"><div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-work"/></svg><h3>Work</h3><p>In the pilot, a designer, an analyst and an engineer build a website together. Each confirmed part goes into their portfolio.</p></div><div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><h3>Learning</h3><p>Vouchers earned on projects book career calls and one-to-one help.</p></div><div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-tools"/></svg><h3>Tools</h3><p>Vouchers open hub visits and AI tool seats members can't afford alone.</p></div></div>
+    <p class="closing">The person who did the work never confirms it, so the record carries weight with the next employer, mentor or funder.</p>
   </div>
-  <p class="small" style="margin-top:24px">A no-go is a valid outcome: real records beside labeled rehearsal. A fork receipt is never presented as a live receipt. Cosmo-Local's own platform opened for public use on 1 October and is still migrating its network onto Gnosis (read 10 October); our pools would be community-owned instances of its published contracts, whose deployed code we checked byte for byte against that build on 20 October.</p>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>11 / 17</span></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">9 / 18</span>
 </section>
 
-<!-- 12 · Route to market -->
-<section class="slide" data-label="Next 90 days">
-  <p class="eyebrow">The next 90 days</p>
-  <h1>One hub, one season, honest numbers.</h1>
-  <div class="cols two">
-    <div>
-      <table>
-        <tr><td><b>Oct to Dec</b></td><td>The season runs, funded by GoodDollar's House of Alignment stream (renewal unconfirmed)</td></tr>
-        <tr><td><b>21 Oct</b></td><td>Rehearsal and issuer terms</td></tr>
-        <tr><td><b>22 Oct</b></td><td>Human go or no-go, each gate named</td></tr>
-        <tr><td><b>26 Oct</b></td><td>Pilot read-out with separate consent for any quote or image</td></tr>
-        <tr><td><b>28 Oct</b></td><td>This pitch</td></tr>
-        <tr><td><b>Nov to Dec</b></td><td>Career calls and workshops; passport on real records; second hub only after evidence</td></tr>
-      </table>
-    </div>
-    <div>
-      <h2>What we measure</h2>
-      <ul>
-        <li>First useful action completed without help</li>
-        <li>Repeat participation within the season</li>
-        <li>Services delivered, and obligations within capacity</li>
-        <li>Cost per delivered service</li>
-        <li>Whether vouchers ever move beyond pairs. A bilateral-only result is a valid finding.</li>
-      </ul>
-    </div>
-  </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>12 / 17</span></div>
-</section>
-
-<!-- 13 · The ask -->
-<section class="slide" data-label="The ask">
-  <p class="eyebrow">What we ask of this room</p>
-  <h1>Help us find the first supporter, and tell us what would make you the second.</h1>
-  <div class="cols two">
-    <ul>
-      <li>A supporter from the Omo Yoruba community willing to sponsor one season and read the record.</li>
-      <li>A budget holder who would pay for coordination and reporting across hubs.</li>
-      <li>A critique of the issuer terms before they go live.</li>
-      <li>A funder's view of what the passport must show.</li>
-    </ul>
-    <div>
-      <figure class="photo" style="height:330px;margin-bottom:24px"><img src="assets/photos/tas-hub-build.jpg" alt="Members working at laptops inside the Awka hub" /><figcaption>Inside the Awka hub. Photo: Tech and Sun.</figcaption></figure>
-      <div class="panel"><h2>Where to find us</h2><p style="font-size:26px">greengoods.app<br>Green Goods with Tech and Sun and Omo Yoruba of Southern California</p></div>
-    </div>
-  </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>13 / 17</span></div>
-</section>
-
-<!-- 14 · Appendix A -->
-<section class="slide" data-label="Appendix A · Integration boundaries">
-  <p class="eyebrow">Appendix A · Integration boundaries</p>
-  <h1 style="font-size:60px">Three chains, one record. Only authorization crosses.</h1>
-  <svg class="dg" viewBox="0 0 1700 560" role="img" aria-label="Three lanes. Arbitrum, live and unchanged, holds commitments, evidence, confirmation, role hats, the Donate and Endow paths, certificates and the yield split; one new planned voucher module sets voucher terms before acceptance and sends discharge commands, and a stretch card donation sits beside it. Celo, live and unchanged, settles G dollar support. Gnosis, planned, holds the vouchers of admitted, capped issuers, community-owned Cosmo-Local pools, a new adapter for voucher delivery, a Gnosis presentment escrow whose contract placement is undecided, and bounded swaps with a minimum output and a deadline. A planned message-only instruction goes from the voucher module to the voucher adapter with no bridged value. A planned passport reads all three.">
-    <defs><marker id="ahl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D97706"/></marker><marker id="ahk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#292524"/></marker></defs>
-    <rect class="lane" x="0" y="0" width="1340" height="160" rx="18"/>
-    <rect class="lane" x="0" y="190" width="1340" height="160" rx="18"/>
-    <rect class="lane" x="0" y="380" width="1340" height="160" rx="18"/>
-    <text class="lab" x="24" y="40">Arbitrum</text><text class="s" x="24" y="68">live, unchanged</text><text class="s" x="24" y="94">one new module</text>
-    <text class="lab" x="24" y="230">Celo</text><text class="s" x="24" y="258">live, unchanged</text>
-    <text class="lab" x="24" y="420">Gnosis</text><text class="s" x="24" y="448">planned pilot</text>
-    <rect class="node live" x="210" y="28" width="300" height="104" rx="14"/><text class="t" x="360" y="72" text-anchor="middle">Commitments, evidence</text><text class="s" x="360" y="102" text-anchor="middle">confirmation, role hats</text>
-    <rect class="node live" x="525" y="28" width="260" height="104" rx="14"/><text class="t" x="655" y="72" text-anchor="middle">Donate, Endow</text><text class="s" x="655" y="102" text-anchor="middle">certificates, yield split</text>
-    <rect class="node planned" x="800" y="28" width="250" height="104" rx="14"/><text class="t" x="925" y="72" text-anchor="middle">Voucher module</text><text class="s" x="925" y="102" text-anchor="middle">new: terms, discharge</text>
-    <rect class="node stretch" x="1065" y="28" width="255" height="104" rx="14"/><text class="t" x="1192" y="72" text-anchor="middle">Card donation</text><text class="s" x="1192" y="102" text-anchor="middle">stretch, not qualified</text>
-    <rect class="node live" x="210" y="218" width="300" height="104" rx="14"/><text class="t" x="360" y="262" text-anchor="middle">G$ support settlement</text><text class="s" x="360" y="292" text-anchor="middle">authenticated acknowledgment</text>
-    <rect class="node planned" x="210" y="408" width="300" height="104" rx="14"/><text class="t" x="360" y="452" text-anchor="middle">Issuers' vouchers</text><text class="s" x="360" y="482" text-anchor="middle">admitted, capped</text>
-    <rect class="node planned" x="525" y="408" width="260" height="104" rx="14"/><text class="t" x="655" y="452" text-anchor="middle">Cosmo-Local pools</text><text class="s" x="655" y="482" text-anchor="middle">community-owned</text>
-    <rect class="node planned" x="800" y="408" width="250" height="104" rx="14"/><text class="t" x="925" y="452" text-anchor="middle">Voucher adapter</text><text class="s" x="925" y="482" text-anchor="middle">new: voucher delivery</text>
-    <rect class="node planned" x="1065" y="408" width="255" height="104" rx="14"/><text class="t" x="1192" y="452" text-anchor="middle">Bounded swaps</text><text class="s" x="1192" y="482" text-anchor="middle">min output, deadline</text>
-    <line class="edge planned" x1="925" y1="134" x2="925" y2="400" marker-end="url(#ahl)"/>
-    <text class="s" x="940" y="372" text-anchor="start">message only, no bridged value</text>
-    <rect class="node planned" x="1400" y="120" width="280" height="300" rx="18"/>
-    <text class="t" x="1540" y="200" text-anchor="middle">Passport</text><text class="s" x="1540" y="232" text-anchor="middle">joins receipts</text><text class="s" x="1540" y="262" text-anchor="middle">definitions, freshness</text><text class="s" x="1540" y="292" text-anchor="middle">live vs rehearsal labels</text><text class="s" x="1540" y="340" text-anchor="middle">planned</text>
-    <line class="edge" x1="1342" y1="80" x2="1394" y2="200" marker-end="url(#ahk)"/>
-    <line class="edge" x1="1342" y1="270" x2="1394" y2="270" marker-end="url(#ahk)"/>
-    <line class="edge planned" x1="1342" y1="460" x2="1394" y2="340" marker-end="url(#ahl)"/>
+<!-- 10 · Four levels of capital -->
+<section class="slide s-rings" data-label="Four levels of capital" data-time="0:20">
+  <h1 class="md">Hubs are rich in capital, but short of money.</h1>
+  <svg class="art" viewBox="0 0 1920 1080" role="img" aria-label="Rings around the hub. Dark arrows converge on the hub: financial capital flows in. Green rays fade outward: evidence of delivery radiates out.">
+    <defs>
+      <radialGradient id="ray-fade" gradientUnits="userSpaceOnUse" cx="600" cy="618" r="400"><stop offset="0.38" stop-color="#fff"/><stop offset="0.62" stop-color="#fff" stop-opacity="0.85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      <mask id="ray-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><rect x="0" y="0" width="1920" height="1080" fill="url(#ray-fade)"/></mask>
+    </defs>
+    <circle class="band-3" cx="600" cy="618" r="322"/><circle class="band-2" cx="600" cy="618" r="264"/><circle class="band-1" cx="600" cy="618" r="206"/>
+    <circle class="sep" cx="600" cy="618" r="322"/><circle class="sep" cx="600" cy="618" r="264"/><circle class="sep" cx="600" cy="618" r="206"/>
+    <g class="rays" mask="url(#ray-mask)"><line x1="748.8" y1="657.9" x2="959.3" y2="714.3"/><line x1="708.9" y1="726.9" x2="863.0" y2="881.0"/><line x1="639.9" y1="766.8" x2="696.3" y2="977.3"/><line x1="560.1" y1="766.8" x2="503.7" y2="977.3"/><line x1="491.1" y1="726.9" x2="337.0" y2="881.0"/><line x1="451.2" y1="657.9" x2="240.7" y2="714.3"/><line x1="451.2" y1="578.1" x2="240.7" y2="521.7"/><line x1="491.1" y1="509.1" x2="337.0" y2="355.0"/><line x1="560.1" y1="469.2" x2="503.7" y2="258.7"/><line x1="639.9" y1="469.2" x2="696.3" y2="258.7"/><line x1="708.9" y1="509.1" x2="863.0" y2="355.0"/><line x1="748.8" y1="578.1" x2="959.3" y2="521.7"/></g>
+    <g class="inflow" mask="url(#ray-mask)"><line x1="992.0" y1="618.0" x2="760.0" y2="618.0" marker-end="url(#ah-ink)"/><line x1="939.5" y1="814.0" x2="738.6" y2="698.0" marker-end="url(#ah-ink)"/><line x1="796.0" y1="957.5" x2="680.0" y2="756.6" marker-end="url(#ah-ink)"/><line x1="600.0" y1="1010.0" x2="600.0" y2="778.0" marker-end="url(#ah-ink)"/><line x1="404.0" y1="957.5" x2="520.0" y2="756.6" marker-end="url(#ah-ink)"/><line x1="260.5" y1="814.0" x2="461.4" y2="698.0" marker-end="url(#ah-ink)"/><line x1="208.0" y1="618.0" x2="440.0" y2="618.0" marker-end="url(#ah-ink)"/><line x1="260.5" y1="422.0" x2="461.4" y2="538.0" marker-end="url(#ah-ink)"/><line x1="404.0" y1="278.5" x2="520.0" y2="479.4" marker-end="url(#ah-ink)"/><line x1="600.0" y1="226.0" x2="600.0" y2="458.0" marker-end="url(#ah-ink)"/><line x1="796.0" y1="278.5" x2="680.0" y2="479.4" marker-end="url(#ah-ink)"/><line x1="939.5" y1="422.0" x2="738.6" y2="538.0" marker-end="url(#ah-ink)"/></g>
+    <circle class="hub" cx="600" cy="618" r="148"/>
+    <text class="hub-name" x="600" y="590" text-anchor="middle">The hub</text>
+    <text class="hub-forms" x="600" y="630" text-anchor="middle">material · intellectual</text>
+    <text class="hub-forms" x="600" y="660" text-anchor="middle">experiential · social</text>
+    <text class="hub-forms" x="600" y="690" text-anchor="middle">cultural · spiritual</text>
   </svg>
-  <div class="legend"><span class="chip live sm">Live today</span><span class="chip planned sm">Planned pilot, rehearsal first</span><span class="chip stretch sm">Stretch</span></div>
-  <p class="small" style="position:absolute; right:112px; bottom:150px; max-width:70ch; text-align:right">No voucher code exists yet (checked 21 October); the deployed contracts stay unchanged. Interfaces are hand-written from public documentation; no AGPL source is read.</p>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>14 / 17</span></div>
-</section>
-
-<!-- 15 · Appendix B -->
-<section class="slide" data-label="Appendix B · Authority and gates">
-  <p class="eyebrow">Appendix B · Who can do what</p>
-  <h1 style="font-size:60px">Community-owned instances, bounded authority, named gates.</h1>
-  <div class="cols two" style="grid-template-columns: 1.15fr .85fr">
-    <table style="font-size:23px">
-      <tr><th>Party</th><th>Can</th><th>Cannot</th></tr>
-      <tr><td><b>Community Safe</b> (Gnosis)</td><td>own the voucher, registry, limiter, fee policy, Cosmo-Local pool and adapter; set the adapter's budget; move pool money; change signers; upgrade after a delay</td><td>be replaced by a Green Goods key</td></tr>
-      <tr><td><b>Steward hat</b> (Arbitrum)</td><td>admit issuers with published terms and caps; set a promise's voucher terms before acceptance</td><td>hold a Gnosis key or move pool money</td></tr>
-      <tr><td><b>Voucher adapter</b> (Gnosis, new)</td><td>deliver within the issuer's budget; reject replays, reused entitlements and unknown senders; live escrow placement is undecided</td><td>write pool limits; withdraw pool money; burn a holder's voucher</td></tr>
-      <tr><td><b>Green Goods</b></td><td>build the voucher module and adapter; own its own pool; deploy Tech and Sun's instances</td><td>keep any key to Tech and Sun's instances</td></tr>
-    </table>
-    <div>
-      <div class="panel dashed"><h2>Gates before live pools</h2><ul style="font-size:24px"><li>External audit</li><li>3-of-5 Safe ownership</li><li>48-hour timelock</li><li>Two weeks of testnet operation</li><li>Tested rollback</li><li>An explicit human go; any substitution named and accepted individually</li></ul><p class="small" style="margin-top:10px">None was met on 21 October.</p></div>
-      <p class="small" style="margin-top:18px">Code caveats today: a generic Fulfilled status can include fallback confirmation; yield has exactly three destinations; the voucher contract's burn is owner-only on its own balance. The 500-unit holding limit is a cap, not a loan or proof of capacity. Passkey accounts cannot act on Gnosis yet (validator missing, read 10 October); vouchers can still reach them.</p>
+  <div class="legend">
+    <div class="lv"><svg class="glyph" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><circle class="sep" cx="36" cy="36" r="25"/><circle class="sep" cx="36" cy="36" r="33"/><circle class="b1" cx="36" cy="36" r="13"/><circle class="edge" cx="36" cy="36" r="9"/><circle class="edge" cx="36" cy="36" r="17"/><circle class="core" cx="36" cy="36" r="6"/></svg><div><h3>Community</h3><p>social · cultural · material · living</p></div></div>
+    <div class="lv"><svg class="glyph" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><circle class="sep" cx="36" cy="36" r="33"/><circle class="b2" cx="36" cy="36" r="21"/><circle class="edge" cx="36" cy="36" r="17"/><circle class="edge" cx="36" cy="36" r="25"/><circle class="core" cx="36" cy="36" r="6"/></svg><div><h3>Nigerian diaspora</h3><p>financial · cultural · social · intellectual</p></div></div>
+    <div class="lv"><svg class="glyph" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><circle class="sep" cx="36" cy="36" r="17"/><circle class="b3" cx="36" cy="36" r="29"/><circle class="edge" cx="36" cy="36" r="25"/><circle class="edge" cx="36" cy="36" r="33"/><circle class="core" cx="36" cy="36" r="6"/></svg><div><h3>Institutions</h3><p>financial · intellectual · material</p></div></div>
+    <div class="key">
+      <div class="ki"><svg width="64" height="32" viewBox="0 0 64 32" aria-hidden="true"><line x1="4" y1="16" x2="38" y2="16" stroke="#44403C" stroke-width="2.4" marker-end="url(#ah-ink)"/><circle cx="54" cy="16" r="8" fill="#E3F7EC" stroke="#1FC16B" stroke-width="2.5"/></svg><span>Financial capital flows in</span></div>
+      <div class="ki out"><svg width="64" height="32" viewBox="0 0 64 32" aria-hidden="true"><circle cx="11" cy="16" r="8" fill="#E3F7EC" stroke="#1FC16B" stroke-width="2.5"/><line x1="23" y1="16" x2="62" y2="16" stroke="#1FC16B" stroke-width="2.6" stroke-linecap="round"/><line x1="22" y1="11" x2="56" y2="2" stroke="#1FC16B" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/><line x1="22" y1="21" x2="56" y2="30" stroke="#1FC16B" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/></svg><span>Evidence of delivery radiates out</span></div>
     </div>
   </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>15 / 17</span></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">10 / 18</span>
 </section>
 
-<!-- 16 · Appendix C -->
-<section class="slide" data-label="Appendix C · Evidence">
-  <p class="eyebrow">Appendix C · Evidence and receipts</p>
-  <h1 style="font-size:60px">Every consequential claim has a source, a date and a label.</h1>
-  <div class="cols two">
-    <div>
-      <h2>Code and tests</h2>
-      <ul style="font-size:25px">
-        <li>Foundation suites at commit 06a31dbf5: 275 passed, 0 failed, 10 suites, run 9 October 2026 (registry, exchange, Celo settlement security, credit registry, yield, certificates).</li>
-        <li>Not in code, rechecked 20 October: Gnosis configuration, the voucher module and adapter, swaps, the passport.</li>
-        <li>Project records: pooling module unpaused on Arbitrum 13 August 2026; settlement live 27 August 2026 with the first acknowledged G$ payout (recheck PRD-731).</li>
-        <li>Protocol checks, 20 October, read-only: Cosmo-Local's deployed voucher, pool, limiter and factory contracts match its published v1.0.0 build byte for byte; both routers quote our existing message format, each way. No message has been sent.</li>
-      </ul>
-    </div>
-    <div>
-      <h2>Data and documents</h2>
-      <ul style="font-size:25px">
-        <li>World Bank WDI, Nigeria personal remittances, updated 8 October 2026.</li>
-        <li>World Bank Remittance Prices Worldwide, US and UK to Nigeria, Q3 2025.</li>
-        <li>Central Bank of Nigeria figures through dated press reports (primary PDFs not read).</li>
-        <li>NISER and NiDCOM survey summary, 2026; ImpactAlpha on diaspora philanthropy, June 2026.</li>
-        <li>Cosmo-Local Credit white paper v0.8, 30 September 2026.</li>
-        <li>Full ledger: .plans/backlog/cosmo-local-credit-interop/research/claim-ledger.md</li>
-      </ul>
-    </div>
-  </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>16 / 17</span></div>
+<!-- 11 · Sources of capital -->
+<section class="slide s-sources" data-label="Sources of capital" data-time="0:25">
+  <h1 class="md">Money can come from people and programs who already care.</h1>
+  <svg class="art" viewBox="0 0 1920 1080" aria-hidden="true">
+    <line class="conv" x1="640.0" y1="382.0" x2="859.2" y2="531.3" marker-end="url(#ah-ink)"/><line class="conv" x1="1280.0" y1="382.0" x2="1060.8" y2="531.3" marker-end="url(#ah-ink)"/><line class="conv" x1="640.0" y1="822.0" x2="859.8" y2="669.5" marker-end="url(#ah-ink)"/><line class="conv" x1="1280.0" y1="822.0" x2="1060.2" y2="669.5" marker-end="url(#ah-ink)"/>
+    <circle class="hub" cx="960" cy="600" r="110"/>
+    <text class="hub-name" x="960" y="612" text-anchor="middle">The hub</text>
+  </svg>
+  <div class="src" style="left:128px; top:300px"><h3>Diaspora supporters</h3><p>Gifts and season sponsorships from people with ties to home.</p></div><div class="src right" style="left:1280px; top:300px"><h3>Diaspora associations</h3><p>Associations can pool members' gifts behind one program, no institution needed.</p></div><div class="src" style="left:128px; top:744px"><h3>Institutions and programs</h3><p>Grants for climate, clean energy and skills.</p></div><div class="src right" style="left:1280px; top:744px"><h3>Public goods funds</h3><p>Ecosystem funds that have backed Green Goods.</p></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">11 / 18</span>
 </section>
 
-<!-- 17 · Appendix D -->
-<section class="slide" data-label="Appendix D · Definitions">
-  <p class="eyebrow">Appendix D · Definitions</p>
-  <h1 style="font-size:60px">Say the smaller, exact thing.</h1>
-  <div class="cols two">
-    <table style="font-size:23px">
-      <tr><td><b>Commitment</b></td><td>who promised what, with evidence and confirmation; not spendable money</td></tr>
-      <tr><td><b>Confirmation</b></td><td>the person served says it happened; fallbacks are visible</td></tr>
-      <tr><td><b>Voucher</b></td><td>a claim on one issuer's future service, named with its issuer and unit; used, not redeemed</td></tr>
-      <tr><td><b>Presentment</b></td><td>presenting vouchers, which opens a promise for the service</td></tr>
-      <tr><td><b>Discharge</b></td><td>the record that a delivered service cannot be claimed again</td></tr>
-      <tr><td><b>Passport</b></td><td>a readable account of promises, funding, delivery and obligations</td></tr>
-      <tr><td><b>Cosmo-Local pool</b></td><td>the hub's exchange inventory under published rates and limits; never a Safe</td></tr>
-    </table>
-    <div class="cols two" style="gap:28px">
-      <div class="panel"><h2>Say</h2><ul style="font-size:23px"><li>confirmed by the person served</li><li>within what the hub can deliver</li><li>the record is proof, not money</li><li>designed for Cosmo-Local's contracts</li><li>rehearsal, labeled</li></ul></div>
-      <div class="panel"><h2>Do not say</h2><ul style="font-size:23px"><li>guaranteed principal, passive income</li><li>scam-free, fee savings</li><li>audited impact, institutional approval</li><li>equity, land or carbon from a certificate</li><li>a Safe called a pool, or a voucher called a credit</li></ul></div>
-    </div>
+<!-- 12 · The Nigerian diaspora -->
+<section class="slide s-diaspora" data-label="The Nigerian diaspora" data-time="0:30">
+  <h1 class="md">The Nigerian diaspora brings money, culture and connections home.</h1>
+  <div class="dia-text">
+    <p class="figure">$22.1bn</p>
+    <p class="figure-label">in remittances to Nigeria in 2024</p>
+    <p class="small">World Bank, personal remittances received, updated 8 October 2026. National context, not our market size.</p>
+    <p class="dia-body">Omo Yoruba of Southern California, a Yoruba community nonprofit in Los Angeles, is our first diaspora community.</p>
+    <p class="closing">Other diaspora associations can follow the same path.</p>
   </div>
-  <div class="foot"><span>Green Goods · Tech and Sun</span><span>17 / 17</span></div>
+  <div class="dia-photos">
+    <figure><img src="assets/photos/odunde-masquerade.jpg" alt="Omo Yoruba members in traditional dress at a street festival" style="object-position: 38% 50%" /></figure>
+    <figure><img src="assets/photos/omo-yoruba-bridge.jpg" alt="A teacher pointing to Yoruba words on a whiteboard" style="object-position: 30% 50%" /></figure>
+    <figcaption>Omo Yoruba of Southern California: a festival and a Yoruba language class.</figcaption>
+  </div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">12 / 18</span>
+</section>
+
+<!-- 13 · Three mechanisms -->
+<section class="slide s-mech" data-label="Three mechanisms" data-time="0:35">
+  <h1 class="md">Three mechanisms turn support into lasting capacity.</h1>
+  <svg class="art" viewBox="0 0 1920 1080" aria-hidden="true">
+    <path class="nextline" d="M400,394 C540,218 1380,218 1520,392" marker-end="url(#ah-stone)"/>
+    <text class="next-label" x="960" y="240" text-anchor="middle">Next: endowment earnings could add funds</text>
+    <line class="flowline" x1="1086.0" y1="520.0" x2="1392.0" y2="520.0" marker-end="url(#ah-ink)"/>
+    <text class="flow-label" x="1240.0" y="470" text-anchor="middle">kept promises</text>
+    <text class="flow-label" x="1240.0" y="502" text-anchor="middle">earn vouchers</text>
+    <circle class="mech" cx="400" cy="520" r="112"/><text class="mech-name" x="400" y="531" text-anchor="middle">Endowment</text><circle class="mech hubby" cx="960" cy="520" r="112"/><text class="mech-name" x="960" y="514" text-anchor="middle">Commitment</text><text class="mech-name" x="960" y="550" text-anchor="middle">pool</text><circle class="mech" cx="1520" cy="520" r="112"/><text class="mech-name" x="1520" y="514" text-anchor="middle">Exchange</text><text class="mech-name" x="1520" y="550" text-anchor="middle">pool</text>
+  </svg>
+  <div class="mcol" style="left:170px"><p class="state live">Live today</p><p>Supporters deposit. The capital stays invested, and part of its earnings, which vary, goes to the garden.</p></div><div class="mcol" style="left:730px"><p class="state live">Live today</p><p>Members promise work. Kept promises build the record and earn agreed recognition.</p></div><div class="mcol" style="left:1290px"><p class="state pilot">In pilot</p><p>Members trade vouchers in one shared pool. Next, supporters and endowment earnings could add funds members exchange vouchers into.</p></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">13 / 18</span>
+</section>
+
+<!-- 14 · Business model -->
+<section class="slide s-model" data-label="Business model" data-time="0:30">
+  <h1 class="md">Green Goods is paid to help funders reach more local initiatives.</h1>
+  <svg class="art" viewBox="0 0 1920 1080" aria-hidden="true">
+    <line class="flowline" x1="431.6" y1="585.8" x2="682.8" y2="486.4" marker-end="url(#ah-ink)"/><line class="flowline" x1="431.6" y1="674.2" x2="682.8" y2="773.6" marker-end="url(#ah-ink)"/><line class="supportline" x1="800.0" y1="702.0" x2="800.0" y2="568.0" marker-end="url(#ah-deep)"/>
+    <circle class="mech" cx="320" cy="630" r="112"/><text class="mech-name" x="320" y="641" text-anchor="middle">Funder</text>
+    <circle class="mech hubby" cx="800" cy="440" r="112"/><text class="mech-name" x="800" y="451" text-anchor="middle">Garden</text>
+    <circle class="mech gg" cx="800" cy="820" r="112"/><text class="mech-name" x="800" y="814" text-anchor="middle">Green</text><text class="mech-name" x="800" y="850" text-anchor="middle">Goods</text>
+    <text class="flow-label" x="536.0" y="497.0" text-anchor="middle">funds the work</text>
+    <text class="flow-label" x="524.0" y="787.0" text-anchor="middle">pays a separate fee</text>
+    <text class="flow-label green" x="824" y="622.0">setup, support</text><text class="flow-label green" x="824" y="654.0">and reporting</text>
+  </svg>
+  <div class="fee">
+    <div class="item rule"><h3>Setup</h3><p>Onboard the garden, its stewards and its first season.</p></div>
+    <div class="item rule"><h3>Support</h3><p>Tools, training and help through the season.</p></div>
+    <div class="item rule"><h3>Reporting</h3><p>Delivery records a funder can act on and renew from.</p></div>
+    <p class="closing">Priced by projects and workload, never as a cut of a garden's funds or capital.</p>
+  </div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">14 / 18</span>
+</section>
+
+<!-- 15 · Where we are and where next -->
+<section class="slide s-road" data-label="Where we are and where next" data-time="0:30">
+  <h1 class="md">One hub first, then more places on the same model.</h1>
+  <svg class="art" viewBox="0 0 1920 1080" role="img" aria-label="World map marking Nigeria, where the solar hub runs now; South Africa, next; and Kenya and Brazil, which we are exploring.">
+    <path class="land" d="M1058 306h0M1070 306h0M1082 306h0M914 318h0M926 318h0M938 318h0M950 318h0M962 318h0M974 318h0M986 318h0M998 318h0M1010 318h0M1022 318h0M1034 318h0M1046 318h0M1058 318h0M1070 318h0M1082 318h0M1094 318h0M1106 318h0M1190 318h0M1202 318h0M1214 318h0M1226 318h0M1406 318h0M1418 318h0M1430 318h0M902 330h0M914 330h0M926 330h0M1010 330h0M1022 330h0M1034 330h0M1046 330h0M1058 330h0M1070 330h0M1082 330h0M1094 330h0M1322 330h0M1334 330h0M1406 330h0M1418 330h0M1430 330h0M1442 330h0M1454 330h0M1550 330h0M1562 330h0M806 342h0M818 342h0M830 342h0M842 342h0M854 342h0M866 342h0M938 342h0M1010 342h0M1022 342h0M1034 342h0M1046 342h0M1058 342h0M1070 342h0M1082 342h0M1094 342h0M1310 342h0M1358 342h0M1382 342h0M1394 342h0M1406 342h0M1418 342h0M1430 342h0M1442 342h0M1454 342h0M1466 342h0M1478 342h0M1490 342h0M1502 342h0M1514 342h0M1550 342h0M1562 342h0M674 354h0M686 354h0M698 354h0M710 354h0M722 354h0M734 354h0M746 354h0M758 354h0M770 354h0M782 354h0M794 354h0M806 354h0M818 354h0M830 354h0M842 354h0M890 354h0M926 354h0M938 354h0M950 354h0M962 354h0M1010 354h0M1022 354h0M1034 354h0M1046 354h0M1058 354h0M1070 354h0M1214 354h0M1226 354h0M1238 354h0M1250 354h0M1262 354h0M1334 354h0M1346 354h0M1358 354h0M1370 354h0M1382 354h0M1394 354h0M1406 354h0M1418 354h0M1430 354h0M1442 354h0M1454 354h0M1466 354h0M1478 354h0M1490 354h0M1502 354h0M1514 354h0M1526 354h0M1538 354h0M1550 354h0M1562 354h0M1574 354h0M1586 354h0M1598 354h0M1610 354h0M1622 354h0M1634 354h0M1646 354h0M1658 354h0M1670 354h0M662 366h0M674 366h0M686 366h0M698 366h0M710 366h0M722 366h0M734 366h0M746 366h0M758 366h0M770 366h0M782 366h0M794 366h0M806 366h0M818 366h0M830 366h0M842 366h0M854 366h0M866 366h0M878 366h0M890 366h0M938 366h0M950 366h0M962 366h0M1010 366h0M1022 366h0M1034 366h0M1094 366h0M1106 366h0M1202 366h0M1214 366h0M1226 366h0M1238 366h0M1250 366h0M1262 366h0M1274 366h0M1286 366h0M1298 366h0M1310 366h0M1322 366h0M1334 366h0M1346 366h0M1358 366h0M1370 366h0M1382 366h0M1394 366h0M1406 366h0M1418 366h0M1430 366h0M1442 366h0M1454 366h0M1466 366h0M1478 366h0M1490 366h0M1502 366h0M1514 366h0M1526 366h0M1538 366h0M1550 366h0M1562 366h0M1574 366h0M1586 366h0M1598 366h0M1610 366h0M1622 366h0M1634 366h0M1646 366h0M1658 366h0M1670 366h0M1682 366h0M1694 366h0M662 378h0M674 378h0M686 378h0M698 378h0M710 378h0M722 378h0M734 378h0M746 378h0M758 378h0M770 378h0M782 378h0M794 378h0M806 378h0M818 378h0M830 378h0M842 378h0M854 378h0M866 378h0M950 378h0M1010 378h0M1022 378h0M1178 378h0M1190 378h0M1202 378h0M1226 378h0M1238 378h0M1250 378h0M1262 378h0M1274 378h0M1286 378h0M1298 378h0M1310 378h0M1322 378h0M1334 378h0M1346 378h0M1358 378h0M1370 378h0M1382 378h0M1394 378h0M1406 378h0M1418 378h0M1430 378h0M1442 378h0M1454 378h0M1466 378h0M1478 378h0M1490 378h0M1502 378h0M1514 378h0M1526 378h0M1538 378h0M1550 378h0M1562 378h0M1574 378h0M1586 378h0M1598 378h0M1610 378h0M1622 378h0M1634 378h0M1646 378h0M1658 378h0M1670 378h0M1682 378h0M1694 378h0M650 390h0M662 390h0M674 390h0M686 390h0M722 390h0M734 390h0M746 390h0M758 390h0M770 390h0M782 390h0M794 390h0M806 390h0M818 390h0M830 390h0M842 390h0M854 390h0M914 390h0M926 390h0M950 390h0M1178 390h0M1202 390h0M1214 390h0M1250 390h0M1262 390h0M1274 390h0M1286 390h0M1298 390h0M1310 390h0M1322 390h0M1334 390h0M1346 390h0M1358 390h0M1370 390h0M1382 390h0M1394 390h0M1406 390h0M1418 390h0M1430 390h0M1442 390h0M1454 390h0M1466 390h0M1478 390h0M1490 390h0M1502 390h0M1514 390h0M1526 390h0M1538 390h0M1550 390h0M1562 390h0M1574 390h0M1586 390h0M1598 390h0M1610 390h0M1622 390h0M1634 390h0M1658 390h0M1670 390h0M650 402h0M734 402h0M746 402h0M758 402h0M770 402h0M782 402h0M794 402h0M806 402h0M818 402h0M830 402h0M842 402h0M854 402h0M914 402h0M926 402h0M938 402h0M950 402h0M1142 402h0M1190 402h0M1202 402h0M1226 402h0M1238 402h0M1250 402h0M1262 402h0M1274 402h0M1286 402h0M1298 402h0M1310 402h0M1322 402h0M1334 402h0M1346 402h0M1358 402h0M1370 402h0M1382 402h0M1394 402h0M1406 402h0M1418 402h0M1430 402h0M1442 402h0M1454 402h0M1466 402h0M1478 402h0M1490 402h0M1502 402h0M1514 402h0M1526 402h0M1538 402h0M1550 402h0M1562 402h0M1574 402h0M1586 402h0M1598 402h0M1658 402h0M1670 402h0M734 414h0M746 414h0M758 414h0M770 414h0M782 414h0M794 414h0M806 414h0M818 414h0M830 414h0M842 414h0M854 414h0M866 414h0M878 414h0M902 414h0M914 414h0M926 414h0M938 414h0M950 414h0M962 414h0M1130 414h0M1154 414h0M1190 414h0M1202 414h0M1214 414h0M1226 414h0M1238 414h0M1250 414h0M1262 414h0M1274 414h0M1286 414h0M1298 414h0M1310 414h0M1322 414h0M1334 414h0M1346 414h0M1358 414h0M1370 414h0M1382 414h0M1394 414h0M1406 414h0M1418 414h0M1430 414h0M1442 414h0M1454 414h0M1466 414h0M1478 414h0M1490 414h0M1502 414h0M1514 414h0M1526 414h0M1538 414h0M1550 414h0M1562 414h0M1574 414h0M1586 414h0M1598 414h0M1610 414h0M1670 414h0M1682 414h0M734 426h0M746 426h0M758 426h0M770 426h0M782 426h0M794 426h0M806 426h0M818 426h0M830 426h0M842 426h0M854 426h0M866 426h0M878 426h0M890 426h0M902 426h0M914 426h0M926 426h0M938 426h0M950 426h0M962 426h0M1142 426h0M1154 426h0M1166 426h0M1178 426h0M1190 426h0M1202 426h0M1214 426h0M1226 426h0M1238 426h0M1250 426h0M1262 426h0M1274 426h0M1286 426h0M1298 426h0M1310 426h0M1322 426h0M1334 426h0M1346 426h0M1358 426h0M1370 426h0M1382 426h0M1394 426h0M1406 426h0M1418 426h0M1430 426h0M1442 426h0M1454 426h0M1466 426h0M1478 426h0M1490 426h0M1502 426h0M1514 426h0M1526 426h0M1538 426h0M1550 426h0M1562 426h0M1574 426h0M1586 426h0M1598 426h0M1610 426h0M1622 426h0M1634 426h0M746 438h0M758 438h0M770 438h0M782 438h0M794 438h0M806 438h0M818 438h0M830 438h0M842 438h0M854 438h0M866 438h0M878 438h0M890 438h0M902 438h0M914 438h0M926 438h0M938 438h0M962 438h0M974 438h0M1142 438h0M1154 438h0M1166 438h0M1178 438h0M1190 438h0M1202 438h0M1214 438h0M1226 438h0M1238 438h0M1250 438h0M1262 438h0M1274 438h0M1286 438h0M1298 438h0M1310 438h0M1322 438h0M1334 438h0M1346 438h0M1358 438h0M1370 438h0M1382 438h0M1394 438h0M1406 438h0M1418 438h0M1430 438h0M1442 438h0M1454 438h0M1466 438h0M1478 438h0M1490 438h0M1502 438h0M1514 438h0M1526 438h0M1538 438h0M1550 438h0M1562 438h0M1574 438h0M1586 438h0M1598 438h0M1610 438h0M1622 438h0M734 450h0M746 450h0M758 450h0M770 450h0M782 450h0M794 450h0M806 450h0M818 450h0M830 450h0M842 450h0M854 450h0M866 450h0M878 450h0M890 450h0M902 450h0M914 450h0M926 450h0M938 450h0M1154 450h0M1166 450h0M1178 450h0M1190 450h0M1214 450h0M1226 450h0M1238 450h0M1250 450h0M1274 450h0M1286 450h0M1298 450h0M1310 450h0M1346 450h0M1358 450h0M1370 450h0M1382 450h0M1394 450h0M1406 450h0M1418 450h0M1430 450h0M1442 450h0M1454 450h0M1466 450h0M1478 450h0M1490 450h0M1502 450h0M1514 450h0M1526 450h0M1538 450h0M1550 450h0M1562 450h0M1574 450h0M1586 450h0M1598 450h0M1610 450h0M1622 450h0M734 462h0M746 462h0M758 462h0M770 462h0M782 462h0M794 462h0M806 462h0M818 462h0M830 462h0M842 462h0M854 462h0M866 462h0M878 462h0M890 462h0M902 462h0M1130 462h0M1142 462h0M1154 462h0M1166 462h0M1202 462h0M1226 462h0M1238 462h0M1250 462h0M1310 462h0M1322 462h0M1346 462h0M1358 462h0M1370 462h0M1382 462h0M1394 462h0M1406 462h0M1418 462h0M1430 462h0M1442 462h0M1454 462h0M1466 462h0M1478 462h0M1490 462h0M1502 462h0M1514 462h0M1526 462h0M1538 462h0M1550 462h0M1562 462h0M1574 462h0M1586 462h0M1598 462h0M1610 462h0M1646 462h0M1658 462h0M722 474h0M734 474h0M746 474h0M758 474h0M770 474h0M782 474h0M794 474h0M806 474h0M818 474h0M830 474h0M842 474h0M854 474h0M866 474h0M878 474h0M890 474h0M1130 474h0M1142 474h0M1154 474h0M1190 474h0M1214 474h0M1238 474h0M1250 474h0M1262 474h0M1274 474h0M1286 474h0M1298 474h0M1310 474h0M1322 474h0M1346 474h0M1358 474h0M1370 474h0M1382 474h0M1394 474h0M1406 474h0M1418 474h0M1430 474h0M1442 474h0M1454 474h0M1466 474h0M1478 474h0M1490 474h0M1502 474h0M1514 474h0M1526 474h0M1538 474h0M1550 474h0M1562 474h0M1574 474h0M1586 474h0M1598 474h0M1610 474h0M722 486h0M734 486h0M746 486h0M758 486h0M770 486h0M782 486h0M794 486h0M806 486h0M818 486h0M830 486h0M842 486h0M854 486h0M866 486h0M878 486h0M1130 486h0M1142 486h0M1238 486h0M1262 486h0M1274 486h0M1286 486h0M1298 486h0M1310 486h0M1322 486h0M1334 486h0M1358 486h0M1370 486h0M1382 486h0M1394 486h0M1406 486h0M1418 486h0M1430 486h0M1442 486h0M1454 486h0M1466 486h0M1478 486h0M1490 486h0M1502 486h0M1514 486h0M1526 486h0M1538 486h0M1550 486h0M1562 486h0M1574 486h0M1586 486h0M1610 486h0M1646 486h0M1658 486h0M734 498h0M746 498h0M758 498h0M770 498h0M782 498h0M794 498h0M806 498h0M818 498h0M830 498h0M842 498h0M854 498h0M866 498h0M878 498h0M1142 498h0M1154 498h0M1166 498h0M1178 498h0M1190 498h0M1286 498h0M1298 498h0M1310 498h0M1322 498h0M1334 498h0M1346 498h0M1358 498h0M1370 498h0M1382 498h0M1394 498h0M1406 498h0M1418 498h0M1430 498h0M1442 498h0M1454 498h0M1466 498h0M1478 498h0M1490 498h0M1502 498h0M1514 498h0M1526 498h0M1538 498h0M1550 498h0M1562 498h0M1574 498h0M1586 498h0M1634 498h0M1646 498h0M734 510h0M746 510h0M758 510h0M770 510h0M782 510h0M794 510h0M806 510h0M818 510h0M830 510h0M842 510h0M854 510h0M1130 510h0M1142 510h0M1154 510h0M1166 510h0M1178 510h0M1190 510h0M1202 510h0M1214 510h0M1238 510h0M1286 510h0M1298 510h0M1310 510h0M1322 510h0M1334 510h0M1346 510h0M1358 510h0M1370 510h0M1382 510h0M1394 510h0M1406 510h0M1418 510h0M1430 510h0M1442 510h0M1454 510h0M1466 510h0M1478 510h0M1490 510h0M1502 510h0M1514 510h0M1526 510h0M1538 510h0M1550 510h0M1562 510h0M1574 510h0M1586 510h0M1634 510h0M758 522h0M770 522h0M782 522h0M794 522h0M806 522h0M854 522h0M1118 522h0M1130 522h0M1142 522h0M1154 522h0M1166 522h0M1178 522h0M1190 522h0M1202 522h0M1214 522h0M1226 522h0M1238 522h0M1250 522h0M1262 522h0M1274 522h0M1286 522h0M1298 522h0M1310 522h0M1322 522h0M1346 522h0M1358 522h0M1370 522h0M1382 522h0M1394 522h0M1406 522h0M1418 522h0M1430 522h0M1442 522h0M1454 522h0M1466 522h0M1478 522h0M1490 522h0M1502 522h0M1514 522h0M1526 522h0M1538 522h0M1550 522h0M1562 522h0M1574 522h0M1586 522h0M1598 522h0M758 534h0M770 534h0M782 534h0M794 534h0M1106 534h0M1118 534h0M1130 534h0M1142 534h0M1154 534h0M1166 534h0M1178 534h0M1190 534h0M1202 534h0M1214 534h0M1226 534h0M1238 534h0M1250 534h0M1262 534h0M1274 534h0M1298 534h0M1310 534h0M1322 534h0M1334 534h0M1370 534h0M1382 534h0M1394 534h0M1406 534h0M1418 534h0M1430 534h0M1442 534h0M1454 534h0M1466 534h0M1478 534h0M1490 534h0M1502 534h0M1514 534h0M1526 534h0M1538 534h0M1550 534h0M1562 534h0M1574 534h0M1586 534h0M1598 534h0M746 546h0M770 546h0M782 546h0M1106 546h0M1118 546h0M1130 546h0M1142 546h0M1154 546h0M1166 546h0M1178 546h0M1190 546h0M1202 546h0M1214 546h0M1226 546h0M1238 546h0M1250 546h0M1262 546h0M1274 546h0M1286 546h0M1310 546h0M1322 546h0M1334 546h0M1346 546h0M1358 546h0M1370 546h0M1418 546h0M1430 546h0M1442 546h0M1454 546h0M1466 546h0M1478 546h0M1490 546h0M1502 546h0M1514 546h0M1526 546h0M1538 546h0M1550 546h0M1562 546h0M1574 546h0M1586 546h0M770 558h0M782 558h0M830 558h0M866 558h0M1094 558h0M1106 558h0M1118 558h0M1130 558h0M1142 558h0M1154 558h0M1166 558h0M1178 558h0M1190 558h0M1202 558h0M1214 558h0M1226 558h0M1238 558h0M1250 558h0M1262 558h0M1274 558h0M1286 558h0M1310 558h0M1322 558h0M1334 558h0M1346 558h0M1358 558h0M1370 558h0M1430 558h0M1442 558h0M1454 558h0M1466 558h0M1478 558h0M1514 558h0M1526 558h0M1538 558h0M1550 558h0M770 570h0M782 570h0M794 570h0M806 570h0M818 570h0M890 570h0M1106 570h0M1118 570h0M1130 570h0M1142 570h0M1154 570h0M1166 570h0M1178 570h0M1190 570h0M1202 570h0M1214 570h0M1226 570h0M1238 570h0M1250 570h0M1262 570h0M1274 570h0M1286 570h0M1298 570h0M1322 570h0M1334 570h0M1346 570h0M1358 570h0M1370 570h0M1442 570h0M1454 570h0M1466 570h0M1514 570h0M1526 570h0M1538 570h0M1550 570h0M806 582h0M818 582h0M830 582h0M1094 582h0M1106 582h0M1118 582h0M1130 582h0M1142 582h0M1154 582h0M1166 582h0M1178 582h0M1190 582h0M1202 582h0M1214 582h0M1226 582h0M1238 582h0M1250 582h0M1262 582h0M1274 582h0M1286 582h0M1298 582h0M1322 582h0M1334 582h0M1346 582h0M1442 582h0M1454 582h0M1526 582h0M1538 582h0M1550 582h0M1562 582h0M830 594h0M1094 594h0M1106 594h0M1118 594h0M1130 594h0M1142 594h0M1154 594h0M1166 594h0M1178 594h0M1190 594h0M1202 594h0M1214 594h0M1226 594h0M1238 594h0M1250 594h0M1262 594h0M1274 594h0M1286 594h0M1298 594h0M1310 594h0M1322 594h0M1442 594h0M1454 594h0M1550 594h0M1562 594h0M842 606h0M878 606h0M890 606h0M902 606h0M914 606h0M1106 606h0M1118 606h0M1130 606h0M1142 606h0M1154 606h0M1166 606h0M1178 606h0M1190 606h0M1202 606h0M1214 606h0M1226 606h0M1238 606h0M1250 606h0M1262 606h0M1274 606h0M1286 606h0M1298 606h0M1310 606h0M1322 606h0M1334 606h0M1346 606h0M1454 606h0M1562 606h0M866 618h0M878 618h0M890 618h0M902 618h0M914 618h0M926 618h0M1118 618h0M1130 618h0M1142 618h0M1154 618h0M1166 618h0M1178 618h0M1190 618h0M1202 618h0M1214 618h0M1226 618h0M1238 618h0M1250 618h0M1262 618h0M1274 618h0M1286 618h0M1298 618h0M1310 618h0M1322 618h0M1334 618h0M1466 618h0M1538 618h0M1634 618h0M866 630h0M878 630h0M890 630h0M902 630h0M914 630h0M926 630h0M938 630h0M950 630h0M1130 630h0M1190 630h0M1202 630h0M1214 630h0M1226 630h0M1238 630h0M1250 630h0M1262 630h0M1274 630h0M1286 630h0M1298 630h0M1310 630h0M1322 630h0M1334 630h0M1526 630h0M1598 630h0M866 642h0M878 642h0M890 642h0M902 642h0M914 642h0M926 642h0M938 642h0M950 642h0M962 642h0M1202 642h0M1214 642h0M1226 642h0M1238 642h0M1250 642h0M1262 642h0M1274 642h0M1286 642h0M1298 642h0M1310 642h0M1322 642h0M1538 642h0M1550 642h0M1586 642h0M1598 642h0M854 654h0M866 654h0M878 654h0M890 654h0M902 654h0M914 654h0M926 654h0M938 654h0M950 654h0M962 654h0M1202 654h0M1214 654h0M1226 654h0M1238 654h0M1250 654h0M1262 654h0M1274 654h0M1286 654h0M1298 654h0M1310 654h0M1550 654h0M1586 654h0M1598 654h0M1622 654h0M854 666h0M866 666h0M878 666h0M890 666h0M902 666h0M914 666h0M926 666h0M938 666h0M950 666h0M962 666h0M974 666h0M986 666h0M998 666h0M1202 666h0M1214 666h0M1226 666h0M1238 666h0M1250 666h0M1262 666h0M1274 666h0M1286 666h0M1298 666h0M1310 666h0M1550 666h0M1598 666h0M1622 666h0M1670 666h0M1682 666h0M1694 666h0M854 678h0M866 678h0M878 678h0M890 678h0M902 678h0M914 678h0M926 678h0M938 678h0M950 678h0M962 678h0M974 678h0M986 678h0M998 678h0M1010 678h0M1022 678h0M1214 678h0M1226 678h0M1238 678h0M1250 678h0M1262 678h0M1274 678h0M1286 678h0M1298 678h0M1562 678h0M1682 678h0M1694 678h0M1706 678h0M1718 678h0M866 690h0M878 690h0M890 690h0M902 690h0M914 690h0M926 690h0M938 690h0M950 690h0M962 690h0M974 690h0M986 690h0M998 690h0M1010 690h0M1022 690h0M1214 690h0M1226 690h0M1238 690h0M1250 690h0M1262 690h0M1274 690h0M1286 690h0M1298 690h0M1634 690h0M1694 690h0M1718 690h0M866 702h0M878 702h0M890 702h0M902 702h0M914 702h0M926 702h0M938 702h0M950 702h0M962 702h0M974 702h0M986 702h0M998 702h0M1010 702h0M1214 702h0M1226 702h0M1238 702h0M1250 702h0M1262 702h0M1274 702h0M1286 702h0M1298 702h0M1310 702h0M878 714h0M890 714h0M902 714h0M914 714h0M926 714h0M938 714h0M950 714h0M962 714h0M974 714h0M986 714h0M998 714h0M1010 714h0M1214 714h0M1226 714h0M1238 714h0M1250 714h0M1262 714h0M1274 714h0M1286 714h0M1298 714h0M1310 714h0M1346 714h0M1646 714h0M1658 714h0M1670 714h0M1694 714h0M890 726h0M902 726h0M914 726h0M926 726h0M938 726h0M950 726h0M962 726h0M974 726h0M986 726h0M998 726h0M1202 726h0M1214 726h0M1226 726h0M1238 726h0M1250 726h0M1262 726h0M1274 726h0M1286 726h0M1298 726h0M1334 726h0M1634 726h0M1646 726h0M1658 726h0M1670 726h0M1694 726h0M1706 726h0M902 738h0M914 738h0M926 738h0M938 738h0M950 738h0M962 738h0M974 738h0M986 738h0M998 738h0M1214 738h0M1226 738h0M1238 738h0M1250 738h0M1262 738h0M1274 738h0M1286 738h0M1322 738h0M1334 738h0M1610 738h0M1622 738h0M1634 738h0M1646 738h0M1658 738h0M1670 738h0M1682 738h0M1694 738h0M1706 738h0M902 750h0M914 750h0M926 750h0M938 750h0M950 750h0M962 750h0M974 750h0M986 750h0M998 750h0M1214 750h0M1226 750h0M1238 750h0M1250 750h0M1262 750h0M1274 750h0M1286 750h0M1322 750h0M1334 750h0M1586 750h0M1598 750h0M1610 750h0M1622 750h0M1634 750h0M1646 750h0M1658 750h0M1670 750h0M1682 750h0M1694 750h0M1706 750h0M902 762h0M914 762h0M926 762h0M938 762h0M950 762h0M962 762h0M974 762h0M1214 762h0M1226 762h0M1238 762h0M1250 762h0M1262 762h0M1274 762h0M1586 762h0M1598 762h0M1610 762h0M1622 762h0M1634 762h0M1646 762h0M1658 762h0M1670 762h0M1682 762h0M1694 762h0M1706 762h0M1718 762h0M902 774h0M914 774h0M926 774h0M938 774h0M950 774h0M962 774h0M974 774h0M1226 774h0M1238 774h0M1250 774h0M1262 774h0M1274 774h0M1586 774h0M1598 774h0M1610 774h0M1622 774h0M1634 774h0M1646 774h0M1658 774h0M1670 774h0M1682 774h0M1694 774h0M1706 774h0M1718 774h0M902 786h0M914 786h0M926 786h0M938 786h0M950 786h0M962 786h0M1226 786h0M1238 786h0M1250 786h0M1262 786h0M1586 786h0M1598 786h0M1610 786h0M1622 786h0M1634 786h0M1646 786h0M1658 786h0M1670 786h0M1682 786h0M1694 786h0M1706 786h0M902 798h0M914 798h0M926 798h0M938 798h0M950 798h0M962 798h0M1226 798h0M1238 798h0M1250 798h0M1586 798h0M1598 798h0M1646 798h0M1658 798h0M1670 798h0M1682 798h0M1694 798h0M1706 798h0M902 810h0M914 810h0M926 810h0M938 810h0M950 810h0M1658 810h0M1670 810h0M1682 810h0M1694 810h0M902 822h0M914 822h0M926 822h0M938 822h0M1778 822h0M902 834h0M914 834h0M926 834h0M1670 834h0M902 846h0M914 846h0M926 846h0M1742 846h0M902 858h0M914 858h0M926 858h0M914 870h0M926 870h0M914 882h0M926 882h0M938 894h0"/>
+    <circle class="halo" cx="1183.8" cy="623.7" r="26"/><circle class="stop now" cx="1183.8" cy="623.7" r="13"/>
+    <circle class="stop soon" cx="1223.3" cy="801.6" r="12"/><circle class="stop later" cx="1301.6" cy="650.3" r="12"/><circle class="stop later" cx="959.6" cy="698.9" r="12"/>
+  </svg>
+  <p class="tag left" style="left:1150px; top:624px">Nigeria</p><p class="tag right" style="left:1246px; top:802px">South Africa</p><p class="tag right" style="left:1324px; top:650px">Kenya</p><p class="tag left" style="left:937px; top:699px">Brazil</p>
+  <ul class="places">
+    <li><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle class="halo" cx="20" cy="20" r="19"/><circle class="stop now" cx="20" cy="20" r="11"/></svg><div><h3>Nigeria</h3><p>Solar hub · now</p></div></li>
+    <li><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle class="stop soon" cx="20" cy="20" r="11"/></svg><div><h3>South Africa</h3><p>Waste work · next</p></div></li>
+    <li><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle class="stop later" cx="20" cy="20" r="11"/></svg><div><h3>Kenya and Brazil</h3><p>Agroforestry · exploring</p></div></li>
+  </ul>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">15 / 18</span>
+</section>
+
+<!-- 16 · Technical roadmap -->
+<section class="slide s-tech" data-label="Technical roadmap" data-time="0:20">
+  <h1 class="md">Report once, and let the record count everywhere.</h1>
+  <svg class="art" viewBox="0 0 1920 1080" aria-hidden="true">
+    <line class="flowline" x1="560.0" y1="620.0" x2="778.0" y2="620.0" marker-end="url(#ah-ink)"/>
+    <line class="spoke" x1="998.0" y1="558.0" x2="1270.0" y2="386.0"/><circle class="spoke-dot" cx="1276.0" cy="386.0" r="7"/><line class="spoke" x1="1013.5" y1="596.1" x2="1270.0" y2="542.0"/><circle class="spoke-dot" cx="1276.0" cy="542.0" r="7"/><line class="spoke" x1="1013.5" y1="643.9" x2="1270.0" y2="698.0"/><circle class="spoke-dot" cx="1276.0" cy="698.0" r="7"/><line class="spoke" x1="998.0" y1="682.0" x2="1270.0" y2="854.0"/><circle class="spoke-dot" cx="1276.0" cy="854.0" r="7"/>
+    <circle class="hub" cx="900" cy="620" r="108"/>
+    <text class="mech-name" x="900" y="614" text-anchor="middle">Green</text><text class="mech-name" x="900" y="652" text-anchor="middle">Goods</text>
+  </svg>
+  <div class="tech-left"><h3>Place-based organizations</h3><p>Report once, by app or by chat.</p></div>
+  <div class="partner" style="left:1300px; top:330px"><h3>Cosmo-Local Credit</h3><p class="what">Grassroots Economics' voucher protocol</p><p>Service vouchers · in pilot</p></div><div class="partner" style="left:1300px; top:486px"><h3>Ma Earth</h3><p class="what">Funding for community-led regeneration</p><p>Publish approved work · next</p></div><div class="partner" style="left:1300px; top:642px"><h3>Bloom Network</h3><p class="what">Member-run network of local communities</p><p>Publish the record · after Ma Earth</p></div><div class="partner" style="left:1300px; top:798px"><h3>Regen Network</h3><p class="what">Registry for ecological claims and credits</p><p>Evidence for its claims · exploring</p></div>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">16 / 18</span>
+</section>
+
+<!-- 17 · What we need -->
+<section class="slide s-ask" data-label="What we need" data-time="0:25">
+  <h1 class="md">Help us find the first supporter, and tell us what would make you the second.</h1>
+  <ul class="needs"><li><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg><span>Business development mentorship.</span></li><li><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg><span>Introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods.</span></li><li><svg class="icon" aria-hidden="true"><use href="#i-megaphone"/></svg><span>Marketing support to help tell our story.</span></li></ul>
+  <p class="contact">greengoods.app</p>
+  <figure class="ask-photo"><img src="assets/photos/tas-hub-build.jpg" alt="Members working at laptops inside the hub in Awka" /><figcaption>Inside the hub. Photo: Tech and Sun.</figcaption></figure>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">17 / 18</span>
+</section>
+
+<!-- 18 · Thank you -->
+<section class="slide s-thanks" data-label="Thank you" data-time="0:10">
+  <div class="block">
+    <h1>Thank you.</h1>
+    <p class="url">beta.greengoods.app</p>
+  </div>
+  <figure class="qr"><svg viewBox="0 0 29 29" shape-rendering="crispEdges" role="img" aria-label="QR code for https://beta.greengoods.app"><path fill="none" stroke="#292524" d="M0 0.5h7m2 0h1m1 0h1m3 0h2m2 0h2m1 0h7M0 1.5h1m5 0h1m3 0h1m6 0h2m3 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h1m1 0h3m1 0h1m1 0h1m3 0h1m1 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h4m4 0h3m3 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h2m1 0h1m1 0h3m1 0h4m1 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h2m3 0h5m2 0h1m1 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h1m1 0h4m1 0h1m2 0h3M0 8.5h1m1 0h5m2 0h1m1 0h1m2 0h2m1 0h1m1 0h1m2 0h5M0 9.5h1m7 0h1m1 0h3m2 0h2m1 0h5m1 0h1m3 0h1M1 10.5h1m1 0h1m1 0h2m1 0h3m7 0h1m1 0h1m1 0h3M2 11.5h3m2 0h1m1 0h1m1 0h1m2 0h1m1 0h1m2 0h4m1 0h2m1 0h1M0 12.5h3m1 0h1m1 0h5m5 0h2m1 0h1m5 0h2M2 13.5h4m1 0h1m1 0h7m3 0h6m3 0h1M0 14.5h1m1 0h10m1 0h4m1 0h1m1 0h1m3 0h3M0 15.5h2m1 0h1m1 0h1m2 0h1m1 0h1m1 0h2m1 0h1m2 0h3m1 0h3m2 0h1M0 16.5h1m1 0h2m2 0h4m2 0h1m1 0h2m1 0h1m5 0h1m1 0h2M0 17.5h1m2 0h1m3 0h2m1 0h1m1 0h1m2 0h2m2 0h2m1 0h3m1 0h1m1 0h1M0 18.5h1m1 0h1m1 0h3m4 0h1m6 0h1m2 0h1m1 0h2m1 0h1M0 19.5h1m2 0h1m4 0h3m1 0h1m1 0h1m1 0h1m1 0h7m2 0h1M0 20.5h1m1 0h2m1 0h2m3 0h2m4 0h1m1 0h7m1 0h3M8 21.5h4m1 0h3m1 0h2m1 0h1m3 0h5M0 22.5h7m2 0h3m1 0h5m1 0h2m1 0h1m1 0h3M0 23.5h1m5 0h1m1 0h1m1 0h2m1 0h1m1 0h1m1 0h4m3 0h1m3 0h1M0 24.5h1m1 0h3m1 0h1m1 0h1m3 0h1m1 0h2m4 0h5m1 0h3M0 25.5h1m1 0h3m1 0h1m1 0h2m1 0h1m3 0h2m1 0h2m5 0h2M0 26.5h1m1 0h3m1 0h1m1 0h2m1 0h1m1 0h2m3 0h2m1 0h7M0 27.5h1m5 0h1m2 0h1m1 0h3m2 0h1m3 0h1m4 0h1m1 0h1M0 28.5h7m1 0h1m3 0h1m3 0h1m1 0h2m4 0h1m1 0h1"/></svg></figure>
+  <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" />
 </section>
 
 </div>
 </div>
 <div class="notes" id="notes"></div>
-<div class="hint">← → navigate · N notes · P print</div>
+<div class="hint">← → navigate · N notes · F fullscreen · P print</div>
+<div class="progress" id="progress"></div>
 
 <script type="application/json" id="speaker-notes">
 [
- "0:30. Open on the line and the two labels. Name the three parties: Green Goods, Tech and Sun in Awka, and Omo Yoruba of Southern California as the first diaspora community. Say plainly: the record is live, the vouchers are the planned pilot, and a human decision on 22 October picks which demo we show. Everything priced here is a labeled scenario.",
- "0:45. Describe the hub as its members describe it: internet, power, a place to learn. Then the hub's own asks and what members wanted most in October: introductions and career calls. Do not name anyone. The photo is the Awka hub, used with Tech and Sun's permission.",
- "0:45. The problem statement in one breath: real value, scattered records, no collateral. Name the three things a supporter cannot buy today. Pre-empt the fee question: these corridors are cheap; the gap is legibility.",
- "0:45. This is the only slide in present tense without a label. Promise, evidence, confirmation by the person served, G$ support, public record. Say that fallback confirmations stay visible. Point to the appendix for the test receipt; do not read numbers aloud beyond 14 gardens.",
- "1:00. Walk the six steps as one person's week. Steps one to four are live; five and six are the pilot. In step five, name the voucher with its issuer and unit, and say that presenting it opens a promise the member confirms. Promises can also earn vouchers, agreed before anyone accepts. Say the member never sees a chain name, and that a retry never duplicates a payment.",
- "0:45. The supporter's view is an illustration of the planned passport, with placeholder values. Say what each figure carries: definition, unit, window, source, freshness. Say what it is not: a score, an audit, a return. On a no-go, the Gnosis panel reads not yet live.",
- "1:15. The one technical slide in the main deck. A steward admits each issuer with published terms and a cap policy that grows with kept promises. Cap enforcement is undecided: a mint controller or monitored issuer policy still needs to be chosen; a kept promise can also earn vouchers. Supporters buy them from the issuer's Cosmo-Local pool. Presenting a voucher opens a promise: the presenter is its counterparty and confirms, and the voucher is discharged once, or a remedy returns it. Holding is not delivery. Two pilot issuers, each through a community Safe; a steward may later admit gardeners. All of this is planned. No cash-out for Green Goods vouchers; the hub's swap-back is rehearsal only.",
- "0:45. The rings: resources in, evidence out, ownership at the center. Read the table by status chips. No amounts on any ring until unique funding receipts exist.",
- "0:45. Four sourced facts, then the line: we do not compete on fees. National flows are context, not our pipeline. If asked, the World Bank and central bank series differ by definition and are never added.",
- "0:45. The offer: one season pack from the hub's own draft plan. Read the arithmetic once: 300 plus 120 plus 200 plus 180 is 800; one seat about 30 dollars. How to give today: through Omo Yoruba as fiscal sponsor. Then the second ask, the coordination package at 1,200 per hub-season, built from the published unit prices. Say the steward confirms prices by 21 October and that both figures are scenarios.",
- "0:30. Four columns, no hedging: live, rehearsal, live only after a go, stretch. A no-go is a valid outcome with real records beside labeled rehearsal. One line on Cosmo-Local itself: open for public use since 1 October, network still migrating onto Gnosis, and our pools would be our own instances of its published contracts, which we checked byte for byte against the deployed code on 20 October. If asked about live pools: none of the five gates was met on 21 October. The 21 October voucher direction is planned, not live.",
- "0:30. The next 90 days and what we measure. Say that a bilateral-only exchange result is a valid finding.",
- "0:30. Close on the ask: a first supporter from the Omo Yoruba community, a budget holder, a critique of the terms, a funder's view of the passport. Then stop.",
- "Appendix A, if asked how it works: three lanes. The candidate keeps deployed contracts unchanged, subject to proving consent before core acceptance; if direct core entrypoints can bypass consent, the boundary must return for decision. The voucher leg proposes a new module on Arbitrum and adapter on Gnosis. Only an instruction crosses, no bridged value, and the message lane already runs both ways and quotes our existing message format. Presented vouchers wait in escrow on Gnosis until the promise is kept, and the module sends the discharge. The live escrow contract placement is undecided; the rehearsal uses a separate service desk. Point to the legend. Say that no voucher code exists yet.",
- "Appendix B, if asked who controls what: community Safe, steward hat, voucher adapter, Green Goods. A steward admits issuers, gardeners included, with published terms and caps. The five gates, none met on 21 October, and the explicit go. Code caveats as stated, including the missing passkey validator on Gnosis.",
- "Appendix C, if asked for evidence: the test receipt with its commit and date, the project records with their recheck note, the 20 October protocol checks, the data sources with dates, and the claim ledger path.",
- "Appendix D, if a word is challenged: the definitions, and the say and do-not-say lists. A voucher is named with its issuer and unit, never called a credit or a token, and it is used, not redeemed."
+  "Green Goods helps communities turn good intentions into green outcomes. We built commitment pooling: members promise useful work, prove it, and turn the record into support. Today I'll show it at Tech and Sun's solar hub in Awka, Nigeria, and show how diaspora and institutional capital can follow that record and sustain the work.",
+  "Communities create value every season: repairs, workshops, plantings, mentoring. But the record of that work stays trapped. Proving the work costs more than doing it. Reporting tools were built for offices, not the field. And the record sits on platforms the community doesn't own. Inside the community, contribution is thanked but not valued. Outside, supporters can't read it, so groups with a real delivery record still look risky and stay tied to single grants.",
+  "So we built Green Goods. It gives a community one record of what it promised, did and proved. We call each community a garden. Gardeners do the work and document it, by app or by chat, and stewards run the garden. The garden owns its record, and supporters can read it and fund what it shows.",
+  "Five roles keep a garden going. Gardeners do and document the work. Stewards run the garden. Evaluators set the baseline. Funders see delivery before and after they give. And community members confirm what was done for them.",
+  "A garden runs as a loop, season after season. Needs: stewards and evaluators record what the place needs and where things stand today. Promise: members promise work to each other and to the garden, and agree who does what by when. Work: it is documented with photos and notes, reviewed by stewards and confirmed by the people it served. Funding: supporters fund what the record shows. And what was learned shapes the next season's needs.",
+  "We built commitment pooling for that Promise step. Members offer or request specific work, like a workshop, a repair or a planting, and see what others offer and need, so skills and help move between them. Anyone in the garden can take a promise up. When the work is done, the person it was made for confirms it was kept. The person who did it never can, and if a steward has to step in, the record shows it. These are real app screens with demo data.",
+  "For this hackathon we connected promises to Cosmo-Local service vouchers, the open protocol from Grassroots Economics. A member or a garden offers a service as vouchers: an hour of help, a hub visit, a career call. Kept promises can earn vouchers, and members can swap them in one shared pool. Booking holds the vouchers in escrow until the service happens. Then delivered units go back to the issuer, and anything undelivered returns to the holder.",
+  "We're starting with Tech and Sun, an initiative that builds solar-powered hubs in Nigeria. Its first hub is live in Awka, near Nnamdi Azikiwe University, and its plan names Enugu and Abuja next. Members told us internet and power come first, then learning, engineering and AI. In an October survey, introductions to work and one-to-one career calls came out on top. This is the hub's live garden page, and its counts come from the record.",
+  "So what do members get? Credibility they can carry. In the pilot we're setting up, a designer, an analyst and an engineer build a website together, and each confirmed part goes into their portfolio. Vouchers earned on projects can book career calls and one-to-one help, which is what members asked for. Vouchers can also open hub visits and AI tool seats members can't afford alone. Because the person who did the work never confirms it, the record carries weight with the next employer, mentor or funder.",
+  "Hubs are rich in capital, but short of money. Around the hub, the community adds social, cultural, material and living capital. The diaspora brings money, culture, relationships and expertise, and institutions bring money, knowledge and equipment. Money flows in, and evidence of delivery radiates back out.",
+  "That money can come from people and programs who already care. Diaspora supporters can give gifts and sponsor seasons. Diaspora associations can pool their members' gifts behind a whole program, with no institution needed. Institutions and programs fund climate, clean energy and skills. And public goods funds in our ecosystem have already backed Green Goods.",
+  "In 2024, 22.1 billion dollars in remittances reached Nigeria, according to the World Bank. That is national context, not our market. The diaspora also brings culture and connections. Our first diaspora community is Omo Yoruba of Southern California, a Yoruba community nonprofit in Los Angeles. Here they are at a festival and in a Yoruba language class. Other diaspora associations can follow the same path.",
+  "Three mechanisms turn that support into lasting capacity. First, the endowment: supporters deposit, the capital stays invested, and part of its earnings, which vary, goes to the garden's shared fund. Neither principal nor earnings is guaranteed. Second, the commitment pool, which is live: members promise work, and kept promises build the record. Third, the exchange pool, in pilot: members trade vouchers in one shared pool. Next, supporters and endowment earnings could add funds that members exchange vouchers into. That step is future work, not a cash-out promise.",
+  "How does Green Goods sustain itself? Funders pay us to help them reach more local initiatives. A funder sends money to the garden for the work, and pays Green Goods a separate fee for setup, support and reporting they can act on. We price by projects and workload, never as a cut of a garden's funds or endowment capital. Individual supporters never need a subscription. A worked example is in our companion brief.",
+  "Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is planned to run into January. Then more places on the same model: waste work in South Africa next, and agroforestry in Kenya and Brazil, which we are exploring with local groups.",
+  "Our technical goal is simple: report once, and let the record count everywhere. Communities report by app or by chat, and Green Goods carries that record to networks they already use: Cosmo-Local Credit now, Ma Earth next, then Bloom Network. With Regen Network we are exploring evidence for ecological claims.",
+  "Beyond funding, here is what would help us most: business development mentorship; introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods; and marketing support to help us tell our story. So help us find the first supporter, and tell us what would make you the second.",
+  "Thank you for listening. Scan the code to see commitment pooling live on our beta, at beta.greengoods.app. We'd love your questions."
 ]
 </script>
 
@@ -553,10 +567,12 @@
   const deck = document.getElementById('deck');
   const slides = Array.from(deck.querySelectorAll('.slide'));
   const notesEl = document.getElementById('notes');
+  const progress = document.getElementById('progress');
   let notes = [];
   try { notes = JSON.parse(document.getElementById('speaker-notes').textContent); } catch (e) { notes = []; }
   const params = new URLSearchParams(location.search);
   if (params.get('static') === '1') document.body.classList.add('static');
+  if (params.get('notes') === '1') notesEl.classList.add('show');
   let index = 0;
   const fromHash = () => {
     const h = parseInt((location.hash || '').replace('#', ''), 10);
@@ -564,29 +580,35 @@
     const n = Number.isFinite(q) ? q : (Number.isFinite(h) ? h : 1);
     return Math.min(Math.max(n, 1), slides.length) - 1;
   };
-  const show = (i, pushHash = true) => {
+  const escape = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const show = (i, push = true) => {
     index = Math.min(Math.max(i, 0), slides.length - 1);
     slides.forEach((s, k) => s.classList.toggle('active', k === index));
-    notesEl.innerHTML = `<b>${index + 1} / ${slides.length} · ${slides[index].dataset.label || ''}</b><br>${(notes[index] || '').replace(/</g, '&lt;')}` +
-      (slides[index + 1] ? `<br><br><span style="opacity:.7">Next: ${slides[index + 1].dataset.label || ''}</span>` : '');
-    if (pushHash) history.replaceState(null, '', `#${index + 1}`);
+    const s = slides[index];
+    notesEl.innerHTML = `<b>${index + 1} / ${slides.length} · ${escape(s.dataset.label || '')} · ${escape(s.dataset.time || '')}</b><br>${escape(notes[index] || '')}` +
+      (slides[index + 1] ? `<br><br><span style="opacity:.7">Next: ${escape(slides[index + 1].dataset.label || '')}</span>` : '');
+    progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+    if (push) history.replaceState(null, '', `#${index + 1}`);
   };
-  const fit = () => {
-    const s = Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
-    deck.style.transform = `scale(${s})`;
-  };
-  window.addEventListener('resize', fit);
-  window.addEventListener('hashchange', () => show(fromHash(), false));
+  const fit = () => { deck.style.transform = `scale(${Math.min(innerWidth / DESIGN_W, innerHeight / DESIGN_H)})`; };
+  addEventListener('resize', fit);
+  addEventListener('hashchange', () => show(fromHash(), false));
   document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(index + 1); }
     else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(index - 1); }
     else if (e.key === 'Home') show(0);
     else if (e.key === 'End') show(slides.length - 1);
     else if (e.key.toLowerCase() === 'n') notesEl.classList.toggle('show');
-    else if (e.key.toLowerCase() === 'p') window.print();
+    else if (e.key.toLowerCase() === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); }
+    else if (e.key.toLowerCase() === 'p') print();
     else if (/^[0-9]$/.test(e.key)) show((e.key === '0' ? 10 : parseInt(e.key, 10)) - 1);
   });
-  deck.addEventListener('click', (e) => { if (!e.target.closest('a')) show(index + 1); });
+  deck.addEventListener('click', (e) => {
+    if (e.target.closest('a')) return;
+    const r = deck.getBoundingClientRect();
+    show((e.clientX - r.left) / r.width < 0.2 ? index - 1 : index + 1);
+  });
   fit();
   show(fromHash(), false);
 })();

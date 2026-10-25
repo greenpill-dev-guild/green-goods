@@ -224,6 +224,30 @@ describe("useWorkUploads", () => {
     );
   });
 
+  it("counts and sends only what a garden-scoped list shows", async () => {
+    const ready = { preparation: { status: "ready", checkedAt: CHECKED } };
+    const workHere = queued("work", ready, { gardenAddress: "0xhere" });
+    const reviewHere = queued("approval", ready, { gardenAddress: "0xhere", workUID: WORK_UID });
+    const preparingHere = queued("work", {}, { gardenAddress: "0xhere" });
+    const workElsewhere = queued("work", ready, { gardenAddress: "0xelsewhere" });
+    mocks.jobs = [workHere, reviewHere, preparingHere, workElsewhere];
+    mocks.uploadQueuedWork.mockResolvedValue({ status: "uploaded", sent: 2, flagged: 0 });
+    const inScope = (gardens: readonly (string | null | undefined)[]) => gardens.includes("0xhere");
+
+    const { result } = renderHookWithProviders(() => useWorkUploads({ inScope }));
+
+    await waitFor(() => expect(result.current.queuedCount).toBe(3));
+    expect(result.current.readyCount).toBe(2);
+    await act(async () => {
+      await result.current.upload();
+    });
+    // The upload re-reads each job's readiness itself; it is handed this garden's jobs only.
+    expect(mocks.uploadQueuedWork).toHaveBeenCalledWith(
+      expect.objectContaining({ jobIds: [workHere.id, reviewHere.id, preparingHere.id] }),
+      { ports: true }
+    );
+  });
+
   it("reports an upload that stopped unexpectedly instead of swallowing it", async () => {
     const stopped = new Error("submission-ownership-changed");
     mocks.uploadQueuedWork.mockRejectedValue(stopped);

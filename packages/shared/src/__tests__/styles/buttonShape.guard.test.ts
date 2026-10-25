@@ -290,6 +290,15 @@ describe("field shape guard (DL-022, DL-023)", () => {
     );
     expect(declaration(block(".gg-field-help"), "font-size")).toBe("var(--gg-type-meta-size)");
   });
+
+  it("rings a message line a reader reaches by Tab in the one focus role (DL-098)", () => {
+    // FormField's and FormattedAmountInput's message line is a Tab stop; without a ring
+    // of its own it showed the browser's.
+    const focused = block(".gg-field-message:focus-visible");
+    expect(declaration(focused, "outline")).toBe("2px solid rgb(var(--gg-focus-ring))");
+    expect(declaration(focused, "outline-offset")).toBe("2px");
+    expect(theme).toMatch(/:where\([^)]*\.gg-field-message\)\s*\{\s*--gg-focus-ring:/);
+  });
 });
 
 describe("switch guard (DL-031)", () => {

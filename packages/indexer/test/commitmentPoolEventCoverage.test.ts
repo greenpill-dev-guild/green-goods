@@ -85,6 +85,19 @@ async function frozenEventBoundary(): Promise<{
 }> {
   const config = await readFile(new URL("../config.yaml", import.meta.url), "utf8");
   const moduleEvents = configuredEvents(config, "CommitmentPoolingModule");
+  for (const additive of [
+    "EarnedVoucherModulePinned",
+    "VoucherServiceSetupModulePinned",
+    "EarnedVoucherTermsBound",
+    "EarnedVoucherAcceptanceRecorded",
+    "VoucherServiceAcceptanceRecorded",
+    "ServiceOfferTermsSet",
+    "ServiceClaimConsentRequested",
+    "ServiceClaimConsentAccepted",
+    "ServiceClaimConsentWithdrawn",
+  ]) {
+    assert.ok(moduleEvents.delete(additive), `missing additive service event ${additive}`);
+  }
   const registryEvents = configuredEvents(config, "CommitmentRegistry");
   const settlementEvents = configuredEvents(config, "SettlementModule");
   return {

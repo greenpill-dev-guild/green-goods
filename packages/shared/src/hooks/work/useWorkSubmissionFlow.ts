@@ -25,20 +25,17 @@ import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../../components/toast";
 import { getDefaultChain } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { canSubmitWork } from "../../modules/garden/membership";
 import { validateWorkSubmissionContext } from "../../modules/work/work-submission";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
 import type { Action, Address, Domain, Garden, WorkDraft } from "../../types/domain";
 import { findActionByUID } from "../../utils/action/parsers";
-import {
-  compareAddresses,
-  isAddressInList,
-  normalizeAddress,
-} from "../../utils/blockchain/address";
+import { compareAddresses, normalizeAddress } from "../../utils/blockchain/address";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../../utils/debug";
 import { useUser } from "../auth/useUser";
 import { useActions, useGardens } from "../blockchain/useBaseLists";
-import { isGardenMember, usePendingJoinsVersion } from "../garden/useJoinGarden";
+import { useMyGardens } from "../garden/useMyGardens";
 import { useWorkForm, type WorkFormData } from "./useWorkForm";
 import { useWorkImages } from "./useWorkImages";
 import { useWorkMutation } from "./useWorkMutation";
@@ -116,16 +113,12 @@ export function useWorkSubmissionFlow(): {
   const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
   const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
   const userAddress = primaryAddress ? normalizeAddress(primaryAddress) : null;
-  const pendingJoinsVersion = usePendingJoinsVersion();
+  const { gardens: myGardens } = useMyGardens(userAddress, chainId);
+  // The account's gardens it can submit work to: an evaluator alone cannot.
   const userGardens = useMemo(
     () =>
-      userAddress
-        ? gardensData.filter((garden) =>
-            isGardenMember(userAddress, garden.gardeners, garden.stewards, garden.id)
-          )
-        : [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster
-    [userAddress, gardensData, pendingJoinsVersion]
+      myGardens.filter(({ membership }) => canSubmitWork(membership)).map(({ garden }) => garden),
+    [myGardens]
   );
   const joinableCommunityGarden = useMemo(() => {
     if (!userAddress || !rootGardenAddress) return null;
@@ -133,11 +126,13 @@ export function useWorkSubmissionFlow(): {
       compareAddresses(garden.id, rootGardenAddress)
     );
     if (!communityGarden?.openJoining) return null;
-    const member =
-      isAddressInList(userAddress, communityGarden.gardeners) ||
-      isAddressInList(userAddress, communityGarden.stewards);
-    return member ? null : communityGarden;
-  }, [gardensData, rootGardenAddress, userAddress]);
+    // The same membership as the list above, so an open join just sent is not offered again.
+    const alreadyIn = myGardens.some(
+      ({ garden, membership }) =>
+        compareAddresses(garden.id, communityGarden.id) && canSubmitWork(membership)
+    );
+    return alreadyIn ? null : communityGarden;
+  }, [gardensData, myGardens, rootGardenAddress, userAddress]);
 
   const {
     actionUID,

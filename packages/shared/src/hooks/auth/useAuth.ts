@@ -25,7 +25,7 @@ import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 import { type AuthMode } from "../../modules/auth/session";
-import { useAuthContext } from "../../providers/Auth";
+import { useAuthContext, type AuthActionsValue } from "../../providers/Auth";
 
 // Export auth context hooks and types
 export {
@@ -45,6 +45,12 @@ export {
  * Legacy aliases are omitted — use the primary action names instead.
  */
 interface UseAuthReturn {
+  preparePilotAccount?: AuthActionsValue["preparePilotAccount"];
+  findExistingPilotAccount?: AuthActionsValue["findExistingPilotAccount"];
+  quotePilotAccount?: AuthActionsValue["quotePilotAccount"];
+  confirmPilotAccount?: AuthActionsValue["confirmPilotAccount"];
+  reconcilePilotAccount?: AuthActionsValue["reconcilePilotAccount"];
+  cancelPilotAccountEnrollment?: AuthActionsValue["cancelPilotAccountEnrollment"];
   walletReleaseStalled?: boolean;
   // Core state
   authMode: AuthMode;
@@ -56,6 +62,9 @@ interface UseAuthReturn {
   // Passkey state
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
+  passkeyAccountProfile?:
+    | import("../../modules/auth/account-profile").PasskeyAccountProfileId
+    | null;
   smartAccountClient: SmartAccountClient | null;
   resolveSmartAccountClient: SmartAccountClientResolver | null;
   userName: string | null;
@@ -75,6 +84,7 @@ interface UseAuthReturn {
   // Actions - Primary flow
   createAccount: (userName: string) => Promise<void>;
   loginWithPasskey: (userName?: string) => Promise<void>;
+  loginWithOriginalPasskey?: AuthActionsValue["loginWithOriginalPasskey"];
   loginWithWallet: () => void;
   loginWithEmbedded: () => void;
   signOut: () => Promise<void>;
@@ -100,6 +110,12 @@ export function useAuth(): UseAuthReturn {
   const auth = useAuthContext();
 
   return {
+    preparePilotAccount: auth.preparePilotAccount,
+    findExistingPilotAccount: auth.findExistingPilotAccount,
+    quotePilotAccount: auth.quotePilotAccount,
+    confirmPilotAccount: auth.confirmPilotAccount,
+    reconcilePilotAccount: auth.reconcilePilotAccount,
+    cancelPilotAccountEnrollment: auth.cancelPilotAccountEnrollment,
     walletReleaseStalled: auth.walletReleaseStalled,
     // Core state
     authMode: auth.authMode,
@@ -111,6 +127,7 @@ export function useAuth(): UseAuthReturn {
     // Passkey state
     credential: auth.credential,
     smartAccountAddress: auth.smartAccountAddress,
+    passkeyAccountProfile: auth.passkeyAccountProfile ?? null,
     smartAccountClient: auth.smartAccountClient,
     resolveSmartAccountClient: auth.resolveSmartAccountClient,
     userName: auth.userName,
@@ -130,6 +147,7 @@ export function useAuth(): UseAuthReturn {
     // Actions - Primary flow
     createAccount: auth.createAccount,
     loginWithPasskey: auth.loginWithPasskey,
+    loginWithOriginalPasskey: auth.loginWithOriginalPasskey,
     loginWithWallet: auth.loginWithWallet,
     loginWithEmbedded: auth.loginWithEmbedded,
     signOut: auth.signOut,

@@ -9,7 +9,8 @@ export interface DraftCardProps {
   actionTitle?: string;
   className?: string;
   onResume: () => void;
-  onDelete: () => void;
+  /** Offers Delete in the row's right slot; Home's Continue leaves it to Your Work. */
+  onDelete?: () => void;
 }
 
 /**

@@ -27,6 +27,11 @@ describe("settlement smart-account profiles", () => {
   });
 
   it("never lets testnet evidence or nullable flags enable gardener delivery", () => {
+    // A matching calculated address does not establish a usable Gnosis member account.
+    expect(getSettlementAccountProfile(100)).toBeUndefined();
+    expect(isGardenerDeliveryEnabled({ sourceChainId: 42161, chainId: 100, indexed: true })).toBe(
+      false
+    );
     expect(
       isGardenerDeliveryEnabled({
         sourceChainId: 421614,

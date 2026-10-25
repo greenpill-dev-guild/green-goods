@@ -118,7 +118,8 @@ async function runForge(plan: BuildPlan): Promise<number> {
   if (quiet) args.push("-q");
   if (plan.skipTest) args.push("--skip", "test");
   if (plan.skipScript) args.push("--skip", "script");
-  if (plan.targets.length > 0) args.push(...plan.targets);
+  // --skip is variadic; keep selected source/script paths positional.
+  if (plan.targets.length > 0) args.push("--", ...plan.targets);
 
   const profile = process.env.FOUNDRY_PROFILE ?? (!plan.skipTest ? "test" : undefined);
   if (profile) {

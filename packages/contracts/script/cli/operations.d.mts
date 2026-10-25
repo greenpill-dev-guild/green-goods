@@ -11,3 +11,4 @@ export function resolveOperatorBoundary(id: string, args: string[]): Resolution;
 export function resolveMintingTransaction(network: string, gardenToken: string, rpc: string): { command: string; args: string[] };
 export function explainOperation(resolution: Resolution): Record<string, unknown>;
 export function renderHelp(topic?: string): string;
+export function validateSourceUpgradeMode(values: Record<string, string | boolean | undefined>): void;

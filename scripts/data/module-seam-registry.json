@@ -18,7 +18,7 @@
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
       "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:9144c0283af61c5b16c2e7151bad20c201a9337a51e461dcb6b0ca35017a4e4b"
+      "evidenceFingerprint": "sha256:3e0fbba59be2ec4692c4fd25d7e463428fd2ba263f9b603d02c2c4413d310431"
     },
     {
       "id": "shared-auth-session",
@@ -42,8 +42,8 @@
           "packages/shared/src/__tests__/hooks/auth/useIdentityChangeReset.test.ts"
         ]
       },
-      "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:1a68f35b0180bb8a43eee45dab23a9b889d0cb8f944fa59326a27b4002a1402f"
+      "reviewedAt": "2026-10-25",
+      "evidenceFingerprint": "sha256:ab9bb2f9d3ab8a663cd89fe6903076d2effdca0d25b3eaf50ac1b90927efd973"
     },
     {
       "id": "shared-work-provider-command",
@@ -63,8 +63,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:75f34771a1b3babb7bb21cbf8e874be1d5dcfa2e89e593b9274323fecd849144"
+      "reviewedAt": "2026-10-25",
+      "evidenceFingerprint": "sha256:973dc9434ca5f7cc91f3a41523eff60cdbc2679ce67b91da4913bf3df0b72b4d"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -75,7 +75,7 @@
       "publicSpecifier": "@green-goods/shared/commitment-pooling",
       "interfaceSummary": "Provides the declared stable domain surface for commitment pooling reads, commands, controllers, selectors, and types without exposing Shared internals.",
       "dependencyCategory": "true-external",
-      "compositionRoots": ["packages/client/src/views/Home/Garden/index.tsx"],
+      "compositionRoots": ["packages/client/src/views/Home/Garden/GardenPage.tsx"],
       "directConsumers": ["packages/client/src/views/Home/Garden/WorkFulfills.tsx"],
       "proof": {
         "direct": ["packages/shared/src/__tests__/commitment-pooling.test.ts"],
@@ -83,7 +83,7 @@
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
       "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:16f8bb96264481ede5b05915ee20482fa47e2446100eaab0eb194f607cf42557"
+      "evidenceFingerprint": "sha256:81fa75d4280d11613a9e65e1476651f28135c1ed57f185f06edbb243ac94e4ce"
     }
   ]
 }

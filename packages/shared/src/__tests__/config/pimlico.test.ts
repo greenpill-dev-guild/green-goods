@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createPublicClientForChain, getPimlicoSponsorshipPolicyId } from "../../config/pimlico";
+import {
+  createPimlicoClientForChain,
+  createPublicClientForChain,
+  getPimlicoBundlerUrl,
+  getPimlicoPaymasterUrl,
+  getPimlicoSponsorshipPolicyId,
+} from "../../config/pimlico";
 import { CELO_G_DOLLAR_TOKEN } from "../../config/tokens";
 import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
@@ -10,6 +16,19 @@ afterEach(() => {
 });
 
 describe("chain-specific sponsorship policies", () => {
+  it("configures Gnosis transports without treating a policy ID as provider acceptance", () => {
+    vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "fictional-policy-not-provider-evidence");
+    vi.stubEnv("VITE_PIMLICO_API_KEY", "test-provider-key");
+    expect(getPimlicoSponsorshipPolicyId(100)).toBe("fictional-policy-not-provider-evidence");
+    expect(createPublicClientForChain(100).chain?.id).toBe(100);
+    expect(createPimlicoClientForChain(100).chain?.id).toBe(100);
+    expect(getRpcUrl(100, "configured-provider")).toBe("https://rpc.gnosischain.com");
+    expect(getPimlicoBundlerUrl(100)).toBe(
+      "https://api.pimlico.io/v2/100/rpc?apikey=test-provider-key"
+    );
+    expect(getPimlicoPaymasterUrl(100)).toBe(getPimlicoBundlerUrl(100));
+  });
+
   it.each([
     undefined,
     "",

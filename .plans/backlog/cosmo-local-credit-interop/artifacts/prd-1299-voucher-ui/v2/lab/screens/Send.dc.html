@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Send G$ on Celo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;Offline Mode</div></sc-if>
+  <div class="scr">
+    <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span><span class="mid">Your purchase</span></div>
+    <div class="ident"><span class="kind">Your purchase · Riverside Commons Garden</span><h1>AI assistant membership, 1 month</h1></div>
+  </div>
+  <div class="scrim"></div>
+  <section class="sheet tall" role="dialog" aria-modal="true" aria-label="Send G$ on Celo">
+    <div class="grip" aria-hidden="true"></div>
+    <div class="shead">
+      <div><h2 class="stitle">Send G$ on Celo</h2><p class="sdesc">Pays for: AI assistant membership, 1 month</p></div>
+      <a class="close" href="Status.dc.html" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+    </div>
+    <div class="sbody">
+      <sc-if value="{{showFacts}}" hint-placeholder-val="{{true}}">
+        <div class="card">
+          <div class="facts">
+            <div class="fact"><span class="k">From</span><span class="v"><span>Your account</span><small class="mono">0x3C1e…7A2e · {{balance}}</small></span></div>
+            <div class="fact"><span class="k">To</span><span class="v"><span>Riverside Commons Garden's Safe</span><small>Registered for this garden · <span class="mono">0xA77c…19F0</span></small></span></div>
+            <div class="fact total"><span class="k">Amount</span><span class="v"><span>450.45 G$</span><small>Includes 0.45 G$ token fee</small></span></div>
+            <div class="fact"><span class="k">Arrives</span><span class="v">450.00 G$</span></div>
+            <div class="fact"><span class="k">Reference</span><span class="v"><span class="mono">GG-7F3A</span><small>Links this payment to your request</small></span></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showProgress}}" hint-placeholder-val="{{false}}">
+        <div class="card">
+          <div class="ladder">
+            <div class="ls done"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span class="lt"><b>Left your account</b><span>450.45 G$ · 10:52 AM</span></span></div>
+            <div class="ls done"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span class="lt"><b>Arrived in Riverside Commons' Safe</b><span>450.00 G$ on Celo</span></span></div>
+            <div class="ls now"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg></span><span class="lt"><b>A steward checks it</b><span>Only Riverside Commons stewards can</span></span></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{low}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>Not enough G$</span><p>You have 300.12 G$. This payment needs 450.45 G$ including the token fee.</p></div></sc-if>
+      <sc-if value="{{waiting}}" hint-placeholder-val="{{false}}"><div class="notice info"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg>Waiting for your account…</span><p>Your account is asking you to approve sending 450.45 G$.</p></div></sc-if>
+      <sc-if value="{{sent}}" hint-placeholder-val="{{false}}"><div class="notice ok"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg>Sent</span><p>Riverside Commons Garden's Safe received the transfer on Celo. A steward checks it next; you don't need to do anything.</p></div></sc-if>
+      <sc-if value="{{rejected}}" hint-placeholder-val="{{false}}"><div class="notice"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg>Not sent</span><p>You canceled in your account. No G$ left your wallet.</p></div></sc-if>
+      <sc-if value="{{sponsor}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>Network fee not covered</span><p>Green Goods couldn't cover the network fee right now. Nothing was sent. You can pay about 0.004 CELO yourself, or try later.</p></div></sc-if>
+      <sc-if value="{{uncertain}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-question-line"/></svg>We can't tell if it went through</span><p>Your account didn't return a result. Check before sending again, so you don't pay twice.</p></div></sc-if>
+      <sc-if value="{{found}}" hint-placeholder-val="{{false}}"><div class="notice ok"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg>Transfer found</span><p>450.45 G$ reached Riverside Commons Garden's Safe at 10:52 AM. No need to send again.</p></div></sc-if>
+      <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="notice"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>Payments wait for a connection</span><p>You're offline. Send when you're back online; nothing is saved to send later.</p></div></sc-if>
+      <p class="small">Network fee covered by Green Goods. Your G$ is held by Riverside Commons stewards, not by Green Goods.</p>
+    </div>
+    <div class="sacts">
+      <sc-if value="{{ready}}" hint-placeholder-val="{{true}}"><button type="button" class="btn">Send 450.45 G$</button></sc-if>
+      <sc-if value="{{disabledMain}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{disabledLabel}}</button></sc-if>
+      <sc-if value="{{done}}" hint-placeholder-val="{{false}}"><a class="btn" href="Status.dc.html">See Your Purchase</a></sc-if>
+      <sc-if value="{{rejected}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">Try Again</button></sc-if>
+      <sc-if value="{{sponsor}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">Pay the Fee Myself</button><button type="button" class="btn sec">Try Later</button></sc-if>
+      <sc-if value="{{uncertain}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">Check Transfer</button></sc-if>
+      <sc-if value="{{low}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="Exchange.dc.html">Get G$</a></sc-if>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Ready","Not enough","Waiting","Sent","Rejected","Sponsor failed","Uncertain","Found","Offline"],"default":"Ready","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var st = this.props.state ?? 'Ready';
+    var dark = this.props.dark ?? false;
+    var sent = st === 'Sent';
+    var found = st === 'Found';
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      balance: st === 'Not enough' ? '300.12 G$' : '512.40 G$',
+      showFacts: !sent && !found, showProgress: sent || found,
+      ready: st === 'Ready', low: st === 'Not enough', waiting: st === 'Waiting', sent: sent,
+      rejected: st === 'Rejected', sponsor: st === 'Sponsor failed', uncertain: st === 'Uncertain',
+      found: found, offline: st === 'Offline', done: sent || found,
+      disabledMain: st === 'Not enough' || st === 'Waiting' || st === 'Offline',
+      disabledLabel: st === 'Waiting' ? 'Waiting…' : 'Send 450.45 G$',
+    };
+  }
+}
+</script>
+</body>
+</html>

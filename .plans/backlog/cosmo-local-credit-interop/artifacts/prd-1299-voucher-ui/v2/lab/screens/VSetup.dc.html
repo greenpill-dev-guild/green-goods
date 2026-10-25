@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Take up with vouchers</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr">
+    <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span><span class="mid">Sunroot Skills Hub</span></div>
+    <div class="ident"><span class="kind">Offer</span><h1>Solar basics course, 10 lessons</h1></div>
+  </div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-label="Take up with vouchers">
+    <div class="grip" aria-hidden="true"></div>
+    <div class="shead">
+      <div><h2 class="stitle">Take Up with Vouchers</h2><p class="sdesc">100 Sunroot vouchers · version 2</p></div>
+      <a class="close" href="VOffer.dc.html" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+    </div>
+    <div class="stepper" style="padding: 4px 20px 8px">
+      <sc-for list="{{dots}}" as="d" hint-placeholder-count="4">
+        <button type="button" class="st {{d.cls}}" onClick="{{d.go}}" style="background: none; border: 0; padding: 0; cursor: pointer; font: inherit"><span class="dot">{{d.n}}</span>{{d.label}}</button>
+      </sc-for>
+    </div>
+    <div class="sbody">
+      <sc-if value="{{isTerms}}" hint-placeholder-val="{{true}}">
+        <p class="h3">Before Sunroot accepts</p>
+        <div class="card"><div class="ladder">
+          <div class="ls"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg></span><span class="lt"><b>Your vouchers wait in a Green Goods escrow on Gnosis</b><span>Held for this promise only</span></span></div>
+          <div class="ls"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg></span><span class="lt"><b>Sunroot has 3 days to accept</b><span>Counted from when the escrow is ready</span></span></div>
+          <div class="ls"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-go-back-line"/></svg></span><span class="lt"><b>You can cancel until then</b><span>Vouchers come back once the cancellation is confirmed. Running out of time doesn't return them on its own.</span></span></div>
+        </div></div>
+        <p class="h3">After Sunroot accepts</p>
+        <div class="card"><div class="ladder">
+          <div class="ls"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></span><span class="lt"><b>Setup can't be canceled</b><span>If lessons are missed, the agreed remedy returns vouchers through the final split.</span></span></div>
+          <div class="ls"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-pencil-line"/></svg></span><span class="lt"><b>New terms need you again</b><span>If Sunroot changes them, you agree before anything continues.</span></span></div>
+        </div></div>
+      </sc-if>
+
+      <sc-if value="{{isAccounts}}" hint-placeholder-val="{{false}}">
+        <p class="h3">Two accounts take part</p>
+        <div class="acct"><span class="av2"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-user-line"/></svg></span><span><b>Your Green Goods account</b><span>Agrees, confirms and freezes the final split</span><span class="mono" style="margin-top: 4px">0x3C1e…7A2e · Passkey</span></span></div>
+        <div class="acct"><span class="av2 gno"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-wallet-3-line"/></svg></span><span><b>Your Gnosis wallet</b><span>Holds and deposits the vouchers</span><span class="mono" style="margin-top: 4px">0x9A40…41bD · holds {{walletHolds}}</span></span></div>
+        <sc-if value="{{wrong}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>This wallet holds 80 Sunroot vouchers</span><p>You need 100. Switch to the wallet that holds them, or get 20 more.</p></div></sc-if>
+        <div class="notice"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg>Why two?</span><p>Your passkey account can't sign on Gnosis yet, so the wallet that holds your vouchers signs the deposit. The escrow records both, so only you can act on this setup.</p></div>
+      </sc-if>
+
+      <sc-if value="{{isApproval}}" hint-placeholder-val="{{false}}">
+        <div class="card"><div class="ladder">
+          <div class="ls done"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span class="lt"><b>Setup prepared on Green Goods</b><span>Today, 11:02 AM</span></span></div>
+          <div class="ls now"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg></span><span class="lt"><b>Sunroot approves this setup</b><span>Sunroot Skills Hub's stewards sign this on Gnosis</span></span></div>
+          <div class="ls todo"><span class="lm">3</span><span class="lt"><b>You deposit 100 Sunroot vouchers</b><span>From your Gnosis wallet</span></span></div>
+        </div></div>
+        <div class="notice info"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg>Waiting for Sunroot</span><p>Sunroot approves each setup before the escrow takes vouchers. You'll get a notification; you can close this.</p></div>
+      </sc-if>
+
+      <sc-if value="{{isDeposit}}" hint-placeholder-val="{{false}}">
+        <div class="card"><div class="ladder">
+          <div class="ls done"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span class="lt"><b>Sunroot approved this setup</b><span>Ade · 11:05 AM</span></span></div>
+          <div class="ls now"><span class="lm">3</span><span class="lt"><b>You deposit 100 Sunroot vouchers</b><span>Two prompts from your wallet</span></span></div>
+        </div></div>
+        <div class="card"><div class="facts">
+          <div class="fact"><span class="k">Network</span><span class="v">Gnosis</span></div>
+          <div class="fact"><span class="k">From</span><span class="v"><span>Your Gnosis wallet</span><small class="mono">0x9A40…41bD</small></span></div>
+          <div class="fact"><span class="k">To</span><span class="v">Green Goods voucher escrow for this promise</span></div>
+          <div class="fact total"><span class="k">Amount</span><span class="v">100 Sunroot vouchers</span></div>
+          <div class="fact"><span class="k">Fee</span><span class="v">About 0.0003 xDAI from your wallet</span></div>
+        </div></div>
+        <sc-if value="{{uncertain}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-question-line"/></svg>We can't tell if the deposit went through</span><p>Check the escrow before trying again, so you don't deposit twice.</p></div></sc-if>
+      </sc-if>
+
+      <sc-if value="{{isWait}}" hint-placeholder-val="{{false}}">
+        <div class="escrow" style="margin: 0">
+          <div class="etop"><span class="elock"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg></span><span><span class="ea">100</span><span class="eu" style="display: block">Sunroot vouchers in escrow</span></span></div>
+          <div class="ladder">
+            <div class="ls done"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span class="lt"><b>Deposited 100 Sunroot vouchers</b><span>On Gnosis · 11:20 AM</span></span></div>
+            <div class="ls now"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg></span><span class="lt"><b>Escrow proof reaches Green Goods</b><span>Sent from Gnosis · not received yet</span></span></div>
+            <div class="ls todo"><span class="lm">3</span><span class="lt"><b>Sunroot accepts by Oct 25</b><span>3 days once proof arrives</span></span></div>
+          </div>
+        </div>
+        <div class="notice ok"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg>Your vouchers are safe in escrow</span><p>Green Goods needs the escrow's proof before Sunroot can accept. This usually takes minutes. A sent message isn't a received one, so this stays here until it arrives.</p></div>
+      </sc-if>
+    </div>
+    <div class="sacts">
+      <sc-if value="{{isTerms}}" hint-placeholder-val="{{true}}"><button type="button" class="btn" onClick="{{next}}">Agree to These Terms</button><p class="small" style="text-align: center">Your Green Goods account asks once to agree.</p></sc-if>
+      <sc-if value="{{accountsOk}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" onClick="{{next}}">Continue</button></sc-if>
+      <sc-if value="{{wrong}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">Switch Wallet</button><button type="button" class="btn sec off" disabled>Continue</button></sc-if>
+      <sc-if value="{{isApproval}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>Deposit 100 Vouchers</button><a class="btn sec" href="Holder.dc.html">Close</a></sc-if>
+      <sc-if value="{{depositOk}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" onClick="{{next}}">Deposit 100 Vouchers</button><p class="small" style="text-align: center">Your wallet asks twice: once to let the escrow take 100 vouchers, once to deposit them.</p></sc-if>
+      <sc-if value="{{uncertain}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">Check Escrow</button></sc-if>
+      <sc-if value="{{isWait}}" hint-placeholder-val="{{false}}"><a class="btn" href="Holder.dc.html">See Your Promise</a></sc-if>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["Terms","Accounts","Approval","Deposit","Wait"],"default":"Terms","section":"State"},"issue":{"editor":"enum","options":["None","Wrong wallet","Uncertain deposit"],"default":"None","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) {
+    if (prev.step !== this.props.step || prev.issue !== this.props.issue) this.setState({ step: undefined });
+  }
+  renderVals() {
+    var order = ['Terms', 'Accounts', 'Approval', 'Deposit', 'Wait'];
+    var dark = this.props.dark ?? false;
+    var issue = this.props.issue ?? 'None';
+    var s = this.state || {};
+    var step = s.step || this.props.step || 'Terms';
+    var idx = order.indexOf(step);
+    var self = this;
+    var dotDefs = [['Terms', 0], ['Accounts', 1], ['Deposit', 3], ['Wait', 4]];
+    var dotIdx = idx === 2 ? 2 : (idx >= 3 ? idx - 1 : idx);
+    var dots = dotDefs.map(function (d, i) {
+      return { n: i + 1, label: d[0], cls: i === dotIdx ? 'on' : (i < dotIdx ? 'done' : ''), go: function () { self.setState({ step: order[d[1]] }); } };
+    });
+    var wrong = step === 'Accounts' && issue === 'Wrong wallet';
+    var uncertain = step === 'Deposit' && issue === 'Uncertain deposit';
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      dots: dots,
+      isTerms: step === 'Terms', isAccounts: step === 'Accounts', isApproval: step === 'Approval', isDeposit: step === 'Deposit', isWait: step === 'Wait',
+      wrong: wrong, accountsOk: step === 'Accounts' && !wrong,
+      walletHolds: wrong ? '80 Sunroot vouchers' : '120 Sunroot vouchers',
+      uncertain: uncertain, depositOk: step === 'Deposit' && !uncertain,
+      next: function () { self.setState({ step: order[Math.min(order.length - 1, idx + 1)] }); },
+    };
+  }
+}
+</script>
+</body>
+</html>
