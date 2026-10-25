@@ -809,11 +809,12 @@ export async function executePlan(plan, options = {}) {
     return { status: "needs-focus", exitCode: 2, results, blocked };
   }
 
-  // The host is sampled when the plan starts and again when the deadline fires: the 1-minute load
-  // lags a burst of gates that start together on a quiet machine, so saturation that begins
-  // during the run still suspends the deadline. Tests pass a fixed host or their own sampler.
-  const sampleHost = typeof options.host === "function" ? options.host : () => options.host ?? liveHost();
-  const hostAtStart = sampleHost();
+  // The start sample is the one the printed plan used, so the reported and the enforced rule
+  // agree. The deadline samples the host again when it fires: the 1-minute load lags a burst of
+  // gates that start together on a quiet machine, so saturation that begins during the run still
+  // suspends the deadline. Tests pass a fixed host and, when they need one, their own sampler.
+  const hostAtStart = options.host ?? liveHost();
+  const sampleHost = options.sampleHost ?? (options.host ? () => options.host : liveHost);
   let deadlineSuspension =
     Boolean(plan.budget?.enforced) && deadlineSuspendedBy(hostAtStart) ? { at: "start", host: hostAtStart } : null;
   const deadlineController = plan.budget?.enforced && !deadlineSuspension ? new AbortController() : null;
@@ -1176,7 +1177,8 @@ async function main() {
   }
   const receiptStore = options.reusePassingReceipts ? loadPassingReceiptStore() : new Map();
   const execution = await executePlan(plan, {
-    host: liveHost,
+    host,
+    sampleHost: liveHost,
     failFast: options.failFast,
     signal: abortController.signal,
     reusePassingReceipts: options.reusePassingReceipts,

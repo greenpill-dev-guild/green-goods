@@ -381,13 +381,9 @@ test("a host that saturates after the plan starts suspends the deadline when it 
     automatedSeconds: 0.02,
     manualSeconds: 0,
   };
-  const samples = [
-    { loadAverage: 1, cpuCount: 10 },
-    { loadAverage: 40, cpuCount: 10 },
-  ];
-
   const result = await executePlan(input, {
-    host: () => samples.shift() ?? { loadAverage: 40, cpuCount: 10 },
+    host: { loadAverage: 1, cpuCount: 10 },
+    sampleHost: () => ({ loadAverage: 40, cpuCount: 10 }),
     runCheck: async (check, { signal }) => {
       if (check.id === "fast") return { ok: true, exitCode: 0, durationSeconds: 0.001 };
       await new Promise((resolve) => setTimeout(resolve, 60));
