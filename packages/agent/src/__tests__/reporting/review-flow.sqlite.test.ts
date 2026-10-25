@@ -174,6 +174,14 @@ describe("steward review", () => {
     await linkedSteward();
     await harness.say(BOLA, "REVIEW");
     await harness.say(BOLA, "1");
+    // While the decision's question is showing, a story would only put it again, so NEW says the
+    // review comes first and STATUS shows the question it waits on.
+    expect(await harness.say(BOLA, "NEW")).toEqual([
+      "You have a review in progress. Send CANCEL to discard it or keep going with it.",
+    ]);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([
+      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`,
+    ]);
     expect(await harness.press(BOLA, "Reject")).toEqual([
       "Tell the gardener why you're rejecting this work (it will be public).",
     ]);

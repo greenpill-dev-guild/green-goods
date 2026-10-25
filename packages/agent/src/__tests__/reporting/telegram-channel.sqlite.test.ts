@@ -198,7 +198,15 @@ describe("Telegram reporting on the existing bot", () => {
 
     expect(legacy.direct).not.toHaveBeenCalled();
     expect(api.calls.filter((call) => call.method === "answerCallbackQuery")).toHaveLength(2);
-    expect(api.calls.filter((call) => call.method === "editMessageReplyMarkup")).toHaveLength(2);
+    // A tap takes its own message's keyboard off (this file's presses come from message 1). Each
+    // question sent takes the buttons off the question before it, the one answered by typing too.
+    expect(api.keyboardsRemoved()).toEqual([
+      1,
+      api.messageIdOf("Hi! I'm the Green Goods reporting assistant."),
+      api.messageIdOf("Which garden is this report for?"),
+      1,
+      api.messageIdOf("Which activity in TAS"),
+    ]);
     expect(api.calls.find((call) => call.method === "getFile")?.payload).toEqual({
       file_id: "photo-large",
     });
@@ -241,6 +249,37 @@ describe("Telegram reporting on the existing bot", () => {
     await tell(press("Change garden"));
     expect(sentTexts().at(-1)).toBe(
       "Which of your gardens is this report for?\n1. TAS\n2. Join another garden"
+    );
+    // Its buttons send command words, so no later question takes them off.
+    expect(api.keyboardsRemoved()).not.toContain(api.messageIdOf("TAS is your only garden"));
+  });
+
+  it("leads /language to a choice of languages, then names the Menu in the language chosen", async () => {
+    openTelegramChannel();
+    const telegraf = bot();
+    const tell = async (update: Update) => {
+      await telegraf.handleUpdate(update);
+      await drainThroughTelegram();
+    };
+    await tell(direct({ text: "/start" }));
+    await tell(press("I agree"));
+    await tell(direct({ text: "/language" }));
+    const choice = api.messages().at(-1);
+    expect(choice?.text).toBe("Which language would you like me to use?");
+    expect(buttonsOf(choice).map((button) => button.text)).toEqual([
+      "English",
+      "Español",
+      "Português",
+    ]);
+
+    await tell(press("Español"));
+    expect(sentTexts().at(-1)).toMatch(/^Reportes de Green Goods:/);
+    expect(sentTexts().at(-1)).toContain(
+      "\n• Toca Menú, junto a donde escribes, para ver estos comandos.\nSoporte:"
+    );
+    await tell(direct({ text: "/account" }));
+    expect(sentTexts().at(-1)).toBe(
+      "Este chat no está conectado a ninguna cuenta. Envía CONNECT para vincular una. Los comandos de cuenta también están en el Menú: /account, /connect, /switch y /disconnect."
     );
   });
 

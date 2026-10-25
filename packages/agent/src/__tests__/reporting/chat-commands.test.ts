@@ -69,6 +69,23 @@ describe("account requests in plain words", () => {
     expect(replyCommand(commandReplyId("planted"))).toBeNull();
   });
 
+  it("reads the account and language words, and LANG alone as asking which language", () => {
+    expect(["account", "CUENTA", "conta"].map((text) => parseCommand(text)?.kind)).toEqual([
+      "account",
+      "account",
+      "account",
+    ]);
+    const ask = { kind: "locale", locale: null };
+    expect(["language", "LANG", "idioma"].map(parseCommand)).toEqual([ask, ask, ask]);
+    expect(parseCommand("language pt")).toEqual({ kind: "locale", locale: "pt" });
+    expect(parseCommand("idioma es")).toEqual({ kind: "locale", locale: "es" });
+    // A language the chat does not speak, or more words than a command, is left for the report.
+    expect(parseCommand("lang fr")).toBeNull();
+    expect(parseCommand("my account has two gardens")).toBeNull();
+    // A language button sends LANG with that language, whichever question is open.
+    expect(replyCommand(commandReplyId("lang es"))).toEqual({ kind: "locale", locale: "es" });
+  });
+
   it("knows a hello from a story", () => {
     expect(["hello", "Hi!", "good morning", "hola", "Olá, bom dia"].every(isGreeting)).toBe(true);
     expect(["hello I planted trees", "morning watering done", ""].some(isGreeting)).toBe(false);

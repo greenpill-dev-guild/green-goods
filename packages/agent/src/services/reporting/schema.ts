@@ -100,4 +100,13 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
       `CREATE INDEX model_calls_day ON model_calls(day)`,
     ],
   },
+  {
+    version: 6,
+    name: "conversation order in the outbox",
+    // The dispatcher reads one conversation's replies in order: the next one to send, and the
+    // question sent before the one just sent, whose buttons it takes off.
+    statements: [
+      `CREATE INDEX delivery_outbox_conversation ON delivery_outbox(conversation_id, dispatch_seq)`,
+    ],
+  },
 ];

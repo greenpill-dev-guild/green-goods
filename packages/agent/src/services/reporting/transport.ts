@@ -87,8 +87,22 @@ export type OutboundResult =
   | { status: "terminal"; errorCode: string }
   | { status: "uncertain"; errorCode: string };
 
+/** A question already sent whose choices a later question has replaced. */
+export interface RetiredQuestion {
+  providerRealm: string;
+  /** Decrypted only for the edit; never logged. */
+  externalChatId: string;
+  providerMessageId: string;
+}
+
 export interface OutboundTransport {
   send(request: OutboundRequest): Promise<OutboundResult>;
+  /**
+   * Takes the buttons off a question once the next question is sent, for a channel that can edit
+   * a message it sent. Best effort, and never throws: a button left behind still reaches the core,
+   * which puts the open question again. A channel that cannot edit leaves this out.
+   */
+  retireChoices?(question: RetiredQuestion): Promise<void>;
 }
 
 /** Fetches provider media into bounded memory; adapters own authentication and redirects. */

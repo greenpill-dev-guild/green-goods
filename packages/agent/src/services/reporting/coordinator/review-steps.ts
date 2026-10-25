@@ -14,7 +14,7 @@ import { commitReview, type ReviewRecord, reviewState } from "../reviews";
 import { accountLink } from "./account-link";
 import type { ChatCommand } from "./commands";
 import type { TurnPlan } from "./context";
-import { nextReviewStep } from "./review-prompts";
+import { isReviewPrompt, nextReviewStep } from "./review-prompts";
 import type { TurnWriter } from "./writer";
 
 /**
@@ -160,6 +160,16 @@ export function handleReviewCommand(
       else nextReviewStep(writer, review, account.address);
       return true;
     }
+    // While a decision's question is showing, a story only puts that question again, so NEW says
+    // the review comes first and STATUS shows the question it is waiting on.
+    case "new":
+      if (!isReviewPrompt(writer.ctx.prompt?.kind)) return false;
+      writer.say("review.resumeFirst");
+      return true;
+    case "status":
+      if (!isReviewPrompt(writer.ctx.prompt?.kind) || !account) return false;
+      nextReviewStep(writer, review, account.address);
+      return true;
     default:
       return false;
   }

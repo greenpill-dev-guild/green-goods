@@ -1,14 +1,18 @@
+import { createLogger } from "../logger";
 import { readControl } from "./controls";
 import { inTransaction } from "./database";
 import { decryptConversationChat } from "./identity-store";
 import type { ReportingCore } from "./runtime";
 import type { OutboundMessage, OutboundTransport } from "./transport";
 
+const log = createLogger("reporting");
+
 /**
  * Durable reply outbox. Reply intents commit with the domain transition that produced them, and
  * only this dispatcher sends. Replies in one conversation go out in commit order; a newer prompt
- * suppresses unsent older prompts. A private notification rechecks the recipient's live binding
- * and identity epoch at send time, so relinking silences the old channel.
+ * suppresses unsent older prompts, and once sent takes the buttons off the question it replaced
+ * where the channel can edit a sent message. A private notification rechecks the recipient's live
+ * binding and identity epoch at send time, so relinking silences the old channel.
  */
 export interface ReplyIntent {
   conversationId: string;
@@ -98,6 +102,8 @@ interface OutboxRow {
   id: string;
   conversation_id: string;
   channel_subject_id: string;
+  prompt_id: string | null;
+  dispatch_seq: number;
   reply_kind: string;
   channel_binding_id: string | null;
   identity_epoch: number | null;
@@ -113,8 +119,8 @@ function claimNext(
   return inTransaction(core.db, () => {
     const row = core.db
       .query(
-        `SELECT id, conversation_id, channel_subject_id, reply_kind, channel_binding_id, identity_epoch, audience,
-                payload_ciphertext, attempts, state, next_attempt_at
+        `SELECT id, conversation_id, channel_subject_id, prompt_id, dispatch_seq, reply_kind, channel_binding_id,
+                identity_epoch, audience, payload_ciphertext, attempts, state, next_attempt_at
          FROM delivery_outbox WHERE conversation_id = $conversation
            AND state IN ('pending','retry_wait','dispatching') ORDER BY dispatch_seq LIMIT 1`
       )
@@ -217,9 +223,54 @@ export async function dispatchOutbox(
       recordSendResult(core, claim.row, claim.attemptId, result);
       if (result.status !== "accepted") break;
       sent += 1;
+      if (chat && claim.row.prompt_id && transport.retireChoices)
+        await retireEarlierQuestion(core, transport, claim.row, chat);
     }
   }
   return { sent, held: false };
+}
+
+/**
+ * A question just sent replaces the one sent before it, so that one's buttons come off. Each
+ * question is retired by the next question to reach the chat, once; a question that drew no buttons
+ * is left alone. Retiring is best effort and never stops the replies after it: a button left
+ * behind only puts the open question again.
+ */
+async function retireEarlierQuestion(
+  core: ReportingCore,
+  transport: OutboundTransport,
+  sent: OutboxRow,
+  chat: { providerRealm: string; chatId: string }
+): Promise<void> {
+  try {
+    const earlier = core.db
+      .query(
+        `SELECT o.id, o.payload_ciphertext, a.provider_message_id
+         FROM delivery_outbox o JOIN delivery_attempts a ON a.outbox_id = o.id
+         WHERE o.conversation_id = $conversation AND o.prompt_id IS NOT NULL
+           AND o.prompt_id <> $prompt AND o.dispatch_seq < $seq
+           AND o.state IN ('accepted','sent','delivered','read')
+           AND a.state IN ('accepted','sent','delivered','read') AND a.provider_message_id IS NOT NULL
+         ORDER BY o.dispatch_seq DESC LIMIT 1`
+      )
+      .get({
+        conversation: sent.conversation_id,
+        prompt: sent.prompt_id,
+        seq: sent.dispatch_seq,
+      }) as { id: string; payload_ciphertext: string | null; provider_message_id: string } | null;
+    if (!earlier?.payload_ciphertext) return;
+    const message = JSON.parse(
+      core.keyring.open(earlier.payload_ciphertext, payloadContext(earlier.id))
+    ) as OutboundMessage;
+    if (!message.choices?.length) return;
+    await transport.retireChoices?.({
+      providerRealm: chat.providerRealm,
+      externalChatId: chat.chatId,
+      providerMessageId: earlier.provider_message_id,
+    });
+  } catch (error) {
+    log.warn({ error: errorCodeOf(error) }, "Could not retire an earlier question's buttons");
+  }
 }
 
 function errorCodeOf(error: unknown): string {

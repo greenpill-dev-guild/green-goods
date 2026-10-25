@@ -29,6 +29,10 @@ const log = loggers.platform;
 /** Telegram's limit on one message's text, in UTF-16 code units. */
 const MAX_TEXT = 4096;
 const SEND_TIMEOUT_MS = 15_000;
+/** Retiring an old question's buttons holds up the conversation's next reply, so it waits less. */
+const RETIRE_TIMEOUT_MS = 5_000;
+/** Telegram's refusal of an edit that would change nothing. */
+const NOT_MODIFIED = /message is not modified/i;
 /** Bot API 7.11 copy_text; Telegraf 4.16 has not added it to its button union. */
 type ReportingButton = InlineKeyboardButton | { text: string; copy_text: { text: string } };
 
@@ -149,7 +153,12 @@ function mediaOf(message: Message): InboundMediaReference | null {
   };
 }
 
-/** Sends the core's replies through the Bot API; choices become buttons carrying the reply IDs. */
+/**
+ * Sends the core's replies through the Bot API; choices become inline buttons carrying the reply
+ * IDs, attached to the question they answer. No reply keyboard is ever sent, so typing stays the
+ * person's own and no stale labels sit under the message box. Once the next question is sent, the
+ * one it replaced loses its buttons.
+ */
 export function createTelegramTransport(telegram: Telegram): OutboundTransport {
   return {
     async send(request) {
@@ -185,6 +194,23 @@ export function createTelegramTransport(telegram: Telegram): OutboundTransport {
         return { status: "accepted", providerMessageId: String(sent.message_id) };
       } catch (error) {
         return sendFailure(error);
+      }
+    },
+    async retireChoices(question) {
+      try {
+        // With no reply_markup, Telegram takes the whole inline keyboard off, as a tap does.
+        await telegram.callApi(
+          "editMessageReplyMarkup",
+          { chat_id: question.externalChatId, message_id: Number(question.providerMessageId) },
+          { signal: timeoutSignal(RETIRE_TIMEOUT_MS) }
+        );
+      } catch (error) {
+        // A tap on one of its buttons already took the keyboard off: nothing is left to retire.
+        if (error instanceof TelegramError && NOT_MODIFIED.test(error.description)) return;
+        // A deleted message or a rate limit costs only the tidy-up; a stale tap puts the open
+        // question again.
+        const code = error instanceof TelegramError ? error.code : "network";
+        log.warn({ code }, "Could not retire a Telegram question's buttons");
       }
     },
   };

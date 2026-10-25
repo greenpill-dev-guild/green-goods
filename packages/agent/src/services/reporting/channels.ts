@@ -29,3 +29,12 @@ export function channelOfRealm(providerRealm: string): ReportingChannel | null {
 export function drawsChoiceButtons(providerRealm: string): boolean {
   return channelOfRealm(providerRealm) === "telegram";
 }
+
+/**
+ * Whether a channel lists the bot's commands in a menu beside the message box. Telegram does, from
+ * the list the bot registers at startup; a reply there can point to the menu instead of only
+ * naming words to type.
+ */
+export function offersCommandMenu(providerRealm: string): boolean {
+  return channelOfRealm(providerRealm) === "telegram";
+}
