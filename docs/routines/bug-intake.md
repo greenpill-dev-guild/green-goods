@@ -96,7 +96,7 @@ Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "rou
 
 ### Customer Need vs Issue: when to create which
 
-Every accepted item gets a Customer Need + Issue pair (the Need links to the Issue via `issue` parameter). The decision is *what kind of Issue*:
+Every accepted item from an outside reporter gets a Customer Need + Issue pair (the Need links to the Issue via `issue` parameter). Resolve the reporter per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules) before the dedupe step of every phase: a non-guest workspace member with no speaker alias is internal, and an internal reporter's accepted item gets the Issue alone, acknowledged and digested by its Issue URL. The decision is *what kind of Issue*:
 
 | Signal | Issue type | Issue status |
 |---|---|---|
@@ -256,7 +256,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    - General discussion not framed as a report
    - Native `/linear issue` invocations — the team is using the Linear/Discord integration directly; Linear already owns the record, do not create a duplicate
 
-3. **Dedupe against Linear** — list open accepted-bug Issues on the Product team that carry `protocol:green-goods` + `source:discord`, plus open Customer Needs from the last 30 days whose body/source URL indicates Discord. Match on:
+3. **Dedupe against Linear**: list open accepted-bug Issues on the Product team that carry `protocol:green-goods` + `source:discord`, plus open Customer Needs from the last 30 days whose body/source URL indicates Discord. When the reporter resolved as internal, put the duplicate context on the existing record's Issue, never on its Need. Match on:
    - Same Discord message URL or reply chain (definitive duplicate — append context, do not create)
    - Same error text, view name, or described behavior (likely duplicate — append context, do not create)
    - Same reporter + same surface within 7 days (likely duplicate; use private-context identifiers for matching only)
@@ -330,7 +330,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    {one sentence Afo can paste into a public update without exposing PII; no usernames, garden addresses, replay URLs, session IDs, distinct IDs, wallet addresses, or identifying screenshots}
    ```
 
-   Resolve the `customer` parameter from the speaker external IDs on the customer records per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules): a reporter with no alias who is a workspace member gets no Customer Need, and any other unmatched reporter keeps the `Customer: unresolved` line for a person to attach later. Customer Needs live unprojected on the Product team, never associated with the retired `Green Goods` umbrella project or any other staging/completed project. The Customer Need carries **no labels**, because `save_customer_need` has no `labels` field; provenance and triage metadata live in the body, and the canonical labels go on the linked Issue created in step 6. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
+   Resolve the `customer` parameter from the speaker external IDs on the customer records per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules): a reporter with no alias who is a workspace member gets no Customer Need and goes straight to step 6, and any other unmatched reporter keeps the `Customer: unresolved` line for a person to attach later. Customer Needs live unprojected on the Product team, never associated with the retired `Green Goods` umbrella project or any other staging/completed project. The Customer Need carries **no labels**, because `save_customer_need` has no `labels` field; provenance and triage metadata live in the body, and the canonical labels go on the linked Issue created in step 6. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
 
 6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led sentence with no prefix. Body follows the contract in [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure — clear, simple, concise, human-friendly (**backstops: 6 headings / 600 words**), and a `PreToolUse` hook rejects writes that break it:
 
@@ -347,15 +347,15 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    single counts line only when telemetry is the evidence.}
    ```
 
-   Drop anything you cannot fill rather than writing a placeholder — if the fix is not suggestable yet, that is the lightweight tracking pattern (`activity:maintenance` + `Backlog`), not a "Needs investigation" heading. Do not restate the verbatim quote or the reporter list; those live on the linked Customer Need.
+   Drop anything you cannot fill rather than writing a placeholder: if the fix is not suggestable yet, that is the lightweight tracking pattern (`activity:maintenance` + `Backlog`), not a "Needs investigation" heading. Do not restate the verbatim quote or the reporter list; those live on the linked Customer Need. An issue-only record has no Need: keep the reporter's words out of the body and let the source line point at the Discord message.
 
    Project: per [Project routing](README.md#project-routing), the `bounded_projects` entry that clearly owns the work, otherwise the `release_project`, or none when no release project is started. Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
-7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgment. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
+7. **Acknowledge on Discord**: reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgment. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record; an issue-only record links its Issue instead:
 
    ```
    POST https://discord.com/api/v10/channels/${DISCORD_BUGS_CHANNEL_ID}/messages
-   { "content": "Tracked → {customer_need_url}", "message_reference": { "message_id": "{original_id}" } }
+   { "content": "Tracked → {customer_need_url, or issue_url for an issue-only record}", "message_reference": { "message_id": "{original_id}" } }
    ```
    ```
    PUT https://discord.com/api/v10/channels/${DISCORD_BUGS_CHANNEL_ID}/messages/{message_id}/reactions/%E2%9C%85/@me
@@ -404,7 +404,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
 3. **Filter actionable reports** — apply the same filter as Phase 1 step 2 (skip reactions / "me too" / general discussion). Pure media-only messages are kept if they look like reports (a screenshot in the bug topic almost always is). Non-actionable claimed messages should be marked `rejected`, not returned to `new`.
 
-4. **Dedupe against Linear** — list open Customer Needs on the Product team that carry `protocol:green-goods` + `source:telegram`, match on the capture's `messageId` (with its `chatId`), the composite `chat_messages.id`, garden context, and described behavior. When a duplicate exists, comment on the existing record with the safe display name (or `anonymous`), source message reference, and one-sentence quote; do not include `senderPlatformId`, Telegram handles, or numeric IDs. Do not create a new Customer Need. Carry the existing Customer Need URL forward to Phase 7 so the duplicate capture is still visible in the digest's merged-duplicates line.
+4. **Dedupe against Linear**: list open Customer Needs on the Product team that carry `protocol:green-goods` + `source:telegram`, match on the capture's `messageId` (with its `chatId`), the composite `chat_messages.id`, garden context, and described behavior. When a duplicate exists, comment on the existing record (on its Issue rather than its Need when the sender resolved as internal) with the safe display name (or `anonymous`), source message reference, and one-sentence quote; do not include `senderPlatformId`, Telegram handles, or numeric IDs. Do not create a new Customer Need. Carry the existing Customer Need URL forward to Phase 7 so the duplicate capture is still visible in the digest's merged-duplicates line.
 
 5. **Enrich with PostHog + optional Sentry (private context)** — same procedure as Phase 1 step 4. Treat `senderPlatformId` as private. `senderDisplayName` is allowed only in the Customer Need `## Source` block and the Phase 7 digest item line; do not use it in the PostHog or Sentry evidence block or telemetry lookup unless the reporter explicitly consented.
 
@@ -415,7 +415,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
    ```
    The agent proxies the bytes from Telegram with the right `Content-Type` (the bot token never appears in the URL). Upload the bytes to Linear using whichever attachment surface the harness exposes — Linear MCP `create_attachment`, the GraphQL `fileUpload` mutation, or the REST file-upload endpoint, in that preference order. Record the resulting Linear-hosted URL and place it under `## Evidence` in the Customer Need body. Cap at 4 attachments per message — drop the rest with a `[+N more attachments not uploaded]` line in the body. **Never** put the agent download URL (Bearer-gated) in the Linear body — anyone viewing the Customer Need without the bot's API token would 401.
 
-7. **Create Customer Need** unprojected on the Product team, with `customer` resolved from the speaker external IDs per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules) (most Telegram reporters have no alias yet, so the body will commonly read `Customer: unresolved`). Use the same body template as Phase 1, with the following overrides:
+7. **Create Customer Need** unprojected on the Product team, with `customer` resolved from the speaker external IDs per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules). A sender who is a workspace member with no alias gets no Need: skip to step 8 and let the digest line carry the Issue URL. Most other Telegram senders have no alias yet, so the body will commonly read `Customer: unresolved`. Use the same body template as Phase 1, with the following overrides:
 
    ```markdown
    ## Source
@@ -477,7 +477,7 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
    - Specific UX feedback ("the flow for Y is awkward")
    - Skip aspirations, feature requests framed as strategy, partnership asks, and anything that needs a human product call.
 
-4. **Dedupe against Linear** — list open Customer Needs across all sources on the Product team that carry `protocol:green-goods`. Match on described behavior + affected surface.
+4. **Dedupe against Linear**: list open Customer Needs across all sources on the Product team that carry `protocol:green-goods`. Match on described behavior + affected surface. A duplicate raised by an internal speaker is noted on the existing record's Issue, never on its Need.
 
 5. **Enrich with PostHog + optional Sentry (private context, fuzzy only)** — Drive notes rarely contain stack traces, so use only the free-text fuzzy match (curated question 5 in `## PostHog telemetry enrichment`) against verbatim quotes, plus Sentry message/title search when the connector is available. If a high-confidence match comes back, include the safe-summary block in the Customer Need body. Skip reporter session/user lookup — meeting attendees are not consenting telemetry subjects.
 
@@ -544,7 +544,7 @@ The parent Issue body never carries replay URLs, session IDs, distinct IDs, wall
 After Phases 1–4, before posting the summary:
 
 1. List every Customer Need this run created and confirm its `customer` matches the speaker's external ID (or its body carries `Customer: unresolved`), that none quotes a workspace member with no alias, and that it includes source, evidence, dedupe notes, and privacy-safe summary.
-2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, project (per [Project routing](README.md#project-routing)), source URL, and Customer Need link.
+2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, project (per [Project routing](README.md#project-routing)), source URL, and, unless the record is issue-only, its Customer Need link.
 3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed, that each Issue this run re-routed now sits in the project [Project routing](README.md#project-routing) picks (or in none only when no bounded project owns it and no release project is started), and that each Issue already in a live project stayed there.
 4. List every rejection — every signal you read but did not act on — and the reason.
 5. Run a privacy grep across every body created or edited this run, **every comment this run posted**, **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body or comment means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body or comment in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
@@ -555,7 +555,7 @@ Carry these into Phase 7 so the digest is verifiable.
 
 Standalone per-capture ack messages are retired; they were the single largest source of routine noise on Discord (up to 8 extra messages per run on top of the digest). Acknowledgment now works like this:
 
-- **Discord-source reports**: the Phase 1 step 7 threaded `Tracked → {customer_need_url}` reply + ✅ reaction on the reporter's own message in `#bug-report` IS the acknowledgment — the reporter sees it attached to their message, and the channel gains no standalone posts. Duplicates get the same threaded reply pointing at the existing record (Phase 1 step 3).
+- **Discord-source reports**: the Phase 1 step 7 threaded `Tracked → {customer_need_url}` reply (the Issue URL for an issue-only record) + ✅ reaction on the reporter's own message in `#bug-report` IS the acknowledgment: the reporter sees it attached to their message, and the channel gains no standalone posts. Duplicates get the same threaded reply pointing at the existing record (Phase 1 step 3).
 - **Telegram- and Drive-source records** (including Telegram duplicates merged into existing records): no standalone Discord message. They are acknowledged as item lines in the Phase 7 digest, which posts whenever anything was captured and carries what the old ack did (type, source, one-line summary, Linear link).
 - The bot stays silent in Telegram either way (no DMs, no group replies — unchanged).
 
@@ -598,7 +598,7 @@ accepted_count   = count Issues on team=Product where:
 {Lede: 1–2 sentences a teammate would write — what came in and what matters most. e.g. "Three new reports; the passkey-register failure from Telegram matches live telemetry and is the one to look at."}
 
 {New records · up to 3, most significant first (clear bug > operator pain > idea), one line each:}
-- {🐛|💡} **{one-line summary}** · {source} · {surface}{ · telemetry: {n} sessions/7d} → <{customer_need_url}>
+- {🐛|💡} **{one-line summary}** · {source} · {surface}{ · telemetry: {n} sessions/7d} → <{customer_need_url, or issue_url for an issue-only record}>
 {if more than 3: "…plus {n} more captured, all in Linear."}
 {if duplicates merged: "{K} duplicate report(s) merged into existing records."}
 
@@ -629,11 +629,11 @@ The @mention fires when triage is piling up (`raw_signal_count + accepted_count 
 - **Read-only on the codebase.** Do not edit files, do not open PRs, do not branch.
 - **No GitHub writes.** GitHub is for PRs and code review only — never a backlog. The retired `Bug Board #18`, GitHub Project #4, and the legacy `polish` / `source:*` GitHub labels are out of scope.
 - **No code audit.** If you notice something while reading docs that looks like a code issue, do NOT create a Customer Need.
-- **No nagging.** If an existing Customer Need covers a new report, comment once with the new reporter info; do not re-comment if the same record gets multiple references in one run.
+- **No nagging.** If an existing Customer Need covers a new report, comment once with the new reporter info (on its Issue when the reporter is internal); do not re-comment if the same record gets multiple references in one run.
 - **No duplicate of `/linear issue` records.** When a teammate already filed via the Linear/Discord integration, the Linear record exists; this routine merges context but does not create a parallel record.
 - **1-hour runtime cap.** Intake is lightweight. If the run takes longer than an hour, something is wrong.
 - **Project routing discipline.** Customer Needs live unprojected on the Product team. Accepted-bug Issues follow [Project routing](README.md#project-routing): a bounded active project when one already exists for this work, otherwise the active release project, and unprojected only when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
-- **Acknowledgment model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
+- **Acknowledgment model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply (the Issue URL for an issue-only record) + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently), never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
 - **Fail loud, not silent.** A failed Linear project lookup (an absent release project between releases is a valid state, not a failure), a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."
 
 ## Rebuilding the cloud routine from this file
