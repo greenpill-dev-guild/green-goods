@@ -132,9 +132,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const restoredScrollRef = useRef(false);
 
   // Needs review reads each garden you review the way its Work tab does, so a review
-  // made on this device leaves the list at once — the same list the arrival toast counts.
-  const { reviewerGardenIds, isLoading: isLoadingReviewerGardens } =
+  // made on this device leaves the list at once. Only the active garden's are read, so
+  // another garden's slow or failed read never holds this list or its Refresh.
+  const { reviewerGardenIds: reviewedGardens, isLoading: isLoadingReviewerGardens } =
     useReviewerGardenIds(activeAddress);
+  const reviewerGardenIds = useMemo(
+    () => reviewedGardens.filter((gardenId) => inScope([gardenId])),
+    [reviewedGardens, inScope]
+  );
   const needsReview = useNeedsReview(reviewerGardenIds, activeAddress);
 
   // Include offline queued submissions so the Pending tab still reflects the

@@ -2,6 +2,7 @@ import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow"
 import type { Garden } from "@green-goods/shared/types/domain";
 import { CommitmentRow } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   type CommitmentPoolRecord,
@@ -9,6 +10,7 @@ import {
   type CommitmentsInbox,
   useCommitmentMetadata,
 } from "@green-goods/shared/commitment-pooling";
+import { RiFilterOffLine } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 
@@ -158,6 +160,16 @@ export function OverTimeTab({
             ))}
           </div>
         </section>
+      ) : null}
+
+      {/* A season or campaign may hold nothing settled yet: the filter says so
+          rather than leaving its rail over an empty page. */}
+      {cycleId !== null && groups.length === 0 ? (
+        <EmptyState
+          placement="sheet"
+          icon={<RiFilterOffLine />}
+          title={formatMessage({ id: "app.commitments.overTime.emptyTitle" })}
+        />
       ) : null}
 
       {groups.length > 0 ? (
