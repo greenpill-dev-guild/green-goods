@@ -416,3 +416,56 @@ export const CockpitOutlineInDark: Story = {
     }
   },
 };
+
+/** The status aliases the cockpit resolves above <body>'s ramp remap, or on <body> itself. */
+const STATUS_ALIASES = [
+  "--error-base",
+  "--error-dark",
+  "--error-action",
+  "--error-action-hover",
+  "--m3-error",
+  "--warning-base",
+  "--warning-dark",
+  "--verified-base",
+  "--verified-dark",
+  "--information-dark",
+  "--information-base",
+  "--information-light",
+  "--information-lighter",
+] as const;
+
+/**
+ * In dark an error draws the cockpit's red, and every status alias in the story
+ * reads what the cockpit resolves: the value on <body>, where the dialogs a story
+ * portals read it too. The theme frame sits below <body>, so theme.css's and
+ * admin-m3-tokens.css's dark blocks would resolve the aliases again against the
+ * cockpit's remapped ramps; surfaces.css hands the frame the document's values
+ * instead. Checked in browser mode, where the cascade layers apply.
+ */
+export const CockpitStatusInDark: Story = {
+  tags: ["storybook-ci"],
+  globals: { theme: "dark" },
+  render: () => (
+    <div className="max-w-sm">
+      <AdminTextField
+        label="Email address"
+        defaultValue="not-an-email"
+        error="Enter a valid email address."
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const token = (element: Element, name: string) =>
+      getComputedStyle(element).getPropertyValue(name).trim();
+    const message = canvas.getByText("Enter a valid email address.");
+    await expect(message.closest("[data-theme]")).toHaveAttribute("data-theme", "dark");
+    for (const alias of STATUS_ALIASES) {
+      await expect(token(message, alias), alias).toBe(token(document.body, alias));
+    }
+    const red = `rgb(${token(document.body, "--m3-error").split(" ").join(", ")})`;
+    await expect(getComputedStyle(message).color).toBe(red);
+    const box = canvas.getByRole("textbox", { name: "Email address" });
+    await waitFor(() => expect(getComputedStyle(box).borderTopColor).toBe(red));
+  },
+};
