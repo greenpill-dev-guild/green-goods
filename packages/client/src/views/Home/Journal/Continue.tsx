@@ -99,7 +99,7 @@ export function Continue() {
     >
       {isLoading ? (
         <li>
-          <ItemRowSkeleton edge="info" />
+          <ItemRowSkeleton edge="neutral" />
         </li>
       ) : failed ? (
         <li>
