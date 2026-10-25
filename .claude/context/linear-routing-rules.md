@@ -28,8 +28,10 @@ routine limits; this file owns interactive routing and issue execution.
      ID `green-goods:speaker:<slug>` with `list_customers` and `externalIds`. Speaker
      aliases live on the customer record, where the workspace can edit them. A speaker
      with no alias who is a non-guest workspace member is internal and gets the Issue but
-     no need; anyone else gets the need without `customer` and a `Customer: unresolved`
-     line in its body for a person to attach later.
+     no need, unless independent telemetry backs the report, in which case the need quotes
+     the telemetry summary rather than the teammate and carries no `customer`; anyone else
+     gets the need without `customer` and a `Customer: unresolved` line in its body for a
+     person to attach later.
    - Explicitly scoped community coordination → **Community**. Do not route
      engineering or product delivery there merely because a community reported it.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
