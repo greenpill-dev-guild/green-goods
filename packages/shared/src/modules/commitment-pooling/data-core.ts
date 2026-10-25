@@ -239,6 +239,7 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     payerGarden: address(row.payerGarden),
     payoutPlanId: optionalInteger(row.payoutPlanId),
     counterparty: address(row.counterparty),
+    acceptanceAt: optionalNumber(row.acceptanceAt),
     recordedBy: address(row.recordedBy),
     counterpartyKind: row.counterpartyKind as CommitmentReadModel["counterpartyKind"],
     providerGarden: address(row.providerGarden),
