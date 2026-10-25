@@ -42,8 +42,8 @@
           "packages/shared/src/__tests__/hooks/auth/useIdentityChangeReset.test.ts"
         ]
       },
-      "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:8c0a5c00ef5a080e5a4a7951535d6943b2a298725b1de73260e6329c9e054c1b"
+      "reviewedAt": "2026-10-25",
+      "evidenceFingerprint": "sha256:95adf85fe4661557a13438236154269569a1fd89e4889041d00300ec08d8f571"
     },
     {
       "id": "shared-work-provider-command",
@@ -63,8 +63,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:84ea4ff8c6e509c1dae2c9c93f6f7a8965e0918a5dff9629bcdf077bbb21d0be"
+      "reviewedAt": "2026-10-25",
+      "evidenceFingerprint": "sha256:a3f2426568b66b22f921841a7852da4cd89e041a1407f5e99bd21ac2873d02ec"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -75,7 +75,7 @@
       "publicSpecifier": "@green-goods/shared/commitment-pooling",
       "interfaceSummary": "Provides the declared stable domain surface for commitment pooling reads, commands, controllers, selectors, and types without exposing Shared internals.",
       "dependencyCategory": "true-external",
-      "compositionRoots": ["packages/client/src/views/Home/Garden/index.tsx"],
+      "compositionRoots": ["packages/client/src/views/Home/Garden/GardenPage.tsx"],
       "directConsumers": ["packages/client/src/views/Home/Garden/WorkFulfills.tsx"],
       "proof": {
         "direct": ["packages/shared/src/__tests__/commitment-pooling.test.ts"],
@@ -83,7 +83,7 @@
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
       "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:199af66f5e5ee236f16cd441fc925cb95004d35f3d6a1cd58cab0a2dd5a982b6"
+      "evidenceFingerprint": "sha256:b776bb15298a58ca687dfdb684135273f4b5cc4bf7bd0e4d8ead27abcc9e6877"
     }
   ]
 }

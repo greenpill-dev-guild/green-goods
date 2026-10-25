@@ -5,6 +5,9 @@
 > The app includes Garden coordination and defers new money rewards and settlement writes.
 > This bounded delivery does not certify this historical lane or authorize publication.
 
+> The 11 October plan established this bounded slice and its command/evidence requirements;
+> the 15 October implementation record above is the later state.
+
 ## Status
 
 - Execution sub-lane: docs

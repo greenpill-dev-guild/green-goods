@@ -626,6 +626,33 @@ describe("CanvasLayout", () => {
     expect(mockNavigationBarProps.mock.calls[0]?.[0].onNavigate).toBe(firstProps.onNavigate);
   });
 
+  // One chip on both surfaces: the cockpit's avatar is the garden's banner too (DL-124).
+  it("hands the chip the selected garden's banner for its avatar", () => {
+    mockEligibleAdminGardens.current = {
+      ...mockEligibleAdminGardens.current,
+      resolvedDefaultGarden: {
+        ...createGardenFixture(),
+        bannerImage: "https://cdn.example/garden-one.webp",
+      },
+    };
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    expect(mockGardenChipProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        selectedGarden: {
+          id: "garden-1",
+          name: "Garden One",
+          bannerImage: "https://cdn.example/garden-one.webp",
+        },
+      })
+    );
+  });
+
   it("renders AppBar above the main workspace and keeps NavigationBar pure", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/hub"]}>

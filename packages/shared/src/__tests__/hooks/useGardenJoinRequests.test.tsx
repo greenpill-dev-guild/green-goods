@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   hasSmartClient: true,
   resolveSmartClient: vi.fn(),
   signerInput: vi.fn(),
+  chainId: 42161,
 }));
 
 vi.mock("wagmi", () => ({
@@ -50,7 +51,7 @@ vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
 }));
 
 vi.mock("../../hooks/blockchain/useChainConfig", () => ({
-  useCurrentChain: () => 42161,
+  useCurrentChain: () => mocks.chainId,
 }));
 
 vi.mock("../../modules/auth/account-message-signer", () => ({
@@ -78,6 +79,7 @@ vi.mock("../../modules/garden-join-requests", async (importOriginal) => ({
 }));
 
 import {
+  useAwaitingJoinRequests,
   useGardenJoinRequestAvailability,
   useGardenJoinRequestAvailabilityState,
   useGardenJoinRequests,
@@ -152,6 +154,7 @@ describe("useGardenJoinRequests", () => {
     mocks.resolve.mockResolvedValue({ ok: true, request: queueResponse.items[0] });
     mocks.authMode = "wallet";
     mocks.hasSmartClient = true;
+    mocks.chainId = 42161;
     mocks.resolveSmartClient.mockResolvedValue({
       account: mocks.smartAccount,
       chain: { id: 42161 },
@@ -858,5 +861,107 @@ describe("useGardenJoinRequests", () => {
       })
     );
     expect(result.current.request).toBeNull();
+  });
+});
+
+// Home's switcher, Explore and the no-garden Home mark a garden the member asked to join.
+describe("useAwaitingJoinRequests", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    testClient = createTestQueryClient();
+    testClient.setDefaultOptions({
+      ...testClient.getDefaultOptions(),
+      queries: { ...testClient.getDefaultOptions().queries, gcTime: 5 * 60 * 1000 },
+    });
+    mocks.accountAddress = "0x2222222222222222222222222222222222222222";
+    mocks.authMode = "wallet";
+    mocks.hasSmartClient = true;
+    mocks.chainId = 42161;
+    mocks.sign.mockResolvedValue("0x1234");
+    mocks.create.mockResolvedValue(selfResponse);
+    mocks.withdraw.mockResolvedValue({ ok: true });
+  });
+
+  async function sendRequest(garden: Address) {
+    const dialog = renderHook(() => useGardenJoinRequests(garden));
+    await act(async () => {
+      await dialog.result.current.submitRequest({
+        displayName: "Maya",
+        requestedVia: "garden_detail",
+      });
+    });
+    return dialog;
+  }
+
+  it("marks a garden whose request waits for a steward, without asking for a signature", async () => {
+    const dialog = await sendRequest(GARDEN_A);
+    dialog.unmount();
+    mocks.sign.mockClear();
+
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A, GARDEN_B]));
+
+    expect([...result.current]).toEqual([GARDEN_A.toLowerCase()]);
+    expect(mocks.sign).not.toHaveBeenCalled();
+    expect(mocks.mine).not.toHaveBeenCalled();
+  });
+
+  it("drops the mark once the request is withdrawn", async () => {
+    const dialog = await sendRequest(GARDEN_A);
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+    expect(result.current.has(GARDEN_A.toLowerCase())).toBe(true);
+
+    await act(async () => {
+      await dialog.result.current.withdrawRequest();
+    });
+
+    // The query cache tells its observers on its own schedule.
+    await waitFor(() => expect(result.current.size).toBe(0));
+  });
+
+  // The session forgets a request five minutes after the garden's page closes; a list that
+  // shows the mark keeps it for as long as it is on screen.
+  it("keeps the mark while a list shows it, after the garden's page closes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const dialog = await sendRequest(GARDEN_A);
+      const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+      dialog.unmount();
+
+      await act(async () => {
+        vi.advanceTimersByTime(6 * 60 * 1000);
+      });
+
+      expect(result.current.has(GARDEN_A.toLowerCase())).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never marks another account's request", async () => {
+    const dialog = await sendRequest(GARDEN_A);
+    dialog.unmount();
+    mocks.accountAddress = "0x5555555555555555555555555555555555555555";
+
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+
+    expect(result.current.size).toBe(0);
+  });
+
+  it("never marks a request sent on another chain", async () => {
+    const dialog = await sendRequest(GARDEN_A);
+    dialog.unmount();
+    mocks.chainId = 11155111;
+
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+
+    expect(result.current.size).toBe(0);
+  });
+
+  it("marks nothing without a signed-in account", () => {
+    mocks.accountAddress = null as unknown as Address;
+
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+
+    expect(result.current.size).toBe(0);
   });
 });

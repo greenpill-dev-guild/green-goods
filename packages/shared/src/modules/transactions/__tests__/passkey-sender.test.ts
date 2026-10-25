@@ -12,6 +12,7 @@ import {
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import type { P256Credential } from "viem/account-abstraction";
+import { encodeAbiParameters, toEventSelector } from "viem";
 import { entryPoint07Address, getUserOperationHash } from "viem/account-abstraction";
 import { arbitrum, celo as celoChain, sepolia } from "viem/chains";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -68,6 +69,50 @@ describe("PasskeySender", () => {
   });
 
   describe("sendContractCall", () => {
+    it.each([
+      "kernel-failure",
+      "other-account",
+      "other-operation",
+      "escrow-domain-failure",
+      "missing-scoped-logs",
+    ])("uses only this operation's scoped Kernel failure evidence: %s", async (kind) => {
+      const base = await client.waitForUserOperationReceipt({ hash: MOCK_TX_HASH });
+      const failure = {
+        address: kind === "other-account" ? VALID_RECIPIENT : client.account!.address,
+        topics: [
+          toEventSelector(
+            kind === "escrow-domain-failure"
+              ? "VoucherSetupActionResult(bytes32,uint8,bool,bytes32,bytes)"
+              : "TryExecuteUnsuccessful(uint256,bytes)"
+          ),
+        ],
+        data: encodeAbiParameters([{ type: "uint256" }, { type: "bytes" }], [0n, "0xdead"]),
+      };
+      const receipt = {
+        ...base,
+        logs:
+          kind === "missing-scoped-logs" ? undefined : kind === "other-operation" ? [] : [failure],
+        receipt: { ...base.receipt, logs: [failure] },
+      } as unknown as typeof base;
+      client.waitForUserOperationReceipt.mockResolvedValue(receipt);
+      client.getUserOperationReceipt = vi.fn().mockResolvedValue(receipt);
+      const action = sender.sendContractCall(TEST_CALL);
+      if (kind === "kernel-failure")
+        await expect(action).rejects.toMatchObject({ name: "TransactionRevertedError" });
+      else if (kind === "missing-scoped-logs") await expect(action).rejects.toThrow("scoped logs");
+      else await expect(action).resolves.toMatchObject({ hash: MOCK_TX_HASH });
+      await expect(
+        sender.reconcileBroadcast({ kind: "user-operation", hash: MOCK_TX_HASH })
+      ).resolves.toMatchObject({
+        status:
+          kind === "kernel-failure"
+            ? "reverted"
+            : kind === "missing-scoped-logs"
+              ? "unresolved"
+              : "confirmed",
+      });
+    });
+
     it("sends transaction via smartAccountClient.sendUserOperation", async () => {
       const result = await sender.sendContractCall(TEST_CALL);
 
@@ -350,6 +395,36 @@ describe("passkey chain routing", () => {
     });
     expect(celo.getUserOperationReceipt).toHaveBeenCalledOnce();
     expect(primary.getUserOperationReceipt).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "sender",
+    "operation",
+    "execution",
+  ])("does not reconcile a mismatched %s receipt as success", async (mismatch) => {
+    const primary = createFakeSmartAccountClient();
+    const read = primary.getUserOperationReceipt;
+    primary.getUserOperationReceipt = vi.fn(async (input) => {
+      const receipt = await read(input);
+      return {
+        ...receipt,
+        ...(mismatch === "sender" ? { sender: VALID_RECIPIENT } : {}),
+        ...(mismatch === "operation"
+          ? { userOpHash: `0x${"ff".repeat(32)}` as `0x${string}` }
+          : {}),
+        ...(mismatch === "execution"
+          ? { receipt: { ...receipt!.receipt, status: "reverted" as const } }
+          : {}),
+      } as NonNullable<typeof receipt>;
+    });
+    const sender = new PasskeySender(primary);
+    await expect(
+      sender.reconcileBroadcast({
+        kind: "user-operation",
+        chainId: primary.chain!.id,
+        hash: MOCK_TX_HASH,
+      })
+    ).resolves.toMatchObject({ status: mismatch === "execution" ? "reverted" : "unresolved" });
   });
 
   it("requires a resolver for every explicit chain, including the primary chain", async () => {

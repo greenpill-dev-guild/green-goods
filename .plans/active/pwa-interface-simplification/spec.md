@@ -490,6 +490,8 @@ Garden gets 104px at 390px and 74px at 360px; at 32px it shares the icons' line 
     before step 13, so the new Start step is built once on the shared flow; step 17 follows, and
     step 16 can land at any time.
 
+Correction (25 October): decisions 18 and 19 say an approval-gated ask's asker accepts or chooses who takes it up. The contract lets only the pool's stewards (the garden's stewards and owners) accept or decline a take-up request (`ClaimsLib.acceptClaim` and `declineClaim` require a pool steward), and the app shows the decision panel only to them, so DL-131 and the copy say a steward accepts.
+
 The same day #1162 merged a members-only check for Aiyeloja Family Garden and Mama Gardens in the
 Home filter (`modules/garden/filters.ts`, `config/garden-visibility.ts`). It counts gardeners and
 stewards as members; step 1 moves it onto the membership owner, which adds owners and evaluators
