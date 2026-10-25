@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review sheet</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;{{offlineMode}}</div></sc-if>
+  <div class="pp-nav" inert><span class="close"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span></div>
+  <div class="scr" inert>
+    <div class="pp-body">
+      <h1 class="pp-title">{{offerTitle}}</h1>
+      <p class="pp-place"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-sun-line"/></svg><span>{{cycle}}</span><span aria-hidden="true">·</span><span>{{garden}}</span></p>
+      <section class="pp-band" data-tone="neutral"><div class="pp-badges"><span class="gg-badge" data-tone="info">{{pill}}</span></div><p>{{bandText}}</p></section>
+    </div>
+  </div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+    <div class="grip"></div>
+    <div class="shead">
+      <div><h2 class="stitle" id="pay-title">{{sheetTitle}}</h2><p class="sdesc">{{offerTitle}}</p></div>
+      <a class="close" href="SOffer.dc.html?kind={{kindParam}}" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+    </div>
+    <sc-if value="{{stepsStrip}}" hint-placeholder-val="{{true}}">
+      <ol class="jstrip" aria-label="{{journeyLabel}}">
+        <sc-for list="{{journey}}" as="j" hint-placeholder-count="4"><li class="jstep {{j.cls}}" aria-current="{{j.cur}}"><span class="bar"></span><span>{{j.label}}</span></li></sc-for>
+      </ol>
+    </sc-if>
+    <sc-if value="{{stepsList}}" hint-placeholder-val="{{false}}">
+      <ol class="jlist" aria-label="{{journeyLabel}}">
+        <sc-for list="{{journey}}" as="j" hint-placeholder-count="4"><li class="{{j.cls}}" aria-current="{{j.cur}}"><span class="n">{{j.n}}</span><span>{{j.label}} <span class="jw">· {{j.who}}</span></span></li></sc-for>
+      </ol>
+    </sc-if>
+    <sc-if value="{{stepsCount}}" hint-placeholder-val="{{false}}">
+      <p class="jcount"><b>{{countLine}}</b> · {{countNext}}</p>
+    </sc-if>
+    <div class="sbody">
+      <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
+        <div class="notice {{noticeCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+      </sc-if>
+      <sc-if value="{{hasFacts}}" hint-placeholder-val="{{true}}"><h3 class="h3">{{stepTitle}}</h3></sc-if>
+      <sc-if value="{{hasFacts}}" hint-placeholder-val="{{true}}">
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row {{f.cls}}" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<small>{{f.s}}</small><sc-if value="{{f.chg}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="warning">{{changedPill}}</span></sc-if></dd></div></sc-for>
+          <sc-if value="{{hasTerms}}" hint-placeholder-val="{{true}}"><div class="gg-fact-row" data-kind="fact" data-has-action="true"><dt class="gg-fact-term"><span class="gg-fact-label">{{termsLabel}}</span></dt><dd class="gg-fact-value">{{termsVersion}}</dd><dd class="gg-fact-action"><a class="tlink" href="#">{{readTerms}}</a></dd></div></sc-if>
+        </dl>
+      </sc-if>
+      <sc-if value="{{hasNote}}" hint-placeholder-val="{{true}}"><p class="small" style="font-size: 13px; line-height: 18px">{{note}}</p></sc-if>
+    </div>
+    <div class="sacts">
+      <sc-if value="{{hasWhy}}" hint-placeholder-val="{{false}}">
+        <p class="pp-reason sheet-reason" role="status"><b>{{whyT}}</b> {{whyB}}</p>
+      </sc-if>
+      <sc-if value="{{btnLink}}" hint-placeholder-val="{{true}}"><a class="btn" href="{{btnHref}}">{{btn}}</a></sc-if>
+      <sc-if value="{{btnBusy}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" disabled aria-busy="true"><svg class="i spin" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-loader-4-line"/></svg>{{btn}}</button></sc-if>
+      <sc-if value="{{btnOff}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{btn}}</button></sc-if>
+      <sc-if value="{{hasFoot}}" hint-placeholder-val="{{true}}"><p class="foot">{{foot}}</p></sc-if>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$ purchase","Hub day","Claude access","Member lesson"],"default":"G$ purchase","section":"State"},"state":{"editor":"enum","options":["Agree","Agreeing","Waiting for issuer","Pay or deposit","Sending","Sent or deposited","No result","Terms changed","Not enough","Signing not available","Canceled","Offline"],"default":"Agree","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t0 = GGT(this.props.lang);
+    var kind = this.props.kind ?? 'G$ purchase';
+    var st = this.props.state ?? 'Agree';
+    var dark = this.props.dark ?? false;
+    var gd = kind === 'G$ purchase', course = kind === 'Claude access', member = kind === 'Member lesson';
+    // The issuer is a garden (Tech and Sun for a hub day, Green Goods for Claude access) or a named member (Teo);
+    // the copy names them through {issuer} and {unit}, and each garden's Safe through {sigs}
+    var ISS = member ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
+      : course ? { issuer: t0('who.ggShort'), issuerFull: t0('who.gg'), unit: t0('u.ggMany'), garden: t0('who.rc'), sigs: t0('c.sigs25') }
+      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc'), sigs: t0('c.sigs1') };
+    var unitOne = member ? t0('u.teo') : course ? t0('u.ggOne') : t0('u.sunOne');
+    var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
+    t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
+    // G$ purchases have no issuer approval, so that state shows the payment step
+    if (gd && st === 'Waiting for issuer') st = 'Pay or deposit';
+    var price = st === 'Terms changed' ? 480 : 450, fee = st === 'Terms changed' ? 0.48 : 0.45, gross = price + fee;
+    var n = course ? 10 : member ? 1 : (st === 'Terms changed' ? 2 : 1), held = st === 'Not enough' ? (course ? 2 : 0) : (course ? 10 : member ? 1 : 9);
+    var fv = member ? t.v : t.n;
+    var WARN = '#ri-alert-line', INFO = '#ri-information-line', OK = '#ri-checkbox-circle-line';
+    // Which step of the four the sheet is on: 0 agree, 1 send or issuer approval, 2 deposit or steward check, 3 acceptance
+    var agreeStates = { 'Agree': 1, 'Agreeing': 1, 'Terms changed': 1, 'Canceled': 1 };
+    var at = agreeStates[st] ? 0 : gd ? 1 : (st === 'Waiting for issuer' ? 1 : 2);
+    if (!gd && st === 'Not enough') at = 0;
+    if (gd && st === 'Sent or deposited') at = 2;
+    if (!gd && st === 'Sent or deposited') at = 3;
+    var labels = gd ? [t('pay.j.agree'), t('pay.j.send'), t('pay.j.checked'), t('pay.j.accepted')] : [t('pay.j.agree'), t('pay.j.approved'), t('pay.j.deposit'), t('pay.j.accepted')];
+    // A member's offer: the member approves, and the garden's stewards accept once the deposit is confirmed
+    var whos = gd ? [t('rd.who.you'), t('rd.who.you'), t('pay.g.toS'), t('who.gg')] : [t('rd.who.you'), t('rd.who.sun'), t('rd.who.you'), member ? t('who.stewards') : t('rd.who.sun')];
+    var journey = labels.map(function (l, i) {
+      var cls = i < at ? 'done' : i === at ? ((gd && i >= 2) || (!gd && (i === 1 || i === 3)) ? 'wait' : 'now') : '';
+      return { label: l, cls: cls, cur: i === at ? 'step' : 'false', n: String(i + 1), who: whos[i] };
+    });
+    var stepsKind = this.props.steps ?? 'strip';
+    var nextStep = journey[at + 1];
+    var F = function (k, v, s, chg) { return { k: k, v: v, s: s || '', cls: chg ? 'chg' : '', chg: !!chg }; };
+    var R = { facts: [], terms: false, note: '', notice: null, why: null, btn: '', href: '#', mode: 'link', foot: t('c.passkey') };
+    var giveV = member ? t('u.teoOne') : t('pay.v.give', { n: t.n(n), unit: n === 1 ? unitOne : ISS.unit });
+    if (gd) {
+      if (at === 0 || st === 'Not enough' && at === 0) {
+        R.step = t('pay.step.agree');
+        R.facts = [F(t('pay.f.get'), t('pay.g.get'), t('pay.g.getS')), F(t('pay.f.pay'), t('pay.g.pay', { gross: t.g(gross) }), t('pay.g.payS', { price: t.g(price), fee: t.g(fee) }), st === 'Terms changed'),
+          F(t('pay.f.held'), t('pay.g.held'), t('pay.g.heldS')), F(t('pay.f.back'), t('pay.g.back', { price: t.g(price) }), t('pay.g.backS'), st === 'Terms changed')];
+        R.terms = true; R.note = t('pay.g.consent'); R.btn = t('pay.cta.agree'); R.href = '#';
+      } else {
+        R.step = t('pay.step.send');
+        R.facts = [F(t('pay.f.to'), t('pay.g.to'), t('pay.g.toS')), F(t('pay.f.arrives'), t.g(price) + ' G$', ''), F(t('pay.f.fee'), t.g(fee) + ' G$', t('pay.g.feeS')), F(t('pay.f.debit'), t.g(gross) + ' G$', '')];
+        R.facts[3].cls = 'total';
+        R.note = t('pay.g.sendNote'); R.btn = t('pay.cta.send', { gross: t.g(gross) });
+      }
+    } else {
+      if (at === 0) {
+        R.step = t('pay.step.agree');
+        R.facts = [F(t('pay.f.get'), t(member ? 'pay.m.get' : course ? 'pay.c.get' : 'pay.s.get'), t('pay.v.getS')), F(t('pay.f.give'), giveV, st === 'Terms changed' ? t('pay.v.was', { n: t.n(1) }) : member ? t('pay.m.giveS') : t('pay.v.giveS', { held: fv(held) }), st === 'Terms changed'),
+          F(t('pay.f.held'), t('pay.v.held'), member ? t('of.m.heldS') : t('pay.v.heldS')), F(t('pay.f.deadline'), t.d('2026-11-02'), member ? t('pay.m.deadlineS') : n === 1 ? t('pay.v.deadline1S') : t('pay.v.deadlineS', { n: t.n(n) })),
+          F(t('pay.f.after'), t(member ? 'pay.m.after' : course ? 'pay.c.after' : 'pay.s.after'), t('pay.v.afterS'))];
+        R.terms = true; R.note = t('pay.v.consent'); R.btn = t('pay.cta.agree');
+      } else if (at === 1) {
+        R.step = t('pay.step.wait'); R.facts = []; R.note = '';
+        R.notice = ['info', '#ri-time-line', t('pay.v.wait.t'), t(member ? 'pay.v.waitM.b' : 'pay.v.wait.b')]; R.btn = t('c.done'); R.href = 'SRedeem.dc.html'; R.foot = '';
+      } else {
+        R.step = member || n === 1 ? t('pay.step.deposit1') : t('pay.step.deposit');
+        R.facts = [F(t('pay.f.deposit'), giveV, t('pay.v.depositS')), F(t('pay.f.into'), t('pay.v.into'), t('pay.v.intoS', { date: t.d('2026-10-27') })), F(t('pay.f.deadline'), t.d('2026-11-02'), '')];
+        R.note = member || n === 1 ? t('pay.m.depNote') : t('pay.v.depNote', { n: t.n(n) }); R.btn = member || n === 1 ? t('pay.m.deposit') : t('pay.cta.deposit', { n: t.n(n) });
+      }
+    }
+    if (st === 'Agreeing' || st === 'Sending') R.mode = 'busy';
+    if (st === 'Sent or deposited') {
+      R.facts = []; R.terms = false; R.note = ''; R.step = gd ? t('pay.step.checked') : member ? t('pay.step.acceptM') : t('pay.step.accept');
+      R.notice = gd ? ['ok', OK, t('pay.n.sent.t'), t('pay.n.sent.b')] : ['ok', OK, t('pay.n.deposited.t'), t(member ? 'pay.n.depositedM.b' : 'pay.n.deposited.b')];
+      R.btn = gd ? t('pay.cta.view') : t('pay.cta.viewB'); R.href = gd ? 'SPurchase.dc.html' : 'SRedeem.dc.html'; R.foot = '';
+    }
+    if (st === 'No result') { R.notice = ['warn', WARN, t('pay.n.nores.t'), gd ? t('pay.n.nores.b') : t('pay.n.noresD.b')]; R.btn = gd ? t('pay.cta.check') : t('pay.cta.checkD'); R.href = gd ? 'SPurchase.dc.html' : 'SRedeem.dc.html'; R.foot = ''; }
+    if (st === 'Terms changed') R.notice = ['warn', WARN, t('pay.n.changed.t'), gd ? t('pay.n.changed.b') : t('pay.n.changedV.b')];
+    if (st === 'Canceled') { R.notice = ['info', INFO, t('pay.n.cancel.t'), t('pay.n.cancel.b')]; R.btn = t('pay.cta.retry'); }
+    if (st === 'Not enough') {
+      R.why = gd ? ['warn', WARN, t('pay.r.short.t', { have: t.g(300.12) }), t('pay.r.short.b', { gross: t.g(gross) })] : ['warn', WARN, t('pay.r.shortV.t', { have: fv(held) }), t('pay.r.shortV.b', { n: fv(n) })];
+      R.btn = gd ? t('of.a.getGd') : t('of.a.exchange'); R.href = gd ? 'SWallet.dc.html' : 'SExchange.dc.html'; R.foot = '';
+    }
+    if (st === 'Signing not available') { R.why = gd ? ['warn', WARN, t('pay.r.unavailG.t'), t('pay.r.unavailG.b')] : ['warn', WARN, t('pay.r.unavail.t'), t('pay.r.unavail.b')]; R.mode = 'off'; R.foot = ''; }
+    if (st === 'Offline') { R.why = ['info', '#ri-cloud-off-line', t('pay.r.offline.t'), gd ? t('pay.r.offline.b') : t('pay.r.offlineV.b')]; R.mode = 'off'; R.foot = ''; }
+    return Object.assign(GGTW(this.props), {
+      kindParam: encodeURIComponent(kind),
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
+      offline: st === 'Offline', offlineMode: t('c.offline'),
+      // The promise page stays behind the sheet: its title, where it lives and its status band
+      cycle: gd || course ? t('pp.cycle.gg') : t('pp.cycle.sun'), garden: gd || course ? t('who.gg') : t('who.sun'), pill: t('sh.st.offered'), bandText: gd ? t('pp.band.openG') : t('pp.band.openV'),
+      offerTitle: gd ? t('of.g.title') : member ? t('of.m.title') : t(course ? 'of.c.title' : 'of.s.title'), termsVersion: t('pp.version', { v: t.n(gd ? 3 : 2) }),
+      sheetTitle: gd ? t('pay.titleG') : t('pay.titleV'), closeLabel: t('c.close'), journeyLabel: t('pay.journey'), journey: journey,
+      stepsStrip: stepsKind === 'strip', stepsList: stepsKind === 'list', stepsCount: stepsKind === 'count',
+      countLine: t('pay.j.count', { n: t.n(at + 1), total: t.n(journey.length), label: journey[at].label }),
+      countNext: nextStep ? t('pay.j.next', { label: nextStep.label, who: nextStep.who }) : t('pay.j.last'),
+      stepTitle: R.step, facts: R.facts, hasFacts: R.facts.length > 0, changedPill: t('pay.changed'),
+      hasTerms: R.terms, termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
+      hasNote: !!R.note, note: R.note,
+      hasNotice: !!R.notice, noticeCls: R.notice ? R.notice[0] : '', noticeIcon: R.notice ? R.notice[1] : '', noticeT: R.notice ? R.notice[2] : '', noticeB: R.notice ? R.notice[3] : '',
+      hasWhy: !!R.why, whyCls: R.why ? R.why[0] : '', whyIcon: R.why ? R.why[1] : '', whyT: R.why ? R.why[2] : '', whyB: R.why ? R.why[3] : '',
+      btn: R.btn, btnHref: R.href, btnLink: R.mode === 'link', btnBusy: R.mode === 'busy', btnOff: R.mode === 'off',
+      hasFoot: !!R.foot, foot: R.foot
+    });
+  }
+}
+</script>
+</body>
+</html>
