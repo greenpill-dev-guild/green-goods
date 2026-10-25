@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { afterEach, expect, it, vi } from "vitest";
 
-const offline = vi.hoisted(() => ({ useActiveOfflineGarden: vi.fn() }));
+const offline = vi.hoisted(() => ({ useOfflineGardenInView: vi.fn() }));
 vi.mock("@green-goods/shared/hooks/offline/useOfflineContent", () => offline);
 vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
   useNavigateToTop: () => vi.fn(),
@@ -55,7 +55,7 @@ it("says nothing about offline content while online", () => {
   // Online, the header's status line is the count, never a saved-copy line.
   expect(screen.getByRole("status")).toHaveTextContent("1 submission");
   expect(screen.queryByText(/Offline/)).toBeNull();
-  expect(offline.useActiveOfflineGarden).toHaveBeenCalledWith("0xgarden");
+  expect(offline.useOfflineGardenInView).toHaveBeenCalledWith("0xgarden");
 });
 
 it("keeps saved work visible without an online refresh-failure accent", () => {
