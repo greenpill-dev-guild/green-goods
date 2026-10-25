@@ -140,6 +140,13 @@ The cockpit's selection pattern, to copy in shape and not in code: `hooks/garden
 - Rendered proof: none (state only). `browser-proof` is advisory and pending: the offline content
   paths and Profile's list are in the authenticated class; acceptance (step 20) carries that
   proof.
+- Step 2: the full Shared suite passed (7,655); Shared typechecks in both scopes; the four
+  auth-session seam proofs passed (130 tests) before its fingerprint was refreshed for the
+  comment in `useIdentityChangeReset.ts`. The push gate adds `browser-passkey` for that path.
+  Its first run failed one spec, `client.reporting-account.passkey.spec.ts` ("trying again makes
+  one account…"), which failed identically on plain develop `99884497b` in this worktree; with
+  CI's placeholder `VITE_PIMLICO_API_KEY=test` all three passkey specs passed, and so did the
+  rerun below.
 
 ## Validation Receipt
 
@@ -162,6 +169,25 @@ Step 1 (`feature/pwa-membership-owner`):
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
   packages docs scripts` → empty
 - Evidence-only diff command and result: `git diff --exit-code ffdbd834a -- packages docs
+  scripts` → exit 0 (this record changes only `.plans/`)
+- Evidence-only worktree-status command and result: `git status --porcelain=v1
+  --untracked-files=all -- packages docs scripts` → empty
+
+Step 2 (`feature/pwa-active-garden`, stacked on step 1):
+
+- Tested implementation commit SHA: `8bae95387305c632786a1e168c23f7ac5424b550` (step 2's commits
+  over step 1's final head `3cfc9f060`)
+- Run at (UTC): `2026-10-25T04:10:45Z`
+- Exact command(s): `VITE_PIMLICO_API_KEY=test PATH="$HOME/.local/share/mise/installs/node/22.22.1/bin:$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push`
+- Result: passed, 31 of 32 selected checks fresh (step 1's 30 plus `browser-passkey`);
+  `browser-proof` pending (manual, advisory)
+- Validated paths: the 34 paths of `git diff --name-only origin/develop 8bae95387`: step 1's 27
+  plus the active-garden resolver, store and hook, their three tests, and the comment in
+  `hooks/auth/useIdentityChangeReset.ts` (the manifest, digests, seam registry and hub files
+  changed again)
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  packages docs scripts` → empty
+- Evidence-only diff command and result: `git diff --exit-code 8bae95387 -- packages docs
   scripts` → exit 0 (this record changes only `.plans/`)
 - Evidence-only worktree-status command and result: `git status --porcelain=v1
   --untracked-files=all -- packages docs scripts` → empty
