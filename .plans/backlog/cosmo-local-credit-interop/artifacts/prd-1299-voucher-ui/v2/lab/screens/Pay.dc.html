@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pay with your G$</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;Offline Mode</div></sc-if>
+  <div class="scr">
+    <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span><span class="mid">Green Goods Community Garden</span></div>
+    <div class="ident"><span class="kind">Offer</span><h1>AI assistant membership, 1 month</h1></div>
+  </div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-label="Pay with your G$">
+    <div class="grip" aria-hidden="true"></div>
+    <div class="shead">
+      <div><h2 class="stitle">Pay with Your G$</h2><p class="sdesc">AI assistant membership, 1 month · 450.00 G$</p></div>
+      <a class="close" href="Offer.dc.html" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+    </div>
+
+    <sc-if value="{{stepped}}" hint-placeholder-val="{{true}}">
+      <div class="stepper" style="padding: 4px 24px 8px">
+        <span class="st {{s1}}"><span class="dot">1</span>Garden</span>
+        <span class="st {{s2}}"><span class="dot">2</span>Details</span>
+        <span class="st {{s3}}"><span class="dot">3</span>Review</span>
+      </div>
+    </sc-if>
+
+    <div class="sbody">
+      <sc-if value="{{showGarden}}" hint-placeholder-val="{{true}}">
+        <div><p class="h3">Which garden holds your payment?</p><p class="small" style="margin-top: 2px">Its stewards check that your payment arrived and hold it for this promise.</p></div>
+        <button type="button" class="choice {{gRivCls}}" onClick="{{pickRiv}}"><span class="radio"></span><span class="ct"><b>Riverside Commons Garden</b><span>Your active garden</span></span><span class="rolechip">Gardener</span></button>
+        <button type="button" class="choice {{gHillCls}}" onClick="{{pickHill}}"><span class="radio"></span><span class="ct"><b>Hilltop Orchard</b><span>You steward this garden</span></span><span class="rolechip">Steward</span></button>
+        <button type="button" class="choice off" disabled><span class="radio"></span><span class="ct"><b>Bay Street Growers</b><span>Your request to join is waiting. Pick a garden you belong to.</span></span><span class="rolechip">Pending</span></button>
+        <p class="small">Green Goods Community Garden provides the service. You don't need to join it.</p>
+      </sc-if>
+
+      <sc-if value="{{showDetails}}" hint-placeholder-val="{{false}}">
+        <div class="card">
+          <div class="facts">
+            <div class="fact"><span class="k">Who gets the service</span><span class="v"><span>You</span><small>Buying for someone else isn't available yet.</small></span></div>
+            <div class="fact"><span class="k">Where refunds go</span><span class="v"><span>Your account on Celo</span><small class="mono">0x3C1e…7A2e</small></span></div>
+          </div>
+        </div>
+        <p class="small">Refunds go back to the account you pay from.</p>
+        <button type="button" class="chk {{extraCls}}" onClick="{{toggleExtra}}" aria-pressed="{{extraOn}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>If more than 450.00 G$ arrives, {{gName}} may keep the extra as a top-up.<span class="small" style="display: block; margin-top: 2px">Leave this off to get any extra back.</span></span></button>
+      </sc-if>
+
+      <sc-if value="{{showReview}}" hint-placeholder-val="{{false}}">
+        <p class="h3">What you're agreeing to</p>
+        <div class="card">
+          <div class="facts">
+            <div class="fact"><span class="k">Provider</span><span class="v">Green Goods Community Garden</span></div>
+            <div class="fact"><span class="k">Service for</span><span class="v"><span>You</span><small>1 month, for 1 person · version 3</small></span></div>
+            <div class="fact"><span class="k">Held by</span><span class="v">{{gName}} stewards</span></div>
+            <div class="fact"><span class="k">You send</span><span class="v">450.00 G$</span></div>
+            <div class="fact"><span class="k">G$ token fee</span><span class="v"><span>Read when you send</span></span></div>
+            <div class="fact"><span class="k">Network fee</span><span class="v">Covered by Green Goods</span></div>
+            <div class="fact"><span class="k">If extra arrives</span><span class="v">{{extraText}}</span></div>
+          </div>
+        </div>
+        <div class="notice"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg>Where your G$ waits</span><p>You send G$ on Celo to {{gName}}'s shared account, a Safe its stewards control. It stays set aside for this promise until it pays the provider's team or comes back to you.</p></div>
+        <p class="h3">What happens next</p>
+        <div class="ladder" style="margin: -4px -16px 0">
+          <div class="ls now"><span class="lm">1</span><span class="lt"><b>You agree to these exact terms</b></span></div>
+          <div class="ls todo"><span class="lm">2</span><span class="lt"><b>You send G$ on Celo</b></span></div>
+          <div class="ls todo"><span class="lm">3</span><span class="lt"><b>A {{gName}} steward checks it arrived</b></span></div>
+          <div class="ls todo"><span class="lm">4</span><span class="lt"><b>Green Goods Community Garden decides</b></span></div>
+          <div class="ls todo"><span class="lm">5</span><span class="lt"><b>Paid out when you confirm, or the full amount comes back</b></span></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{receipt}}" hint-placeholder-val="{{false}}">
+        <div class="receipt">
+          <span class="rk">Your request</span>
+          <div class="rl"><span>Service</span><span>1 month, for you</span></div>
+          <div class="rl"><span>Provider</span><span>Green Goods Community Garden</span></div>
+          <div class="rl"><span>Terms</span><span>Version 3</span></div>
+          <div class="tear"></div>
+          <div class="rl"><span>Held by</span><span>{{gName}} stewards</span></div>
+          <div class="rl"><span>Refunds to</span><span class="mono">0x3C1e…7A2e</span></div>
+          <div class="tear"></div>
+          <div class="rl"><span>G$ token fee</span><span>Read when you send</span></div>
+          <div class="rl"><span>Network fee</span><span>Covered</span></div>
+          <div class="rl big"><span>You send</span><span>450.00 G$</span></div>
+        </div>
+        <div class="chips">
+          <button type="button" class="chip" onClick="{{pickRiv}}" aria-pressed="{{rivOn}}" style="cursor: pointer">{{rivMark}}Riverside Commons</button>
+          <button type="button" class="chip" onClick="{{pickHill}}" aria-pressed="{{hillOn}}" style="cursor: pointer">{{hillMark}}Hilltop Orchard</button>
+        </div>
+        <button type="button" class="chk {{extraCls}}" onClick="{{toggleExtra}}" aria-pressed="{{extraOn}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{gName}} may keep anything over 450.00 G$ as a top-up</span></button>
+        <p class="small">Your G$ waits in {{gName}}'s Safe, held by its stewards, until it pays the provider's team or comes back to you. Never both.</p>
+      </sc-if>
+
+      <sc-if value="{{signing}}" hint-placeholder-val="{{false}}"><div class="notice info"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg>Waiting for your account…</span><p>Your account is asking you to agree to version 3.</p></div></sc-if>
+      <sc-if value="{{rejected}}" hint-placeholder-val="{{false}}"><div class="notice"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg>Nothing was agreed</span><p>You canceled the signature. Nothing was agreed or sent.</p></div></sc-if>
+      <sc-if value="{{changed}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>This offer just changed</span><p>It's now version 4, at 480.00 G$. Review the new terms before you agree.</p></div></sc-if>
+      <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="notice"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>Payments wait for a connection</span><p>You're offline. Agreements and payments never wait in the queue. Continue when you're back online.</p></div></sc-if>
+    </div>
+
+    <div class="sacts">
+      <sc-if value="{{showNext}}" hint-placeholder-val="{{true}}"><button type="button" class="btn" onClick="{{next}}">Continue</button></sc-if>
+      <sc-if value="{{showAgree}}" hint-placeholder-val="{{false}}"><a class="btn" href="Send.dc.html">Agree and Continue</a></sc-if>
+      <sc-if value="{{showWait}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{waitLabel}}</button></sc-if>
+      <sc-if value="{{rejected}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">Try Again</button></sc-if>
+      <sc-if value="{{changed}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">Review Version 4</button></sc-if>
+      <sc-if value="{{showBack}}" hint-placeholder-val="{{false}}"><button type="button" class="btn txt" onClick="{{back}}">Back</button></sc-if>
+      <sc-if value="{{showTwice}}" hint-placeholder-val="{{false}}"><p class="small" style="text-align: center">Your account asks twice: once to agree, once to send.</p></sc-if>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Stepped sheet","One-page receipt"],"default":"Stepped sheet","section":"Direction"},"state":{"editor":"enum","options":["Ready","Signing","Rejected","Terms changed","Offline"],"default":"Ready","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) {
+    if (prev.variant !== this.props.variant || prev.state !== this.props.state) this.setState({ step: undefined });
+  }
+  renderVals() {
+    var v = this.props.variant ?? 'Stepped sheet';
+    var st = this.props.state ?? 'Ready';
+    var dark = this.props.dark ?? false;
+    var s = this.state || {};
+    var stepped = v === 'Stepped sheet';
+    var ready = st === 'Ready';
+    var step = ready ? (s.step || 1) : 3;
+    var garden = s.garden || 'Riverside';
+    var gName = garden === 'Riverside' ? 'Riverside Commons Garden' : 'Hilltop Orchard';
+    var extra = !!s.extra;
+    var check = '✓ ';
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      stepped: stepped, receipt: !stepped,
+      s1: step === 1 ? 'on' : 'done', s2: step === 2 ? 'on' : (step > 2 ? 'done' : ''), s3: step === 3 ? 'on' : '',
+      showGarden: stepped && step === 1, showDetails: stepped && step === 2, showReview: stepped && step === 3,
+      gName: gName, gRivCls: garden === 'Riverside' ? 'on' : '', gHillCls: garden === 'Hilltop' ? 'on' : '',
+      rivOn: garden === 'Riverside' ? 'true' : 'false', hillOn: garden === 'Hilltop' ? 'true' : 'false',
+      rivMark: garden === 'Riverside' ? check : '', hillMark: garden === 'Hilltop' ? check : '',
+      extraCls: extra ? 'on' : '', extraOn: extra ? 'true' : 'false',
+      extraText: extra ? 'Kept as a top-up' : 'Comes back to you',
+      signing: st === 'Signing', rejected: st === 'Rejected', changed: st === 'Terms changed', offline: st === 'Offline',
+      showNext: stepped && ready && step < 3,
+      showAgree: ready && (!stepped || step === 3),
+      showWait: st === 'Signing' || st === 'Offline',
+      waitLabel: st === 'Signing' ? 'Waiting for your account…' : 'Agree and Continue',
+      showBack: stepped && ready && step > 1,
+      showTwice: ready && (!stepped || step === 3),
+      pickRiv: () => this.setState({ garden: 'Riverside' }),
+      pickHill: () => this.setState({ garden: 'Hilltop' }),
+      toggleExtra: () => this.setState({ extra: !extra }),
+      next: () => this.setState({ step: Math.min(3, step + 1) }),
+      back: () => this.setState({ step: Math.max(1, step - 1) }),
+    };
+  }
+}
+</script>
+</body>
+</html>

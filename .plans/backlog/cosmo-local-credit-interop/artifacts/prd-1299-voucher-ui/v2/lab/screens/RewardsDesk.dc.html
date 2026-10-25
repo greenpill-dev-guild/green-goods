@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Linked rewards in the cockpit</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Riverside Commons Garden</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">T</span></span>
+  </header>
+  <main class="c-route">
+    <div class="c-head">
+      <div><p style="margin: 0 0 4px">Promises › Kept</p><h1>Teach two compost workshops</h1><p>Request at Riverside Commons Garden · taken up by Lina · kept Oct 29</p></div>
+      <span class="sb ok">Kept</span>
+    </div>
+    <div class="c-grid">
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Rewards</h2><p>One reward done and one pending is normal. Each has its own receipt.</p></div></div>
+          <div class="ab">
+            <div class="flowrow {{gCls}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg><span style="flex: 1"><b>120.00 G$</b> · {{gText}}</span></div>
+            <div class="flowrow {{vCls}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg><span style="flex: 1"><b>{{vAmt}}</b>{{vText}}</span><sc-if value="{{failed}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill">Retry Same Delivery</button></sc-if></div>
+            <sc-if value="{{failed}}" hint-placeholder-val="{{false}}"><span class="small">Uses the same reward record. It can't deliver twice or change the amount.</span></sc-if>
+          </div>
+        </section>
+        <section class="acard">
+          <div class="ah"><div><h2>Payout plan</h2><p>The G$ reward follows the garden's existing payout plan</p></div></div>
+          <div class="arow"><div class="l1"><span class="nm">Lina</span><span class="sb neu">100%</span></div><div class="l2">Only contributor on this request</div></div>
+        </section>
+      </div>
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Agreed Rewards</h2><p>{{approvedBy}}</p></div></div>
+          <div class="ab"><div class="afacts">
+            <div class="afact"><span class="k">G$</span><span class="v">120.00 G$ · existing payout plan</span></div>
+            <div class="afact"><span class="k">Vouchers</span><span class="v">{{vTerms}}</span></div>
+            <div class="afact"><span class="k">Issuer</span><span class="v">{{issuer}}</span></div>
+            <div class="afact"><span class="k">Recipient</span><span class="v">Lina · Gnosis wallet <span class="mono">0x9A40…41bD</span><small>Bound at acceptance</small></span></div>
+          </div>
+          <sc-if value="{{mara}}" hint-placeholder-val="{{false}}"><span class="sb pol" style="align-self: flex-start">Issuer: policy</span></sc-if></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["One done","Both pending","Failed","Both done","Gardener issuer","Legacy"],"default":"One done","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var st = this.props.state ?? 'One done';
+    var dark = this.props.dark ?? false;
+    var mara = st === 'Gardener issuer';
+    var legacy = st === 'Legacy';
+    var G = st === 'Both pending' ? ['info', 'Payout plan finalized · dispatch next'] : ['ok', 'Confirmed on Celo, Oct 30'];
+    var V = {
+      'One done': ['info', 'Sent to Gnosis · waiting for delivery'],
+      'Both pending': ['info', 'Sent to Gnosis · waiting for delivery'],
+      'Failed': ['err', 'Delivery failed on Gnosis · stored result: allowance too low'],
+      'Both done': ['ok', 'Delivered on Gnosis · confirmed'],
+      'Gardener issuer': ['info', 'Sent to Gnosis · waiting for delivery'],
+      'Legacy': ['', 'No voucher reward. This promise was agreed before voucher terms existed.'],
+    }[st];
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      gCls: G[0], gText: G[1], vCls: V[0],
+      vAmt: legacy ? '' : (mara ? '5 seed library vouchers' : '20 Sunroot vouchers'),
+      vText: legacy ? V[1] : ' · ' + V[1],
+      failed: st === 'Failed', mara: mara,
+      approvedBy: legacy ? 'Agreed Oct 2, before voucher terms' : 'Approved by Tomás, Oct 20, from this garden’s vouchers',
+      vTerms: legacy ? 'None' : (mara ? "5 of Mara's Seed Library vouchers, issued within her cap" : "20 Sunroot vouchers from Riverside Commons Garden's vouchers"),
+      issuer: legacy ? 'None' : (mara ? "Mara's Seed Library · gardener issuer · admitted (policy) · 5 of 50 outstanding" : 'Sunroot Skills Hub · hub issuer'),
+    };
+  }
+}
+</script>
+</body>
+</html>

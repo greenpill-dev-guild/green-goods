@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Buy vouchers at an exchange</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr"><header class="hdr"><span class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Riverside Commons Garden</span></span></header></div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-label="Buy Sunroot vouchers">
+    <div class="grip" aria-hidden="true"></div>
+    <div class="shead">
+      <div><h2 class="stitle">Buy Sunroot Vouchers</h2><p class="sdesc">At Sunroot voucher exchange</p></div>
+      <a class="close" href="Wallet.dc.html" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+    </div>
+    <div class="sbody">
+      <div class="reh"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>Rehearsal: WXDAI on a local copy of Gnosis. Not live; nothing real is spent.</div>
+
+      <sc-if value="{{isQuote}}" hint-placeholder-val="{{true}}">
+        <div class="card">
+          <div class="pad">
+            <span class="small">You pay</span>
+            <div style="display: flex; justify-content: space-between; align-items: center"><span class="price"><span class="amt">50</span></span><span class="chip big">WXDAI<svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></span></div>
+            <span class="small">This exchange takes WXDAI in the rehearsal. G$ can't be used here.</span>
+          </div>
+          <div class="pad" style="border-top: 1px solid var(--line)">
+            <span class="small">You get</span>
+            <div style="display: flex; justify-content: space-between; align-items: center"><span class="price"><span class="amt" style="color: {{getColor}}">{{getAmt}}</span></span><span class="chip big">Sunroot vouchers</span></div>
+            <span class="small">{{getHint}}</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="facts">
+            <div class="fact"><span class="k">Exchange</span><span class="v">Run by Sunroot Skills Hub</span></div>
+            <div class="fact"><span class="k">Price here</span><span class="v"><span>1 WXDAI = 1 Sunroot voucher</span><small>This exchange's own price, not a rate anywhere else</small></span></div>
+            <div class="fact"><span class="k">Exchange holds</span><span class="v">{{holds}}</span></div>
+            <div class="fact"><span class="k">Goes to</span><span class="v"><span>Your Gnosis wallet</span><small>Change recipient</small></span></div>
+            <div class="fact"><span class="k">Quote valid for</span><span class="v">{{validFor}}</span></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isPick}}" hint-placeholder-val="{{false}}">
+        <p class="h3">Pay with</p>
+        <button type="button" class="choice on"><span class="radio"></span><span class="ct"><b>WXDAI</b><span>Rehearsal only</span></span></button>
+        <button type="button" class="choice off" disabled><span class="radio"></span><span class="ct"><b>Mara's Seed Library vouchers</b><span>This exchange doesn't take it</span></span></button>
+        <button type="button" class="choice off" disabled><span class="radio"></span><span class="ct"><b>G$</b><span>G$ isn't swapped for vouchers. Use G$ where an offer takes it.</span></span></button>
+      </sc-if>
+
+      <sc-if value="{{isReview}}" hint-placeholder-val="{{false}}">
+        <div class="card">
+          <div class="facts">
+            <div class="fact"><span class="k">You pay</span><span class="v">50 WXDAI</span></div>
+            <div class="fact total"><span class="k">You get at least</span><span class="v">49.5 Sunroot vouchers</span></div>
+            <div class="fact"><span class="k">Recipient</span><span class="v"><span class="mono">0x9A40…41bD</span></span></div>
+            <div class="fact"><span class="k">Deadline</span><span class="v">10 minutes after you sign</span></div>
+            <div class="fact"><span class="k">Network fee</span><span class="v">Covered (rehearsal)</span></div>
+            <div class="fact"><span class="k">Network</span><span class="v">Gnosis (local copy for rehearsal)</span></div>
+          </div>
+        </div>
+        <div class="card"><div class="ladder">
+          <div class="ls {{allowCls}}"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{allowIcon}}"/></svg></span><span class="lt"><b>{{allowT}}</b><span>First prompt</span></span></div>
+          <div class="ls {{swapCls}}"><span class="lm">2</span><span class="lt"><b>Swap</b><span>Second prompt</span></span></div>
+        </div></div>
+        <p class="small">Your wallet asks twice: once to let the exchange use 50 WXDAI, once to swap.</p>
+      </sc-if>
+
+      <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}"><div class="notice {{noticeCls}}"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div></sc-if>
+      <sc-if value="{{showEarn}}" hint-placeholder-val="{{true}}"><p class="small">Buying vouchers doesn't book a service or count as earning them.</p></sc-if>
+    </div>
+    <div class="sacts">
+      <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{true}}"><button type="button" class="btn {{primaryOff}}">{{primary}}</button></sc-if>
+      <sc-if value="{{hasDone}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="Wallet.dc.html">Done</a></sc-if>
+      <sc-if value="{{bought}}" hint-placeholder-val="{{false}}"><p class="small" style="text-align: center">Buy More starts a new purchase.</p></sc-if>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Quote","Pay with","Review","Allowed","Expired","Low inventory","Uncertain","Receipt","Bought"],"default":"Quote","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var st = this.props.state ?? 'Quote';
+    var dark = this.props.dark ?? false;
+    var OK = '#ri-check-line', WARN = '#ri-alert-line', Q = '#ri-question-line';
+    var quoteish = st === 'Quote' || st === 'Expired' || st === 'Low inventory';
+    var review = st === 'Review' || st === 'Allowed';
+    var N = {
+      'Expired': ['warn', WARN, 'The price moved', 'This quote expired. Get a new one before you swap.'],
+      'Low inventory': ['warn', WARN, 'Not enough in this exchange', 'It holds 20 Sunroot vouchers; you asked for 50. Ask for 20 or fewer.'],
+      'Uncertain': ['warn', Q, "We can't tell if the swap went through", 'Check the receipt before buying again. A second swap would buy again.'],
+      'Receipt': ['ok', OK, 'Swap found', 'You received 49.98 Sunroot vouchers at 2:41 PM. No need to swap again.'],
+      'Bought': ['ok', OK, 'Bought 49.98 Sunroot vouchers', "They're in your Gnosis wallet. Bought vouchers aren't an earned reward, and buying doesn't book a service."],
+    };
+    var P = { 'Quote': 'Review Swap', 'Pay with': 'Use WXDAI', 'Review': 'Allow 50 WXDAI', 'Allowed': 'Swap', 'Expired': 'Get New Quote', 'Low inventory': 'Review Swap', 'Uncertain': 'Check Receipt', 'Bought': 'Buy More' };
+    var n = N[st];
+    var low = st === 'Low inventory';
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      isQuote: quoteish, isPick: st === 'Pay with', isReview: review,
+      getAmt: low ? '50' : '49.98', getColor: low ? 'var(--err)' : 'var(--strong)',
+      getHint: low ? 'More than this exchange holds' : 'At least 49.5 if the price moves',
+      holds: low ? '20 Sunroot vouchers' : '340 Sunroot vouchers', validFor: st === 'Expired' ? 'Expired' : '0:42',
+      allowCls: st === 'Allowed' ? 'done' : 'now', allowIcon: st === 'Allowed' ? OK : '#ri-time-line',
+      allowT: st === 'Allowed' ? 'Exchange may use 50 WXDAI' : 'Allow 50 WXDAI', swapCls: st === 'Allowed' ? 'now' : 'todo',
+      hasNotice: !!n, noticeCls: n ? n[0] : '', noticeIcon: n ? n[1] : '', noticeT: n ? n[2] : '', noticeB: n ? n[3] : '',
+      showEarn: quoteish || review,
+      hasPrimary: !!P[st], primary: P[st] || '', primaryOff: low ? 'off' : '',
+      hasDone: st === 'Receipt' || st === 'Bought', bought: st === 'Bought',
+    };
+  }
+}
+</script>
+</body>
+</html>

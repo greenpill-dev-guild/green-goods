@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vouchers in your wallet</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr">
+    <header class="hdr"><span class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Riverside Commons Garden</span></span></header>
+  </div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-label="Your Wallet">
+    <div class="grip" aria-hidden="true"></div>
+    <div class="shead"><h2 class="stitle">Your Wallet</h2><a class="close" href="Main.dc.html" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a></div>
+    <div class="stabs" role="tablist">
+      <span role="tab" aria-selected="false">Tokens</span>
+      <span role="tab" aria-selected="true" class="on">Vouchers</span>
+      <span role="tab" aria-selected="false">Purchases</span>
+      <span role="tab" aria-selected="false">Cookies</span>
+    </div>
+    <div class="sbody">
+      <sc-if value="{{showWallet}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; justify-content: space-between; align-items: center"><span class="small">Gnosis wallet <span class="mono">0x9A40…41bD</span></span><span class="small">{{asOf}}</span></div>
+      </sc-if>
+      <sc-if value="{{stale}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg>Balances may be out of date</span><p>Last read at 8:10 AM. We couldn't refresh. Nothing has been lost; refresh to check.</p></div></sc-if>
+
+      <sc-if value="{{rows}}" hint-placeholder-val="{{true}}">
+        <a class="row" href="VOffer.dc.html"><span class="tile sun"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-sun-line"/></svg></span><span class="rbody"><span class="rtitle">Sunroot Skills Hub voucher</span><span class="pill neu">120 in wallet</span><span class="detail">+100 in escrow · used at Sunroot's posted prices</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <a class="row" href="#"><span class="tile seed"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><span class="rbody"><span class="rtitle">Mara's Seed Library voucher</span><span class="pill neu">5 in wallet</span><span class="detail">One seed packet · gardener issuer</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      </sc-if>
+
+      <sc-if value="{{tickets}}" hint-placeholder-val="{{false}}">
+        <a class="ticket sun" href="VOffer.dc.html">
+          <span class="tk"><span>Sunroot Skills Hub</span><span>Hub issuer</span></span>
+          <span class="ta">120</span>
+          <span class="tu">Sunroot vouchers · used at Sunroot's posted prices</span>
+          <span class="tline"></span>
+          <span style="display: flex; justify-content: space-between; font-size: 13px"><span>In escrow</span><b>100 · Solar basics course</b></span>
+        </a>
+        <a class="ticket seed" href="#">
+          <span class="tk"><span>Mara's Seed Library</span><span>Gardener issuer</span></span>
+          <span class="ta">5</span>
+          <span class="tu">Seed library vouchers · one seed packet each</span>
+        </a>
+      </sc-if>
+
+      <sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><div class="notice"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg>No vouchers yet</span><p>Earn them through promises, or buy them at a voucher exchange.</p></div></sc-if>
+      <sc-if value="{{noWallet}}" hint-placeholder-val="{{false}}"><div class="notice info"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-wallet-3-line"/></svg>Connect your Gnosis wallet to see vouchers</span><p>Vouchers live on Gnosis. Your passkey account can't hold them there yet.</p></div><button type="button" class="btn">Connect Gnosis Wallet</button></sc-if>
+
+      <sc-if value="{{showNote}}" hint-placeholder-val="{{true}}"><p class="small">Holding vouchers doesn't book a service. Each issuer's offers show what's available.</p></sc-if>
+
+      <p class="h3" style="margin-top: 4px">Use or get vouchers</p>
+      <a class="row" href="Visit.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg></span><span class="rbody"><span class="rtitle">Offers that take your vouchers</span><span class="detail">2 in gardens you can visit</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      <a class="row" href="Exchange.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-exchange-line"/></svg></span><span class="rbody"><span class="rtitle">Sunroot voucher exchange</span><span class="pill reh">Rehearsal</span><span class="detail">Run by Sunroot Skills Hub</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Rows","Ticket cards"],"default":"Rows","section":"Direction"},"state":{"editor":"enum","options":["Holdings","Empty","No wallet","Stale"],"default":"Holdings","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = this.props.variant ?? 'Rows';
+    var st = this.props.state ?? 'Holdings';
+    var dark = this.props.dark ?? false;
+    var has = st === 'Holdings' || st === 'Stale';
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      showWallet: st !== 'No wallet', asOf: st === 'Stale' ? 'as of 8:10 AM' : '',
+      stale: st === 'Stale', rows: has && v === 'Rows', tickets: has && v === 'Ticket cards',
+      empty: st === 'Empty', noWallet: st === 'No wallet', showNote: has,
+    };
+  }
+}
+</script>
+</body>
+</html>
