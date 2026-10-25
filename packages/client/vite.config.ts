@@ -152,6 +152,8 @@ function pwaHtmlMetadataPlugin(branding: PwaManifestBranding): Plugin {
     "%PWA_MS_TILE_IMAGE%": branding.msTileImage,
     "%PWA_THEME_COLOR_LIGHT%": branding.htmlThemeColorLight,
     "%PWA_THEME_COLOR_DARK%": branding.htmlThemeColorDark,
+    "%PWA_APP_THEME_COLOR_LIGHT%": branding.appThemeColorLight,
+    "%PWA_APP_THEME_COLOR_DARK%": branding.appThemeColorDark,
   };
 
   return {
@@ -283,7 +285,12 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     createPwaShellAssetsPlugin(),
     createChainImportsPlugin(),
     VitePWA({
-      includeAssets: [...pwaBranding.includeAssets, "images/avatar.png", "fonts/inter-*.woff2"],
+      includeAssets: [
+        ...pwaBranding.includeAssets,
+        "images/avatar.png",
+        "fonts/pwa.css",
+        "fonts/jakarta-*.woff2",
+      ],
       injectRegister: false,
       registerType: "prompt",
       // The worker is TypeScript in src/sw, bundled by Vite with the precache

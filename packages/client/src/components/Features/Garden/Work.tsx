@@ -12,7 +12,7 @@ import { RiErrorWarningLine, RiInboxLine, RiRefreshLine } from "@remixicon/react
 import React, { forwardRef, memo, type UIEvent, useCallback, useEffect } from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { GardenListHeader, GardenListHeaderLoading } from "./GardenListHeader";
@@ -44,7 +44,9 @@ interface GardenWorkProps {
 
 /** A phone shows about five cards; loading shows as many placeholders. */
 const SKELETON_CARDS = 5;
-const GRID = "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 w-full";
+/** Work rows, 12px apart (the one list gap, F11). */
+const GRID =
+  "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-(--gg-list-gap) w-full";
 const SORT_LABEL_IDS: Record<GardenWorkSort, string> = {
   pending: "app.garden.work.sort.pending",
   newest: "app.garden.work.sort.newest",

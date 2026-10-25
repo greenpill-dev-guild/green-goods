@@ -6,7 +6,7 @@ import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface GardenNotificationsProps {

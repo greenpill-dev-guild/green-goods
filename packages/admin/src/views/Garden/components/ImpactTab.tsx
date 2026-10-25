@@ -1,16 +1,17 @@
-import { DomainBadge } from "@green-goods/shared/components/DomainBadge";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import type { Address } from "@green-goods/shared/types/domain";
+import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
+import type { Address, Domain } from "@green-goods/shared/types/domain";
 import type { GardenDetailTab } from "@green-goods/shared/types/garden-detail";
 import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { normalizeTimestamp } from "@green-goods/shared/utils/time";
-import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
+import { RiErrorWarningLine, RiFileList3Line, RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
+import { Link, useNavigate } from "react-router-dom";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
-import { AdminListRow } from "@/components/AdminListRow";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
@@ -62,7 +63,16 @@ export function ImpactTab({
   approvedInLastThirtyDays,
 }: ImpactTabProps) {
   const { formatMessage, formatDate } = useIntl();
+  const navigate = useNavigate();
 
+  // An assessment row gives its date, then its domain; an unknown domain stays unlabelled.
+  const assessmentDetails = (
+    date: string,
+    domain: number | undefined
+  ): [string] | [string, string] => {
+    const config = domain === undefined ? undefined : DOMAIN_CONFIG[domain as Domain];
+    return config ? [date, formatMessage({ id: config.labelId })] : [date];
+  };
   const recentAssessments = assessments.slice(0, 5);
   const recentHypercerts = hypercerts.slice(0, 8);
   const gardenRouteContext = { gardenId: garden.id };
@@ -95,14 +105,14 @@ export function ImpactTab({
                   <AdminCardTitle>
                     {formatMessage({ id: "app.garden.detail.impact.hypercertHighlights" })}
                   </AdminCardTitle>
-                  <p className="mt-1 body-sm text-text-sub">
+                  <p className="mt-1 type-body text-text-sub">
                     {formatMessage({
                       id: "app.garden.detail.impact.hypercertHighlightsDescription",
                     })}
                   </p>
                 </div>
                 {hasHypercerts ? (
-                  <AdminButton size="sm" variant="tonal" asChild>
+                  <Button emphasis="tertiary" size="compact" asChild>
                     <Link
                       to={adminRoutes.gardenImpact({
                         ...gardenRouteContext,
@@ -111,31 +121,29 @@ export function ImpactTab({
                     >
                       {formatMessage({ id: "app.garden.admin.viewAll" })}
                     </Link>
-                  </AdminButton>
+                  </Button>
                 ) : null}
               </AdminCardHeader>
               <AdminCardBody className="flex flex-1 flex-col">
                 {hypercertsLoading ? (
                   <div
-                    className="grid flex-1 content-start gap-2 xl:grid-cols-2"
+                    className="grid flex-1 content-start gap-(--gg-list-gap) xl:grid-cols-2"
                     role="status"
                     aria-live="polite"
                   >
                     <span className="sr-only">
                       {formatMessage({ id: "app.hypercerts.list.title" })}
                     </span>
-                    {[0, 1, 2, 3, 4, 5].map((index) => (
-                      <div
-                        key={index}
-                        className="h-14 rounded-lg skeleton-shimmer"
-                        style={{ animationDelay: `${index * 0.08}s` }}
-                      />
+                    {[0, 1, 2, 3].map((index) => (
+                      <ItemRowSkeleton key={`hypercert-skeleton-${index}`} lead="icon" />
                     ))}
                   </div>
                 ) : hypercertsUnread ? (
-                  <p className="body-sm text-error-dark" role="alert">
-                    {formatMessage({ id: "app.garden.admin.hypercertsFailed" })}
-                  </p>
+                  <EmptyState
+                    tone="error"
+                    icon={<RiErrorWarningLine />}
+                    title={formatMessage({ id: "app.garden.admin.hypercertsFailed" })}
+                  />
                 ) : recentHypercerts.length === 0 ? (
                   <EmptyState
                     icon={<RiFileList3Line className="h-6 w-6" />}
@@ -146,50 +154,43 @@ export function ImpactTab({
                     })}
                     action={
                       canCertify ? (
-                        <AdminButton size="sm" variant="tonal" asChild>
+                        <Button emphasis="secondary" size="compact" asChild>
                           <Link to={adminRoutes.hubCertifyCreate(gardenRouteContext)}>
                             {formatMessage({ id: "cockpit.hub.action.createHypercert" })}
                           </Link>
-                        </AdminButton>
+                        </Button>
                       ) : undefined
                     }
                   />
                 ) : (
-                  <div className="grid flex-1 content-start gap-2 xl:grid-cols-2">
+                  <ul className="grid flex-1 content-start gap-(--gg-list-gap) xl:grid-cols-2">
                     {recentHypercerts.map((record) => (
-                      <AdminCard
-                        variant="outlined"
-                        key={record.id}
-                        className={`flex items-center justify-between px-3 py-2.5 ${
-                          selectedItem && record.id === selectedItem
-                            ? "ring-1 ring-primary-base"
-                            : ""
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <p
-                            className="truncate body-sm font-medium text-text-strong"
-                            title={record.title?.trim() || undefined}
-                          >
-                            {record.title?.trim() ||
-                              formatMessage({ id: "app.hypercerts.list.fallbackTitle" })}
-                          </p>
-                          <p className="mt-0.5 body-xs text-text-soft">
-                            {record.mintedAt
+                      <li key={record.id} className="min-w-0">
+                        <ItemRow
+                          lead={{ kind: "icon", icon: <RiMedalLine /> }}
+                          title={
+                            record.title?.trim() ||
+                            formatMessage({ id: "app.hypercerts.list.fallbackTitle" })
+                          }
+                          details={[
+                            record.mintedAt
                               ? formatDate(record.mintedAt * 1000, { dateStyle: "medium" })
-                              : formatMessage({ id: "app.hypercerts.list.dateUnknown" })}
-                          </p>
-                        </div>
-                        <Link
-                          to={adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext)}
-                          className="inline-flex items-center gap-1 label-xs text-primary-base hover:text-primary-darker"
-                        >
-                          {formatMessage({ id: "app.actions.view" })}
-                          <RiArrowRightSLine className="h-4 w-4" />
-                        </Link>
-                      </AdminCard>
+                              : formatMessage({ id: "app.hypercerts.list.dateUnknown" }),
+                            formatMessage(
+                              { id: "app.hypercerts.list.workCount" },
+                              { count: record.attestationCount ?? 0 }
+                            ),
+                          ]}
+                          selected={Boolean(selectedItem) && record.id === selectedItem}
+                          onOpen={() =>
+                            navigate(
+                              adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext)
+                            )
+                          }
+                        />
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 )}
               </AdminCardBody>
             </AdminCard>
@@ -202,7 +203,7 @@ export function ImpactTab({
                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
                 </AdminCardTitle>
                 {hasAssessments ? (
-                  <AdminButton size="sm" variant="tonal" asChild>
+                  <Button emphasis="tertiary" size="compact" asChild>
                     <Link
                       to={adminRoutes.gardenImpact({
                         ...gardenRouteContext,
@@ -211,71 +212,66 @@ export function ImpactTab({
                     >
                       {formatMessage({ id: "app.garden.admin.viewAll" })}
                     </Link>
-                  </AdminButton>
+                  </Button>
                 ) : null}
               </AdminCardHeader>
               <AdminCardBody>
                 {fetchingAssessments ? (
-                  <div className="space-y-2" role="status" aria-live="polite">
+                  <div
+                    className="flex flex-col gap-(--gg-list-gap)"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span className="sr-only">
+                      {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
+                    </span>
                     {[0, 1, 2].map((index) => (
-                      <div
-                        key={index}
-                        className="h-12 rounded-lg skeleton-shimmer"
-                        style={{ animationDelay: `${index * 0.08}s` }}
-                      />
+                      <ItemRowSkeleton key={`assessment-skeleton-${index}`} lead="icon" />
                     ))}
                   </div>
                 ) : assessmentsUnread ? (
-                  <p className="body-sm text-error-dark" role="alert">
-                    {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}
-                  </p>
+                  <EmptyState
+                    tone="error"
+                    icon={<RiErrorWarningLine />}
+                    title={formatMessage({ id: "app.garden.admin.assessmentsFailed" })}
+                  />
                 ) : recentAssessments.length === 0 ? (
-                  <div className="space-y-2">
-                    <p className="body-sm text-text-soft">
-                      {formatMessage({ id: "app.garden.admin.noAssessments" })}
-                    </p>
-                    {canReview ? (
-                      <AdminButton size="sm" variant="tonal" asChild>
-                        <Link to={adminRoutes.hubAssessCreate(gardenRouteContext)}>
-                          {formatMessage({ id: "cockpit.hub.action.createAssessment" })}
-                        </Link>
-                      </AdminButton>
-                    ) : null}
-                  </div>
+                  <EmptyState
+                    icon={<RiFileList3Line />}
+                    title={formatMessage({ id: "app.garden.admin.noAssessments" })}
+                    action={
+                      canReview ? (
+                        <Button emphasis="secondary" size="compact" asChild>
+                          <Link to={adminRoutes.hubAssessCreate(gardenRouteContext)}>
+                            {formatMessage({ id: "cockpit.hub.action.createAssessment" })}
+                          </Link>
+                        </Button>
+                      ) : undefined
+                    }
+                  />
                 ) : (
-                  <div className="space-y-2">
+                  <ul className="flex flex-col gap-(--gg-list-gap)">
                     {recentAssessments.map((assessment) => (
-                      <AdminListRow
-                        key={assessment.id}
-                        current={section === "assessments" && assessment.id === selectedItem}
-                        onClick={() => openSection("impact", "assessments", assessment.id)}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p
-                              className="line-clamp-2 break-words body-sm font-medium text-text-strong"
-                              title={assessment.title || assessment.assessmentType || undefined}
-                            >
-                              {assessment.title ||
-                                assessment.assessmentType ||
-                                formatMessage({ id: "app.garden.admin.assessmentFallback" })}
-                            </p>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                              {assessment.domain !== undefined ? (
-                                <DomainBadge domain={assessment.domain} variant="inline" />
-                              ) : null}
-                              <span className="body-xs text-text-soft">
-                                {formatDate(normalizeTimestamp(assessment.createdAt), {
-                                  dateStyle: "medium",
-                                })}
-                              </span>
-                            </div>
-                          </div>
-                          <RiArrowRightSLine className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-disabled transition-colors group-hover:text-text-sub" />
-                        </div>
-                      </AdminListRow>
+                      <li key={assessment.id}>
+                        <ItemRow
+                          lead={{ kind: "icon", icon: <RiFileList3Line /> }}
+                          title={
+                            assessment.title ||
+                            assessment.assessmentType ||
+                            formatMessage({ id: "app.garden.admin.assessmentFallback" })
+                          }
+                          details={assessmentDetails(
+                            formatDate(normalizeTimestamp(assessment.createdAt), {
+                              dateStyle: "medium",
+                            }),
+                            assessment.domain
+                          )}
+                          selected={section === "assessments" && assessment.id === selectedItem}
+                          onOpen={() => openSection("impact", "assessments", assessment.id)}
+                        />
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 )}
               </AdminCardBody>
             </AdminCard>
@@ -312,40 +308,32 @@ export function ImpactTab({
                 </AdminCardTitle>
               </AdminCardHeader>
               <AdminCardBody className="space-y-3">
-                <div className="space-y-2">
-                  <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.impactSummary.totalAssessments" })}
-                    </span>
-                    <span className="garden-stat-row-value">
-                      {assessmentsUnread ? "—" : assessments.length}
-                    </span>
-                  </div>
-                  <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.impactSummary.totalHypercerts" })}
-                    </span>
-                    <span className="garden-stat-row-value">
-                      {hypercertsUnread ? "—" : hypercerts.length}
-                    </span>
-                  </div>
-                  <div className="garden-stat-row">
-                    <span className="garden-stat-row-label">
-                      {formatMessage({ id: "app.garden.detail.metric.approvedIn30d" })}
-                    </span>
-                    <span className="garden-stat-row-value">{approvedInLastThirtyDays}</span>
-                  </div>
-                </div>
+                <FactList frame="inset">
+                  <FactRow
+                    label={formatMessage({
+                      id: "app.garden.detail.impactSummary.totalAssessments",
+                    })}
+                    value={assessmentsUnread ? "—" : assessments.length}
+                  />
+                  <FactRow
+                    label={formatMessage({ id: "app.garden.detail.impactSummary.totalHypercerts" })}
+                    value={hypercertsUnread ? "—" : hypercerts.length}
+                  />
+                  <FactRow
+                    label={formatMessage({ id: "app.garden.detail.metric.approvedIn30d" })}
+                    value={approvedInLastThirtyDays}
+                  />
+                </FactList>
                 {domainLabels.length > 0 ? (
                   <div className="border-t border-stroke-soft pt-3">
-                    <p className="mb-2 label-xs text-text-soft">
+                    <p className="mb-2 type-label-sm text-text-soft">
                       {formatMessage({ id: "app.garden.detail.domains" })}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {domainLabels.map((domainLabel) => (
                         <span
                           key={domainLabel}
-                          className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 label-xs text-primary-dark"
+                          className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 type-label-sm text-primary-dark"
                         >
                           {domainLabel}
                         </span>

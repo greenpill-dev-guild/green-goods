@@ -1,6 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
-import { AdminButton } from "@/components/AdminButton";
 import { ConnectPrompt } from "./ConnectPrompt";
 
 const connect = fn();
@@ -16,7 +16,7 @@ const meta: Meta<typeof ConnectPrompt> = {
     docs: {
       description: {
         component:
-          "The real provider-free ConnectPrompt with an actual AdminButton action. The callback is an inert Storybook spy: clicks prove action wiring and layout, not a wallet connection or authenticated session.",
+          "The real provider-free ConnectPrompt with an actual shared Button action. The callback is an inert Storybook spy: clicks prove action wiring and layout, not a wallet connection or authenticated session.",
       },
     },
   },
@@ -25,9 +25,9 @@ const meta: Meta<typeof ConnectPrompt> = {
     description: "Connect your wallet or sign in with a passkey to access this feature.",
     lang: "en",
     action: (
-      <AdminButton type="button" size="lg" onClick={connect}>
+      <Button type="button" size="lg" onClick={connect}>
         Connect Wallet
-      </AdminButton>
+      </Button>
     ),
   },
   argTypes: { action: { control: false }, icon: { control: false } },
@@ -45,9 +45,9 @@ export const Default: Story = {
 export const DisabledAction: Story = {
   args: {
     action: (
-      <AdminButton type="button" size="lg" disabled onClick={connect}>
+      <Button type="button" size="lg" disabled onClick={connect}>
         Connect Wallet
-      </AdminButton>
+      </Button>
     ),
   },
   play: async ({ canvasElement }) => {

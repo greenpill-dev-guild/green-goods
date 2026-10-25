@@ -131,7 +131,7 @@ export function ConvictionMeter({
       {showLabels ? (
         <div
           id={`${meterId}-label`}
-          className="flex items-center justify-between gap-2 text-label-sm font-medium tabular-nums"
+          className="flex items-center justify-between gap-2 type-meta-sm font-medium tabular-nums"
         >
           <span className="text-text-sub">{accrualLabel}</span>
           <span

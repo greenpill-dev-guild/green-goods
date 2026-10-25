@@ -60,7 +60,15 @@ const sidebars: SidebarsConfig = {
     },
     {type: 'doc', id: 'reference/faq', label: 'FAQ'},
     {type: 'doc', id: 'reference/glossary.generated', label: 'Glossary'},
-    {type: 'doc', id: 'reference/brand-voice', label: 'Brand voice'},
+    {
+      type: 'category',
+      label: 'Brand',
+      collapsed: false,
+      items: [
+        {type: 'doc', id: 'reference/brand-voice', label: 'Voice'},
+        {type: 'doc', id: 'reference/brand', label: 'Kit'},
+      ],
+    },
   ],
 
   buildersSidebar: [
@@ -129,6 +137,7 @@ const sidebars: SidebarsConfig = {
       link: {type: 'doc', id: 'builders/testing/index'},
       items: [
         {type: 'doc', id: 'builders/quality/product-experience-qa', label: 'Product QA'},
+        {type: 'doc', id: 'builders/quality/automated-qa', label: 'Automated QA'},
         {type: 'doc', id: 'builders/quality/test-cases', label: 'Test Cases'},
         {type: 'doc', id: 'builders/quality/gh-actions', label: 'CI & GitHub Actions'},
       ],

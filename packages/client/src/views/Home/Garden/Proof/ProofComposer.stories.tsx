@@ -237,7 +237,7 @@ export const ProofForSheet: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await toDetails(canvas);
-    await userEvent.click(canvas.getByRole("button", { name: /^Proof for / }));
+    await userEvent.click(canvas.getByRole("button", { name: /Proof for / }));
     const page = within(canvasElement.ownerDocument.body);
     const body = await page.findByRole("region", { name: "Promise details" });
     // A read-only body that scrolls takes focus, so a keyboard can scroll it.

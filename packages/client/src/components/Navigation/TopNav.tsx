@@ -1,3 +1,4 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Garden, Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -42,20 +43,6 @@ const BUTTON_VARIANT_TONES = {
 const iconTone = (variant: ButtonVariant = "work") =>
   pwaStatusStyles[BUTTON_VARIANT_TONES[variant]].icon;
 
-// Reusable notification badge, pinned by the IconButton badge slot
-const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
-  <span
-    className={cn(
-      "inline-flex items-center justify-center text-xs font-semibold rounded-full",
-      "min-w-[18px] h-[18px] px-1",
-      pwaStatusStyles.primary.badge,
-      "shadow-sm border-2 border-bg-white-0"
-    )}
-  >
-    {count > 99 ? "99+" : count}
-  </span>
-);
-
 const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works, garden }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { formatMessage } = useIntl();
@@ -74,7 +61,7 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
         onClick={() => setIsOpen(true)}
         aria-label="View notifications"
         icon={<NotificationIcon className={iconTone()} aria-hidden="true" />}
-        badge={hasNotifications ? <NotificationBadge count={workNotifications.length} /> : null}
+        badge={hasNotifications ? <CountBadge count={workNotifications.length} ring /> : null}
       />
       <AppSheet
         isOpen={isOpen}
@@ -177,7 +164,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   // offline banner shows, and the bar is 72px tall below the safe area.
   const containerClasses = cn(
     "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 pt-[var(--app-top-offset)] h-[var(--app-top-bar-height)]",
-    overlay && "fixed bg-bg-white-0"
+    overlay && "fixed bg-bg-canvas"
   );
 
   return (

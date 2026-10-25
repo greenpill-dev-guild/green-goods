@@ -1,14 +1,14 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { useCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { publicJarLink } from "./helpers";
-import { ReviewLine } from "./ReviewLine";
 
 /**
  * What a created jar is, shown on the Review under its status row (DL-080):
@@ -24,33 +24,33 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
     <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
       <div className="space-y-3 rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-4">
         <div>
-          <p className="text-label-md text-text-strong">
+          <p className="type-label-sm text-text-strong">
             {formatMessage({
               id: "cockpit.community.cookies.jarAddress",
               defaultMessage: "Jar address",
             })}
           </p>
-          <p className="mt-1 break-all text-body-sm text-text-sub">
+          <p className="mt-1 break-all type-meta text-text-sub">
             <EnsAddressText address={jarAddress} />
           </p>
           <a
             href={publicUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 inline-flex items-center gap-1 break-all text-label-md text-primary-dark underline-offset-4 hover:underline"
+            className="mt-2 inline-flex items-center gap-1 break-all type-label-sm text-primary-dark underline-offset-4 hover:underline"
           >
             {publicUrl}
             <RiExternalLinkLine className="h-4 w-4 shrink-0" aria-hidden />
           </a>
         </div>
-        <AdminButton type="button" variant="outlined" asChild>
+        <Button type="button" emphasis="secondary" size="sm" asChild>
           <a href={publicUrl} target="_blank" rel="noreferrer">
             {formatMessage({
               id: "cockpit.community.cookies.openPublicLink",
               defaultMessage: "Open Public Link",
             })}
           </a>
-        </AdminButton>
+        </Button>
       </div>
       <AdminCard variant="outlined" className="space-y-3">
         <AdminCardTitle>
@@ -60,38 +60,38 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
           })}
         </AdminCardTitle>
         {isLoading ? (
-          <p className="text-body-sm text-text-sub">
+          <p className="type-meta text-text-sub">
             {formatMessage({
               id: "cockpit.community.cookies.onchainReadLoading",
               defaultMessage: "Reading jar details...",
             })}
           </p>
         ) : jar ? (
-          <div>
-            <ReviewLine
+          <FactList frame="inset">
+            <FactRow
               label={formatMessage({
                 id: "cockpit.community.cookies.rowBalance",
                 defaultMessage: "Jar balance",
               })}
               value={`${formatTokenAmount(jar.balance, jar.decimals, 4)} ${jar.symbol}`}
             />
-            <ReviewLine
+            <FactRow
               label={formatMessage({
                 id: "cockpit.community.cookies.claimAmountPerSteward",
                 defaultMessage: "Claim amount per steward",
               })}
               value={`${formatTokenAmount(jar.fixedAmount, jar.decimals, 4)} ${jar.symbol}`}
             />
-            <ReviewLine
+            <FactRow
               label={formatMessage({
                 id: "cockpit.community.cookies.generatedStewards",
                 defaultMessage: "Stewards who can claim",
               })}
               value={jar.allowlist.length}
             />
-          </div>
+          </FactList>
         ) : (
-          <p className="text-body-sm text-error-dark">
+          <p className="type-meta text-error-dark">
             {formatMessage({
               id: "cockpit.community.cookies.onchainReadUnavailable",
               defaultMessage:
@@ -100,7 +100,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
           </p>
         )}
         {hasDetailReadFailure ? (
-          <p className="text-body-sm text-text-sub">
+          <p className="type-meta text-text-sub">
             {formatMessage({
               id: "cockpit.community.cookies.onchainReadPartial",
               defaultMessage:
@@ -136,13 +136,13 @@ export function CampaignCookieJarSubmittedState({
   return (
     <div className="space-y-4">
       <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-4">
-        <p className="text-label-md text-text-strong">
+        <p className="type-label-sm text-text-strong">
           {formatMessage({
             id: "cockpit.community.cookies.submittedTransaction",
             defaultMessage: "Submitted transaction",
           })}
         </p>
-        <p className="mt-1 break-all text-body-sm text-text-sub">{hash}</p>
+        <p className="mt-1 break-all type-meta text-text-sub">{hash}</p>
       </div>
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <AdminTextField
@@ -164,17 +164,18 @@ export function CampaignCookieJarSubmittedState({
           }
         />
         {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
-        <AdminButton
+        <Button
+          size="sm"
           type="button"
           onClick={onUseManualAddress}
           disabled={!manualAddress}
-          className="md:mb-5"
+          className="md:mb-9"
         >
           {formatMessage({
             id: "cockpit.community.cookies.useCreatedJar",
             defaultMessage: "Use jar address",
           })}
-        </AdminButton>
+        </Button>
       </div>
     </div>
   );

@@ -37,7 +37,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Action",
     bodyId: "public.glossary.term.action.body",
     defaultBody:
-      "A documented activity a gardener can perform: the reusable template for Work. Each Action names what to do, what to capture, and what proof comes next.",
+      "A documented activity a gardener can perform: the reusable template for work. Each action names what to do, what to capture, and what proof comes next.",
     docsPath: "/glossary#action",
   },
   {
@@ -55,7 +55,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Cookie Jar",
     bodyId: "public.glossary.term.cookieJar.body",
     defaultBody:
-      "A shared fund where supporters give to a garden's near-term Work. Only approved members can claim from a jar, so the funds reach the right hands.",
+      "A shared fund where supporters give to a garden's near-term work. Only approved members can claim from a jar, so the funds reach the right hands.",
     docsPath: "/glossary#cookie-jar",
   },
   {
@@ -64,7 +64,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Evaluator",
     bodyId: "public.glossary.term.evaluator.body",
     defaultBody:
-      "A person who strengthens Assessments, methods, and impact claims. Evaluators do not approve submitted Work; stewards record those decisions.",
+      "A person who strengthens assessments, methods, and impact claims. Evaluators do not approve submitted work; stewards record those decisions.",
     docsPath: "/glossary#evaluator",
   },
   {
@@ -73,7 +73,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Garden",
     bodyId: "public.glossary.term.garden.body",
     defaultBody:
-      "A community of gardeners doing regenerative work in a place. Each garden has its own Vault, steward, and gardeners, and its own public record.",
+      "A community of gardeners doing regenerative work in a place. Each garden has its own vault, steward, and gardeners, and its own public record.",
     docsPath: "/glossary#garden",
   },
   {
@@ -82,7 +82,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Gardener",
     bodyId: "public.glossary.term.gardener.body",
     defaultBody:
-      "A person who documents Work in the field with the Green Goods app, even offline: soil turned, seedlings planted, hours given.",
+      "A person who documents work in the field with the Green Goods app, even offline: soil turned, seedlings planted, hours given.",
     docsPath: "/glossary#gardener",
   },
   {
@@ -100,7 +100,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Steward",
     bodyId: "public.glossary.term.steward.body",
     defaultBody:
-      "The person who runs a garden: assembling the plan, accepting gardeners, and recording approval or rejection for submitted Work.",
+      "The person who runs a garden: assembling the plan, accepting gardeners, and recording approval or rejection for submitted work.",
     docsPath: "/glossary#steward",
   },
   {
@@ -109,7 +109,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Vault",
     bodyId: "public.glossary.term.vault.body",
     defaultBody:
-      "A long-term deposit attached to a garden whose yield supports the garden's Work over many seasons. Endowing a Vault keeps the principal in place.",
+      "A long-term deposit attached to a garden whose yield supports the garden's work over many seasons. Endowing a vault keeps the principal in place.",
     docsPath: "/glossary#vault",
   },
   {
@@ -118,7 +118,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Work",
     bodyId: "public.glossary.term.work.body",
     defaultBody:
-      "One Action carried out by a gardener, captured with a photo and description, and recorded as a Work attestation when submitted. Approval is a separate record.",
+      "One action carried out by a gardener, captured with a photo and description, and recorded as a work attestation when submitted. Approval is a separate record.",
     docsPath: "/glossary#work",
   },
 ] as const;

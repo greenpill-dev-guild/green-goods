@@ -2,7 +2,8 @@ import { RiAlertLine, RiRefreshLine } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { trackErrorBoundary } from "../../modules/app/error-events";
 import { logger } from "../../modules/app/logger";
-import { cn } from "../../utils/styles/cn";
+import { Button } from "../Button";
+import { EmptyState } from "../ListPrimitives";
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -101,38 +102,25 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return fallback;
     }
 
-    // Default fallback UI
+    // Default fallback UI: the state block, with the shared family's own button.
+    // The copy is written out because a boundary can sit above the language provider.
     return (
-      <div
-        role="alert"
-        className={cn(
-          "flex flex-col items-center justify-center gap-4 rounded-xl",
-          "border border-error-light bg-error-lighter p-6 text-center"
-        )}
-      >
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-error-light">
-          <RiAlertLine className="h-6 w-6 text-error-dark" />
-        </div>
-        <div className="space-y-1">
-          <h3 className="text-base font-semibold text-error-dark">Something went wrong</h3>
-          <p className="text-sm text-error-dark/80">
-            An unexpected error occurred. Please try again.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={this.handleReset}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-full px-4 py-2",
-            "bg-error-base text-sm font-medium text-white",
-            "transition hover:bg-error-dark",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-error-base focus-visible:ring-offset-2"
-          )}
-        >
-          <RiRefreshLine className="h-4 w-4" />
-          Try Again
-        </button>
-      </div>
+      <EmptyState
+        tone="error"
+        icon={<RiAlertLine />}
+        title="Something went wrong"
+        description="An unexpected error occurred. Please try again."
+        action={
+          <Button
+            data-piece-control
+            size="sm"
+            leadingIcon={<RiRefreshLine />}
+            onClick={this.handleReset}
+          >
+            Try Again
+          </Button>
+        }
+      />
     );
   }
 }

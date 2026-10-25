@@ -1,10 +1,10 @@
+import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import { useOfflineStatus } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import type { OfflineProgress } from "@green-goods/shared/modules/offline-content/store";
 import { RiDownloadCloud2Line } from "@remixicon/react";
 import { type IntlShape, useIntl } from "react-intl";
-import { Card } from "@/components/Cards";
-import { Avatar } from "@/components/Display";
+import { SettingTitle } from "./SettingTitle";
 
 interface OfflineContentRowProps {
   /** The settings column's shared control width, so every row's control lines up. */
@@ -134,9 +134,10 @@ function describeRow(
 }
 
 /**
- * The one place offline downloads are visible. The title stays on one line and
- * the status on exactly two, each truncated rather than wrapped, so the card keeps
- * its height in every state and language at a 360 px screen.
+ * The one place offline downloads are visible: a settings row in the Profile's
+ * settings list. The status stays on exactly two lines, each truncated rather
+ * than wrapped, so the row keeps its height in every state and language at a
+ * 360 px screen.
  */
 export function OfflineContentRow({ controlClassName }: OfflineContentRowProps) {
   const intl = useIntl();
@@ -148,20 +149,16 @@ export function OfflineContentRow({ controlClassName }: OfflineContentRowProps) 
   const row = describeRow(intl, progress, connectivity.state, { pause, resume, refresh });
 
   return (
-    <Card>
-      <div className="flex items-center gap-3 w-full">
-        <Avatar>
-          <RiDownloadCloud2Line className="h-4 w-4 text-primary-on-surface" aria-hidden="true" />
-        </Avatar>
-        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-          <div className="text-sm font-medium truncate" title={title}>
-            {title}
-          </div>
-          <div role="status" aria-label={title} className="min-h-8 text-xs text-text-sub-600">
-            <span className="block truncate">{row.status}</span>
-            <span className="block truncate">{row.detail}</span>
-          </div>
-        </div>
+    <FactRow
+      icon={<RiDownloadCloud2Line className="h-4 w-4" />}
+      label={<SettingTitle>{title}</SettingTitle>}
+      description={
+        <span role="status" aria-label={title} className="block min-h-8">
+          <span className="block truncate">{row.status}</span>
+          <span className="block truncate">{row.detail}</span>
+        </span>
+      }
+      action={
         <Button
           type="button"
           emphasis="secondary"
@@ -172,7 +169,7 @@ export function OfflineContentRow({ controlClassName }: OfflineContentRowProps) 
         >
           {row.action}
         </Button>
-      </div>
-    </Card>
+      }
+    />
   );
 }

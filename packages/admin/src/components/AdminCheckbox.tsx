@@ -17,7 +17,7 @@ export interface AdminCheckboxProps {
   name?: string;
   id?: string;
   className?: string;
-  /** External label reference for label-less use inside AdminSettingRow. */
+  /** External label reference, for a checkbox that a setting row (`FactRow`) names. */
   "aria-labelledby"?: string;
 }
 
@@ -167,11 +167,11 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
         {/* Label + description — only rendered when label text is provided */}
         {label ? (
           <span className="flex flex-col pt-2.5">
-            <span className="text-body-lg text-[rgb(var(--m3-on-surface))]">{label}</span>
+            <span className="type-field text-[rgb(var(--m3-on-surface))]">{label}</span>
             {description ? (
               <span
                 id={descriptionId}
-                className="mt-0.5 text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
+                className="mt-0.5 type-meta text-[rgb(var(--m3-on-surface-variant))]"
               >
                 {description}
               </span>

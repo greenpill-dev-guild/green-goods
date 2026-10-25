@@ -14,7 +14,6 @@ export interface CampaignCookieJarPanelViewProps {
   campaignSearch: string;
   setCampaignSearch: (value: string) => void;
   visibleCampaigns: readonly CampaignCookieJarCampaign[];
-  gardensByAddress: Map<string, Garden>;
   setSelectedCampaign: (campaign: CampaignCookieJarCampaign | null) => void;
   selectedCampaign: CampaignCookieJarCampaign | null;
   selectedCampaignTitle: string;

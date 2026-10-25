@@ -80,8 +80,8 @@ export function DesignTokens() {
       <section className={styles.block}>
         <h3>Type</h3>
         <p>
-          Inter for the interface, Fraunces for editorial moments. Each sample loads the fonts the app loads, so it
-          renders at its token's own weight.
+          Plus Jakarta Sans for the installed app and the cockpit, Inter for the public website, Fraunces for its
+          editorial moments. Each sample loads the fonts the app loads, so it renders at its token's own weight.
         </p>
         <div className={styles.type}>
           {Object.entries(typography).map(([name, token]) => (

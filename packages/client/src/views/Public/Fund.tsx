@@ -145,7 +145,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
             {formatMessage({
               id: "public.fund.vaults.lede",
               defaultMessage:
-                "Endow places a long-term deposit in a garden's Vault. Donate sends support straight to a garden's shared fund.",
+                "Endow places a long-term deposit in a garden's vault. Donate sends support straight to a garden's shared fund.",
             })}
           </p>
         </header>
@@ -552,7 +552,7 @@ function FundPageContent() {
               ledeId="public.fund.paths.endowLede"
               defaultLede="Make a withdrawable deposit whose investment earnings support the garden over time. The deposit and withdrawals carry risks; read the terms before contributing."
               routesId="public.fund.paths.endowRoutes"
-              defaultRoutes="Goes to this Garden's Vault endowment."
+              defaultRoutes="Goes to this garden's vault endowment."
               bestForId="public.fund.paths.endowBestFor"
               defaultBestFor="Long-term support that keeps working."
               learnMoreId="public.fund.paths.endowLearnMore"

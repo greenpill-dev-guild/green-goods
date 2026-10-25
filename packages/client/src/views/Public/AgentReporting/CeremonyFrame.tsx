@@ -5,8 +5,9 @@ import type { ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
-import { EmptyState, FormProgress } from "@/components/Communication";
+import { FormProgress } from "@/components/Communication";
 import { FocusedHeaderSteps } from "@/components/Navigation/FocusedSiteHeader";
+import { PublicStatement } from "@/components/Public/PublicStatement";
 import { CeremonyBar } from "./CeremonyBar";
 import type { CeremonyProblem, SpokenProblem } from "./failures";
 
@@ -57,7 +58,7 @@ export function CeremonyFrame({
   barStatus = null,
   hideHeadingIcon = false,
 }: {
-  /** `state` draws the heading as the app's empty state and leaves out the steps and the bar. */
+  /** `state` draws the heading as the website's sentence and leaves out the steps and the bar. */
   screen?: "step" | "state";
   /** The flow's named steps and the one in progress, 1-based; null where nothing is stepped. */
   steps?: { names: string[]; current: number } | null;
@@ -81,7 +82,10 @@ export function CeremonyFrame({
   const hasActions = !isState && actions !== null;
   const hasBar = hasActions || (!isState && barStatus !== null);
   return (
-    <section aria-labelledby="ceremony-title" className="font-sans">
+    // The page's buttons take the website's capsule (DL-121) but keep the app's 500 label: at the
+    // website's semibold, the act bar's two acts wrap at a 320px phone in Portuguese ("Entrar no
+    // jardim", "Agora não"), and the bar keeps one height in every state.
+    <section aria-labelledby="ceremony-title" className="font-sans [--gg-button-weight:500]">
       <Helmet>
         <title>
           {intl.formatMessage({
@@ -99,14 +103,14 @@ export function CeremonyFrame({
       ) : null}
       <div className="@container mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-4 px-4 pb-6 sm:px-6">
         {isState ? (
-          // The state's own words already say what went wrong, so no notice repeats them.
-          <EmptyState
+          // The state's own words already say what went wrong, so no notice repeats them. They take
+          // the website's sentence, as a failed public read does (DL-121).
+          <PublicStatement
             titleAs="h1"
             headingId="ceremony-title"
-            tone="warning"
-            icon={heading.Icon ? <heading.Icon /> : undefined}
             title={title}
             description={heading.info}
+            className="pt-4"
           />
         ) : (
           <>

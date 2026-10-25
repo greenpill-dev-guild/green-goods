@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useVaultEvents } from "@green-goods/shared/hooks/vault/useVaultEvents";
@@ -9,9 +11,9 @@ import {
   getVaultAssetSymbol,
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { formatDateTime } from "@green-goods/shared/utils/time";
+import { RiHistoryLine, RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface VaultEventHistoryProps {
@@ -52,30 +54,33 @@ export function VaultEventHistory({
   return (
     <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-title-md font-semibold text-text-strong">
+        <h2 className="type-title-md font-semibold text-text-strong">
           {formatMessage({ id: "app.treasury.events" })}
         </h2>
       </div>
 
       {isLoading && (
-        <p className="body-sm text-text-soft">
-          {formatMessage({ id: "app.treasury.eventsLoading" })}
-        </p>
+        <EmptyState
+          busy
+          icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+          title={formatMessage({ id: "app.treasury.eventsLoading" })}
+        />
       )}
 
       {!isLoading && events.length === 0 && (
-        <p className="body-sm text-text-soft">
-          {formatMessage({ id: "app.treasury.eventsEmpty" })}
-        </p>
+        <EmptyState
+          icon={<RiHistoryLine />}
+          title={formatMessage({ id: "app.treasury.eventsEmpty" })}
+        />
       )}
 
       {!isLoading && events.length > 0 && (
         <>
           {/* Desktop table */}
           <div className="hidden overflow-x-auto sm:block">
-            <table className="min-w-full divide-y divide-stroke-soft body-sm">
+            <table className="min-w-full divide-y divide-stroke-soft type-body">
               <thead>
-                <tr className="text-left label-xs text-text-soft">
+                <tr className="text-left type-label-sm text-text-soft">
                   <th className="py-2 pr-4">{formatMessage({ id: "app.treasury.type" })}</th>
                   <th className="py-2 pr-4">{formatMessage({ id: "app.treasury.asset" })}</th>
                   <th className="py-2 pr-4">{formatMessage({ id: "app.treasury.amount" })}</th>
@@ -89,7 +94,7 @@ export function VaultEventHistory({
                   <tr key={event.id}>
                     <td className="py-2 pr-4">
                       <span
-                        className={`rounded-full px-2 py-1 label-xs ${
+                        className={`rounded-full px-2 py-1 type-label-sm ${
                           EVENT_BADGE_CLASS[event.eventType] ?? "bg-bg-weak text-text-sub"
                         }`}
                       >
@@ -137,7 +142,7 @@ export function VaultEventHistory({
               <div key={event.id} className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <span
-                    className={`rounded-full px-2 py-1 label-xs ${
+                    className={`rounded-full px-2 py-1 type-label-sm ${
                       EVENT_BADGE_CLASS[event.eventType] ?? "bg-bg-weak text-text-sub"
                     }`}
                   >
@@ -145,9 +150,11 @@ export function VaultEventHistory({
                       ? formatMessage({ id: EVENT_TYPE_I18N[event.eventType] })
                       : event.eventType}
                   </span>
-                  <span className="body-xs text-text-soft">{formatDateTime(event.timestamp)}</span>
+                  <span className="type-meta text-text-soft">
+                    {formatDateTime(event.timestamp)}
+                  </span>
                 </div>
-                <div className="space-y-1 body-sm">
+                <div className="space-y-1 type-body">
                   <div className="flex justify-between">
                     <span className="text-text-soft">
                       {formatMessage({ id: "app.treasury.asset" })}
@@ -183,7 +190,7 @@ export function VaultEventHistory({
                         href={`${blockExplorer}/tx/${event.txHash}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="body-xs text-primary-base hover:text-primary-darker"
+                        className="type-meta text-primary-base hover:text-primary-darker"
                       >
                         {formatMessage({ id: "app.treasury.viewTx" })}
                       </a>
@@ -196,13 +203,14 @@ export function VaultEventHistory({
 
           {visibleCount < events.length && (
             <div className="mt-4">
-              <AdminButton
-                variant="text"
-                size="sm"
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
                 onClick={() => setVisibleCount((count) => count + initialVisibleCount)}
               >
                 {formatMessage({ id: "app.treasury.loadMore" })}
-              </AdminButton>
+              </Button>
             </div>
           )}
         </>

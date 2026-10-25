@@ -31,10 +31,8 @@ export function ConnectPrompt({
           />
         )}
       </div>
-      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
-        {title}
-      </h1>
-      <p className="mb-6 mt-2 max-w-sm body-sm text-text-sub">{description}</p>
+      <h1 className="mt-5 type-title-lg font-semibold text-text-strong">{title}</h1>
+      <p className="mb-6 mt-2 max-w-sm type-body text-text-sub">{description}</p>
       {action}
     </div>
   );

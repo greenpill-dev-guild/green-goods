@@ -51,6 +51,7 @@ interface UseAuthReturn {
   confirmPilotAccount?: AuthActionsValue["confirmPilotAccount"];
   reconcilePilotAccount?: AuthActionsValue["reconcilePilotAccount"];
   cancelPilotAccountEnrollment?: AuthActionsValue["cancelPilotAccountEnrollment"];
+  walletReleaseStalled?: boolean;
   // Core state
   authMode: AuthMode;
   isReady: boolean;
@@ -115,6 +116,7 @@ export function useAuth(): UseAuthReturn {
     confirmPilotAccount: auth.confirmPilotAccount,
     reconcilePilotAccount: auth.reconcilePilotAccount,
     cancelPilotAccountEnrollment: auth.cancelPilotAccountEnrollment,
+    walletReleaseStalled: auth.walletReleaseStalled,
     // Core state
     authMode: auth.authMode,
     isReady: auth.isReady,

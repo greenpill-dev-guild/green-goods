@@ -21,7 +21,7 @@ describe("public startup scheduling", () => {
     );
     const task = vi.fn();
     afterPublicContentPaint(task);
-    await vi.runAllTimersAsync();
+    await vi.advanceTimersByTimeAsync(14_999);
     expect(task).not.toHaveBeenCalled();
     markPublicContentReady();
     expect(task).not.toHaveBeenCalled();
@@ -38,6 +38,28 @@ describe("public startup scheduling", () => {
     expect(task).not.toHaveBeenCalled();
     await vi.runAllTimersAsync();
     expect(task).toHaveBeenCalledOnce();
+  });
+  it("starts once after a bounded wait when the public shell never mounts", async () => {
+    const { afterPublicContentPaint, markPublicContentReady } = await import(
+      "../../config/publicStartup"
+    );
+    const task = vi.fn();
+    afterPublicContentPaint(task);
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(task).not.toHaveBeenCalled();
+    await vi.runAllTimersAsync();
+    expect(task).toHaveBeenCalledOnce();
+    markPublicContentReady();
+    await vi.runAllTimersAsync();
+    expect(task).toHaveBeenCalledOnce();
+  });
+  it("cleans the failure fallback when its caller is canceled", async () => {
+    const { afterPublicContentPaint } = await import("../../config/publicStartup");
+    const task = vi.fn();
+    afterPublicContentPaint(task)();
+    await vi.runAllTimersAsync();
+    expect(task).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
   it("removes work canceled before content arrives", async () => {
     const { afterPublicContentPaint, markPublicContentReady } = await import(

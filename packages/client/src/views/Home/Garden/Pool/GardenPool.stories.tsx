@@ -35,8 +35,8 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
   // As on the page: the spacer under the fixed header is the header's measured height.
   const [measureHeader, headerHeight] = useElementHeight();
   return (
-    <div className="relative flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-bg-white-0">
-      <div ref={measureHeader} className="fixed left-0 right-0 top-0 z-20 bg-bg-white-0">
+    <div className="relative flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-bg-canvas">
+      <div ref={measureHeader} className="fixed left-0 right-0 top-0 z-20 bg-bg-canvas">
         <div className="relative h-36 w-full overflow-hidden rounded-b-2xl">
           <img
             src={FIXTURE_IMAGE_BANNER}
@@ -44,7 +44,7 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         </div>
-        <div className="mt-3 flex flex-col gap-1.5 bg-bg-white-0 px-4 pb-3">
+        <div className="mt-3 flex flex-col gap-1.5 px-4 pb-3">
           <h1 className="line-clamp-2 text-2xl font-bold">Riverside Commons Garden</h1>
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
@@ -57,7 +57,7 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
             </div>
           </div>
         </div>
-        <div className="sticky left-0 right-0 top-0 z-10 w-full bg-bg-white-0 shadow-sm">
+        <div className="sticky left-0 right-0 top-0 z-10 w-full bg-bg-canvas shadow-sm">
           <StandardTabs
             tabs={buildGardenTabs(intl, { hasPool: true })}
             activeTab={GardenTab.Pool}
@@ -169,7 +169,8 @@ export const QueuedCreation: Story = {
 
 /**
  * The same request for a wallet reader after its send failed on the wallet's network. Nothing
- * sends it for them, so the row says it was not sent, names the network, and offers both acts.
+ * sends it for them, so the row says it was not sent, leads its details with why (the network
+ * to switch to) so a phone keeps it in view, gives its units after it, and offers both acts.
  */
 export const QueuedCreationWalletNotSent: Story = {
   tags: ["storybook-ci"],
@@ -188,7 +189,14 @@ export const QueuedCreationWalletNotSent: Story = {
       canvasElement.querySelector("[data-component=PendingCreationRow]") as HTMLElement
     );
     await expect(row.getByText("Not sent")).toBeVisible();
-    await expect(row.getByText(/needs to be on Arbitrum One/)).toBeVisible();
+    // At the story's phone width the line keeps one row and drops from its end, so the
+    // reason must sit on that row; the units follow it, and the line holds both on hover.
+    const reason = row.getByText(/needs to be on Arbitrum One/);
+    const line = reason.closest(".gg-item-row-details") as HTMLElement;
+    await expect(reason.getBoundingClientRect().top).toBeLessThan(
+      line.getBoundingClientRect().bottom
+    );
+    await expect(line).toHaveAttribute("title", expect.stringMatching(/Arbitrum One.*6 hours/));
     await expect(row.queryByText(/sends when you are connected/i)).toBeNull();
     await expect(row.getByRole("button", { name: "Send Now" })).toBeEnabled();
     await expect(row.getByRole("button", { name: "Discard" })).toBeEnabled();
@@ -260,9 +268,11 @@ export const Loading: Story = {
     // No ⓘ while loading: it would slide as the line becomes the count. No + either.
     await expect(canvas.queryByRole("button", { name: "What this pool is for" })).toBeNull();
     await expect(canvas.queryByRole("button", { name: "Offer or Request" })).toBeNull();
-    const rows = canvasElement.querySelectorAll("[data-skeleton=commitment-row]");
+    // The item row's own frame, led by the icon tile the promises arrive with.
+    const rows = canvasElement.querySelectorAll("[data-skeleton=item-row]");
     await expect(rows).toHaveLength(4);
     await expect(rows[0].getBoundingClientRect().height).toBe(88);
+    await expect(rows[0].querySelector(".gg-item-row-tile")).not.toBeNull();
   },
 };
 

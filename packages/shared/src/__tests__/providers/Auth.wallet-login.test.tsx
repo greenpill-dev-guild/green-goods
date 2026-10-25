@@ -13,7 +13,11 @@ import {
   createMockP256Credential,
   createMockSmartAccountClient,
 } from "../test-utils/mock-factories";
-import { publishSignOut, SIGN_OUT_REVISION_KEY } from "../../modules/auth/sessionSignOut";
+import {
+  getActorSignOutRevision,
+  publishSignOut,
+  SIGN_OUT_REVISION_KEY,
+} from "../../modules/auth/sessionSignOut";
 import { AUTH_MODE_STORAGE_KEY } from "../../modules/auth/session";
 import { connectivityStore } from "../../stores/connectivity";
 import { queryClient } from "../../config/react-query";
@@ -355,6 +359,100 @@ describe("AuthProvider wallet login bridge", () => {
     view.rerender();
     await waitFor(() => expect(view.result.current.walletAddress).toBe(OTHER_WALLET));
     view.unmount();
+  });
+
+  it.each([
+    "wallet",
+    "embedded",
+  ] as const)("offers a bounded fresh-page retry for a stalled %s request without accepting a late result", async (mode) => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ isConnecting: true, connector: rabbyConnector });
+    view.rerender();
+    await act(async () => view.result.current.signOut());
+    vi.useFakeTimers();
+    const reload = vi.spyOn(window.location, "reload").mockImplementation(() => {});
+    try {
+      act(() =>
+        mode === "wallet"
+          ? view.result.current.loginWithWallet()
+          : view.result.current.loginWithEmbedded()
+      );
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+      expect(view.result.current.walletReleaseStalled).toBe(true);
+      expect(view.result.current.isAuthenticated).toBe(false);
+      expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
+      expect(reload).not.toHaveBeenCalled();
+      act(() => view.result.current.loginWithWallet());
+      expect(reload).toHaveBeenCalledOnce();
+      setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+      view.rerender();
+      await act(async () => {});
+      expect(view.result.current.isAuthenticated).toBe(false);
+      setAccount(disconnectedAccount);
+      view.rerender();
+      await act(async () => {});
+      expect(view.result.current.walletReleaseStalled).toBe(false);
+      expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(1);
+      act(() => view.result.current.loginWithWallet());
+      expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(2);
+    } finally {
+      reload.mockRestore();
+      vi.useRealTimers();
+      view.unmount();
+    }
+  });
+
+  it("reconciles a logout published after actor startup but before provider mount", async () => {
+    actor.stop();
+    localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+    actor = createAuthTestActor("wallet", TEST_WALLET);
+    getActorSignOutRevision(actor);
+    actor.start();
+    mocks.mockGetAuthActor.mockReturnValue(actor);
+    await waitFor(() => expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true));
+    localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+    publishSignOut();
+    const view = renderAuth();
+    await waitFor(() => expect(actor.getSnapshot().matches("unauthenticated")).toBe(true));
+    act(() => actor.send({ type: "RESTORE_TIMEOUT" }));
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(view.result.current.walletAddress).toBeNull();
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
+    view.unmount();
+    actor.stop();
+  });
+
+  it.each([
+    "passkey",
+    "unmount",
+  ] as const)("cancels stalled-wallet recovery on %s without admitting the old request", async (cancel) => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ isConnecting: true, connector: rabbyConnector });
+    view.rerender();
+    await act(async () => view.result.current.signOut());
+    vi.useFakeTimers();
+    try {
+      act(() => view.result.current.loginWithWallet());
+      if (cancel === "passkey") await act(async () => view.result.current.loginWithPasskey());
+      else view.unmount();
+      await act(async () => vi.advanceTimersByTimeAsync(11_000));
+      expect(view.result.current.walletReleaseStalled).toBe(false);
+      expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(1);
+      if (cancel === "passkey") {
+        setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+        view.rerender();
+        await act(async () => {});
+        expect(view.result.current.isAuthenticated).toBe(false);
+        expect(view.result.current.externalWalletAddress).toBeNull();
+      }
+    } finally {
+      view.unmount();
+      vi.useRealTimers();
+    }
   });
 
   it("keeps a late wallet quarantined when release fails and lets an explicit retry release it", async () => {

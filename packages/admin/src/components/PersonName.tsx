@@ -1,9 +1,7 @@
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { ReactNode } from "react";
-import { formatEnsAddressName } from "./EnsAddressText";
 
 interface PersonNameProps {
   address: Address;
@@ -13,23 +11,28 @@ interface PersonNameProps {
 }
 
 /**
- * What the cockpit calls a person: their Green Goods name, then their ENS name,
- * then a short address, never a raw hex string. One lookup, so a confirmer
- * chip, a member suggestion and a Review Promises row name the same
- * person the same way, in one style (PRD-1025 D11): 14px semibold sans.
+ * What the cockpit calls a person in a line of text: the name the shared address display
+ * resolves (their Green Goods name, then their ENS name, then a short address, never a raw
+ * hex string), so a confirmer chip, a member suggestion, a Review Promises row and a person
+ * row name the same person the same way (DL-112), in one style (PRD-1025 D11): 14px
+ * semibold sans.
  */
 export function PersonName({ address, className, children }: PersonNameProps) {
-  const { data: protocolName } = useGreenGoodsEnsName(address);
-  const { data: ensName } = useEnsName(protocolName ? null : address);
-  const name = formatEnsAddressName(address, protocolName ?? ensName);
-  if (children) return <>{children(name)}</>;
   return (
-    <span
-      data-component="PersonName"
-      className={cn("truncate body-sm font-semibold text-text-strong", className)}
-      title={name === address ? address : `${name} · ${address}`}
-    >
-      {name}
-    </span>
+    <AddressDisplay address={address}>
+      {(name) =>
+        children ? (
+          children(name)
+        ) : (
+          <span
+            data-component="PersonName"
+            className={cn("truncate type-body font-semibold text-text-strong", className)}
+            title={`${name} · ${address}`}
+          >
+            {name}
+          </span>
+        )
+      }
+    </AddressDisplay>
   );
 }

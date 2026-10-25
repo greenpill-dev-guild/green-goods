@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
@@ -46,21 +47,21 @@ export function CommunityEndowmentTab({
               {/* A plain label and value, one line per asset held: amounts of
                   different assets never add up (D14). */}
               <div>
-                <p className="text-label-sm text-text-sub">
+                <p className="type-meta-sm text-text-sub">
                   {formatMessage({ id: "app.treasury.totalValueLocked" })}
                 </p>
                 {!hasVaults ? (
-                  <p className="mt-1 text-title-sm font-semibold text-text-strong">
+                  <p className="mt-1 type-title-sm font-semibold text-text-strong">
                     {formatMessage({ id: "app.garden.detail.community.noVault" })}
                   </p>
                 ) : shownAssets.length === 0 ? (
-                  <p className="mt-1 text-title-sm font-semibold text-text-strong">0</p>
+                  <p className="mt-1 type-title-sm font-semibold text-text-strong">0</p>
                 ) : (
                   <ul className="mt-1 space-y-0.5">
                     {shownAssets.map((entry) => (
                       <li
                         key={entry.asset}
-                        className="text-title-sm font-semibold tabular-nums text-text-strong"
+                        className="type-title-sm font-semibold tabular-nums text-text-strong"
                       >
                         {formatTokenAmount(entry.amount, entry.decimals, 4, locale)} {entry.symbol}
                       </li>
@@ -68,22 +69,16 @@ export function CommunityEndowmentTab({
                   </ul>
                 )}
               </div>
-              <div className="divide-y divide-stroke-soft">
-                <div className="garden-stat-row">
-                  <span className="garden-stat-row-label">
-                    {formatMessage({ id: "app.treasury.totalHarvests" })}
-                  </span>
-                  <span className="garden-stat-row-value">{countsUnread ? "—" : harvestCount}</span>
-                </div>
-                <div className="garden-stat-row">
-                  <span className="garden-stat-row-label">
-                    {formatMessage({ id: "app.treasury.depositorCount" })}
-                  </span>
-                  <span className="garden-stat-row-value">
-                    {countsUnread ? "—" : depositorCount}
-                  </span>
-                </div>
-              </div>
+              <FactList frame="inset">
+                <FactRow
+                  label={formatMessage({ id: "app.treasury.totalHarvests" })}
+                  value={countsUnread ? "—" : harvestCount}
+                />
+                <FactRow
+                  label={formatMessage({ id: "app.treasury.depositorCount" })}
+                  value={countsUnread ? "—" : depositorCount}
+                />
+              </FactList>
               {treasurySeverity !== "none" ? (
                 <Alert
                   variant={treasurySeverity === "critical" ? "error" : "warning"}

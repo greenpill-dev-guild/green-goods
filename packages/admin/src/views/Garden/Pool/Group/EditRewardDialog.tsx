@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useEditReward } from "@green-goods/shared/hooks/admin-ui/pool/useEditReward";
 import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
 import {
@@ -9,7 +10,6 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
@@ -17,8 +17,8 @@ import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { GardenPoolTarget } from "../PoolTarget";
 import { formatGoodDollars, formatUsd } from "../poolPresentation";
 import { priceUnavailableReason } from "../Seed/seedReward";
-import { type GroupReward, rewardText } from "./groupTerms";
 import { editRewardStatus, editRewardSummary } from "./editRewardStatus";
+import { type GroupReward, rewardText } from "./groupTerms";
 
 /** A term edit is cheap, so up to this many go in one wallet approval (`reward-edit`). */
 const PER_APPROVAL = 50;
@@ -217,21 +217,33 @@ export function EditRewardDialog({
 
   const footer =
     status.phase === "changed" ? (
-      <AdminButton type="button" variant="filled" onClick={() => onChanged(available.length)}>
+      <Button
+        type="button"
+        emphasis="primary"
+        size="sm"
+        onClick={() => onChanged(available.length)}
+      >
         {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-      </AdminButton>
+      </Button>
     ) : (
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-        <p className="min-w-0 body-xs text-text-soft sm:flex-1" data-testid="reward-prompt-count">
+        <p className="min-w-0 type-meta text-text-soft sm:flex-1" data-testid="reward-prompt-count">
           {note ? <span role="status">{note}</span> : null}
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <AdminButton type="button" variant="text" onClick={onClose} disabled={status.busy}>
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
+            emphasis="tertiary"
+            size="sm"
+            onClick={onClose}
+            disabled={status.busy}
+          >
+            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+          </Button>
+          <Button
+            type="button"
+            emphasis="primary"
+            size="sm"
             onClick={() => void change()}
             disabled={status.busy || Boolean(blocked) || (!locked && newCents === null)}
             loading={status.busy}
@@ -257,7 +269,7 @@ export function EditRewardDialog({
                   },
                   { count }
                 )}
-          </AdminButton>
+          </Button>
         </div>
       </div>
     );

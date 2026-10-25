@@ -265,6 +265,37 @@ describe("Home garden route", () => {
     expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
   });
 
+  it("says a garden read failed and offers it again, rather than calling the garden missing", () => {
+    const refetch = vi.fn();
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      refetch,
+    } as never);
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Couldn't load this garden");
+    expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
   // The garden list carries no assessments: they are attestations read from EAS,
   // each with detail stored on IPFS.
   it("renders the insights tab from the garden's assessment records, not the garden snapshot", () => {

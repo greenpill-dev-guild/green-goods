@@ -376,6 +376,8 @@ records the complete move, separate backlogs and corrected dependencies.
 The [architecture alignment](architecture-alignment.md) starts from the user-provided protocol
 resources and clarifies one commitment receiving vouchers and G$. It supersedes the several-G$
 installments interpretation. Its older contract choices are superseded by the accepted 21 October spec.
+The [conformance evidence](handoffs/claude-conformance-evidence-2026-10-20.md) settles the Gnosis
+bytecode and CCIP extra-args questions.
 The [corrected phased plan](commitment-upgrade-plan.md) maps contracts, data, Shared, apps,
 deployment preparation and audit evidence. Its conditional estimates replace the wrong-scope forecast.
 
@@ -386,7 +388,9 @@ Existing child IDs remain unchanged. PRD-1323/1324 remain in Green Goods 2.1.0 f
 coordinated with PRD-1297/1299 and PRD-1261/1262. The
 [Linear plan](https://linear.app/green-goods/document/hackathon-commitment-upgrade-plan-and-audit-readiness-7259011837e3)
 mirrors this correction. Review instructions are in
-[Claude's second-pass handoff](handoffs/claude-architecture-review.md).
+[Claude's second-pass handoff](handoffs/claude-architecture-review.md); Afo approved its section 8
+corrections on 20 October and the Linear texts were applied the same day
+([record](handoffs/claude-linear-correction-drafts-2026-10-20.md)).
 
 ## Sequence and completion evidence
 
@@ -398,10 +402,35 @@ mirrors this correction. Review instructions are in
 - [x] **First contracts architecture:** accepted by the 21 October user dispatch; see spec.
 - [ ] **RESR-73 / COM-46:** retain the broader lifecycle, actual issuer terms and live-use prerequisites;
   this contracts slice does not complete their research/community outcomes.
+- [ ] **Open after the review:** broader issuer identity, issuer-cap enforcement and independent
+  steward suspension remain unresolved live gates; see the [spec](spec.md).
+- [x] **Voucher direction, 21 October (Afo):** promises run on vouchers; curated gardener issuance;
+  presentment opens a promise, with the PRD-1096 desk as a fork-only stand-in; the instrument is
+  called "voucher"; and curated, capped issuance formally replaces the kept-promises-first order.
+  Recorded in the [spec](spec.md#voucher-direction-decided-2026-10-21) and in the commitment-pooling
+  hub as Decision Log #69 and register #163.
+- [x] **Linear for the voucher direction:** the
+  [drafts](handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md) were applied on 21 October
+  after Afo's approval and read back; states, assignees, cycles and dates unchanged.
+- [ ] **COM-46:** add terms for gardener issuers and a legal check of issuer duties for individuals.
+- [x] **PRD-857 wording:** "redeemable" became "usable for their own services" in its first
+  sentence on 21 October after Afo's approval, and the record was read back unchanged otherwise.
+- [ ] **PRD-1299:** settle the proposed voucher wording (verbs, "voucher exchange", es/pt "vale").
+- [ ] **PRD-1096, optional:** a curated gardener-voucher case is not in the approved rehearsal;
+  adding one before dispatch is Afo's call.
 - [ ] **COM-46, by 21 October:** agree both issuers' service units, prices, available capacity,
   caps/limits, purchase and earning terms, partial delivery, repair and separate reporting consent.
+  When partial delivery is allowed, PRD-1317/1318 must bind authenticated delivered/refundable
+  quantities, conserve escrowed units and settle both legs once across retries and reordering;
+  their approved Done-when additions carry this requirement.
 - [ ] **PRD-1096, by 21 October:** prove the local fork loop, negative cases and account behavior.
   Mock message transport is labeled; it is not live cross-chain certification.
+  Rehearsal defaults adopted 20 October: any `Fulfilled` commitment qualifies (path recorded, not
+  gated); delivery from a pre-minted reserve through an allowance; one recipient, the lead
+  provider; purchases through the pool's own bounded swap, outside the PRD-796 wrap boundary; no
+  acknowledgment lane. Member accounts and proxy admin stay live-only gates. The
+  [dispatch draft](handoffs/prd-1096-rehearsal-dispatch-draft.md) was approved with all eight
+  assumptions on 20 October, and the contracts lane stays blocked until it is dispatched.
 - [ ] **PRD-1097:** build the receipt-backed passport with real and rehearsal data distinguished.
 - [ ] **PRD-1197, 22 October:** record human go/no-go, explicitly addressing every original gate.
   Depends on PRD-1096 and COM-46. No default substitution or implied funds authority.
@@ -461,6 +490,9 @@ any real-money pilot remains gated by PRD-1038. No new execution deadline or spe
 
 The 9 October user request authorizes the branch and project split, issue-gap cleanup, planning
 reconciliation and the Claude Fable prompt. It does not authorize runtime edits or deployment.
+The 20 October decision accepts the no-core-upgrade boundary as the PRD-1315 candidate and
+authorizes drafting the plan corrections for approval; it does not authorize implementation,
+deployment or Linear writes.
 September's issuer-service model supersedes August's weighted-contribution dispatch sequence.
 The user's four-level capital narrative is the pitch direction; evidence and concrete funding
 terms still determine which claims can be made. Lane and execution evidence objects remain unchanged.

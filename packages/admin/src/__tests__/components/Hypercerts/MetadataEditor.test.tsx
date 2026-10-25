@@ -276,14 +276,16 @@ describe("components/Hypercerts/MetadataEditor", () => {
       render(createElement(MetadataEditor, defaultProps));
 
       const titleLabel = screen.getByLabelText(/title/i);
-      expect(titleLabel.closest("div")?.textContent).toContain("*");
+      expect(titleLabel.closest('[data-component="AdminTextField"]')?.textContent).toContain("*");
     });
 
     it("marks work scope as required", () => {
       render(createElement(MetadataEditor, defaultProps));
 
       const workScopeLabel = screen.getByLabelText(/work scope/i);
-      expect(workScopeLabel.closest("div")?.textContent).toContain("*");
+      expect(workScopeLabel.closest('[data-component="AdminTextField"]')?.textContent).toContain(
+        "*"
+      );
     });
   });
 

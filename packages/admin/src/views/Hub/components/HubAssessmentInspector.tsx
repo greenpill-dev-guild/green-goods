@@ -1,7 +1,9 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
 import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
 import { formatReportingPeriod, normalizeTimestamp } from "@green-goods/shared/utils/time";
@@ -14,8 +16,6 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
-import { DetailRow } from "@/views/Garden/WorkDetail/helpers";
 import { assessmentDomainLabelId } from "../assessmentDisplay";
 
 export type HubAssessmentRecord = Pick<
@@ -59,12 +59,12 @@ export function HubAssessmentInspector({
     <>
       <SheetBody padded={true} className="flex flex-col gap-4">
         {assessment.description ? (
-          <p className="break-words body-sm text-text-sub">{assessment.description}</p>
+          <p className="break-words type-body text-text-sub">{assessment.description}</p>
         ) : null}
 
-        <section className="surface-inset space-y-2 sm:p-6">
+        <FactList frame="inset" className="surface-inset sm:p-6">
           {domainLabelId ? (
-            <DetailRow
+            <FactRow
               icon={<RiPlantLine />}
               label={formatMessage({
                 id: "app.admin.assessment.domainAction.domainTitle",
@@ -73,7 +73,7 @@ export function HubAssessmentInspector({
               value={formatMessage({ id: domainLabelId })}
             />
           ) : null}
-          <DetailRow
+          <FactRow
             icon={<RiCalendarLine />}
             label={formatMessage({
               id: "app.garden.assessments.dateRange",
@@ -88,7 +88,7 @@ export function HubAssessmentInspector({
             }
           />
           {location ? (
-            <DetailRow
+            <FactRow
               icon={<RiMapPinLine />}
               label={formatMessage({
                 id: "app.admin.assessment.strategyKernel.locationLabel",
@@ -101,7 +101,7 @@ export function HubAssessmentInspector({
               }
             />
           ) : null}
-          <DetailRow
+          <FactRow
             icon={<RiUserLine />}
             label={formatMessage({
               id: "cockpit.hub.assessments.author",
@@ -110,7 +110,7 @@ export function HubAssessmentInspector({
             value={<AddressDisplay address={assessment.authorAddress} />}
           />
           {Number.isNaN(recordedMs) ? null : (
-            <DetailRow
+            <FactRow
               icon={<RiTimeLine />}
               label={formatMessage({
                 id: "cockpit.hub.assessments.recordedLabel",
@@ -123,13 +123,13 @@ export function HubAssessmentInspector({
               }
             />
           )}
-        </section>
+        </FactList>
 
         <a
           href={getEASExplorerUrl(chainId, assessment.id)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 self-start rounded body-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
+          className="inline-flex items-center gap-1 self-start rounded type-body text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
         >
           {formatMessage({
             id: "app.admin.assessments.viewOnEas",
@@ -139,7 +139,7 @@ export function HubAssessmentInspector({
         </a>
 
         {canMint ? (
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "cockpit.hub.certify.stewardDescription",
               defaultMessage:
@@ -158,12 +158,18 @@ export function HubAssessmentInspector({
 
       {canMint ? (
         <SheetFooter>
-          <AdminButton variant="filled" onClick={onOpenMintFlow} className="w-full justify-center">
+          <Button
+            type="button"
+            emphasis="primary"
+            size="sm"
+            onClick={onOpenMintFlow}
+            className="w-full justify-center"
+          >
             {formatMessage({
               id: "cockpit.hub.action.createHypercert",
               defaultMessage: "Create Hypercert",
             })}
-          </AdminButton>
+          </Button>
         </SheetFooter>
       ) : null}
     </>

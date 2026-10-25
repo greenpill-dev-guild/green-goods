@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolFundingControllerView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
@@ -5,7 +7,6 @@ import { goodDollarWeiToUsdCents } from "@green-goods/shared/modules/wallet/good
 import { RiAlertLine, RiCheckLine, RiInformationLine, RiRefreshLine } from "@remixicon/react";
 import { type RefObject, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import {
   formatGdollar,
@@ -89,17 +90,20 @@ export function PoolFundingSection({
             defaultMessage: "Pool Funding",
           })}
         </AdminCardTitle>
-        <AdminIconButton
+        <IconButton
           size="lg"
-          label={formatMessage({
+          aria-label={formatMessage({
+            id: "cockpit.garden.pool.funding.refresh",
+            defaultMessage: "Refresh Pool Funding",
+          })}
+          title={formatMessage({
             id: "cockpit.garden.pool.funding.refresh",
             defaultMessage: "Refresh Pool Funding",
           })}
           onClick={() => void handleRefresh()}
           loading={manualRefresh === "running"}
-        >
-          <RiRefreshLine />
-        </AdminIconButton>
+          icon={<RiRefreshLine />}
+        />
       </div>
 
       {funding.isLoading && !snapshot ? (
@@ -117,18 +121,18 @@ export function PoolFundingSection({
       ) : (
         <>
           <div className="space-y-0.5">
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.funding.availablePromises",
                 defaultMessage: "Available for new promises",
               })}
             </p>
             <p className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
-              <span className="text-title-md font-semibold text-text-strong">
+              <span className="type-title-md font-semibold text-text-strong">
                 {availableDollars ?? formatGdollar(available, locale)}
               </span>
               {available !== null && availableDollars !== null ? (
-                <span className="body-sm text-text-sub">
+                <span className="type-body text-text-sub">
                   {formatMessage(
                     {
                       id: "cockpit.garden.pool.funding.aboutGoodDollars",
@@ -141,7 +145,7 @@ export function PoolFundingSection({
             </p>
           </div>
 
-          <p className="body-xs text-text-sub tabular-nums" data-slot="funding-safe-line">
+          <p className="type-meta text-text-sub tabular-nums" data-slot="funding-safe-line">
             {snapshot?.safe
               ? formatMessage(
                   {
@@ -200,13 +204,13 @@ export function PoolFundingSection({
           </div>
 
           {readIssue || blockedBy ? (
-            <p className="body-xs text-text-sub" data-slot="funding-blocked-by">
+            <p className="type-meta text-text-sub" data-slot="funding-blocked-by">
               {readIssue ?? (blockedBy ? readinessReasonMessage(blockedBy, intl) : null)}
             </p>
           ) : null}
 
           {protocolContext ? (
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.funding.protocolNote",
                 defaultMessage:
@@ -215,7 +219,7 @@ export function PoolFundingSection({
             </p>
           ) : null}
 
-          <p className="flex flex-wrap items-center gap-x-1 body-xs text-text-sub">
+          <p className="flex flex-wrap items-center gap-x-1 type-meta text-text-sub">
             <span>
               {funding.isRefetching
                 ? formatMessage({
@@ -230,18 +234,18 @@ export function PoolFundingSection({
                     })}
             </span>
             <span aria-hidden>·</span>
-            <AdminButton
+            <Button
               ref={detailsButtonRef}
               type="button"
-              variant="text"
-              size="sm"
+              emphasis="tertiary"
+              size="compact"
               onClick={onOpenDetails}
             >
               {formatMessage({
                 id: "cockpit.garden.pool.funding.openDetails",
                 defaultMessage: "View Details",
               })}
-            </AdminButton>
+            </Button>
           </p>
         </>
       )}

@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
@@ -10,11 +12,15 @@ import {
 } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
+import {
+  RiArrowRightLine,
+  RiErrorWarningLine,
+  RiRefreshLine,
+  RiSeedlingLine,
+} from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { poolStatusChip } from "@/views/Garden/Pool/poolPresentation";
 import { HubConfirmQueue } from "@/views/Hub/components/HubConfirmQueue";
@@ -102,7 +108,7 @@ function GardenPoolCard({
           <AdminCardTitle className="truncate" title={garden.name}>
             {garden.name}
           </AdminCardTitle>
-          <p className="mt-1 body-xs text-text-soft">
+          <p className="mt-1 type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.community.pools.currentGardenHint",
               defaultMessage:
@@ -121,10 +127,11 @@ function GardenPoolCard({
           </StatusBadge>
         )}
       </div>
-      <AdminButton
+      <Button
         type="button"
-        variant="outlined"
-        leadingIcon={<RiArrowRightLine className="h-4 w-4" />}
+        emphasis="secondary"
+        size="sm"
+        leadingIcon={<RiArrowRightLine className="h-[18px] w-[18px]" aria-hidden="true" />}
         onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden.id }))}
         disabled={!canManage}
       >
@@ -132,9 +139,9 @@ function GardenPoolCard({
           id: "cockpit.community.pools.openConsole",
           defaultMessage: "Open the Pool Console",
         })}
-      </AdminButton>
+      </Button>
       {!canManage ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.community.pools.stewardOnly",
             defaultMessage: "The pool console is for this garden's stewards.",
@@ -203,34 +210,34 @@ function ProtocolOperations({
     return (
       <>
         {gardenPool}
-        <AdminCard
-          variant="elevated"
-          className="flex min-h-40 flex-col items-center justify-center gap-3 text-center"
-        >
-          <AdminCardTitle>
-            {formatMessage({
+        <AdminCard variant="elevated">
+          <EmptyState
+            tone="error"
+            icon={<RiErrorWarningLine />}
+            title={formatMessage({
               id: "cockpit.community.pools.readError.title",
               defaultMessage: "Couldn’t read the protocol pool",
             })}
-          </AdminCardTitle>
-          <p className="max-w-md body-sm text-text-soft">
-            {formatMessage({
+            description={formatMessage({
               id: "cockpit.community.pools.readError.body",
               defaultMessage:
                 "The module could not be reached. Nothing about the protocol pool has changed.",
             })}
-          </p>
-          <AdminButton
-            type="button"
-            variant="filled"
-            leadingIcon={<RiRefreshLine className="h-4 w-4" />}
-            onClick={() => void protocolPool.refetch()}
-          >
-            {formatMessage({
-              id: "cockpit.garden.pool.readError.retry",
-              defaultMessage: "Try Again",
-            })}
-          </AdminButton>
+            action={
+              <Button
+                type="button"
+                emphasis="primary"
+                size="sm"
+                leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
+                onClick={() => void protocolPool.refetch()}
+              >
+                {formatMessage({
+                  id: "cockpit.garden.pool.readError.retry",
+                  defaultMessage: "Try Again",
+                })}
+              </Button>
+            }
+          />
         </AdminCard>
         {railContent}
       </>
@@ -240,24 +247,19 @@ function ProtocolOperations({
     return (
       <>
         {gardenPool}
-        <AdminCard
-          variant="elevated"
-          className="space-y-2"
-          data-testid="protocol-pool-unregistered"
-        >
-          <AdminCardTitle>
-            {formatMessage({
+        <AdminCard variant="elevated" data-testid="protocol-pool-unregistered">
+          <EmptyState
+            icon={<RiSeedlingLine />}
+            title={formatMessage({
               id: "cockpit.community.pools.unregistered.title",
               defaultMessage: "No protocol pool is registered yet",
             })}
-          </AdminCardTitle>
-          <p className="body-sm text-text-soft">
-            {formatMessage({
+            description={formatMessage({
               id: "cockpit.community.pools.unregistered.body",
               defaultMessage:
                 "Registering it is a deployment operation by the Green Goods team. Until then, the team cannot step in as a fallback confirmer anywhere.",
             })}
-          </p>
+          />
         </AdminCard>
         {railContent}
       </>
@@ -277,7 +279,7 @@ function ProtocolOperations({
           defaultMessage: "Protocol Confirmations",
         })}
       </AdminCardTitle>
-      <p className="body-xs text-text-soft">
+      <p className="type-meta text-text-soft">
         {formatMessage({
           id: "cockpit.community.pools.confirmationsHint",
           defaultMessage:

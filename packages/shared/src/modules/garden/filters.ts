@@ -1,4 +1,5 @@
-import { Domain, type Garden } from "../../types/domain";
+import { isGardenMembersOnly } from "../../config/garden-visibility";
+import { Domain, type Address, type Garden } from "../../types/domain";
 import { gardenHasMember } from "../../utils/app/garden";
 import { expandDomainMask } from "../../utils/domain";
 
@@ -75,24 +76,29 @@ export function filterGardens(
   userAddress: string | null
 ): FilteredGardensResult {
   const { scope, sort, domains = [] } = filters;
+  const visibleGardens = gardens.filter(
+    (garden) =>
+      !isGardenMembersOnly(garden.id as Address) ||
+      gardenHasMember(userAddress, garden.gardeners, garden.stewards)
+  );
 
   // Count user's gardens
   const myGardensCount = userAddress
-    ? gardens.reduce(
+    ? visibleGardens.reduce(
         (count, garden) =>
           count + (gardenHasMember(userAddress, garden.gardeners, garden.stewards) ? 1 : 0),
         0
       )
     : 0;
-  const openGardens = gardens.filter((garden) => garden.openJoining === true);
+  const openGardens = visibleGardens.filter((garden) => garden.openJoining === true);
 
   // Filter by scope
-  let working = gardens;
+  let working = visibleGardens;
   if (scope === "mine") {
     if (!userAddress) {
       working = [];
     } else {
-      working = gardens.filter((garden) =>
+      working = visibleGardens.filter((garden) =>
         gardenHasMember(userAddress, garden.gardeners, garden.stewards)
       );
     }

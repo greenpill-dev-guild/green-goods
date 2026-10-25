@@ -180,7 +180,7 @@ export function VaultsPageContent({
               <EditorialKicker className="mb-3">
                 {formatMessage({
                   id: "public.vaults.browse.kicker",
-                  defaultMessage: "Active Campaigns",
+                  defaultMessage: "Active campaigns",
                 })}
               </EditorialKicker>
               <EditorialHeading id="public-vaults-browse-title">

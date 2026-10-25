@@ -2,10 +2,10 @@
 // scroll body only. The single chrome for admin action flows.
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine } from "@remixicon/react";
-import { useLayoutEffect, useRef, type ReactNode } from "react";
-import { AdminIconButton } from "../AdminButton";
+import { type ReactNode, useLayoutEffect, useRef } from "react";
 import { type ActionFlowStep, ActionFlowStepper } from "./ActionFlowStepper";
 
 export interface ActionFlowShellProps {
@@ -121,31 +121,28 @@ export function ActionFlowShell({
         )}
       >
         {onBack ? (
-          <AdminIconButton
+          <IconButton
             size="lg"
             className="mt-0.5 flex-shrink-0"
             onClick={onBack}
             disabled={backDisabled}
-            label={backLabel ?? ""}
-          >
-            <RiArrowLeftLine />
-          </AdminIconButton>
+            aria-label={backLabel ?? ""}
+            title={backLabel ?? ""}
+            icon={<RiArrowLeftLine />}
+          />
         ) : null}
 
         <div className="min-w-0 flex-1">
           {context ? (
             <p
               data-region="action-flow-context"
-              className="truncate label-xs text-text-soft"
+              className="truncate type-label-sm text-text-soft"
               title={typeof context === "string" ? context : undefined}
             >
               {context}
             </p>
           ) : null}
-          <h1
-            className="truncate text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong"
-            title={title}
-          >
+          <h1 className="truncate type-title-lg font-semibold text-text-strong" title={title}>
             {title}
           </h1>
           {/* Mobile stepper — the desktop rail (below) takes over at lg. */}

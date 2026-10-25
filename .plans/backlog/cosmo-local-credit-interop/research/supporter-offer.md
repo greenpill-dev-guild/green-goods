@@ -1,10 +1,10 @@
 # Sponsor a season at Tech and Sun
 
-**One-page supporter offer and FAQ. First draft 2026-10-09; status updated 2026-10-20.** First
-diaspora community: Omo Yoruba of Southern California (confirmed by Afo, 9 October). Every amount
-is a labeled scenario until the steward confirms terms (COM-46, by 21 October). The prepaid
-vouchers are a planned pilot: they go live only after a recorded go (PRD-1197) that addresses every
-release gate, and none of those gates was met on 20 October. Two asks are kept apart on purpose:
+**One-page supporter offer and FAQ. First draft 2026-10-09; status updated 2026-10-20 and
+2026-10-21.** First diaspora community: Omo Yoruba of Southern California (confirmed by Afo,
+9 October). Every amount is a labeled scenario until the steward confirms terms (COM-46, by
+21 October). The prepaid vouchers are a planned pilot: they go live only after a recorded go
+(PRD-1197) that addresses every release gate, and none of those gates was met on 21 October. Two asks are kept apart on purpose:
 service capacity at Tech and Sun, and Green Goods infrastructure.
 
 ## The offer in one line
@@ -29,9 +29,10 @@ named learners at the Awka hub.
   Yoruba's treasurer confirms the method (check, bank transfer or the processor they name); the
   website's donate page carries no payment form yet. Green Goods records the funded seats as
   commitments and reports their delivery. *Accepted route (Afo, 9 October), subject to the sponsorship terms.*
-- **Later, and only after a recorded go:** prepaid service vouchers in the hub's own voucher
-  pool, issued only within the capacity the hub can deliver. Whether supporters can buy vouchers
-  in the first release is still being decided.
+- **Later, and only after a recorded go:** prepaid vouchers, such as a Tech and Sun voucher for
+  one solar class seat, bought from the hub's Cosmo-Local pool. A steward admits the hub as an
+  issuer with published terms and a cap policy that grows with the promises it keeps. Cap
+  enforcement is undecided: a mint controller or monitored issuer policy still needs to be chosen.
 - **Not this route:** the in-app Donate button sends support to a garden jar that members draw
   from in small claims. It is real and live, but it is not how a season of seats is paid for.
 
@@ -47,7 +48,7 @@ credit score, an audited impact claim or a financial return.
 
 ## What stays with the community
 
-The hub owns its voucher, its terms, its prices and its pool. Members choose what is public about
+The hub owns its voucher, its terms, its prices and its Cosmo-Local pool. Members choose what is public about
 them. Your support buys services and the evidence of their delivery; it does not buy a say over
 the hub, its land or its people.
 
@@ -63,8 +64,9 @@ the hub, its land or its people.
 
 ## If something fails
 
-- The hub cannot deliver a session: it is honored on the next open day, or the seat is returned
-  to you as an unused voucher. The remedy terms are published with the voucher.
+- The hub cannot deliver a session: it is honored on the next open day. For a seat funded today
+  through Omo Yoruba, any other remedy follows the fiscal sponsorship terms. On the planned
+  prepaid-voucher route, a remedy returns the voucher units under terms published with the voucher.
 - A learner does not confirm: the service shows as unconfirmed, with the fallback path visible.
 - A payment does not arrive or arrives twice: the record shows the stopped state and who owns the
   repair.
@@ -88,7 +90,12 @@ deductible for you depends on those terms and your own position. Support sent in
 charitable donation.
 
 **Is a voucher money?** No. A voucher is a claim on one issuer's future service under published
-terms. It is not a wage, a score or cash.
+terms, named with its issuer and unit, such as a Tech and Sun voucher for one solar class seat. It
+is not a wage, a score or cash.
+
+**How is a voucher used?** Presenting it opens a promise, with the person who presented it as the
+counterparty. That person confirms when the service is delivered, and the voucher is discharged
+once. This is the planned design; the rehearsal uses a stand-in service desk.
 
 **Can I pick the learner?** Not in the first season. The hub allocates seats under its membership
 rules; you see the aggregate and, where a learner consents, their confirmation.
@@ -104,8 +111,8 @@ is returned as an unused voucher, not as cash, unless the published terms say ot
 and its definitions. Nobody has audited the outcomes; the record shows what happened, not what it
 caused.
 
-**Is this live?** The record of promises and G$ support are live. The voucher pools and the public
-passport are a planned pilot: no voucher contract exists yet, and nothing goes live before a
+**Is this live?** The record of promises and G$ support are live. The Cosmo-Local pools and the
+public passport are a planned pilot: no voucher contract exists yet, and nothing goes live before a
 recorded go that addresses every release gate. We label rehearsal data as rehearsal.
 
 **What does Green Goods get?** Nothing from the service budget. Infrastructure is funded

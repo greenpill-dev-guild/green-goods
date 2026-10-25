@@ -1,6 +1,6 @@
 ---
-title: Brand voice guidelines
-sidebar_label: Brand voice
+title: Brand Voice Guidelines
+sidebar_label: Voice
 slug: /brand-voice
 audience: all
 owner: docs
@@ -40,7 +40,7 @@ keywords:
   - style guide
 ---
 
-Version 1.2, 2026-10-20. Owner: Afo.
+Version 1.3, 2026-10-20. Owner: Afo.
 
 **Scope.** Rules for anyone, person or agent, who writes Green Goods copy: product strings, the public website, docs, release notes, announcements, and funder or partner documents. Pull request and issue bodies are developer-facing; they follow the spelling and punctuation rules in section 6.7 but not this page's voice. Audiences by name, numbers, partner work, and anything else that should not sit in a public repository live in the internal strategy addendum (a shared Google Doc), not here.
 
@@ -49,7 +49,7 @@ Version 1.2, 2026-10-20. Owner: Afo.
 **How agents use this file.**
 - Routing: the repository agent guide (`AGENTS.md`, "Read when relevant") sends any task that writes copy a gardener, steward, funder, partner, or visitor reads here first, then to the owning surface `DESIGN.md`. The task-routing manifest names this page as a required authority for document review and design direction when the task carries brand-facing copy; visual-only design work and internal technical documents do not load it. Codex reaches the same files through the repository's agent guide, and the docs site publishes this page in its LLM index (`llms.txt`).
 - The same file, two paths: this page is the only copy. `.claude/brand-voice-guidelines.md` is a symbolic link to it, which is where the brand-voice plugin's enforce-voice command and other tools expect guidelines to live.
-- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` is held to the same vocabulary file by the agent's copy tests (banned and retired terms, UK spellings, and the locked steward and garden words with their retired synonyms; the bot's promise and endowment terms are reviewed by eye), and the em dash check reads its chat copy modules too. Section 9 marks which checklist items a machine covers.
+- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` is held to the same vocabulary file by the agent's copy tests (banned and retired terms, UK spellings, and the locked steward and garden words with their retired synonyms; the bot's promise and endowment terms are reviewed by eye), and the em dash check reads its chat copy modules too. `bun run check --only brand-voice-parity` fails when this page and a place that restates it say different things, following section 15 on who owns what. Section 9 marks which checklist items a machine covers.
 - Review: a change to copy is reviewed against this page the way a change to layout is reviewed against the design skill. Dated copy decisions still get a row in the design decision log.
 
 **Writing conventions in this file.** US spelling. No em dashes anywhere in Green Goods prose. In running text, "garden", the role words, and the domain nouns are lower case; Title Case belongs to titles, action labels, and named acts.
@@ -60,15 +60,19 @@ Version 1.2, 2026-10-20. Owner: Afo.
 
 **Brand line (website hero, keep as is):** From good intentions to green outcomes.
 
-**Descriptor (the one sentence for product-overview metadata: the client site's meta description, the repository README's lead line, the docs site tagline, the deck one-liner; individual pages and package READMEs describe their own content):**
+**Descriptor:**
 
 > Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.
+
+It is the one sentence wherever a surface describes the whole product: the client site's meta description, the repository README's lead line, the docs site tagline and footer, and the deck one-liner. The website home subtitle and the docs Welcome page open with it. Individual pages and package READMEs describe their own content.
 
 Today a garden names its needs through an assessment, set by stewards and evaluators. Community members naming needs directly is a planned layer (the claims ledger lists it as planned), so copy about it says so.
 
 **Canonical problem statement:**
 
 > The record of a community's regenerative work stays trapped, and three things keep it that way. Proving the work costs more than doing it. The tools for proving it were built for the office and the grant report, not for the field. And the record ends up on platforms the community does not own, so it cannot follow them to the next funder, partner, or tool. Inside the community, contribution is thanked but not valued. Outside, the people who would support it cannot read it.
+
+The docs Why We Build page carries it in the same words, with the three causes as a list.
 
 **Mission, in one sentence:** Green Goods makes a community's regenerative work visible to the people who were not there, so support can follow delivery instead of paperwork.
 
@@ -109,7 +113,7 @@ Five product personas carry fixed meanings in the ontology. One more audience ap
 
 **Core voice.** Green Goods speaks like a knowledgeable neighbor who runs the community garden. Warm but not gushing. Practical but not clinical. Knows soil science but explains it by pointing at the compost pile.
 
-**The one-sentence test.** If a line could appear on a government form, rewrite it. If it could appear on a hand-painted garden sign, it is close.
+**The one-sentence test.** If it could appear on a government form, rewrite it. If it could appear on a hand-painted garden sign, it's close.
 
 ### We are / we are not
 
@@ -117,8 +121,8 @@ Five product personas carry fixed meanings in the ontology. One more audience ap
 |---|---|---|
 | Grounded | Concrete, specific, rooted in real action: one tree, one bag, one panel, one class | Jargon-heavy, academic, blockchain-first |
 | Inviting | Welcoming, assumes good intent, lowers barriers, gives permission where people hesitate | Sycophantic, over-enthusiastic, exclamation-heavy |
-| Honest | Transparent about what works and what is still experimental; says the limit up front | Hedging, corporate disclaimers, vague promises |
-| Active | Action-oriented, present tense, you-centered | Passive voice, abstract nouns, bureaucratic |
+| Honest | Transparent about what works and what's experimental; says the limit up front | Hedging, corporate disclaimers, vague promises |
+| Active | Action-oriented, present-tense, you-centered | Passive voice, abstract nouns, bureaucratic |
 
 ### Three dialects, one voice, and a fourth to come
 
@@ -254,7 +258,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 ### 6.4 Banned vocabulary
 - Rejected by the vocabulary check in every i18n string: streak, countdown, leaderboard, FOMO, urgent, limited time, re-engagement, retention hook. These signal growth-hacking patterns that conflict with the regenerative lens.
 - Nowhere: "guaranteed returns", "passive income", or any phrase that promises the supporter a return or frames a gift as an investment. Describing how an endowment earns (a vault's investment earnings fund the work) is allowed where the deposit's risks and the loss limitation sit beside it, as the shipped endowment copy does.
-- Surface-specific design and prompt vocabulary (what stays out of the admin, what stays out of the app) lives in `scripts/data/banned-vocabulary.json` and is summarized in section 5. The app and cockpit unification plan may revise those lists; the file is the authority, not this summary.
+- Surface-specific design and prompt vocabulary (what stays out of the admin, what stays out of the app) lives in `scripts/data/banned-vocabulary.json` and is summarized in section 5. The file is the authority, not this summary.
 
 ### 6.5 Domains
 Copy names four domains: agroforestry, waste management, solar (hub development), and education, the same four the ontology, the contracts, and the app carry. Mutual credit is not a domain. The owner retired it; commitment pooling and promises serve the need it named, and no catalog carries a label for it. A partner integration's service-credit instrument gets its own name when that integration ships; it is not a domain.
@@ -323,9 +327,9 @@ Items marked (machine) are covered by a check in the validation pipeline; the re
 - [ ] Is it concrete? Can the reader picture it?
 - [ ] Is it active? Subject, verb, object?
 - [ ] Is the audience right? A gardener is not a steward is not a funder.
-- [ ] Is blockchain invisible where it should be?
-- [ ] Would it make sense to someone who has never heard of web3?
-- [ ] Is it shorter than the first draft?
+- [ ] Is blockchain invisible except where the reader needs a protocol name to act or verify (DL-094)? On-chain is implementation, not copy.
+- [ ] Would it make sense to someone who's never heard of web3?
+- [ ] Is it shorter than your first draft?
 - [ ] US spelling? (machine: catalogs, bot chat copy, docs pages, design guides)
 - [ ] No em dashes? (machine: catalogs, bot chat copy, docs pages, design guides)
 - [ ] Lower-case garden, role words, and domain nouns in running text, Title Case only on titles and actions?
@@ -390,7 +394,7 @@ Drawn from shipped copy and approved release material. Lines marked "adapted" we
 
 ## 12. Visual identity, in brief
 
-Voice copy only needs to know the following. Everything visual belongs to the design system. The app and cockpit unification plan (`.plans/backlog/app-cockpit-unification/`) may change product materials, surfaces, and names; nothing in this page depends on those outcomes.
+Voice copy only needs to know the following. Everything visual belongs to the design system.
 
 - The visual kit is the [Brand kit page](/brand-kit), with data in `docs/src/data/brand-kit-v3.json`. Logo and symbol color is the canonical dark green #367D44, with white and black monochrome versions. A UI accent is not a different logo color.
 - Kit typography pairs Fraunces (headlines, editorial moments) with Inter (body, labels). Which typeface each product surface uses is the design system's call, not this page's.
@@ -427,15 +431,14 @@ Voice copy only needs to know the following. Everything visual belongs to the de
 
 ## 15. Relationship to other guidance
 
-This page is the entry point for voice. It restates only what a writer needs to apply a rule, and points to the owner for everything else.
+This page is the entry point for voice. It restates only what a writer needs to apply a rule, and points to the owner for everything else. Implementation plans are temporary working documents, not sources of truth for this page.
 
 | Guidance | Owns | This page's relationship |
 |---|---|---|
 | `DESIGN.md` § Voice & Copy | The voice core: statement, pillars, tone spectrum, terminology table, writing checklist, and the dated casing, spelling, and punctuation rules | Restated here in sections 3, 4, 6, and 9 so a writer has one place to read; DESIGN.md wins on any divergence |
 | Design skill (`.claude/skills/design/`: `language.md`, `prompt-contract.md`, `client-prompt-contract.md`, `decision-log.md`, `review-checklist.md`) | Surface dialects for AI design tools, materials, motion, prompt vocabulary, dated decisions | Section 5 summarizes the copy half of each dialect; visual and prompt rules stay there; copy decisions still get a decision-log row |
-| App and cockpit unification plan (`.plans/backlog/app-cockpit-unification/`) | Future material, layout, and naming changes across the admin and the app | This page names dialects by what they say, not how they look, so it survives the unification; if surfaces are renamed, section 3's table follows |
 | Ontology, generated glossary, `banned-vocabulary.json` | Terms, personas, domains, enforced vocabulary | Section 6 is a reading of them; the files are machine-checked and win on any divergence |
-| Docs guide (`docs/AGENTS.md`) | Docs page conventions | Both docs registers, community and builder, are written out in section 5, which owns them; the plan hubs that supplied those rules are not authorities once they close |
+| Docs guide (`docs/AGENTS.md`) | Docs page conventions | Both docs registers, community and builder, are written out in section 5, which owns them |
 | `.claude/context/product.md` | Persona tone rows and the audience priority rule | A row describes how a persona arrives and the tone that fits, never what the product promises; the claims ledger and section 8 outrank it |
 | Brand kit page and kit data | Visual identity | Section 12 is a pointer |
 | Release packs (`docs/releases/`) | Approved copy per release | Section 10 draws model lines from them; each release pack applies this page |

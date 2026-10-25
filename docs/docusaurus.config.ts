@@ -16,10 +16,14 @@ const prismDark = {
   plain: {...prismThemes.dracula.plain, backgroundColor: '#292929'},
 };
 
+// The brand voice descriptor (docs/docs/reference/brand-voice.mdx, section 1). The
+// tagline and the footer carry the same sentence.
+const descriptor =
+  'Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.';
+
 const config: Config = {
   title: 'Green Goods Documentation',
-  tagline:
-    'Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.',
+  tagline: descriptor,
   favicon: 'img/favicon.ico', // Canonical Brand kit favicon at the established public URL
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -546,7 +550,7 @@ const config: Config = {
 
   themeConfig: {
     // Social card for link previews (Twitter, Telegram, etc.)
-    image: 'img/green-goods-social-card.webp',
+    image: 'img/social/green-goods-docs.webp',
     colorMode: {
       respectPrefersColorScheme: true,
     },
@@ -629,12 +633,12 @@ const config: Config = {
           items: [
             { label: 'FAQ', to: '/faq' },
             { label: 'Glossary', to: '/glossary' },
-            { label: 'Brand kit', to: '/brand-kit' },
+            { label: 'Brand Kit', to: '/brand-kit' },
             { label: 'Credits', to: '/reference/credits' },
           ],
         },
       ],
-      copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Green Goods.`,
+      copyright: `${descriptor}<br/>Copyright © ${new Date().getFullYear()} Green Goods.`,
     },
     prism: {
       theme: prismLight,

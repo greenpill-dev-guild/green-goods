@@ -52,6 +52,10 @@ const PACKAGE_DEPENDENCY_POLICY = {
   // catalog from disk at build time rather than importing a package, so it can
   // never drag product code into a tool nobody ships to users.
   qa: [],
+  // Grove G0 feasibility spike (.plans/ideas/grove/prototype.md, decision 17): a disposable
+  // extension that must not pull product code. It consumes Shared only when a later slice
+  // adds a declared export; until then it depends on nothing in the workspace.
+  extension: [],
 };
 
 // This channel is an admin-shell implementation detail: its hooks coordinate
@@ -104,7 +108,7 @@ const SCOPES = {
   ],
   "rule-13-raw-tailwind-color": ["packages/admin/src", "packages/client/src"],
   "rule-16-inline-alert-div": ["packages/admin/src", "packages/client/src"],
-  // Admin keeps AdminButton and the admin field family (frontend-design Rules 15 and 18).
+  // Admin keeps its field family and raw-button sweep (frontend-design Rules 15 and 18).
   "rule-19-client-shared-controls": ["packages/client/src"],
 };
 

@@ -1,10 +1,5 @@
 # Cosmo-Local commitment integration plan
 
-> Historical proposal. The 21 October accepted [specification](spec.md) supersedes core-upgrade,
-> adapter-minting, optional-acknowledgment and unresolved allocation/confirmation proposals here.
-> Retained for rationale; use the current spec and contracts handoff for implementation scope.
-
-
 **Reconciled:** 20 October 2026 UTC / 19 October Pacific. **Planning only.**
 The user authorized research and cleanup of this plan and Linear, followed by Claude review.
 No runtime implementation, deployment, lane activation or external-audit claim is authorized.
@@ -16,11 +11,11 @@ A commitment can receive **vouchers and G$**, with both terms agreed at acceptan
 The [architecture alignment](architecture-alignment.md) owns current evidence, options, diagrams
 and unresolved choices; [spec.md](spec.md) owns the broader integration baseline.
 
-Recommended candidate: a narrow CommitmentPooling upgrade for accepted voucher references and
-fulfillment provenance; a new Arbitrum voucher authorization module; a new Gnosis issuer adapter;
-reuse CLC token/pool implementations and the existing G$ settlement route. Contract/API selection
-is pending RESR-73, issuer terms and Claude's review. PRD-1315 freezes the accepted implementation
-boundary after that review. It is not already done.
+Accepted candidate (20 October, after Claude's [review](handoffs/claude-architecture-review-results.md)): a new Arbitrum voucher
+entitlement module and a new Gnosis issuer adapter, reusing the CLC token/pool implementations
+and the existing G$ settlement route, with no CommitmentPooling upgrade. PRD-1315 freezes the
+boundary once the complete [open-decision inventory](plan.todo.md#sequence-and-completion-evidence)
+is recorded, including the blockers raised after the review. It is not already done.
 
 ## Preserved deployment evidence
 
@@ -33,7 +28,9 @@ were unpaused and protocol-Safe-owned. G$ units are not US dollars.
 
 This is historical planning evidence, not a current release preflight. Preserve live records,
 funds, replay history and identities. No existing commitment acquires a voucher promise by default.
-The Gnosis v1.1.0 documentation / v1.0.0 deployment-table mismatch needs explicit resolution.
+The v1.1.0 documentation / v1.0.0 table mismatch is resolved for the four first-slice
+implementations, whose deployed code matches the published artifacts ([evidence](handoffs/claude-conformance-evidence-2026-10-20.md)); check
+the remaining implementations the same way before PRD-1325.
 
 ## Phases, priorities and dependencies
 
@@ -44,18 +41,18 @@ The existing issue IDs are reused to correct their scope, not to create a second
 | Phase | Issue | Corrected outcome | Priority | Prerequisites |
 |---|---|---|---|---|
 | Decide | RESR-73 | Research conclusions, Claude review, unresolved human choices | P0 | COM-46 for issuer terms |
-| Decide | PRD-1315 | Accept voucher-plus-G$ behavior and contract boundaries | P0 | RESR-73 |
-| Contracts | PRD-1316 | Expose accepted terms and authentic fulfillment for voucher eligibility | P0 | PRD-1315 |
-| Contracts | PRD-1317 | Authorize voucher entitlements from Arbitrum | P0 | PRD-1315, PRD-1316 |
-| Contracts | PRD-1318 | Execute bounded voucher issuance on Gnosis with replay-safe receipts | P0 | PRD-1317 |
-| Contracts | PRD-1319 | Prove integration compatibility and preservation of existing G$ behavior | P0 | PRD-1316, PRD-1317, PRD-1318 |
-| Data | PRD-1320 | Index linked fulfillment, G$ and voucher receipts | P0 | PRD-1316, PRD-1317, PRD-1318 |
-| Shared | PRD-1321 | Provide consistent per-obligation status to both apps | P0 | PRD-1320 |
-| Shared | PRD-1322 | Add authorized voucher actions and safe recovery | P0 | PRD-1317, PRD-1318, PRD-1321 |
-| Admin | PRD-1323 | Review voucher-plus-G$ terms and outcomes in commitment detail | P1 | PRD-1321, PRD-1322, PRD-1299 |
-| PWA | PRD-1324 | Explain work completion and each agreed reward | P1 | PRD-1321, PRD-1322, PRD-1299 |
-| Operations | PRD-1325 | Prepare verified Gnosis configuration and any accepted Arbitrum upgrade | P0 | PRD-1315, PRD-1319 |
-| Rehearsal | PRD-1326 | Prove both rewards, failure recovery and legacy preservation | P1 | PRD-1319, PRD-1320, PRD-1322–1325, PRD-1096 |
+| Decide | PRD-1315 | Accept voucher-plus-G$ behavior and contract boundaries, including issuer-cap enforcement, the presentment handshake, escrow placement/custody and setup-failure recovery, pre-acceptance terms-consent binding with direct-core bypass proof or a returned boundary decision, post-claim Offer funding, distinct gardener issuer identity and independent steward-controlled per-issuer suspension | P0 | RESR-73 |
+| Contracts | PRD-1316 | Confirm the existing views expose timing and fulfillment, not voucher consent; prove all direct core acceptance paths preserve pre-acceptance revision consent or return the no-core-upgrade candidate to PRD-1315; specify a stored fulfillment path only if needed | P0 | PRD-1315 |
+| Contracts | PRD-1317 | Register pre-acceptance voucher terms and freeze exact-revision counterparty consent before every core acceptance path, with direct-entrypoint bypass proof; implement the recorded post-claim payer authorization and selected funding route (reservation, escrow or debit), including its failure/refund rule for voucher-accepting Offers separately from earned rewards; bind the approved gardener issuer identity; authorize authenticated presentment, discharge and return commands, including idempotent setup recovery and activation-versus-abort convergence | P0 | PRD-1315, PRD-1316 |
+| Contracts | PRD-1318 | Deliver earned vouchers within the issuer's allowance or cap, once per entitlement; enforce the separately authorized Offer-payment funding route; authenticate presentment escrows, activation/setup-abort refund convergence and once-only discharge/return; bind each gardener's distinct issuer identifier to its garden, Safe, token and admission authority with isolated authorization and caps; enforce/test the recorded steward-controlled per-issuer suspension and recovery scope, preserving approved servicing of outstanding obligations and recording unenforceable required stops as release blockers | P0 | PRD-1317 |
+| Contracts | PRD-1319 | Prove integration compatibility and preservation of existing G$ behavior; re-run the 20 October conformance and extra-args reads at the deployment block | P0 | PRD-1316, PRD-1317, PRD-1318 |
+| Data | PRD-1320 | Index linked fulfillment, G$ and voucher receipts, voucher payment terms, presentment escrows, discharges and issuer caps | P0 | PRD-1316, PRD-1317, PRD-1318 |
+| Shared | PRD-1321 | Provide consistent per-obligation status to both apps, including voucher payment terms and escrow state | P0 | PRD-1320 |
+| Shared | PRD-1322 | Add authorized voucher actions and safe recovery, with Safe-mediated gardener issuance until the passkey validator exists on Gnosis | P0 | PRD-1317, PRD-1318, PRD-1321 |
+| Admin | PRD-1323 | Review voucher-plus-G$ terms and outcomes in commitment detail, including voucher payment terms and gardener issuer caps | P1 | PRD-1321, PRD-1322, PRD-1299 |
+| PWA | PRD-1324 | Explain work completion, each agreed reward and any voucher payment terms | P1 | PRD-1321, PRD-1322, PRD-1299 |
+| Operations | PRD-1325 | Prepare verified Gnosis configuration (no Arbitrum upgrade in the accepted candidate) | P0 | PRD-1315, PRD-1319 |
+| Rehearsal | PRD-1326 | Prove both rewards, voucher payment and presentment discharge, failure recovery and legacy preservation | P1 | PRD-1319, PRD-1320, PRD-1322–1325, PRD-1096 |
 | Audit | PRD-1327 | Freeze the reviewed integration audit-intake package | P1 | PRD-1326 |
 
 PRD-1314 is the roadmap parent. PRD-1323/1324 stay in **Green Goods 2.1.0** and relate to
@@ -73,6 +70,11 @@ General PWA simplification/cohesion can proceed without a live Gnosis deployment
 These are **conditional agent-assisted elapsed working-day ranges**, not measured throughput or
 new deadlines. They assume issuer decisions are available, a usable CLC version is identified,
 one voucher asset per demonstrated commitment, and no general fiat/multiasset executor build.
+Re-forecast on 20 October for the accepted boundary: the Arbitrum storage, library-link and
+fork-upgrade proofs drop out, and the critical path is external (COM-46 terms, the Gnosis passkey
+validator, the external audit, two weeks of testnet operation and the 48-hour timelock). No live
+Gnosis pilot can meet the 27 October submission under those gates; the labeled rehearsal is the
+hackathon path.
 
 | Outcome | Working days from architecture acceptance | Boundary |
 |---|---|---|
@@ -88,14 +90,18 @@ Reforecast after PRD-1315 and the first real selected-version conformance proof.
 
 - Freeze accepted terms, fulfillment eligibility, issuer delegation, recipient allocation, service
   lifecycle, chain roles, source/receipt authentication and legacy semantics.
-- Prove per-asset conservation, cap/reservation rules, duplicate command rejection, successful mint
+- Prove per-asset conservation, cap enforcement and the selected payer-funding rules, duplicate
+  command rejection, successful delivery
   with lost acknowledgment, retry, wrong peer/issuer, expiry, depleted capacity and partial success.
 - Preserve the existing G$ singleton plan, funding/refund behavior, retained amounts, executor
   protocol, Safe balances and history. A voucher delay must not re-open completed G$ payments.
 - Prove selected-version CLC interfaces and authorities; distinguish issuer capacity, mint budget
   and pool holding limits. Record upstream audit coverage and this integration's separate scope.
-- Pin storage layout and exact candidate if a core upgrade is accepted; preserve old readers and
-  explicit legacy provenance. Demonstrate migration/rollback on a dated fork.
+- No core upgrade is in the accepted candidate, so no storage-layout change is pinned; preserve old
+  readers and explicit legacy provenance. Demonstrate deployment and rollback of the new contracts
+  on a dated fork.
+- Land the voucher vocabularies in the ontology sidecar with the contracts, and chain 100 in
+  Shared's registry without a silent fallback.
 - Produce indexer replay/reorg proof, shared state parity, labeled PWA/admin rendered proof, and
   source-backed live/rehearsal claims for the pitch/passport.
 - Include reproducible wrapper commands, deployment manifests, authority checks, pause/recovery
@@ -103,7 +109,7 @@ Reforecast after PRD-1315 and the first real selected-version conformance proof.
 
 ## Review handoff
 
-Use [Claude's second-pass handoff](handoffs/claude-architecture-review.md). The reviewer should
-challenge this recommendation against the primary protocol resources and current Green Goods
-code, identify missing requirements and recommend the smallest sound alternative where needed.
-Architecture review does not authorize implementation or mark PRD-1315 complete.
+Claude's second-pass review is complete: [results](handoffs/claude-architecture-review-results.md) and [conformance evidence](handoffs/claude-conformance-evidence-2026-10-20.md); the
+original [handoff](handoffs/claude-architecture-review.md) is retained. Afo accepted the
+no-core-upgrade boundary on 20 October. Architecture review does not authorize implementation;
+PRD-1315 freezes after the remaining decisions are recorded.

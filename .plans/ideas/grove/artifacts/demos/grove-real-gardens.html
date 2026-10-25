@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grove · Garden scenarios</title>
+<style>
+:root{color-scheme:light;--background:#faf8f1;--foreground:#23372b;--muted-foreground:#657163;--viz-series-1:#32734c;--viz-series-2:#b16a35;--viz-series-3:#6b7299}body{margin:0;padding:20px;background:var(--background);color:var(--foreground);font:15px/1.5 system-ui,sans-serif}a{color:inherit}.prototype-note{max-width:1200px;margin:0 auto 16px;padding:12px 16px;border:1px solid #cbd3c4;border-radius:12px;background:#f0f2e8}.prototype-note a{font-weight:600}.prototype-note p{margin:4px 0}button,input,select{font:inherit}:focus-visible{outline:3px solid #28784f;outline-offset:4px}
+</style>
+</head>
+<body>
+<aside class="prototype-note" aria-label="Prototype context"><a href="index.html">← All Grove demos</a><p><strong>Design prototype.</strong> Historical public anchors and synthetic records. No private notes, live garden data or verified outcomes.</p></aside>
+<div id="grove-follow-a-connection" aria-label="Grove garden exploration">
+  <div class="gv-shell">
+    <header class="gv-header">
+      <div class="gv-brand">grove<span aria-hidden="true">✳</span></div>
+      <label class="gv-garden">Garden<select class="cursor-interaction" aria-label="Choose garden"><option value="tas">Tech and Sun</option><option value="vida">Vida Verde</option></select></label>
+      <span class="gv-demo">Public-safe design demo</span>
+    </header>
+    <nav class="gv-nav" aria-label="Garden navigation"></nav>
+    <main class="gv-main"></main>
+    <footer class="gv-footer"><span>Public anchors + synthetic scenarios · No live sync</span><span class="gv-footer-note">Suggested links await garden review.</span></footer>
+    <p class="gv-announcement" role="status" aria-live="polite"></p>
+  </div>
+</div>
+<style>
+#grove-follow-a-connection{
+ --gv-paper:light-dark(#FAF8F5,#1C1917);--gv-surface:light-dark(#FFFFFF,#25231F);--gv-ink:light-dark(#292524,#F5F5F4);--gv-muted:light-dark(#68615C,#BDB5AD);--gv-rule:light-dark(#DFD8CF,#49453D);--gv-green:light-dark(#1A7544,#C2F5DA);--gv-on-green:light-dark(#FFFFFF,#122A1D);--gv-soft:light-dark(#EDF3E7,#29352A);--gv-earth:light-dark(#AF9B7C,#8D816F);--gv-thread:light-dark(#9B947F,#8F9181);--gv-wash:light-dark(#F1EFE4,#252920);--gv-amber:light-dark(#85581E,#E1BD87);--gv-shadow:light-dark(#3025150D,#00000020);
+ color:var(--gv-ink);font:400 14px/1.5 Inter,ui-sans-serif,system-ui,sans-serif;container-type:inline-size;
+}
+#grove-follow-a-connection *{box-sizing:border-box}
+#grove-follow-a-connection .gv-shell{background:var(--gv-paper);border-radius:20px;isolation:isolate;overflow:hidden;min-width:0}
+#grove-follow-a-connection button{font:inherit;color:inherit}
+#grove-follow-a-connection button:disabled{opacity:.6}
+#grove-follow-a-connection .gv-header{display:flex;align-items:center;gap:22px;padding:22px 30px;border-bottom:1px solid var(--gv-rule);min-height:87px}
+#grove-follow-a-connection .gv-brand{font:400 32px/1 Georgia,serif;letter-spacing:-1.7px;display:flex;align-items:center;gap:9px}
+#grove-follow-a-connection .gv-brand span{font:400 19px/1 system-ui;color:var(--gv-green);letter-spacing:0}
+#grove-follow-a-connection .gv-garden{border-left:1px solid var(--gv-rule);padding-left:22px;font-size:13px;font-weight:500}
+#grove-follow-a-connection .gv-garden small{display:block;font-size:11px;font-weight:400;color:var(--gv-muted);margin-top:3px}
+#grove-follow-a-connection .gv-demo{margin-left:auto;margin-right:70px;font-size:11px;color:var(--gv-muted)}
+#grove-follow-a-connection .gv-nav{display:flex;align-items:center;gap:16px;padding:12px 30px;min-height:65px;border-bottom:1px solid var(--gv-rule);flex-wrap:wrap}
+#grove-follow-a-connection .gv-back{border:1px solid var(--gv-rule);border-radius:999px;background:var(--gv-surface);padding:9px 14px;min-height:42px;display:inline-flex;gap:8px;align-items:center;font-size:12px;white-space:nowrap}
+#grove-follow-a-connection .gv-breadcrumb{display:flex;align-items:center;gap:8px;color:var(--gv-muted);font-size:12px;flex-wrap:wrap}
+#grove-follow-a-connection .gv-breadcrumb button{background:transparent;border:0;padding:6px 0;color:var(--gv-muted);text-decoration:underline;text-underline-offset:4px}
+#grove-follow-a-connection .gv-breadcrumb strong{color:var(--gv-ink);font-weight:500}
+#grove-follow-a-connection .gv-heading{padding:26px 30px 8px;display:flex;justify-content:space-between;align-items:flex-start;gap:22px}
+#grove-follow-a-connection h1{font:400 32px/1.17 Georgia,serif;letter-spacing:-.6px;margin:0}
+#grove-follow-a-connection .gv-subtitle{color:var(--gv-muted);font-size:13px;margin:9px 0 0;max-width:560px}
+#grove-follow-a-connection .gv-overview-note{align-self:center;font-size:12px;color:var(--gv-green);padding:7px 11px;background:var(--gv-soft);border-radius:999px;white-space:nowrap}
+#grove-follow-a-connection .gv-map{position:relative;height:445px;margin:0 18px;background:radial-gradient(ellipse at 48% 48%,var(--gv-wash),var(--gv-paper) 68%)}
+#grove-follow-a-connection .gv-map svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+#grove-follow-a-connection .gv-thread{stroke:var(--gv-thread);fill:none;stroke-width:1.5;stroke-linecap:round}
+#grove-follow-a-connection .gv-thread.new{stroke:var(--gv-green);stroke-width:2;stroke-dasharray:5 7}
+#grove-follow-a-connection .gv-filament{fill:var(--gv-thread);opacity:.32}
+#grove-follow-a-connection .gv-node{position:absolute;transform:translate(-50%,-50%);z-index:2;display:flex;align-items:center;gap:12px;min-height:62px;padding:12px 18px;border:1px solid var(--gv-rule);border-radius:38% 48% 43% 36% / 45% 47% 42% 44%;background:var(--gv-surface);text-align:left;box-shadow:0 4px 14px var(--gv-shadow);white-space:nowrap}
+#grove-follow-a-connection button.gv-node:hover{border-color:var(--gv-green);background:var(--gv-soft)}
+#grove-follow-a-connection .gv-node strong{display:block;font-size:15px;font-weight:500;line-height:1.35}
+#grove-follow-a-connection .gv-node small{display:block;font-size:11px;color:var(--gv-muted);margin-top:4px;line-height:1.3}
+#grove-follow-a-connection .gv-node .gv-node-status{color:var(--gv-green);font-weight:500}
+#grove-follow-a-connection .gv-node .gv-open{font-size:16px;color:var(--gv-muted);margin-left:4px}
+#grove-follow-a-connection .gv-pin{width:11px;height:11px;border:1.5px solid var(--gv-earth);border-radius:50%;flex-shrink:0;background:var(--gv-paper)}
+#grove-follow-a-connection .gv-node.is-fresh{border-color:var(--gv-green);background:var(--gv-soft)}
+#grove-follow-a-connection .gv-node.is-fresh .gv-pin{background:var(--gv-green);border-color:var(--gv-green);box-shadow:0 0 0 4px var(--gv-soft),0 0 0 5px var(--gv-green)}
+#grove-follow-a-connection .gv-node.source .gv-pin{border-radius:2px;transform:rotate(45deg)}
+#grove-follow-a-connection .gv-node.root{min-height:98px;min-width:132px;justify-content:center;flex-direction:column;gap:8px;border:0;background:var(--gv-soft);text-align:center;box-shadow:0 0 0 8px var(--gv-paper),0 0 0 9px var(--gv-rule)}
+#grove-follow-a-connection .gv-node.root .gv-pin{width:17px;height:17px;border:0;background:var(--gv-green)}
+#grove-follow-a-connection .gv-node.root strong{font:400 19px/1.2 Georgia,serif}
+#grove-follow-a-connection .gv-node.root small{margin-top:0}
+#grove-follow-a-connection .gv-connection{position:absolute;z-index:3;transform:translate(-50%,-50%);border:1px solid var(--gv-green);border-radius:999px;padding:10px 15px;min-height:44px;background:var(--gv-green);color:var(--gv-on-green);font-size:12px;box-shadow:0 0 0 7px var(--gv-paper);white-space:nowrap}
+#grove-follow-a-connection .gv-map-note{position:absolute;bottom:4px;left:12px;right:12px;text-align:center;color:var(--gv-muted);font-size:11px;margin:0}
+#grove-follow-a-connection .gv-footer{border-top:1px solid var(--gv-rule);display:flex;justify-content:space-between;gap:15px;padding:14px 30px;font-size:11px;color:var(--gv-muted);flex-wrap:wrap}
+#grove-follow-a-connection .gv-story{display:grid;grid-template-columns:minmax(260px,.92fr) minmax(0,1.08fr);padding:22px 30px 30px;gap:28px;align-items:start}
+#grove-follow-a-connection .gv-story-map{height:355px;margin:0;border-radius:18px;background:radial-gradient(ellipse at 48% 50%,var(--gv-wash),var(--gv-paper) 75%)}
+#grove-follow-a-connection .gv-story-map .gv-node{padding:12px 15px}
+#grove-follow-a-connection .gv-predicate{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);color:var(--gv-green);padding:4px 10px;font-size:12px;background:var(--gv-paper);border-radius:999px;white-space:nowrap}
+#grove-follow-a-connection .gv-story-map .gv-map-note{bottom:12px}
+#grove-follow-a-connection .gv-detail{background:var(--gv-surface);border:1px solid var(--gv-rule);border-radius:18px;padding:25px;min-width:0}
+#grove-follow-a-connection .gv-eyebrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:17px;color:var(--gv-muted);font-size:11px}
+#grove-follow-a-connection .gv-badge{border-radius:999px;background:var(--gv-soft);color:var(--gv-green);padding:4px 9px;font-size:11px;font-weight:500}
+#grove-follow-a-connection h2{font:400 25px/1.25 Georgia,serif;margin:0 0 14px;letter-spacing:-.3px}
+#grove-follow-a-connection .gv-detail p{font-size:14px;line-height:1.65;margin:12px 0;color:var(--gv-muted)}
+#grove-follow-a-connection .gv-detail .gv-explanation{color:var(--gv-ink)}
+#grove-follow-a-connection .gv-primary{border:1px solid var(--gv-green);border-radius:999px;background:var(--gv-green);color:var(--gv-on-green);padding:12px 19px;min-height:46px;margin-top:15px;display:inline-flex;gap:12px;align-items:center;font-size:13px}
+#grove-follow-a-connection .gv-detail .gv-context{font-size:12px;margin:20px 0 0;border-top:1px solid var(--gv-rule);padding-top:15px}
+#grove-follow-a-connection .gv-source-body{font:400 17px/1.7 Georgia,serif;color:var(--gv-ink)}
+#grove-follow-a-connection .gv-detail .gv-source-body p{font:inherit;color:inherit;margin:17px 0}
+#grove-follow-a-connection .gv-source-body mark{background:var(--gv-soft);color:var(--gv-ink);box-decoration-break:clone;-webkit-box-decoration-break:clone;padding:2px 3px}
+#grove-follow-a-connection .gv-detail .gv-source-meta{font-size:12px;line-height:1.7;color:var(--gv-muted);margin:0 0 22px}
+#grove-follow-a-connection .gv-source-why{font-size:12px;color:var(--gv-muted);margin:20px 8px;line-height:1.6;text-align:center}
+#grove-follow-a-connection .gv-source-why strong{color:var(--gv-ink);font-weight:500}
+#grove-follow-a-connection .gv-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#grove-follow-a-connection .gv-enter .gv-thread.new{stroke-dasharray:5 7;animation:gv-thread-reveal 500ms ease-out both}
+#grove-follow-a-connection .gv-enter .gv-node{animation:gv-arrive 280ms ease-out both}
+@keyframes gv-arrive{from{transform:translate(-50%,calc(-50% + 9px))}to{transform:translate(-50%,-50%)}}
+@keyframes gv-thread-reveal{from{stroke-dashoffset:25}to{stroke-dashoffset:0}}
+@container(max-width:700px){
+ #grove-follow-a-connection .gv-story{grid-template-columns:1fr;gap:16px;padding-top:8px}
+ #grove-follow-a-connection .gv-story-map{height:220px}
+ #grove-follow-a-connection .gv-source-why{display:none}
+ #grove-follow-a-connection .gv-node{padding:11px 13px;gap:9px}
+ #grove-follow-a-connection .gv-node strong{font-size:14px}
+ #grove-follow-a-connection .gv-node.root{min-width:112px;min-height:88px}
+ #grove-follow-a-connection .gv-heading{flex-wrap:wrap;gap:12px}
+}
+@container(max-width:520px){
+ #grove-follow-a-connection .gv-header{padding:18px;gap:16px}
+ #grove-follow-a-connection .gv-garden{padding-left:16px}
+ #grove-follow-a-connection .gv-demo{display:none}
+ #grove-follow-a-connection .gv-nav{padding:10px 18px;gap:10px}
+ #grove-follow-a-connection .gv-heading{padding:20px 18px 8px}
+ #grove-follow-a-connection h1{font-size:28px}
+ #grove-follow-a-connection .gv-map{height:575px;margin:0 6px}
+ #grove-follow-a-connection .gv-node{min-height:60px;padding:11px 14px}
+ #grove-follow-a-connection .gv-node strong{font-size:14px}
+ #grove-follow-a-connection .gv-node.root{min-height:80px;min-width:110px}
+ #grove-follow-a-connection .gv-map-note{font-size:11px;bottom:10px}
+ #grove-follow-a-connection .gv-story{padding:6px 18px 22px}
+ #grove-follow-a-connection .gv-story-map{height:255px;margin:0}
+ #grove-follow-a-connection .gv-detail{padding:21px}
+ #grove-follow-a-connection .gv-story-map .gv-node{padding:11px 13px}
+ #grove-follow-a-connection .gv-footer{padding:13px 18px}
+ #grove-follow-a-connection .gv-footer-note{display:none}
+ #grove-follow-a-connection .gv-overview-note{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){#grove-follow-a-connection *,#grove-follow-a-connection *:before,#grove-follow-a-connection *:after{animation:none!important;transition:none!important}}
+</style>
+<style>
+#grove-follow-a-connection .gv-garden{color:var(--gv-muted);font-size:11px}
+#grove-follow-a-connection select{display:block;border:0;background:var(--gv-paper);color:var(--gv-ink);font:500 14px/1.5 system-ui;padding:4px 20px 4px 0;max-width:100%}
+#grove-follow-a-connection .gv-heading{padding-bottom:15px}
+#grove-follow-a-connection .gv-lens{padding:0 30px 4px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+#grove-follow-a-connection .gv-lens button{background:transparent;border:1px solid var(--gv-rule);border-radius:999px;padding:8px 13px;font-size:12px;min-height:40px}
+#grove-follow-a-connection .gv-lens button[aria-pressed=true]{background:var(--gv-soft);border-color:var(--gv-green);color:var(--gv-green)}
+#grove-follow-a-connection .gv-lens small{font-size:11px;color:var(--gv-muted);margin-left:auto}
+#grove-follow-a-connection .gv-node.is-plan{border-style:dashed}
+#grove-follow-a-connection .gv-thread.plan{stroke-dasharray:4 7;stroke:var(--gv-earth)}
+#grove-follow-a-connection .gv-detail ul{padding-left:19px;color:var(--gv-muted);font-size:13px;line-height:1.8}
+#grove-follow-a-connection .gv-detail a{color:var(--gv-green);text-underline-offset:4px;overflow-wrap:anywhere}
+#grove-follow-a-connection .gv-metrics{display:flex;gap:28px;padding:15px 0;border-top:1px solid var(--gv-rule);border-bottom:1px solid var(--gv-rule);margin:15px 0}
+#grove-follow-a-connection .gv-metrics strong{font:400 34px/1.1 Georgia,serif;display:block;color:var(--gv-ink)}
+#grove-follow-a-connection .gv-metrics small{font-size:12px;color:var(--gv-muted)}
+#grove-follow-a-connection .gv-source-list{display:flex;flex-direction:column;gap:10px;margin-top:18px;font-size:12px}
+#grove-follow-a-connection .gv-source-list a{display:block;padding:7px 0}
+#grove-follow-a-connection .gv-node{width:max-content;max-width:250px;white-space:normal}
+#grove-follow-a-connection .gv-source-list .gv-back{white-space:normal;text-align:left}
+#grove-follow-a-connection .gv-node strong{white-space:nowrap}
+#grove-follow-a-connection .gv-node small{max-width:180px}
+#grove-follow-a-connection .gv-map-note{bottom:8px}
+#grove-follow-a-connection .gv-story-map .gv-node{max-width:230px}
+#grove-follow-a-connection .gv-source-body blockquote{margin:0;font:inherit}
+#grove-follow-a-connection .gv-detail .gv-source-body p{font-size:17px}
+#grove-follow-a-connection .gv-stage-note{margin:0;padding:0 30px 19px;font-size:12px;color:var(--gv-muted)}
+@container(max-width:520px){
+ #grove-follow-a-connection .gv-lens{padding:0 18px;gap:7px}
+ #grove-follow-a-connection .gv-lens small{flex-basis:100%;margin:4px 0}
+ #grove-follow-a-connection .gv-stage-note{padding:0 18px 18px}
+ #grove-follow-a-connection .gv-garden{min-width:0;padding-left:12px}
+ #grove-follow-a-connection select{font-size:16px}
+ #grove-follow-a-connection .gv-node{max-width:235px}
+ #grove-follow-a-connection .gv-map{height:650px}
+ #grove-follow-a-connection .gv-node strong{font-size:13px}
+ #grove-follow-a-connection .gv-story-map{height:290px}
+ #grove-follow-a-connection .gv-story-map .gv-node{max-width:220px}
+}
+</style>
+<script>
+(()=>{
+ const root=document.getElementById('grove-follow-a-connection');
+ const main=root.querySelector('.gv-main'),nav=root.querySelector('.gv-nav'),announce=root.querySelector('.gv-announcement'),picker=root.querySelector('select');
+ const source={
+  "report": {
+    "title": "Example review record",
+    "type": "Synthetic · design fixture",
+    "date": "Illustrative · undated",
+    "url": null,
+    "text": "Synthetic fixture: a report links to example work and review records. No actual garden totals are included.",
+    "limit": "Invented for this public design demo. No private note, approved plan, activity total or actual partnership is represented."
+  },
+  "tasSync": {
+    "title": "Example planning note",
+    "type": "Synthetic · design fixture",
+    "date": "Illustrative · undated",
+    "url": null,
+    "text": "Synthetic fixture: a team considers a learning program. This is not a TAS meeting record.",
+    "limit": "Invented for this public design demo. No private note, approved plan, activity total or actual partnership is represented."
+  },
+  "funding": {
+    "title": "Example program outline",
+    "type": "Synthetic · design fixture",
+    "date": "Illustrative · undated",
+    "url": null,
+    "text": "Synthetic fixture: a proposed builder program needs an owner, eligibility check, budget and learning goals. No application or award is asserted.",
+    "limit": "Invented for this public design demo. No private note, approved plan, activity total or actual partnership is represented."
+  },
+  "tasSite": {
+    "title": "Tech and Sun public website",
+    "type": "External · garden-published",
+    "date": "Read 11 Oct 2026",
+    "url": "https://techandsun.com/",
+    "text": "The website describes an active Awka pilot combining solar power, internet and learning. It lists a content creation bootcamp from 18 May to 5 June 2026, a product design program starting 1 July, and a planned Enugu hub.",
+    "limit": "Garden-published status and activity descriptions. Attendance, energy output and learning outcomes have not been independently verified here. Enugu’s timing and capacity are unconfirmed."
+  },
+  "geode": {
+    "title": "Geode Labs grant program",
+    "type": "External · primary source",
+    "date": "Read 11 Oct 2026",
+    "url": "https://geode.build/grants",
+    "text": "Historical external reference for exploring a possible education/resource connection. The proposed garden program in this demo is synthetic.",
+    "limit": "Archived design reference read 11 October 2026; criteria may have changed. No current eligibility, application or award is asserted."
+  },
+  "vidaSync": {
+    "title": "Example agroforestry note",
+    "type": "Synthetic · design fixture",
+    "date": "Illustrative · undated",
+    "url": null,
+    "text": "Synthetic fixture: a community could explore an agroforestry trial and a learning day. These are design scenarios, not Vida Verde priorities or plans.",
+    "limit": "Invented for this public design demo. No private note, approved plan, activity total or actual partnership is represented."
+  },
+  "vidaChain": {
+    "title": "Vida Verde garden creation",
+    "type": "Onchain · Arbitrum One",
+    "date": "2 Apr 2026 · 01:23 UTC",
+    "url": "https://arbiscan.io/tx/0x36311d9124a0ddc7af496032184db5c92a734682d7d48edbf77ba356ef682df4",
+    "text": "The successful transaction creates the Vida Verde garden account, 0x26c32E54…e3fB176E2, and mints Garden NFT #13. The garden description locates the project in El Hatillo, Venezuela.",
+    "limit": "This proves the registration event. It does not verify field activities, current ownership or ecological outcomes."
+  },
+  "icraf": {
+    "title": "Agroforestry field guide",
+    "type": "External · World Agroforestry Centre",
+    "date": "Published 2013 · read 11 Oct 2026",
+    "url": "https://ccafs.cgiar.org/resources/publications/agroforestry-guide-field-practitioners",
+    "text": "The guide describes participatory design and learning with local user groups and field practitioners. It draws on a ten-year sloping-land management project in DPR Korea.",
+    "limit": "Useful as a design process reference. Species, spacing, terrain and practices need local review in Venezuela; this is not a site-specific planting prescription."
+  }
+};
+ const gardens={
+  "tas": {
+    "name": "Tech and Sun",
+    "short": "TAS Hub",
+    "place": "Awka, Nigeria",
+    "lead": "learning",
+    "intro": "Public learning context meets an illustrative next step.",
+    "vintage": "Public anchors + synthetic scenarios",
+    "areas": {
+      "learning": {
+        "name": "Learning",
+        "sub": "Follow a public learning reference into an example program.",
+        "items": [
+          "bootcamp",
+          "work",
+          "program",
+          "geode"
+        ],
+        "subline": "Explore an illustrative connection",
+        "connection": true
+      },
+      "solar": {
+        "name": "Solar & internet",
+        "sub": "Public context and a proposed measurement example.",
+        "items": [
+          "hub",
+          "work",
+          "energy"
+        ],
+        "subline": "Awka pilot · reported"
+      },
+      "funding": {
+        "name": "Resources",
+        "sub": "Explore what a fictional application would need.",
+        "items": [
+          "sync",
+          "shortlist",
+          "program",
+          "geode"
+        ],
+        "subline": "Synthetic planning scenario"
+      },
+      "expansion": {
+        "name": "Next hub",
+        "sub": "A public plan and illustrative questions to ask.",
+        "items": [
+          "enugu",
+          "siteplan"
+        ],
+        "subline": "Enugu · planned",
+        "future": true
+      }
+    },
+    "records": {
+      "hub": {
+        "name": "Awka hub",
+        "status": "Reported",
+        "detail": "An operating pilot",
+        "body": "Tech and Sun describes an active hub offering solar power, internet access and a shared learning environment.",
+        "sources": [
+          "tasSite"
+        ]
+      },
+      "work": {
+        "name": "Example work reviews",
+        "status": "Illustrative",
+        "detail": "Synthetic · undated",
+        "body": "A fictional review record shows where supporting work would connect. No actual submissions, approvals or outcome counts are included.",
+        "sources": [
+          "report"
+        ]
+      },
+      "bootcamp": {
+        "name": "Learning activities",
+        "status": "Reported",
+        "detail": "Bootcamps · 2026",
+        "body": "The public site lists content creation and product design activities. Grove can connect the program descriptions with garden work evidence while keeping attendance and learning outcomes separate.",
+        "sources": [
+          "tasSite"
+        ]
+      },
+      "energy": {
+        "name": "Energy baseline",
+        "status": "Proposed",
+        "detail": "Synthetic · undated",
+        "body": "A synthetic next step would define a measurement owner, method and dated readings. This demo contains no measured energy series.",
+        "sources": [
+          "tasSite"
+        ],
+        "future": true
+      },
+      "sync": {
+        "name": "Planning conversation",
+        "status": "Planned",
+        "detail": "Synthetic · undated",
+        "body": "An invented team conversation considers a learning program. It is not a record of a TAS meeting.",
+        "sources": [
+          "tasSync"
+        ],
+        "future": true
+      },
+      "shortlist": {
+        "name": "Example resource search",
+        "status": "Planned",
+        "detail": "Synthetic · undated",
+        "body": "An illustrative resource search connects a proposed program with a public reference. No real funding pipeline is represented.",
+        "sources": [
+          "funding"
+        ],
+        "future": true
+      },
+      "program": {
+        "name": "Builder program",
+        "status": "Proposed",
+        "detail": "Synthetic · undated",
+        "body": "A fictional program could connect learning access with practical outputs. It needs local approval, an owner and a budget; nothing here asserts delivery.",
+        "sources": [
+          "funding"
+        ],
+        "future": true,
+        "connection": true,
+        "list": [
+          "Define a small learning goal.",
+          "Choose an owner and check eligibility.",
+          "Record any later activity separately."
+        ]
+      },
+      "geode": {
+        "name": "Geode grants",
+        "status": "External",
+        "detail": "Historical public reference",
+        "body": "Explore a possible relationship to the synthetic program; confirm current criteria at the original source.",
+        "sources": [
+          "geode"
+        ],
+        "connection": true
+      },
+      "enugu": {
+        "name": "Enugu hub",
+        "status": "Planned",
+        "detail": "Timing unconfirmed",
+        "future": true,
+        "body": "Enugu is described as an upcoming hub on the public site. Site readiness, opening date, capacity and secured funding remain unconfirmed in this demo.",
+        "sources": [
+          "tasSite"
+        ]
+      },
+      "siteplan": {
+        "name": "Expansion questions",
+        "status": "Proposed",
+        "detail": "Synthetic · undated",
+        "body": "An illustrative checklist could gather demand, operating costs and maintenance needs. This is not an approved expansion plan.",
+        "sources": [
+          "funding"
+        ],
+        "future": true
+      }
+    },
+    "connection": {
+      "from": "geode",
+      "to": "program",
+      "title": "A path from learners to builders.",
+      "sub": "A public reference meets a synthetic program idea.",
+      "body": "This illustrates a resource connection to a synthetic learning program. The source, inference and missing evidence stay visible. No garden application or funding commitment is asserted.",
+      "prompt": "What would make this ready?",
+      "steps": [
+        "Check current criteria at the original source.",
+        "Ask the garden whether the idea is relevant.",
+        "Define an owner, budget and learning goals."
+      ],
+      "sources": [
+        "geode",
+        "funding",
+        "report"
+      ],
+      "primary": "geode",
+      "action": "Read Geode’s criteria",
+      "predicate": "may support ↓"
+    }
+  },
+  "vida": {
+    "name": "Vida Verde",
+    "short": "Vida Verde",
+    "place": "El Hatillo, Venezuela",
+    "lead": "agro",
+    "intro": "An agroforestry design scenario, with a public identity anchor.",
+    "vintage": "Synthetic scenario · no field results",
+    "areas": {
+      "agro": {
+        "name": "Agroforestry",
+        "sub": "Explore an illustrative field plan with sources in view.",
+        "items": [
+          "focus",
+          "baseline",
+          "trial",
+          "guide"
+        ],
+        "subline": "Explore a field-guide connection",
+        "connection": true
+      },
+      "education": {
+        "name": "Education",
+        "sub": "An example of learning around a proposed trial.",
+        "items": [
+          "education",
+          "learningday"
+        ],
+        "subline": "Synthetic scenario"
+      },
+      "waste": {
+        "name": "Waste & resources",
+        "sub": "Explore fictional resource records.",
+        "items": [
+          "recycling",
+          "wastebaseline"
+        ],
+        "subline": "No actual partner or volume asserted"
+      },
+      "identity": {
+        "name": "Garden identity",
+        "sub": "Separate public registration from example work.",
+        "items": [
+          "registration",
+          "priorities"
+        ],
+        "subline": "Registered · 2 Apr 2026"
+      }
+    },
+    "records": {
+      "focus": {
+        "name": "Agroforestry focus",
+        "status": "Illustrative",
+        "detail": "Synthetic · undated",
+        "body": "This demo chooses agroforestry to explore the interface. It does not assert a reported garden priority.",
+        "sources": [
+          "vidaSync"
+        ]
+      },
+      "baseline": {
+        "name": "Plot baseline",
+        "status": "Missing",
+        "detail": "Synthetic · undated",
+        "body": "No field baseline is supplied to this synthetic fixture. That says nothing about work the garden may have done.",
+        "sources": [
+          "vidaSync"
+        ],
+        "list": [
+          "Choose a plot with local practitioners.",
+          "Record existing conditions and dates.",
+          "Keep consent and source context visible."
+        ]
+      },
+      "trial": {
+        "name": "Agroforestry trial",
+        "status": "Proposed",
+        "detail": "Synthetic · undated",
+        "body": "A fictional trial could connect a field guide with a locally designed plan. No planting, approved plan, land area or survival rate is asserted.",
+        "sources": [
+          "vidaSync",
+          "icraf"
+        ],
+        "future": true,
+        "connection": true,
+        "list": [
+          "Start with local goals.",
+          "Record a baseline before a trial.",
+          "Agree what to observe again."
+        ]
+      },
+      "guide": {
+        "name": "Field design guide",
+        "status": "External",
+        "detail": "World Agroforestry Centre",
+        "body": "A participatory design reference that could help structure a local conversation. Its regional examples require adaptation.",
+        "sources": [
+          "icraf"
+        ],
+        "connection": true
+      },
+      "education": {
+        "name": "Community learning",
+        "status": "Illustrative",
+        "detail": "Synthetic · undated",
+        "body": "An invented learning strand demonstrates connections across topics, without claiming an actual garden program.",
+        "sources": [
+          "vidaSync"
+        ]
+      },
+      "learningday": {
+        "name": "Plot learning day",
+        "status": "Proposed",
+        "detail": "Synthetic · undated",
+        "body": "A fictional learning day could revisit a plot and compare observations. No date or attendance is assumed.",
+        "sources": [
+          "vidaSync",
+          "icraf"
+        ],
+        "future": true
+      },
+      "recycling": {
+        "name": "Example material partner",
+        "status": "Illustrative",
+        "detail": "Synthetic · undated",
+        "body": "A synthetic relationship shows how a partner could appear. No actual organization, agreement or material transfer is represented.",
+        "sources": [
+          "vidaSync"
+        ]
+      },
+      "wastebaseline": {
+        "name": "Material records",
+        "status": "Proposed",
+        "detail": "Synthetic · undated",
+        "body": "An illustrative future record would preserve material, unit, date and destination. No historical volume is supplied.",
+        "sources": [
+          "vidaSync"
+        ],
+        "future": true
+      },
+      "registration": {
+        "name": "Garden registered",
+        "status": "Onchain",
+        "detail": "Arbitrum · NFT #13",
+        "body": "Vida Verde’s garden creation transaction succeeded on Arbitrum One on 2 April 2026. This is an identity anchor for future garden evidence.",
+        "sources": [
+          "vidaChain"
+        ]
+      },
+      "priorities": {
+        "name": "Example topic links",
+        "status": "Illustrative",
+        "detail": "Synthetic · undated",
+        "body": "These topics are a design arrangement, not a statement of Vida Verde priorities or completed work.",
+        "sources": [
+          "vidaSync"
+        ]
+      }
+    },
+    "connection": {
+      "from": "guide",
+      "to": "trial",
+      "title": "Let the field shape the plan.",
+      "sub": "A public guide meets an illustrative trial.",
+      "body": "A participatory guide could structure a local conversation. The trial is synthetic and requires garden review; relevance does not establish planting or ecological outcomes.",
+      "prompt": "What would make this useful?",
+      "steps": [
+        "Start with the community’s goals and existing knowledge.",
+        "Record the plot before choosing a trial.",
+        "Agree on observations to repeat over time."
+      ],
+      "sources": [
+        "icraf",
+        "vidaSync"
+      ],
+      "primary": "icraf",
+      "action": "Read the field-guide summary",
+      "predicate": "may inform ↓"
+    }
+  }
+};
+ const initial={garden:'tas',screen:'overview',area:'learning',record:null,source:null,lens:'next'};
+ let current={...initial},trail=[];
+ const design={curvature:.8};
+ const g=()=>gardens[current.garden];
+ function valid(v){return v&&gardens[v.garden]&&['overview','area','record','connection','source'].includes(v.screen)&&gardens[v.garden].areas[v.area]&&['known','next'].includes(v.lens)&&(v.screen!=='record'||gardens[v.garden].records[v.record])&&(v.screen!=='source'||source[v.source]);}
+ function restore(s){const j=s?.modelContent?.realGardenJourney;if(j?.version!==1||!valid(j.current))return;current={...j.current};trail=Array.isArray(j.trail)?j.trail.filter(v=>valid(v.state)).slice(-15):[];}
+ restore(window.openai?.widgetState);
+ function save(){if(window.openai?.setWidgetState)Promise.resolve(window.openai.setWidgetState({modelContent:{realGardenJourney:{version:1,current,trail}},privateContent:null})).catch(()=>{});}
+ function label(s){const data=gardens[s.garden];return s.screen==='overview'?'Garden overview':s.screen==='area'?data.areas[s.area].name:s.screen==='record'?data.records[s.record].name:s.screen==='source'?'Source':'New connection';}
+ function go(next,key){trail.push({state:{...current},focus:key});current={...current,...next};render(true,'back');save();}
+ function back(){const prev=trail.pop();current=prev?.state||{...current,screen:'overview'};render(true,prev?.focus);save();}
+ function home(){current={...current,screen:'overview',record:null,source:null};trail=[];render(true,'area-'+g().lead);save();}
+ const button=(key,txt,cls='')=>`<button type="button" class="cursor-interaction ${cls}" data-key="${key}">${txt}</button>`;
+ function links(ids){return `<div class="gv-source-list">${ids.map(id=>button('source-'+id,'Source · '+source[id].title+' →','gv-back')).join('')}</div>`;}
+ function node(id,name,sub,key='',kind='',status=''){return `${key?`<button type="button" data-key="${key}"`:'<div'} data-node="${id}" class="gv-node ${kind} ${status==='Proposed'||status==='Planned'?'is-plan':''} ${key?'cursor-interaction':''}"><span class="gv-pin" aria-hidden="true"></span><span><strong>${name}</strong><small>${sub}</small></span>${key?'<span class="gv-open" aria-hidden="true">→</span>':''}${key?'</button>':'</div>'}`;}
+ const svg=()=>'<svg class="gv-lines" aria-hidden="true"></svg>';
+ function heading(title,sub){return `<div class="gv-heading"><div><h1>${title}</h1><p class="gv-subtitle">${sub}</p></div></div>`;}
+ function lens(){return `<div class="gv-lens" aria-label="Evidence view"><button type="button" class="cursor-interaction" data-key="lens-known" aria-pressed="${current.lens==='known'}">Known so far</button><button type="button" class="cursor-interaction" data-key="lens-next" aria-pressed="${current.lens==='next'}">With next steps</button><small>${g().vintage}</small></div>`;}
+ function areaEntries(){return Object.entries(g().areas).filter(([,a])=>current.lens==='next'||!a.future);}
+ function itemIDs(){return g().areas[current.area].items.filter(id=>current.lens==='next'||!g().records[id].future);}
+ function overview(){return heading(g().name,g().place+' · '+g().intro)+lens()+`<section class="gv-map" data-map="overview" aria-label="${g().name} knowledge map">${svg()}${node('center',g().short,'Garden','', 'root')}${areaEntries().map(([id,a])=>node(id,a.name,a.subline,'area-'+id,a.connection?'is-fresh':'',a.future?'Planned':'')).join('')}<p class="gv-map-note">Solid · documented relationship &nbsp; / &nbsp; Dashed · next possibility</p></section>`;}
+ function area(){const a=g().areas[current.area],items=itemIDs(),show=a.connection&&current.lens==='next';return heading(a.name,a.sub)+lens()+`<section class="gv-map" data-map="area" aria-label="${a.name} records">${svg()}${node('center',a.name,'Garden area','','root')}${items.map(id=>{const r=g().records[id];return node(id,r.name,r.status+' · '+r.detail,'record-'+id,r.status==='External'?'source':'',r.status);}).join('')}${show?button('connection','New connection →','gv-connection'):''}<p class="gv-map-note">${show?'Suggested in this demo · tap the connection to see why':'Open a record to see its evidence and date.'}</p></section>`;}
+ function miniMap(from,to,predicate,sub,planned=true){return `<div><section class="gv-map gv-story-map" data-map="story" data-suggested="${planned}" aria-label="${from.name} ${predicate.replace(' ↓','')} ${to.name}">${svg()}${node('from',from.name,from.status||'Garden area','',from.status==='External'?'source':'')}${node('to',to.name,to.status||'Garden record','','',to.status)}<span class="gv-predicate">${predicate}</span><p class="gv-map-note">${sub}</p></section></div>`;}
+ function connection(){const c=g().connection;return heading('New connection',c.sub)+`<div class="gv-story">${miniMap(g().records[c.from],g().records[c.to],c.predicate,'Suggested in this demo · awaiting review')}<section class="gv-detail" aria-label="Connection detail"><div class="gv-eyebrow"><span class="gv-badge">Suggested connection</span><span>External knowledge → garden work</span></div><h2>${c.title}</h2><p class="gv-explanation">${c.body}</p><p>${c.prompt}</p><ul>${c.steps.map(s=>'<li>'+s+'</li>').join('')}</ul>${button('source-'+c.primary,c.action+' →','gv-primary')}<p class="gv-context">Hand-curated for this exploration. No autonomous discovery or garden approval is implied.</p>${links(c.sources.filter(s=>s!==c.primary))}</section></div>`;}
+ function record(){const r=g().records[current.record];return heading(r.name,r.status+' · '+r.detail)+`<div class="gv-story">${miniMap({name:g().areas[current.area].name},r,'includes ↓',r.future?'Proposed work has no completion evidence yet.':'Open the source to check this record.',!!r.future)}<section class="gv-detail" aria-label="Garden record"><div class="gv-eyebrow"><span class="gv-badge">${r.status}</span><span>${r.sources.map(id=>source[id].date).slice(0,1).join('')}</span></div><h2>${r.name}</h2><p class="gv-explanation">${r.body}</p>${r.metrics?`<div class="gv-metrics">${r.metrics.map(([n,l])=>`<div><strong>${n}</strong><small>${l}</small></div>`).join('')}</div>`:''}${r.list?`<ul>${r.list.map(t=>'<li>'+t+'</li>').join('')}</ul>`:''}${r.connection?button('connection','Explore new connection →','gv-primary'):''}${links(r.sources)}${r.metrics?'<p class="gv-context">Snapshot through 5 Sep 2026. Live totals are unavailable in this demo.</p>':''}</section></div>`;}
+ function sourceView(){const s=source[current.source],c=g().connection;const r=current.record&&g().records[current.record];return heading(s.title,'The source behind this part of the garden graph.')+`<div class="gv-story">${miniMap({name:s.title,status:s.type.split(' · ')[0]},r||g().records[c.to],r?(r.future?'informs proposal ↓':'documents ↓'):c.predicate,'Context stays connected while you read.',!r||!!r.future)}<article class="gv-detail" aria-label="Source detail"><div class="gv-eyebrow"><span class="gv-badge">${s.type}</span></div><h2>${s.title}</h2><p class="gv-source-meta">${s.date}</p><div class="gv-source-body">${s.quote?`<blockquote>“<mark>${s.quote}</mark>”</blockquote>`:''}<p>${s.text}</p></div><p class="gv-context">${s.limit}</p><div class="gv-source-list">${s.url ? `<a href="${s.url}" target="_blank" rel="noopener noreferrer">Open original source ↗</a>` : '<p>Synthetic fixture · no original source</p>'}</div>${button('back','← Back to '+(trail.length?label(trail[trail.length-1].state):'garden'),'gv-primary')}</article></div>`;}
+ function render(animate=false,focusKey=null){picker.value=current.garden;nav.innerHTML=`${current.screen==='overview'?'':button('back','← Back','gv-back')}<div class="gv-breadcrumb">${current.screen==='overview'?'<strong aria-current="page">Garden overview</strong>':button('home','Garden overview')+' <span>/</span> '+(current.screen==='area'?`<strong aria-current="page">${g().areas[current.area].name}</strong>`:button('area-crumb',g().areas[current.area].name)+' <span>/</span> <strong aria-current="page">'+label(current)+'</strong>')}</div>`;main.innerHTML=({overview,area,record,connection,source:sourceView}[current.screen])();main.classList.toggle('gv-enter',animate);draw();if(animate){announce.textContent=g().name+' · '+label(current);if(focusKey)[...root.querySelectorAll('[data-key]')].find(e=>e.dataset.key===focusKey)?.focus();}}
+ function curve(a,b,mode){const k=design.curvature;return mode==='arch'?[a,[a[0]+(b[0]-a[0])*.2,a[1]-60*k],[b[0]-(b[0]-a[0])*.2,b[1]-60*k],b]:[a,[a[0]+(b[0]-a[0])*.15+25*k,a[1]+(b[1]-a[1])*.68],[a[0]+(b[0]-a[0])*.8-20*k,a[1]+(b[1]-a[1])*.2],b];}
+ function path(p){return `M${p[0]} C${p[1]} ${p[2]} ${p[3]}`;}
+ function filament(p){const left=[],right=[];for(let i=0;i<=24;i++){const t=i/24,u=1-t,x=u*u*u*p[0][0]+3*u*u*t*p[1][0]+3*u*t*t*p[2][0]+t*t*t*p[3][0],y=u*u*u*p[0][1]+3*u*u*t*p[1][1]+3*u*t*t*p[2][1]+t*t*t*p[3][1],dx=3*u*u*(p[1][0]-p[0][0])+6*u*t*(p[2][0]-p[1][0])+3*t*t*(p[3][0]-p[2][0]),dy=3*u*u*(p[1][1]-p[0][1])+6*u*t*(p[2][1]-p[1][1])+3*t*t*(p[3][1]-p[2][1]),len=Math.hypot(dx,dy)||1,w=3*(1-t)+.3;left.push([x-dy/len*w,y+dx/len*w]);right.push([x+dy/len*w,y-dx/len*w]);}return 'M'+left.map(v=>v.join(',')).join(' L')+' L'+right.reverse().map(v=>v.join(',')).join(' L')+' Z';}
+ function draw(){const map=main.querySelector('[data-map]');if(!map)return;const w=map.clientWidth,h=map.clientHeight,narrow=w<480,type=map.dataset.map;let pos={},edges=[];
+  if(type==='story'){pos={from:[.44,.22],to:[.56,.76]};edges=[['from','to',map.dataset.suggested==='true'?'new':'']];}
+  else {const entries=type==='overview'?areaEntries():itemIDs().map(id=>[id,g().records[id]]);const slots=narrow?[[.37,.12],[.66,.31],[.34,.71],[.66,.88]]:[[.24,.24],[.77,.25],[.23,.77],[.79,.76]];pos.center=[.5,.5];entries.forEach(([id,r],i)=>{pos[id]=slots[i];edges.push(['center',id,r.future?'plan':'']);});const c=g().connection;if(type==='area'&&g().areas[current.area].connection&&current.lens==='next'){edges.push([c.from,c.to,'new','arch']);const b=map.querySelector('.gv-connection');b.style.left=w*.5+'px';b.style.top=h*(narrow?.60:.89)+'px';}}
+  const points={};for(const[id,[x,y]]of Object.entries(pos)){const n=map.querySelector(`[data-node="${id}"]`);const px=Math.max(n.offsetWidth/2+8,Math.min(w-n.offsetWidth/2-8,x*w));points[id]=[px,y*h];n.style.left=px+'px';n.style.top=y*h+'px';}
+  const svgEl=map.querySelector('svg');svgEl.setAttribute('viewBox',`0 0 ${w} ${h}`);svgEl.innerHTML=edges.filter(([a,b])=>points[a]&&points[b]).map(([a,b,s,mode])=>{const p=curve(points[a],points[b],mode);return `${s?'':`<path class="gv-filament" d="${filament(p)}"/>`}<path class="gv-thread ${s||''}" d="${path(p)}"/>`;}).join('');
+ }
+ root.addEventListener('click',e=>{const b=e.target.closest('button[data-key]');if(!b)return;const k=b.dataset.key;if(k==='back')back();else if(k==='home')home();else if(k==='area-crumb'){current={...current,screen:'area',record:null,source:null};trail=[{state:{...current,screen:'overview'},focus:'area-'+current.area}];render(true,'back');save();}else if(k.startsWith('lens-')){current.lens=k.slice(5);render(false);[...root.querySelectorAll('[data-key]')].find(n=>n.dataset.key===k)?.focus();save();}else if(k.startsWith('area-'))go({screen:'area',area:k.slice(5),record:null,source:null},k);else if(k.startsWith('record-'))go({screen:'record',record:k.slice(7),source:null},k);else if(k==='connection')go({screen:'connection',record:null,source:null},k);else if(k.startsWith('source-'))go({screen:'source',source:k.slice(7)},k);});
+ picker.addEventListener('change',()=>{current={...initial,garden:picker.value,area:gardens[picker.value].lead};trail=[];render(true);save();});
+ root.addEventListener('keydown',e=>{if(e.key==='Escape'&&current.screen!=='overview'){e.preventDefault();back();}});
+ window.addEventListener('openai:set_globals',e=>{const s=e.detail?.globals?.widgetState;if(s){const prev=JSON.stringify({current,trail});restore(s);if(prev!==JSON.stringify({current,trail}))render();}});
+ render();new ResizeObserver(draw).observe(main);
+ if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:draw});tweak.addSlider(design,'curvature',{label:'Thread curvature',min:.25,max:1.25,step:.05});}
+})();
+</script>
+
+</body>
+</html>

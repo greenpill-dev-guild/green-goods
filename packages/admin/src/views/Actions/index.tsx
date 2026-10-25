@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
 import { useRefreshAction } from "@green-goods/shared/components/Canvas/RefreshActionContext";
 import { WorkbenchCard } from "@green-goods/shared/components/Canvas/WorkbenchCard";
@@ -13,7 +14,9 @@ import {
 import { useActionsController } from "@green-goods/shared/hooks/admin-ui/actions/useActionsController";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
-import { AdminButton } from "@/components/AdminButton";
+import { RiFileListLine } from "@remixicon/react";
+import { useCallback, useMemo } from "react";
+import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
@@ -24,9 +27,6 @@ import {
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
-import { RiFileListLine } from "@remixicon/react";
-import { useCallback, useMemo } from "react";
-import { useIntl } from "react-intl";
 import { ActionsSheetDescriptor } from "./ActionsSheetDescriptor";
 
 export default function Actions() {
@@ -160,12 +160,12 @@ export default function Actions() {
               })}
               action={
                 actions.canManageActions ? (
-                  <AdminButton onClick={actions.openCreateAction}>
+                  <Button type="button" size="sm" onClick={actions.openCreateAction}>
                     {intl.formatMessage({
                       id: "app.actions.createFirst",
                       defaultMessage: "Create Your First Action",
                     })}
-                  </AdminButton>
+                  </Button>
                 ) : undefined
               }
             />
@@ -183,12 +183,12 @@ export default function Actions() {
                 defaultMessage: "No actions match your filters",
               })}
               action={
-                <AdminButton variant="outlined" onClick={actions.resetFilters}>
+                <Button type="button" emphasis="secondary" size="sm" onClick={actions.resetFilters}>
                   {intl.formatMessage({
                     id: "admin.actions.resetFilters",
                     defaultMessage: "Reset Filters",
                   })}
-                </AdminButton>
+                </Button>
               }
             />
           </AdminCard>

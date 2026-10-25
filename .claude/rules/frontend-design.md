@@ -79,7 +79,7 @@ Use `flex-1` on cards that should expand vertically within a flex container.
 
 ## Rule 7: Filter Alignment (card header rows)
 
-`AdminCardHeader` (and the legacy shared `Card.Header`, now client-only — admin retired shared `Card` on 2026-08-30) defaults to `items-center`; when stacking with `flex-col`, always add `items-start`.
+`AdminCardHeader`, the header row of the shared card that `AdminCard` draws (DL-118), defaults to `items-center`; when stacking with `flex-col`, always add `items-start`.
 
 ```tsx
 <AdminCardHeader className="flex-col items-start gap-3">
@@ -87,19 +87,19 @@ Use `flex-1` on cards that should expand vertically within a flex container.
 
 ## Rule 8: Thumbnails
 
-Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar and `HubWorkCard`'s media mosaic.
+Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar (the garden's banner with DL-124's code change), `HubWorkCard`'s media mosaic, the shared `ItemRow`'s lead, the item's own square photo as tall as the row or a 56px icon tile (DL-102), the shared media card's 104px banner on the action picker and the installed app's garden card (DL-111, with its code change), and, with DL-112's code change, a person's 56px round avatar (`PersonRow`).
 
 ## Rule 9: Typography Utilities
 
-Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). In admin the cockpit scale (`packages/admin/DESIGN.md` § Typography) is:
+Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). That scale is the type roles: shared components use them on both surfaces (root `DESIGN.md` § Typography), and in admin each is at the cockpit's density (`packages/admin/DESIGN.md` § Typography):
 
-- `body-sm` 14px body · `body-xs` 12px meta · `label-xs` 12px label (500) · `label-sm` 11px, chips only · `body-md` 16px.
-- `text-title-md font-semibold` (16/24) for card and section titles and metric values · `text-title-lg font-semibold leading-[var(--type-title-lg-lh)]` (22/28) for dialog, sheet, flow, and step titles and full-page state headings. A step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063).
-- The `text-body-*`, `text-label-*`, and `text-title-*` aliases are on the scale too.
+- `type-title-lg` 22/28 for dialog, sheet, flow, and step titles; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063) · `type-title-md` 16/24 for route headers, card and section titles, state titles (the state block, DL-106), and metric values · `type-title-sm` 14/20. Titles are weight 600.
+- `type-body` 14px body · `type-label` 14px labels (500), every button size · `type-label-sm` 12px label (500) · `type-meta` 12px meta and supporting text · `type-meta-sm` 11px for chips and the smallest supporting lines.
+- `type-field` for field text and checkbox and choice labels: 16px on touch widths, 14px from 640px (DL-030).
 
-The named classes are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`body-sm font-medium`) and responsive variants work (`body-xs sm:body-sm`). `check:design-tokens` fails on a raw size anywhere in `packages/admin/src`, stories included.
+The roles are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`type-body font-medium`) and responsive variants work (`type-meta sm:type-body`). The Material `text-title-*`, `text-body-*`, and `text-label-*` aliases and the `label-*`, `body-*`, and `subheading-*` classes are retired; `check:design-tokens` fails on them and on the shared theme's other sizes (`text-paragraph-*`, `text-title-h*`, and the like) anywhere in `packages/admin/src` and `packages/shared/src`, and on a raw size anywhere in `packages/admin/src`, stories included.
 
-Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
+Mind the role split: `type-label-sm text-text-soft` is the **eyebrow / metadata** token (card overlines, section meta); it is **not** a form-field label. A fact's label beside its value is the shared `FactRow`'s, on `type-label-sm` in the sub ink (DL-109). The title that labels a control goes through `FormField`, or a setting's `FactRow` (see Rule 15).
 
 ## Rule 10: Icon Sizing Convention
 
@@ -134,7 +134,9 @@ In admin, views color through the Warm Earth aliases (`text-text-strong`, `text-
 
 Use the project dialog primitives — they own mobile safety. `AdminDialog` (admin) and
 `DialogShell` (client/shared) already cap width to the viewport and present as a bottom sheet
-on narrow viewports; consumers must NOT restate `max-w-*` overrides (the admin
+on narrow viewports; `AdminDialog`'s `standard` and `confirm` variants draw the shared
+`SheetHeader` at every width (flows and the palette keep their own header), and its confirm
+family the shared `SheetActions` (DL-117); consumers must NOT restate `max-w-*` overrides (the admin
 `AdminDialogStandard.guard` test fails ad-hoc `max-w-*` on AdminDialog). Only a hand-rolled
 modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to survive 375px.
 
@@ -142,10 +144,19 @@ modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to sur
 
 **Admin**: fields ride the admin field family — `AdminTextField` / `AdminTextArea` /
 `AdminSelect` for single controls, `AdminInlineField` for the 32px inline axis, and
-`AdminFieldGroup` for group-shaped fields (checkbox grids, repeating rows, upload wells).
-Shared `FormField`/`TextInput`/`Textarea`/`NativeSelect` renders in `packages/admin/src` fail
-the wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row** (field title
-left, `Switch` or compact control right), use `AdminSettingRow`.
+`AdminFieldGroup` for group-shaped fields (checkbox grids, repeating rows, upload wells). The
+single controls and the inline field are the shared field at the cockpit's density (DL-116): each
+renders the shared `TextInput`, `Textarea` or `NativeSelect` on the admin surface inside its own
+label, message line, icons and counter, so the box, its outline, the focus ring, the error border
+and the disabled fill are the shared control's. `AdminFieldGroup` keeps its group shape, since
+Shared has no group field. The family hands the control only layout: room for its icons, the 32px
+inline axis, and, in `AdminSearchToolbar`'s pill, a box with no edge or fill of its own. Views
+render the `Admin*` wrappers, never the controls: a shared `FormField`/`TextInput`/`Textarea`/
+`NativeSelect` render in `packages/admin/src` outside the wrappers' own files fails the
+wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row** (field title
+left, `Switch` or compact control right), use the shared `FactRow` with no value and the control as
+its `action`, in a `FactList` (DL-109): its label reads as a field title. `AdminSettingRow` draws the
+setting row until DL-109's code change retires it.
 
 **Client**: use the `FormField` component from `@green-goods/shared` for label+input+error
 patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
@@ -154,15 +165,23 @@ patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
 default surface and an underline on the public editorial surface (DL-022, DL-024). Mark required fields in both surfaces (the admin family renders
 its own aria-hidden asterisk from `required` — never hardcode `" *"` into label strings).
 
+**The installed app and the cockpit** lay a field out one way (DL-105): the label above an
+outlined control, at the field title's 14px / 500, and a message line under it that reserves two
+lines for a hint or an error, so a message that fits never moves the form. The admin family,
+`FormField`, `FormattedAmountInput` and `DatePicker` draw that line with the shared
+`gg-field-message`, and the admin family and the date picker take the shared `gg-field-label`;
+each surface keeps its own corner and heights. `FileUploadField` still puts its help above the
+upload well.
+
 **A field-input label is never a hand-rolled eyebrow.** Labeling an input, toggle, or
-selectable-card group with `label-xs text-text-soft` (the eyebrow/metadata token) makes that
+selectable-card group with `type-label-sm text-text-soft` (the eyebrow/metadata token) makes that
 field read visibly smaller and grayer than the family labels next to it — the Garden Profile
 dialog regressed exactly this way. Route every admin field label through the field family
-(`AdminTextField`/`AdminFieldGroup`/`AdminSettingRow`); client labels go through `FormField`.
+(`AdminTextField`/`AdminFieldGroup`) or a setting's `FactRow`; client labels go through `FormField`.
 
 ```tsx
 // Bad — hand-rolled eyebrow token as a field label
-<p className="label-xs text-text-soft">Open joining</p>
+<p className="type-label-sm text-text-soft">Open joining</p>
 <Switch ... />
 
 <label>Name</label>
@@ -170,8 +189,8 @@ dialog regressed exactly this way. Route every admin field label through the fie
 {errors.name && <p>{errors.name.message}</p>}
 
 // Good — canonical admin field family
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
-import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { AdminTextField } from "@/components/AdminTextField";
 
 <AdminTextField label="Name" required error={errors.name?.message} {...register("name")} />
@@ -180,9 +199,14 @@ import { AdminTextField } from "@/components/AdminTextField";
   {options.map(...)}
 </AdminFieldGroup>
 
-<AdminSettingRow labelId="open-joining" label="Open joining" description="…">
-  <Switch aria-labelledby="open-joining" ... />
-</AdminSettingRow>
+<FactList frame="inset">
+  <FactRow
+    labelId="open-joining"
+    label="Open joining"
+    description="…"
+    action={<Switch aria-labelledby="open-joining" ... />}
+  />
+</FactList>
 ```
 
 ## Rule 16: Alert/Error Boxes
@@ -213,14 +237,14 @@ Persistent chrome (`AppBar` GardenChip, workspace title bar, breadcrumb) is the 
   description="Review work flowing through Tech and Sun Hub."
   metadata={<MetaStrip items={[{ label: garden.name }]} />}
 />
-<WorkbenchRow eyebrow={garden.name} title={...} />
+<ItemRow lead={lead} title={...} details={[garden.name, age]} />
 <Card>
   <p>{gardenName}</p>  {/* visible-body duplication */}
 </Card>
 
 // Good — header speaks to the stage; rows speak to their own status; chrome owns the garden context
 <PageHeader title="Work" description="Review and triage pending submissions." />
-<WorkbenchRow eyebrow="Review" title={...} />
+<ItemRow lead={lead} title={...} status={{ label: "Pending", tone: "warning" }} details={[gardener, age]} />
 <Card>
   {/* Garden context inherited from chrome; no body line needed. Keep it in
       hover-title for accessibility if the card may be detached from chrome. */}
@@ -239,12 +263,12 @@ Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered 
 
 The six enforceable invariants of the admin cockpit finish — treat violations as design regressions:
 
-- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows.
-- **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
-- **Four-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), and the nav-shell FAB fill (plus the faint canvas wash).
-- **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
-- **AdminButton only** — pill shape, one 14px label at every size, Title Case action labels (en; DL-012); admin views never render the shared `Button` (`gg-button`; `EmptyState` takes an `AdminButton` element as its action). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
-- **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). Never restyle a shared piece from admin; move the token.
+- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows, besides the shared bottom sheet's float shadow on a dialog or the side sheet below 640px (DL-104) and the shared card's faint shadow (`--gg-card-shadow`, DL-102).
+- **Admin radius set** — 4/8/12/16/9999px plus the shared card's 24px corner (`--gg-card-radius`, DL-102); no 20 or 28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin, so a card takes its corner from `.gg-card`, never from a `rounded-*` utility). `AdminCard` is the shared card and `AdminListRow` takes the shared row's 16px corner (`--gg-row-radius`), while `AdminSelectableCard` keeps its 12px (DL-118).
+- **Six-use tone budget** — workspace tone appears only in the active tab (its 10% accent tint, label and 2px underline, DL-100), the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), the nav-shell FAB fill, the shared `CountBadge` on every tab of the rail, filled with `--tone-on-surface-accent` (DL-099), and a selected `AdminFilterChip`, filled with `--tone-action` (DL-101), plus the faint canvas wash. The focus role (DL-098), which rings focus and marks the record a list has open (DL-103), is not counted.
+- **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; a card or item row takes the ink layer only and never lifts (DL-102); a shared button takes the shared hover, its filled emphasis stepping to its tone's measured hover fill (`--tone-action-hover`, DL-009) and the others to the weak fill (DL-115); a selected filter chip answers a hover or a press with the ink layer beneath its label, at the cockpit's state opacities (DL-122); never translate/scale lifts or hue shifts.
+- **Admin views render the shared Button and IconButton directly** — with DL-119's code change, a view renders the shared `Button` (`emphasis` primary, secondary or tertiary, `tone="danger"` for a destructive act) and `IconButton`, and `AdminButton` and `AdminIconButton` are gone (until it lands, those adapters render the same pieces, DL-115). Sizes are compact, sm and lg, which the cockpit's tokens set at 28, 32 and 40px with a 44px finger box. A call site names its size, says `type` on a button that is not a link, sizes a leading glyph (16px at 28px, 18px otherwise) and gives an icon button's name as its tooltip too; a link drawn as either is `asChild`. Pill shape, one 14px label at every size, Title Case action labels (en; DL-012). The chosen option in a set is an `AdminFilterChip`, not a button; `EmptyState` takes a ready `Button` element as its action, and the confirm family's action bar is the shared `SheetActions` (DL-117). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
+- **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert, and the dialogs' `SheetHeader` and `SheetActions`, DL-117) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). The same tokens keep the cockpit's buttons still while pressed, its icon buttons round with an 18px glyph, and a disabled button on the neutral pair (a 12% ink fill under a 38% ink label) instead of a dim (DL-115). A shared piece marks the buttons it lays out itself (`data-piece-control`), so they keep the app's layout, with no reserved margin and no height cap (DL-119). Never restyle a shared piece from admin; move the token. Where a shared piece fits, the cockpit's own wrapper draws it in place and keeps its name and props (`AdminCard` over `.gg-card`); a wrapper with no shared counterpart stays the cockpit's (DL-118).
 
 ## Rule 19: Client Buttons and Controls Come From the Shared Family
 

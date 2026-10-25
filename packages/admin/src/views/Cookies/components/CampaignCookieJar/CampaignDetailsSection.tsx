@@ -49,13 +49,13 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
           source="campaign-cookie-jar-create-image"
         />
         <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-3">
-          <p className="text-label-md text-text-strong">
+          <p className="type-label-sm text-text-strong">
             {formatMessage({
               id: "cockpit.community.cookies.generatedCampaignLink",
               defaultMessage: "Campaign page",
             })}
           </p>
-          <p className="mt-1 break-all text-body-sm text-text-sub">{publicCampaignUrl}</p>
+          <p className="mt-1 break-all type-meta text-text-sub">{publicCampaignUrl}</p>
         </div>
       </div>
     </section>

@@ -2789,6 +2789,26 @@ test("every agent chat copy module the em dash check reads runs it locally and i
   );
 });
 
+test("every file the brand voice parity check reads runs it locally and in Design CI, and the policy lists nothing else", async () => {
+  const { INPUTS } = await import("../design/check-brand-voice-parity.mjs");
+  const sources = [...INPUTS, "scripts/design/check-brand-voice-parity.mjs", "scripts/quality/check-guidance-links.mjs"];
+  const unrouted = sources.filter(
+    (source) =>
+      !ids(selectValidation({ intent: "push", changedPaths: [source] })).includes("brand-voice-parity") ||
+      !selectExpectedWorkflows({ changedPaths: [source], intent: "merge", ci: true }).includes("Design"),
+  );
+  assert.deepEqual(unrouted, [], "Route each file the brand voice check reads to the brand-voice-parity rule and the Design workflow");
+
+  const rule = loadPolicy().conditionalRules.find((entry) => entry.check === "brand-voice-parity");
+  const tracked = [...sources, "scripts/design/check-brand-voice-parity.test.mjs"];
+  assert.deepEqual(rule.exact.filter((path) => !tracked.includes(path)), [], "Remove exact entries the check no longer reads");
+  assert.match(
+    readFileSync(join(repositoryRoot, ".github/workflows/design.yml"), "utf8"),
+    /run: bun run check --only brand-voice-parity/,
+    "Design CI runs the brand voice parity check",
+  );
+});
+
 test("every file a certified seam fingerprints selects test-quality", () => {
   const registry = JSON.parse(readFileSync(new URL("../data/module-seam-registry.json", import.meta.url), "utf8"));
   const fingerprinted = new Set();

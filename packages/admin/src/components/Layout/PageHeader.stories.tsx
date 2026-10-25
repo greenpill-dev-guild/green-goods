@@ -62,7 +62,7 @@ export const WithActions: Story = {
     actions: (
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 body-sm font-medium text-primary-foreground hover:bg-primary-darker transition-colors"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 type-body font-medium text-primary-foreground hover:bg-primary-darker transition-colors"
       >
         <RiAddLine className="h-4 w-4" />
         New Action
@@ -77,13 +77,13 @@ export const WithToolbar: Story = {
     description: "Review and approve work submitted by gardeners.",
     toolbar: (
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 body-sm text-text-sub">
+        <div className="flex items-center gap-2 rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 type-body text-text-sub">
           <RiSearchLine className="h-4 w-4" />
           <span>Search...</span>
         </div>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-soft px-3 py-1.5 body-sm text-text-sub hover:bg-bg-soft transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-soft px-3 py-1.5 type-body text-text-sub hover:bg-bg-soft transition-colors"
         >
           <RiFilterLine className="h-4 w-4" />
           Filter
@@ -94,14 +94,14 @@ export const WithToolbar: Story = {
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 body-sm text-text-strong hover:bg-bg-soft transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 type-body text-text-strong hover:bg-bg-soft transition-colors"
         >
           <RiDownloadLine className="h-4 w-4" />
           Export
         </button>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 body-sm text-text-strong hover:bg-bg-soft transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 type-body text-text-strong hover:bg-bg-soft transition-colors"
         >
           <RiSettings3Line className="h-4 w-4" />
           Settings
@@ -125,32 +125,17 @@ export const WithTabs: Story = {
     description: "A regenerative garden in Costa Rica.",
     backLink: { to: "/garden", label: "Back to garden workspace" },
     children: (
-      <div className="flex gap-4 border-b border-stroke-soft -mb-px">
-        <button
-          type="button"
-          className="border-b-2 border-primary-base px-1 pb-2 body-sm font-medium text-primary-base"
-        >
-          Overview
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 body-sm font-medium text-text-soft hover:text-text-sub"
-        >
-          Work
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 body-sm font-medium text-text-soft hover:text-text-sub"
-        >
-          Community
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 body-sm font-medium text-text-soft hover:text-text-sub"
-        >
-          Endowments
-        </button>
-      </div>
+      <AdminTabRail
+        ariaLabel="Garden views"
+        activeId="overview"
+        onChange={() => {}}
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "work", label: "Work" },
+          { id: "community", label: "Community" },
+          { id: "endowments", label: "Endowments" },
+        ]}
+      />
     ),
   },
 };
@@ -212,7 +197,7 @@ export const FullFeatured: Story = {
       "A regenerative garden community in Costa Rica focused on agroforestry and solar energy.",
     metadata: (
       <div className="flex items-center gap-3">
-        <span className="inline-flex items-center rounded-full bg-success-lighter px-2 py-0.5 label-xs text-success-dark">
+        <span className="inline-flex items-center rounded-full bg-success-lighter px-2 py-0.5 type-label-sm text-success-dark">
           Active
         </span>
         <span>12 members</span>
@@ -221,7 +206,7 @@ export const FullFeatured: Story = {
     ),
     backLink: { to: "/garden", label: "Back to garden workspace" },
     toolbar: (
-      <div className="flex items-center gap-2 rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 body-sm text-text-sub">
+      <div className="flex items-center gap-2 rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 type-body text-text-sub">
         <RiSearchLine className="h-4 w-4" />
         <span>Search work submissions...</span>
       </div>
@@ -230,14 +215,14 @@ export const FullFeatured: Story = {
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 body-sm text-text-strong hover:bg-bg-soft transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 type-body text-text-strong hover:bg-bg-soft transition-colors"
         >
           <RiSettings3Line className="h-4 w-4" />
           Settings
         </button>
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 body-sm font-medium text-primary-foreground hover:bg-primary-darker transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 type-body font-medium text-primary-foreground hover:bg-primary-darker transition-colors"
         >
           <RiAddLine className="h-4 w-4" />
           New Action
@@ -246,26 +231,16 @@ export const FullFeatured: Story = {
     ),
     sticky: true,
     children: (
-      <div className="flex gap-4 -mb-px">
-        <button
-          type="button"
-          className="border-b-2 border-primary-base px-1 pb-2 body-sm font-medium text-primary-base"
-        >
-          Overview
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 body-sm font-medium text-text-soft hover:text-text-sub"
-        >
-          Work
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-transparent px-1 pb-2 body-sm font-medium text-text-soft hover:text-text-sub"
-        >
-          Impact
-        </button>
-      </div>
+      <AdminTabRail
+        ariaLabel="Garden views"
+        activeId="overview"
+        onChange={() => {}}
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "work", label: "Work" },
+          { id: "impact", label: "Impact" },
+        ]}
+      />
     ),
   },
 };
@@ -281,7 +256,7 @@ export const StateCatalog: Story = {
         actions={
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 body-sm font-medium text-primary-foreground"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 type-body font-medium text-primary-foreground"
           >
             <RiAddLine className="h-4 w-4" />
             Action
@@ -292,7 +267,7 @@ export const StateCatalog: Story = {
         title="With Toolbar + Actions"
         description="Toolbar left, actions right."
         toolbar={
-          <div className="flex items-center gap-2 rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 body-sm text-text-sub">
+          <div className="flex items-center gap-2 rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 type-body text-text-sub">
             <RiSearchLine className="h-4 w-4" />
             <span>Search...</span>
           </div>
@@ -300,7 +275,7 @@ export const StateCatalog: Story = {
         actions={
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 body-sm font-medium text-primary-foreground"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 type-body font-medium text-primary-foreground"
           >
             <RiAddLine className="h-4 w-4" />
             Create

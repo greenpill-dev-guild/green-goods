@@ -1,3 +1,4 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import React from "react";
@@ -72,10 +73,12 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
     // The light accessible-selection path (not a half-adopted tablist): a named
     // group whose active button carries aria-current, so AT hears which
     // section is open without demanding the full roving-tabindex tab pattern.
+    // The row paints no ground of its own: it sits on the page's canvas or on
+    // its sheet, and a sticky placement paints that ground behind it.
     <div
       role="group"
       aria-label={ariaLabel}
-      className={cn("flex border-b border-border flex-shrink-0 bg-bg-white-0", className)}
+      className={cn("flex border-b border-border flex-shrink-0", className)}
     >
       {tabs.map((tab) => (
         <button
@@ -122,17 +125,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
             {tab.label}
           </span>
 
-          {/* Count badge */}
-          {tab.count !== undefined && tab.count > 0 && (
-            <span
-              className={cn(
-                "inline-flex items-center justify-center text-xs font-medium rounded-full min-w-[16px] h-4 px-1 flex-shrink-0",
-                pwaStatusStyles.primary.badge
-              )}
-            >
-              {tab.count > 99 ? "99+" : tab.count}
-            </span>
-          )}
+          {tab.count !== undefined && <CountBadge count={tab.count} />}
 
           {/* Bottom indicator with loading animation */}
           {activeTab === tab.id && (

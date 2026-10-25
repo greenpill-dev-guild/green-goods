@@ -5,8 +5,8 @@
 //   • vertical — a labelled rail (dot + step title per row). Sits in the
 //     ActionFlowShell left rail on desktop, using the width to show every step.
 // Accent follows the workspace tone (Hub blue / Garden green / …) when inside a
-// `data-tone` dialog, falling back to green elsewhere — same token pattern as
-// AdminButton. Lives in packages/admin because only admin flows render it.
+// `data-tone` dialog, falling back to green elsewhere — the same token pattern
+// as the primary Button. Lives in packages/admin because only admin flows render it.
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -35,7 +35,7 @@ export interface ActionFlowStepperProps {
 }
 
 const DOT_BASE =
-  "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-label-sm font-semibold transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
+  "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border type-meta-sm font-semibold transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
 
 // Tone-aware dot states. Inside a `data-tone` dialog `--tone-action` resolves to
 // the per-view hue; elsewhere it falls back to the green `--primary-action`.
@@ -141,7 +141,7 @@ export function ActionFlowStepper({
                 <div className={cn("min-w-0 pt-0.5", !isLast && "pb-5")}>
                   <p
                     className={cn(
-                      "truncate body-sm font-medium",
+                      "truncate type-body font-medium",
                       isCurrent
                         ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                         : completed
@@ -153,7 +153,9 @@ export function ActionFlowStepper({
                     {step.title}
                   </p>
                   {step.description ? (
-                    <p className="mt-0.5 line-clamp-2 body-xs text-text-soft">{step.description}</p>
+                    <p className="mt-0.5 line-clamp-2 type-meta text-text-soft">
+                      {step.description}
+                    </p>
                   ) : null}
                 </div>
               </li>
@@ -165,7 +167,7 @@ export function ActionFlowStepper({
           <p
             data-region="action-flow-step-label"
             aria-hidden="true"
-            className="mt-3 label-xs text-text-sub"
+            className="mt-3 type-label-sm text-text-sub"
           >
             {doneLabel}
           </p>
@@ -211,7 +213,7 @@ export function ActionFlowStepper({
       <p
         data-region="action-flow-step-label"
         aria-hidden={complete ? true : undefined}
-        className="mt-1.5 label-xs text-text-sub"
+        className="mt-1.5 type-label-sm text-text-sub"
       >
         {complete
           ? doneLabel

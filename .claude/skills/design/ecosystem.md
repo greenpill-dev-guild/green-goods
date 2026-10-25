@@ -152,7 +152,7 @@ On-chain contracts, indexers, and resolvers are Autonomic Users: non-human actor
 | **Job Queue** | Queues offline submissions | Home tab count + Your Work › Pending: "To upload" · Upload all |
 | **Smart Contracts** | Enforce role-based access | Permission indicator: "Your role: Gardener · Can submit work, cannot approve" |
 
-**Material guidance**: Autonomic user surfaces are **Ambient Display** paradigm ([SKILL.md](./SKILL.md)): Thin material, peripheral, glanceable. They should never demand attention unless something breaks. When an autonomic actor fails (resolver rejects, indexer falls behind), promote to **Command Surface** paradigm with Thick material.
+**Material guidance**: Autonomic user surfaces are **Ambient Display** paradigm ([SKILL.md](./SKILL.md)): quiet, peripheral, glanceable. They should never demand attention unless something breaks. When an autonomic actor fails (resolver rejects, indexer falls behind), promote to **Command Surface** paradigm with full contrast.
 
 ### 4. Multi-Archetype Transitions
 

@@ -26,7 +26,7 @@ export const Default: Story = {
     <div className="h-[420px]">
       <MainSheet {...args}>
         <div className="flex h-full flex-col gap-4 overflow-auto p-6">
-          <div className="text-title-sm text-text-strong-950">Primary canvas surface</div>
+          <div className="type-title-sm text-text-strong-950">Primary canvas surface</div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl bg-bg-soft p-4">Main content</div>
             <div className="rounded-xl bg-bg-soft p-4">Stays crisp while sheets open</div>

@@ -1,6 +1,7 @@
 import { type ComponentType } from "react";
 import { cn } from "../../utils/styles/cn";
-import { getStatusToneClasses, type WorkbenchTone } from "./WorkbenchRow";
+
+export type WorkbenchTone = "pending" | "approved" | "certify" | "history";
 
 export interface WorkbenchCardProps {
   eyebrow: string;
@@ -21,13 +22,21 @@ export interface WorkbenchCardProps {
   className?: string;
 }
 
+function getStatusToneClasses(tone: WorkbenchTone) {
+  // Base `bg-*-lighter`, not a `/95` opacity variant: on an already-pale color
+  // the 95%→100% delta is imperceptible, so the plain tint is enough.
+  if (tone === "pending") return "bg-warning-lighter text-warning-dark";
+  if (tone === "approved") return "bg-success-lighter text-success-dark";
+  if (tone === "certify") return "bg-primary-alpha-10 text-text-strong";
+  return "bg-bg-soft text-text-sub shadow-[var(--edge-rest)]";
+}
+
 /**
- * WorkbenchCard — the card-shaped presentation of a registry item. Same data
- * model and visual vocabulary as {@link WorkbenchRow} (icon tile, status pill,
- * meta chips) so list and grid layouts of the same registry stay coherent. The
- * grid container itself is authored in the consuming view (admin), which
- * decides the columns: Actions uses `grid-cols-*` breakpoints, the Hub an
- * auto-fill grid.
+ * WorkbenchCard: a registry item (the Actions workspace's actions) as a card on
+ * the shared card surface (`.gg-card`, DL-102), with an icon tile or thumbnail,
+ * a status pill and meta chips. The grid container itself is authored in the
+ * consuming view (admin), which decides the columns with `grid-cols-*`
+ * breakpoints.
  */
 export function WorkbenchCard({
   eyebrow,
@@ -63,12 +72,12 @@ export function WorkbenchCard({
               <LeadingIcon className="h-5 w-5" />
             </div>
           )}
-          <span className="truncate text-label-sm text-text-soft">{eyebrow}</span>
+          <span className="truncate type-meta-sm text-text-soft">{eyebrow}</span>
         </div>
         {statusLabel ? (
           <span
             className={cn(
-              "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-label-sm font-bold",
+              "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 type-meta-sm font-bold",
               getStatusToneClasses(statusTone)
             )}
           >
@@ -78,11 +87,11 @@ export function WorkbenchCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        <h3 className="truncate text-title-md text-text-strong" title={title}>
+        <h3 className="truncate type-title-md text-text-strong" title={title}>
           {title}
         </h3>
         {description ? (
-          <p className="mt-1 line-clamp-2 text-body-md text-text-sub">{description}</p>
+          <p className="mt-1 line-clamp-2 type-body text-text-sub">{description}</p>
         ) : null}
       </div>
 
@@ -91,7 +100,7 @@ export function WorkbenchCard({
           {meta.map((value) => (
             <span
               key={`${title}-${value}`}
-              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 text-body-sm font-semibold text-text-sub shadow-[var(--edge-rest)]"
+              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 type-meta font-semibold text-text-sub shadow-[var(--edge-rest)]"
             >
               {value}
             </span>
@@ -102,8 +111,8 @@ export function WorkbenchCard({
   );
 
   const sharedClassName = cn(
-    "workbench-card relative flex h-full flex-col gap-3 rounded-2xl p-4 text-left",
-    "glass-raised",
+    // The card takes its fill, edge and corner from `.gg-card`, never a `rounded-*` utility.
+    "workbench-card gg-card relative flex h-full flex-col gap-3 p-4 text-left",
     selected && "shadow-[var(--edge-focus)]",
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&

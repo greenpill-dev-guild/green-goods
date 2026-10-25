@@ -337,10 +337,15 @@ export function Login() {
               : undefined
         }
         secondaryAction={{
-          label: intl.formatMessage({
-            id: "app.login.button.connectWallet",
-            defaultMessage: "Sign in with a Wallet",
-          }),
+          label: auth.walletReleaseStalled
+            ? intl.formatMessage({
+                id: "app.login.walletReload",
+                defaultMessage: "Reload to retry wallet",
+              })
+            : intl.formatMessage({
+                id: "app.login.button.connectWallet",
+                defaultMessage: "Sign in with a Wallet",
+              }),
           onSelect: walletLogin,
         }}
         tertiaryAction={

@@ -26,6 +26,8 @@
   scrollbar-width: none;
   -ms-overflow-style: none; /* IE and Edge */
 
+  /* The public website reads in Inter; the installed app takes the cockpit's
+     face (below), so the app and the cockpit share one family (DL-096). */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-style: normal;
   font-weight: 400;
@@ -36,8 +38,15 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* The installed app's face. The boot marker covers sign-in and portalled
+   sheets as well as the shell; a public page keeps the website's Inter even
+   inside the installed app. */
+:root[data-boot-presentation="pwa"]:not(:has([data-site="website"])) {
+  font-family: "Plus Jakarta Sans", system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
 html {
-  @apply relative overflow-x-clip bg-bg-white-0;
+  @apply relative overflow-x-clip bg-bg-canvas;
   /* Keep horizontal overscroll contained so a sideways drag never reveals a gap
      beside the shell. Vertical overscroll stays at the browser default: the root
      is where the browser and the installed app chain pull-to-refresh, so nothing
@@ -62,7 +71,7 @@ html {
   }
 }
 body {
-  @apply m-0 min-h-dvh bg-bg-white-0 text-text-strong-950;
+  @apply m-0 min-h-dvh bg-bg-canvas text-text-strong-950;
   /* Safe areas are handled where the chrome sits: the top bar and page headers
      start their controls at var(--app-top-offset), 16px below the status bar's
      safe area in the installed app, pages under the top bar start at

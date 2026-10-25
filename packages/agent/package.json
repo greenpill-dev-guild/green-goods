@@ -31,7 +31,7 @@
     "sharp": "0.35.5",
     "telegraf": "^4.16.3",
     "viem": "2.55.13",
-    "zod": "4.4.3"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "^24.2.1",

@@ -7,6 +7,7 @@ import { AdminStartupConnect } from "@/components/Boot/AdminStartupConnect";
 const auth = vi.hoisted(() => ({
   isReady: false,
   isAuthenticated: false,
+  walletReleaseStalled: false,
   modalOpen: false,
   loginWithWallet: vi.fn(),
 }));
@@ -31,6 +32,7 @@ describe("AdminStartupConnect", () => {
   beforeEach(() => {
     auth.isReady = false;
     auth.isAuthenticated = false;
+    auth.walletReleaseStalled = false;
     auth.modalOpen = false;
     auth.loginWithWallet.mockClear();
   });
@@ -139,5 +141,13 @@ describe("AdminStartupConnect", () => {
     expect(view.queryByTestId("workspace")).toBeNull();
     fireEvent.click(view.getByTestId("passkey-start-button"));
     expect(view.getByTestId("workspace")).toBeInTheDocument();
+  });
+  it("admits the workspace recovery controls when an ended wallet request stalls", () => {
+    auth.isReady = true;
+    const view = render(<Startup />);
+    auth.walletReleaseStalled = true;
+    view.rerender(<Startup />);
+    expect(view.getByTestId("workspace")).toBeInTheDocument();
+    expect(auth.loginWithWallet).toHaveBeenCalledOnce();
   });
 });

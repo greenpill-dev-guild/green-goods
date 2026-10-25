@@ -23,7 +23,7 @@ export interface AdminSortSelectProps {
  * `h-9` M3 pill on the 36px toolbar tier (DL-011, matching the
  * `AdminSearchToolbar` search field) with
  * a `whitespace-nowrap` label and a borderless `NativeSelect` at the same
- * `text-body-md` weight as the surrounding controls. Drop it inside an
+ * `type-body` weight as the surrounding controls. Drop it inside an
  * `AdminSearchToolbar`'s children, alongside filter chips.
  */
 export function AdminSortSelect({
@@ -40,16 +40,15 @@ export function AdminSortSelect({
   return (
     <label
       data-component="AdminSortSelect"
-      className="flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-body-md text-[rgb(var(--m3-on-surface-variant))]"
+      className="flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 type-body text-[rgb(var(--m3-on-surface-variant))]"
     >
       <span className="whitespace-nowrap">{resolvedLabel}</span>
       <NativeSelect
         surface="admin"
         // `md` (not `sm`) so the value renders at 16px to match the
         // AdminSearchToolbar search field — `sm` reads 11px, the size
-        // mismatch QA flagged. (A `text-body-md` utility here would be
-        // dropped by tailwind-merge against the color class, so the size
-        // comes from the control token, not a utility.)
+        // mismatch QA flagged. The size comes from the control token, not
+        // a type utility.
         controlSize="md"
         value={value}
         onChange={(event) => onChange(event.target.value)}

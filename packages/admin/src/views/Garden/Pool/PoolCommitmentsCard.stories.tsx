@@ -1,7 +1,12 @@
+import enMessages from "@green-goods/shared/i18n/en.json";
+import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useState } from "react";
+import { IntlProvider } from "react-intl";
 import { expect, userEvent, within } from "storybook/test";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
+import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
 import {
   type PoolCommitmentFocus,
   type PoolCommitmentScope,
@@ -219,6 +224,114 @@ export const QueuedNeedsAttention: Story = {
 
 export const Empty: Story = {
   args: { console: storyPoolConsole({ commitments: [], claims: [] }) },
+};
+
+const CATALOGS = { en: enMessages, es: esMessages, pt: ptMessages } as const;
+
+/** A queued promise of each kind beside the pool's own, one of them past due. */
+const PHONE_QUEUE = storyPoolConsole({
+  pendingCreates: [
+    {
+      jobId: "job-1",
+      chainId: 42161,
+      poolId: "7",
+      direction: "OFFER",
+      title: "Compost workshop",
+      unitLabel: "workshop",
+      targetUnits: "1",
+      waitingForMembership: false,
+      discardable: true,
+      failed: false,
+      createdAt: daysAgo(0) * 1000,
+    },
+    {
+      jobId: "job-2",
+      chainId: 42161,
+      poolId: "7",
+      direction: "OFFER",
+      title: "Repair the tool library",
+      unitLabel: "repair",
+      targetUnits: "1",
+      waitingForMembership: false,
+      discardable: true,
+      failed: true,
+      createdAt: daysAgo(0) * 1000,
+    },
+    {
+      jobId: "job-3",
+      chainId: 42161,
+      poolId: "7",
+      direction: "REQUEST",
+      title: "Seed swap afternoon",
+      unitLabel: "session",
+      targetUnits: "2",
+      waitingForMembership: true,
+      discardable: true,
+      failed: false,
+      createdAt: daysAgo(0) * 1000,
+    },
+  ],
+});
+
+/**
+ * The cockpit's phone columns (296, 336 and 366px: a 320, 360 and 390px screen less the
+ * shell's 12px phone gutters) in English, Spanish and Portuguese. A row's act is its icon
+ * there, and a queued row's two acts stack, so every row keeps its pill and its due date
+ * whole beside the tile and the acts, and every act keeps its whole finger box in the row.
+ */
+export const PhoneFitsEveryLanguage: Story = {
+  tags: ["storybook-ci"],
+  globals: { viewport: { value: "desktop" } },
+  parameters: { layout: "fullscreen" },
+  render: (args) => (
+    <div className="flex flex-col gap-8 p-4" data-tone="garden">
+      {(Object.keys(CATALOGS) as (keyof typeof CATALOGS)[]).map((locale) => (
+        <IntlProvider key={locale} locale={locale} messages={CATALOGS[locale]}>
+          <section className="flex flex-wrap items-start gap-4" data-locale={locale}>
+            {[296, 336, 366].map((width) => (
+              <div key={width} style={{ inlineSize: width }} data-fit-width={width}>
+                <PoolCommitmentsCard {...args} console={PHONE_QUEUE} />
+              </div>
+            ))}
+          </section>
+        </IntlProvider>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
+    const rows = [...canvasElement.querySelectorAll<HTMLElement>(".gg-item-row")];
+    const isCut = (element: HTMLElement | null) =>
+      element ? element.scrollWidth > element.clientWidth + 0.5 : false;
+    const pillOf = (row: HTMLElement) =>
+      row.querySelector<HTMLElement>(".gg-item-row-body .truncate");
+    // The pill is the row's state, so it never ends in an ellipsis.
+    const cutPills = rows.filter((row) => isCut(pillOf(row)));
+    await expect(cutPills.map((row) => row.textContent)).toEqual([]);
+    // An act's finger box is the button and its block margin. Stacked acts must keep the
+    // whole box inside the 88px row, which clips what overflows.
+    const clippedActs = rows.flatMap((row) => {
+      const box = row.getBoundingClientRect();
+      return [...row.querySelectorAll<HTMLElement>(".gg-item-row-action button")].filter(
+        (button) => {
+          // The form a row's width hides (Expire Now…'s words below 480px) takes no room.
+          if (button.getClientRects().length === 0) return false;
+          const rect = button.getBoundingClientRect();
+          const style = getComputedStyle(button);
+          return (
+            rect.top - Number.parseFloat(style.marginTop) < box.top - 0.5 ||
+            rect.bottom + Number.parseFloat(style.marginBottom) > box.bottom + 0.5
+          );
+        }
+      );
+    });
+    await expect(clippedActs.map((button) => button.getAttribute("aria-label"))).toEqual([]);
+    // A promise's due date leads its line whole.
+    const cutDates = rows.filter((row) =>
+      isCut(row.querySelector<HTMLElement>("time.gg-item-row-detail-text"))
+    );
+    await expect(cutDates.map((row) => row.textContent)).toEqual([]);
+  },
 };
 
 /** A pre-update reward stays visible, without an impossible send. */

@@ -2,7 +2,6 @@ import { RiCloseLine, RiShareLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { CSSProperties, ReactNode } from "react";
 import { expect, waitFor, within } from "storybook/test";
-import { AdminButton, AdminIconButton } from "../../../admin/src/components/AdminButton";
 import { AdminFilterChip } from "../../../admin/src/components/AdminFilterChip";
 import { AdminTextField } from "../../../admin/src/components/AdminTextField";
 import { Button } from "../../src/components/Button";
@@ -153,40 +152,34 @@ function AdminColumn() {
       <div className="admin-m3" data-tone="hub">
         <Row>
           <Specimen title="Filled / outlined / text · md" expect={ADMIN.button("md")} wide>
-            <AdminButton>Create Garden</AdminButton>
-            <AdminButton variant="outlined">Cancel</AdminButton>
-            <AdminButton variant="text">Show More</AdminButton>
+            <Button type="button" size="sm">Create Garden</Button>
+            <Button type="button" emphasis="secondary" size="sm">Cancel</Button>
+            <Button type="button" emphasis="tertiary" size="sm">Show More</Button>
           </Specimen>
           <Specimen
             title="No press morph"
             expect={ADMIN.button("md")}
             note="Pills stay pills; feedback is the M3 state layer and an elevation step, never a corner change (Rule 18)."
           >
-            <AdminButton variant="tonal">Save Draft</AdminButton>
+            <Button type="button" emphasis="secondary" size="sm">Save Draft</Button>
           </Specimen>
           <Specimen title="Danger" expect={ADMIN.button("md")}>
-            <AdminButton variant="danger">Remove Member</AdminButton>
+            <Button type="button" emphasis="primary" tone="danger" size="sm">Remove Member</Button>
           </Specimen>
           <Specimen title="lg · 40" expect={ADMIN.button("lg")}>
-            <AdminButton size="lg">Submit Work</AdminButton>
+            <Button type="button" size="lg">Submit Work</Button>
           </Specimen>
           <Specimen title="sm · 28" expect={ADMIN.button("sm")}>
-            <AdminButton size="sm" variant="outlined">
+            <Button type="button" emphasis="secondary" size="compact">
               Manage Members
-            </AdminButton>
+            </Button>
           </Specimen>
           <Specimen title="Icon button · md" expect={ADMIN.iconButton("md")}>
-            <AdminIconButton label="Share">
-              <RiShareLine />
-            </AdminIconButton>
-            <AdminIconButton label="Close" variant="tonal">
-              <RiCloseLine />
-            </AdminIconButton>
+            <IconButton size="sm" aria-label="Share" title="Share" icon={<RiShareLine />} />
+            <IconButton aria-label="Close" title="Close" emphasis="secondary" size="sm" icon={<RiCloseLine />} />
           </Specimen>
           <Specimen title="Icon button · lg" expect={ADMIN.iconButton("lg")}>
-            <AdminIconButton label="Share" size="lg">
-              <RiShareLine />
-            </AdminIconButton>
+            <IconButton aria-label="Share" title="Share" size="lg" icon={<RiShareLine />} />
           </Specimen>
           <Specimen title="Filter chip · 32" expect={ADMIN.chip()}>
             <AdminFilterChip label="Pending" selected={false} onToggle={() => {}} />
@@ -197,10 +190,10 @@ function AdminColumn() {
             targets={[
               {
                 name: "container",
-                selector: '[data-component="AdminTextField"] > div:first-child',
+                selector: '[data-component="AdminTextField"] [data-region="field-container"]',
                 expect: ADMIN.fieldContainer(),
               },
-              { name: "label", selector: "label", expect: ADMIN.fieldLabel() },
+              { name: "label", selector: "label", expect: ADMIN.fieldTitle() },
               { name: "input", selector: "input", expect: ADMIN.fieldInput() },
             ]}
           >
@@ -214,13 +207,11 @@ function AdminColumn() {
             note="Every tier carries a 44px finger box: admin-hit-target below 40px, admin-hit-target-lg on the 40px tier (DL-030)."
           >
             <div className="sb-show-hit flex flex-wrap items-center gap-4 py-2">
-              <AdminButton size="sm" variant="outlined">
+              <Button type="button" emphasis="secondary" size="compact">
                 Small
-              </AdminButton>
-              <AdminButton size="md">Medium</AdminButton>
-              <AdminIconButton label="Add" size="lg">
-                <RiShareLine />
-              </AdminIconButton>
+              </Button>
+              <Button type="button" size="sm">Medium</Button>
+              <IconButton aria-label="Add" title="Add" size="lg" icon={<RiShareLine />} />
             </div>
           </Specimen>
         </Row>
@@ -237,10 +228,10 @@ function AdminTokens() {
       <TokenTable
         scopeSelector='[data-column="admin"]'
         tokens={[
-          { name: "--text-label-lg", expected: "14px", note: "buttons, chips, tabs" },
-          { name: "--text-label-md", expected: "12px", note: "meta, count chips" },
-          { name: "--text-label-sm", expected: "11px", note: "chips only" },
-          { name: "--text-body-md", expected: "14px", note: "field text" },
+          { name: "--gg-type-label-size", expected: "0.875rem", note: "labels, buttons, tabs" },
+          { name: "--gg-type-label-sm-size", expected: "0.75rem", note: "small labels" },
+          { name: "--gg-type-meta-sm-size", expected: "0.6875rem", note: "chips and status pills" },
+          { name: "--gg-type-body-size", expected: "0.875rem", note: "body text" },
           { name: "--radius-xl", expected: "16px", note: "the 16px page-container step (DL-030)" },
           { name: "--radius-2xl", expected: "16px", note: "the 16px page-container step (DL-030)" },
           { name: "--m3-shape-full", expected: "9999px", note: "the pill" },
@@ -256,7 +247,7 @@ export const ThreeSystems: Story = {
   render: () => (
     <Page
       title="Button and control systems"
-      lede="Three surfaces, two systems. The installed app and the public website share the shared Button, IconButton, Chip, and field primitives and differ only in the corner and label weight the surface sets (16px like the fields in the app, a capsule on the website); the admin cockpit keeps AdminButton pills on its compact metric. Every specimen below is the real component measured in this browser."
+      lede="Three surfaces, two systems. The installed app and the public website share the shared Button, IconButton, Chip, and field primitives and differ only in the corner and label weight the surface sets (16px like the fields in the app, a capsule on the website); the admin cockpit renders the same Button and IconButton as pills on its compact metric (DL-119). Every specimen below is the real component measured in this browser."
     >
       <Section title="Side by side">
         <div className="sb-ds-columns">
@@ -282,7 +273,7 @@ export const ThreeSystems: Story = {
           <StoryLink id={STORY_LINKS.sharedChip}>Shared/Primitives/Chip</StoryLink>
           <StoryLink id={STORY_LINKS.sharedControls}>Shared/Form/ControlPrimitives</StoryLink>
           <StoryLink id={STORY_LINKS.editorialAtoms}>Client/Public/Editorial Atoms</StoryLink>
-          <StoryLink id={STORY_LINKS.adminButton}>Admin/Primitives/AdminButton</StoryLink>
+          <StoryLink id={STORY_LINKS.adminButtons}>Admin/Primitives/Buttons</StoryLink>
           <StoryLink id={STORY_LINKS.adminTextField}>Admin/Primitives/AdminTextField</StoryLink>
         </div>
       </Section>
@@ -295,27 +286,30 @@ export const ThreeSystems: Story = {
     const column = (surface: string) =>
       canvasElement.querySelector<HTMLElement>(`[data-column="${surface}"]`);
 
-    // Installed app: the 16px field corner, weight 400, Inter (DL-029).
+    // Installed app: the 16px field corner, weight 500, the cockpit's
+    // Plus Jakarta Sans (DL-029, DL-096).
     const app = within(column("app") as HTMLElement);
     const appPrimary = app.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(appPrimary.getBoundingClientRect().height).toBe(44);
     await expect(px(getComputedStyle(appPrimary).borderTopLeftRadius)).toBe(16);
-    await expect(getComputedStyle(appPrimary).fontWeight).toBe("400");
-    await expect(first(getComputedStyle(appPrimary).fontFamily)).toBe("Inter");
+    await expect(getComputedStyle(appPrimary).fontWeight).toBe("500");
+    await expect(first(getComputedStyle(appPrimary).fontFamily)).toBe("Plus Jakarta Sans");
 
-    // Public website: capsule, weight 600, serif editorial field (DL-089).
+    // Public website: capsule, weight 600, Inter, serif editorial field
+    // (DL-089, DL-096).
     const site = within(column("website") as HTMLElement);
     const sitePrimary = site.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(px(getComputedStyle(sitePrimary).borderTopLeftRadius)).toBeGreaterThanOrEqual(
       sitePrimary.getBoundingClientRect().height / 2
     );
     await expect(getComputedStyle(sitePrimary).fontWeight).toBe("600");
+    await expect(first(getComputedStyle(sitePrimary).fontFamily)).toBe("Inter");
     const editorial = site.getByRole("textbox", { name: "Email" });
     await expect(first(getComputedStyle(editorial).fontFamily)).toBe("Fraunces");
     await expect(px(getComputedStyle(editorial).borderTopLeftRadius)).toBe(0);
 
     // Admin cockpit (DL-030): one 14px label at every size, Plus Jakarta Sans,
-    // 32px pills, a 12px floating label, and xl / 2xl on the 16px step.
+    // 32px pills, the 14px field label above the box (F3), and xl / 2xl on the 16px step.
     const admin = within(column("admin") as HTMLElement);
     const adminMd = admin.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(adminMd.getBoundingClientRect().height).toBe(32);
@@ -327,11 +321,14 @@ export const ThreeSystems: Story = {
     const adminField = admin.getByRole("textbox", { name: "Garden name" });
     await expect(getComputedStyle(adminField).fontSize).toBe(window.innerWidth < 640 ? "16px" : "14px");
     const adminLabel = admin.getByText("Garden name", { selector: "label" });
-    await expect(getComputedStyle(adminLabel).fontSize).toBe("12px");
+    await expect(getComputedStyle(adminLabel).fontSize).toBe("14px");
+    await expect(getComputedStyle(adminLabel).fontWeight).toBe("500");
     const scope = column("admin") as HTMLElement;
     await expect(getComputedStyle(scope).getPropertyValue("--radius-xl").trim()).toBe("16px");
     await expect(getComputedStyle(scope).getPropertyValue("--radius-2xl").trim()).toBe("16px");
-    await expect(getComputedStyle(scope).getPropertyValue("--text-label-sm").trim()).toBe("11px");
+    await expect(getComputedStyle(scope).getPropertyValue("--gg-type-meta-sm-size").trim()).toBe(
+      "0.6875rem"
+    );
 
     // The measurement chips settle once fonts are ready.
     await waitFor(async () => {

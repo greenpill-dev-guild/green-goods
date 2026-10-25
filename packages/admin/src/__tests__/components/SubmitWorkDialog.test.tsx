@@ -8,6 +8,7 @@
  */
 
 import { normalizeAddress } from "@green-goods/shared/utils/blockchain/address";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -306,6 +307,7 @@ function renderSubmitWork(actions: Action[] = []) {
     [
       { path: "/hub/work/submit", element: <SubmitWork /> },
       { path: "/hub/*", element: <div /> },
+      { path: "/garden/*", element: <div /> },
     ],
     { initialEntries: [`/hub/work/submit?gardenId=${SELECTED_GARDEN.id}`] }
   );
@@ -426,6 +428,27 @@ describe("SubmitWork dialog", () => {
       screen.queryByRole("dialog", { name: "app.admin.work.submit.title" })
     ).not.toBeInTheDocument();
     expect(router?.state.location.pathname).toBe("/hub/work");
+  });
+
+  it("sends a steward whose garden has no actions to set some up, rather than an empty form", async () => {
+    let router: ReturnType<typeof renderSubmitWork> | undefined;
+    await act(async () => {
+      router = renderSubmitWork();
+      await Promise.resolve();
+    });
+
+    expect(
+      await screen.findByRole("heading", { name: "app.admin.work.submit.noActionsForDomain" })
+    ).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "app.admin.work.submit.noActionsForDomain.cta" })
+      );
+      await Promise.resolve();
+    });
+    expect(router?.state.location.pathname).toBe(
+      new URL(adminRoutes.gardenSettings({ gardenId: SELECTED_GARDEN.id }), "http://local").pathname
+    );
   });
 
   it("blocks route navigation while entered work details are dirty", async () => {

@@ -99,7 +99,7 @@ export const Ready: Story = {
       hasStaleBaseList: false,
     },
     ready: (
-      <div className="flex min-h-full items-center justify-center px-6 body-sm font-medium text-text-strong">
+      <div className="flex min-h-full items-center justify-center px-6 type-body font-medium text-text-strong">
         Ready canvas
       </div>
     ),

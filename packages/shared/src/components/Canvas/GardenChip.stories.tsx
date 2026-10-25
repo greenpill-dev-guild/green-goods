@@ -1,5 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { IntlProvider } from "react-intl";
 import { expect, fn, userEvent, within } from "storybook/test";
+import enMessages from "../../i18n/en.json";
+import esMessages from "../../i18n/es.json";
+import ptMessages from "../../i18n/pt.json";
 import { GardenChip } from "./GardenChip";
 
 // ---------------------------------------------------------------------------
@@ -31,6 +35,9 @@ const meta = {
   component: GardenChip,
   tags: ["autodocs", "storybook-ci"],
   parameters: {
+    // The cockpit renders the chip, so its stories take the cockpit's surface;
+    // AppDensity shows the app's beside it.
+    surface: "admin",
     docs: {
       description: {
         component: [
@@ -46,6 +53,10 @@ const meta = {
           "- Leaf icon is decorative (`aria-hidden`) — name is the accessible label",
           "- Multi-garden trigger uses Radix Popover for menu semantics",
           "- Focus ring uses `var(--tone-action, var(--green-800))`",
+          "",
+          "**Density**: the size, outline and focus ring read `--gg-garden-chip-*`. The cockpit",
+          "renders their fallbacks; the installed app's scope sets a 44px capsule with a 28px",
+          "avatar, the control outline and focus in the app's green (see AppDensity).",
         ].join("\n"),
       },
     },
@@ -211,4 +222,131 @@ export const StateCatalog: Story = {
       </section>
     </div>
   ),
+};
+
+// ---------------------------------------------------------------------------
+// The app's density beside the cockpit's
+// ---------------------------------------------------------------------------
+
+const LOCALES = ["en", "es", "pt"] as const;
+const catalogs = { en: enMessages, es: esMessages, pt: ptMessages };
+const SCOPES = [
+  { scope: "app", label: "App" },
+  { scope: "admin", label: "Cockpit" },
+] as const;
+
+/**
+ * The same chip under the installed app's scope and under the cockpit's, in
+ * English, Spanish and Portuguese, at a phone app bar's width so the long name
+ * truncates: single, multi, nothing selected and the long name. The theme
+ * toolbar switches both to dark. The play pins both densities, the long name
+ * and the app's focus ring.
+ */
+export const AppDensity: Story = {
+  args: {
+    gardens: multipleGardens,
+    selectedGarden: multipleGardens[0],
+    onSelectGarden: fn(),
+  },
+  parameters: { surface: "app" },
+  render: () => (
+    <div className="flex flex-col gap-6 p-4">
+      {SCOPES.map(({ scope, label }) => (
+        <section
+          key={scope}
+          aria-label={label}
+          data-surface-scope={scope}
+          data-testid={`garden-chip-${scope}`}
+          className="flex flex-col gap-3"
+        >
+          <h3 className="type-label-sm text-text-sub">{label}</h3>
+          <div className="flex flex-wrap gap-6">
+            {LOCALES.map((locale) => (
+              <IntlProvider key={locale} locale={locale} messages={catalogs[locale]}>
+                <div lang={locale} className="flex w-72 flex-col items-start gap-3">
+                  <GardenChip
+                    gardens={singleGarden}
+                    selectedGarden={singleGarden[0]}
+                    onSelectGarden={fn()}
+                  />
+                  <GardenChip
+                    gardens={multipleGardens}
+                    selectedGarden={multipleGardens[0]}
+                    onSelectGarden={fn()}
+                    onCreateGarden={fn()}
+                  />
+                  <GardenChip
+                    gardens={multipleGardens}
+                    selectedGarden={null}
+                    onSelectGarden={fn()}
+                  />
+                  <GardenChip
+                    gardens={longNameGarden}
+                    selectedGarden={longNameGarden[0]}
+                    onSelectGarden={fn()}
+                  />
+                </div>
+              </IntlProvider>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const surface = (scope: "app" | "admin") => {
+      const section = canvas.getByTestId(`garden-chip-${scope}`);
+      return {
+        section,
+        chips: Array.from(
+          section.querySelectorAll<HTMLElement>(
+            '[data-component="GardenChip"]:is([data-slot="root"], [data-slot="trigger"])'
+          )
+        ),
+        avatars: Array.from(section.querySelectorAll<HTMLElement>('[data-slot="avatar"]')),
+      };
+    };
+    const densities = [
+      { ...surface("app"), height: 44, avatar: 28, fontSize: "16px" },
+      { ...surface("admin"), height: 36, avatar: 22, fontSize: "14px" },
+    ];
+
+    for (const { section, chips, avatars, height, avatar, fontSize } of densities) {
+      // Four chips in each language, three of them with the garden's avatar.
+      await expect(chips).toHaveLength(12);
+      await expect(avatars).toHaveLength(9);
+      for (const chip of chips) {
+        await expect(chip.getBoundingClientRect().height).toBeCloseTo(height, 0);
+        await expect(getComputedStyle(chip).fontSize).toBe(fontSize);
+      }
+      for (const tile of avatars) {
+        await expect(tile.getBoundingClientRect().width).toBeCloseTo(avatar, 0);
+      }
+      // The long name ends in an ellipsis inside its column.
+      const longNames = section.querySelectorAll<HTMLElement>('[title^="The Extraordinarily"]');
+      await expect(longNames).toHaveLength(3);
+      for (const name of longNames) {
+        const chip = name.closest<HTMLElement>('[data-component="GardenChip"]');
+        const column = chip?.parentElement;
+        await expect(name.scrollWidth).toBeGreaterThan(name.clientWidth);
+        await expect(chip?.getBoundingClientRect().right ?? Infinity).toBeLessThanOrEqual(
+          (column?.getBoundingClientRect().right ?? 0) + 0.5
+        );
+      }
+    }
+
+    // Keyboard focus rings the app's chip in the app's own focus color.
+    const [app] = densities;
+    const probe = document.createElement("span");
+    probe.style.color = "rgb(var(--focus-ring))";
+    app.section.append(probe);
+    const appFocus = getComputedStyle(probe).color;
+    probe.remove();
+    await userEvent.tab();
+    const focused = document.activeElement as HTMLElement;
+    await expect(app.section.contains(focused)).toBe(true);
+    await expect(focused).toHaveAttribute("data-slot", "trigger");
+    await expect(getComputedStyle(focused).boxShadow).toContain(appFocus);
+  },
 };

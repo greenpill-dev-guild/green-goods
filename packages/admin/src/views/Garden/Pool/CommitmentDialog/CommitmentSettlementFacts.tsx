@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { CommitmentSettlementController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -5,12 +6,7 @@ import { formatGdollar, readinessReasonMessage, shortAddress } from "../poolFund
 import { payoutKindLabel, planStatusLabel } from "./commitmentSettlementPresentation";
 
 function fact(label: string, value: ReactNode, key: string) {
-  return (
-    <div key={key} className="flex justify-between gap-3 text-body-md" data-fact={key}>
-      <dt className="shrink-0 text-text-soft">{label}</dt>
-      <dd className="text-right text-text-strong">{value}</dd>
-    </div>
-  );
+  return <FactRow key={key} data-fact={key} label={label} value={value} />;
 }
 
 /**
@@ -115,7 +111,7 @@ export function CommitmentSettlementFacts({
           .join(" ");
 
   return (
-    <dl className="space-y-1" data-component="CommitmentSettlementFacts">
+    <FactList frame="inset" data-component="CommitmentSettlementFacts">
       {fact(
         formatMessage({
           id: "cockpit.garden.pool.settlement.fact.kind",
@@ -205,6 +201,6 @@ export function CommitmentSettlementFacts({
             }),
         "plan"
       )}
-    </dl>
+    </FactList>
   );
 }

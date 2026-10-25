@@ -24,6 +24,8 @@
  *     off the public archive, impact ledger, funding list, and proof counters.
  *     It is unlisted, not unreachable: its own page still opens by its link,
  *     says it is not in the lists, and asks crawlers not to index it.
+ *     Entries marked `membersOnly` also stay out of PWA garden discovery
+ *     unless the signed-in account is a gardener or steward of that garden.
  *
  * To change a garden's visibility, edit the relevant list. Every entry carries
  * the reason it is there.
@@ -54,6 +56,8 @@ interface CuratedGarden {
   /** Garden name when curated. Documentation only — never used to match. */
   name: string;
   reason: string;
+  /** PWA discovery is limited to the garden's gardeners and stewards. */
+  membersOnly?: boolean;
 }
 
 /** Absent from every surface: public website, client PWA, and admin. */
@@ -70,7 +74,7 @@ export const GARDENS_HIDDEN_EVERYWHERE: readonly CuratedGarden[] = [
   },
 ] as const;
 
-/** Absent from the public website, but fully functional in the PWA and admin. */
+/** Unlisted on the public website; member-only discovery is specified per garden. */
 export const GARDENS_HIDDEN_FROM_EDITORIAL: readonly CuratedGarden[] = [
   {
     address: "0xf401f34378384713222d1d21f63359cc4E8a858a",
@@ -81,11 +85,13 @@ export const GARDENS_HIDDEN_FROM_EDITORIAL: readonly CuratedGarden[] = [
     address: "0xF7b892886998DAe960D64a9db488336684F137A0",
     name: "Aiyeloja Family Garden",
     reason: "Carries test work; a small family garden, not a representative example.",
+    membersOnly: true,
   },
   {
     address: "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
     name: "Mama Gardens",
     reason: "Carries test work; a small family garden, not a representative example.",
+    membersOnly: true,
   },
 ] as const;
 
@@ -93,6 +99,16 @@ const hiddenEverywhere = new Set(GARDENS_HIDDEN_EVERYWHERE.map((g) => g.address.
 const hiddenFromEditorial = new Set(
   GARDENS_HIDDEN_FROM_EDITORIAL.map((g) => g.address.toLowerCase())
 );
+const membersOnly = new Set(
+  GARDENS_HIDDEN_FROM_EDITORIAL.filter((garden) => garden.membersOnly).map((garden) =>
+    garden.address.toLowerCase()
+  )
+);
+
+/** True when PWA discovery should show a garden only to its own members. */
+export function isGardenMembersOnly(address: Address): boolean {
+  return membersOnly.has(address.toLowerCase());
+}
 
 /**
  * True when a garden is curated out of every surface.

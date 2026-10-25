@@ -18,11 +18,12 @@ export interface AdminInputChipProps {
 }
 
 /**
- * AdminInputChip — M3 input chip, for something the steward chose and can take
- * back out, such as a person named as a confirmer.
+ * AdminInputChip — the cockpit's input chip, for something the steward chose and
+ * can take back out, such as a person named as a confirmer.
  *
- * - Height: 32dp, corner-small (8dp), an outline over the low container fill
- * - Optional 24dp leading avatar; the label truncates with its full text as a tooltip
+ * - Height: 32px, a capsule like every chip (DL-101), an outline over the low
+ *   container fill; the avatar and the remove button sit concentric in its ends
+ * - Optional 24px leading avatar; the label truncates with its full text as a tooltip
  * - Trailing remove button with a 44px finger box (admin-hit-target)
  *
  * Chips flow in a wrapping row, so each choice takes only its own width and the
@@ -47,9 +48,9 @@ export function AdminInputChip({
       className={cn(
         "inline-flex h-8 max-w-full items-center gap-1.5 pr-0.5",
         avatar ? "pl-1" : "pl-3",
-        "rounded-[var(--m3-shape-sm)] border border-[rgb(var(--m3-outline-variant))]",
+        "rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))]",
         "bg-[rgb(var(--m3-surface-container-low))] text-[rgb(var(--m3-on-surface))]",
-        "text-label-lg font-medium",
+        "type-label font-medium",
         disabled && "opacity-[0.38]",
         className
       )}
@@ -57,7 +58,7 @@ export function AdminInputChip({
       {avatar ? (
         <span
           aria-hidden="true"
-          className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[rgb(var(--m3-secondary-container))] text-label-sm font-semibold text-[rgb(var(--m3-on-secondary-container))]"
+          className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[rgb(var(--m3-secondary-container))] type-meta-sm font-semibold text-[rgb(var(--m3-on-secondary-container))]"
         >
           {avatar}
         </span>

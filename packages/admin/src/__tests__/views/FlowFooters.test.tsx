@@ -185,7 +185,10 @@ describe("the flow footers", () => {
     sendFooter({ phase: "sending" });
 
     expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Submit Assessment" })).toBeDisabled();
+    // The sending action is held but keeps focus: aria-disabled and aria-busy (DL-115).
+    const submit = screen.getByRole("button", { name: "Submit Assessment" });
+    expect(submit).toHaveAttribute("aria-disabled", "true");
+    expect(submit).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("status")).toHaveTextContent(
       "The dialog stays open until your wallet answers."
     );

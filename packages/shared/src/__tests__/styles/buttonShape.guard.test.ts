@@ -62,6 +62,14 @@ const hitAreaPx = (inset: string, sizePx: number, border: number) => {
 };
 
 describe("button shape guard (DL-023, DL-026)", () => {
+  it("lets a dark scope below the root draw its own control outline (DL-098)", () => {
+    // The :root outline has already resolved to the light stroke by the time a
+    // nested dark wrapper inherits it, so the dark block declares it again.
+    expect(declaration(block('[data-theme="dark"]'), "--gg-control-outline")).toBe(
+      "var(--stroke-sub-300)"
+    );
+  });
+
   it("projects the 12px squircle step from DesignMD", () => {
     expect(generated).toMatch(/--gg-radius-squircle:\s*12px;/);
     expect(theme).toMatch(/--radius-squircle:\s*var\(--gg-radius-squircle\);/);
@@ -83,6 +91,15 @@ describe("button shape guard (DL-023, DL-026)", () => {
     expect(declaration(app, "--gg-button-radius")).toBe("var(--radius-lg)");
     expect(declaration(app, "--gg-button-radius-pressed")).toBe("var(--radius-squircle)");
     expect(declaration(app, "--gg-button-weight")).toBe("var(--text-label-sm--font-weight)");
+    // The installed app's buttons take the cockpit's 500 label weight (F3), scoped as
+    // its face is, so a public page inside the installed app keeps the website's 600.
+    const installedApp = Array.from(
+      theme.matchAll(
+        /\n\s*:root\[data-boot-presentation="pwa"\]:not\(:has\(\[data-site="website"\]\)\),\s*\[data-surface="app"\]\s*\{([^}]*)\}/g
+      ),
+      (match) => match[1]
+    ).find((body) => body.includes("--gg-button-weight:"));
+    expect(declaration(installedApp ?? "", "--gg-button-weight")).toBe("500");
 
     // Every size takes the capsule and keeps it while pressed: all four corner
     // tokens read the same step, so no website button can morph or fall back
@@ -261,12 +278,17 @@ describe("field shape guard (DL-022, DL-023)", () => {
     );
   });
 
-  it("gives the upload well and the field label their own shared classes (DL-031)", () => {
+  it("gives the upload well, the field label and the message line their own shared classes (DL-031)", () => {
     expect(declaration(block(".gg-control-dropzone"), "border-style")).toBe("dashed");
     expect(declaration(block(".gg-field-label"), "font-size")).toBe("var(--gg-label-sm)");
     expect(declaration(block(".gg-field-label"), "font-weight")).toBe(
       "var(--text-label-md--font-weight, 500)"
     );
+    // The message line reserves the surface's lines, two unless a surface sets its own (F3).
+    expect(declaration(block(".gg-field-message"), "min-block-size")).toBe(
+      "calc(var(--gg-field-message-lines, 2) * 1lh)"
+    );
+    expect(declaration(block(".gg-field-help"), "font-size")).toBe("var(--gg-type-meta-size)");
   });
 });
 

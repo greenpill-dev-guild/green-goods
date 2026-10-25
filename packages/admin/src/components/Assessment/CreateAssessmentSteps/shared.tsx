@@ -1,7 +1,6 @@
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode } from "react";
-import { type IntlShape, useIntl } from "react-intl";
+import type { IntlShape } from "react-intl";
 
 // ─── Domain Display Constants ────────────────────────────
 
@@ -201,7 +200,7 @@ export function Section({
   action?: ReactNode;
   children: ReactNode;
 }) {
-  const heading = <h3 className="min-w-0 text-title-md font-semibold text-text-strong">{title}</h3>;
+  const heading = <h3 className="min-w-0 type-title-md font-semibold text-text-strong">{title}</h3>;
   return (
     <section className="space-y-3">
       <div>
@@ -217,48 +216,9 @@ export function Section({
         ) : (
           heading
         )}
-        {description ? <p className="mt-0.5 body-sm text-text-soft">{description}</p> : null}
+        {description ? <p className="mt-0.5 type-body text-text-soft">{description}</p> : null}
       </div>
       {children}
     </section>
-  );
-}
-
-/**
- * One answer on the Review step: its label over its value, wrapped in full so
- * nothing the attestation carries is cut short. A list of answers goes in as
- * children; an answer left empty reads "Not provided". Rows sit in a `<dl>`.
- */
-export function ReviewRow({
-  label,
-  value,
-  wide = false,
-  children,
-}: {
-  label: string;
-  value?: string | null;
-  /** Long text: the row takes the section's full width. */
-  wide?: boolean;
-  children?: ReactNode;
-}) {
-  const intl = useIntl();
-  const provided = Boolean(children) || Boolean(value && value.trim().length > 0);
-  return (
-    <div className={cn("min-w-0", wide && "sm:col-span-2")}>
-      <dt className="label-xs text-text-soft">{label}</dt>
-      <dd
-        className={cn(
-          "mt-0.5 whitespace-pre-wrap break-words body-sm",
-          provided ? "text-text-strong" : "text-text-soft"
-        )}
-      >
-        {provided
-          ? (children ?? value)
-          : intl.formatMessage({
-              id: "admin.assessment.review.notProvided",
-              defaultMessage: "Not provided",
-            })}
-      </dd>
-    </div>
   );
 }

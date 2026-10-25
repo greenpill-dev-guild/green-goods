@@ -95,6 +95,13 @@ function renderPanel(props: { routeEditLimitJar?: Address } = {}) {
   return renderWithProviders(panel(props));
 }
 
+/** A jar's row opens its page, where its editors and acts are. */
+async function openJar(name: RegExp) {
+  const row = screen.getByRole("button", { name, expanded: false });
+  await userEvent.setup().click(row);
+  expect(row).toHaveAttribute("aria-expanded", "true");
+}
+
 describe("CookieJarPayoutPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -103,16 +110,20 @@ describe("CookieJarPayoutPanel", () => {
     mocks.signer = { canSign: true, isResolved: true, owner: undefined };
   });
 
-  it("renders each jar as an operational payout card", () => {
+  it("lists each jar as a row that opens its operational page", async () => {
     renderPanel();
 
-    expect(screen.getByText("Active")).toBeInTheDocument();
-    expect(screen.getByText("Jar Balance")).toBeInTheDocument();
+    // The row: the jar's pill, its per-claim limit and its balance, and no act of its own.
+    const row = screen.getByRole("button", { name: /Active/, expanded: false });
+    expect(row).toHaveAccessibleName(/Active.*1 0xasset a claim.*5 0xasset.*Jar Balance/);
+    expect(screen.queryByRole("button", { name: /Deposit/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
+
+    // The page beneath it carries the cooldown and the payout acts.
+    await openJar(/Active/);
     expect(screen.getByText("Withdrawal cooldown")).toBeInTheDocument();
     expect(screen.getByText("1h")).toBeInTheDocument();
     expect(screen.getAllByText(/0xasset/).length).toBeGreaterThan(0);
-
-    // Focused payout actions live on the jar card.
     expect(screen.getByRole("button", { name: /Deposit/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claim" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Manage Jars/ })).not.toBeInTheDocument();
@@ -197,6 +208,7 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [{ ...oneCentDaiJar, balance: 10n ** 15n, maxWithdrawal: 10n * 10n ** 18n }];
     renderPanel();
 
+    expect(screen.getByText("10 DAI a claim")).toBeInTheDocument();
     expect(screen.getByText("Per-claim limit")).toBeInTheDocument();
     expect(screen.getByText("10 DAI")).toBeInTheDocument();
     expect(screen.queryByText("Available now")).not.toBeInTheDocument();
@@ -208,7 +220,10 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [oneCentDaiJar];
     renderPanel();
 
+    // The jar's one pill says its limit is too low to pay out, in place of Active.
     expect(screen.getByText("Limit too low")).toBeInTheDocument();
+    expect(screen.queryByText("Active")).not.toBeInTheDocument();
+    await openJar(/Limit too low/);
     await user.click(screen.getByRole("button", { name: "Edit Per-Claim Limit" }));
 
     expect(screen.getByRole("textbox", { name: "Per-claim limit" })).toHaveValue("10");
@@ -228,10 +243,11 @@ describe("CookieJarPayoutPanel", () => {
     );
   });
 
-  it("keeps Edit visible but disabled for a steward who cannot sign, and names the owner", () => {
+  it("keeps Edit visible but disabled for a steward who cannot sign, and names the owner", async () => {
     mocks.jars = [oneCentDaiJar];
     mocks.signer = { canSign: false, isResolved: true, owner: OWNER };
     renderPanel();
+    await openJar(/DAI/);
 
     expect(screen.getByRole("button", { name: "Edit Per-Claim Limit" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Edit Withdrawal Cooldown" })).toBeDisabled();
@@ -250,10 +266,15 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [plainJar, oneCentDaiJar];
     renderPanel({ routeEditLimitJar: oneCentDaiJar.jarAddress.toLowerCase() as Address });
 
+    // The link opens that jar's page with its limit editor, and leaves the other jar closed.
     expect(screen.getByRole("textbox", { name: "Per-claim limit" })).toHaveValue("10");
+    expect(screen.getByRole("button", { name: /DAI/, expanded: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /0xasset/, expanded: false })).toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("textbox", { name: "Per-claim limit" })).not.toBeInTheDocument();
+    // Closing the editor leaves the page open, so focus returns to its Edit button.
+    expect(screen.getByRole("button", { name: "Edit Per-Claim Limit" })).toHaveFocus();
 
     // "Fix Limit First" in the deposit dialog lands on the same editor.
     act(() => mocks.depositModalProps?.onFixLimit?.(oneCentDaiJar.jarAddress));

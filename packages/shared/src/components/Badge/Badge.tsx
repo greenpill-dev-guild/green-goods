@@ -3,7 +3,7 @@ import { tv, type VariantProps } from "tailwind-variants";
 import { cn } from "../../utils/styles/cn";
 
 const badgeVariants = tv({
-  base: "items-center rounded-md border px-.5 py-.25 text-label-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-nowrap whitespace-nowrap flex flex-row gap-1",
+  base: "items-center rounded-md border px-.5 py-.25 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-nowrap whitespace-nowrap flex flex-row gap-1",
   variants: {
     variant: {
       transparent: "font-medium border-transparent bg-primary text-foreground",
@@ -60,4 +60,31 @@ function Badge({
   );
 }
 
-export { Badge, badgeVariants };
+export interface CountBadgeProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, "children"> {
+  /** How many; nothing renders below one. */
+  count: number;
+  /** The largest number shown in full; above it the badge reads "{max}+". */
+  max?: number;
+  /**
+   * Draws a 2px ring of the surface behind the badge, for a badge that sits on
+   * an icon or a control's edge rather than beside a label.
+   */
+  ring?: boolean;
+}
+
+/**
+ * CountBadge — the one count badge (F10): a 16px capsule, 11px numerals at
+ * weight 600 on the action pair, the workspace tone's accent in the cockpit.
+ * Styles live in shared `theme.css` as `.gg-count-badge`. Say what the number
+ * counts in the owner's accessible name; the badge carries the digits only.
+ */
+function CountBadge({ count, max = 99, ring = false, className, ...props }: CountBadgeProps) {
+  if (count < 1) return null;
+  return (
+    <span className={cn("gg-count-badge", className)} data-ring={ring || undefined} {...props}>
+      {count > max ? `${max}+` : count}
+    </span>
+  );
+}
+
+export { Badge, badgeVariants, CountBadge };

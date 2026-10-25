@@ -62,13 +62,13 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
     // 16px tall: the strip shows in the space --app-top-offset keeps between the
     // status bar and the top controls, so it never covers one.
     const baseBarClasses =
-      "w-full flex h-4 items-center justify-center gap-2 px-3 text-xs font-medium transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] backdrop-blur-md shadow-sm";
+      "w-full flex h-4 items-center justify-center gap-2 px-3 text-xs font-medium transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] shadow-sm";
 
     switch (displayPriority) {
       case "degraded":
         return (
           <div
-            className={`${baseBarClasses} bg-bg-strong-950/95 text-text-white-0 pointer-events-auto`}
+            className={`${baseBarClasses} bg-bg-strong-950 text-text-white-0 pointer-events-auto`}
             role="status"
             aria-live="polite"
           >
@@ -84,7 +84,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "offline":
         return (
           <div
-            className={`${baseBarClasses} bg-bg-strong-950/95 text-text-white-0 pointer-events-auto`}
+            className={`${baseBarClasses} bg-bg-strong-950 text-text-white-0 pointer-events-auto`}
             role="status"
             aria-live="polite"
             aria-label={formatMessage({
@@ -100,7 +100,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "back-online":
         return (
           <div
-            className={`${baseBarClasses} bg-primary-action/95 text-primary-action-foreground pointer-events-auto pulse-success`}
+            className={`${baseBarClasses} bg-primary-action text-primary-action-foreground pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
             aria-label={formatMessage({

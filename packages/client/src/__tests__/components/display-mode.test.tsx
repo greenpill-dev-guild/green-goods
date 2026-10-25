@@ -110,8 +110,8 @@ describe("Display mode — AppBar visibility", () => {
     const nav = screen.getByTestId("authenticated-nav");
     expect(nav.className).toMatch(/translate-y-full/);
 
-    expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
-    expect(screen.getByRole("link", { name: /garden/i }).className).toContain("tab-active");
+    expect(screen.getByRole("link", { name: /home/i })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /garden/i })).toHaveAttribute("aria-current", "page");
   });
 
   it("standalone PWA: a commitment detail or composer hides the bottom nav under its action bar", () => {
@@ -148,7 +148,7 @@ describe("Display mode — AppBar visibility", () => {
 
     expect(screen.getByTestId("authenticated-nav").className).not.toMatch(/translate-y-full/);
     expect(screen.getByTestId("authenticated-nav")).not.toHaveAttribute("inert");
-    expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
-    expect(screen.getByRole("link", { name: /profile/i }).className).toContain("tab-active");
+    expect(screen.getByRole("link", { name: /home/i })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /profile/i })).toHaveAttribute("aria-current", "page");
   });
 });

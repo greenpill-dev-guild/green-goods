@@ -1,43 +1,19 @@
-import { Button } from "@green-goods/shared/components/Button";
-import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
-import {
-  FormattedAmountInput,
-  useFormattedAmountInput,
-} from "@green-goods/shared/components/Form/FormattedAmountInput";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
-import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
-import {
-  formatTokenAmount,
-  getVaultAssetSymbol,
-} from "@green-goods/shared/utils/blockchain/vaults";
-import {
-  formatClaimCadence,
-  isJarClaimLimitLow,
-} from "@green-goods/shared/utils/cookie-jar-claim-limit";
-import { RiArrowDownSLine, RiErrorWarningLine, RiInboxLine, RiWifiOffLine } from "@remixicon/react";
-import React, { useMemo, useState } from "react";
+import { RiErrorWarningLine, RiInboxLine, RiWifiOffLine } from "@remixicon/react";
+import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits } from "viem";
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { CookieJarRow, getClaimableNow } from "@/components/Features/Garden/CookieJarRow";
 import {
   PWA_SHEET_SCROLL_CLASSNAME,
   PWA_SHEET_FOCAL_STATE_CLASSNAME,
 } from "@/components/Pwa/sheetScrollStyles";
-
-interface JarCardProps {
-  jar: CookieJar;
-  gardenName: string;
-}
-
-function getClaimableNow(jar: CookieJar) {
-  return jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
-}
 
 function isClaimableJar(jar: CookieJar) {
   return !jar.isPaused && getClaimableNow(jar) > 0n;
@@ -48,205 +24,6 @@ function compareClaimableFirst(left: CookieJar, right: CookieJar) {
   const rightClaimable = isClaimableJar(right);
   if (leftClaimable === rightClaimable) return 0;
   return leftClaimable ? -1 : 1;
-}
-
-function JarCard({ jar, gardenName }: JarCardProps) {
-  const { formatMessage } = useIntl();
-  const isOnline = useOnlineStatus();
-  const withdrawMutation = useCookieJarWithdraw(jar.gardenAddress);
-  const [expanded, setExpanded] = useState(false);
-  const [amountInput, setAmountInput] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const decimals = jar.decimals;
-  const assetSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
-  // What a gardener can actually take right now: the per-claim cap, bounded by
-  // what the jar still holds.
-  const claimableNow = getClaimableNow(jar);
-  const panelId = `cookie-jar-claim-${jar.jarAddress.toLowerCase()}`;
-  const amountState = useFormattedAmountInput(amountInput, decimals);
-  const inputError = amountState.formatErrorId;
-  const parsedAmount = amountState.parsedAmount ?? 0n;
-
-  const executeWithdraw = () => {
-    withdrawMutation.mutate(
-      { jarAddress: jar.jarAddress, amount: parsedAmount, purpose },
-      {
-        onSuccess: () => {
-          setAmountInput("");
-          setPurpose("");
-          setExpanded(false);
-        },
-      }
-    );
-  };
-
-  return (
-    <div className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
-      <button
-        type="button"
-        data-pressable="row"
-        onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
-        aria-controls={panelId}
-        title={gardenName}
-        className="flex w-full items-center justify-between gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface/20"
-      >
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-sm font-medium text-text-strong-950">
-              {formatTokenAmount(claimableNow, decimals)} {assetSymbol}
-            </p>
-            {jar.isPaused && (
-              <span className="inline-flex shrink-0 rounded-full bg-warning-lighter px-1.5 py-0.5 text-[10px] font-medium text-warning-dark">
-                {formatMessage({ id: "app.cookieJar.paused" })}
-              </span>
-            )}
-          </div>
-          {/* The group header directly above names the garden; the card keeps it
-              only in the hover/AT title so it isn't restated (Rule 17). Naming the
-              limit and the cooldown stops the number above reading like a balance. */}
-          <p className="mt-0.5 text-xs text-text-soft-400">
-            {formatMessage(
-              { id: "app.cookieJar.claimLimitSummary" },
-              {
-                amount: formatTokenAmount(jar.maxWithdrawal, decimals),
-                asset: assetSymbol,
-                cadence: formatClaimCadence(formatMessage, jar.withdrawalInterval),
-              }
-            )}
-          </p>
-        </div>
-        <RiArrowDownSLine
-          className={`h-4 w-4 shrink-0 text-text-soft-400 transition-transform duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] ${
-            expanded ? "rotate-180" : ""
-          }`}
-          aria-hidden
-        />
-      </button>
-
-      {expanded && (
-        <div id={panelId} className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3">
-          <p className="text-xs text-text-soft-400">
-            {formatMessage(
-              { id: "app.cookieJar.jarHolds" },
-              { amount: formatTokenAmount(jar.balance, decimals), asset: assetSymbol }
-            )}
-          </p>
-          {jar.isPaused ? (
-            <p className="text-sm text-warning-dark">
-              {formatMessage({ id: "app.cookieJar.paused" })}
-            </p>
-          ) : (
-            <>
-              {/* A message, not a button: only a steward who can sign for the garden can
-                  raise the limit, and they see the same jar flagged in admin. Claiming the
-                  allowed amount still works. */}
-              {isJarClaimLimitLow(jar) ? (
-                <Alert variant="info" className="p-3">
-                  {formatMessage({ id: "app.cookieJar.claimLimitLowNotice" })}
-                </Alert>
-              ) : null}
-              <FormattedAmountInput
-                value={amountInput}
-                onValueChange={setAmountInput}
-                placeholder={formatMessage({ id: "app.cookieJar.amount" })}
-                aria-label={formatMessage({ id: "app.cookieJar.amount" })}
-                endSlot={
-                  <Button
-                    type="button"
-                    emphasis="secondary"
-                    onClick={() => setAmountInput(formatUnits(claimableNow, decimals))}
-                  >
-                    {formatMessage({ id: "app.treasury.max" })}
-                  </Button>
-                }
-                errorClassName="mt-2 text-xs text-error-dark"
-                error={inputError ? formatMessage({ id: inputError }) : null}
-              />
-
-              <div className="space-y-1">
-                <label
-                  htmlFor={`${panelId}-purpose`}
-                  className="block text-xs font-medium text-text-sub-600"
-                >
-                  {formatMessage({ id: "app.cookieJar.purpose" })}{" "}
-                  <span aria-hidden="true" className="text-error-dark">
-                    *
-                  </span>
-                </label>
-                <Textarea
-                  id={`${panelId}-purpose`}
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
-                  required
-                  aria-required="true"
-                  className="resize-none"
-                  rows={2}
-                />
-                <p className="text-xs text-text-soft-400">
-                  {formatMessage({
-                    id: "app.cookieJar.purposeHelp",
-                    defaultMessage:
-                      "Briefly say what this claim is for. It's recorded with the payout.",
-                  })}
-                </p>
-              </div>
-
-              {!isOnline ? (
-                <p className="text-xs text-warning-dark" role="status">
-                  {formatMessage({
-                    id: "app.cookieJar.withdrawOffline",
-                    defaultMessage: "Offline. Claims need a connection to reach the jar.",
-                  })}
-                </p>
-              ) : null}
-
-              <Button
-                type="button"
-                onClick={() => setShowConfirm(true)}
-                loading={withdrawMutation.isPending}
-                disabled={
-                  !withdrawMutation.isPending &&
-                  (!isOnline ||
-                    parsedAmount <= 0n ||
-                    parsedAmount > jar.maxWithdrawal ||
-                    parsedAmount > jar.balance ||
-                    !purpose.trim())
-                }
-                className="w-full"
-              >
-                {formatMessage({ id: "app.cookieJar.withdraw" })}
-              </Button>
-
-              <ConfirmDialog
-                isOpen={showConfirm}
-                onClose={() => setShowConfirm(false)}
-                title={formatMessage({ id: "app.cookieJar.confirmWithdrawTitle" })}
-                description={formatMessage(
-                  { id: "app.cookieJar.confirmWithdrawDescription" },
-                  {
-                    amount: formatTokenAmount(parsedAmount, decimals),
-                    asset: assetSymbol,
-                    garden: gardenName,
-                  }
-                )}
-                confirmLabel={formatMessage({ id: "app.cookieJar.withdraw" })}
-                variant="warning"
-                isLoading={withdrawMutation.isPending}
-                onConfirm={() => {
-                  setShowConfirm(false);
-                  executeWithdraw();
-                }}
-              />
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
 }
 
 export const CookieJarTab: React.FC = () => {
@@ -309,12 +86,9 @@ export const CookieJarTab: React.FC = () => {
               defaultMessage: "Checking which cookie jars you can access…",
             })}
           </p>
-          <div className="space-y-2.5 animate-pulse" aria-hidden="true">
+          <div className="flex animate-pulse flex-col gap-(--gg-list-gap)" aria-hidden="true">
             {Array.from({ length: 2 }, (_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="h-3 flex-1 rounded bg-bg-weak-50" />
-                <div className="h-3 w-16 rounded bg-bg-weak-50" />
-              </div>
+              <ItemRowSkeleton key={i} lead="icon" amount />
             ))}
           </div>
         </div>
@@ -404,9 +178,16 @@ export const CookieJarTab: React.FC = () => {
             <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
               {group.gardenName}
             </SheetHeading>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-(--gg-list-gap)">
               {group.jars.map((jar) => (
-                <JarCard key={jar.jarAddress} jar={jar} gardenName={group.gardenName} />
+                // The heading above names the garden, so the row does not restate it (Rule 17).
+                <CookieJarRow
+                  key={jar.jarAddress}
+                  jar={jar}
+                  gardenAddress={jar.gardenAddress}
+                  gardenName={group.gardenName}
+                  amount="claimable"
+                />
               ))}
             </div>
           </div>

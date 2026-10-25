@@ -46,8 +46,8 @@ export const Default: Story = {
             <RiLeafLine className="h-5 w-5" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-label-md text-text-strong-950">Shared surfaces</h3>
-            <p className="text-paragraph-sm text-text-sub-600">
+            <h3 className="type-label text-text-strong-950">Shared surfaces</h3>
+            <p className="type-label-sm text-text-sub-600">
               Use `Surface` as the default shell for new shared and admin layouts.
             </p>
           </div>
@@ -63,8 +63,8 @@ export const ComposedSections: Story = {
       <Surface elevation="raised">
         <Surface.Header>
           <div>
-            <h3 className="text-label-md text-text-strong-950">Garden treasury</h3>
-            <p className="text-paragraph-sm text-text-sub-600">Operational summary</p>
+            <h3 className="type-label text-text-strong-950">Garden treasury</h3>
+            <p className="type-label-sm text-text-sub-600">Operational summary</p>
           </div>
           <button
             type="button"
@@ -76,17 +76,17 @@ export const ComposedSections: Story = {
         </Surface.Header>
         <Surface.Body className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg bg-bg-weak p-4">
-            <div className="text-label-sm text-text-sub-600">Deposited</div>
-            <div className="mt-1 text-title-sm text-text-strong-950">2,450 DAI</div>
+            <div className="type-label-sm text-text-sub-600">Deposited</div>
+            <div className="mt-1 type-title-sm text-text-strong-950">2,450 DAI</div>
           </div>
           <div className="rounded-lg bg-bg-weak p-4">
-            <div className="text-label-sm text-text-sub-600">APY</div>
-            <div className="mt-1 text-title-sm text-text-strong-950">4.82%</div>
+            <div className="type-label-sm text-text-sub-600">APY</div>
+            <div className="mt-1 type-title-sm text-text-strong-950">4.82%</div>
           </div>
         </Surface.Body>
         <Surface.Footer className="justify-between">
-          <span className="text-paragraph-sm text-text-sub-600">Last sync 4 minutes ago</span>
-          <span className="text-label-sm text-success-dark">Healthy</span>
+          <span className="type-label-sm text-text-sub-600">Last sync 4 minutes ago</span>
+          <span className="type-label-sm text-success-dark">Healthy</span>
         </Surface.Footer>
       </Surface>
     </div>
@@ -99,9 +99,9 @@ export const ElevationGallery: Story = {
       {(["ground", "raised", "floating", "overlay"] as const).map((elevation) => (
         <Surface key={elevation} elevation={elevation} padding="default">
           <div className="space-y-2">
-            <div className="text-label-md text-text-strong-950 capitalize">{elevation}</div>
-            <div className="text-paragraph-sm text-text-sub-600">
-              Tonal elevation and shadow treatment for {elevation} surfaces.
+            <div className="type-label text-text-strong-950 capitalize">{elevation}</div>
+            <div className="type-label-sm text-text-sub-600">
+              A solid {elevation} surface: an opaque fill, its depth from the shadow.
             </div>
           </div>
         </Surface>
@@ -116,8 +116,8 @@ export const Interactive: Story = {
       <Surface as="button" elevation="raised" padding="default" interactive>
         <div className="flex items-center justify-between gap-4 text-left">
           <div>
-            <div className="text-label-md text-text-strong-950">Open queue details</div>
-            <div className="text-paragraph-sm text-text-sub-600">
+            <div className="type-label text-text-strong-950">Open queue details</div>
+            <div className="type-label-sm text-text-sub-600">
               Interactive surfaces keep motion and elevation consistent.
             </div>
           </div>

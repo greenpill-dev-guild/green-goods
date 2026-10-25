@@ -1,14 +1,15 @@
-import { PositionCard as RealPositionCard } from "./PositionCard";
-import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
-import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
-import { fn, mocked } from "storybook/test";
-import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { RiBankLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { expect, fn, mocked, userEvent, within } from "storybook/test";
+import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
+import { PositionCard as RealPositionCard } from "./PositionCard";
 
 // ⚠ VISUAL HARNESS — not the real PositionCard.
 // The real component wires `useUser`, `useVaultPreview`, `useYieldStatus`,
@@ -17,10 +18,10 @@ import { AdminCard } from "@/components/AdminCard";
 // `useReadContracts` reads for the shutdown / deposit-limit diagnostic.
 // All of those are driven by wagmi's internal query cache, which we
 // cannot seed without intercepting wagmi internals. This harness
-// mirrors the visual structure with plain props so the steward states
-// (harvesting, paused, legacy misconfiguration, read-only) are all
-// reviewable. Treat as a design-system surface, NOT as a
-// real-component behavior test.
+// mirrors the visual structure with plain props, the shared item row and
+// the page it opens beneath it, so the steward states (harvesting, paused,
+// legacy misconfiguration, read-only) are all reviewable. Treat as a
+// design-system surface, NOT as a real-component behavior test.
 
 interface PositionCardHarnessProps {
   symbol: string;
@@ -28,6 +29,8 @@ interface PositionCardHarnessProps {
   unharvestedYield: bigint;
   depositorCount: number;
   harvestCount: number;
+  /** The position's page, open beneath its row. */
+  pageOpen?: boolean;
   vaultAcceptingDeposits?: boolean;
   isLegacyMisconfiguration?: boolean;
   canManage?: boolean;
@@ -45,6 +48,7 @@ function PositionCardHarness({
   unharvestedYield,
   depositorCount,
   harvestCount,
+  pageOpen = true,
   vaultAcceptingDeposits = true,
   isLegacyMisconfiguration = false,
   canManage = true,
@@ -57,154 +61,156 @@ function PositionCardHarness({
 }: PositionCardHarnessProps) {
   const { formatMessage } = useIntl();
   return (
-    <AdminCard>
-      <div className="mb-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-title-md font-semibold text-text-strong">{symbol}</h3>
-          {!vaultAcceptingDeposits && (
-            <span className="rounded-full bg-warning-lighter px-2 py-1 text-label-sm font-medium text-warning-dark">
-              Deposits disabled
-            </span>
-          )}
-        </div>
-        <button
-          type="button"
-          className="mt-1 inline-flex items-center gap-1 text-body-sm text-primary-dark hover:underline"
-          onClick={() => {}}
-        >
-          View vault: 0xAaaa…aaa1
-        </button>
-      </div>
+    <div className="flex flex-col gap-2">
+      <ItemRow
+        lead={{ kind: "icon", icon: <RiBankLine /> }}
+        title={symbol}
+        status={
+          vaultAcceptingDeposits ? undefined : { label: "Deposits disabled", tone: "warning" }
+        }
+        details={[`${depositorCount} depositors`]}
+        amount={{
+          value: `${formatTokenAmount(netDeposited, 18)} ${symbol}`,
+          caption: "Net deposited",
+        }}
+        onOpen={fn()}
+        aria-expanded={pageOpen}
+      />
 
-      <div className="grid grid-cols-2 gap-3 text-body-md">
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-label-sm text-text-soft">Net deposited</p>
-          <p className="mt-1 font-semibold text-text-strong">
-            {formatTokenAmount(netDeposited, 18)} {symbol}
-          </p>
-        </div>
-        <div
-          className={`rounded-md border p-3 ${unharvestedYield > 0n ? "border-success-light bg-success-lighter" : "border-stroke-soft bg-bg-weak"}`}
-        >
-          <p className="text-label-sm text-text-soft">Current yield</p>
-          <p
-            className={`mt-1 font-semibold ${unharvestedYield > 0n ? "text-success-dark" : "text-text-strong"}`}
+      {pageOpen ? (
+        <div className="gg-card gg-item-row-page p-4">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 type-meta text-primary-dark hover:underline"
+            onClick={() => {}}
           >
-            {formatTokenAmount(unharvestedYield, 18)} {symbol}
-            {unharvestedYield > 0n && (
-              <span className="ml-1 text-body-sm font-normal">accruing</span>
-            )}
-          </p>
-        </div>
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-label-sm text-text-soft">Depositors</p>
-          <p className="mt-1 font-semibold text-text-strong">{depositorCount}</p>
-        </div>
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-label-sm text-text-soft">Harvests</p>
-          <p className="mt-1 font-semibold text-text-strong">{harvestCount}</p>
-        </div>
-      </div>
+            View vault: 0xAaaa…aaa1
+          </button>
 
-      <p className="mt-3 text-body-sm text-text-sub">
-        Depositor share value is expected to stay near flat by design. Harvested yield is routed to
-        garden impact, not compounded into depositor returns.
-      </p>
+          <dl className="mt-2 divide-y divide-stroke-soft type-body">
+            <div className="flex items-baseline justify-between gap-3 py-2">
+              <dt className="type-meta-sm text-text-soft">Unharvested impact yield</dt>
+              <dd
+                className={`font-semibold tabular-nums ${unharvestedYield > 0n ? "text-success-dark" : "text-text-strong"}`}
+              >
+                {formatTokenAmount(unharvestedYield, 18)} {symbol}
+                {unharvestedYield > 0n && (
+                  <span className="ml-1 type-meta font-normal">(accruing)</span>
+                )}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3 py-2">
+              <dt className="type-meta-sm text-text-soft">Harvest count</dt>
+              <dd className="font-semibold tabular-nums text-text-strong">{harvestCount}</dd>
+            </div>
+          </dl>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <AdminButton variant="filled" size="sm" onClick={fn()} disabled={!vaultAcceptingDeposits}>
-          Deposit
-        </AdminButton>
-        <AdminButton variant="outlined" size="sm" onClick={fn()}>
-          Withdraw
-        </AdminButton>
-      </div>
-
-      {isLegacyMisconfiguration && isModuleOwner && (
-        <div className="mt-2">
-          <AdminButton
-            variant="outlined"
-            size="sm"
-            className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
-            onClick={fn()}
-            disabled={isEnablingAutoAllocate}
-            loading={isEnablingAutoAllocate}
-          >
-            Enable auto-allocate
-          </AdminButton>
-        </div>
-      )}
-
-      {canManage && (
-        <div className="mt-3 space-y-3">
-          {distributionState === "waiting" && (
-            <Alert variant="info" className="p-3">
-              2 {symbol} is waiting until the 7 {symbol} minimum is reached.
-            </Alert>
-          )}
-          {distributionState === "submitted" && (
-            <Alert variant="info" className="p-3">
-              Harvest was submitted for execution. Distribution will become available after the
-              harvest is confirmed.
-            </Alert>
-          )}
-          {distributionState === "pending" && (
-            <Alert
-              variant="warning"
-              className="p-3"
-              action={
-                <AdminButton variant="outlined" size="sm" onClick={fn()}>
-                  Retry distribution
-                </AdminButton>
-              }
-            >
-              Harvest confirmed, but distribution is still pending. The harvested funds remain in
-              the Yield Resolver.
-            </Alert>
-          )}
-          {distributionState === "complete" && (
-            <Alert variant="success" className="p-3">
-              4 {symbol} reached the Cookie Jar. 4 {symbol} went to hypercert funding. 2 {symbol}{" "}
-              went to the protocol treasury.
-            </Alert>
-          )}
-          {/* Mirrors the shipping component: for a registered vault the action
-              stays available in empty/waiting states too (harvest-first), and
-              split-only appears only when registered yield is ready. */}
-          {distributionState !== "pending" &&
-            distributionState !== "complete" &&
-            distributionState !== "submitted" && (
-              <div className="flex justify-end">
-                <AdminButton
-                  variant="filled"
-                  size="sm"
-                  onClick={fn()}
-                  disabled={isHarvesting}
-                  loading={isHarvesting}
-                >
-                  {formatMessage({
-                    id:
-                      unharvestedYield > 0n || distributionState !== "ready"
-                        ? "app.yield.harvestDistribution.action.harvest"
-                        : "app.yield.harvestDistribution.action.distribute",
-                  })}
-                </AdminButton>
-              </div>
-            )}
-          <div className="flex justify-end border-t border-stroke-soft pt-3">
-            <AdminButton
-              variant="danger"
-              size="sm"
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              emphasis="primary"
+              size="compact"
               onClick={fn()}
-              disabled={!canEmergencyPause || isPausing}
-              loading={isPausing}
+              disabled={!vaultAcceptingDeposits}
             >
-              Emergency pause
-            </AdminButton>
+              Deposit
+            </Button>
+            <Button type="button" emphasis="secondary" size="compact" onClick={fn()}>
+              Withdraw
+            </Button>
           </div>
+
+          {isLegacyMisconfiguration && isModuleOwner && (
+            <div className="mt-2">
+              <Button
+                type="button"
+                emphasis="secondary"
+                size="compact"
+                className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
+                onClick={fn()}
+                disabled={isEnablingAutoAllocate}
+                loading={isEnablingAutoAllocate}
+              >
+                Enable auto-allocate
+              </Button>
+            </div>
+          )}
+
+          {canManage && (
+            <div className="mt-3 space-y-3">
+              {distributionState === "waiting" && (
+                <Alert variant="info" className="p-3">
+                  2 {symbol} is waiting until the 7 {symbol} minimum is reached.
+                </Alert>
+              )}
+              {distributionState === "submitted" && (
+                <Alert variant="info" className="p-3">
+                  Harvest was submitted for execution. Distribution will become available after the
+                  harvest is confirmed.
+                </Alert>
+              )}
+              {distributionState === "pending" && (
+                <Alert
+                  variant="warning"
+                  className="p-3"
+                  action={
+                    <Button type="button" emphasis="secondary" size="compact" onClick={fn()}>
+                      Retry distribution
+                    </Button>
+                  }
+                >
+                  Harvest confirmed, but distribution is still pending. The harvested funds remain
+                  in the Yield Resolver.
+                </Alert>
+              )}
+              {distributionState === "complete" && (
+                <Alert variant="success" className="p-3">
+                  4 {symbol} reached the Cookie Jar. 4 {symbol} went to hypercert funding. 2{" "}
+                  {symbol} went to the protocol treasury.
+                </Alert>
+              )}
+              {/* Mirrors the shipping component: for a registered vault the action
+                  stays available in empty/waiting states too (harvest-first), and
+                  split-only appears only when registered yield is ready. */}
+              {distributionState !== "pending" &&
+                distributionState !== "complete" &&
+                distributionState !== "submitted" && (
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="compact"
+                      onClick={fn()}
+                      disabled={isHarvesting}
+                      loading={isHarvesting}
+                    >
+                      {formatMessage({
+                        id:
+                          unharvestedYield > 0n || distributionState !== "ready"
+                            ? "app.yield.harvestDistribution.action.harvest"
+                            : "app.yield.harvestDistribution.action.distribute",
+                      })}
+                    </Button>
+                  </div>
+                )}
+              <div className="flex justify-end border-t border-stroke-soft pt-3">
+                <Button
+                  type="button"
+                  emphasis="primary"
+                  tone="danger"
+                  size="compact"
+                  onClick={fn()}
+                  disabled={!canEmergencyPause || isPausing}
+                  loading={isPausing}
+                >
+                  Emergency pause
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </AdminCard>
+      ) : null}
+    </div>
   );
 }
 
@@ -216,7 +222,7 @@ const meta: Meta<typeof PositionCardHarness> = {
     docs: {
       description: {
         component:
-          "⚠ **Visual harness** — not the real `PositionCard`. Renders the same per-asset card (net deposited, accruing yield, depositor/harvest counts, deposit/withdraw/harvest/pause controls) with plain props so every steward state is reviewable. The real component reads from half a dozen wagmi + React Query hooks; those reactive paths are not exercised here.",
+          "⚠ **Visual harness** — not the real `PositionCard`. Renders the same per-asset item row (the asset, its depositors, its net deposits on the right, a pill only when deposits are off) and the page it opens beneath it (the vault link, yield, harvests, deposit/withdraw/harvest/pause controls) with plain props, the page open, so every steward state is reviewable. The real component reads from half a dozen wagmi + React Query hooks; those reactive paths are not exercised here.",
       },
     },
   },
@@ -287,6 +293,23 @@ export const ReadOnly: Story = {
   args: { canManage: false },
 };
 
+/** How the endowment lists its positions: rows, each opening its page, none open yet. */
+export const ClosedList: Story = {
+  render: (args) => (
+    <div className="flex flex-col gap-(--gg-list-gap)">
+      <PositionCardHarness {...args} pageOpen={false} />
+      <PositionCardHarness
+        {...args}
+        symbol="DAI"
+        netDeposited={250n * 10n ** 18n}
+        depositorCount={3}
+        vaultAcceptingDeposits={false}
+        pageOpen={false}
+      />
+    </div>
+  ),
+};
+
 /** Documentation uses the production component rather than the older visual harness. */
 export const Documentation: Story = {
   decorators: [withAdminIdentity],
@@ -320,4 +343,11 @@ export const Documentation: Story = {
       onWithdraw={fn()}
     />
   ),
+  play: async ({ canvasElement }) => {
+    // The row carries no act; its page opens beneath it with Deposit and Withdraw.
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByRole("button", { name: "Deposit" })).toBeNull();
+    await userEvent.click(canvas.getByRole("button", { expanded: false }));
+    await expect(canvas.getByRole("button", { name: "Deposit" })).toBeVisible();
+  },
 };

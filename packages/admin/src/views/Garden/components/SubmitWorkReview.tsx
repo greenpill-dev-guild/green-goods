@@ -6,10 +6,12 @@
 // step so a value can be corrected without walking the flow again. One status
 // row above the sections says where the send stands and keeps its height while
 // it works, so the sections under it never move (DL-072, DL-080).
+
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { Action } from "@green-goods/shared/types/domain";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
@@ -23,17 +25,6 @@ export interface SubmitWorkReviewProps {
   status: FlowSendStatus;
   /** Jump back to a step to edit it (1=Action, 2=Media, 3=Details). */
   onEditStep?: (step: number) => void;
-}
-
-function ReviewRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-      <span className="label-xs text-text-sub">{label}</span>
-      <span className="min-w-0 break-words body-sm text-text-strong sm:max-w-[60%] sm:text-right">
-        {value}
-      </span>
-    </div>
-  );
 }
 
 function ReviewCard({
@@ -53,18 +44,18 @@ function ReviewCard({
   return (
     <AdminCard variant="outlined">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="label-xs text-text-sub">{title}</h3>
+        <h3 className="type-label-sm text-text-sub">{title}</h3>
         {onEdit && editText ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             onClick={onEdit}
             disabled={!editable}
             aria-label={`${editText} ${title}`}
           >
             {editText}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
       {children}
@@ -124,8 +115,8 @@ export function SubmitWorkReview({
         editText={edit}
         editable={editable}
       >
-        <p className="body-sm font-semibold text-text-strong">{action.title}</p>
-        <p className="mt-0.5 body-xs text-text-sub">{photoRequirementText}</p>
+        <p className="type-body font-semibold text-text-strong">{action.title}</p>
+        <p className="mt-0.5 type-meta text-text-sub">{photoRequirementText}</p>
       </ReviewCard>
 
       {action.inputs.length > 0 ? (
@@ -138,14 +129,14 @@ export function SubmitWorkReview({
           editText={edit}
           editable={editable}
         >
-          <div className="divide-y divide-stroke-soft">
+          <FactList frame="inset">
             {action.inputs.map((input) => {
               const raw = values[input.key];
               const value =
                 raw === undefined || raw === null || raw === "" ? emptyValue : String(raw);
-              return <ReviewRow key={input.key} label={input.title} value={value} />;
+              return <FactRow key={input.key} label={input.title} value={value} />;
             })}
-          </div>
+          </FactList>
         </ReviewCard>
       ) : null}
 
@@ -158,22 +149,22 @@ export function SubmitWorkReview({
         editText={edit}
         editable={editable}
       >
-        <div className="divide-y divide-stroke-soft">
-          <ReviewRow
+        <FactList frame="inset">
+          <FactRow
             label={formatMessage({
               id: "app.admin.work.submit.timeSpent",
               defaultMessage: "Time Spent (hours)",
             })}
             value={timeValue}
           />
-          <ReviewRow
+          <FactRow
             label={formatMessage({
               id: "app.admin.work.submit.feedback",
               defaultMessage: "Feedback",
             })}
             value={feedback || emptyValue}
           />
-        </div>
+        </FactList>
       </ReviewCard>
 
       <ReviewCard
@@ -197,7 +188,7 @@ export function SubmitWorkReview({
             ))}
           </div>
         ) : (
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "app.admin.work.submit.review.noPhotos",
               defaultMessage: "No photos added.",

@@ -24,18 +24,23 @@ export const PAIRINGS = [
 ] as const;
 
 /**
- * Variable product faces for the type samples. Docs loads these stylesheets while the client
- * serves the same faces locally. The type samples need variable weights because
+ * The variable product faces used by the type samples. Docs loads these stylesheets while the
+ * client serves its copies locally. The type samples need variable weights because
  * the brand kit's files (static/brand/v3/typography) carry the regular weight only, so a sample at
  * 500, 600, or 700 drawn from those files would be a weight the browser made up.
  */
 export const PRODUCT_FONT_STYLESHEETS = [
+  "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap",
   "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap",
 ] as const;
 
-/** Map DesignMD family names onto the product's fonts, with the brand kit's regular files behind them. */
+/**
+ * Map DesignMD family names onto the product's fonts, with the brand kit's regular files behind
+ * them. The kit carries no Plus Jakarta Sans files, so that face falls back to the system stack.
+ */
 export const FONT_STACKS: Record<string, string> = {
+  "Plus Jakarta Sans": '"Plus Jakarta Sans", "Segoe UI", sans-serif',
   Inter: 'Inter, "Green Goods Inter", "Segoe UI", sans-serif',
   Fraunces: 'Fraunces, "Green Goods Fraunces", Georgia, serif',
 };

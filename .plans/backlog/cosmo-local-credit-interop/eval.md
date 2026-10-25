@@ -39,6 +39,11 @@ services, capacities, rates and funded rewards remain gates for live configurati
 
 **Reconciled:** 2026-10-22 UTC. These criteria apply to separately accepted implementation slices.
 No check below is certified by planning, a Linear state or the completed foundation project.
+PRD-1096 covers its approved fork scope only: its report must keep exact-revision claimant consent,
+issuer-cap enforcement, the live escrow-to-promise handshake, claimant-funded Offer payments and
+distinct gardener issuer identity/cap isolation, and independent steward issuer suspension unproved
+where the defaults do not exercise them. The handshake limit includes escrow placement/custody.
+Steward approval is not claimant consent, and the service-desk stand-in is not the live handshake.
 
 **Current hackathon release criteria, 22 October Pacific:** target a controlled live pilot with
 deployed contracts on Saturday, 24 October. The user exempts external audit/audit intake and
@@ -93,18 +98,25 @@ This is working-tree evidence, with no full-lifecycle or live-readiness claim.
 
 | Boundary | Required observable evidence | Owner |
 |---|---|---|
-| Authority | Unauthorized source chain/sender/hat/issuer rejected; issuer cannot withdraw pool money | PRD-1096 |
+| Authority | Unauthorized source chain/sender/hat/issuer rejected; adapter and Arbitrum stewards lack pool authority. The issuer Safe owns the selected pool and can call `withdrawLiquidity` after sealing; P7 proves and discloses that retained custody power | PRD-1096 |
 | Linked rewards | One commitment receives agreed vouchers and G$ independently; neither receipt implies the other or later service delivery | PRD-1315 / PRD-1326 |
-| Accepted voucher terms | Issuer consent, terms timing, amount/allocation policy and eligibility are explicit; existing commitments gain no implicit entitlement | RESR-73 / PRD-1315 |
-| Partial cross-chain outcome | G$ success with voucher delay, reserve delivery success with lost acknowledgment and safe reconciliation do not duplicate either asset | PRD-1318 / PRD-1326 |
-| Protocol version | Selected Gnosis bytecode/interfaces/controllers match the pinned version; v1.1.0 docs do not certify v1.0.0-listed deployments | PRD-1319 / PRD-1325 |
+| Accepted voucher terms | Issuer and counterparty consent freeze the exact approved revision, amount/allocation policy and eligibility while Offered/Requested, before both immediate open-claim and approval-gated acceptance. Direct core claimCommitment/acceptClaim cannot bypass it; frontend wrappers, post-acceptance consent and dispatch exclusion are insufficient. If the unchanged core cannot enforce this, return the boundary to PRD-1315 before dispatch; later revisions cannot silently replace a pending claimant's or accepted counterparty's terms; existing commitments gain no implicit entitlement; earned-reward recipients equal to the reserve holder are rejected before accepting the voucher obligation (the rehearsal proves only Offer approval and Request dispatch rejection) | RESR-73 / PRD-1315 / PRD-1317 |
+| Presentment setup recovery | Deposit success plus rejected/delayed receipt or failed promise creation converges through idempotent retry or authenticated setup cancellation/expiry/refund. Test delayed/duplicate/reordered activation and abort, refund failure/retry, no duplicate promise or stranded balance, no activation after setup refund and no setup-abort refund after activation; ordinary authorized service remedies remain available. Timeout alone proves no remote failure | PRD-1315 / PRD-1317 / PRD-1318 |
+| Partial cross-chain outcome | G$ success with voucher delay, voucher delivery with lost acknowledgment and safe reconciliation do not duplicate either asset | PRD-1318 / PRD-1326 |
+| Protocol version | Selected Gnosis implementations match the published build artifacts (four established on 20 October, the rest pending) and controllers and proxy admins are recorded; re-read at the deployment block | PRD-1319 / PRD-1325 |
 | Earned issuance | Source entitlement, eligibility and actual confirmer path retained; no assumed beneficiary confirmation | PRD-1096 / COM-46 |
-| Purchased issuance | Bounded Gnosis swap receipt to named learner, minimum output/deadline, no duplicate Arbitrum entitlement | PRD-1096 / COM-46 |
-| Replay and recovery | Same message and distinct-message reuse both rejected; retry cannot repeat reserve delivery; failed and pending states reconcile | PRD-1096 |
+| Purchased issuance | The issuer pool's bounded swap settles payment and voucher delivery atomically; record finality, recipient, actual output, minimum output, deadline and inventory delta. No separate purchase message or entitlement exists under this route. A later route with separate settlement must define its entitlement and payment cancellation/refund rules; COM-46 owns service cancellation/refund terms in either case | PRD-1096 / COM-46 |
+| Replay and recovery | Same message and distinct-message reuse both rejected; retry cannot deliver twice; failed and pending states reconcile. G17/G18 prove explicit Safe-authorized retired-peer recovery after expiry or zero-grace rotation, with the old source unavailable and economic terms unchanged | PRD-1096 |
+| Upgrade immutables | M17/G16 reject non-owner/unpaused upgrades and replacement router/local-selector mismatch or missing getters; compatible UUPS upgrades preserve commands, results, consumption and spend | PRD-1096 / PRD-1319 |
 | Capacity and caps | Agreed deliverable service capacity, issuance cap and token holding limits remain distinct and bounded | COM-46 / PRD-1096 |
+| Steward issuer suspension | Record steward/admission authority independent of issuer-Safe cooperation, authenticated cross-chain state/order, per-issuer stop scope and recovery. Test affected mint/earned/purchase routes, bypass attempts, replay/unauthorized controls, in-flight commands and issuer isolation; preserve the approved outstanding service/discharge/refund path. Required unenforceable stops block release. The fork's owner pause does not prove this | PRD-1315 / PRD-1318 |
+| Issuer budget | The amount the adapter can deliver is bounded by the token allowance or its own writer-path cap. Acceptance is unreserved: allowance is shared and revocable, not earmarked per entitlement; oversubscription and depleted reserve/allowance must fail safely and recover. The adapter holds no pool or limiter authority | PRD-1318 / COM-46 |
 | Member account | Gnosis derivation, ownership, sponsored signing and recovery proved independently of garden accounts; each facet assessed separately in the [22 October proof](handoffs/codex-member-issuer-readiness.md) | PRD-1096 |
 | Exchange | Executable direct swap with minimum output/deadline; stale quote, de-list, depleted inventory, limit and sponsorship failures | PRD-1096 |
-| Service discharge | Presentment, partial/full delivery, confirmation and once-only discharge; failed delivery has a visible remedy | COM-46 / PRD-1096 |
+| Service discharge | Presentment, partial/full delivery, confirmation and once-only discharge; failed delivery has a visible remedy. If COM-46 permits partial delivery, authenticated live commands bind delivered/refundable quantities to one escrow and conserve presented units. One immutable full-discharge/full-return/partial-split decision owns shared escrow progress; conflicts reject and terminal state follows settlement of every authorized leg. Test discharge after full return, repeated return, return after full discharge and repeated discharge, with another same-token escrow untouched. Partial legs settle once in either order without consuming or stranding each other. The fork desk tests its atomic stand-in separately | COM-46 / PRD-1096 / PRD-1317 / PRD-1318 |
+| Presentment handshake | An authenticated, replay-safe receipt binds presenter, promise, token, amount and escrow receipt; the Gnosis escrow is proved to exist before the presenter becomes the Arbitrum counterparty; replay and unknown escrow are rejected | PRD-1315 / PRD-1317 / PRD-1318 |
+| Voucher-accepting Offer payment | The selected claimant is bound as payer after claim selection, authorizes the exact payment and funds the approved reservation/escrow/debit route. Missing authorization or funds cannot appear paid; issuer-funded rewards cannot substitute. Failure/cancellation releases or refunds once under the recorded rule | PRD-1315 / PRD-1317 / PRD-1318 |
+| Gardener issuer identity | Two gardeners sharing a garden or Safe retain distinct issuer identifiers, each with recorded token/admission-authority bindings and isolated authorization/caps; one cannot consume the other's cap or spend under the other's authority | PRD-1315 / PRD-1317 / PRD-1318 |
 | Foundation invariants | Non-transferable promise identity, existing settlement meaning and no bridged value preserved | PRD-1096 |
 | Passport | Definitions, units, windows, source/freshness and receipt links; earned/purchased/payment/delivery/obligations separate | PRD-1097 |
 | Privacy | Separate publication consent, privacy-safe aggregates, no addresses or individual ranking | COM-46 / PRD-1097 |
@@ -255,6 +267,10 @@ A local fork demonstrates the tested deployment at the pinned state, not a later
 Rendered evidence follows AGENTS.md: identify the browser/session, distinguish authenticated signing
 or installed-PWA proof from mocks, and record unavailable proof honestly. The earned-contracts slice changes
 no UI; rendered proof is **none**. Preserved checkout app work is not new voucher UI proof.
+The voucher-direction deck pass changed deck text and accessible narration while preserving CSS and
+element structure. Its rendered proof is **pending** because the browser security policy blocked
+the local file. Static HTML/JSON and paired notes are checked directly; text wrapping and overflow
+remain unverified.
 
 The whitepaper review records 275 historical foundation tests; they remain dated evidence.
 Current service evidence belongs to [the execution handoff](handoffs/codex-service-access-execution.md);

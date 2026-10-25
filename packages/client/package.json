@@ -46,7 +46,7 @@
     "thirdweb": "5.120.1",
     "viem": "2.55.13",
     "wagmi": "^2.19.5",
-    "zod": "4.4.3",
+    "zod": "4.6.7",
     "zustand": "5.0.15"
   },
   "devDependencies": {
@@ -61,7 +61,7 @@
     "@vitejs/plugin-react": "6.0.5",
     "babel-plugin-react-compiler": "^1.0.0",
     "opentype.js": "^2.0.0",
-    "storybook": "10.4.6",
+    "storybook": "10.6.2",
     "tailwindcss": "4.3.3",
     "typescript": "~7.0.2",
     "vite": "8.2.4",

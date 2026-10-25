@@ -1,7 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { RiErrorWarningLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { EmptyState } from "@/components/Communication/EmptyState";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 
 export interface AppScreenErrorProps {
   /** The screen's code could not be fetched without a connection; it returns on its own. */
@@ -9,20 +9,7 @@ export interface AppScreenErrorProps {
   onReload: () => void;
   /** Set on screens that hide the bottom bar, so the screen still has a way out. */
   onBack?: () => void;
-  /**
-   * The frame the screen failed in: the installed app's shell, or the focused bar the reporting
-   * ceremony pages use.
-   */
-  shell?: "app" | "focused";
 }
-
-const SHELL_FRAME = {
-  // The scroller reserves the bottom bar's 69px; centring in what is left keeps the state clear
-  // of the bar on every screen height.
-  app: "grid min-h-[calc(100dvh-69px-var(--safe-area-bottom))] place-items-center",
-  // Under the top bar, where a reporting page shows its own "this link can't be used" state.
-  focused: "pt-8 pb-6",
-};
 
 /**
  * One screen of the installed app that failed, in the anatomy every failed list and sheet tab
@@ -30,19 +17,16 @@ const SHELL_FRAME = {
  * The acts are the screen's own, so they take the sign-in screen's width and stack as it stacks
  * them: the filled primary, then the outlined second act.
  *
- * It renders inside `AppShell`, so the bottom bar stays where the route shows it, or inside the
- * reporting pages' focused shell, which are drawn as the app draws.
+ * It renders inside `AppShell`, so the bottom bar stays where the route shows it. A reporting
+ * page fails in the website's voice instead (`CeremonyPageError`, DL-121).
  */
-export function AppScreenError({
-  offline = false,
-  onReload,
-  onBack,
-  shell = "app",
-}: AppScreenErrorProps) {
+export function AppScreenError({ offline = false, onReload, onBack }: AppScreenErrorProps) {
   const { formatMessage } = useIntl();
 
   return (
-    <div className={SHELL_FRAME[shell]}>
+    // The scroller reserves the bottom bar's 69px; centring in what is left keeps the state clear
+    // of the bar on every screen height.
+    <div className="grid min-h-[calc(100dvh-69px-var(--safe-area-bottom))] place-items-center">
       <div className="flex w-full flex-col items-center px-4">
         <EmptyState
           titleAs="h1"

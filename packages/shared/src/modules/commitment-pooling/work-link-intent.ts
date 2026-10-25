@@ -2,6 +2,7 @@ import { isAddress, type Address } from "viem";
 
 import type { DraftWorkLink } from "../../types/job-queue";
 import type { WorkLinkJobPayload } from "./job-types";
+import type { CommitmentReadModel } from "./types-core";
 
 export interface WorkLinkIntent {
   commitmentId: bigint;
@@ -18,6 +19,7 @@ export interface WorkLinkChoice extends WorkLinkIntent {
   approvedCount?: number;
   requiredCount?: number;
   dueDate?: bigint | null;
+  direction?: CommitmentReadModel["direction"];
 }
 
 /** One operation identity shared by admission, the wizard and queue recovery. */

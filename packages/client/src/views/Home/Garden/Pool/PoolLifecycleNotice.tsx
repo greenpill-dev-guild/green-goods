@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import {
   type CommitmentPoolRecord,
@@ -13,7 +14,7 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 
 export interface PoolLifecycleNoticeProps {
   pool: CommitmentPoolRecord;
@@ -90,20 +91,47 @@ export function PoolLifecycleNotice({
           // stewards' own setup uses. A qualifying starting assessment is also
           // required on chain, but the app has no selector for it yet, so the
           // list does not claim to know.
-          <ul
-            className="space-y-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
+          <FactList
             aria-label={formatMessage({ id: "app.pool.readiness.title" })}
             data-component="PoolReadinessChecklist"
           >
-            <ReadinessRow
-              done={isResolvableMetadataCID(pool.charterCID)}
-              label={formatMessage({ id: "app.pool.readiness.charter" })}
-            />
-            <ReadinessRow
-              done={pool.providerOpenCommitmentCap > 0n}
-              label={formatMessage({ id: "app.pool.readiness.cap" })}
-            />
-          </ul>
+            {[
+              {
+                key: "charter",
+                done: isResolvableMetadataCID(pool.charterCID),
+                label: formatMessage({ id: "app.pool.readiness.charter" }),
+              },
+              {
+                key: "cap",
+                done: pool.providerOpenCommitmentCap > 0n,
+                label: formatMessage({ id: "app.pool.readiness.cap" }),
+              },
+            ].map(({ key, done, label }) => (
+              <FactRow
+                key={key}
+                data-done={done ? "true" : "false"}
+                label={label}
+                value={
+                  <span className="inline-flex items-center gap-1.5">
+                    {done ? (
+                      <RiCheckboxCircleFill
+                        className="h-5 w-5 shrink-0 text-success-base"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <RiCheckboxBlankCircleLine
+                        className="h-5 w-5 shrink-0 text-text-soft-400"
+                        aria-hidden="true"
+                      />
+                    )}
+                    {formatMessage({
+                      id: done ? "app.pool.readiness.done" : "app.pool.readiness.todo",
+                    })}
+                  </span>
+                }
+              />
+            ))}
+          </FactList>
         ) : null}
         {state === "NOT_READY" && isSteward === true ? (
           <p className="text-xs text-text-sub-600">
@@ -128,25 +156,5 @@ export function PoolLifecycleNotice({
         ) : null}
       </div>
     </div>
-  );
-}
-
-function ReadinessRow({ done, label }: { done: boolean; label: string }) {
-  const { formatMessage } = useIntl();
-  return (
-    <li className="flex items-center gap-3 text-sm" data-done={done ? "true" : "false"}>
-      {done ? (
-        <RiCheckboxCircleFill className="h-5 w-5 shrink-0 text-success-base" aria-hidden="true" />
-      ) : (
-        <RiCheckboxBlankCircleLine
-          className="h-5 w-5 shrink-0 text-text-soft-400"
-          aria-hidden="true"
-        />
-      )}
-      <span className="min-w-0 flex-1 text-text-strong-950">{label}</span>
-      <span className="sr-only">
-        {formatMessage({ id: done ? "app.pool.readiness.done" : "app.pool.readiness.todo" })}
-      </span>
-    </li>
   );
 }

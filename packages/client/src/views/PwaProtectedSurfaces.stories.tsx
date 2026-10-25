@@ -1,4 +1,7 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { SubmissionProgress } from "@green-goods/shared/components/Progress/SubmissionProgress";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiFilterLine, RiLeafLine, RiSeedlingLine, RiUserLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
@@ -8,6 +11,7 @@ import { withClientAppRuntime, withInstalledPwa } from "../../../shared/.storybo
 import tokens from "@green-goods/shared/styles/design-md.generated.json";
 import { OfflineIndicator } from "../components/Communication/Offline/OfflineIndicator";
 import { FormProgress } from "../components/Communication/Progress/Progress";
+import { pwaStatusStyles } from "../components/Pwa/statusStyles";
 import { AppBar } from "../components/Layout/AppBar";
 import { StandardTabs, type StandardTab } from "../components/Navigation/Tabs/StandardTabs";
 
@@ -33,7 +37,7 @@ function TabsFixture() {
 function PwaRouteFrame({ route, children }: { route: string; children: React.ReactNode }) {
   return (
     <MemoryRouter initialEntries={[route]}>
-      <div className="min-h-[720px] bg-bg-white-0 pb-[calc(69px+var(--safe-area-bottom))] text-text-strong-950">
+      <div className="min-h-[720px] bg-bg-canvas pb-[calc(69px+var(--safe-area-bottom))] text-text-strong-950">
         {children}
         <AppBar />
       </div>
@@ -60,19 +64,14 @@ export const Home: Story = {
       <div className="px-4 py-6">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-semibold">Home</h1>
-          <button
-            type="button"
-            className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-primary text-primary"
+          <IconButton
+            emphasis="secondary"
+            size="compact"
+            className={cn(pwaStatusStyles.primary.border, pwaStatusStyles.primary.icon)}
             aria-label="Filters"
-          >
-            <RiFilterLine className="h-4 w-4" />
-            <span
-              data-testid="pwa-filter-badge"
-              className="absolute -right-1.5 -top-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary-action px-1 text-[10px] font-semibold leading-none text-primary-action-foreground"
-            >
-              2
-            </span>
-          </button>
+            icon={<RiFilterLine aria-hidden="true" />}
+            badge={<CountBadge count={2} ring data-testid="pwa-filter-badge" />}
+          />
         </div>
 
         <div className="mt-6 rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 p-4">
@@ -100,7 +99,7 @@ export const Home: Story = {
     const progress = canvas.getByTestId("pwa-queue-progress");
     // A count badge carries a number, so it takes the action pair; the text-free progress bar
     // keeps the bright accent (DL-017).
-    expect(badge.className).toContain("text-primary-action-foreground");
+    expect(badge.className).toContain("gg-count-badge");
     expect(getComputedStyle(badge).color).toBe(hexToRgb(tokens.colors["on-tertiary-action"]));
     expect(getComputedStyle(badge).backgroundColor).toBe(
       hexToRgb(tokens.colors["tertiary-action"])
@@ -170,7 +169,7 @@ export const Profile: Story = {
 export const BackOnlineBanner: Story = {
   render: () => (
     <MemoryRouter initialEntries={["/home"]}>
-      <div className="min-h-[720px] bg-bg-white-0 px-4 py-6">
+      <div className="min-h-[720px] bg-bg-canvas px-4 py-6">
         <OfflineIndicator testState="back-online" forceShow />
       </div>
     </MemoryRouter>
@@ -179,8 +178,12 @@ export const BackOnlineBanner: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByTestId("offline-indicator")).toBeVisible();
     const backOnline = canvas.getByRole("status", { name: "App is back online" });
-    expect(backOnline.className).toContain("bg-primary-action/95");
+    expect(backOnline.className).toContain("bg-primary-action");
     expect(backOnline.className).toContain("text-primary-action-foreground");
+    // Solid, like every surface but the cockpit's nav dock (DL-108): an opaque fill, no blur.
+    const { backgroundColor, backdropFilter } = getComputedStyle(backOnline);
+    expect(backgroundColor).toMatch(/^rgb\(/);
+    expect(backdropFilter).toBe("none");
     await expect(canvas.getByText("Back Online")).toBeVisible();
   },
 };

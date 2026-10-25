@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { useAddressInput } from "@green-goods/shared/hooks/utils/useAddressInput";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -6,7 +7,6 @@ import { RiAddLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminInputChip } from "@/components/AdminInputChip";
@@ -100,7 +100,7 @@ export function SeedConfirmerList({
           defaultMessage: "Confirmers",
         })}
       </AdminCardTitle>
-      <p className="body-xs text-text-soft">
+      <p className="type-meta text-text-soft">
         {chosen.length === 0
           ? values.direction === "REQUEST"
             ? formatMessage({
@@ -183,12 +183,12 @@ export function SeedConfirmerList({
           }}
         />
         {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
-        <AdminButton
+        <Button
           type="button"
-          variant="outlined"
-          size="sm"
-          className="mb-5"
-          leadingIcon={<RiAddLine className="h-4 w-4" />}
+          emphasis="secondary"
+          size="compact"
+          className="mb-9"
+          leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
           onClick={() => void entry.handleAdd()}
           disabled={busy || entry.trimmedInput.length === 0}
         >
@@ -196,11 +196,11 @@ export function SeedConfirmerList({
             id: "cockpit.garden.pool.seed.confirmerAdd",
             defaultMessage: "Add",
           })}
-        </AdminButton>
+        </Button>
       </div>
       {offered.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2" data-testid="seed-confirmer-suggestions">
-          <span className="label-xs text-text-soft">
+          <span className="type-label-sm text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.seed.fromThisGarden",
               defaultMessage: "From this garden",
@@ -220,10 +220,10 @@ export function SeedConfirmerList({
             </PersonName>
           ))}
           {offered.length > SUGGESTED ? (
-            <AdminButton
+            <Button
               type="button"
-              variant="text"
-              size="sm"
+              emphasis="tertiary"
+              size="compact"
               onClick={() => setShowAll(!showAll)}
             >
               {showAll
@@ -238,7 +238,7 @@ export function SeedConfirmerList({
                     },
                     { count: offered.length }
                   )}
-            </AdminButton>
+            </Button>
           ) : null}
         </div>
       ) : null}

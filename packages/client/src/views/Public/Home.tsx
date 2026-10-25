@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { useApp } from "@green-goods/shared/providers/App";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { lazy, Suspense } from "react";
@@ -104,11 +105,29 @@ export default function Home() {
         })}
         actions={heroActions}
       />
-      <div ref={evidenceRef}>
+      <div ref={evidenceRef} data-testid="home-evidence">
         {evidenceVisible ? (
-          <Suspense fallback={<EvidenceSkeleton />}>
-            <PublicHomeEvidence />
-          </Suspense>
+          <ErrorBoundary
+            context="PublicHomeEvidence"
+            fallback={
+              <div className="bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20" role="alert">
+                <div className="mx-auto max-w-7xl space-y-4">
+                  <p>
+                    {formatMessage({
+                      id: "public.home.evidence.unavailable",
+                      defaultMessage:
+                        "Live garden information is unavailable. You can still explore the site.",
+                    })}
+                  </p>
+                  <EditorialGhostLink to="/gardens">{exploreLabel}</EditorialGhostLink>
+                </div>
+              </div>
+            }
+          >
+            <Suspense fallback={<EvidenceSkeleton />}>
+              <PublicHomeEvidence />
+            </Suspense>
+          </ErrorBoundary>
         ) : (
           <EvidenceSkeleton />
         )}

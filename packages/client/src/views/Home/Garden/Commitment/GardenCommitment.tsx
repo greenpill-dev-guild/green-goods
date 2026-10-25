@@ -31,7 +31,7 @@ import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
-import { QueuedActNotice } from "./QueuedActRow";
+import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
 import { ServiceAccessPanel } from "./ServiceAccessPanel";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";

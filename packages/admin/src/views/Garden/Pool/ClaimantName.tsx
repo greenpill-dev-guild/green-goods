@@ -27,7 +27,7 @@ export function ClaimantName({
       return (
         <span
           data-component="ClaimantName"
-          className={cn("truncate body-sm font-semibold text-text-strong", className)}
+          className={cn("truncate type-body font-semibold text-text-strong", className)}
           title={`${garden.name} · ${claim.claimant}`}
         >
           {garden.name}

@@ -1,8 +1,13 @@
-import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useTradeHistory } from "@green-goods/shared/hooks/hypercerts/useTradeHistory";
-import { RiExternalLinkLine, RiHistoryLine, RiLoader4Line } from "@remixicon/react";
+import {
+  RiErrorWarningLine,
+  RiExternalLinkLine,
+  RiHistoryLine,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
 import { EnsAddressWithCopy } from "@/components/EnsAddressText";
@@ -43,73 +48,72 @@ export function TradeHistoryTable({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-6">
-        <RiLoader4Line className="h-4 w-4 animate-spin text-text-soft" />
-        <span className="body-sm text-text-soft">
-          {intl.formatMessage({
-            id: "app.admin.tradeHistory.loading",
-            defaultMessage: "Loading trade history...",
-          })}
-        </span>
-      </div>
+      <EmptyState
+        busy
+        icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+        title={intl.formatMessage({
+          id: "app.admin.tradeHistory.loading",
+          defaultMessage: "Loading trade history...",
+        })}
+      />
     );
   }
 
   if (error) {
     return (
-      <Alert variant="error">
-        {intl.formatMessage({
+      <EmptyState
+        tone="error"
+        icon={<RiErrorWarningLine />}
+        title={intl.formatMessage({
           id: "app.admin.tradeHistory.loadError",
           defaultMessage: "Failed to load trades",
         })}
-      </Alert>
+      />
     );
   }
 
   if (trades.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-stroke-soft p-6 text-center">
-        <RiHistoryLine className="mx-auto h-6 w-6 text-text-disabled" />
-        <p className="mt-2 body-sm text-text-soft">
-          {intl.formatMessage({
-            id: "app.admin.tradeHistory.empty",
-            defaultMessage: "No trades yet",
-          })}
-        </p>
-      </div>
+      <EmptyState
+        icon={<RiHistoryLine />}
+        title={intl.formatMessage({
+          id: "app.admin.tradeHistory.empty",
+          defaultMessage: "No trades yet",
+        })}
+      />
     );
   }
 
   return (
     <div className="overflow-hidden rounded-lg border border-stroke-soft">
-      <table className="w-full text-left body-sm">
+      <table className="w-full text-left type-body">
         <thead>
           <tr className="border-b border-stroke-soft bg-bg-soft">
-            <th className="px-4 py-2.5 label-xs uppercase text-text-soft">
+            <th className="px-4 py-2.5 type-label-sm uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.tradeHistory.columnDate",
                 defaultMessage: "Date",
               })}
             </th>
-            <th className="px-4 py-2.5 label-xs uppercase text-text-soft">
+            <th className="px-4 py-2.5 type-label-sm uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.tradeHistory.columnUnits",
                 defaultMessage: "Units",
               })}
             </th>
-            <th className="px-4 py-2.5 label-xs uppercase text-text-soft">
+            <th className="px-4 py-2.5 type-label-sm uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.tradeHistory.columnPayment",
                 defaultMessage: "Payment",
               })}
             </th>
-            <th className="px-4 py-2.5 label-xs uppercase text-text-soft">
+            <th className="px-4 py-2.5 type-label-sm uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.tradeHistory.columnRecipient",
                 defaultMessage: "Recipient",
               })}
             </th>
-            <th className="px-4 py-2.5 label-xs uppercase text-text-soft text-right">
+            <th className="px-4 py-2.5 type-label-sm uppercase text-text-soft text-right">
               {intl.formatMessage({ id: "app.admin.tradeHistory.columnTx", defaultMessage: "Tx" })}
             </th>
           </tr>
@@ -123,7 +127,7 @@ export function TradeHistoryTable({
               </td>
               <td className="px-4 py-2.5 text-text-sub">{formatEther(trade.payment)} ETH</td>
               <td className="px-4 py-2.5 text-text-soft">
-                <EnsAddressWithCopy address={trade.recipient} labelClassName="body-xs" />
+                <EnsAddressWithCopy address={trade.recipient} labelClassName="type-meta" />
               </td>
               <td className="px-4 py-2.5 text-right">
                 {explorerUrl && trade.txHash ? (
@@ -131,12 +135,12 @@ export function TradeHistoryTable({
                     href={`${explorerUrl}/tx/${trade.txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-0.5 body-xs text-primary-base transition hover:text-primary-darker"
+                    className="inline-flex items-center gap-0.5 type-meta text-primary-base transition hover:text-primary-darker"
                   >
                     <RiExternalLinkLine className="h-3.5 w-3.5" />
                   </a>
                 ) : (
-                  <span className="body-xs text-text-disabled">{"\u2014"}</span>
+                  <span className="type-meta text-text-disabled">{"\u2014"}</span>
                 )}
               </td>
             </tr>

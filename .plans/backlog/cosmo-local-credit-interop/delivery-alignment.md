@@ -27,8 +27,9 @@ Commitment Credit lending companion are not hackathon prerequisites. No Urgent p
 Research, strategy and pitch drafts can advance while implementation is pending. The first
 audience recorded in RESR-94 is Omo Yoruba of Southern California. The $30 seat, $800 TAS season
 pack and $1,200 Green Goods coordination package remain labeled scenarios pending COM-46 terms;
-the exact gift method and named first supporter remain unconfirmed. Use the current draft package
-in [PR #1068](https://github.com/greenpill-dev-guild/green-goods/pull/1068), not a second deck.
+the exact gift method and named first supporter remain unconfirmed. Edit the included
+[deck](artifacts/deck/index.html) and [speaker notes](artifacts/deck/speaker-notes.md), with the
+[claim ledger](research/claim-ledger.md) as the evidence source.
 
 Product works forward from a useful member action to evidence, voucher access, service fulfillment
 and remaining obligations. Pitch works backward from the supporter's decision to the service offer
@@ -37,16 +38,23 @@ The pitch must not wait for live deployment to prepare its rehearsal version.
 
 ## Dependencies
 
-Native Linear blockers express completion prerequisites; drafting, fixtures and exploration may
-proceed alongside the prerequisite. Keep related-but-independent work as related links.
+Distinguish the approved bounded fork rehearsal from the decisions required for live acceptance.
+Drafting, fixtures and exploration can proceed while live decisions remain open. Keep
+related-but-independent work as related links.
 
-- RESR-73 and COM-46 → PRD-1096. Resolve issuance eligibility, purchase receipts, member accounts,
-  units and recovery before accepting the rehearsal. The 10 October passkey-validator observation
-  is a dated open issue to recheck, not a new current-chain certification.
+- PRD-1096 follows its separately approved [fork dispatch defaults](handoffs/prd-1096-rehearsal-dispatch-draft.md)
+  after explicit dispatch. It uses proposed units, any Fulfilled eligibility, reserve/allowance
+  delivery, an atomic pool purchase, one recipient and labeled account/transport stand-ins.
+  Acceptance proves only that bounded scope and records its limitations; it does not resolve
+  RESR-73 or COM-46. Member accounts, issuer terms/caps and the other
+  [freeze decisions](plan.todo.md#sequence-and-completion-evidence) remain live prerequisites.
+  The 10 October passkey-validator observation is a dated issue to recheck, not a current-chain
+  certification.
 - RESR-73 and PRD-1096 → PRD-1097. Passport layout can start from real Arbitrum data and labeled
   fixtures; final acceptance consumes the rehearsal's issuance and fulfillment receipts.
-- PRD-1096 and COM-46 → PRD-1197 → PRD-1100. The live gate and its original audit, Safe, timelock,
-  testnet and rollback requirements are unchanged. COM-28 also needs terms and rehearsal.
+- PRD-1096 evidence and the resolved RESR-73/COM-46 live decisions → PRD-1197 → PRD-1100.
+  The live gate and its original audit, Safe, timelock, testnet and rollback requirements are
+  unchanged. COM-28 also needs terms and rehearsal.
 - RESR-93 → PRD-1260 and PRD-1261. The PWA and cohesion slices can proceed together after accepted
   scope; neither depends on live Gnosis deployment. The cohesion slice pairs a member promise/work
   journey with its steward review and preserves each surface's approved dialect and permissions.
@@ -92,8 +100,9 @@ voucher as a token or record representing an issuer's commitment under published
   automatically loans. G$ remains a separate payment asset, not a voucher unit or a US dollar.
 - Apply the wording to current project overviews, open delivery issues, acceptance copy and new
   public materials. Preserve historical reports, Done descriptions, quoted source titles, code
-  identifiers and the existing hub slug. PR #1068's editable deck/ledger terminology follow-up is
-  owned by MAR-32 and RESR-94; its artifacts are not present in this checkout and were not rewritten.
+  identifiers and the existing hub slug. MAR-32 and RESR-94 own the deck/ledger terminology
+  follow-up. The deck and speaker notes are now included in this hub; the 16 October planning pass
+  below predates their inclusion.
 
 The [integration specification](spec.md) owns the planned meaning and boundaries. This decision
 does not rename a deployed contract, token, ABI, schema or the separate lending product.

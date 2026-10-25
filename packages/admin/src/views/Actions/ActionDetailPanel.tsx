@@ -1,24 +1,15 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import { ACTION_CAPITAL_LABEL_IDS } from "@green-goods/shared/hooks/admin-ui/actions/actions.utils";
 import { deriveActionDetailModel } from "@green-goods/shared/hooks/admin-ui/actions/actions.workspaceModel";
 import type { Action } from "@green-goods/shared/types/domain";
 import { formatDateTime } from "@green-goods/shared/utils/time";
-import { RiEditLine, RiFileListLine, RiImageLine } from "@remixicon/react";
-import { type ReactNode } from "react";
+import { RiEditLine, RiFileListLine, RiImageLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
 import { ActionDetailMediaTile } from "./ActionDetailPrimitives";
-
-function DetailField({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <dt className="label-xs text-text-soft">{label}</dt>
-      <dd className="mt-1 text-body-md font-semibold text-text-strong">{children}</dd>
-    </div>
-  );
-}
 
 interface ActionDetailPanelProps {
   actionId?: string;
@@ -53,14 +44,18 @@ export function ActionDetailPanel({
   if (!action) {
     return (
       <div className="p-4">
-        <AdminCard className="space-y-3 text-center">
-          <p className="text-body-md text-text-sub">
-            {formatMessage({ id: "app.actions.notFound" })}
-          </p>
-          <AdminButton size="sm" variant="outlined" onClick={onClose}>
-            {formatMessage({ id: "app.actions.backToActions", defaultMessage: "Back to Actions" })}
-          </AdminButton>
-        </AdminCard>
+        <EmptyState
+          icon={<RiSearchLine />}
+          title={formatMessage({ id: "app.actions.notFound" })}
+          action={
+            <Button type="button" emphasis="secondary" size="compact" onClick={onClose}>
+              {formatMessage({
+                id: "app.actions.backToActions",
+                defaultMessage: "Back to Actions",
+              })}
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -83,14 +78,15 @@ export function ActionDetailPanel({
       <div className="flex items-start justify-between gap-3">
         <StatusBadge variant={lifecycleVariant}>{lifecycleLabel}</StatusBadge>
         {canManageActions ? (
-          <AdminButton
-            size="sm"
-            variant="outlined"
-            leadingIcon={<RiEditLine className="h-4 w-4" />}
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            leadingIcon={<RiEditLine className="h-4 w-4" aria-hidden="true" />}
             onClick={onEdit}
           >
             {formatMessage({ id: "app.actions.edit" })}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
 
@@ -98,7 +94,7 @@ export function ActionDetailPanel({
         <section className="space-y-3 xl:order-2">
           <div className="flex items-center gap-2">
             <RiImageLine className="h-4 w-4 text-text-soft" />
-            <h3 className="text-body-md font-semibold text-text-strong">
+            <h3 className="type-body font-semibold text-text-strong">
               {formatMessage({ id: "app.actions.detail.media" })}
             </h3>
           </div>
@@ -118,7 +114,7 @@ export function ActionDetailPanel({
               ))}
             </div>
           ) : (
-            <p className="text-body-md text-text-sub">
+            <p className="type-body text-text-sub">
               {formatMessage({
                 id: "cockpit.actions.noMedia",
                 defaultMessage: "No media attached",
@@ -128,57 +124,59 @@ export function ActionDetailPanel({
         </section>
 
         <div className="space-y-5 xl:order-1">
-          <p className="text-body-md text-text-sub">
+          <p className="type-body text-text-sub">
             {displayAction.description || formatMessage({ id: "admin.actions.noDescription" })}
           </p>
-          <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-            <DetailField label={formatMessage({ id: "app.admin.actions.create.domainLabel" })}>
-              <span className="inline-flex items-center gap-1.5">
-                {DomainIcon ? <DomainIcon className="h-4 w-4 text-text-soft" /> : null}
-                {domainLabel}
-              </span>
-            </DetailField>
-            <DetailField
+          <FactList frame="inset">
+            <FactRow
+              label={formatMessage({ id: "app.admin.actions.create.domainLabel" })}
+              value={
+                <span className="inline-flex items-center gap-1.5">
+                  {DomainIcon ? <DomainIcon className="h-4 w-4 text-text-soft" /> : null}
+                  {domainLabel}
+                </span>
+              }
+            />
+            <FactRow
               label={formatMessage({
                 id: "cockpit.actions.lifecycle",
                 defaultMessage: "Lifecycle",
               })}
-            >
-              {lifecycleLabel}
-            </DetailField>
-            <DetailField label={formatMessage({ id: "app.actions.detail.startTime" })}>
-              {formatDateTime(action.startTime)}
-            </DetailField>
-            <DetailField label={formatMessage({ id: "app.actions.detail.endTime" })}>
-              {formatDateTime(action.endTime)}
-            </DetailField>
-            <div className="sm:col-span-2">
-              <dt className="label-xs text-text-soft">
-                {formatMessage({ id: "app.actions.detail.capitals" })}
-              </dt>
-              <dd className="mt-1.5">
-                {action.capitals.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
+              value={lifecycleLabel}
+            />
+            <FactRow
+              label={formatMessage({ id: "app.actions.detail.startTime" })}
+              value={formatDateTime(action.startTime)}
+            />
+            <FactRow
+              label={formatMessage({ id: "app.actions.detail.endTime" })}
+              value={formatDateTime(action.endTime)}
+            />
+            <FactRow
+              label={formatMessage({ id: "app.actions.detail.capitals" })}
+              value={
+                action.capitals.length > 0 ? (
+                  <span className="flex flex-wrap gap-1.5">
                     {action.capitals.map((capital) => (
                       <span
                         key={capital}
-                        className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 text-body-sm font-medium text-text-sub"
+                        className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 type-meta font-medium text-text-sub"
                       >
                         {formatMessage({ id: ACTION_CAPITAL_LABEL_IDS[capital] })}
                       </span>
                     ))}
-                  </div>
+                  </span>
                 ) : (
-                  <span className="text-body-md text-text-sub">—</span>
-                )}
-              </dd>
-            </div>
-          </dl>
+                  "—"
+                )
+              }
+            />
+          </FactList>
 
           <section className="space-y-2">
             <div className="flex items-center gap-2">
               <RiFileListLine className="h-4 w-4 text-text-soft" />
-              <h3 className="text-body-md font-semibold text-text-strong">
+              <h3 className="type-body font-semibold text-text-strong">
                 {formatMessage({
                   id: "cockpit.actions.requirements",
                   defaultMessage: "Submission requirements",
@@ -192,13 +190,13 @@ export function ActionDetailPanel({
                     key={input.key}
                     className="flex items-center justify-between gap-2 px-3 py-2.5"
                   >
-                    <span className="text-body-md font-medium text-text-strong">{input.title}</span>
-                    <span className="text-label-sm text-text-soft">{input.type}</span>
+                    <span className="type-body font-medium text-text-strong">{input.title}</span>
+                    <span className="type-meta-sm text-text-soft">{input.type}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-body-md text-text-sub">
+              <p className="type-body text-text-sub">
                 {formatMessage({
                   id: "cockpit.actions.noInputs",
                   defaultMessage: "No form fields configured",

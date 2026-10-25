@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope integration`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:fa660e1677b04a8269fe6bc44c4352006807f39872bb15ca88f627e7a7b5e9fa",
+  "digest": "sha256:bded889d6c2e9674b79f898cc564e86a9b49e8e74afb978dfd615555583d22fb",
   "integrations": {
     "cookie-jar": {
       "display": "Cookie Jar",

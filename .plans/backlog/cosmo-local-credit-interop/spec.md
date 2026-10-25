@@ -267,6 +267,104 @@ proof and explicit limits in [the purchases handoff](handoffs/codex-contracts-pu
 CommitmentPooling, registry, Hats, G$ settlement and the earned-voucher endpoints remain unchanged
 in this slice. No service escrow, G$ purchase integration or app activation is dispatched here.
 
+## Voucher direction (decided 2026-10-21)
+
+This decision record came from develop when the contracts branch was merged. Where the newer
+dated sections above differ, they supersede it, including its open items and release gates.
+
+Afo made these five decisions on 21 October after a research brief compared this plan with a
+voucher-native implementation. They refine the accepted no-core-upgrade boundary and authorize no
+implementation, deployment or tracker change. The Linear updates were applied on 21 October after
+Afo's approval and read back; the applied texts are in
+[`handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md`](handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md).
+
+1. **Promises run on vouchers.** An Offer can accept vouchers and a Request can pay in them.
+   Presenting vouchers opens a Green Goods promise that ends in discharge. Pooling (curation,
+   valuation, limits and exchange) stays in Cosmo-Local pools, and a kept promise can still earn
+   vouchers.
+2. **Curated gardener issuance.** Gardeners, as well as hubs and Green Goods, may issue vouchers
+   once a steward admits them. Each gardener's voucher is its own token, and the gardener's ongoing
+   Offer carries its terms. Until the WebAuthn validator exists on Gnosis, the garden's Safe issues
+   within the gardener's cap and the gardener stays the named issuer. Issuer duties for
+   individuals need a legal check through COM-46.
+3. **Presentment is a promise in the live design.** Whoever presents vouchers becomes the
+   promise's counterparty and confirms by default, which resolves
+   [tension 4](tensions.md#4-transferability-breaks-counterparty-confirmation). Presented vouchers
+   wait in a Gnosis escrow keyed to the promise; keeping the promise sends a discharge command, and
+   a remedy returns them. The PRD-1096 service desk is a fork-only stand-in. Not yet designed: the
+   handshake that turns an escrow into a promise. It must bind presenter, promise, token, amount and
+   escrow receipt, be replay-safe, and show the escrow exists before the presenter becomes the
+   counterparty, either through a Gnosis-to-Arbitrum message or by gating delivery on the indexed
+   escrow. The live escrow contract placement and custody authority are undecided; the delivery-only
+   adapter is not assigned escrow custody. Before custody is assigned, PRD-1315 must specify setup
+   recovery for deposit success followed by receipt rejection/delay or failed promise creation.
+   Idempotent retries and authenticated setup cancellation/expiry/refund must converge to one
+   escrow/promise outcome, including delayed/reordered activation-versus-abort races. Timeout alone
+   is not proof that promise creation failed. A setup-refunded escrow cannot activate a promise;
+   an activated escrow cannot receive a setup-abort refund, while normal authorized service remedies
+   remain available. PRD-1317/1318 must prove no duplicate promise, double settlement or stranded
+   holder balance. Record finality, deadline/clock, activation and abort authority in the handshake
+   decision alongside escrow placement and the open acknowledgment-lane choice.
+4. **The instrument is called "voucher".** User-facing copy names it with its issuer and unit, for
+   example "Tech and Sun voucher, one solar class seat"; terms and docs may say "service voucher"
+   at first mention. "Credit", "token" and "points" stay off the instrument, and "Redeem" keeps its
+   existing vault meaning. Proposed for PRD-1299, not yet decided: the verbs earn, buy, swap and
+   use; "voucher exchange" for a Cosmo-Local pool in Green Goods copy; "vale" in Spanish and
+   Portuguese, pending the term list; and "kept" for promises against "used" for vouchers.
+5. **Curated, capped issuance replaces the kept-promises-first order.** This formally supersedes
+   commitment-pooling Decision Log #52 and #53 and PRD-796's fulfilled-first clause:
+   - a steward admits each issuer with published terms: what the voucher buys, its unit,
+     capacity, timing, presentment and remedy;
+   - each issuer's outstanding vouchers are capped, and the cap grows with kept promises in the
+     register, so kept promises still come first, as proof of capacity rather than as backing;
+   - each pool still decides how much of an issuer's voucher it accepts;
+   - a failed delivery ends in a remedy that returns the units, a steward can pause an issuer,
+     and outstanding obligations stay visible.
+
+   The accepted contracts do not enforce the cap on-chain: the issuer's Safe owns the token's mint
+   authority, and the adapter's allowance bounds only its own delivery path. Until PRD-1315 chooses
+   a cap-enforcing mint controller or records the cap as monitored governance policy, the cap is a
+   published issuer rule, not a contract invariant.
+
+   Vouchers earned by kept promises remain a second issuance source. The PRD-651 release gates
+   are unchanged.
+
+### Further decisions before the implementation boundary freezes
+
+**Voucher-accepting Offer funding remains open.** The accepting claimant is the payer, whose
+identity becomes known only after claim selection. PRD-1315 must record how that payer authorizes
+the exact payment, how its vouchers are reserved, escrowed or debited, and how failure,
+cancellation and refund converge. The PRD-1317/1318 interfaces must carry that recorded rule before
+implementation dispatch, and completion must prove the chosen funding route.
+Delivery from an issuer's reserve is an earned reward; it cannot stand in for collecting the
+claimant's payment. An unfunded or unauthorized claim must not appear paid.
+
+**Gardener issuer identity remains open.** Before PRD-1317/1318 dispatch, PRD-1315 must specify
+the gardener's distinct issuer identifier, its relationship to the garden, controlling Safe and
+voucher token, and who admits that identity. Authorization and outstanding-voucher caps must stay
+isolated per gardener: two gardeners sharing one garden or Safe must not become one issuer or
+share a cap by implication. The rehearsal's `issuerGarden` key covers its two organizational
+issuers only; it does not establish this identity model.
+
+**Steward-controlled issuer suspension remains open.** The steward-pause product rule above is
+not enforced by the accepted candidate: issuer-Safe adapter pause is not an independent steward
+stop. Before freezing, PRD-1315 must record the authorized steward/admission identity, cross-chain
+propagation/order, per-issuer pause state and affected minting, earned-issuance and purchase routes,
+including issuer-Safe/alternate-route bypasses. Specify outstanding service/discharge/refund
+behavior and recovery authority. PRD-1318 must enforce and test the recorded scope, issuer isolation,
+unauthorized/replayed changes and in-flight commands. Any required stop that reused CLC contracts
+cannot enforce remains a release blocker; do not describe a policy or UI flag as enforcement.
+
+These decisions join the [complete freeze inventory](plan.todo.md#sequence-and-completion-evidence).
+The approved bounded rehearsal does not settle them or expand to cover them.
+
+Grounding: the Cosmo-Local whitepaper v0.8 defines a commitment as a promise and a voucher as its
+token (p. 9), defines Offering, presentment, fulfillment and discharge but no request or need
+(pp. 34–35), says its contracts record no real-world fulfillment (pp. 8 and 10), and names
+evidence standards, remedy paths and separate presentment, fulfillment and discharge records as
+controls (p. 26). Ruddick's *Intro to Commitment Pools* (May 2024) describes providers issuing
+their own vouchers and drawing from pools with them.
+
 ## Domain boundaries
 
 Use **service voucher**, shortened to **voucher**, for the issuer instrument, following the supplied
@@ -570,7 +668,9 @@ pilot approval. No recurring paid platform plan or new spend is authorized here.
 
 RESR-74's completed due diligence is dated evidence and must be refreshed before deployment.
 Use published CLC documentation and hand-written interfaces; never read, import or vendor AGPL
-implementation source for this integration.
+implementation source for this integration. The four first-slice Gnosis implementations match the
+published v1.0.0 build artifacts ([checked 20 October](handoffs/claude-conformance-evidence-2026-10-20.md)); verify the rest the same way
+before PRD-1325.
 
 PRD-1197 records the exact candidate and human go/no-go for the controlled live pilot targeted
 for 24 October. The dated 22 October hackathon disposition removes external audit/audit intake

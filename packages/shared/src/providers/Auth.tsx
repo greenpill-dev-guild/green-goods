@@ -12,6 +12,7 @@ import { useAccount, useConfig } from "wagmi";
 import { getAppKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
 import { useCrossTabSignOut } from "../hooks/auth/useCrossTabSignOut";
+import { getActorSignOutRevision } from "../modules/auth/sessionSignOut";
 import { useAuthActor } from "../hooks/auth/useAuthActor";
 import { useHasStoredCredential } from "../hooks/auth/useHasStoredCredential";
 import { useWalletDisconnect } from "../hooks/auth/useWalletDisconnect";
@@ -71,8 +72,6 @@ function isAppKitEmbeddedConnector(connector?: { id?: string } | null): boolean 
     connector?.id && (APPKIT_EMBEDDED_CONNECTOR_IDS as readonly string[]).includes(connector.id)
   );
 }
-
-// PROVIDER
 
 export interface AuthProviderProps {
   children: React.ReactNode;
@@ -146,6 +145,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     afterWalletRelease,
     cancelDeferredLogin,
     isConnectionQuarantined,
+    walletReleaseStalled,
   } = useWalletDisconnect(wagmiConfig, {
     isConnected,
     isConnecting: isConnecting || isReconnecting,
@@ -368,7 +368,10 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     pilotEnrollment,
   ]);
 
-  const { syncSignOut, notifySignOut } = useCrossTabSignOut(endSession);
+  const { syncSignOut, notifySignOut } = useCrossTabSignOut(
+    endSession,
+    actor ? getActorSignOutRevision(actor) : undefined
+  );
 
   // ACTIONS
 
@@ -490,13 +493,16 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     syncSignOut();
     walletRestoreAttemptedRef.current = false;
 
-    saveAuthModeToStorage("embedded");
     if (
       afterWalletRelease(() => {
-        if (!syncSignOut()) getAppKit()?.open();
+        if (!syncSignOut()) {
+          saveAuthModeToStorage("embedded");
+          getAppKit()?.open();
+        }
       })
     )
       return;
+    saveAuthModeToStorage("embedded");
     if (isConnected && wagmiWalletAddress && isAppKitEmbeddedConnector(connector)) {
       const address = wagmiWalletAddress as Hex;
       actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address, connectionType: "embedded" });
@@ -537,13 +543,17 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
 
   const retry = useCallback(() => {
     if (!actor) return;
+    if (walletReleaseStalled) {
+      window.location.reload();
+      return;
+    }
     // Reset the wallet auto-restore guard so a manual retry can attempt
     // wallet hydration again (the ref otherwise stays "spent" until signOut
     // or clearPasskey, deadlocking re-attempts in the same session).
     walletRestoreAttemptedRef.current = false;
     manualWalletLoginPendingRef.current = false;
     actor.send({ type: "RETRY" });
-  }, [actor]);
+  }, [actor, walletReleaseStalled]);
 
   const dismissError = useCallback(() => {
     if (!actor) return;
@@ -562,8 +572,6 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     walletRestoreAttemptedRef.current = false;
     manualWalletLoginPendingRef.current = false;
   }, [actor]);
-
-  // COMPUTED VALUES
 
   const computedValues = useMemo(() => {
     if (!snapshot) {
@@ -644,11 +652,10 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     };
   }, [snapshot, isConnecting, walletModalOpen, storedCredential]);
 
-  // CONTEXT VALUES
-
   // State value — changes on auth events
   const stateValue: AuthStateValue = useMemo(
     () => ({
+      walletReleaseStalled,
       authMode: computedValues.authMode,
       isReady: computedValues.isReady,
       isAuthenticated: computedValues.isAuthenticated,
@@ -667,7 +674,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       externalWalletConnected: computedValues.externalWalletConnected,
       externalWalletAddress: computedValues.externalWalletAddress,
     }),
-    [computedValues]
+    [computedValues, walletReleaseStalled]
   );
 
   // Actions value — stable references, only changes when actor/disconnectWallet change

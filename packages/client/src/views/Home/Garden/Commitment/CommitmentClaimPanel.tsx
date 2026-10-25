@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import type { Address } from "@green-goods/shared/types/domain";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
@@ -77,10 +78,10 @@ export function CommitmentClaimPanel({
         })}
       </p>
 
-      <dl className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3 text-sm">
+      <FactList frame="inset" className="mt-3 border-t border-stroke-soft-200">
         {isGardenClaim ? (
           <>
-            <Row
+            <FactRow
               label={formatMessage({
                 id: state === "ACCEPTED" ? "app.claim.row.provider" : "app.claim.row.claimant",
               })}
@@ -93,7 +94,7 @@ export function CommitmentClaimPanel({
                 </span>
               }
             />
-            <Row
+            <FactRow
               label={formatMessage({ id: "app.claim.row.askedBy" })}
               value={
                 requestedByYou ? (
@@ -105,7 +106,7 @@ export function CommitmentClaimPanel({
             />
           </>
         ) : null}
-        <Row
+        <FactRow
           label={formatMessage({ id: "app.claim.row.asked" })}
           value={formatDate(new Date(request.requestedAt * 1000), {
             month: "short",
@@ -113,7 +114,7 @@ export function CommitmentClaimPanel({
           })}
         />
         {state === "DECLINED" ? (
-          <Row
+          <FactRow
             label={formatMessage({ id: "app.claim.row.reason" })}
             value={
               reason?.reason ??
@@ -124,7 +125,7 @@ export function CommitmentClaimPanel({
           />
         ) : null}
         {state !== "PENDING" && request.resolvedAt ? (
-          <Row
+          <FactRow
             label={formatMessage({ id: "app.claim.row.resolved" })}
             value={formatDate(new Date(request.resolvedAt * 1000), {
               month: "short",
@@ -132,7 +133,7 @@ export function CommitmentClaimPanel({
             })}
           />
         ) : null}
-      </dl>
+      </FactList>
 
       {state === "DECLINED" && canAskAgain ? (
         <Button
@@ -162,14 +163,5 @@ export function CommitmentClaimPanel({
         </Button>
       ) : null}
     </section>
-  );
-}
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="shrink-0 text-xs text-text-soft-400">{label}</dt>
-      <dd className="min-w-0 text-right text-text-strong-950">{value}</dd>
-    </div>
   );
 }

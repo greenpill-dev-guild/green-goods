@@ -41,6 +41,20 @@ export const publicKeys = {
   gardenDetail: (slugOrAddress: string, chainId: number) =>
     ["greengoods", "public", "gardenDetail", slugOrAddress.toLowerCase(), chainId] as const,
 
+  gardenCertificateMetadata: (
+    gardenId: string,
+    chainId: number,
+    records: readonly { id: string; metadataUri?: string }[]
+  ) =>
+    [
+      "greengoods",
+      "public",
+      "gardenCertificateMetadata",
+      gardenId.toLowerCase(),
+      chainId,
+      records.map(({ id, metadataUri }) => [id, metadataUri]),
+    ] as const,
+
   /** Field notes feed (paginated). */
   fieldNotes: (chainId: number, opts: PublicFieldNotesOptions = {}) =>
     ["greengoods", "public", "fieldNotes", chainId, stringifyOptions(opts)] as const,

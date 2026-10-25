@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { selectAllocationSplits } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import { useIsProtocolGarden } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
@@ -13,7 +15,6 @@ import { RiAddLine } from "@remixicon/react";
 import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import {
   CampaignCookieJarCreateDialog,
@@ -89,18 +90,18 @@ export function CommunityPayoutsTab({
             >
               <CampaignCookieJarPanel
                 headerAction={
-                  <AdminButton
+                  <Button
                     type="button"
-                    variant="tonal"
-                    size="sm"
-                    leadingIcon={<RiAddLine />}
+                    emphasis="secondary"
+                    size="compact"
+                    leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
                     onClick={() => navigate(campaignJarsRoute(CREATE_CAMPAIGN_JAR_ROUTE_ITEM))}
                   >
                     {formatMessage({
                       id: "cockpit.community.cookies.create",
                       defaultMessage: "Create Cookie Jar",
                     })}
-                  </AdminButton>
+                  </Button>
                 }
               />
             </section>
@@ -120,18 +121,18 @@ export function CommunityPayoutsTab({
                 })}
               </AdminCardTitle>
               {/* A plain row inside the card, not a card of its own (D33). */}
-              <div className="garden-stat-row">
-                <span className="garden-stat-row-label">
-                  {formatMessage({
+              <FactList frame="inset">
+                <FactRow
+                  label={formatMessage({
                     id: "cockpit.community.payouts.historyCount",
                     defaultMessage: "Payouts so far",
                   })}
-                </span>
-                <span className="garden-stat-row-value">{payoutCount}</span>
-              </div>
+                  value={payoutCount}
+                />
+              </FactList>
               {allocationSplits ? (
                 <div className="space-y-1.5 border-t border-stroke-soft pt-3">
-                  <p className="mb-1.5 text-label-sm font-medium text-text-sub">
+                  <p className="mb-1.5 type-meta-sm font-medium text-text-sub">
                     {formatMessage({
                       id: "app.garden.detail.community.yieldAllocationHint",
                       defaultMessage: "How yield is distributed",
@@ -142,7 +143,7 @@ export function CommunityPayoutsTab({
                     ["app.garden.detail.community.hypercertFrac", allocationSplits.fractions],
                     ["app.garden.detail.community.endowment", allocationSplits.endowment],
                   ].map(([id, value]) => (
-                    <div key={id} className="flex items-center justify-between text-body-sm">
+                    <div key={id} className="flex items-center justify-between type-meta">
                       <span className="text-text-sub">{formatMessage({ id: id as string })}</span>
                       <span className="font-medium text-text-strong">{value}%</span>
                     </div>

@@ -9,13 +9,10 @@ import type {
   PilotAccountQuote,
 } from "../modules/auth/pilot-account-enrollment";
 
-// CONTEXT TYPES
-
-/**
- * Read-only auth state — changes on every auth event.
- * Use `useAuthState()` for components that only read state (avoids re-renders from action ref changes).
- */
+/** Read state without subscribing to action-reference changes. */
 export interface AuthStateValue {
+  /** An abandoned connector needs an explicit fresh-page retry. */
+  walletReleaseStalled?: boolean;
   authMode: AuthMode;
   isReady: boolean;
   isAuthenticated: boolean;
@@ -35,10 +32,7 @@ export interface AuthStateValue {
   externalWalletAddress: Hex | null;
 }
 
-/**
- * Mutation functions — stable references via useCallback.
- * Use `useAuthActions()` for components that only trigger actions (avoids re-renders from state changes).
- */
+/** Stable mutations for consumers that do not need auth state. */
 export interface AuthActionsValue {
   preparePilotAccount?: () => Promise<PilotAccountPreview>;
   findExistingPilotAccount?: () => Promise<PilotAccountPreview | null>;
@@ -62,9 +56,7 @@ export interface AuthActionsValue {
   disconnectWallet: () => Promise<void>;
 }
 
-/**
- * Combined auth context — full backward compatibility.
- */
+/** Combined auth context retained for existing consumers. */
 export interface AuthContextType extends AuthStateValue, AuthActionsValue {}
 
 export const AuthStateContext = createContext<AuthStateValue | undefined>(undefined);

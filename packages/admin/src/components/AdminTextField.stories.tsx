@@ -1,6 +1,6 @@
 import { RiMailLine, RiSearchLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminSelect, AdminTextArea, AdminTextField } from "./AdminTextField";
 
@@ -13,12 +13,11 @@ const meta: Meta<typeof AdminTextField> = {
     docs: {
       description: {
         component:
-          "M3 text field with filled and outlined variants, 56dp container, floating label, active indicator or outline, icon slots, supporting text, error, and disabled states.",
+          "The cockpit's text field, in the installed app's anatomy (F3): the label above, an outlined box at the cockpit's 8px corner on the responsive tier (44px with 16px text on touch widths, 40px with 14px from 640px), icon slots, and the message line under it, which reserves two lines for a hint, an error or a character count.",
       },
     },
   },
   argTypes: {
-    variant: { control: "select", options: ["filled", "outlined"] },
     required: { control: "boolean" },
     disabled: { control: "boolean" },
   },
@@ -27,17 +26,8 @@ const meta: Meta<typeof AdminTextField> = {
 export default meta;
 type Story = StoryObj<typeof AdminTextField>;
 
-export const Filled: Story = {
-  args: { label: "Garden name", variant: "filled" },
-  render: (args) => (
-    <div className="max-w-sm">
-      <AdminTextField {...args} />
-    </div>
-  ),
-};
-
-export const Outlined: Story = {
-  args: { label: "Garden name", variant: "outlined" },
+export const Default: Story = {
+  args: { label: "Garden name", placeholder: "e.g., Rio Claro" },
   render: (args) => (
     <div className="max-w-sm">
       <AdminTextField {...args} />
@@ -48,7 +38,6 @@ export const Outlined: Story = {
 export const WithLeadingIcon: Story = {
   args: {
     label: "Search",
-    variant: "outlined",
     leadingIcon: RiSearchLine,
     placeholder: "Search gardens",
   },
@@ -62,7 +51,6 @@ export const WithLeadingIcon: Story = {
 export const Error: Story = {
   args: {
     label: "Email address",
-    variant: "filled",
     defaultValue: "not-an-email",
     error: "Enter a valid email address.",
     leadingIcon: RiMailLine,
@@ -77,50 +65,39 @@ export const Error: Story = {
 export const StateCatalog: Story = {
   render: () => (
     <div className="grid max-w-3xl gap-5 sm:grid-cols-2">
-      <AdminTextField label="Filled empty" variant="filled" />
-      <AdminTextField label="Outlined empty" variant="outlined" />
-      <AdminTextField label="Filled value" variant="filled" defaultValue="North Meadow" />
-      <AdminTextField label="Outlined value" variant="outlined" defaultValue="North Meadow" />
+      <AdminTextField label="Empty" />
+      <AdminTextField label="With a placeholder" placeholder="e.g., Rio Claro" />
+      <AdminTextField label="With a value" defaultValue="North Meadow" />
+      <AdminTextField label="Required field" required />
       <AdminTextField
         label="Email address"
-        variant="filled"
         helperText="Used for garden invitations."
         leadingIcon={RiMailLine}
       />
       <AdminTextField
         label="Invalid email"
-        variant="filled"
         defaultValue="not-an-email"
         error="Enter a valid email address."
         leadingIcon={RiMailLine}
       />
-      <AdminTextField label="Chain ID" variant="outlined" defaultValue="11155111" disabled />
-      <AdminTextField label="Required field" variant="outlined" required />
+      <AdminTextField label="Chain ID" defaultValue="11155111" disabled />
+      <AdminTextField label="Garden name, counted" showCount inputProps={{ maxLength: 60 }} />
     </div>
   ),
 };
 
-/** Assert a floated label's box ends above the first line of its control's text. */
-async function expectLabelClearsText(canvasElement: HTMLElement, control: HTMLElement) {
-  const label = canvasElement.querySelector<HTMLElement>(`label[for="${control.id}"]`);
-  await expect(label).not.toBeNull();
-  if (!label) return;
-  const textTop =
-    control.getBoundingClientRect().top + Number.parseFloat(getComputedStyle(control).paddingTop);
-  await expect(label.getBoundingClientRect().bottom).toBeLessThanOrEqual(textTop);
-}
+/** A field's root: the control inside it is Shared's and carries its own data-component. */
+const FIELD_ROOT = '[data-component="AdminTextField"], [data-component="AdminSelect"]';
 
 /**
- * Focused and filled label geometry. Runs in addon-vitest browser mode, where real
- * layout applies (jsdom has none): a floated label must end above the control's
- * text, so it never covers a focused placeholder, a restored value, or a select's
- * option text — the overlap reported on Add member, Create assessment, and Create
- * hypercert.
+ * The label sits above the outlined box, so it never covers a placeholder, a
+ * value or a select's option text, and focus redraws the ring without moving
+ * anything. Runs in addon-vitest browser mode, where real layout applies.
  */
-export const FloatingLabelGeometry: Story = {
+export const LabelAboveGeometry: Story = {
   tags: ["storybook-ci"],
   render: () => (
-    <div className="grid max-w-3xl gap-5 sm:grid-cols-2">
+    <div className="grid max-w-3xl items-start gap-5 sm:grid-cols-2">
       <AdminTextField label="Search" placeholder="Search by title" />
       <AdminTextArea label="Description" placeholder="Describe the work in the garden" />
       <AdminTextField label="Garden name" defaultValue="North Meadow" />
@@ -128,28 +105,42 @@ export const FloatingLabelGeometry: Story = {
         <option value="gardener">Gardener</option>
         <option value="evaluator">Evaluator</option>
       </AdminSelect>
-      <AdminTextField label="Search outlined" variant="outlined" placeholder="Search by title" />
     </div>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const focusedControls = [
+    const boxOf = (control: HTMLElement) =>
+      control.closest<HTMLElement>('[data-region="field-container"]');
+    const controls = [
       canvas.getByRole("textbox", { name: "Search" }),
       canvas.getByRole("textbox", { name: "Description" }),
-      canvas.getByRole("textbox", { name: "Search outlined" }),
+      canvas.getByRole("textbox", { name: "Garden name" }),
+      canvas.getByRole("combobox", { name: "Role" }),
     ];
 
-    for (const control of focusedControls) {
-      await userEvent.click(control);
-      await expect(control).toHaveFocus();
-      await waitFor(() => expectLabelClearsText(canvasElement, control));
+    for (const control of controls) {
+      const box = boxOf(control);
+      const label = canvasElement.querySelector<HTMLElement>(`label[for="${control.id}"]`);
+      await expect(box).not.toBeNull();
+      await expect(label).not.toBeNull();
+      if (!box || !label) continue;
+      await expect(label.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        box.getBoundingClientRect().top
+      );
     }
 
-    await expectLabelClearsText(
-      canvasElement,
-      canvas.getByRole("textbox", { name: "Garden name" })
-    );
-    await expectLabelClearsText(canvasElement, canvas.getByRole("combobox", { name: "Role" }));
+    // A single-line field is exactly its tier: 44px on touch widths, 40px from 640px.
+    const nameBox = boxOf(canvas.getByRole("textbox", { name: "Garden name" }));
+    const tier = window.innerWidth < 640 ? 44 : 40;
+    await expect(Math.round(nameBox?.getBoundingClientRect().height ?? 0)).toBe(tier);
+
+    // Focus draws the shared ring outside the box (DL-098), so the field keeps its height.
+    const search = canvas.getByRole("textbox", { name: "Search" });
+    const searchField = search.closest<HTMLElement>(FIELD_ROOT);
+    const before = searchField?.getBoundingClientRect().height;
+    await userEvent.click(search);
+    await expect(search).toHaveFocus();
+    await expect(searchField?.getBoundingClientRect().height).toBe(before);
   },
 };
 
@@ -161,12 +152,16 @@ const ROLE_OPTIONS = (
   </>
 );
 
+const LONG_MESSAGE =
+  "Shorten this to the length the contract accepts: accented letters count as two, and some symbols count as more, so a name that looks short can still be too long to save.";
+
 /**
  * The line under a field is reserved, so a message arriving moves nothing below it
  * (D10). Checked in browser mode, where real layout applies: a text field, a text
  * area and a select are each the same height with no message, a helper, a one-line
  * error, and (for the text field) a counter. Heights are compared with each other,
- * never with a number, so the check reads the same at any text size or font.
+ * never with a number, so the check reads the same at any text size or font. A
+ * message longer than the reserve grows the line rather than scrolling inside it.
  */
 export const MessageHoldsTheLine: Story = {
   tags: ["storybook-ci"],
@@ -189,14 +184,17 @@ export const MessageHoldsTheLine: Story = {
         {ROLE_OPTIONS}
       </AdminSelect>
       <AdminTextField label="Name, counted" showCount inputProps={{ maxLength: 60 }} />
+      <AdminTextField label="Name, long error" error={LONG_MESSAGE} />
     </div>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const heightOf = (role: "textbox" | "combobox", name: string) => {
+    const fieldOf = (role: "textbox" | "combobox", name: string) => {
       const control = canvas.getByRole(role, { name });
-      return (control.closest("[data-component]") ?? control).getBoundingClientRect().height;
+      return control.closest<HTMLElement>(FIELD_ROOT) ?? control;
     };
+    const heightOf = (role: "textbox" | "combobox", name: string) =>
+      fieldOf(role, name).getBoundingClientRect().height;
     const cases = [
       ["textbox", "Name", ["helper", "error", "counted"]],
       ["textbox", "Reason", ["helper", "error"]],
@@ -209,22 +207,16 @@ export const MessageHoldsTheLine: Story = {
         await expect(Math.abs(heightOf(role, `${field}, ${state}`) - plain)).toBeLessThan(0.5);
       }
     }
-  },
-};
 
-export const OutlinedAtSectionTop: Story = {
-  render: () => (
-    <section className="max-w-sm overflow-hidden rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] p-0">
-      <AdminTextField
-        label="Long campaign steward payout token label"
-        variant="outlined"
-        defaultValue="0.25"
-      />
-      <div className="px-3 pb-3 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-        Focused and prefilled outlined labels reserve their own top label space.
-      </div>
-    </section>
-  ),
+    // Past the reserve the line grows, and never scrolls what it holds.
+    const longLine = fieldOf("textbox", "Name, long error").querySelector<HTMLElement>(
+      '[data-region="supporting-line"]'
+    );
+    await expect(heightOf("textbox", "Name, long error")).toBeGreaterThan(
+      heightOf("textbox", "Name, no message")
+    );
+    await expect(longLine?.scrollHeight).toBe(longLine?.clientHeight);
+  },
 };
 
 const WORKSPACE_TONES = [
@@ -239,7 +231,7 @@ const TextFieldToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
     data-theme={theme}
     className="admin-m3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
   >
-    <div className="mb-3 text-label-md font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
+    <div className="mb-3 type-label-sm font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
       {theme}
     </div>
     <div className="grid gap-3 md:grid-cols-2">
@@ -249,20 +241,13 @@ const TextFieldToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
           data-tone={tone}
           className="space-y-3 rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-low))] p-3"
         >
-          <div className="text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+          <div className="type-label-sm font-medium text-[rgb(var(--m3-on-surface-variant))]">
             {label}
           </div>
           <AdminTextField
-            label={`${theme} ${label} filled`}
-            variant="filled"
+            label={`${theme} ${label}`}
             defaultValue="North Meadow"
-            helperText="Focus shows the workspace accent line."
-          />
-          <AdminTextField
-            label={`${theme} ${label} outlined`}
-            variant="outlined"
-            defaultValue="North Meadow"
-            helperText="Focus shows the workspace accent ring."
+            helperText="Focus shows the workspace ring."
           />
         </div>
       ))}
@@ -279,7 +264,7 @@ export const WorkspaceToneMatrix: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const actionsField = canvas.getByRole("textbox", { name: "dark Actions outlined" });
+    const actionsField = canvas.getByRole("textbox", { name: "dark Actions" });
     await userEvent.click(actionsField);
     await expect(actionsField).toHaveFocus();
   },
@@ -298,13 +283,13 @@ const CYCLE_OPTIONS = (
 );
 
 export const SelectField: Story = {
-  name: "Select — filled",
+  name: "Select",
   render: () => (
     <div className="max-w-sm space-y-4">
       <AdminSelect
         label="Cycle"
         defaultValue=""
-        helperText="The label floats permanently — a select always shows its option text."
+        helperText="An empty-value option plays the placeholder."
       >
         {CYCLE_OPTIONS}
       </AdminSelect>
@@ -323,7 +308,7 @@ export const SelectField: Story = {
 };
 
 export const SelectStates: Story = {
-  name: "Select — error · disabled · outlined",
+  name: "Select — error · disabled",
   render: () => (
     <div className="max-w-sm space-y-4">
       <AdminSelect label="Action" defaultValue="" error="Pick an action">
@@ -333,9 +318,59 @@ export const SelectStates: Story = {
       <AdminSelect label="Action" defaultValue="a1" disabled>
         <option value="a1">Turn soil</option>
       </AdminSelect>
-      <AdminSelect label="Action" variant="outlined" defaultValue="a1">
-        <option value="a1">Turn soil</option>
+    </div>
+  ),
+};
+
+/**
+ * Each state shows on the shared control's box (DL-116): an error draws the box
+ * in the red of its message, a disabled field takes the shared disabled fill,
+ * and a disabled select keeps its one chevron. Checked in browser mode, where
+ * the cascade applies.
+ */
+export const StatesShowOnTheBox: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="grid max-w-3xl items-start gap-5 sm:grid-cols-3">
+      <AdminTextField label="Name, rest" defaultValue="North Meadow" />
+      <AdminTextArea label="Reason, rest" />
+      <AdminSelect label="Role, rest" defaultValue="gardener">
+        {ROLE_OPTIONS}
+      </AdminSelect>
+      <AdminTextField label="Name, error" defaultValue="N" error="Enter a longer name." />
+      <AdminTextArea label="Reason, error" error="Give a reason." />
+      <AdminSelect label="Role, error" defaultValue="" error="Pick a role.">
+        {ROLE_OPTIONS}
+      </AdminSelect>
+      <AdminTextField label="Name, disabled" defaultValue="North Meadow" disabled />
+      <AdminTextArea label="Reason, disabled" defaultValue="Turned the soil." disabled />
+      <AdminSelect label="Role, disabled" defaultValue="evaluator" disabled>
+        {ROLE_OPTIONS}
       </AdminSelect>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const cases = [
+      ["textbox", "Name", "Enter a longer name."],
+      ["textbox", "Reason", "Give a reason."],
+      ["combobox", "Role", "Pick a role."],
+    ] as const;
+
+    for (const [role, field, message] of cases) {
+      const rest = getComputedStyle(canvas.getByRole(role, { name: `${field}, rest` }));
+      const error = getComputedStyle(canvas.getByRole(role, { name: `${field}, error` }));
+      const disabled = getComputedStyle(canvas.getByRole(role, { name: `${field}, disabled` }));
+      await expect(error.borderTopColor).not.toBe(rest.borderTopColor);
+      await expect(error.borderTopColor).toBe(getComputedStyle(canvas.getByText(message)).color);
+      await expect(disabled.backgroundColor).not.toBe(rest.backgroundColor);
+    }
+
+    // A disabled select keeps its one chevron.
+    const disabledSelect = getComputedStyle(
+      canvas.getByRole("combobox", { name: "Role, disabled" })
+    );
+    await expect(disabledSelect.backgroundImage).not.toBe("none");
+    await expect(disabledSelect.backgroundRepeat).toBe("no-repeat");
+  },
 };

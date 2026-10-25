@@ -1,9 +1,10 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
-import { RiCloseLine } from "@remixicon/react";
+import { RiCloseLine, RiUserAddLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { EnsAddressText } from "@/components/EnsAddressText";
-import { AdminIconButton } from "../AdminButton";
 import { formatRoleNames, type StagedMember } from "./addMembersEntry";
 import { RoleChip } from "./RoleChip";
 
@@ -42,12 +43,18 @@ export function StagedMemberList({
       })}
     >
       {members.length === 0 ? (
-        <p className="flex h-full items-center justify-center px-4 text-center body-xs text-text-soft">
-          {formatMessage({
-            id: "admin.addMember.stagedEmpty",
+        <EmptyState
+          className="h-full min-h-0 py-0"
+          icon={<RiUserAddLine />}
+          title={formatMessage({
+            id: "admin.addMember.stagedEmpty.title",
+            defaultMessage: "No one to add yet",
+          })}
+          description={formatMessage({
+            id: "admin.addMember.stagedEmpty.description",
             defaultMessage: "Resolved addresses appear here before they are added.",
           })}
-        </p>
+        />
       ) : (
         <ul className="space-y-2">
           {members.map(({ address, role }) => {
@@ -72,12 +79,19 @@ export function StagedMemberList({
                 className="flex items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2"
               >
                 <div className="min-w-0 flex-1">
-                  <span className="block truncate text-body-md text-text-strong" title={address}>
-                    <EnsAddressText address={address} />
-                  </span>
+                  <AddressDisplay address={address}>
+                    {(name) => (
+                      <span
+                        className="block truncate type-body text-text-strong"
+                        title={`${name} · ${address}`}
+                      >
+                        {name}
+                      </span>
+                    )}
+                  </AddressDisplay>
                   {currentRolesLabel ? (
                     <span
-                      className="block truncate body-sm text-text-soft"
+                      className="block truncate type-body text-text-soft"
                       title={currentRolesLabel}
                     >
                       {currentRolesLabel}
@@ -85,15 +99,18 @@ export function StagedMemberList({
                   ) : null}
                 </div>
                 <RoleChip role={role} />
-                <AdminIconButton
-                  size="sm"
+                <IconButton
+                  size="compact"
                   className="shrink-0"
                   onClick={() => onRemove(address)}
                   disabled={disabled}
-                  label={formatMessage({ id: "admin.addMember.remove", defaultMessage: "Remove" })}
-                >
-                  <RiCloseLine />
-                </AdminIconButton>
+                  aria-label={formatMessage({
+                    id: "admin.addMember.remove",
+                    defaultMessage: "Remove",
+                  })}
+                  title={formatMessage({ id: "admin.addMember.remove", defaultMessage: "Remove" })}
+                  icon={<RiCloseLine />}
+                />
               </li>
             );
           })}

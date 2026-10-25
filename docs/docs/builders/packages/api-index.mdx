@@ -27,7 +27,7 @@ generated_from:
   - packages/shared/src/public-contracts/profile-avatar.ts
   - packages/shared/src/public-contracts/routes.ts
   - packages/shared/src/public-contracts/saved-offers/types.ts
-source_digest: "sha256:1d687140ec5e2e9584aa7f95a8c6f56870d61e8a8aa1d8118e7e58aef81f552c"
+source_digest: "sha256:8af8f70df5db7ab83efa542d5ef6119d2c11264860bf085d2bcc5eafd532817e"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -96,7 +96,7 @@ The route constants are exported by these Shared files:
 
 ## Package exports
 
-517 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
+522 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
 
 ### @green-goods/contracts
 
@@ -107,14 +107,14 @@ The route constants are exported by these Shared files:
 
 ### @green-goods/shared
 
-515 specifiers. Open a group to see its specifiers.
+520 specifiers. Open a group to see its specifiers.
 
 | Group | Specifiers |
 |---|---|
 | `./__tests__` | 5 |
-| `./components` | 69 |
+| `./components` | 73 |
 | `./config` | 16 |
-| `./hooks` | 256 |
+| `./hooks` | 257 |
 | `./i18n` | 8 |
 | `./modules` | 52 |
 | `./providers` | 8 |
@@ -139,7 +139,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./components` (69)</summary>
+<summary>`./components` (73)</summary>
 
 **`./components`** (13)
 
@@ -172,7 +172,7 @@ The route constants are exported by these Shared files:
 |---|---|
 | `./components/Badge/Badge` | `./src/components/Badge/Badge.tsx` |
 
-**`./components/Canvas`** (17)
+**`./components/Canvas`** (16)
 
 | Specifier | Target |
 |---|---|
@@ -192,14 +192,18 @@ The route constants are exported by these Shared files:
 | `./components/Canvas/useViewActions` | `./src/components/Canvas/useViewActions.ts` |
 | `./components/Canvas/viewActions.types` | `./src/components/Canvas/viewActions.types.ts` |
 | `./components/Canvas/WorkbenchCard` | `./src/components/Canvas/WorkbenchCard.tsx` |
-| `./components/Canvas/WorkbenchList` | `./src/components/Canvas/WorkbenchList.tsx` |
 
-**`./components/Cards`** (3)
+**`./components/Cards`** (8)
 
 | Specifier | Target |
 |---|---|
-| `./components/Cards/CardBase` | `./src/components/Cards/CardBase.tsx` |
+| `./components/Cards/ActionPicker` | `./src/components/Cards/ActionPicker.tsx` |
+| `./components/Cards/CommitmentRow/CommitmentRow` | `./src/components/Cards/CommitmentRow/CommitmentRow.tsx` |
+| `./components/Cards/FactRow` | `./src/components/Cards/FactRow.tsx` |
 | `./components/Cards/GardenCard/GardenCard` | `./src/components/Cards/GardenCard/GardenCard.tsx` |
+| `./components/Cards/ItemRow/ItemRow` | `./src/components/Cards/ItemRow/ItemRow.tsx` |
+| `./components/Cards/MediaCard` | `./src/components/Cards/MediaCard.tsx` |
+| `./components/Cards/PersonRow/PersonRow` | `./src/components/Cards/PersonRow/PersonRow.tsx` |
 | `./components/Cards/WorkCard/WorkCard` | `./src/components/Cards/WorkCard/WorkCard.tsx` |
 
 **`./components/Conviction`** (2)
@@ -317,7 +321,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./hooks` (256)</summary>
+<summary>`./hooks` (257)</summary>
 
 **`./hooks`** (2)
 
@@ -610,13 +614,14 @@ The route constants are exported by these Shared files:
 | `./hooks/profile/useProfileAvatar` | `./src/hooks/profile/useProfileAvatar.ts` |
 | `./hooks/profile/useProfileAvatarDraftPreview` | `./src/hooks/profile/useProfileAvatarDraftPreview.ts` |
 
-**`./hooks/public`** (8)
+**`./hooks/public`** (9)
 
 | Specifier | Target |
 |---|---|
 | `./hooks/public/usePublicCommitmentImpact` | `./src/hooks/public/usePublicCommitmentImpact.ts` |
 | `./hooks/public/usePublicEndowmentPositions` | `./src/hooks/public/usePublicEndowmentPositions.ts` |
 | `./hooks/public/usePublicGardenDetail` | `./src/hooks/public/usePublicGardenDetail.ts` |
+| `./hooks/public/usePublicGardenHypercerts` | `./src/hooks/public/usePublicGardenHypercerts.ts` |
 | `./hooks/public/usePublicGardens` | `./src/hooks/public/usePublicGardens.ts` |
 | `./hooks/public/usePublicImpactEvidence` | `./src/hooks/public/usePublicImpactEvidence.ts` |
 | `./hooks/public/usePublicStats` | `./src/hooks/public/usePublicStats.ts` |

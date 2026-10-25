@@ -269,6 +269,7 @@ export function RecoveryView(props: RecoveryViewProps) {
               maxLength={CODE_LENGTH}
               enterKeyHint="done"
               required
+              surface="editorial"
               invalid={props.error === "wrong_code"}
               aria-invalid={props.error === "wrong_code" || undefined}
               aria-describedby={`${codeId}-helper-text`}

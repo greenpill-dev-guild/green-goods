@@ -1,3 +1,4 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useCopyToClipboard } from "@green-goods/shared/hooks/utils/useCopyToClipboard";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -5,7 +6,6 @@ import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminIconButton } from "./AdminButton";
 
 type EnsAddressVariant = "default" | "card" | "long";
 
@@ -64,14 +64,14 @@ export function EnsAddressWithCopy({
         variant={variant}
         className={labelClassName}
       />
-      <AdminIconButton
-        size="sm"
+      <IconButton
+        size="compact"
         className={buttonClassName}
         onClick={() => copy(address)}
-        label={formatMessage({ id: "app.common.copyAddress" })}
-      >
-        {copied ? <RiCheckLine className="text-success-dark" /> : <RiFileCopyLine />}
-      </AdminIconButton>
+        aria-label={formatMessage({ id: "app.common.copyAddress" })}
+        title={formatMessage({ id: "app.common.copyAddress" })}
+        icon={copied ? <RiCheckLine className="text-success-dark" /> : <RiFileCopyLine />}
+      />
     </span>
   );
 }

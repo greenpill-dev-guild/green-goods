@@ -1,9 +1,10 @@
 import { WalletCancellationRecovery } from "@/components/WalletCancellationRecovery";
-import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { useCreateAssessmentController } from "@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
+import { RiLockLine, RiSearchLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
@@ -98,13 +99,21 @@ export default function CreateAssessment() {
   if (!createAssessment.garden) {
     content = (
       <ActionFlowShell layout="dialog" title={title}>
-        <Alert variant="error">{formatMessage({ id: "app.garden.admin.notFound" })}</Alert>
+        <EmptyState
+          tone="error"
+          icon={<RiSearchLine />}
+          title={formatMessage({ id: "app.garden.admin.notFound" })}
+        />
       </ActionFlowShell>
     );
   } else if (!createAssessment.canReview) {
     content = (
       <ActionFlowShell layout="dialog" title={title} context={createAssessment.garden.name}>
-        <Alert variant="warning">{formatMessage({ id: "app.admin.auth.noPermission" })}</Alert>
+        <EmptyState
+          tone="warning"
+          icon={<RiLockLine />}
+          title={formatMessage({ id: "app.admin.auth.noPermission" })}
+        />
       </ActionFlowShell>
     );
   } else {

@@ -1,5 +1,8 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
 import { useSetConvictionStrategies } from "@green-goods/shared/hooks/conviction/useSetConvictionStrategies";
@@ -8,11 +11,10 @@ import { useGardenPermissions } from "@green-goods/shared/hooks/garden/useGarden
 import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiDeleteBinLine } from "@remixicon/react";
+import { RiDeleteBinLine, RiLoader4Line, RiScales3Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import {
@@ -121,10 +123,10 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
       {/* Stats */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="surface-inset">
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {formatMessage({ id: "app.conviction.strategies" })}
           </p>
-          <p className="mt-1 text-title-md font-semibold text-text-strong">{strategies.length}</p>
+          <p className="mt-1 type-title-md font-semibold text-text-strong">{strategies.length}</p>
         </div>
       </section>
 
@@ -140,23 +142,26 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
       {/* Strategy list */}
       <section className="surface-inset p-0">
         <div className="border-b border-stroke-soft p-4 sm:p-6">
-          <h3 className="text-title-md font-semibold text-text-strong">
+          <h3 className="type-title-md font-semibold text-text-strong">
             {formatMessage({ id: "app.conviction.strategies" })}
           </h3>
-          <p className="mt-1 body-sm text-text-sub">
+          <p className="mt-1 type-body text-text-sub">
             {formatMessage({ id: "app.conviction.strategiesDescription" })}
           </p>
         </div>
 
         <div className="p-4 sm:p-6">
           {strategiesLoading ? (
-            <p className="py-4 text-center body-sm text-text-soft">
-              {formatMessage({ id: "app.conviction.loadingStrategies" })}
-            </p>
+            <EmptyState
+              busy
+              icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+              title={formatMessage({ id: "app.conviction.loadingStrategies" })}
+            />
           ) : strategies.length === 0 ? (
-            <p className="py-4 text-center body-sm text-text-soft">
-              {formatMessage({ id: "app.conviction.noStrategies" })}
-            </p>
+            <EmptyState
+              icon={<RiScales3Line />}
+              title={formatMessage({ id: "app.conviction.noStrategies" })}
+            />
           ) : (
             <div className="space-y-2">
               {strategies.map((strategy, index) => (
@@ -166,14 +171,16 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
                 >
                   <AddressDisplay address={strategy} className="min-w-0 flex-1" />
                   {canManage && (
-                    <AdminIconButton
-                      variant="danger"
+                    <IconButton
+                      emphasis="tertiary"
+                      tone="danger"
+                      size="sm"
                       onClick={() => setConfirmRemoveIndex(index)}
                       disabled={isSaving}
-                      label={formatMessage({ id: "app.conviction.removeStrategy" })}
-                    >
-                      <RiDeleteBinLine />
-                    </AdminIconButton>
+                      aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
+                      title={formatMessage({ id: "app.conviction.removeStrategy" })}
+                      icon={<RiDeleteBinLine />}
+                    />
                   )}
                 </div>
               ))}
@@ -182,10 +189,9 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
           {/* Add strategy form */}
           {canManage && (
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-start">
               <AdminTextField
                 label={formatMessage({ id: "app.conviction.strategyAddress" })}
-                variant="outlined"
                 value={newAddress}
                 onChange={(e) => {
                   setNewAddress(e.target.value);
@@ -195,16 +201,17 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
                 error={addressError || undefined}
                 className="min-w-0 flex-1"
               />
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
-                className="w-full sm:w-auto"
+                emphasis="primary"
+                size="sm"
+                className="w-full sm:mt-6 sm:w-auto"
                 onClick={handleAddStrategy}
                 disabled={isSaving || !newAddress.trim()}
                 loading={isSaving}
               >
                 {formatMessage({ id: "app.conviction.addStrategy" })}
-              </AdminButton>
+              </Button>
             </div>
           )}
         </div>

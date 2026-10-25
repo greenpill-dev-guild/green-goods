@@ -12,7 +12,7 @@ const meta: Meta<typeof AdminSortSelect> = {
     docs: {
       description: {
         component:
-          "Canonical 'Sort by' pill, shared by Hub and Actions so the control can't drift. An h-10 M3 pill matching the AdminSearchToolbar search-field height, with a whitespace-nowrap label and a borderless NativeSelect at text-body-md weight. Drop it inside an AdminSearchToolbar's children.",
+          "Canonical 'Sort by' pill, shared by Hub and Actions so the control can't drift. An h-10 M3 pill matching the AdminSearchToolbar search-field height, with a whitespace-nowrap label and a borderless NativeSelect at type-body weight. Drop it inside an AdminSearchToolbar's children.",
       },
     },
   },

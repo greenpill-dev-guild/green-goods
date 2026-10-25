@@ -1,0 +1,10 @@
+# Pending decision-log rows from the step 13 draft
+
+These two rows land in `.claude/skills/design/decision-log.md` with the slices that make them
+true: DL-097 with step 2 (ground and dark ladder) and DL-098 with step 3 (control outline and
+focus). DL-095 and DL-096 already landed with step 1. Check every cited row before appending.
+
+| ID | Date | Decision | Rationale | Status | Codified into |
+|---|---|---|---|---|---|
+| DL-097 | 2026-10-21 | The installed app lays white cards on the cockpit's linen canvas (`--bg-canvas`), and its card hairline moves to neutral-200 so a card still reads on linen. Both surfaces build dark from one warm ladder, the Earth ramp in `theme.css`: the canvas at its floor and the card two steps up (26% L against 16%), one step lighter than the cockpit's card was, with an 8% ring; chips and fills on a card move up with it. Coloured text that would fall below AA on the lifted card takes one lighter step in dark: error red-400, feature purple-300, information blue-400 | F2 and F13, locked 2026-10-18. The app's dark cards had no step at all (the card was the canvas, 1.00:1); the cockpit's blended (1.12:1). The lift costs coloured text about a fifth of its contrast, which the one-step lifts give back (contrast audit in the hub's eval.md) | locked | Not yet: root `DESIGN.md`, `language.md` § Dark Mode Palette, `DESIGN.pwa.md`, `packages/admin/DESIGN.md` |
+| DL-098 | 2026-10-21 | Fields, chips and secondary buttons take a control-grade outline on both surfaces through the shared `--gg-control-outline` (neutral-500 in light, 4.8:1 on white; neutral-400 in dark, 6.1:1 on the dark card); the public website keeps its hairline. One focus role serves both: green in the app (`--primary-on-surface`), the workspace tone in the cockpit. The app's button labels take weight 500, the cockpit's | F3, locked 2026-10-18. The app's boundary measured 1.49:1 and the cockpit's shared fields 1.34:1, both under the 3:1 non-text minimum; the app's focus ring was blue on a green app | locked | Not yet: root `DESIGN.md` § Quick Token Reference, `language.md`, `DESIGN.pwa.md`, `packages/admin/DESIGN.md` |

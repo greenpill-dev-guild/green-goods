@@ -1,3 +1,4 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
@@ -306,25 +307,14 @@ const Home: React.FC = () => {
                 defaultMessage: "Filters",
               })}
               icon={<RiFilterLine aria-hidden="true" />}
-              badge={
-                isFilterActive ? (
-                  <span
-                    className={cn(
-                      "inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none",
-                      pwaStatusStyles.primary.badge
-                    )}
-                  >
-                    {activeFilterCount}
-                  </span>
-                ) : undefined
-              }
+              badge={isFilterActive ? <CountBadge count={activeFilterCount} ring /> : undefined}
             />
             <WalletSheetIcon onClick={openWalletSheet} />
             <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
             <WorkDashboardIcon />
           </div>
         </div>
-        <div className="padded flex flex-col gap-4">
+        <div className="padded flex flex-col gap-(--gg-list-gap)">
           <GardenList
             gardens={filteredGardens}
             selectedGardenId={selectedGardenId}

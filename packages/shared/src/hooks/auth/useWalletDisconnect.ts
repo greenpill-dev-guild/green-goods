@@ -1,5 +1,5 @@
 import { disconnect } from "@wagmi/core";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { logger } from "../../modules/app/logger";
 import type { AuthContext } from "../../workflows/authMachine.types";
@@ -9,6 +9,7 @@ type WagmiConfig = Parameters<typeof disconnect>[0];
 
 /** How long a login waits for a signed-out wallet to let go before it goes ahead. */
 const RELEASE_WAIT_MS = 4_000;
+const QUARANTINE_WAIT_MS = 10_000;
 
 /**
  * Disconnecting the wallet connector, and letting go of it on sign-out.
@@ -28,6 +29,7 @@ export function useWalletDisconnect(
   const quarantineRef = useRef<{ resolve: () => void; releasing: boolean } | null>(null);
   const latestLoginRef = useRef(0);
   const isMountedRef = useRef(true);
+  const [walletReleaseStalled, setWalletReleaseStalled] = useState(false);
   const { set: setTimer, clear: clearTimer } = useTimeout();
 
   useEffect(() => {
@@ -54,6 +56,7 @@ export function useWalletDisconnect(
     if (!quarantine || isConnecting) return;
     if (!isConnected) {
       quarantineRef.current = null;
+      setWalletReleaseStalled(false);
       quarantine.resolve();
     } else if (!quarantine.releasing) {
       quarantine.releasing = true;
@@ -107,6 +110,12 @@ export function useWalletDisconnect(
    */
   const afterWalletRelease = useCallback(
     (next: () => void): boolean => {
+      // An explicit retry starts a new document, where the abandoned request
+      // cannot deliver a result. Do not clear quarantine in the old document.
+      if (walletReleaseStalled) {
+        window.location.reload();
+        return true;
+      }
       const release = releaseRef.current;
       if (!release) return false;
       releaseQuarantinedConnection();
@@ -120,17 +129,25 @@ export function useWalletDisconnect(
       };
       // Never let a timeout turn an ended request into a fresh login. It must
       // settle and its resulting connection must be gone before intent resumes.
-      if (!quarantineRef.current) setTimer(proceed, RELEASE_WAIT_MS);
+      if (quarantineRef.current) {
+        setTimer(() => {
+          if (done || login !== latestLoginRef.current) return;
+          done = true;
+          setWalletReleaseStalled(true);
+        }, QUARANTINE_WAIT_MS);
+      } else setTimer(proceed, RELEASE_WAIT_MS);
       void release.then(proceed, proceed);
       return true;
     },
-    [setTimer, clearTimer, releaseQuarantinedConnection]
+    [setTimer, clearTimer, releaseQuarantinedConnection, walletReleaseStalled]
   );
 
   /** Drops any login still waiting on a release, when another sign-in method wins. */
   const cancelDeferredLogin = useCallback(() => {
     latestLoginRef.current += 1;
-  }, []);
+    clearTimer();
+    setWalletReleaseStalled(false);
+  }, [clearTimer]);
 
   return {
     disconnectWallet,
@@ -138,5 +155,6 @@ export function useWalletDisconnect(
     afterWalletRelease,
     cancelDeferredLogin,
     isConnectionQuarantined,
+    walletReleaseStalled,
   };
 }

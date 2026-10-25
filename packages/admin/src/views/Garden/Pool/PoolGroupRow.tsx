@@ -1,12 +1,9 @@
-import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import { RiArrowRightSLine, RiStackLine } from "@remixicon/react";
-import type { ReactNode } from "react";
+import { CommitmentRow } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { RiSendPlaneLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminListRow } from "@/components/AdminListRow";
 import type { PoolCommitmentGroup } from "./poolCommitmentRows";
-import { directionEdgeClass, directionLabel } from "./poolPresentation";
-import { dueDateText } from "./poolTime";
+import { rowDueDetail } from "./poolTime";
 
 export interface PoolGroupRowProps {
   group: PoolCommitmentGroup;
@@ -21,18 +18,17 @@ export interface PoolGroupRowProps {
   onFinish: () => void;
 }
 
-const bold = (chunks: ReactNode[]) => (
-  <b className="font-semibold text-text-strong tabular-nums">{chunks}</b>
-);
-const warningBold = (chunks: ReactNode[]) => <b className="font-semibold tabular-nums">{chunks}</b>;
+/** Counts read as plain words here: the pill and the detail line carry no markup. */
+const plain = (chunks: string[]) => chunks.join("");
 
 /**
- * Copies made together, as one row in Offers and Requests (PRD-1022 D3): the
- * record row with a count chip, and a count line over every published copy:
- * available, in progress, kept and, once any, ended. While a copy is still
- * waiting in the steward's queue the line says what was created and what
- * didn't send, beside Finish Creating (n), in place of a separate queued row.
- * The row opens the group's inspector; each copy keeps its own lifecycle.
+ * Copies made together, as one row in Offers and Requests (PRD-1022 D3), on the shared
+ * commitment row: the direction's icon carries the number of copies, the pill says how many
+ * are still available, and the details give the shared due date and the rest of the counts.
+ * While a copy is still waiting in the steward's queue the pill says how many didn't send,
+ * the details what was created, and Finish Creating (n) takes the row's right slot, in place
+ * of a separate queued row. The row opens the group's inspector; each copy keeps its own
+ * lifecycle, and what each copy is worth is told there.
  */
 export function PoolGroupRow({
   group,
@@ -48,133 +44,91 @@ export function PoolGroupRow({
   const [first] = group.children;
   if (!first) return null;
   const { counts } = group;
-  const each = `${first.targetUnits.toString()} ${first.unitLabel ?? ""}`.trim();
+  const later = [
+    counts.inProgress > 0
+      ? formatMessage(
+          {
+            id: "cockpit.garden.pool.group.inProgress",
+            defaultMessage: "<b>{count}</b> in progress",
+          },
+          { count: counts.inProgress, b: plain }
+        )
+      : null,
+    counts.kept > 0
+      ? formatMessage(
+          { id: "cockpit.garden.pool.group.kept", defaultMessage: "<b>{count}</b> kept" },
+          { count: counts.kept, b: plain }
+        )
+      : null,
+    counts.ended > 0
+      ? formatMessage(
+          { id: "cockpit.garden.pool.group.ended", defaultMessage: "<b>{count}</b> ended" },
+          { count: counts.ended, b: plain }
+        )
+      : null,
+  ].filter((part): part is string => Boolean(part));
+  const finishLabel = formatMessage(
+    { id: "cockpit.garden.pool.group.finish", defaultMessage: "Finish Creating ({count})" },
+    { count: unsent }
+  );
 
   return (
-    <li
-      className={`flex flex-wrap items-center justify-between gap-2 py-2 ps-3 ${directionEdgeClass(first.direction)}`}
-      data-testid={`pool-group-${group.displayGroupId}`}
-    >
-      {/* The text keeps a 240px basis, so on a narrow card Finish Creating
-          wraps under it, on the right, instead of squeezing the counts. */}
-      <AdminListRow
-        onClick={onOpen}
-        className="flex min-w-0 grow basis-60 items-center gap-3 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-0 py-1"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="whitespace-nowrap body-xs text-text-soft">
-              {directionLabel(first.direction, formatMessage)}
-            </span>
-            <span className="truncate text-body-md text-text-strong" title={title}>
-              {title}
-            </span>
-            <StatusBadge variant="neutral" size="sm" icon={<RiStackLine className="h-3 w-3" />}>
-              {formatMessage(
+    <CommitmentRow
+      data-component="PoolGroupRow"
+      direction={first.direction}
+      title={title}
+      status={
+        unsent > 0
+          ? {
+              label: formatMessage(
                 {
-                  id: "cockpit.garden.pool.group.chip",
-                  defaultMessage: "{count, plural, one {# promise} other {# promises}}",
+                  id: "cockpit.garden.pool.group.didntSend",
+                  defaultMessage: "<b>{count}</b> didn’t send",
                 },
-                { count: counts.published }
-              )}
-            </StatusBadge>
-          </span>
-          <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 body-xs text-text-sub">
-            {unsent > 0 ? (
-              <>
-                <span>
-                  {formatMessage(
-                    {
-                      id: "cockpit.garden.pool.group.created",
-                      defaultMessage: "<b>{count}</b> created",
-                    },
-                    { count: counts.published, b: bold }
-                  )}
-                </span>
-                <span className="text-warning-dark">
-                  {formatMessage(
-                    {
-                      id: "cockpit.garden.pool.group.didntSend",
-                      defaultMessage: "<b>{count}</b> didn’t send",
-                    },
-                    { count: unsent, b: warningBold }
-                  )}
-                </span>
-              </>
-            ) : (
-              <>
-                <span>
-                  {formatMessage(
-                    {
-                      id: "cockpit.garden.pool.group.available",
-                      defaultMessage: "<b>{count}</b> available",
-                    },
-                    { count: counts.available, b: bold }
-                  )}
-                </span>
-                <span>
-                  {formatMessage(
-                    {
-                      id: "cockpit.garden.pool.group.inProgress",
-                      defaultMessage: "<b>{count}</b> in progress",
-                    },
-                    { count: counts.inProgress, b: bold }
-                  )}
-                </span>
-                <span>
-                  {formatMessage(
-                    { id: "cockpit.garden.pool.group.kept", defaultMessage: "<b>{count}</b> kept" },
-                    { count: counts.kept, b: bold }
-                  )}
-                </span>
-                {counts.ended > 0 ? (
-                  <span>
-                    {formatMessage(
-                      {
-                        id: "cockpit.garden.pool.group.ended",
-                        defaultMessage: "<b>{count}</b> ended",
-                      },
-                      { count: counts.ended, b: bold }
-                    )}
-                  </span>
-                ) : null}
-              </>
-            )}
-            <span>
-              {formatMessage(
+                { count: unsent, b: plain }
+              ),
+              tone: "warning",
+            }
+          : {
+              label: formatMessage(
                 {
-                  id: "cockpit.garden.pool.group.terms",
-                  defaultMessage: "· {each} each · due {date}",
+                  id: "cockpit.garden.pool.group.available",
+                  defaultMessage: "<b>{count}</b> available",
                 },
+                { count: counts.available, b: plain }
+              ),
+              tone: counts.available > 0 ? "info" : "neutral",
+            }
+      }
+      due={rowDueDetail(intl, first.dueDate, Date.now())}
+      group={{
+        size: counts.published,
+        counts:
+          unsent > 0
+            ? formatMessage(
                 {
-                  each,
-                  date: dueDateText(intl, Number(first.dueDate ?? 0n) * 1000, Date.now()),
-                }
-              )}
-            </span>
-          </span>
-        </span>
-        <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />
-      </AdminListRow>
-      {unsent > 0 ? (
-        <AdminButton
-          type="button"
-          variant="outlined"
-          size="sm"
-          className="ms-auto"
-          onClick={onFinish}
-          loading={finishing}
-          disabled={finishDisabled || finishing}
-        >
-          {formatMessage(
-            {
-              id: "cockpit.garden.pool.group.finish",
-              defaultMessage: "Finish Creating ({count})",
-            },
-            { count: unsent }
-          )}
-        </AdminButton>
-      ) : null}
-    </li>
+                  id: "cockpit.garden.pool.group.created",
+                  defaultMessage: "<b>{count}</b> created",
+                },
+                { count: counts.published, b: plain }
+              )
+            : later.join(", "),
+      }}
+      onOpen={onOpen}
+      action={
+        unsent > 0 ? (
+          <IconButton
+            emphasis="secondary"
+            size="sm"
+            aria-label={finishLabel}
+            title={finishLabel}
+            onClick={onFinish}
+            loading={finishing}
+            disabled={finishDisabled || finishing}
+            icon={<RiSendPlaneLine aria-hidden="true" />}
+          />
+        ) : undefined
+      }
+    />
   );
 }

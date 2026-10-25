@@ -1,15 +1,22 @@
 /**
  * PositionCard Vault Component Tests
  *
- * Tests the vault position card that displays deposit stats,
+ * Tests the vault position row and the page it opens, which displays deposit stats,
  * yield info, and steward management actions (harvest/distribute, emergency pause).
  */
 
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, type ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders as render } from "../test-utils";
+import { renderWithProviders } from "../test-utils";
+
+/** Renders the position and opens its page, where its stats and acts are. */
+function render(ui: ReactElement) {
+  const view = renderWithProviders(ui);
+  fireEvent.click(screen.getByRole("button", { expanded: false }));
+  return view;
+}
 
 const mockHarvestDistributionMutate = vi.fn();
 const mockHarvestDistributionReset = vi.fn();
@@ -137,7 +144,20 @@ describe("PositionCard", () => {
   });
 
   describe("rendering", () => {
-    it("renders the asset symbol as heading", () => {
+    it("lists the position as a row and keeps its acts on the page the row opens", () => {
+      renderWithProviders(createElement(PositionCard, defaultProps));
+
+      const row = screen.getByRole("button", { expanded: false });
+      expect(row).toHaveAccessibleName(/USDC.*5 depositors.*1 USDC.*Net deposited/);
+      expect(screen.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+
+      fireEvent.click(row);
+      expect(row).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByRole("button", { name: "Deposit" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Withdraw" })).toBeInTheDocument();
+    });
+
+    it("renders the asset symbol as the row's title", () => {
       render(createElement(PositionCard, defaultProps));
 
       expect(screen.getByText("USDC")).toBeInTheDocument();
@@ -146,7 +166,7 @@ describe("PositionCard", () => {
     it("shows depositor count", () => {
       render(createElement(PositionCard, defaultProps));
 
-      expect(screen.getByText("5")).toBeInTheDocument();
+      expect(screen.getByText("5 depositors")).toBeInTheDocument();
     });
 
     it("shows harvest count", () => {
@@ -368,7 +388,7 @@ describe("PositionCard", () => {
 
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      expect(screen.getByText(/4 USDC was allocated to the Cookie Jar/i)).toBeInTheDocument();
+      expect(screen.getByText(/4 USDC was allocated to the cookie jar/i)).toBeInTheDocument();
       expect(screen.getByText(/4 USDC to hypercert funding/i)).toBeInTheDocument();
       expect(screen.getByText(/2 USDC to the protocol treasury/i)).toBeInTheDocument();
     });
@@ -548,7 +568,9 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       const action = screen.getByRole("button", { name: /Harvest & distribute/i });
-      expect(action).toBeDisabled();
+      // Held while loading but focusable: aria-disabled and aria-busy (DL-115).
+      expect(action).toHaveAttribute("aria-disabled", "true");
+      expect(action).toHaveAttribute("aria-busy", "true");
     });
 
     it("explains an unavailable network without a refresh instruction", () => {

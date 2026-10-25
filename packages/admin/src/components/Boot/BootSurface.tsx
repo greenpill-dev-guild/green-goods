@@ -1,6 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { RiAlertLine, RiDeleteBinLine, RiRefreshLine, RiWallet3Line } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { ConnectPrompt } from "@/components/Layout/ConnectPrompt";
 
@@ -135,25 +135,25 @@ export function BootConnect({
         lang={locale}
         action={
           <div className="flex flex-col items-stretch gap-2">
-            <AdminButton
+            <Button
               type="button"
-              variant="filled"
+              emphasis="primary"
               size="lg"
-              leadingIcon={<RiWallet3Line />}
+              leadingIcon={<RiWallet3Line className="h-[18px] w-[18px]" aria-hidden="true" />}
               onClick={onConnect}
               data-testid="connect-wallet-button"
             >
               {copy.connect}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
               type="button"
-              variant="outlined"
+              emphasis="secondary"
               size="lg"
               onClick={onPasskey}
               data-testid="passkey-start-button"
             >
               {copy.passkey}
-            </AdminButton>
+            </Button>
           </div>
         }
       />
@@ -193,29 +193,29 @@ export function BootRecovery({ error, onReload, onReset }: BootRecoveryProps) {
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning-lighter">
         <RiAlertLine className="h-7 w-7 text-warning-dark" aria-hidden />
       </div>
-      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
-        {copy.failedTitle}
-      </h1>
-      <p className="mb-6 mt-2 max-w-sm body-sm text-text-sub">{copy.failedBody}</p>
+      <h1 className="mt-5 type-title-lg font-semibold text-text-strong">{copy.failedTitle}</h1>
+      <p className="mb-6 mt-2 max-w-sm type-body text-text-sub">{copy.failedBody}</p>
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <AdminButton
+        <Button
           type="button"
-          variant="filled"
-          leadingIcon={<RiRefreshLine />}
+          emphasis="primary"
+          size="sm"
+          leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
           onClick={onReload}
         >
           {copy.reload}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="outlined"
-          leadingIcon={<RiDeleteBinLine />}
+          emphasis="secondary"
+          size="sm"
+          leadingIcon={<RiDeleteBinLine className="h-[18px] w-[18px]" aria-hidden="true" />}
           onClick={onReset}
         >
           {copy.reset}
-        </AdminButton>
+        </Button>
       </div>
-      <details className="mt-6 max-w-lg text-left body-xs text-text-sub">
+      <details className="mt-6 max-w-lg text-left type-meta text-text-sub">
         <summary className="cursor-pointer">{copy.details}</summary>
         <pre
           className="mt-2 whitespace-pre-wrap break-words rounded-[var(--m3-shape-sm)] bg-bg-white p-3"

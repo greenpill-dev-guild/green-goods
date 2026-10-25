@@ -339,13 +339,15 @@
       "dashboard",
       "KPI tile",
       "metric grid",
-      "Plus Jakarta Sans",
       "trading floor",
       "financial terminal",
       "gamification",
-      "dark pattern"
+      "dark pattern",
+      "liquid",
+      "glass",
+      "frosted"
     ],
-    "rationale": "The client PWA is a garden journal, not a steward cockpit. It uses warm narrative copy and Inter; cockpit and KPI language belongs to admin."
+    "rationale": "The client PWA is a garden journal, not a steward cockpit. It shares the cockpit's typeface but keeps warm narrative copy; cockpit and KPI language belongs to admin. Its surfaces are solid (DL-108), so glass, liquid and frosted framing is out too."
   },
   "consumers": [
     {
@@ -355,6 +357,10 @@
     {
       "path": "docs/scripts/docs-audit.mjs",
       "reads": "us_spelling for hand-written docs, release notes and design guidance"
+    },
+    {
+      "path": "scripts/design/check-brand-voice-parity.mjs",
+      "reads": "linter_enforced, whose terms the brand voice page's section 6.4 must name exactly"
     },
     {
       "path": "packages/agent/src/__tests__/i18n.test.ts",

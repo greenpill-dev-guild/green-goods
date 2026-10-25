@@ -85,19 +85,23 @@ export class GQLClient implements GraphQLReader {
     operationName?: string
   ): Promise<{ data: TData; error?: undefined } | { data?: undefined; error: Error }> {
     const startedAt = Date.now();
+    const controller = new AbortController();
     try {
       // Cast to RequestDocument for graphql-request compatibility.
       // TypedDocumentNode is a subtype that includes the same runtime structure.
       const data = await withTimeout(
-        this.client.request<TData>(
-          document as RequestDocument,
-          variables as Record<string, unknown>
-        ),
+        this.client.request<TData>({
+          document: document as RequestDocument,
+          variables,
+          signal: controller.signal,
+        }),
         GRAPHQL_TIMEOUT_MS,
         operationName
       );
       return { data };
     } catch (error) {
+      // Stop the HTTP request before a timed-out garden read releases its slot.
+      if (error instanceof TimeoutError) controller.abort(error);
       const normalizedError = error instanceof Error ? error : new Error(String(error));
 
       // A device that changes networks breaks requests to every service; only a
