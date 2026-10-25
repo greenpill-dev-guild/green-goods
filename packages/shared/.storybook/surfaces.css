@@ -225,6 +225,20 @@
   --gg-card-fill: var(--m3-surface-container-high);
 }
 
+/* The control outline in a dark scope below the cockpit root: Storybook's theme
+   frame (`withTheme` puts data-theme on .storybook-browser-preview) and a story's
+   own dark section. theme.css's dark block declares the outline again on every
+   [data-theme="dark"] element, so such a scope would draw the shared dark hairline
+   (--stroke-sub-300, about 1.9:1) in place of the cockpit's outline above. The
+   running cockpit has one dark scope, <html>, so every control there takes
+   index.css's :root outline, --m3-outline (#a8a29e in dark, DL-098); a nested
+   scope resolves the same here. :where() keeps the root out of the specificity,
+   so a scope column's own outline still wins. */
+:where(:root[data-surface="admin"]) [data-theme="dark"],
+:where([data-surface-scope="admin"]) [data-theme="dark"] {
+  --gg-control-outline: var(--m3-outline);
+}
+
 /* The cockpit body font. Production sets it on <body> in `@layer base` and has
    no `*` font rule, so everything inherits Plus Jakarta Sans; the Storybook
    frame and the <body> (for portaled dialogs and sheets) carry it here. */
@@ -241,6 +255,7 @@
    admin block, which AdminDensityScale.guard pins against index.css. */
 [data-surface-scope="admin"] {
   --gg-garden-chip-height: initial;
+  --gg-garden-chip-hit: initial;
   --gg-garden-chip-inline-start: initial;
   --gg-garden-chip-inline-end: initial;
   --gg-garden-chip-avatar: initial;
@@ -388,11 +403,12 @@
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
   /* The garden chip at the app's density, as theme.css's app scope sets it. */
-  --gg-garden-chip-height: 2.75rem;
-  --gg-garden-chip-inline-start: 0.5rem;
-  --gg-garden-chip-inline-end: 1rem;
-  --gg-garden-chip-avatar: 1.75rem;
-  --gg-garden-chip-glyph: 1rem;
+  --gg-garden-chip-height: 2rem;
+  --gg-garden-chip-hit: var(--gg-hit-block, 3rem);
+  --gg-garden-chip-inline-start: 0.25rem;
+  --gg-garden-chip-inline-end: 0.75rem;
+  --gg-garden-chip-avatar: 1.375rem;
+  --gg-garden-chip-glyph: 0.875rem;
   --gg-garden-chip-caret: 1rem;
   --gg-garden-chip-edge: var(--gg-control-outline);
   --gg-garden-chip-focus-ring: var(--focus-ring);

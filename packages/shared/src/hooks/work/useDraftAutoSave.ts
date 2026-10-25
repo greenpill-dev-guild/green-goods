@@ -116,10 +116,11 @@ export function useDraftAutoSave(
     if (committed?.generation === generation && committed.snapshot === snapshot)
       return committed.draftId;
     const { audioNotes = [], ...fields } = snapshot.formData;
+    // A garden alone is not work: Submit Work chooses one before the member does anything (the
+    // active garden), so a draft starts with the first action, photo or word and carries it.
     const meaningful =
       snapshot.images.length > 0 ||
       audioNotes.length > 0 ||
-      !!fields.gardenAddress ||
       fields.actionUID !== null ||
       fields.feedback.trim() ||
       hasMeaningfulDraftDetails(fields.details) ||

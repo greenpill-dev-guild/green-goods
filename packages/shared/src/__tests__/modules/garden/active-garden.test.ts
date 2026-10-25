@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 import {
   type ActiveGardenInputs,
   activeGardenScope,
+  type GardenListScope,
+  isInGardenListScope,
   resolveActiveGarden,
 } from "../../../modules/garden/active-garden";
 
@@ -113,5 +115,28 @@ describe("activeGardenScope", () => {
     expect(activeGardenScope(CHAIN_ID, ALICE.toUpperCase().replace("0X", "0x"))).toBe(ALICE_SCOPE);
     expect(activeGardenScope(11155111, ALICE)).not.toBe(ALICE_SCOPE);
     expect(activeGardenScope(CHAIN_ID, null)).toBeNull();
+  });
+});
+
+describe("isInGardenListScope", () => {
+  const LEFT = "0xC000000000000000000000000000000000000003";
+  const ZERO = "0x0000000000000000000000000000000000000000";
+  const members = new Set([GARDEN_A.toLowerCase(), GARDEN_B.toLowerCase()]);
+  const inA: GardenListScope = { activeGardenId: GARDEN_A, memberGardenIds: members };
+  const inAWhileLoading: GardenListScope = { activeGardenId: GARDEN_A, memberGardenIds: null };
+  const noGarden: GardenListScope = { activeGardenId: null, memberGardenIds: members };
+
+  it.each([
+    ["shows what names the active garden, whatever the case", inA, [GARDEN_A.toLowerCase()], true],
+    ["hides what names another of the account's gardens", inA, [GARDEN_B], false],
+    ["shows what names the active garden beside another", inA, [GARDEN_B, GARDEN_A], true],
+    ["keeps what names only a garden the chip cannot reach", inA, [LEFT], true],
+    ["keeps what names no garden", inA, [null, undefined, ZERO], true],
+    ["hides another garden's while the account's gardens load", inAWhileLoading, [LEFT], false],
+    ["shows the active garden's while they load", inAWhileLoading, [GARDEN_A], true],
+    ["keeps what names no garden while they load", inAWhileLoading, [null], true],
+    ["hides nothing without an active garden", noGarden, [GARDEN_B], true],
+  ] as const)("%s", (_case, scope, gardens, shown) => {
+    expect(isInGardenListScope(scope, gardens)).toBe(shown);
   });
 });

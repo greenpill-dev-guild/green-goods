@@ -54,10 +54,14 @@ export interface WorkUploads {
   prepareNow(): void;
 }
 
-function summarize(jobs: Job[], chainId: number) {
+/** Whether a garden-scoped list shows an item naming these gardens (`useActiveGarden`). */
+type GardenScopeFilter = (gardens: readonly (string | null | undefined)[]) => boolean;
+
+function summarize(jobs: Job[], chainId: number, inScope?: GardenScopeFilter) {
   const statuses = new Map<string, QueuedUploadStatus>();
   const waitingDecisionWorkIds = new Set<string>();
   const decisionsByWorkId = new Map<string, NonNullable<ReturnType<WorkUploads["decisionFor"]>>>();
+  const scopedJobIds: string[] = [];
   let readyCount = 0;
   let preparingCount = 0;
   let attentionCount = 0;
@@ -70,6 +74,9 @@ function summarize(jobs: Job[], chainId: number) {
       waitingDecisionWorkIds.add(workId);
       decisionsByWorkId.set(workId, { jobId: job.id, status, savedAt: job.createdAt });
     }
+    // Work and decisions both name the garden they write to.
+    if (inScope && !inScope([(job.payload as { gardenAddress?: string }).gardenAddress])) continue;
+    scopedJobIds.push(job.id);
     // A sent item is still visible until the queue confirms it, but cannot be sent twice.
     if (status.state === "sent") continue;
     if (status.state === "ready") readyCount += 1;
@@ -80,6 +87,7 @@ function summarize(jobs: Job[], chainId: number) {
     statuses,
     decisionsByWorkId,
     waitingDecisionWorkIds,
+    scopedJobIds,
     readyCount,
     preparingCount,
     attentionCount,
@@ -91,8 +99,13 @@ function summarize(jobs: Job[], chainId: number) {
  * Queued work and decisions for the work dashboard, and Upload all: one tap
  * that sends every prepared item with one signature. Opening the dashboard
  * also wakes background preparation.
+ *
+ * Given a garden scope (DL-129), the counts and Upload all cover only what the
+ * scoped list shows: a control never acts outside the scope its sheet names.
+ * The per-item lookups (`decisionFor`, `statusOf`) still answer for any item.
  */
-export function useWorkUploads(): WorkUploads {
+export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): WorkUploads {
+  const { inScope } = options;
   const { formatMessage } = useIntl();
   const userAddress = usePrimaryAddress();
   const sender = useTransactionSender();
@@ -105,7 +118,10 @@ export function useWorkUploads(): WorkUploads {
     uploadPreparationStore.getSnapshot,
     uploadPreparationStore.getSnapshot
   );
-  const summary = useMemo(() => summarize(live.data ?? [], chainId), [live.data, chainId]);
+  const summary = useMemo(
+    () => summarize(live.data ?? [], chainId, inScope),
+    [live.data, chainId, inScope]
+  );
   const connectivity = useConnectivityStatus();
 
   useEffect(() => {
@@ -176,7 +192,8 @@ export function useWorkUploads(): WorkUploads {
     waitingDecisionWorkIds: summary.waitingDecisionWorkIds,
     decisionFor: (workUID) => summary.decisionsByWorkId.get(workUID.toLowerCase()),
     statusOf: (jobId) => summary.statuses.get(jobId),
-    upload: () => mutation.mutateAsync(undefined),
+    // The upload reads each job's readiness again; scoped, it is handed this list's jobs only.
+    upload: () => mutation.mutateAsync(inScope ? summary.scopedJobIds : undefined),
     uploadOne: (jobId) => mutation.mutateAsync([jobId]),
     retryOne: async (jobId) => {
       await jobQueue.retryJob(jobId);

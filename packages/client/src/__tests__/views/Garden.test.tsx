@@ -77,6 +77,8 @@ let mockLinkSchedulingWorkSent: boolean | null = null;
 let mockIsSchedulingDependentLink = false;
 let mockIsQueueingDependentLink = false;
 let mockDraftSaveState: "saving" | "saved" | "failed" | undefined;
+let mockNamedGarden: { id: string; name: string; bannerImage: string } | null = null;
+let mockGardenSettled = false;
 const mockDraftRetry = vi.fn().mockResolvedValue(undefined);
 const mockActions = [
   {
@@ -155,6 +157,8 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     joinCommunityGarden: vi.fn(),
     linkIntent: mockLinkIntent,
     linkIntentStatus: mockLinkIntentStatus,
+    namedSubmissionGarden: mockNamedGarden,
+    submissionGardenSettled: mockGardenSettled,
     commitmentLinkChoices: mockCommitmentLinkChoices,
     commitmentLinkChoicesLoading: false,
     commitmentLinkChoicesError: null,
@@ -282,6 +286,7 @@ const messages = {
   "app.garden.draft.saving": "Saving…",
   "app.garden.draft.failed": "Could not save or restore this work.",
   "app.garden.draft.retry": "Retry",
+  "app.garden.submit.gardenLine": "Logging work in {garden}",
 };
 
 const renderWithProviders = (initialRoute = "/home/garden") => {
@@ -324,6 +329,8 @@ describe("Garden (Work) View", () => {
     mockIsSchedulingDependentLink = false;
     mockIsQueueingDependentLink = false;
     mockDraftSaveState = undefined;
+    mockNamedGarden = null;
+    mockGardenSettled = false;
   });
 
   afterEach(() => {
@@ -345,6 +352,30 @@ describe("Garden (Work) View", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Could not save or restore this work.");
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(mockDraftRetry).toHaveBeenCalledOnce();
+  });
+
+  it("says under the steps where the work goes when its garden is not the active one", () => {
+    mockActiveTab = "Media";
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    renderWithProviders();
+
+    const line = screen.getByTestId("submission-garden");
+    expect(line).toHaveTextContent("Logging work in Hilltop Garden");
+    // A long name wraps rather than losing its end, clipped at two lines, with the whole
+    // sentence in the title.
+    expect(within(line).getByTitle("Logging work in Hilltop Garden")).toHaveClass("line-clamp-2");
+  });
+
+  it("names no garden while the work goes to the active one, and settles the Start step's garden", () => {
+    mockGardenSettled = true;
+    renderWithProviders();
+
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+    expect(mockIntroProps.mock.lastCall?.[0]).toMatchObject({ gardenSettled: true });
   });
 
   it("renders without crashing", () => {

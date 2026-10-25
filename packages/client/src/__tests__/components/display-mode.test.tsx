@@ -131,6 +131,18 @@ describe("Display mode — AppBar visibility", () => {
     expect(nav).toHaveAttribute("inert");
   });
 
+  // Explore is a route under Home, not a garden's id: the bar stays, on Home (DL-125).
+  it("standalone PWA: Explore keeps the bottom nav, with Home active", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+
+    renderAppBar("/home/explore");
+
+    const nav = screen.getByTestId("authenticated-nav");
+    expect(nav.className).not.toMatch(/translate-y-full/);
+    expect(nav).not.toHaveAttribute("inert");
+    expect(screen.getByRole("link", { name: /home/i })).toHaveAttribute("aria-current", "page");
+  });
+
   it("standalone PWA: any open sheet or dialog hides the bottom nav (DL-015)", () => {
     mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
     mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
