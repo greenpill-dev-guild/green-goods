@@ -15,6 +15,7 @@ import {
   DEMO_GARDEN_POOL_ID,
   ROSA,
 } from "../modules/commitment-pooling/demo/demo-world";
+import { deriveGardenNotifications } from "../modules/garden/notifications";
 import { queryClient } from "../config/react-query";
 import { DEV_MOCK_AUTH_ADDRESSES } from "../providers/DevAuthProvider";
 import type { Address } from "../types/domain";
@@ -49,6 +50,29 @@ describe("demo pooling mode", () => {
     visit("");
     window.sessionStorage.setItem("greengoods_dev_mock_auth", "user");
     expect(demoViewer()).toBe(DEV_MOCK_AUTH_ADDRESSES.user);
+  });
+
+  it("times every promise the world shows taken up, so the bell lists its maker's", () => {
+    const viewer = DEV_MOCK_AUTH_ADDRESSES.deployer;
+    const { commitments } = buildDemoWorld(viewer);
+
+    // The indexer writes the taker and the acceptance time together.
+    for (const commitment of commitments) {
+      if (commitment.counterparty) expect(commitment.acceptanceAt).toEqual(expect.any(Number));
+      else expect(commitment.acceptanceAt ?? null).toBeNull();
+    }
+    const takenUp = deriveGardenNotifications({
+      account: viewer,
+      canReviewWork: false,
+      canDecideTakeUps: false,
+      works: [],
+      commitments: commitments.filter(({ poolId }) => poolId === DEMO_GARDEN_POOL_ID),
+      takeUpRequests: [],
+    }).filter((event) => event.kind === "promiseTakenUp");
+    // 1007 is the viewer's garden-work offer that Rosa took up.
+    expect(takenUp.map((event) => event.id)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^takenUp:\d+-1007:\d+$/)])
+    );
   });
 
   it("answers from the real reader unless the flag is on", async () => {

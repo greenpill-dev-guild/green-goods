@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useCommitmentsInbox } from "../hooks/commitment-pooling/useCommitmentsInbox";
@@ -126,6 +126,33 @@ describe("useCommitmentsInbox", () => {
     // Both of A's live promises wait on this provider; B's own does not count here.
     expect(result.current.liveActCount).toBe(2);
     expect(result.current.totalActCount).toBe(2);
+  });
+
+  it("scoped to a garden, reports a failed pool read instead of listing promises it cannot place", async () => {
+    mocks.getCommitmentPools.mockRejectedValue(new Error("indexer unavailable"));
+    const result = await inboxFor(
+      [
+        commitment({ id: "42161-9", commitmentId: 9n, poolId: 7n }),
+        commitment({ id: "42161-10", commitmentId: 10n, poolId: 8n }),
+      ],
+      { inScope: inGardenA }
+    );
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    // Without the pools, garden B's promise could pass for garden A's, so nothing is listed.
+    expect(result.current.live).toEqual([]);
+    expect(result.current.totalActCount).toBe(0);
+
+    // Try Again reads the pools as well as the promises.
+    mocks.getCommitmentPools.mockResolvedValue([
+      { id: "42161-7", poolId: 7n, garden: GARDEN_A },
+      { id: "42161-8", poolId: 8n, garden: GARDEN_B },
+    ]);
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(ids(result.current.live)).toEqual(["42161-9"]));
+    expect(result.current.isError).toBe(false);
   });
 
   it("scoped to a garden, says only what waits to send there and what no row can name", async () => {

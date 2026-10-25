@@ -1,4 +1,5 @@
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   type CommitmentsToConfirm,
@@ -6,12 +7,13 @@ import {
   selectConfirmQueueRows,
   useCommitmentMetadata,
 } from "@green-goods/shared/commitment-pooling";
-import { RiShieldCheckLine } from "@remixicon/react";
+import { RiFilterOffLine, RiShieldCheckLine } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 
 import { CommitmentStateLadder, PromiseRow } from "@/components/Features/Commitments";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
+import { listedToConfirmCount } from "./grouping";
 
 export interface ToConfirmTabProps {
   toConfirm: CommitmentsToConfirm;
@@ -72,7 +74,8 @@ export function ToConfirmTab({
       isLoading={toConfirm.isLoading}
       isError={toConfirm.isError}
       isOnline={isOnline}
-      isEmpty={toConfirm.count === 0}
+      // Empty means nothing this tab lists; the cockpit's fallbacks and disputes are not listed here.
+      isEmpty={listedToConfirmCount(toConfirm) === 0}
       onRetry={() => void toConfirm.refetch()}
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}
       copy={{
@@ -89,6 +92,14 @@ export function ToConfirmTab({
       <p className="text-xs text-text-sub-600">
         {formatMessage({ id: "app.commitments.toConfirm.intro" })}
       </p>
+
+      {groups.length === 0 ? (
+        <EmptyState
+          placement="sheet"
+          icon={<RiFilterOffLine />}
+          title={formatMessage({ id: "app.commitments.toConfirm.emptyTitle" })}
+        />
+      ) : null}
 
       {groups.map((group) => (
         <div key={group.garden} data-component="ToConfirmGroup">

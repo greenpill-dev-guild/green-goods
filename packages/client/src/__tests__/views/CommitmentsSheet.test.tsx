@@ -272,6 +272,52 @@ describe("CommitmentsSheet", () => {
       expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
     });
 
+    it("says a season holds nothing in History or To confirm when its filter empties them", async () => {
+      const user = userEvent.setup();
+      mockUseCommitmentCycles.mockReturnValue({
+        cycles: [cycle(1n, "SEASON"), cycle(2n, "CAMPAIGN")],
+      });
+      const kept = row(9n, 1n, "hours");
+      mockUseCommitmentsInbox.mockReturnValue(
+        inbox({
+          settled: [
+            {
+              ...kept,
+              commitment: {
+                ...kept.commitment,
+                derivedState: "FULFILLED",
+                onchainState: "FULFILLED",
+              },
+            },
+          ],
+        })
+      );
+      mockUseCommitmentsToConfirm.mockReturnValue(
+        toConfirm({
+          isSteward: true,
+          count: 1,
+          groups: [
+            {
+              garden: GARDEN,
+              gardenName: "Rocinha Community Garden",
+              rows: [{ ...row(11n, 1n, "rides"), seat: "confirmer", needsYou: true }],
+            },
+          ],
+        })
+      );
+
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+      await user.click(screen.getByRole("tab", { name: /history/i }));
+      await user.click(screen.getByRole("button", { name: "Show promises in Seed Swap Weekend" }));
+      expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
+      expect(screen.getByText("Nothing settled yet")).toBeInTheDocument();
+
+      // The filter stays as the tabs change, and To confirm says the same of the campaign.
+      await user.click(screen.getByRole("tab", { name: /to confirm/i }));
+      expect(screen.queryByText("3 rides")).not.toBeInTheDocument();
+      expect(screen.getByText("Nothing waiting for the garden")).toBeInTheDocument();
+    });
+
     it("opens filtered to a season when Home asks for its promises", () => {
       mockUseCommitmentCycles.mockReturnValue({
         cycles: [cycle(1n, "SEASON"), cycle(2n, "CAMPAIGN")],
