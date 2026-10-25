@@ -13,9 +13,14 @@ import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
-import { PromiseGroupRow, PromiseRow, PromiseRowSkeleton } from "@/components/Features/Commitments";
-import { CycleDetailsSheet } from "@/views/Home/Garden/Pool/CycleDetailsSheet";
-import { CycleIdentity, cycleDates } from "@/views/Home/Garden/Pool/CycleRail";
+import {
+  CycleDetailsSheet,
+  CycleIdentity,
+  cycleDates,
+  PromiseGroupRow,
+  PromiseRow,
+  PromiseRowSkeleton,
+} from "@/components/Features/Commitments";
 import { JournalSection } from "./JournalSection";
 import { JournalLoadingRows, JournalStateRow } from "./JournalStateRow";
 

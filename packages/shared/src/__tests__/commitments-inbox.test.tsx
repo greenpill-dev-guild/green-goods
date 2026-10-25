@@ -8,6 +8,16 @@ import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
+const GARDEN_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+const GARDEN_B = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
+
+const EMPTY_QUEUE = {
+  failedCount: 0,
+  failedCommitmentIds: new Set<string>(),
+  hasPendingCreate: false,
+  pendingCreates: [] as Array<{ jobId: string; poolId: string; failed: boolean }>,
+  isUnavailable: false,
+};
 
 const mocks = vi.hoisted(() => ({
   capability: {
@@ -19,6 +29,8 @@ const mocks = vi.hoisted(() => ({
     verified_at: "2026-08-16",
   } as unknown,
   getCommitments: vi.fn(),
+  getCommitmentPools: vi.fn(),
+  queue: {} as Record<string, unknown>,
 }));
 
 vi.mock("../ontology/query", () => ({
@@ -27,7 +39,18 @@ vi.mock("../ontology/query", () => ({
 
 vi.mock("../modules/commitment-pooling/data", () => ({
   getCommitments: mocks.getCommitments,
+  getCommitmentPools: mocks.getCommitmentPools,
 }));
+
+vi.mock("../hooks/commitment-pooling/useCommitmentQueueState", () => ({
+  useCommitmentQueueState: () => mocks.queue,
+}));
+
+/** Whether a list scoped to garden A shows something naming these gardens. */
+const inGardenA = (gardens: readonly (string | null | undefined)[]) =>
+  gardens.some((garden) => garden?.toLowerCase() === GARDEN_A);
+
+const ids = (rows: { commitment: { id: string } }[]) => rows.map((row) => row.commitment.id);
 
 function commitment(overrides: Record<string, unknown> = {}) {
   return {
@@ -55,10 +78,13 @@ function commitment(overrides: Record<string, unknown> = {}) {
   };
 }
 
-async function inboxFor(rows: ReturnType<typeof commitment>[]) {
+async function inboxFor(
+  rows: ReturnType<typeof commitment>[],
+  scope: { inScope?: typeof inGardenA } = {}
+) {
   mocks.getCommitments.mockResolvedValue(rows);
   const { result } = renderHookWithProviders(() =>
-    useCommitmentsInbox({ chainId: 42161, viewer: VIEWER })
+    useCommitmentsInbox({ chainId: 42161, viewer: VIEWER, ...scope })
   );
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   return result;
@@ -67,6 +93,60 @@ async function inboxFor(rows: ReturnType<typeof commitment>[]) {
 describe("useCommitmentsInbox", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.queue = { ...EMPTY_QUEUE };
+    mocks.getCommitmentPools.mockResolvedValue([
+      { id: "42161-7", poolId: 7n, garden: GARDEN_A },
+      { id: "42161-8", poolId: 8n, garden: GARDEN_B },
+    ]);
+  });
+
+  it("scoped to a garden, lists and counts only the promises that involve it", async () => {
+    const result = await inboxFor(
+      [
+        // In garden A's pool.
+        commitment({ id: "42161-9", commitmentId: 9n, poolId: 7n }),
+        // In garden B's pool, nothing to do with A.
+        commitment({ id: "42161-10", commitmentId: 10n, poolId: 8n }),
+        // In B's pool, worked from A.
+        commitment({ id: "42161-11", commitmentId: 11n, poolId: 8n, providerGarden: GARDEN_A }),
+        // In B's pool, paid for by A, and kept.
+        commitment({
+          id: "42161-12",
+          commitmentId: 12n,
+          poolId: 8n,
+          payerGarden: GARDEN_A,
+          derivedState: "FULFILLED",
+        }),
+      ],
+      { inScope: inGardenA }
+    );
+
+    expect(ids(result.current.live)).toEqual(["42161-11", "42161-9"]);
+    expect(ids(result.current.settled)).toEqual(["42161-12"]);
+    // Both of A's live promises wait on this provider; B's own does not count here.
+    expect(result.current.liveActCount).toBe(2);
+    expect(result.current.totalActCount).toBe(2);
+  });
+
+  it("scoped to a garden, says only what waits to send there and what no row can name", async () => {
+    mocks.queue = {
+      ...EMPTY_QUEUE,
+      // Two failed creations and one failed series, none of them with a promise yet.
+      failedCount: 3,
+      hasPendingCreate: true,
+      pendingCreates: [
+        { jobId: "waiting-in-b", poolId: "8", failed: false },
+        { jobId: "failed-in-a", poolId: "7", failed: true },
+        { jobId: "failed-in-b", poolId: "8", failed: true },
+      ],
+    };
+
+    const result = await inboxFor([], { inScope: inGardenA });
+
+    // The promise waiting to send belongs to garden B.
+    expect(result.current.hasPendingCreate).toBe(false);
+    // A's failed creation, and the series failure no garden can be read from.
+    expect(result.current.unlistedFailureCount).toBe(2);
   });
 
   it("splits by tense, so a kept commitment leaves the live list entirely", async () => {

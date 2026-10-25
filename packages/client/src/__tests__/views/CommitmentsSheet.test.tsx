@@ -12,7 +12,7 @@
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, renderWithProviders, screen } from "../test-utils";
+import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
 /** Rows navigate into a commitment, so the sheet needs a router around it. */
@@ -32,7 +32,32 @@ const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
 const mockUseCommitmentsInbox = vi.fn();
 const mockUseCommitmentsToConfirm = vi.fn();
+const mockUseCommitmentCycles = vi.fn();
 const mockUseOffline = vi.fn();
+/** The garden the chip on Home has chosen; null before a member has one. */
+let mockActiveGarden: { id: string; name: string } | null = null;
+const mockInScope = (gardens: readonly (string | null | undefined)[]) =>
+  !mockActiveGarden || gardens.some((garden) => garden?.toLowerCase() === mockActiveGarden?.id);
+
+/** A season and a campaign in the garden's pool, as the rail reads them. */
+function cycle(cycleId: bigint, cycleType: "SEASON" | "CAMPAIGN") {
+  return {
+    id: `42161-c${cycleId}`,
+    cycleId,
+    poolId: 7n,
+    cycleType,
+    state: "OPEN",
+    startTime: null,
+    endTime: null,
+    liveCommitmentCount: 1n,
+    commitmentsFulfilled: 0n,
+    commitmentsDue: 1n,
+  };
+}
+const CYCLE_NAMES = new Map([
+  ["1", { status: "resolved", name: "Autumn Planting" }],
+  ["2", { status: "resolved", name: "Seed Swap Weekend" }],
+]);
 
 const AVAILABLE = { status: "available", capability: {} } as const;
 const UNAVAILABLE = { status: "unavailable", reason: "not-integrated", capability: {} } as const;
@@ -133,11 +158,31 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitmentPools: () => ({ pools: [{ poolId: 7n, garden: GARDEN }] }),
   useCommitmentSeries: () => ({ series: [] }),
-  useCommitmentsInbox: () => mockUseCommitmentsInbox(),
-  useCommitmentsToConfirm: () => mockUseCommitmentsToConfirm(),
+  useCommitmentCycles: (...args: unknown[]) => mockUseCommitmentCycles(...args),
+  useCommitmentCycleNames: () => ({ byCycleId: CYCLE_NAMES, isLoading: false }),
+  useCommitmentsInbox: (...args: unknown[]) => mockUseCommitmentsInbox(...args),
+  useCommitmentsToConfirm: (...args: unknown[]) => mockUseCommitmentsToConfirm(...args),
+}));
+
+// The launcher reads the same two hooks from their own leaves.
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentsInbox", () => ({
+  useCommitmentsInbox: (...args: unknown[]) => mockUseCommitmentsInbox(...args),
+}));
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm", () => ({
+  useCommitmentsToConfirm: (...args: unknown[]) => mockUseCommitmentsToConfirm(...args),
+}));
+
+// The scope rule is proven in Shared; here the active garden's own promises show.
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({
+    gardenId: mockActiveGarden?.id ?? null,
+    garden: mockActiveGarden,
+    inScope: mockInScope,
+  }),
 }));
 
 const { CommitmentsSheet } = await import("../../views/Home/CommitmentsSheet");
+const { CommitmentsSheetLauncher } = await import("../../views/Home/CommitmentsSheet/Launcher");
 
 describe("CommitmentsSheet", () => {
   beforeEach(() => {
@@ -146,6 +191,133 @@ describe("CommitmentsSheet", () => {
     mockSendsFromTap.mockReturnValue(false);
     mockUseCommitmentsInbox.mockReturnValue(inbox());
     mockUseCommitmentsToConfirm.mockReturnValue(toConfirm());
+    mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
+    mockActiveGarden = null;
+  });
+
+  describe("in the active garden", () => {
+    const row = (commitmentId: bigint, cycleId: bigint, unitLabel: string) => ({
+      commitment: commitment({
+        id: `42161-${commitmentId}`,
+        commitmentId,
+        cycleId,
+        unitLabel,
+      }),
+      seat: "provider" as const,
+      needsYou: false,
+    });
+
+    beforeEach(() => {
+      mockActiveGarden = { id: GARDEN, name: "Rocinha Community Garden" };
+    });
+
+    it("names the garden under its title and reads only that garden's promises", () => {
+      mockUseCommitmentsInbox.mockReturnValue(inbox({ live: [row(9n, 1n, "hours")] }));
+
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+      // The garden line takes the description's place, so the header keeps its height.
+      const sheet = screen.getByRole("dialog", { name: "Promises" });
+      expect(sheet).toHaveAccessibleDescription("In Rocinha Community Garden");
+      expect(screen.queryByText("Offered, asked for, taken up.")).not.toBeInTheDocument();
+      // Both reads take the active garden's scope, so the tabs and the launcher agree.
+      expect(mockUseCommitmentsInbox).toHaveBeenCalledWith(
+        expect.objectContaining({ inScope: mockInScope })
+      );
+      expect(mockUseCommitmentsToConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ inScope: mockInScope })
+      );
+      // The header names the garden once; no group heading repeats it over the rows.
+      expect(screen.getAllByText(/Rocinha Community Garden/)).toHaveLength(1);
+      expect(screen.getByText("3 hours")).toBeInTheDocument();
+    });
+
+    it("carries the garden's seasons and campaigns at its top, each filtering the list", async () => {
+      const user = userEvent.setup();
+      mockUseCommitmentCycles.mockReturnValue({
+        cycles: [cycle(1n, "SEASON"), cycle(2n, "CAMPAIGN")],
+      });
+      mockUseCommitmentsInbox.mockReturnValue(
+        inbox({ live: [row(9n, 1n, "hours"), row(10n, 2n, "rides")] })
+      );
+
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+      // The rail reads the active garden's pool, as its Pool tab did.
+      expect(mockUseCommitmentCycles).toHaveBeenCalledWith(
+        expect.objectContaining({ poolId: 7n }),
+        expect.anything()
+      );
+      const rail = screen.getByRole("group", { name: "Seasons and campaigns" });
+      await user.click(
+        within(rail).getByRole("button", { name: "Show promises in Autumn Planting" })
+      );
+      expect(screen.getByText("3 hours")).toBeInTheDocument();
+      expect(screen.queryByText("3 rides")).not.toBeInTheDocument();
+
+      // Tapped again, the card shows every promise.
+      await user.click(
+        within(rail).getByRole("button", { name: "Showing Autumn Planting. Show all promises" })
+      );
+      expect(screen.getByText("3 rides")).toBeInTheDocument();
+
+      // Its ⓘ opens the details, whose Show Its Promises filters the sheet.
+      await user.click(screen.getByRole("button", { name: "About Seed Swap Weekend" }));
+      const details = screen.getByRole("dialog", { name: "Seed Swap Weekend" });
+      await user.click(within(details).getByRole("button", { name: "Show Its Promises" }));
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: "Seed Swap Weekend" })).not.toBeInTheDocument()
+      );
+      expect(screen.getByText("3 rides")).toBeInTheDocument();
+      expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
+    });
+
+    it("opens filtered to a season when Home asks for its promises", () => {
+      mockUseCommitmentCycles.mockReturnValue({
+        cycles: [cycle(1n, "SEASON"), cycle(2n, "CAMPAIGN")],
+      });
+      mockUseCommitmentsInbox.mockReturnValue(
+        inbox({ live: [row(9n, 1n, "hours"), row(10n, 2n, "rides")] })
+      );
+      useUIStore.getState().openCommitmentsSheet({ cycleId: "2" });
+
+      try {
+        render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+        expect(
+          screen.getByRole("button", { name: "Showing Seed Swap Weekend. Show all promises" })
+        ).toHaveAttribute("aria-pressed", "true");
+        expect(screen.getByText("3 rides")).toBeInTheDocument();
+        expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
+      } finally {
+        useUIStore.getState().closeCommitmentsSheet();
+        useUIStore.setState({ commitmentsSheetOpening: undefined });
+      }
+    });
+
+    it("counts on its launcher what the garden's tabs count, and nothing from elsewhere", () => {
+      const waiting = { commitment: commitment(), seat: "confirmer" as const, needsYou: true };
+      mockUseCommitmentsInbox.mockReturnValue(inbox({ totalActCount: 2 }));
+      // The tab lists the garden's own confirmations; fallbacks and disputes are the cockpit's.
+      mockUseCommitmentsToConfirm.mockReturnValue(
+        toConfirm({
+          count: 3,
+          groups: [{ garden: GARDEN, gardenName: "Rocinha Community Garden", rows: [waiting] }],
+          fallback: [{ commitment: commitment({ id: "42161-20", commitmentId: 20n }) }],
+          disputed: [{ commitment: commitment({ id: "42161-21", commitmentId: 21n }) }],
+        })
+      );
+
+      render(<CommitmentsSheetLauncher onClick={vi.fn()} />);
+
+      expect(screen.getByTestId("commitments-notification-badge")).toHaveTextContent("3");
+      expect(mockUseCommitmentsInbox).toHaveBeenCalledWith(
+        expect.objectContaining({ inScope: mockInScope })
+      );
+      expect(mockUseCommitmentsToConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ inScope: mockInScope })
+      );
+    });
   });
 
   describe("the To confirm tab", () => {

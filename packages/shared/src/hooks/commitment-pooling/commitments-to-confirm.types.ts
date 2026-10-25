@@ -75,9 +75,12 @@ export interface CommitmentsToConfirm {
    * leave it out; this hook always answers with an array.
    */
   disputed?: ToConfirmDisputedRow[];
-  /** Rows across every garden — ordinary, fallback and disputed: the badge. */
+  /** Rows across every garden asked — ordinary, fallback and disputed: the badge. */
   count: number;
-  /** The reader stewards at least one garden. The tab exists only then. */
+  /**
+   * The reader stewards at least one garden, or the active one when the queue is scoped.
+   * The tab exists only then.
+   */
   isSteward: boolean;
   /** The reader stewards the registered protocol garden. */
   isProtocolSteward: boolean;

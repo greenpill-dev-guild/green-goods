@@ -142,6 +142,7 @@ function proof(overrides: Partial<PendingProof>): PendingProof {
     source: "queued",
     commitmentId: 7n,
     garden: JOURNEY_GARDEN,
+    savedGarden: JOURNEY_GARDEN,
     commitment: null,
     title: FENCE_TITLE,
     savedAt: todayAt(10, 24),

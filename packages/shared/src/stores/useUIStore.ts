@@ -44,7 +44,16 @@ export type CommitmentsDirectionFilter = "all" | "OFFER" | "REQUEST";
 export interface CommitmentsDashboardReturnState {
   tab: "live" | "over-time" | "to-confirm";
   direction: CommitmentsDirectionFilter;
+  /** The season or campaign the list was filtered to, as a decimal id. */
+  cycleId?: string;
   scrollTop: number;
+}
+
+/** Where the Promises sheet opens: a tab, or the list filtered to one season or campaign. */
+export interface CommitmentsSheetOpening {
+  tab?: CommitmentsDashboardReturnState["tab"];
+  /** A season's or campaign's id as a decimal string, as Home's Show Its Promises passes it. */
+  cycleId?: string;
 }
 
 export type DashboardSnapshot =
@@ -99,7 +108,9 @@ export type UIState = {
 
   // Commitments sheet controls (client)
   isCommitmentsSheetOpen: boolean;
-  openCommitmentsSheet: () => void;
+  /** Where the sheet opens (consumed once on mount); undefined = the Live tab, unfiltered. */
+  commitmentsSheetOpening?: CommitmentsSheetOpening;
+  openCommitmentsSheet: (opening?: CommitmentsSheetOpening) => void;
   closeCommitmentsSheet: () => void;
 
   /**
@@ -169,6 +180,7 @@ export const useUIStore = create<UIState>()(
           isEndowmentSheetOpen: false,
           isWalletSheetOpen: false,
           isCommitmentsSheetOpen: false,
+          commitmentsSheetOpening: undefined,
           isWorkDashboardOpen: false,
           workDashboardInitialTab: undefined,
           workDashboardInitialPendingFilter: undefined,
@@ -184,8 +196,15 @@ export const useUIStore = create<UIState>()(
       closeWalletSheet: () => set({ isWalletSheetOpen: false }),
 
       isCommitmentsSheetOpen: false,
-      openCommitmentsSheet: () =>
-        set({ isCommitmentsSheetOpen: true, commitmentsSheetReturnState: undefined }),
+      // Overwritten on every open, as the work dashboard's presets are: a bare
+      // open never inherits the previous one's tab or season. Home hands this
+      // straight to a button, so only the two presets are read from what arrives.
+      openCommitmentsSheet: (opening) =>
+        set({
+          isCommitmentsSheetOpen: true,
+          commitmentsSheetOpening: opening && { tab: opening.tab, cycleId: opening.cycleId },
+          commitmentsSheetReturnState: undefined,
+        }),
       closeCommitmentsSheet: () => set({ isCommitmentsSheetOpen: false }),
 
       openSheetCount: 0,

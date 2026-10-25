@@ -19,9 +19,13 @@ import { type ReactNode, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 
 import { getWorkCardLabels } from "@/components/Cards/Work/MinimalWorkCard";
-import { groupCountsText, presentState, promiseDueDetail } from "@/components/Features/Commitments";
-import { CycleDetailsSheet } from "@/views/Home/Garden/Pool/CycleDetailsSheet";
-import { CycleIdentity } from "@/views/Home/Garden/Pool/CycleRail";
+import {
+  CycleDetailsSheet,
+  CycleIdentity,
+  groupCountsText,
+  presentState,
+  promiseDueDetail,
+} from "@/components/Features/Commitments";
 import { HighlightCard, HighlightPhoto } from "./HighlightCard";
 import { JournalSection } from "./JournalSection";
 import { takePartPath } from "./TakePart";
