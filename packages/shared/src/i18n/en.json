@@ -2261,6 +2261,7 @@
   "app.garden.settings.save.keepEditing": "Keep Editing",
   "app.garden.settings.saveFailedMessage": "Your edits are still here. Review the error and save again.",
   "app.garden.settings.saving": "Saving changes…",
+  "app.garden.submit.gardenLine": "Logging work in {garden}",
   "app.garden.submit.tab.details.instruction": "Provide detailed information and feedback",
   "app.garden.submit.tab.details.label": "Review Work",
   "app.garden.submit.tab.intro.label": "Start Gardening",
