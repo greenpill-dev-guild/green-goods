@@ -100,10 +100,11 @@ function cycleCards(
   onOpen: (cycle: CommitmentCycleRecord) => void
 ): ReactNode[] {
   if (state.status === "loading") return [<HighlightCardSkeleton key="cycles-loading" />];
-  if (state.status === "error") return [<CyclesErrorCard key="cycles-error" onRetry={refetch} />];
+  if (state.status === "error")
+    return [<CyclesFailedHighlight key="cycles-error" onRetry={refetch} />];
   if (state.status !== "ready") return [];
   return state.items.map(({ cycle, name, daysLeft }) => (
-    <CycleCard
+    <CycleHighlight
       key={cycle.id}
       cycle={cycle}
       name={name}
@@ -120,7 +121,7 @@ function workCard(
   if (state.status === "loading") return [<HighlightCardSkeleton key="work-loading" />];
   if (!featured) return [];
   return [
-    <WorkCard
+    <WorkHighlight
       key={featured.id}
       work={featured}
       actionTitle={actionTitleOf(featured)}
@@ -136,7 +137,7 @@ function askCard(
   if (state.status === "loading") return [<HighlightCardSkeleton key="ask-loading" />];
   if (!ask) return [];
   return [
-    <AskCard
+    <AskHighlight
       key={ask.kind === "single" ? ask.row.commitment.id : ask.group.key}
       entry={ask}
       titleOf={titleOf}
@@ -145,7 +146,7 @@ function askCard(
   ];
 }
 
-function CycleCard({
+function CycleHighlight({
   cycle,
   name,
   daysLeft,
@@ -191,7 +192,7 @@ function CycleCard({
   );
 }
 
-function WorkCard({
+function WorkHighlight({
   work,
   actionTitle,
   onOpen,
@@ -219,7 +220,7 @@ function WorkCard({
   );
 }
 
-function AskCard({
+function AskHighlight({
   entry,
   titleOf,
   onOpen,
@@ -275,7 +276,7 @@ function Eyebrow({ children }: { children: ReactNode }) {
 }
 
 /** A seasons read that failed: one card in the cycles' place, whose press reads them again. */
-function CyclesErrorCard({ onRetry }: { onRetry: () => void }) {
+function CyclesFailedHighlight({ onRetry }: { onRetry: () => void }) {
   const { formatMessage } = useIntl();
   return (
     <HighlightCard
