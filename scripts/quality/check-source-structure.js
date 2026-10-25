@@ -40,6 +40,9 @@ const ALLOWED_TOP_LEVEL_DIRECTORIES = {
     "strategies",
     "tokens",
   ]),
+  // Grove G0 spike (.plans/ideas/grove, decision 17): execution (Pi Durable), graph (Sigma),
+  // model (the Gemma worker), webmcp (the content-script probe). Entrypoints live outside src/.
+  extension: new Set(["execution", "graph", "model", "webmcp"]),
   indexer: new Set(["handlers"]),
   shared: new Set([
     "__mocks__",
@@ -77,6 +80,7 @@ const ALLOWED_ROOT_SOURCE_FILES = {
     "webmcp.ts",
   ]),
   contracts: new Set(["CommonErrors.sol", "Schemas.sol"]),
+  extension: new Set([]),
   indexer: new Set(["EventHandlers.ts"]),
   shared: new Set(["index.ts"]),
 };
