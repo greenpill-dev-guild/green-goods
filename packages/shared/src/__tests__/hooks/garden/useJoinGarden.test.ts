@@ -69,7 +69,58 @@ vi.mock("../../../hooks/utils/useTimeout", () => ({
   useDelayedInvalidation: () => ({ start: vi.fn(), cancel: vi.fn() }),
 }));
 
-const { isGardenMember } = await import("../../../hooks/garden/useJoinGarden");
+const { forgetListedPendingJoins, isGardenMember } = await import(
+  "../../../hooks/garden/useJoinGarden"
+);
+const { logger } = await import("../../../modules/app/logger");
+
+describe("forgetListedPendingJoins", () => {
+  const user = "0x5555555555555555555555555555555555555555";
+  const other = "0x6666666666666666666666666666666666666666";
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it("forgets only the account's own joins in gardens whose roster lists it", () => {
+    const joinedAt = Date.now();
+    localStorage.setItem(
+      PENDING_JOINS_KEY,
+      JSON.stringify({
+        "garden-listed": { address: user, timestamp: joinedAt },
+        "garden-waiting": { address: user, timestamp: joinedAt },
+        "garden-shared": { address: other, timestamp: joinedAt },
+      })
+    );
+
+    forgetListedPendingJoins(user.toUpperCase().replace("0X", "0x"), [
+      "GARDEN-LISTED",
+      "garden-shared",
+    ]);
+
+    expect(JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) ?? "{}")).toEqual({
+      "garden-waiting": { address: user, timestamp: joinedAt },
+      "garden-shared": { address: other, timestamp: joinedAt },
+    });
+  });
+
+  it("keeps going when storage refuses the write, and says so", () => {
+    const saved = JSON.stringify({ "garden-listed": { address: user, timestamp: Date.now() } });
+    vi.stubGlobal("localStorage", {
+      getItem: () => saved,
+      setItem: () => {
+        throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+      },
+    });
+
+    expect(() => forgetListedPendingJoins(user, ["garden-listed"])).not.toThrow();
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Could not forget a settled pending join",
+      expect.objectContaining({ source: "forgetListedPendingJoins" })
+    );
+  });
+});
 
 describe("isGardenMember", () => {
   beforeEach(() => {
