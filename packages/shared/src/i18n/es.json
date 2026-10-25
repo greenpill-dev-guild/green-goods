@@ -1200,6 +1200,7 @@
   "app.common.done": "Listo",
   "app.common.edit": "Editar",
   "app.common.failedToLoad": "Error al cargar",
+  "app.common.inGarden": "En {garden}",
   "app.common.loading": "Cargando...",
   "app.common.loadingApp": "Cargando {appName}",
   "app.common.next": "Siguiente",
