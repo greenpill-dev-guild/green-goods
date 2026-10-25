@@ -58,18 +58,26 @@ export function useStewardDuties(garden: Garden): StewardDuties {
 
   const review = useNeedsReview(managesGarden ? [garden.id] : NO_GARDENS, user?.id);
 
-  const { pools } = useCommitmentPools({ chainId, garden: garden.id as Address });
-  const pool = pools.find((candidate) => compareAddresses(candidate.garden, garden.id));
+  const poolsRead = useCommitmentPools({ chainId, garden: garden.id as Address });
+  const pool = poolsRead.pools.find((candidate) => compareAddresses(candidate.garden, garden.id));
   // The claim panel lets a steward of the pool's garden decide, as the chain answers it.
-  const { hasRole: stewardsPoolGarden } = useHasRole(pool?.garden, account, "steward", chainId);
+  const stewardRole = useHasRole(pool?.garden, account, "steward", chainId);
+  const stewardsPoolGarden = stewardRole.hasRole;
   const claims = usePoolClaimRequests(
     { chainId, poolId: pool?.poolId ?? 0n, state: "PENDING" },
     { enabled: Boolean(pool) && stewardsPoolGarden }
   );
 
+  // This garden alone: another garden's queue is not this Home's to wait on or fail with.
+  const thisGarden = useCallback(
+    (gardens: readonly (string | null | undefined)[]) =>
+      gardens.some((candidate) => compareAddresses(candidate, garden.id)),
+    [garden.id]
+  );
   const confirm = useCommitmentsToConfirm({
     chainId,
     viewer: managesGarden ? (account ?? undefined) : undefined,
+    inScope: thisGarden,
   });
   const toConfirm = useMemo(
     () =>
@@ -83,31 +91,43 @@ export function useStewardDuties(garden: Garden): StewardDuties {
     () =>
       selectStewardDuties({
         viewer: account,
-        toReview: review.works,
+        // A count only once the garden's whole list is read, as the arrival toast does: a
+        // partial page would undercount the queue the row opens.
+        toReview: review.ready ? review.works : [],
         // A disabled read still hands back what it read before; only a decider sees it.
         pendingClaims: stewardsPoolGarden ? claims.rows : [],
         toConfirm,
       }),
-    [account, review.works, stewardsPoolGarden, claims.rows, toConfirm]
+    [account, review.ready, review.works, stewardsPoolGarden, claims.rows, toConfirm]
   );
 
   const { refetch: refetchReview } = review;
   const { refetch: refetchClaims } = claims;
   const { refetch: refetchConfirm } = confirm;
+  const { refetch: refetchPools } = poolsRead;
+  const { refetch: refetchRole } = stewardRole;
   const refetch = useCallback(() => {
     void refetchReview();
+    void refetchPools();
+    void refetchRole();
     void refetchClaims();
     void refetchConfirm();
-  }, [refetchReview, refetchClaims, refetchConfirm]);
+  }, [refetchReview, refetchPools, refetchRole, refetchClaims, refetchConfirm]);
 
   const decidesClaims = Boolean(pool) && stewardsPoolGarden;
+  // Who may decide take-ups rests on two reads of its own: the garden's pool, then the chain's
+  // answer on its steward. Either one failing may hide take-up requests, so it counts for whoever
+  // manages the garden on the record.
+  const takeUpPathLoading = poolsRead.isLoading || stewardRole.isLoading;
+  const takeUpPathFailed = poolsRead.isError || Boolean(stewardRole.error);
   return {
     duties,
     isLoading:
-      (managesGarden && (review.isLoading || confirm.isLoading)) ||
+      (managesGarden && (review.isLoading || confirm.isLoading || takeUpPathLoading)) ||
       (decidesClaims && claims.isLoading),
     isError:
-      (managesGarden && (review.isError || confirm.isError)) || (decidesClaims && claims.isError),
+      (managesGarden && (review.isError || confirm.isError || takeUpPathFailed)) ||
+      (decidesClaims && claims.isError),
     refetch,
   };
 }

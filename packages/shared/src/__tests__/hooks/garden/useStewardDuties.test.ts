@@ -22,18 +22,28 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   reviewGardens: [] as string[][],
   toReview: [] as Work[],
+  reviewReady: true,
   reviewLoading: false,
   reviewError: false,
   reviewRefetch: vi.fn(async () => true),
   hatGarden: [] as Array<string | null | undefined>,
   wearsStewardHat: false,
+  roleLoading: false,
+  roleError: false,
+  roleRefetch: vi.fn(async () => ({})),
   pools: [] as Array<{ poolId: bigint; garden: string }>,
+  poolsLoading: false,
+  poolsError: false,
+  poolsRefetch: vi.fn(async () => ({})),
   claimsEnabled: [] as boolean[],
   claimRows: [] as unknown[],
   claimsLoading: false,
   claimsError: false,
   claimsRefetch: vi.fn(async () => ({})),
   confirmViewer: [] as Array<string | undefined>,
+  confirmScopes: [] as Array<
+    ((gardens: readonly (string | null | undefined)[]) => boolean) | undefined
+  >,
   confirmGroups: [] as Array<{ garden: string; rows: Array<{ commitment: unknown }> }>,
   confirmLoading: false,
   confirmError: false,
@@ -49,6 +59,7 @@ vi.mock("../../../hooks/work/useNeedsReview", () => ({
     mocks.reviewGardens.push(gardenIds);
     return {
       works: gardenIds.length > 0 ? mocks.toReview : [],
+      ready: gardenIds.length === 0 || mocks.reviewReady,
       isLoading: gardenIds.length > 0 && mocks.reviewLoading,
       isError: gardenIds.length > 0 && mocks.reviewError,
       refetch: mocks.reviewRefetch,
@@ -58,11 +69,23 @@ vi.mock("../../../hooks/work/useNeedsReview", () => ({
 vi.mock("../../../hooks/roles/useHasRole", () => ({
   useHasRole: (garden: string | null | undefined) => {
     mocks.hatGarden.push(garden);
-    return { hasRole: Boolean(garden) && mocks.wearsStewardHat, isLoading: false, error: null };
+    // A failed read answers false, since the answer is unknown.
+    return {
+      hasRole: Boolean(garden) && mocks.wearsStewardHat && !mocks.roleError,
+      isLoading: Boolean(garden) && mocks.roleLoading,
+      error: mocks.roleError ? new Error("role read failed") : null,
+      refetch: mocks.roleRefetch,
+    };
   },
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
-  useCommitmentPools: () => ({ pools: mocks.pools }),
+  // A failed read hands back no pools, as React Query does with no saved data.
+  useCommitmentPools: () => ({
+    pools: mocks.poolsError ? [] : mocks.pools,
+    isLoading: mocks.poolsLoading,
+    isError: mocks.poolsError,
+    refetch: mocks.poolsRefetch,
+  }),
 }));
 vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
   usePoolClaimRequests: (_input: unknown, options: { enabled?: boolean }) => {
@@ -78,8 +101,15 @@ vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
   },
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentsToConfirm", () => ({
-  useCommitmentsToConfirm: ({ viewer }: { viewer?: string }) => {
+  useCommitmentsToConfirm: ({
+    viewer,
+    inScope,
+  }: {
+    viewer?: string;
+    inScope?: (gardens: readonly (string | null | undefined)[]) => boolean;
+  }) => {
     mocks.confirmViewer.push(viewer);
+    mocks.confirmScopes.push(inScope);
     return {
       groups: viewer ? mocks.confirmGroups : [],
       isLoading: Boolean(viewer) && mocks.confirmLoading,
@@ -121,16 +151,22 @@ describe("useStewardDuties", () => {
   beforeEach(() => {
     mocks.reviewGardens = [];
     mocks.toReview = [];
+    mocks.reviewReady = true;
     mocks.reviewLoading = false;
     mocks.reviewError = false;
     mocks.hatGarden = [];
     mocks.wearsStewardHat = false;
+    mocks.roleLoading = false;
+    mocks.roleError = false;
     mocks.pools = [{ poolId: 3n, garden: GARDEN.toLowerCase() }];
+    mocks.poolsLoading = false;
+    mocks.poolsError = false;
     mocks.claimsEnabled = [];
     mocks.claimRows = [];
     mocks.claimsLoading = false;
     mocks.claimsError = false;
     mocks.confirmViewer = [];
+    mocks.confirmScopes = [];
     mocks.confirmGroups = [];
     mocks.confirmLoading = false;
     mocks.confirmError = false;
@@ -184,6 +220,23 @@ describe("useStewardDuties", () => {
     expect(mocks.claimsEnabled.at(-1)).toBe(false);
   });
 
+  it("counts work to review only once the garden's whole list is read, as the arrival toast does", () => {
+    everythingWaits();
+    mocks.reviewReady = false;
+
+    const duties = render(garden({ owners: [ME] }));
+
+    expect(duties.duties.map((duty) => duty.kind)).toEqual(["confirm"]);
+  });
+
+  it("asks To confirm about this garden alone, so another garden's read neither holds nor fails it", () => {
+    render(garden({ stewards: [ME] }));
+
+    const inScope = mocks.confirmScopes.at(-1);
+    expect(inScope?.([GARDEN.toLowerCase()])).toBe(true);
+    expect(inScope?.([OTHER_GARDEN])).toBe(false);
+  });
+
   it("is loading or failed only for a queue the account can act on", () => {
     mocks.claimsLoading = true;
     mocks.claimsError = true;
@@ -199,6 +252,19 @@ describe("useStewardDuties", () => {
     mocks.reviewLoading = false;
     mocks.confirmError = true;
     expect(render(garden({ stewards: [ME] })).isError).toBe(true);
+
+    // The take-up path's own reads, the pool and the chain's steward answer, may hide requests.
+    mocks.confirmError = false;
+    mocks.wearsStewardHat = false;
+    mocks.poolsError = true;
+    expect(render(garden({ stewards: [ME] })).isError).toBe(true);
+    expect(render(garden({ gardeners: [ME] })).isError).toBe(false);
+    mocks.poolsError = false;
+    mocks.roleError = true;
+    expect(render(garden({ stewards: [ME] })).isError).toBe(true);
+    mocks.roleError = false;
+    mocks.poolsLoading = true;
+    expect(render(garden({ stewards: [ME] })).isLoading).toBe(true);
   });
 
   it("reads every queue again on refetch", () => {
@@ -209,6 +275,8 @@ describe("useStewardDuties", () => {
     expect(mocks.reviewRefetch).toHaveBeenCalledTimes(1);
     expect(mocks.claimsRefetch).toHaveBeenCalledTimes(1);
     expect(mocks.confirmRefetch).toHaveBeenCalledTimes(1);
+    expect(mocks.poolsRefetch).toHaveBeenCalledTimes(1);
+    expect(mocks.roleRefetch).toHaveBeenCalledTimes(1);
   });
 });
 
