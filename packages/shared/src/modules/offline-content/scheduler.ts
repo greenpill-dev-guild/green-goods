@@ -3,7 +3,12 @@ import { worksKeys } from "../../config/query-keys/work";
 import type { Garden, WorkMetadata } from "../../types/domain";
 import type { EASWorkListRow } from "../../types/eas-responses";
 import { WORK_LIST_PAGE_SIZE } from "../data/eas";
-import { OFFLINE_REFRESH_MS, planOfflineContent } from "./policy";
+import {
+  OFFLINE_REFRESH_MS,
+  type OfflineFocus,
+  offlinePhotoGardens,
+  planOfflineContent,
+} from "./policy";
 import { OfflineRunQueue, type OfflineTask, sameAddress } from "./run-queue";
 import { getOfflineProgress, updateOfflineProgress } from "./store";
 import type { OfflinePauseReason } from "./types";
@@ -20,6 +25,8 @@ export interface OfflineSchedulerPorts {
   client: QueryClient;
   chainId: number;
   account(): string | undefined;
+  /** The garden Home opens in, read on every step so a switch mid-run is followed. */
+  activeGarden(): string | undefined;
   gardens(): Garden[] | undefined;
   avatarUrl(): string | undefined;
   online(): boolean;
@@ -51,12 +58,12 @@ class RunStopped extends Error {}
 
 /**
  * Downloads offline content without competing with the screen. Every task waits
- * until nothing in the app is fetching and the browser is idle, the garden in
- * view moves to the front of the queue, photos pause under Data Saver, and each
- * read is written to the reading cache once it has landed.
+ * until nothing in the app is fetching and the browser is idle, the active garden
+ * and then the garden in view move to the front of the queue, photos pause under
+ * Data Saver, and each read is written to the reading cache once it has landed.
  */
 export class OfflineScheduler {
-  private activeGarden?: string;
+  private gardenInView?: string;
   private userPaused = false;
   private dataSaverOverride = false;
   private running = false;
@@ -78,9 +85,10 @@ export class OfflineScheduler {
     return this.lastRunAt;
   }
 
-  setActiveGarden(garden?: string): void {
-    if (sameAddress(garden, this.activeGarden) || (!garden && !this.activeGarden)) return;
-    this.activeGarden = garden;
+  /** The garden on screen, whose photos are kept too, after the active garden's. */
+  setGardenInView(garden?: string): void {
+    if (sameAddress(garden, this.gardenInView) || (!garden && !this.gardenInView)) return;
+    this.gardenInView = garden;
     this.wake();
   }
 
@@ -176,9 +184,13 @@ export class OfflineScheduler {
     const account = ports.account();
     const gardens = ports.gardens();
     if (!account || !gardens) return;
+    const focus = (): OfflineFocus => ({
+      activeGarden: ports.activeGarden(),
+      gardenInView: this.gardenInView,
+    });
     const queue = new OfflineRunQueue(
-      { client: ports.client, account, gardens, gardenInView: () => this.activeGarden },
-      planOfflineContent(gardens, account, ports.chainId, this.activeGarden),
+      { client: ports.client, account, gardens, photoGardens: () => offlinePhotoGardens(focus()) },
+      planOfflineContent(gardens, account, ports.chainId, focus()),
       ports.avatarUrl()
     );
     const staleTime = refresh ? 0 : OFFLINE_REFRESH_MS;
