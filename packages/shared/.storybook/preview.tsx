@@ -1,6 +1,8 @@
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
-import { sb } from "storybook/test";
+import { mocked, sb } from "storybook/test";
+import { useServiceAccess, useServiceAccessMutation } from "../src/hooks/commitment-pooling/useServiceAccess";
+import { unavailableServiceAccess } from "../src/modules/commitment-pooling/data-service-access";
 import {
   withAdminStoryIsolation,
   withI18n,
@@ -48,6 +50,7 @@ sb.mock(import("../src/hooks/commitment-pooling/useCommitmentCycleNames.ts"), { 
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentJobs.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentPooling.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentQueueState.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useServiceAccess.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useAllocateHypercertSupport.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useConvictionStrategies.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useGardenCommunity.ts"), { spy: true });
@@ -88,6 +91,18 @@ sb.mock(import("../../admin/src/App.tsx"), { spy: true });
 sb.mock(import("../src/modules/app/posthog-browser.ts"), { spy: true });
 
 const preview: Preview = {
+  beforeEach: () => {
+    // Every story starts without service RPC/signing. Individual stories may replace these facts.
+    mocked(useServiceAccess).mockImplementation((key) => ({
+      data: key ? unavailableServiceAccess(key) : undefined,
+      isLoading: false, isError: false, error: null,
+      refetch: async () => ({ data: key ? unavailableServiceAccess(key) : undefined }),
+    }) as ReturnType<typeof useServiceAccess>);
+    mocked(useServiceAccessMutation).mockReturnValue({
+      isPending: false, error: null,
+      mutateAsync: async () => { throw new Error("Service signing unavailable in Storybook"); },
+    } as unknown as ReturnType<typeof useServiceAccessMutation>);
+  },
   globalTypes: {
     theme: {
       description: "Global theme for components",

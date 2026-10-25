@@ -1,13 +1,60 @@
-import { keccak256 } from "ethers";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { getCreate2Address, keccak256, zeroPadValue } from "ethers";
 import { describe, expect, it } from "vitest";
 import { buildTransferConditions, encodeConditions, permissionsConfigHash } from "../deploy/garden-roles";
 import {
   assertManifestMatchesNetworkDirectory,
   buildReleaseLock,
+  CONTRACTS_ROOT,
   commitmentPoolingImplementationRuntimeHash,
   loadReleaseManifest,
+  PRODUCTION_ARTIFACT_ROOT,
+  type ReleaseIdentity,
+  type ReleaseLock,
   validateReleaseManifest,
 } from "./release-manifest";
+
+interface ArtifactBytes {
+  object: string;
+  linkReferences?: Record<string, Record<string, Array<{ start: number; length: number }>>>;
+  immutableReferences?: Record<string, Array<{ start: number; length: number }>>;
+}
+
+function currentArtifact(identity: ReleaseIdentity): { bytecode: ArtifactBytes; deployedBytecode: ArtifactBytes } {
+  return JSON.parse(fs.readFileSync(path.join(PRODUCTION_ARTIFACT_ROOT, identity.artifact), "utf8"));
+}
+
+// Independent byte binding for these tests: use the artifact's byte offsets and ethers' hash/
+// CREATE2 primitives, rather than recording a new candidate hash in historical release data.
+function linkedArtifact(bytes: ArtifactBytes, identity: ReleaseIdentity): string {
+  let code = bytes.object.replace(/^0x/u, "");
+  for (const [source, libraries] of Object.entries(bytes.linkReferences ?? {})) {
+    for (const [name, references] of Object.entries(libraries)) {
+      const address = identity.libraries[`${source}:${name}`];
+      expect(address).toMatch(/^0x[0-9a-f]{40}$/iu);
+      for (const reference of references) {
+        expect(reference.length).toBe(20);
+        const start = reference.start * 2;
+        code = code.slice(0, start) + address.slice(2).toLowerCase() + code.slice(start + 40);
+      }
+    }
+  }
+  expect(code).toMatch(/^[0-9a-f]+$/iu);
+  return `0x${code}`;
+}
+
+function materializedRuntime(bytes: ArtifactBytes, identity: ReleaseIdentity): string {
+  let code = linkedArtifact(bytes, identity).slice(2);
+  for (const references of Object.values(bytes.immutableReferences ?? {})) {
+    for (const reference of references) {
+      expect(reference.length).toBe(32);
+      const start = reference.start * 2;
+      code = code.slice(0, start) + zeroPadValue(identity.address, 32).slice(2).toLowerCase() + code.slice(start + 64);
+    }
+  }
+  return `0x${code}`;
+}
 
 describe("combined commitment release manifest", () => {
   it("round-trips selectors and freezes the current supported route", () => {
@@ -301,8 +348,16 @@ describe("combined commitment release manifest", () => {
     expect(proxies).toHaveLength(5);
     expect(new Set(lock.identities.map((identity) => identity.address)).size).toBe(lock.identities.length);
     expect(Object.keys(lock.libraryMap)).toHaveLength(21);
-    expect(libraries.find((identity) => identity.name === "CommitmentPoolingClaimsLib")?.runtimeTemplateHash).toBe(
-      "0x9226b8fc80593906cb6f851c4b129a34ed48fb6bb7422bc84def33d011c7c7da",
+    expect(buildReleaseLock()).toEqual(lock);
+    const claimsLibrary = libraries.find((identity) => identity.name === "CommitmentPoolingClaimsLib");
+    if (!claimsLibrary) throw new Error("Release lock must include the Claims library");
+    const claimsArtifact = currentArtifact(claimsLibrary);
+    expect(claimsLibrary.creationCodeHash).toBe(keccak256(linkedArtifact(claimsArtifact.bytecode, claimsLibrary)));
+    expect(claimsLibrary.runtimeTemplateHash).toBe(
+      keccak256(materializedRuntime(claimsArtifact.deployedBytecode, claimsLibrary)),
+    );
+    expect(claimsLibrary.address).toBe(
+      getCreate2Address(lock.create2.factory, claimsLibrary.salt, claimsLibrary.creationCodeHash),
     );
     expect(libraries.find((identity) => identity.name === "SettlementFundingLib")).toBeDefined();
     expect(libraries.find((identity) => identity.name === "SettlementLifecycleLib")?.libraries).toHaveProperty(
@@ -313,8 +368,43 @@ describe("combined commitment release manifest", () => {
     expect(poolingImplementation?.libraries).toHaveProperty(
       "src/lib/CommitmentPooling/ClaimsLib.sol:CommitmentPoolingClaimsLib",
     );
-    expect(commitmentPoolingImplementationRuntimeHash(poolingImplementation)).toBe(
-      "0x3f4e55e1632bde5ef29aadf5224e5a07498b529c27e82d850829583a75fce27f",
+    const poolingArtifact = currentArtifact(poolingImplementation);
+    expect(poolingImplementation.creationCodeHash).toBe(
+      keccak256(linkedArtifact(poolingArtifact.bytecode, poolingImplementation)),
     );
+    expect(poolingImplementation.runtimeTemplateHash).toBe(
+      keccak256(linkedArtifact(poolingArtifact.deployedBytecode, poolingImplementation)),
+    );
+    expect(poolingImplementation.address).toBe(
+      getCreate2Address(lock.create2.factory, poolingImplementation.salt, poolingImplementation.creationCodeHash),
+    );
+    expect(Object.keys(poolingArtifact.deployedBytecode.immutableReferences ?? {})).toHaveLength(1);
+    expect(commitmentPoolingImplementationRuntimeHash(poolingImplementation)).toBe(
+      keccak256(materializedRuntime(poolingArtifact.deployedBytecode, poolingImplementation)),
+    );
+  });
+
+  it("preserves historical release bytecode pins independently of current candidate artifacts", () => {
+    const historical = JSON.parse(
+      fs.readFileSync(path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json"), "utf8"),
+    ) as ReleaseLock;
+    expect(
+      historical.identities.find((identity) => identity.name === "CommitmentPoolingClaimsLib")?.runtimeTemplateHash,
+    ).toBe("0x9226b8fc80593906cb6f851c4b129a34ed48fb6bb7422bc84def33d011c7c7da");
+    const pooling = historical.identities.find(
+      (identity) => identity.kind === "implementation" && identity.name === "CommitmentPoolingModule",
+    );
+    if (!pooling) throw new Error("Historical release lock must preserve the Pooling implementation");
+    expect(pooling).toMatchObject({
+      address: "0x6268ec974bb217De39E7756d75c8D523b9A79218",
+      creationCodeHash: "0x8043fb53315f35159c842befb679b7f78d1dd6f2d0b790b540028092e3abebfd",
+      runtimeTemplateHash: "0x5703805856d97bc71b449e1cdb7838d621b38815d192e6039482bbf4dfae312a",
+      immutableRuntime: true,
+    });
+    expect(pooling.address).toBe(getCreate2Address(historical.create2.factory, pooling.salt, pooling.creationCodeHash));
+    // Historical materialized UUPS runtime pin from this test before the service-access slice:
+    // 0x3f4e55e1632bde5ef29aadf5224e5a07498b529c27e82d850829583a75fce27f.
+    // The lock stores its template hash, not materialized bytecode; current candidate materialization
+    // is independently verified above rather than claiming this unavailable historical binary is rebuilt.
   });
 });

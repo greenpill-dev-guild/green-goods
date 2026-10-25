@@ -69,6 +69,330 @@
           ]
         }
       ]
+    },
+    {
+      "contract": "CommitmentPoolingModule",
+      "source": "src/lib/CommitmentPooling/ServiceOfferStorageLib.sol",
+      "namespace": "green.goods.commitment.service-offers.v1",
+      "struct": "State",
+      "constant": "STORAGE_SLOT",
+      "slot": "0x24ca80d21f1705094d1274ffc56402fbe8dcf0f5d16f72308874eba3e38f6e00",
+      "members": [
+        "mapping(uint256 commitmentId => Service.ServiceOfferTerms terms) terms",
+        "mapping(uint256 commitmentId => mapping(address buyer => Service.ServiceClaimConsent consent)) claimConsent",
+        "mapping(uint256 commitmentId => Service.ServiceClaimConsent consent) acceptedConsent"
+      ],
+      "referencedStructs": [
+        {
+          "source": "src/interfaces/ICommitmentServiceOffers.sol",
+          "struct": "ServiceOfferTermsInput",
+          "members": [
+            "ServicePaymentRoute route",
+            "bytes32 serviceTermsRef",
+            "bytes32 remedyTermsRef",
+            "uint256 voucherChainId",
+            "address voucherIssuer",
+            "address voucherToken",
+            "uint256 voucherUnits"
+          ]
+        },
+        {
+          "source": "src/interfaces/ICommitmentServiceOffers.sol",
+          "struct": "ServiceOfferTerms",
+          "members": ["uint64 revision", "bytes32 termsHash", "ServiceOfferTermsInput terms"]
+        },
+        {
+          "source": "src/interfaces/ICommitmentServiceOffers.sol",
+          "struct": "ServiceClaimConsent",
+          "members": [
+            "uint64 termsRevision",
+            "uint64 requestNonce",
+            "address buyerGarden",
+            "address voucherHolder",
+            "bytes32 termsHash",
+            "bytes32 claimHash"
+          ]
+        }
+      ]
+    },
+    {
+      "contract": "SettlementModule",
+      "source": "src/lib/Settlement/PersonalPurchaseStorageLib.sol",
+      "namespace": "green.goods.settlement.personal-service-purchases.v1",
+      "struct": "State",
+      "constant": "_STATE_SLOT",
+      "slot": "0x64a93a3248f51fd3aeb9fbdc8092d4a605842f1fe011ff3dab37abb5618add00",
+      "members": [
+        "mapping(uint256 fundingId => Personal.PersonalServicePurchase purchase) purchases",
+        "mapping(bytes32 purchaseId => uint256 fundingId) fundingOfPurchase",
+        "mapping(bytes32 receiptKey => uint256 fundingId) fundingOfVerifiedReceipt"
+      ],
+      "referencedStructs": [
+        {
+          "source": "src/interfaces/ISettlementPersonalServicePurchases.sol",
+          "struct": "PersonalPurchaseTerms",
+          "members": [
+            "uint8 version",
+            "bytes32 purchaseId",
+            "uint256 sourceChainId",
+            "address sourceModule",
+            "uint256 commitmentId",
+            "uint64 termsRevision",
+            "bytes32 termsHash",
+            "bytes32 claimHash",
+            "uint64 requestNonce",
+            "address buyer",
+            "address recipient",
+            "address buyerGarden",
+            "address providerGarden",
+            "uint64 destinationChainId",
+            "address token",
+            "uint256 price",
+            "address custodySafe",
+            "address authorizedDepositor",
+            "address refundAccount",
+            "uint256 disclosedGrossAmount",
+            "uint256 disclosedNetAmount"
+          ]
+        },
+        {
+          "source": "src/interfaces/ISettlementPersonalServicePurchases.sol",
+          "struct": "VerifiedCeloDeposit",
+          "members": [
+            "uint64 chainId",
+            "address token",
+            "bytes32 transactionHash",
+            "uint32 logIndex",
+            "uint64 blockNumber",
+            "bytes32 blockHash",
+            "address depositingAccount",
+            "address custodySafe",
+            "uint256 grossDebit",
+            "uint256 receivedAmount"
+          ]
+        },
+        {
+          "source": "src/interfaces/ISettlementPersonalServicePurchases.sol",
+          "struct": "PersonalServicePurchase",
+          "members": [
+            "PersonalPurchaseTerms terms",
+            "VerifiedCeloDeposit deposit",
+            "PersonalPurchaseOutcome outcome",
+            "uint256 payoutPlanId"
+          ]
+        }
+      ]
+    },
+    {
+      "contract": "CommitmentPoolingModule",
+      "source": "src/lib/CommitmentPooling/VoucherAcceptanceStorageLib.sol",
+      "namespace": "green.goods.commitment.voucher-acceptance.v1",
+      "struct": "State",
+      "constant": "STORAGE_SLOT",
+      "slot": "0x2a0cd18ddd2b7d150ef77dca59e4be43f0f695a2fe45d7eb95c5e91d734cdf00",
+      "referencedStructs": [
+        {
+          "source": "src/interfaces/ICommitmentVoucherAcceptance.sol",
+          "struct": "EarnedVoucherBinding",
+          "members": [
+            "address module",
+            "uint64 revision",
+            "bytes32 termsHash",
+            "uint64 acceptedRevision",
+            "bytes32 acceptedTermsHash",
+            "address acceptedCounterparty"
+          ]
+        },
+        {
+          "source": "src/interfaces/ICommitmentVoucherAcceptance.sol",
+          "struct": "VoucherServiceAcceptance",
+          "members": [
+            "address setupModule",
+            "bytes32 claimHash",
+            "uint64 termsRevision",
+            "uint64 requestNonce",
+            "bytes32 setupId",
+            "bytes32 authorizationHash",
+            "bytes32 depositReceiptHash"
+          ]
+        }
+      ],
+      "members": [
+        "address earnedVoucherModule",
+        "address voucherServiceSetupModule",
+        "mapping(uint256 commitmentId => Voucher.EarnedVoucherBinding binding) earned",
+        "mapping(uint256 commitmentId => Voucher.VoucherServiceAcceptance acceptance) acceptedService"
+      ]
+    },
+    {
+      "contract": "VoucherRedemptionModule",
+      "source": "src/lib/VoucherService/VoucherServiceSourceStorage.sol",
+      "namespace": "green.goods.voucher.service-setup.source.v2",
+      "struct": "State",
+      "constant": "_STATE_SLOT",
+      "slot": "0x18442dc581f1c0fc106d2b09718fbfbae7a35cba9b1341fae03490a7b8ef3200",
+      "referencedStructs": [
+        {
+          "source": "src/lib/VoucherService/VoucherServiceSourceStorage.sol",
+          "struct": "SourceSetup",
+          "members": [
+            "bytes32 authorizationHash",
+            "bytes32 depositReceiptHash",
+            "bytes32 decisionId",
+            "bytes32 lastPrepareMessageId",
+            "bytes32 lastDecisionMessageId",
+            "bytes32 latestResultHash",
+            "uint64 latestResultSequence",
+            "uint64 decisionAt",
+            "Codec.SetupDecision decision",
+            "Codec.SetupPhase latestDestinationPhase",
+            "uint256 depositedUnits",
+            "uint256 setupRefundedUnits"
+          ]
+        },
+        {
+          "source": "src/libraries/VoucherServiceCodec.sol",
+          "struct": "SetupResult",
+          "members": [
+            "uint8 version",
+            "bytes32 setupId",
+            "bytes32 authorizationHash",
+            "uint64 resultSequence",
+            "SetupPhase phase",
+            "SetupDecision decision",
+            "bool issuerApproved",
+            "bytes32 depositReceiptHash",
+            "uint256 depositedUnits",
+            "uint256 setupRefundedUnits",
+            "bytes32 appliedDecisionId",
+            "bool actionSucceeded",
+            "bytes32 failureHash"
+          ]
+        },
+        {
+          "source": "src/libraries/VoucherServiceCodec.sol",
+          "struct": "FinalResultV2",
+          "members": [
+            "uint8 protocolVersion",
+            "bytes32 setupId",
+            "bytes32 payloadHash",
+            "uint64 sequence",
+            "bytes32 activationDecisionId",
+            "bytes32 decisionId",
+            "uint256 issuerReturnApprovalAtFreeze",
+            "FinalAllocation allocation",
+            "LegProgress release",
+            "LegProgress refund"
+          ]
+        },
+        {
+          "source": "src/libraries/VoucherServiceCodec.sol",
+          "struct": "FinalAllocation",
+          "members": [
+            "uint256 approvedDeliveredServiceUnits",
+            "uint256 releaseVoucherUnits",
+            "uint256 refundVoucherUnits"
+          ]
+        },
+        {
+          "source": "src/libraries/VoucherServiceCodec.sol",
+          "struct": "LegProgress",
+          "members": ["LegState state", "uint64 attempts", "bytes32 failureHash"]
+        }
+      ],
+      "members": [
+        "mapping(bytes32 => SourceSetup) setups",
+        "mapping(bytes32 => bytes) authorizations",
+        "mapping(uint256 => mapping(bytes32 => bytes32)) setupOfClaim",
+        "mapping(bytes32 => bytes32) receivedTransportPayload",
+        "mapping(bytes32 => bytes) decisionCommands",
+        "mapping(bytes32 => Codec.SetupResult) latestSetupResults",
+        "mapping(bytes32 => Codec.FinalResultV2) latestFinalResults",
+        "mapping(bytes32 => mapping(uint64 => bytes32)) setupSequenceHashes",
+        "mapping(bytes32 => mapping(uint64 => bytes32)) finalSequenceHashes"
+      ]
+    },
+    {
+      "contract": "GnosisVoucherEscrow",
+      "source": "src/libraries/VoucherServiceEscrowStorage.sol",
+      "namespace": "green.goods.voucher.service-setup.destination.v2",
+      "struct": "State",
+      "constant": "SLOT",
+      "slot": "0xaeb0057f8515f074fc3833f8f411699c5870ab18e632fdaef8eadaf75851ba00",
+      "referencedStructs": [
+        {
+          "source": "src/libraries/VoucherServiceEscrowStorage.sol",
+          "struct": "Execution",
+          "members": [
+            "bytes authorization",
+            "Codec.SetupResult result",
+            "Codec.SetupAction pendingAction",
+            "bytes decision",
+            "bytes failureReason",
+            "uint256 issuerReturnCeiling",
+            "bool holderAbortRequested",
+            "Acknowledgment setupAcknowledgment",
+            "Acknowledgment finalAcknowledgment",
+            "uint64 finalSequence",
+            "Codec.FinalAllocationRecord finalAllocation"
+          ]
+        },
+        {
+          "source": "src/libraries/VoucherServiceEscrowStorage.sol",
+          "struct": "Acknowledgment",
+          "members": ["uint64 sequence", "bytes32 messageId", "bytes32 failureHash"]
+        },
+        {
+          "source": "src/libraries/VoucherServiceCodec.sol",
+          "struct": "SetupResult",
+          "members": [
+            "uint8 version",
+            "bytes32 setupId",
+            "bytes32 authorizationHash",
+            "uint64 resultSequence",
+            "SetupPhase phase",
+            "SetupDecision decision",
+            "bool issuerApproved",
+            "bytes32 depositReceiptHash",
+            "uint256 depositedUnits",
+            "uint256 setupRefundedUnits",
+            "bytes32 appliedDecisionId",
+            "bool actionSucceeded",
+            "bytes32 failureHash"
+          ]
+        },
+        {
+          "source": "src/libraries/VoucherServiceCodec.sol",
+          "struct": "FinalAllocationRecord",
+          "members": [
+            "bytes32 decisionId",
+            "bytes32 activationDecisionId",
+            "uint256 issuerReturnApprovalAtFreeze",
+            "FinalAllocation allocation",
+            "LegProgress release",
+            "LegProgress refund"
+          ]
+        },
+        {
+          "source": "src/libraries/VoucherServiceCodec.sol",
+          "struct": "FinalAllocation",
+          "members": [
+            "uint256 approvedDeliveredServiceUnits",
+            "uint256 releaseVoucherUnits",
+            "uint256 refundVoucherUnits"
+          ]
+        },
+        {
+          "source": "src/libraries/VoucherServiceCodec.sol",
+          "struct": "LegProgress",
+          "members": ["LegState state", "uint64 attempts", "bytes32 failureHash"]
+        }
+      ],
+      "members": [
+        "mapping(bytes32 setupId => Execution execution) executions",
+        "mapping(bytes32 messageId => bytes32 payloadHash) transportPayloads",
+        "mapping(address token => uint256 unspentUnits) liabilities"
+      ]
     }
   ]
 }

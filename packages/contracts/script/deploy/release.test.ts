@@ -1,9 +1,15 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { formatCastFailure, parseCastTransactionHash } from "../utils/cast-env";
-import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
+import {
+  buildReleaseLock,
+  loadReleaseManifest,
+  PRODUCTION_ARTIFACT_ROOT,
+  type ReleaseLock,
+} from "../utils/release-manifest";
 import type { ReleaseTransactionBoundary } from "../utils/release-plan";
 import { buildStageTransactionPlan } from "../utils/release-plan";
 import { retryRpcAvailability } from "../utils/rpc-retry";
@@ -26,24 +32,145 @@ const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const ARBITRUM_ARTIFACT = path.join(CONTRACTS_ROOT, "deployments/42161-latest.json");
 const CELO_ARTIFACT = path.join(CONTRACTS_ROOT, "deployments/42220-latest.json");
 const TRANSACTION_HASH = `0x${"a".repeat(64)}`;
+const CANONICAL_FILES = [
+  ARBITRUM_ARTIFACT,
+  CELO_ARTIFACT,
+  path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.json"),
+  path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json"),
+];
+let temporaryWorkspace: string;
+let cliRoot: string;
+let canonicalBefore: Buffer[];
+let derivedLockBytes: Buffer;
+
+// Exercise the unchanged CLI against copied public inputs/current artifacts. Only installed
+// dependencies are shared: no production script, configuration, artifact or output is writable
+// through a symlink into the checkout, and the disposable workspace contains no .env file.
+beforeAll(() => {
+  const manifest = loadReleaseManifest();
+  const lock = buildReleaseLock(manifest);
+  temporaryWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), "gg-release-cli-test-"));
+  cliRoot = path.join(temporaryWorkspace, "packages/contracts");
+  fs.mkdirSync(cliRoot, { recursive: true });
+  fs.cpSync(path.join(CONTRACTS_ROOT, "script"), path.join(cliRoot, "script"), { recursive: true, dereference: true });
+  fs.cpSync(path.join(CONTRACTS_ROOT, "deployments"), path.join(cliRoot, "deployments"), {
+    recursive: true,
+    dereference: true,
+  });
+  fs.mkdirSync(path.join(cliRoot, "config"), { recursive: true });
+  for (const name of ["commitment-pooling-release.json", "commitment-pooling-release.lock.json"]) {
+    fs.copyFileSync(path.join(CONTRACTS_ROOT, "config", name), path.join(cliRoot, "config", name));
+  }
+  const artifactPaths = new Set([
+    ...lock.identities.map((identity) => identity.artifact),
+    manifest.schemaPreparation.implementationArtifact,
+    manifest.schemaPreparation.proxyArtifact,
+    ...manifest.existingProxyUpgrades.map((upgrade) => upgrade.finalArtifact),
+  ]);
+  CANONICAL_FILES.push(...[...artifactPaths].map((relative) => path.join(PRODUCTION_ARTIFACT_ROOT, relative)));
+  canonicalBefore = CANONICAL_FILES.map((file) => fs.readFileSync(file));
+  for (const relative of artifactPaths) {
+    const destination = path.join(cliRoot, ".generated/foundry/out/production", relative);
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(path.join(PRODUCTION_ARTIFACT_ROOT, relative), destination);
+  }
+  fs.symlinkSync(path.join(CONTRACTS_ROOT, "../../node_modules"), path.join(temporaryWorkspace, "node_modules"));
+  // Existing production lock generation runs only in this disposable test checkout. The real
+  // historical lock stays frozen and still rejects changed production artifacts.
+  run(["release-manifest", "--network", "arbitrum", "--save-artifacts"]);
+  derivedLockBytes = fs.readFileSync(path.join(cliRoot, "config/commitment-pooling-release.lock.json"));
+  // Give the disposable candidate matching deployment records, just as the historical CLI
+  // fixture did for its historical binary. No canonical identities are promoted or replaced.
+  for (const [chainId, stages] of [
+    ["42161", ["pooling", "settlement-module", "credit-registry"]],
+    ["42220", ["settlement-executor"]],
+  ] as const) {
+    const file = path.join(cliRoot, "deployments", `${chainId}-latest.json`);
+    const candidate = JSON.parse(fs.readFileSync(file, "utf8"));
+    for (const stage of stages) Object.assign(candidate, predictedSide(lock, stage));
+    fs.writeFileSync(file, `${JSON.stringify(candidate, null, 2)}\n`);
+  }
+});
+
+afterAll(() => {
+  try {
+    CANONICAL_FILES.forEach((file, index) => expect(fs.readFileSync(file).equals(canonicalBefore[index])).toBe(true));
+  } finally {
+    if (temporaryWorkspace) fs.rmSync(temporaryWorkspace, { recursive: true, force: true });
+  }
+});
 
 function run(args: string[], env: NodeJS.ProcessEnv = process.env): string {
-  return execFileSync("bun", ["script/deploy.ts", ...args], {
-    cwd: CONTRACTS_ROOT,
+  return execFileSync("bun", ["--no-env-file", "script/deploy.ts", ...args], {
+    cwd: cliRoot,
     encoding: "utf8",
     env,
   });
 }
 
 function fail(args: string[], env: NodeJS.ProcessEnv = process.env) {
-  return spawnSync("bun", ["script/deploy.ts", ...args], {
-    cwd: CONTRACTS_ROOT,
+  return spawnSync("bun", ["--no-env-file", "script/deploy.ts", ...args], {
+    cwd: cliRoot,
     encoding: "utf8",
     env,
   });
 }
 
 describe("release CLI real entrypoints", () => {
+  it("rejects a stale copied historical lock before planning without changing canonical history", () => {
+    const lockPath = path.join(cliRoot, "config/commitment-pooling-release.lock.json");
+    const historical = canonicalBefore[3];
+    // Force drift only when testing a checkout whose current artifacts still match history;
+    // either setup exercises exactly the same unconditional production rejection.
+    const stale = JSON.parse(historical.toString()) as ReleaseLock;
+    if (JSON.stringify(stale) === JSON.stringify(JSON.parse(derivedLockBytes.toString())))
+      stale.identities[0].creationCodeHash = `0x${"0".repeat(64)}`;
+    fs.writeFileSync(lockPath, `${JSON.stringify(stale, null, 2)}\n`);
+    try {
+      const result = fail(["pooling", "--network", "arbitrum", "--pure-simulation"]);
+      expect(result.status).toBe(1);
+      expect(`${result.stdout}${result.stderr}`).toContain(
+        "Frozen release lock differs from current production artifacts or manifest",
+      );
+      expect(`${result.stdout}${result.stderr}`).not.toContain("planning and dry-run require --expected-nonce");
+      expect(
+        fs.existsSync(
+          path.join(cliRoot, ".generated/release", stale.releaseId, "arbitrum", "pooling-transaction-plan.json"),
+        ),
+      ).toBe(false);
+      CANONICAL_FILES.forEach((file, index) => expect(fs.readFileSync(file).equals(canonicalBefore[index])).toBe(true));
+    } finally {
+      fs.writeFileSync(lockPath, derivedLockBytes);
+    }
+  });
+
+  it("rejects conflicting copied deployment identities without overwriting history", () => {
+    const file = path.join(cliRoot, "deployments/42161-latest.json");
+    const candidateBytes = fs.readFileSync(file);
+    const conflict = JSON.parse(candidateBytes.toString());
+    conflict.settlementModule = "0x0000000000000000000000000000000000000001";
+    const conflictBytes = Buffer.from(`${JSON.stringify(conflict, null, 2)}\n`);
+    fs.writeFileSync(file, conflictBytes);
+    try {
+      const result = fail([
+        "settlement-module",
+        "--network",
+        "arbitrum",
+        "--pure-simulation",
+        "--expected-nonce",
+        "700",
+      ]);
+      expect(result.status).toBe(1);
+      expect(`${result.stdout}${result.stderr}`).toContain("Conflicting canonical release key settlementModule");
+      expect(fs.readFileSync(file).equals(conflictBytes)).toBe(true);
+      CANONICAL_FILES.forEach((canonical, index) =>
+        expect(fs.readFileSync(canonical).equals(canonicalBefore[index])).toBe(true),
+      );
+    } finally {
+      fs.writeFileSync(file, candidateBytes);
+    }
+  });
+
   it("redacts RPC credentials from captured Cast failures", () => {
     const error = { stderr: "transport failed for https://arb-mainnet.g.alchemy.com/v2/private-key" };
 
