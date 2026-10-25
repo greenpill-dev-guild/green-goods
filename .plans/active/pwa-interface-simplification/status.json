@@ -4,13 +4,13 @@
     "slug": "pwa-interface-simplification",
     "title": "PWA Interface Simplification",
     "kind": "feature",
-    "stage": "backlog"
+    "stage": "active"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-21T07:10:00Z"
+    "updated_at": "2026-10-25T02:08:18.929Z"
   },
   "links": {
     "brief": "brief.md",
@@ -32,7 +32,16 @@
     "trackers": {
       "implementation": "PRD-1260",
       "design_cohesion": "PRD-1261",
-      "release_acceptance": "PRD-1262"
+      "release_acceptance": "PRD-1262",
+      "slice_1": "PRD-1295",
+      "slice_2": "PRD-1296",
+      "garden_chip": "PRD-1278",
+      "home_stewards_crash": "PRD-1311",
+      "start_step": "PRD-1345",
+      "notifications": "PRD-1346",
+      "open_asks": "PRD-1347",
+      "one_submission_flow": "PRD-1348",
+      "steward_duties": "PRD-1349"
     }
   },
   "taxonomy": {
@@ -43,6 +52,7 @@
     "depends_on_features": []
   },
   "notes": [
+    "2026-10-24 (start gate): the maintainer gave the execution go for both slices and answered the start gate: the app's chip is 32px with a 48px hit area, amending #1251's 44px app density; the banner avatar on both surfaces (decision 33); step 18 before step 13, then 17 (decision 34). The hub moved to active; state_api is ready for steps 1 and 2, ui waits on it. #1162 merged with a gardener-and-steward members-only check that step 1 moves onto the membership owner. Linear: PRD-1296's Done-when rewritten for decisions 4, 22, 27 and 32; sub-issues PRD-1345 to PRD-1349 filed under PRD-1260 for steps 13, 14-15, 16-17, 18 and 19; both slices' hub links point at develop.",
     "2026-10-21 (lock): the maintainer took the rail for seasons and campaigns (decision 32) and locked the plan and scope; the design rounds are closed and the hub PR is marked ready to merge into develop. Implementation still awaits a separate go; the next step is the implementation start gate (Linear sync for the parent record, promotion to active, the first slice's lane).",
     "2026-10-21 (picks): the maintainer pasted the lab's picks (decision 27) and called the design good enough to implement: the carousel back (decision 14 reversed), cards, the compact promise card, Log Work on Its Own, Needs Your Attention, the wallet in the header, the Insights banner, no Work-for pin (decision 6 amended by 28). Three tweaks recorded as decisions 29 to 31: the compact card folds its needs into +N, the info panel keeps one height, the progressor uses its width. Seasons and campaigns, which are commitment-pool cycles shown today only on the old Pool tab, are proposed as decision 32 (the rail in the Promises sheet, the open cycles leading the carousel, the shipped details sheet) and drawn in the lab for a pick. Implementation still awaits a separate go.",
     "2026-10-21 (later): the maintainer's review of the steward Home. Settled: English section headings in Title Case (decision 25); Governance out of About while its flag is off (26); the duties section is for stewards only with four queues, each row opening its exact queue (22 amended); the bell carries events, never counts (11 amended); the evaluator left the lab. Drawn as explorations: four titles for the duties section, a compact promise card (recommended), the wallet launcher in Profile, the banner in the Insights sheet, and the long-name chip measured at 390 and 360px.",
@@ -67,7 +77,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "todo",
       "branch": null,
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
@@ -82,19 +92,18 @@
           "command": "",
           "evidence": ""
         },
-        "note": "Future behavior-changing implementation requires focused RED/GREEN proof; no implementation or test evidence recorded by this planning task."
+        "note": "Slice 1 (steps 3, 4's interface and 6) is behavior-changing: focused RED/GREEN proof is required; rendered proof follows AGENTS.md Browser Evidence labels."
       },
       "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": false,
-      "manual_blocked": true,
-      "blocked_reason": "Scope locked on 2026-10-18; await explicit execution authorization and the first-slice handoff."
+      "manual_blocked": false
     },
     "state_api": {
-      "owner": "codex",
-      "status": "blocked",
+      "owner": "claude",
+      "status": "ready",
       "branch": null,
       "depends_on": [],
-      "handoff": "handoffs/codex-state-api.md",
+      "handoff": "handoffs/claude-state-api.md",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -106,12 +115,11 @@
           "command": "",
           "evidence": ""
         },
-        "note": "Future behavior-changing implementation requires focused RED/GREEN proof; no implementation or test evidence recorded by this planning task."
+        "note": "Slice 1 (steps 1 and 2, then the state parts of 4 and 5) is behavior-changing: focused RED/GREEN proof is required and recorded in the handoff and with record-tdd."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"],
-      "ready_when_dependencies_met": false,
-      "manual_blocked": true,
-      "blocked_reason": "Scope locked on 2026-10-18; await explicit execution authorization and the first-slice handoff."
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -143,7 +151,7 @@
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing", "review"],
-      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+      "blocked_reason": "Acceptance (step 20) runs after both slices merge."
     },
     "qa_pass_2": {
       "owner": "codex",
@@ -154,7 +162,7 @@
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
       "skill_tags": ["testing", "review"],
-      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+      "blocked_reason": "Acceptance (step 20) runs after both slices merge."
     }
   },
   "history": [
@@ -277,6 +285,30 @@
       "status": "design_accepted",
       "branch": "research/pwa-garden-home-scope-lock",
       "note": "The maintainer took the rail (decision 32) and locked the plan and scope; the design rounds are closed and the hub PR is ready for merge. Lanes stay blocked until execution is authorized."
+    },
+    {
+      "timestamp": "2026-10-25T02:03:14.391Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-10-25T02:08:18Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "start_gate",
+      "branch": "feature/pwa-garden-home-guides",
+      "note": "Execution authorized for both slices. Recorded decisions 33 and 34, opened the slice 1 lanes (state_api ready, ui todo), wrote their handoffs, and recorded the slice and sub-issue trackers. qa lanes stay blocked until both slices merge."
+    },
+    {
+      "timestamp": "2026-10-25T02:08:18.929Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }

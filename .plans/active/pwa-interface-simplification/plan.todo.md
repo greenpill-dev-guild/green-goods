@@ -1,5 +1,15 @@
 # PWA Interface Simplification Plan
 
+**2026-10-24 start gate:** the maintainer gave the execution go for both slices and answered the
+start gate, recorded in [spec.md](spec.md#start-gate-on-24-october-2026): the app's chip is 32px
+with a 48px hit area, amending the 44px app density that #1251 merged; the chip shows the garden's
+banner on both surfaces, so the cockpit's chip changes with it (decision 33); and in the second
+slice step 18 comes before step 13, then step 17 (decision 34). The hub moved to `active`. #1162
+merged the same day with a members-only check for the two family test gardens that reads
+gardeners and stewards; step 1 moves that check onto the membership owner. Steps 13, 14 and 15,
+16 and 17, 18 and 19 have their own Linear sub-issues under PRD-1260, listed in
+[status.json](status.json).
+
 **2026-10-20 design round:** the Start step was reopened against the design books and settled
 as decisions 16 to 20 in [spec.md](spec.md#review-round-on-20-october-2026); step 13 carries the
 one-question step, and steps 16 and 17 the Open default and the take-up from the step. Later
@@ -31,9 +41,9 @@ Linear visibility is authorized; this supersedes earlier statements that this hu
 record.
 
 **Feature Slug:** `pwa-interface-simplification`
-**Stage:** backlog
-**Status:** SCOPE LOCKED AND DESIGN ACCEPTED (locked 18 October 2026, design rounds closed 21 October); implementation awaits a separate go
-**Created / Last Updated:** 2026-10-06 / 2026-10-21
+**Stage:** active
+**Status:** IN DELIVERY (execution authorized 24 October 2026; the first slice is in progress)
+**Created / Last Updated:** 2026-10-06 / 2026-10-24
 **Linear Issue:** RESR-93
 **Linear Project:** Green Goods v2.1.0 QA & Release
 **Linear Source:** source:plans
@@ -58,27 +68,29 @@ state. Existing Linear records provide planning and delivery visibility.
 - [x] Pick from the lab (20 October, decision 27): no Work-for pin, Home's rows as cards, the compact promise card, Log Work on Its Own, Needs Your Attention, the wallet launcher in the header, the banner in Insights, and the Highlights carousel back.
 - [x] Pick the seasons and campaigns placement (21 October, decision 32: the rail; the chips and none stay in the lab).
 - [ ] Review the About placement after the first slice renders in the app.
-- [ ] Approve the first implementation slice and promote the hub only when execution is authorized.
+- [x] Approve the first implementation slice and promote the hub only when execution is authorized
+      (24 October: both slices authorized, the hub promoted, the slice 1 lanes opened).
 
-On 21 October the maintainer took the rail (decision 32) and locked the plan and scope. What remains
-before code is the implementation start gate: the authorization itself, the Linear sync for the
-parent record, promotion to `active`, and the first slice's lane with its proof mode.
+On 21 October the maintainer took the rail (decision 32) and locked the plan and scope. The
+implementation start gate ran on 24 October: the authorization, the parent record's sync, the
+promotion to `active`, and the first slice's lanes with required TDD proof.
 
 The lab in [artifacts](artifacts/README.md) is the portable, sanitized record of the accepted
 design. It holds no private transcript material or host-specific previews.
 
 ## Conditional delivery sequence
 
-These steps describe future work. They are not authorization to start it. Select exact files and
-focused tests from the then-current owning code before each bounded change. Split a step further
-if it would exceed one coherent session or mix independent behaviors. Steps 1 to 6 are the first
-slice; steps 7 to 19 the second; step 20 accepts both.
+The maintainer authorized these steps on 24 October 2026. Select exact files and focused tests
+from the then-current owning code before each bounded change. Split a step further if it would
+exceed one coherent session or mix independent behaviors. Steps 1 to 6 are the first slice; steps
+7 to 19 the second; step 20 accepts both. In the second slice, step 18 comes before step 13, then
+step 17 (decision 34); step 16 can land at any time.
 
 | Step | Lane | Work and likely owners | Completion evidence |
 |---|---|---|---|
 | 1. Membership owner | `state_api` | One Shared module answers which roles an account holds in a garden (gardener, steward, owner, evaluator, pending open join), and a hook returns the candidate gardens with loaded, error and stale flags. Home's filter, Profile's list, Submit Work, the offline scheduler and the arrival state move onto it. | Focused proof for each role, a pending join, a stale list and a failed read; the five earlier derivations gone or delegating. |
 | 2. Active-garden store and resolver | `state_api` | A persisted Shared store keyed by chain and account, and a resolver with the states loading, error, none, choose and ready: one candidate selects itself; a stored id wins while eligible; several with nothing eligible is choose. | Resolver tests for zero, one, several, stored-eligible, stored-stale, cached-while-loading, error-without-cache and an account switch; no draft, queued job or promise link touched. |
-| 3. Home shell | `ui` | The shared `GardenChip` at the app's 32px with the garden's banner as its avatar (the look in PRD-1278), the half-tier switcher sheet with the member's gardens (banner, place, role) and Explore gardens, Explore with one tag on each card's photo and the family test gardens shown only to their members, the one-time chooser, the no-garden Home, the header sticky with a hairline once scrolled, and an Explore route under Home declared before the garden id route. | Rendered none, one, several-first-run and several-remembered states at 360 and 390px in three languages; the bottom bar stays on Explore; a visit never writes the store. |
+| 3. Home shell | `ui` | The shared `GardenChip` at the app's 32px with a 48px hit area and the garden's banner as its avatar on both surfaces (the look in PRD-1278, decision 33), opening the switcher through an additive callback while the cockpit keeps its popover, the half-tier switcher sheet with the member's gardens (banner, place, role) and Explore gardens, Explore with one tag on each card's photo and the family test gardens shown only to their members, the one-time chooser, the no-garden Home, the header sticky with a hairline once scrolled, and an Explore route under Home declared before the garden id route. | Rendered none, one, several-first-run and several-remembered states at 360 and 390px in three languages; the bottom bar stays on Explore; a visit never writes the store. |
 | 4. Submit Work preselection | `state_api`, `ui` | The active garden as the last fallback after a promise link, a resumed draft and navigation state; the picker hidden when the garden is valid for the chosen action; no garden pin, and one line under the steps that names the submission garden whenever it differs from the active one, whether a resumed draft, a promise link or navigation state selected it (decision 28). | Controller test for the precedence order; a draft from another garden resumes its own and shows its line, as does a promise link to another garden; rendered Start step with and without a valid garden. |
 | 5. Offline photo garden | `state_api` | The scheduler keeps the active garden's photos first and the viewed garden's second. | Policy test for active and viewed gardens; which lists are kept does not change. |
 | 6. Profile list and guides | `ui` | Profile's gardens list on the shared membership, marking the active garden; decision-log rows, strings in three languages, Storybook states, the PWA design guide's content hierarchy. | Locale coverage; stories for the five Home states; the design checks pass. |

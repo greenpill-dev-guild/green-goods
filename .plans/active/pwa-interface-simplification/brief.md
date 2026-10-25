@@ -1,6 +1,6 @@
 # PWA Interface Simplification
 
-**Stage:** backlog · **Posture:** scope locked on 18 October 2026, completed by the 19 October review and extended on 20 October, with the lab's picks taken late that day and the design rounds closed on 21 October; implementation waits for a separate go
+**Stage:** active · **Posture:** scope locked on 18 October 2026, completed by the 19 October review and extended on 20 October, with the lab's picks taken late that day and the design rounds closed on 21 October; execution authorized on 24 October 2026
 
 **Linear:** [RESR-93](https://linear.app/greenpill-dev-guild/issue/RESR-93) in
 [Green Goods 2.1.0](https://linear.app/greenpill-dev-guild/project/green-goods-v210-qa-and-release-9bcaf982d5e5).
@@ -98,9 +98,10 @@ scope.
 ## Scope and boundaries
 
 This hub owns PWA Home composition, garden context, sheet entry points, and submission entry/resume
-continuity. The lock authorizes recording the scope and its Linear visibility. It does not authorize
-application edits, deployment, transactions, role-policy changes, new financial instruments, or a
-merge of the client and Community PWAs. No dependency, contract, indexer, or admin redesign is
+continuity. The 24 October go authorizes the application edits in the plan's steps. It does not
+authorize deployment, transactions, role-policy changes, new financial instruments, contract,
+indexer or admin feature work beyond the shared chip's look (decision 33), or a merge of the client
+and Community PWAs. No dependency, contract, indexer, or admin redesign is
 proposed. PRD-1261 separately covers consistent shared patterns on the selected member/steward
 journeys while preserving each surface's design dialect and permissions.
 
