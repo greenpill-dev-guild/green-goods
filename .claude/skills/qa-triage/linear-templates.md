@@ -59,7 +59,7 @@ That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS th
 
 **Required link**: every Customer Need must carry an `issue` (or `project`) parameter. Linear's API rejects with `Exactly one of projectId or issueId must be defined` otherwise. There is no standalone Need path — use the track-only pattern below for items that should be recorded without claiming committed fix work.
 
-**Customer**: `customer` comes from the speaker external IDs on the customer record, per [routing rule 2](../../context/linear-routing-rules.md#invariant-rules). A workspace member with no alias gets no need, and any other unmatched speaker keeps `Customer: unresolved` in the body.
+**Customer**: resolve `customer` from the speaker external IDs on the customer record per [routing rule 2](../../context/linear-routing-rules.md#invariant-rules), which also says when a speaker is internal, when telemetry keeps a need for one, and when a match stays unresolved. An unresolved speaker keeps `Customer: unresolved` in the body and a need of their own.
 
 **Workflow state**: Customer Needs have no workflow state — they're raw-signal records that live alongside the Issue they're linked to.
 

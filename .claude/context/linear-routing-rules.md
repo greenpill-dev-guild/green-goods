@@ -26,12 +26,19 @@ routine limits; this file owns interactive routing and issue execution.
      never from a list in this repository: slug the speaker's name (lowercase ASCII; every
      run of other characters becomes one hyphen) and look the customer up by the external
      ID `green-goods:speaker:<slug>` with `list_customers` and `externalIds`. Speaker
-     aliases live on the customer record, where the workspace can edit them. A speaker
-     with no alias who is a non-guest workspace member is internal and gets the Issue but
-     no need, unless independent telemetry backs the report, in which case the need quotes
-     the telemetry summary rather than the teammate and carries no `customer`; anyone else
-     gets the need without `customer` and a `Customer: unresolved` line in its body for a
-     person to attach later.
+     aliases live on the customer record, where the workspace can edit them. A name
+     identifies someone only where the source vouches for who spoke, such as the notes of
+     a call the team hosted. There, a speaker with no alias who is a non-guest workspace
+     member is internal and gets the Issue but no need, unless independent telemetry backs
+     the report, in which case the need quotes the telemetry summary rather than the
+     teammate and carries no `customer`. A display name chosen in Discord or Telegram is
+     not an identity: it never sets `customer` or makes anyone internal, and a match only
+     names the candidate on the need's `Customer: unresolved` line for a person to
+     confirm. A slug that matches more than one customer, or a customer and a workspace
+     member, stays unresolved. Anyone else gets the need without `customer` and a
+     `Customer: unresolved` line for a person to attach later. A duplicate from the same
+     customer, or from the same unresolved reporter, is a comment on the existing need;
+     any other duplicate gets a need of its own on the same Issue.
    - Explicitly scoped community coordination → **Community**. Do not route
      engineering or product delivery there merely because a community reported it.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
