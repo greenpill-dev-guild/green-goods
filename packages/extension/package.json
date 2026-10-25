@@ -1,0 +1,35 @@
+{
+  "name": "@green-goods/extension",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Grove G0 feasibility spike: a disposable MV3 extension that measures the four prototype parts",
+  "scripts": {
+    "prepare:wxt": "wxt prepare",
+    "build": "wxt build",
+    "typecheck": "wxt prepare && tsc --noEmit -p tsconfig.json",
+    "lint": "bun --bun run oxlint src entrypoints g0 --deny-warnings",
+    "test": "wxt prepare && vitest run",
+    "g0": "node g0/run-g0.mjs"
+  },
+  "dependencies": {
+    "@earendil-works/chord": "1.3.0",
+    "@earendil-works/pi-ai": "1.3.0",
+    "@earendil-works/pi-durable": "1.3.0",
+    "@huggingface/transformers": "4.2.0",
+    "graphology": "0.26.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "sigma": "4.0.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.15",
+    "@types/react-dom": "19.2.3",
+    "@wxt-dev/module-react": "1.2.2",
+    "fake-indexeddb": "^6.2.5",
+    "graphology-types": "0.24.8",
+    "typescript": "~7.0.2",
+    "vitest": "4.1.11",
+    "wxt": "0.21.4"
+  }
+}
