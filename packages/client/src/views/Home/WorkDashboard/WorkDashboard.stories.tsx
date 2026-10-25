@@ -19,6 +19,7 @@ import { MemoryRouter } from "react-router-dom";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import {
   JOURNEY_GARDEN,
+  JOURNEY_GARDEN_RECORD,
   JOURNEY_NEIGHBOUR,
   JOURNEY_VIEWER,
   todayAt,
@@ -103,7 +104,12 @@ interface DashboardFrameProps {
   savedAt?: number;
   /** Queued work and decisions: renders the Pending header action when set. */
   uploads?: Partial<UploadBarState>;
+  /** The active garden, named under the title (DL-129); unset draws a member with none. */
+  gardenName?: string;
 }
+
+/** The frames hand the tab the active garden's rows already, so its own scope keeps them all. */
+const IN_ACTIVE_GARDEN = () => true;
 
 const NO_UPLOADS: UploadBarState = {
   readyCount: 0,
@@ -128,6 +134,7 @@ function DashboardFrame({
   isOffline = false,
   savedAt,
   uploads,
+  gardenName,
 }: DashboardFrameProps) {
   const intl = useIntl();
   const fixture = fixtureAt(moment, documentationPhoto);
@@ -156,12 +163,14 @@ function DashboardFrame({
     <WorkDashboardShell
       isClosing={false}
       onRequestClose={fn()}
+      gardenName={gardenName}
       tabs={tabs}
       activeTab={tab}
       onTabChange={fn()}
     >
       {tab === "pending" ? (
         <PendingTab
+          inScope={IN_ACTIVE_GARDEN}
           submissions={fixture.submissions}
           isOnThisDevice={(work) => work.status === "offline"}
           toReview={toReview}
@@ -439,6 +448,30 @@ export const PendingSpanish: Story = {
 
 export const PendingPortuguese: Story = {
   args: { uploads: READY },
+  parameters: { locale: "pt" },
+};
+
+/**
+ * In the member's active garden (DL-129): the sheet lists that garden's work
+ * only, and the line under its title names the garden in the description's place.
+ */
+export const PendingInActiveGarden: Story = {
+  args: { uploads: READY, gardenName: JOURNEY_GARDEN_RECORD.name },
+  play: async ({ canvasElement }) => {
+    const sheet = within(canvasElement.ownerDocument.body).getByRole("dialog", {
+      name: "Your Work",
+    });
+    await expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
+  },
+};
+
+export const PendingInActiveGardenSpanish: Story = {
+  args: { uploads: READY, gardenName: JOURNEY_GARDEN_RECORD.name },
+  parameters: { locale: "es" },
+};
+
+export const PendingInActiveGardenPortuguese: Story = {
+  args: { uploads: READY, gardenName: JOURNEY_GARDEN_RECORD.name },
   parameters: { locale: "pt" },
 };
 
