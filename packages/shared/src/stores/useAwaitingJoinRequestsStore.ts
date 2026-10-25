@@ -118,39 +118,42 @@ function parseRequestsByScope(value: unknown, now: number): RequestsByScope {
  */
 export const useAwaitingJoinRequestsStore = create<AwaitingJoinRequestsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       requestsByScope: {},
-      noteRequest: (scope, gardenId, request, now) =>
-        set((state) => {
-          const id = gardenId.toLowerCase();
-          const expiresAt = request?.state === "pending" ? Date.parse(request.expiresAt) : NaN;
-          const current = state.requestsByScope[scope];
-          let next = state.requestsByScope;
-          if (isTime(expiresAt) && expiresAt > now) {
-            if (current?.[id]?.expiresAt !== expiresAt) {
-              next = { ...next, [scope]: { ...current, [id]: { expiresAt } } };
-            }
-          } else if (current && id in current) {
-            next = {
-              ...next,
-              [scope]: Object.fromEntries(Object.entries(current).filter(([key]) => key !== id)),
-            };
+      // Both actions call `set` only for a change: the persist layer writes storage on every
+      // `set`, and a note that changes nothing (the roster check on each list read, a repeated
+      // answer) must leave storage alone.
+      noteRequest: (scope, gardenId, request, now) => {
+        const current = get().requestsByScope;
+        const id = gardenId.toLowerCase();
+        const expiresAt = request?.state === "pending" ? Date.parse(request.expiresAt) : NaN;
+        const requests = current[scope];
+        let next = current;
+        if (isTime(expiresAt) && expiresAt > now) {
+          if (requests?.[id]?.expiresAt !== expiresAt) {
+            next = { ...next, [scope]: { ...requests, [id]: { expiresAt } } };
           }
-          next = pruned(next, now);
-          return next === state.requestsByScope ? state : { requestsByScope: next };
-        }),
-      forgetRequests: (scope, gardenIds) =>
-        set((state) => {
-          const current = state.requestsByScope[scope];
-          if (!current) return state;
-          const gone = new Set(gardenIds.map((gardenId) => gardenId.toLowerCase()));
-          const kept = Object.entries(current).filter(([id]) => !gone.has(id));
-          if (kept.length === Object.keys(current).length) return state;
-          const next = { ...state.requestsByScope };
-          if (kept.length > 0) next[scope] = Object.fromEntries(kept);
-          else delete next[scope];
-          return { requestsByScope: next };
-        }),
+        } else if (requests && id in requests) {
+          next = {
+            ...next,
+            [scope]: Object.fromEntries(Object.entries(requests).filter(([key]) => key !== id)),
+          };
+        }
+        next = pruned(next, now);
+        if (next !== current) set({ requestsByScope: next });
+      },
+      forgetRequests: (scope, gardenIds) => {
+        const current = get().requestsByScope;
+        const requests = current[scope];
+        if (!requests) return;
+        const gone = new Set(gardenIds.map((gardenId) => gardenId.toLowerCase()));
+        const kept = Object.entries(requests).filter(([id]) => !gone.has(id));
+        if (kept.length === Object.keys(requests).length) return;
+        const next = { ...current };
+        if (kept.length > 0) next[scope] = Object.fromEntries(kept);
+        else delete next[scope];
+        set({ requestsByScope: next });
+      },
     }),
     {
       name: AWAITING_JOIN_REQUESTS_STORAGE_KEY,

@@ -107,6 +107,21 @@ describe("stores/useAwaitingJoinRequestsStore", () => {
     ).toEqual([B]);
   });
 
+  // Lists call forgetRequests on every read of the roster; an unchanged note must not touch
+  // storage, or every other store's "writes nothing else" guarantee breaks.
+  it("leaves storage alone when a note or a forget changes nothing", () => {
+    const { noteRequest, forgetRequests } = useAwaitingJoinRequestsStore.getState();
+    noteRequest(ALICE_SCOPE, GARDEN_A, pending(30), NOW);
+    localStorage.removeItem(AWAITING_JOIN_REQUESTS_STORAGE_KEY);
+
+    noteRequest(ALICE_SCOPE, GARDEN_A, pending(30), NOW + 60_000);
+    noteRequest(ALICE_SCOPE, GARDEN_B, null, NOW);
+    forgetRequests(ALICE_SCOPE, [GARDEN_B]);
+    forgetRequests(BOB_SCOPE, [GARDEN_A]);
+
+    expect(localStorage.getItem(AWAITING_JOIN_REQUESTS_STORAGE_KEY)).toBeNull();
+  });
+
   it("saves only garden ids and expiries, under its own key", () => {
     useAwaitingJoinRequestsStore.getState().noteRequest(ALICE_SCOPE, GARDEN_A, pending(30), NOW);
 
