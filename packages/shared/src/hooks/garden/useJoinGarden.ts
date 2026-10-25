@@ -158,6 +158,61 @@ export function usePendingJoinsVersion(): number {
   return version;
 }
 
+/** Saved pending joins, read as untrusted data: another build or a hand edit may have written them. */
+function savedPendingJoins(): Record<string, unknown> {
+  const saved: unknown = getPendingJoins();
+  return saved && typeof saved === "object" ? (saved as Record<string, unknown>) : {};
+}
+
+/** The account a saved pending join belongs to, lower-cased, or null for a malformed record. */
+function pendingJoinAccount(record: unknown): string | null {
+  const address = (record as { address?: unknown } | null)?.address;
+  return typeof address === "string" ? address.toLowerCase() : null;
+}
+
+/**
+ * The gardens, lower-cased, where this device holds a fresh open join for the account: a join
+ * sent on-chain that the garden's roster may not show yet. Reads only. A join request waiting
+ * for a steward never lands here: it grants nothing.
+ */
+export function pendingJoinGardenIds(account: string): Set<string> {
+  const member = account.toLowerCase();
+  const now = Date.now();
+  const gardenIds = new Set<string>();
+  for (const [gardenId, record] of Object.entries(savedPendingJoins())) {
+    const joinedAt = (record as { timestamp?: unknown } | null)?.timestamp;
+    if (
+      pendingJoinAccount(record) === member &&
+      typeof joinedAt === "number" &&
+      now - joinedAt <= PENDING_JOIN_TTL
+    ) {
+      gardenIds.add(gardenId.toLowerCase());
+    }
+  }
+  return gardenIds;
+}
+
+/**
+ * Forget this device's open joins for the account in gardens whose roster now lists it, so a
+ * role removed later is not masked by the join that came before it. Notifies only on a change.
+ */
+export function forgetListedPendingJoins(account: string, listedGardenIds: readonly string[]) {
+  if (typeof window === "undefined") return;
+  const pending = savedPendingJoins();
+  const listed = new Set(listedGardenIds.map((gardenId) => gardenId.toLowerCase()));
+  const member = account.toLowerCase();
+  let changed = false;
+  for (const [gardenId, record] of Object.entries(pending)) {
+    if (listed.has(gardenId.toLowerCase()) && pendingJoinAccount(record) === member) {
+      delete pending[gardenId];
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  notifyPendingJoinsChanged();
+}
+
 /**
  * Check if user is a member of a garden (gardener or steward).
  * Also checks pending joins for immediate UI feedback after successful transaction.

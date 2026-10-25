@@ -1,11 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useMyGardens } from "@green-goods/shared/hooks/garden/useMyGardens";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import {
-  isGardenMember,
-  usePendingJoinsVersion,
-} from "@green-goods/shared/hooks/garden/useJoinGarden";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
@@ -15,7 +11,6 @@ import {
   RiMapPinLine,
   RiPlantLine,
 } from "@remixicon/react";
-import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/Cards";
@@ -27,30 +22,14 @@ interface GardensListProps {
 }
 
 /**
- * The gardens this account belongs to, each opening its garden. Joining and
- * requesting to join live on the garden itself, so this list offers neither.
+ * The account's own gardens (`useMyGardens`), each opening its garden. Joining
+ * and requesting to join live on the garden itself, so this list offers neither.
  */
 export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const navigate = useNavigate();
   const setGardenFilters = useUIStore((state) => state.setGardenFilters);
-  const {
-    data: gardens = [],
-    isError: gardensError,
-    isLoading: gardensLoading,
-    refetch: refetchGardens,
-  } = useGardens();
-  const pendingJoinsVersion = usePendingJoinsVersion();
-
-  const myGardens = useMemo(() => {
-    if (!primaryAddress) return [];
-    return gardens.filter((garden) =>
-      isGardenMember(primaryAddress, garden.gardeners, garden.stewards, garden.id)
-    );
-    // pendingJoinsVersion retriggers when a join made on a garden confirms or
-    // expires in-tab, so that garden appears here without an unrelated re-render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
-  }, [gardens, primaryAddress, pendingJoinsVersion]);
+  const { gardens: myGardens, isLoaded, isError, refetch } = useMyGardens(primaryAddress);
 
   if (!primaryAddress) return null;
 
@@ -63,7 +42,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
         })}
       </h5>
 
-      {gardensLoading ? (
+      {!isLoaded && !isError ? (
         <Card>
           <EmptyState
             busy
@@ -75,7 +54,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
             })}
           />
         </Card>
-      ) : gardensError && gardens.length === 0 ? (
+      ) : !isLoaded ? (
         <Card>
           <EmptyState
             className="w-full"
@@ -86,7 +65,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
               defaultMessage: "Gardens are unavailable right now.",
             })}
             action={
-              <Button type="button" emphasis="secondary" onClick={() => void refetchGardens()}>
+              <Button type="button" emphasis="secondary" onClick={refetch}>
                 {intl.formatMessage({
                   id: "app.home.retry",
                   defaultMessage: "Retry",
@@ -97,7 +76,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
         </Card>
       ) : myGardens.length > 0 ? (
         <ul className="flex flex-col gap-2">
-          {myGardens.map((garden) => (
+          {myGardens.map(({ garden }) => (
             <li key={garden.id}>
               <button
                 type="button"

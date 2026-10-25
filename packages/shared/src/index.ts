@@ -1272,7 +1272,6 @@ export {
   GARDEN_ROLE_ORDER,
   GardenAccountABI,
   GardenTokenABI,
-  gardenHasMember,
   getActionSourceHash,
   getActionTitle,
   getAdminWorkspaceForPath,

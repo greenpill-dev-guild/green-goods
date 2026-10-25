@@ -15,6 +15,7 @@ import { Domain, type Garden } from "../../types";
 
 const USER_ADDRESS = "0x1111111111111111111111111111111111111111";
 const OTHER_ADDRESS = "0x2222222222222222222222222222222222222222";
+const STRANGER_ADDRESS = "0x3333333333333333333333333333333333333333";
 
 function createGarden(overrides: Partial<Garden> = {}): Garden {
   return {
@@ -94,6 +95,25 @@ describe("filterGardens", () => {
       expect(result.filteredGardens).toEqual(scope === "mine" ? gardens.slice(0, 2) : gardens);
       expect(result.openGardensCount).toBe(4);
       expect(result.myGardensCount).toBe(2);
+    });
+
+    it.each([
+      ["owner", "owners"],
+      ["evaluator", "evaluators"],
+    ] as const)("shows a test garden to its %s and counts it as theirs", (_role, list) => {
+      const familyGarden = createGarden({
+        id: gardens[0].id,
+        name: "Aiyeloja Family Garden",
+        gardeners: [OTHER_ADDRESS],
+        [list]: [USER_ADDRESS],
+      });
+
+      const mine = filterGardens([familyGarden], defaultFilters({ scope: "mine" }), USER_ADDRESS);
+      const stranger = filterGardens([familyGarden], defaultFilters(), STRANGER_ADDRESS);
+
+      expect(mine.filteredGardens).toEqual([familyGarden]);
+      expect(mine.myGardensCount).toBe(1);
+      expect(stranger.filteredGardens).toEqual([]);
     });
 
     it("recomputes visibility when the signed-in account changes with the same cached gardens", () => {
