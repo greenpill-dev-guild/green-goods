@@ -30,14 +30,18 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useActions: () => ({ data: [] }),
 }));
+const metadataReads = vi.hoisted(() => [] as Array<readonly { commitmentId: bigint }[]>);
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
-  useCommitmentMetadata: () => ({
-    byCID: new Map([
-      ["cid-outage", { title: "Outage log" }],
-      ["cid-solar", { title: "Solar install help" }],
-    ]),
-  }),
+  useCommitmentMetadata: (commitments: readonly { commitmentId: bigint }[]) => {
+    metadataReads.push(commitments);
+    return {
+      byCID: new Map([
+        ["cid-outage", { title: "Outage log" }],
+        ["cid-solar", { title: "Solar install help" }],
+      ]),
+    };
+  },
 }));
 
 import { NeedsYourAttention } from "../../views/Home/Journal/NeedsYourAttention";
@@ -144,6 +148,34 @@ describe("Home Needs Your Attention", () => {
     });
     fireEvent.click(within(confirm).getByRole("button"));
     expect(openCommitmentsSheet).toHaveBeenCalledWith({ tab: "to-confirm" });
+  });
+
+  it("reads the titles it names and no more, and names an incomplete review queue without a count", () => {
+    renderSection(
+      duties({
+        duties: [
+          {
+            kind: "review",
+            count: 1,
+            uncounted: true,
+            works: [work("0x01", "Workshop Delivered", NOW - 86_400)],
+          },
+          {
+            kind: "confirm",
+            count: 4,
+            commitments: [
+              promise(9n, "cid-solar"),
+              promise(10n, "cid-outage"),
+              promise(11n, "cid-x"),
+              promise(12n, "cid-y"),
+            ],
+          },
+        ],
+      })
+    );
+
+    expect(screen.getByText("Submissions to review")).toBeTruthy();
+    expect(metadataReads.at(-1)?.map((commitment) => commitment.commitmentId)).toEqual([9n, 10n]);
   });
 
   it("says a queue could not be read rather than going quiet, and reads again on Try Again", () => {

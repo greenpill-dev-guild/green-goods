@@ -2387,6 +2387,7 @@
   "app.home.arrival.signedIn.title": "You're signed in",
   "app.home.attention.title": "Needs Your Attention",
   "app.home.attention.review": "{count, plural, one {# submission to review} other {# submissions to review}}",
+  "app.home.attention.reviewUncounted": "Submissions to review",
   "app.home.attention.takeUp": "{count, plural, one {# take-up request} other {# take-up requests}}",
   "app.home.attention.confirm": "{count, plural, one {# promise to confirm} other {# promises to confirm}}",
   "app.home.attention.error.title": "Couldn't load it all",

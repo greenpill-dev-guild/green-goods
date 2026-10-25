@@ -2387,6 +2387,7 @@
   "app.home.arrival.signedIn.title": "Sesión iniciada",
   "app.home.attention.title": "Requiere tu atención",
   "app.home.attention.review": "{count, plural, one {# envío por revisar} other {# envíos por revisar}}",
+  "app.home.attention.reviewUncounted": "Envíos por revisar",
   "app.home.attention.takeUp": "{count, plural, one {# pedido para aceptar} other {# pedidos para aceptar}}",
   "app.home.attention.confirm": "{count, plural, one {# promesa por confirmar} other {# promesas por confirmar}}",
   "app.home.attention.error.title": "No todo se cargó",

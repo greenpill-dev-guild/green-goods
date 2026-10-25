@@ -74,31 +74,40 @@ export function useStewardDuties(garden: Garden): StewardDuties {
       gardens.some((candidate) => compareAddresses(candidate, garden.id)),
     [garden.id]
   );
+  // Nothing of the confirmation queue is read, its pools included, for an account that cannot
+  // confirm for this garden.
   const confirm = useCommitmentsToConfirm({
     chainId,
     viewer: managesGarden ? (account ?? undefined) : undefined,
     inScope: thisGarden,
+    enabled: managesGarden,
   });
+  // Eligibility takes every read: the reader's own promises and earlier confirmations leave the
+  // list, so a promise is published only once the queue has answered in full.
+  const confirmComplete = !confirm.isLoading && !confirm.isError;
   const toConfirm = useMemo(
     () =>
-      confirm.groups
-        .find((group) => compareAddresses(group.garden, garden.id))
-        ?.rows.map((row) => row.commitment) ?? [],
-    [confirm.groups, garden.id]
+      confirmComplete
+        ? (confirm.groups
+            .find((group) => compareAddresses(group.garden, garden.id))
+            ?.rows.map((row) => row.commitment) ?? [])
+        : [],
+    [confirmComplete, confirm.groups, garden.id]
   );
 
   const duties = useMemo(
     () =>
       selectStewardDuties({
         viewer: account,
-        // A count only once the garden's whole list is read, as the arrival toast does: a
-        // partial page would undercount the queue the row opens.
-        toReview: review.ready ? review.works : [],
+        // An incomplete list still names the work it read, without a count: a partial page would
+        // undercount the queue the row opens, and dropping it would hide that anything waits.
+        toReview: review.works,
+        reviewComplete: review.ready,
         // A disabled read still hands back what it read before; only a decider sees it.
         pendingClaims: stewardsPoolGarden ? claims.rows : [],
         toConfirm,
       }),
-    [account, review.ready, review.works, stewardsPoolGarden, claims.rows, toConfirm]
+    [account, review.works, review.ready, stewardsPoolGarden, claims.rows, toConfirm]
   );
 
   const { refetch: refetchReview } = review;

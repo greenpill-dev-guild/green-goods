@@ -45,7 +45,10 @@ function describeStewardDuty(intl: IntlShape, duty: StewardDuty) {
   switch (duty.kind) {
     case "review":
       return {
-        title: message("app.home.attention.review"),
+        // An incomplete list names the queue without a count it cannot back.
+        title: message(
+          duty.uncounted ? "app.home.attention.reviewUncounted" : "app.home.attention.review"
+        ),
         pill: message("app.pending.pill.toReview"),
       };
     case "takeUp":
@@ -80,10 +83,15 @@ export function NeedsYourAttention({ garden, duties: stewardDuties }: NeedsYourA
   const { duties, isError, refetch } = stewardDuties;
   const openDuty = useOpenStewardDuty(garden.id);
   const { data: actions = [] } = useActions();
+  // Only the promises a row names: a long confirmation queue would read every title otherwise.
   const promises = useMemo(
     () =>
       duties.flatMap((duty) =>
-        duty.kind === "takeUp" ? [duty.commitment] : duty.kind === "confirm" ? duty.commitments : []
+        duty.kind === "takeUp"
+          ? [duty.commitment]
+          : duty.kind === "confirm"
+            ? duty.commitments.slice(0, NAMED)
+            : []
       ),
     [duties]
   );

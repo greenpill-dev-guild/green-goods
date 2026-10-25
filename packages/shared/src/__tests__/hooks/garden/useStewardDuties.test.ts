@@ -41,6 +41,7 @@ const mocks = vi.hoisted(() => ({
   claimsError: false,
   claimsRefetch: vi.fn(async () => ({})),
   confirmViewer: [] as Array<string | undefined>,
+  confirmEnabled: [] as Array<boolean | undefined>,
   confirmScopes: [] as Array<
     ((gardens: readonly (string | null | undefined)[]) => boolean) | undefined
   >,
@@ -104,11 +105,14 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentsToConfirm", () => ({
   useCommitmentsToConfirm: ({
     viewer,
     inScope,
+    enabled,
   }: {
     viewer?: string;
     inScope?: (gardens: readonly (string | null | undefined)[]) => boolean;
+    enabled?: boolean;
   }) => {
     mocks.confirmViewer.push(viewer);
+    mocks.confirmEnabled.push(enabled);
     mocks.confirmScopes.push(inScope);
     return {
       groups: viewer ? mocks.confirmGroups : [],
@@ -166,6 +170,7 @@ describe("useStewardDuties", () => {
     mocks.claimsLoading = false;
     mocks.claimsError = false;
     mocks.confirmViewer = [];
+    mocks.confirmEnabled = [];
     mocks.confirmScopes = [];
     mocks.confirmGroups = [];
     mocks.confirmLoading = false;
@@ -183,6 +188,8 @@ describe("useStewardDuties", () => {
     expect(mocks.reviewGardens.at(-1)).toEqual([]);
     expect(mocks.claimsEnabled.at(-1)).toBe(false);
     expect(mocks.confirmViewer.at(-1)).toBeUndefined();
+    // Not even the confirmation queue's pool reads start for them.
+    expect(mocks.confirmEnabled.at(-1)).toBe(false);
   });
 
   it("lists every queue for a steward the chain says may decide take-ups, and only this garden's promises", () => {
@@ -220,13 +227,25 @@ describe("useStewardDuties", () => {
     expect(mocks.claimsEnabled.at(-1)).toBe(false);
   });
 
-  it("counts work to review only once the garden's whole list is read, as the arrival toast does", () => {
+  it("keeps work to review uncounted while the garden's list is incomplete, rather than dropping it", () => {
     everythingWaits();
     mocks.reviewReady = false;
 
     const duties = render(garden({ owners: [ME] }));
 
-    expect(duties.duties.map((duty) => duty.kind)).toEqual(["confirm"]);
+    expect(duties.duties.map((duty) => duty.kind)).toEqual(["review", "confirm"]);
+    expect(duties.duties[0]).toMatchObject({ kind: "review", uncounted: true });
+  });
+
+  it("publishes promises to confirm only once the queue's eligibility reads have all answered", () => {
+    everythingWaits();
+    mocks.confirmLoading = true;
+    expect(render(garden({ owners: [ME] })).duties.map((duty) => duty.kind)).toEqual(["review"]);
+
+    mocks.confirmLoading = false;
+    mocks.confirmError = true;
+    expect(render(garden({ owners: [ME] })).duties.map((duty) => duty.kind)).toEqual(["review"]);
+    expect(mocks.confirmEnabled.at(-1)).toBe(true);
   });
 
   it("asks To confirm about this garden alone, so another garden's read neither holds nor fails it", () => {

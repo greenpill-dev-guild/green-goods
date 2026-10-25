@@ -16,7 +16,8 @@ import type { CommitmentReadModel, PoolClaimRequestRow } from "../commitment-poo
 
 export type StewardDuty =
   /** Work someone else submitted, waiting for review: the one waiting longest first. */
-  | { kind: "review"; count: number; works: Work[] }
+  /** `uncounted` while the garden's list is incomplete: more may wait than the works it read. */
+  | { kind: "review"; count: number; works: Work[]; uncounted?: true }
   /** Take-up requests waiting on one promise, decided in its claim panel. */
   | { kind: "takeUp"; count: number; commitment: CommitmentReadModel; newestAt: number }
   /** Promises the garden confirms. */
@@ -27,6 +28,8 @@ export interface StewardDutyInputs {
   viewer: string | null | undefined;
   /** Work someone else submitted in the garden and nobody has reviewed yet. */
   toReview: readonly Work[];
+  /** False while the garden's list is incomplete (`useNeedsReview().ready`), so it is not counted. */
+  reviewComplete?: boolean;
   /** Take-up requests on the garden's pool. */
   pendingClaims: readonly PoolClaimRequestRow[];
   /** Promises the garden confirms, as the To confirm tab lists them. */
@@ -38,7 +41,11 @@ export function selectStewardDuties(input: StewardDutyInputs): StewardDuty[] {
 
   if (input.toReview.length > 0) {
     const works = [...input.toReview].sort((left, right) => left.createdAt - right.createdAt);
-    duties.push({ kind: "review", count: works.length, works });
+    duties.push(
+      input.reviewComplete === false
+        ? { kind: "review", count: works.length, works, uncounted: true }
+        : { kind: "review", count: works.length, works }
+    );
   }
 
   const byPromise = new Map<string, Extract<StewardDuty, { kind: "takeUp" }>>();

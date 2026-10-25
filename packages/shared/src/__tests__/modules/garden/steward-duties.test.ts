@@ -66,6 +66,16 @@ describe("selectStewardDuties", () => {
     ]);
   });
 
+  it("marks work to review uncounted while the garden's list is incomplete, keeping what it read", () => {
+    const duties = selectStewardDuties({
+      ...NOTHING,
+      toReview: [createMockWork({ id: "0x02" })],
+      reviewComplete: false,
+    });
+
+    expect(duties).toMatchObject([{ kind: "review", count: 1, uncounted: true }]);
+  });
+
   it("names the work waiting longest first, so its row can say how long someone has waited", () => {
     const [review] = selectStewardDuties({
       ...NOTHING,
