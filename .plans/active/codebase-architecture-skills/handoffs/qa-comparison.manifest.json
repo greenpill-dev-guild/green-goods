@@ -1,0 +1,87 @@
+{
+  "base": "2d28f1d7de6887c0b0eba512250ac2bbc40524a8",
+  "head": "8f5d0dbdee486ecb3bf771eac5a51ff2aee1804c",
+  "created_at": "2026-10-25T21:44:32Z",
+  "variants": {
+    "before": {
+      "sha": "2d28f1d7de6887c0b0eba512250ac2bbc40524a8",
+      "instruction_files": {
+        ".claude/skills/qa-triage/README.md": "e6611b27aed3965334d96802fbf45d096c941e29427fe0288b21d05b6a095907",
+        ".claude/skills/qa-triage/SKILL.md": "e3d684665674a9109ff113878f8e2471a8b23c656127ddbcf3f5445d68e2928f",
+        ".claude/skills/qa-triage/codex-prompt.md": "3f18de1392f6ca0e8a04a6c78bc56cf5a05512422a7e7a758249c424b9b19a22",
+        ".claude/skills/qa-triage/fixtures/example-product-sync.md": "32e6b09b779ec1cfa1cf1085d13147b004eacbe82071763621fc6817ec937fb0",
+        ".claude/skills/qa-triage/linear-templates.md": "c23047daa08e894c144401e7d34ed01254ec508b576a54b44526feb56ded8b1b",
+        ".claude/skills/qa-triage/sheet-schema.md": "6006e2f08780b7b35e6c367e80549bbaed966a9c6dfc1cbc523b4934d3c3a5f2"
+      }
+    },
+    "after": {
+      "sha": "8f5d0dbdee486ecb3bf771eac5a51ff2aee1804c",
+      "instruction_files": {
+        ".claude/skills/qa-triage/README.md": "e6611b27aed3965334d96802fbf45d096c941e29427fe0288b21d05b6a095907",
+        ".claude/skills/qa-triage/SKILL.md": "923221f48684f660d32f27e7408b0368b8e34ac8b1ae1e5deee382f440eed543",
+        ".claude/skills/qa-triage/codex-prompt.md": "ca1f955c205f0f2ad83f1667edc9a61a7374a3800b4914470bfadeab079edf88",
+        ".claude/skills/qa-triage/fixtures/example-product-sync.md": "32e6b09b779ec1cfa1cf1085d13147b004eacbe82071763621fc6817ec937fb0",
+        ".claude/skills/qa-triage/linear-templates.md": "c23047daa08e894c144401e7d34ed01254ec508b576a54b44526feb56ded8b1b",
+        ".claude/skills/qa-triage/references/call-mode.md": "a7c399994083c8850870db40c8b74c66f968b23f42c9636ad01141646a2b5e64",
+        ".claude/skills/qa-triage/references/filing.md": "3c1c65bcd80ac42d8781ee91c1578fd33631767aa89d8c84192d4fd622c39bef",
+        ".claude/skills/qa-triage/references/intake.md": "4f81fb4b9b2bebf196869680b3cfe8b9f3604e933893a6e2a0e02bfca7ea4563",
+        ".claude/skills/qa-triage/sheet-schema.md": "6006e2f08780b7b35e6c367e80549bbaed966a9c6dfc1cbc523b4934d3c3a5f2"
+      }
+    }
+  },
+  "prompt_sha256": "6c7284697cbc419dc2147ec5a3c302b9cde8a798e003d79e446169a135e925e0",
+  "common_context": {
+    "revision": "8f5d0dbdee486ecb3bf771eac5a51ff2aee1804c",
+    "paths": [".claude/context", "docs/routines"]
+  },
+  "schema_sha256": "42c04b5aa3eea282851e76874a1ec316b6d544ec6b9e6efef75ad0b967f58035",
+  "original_runtime": {
+    "model": null,
+    "reasoning_effort": null,
+    "selection": "inherited user configuration; effective model and reasoning were not captured before the network failure",
+    "argv": [
+      "<repository-resolved codex>",
+      "exec",
+      "-s",
+      "read-only",
+      "--ephemeral",
+      "--skip-git-repo-check",
+      "-C",
+      "<comparison-root>/<variant>",
+      "--json",
+      "-o",
+      "<comparison-root>/<variant>/result.json",
+      "--output-schema",
+      "<comparison-root>/<variant>/schema.json",
+      "<exact qa-comparison.prompt.txt contents>"
+    ],
+    "stdin": "closed",
+    "timeout_seconds": 600,
+    "retained_environment_names": [
+      "HOME",
+      "PATH",
+      "TMPDIR",
+      "SHELL",
+      "LANG",
+      "CODEX_HOME",
+      "HTTPS_PROXY",
+      "HTTP_PROXY",
+      "ALL_PROXY",
+      "NO_PROXY",
+      "https_proxy",
+      "http_proxy",
+      "all_proxy",
+      "no_proxy",
+      "WS_PROXY",
+      "WSS_PROXY",
+      "ws_proxy",
+      "wss_proxy",
+      "SSL_CERT_FILE",
+      "NODE_EXTRA_CA_CERTS",
+      "CODEX_CA_CERTIFICATE",
+      "NODE_USE_ENV_PROXY"
+    ],
+    "cli_version_observed_during_review": "codex-cli 0.164.0-alpha.11.1",
+    "failed_run_cli_version": null
+  }
+}

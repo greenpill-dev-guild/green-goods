@@ -114,6 +114,7 @@ export function useCommitmentsToConfirm({
   includeProtocolFallback = false,
   refreshWhileOpen = false,
   inScope,
+  enabled = true,
 }: {
   chainId: number;
   viewer?: Address;
@@ -130,23 +131,26 @@ export function useCommitmentsToConfirm({
   includeProtocolFallback?: boolean;
   /** Keep the steward's visible review queue current across other sessions. */
   refreshWhileOpen?: boolean;
+  /** False reads nothing at all, the pools included, for a caller that cannot use the queue. */
+  enabled?: boolean;
 }): CommitmentsToConfirm {
   const availability = useCommitmentPoolingAvailability({ chainId });
   const { data: gardens = [] } = useGardens(chainId);
   const { canManageGarden } = useGardenPermissions();
-  const protocolPool = useProtocolPool({ chainId });
+  const protocolPool = useProtocolPool({ chainId }, { enabled });
 
   const { stewarded, protocolGarden } = useMemo(() => {
-    const stewarded: Garden[] = viewer
-      ? gardens.filter((garden) => canManageGarden(garden) && (!inScope || inScope([garden.id])))
-      : [];
+    const stewarded: Garden[] =
+      enabled && viewer
+        ? gardens.filter((garden) => canManageGarden(garden) && (!inScope || inScope([garden.id])))
+        : [];
     const root = protocolPool.rootGarden;
     const protocolGarden =
       root && stewarded.some((garden) => isSameGarden(garden.id as Address, root))
         ? (stewarded.find((garden) => isSameGarden(garden.id as Address, root)) ?? null)
         : null;
     return { stewarded, protocolGarden };
-  }, [gardens, viewer, canManageGarden, inScope, protocolPool.rootGarden]);
+  }, [enabled, gardens, viewer, canManageGarden, inScope, protocolPool.rootGarden]);
 
   // The viewer's own set, which the account query resolves through the
   // contributor roster as well as the named party fields. It is what tells a
@@ -185,7 +189,7 @@ export function useCommitmentsToConfirm({
   // are different questions, and only the pool's garden may dispute or
   // resolve (`GuardLib.isPoolSteward`), so the queue reads the registered
   // pools once rather than guessing from the confirming garden.
-  const poolsQuery = useCommitmentPools({ chainId }, { refreshWhileOpen });
+  const poolsQuery = useCommitmentPools({ chainId }, { refreshWhileOpen, enabled });
   const { poolGardens, stewardedSet } = useMemo(() => {
     const poolGardens = new Map<string, Address>();
     for (const pool of poolsQuery.pools) {
