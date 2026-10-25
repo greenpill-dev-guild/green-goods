@@ -2,7 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { WorkCardSkeleton } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
-import { useActiveOfflineGarden } from "@green-goods/shared/hooks/offline/useOfflineContent";
+import { useOfflineGardenInView } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import {
   type GardenWorkSort,
   useGardenWorkListView,
@@ -129,7 +129,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
     ref
   ) => {
     const intl = useIntl();
-    useActiveOfflineGarden(gardenId);
+    useOfflineGardenInView(gardenId);
     const workFetchStatus =
       statusProp ?? (readState?.isError ? "error" : readState?.isLoading ? "pending" : "success");
     const isOffline = readState?.isPaused ?? offlineProp;
