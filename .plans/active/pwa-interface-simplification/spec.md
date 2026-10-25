@@ -1,7 +1,7 @@
 # PWA Interface Simplification — Specification
 
-**Status:** scope locked on 18 October 2026. The decisions at the end are the maintainer's; the
-proposals above them record how they were reached.
+**Status:** scope locked on 18 October 2026; execution authorized on 24 October 2026. The decisions
+at the end are the maintainer's; the proposals above them record how they were reached.
 **Evidence date:** 2026-10-06, rechecked on 2026-10-18 against develop `eeda2d4e5`; gardens read from the production indexer on 2026-10-19. Code
 references describe the inspected working tree, not a deployment certification. Recheck them when
 implementation starts, particularly where concurrent work lands.
@@ -211,9 +211,9 @@ status; it must not suggest every approved work item automatically earns spendab
 | Related hub | Ownership retained there |
 |---|---|
 | [Commitment Pooling](../../active/commitment-pooling/status.json) | Promise lifecycle, evidence/confirmation, settlement, and staged exchange decisions. |
-| [CLC interoperability](../cosmo-local-credit-interop/status.json) | Protocol research, deployment verification, clean-room boundary, voucher authorization, and hackathon integration scope. Older assumptions are not recertified by this UI hub. |
-| [Commitment Credit](../commitment-credit-follow-on/status.json) | Records-only borrow/repay behavior; it is not Wallet value or an access entitlement. |
-| [Community Needs & Signals](../community-interface/status.json) | Needs, community signals, separate Community PWA, and join-service operating gates. This hub does not silently consolidate that app. |
+| [CLC interoperability](../../backlog/cosmo-local-credit-interop/status.json) | Protocol research, deployment verification, clean-room boundary, voucher authorization, and hackathon integration scope. Older assumptions are not recertified by this UI hub. |
+| [Commitment Credit](../../backlog/commitment-credit-follow-on/status.json) | Records-only borrow/repay behavior; it is not Wallet value or an access entitlement. |
+| [Community Needs & Signals](../../backlog/community-interface/status.json) | Needs, community signals, separate Community PWA, and join-service operating gates. This hub does not silently consolidate that app. |
 | [Steward Cockpit UX](../../active/steward-cockpit-ux/status.json) | Admin experience and its delivery state. Only its existing garden-switching pattern informs this PWA design. |
 
 These are coordination references, not blanket blockers. Home simplification does not require a
@@ -467,6 +467,33 @@ What this corrects: the 19 October "promises first" step offered open asks as th
 could keep, but work links only to a promise the member has taken up (the link-choice hook reads
 the account's accepted promises in the garden where the member is an active contributor).
 Decision 18 makes the one-tap take-up real for Open asks instead of implying it.
+
+## Start gate on 24 October 2026
+
+The maintainer gave the execution go for both slices. Before it, the chip was rendered in the real
+Home header (mock-auth localhost, the `deployer` mock on Arbitrum with the production indexer, a
+temporary uncommitted patch that mounted the shared chip with the bell and without Filters, light
+theme): at 44px, as #1251 set the app's density, the capsule stands 6px above and below the 32px
+icon buttons, Home's list starts at 92px instead of 80px, and the label of Green Goods Community
+Garden gets 104px at 390px and 74px at 360px; at 32px it shares the icons' line and gets 119px and
+89px. Two decisions and one order came out of the gate:
+
+33. **One chip on both surfaces.** The chip shows the garden's banner as its avatar, with the
+    app's fallback tile when a garden has none, in the app and in the cockpit, so the cockpit's
+    seedling tile gives way to the banner and the chip matches across surfaces apart from its size
+    (PRD-1278). In the app it is 32px tall with a 48px hit area, the compact icon buttons' height,
+    amending the 44px capsule and 28px avatar that #1251 set at the app's scope; the cockpit keeps
+    its 36px pill. The app's chip opens the half-sheet switcher through an additive callback, with
+    one garden too; the cockpit keeps its popover. Decisions 7 and 1 of the 19 October round set
+    the height and the banner for the app; this extends the banner to the cockpit.
+34. **The order in the second slice.** Step 18 (one submission flow, payloads unchanged) comes
+    before step 13, so the new Start step is built once on the shared flow; step 17 follows, and
+    step 16 can land at any time.
+
+The same day #1162 merged a members-only check for Aiyeloja Family Garden and Mama Gardens in the
+Home filter (`modules/garden/filters.ts`, `config/garden-visibility.ts`). It counts gardeners and
+stewards as members; step 1 moves it onto the membership owner, which adds owners and evaluators
+(decision 2), and keeps its regression cases.
 
 ## Persistence and state architecture
 
