@@ -45,7 +45,7 @@ export type GroupCopy = Pick<
 const OPEN = new Set<string>(["OFFERED", "REQUESTED"]);
 
 /** Whether anyone could take this copy up now: published, untaken, and not ended. */
-function isOpenToTakeUp(copy: Pick<GroupCopy, "onchainState" | "derivedState">): boolean {
+export function isOpenToTakeUp(copy: Pick<GroupCopy, "onchainState" | "derivedState">): boolean {
   return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState);
 }
 

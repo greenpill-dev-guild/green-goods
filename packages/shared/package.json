@@ -453,6 +453,7 @@
     "./hooks/ens/useSlugForm": "./src/hooks/ens/useSlugForm.ts",
     "./hooks/garden/useActiveGarden": "./src/hooks/garden/useActiveGarden.ts",
     "./hooks/garden/useFilteredGardens": "./src/hooks/garden/useFilteredGardens.ts",
+    "./hooks/garden/useGardenJournal": "./src/hooks/garden/useGardenJournal.ts",
     "./hooks/garden/useGardenTabs": "./src/hooks/garden/useGardenTabs.ts",
     "./hooks/garden/useJoinGarden": "./src/hooks/garden/useJoinGarden.ts",
     "./hooks/garden/useMyGardens": "./src/hooks/garden/useMyGardens.ts",
