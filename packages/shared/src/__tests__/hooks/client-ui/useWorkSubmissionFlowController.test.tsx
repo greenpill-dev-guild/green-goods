@@ -1088,6 +1088,13 @@ describe("useWorkSubmissionFlowController", () => {
       writes: [NAVIGATION_GARDEN],
     },
     {
+      // History hands state back as it was saved, so a value that is no garden id is ignored.
+      entry: "navigation state that is not a garden id",
+      active: ACTIVE_GARDEN,
+      navigation: 42 as unknown as string,
+      writes: [ACTIVE_GARDEN],
+    },
+    {
       entry: "a resumed draft",
       active: ACTIVE_GARDEN,
       navigation: NAVIGATION_GARDEN,

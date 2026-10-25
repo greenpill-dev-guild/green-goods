@@ -51,9 +51,12 @@ export function useSubmissionGarden({
   const hasDraft = useWorkFlowStore((state) => state.activeDraftId !== null);
   const active =
     gardens.find((garden) => compareAddresses(garden.id, activeGarden.gardenId))?.id ?? null;
+  // History hands state back as it was saved, so only a garden id string counts.
+  const navigationGardenId = (location.state as { gardenId?: unknown } | null)?.gardenId;
   const navigation =
-    gardens.length > 0
-      ? ((location.state as { gardenId?: string } | null)?.gardenId ?? null)
+    gardens.length > 0 && typeof navigationGardenId === "string" && navigationGardenId
+      ? (gardens.find((garden) => compareAddresses(garden.id, navigationGardenId))?.id ??
+        navigationGardenId)
       : null;
 
   // Before paint, so a garden it settles never shows the garden question for a frame.
