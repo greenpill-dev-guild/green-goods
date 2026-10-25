@@ -24,6 +24,7 @@ const nothingNamed = {
 
 const base = {
   gardenAddress: "0xgarden",
+  gardenSettled: true,
   actionUID: 1,
   imageCount: 1,
   minRequired: 1,
@@ -57,6 +58,13 @@ describe("work submission flow", () => {
     expect(canProceedWithWorkSubmission({ ...base, tab: WorkTab.Intro, gardenAddress })).toBe(
       false
     );
+  });
+
+  it("keeps the garden step closed while the chosen garden cannot take the work", () => {
+    // The picker reopens, so Start waits for one of the gardens it offers.
+    expect(
+      canProceedWithWorkSubmission({ ...base, tab: WorkTab.Intro, gardenSettled: false })
+    ).toBe(false);
   });
 
   it.each([

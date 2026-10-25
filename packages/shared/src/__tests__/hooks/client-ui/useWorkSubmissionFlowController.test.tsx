@@ -41,6 +41,7 @@ const mocks = vi.hoisted(() => ({
   activeDraftId: null as string | null,
   gardens: [] as Array<{ id: string; name: string; domainMask?: number }>,
   allGardens: [] as Array<{ id: string; name: string }>,
+  gardenRecord: null as null | { id: string; name: string },
   activeGarden: {
     status: "choose" as "loading" | "error" | "none" | "choose" | "ready",
     gardenId: null as string | null,
@@ -53,6 +54,12 @@ vi.mock("../../../hooks/garden/useActiveGarden", () => ({
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   useGardens: () => ({ data: mocks.allGardens }),
+}));
+
+vi.mock("../../../hooks/garden/useGardenRecord", () => ({
+  useGardenRecord: (_gardenId: string | null, options: { enabled?: boolean } = {}) => ({
+    data: options.enabled === false ? undefined : mocks.gardenRecord,
+  }),
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -350,6 +357,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.activeDraftId = null;
     mocks.gardens = [];
     mocks.allGardens = [];
+    mocks.gardenRecord = null;
     mocks.activeGarden = { status: "choose", gardenId: null };
     mocks.toastError.mockReset();
     navigateShareRoute = null;
@@ -396,6 +404,7 @@ describe("useWorkSubmissionFlowController", () => {
   });
 
   it("projects selection and owns the intro progress gate", () => {
+    mocks.gardens = [{ id: "garden-1", name: "Riverside" }];
     const view = renderHook(
       () =>
         useWorkSubmissionFlowController({
@@ -411,6 +420,12 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.gardenAddress = "garden-1";
     view.rerender();
     expect(view.result.current.canProceed).toBe(true);
+
+    // A garden the member can no longer submit work to reopens the question and holds Start.
+    mocks.gardenAddress = "garden-2";
+    view.rerender();
+    expect(view.result.current.submissionGardenSettled).toBe(false);
+    expect(view.result.current.canProceed).toBe(false);
   });
 
   it("owns tab transitions", async () => {
@@ -1126,6 +1141,14 @@ describe("useWorkSubmissionFlowController", () => {
       member: false,
       named: "Creekside",
     },
+    {
+      flow: "a promise link to a garden past the chain's newest gardens",
+      garden: commitmentLinkIntent.garden,
+      linked: true,
+      member: false,
+      listed: false,
+      named: "Creekside",
+    },
     { flow: "work in the active garden", garden: ACTIVE_GARDEN, named: null },
     {
       flow: "a draft while the active garden is still unknown",
@@ -1139,7 +1162,10 @@ describe("useWorkSubmissionFlowController", () => {
       flow.member === false
         ? memberGardens.filter(({ id }) => id !== commitmentLinkIntent.garden)
         : memberGardens;
-    mocks.allGardens = memberGardens;
+    // The chain's list holds its newest gardens; an older one is read by its id.
+    mocks.allGardens = flow.listed === false ? [] : memberGardens;
+    mocks.gardenRecord =
+      flow.listed === false ? { id: commitmentLinkIntent.garden, name: "Creekside" } : null;
     mocks.activeGarden = flow.activeUnknown
       ? { status: "loading", gardenId: null }
       : { status: "ready", gardenId: ACTIVE_GARDEN };

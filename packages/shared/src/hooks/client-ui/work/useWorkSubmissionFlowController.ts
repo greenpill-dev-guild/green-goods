@@ -403,6 +403,7 @@ export function useWorkSubmissionFlowController({
     canProceedWithWorkSubmission({
       tab: activeTab,
       gardenAddress,
+      gardenSettled: submissionGardenSettled,
       actionUID,
       imageCount: images.filter((file) => file.type.startsWith("image/") || isHeicFile(file))
         .length,

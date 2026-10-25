@@ -11,6 +11,7 @@ import { findActionByUID } from "../../../utils/action/parsers";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { useGardens } from "../../blockchain/useBaseLists";
 import { useActiveGarden } from "../../garden/useActiveGarden";
+import { useGardenRecord } from "../../garden/useGardenRecord";
 
 interface SubmissionGardenOptions {
   /** The gardens the member can submit work to. */
@@ -80,16 +81,21 @@ export function useSubmissionGarden({
   ]);
 
   const activeGardenKnown = activeGarden.status !== "loading" || activeGarden.gardenId !== null;
-  const namedSubmissionGarden =
+  const named =
     gardenAddress && activeGardenKnown && !compareAddresses(gardenAddress, activeGarden.gardenId)
-      ? (gardens.find((garden) => compareAddresses(garden.id, gardenAddress)) ??
-        chainGardens.find((garden) => compareAddresses(garden.id, gardenAddress)) ??
-        null)
+      ? gardenAddress
       : null;
+  const listed = named
+    ? (gardens.find((garden) => compareAddresses(garden.id, named)) ??
+      chainGardens.find((garden) => compareAddresses(garden.id, named)) ??
+      null)
+    : null;
+  // The chain's list holds its newest gardens only; an older one is read by its id.
+  const { data: record } = useGardenRecord(named, { enabled: Boolean(named) && !listed });
 
   return {
     /** The submission garden the flow names under its steps: set only while it is not the active one. */
-    namedSubmissionGarden,
+    namedSubmissionGarden: named ? (listed ?? record ?? null) : null,
     /** The flow's garden can take the chosen action, so the Start step leaves the garden out. */
     submissionGardenSettled: isSubmissionGardenSettled({
       gardenAddress,

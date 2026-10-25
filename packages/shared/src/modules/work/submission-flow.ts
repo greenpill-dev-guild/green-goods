@@ -15,6 +15,8 @@ const WORK_SUBMISSION_TAB_ORDER = [
 export interface WorkSubmissionProgress {
   tab: WorkTab;
   gardenAddress: string | null;
+  /** The garden can take the chosen action (`isSubmissionGardenSettled`). */
+  gardenSettled: boolean;
   actionUID: number | null;
   imageCount: number;
   minRequired: number;
@@ -27,9 +29,12 @@ export interface WorkSubmissionProgress {
 export function canProceedWithWorkSubmission(progress: WorkSubmissionProgress): boolean {
   switch (progress.tab) {
     case WorkTab.Intro:
-      // A garden hidden everywhere is not in the picker, so it is not a choice to proceed with.
+      // A garden hidden everywhere is not in the picker, so it is not a choice to proceed with;
+      // nor is one the member cannot submit work to or that does not take the action, which
+      // reopens the picker for a garden that can.
       return Boolean(
         progress.gardenAddress &&
+          progress.gardenSettled &&
           !isGardenHiddenEverywhere(progress.gardenAddress) &&
           typeof progress.actionUID === "number"
       );
