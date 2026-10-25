@@ -1,6 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { RiExternalLinkLine, RiRefreshLine } from "@remixicon/react";
-import { AdminButton } from "@/components/AdminButton";
+import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextArea } from "@/components/AdminTextField";
@@ -9,7 +10,7 @@ import { CampaignCookieJarPanelList } from "./CampaignCookieJarPanelList";
 import type { CampaignCookieJarPanelViewProps } from "./CampaignCookieJarPanelView.types";
 import { CampaignImageInput } from "./CampaignImageInput";
 import { GardenSelector } from "./GardenSelector";
-import { publicJarLink } from "./helpers";
+import { formatCampaignDate, publicJarLink } from "./helpers";
 
 export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProps) {
   const {
@@ -23,7 +24,6 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
     campaignSearch,
     setCampaignSearch,
     visibleCampaigns,
-    gardensByAddress,
     setSelectedCampaign,
     selectedCampaign,
     selectedCampaignTitle,
@@ -53,10 +53,15 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
     syncJar,
     headerAction,
   } = props;
+  const { locale } = useIntl();
+  // The list row leaves the jar's creation date to its own page, the Manage dialog.
+  const createdLabel = selectedCampaign
+    ? formatCampaignDate(selectedCampaign.createdAt, locale)
+    : null;
   return (
     <div className="flex flex-col gap-5">
       {!moduleConfigured ? (
-        <AdminCard variant="outlined" className="text-body-sm text-text-sub">
+        <AdminCard variant="outlined" className="type-meta text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.factoryMissing",
             defaultMessage: "Cookie Jar factory discovery is not configured on this network yet.",
@@ -64,7 +69,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         </AdminCard>
       ) : null}
       {!isDeployer && !roleLoading ? (
-        <AdminCard variant="outlined" className="text-body-sm text-text-sub">
+        <AdminCard variant="outlined" className="type-meta text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.deployerOnly",
             defaultMessage:
@@ -80,7 +85,6 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         campaignSearch={campaignSearch}
         setCampaignSearch={setCampaignSearch}
         visibleCampaigns={visibleCampaigns}
-        gardensByAddress={gardensByAddress}
         onSelectCampaign={setSelectedCampaign}
         headerAction={headerAction}
       />
@@ -109,17 +113,19 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             {/* Disabled while a write is in flight: the sync/metadata hooks
                 report errors inline, so a Cancel-close mid-write would render
                 the failure into a dialog nobody can see. */}
-            <AdminButton
+            <Button
               type="button"
-              variant="text"
+              emphasis="tertiary"
+              size="sm"
               onClick={() => setSelectedCampaign(null)}
               disabled={syncAllowlist.isPending || updateMetadata.isPending}
             >
               {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
+              size="sm"
               type="button"
-              leadingIcon={<RiRefreshLine />}
+              leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
               onClick={handleSync}
               disabled={!canSync || syncAllowlist.isPending || updateMetadata.isPending}
               loading={syncAllowlist.isPending || updateMetadata.isPending}
@@ -128,27 +134,35 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 id: "cockpit.community.cookies.sync",
                 defaultMessage: "Sync Allowlist",
               })}
-            </AdminButton>
+            </Button>
           </>
         }
       >
         {selectedCampaign ? (
           <div className="space-y-5">
             <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft p-3">
-              <p className="text-label-md text-text-strong">
+              <p className="type-label-sm text-text-strong">
                 {formatMessage({
                   id: "cockpit.community.cookies.jarAddress",
                   defaultMessage: "Jar address",
                 })}
               </p>
-              <p className="mt-1 break-all text-body-sm text-text-sub">
+              <p className="mt-1 break-all type-meta text-text-sub">
                 <EnsAddressText address={selectedCampaign.address} />
               </p>
+              {createdLabel ? (
+                <p className="mt-1 type-meta text-text-sub">
+                  {formatMessage(
+                    { id: "cockpit.community.cookies.createdOn", defaultMessage: "Created {date}" },
+                    { date: createdLabel }
+                  )}
+                </p>
+              ) : null}
               <a
                 href={publicJarLink(selectedCampaign.address)}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-flex items-center gap-1 text-label-md text-primary-dark underline-offset-4 hover:underline"
+                className="mt-2 inline-flex items-center gap-1 type-label-sm text-primary-dark underline-offset-4 hover:underline"
               >
                 {formatMessage({
                   id: "cockpit.community.cookies.openPublicLink",
@@ -179,13 +193,13 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 source="campaign-cookie-jar-manage-image"
               />
               <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white p-3">
-                <p className="text-label-md text-text-strong">
+                <p className="type-label-sm text-text-strong">
                   {formatMessage({
                     id: "cockpit.community.cookies.generatedCampaignLink",
                     defaultMessage: "Campaign page",
                   })}
                 </p>
-                <p className="mt-1 break-all text-body-sm text-text-sub">
+                <p className="mt-1 break-all type-meta text-text-sub">
                   {selectedCampaignPublicUrl}
                 </p>
               </div>
@@ -232,7 +246,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               />
             </div>
             {syncAggregation.invalidAddresses.length > 0 ? (
-              <p className="text-body-sm text-error-dark">
+              <p className="type-meta text-error-dark">
                 {formatMessage(
                   {
                     id: "cockpit.community.cookies.invalidExtras",
@@ -243,7 +257,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               </p>
             ) : null}
             {selectedJarAddress && syncJar.jar && !syncJar.jar.isOwner ? (
-              <p className="text-body-sm text-error-dark">
+              <p className="type-meta text-error-dark">
                 {formatMessage({
                   id: "cockpit.community.cookies.jarOwnerRequired",
                   defaultMessage:
@@ -260,8 +274,8 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
 function DiffStat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft px-3 py-2">
-      <p className="text-label-sm text-text-sub">{label}</p>
-      <p className="mt-1 text-title-md font-semibold text-text-strong">{value}</p>
+      <p className="type-meta-sm text-text-sub">{label}</p>
+      <p className="mt-1 type-title-md font-semibold text-text-strong">{value}</p>
     </div>
   );
 }

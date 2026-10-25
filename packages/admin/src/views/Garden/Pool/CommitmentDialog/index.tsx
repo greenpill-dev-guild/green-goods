@@ -97,7 +97,7 @@ function CommitmentRecord({
   }, [focus, loaded, asksShown]);
   const offlineNote = formatMessage({
     id: "cockpit.garden.pool.offline",
-    defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+    defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
 
   if (dialog.unavailable) {

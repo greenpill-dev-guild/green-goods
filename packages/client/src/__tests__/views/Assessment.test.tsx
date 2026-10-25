@@ -89,7 +89,8 @@ const messages = {
   "app.garden.assessments.diagnosis": "Diagnosis",
   "app.garden.assessments.evidence": "Evidence media",
   "app.garden.assessments.evidenceItem": "Open evidence {index}",
-  "app.garden.assessments.loadError": "Assessments could not be loaded.",
+  "app.garden.assessments.loadError.description": "Check your connection and try again.",
+  "app.garden.assessments.loadError.title": "Assessments could not be loaded",
   "app.garden.assessments.locationNotProvided": "Location not provided",
   "app.garden.assessments.noEvidence": "No evidence media attached.",
   "app.garden.assessments.noSdgTargets": "No SDG alignment recorded.",
@@ -168,7 +169,7 @@ describe("GardenAssessment", () => {
     [
       "the garden's assessments could not be read",
       () => mockUseGardenAssessmentRecords.mockReturnValue({ records: [], status: "error" }),
-      "Assessments could not be loaded.",
+      "Assessments could not be loaded",
     ],
     [
       // The list is from an earlier read, so an assessment missing from it may
@@ -182,31 +183,32 @@ describe("GardenAssessment", () => {
           status: "success",
           refreshFailed: true,
         }),
-      "Assessments could not be loaded.",
+      "Assessments could not be loaded",
     ],
-  ])("says so when %s", (_label, arrange, message) => {
+  ])("says so when %s, in place of the skeleton", (_label, arrange, message) => {
     arrange();
     renderRoute();
-    expect(screen.getByText(message)).toBeInTheDocument();
-    expect(screen.getByTestId("skeleton")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: message })).toBeInTheDocument();
+    expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
   });
 
-  // The top bar is 80px tall. Left in the flow with 64px of padding under it,
-  // the page began 144px down, where the work page and the promise page begin
-  // at 80px. Like theirs, the bar is pinned over the page, which clears it once.
+  // The top bar is 72px tall below the status bar's safe area. Left in the flow
+  // with 64px of padding under it, the page began 64px below the bar, where the
+  // work page and the promise page begin right under it. Like theirs, the bar is
+  // pinned over the page, which clears it once.
   it.each([
     ["an assessment to show", () => undefined],
     [
       "no assessment to show",
       () => mockUseGardenAssessmentRecords.mockReturnValue({ records: [], status: "success" }),
     ],
-  ])("pins the top bar and starts the page 80px down, with %s", (_label, arrange) => {
+  ])("pins the top bar and starts the page right under it, with %s", (_label, arrange) => {
     arrange();
     renderRoute();
 
     const bar = screen.getByTestId("topnav");
     expect(bar).toHaveAttribute("data-overlay", "true");
-    expect(bar.nextElementSibling).toHaveClass("pt-20");
+    expect(bar.nextElementSibling).toHaveClass("pt-[var(--app-top-bar-height)]");
   });
 
   it("claims nothing while the assessments are still being read", () => {

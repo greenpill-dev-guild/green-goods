@@ -4,8 +4,8 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { Button } from "@green-goods/shared/components/Button";
 import { describe, expect, it, vi } from "vitest";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { renderWithProviders, screen } from "../test-utils";
 
@@ -20,12 +20,16 @@ describe("compact admin hit targets", () => {
   it("applies the reserved hit target to each compact primitive", () => {
     renderWithProviders(
       <>
-        <AdminButton size="sm">Review</AdminButton>
+        <Button type="button" size="compact">
+          Review
+        </Button>
         <AdminFilterChip label="Open" selected={false} onToggle={vi.fn()} />
       </>
     );
 
-    expect(screen.getByRole("button", { name: "Review" })).toHaveClass("admin-hit-target");
+    // A button is the shared one now (DL-115): its 44px box is the shared hit box
+    // on the cockpit's --gg-hit-block, pinned by AdminDensityScale.guard.
+    expect(screen.getByRole("button", { name: "Review" })).toHaveAttribute("data-size", "compact");
     expect(screen.getByRole("button", { name: "Open" })).toHaveClass("admin-hit-target");
   });
 });

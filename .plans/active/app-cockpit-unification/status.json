@@ -1,0 +1,339 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "app-cockpit-unification",
+    "title": "One Look for the App and the Cockpit",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-10-10T09:56:00.510Z",
+    "updated_at": "2026-10-24T21:14:25.026Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-1266",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "preserve_existing"
+  },
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["client-pwa", "admin", "shared"],
+    "work_types": ["research", "implementation", "qa"],
+    "surfaces": ["packages/client", "packages/admin", "packages/shared"],
+    "depends_on_features": ["pwa-interface-simplification"]
+  },
+  "notes": [
+    "The maintainer asked for design research, a switchable mock, and this hub on a branch, then chose an option for every fork. Implementation runs one slice at a time on its approved pair; the three token slices were approved on 2026-10-21. No deployment or transaction work is in scope.",
+    "Stated direction: unify look and feel and shared elements across the installed app and the steward cockpit with some variance per surface; no layout or structure change. Tracking moved from the Cosmo-Local project to the active release project on 2026-10-17, because the 15 October four-goal plan gave PWA and admin delivery to the release project.",
+    "Direction accepted in principle on 2026-10-10 and revised on 2026-10-17: the maintainer's pick for each of the thirteen forks and the workspace tone is recorded in spec.md. A pick locks only when a before and after pair of the real components is approved. Two picks differ from the recommendation: F7 puts the app's cards everywhere, and F9 keeps each surface's filter control. The 17 October revision set F6 to the pill on both, F7 to the app's cards and F11 to a 12px gap.",
+    "The maintainer retired the strict Material 3 rule for the cockpit: it becomes the app's language at a denser setting, and what the picks keep (pills, the tone pill, inline filters, tones, density) stays as the cockpit's own. The decision-log rows and the rewritten cockpit guide and prompt contract are not written yet. The cockpit's Material-named tokens keep their names. The F9 pick reverses a preference stated earlier the same day; the maintainer confirmed it.",
+    "Also accepted in principle: a green focus ring in the app, one empty, loading and error anatomy, one set of type role names, and retiring the unused glass spec. A pick locks on pairs of the lab's ten screens at 390, 768 and 1280px, light and dark, in three languages where text must fit. The maintainer's aim is to land as much of the sequence as fits before the Cosmo-Local demonstration; the plan is saved first and no implementation is authorized.",
+    "Linear: parent PRD-1266 with one hand-written sub-issue per delivery step, all in Backlog: steps 1 to 13 are PRD-1267 to PRD-1279, steps 14 to 20 are PRD-1280, PRD-1281, PRD-1283, PRD-1284, PRD-1285, PRD-1286 and PRD-1287, and step 21 is PRD-1288. laneSyncMode parent_only stops a sync from creating duplicate lane issues, and stateSyncMode preserve_existing keeps a sync from overwriting the hand-written bodies. PRD-1261, the member and steward pilot-journey cohesion pass, is related and tracked separately.",
+    "Cards and code, accepted in principle on 2026-10-17: every object card is built from four shared shapes (item row, media card, fact row, state block) at two densities; each object's card code gets one home, moved with the step that consolidates it; after the card work the cockpit renders the shared controls tuned by its own tokens, one control family at a time, which reverses part of Rules 15 and 18 and the wrapper-adoption sweep. Census of develop b30ac410f: 107 card, row and tile components (14 Shared, 64 app, 35 cockpit) on five card primitives.",
+    "Card census, second round (2026-10-17): the census follows the lab's saved design system and compares five places for a card's status, with the titles each cuts off counted in four text sets; the pill leading the detail line and per-type title lines (two for work, commitments, actions, assessments and hypercerts; one for gardens, people, and jars, vaults and pools) are recommended and await the maintainer's picks.",
+    "Detail line, accepted in principle on 2026-10-18: one line; the status plus at most two details, ordered by importance per card type so the least useful drops first; no detail repeats what the card shows; short ages and dates, an age always a number; a row's action only where the row needs the reader, below the text. The per-type order is proposed and recorded in spec.md. Version 13 of the census, from another session, set one 72px row height and one title line by default.",
+    "Census review, 2026-10-18: every card keeps one height (rule 5 revised: an action takes the row's right slot, not a line below the text); a media card needs a picture of its own, so commitments, assessments and jars take the item row only; the maintainer picked 15px app and 13px cockpit titles. Census version 15.",
+    "Locked on 2026-10-18 at the maintainer's request: every fork and the workspace tone, and the card picks (status pill under the title, the detail-line rules, 88px rows and photo, 15px app and 13px cockpit titles, 11px details, one title line, one detail on a jar row, one pill per card). The before and after pairs stay as each step's acceptance evidence; a failing pair reopens only its own pick. Census version 16.",
+    "The last three locked the same day: field message slots per surface (two lines in the app, DL-018; one in the cockpit, two if several Spanish or Portuguese messages wrap at 640px, which they did, so two, DL-105); the work row stays on the cockpit's phone queue, checked with a steward on the pair; desktop tabs at most 180px each, the row aligned left, and a cell whose content needs more takes it (DL-100: Spanish \"Configuración de medios\", 191px).",
+    "Design gate for the token slices, 2026-10-20: steps 1 to 3 drafted on a local branch that was not pushed, rendered as before and after pairs of the ten lab screens in four code states (cockpit from Storybook, app from mock-auth localhost), with the typeface fit, the logo-screen lines, the token contrast audit, a rendered contrast sweep and the step 13 guide draft recorded in eval.md. The drafts fold three consequences of the ground into step 2 (dark text lifts, the error action fill for the cockpit's error-screen Retry, and the app tab row and garden title block on their ground) and the 500 button weight into step 3. Awaiting the maintainer's approval of the three token slices; the hub moves to active with it.",
+    "Token slices approved, 2026-10-21: steps 1 to 3 as drafted, with the four planned items (button weight 500 in step 3; the dark text lifts, the error action fill on the cockpit's error screen, and the status bar and manifest per presentation in step 2), plus a solid 2px focus ring in step 3 and the type role rename as a second pull request under PRD-1267. The hub moves to active with this approval.",
+    "Root DESIGN.md type roles, 2026-10-21: the maintainer chose to have body-md, label-md and app-title name Plus Jakarta Sans, the face the installed app and the cockpit share, and to give the website's button its own Inter role (website-label), since it is the only website piece among the entries that use these roles.",
+    "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
+    "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
+    "No implementation lane is certified by document validation."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-count-badge",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "git checkout --detach 671bc8220 && git checkout 65df3ad13 -- tests/specs/client.pwa-preview.spec.ts && PLAYWRIGHT_JSON_OUTPUT_FILE=<file> bun run browser e2e --preset pwa-preview -- --workers=1 --reporter=line,json",
+          "evidence": "2026-10-23, 671bc8220 (develop just before #1190) with develop's pwa-preview spec 55b0b9b86: 1 failed at spec line 95, page.evaluate TypeError: Failed to fetch, when the offline page fetches /fonts/jakarta-latin-normal.woff2; no face was served or precached. The vietnamese assertion #1197 adds: 1 failed at line 138 without its faces."
+        },
+        "green": {
+          "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=<file> bun run browser e2e --preset pwa-preview -- --workers=1 --reporter=line,json",
+          "evidence": "2026-10-23, develop 65df3ad13 (#1190 served and precached the faces): 1 passed (55.3s). With #1197's vietnamese faces on fix/app-vietnamese-font-subset 1f00b560e: 1 passed (1.2m)."
+        },
+        "note": "Required because step 1's offline face changes service-worker behavior: #1190 served and precached the faces, and #1197 adds their vietnamese subset; RED and GREEN were recorded on 2026-10-23 with the pwa-preview spec. Step 1's face and role names change no behavior and prove themselves with the rendered pairs, the typeface fit audit and the design and typography guards. Step 2 is pure styling (not_applicable); step 3's solid focus ring is rendered-only behavior (proof_limit, with its rendered evidence in #1195). Step 4's count badge is a styling recipe with one small component: its cap and its nothing-below-one rule are covered by a focused test (a mutated cap fails it), and its look by the approved pairs (proof_limit). Step 6's capsule chips are styling (not_applicable); a CI story checks their look and keyboard use in every tone."
+      },
+      "skill_tags": ["ui", "design", "react"],
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "This hub proposes look and feel and shared presentation elements only; no data, hook, store, or API change is in scope."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract, settlement, or deployment work is in scope."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "completed",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": false,
+      "branch": "fix/app-cockpit-acceptance-pass-1",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "completed",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-10T09:56:00.666Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-10-10T10:14:29Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scoped",
+      "branch": null,
+      "note": "Recorded the stated direction, the divergence ledger, thirteen open forks, a conditional delivery sequence, and pending evaluation. Added the design lab and the Storybook captures as artifacts. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-11T04:09:16Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded the maintainer's picks for the thirteen forks and the workspace tone as accepted in principle, and the retired Material 3 rule for the cockpit. F6, F9 and F11 differ from the recommendation; the maintainer confirmed the F9 pick and that the picks stand under the retired rule. Updated the plan's sequence and the acceptance matrix to match. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-11T04:42:41Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded four changes without a fork as accepted in principle (focus ring, empty-state anatomy, type role names, glass spec), what a pair must show before a pick locks, and the timing aim. Added the empty-state step and three acceptance rows; renumbered the later steps. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-11T04:49:40Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded that the user round follows the slices and gates nothing, and that the cockpit's Material-named tokens keep their names. Split the delivery sequence into one slice per step, thirteen slices before acceptance. The maintainer asked for a Linear parent with an issue per slice; those records are not filed yet. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-18T02:58:37.729Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent PRD-1266 (parent_only, preserve_existing); its thirteen sub-issues PRD-1267 to PRD-1279 map one to one onto the delivery steps in the plan"
+    },
+    {
+      "timestamp": "2026-10-18T03:29:16Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded the card model, the cockpit control fold-in and the one-home-per-object rule, accepted in principle; added steps 14 to 20 (fact rows, commitment cards, pickers and record cards, people rows, jar and vault cards, unused card code, cockpit controls) and filed them under PRD-1266; acceptance moved to step 21. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-18T03:39:45Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded the maintainer's revised picks of 17 October: F6 pill on both, F7 the app's cards everywhere, F11 12px. Step 7 now uses the app's card and work row with a 12px gap; step 21 adds the bottom bar's active pill; acceptance moved to step 22. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-21T05:25:35.974Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-21T06:58:47Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "design_gate_recorded",
+      "branch": null,
+      "note": "Rendered the before and after pairs for steps 1 to 3 and recorded the typeface, contrast and step 13 draft results in eval.md; awaiting approval of the token slices. Nothing merged."
+    },
+    {
+      "timestamp": "2026-10-21T07:06:44Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Approved the three token slices (steps 1 to 3) as drafted, with the four planned items, a solid 2px focus ring in step 3, and the type role rename as a second pull request under PRD-1267."
+    },
+    {
+      "timestamp": "2026-10-21T07:06:48.042Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-10-21T07:07:17.647Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-typeface",
+      "note": "Step 1 (typeface, PRD-1267) started on the approved pair; steps 2 and 3 follow in order, one pull request each."
+    },
+    {
+      "timestamp": "2026-10-21T07:19:35Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-typeface",
+      "note": "Handed to the next session at the maintainer's request: step 1's code is committed and pushed without its guides and guards, and the step 2 and 3 drafts are pushed on feature/app-cockpit-token-slice-drafts; handoffs/claude-ui.md lists what remains."
+    },
+    {
+      "timestamp": "2026-10-21T08:02:50.971Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-typeface",
+      "note": "Step 1's guides, guards and stories committed with DL-095 and DL-096 after merging develop; the face's pull request is ready to open with Refs PRD-1267, and the type role names follow as a second one. The step 13 draft now lives in artifacts/step-13-draft."
+    },
+    {
+      "timestamp": "2026-10-22T00:20:52.562Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 1's three pull requests merged: #1176 (guide wording, 870600083, 2026-10-21T23:46:46Z), #1175 (cockpit type roles, cfd1aaf83, 2026-10-21T23:48:54Z) and #1172 (the face, 20d8c8121, 2026-10-22T00:10:24Z). Step 1 stays open for the shared components' roles, the offline face (both faces served from the app and precached) and authenticated Brave proof of the installed app; the lane has no branch until that work starts. The 320px truncations are handed on to step 7; handoffs/claude-ui.md has the details."
+    },
+    {
+      "timestamp": "2026-10-22T18:38:42.905Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-shared-type-roles",
+      "note": null
+    },
+    {
+      "timestamp": "2026-10-23T18:27:33.124Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-ground-ladder",
+      "note": "Step 1's shared component roles merged as #1188 (f305bd7f6, 2026-10-23T05:10:05Z) after their guides #1187 (671bc8220, 2026-10-23T05:36:58Z); #1190 (65df3ad13) then served and precached the faces, so step 1 waits only on the maintainer's call on #1189. Step 2 (ground and dark ladder, PRD-1268) runs on feature/app-cockpit-ground-ladder from develop 65df3ad13; its guides go in a standards-only pull request."
+    },
+    {
+      "timestamp": "2026-10-23T19:20:34.065Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/app-cockpit-ground-ladder",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-23T21:27:24.746Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-ground-ladder",
+      "note": "Steps 1 to 3 merged on 2026-10-23 (#1193, #1191, #1196, #1195, #1197); step 4 starts on its own approved pair"
+    },
+    {
+      "timestamp": "2026-10-23T22:51:45.243Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-count-badge",
+      "note": "Step 4's count badge pairs approved on 2026-10-23 with all six recommendations; code on feature/app-cockpit-count-badge, guide wording and DL-099 on feature/app-cockpit-count-badge-guides"
+    },
+    {
+      "timestamp": "2026-10-24T03:45:56.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-chips",
+      "note": "Step 6's capsule chips built on feature/app-cockpit-chips, on develop with #1206; guide wording and DL-101 on feature/app-cockpit-chips-guides"
+    },
+    {
+      "timestamp": "2026-10-24T21:14:23.917Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": "fix/app-cockpit-acceptance-pass-1",
+      "note": "Acceptance pass 1 ran on develop 8476dbd80 (steps 1 to 19 and 21 with step 12's look, plus step 20's phases 3 and 4); results in eval.md. Recheck step 20's phases 1 and 2 and the call-site pass when they merge; authenticated Brave stays pending."
+    },
+    {
+      "timestamp": "2026-10-24T21:14:25.027Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": null,
+      "note": "The regression review ran on develop 8476dbd80 and asks for changes: one medium finding (a failed queued promise hides its reason at phone width), five low and four calls. Findings: https://claude.ai/artifact/WTnYosMJSaicyEArM3wnPX"
+    }
+  ]
+}

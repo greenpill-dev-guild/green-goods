@@ -192,7 +192,9 @@ describe("AppSheet", () => {
     );
     const panel = screen.getByTestId("app-sheet");
     expect(panel).toHaveAttribute("data-sheet-size", "tall");
-    expect(panel).not.toHaveAttribute("style");
+    // The tier sizes the sheet; nothing inline overrides it.
+    expect(panel.style.height).toBe("");
+    expect(panel.style.maxHeight).toBe("");
     // The shared body is the single scroll owner (attribute CSS, no utility class).
     const region = screen.getByText("Content").parentElement;
     expect(region).toHaveAttribute("data-slot", "body");

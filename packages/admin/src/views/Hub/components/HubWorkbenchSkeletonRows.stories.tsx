@@ -9,7 +9,7 @@ const meta: Meta<typeof HubWorkbenchSkeletonRows> = {
     docs: {
       description: {
         component:
-          "Shimmer placeholders used while Hub queues fetch data. Row placeholders match WorkbenchRow; media-card and card placeholders reserve the Hub workbench grid geometry.",
+          "Shimmer placeholders used while Hub queues fetch data. The media-card and card placeholders reserve the Hub workbench grid geometry.",
       },
     },
   },
@@ -17,17 +17,13 @@ const meta: Meta<typeof HubWorkbenchSkeletonRows> = {
     count: { control: { type: "number", min: 1, max: 10 } },
     variant: {
       control: "select",
-      options: ["row", "media-card", "card"],
+      options: ["media-card", "card"],
     },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof HubWorkbenchSkeletonRows>;
-
-export const Rows: Story = {
-  args: { count: 3 },
-};
 
 export const MediaCards: Story = {
   args: { count: 5, variant: "media-card" },

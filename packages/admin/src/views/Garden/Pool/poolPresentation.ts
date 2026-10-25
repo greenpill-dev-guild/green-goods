@@ -1,5 +1,9 @@
+import type { CommitmentRowPending } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import type { PendingCommitmentCreation } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
-import type { ConfirmQueueEligibility } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type {
+  ConfirmQueueEligibility,
+  TxActPhase,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CycleMetadataNameResolution } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
 import type { PoolConsoleStatus } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type {
@@ -392,34 +396,52 @@ export function confirmEligibilityChip(
   };
 }
 
-/** A retained reward is deferred, rather than failed or ready for another send. */
-export function queuedCreationChip(
+/**
+ * What a creation still on this device says in its row's one pill (DL-110): an act in
+ * flight first, then the shared queue states where one fits ("Not sent" while it waits
+ * here, "Didn't send" once a send failed), and the pool's own words for a retained reward
+ * and a wait for membership.
+ */
+export function queuedCreationPill(
   row: Pick<PendingCommitmentCreation, "settlementDeferred" | "failed" | "waitingForMembership">,
+  phase: TxActPhase["status"],
   formatMessage: FormatMessage
-): { label: string; variant: ChipVariant } {
-  if (row.settlementDeferred)
+): { pending?: CommitmentRowPending; status?: { label: string; tone: ChipVariant } } {
+  if (phase === "signing" || phase === "confirming") return { pending: "confirming" };
+  if (phase === "confirmed") {
     return {
-      label: formatMessage({
-        id: "app.pool.queued.settlementDeferred",
-        defaultMessage: "G$ reward deferred",
-      }),
-      variant: "info",
+      status: {
+        label: formatMessage({
+          id: "cockpit.garden.pool.queued.sentShort",
+          defaultMessage: "Sent",
+        }),
+        tone: "success",
+      },
     };
-  if (row.failed)
+  }
+  if (phase === "failed") return { pending: "sendFailed" };
+  if (row.settlementDeferred) {
     return {
-      label: formatMessage({
-        id: "cockpit.garden.pool.queued.failed",
-        defaultMessage: "Failed to send",
-      }),
-      variant: "error",
+      status: {
+        label: formatMessage({
+          id: "app.pool.queued.settlementDeferred",
+          defaultMessage: "G$ reward deferred",
+        }),
+        tone: "info",
+      },
     };
-  return {
-    label: formatMessage({
-      id: row.waitingForMembership
-        ? "cockpit.garden.pool.queued.waiting"
-        : "cockpit.garden.pool.queued.queued",
-      defaultMessage: row.waitingForMembership ? "Waiting for membership" : "Queued",
-    }),
-    variant: "info",
-  };
+  }
+  if (row.failed) return { pending: "sendFailed" };
+  if (row.waitingForMembership) {
+    return {
+      status: {
+        label: formatMessage({
+          id: "cockpit.garden.pool.queued.waiting",
+          defaultMessage: "Needs membership",
+        }),
+        tone: "info",
+      },
+    };
+  }
+  return { pending: "notSent" };
 }

@@ -97,7 +97,7 @@ function docsPages(directory) {
     .sort();
 }
 
-/** Repo-relative paths of every design guide: each DESIGN*.md at the root, in docs, and in each package, plus the design skill's pages. */
+/** Repo-relative paths of every design guide: each DESIGN*.md at the root, in docs, and in each package, plus the design skill's pages recursively. */
 export function designGuides(root) {
   const filesIn = (directory, pattern) => {
     const absolute = path.join(root, directory);
@@ -115,7 +115,13 @@ export function designGuides(root) {
     : [];
   return [".", "docs", ...packages]
     .flatMap((directory) => filesIn(directory, DESIGN_GUIDE))
-    .concat(filesIn(DESIGN_SKILL, /\.md$/))
+    .concat(
+      fs.existsSync(path.join(root, DESIGN_SKILL))
+        ? docsPages(path.join(root, DESIGN_SKILL))
+            .filter((file) => file.endsWith(".md"))
+            .map((file) => path.relative(root, file).split(path.sep).join("/"))
+        : [],
+    )
     .sort();
 }
 

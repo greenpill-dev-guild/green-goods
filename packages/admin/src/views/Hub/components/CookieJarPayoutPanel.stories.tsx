@@ -4,7 +4,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { getCampaignCookieJarPayoutAsset } from "@green-goods/shared/utils/cookie-jar-campaign";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
 import { CookieJarPayoutCard, type JarSettingField } from "./CookieJarPayoutCard";
@@ -13,8 +13,9 @@ import { CookieJarPayoutCard, type JarSettingField } from "./CookieJarPayoutCard
 // The real panel renders nothing until `useGardenCookieJars` (wagmi reads)
 // returns a configured jar list, and it owns the deposit and claim dialogs.
 // This harness keeps the panel chrome and renders the real
-// `CookieJarPayoutCard` for each injected jar, so the cards are the shipping
-// ones and only the data source is faked.
+// `CookieJarPayoutCard` for each injected jar, a list of item rows that each
+// open the jar's page, so the rows are the shipping ones and only the data
+// source is faked.
 
 const GARDEN = "0x1111111111111111111111111111111111111111";
 // The default chain's DAI and WETH, so the claim-limit rule recognises the assets.
@@ -35,15 +36,15 @@ function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
     <AdminCard density="none" className="overflow-hidden">
       <AdminCardHeader>
         <div>
-          <h3 className="label-md text-text-strong sm:text-title-md">Cookie Jars</h3>
-          <p className="mt-1 body-sm text-text-sub">
+          <h3 className="type-label-sm text-text-strong sm:type-title-md">Cookie Jars</h3>
+          <p className="mt-1 type-body text-text-sub">
             Gardeners claim rewards from cookie jars for completed work
           </p>
         </div>
       </AdminCardHeader>
 
       <AdminCardBody className="space-y-3">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="flex flex-col gap-(--gg-list-gap)">
           {jars.map((jar) => (
             <CookieJarPayoutCard
               key={jar.jarAddress}
@@ -98,7 +99,7 @@ const meta: Meta<typeof CookieJarPayoutPanelHarness> = {
     docs: {
       description: {
         component:
-          "⚠ **Visual harness** — not the real `CookieJarPayoutPanel`. The panel chrome around the real `CookieJarPayoutCard`s, with injected jars. The real panel is gated by wagmi reads inside `useGardenCookieJars` and owns the deposit and claim dialogs.",
+          "⚠ **Visual harness** — not the real `CookieJarPayoutPanel`. The panel chrome around the real `CookieJarPayoutCard`s, with injected jars: one item row per jar, each opening the jar's page beneath it. The real panel is gated by wagmi reads inside `useGardenCookieJars` and owns the deposit and claim dialogs.",
       },
     },
   },
@@ -111,6 +112,25 @@ type Story = StoryObj<typeof CookieJarPayoutPanelHarness>;
 export const WithJars: Story = {
   args: {
     jars: JARS,
+  },
+};
+
+/** One jar's page open beneath its row; the other jar stays a row. */
+export const WithOneJarOpen: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    jars: JARS,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const [weth, dai] = canvas.getAllByRole("button", { expanded: false });
+    await userEvent.click(dai);
+    await expect(dai).toHaveAttribute("aria-expanded", "true");
+    await expect(weth).toHaveAttribute("aria-expanded", "false");
+    await expect(canvas.getByRole("button", { name: "Edit Per-Claim Limit" })).toBeVisible();
+    // Every jar row keeps one height, whichever page is open.
+    const heights = [weth, dai].map((row) => Math.round(row.getBoundingClientRect().height));
+    await expect(heights[0]).toBe(heights[1]);
   },
 };
 

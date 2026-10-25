@@ -67,8 +67,11 @@ type Stage =
   | "error"
   | "unavailable";
 
+/** What the garden chooser has to show: the gardens, or the state that stands in for them. */
+type Catalog = "gardens" | "loading" | "error" | "empty";
+
 /** Real view with deterministic presentation fixtures; callbacks never sign or assign a role. */
-function RequestFixture({ stage }: { stage: Stage }) {
+function RequestFixture({ stage, catalog = "gardens" }: { stage: Stage; catalog?: Catalog }) {
   const [open, setOpen] = useState(stage !== "idle");
   const [step, setStep] = useState<"choose" | "review">(
     stage === "idle" || stage === "choose" ? "choose" : "review"
@@ -107,12 +110,13 @@ function RequestFixture({ stage }: { stage: Stage }) {
     note,
     setNote,
     selectedGarden,
-    candidates: gardens.filter((candidate) =>
-      candidate.name.toLowerCase().includes(search.toLowerCase())
-    ),
+    candidates:
+      catalog === "gardens"
+        ? gardens.filter((candidate) => candidate.name.toLowerCase().includes(search.toLowerCase()))
+        : [],
     invalidLink: false,
-    catalogLoading: false,
-    catalogError: false,
+    catalogLoading: catalog === "loading",
+    catalogError: catalog === "error",
     reloadGardens: fn(),
     request: currentRequest,
     hasCheckedStatus: false,
@@ -210,6 +214,16 @@ export const Granted: Story = { render: () => <RequestFixture stage="granted" />
 export const Declined: Story = { render: () => <RequestFixture stage="declined" /> };
 export const ServiceError: Story = { render: () => <RequestFixture stage="error" /> };
 export const ApiUnavailable: Story = { render: () => <RequestFixture stage="unavailable" /> };
+/** The garden chooser while the gardens load, when they fail to load, and when none match. */
+export const ChooserLoading: Story = {
+  render: () => <RequestFixture stage="choose" catalog="loading" />,
+};
+export const ChooserFailed: Story = {
+  render: () => <RequestFixture stage="choose" catalog="error" />,
+};
+export const ChooserEmpty: Story = {
+  render: () => <RequestFixture stage="choose" catalog="empty" />,
+};
 
 const spanishDecorators: Story["decorators"] = [
   (Story) => (
@@ -282,9 +296,7 @@ async function verifyStableRequestGeometry() {
   expect(picker.scrollHeight).toBeGreaterThan(picker.clientHeight);
   const search = within(surface).getByLabelText("Garden name or link");
   await userEvent.type(search, "No matching garden");
-  await expect(
-    within(surface).getByText("No matching gardens. Try another name or paste the garden link.")
-  ).toBeVisible();
+  await expect(within(surface).getByText("No matching gardens")).toBeVisible();
   await assertStable();
   await userEvent.clear(search);
   await userEvent.click(

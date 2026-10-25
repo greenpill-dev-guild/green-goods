@@ -37,10 +37,10 @@ export const SeasonAndCampaign: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Autumn Planting 2026")).toBeVisible();
     await expect(canvas.getByText("Seed Swap Weekend")).toBeVisible();
-    // The state pill is the 12px pill, the size of the kind word beside it.
+    // The state pill is the 11px status pill both surfaces share, 22px tall.
     const pill = canvas.getAllByRole("status")[0];
     await expect(pill.getBoundingClientRect().height).toBe(22);
-    await expect(getComputedStyle(pill).fontSize).toBe("12px");
+    await expect(getComputedStyle(pill).fontSize).toBe("11px");
     canvas.getByRole("button", { name: "About Autumn Planting 2026" }).click();
     await expect(args.onShowDetails).toHaveBeenCalledWith(AUTUMN_PLANTING);
   },

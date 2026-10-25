@@ -1,7 +1,7 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { SmartOutcome } from "@green-goods/shared/types/domain";
 import { RiDeleteBinLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminIconButton } from "../../AdminButton";
 import { AdminSelect, AdminTextField } from "../../AdminTextField";
 
 type OutcomeField = "description" | "metric" | "target";
@@ -87,7 +87,7 @@ export function AssessmentOutcomeFields({
       </AdminSelect>
 
       <AdminTextField
-        className="[grid-area:target] [&_[data-region=supporting-line]]:min-h-8"
+        className="[grid-area:target]"
         type="number"
         label={formatMessage({
           id: "app.admin.assessment.strategyKernel.targetFieldLabel",
@@ -102,19 +102,24 @@ export function AssessmentOutcomeFields({
       />
 
       {/* Always in its column, so adding a second outcome never
-          shifts the fields; centred on the field's 44 / 40px box. */}
-      <AdminIconButton
-        variant="danger"
-        className="mt-1.5 [grid-area:remove] sm:mt-1"
+          shifts the fields; centred on the field's 44 / 40px box, below its 24px label. */}
+      <IconButton
+        emphasis="tertiary"
+        tone="danger"
+        size="sm"
+        className="mt-7.5 [grid-area:remove] sm:mt-7"
         onClick={onRemove}
         disabled={isSubmitting || !canRemove}
-        label={formatMessage({
+        aria-label={formatMessage({
           id: "app.admin.assessment.strategyKernel.removeOutcome",
           defaultMessage: "Remove Outcome",
         })}
-      >
-        <RiDeleteBinLine />
-      </AdminIconButton>
+        title={formatMessage({
+          id: "app.admin.assessment.strategyKernel.removeOutcome",
+          defaultMessage: "Remove Outcome",
+        })}
+        icon={<RiDeleteBinLine />}
+      />
     </div>
   );
 }
@@ -123,7 +128,7 @@ export function AssessmentOutcomeFields({
 export function AssessmentOutcomeHelp({ helpIds }: { helpIds: Record<OutcomeField, string> }) {
   const { formatMessage } = useIntl();
   return (
-    <dl className="grid gap-2 body-xs sm:grid-cols-3">
+    <dl className="grid gap-2 type-meta sm:grid-cols-3">
       <div>
         <dt className="font-medium text-text-strong">
           {formatMessage({

@@ -4,7 +4,7 @@ import {
   publicGardenHelpers,
   usePublicGardens,
 } from "@green-goods/shared/hooks/public/usePublicGardens";
-import { useHypercerts } from "@green-goods/shared/hooks/hypercerts/useHypercerts";
+import { usePublicGardenHypercerts } from "@green-goods/shared/hooks/public/usePublicGardenHypercerts";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
@@ -79,8 +79,9 @@ export default function GardenDetail() {
     isLoading: hypercertsLoading,
     hasError: hypercertsUnavailable,
     refetch: refetchHypercerts,
-  } = useHypercerts({
+  } = usePublicGardenHypercerts({
     gardenId: garden?.id,
+    chainId,
   });
 
   const identity = useMemo(() => {

@@ -306,22 +306,22 @@ export const AvailableAction: Story = {
   },
 };
 
-// Multiple eligible actions → the scannable card chooser (radiogroup).
+// Multiple eligible actions → the shared action picker (a listbox of banner cards).
 export const ActionChooser: Story = {
   tags: ["storybook-ci"],
   render: () => <SubmitWorkPanelStory />,
   decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const cards = await canvas.findAllByRole("radio");
+    const cards = await canvas.findAllByRole("option");
     expect(cards.length).toBeGreaterThan(1);
     await userEvent.click(cards[0]);
     // Select-in-place: the card is marked but the chooser stays on the Action
     // step; the footer Next then advances to Media (chooser gone).
-    await expect(cards[0]).toBeChecked();
-    expect(canvas.getAllByRole("radio").length).toBeGreaterThan(1);
+    await expect(cards[0]).toHaveAttribute("aria-selected", "true");
+    expect(canvas.getAllByRole("option").length).toBeGreaterThan(1);
     await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
-    await expect(canvas.queryByRole("radio")).not.toBeInTheDocument();
+    await expect(canvas.queryByRole("option")).not.toBeInTheDocument();
   },
 };
 
@@ -338,7 +338,7 @@ export const DomainFilter: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("tablist")).toBeVisible();
-    expect((await canvas.findAllByRole("radio")).length).toBeGreaterThan(1);
+    expect((await canvas.findAllByRole("option")).length).toBeGreaterThan(1);
   },
 };
 

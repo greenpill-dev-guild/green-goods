@@ -1,6 +1,6 @@
 /* ============================================================================
  * Admin M3 component skins & motion — admin-owned CSS for admin-owned
- * components (plus two third-party surfaces). Imported by admin's index.css
+ * components (plus two third-party surfaces). Imported by admin's workspace stylesheet
  * AND the shared Storybook preview, so stories exercise the same motion and
  * dark-mode fixes as the runtime app.
  *
@@ -8,14 +8,6 @@
  * ended with the Shell fork (Cockpit M3 1a, Step 1) and the removal of
  * admin-m3-overrides.css (Step 5).
  * ============================================================================ */
-
-.admin-loading-screen {
-  background: rgb(var(--m3-surface-container-low));
-}
-
-[data-theme="dark"] .admin-loading-screen {
-  background: rgb(var(--m3-surface));
-}
 
 /* Toast / Snackbar (react-hot-toast) — M3 inverse surface */
 .admin-m3 [data-hot-toast] > div {
@@ -113,6 +105,24 @@
     animation: adminDialogModalOut var(--spring-spatial-duration)
       var(--spring-spatial-easing) both;
   }
+}
+
+/* The confirm family hosts the shared action bar in the dialog's own footer bar,
+ * which pads it and draws its hairline, the way DialogShell and ConfirmDialog
+ * set the bar's padding from their own selectors (DL-117). */
+[data-component="AdminDialog"] [data-slot="actions"] > [data-component="SheetActions"] {
+  padding: 0;
+  background-color: transparent;
+}
+
+/* From 640px the centered dialog keeps its own surface (DL-104), so the shared
+ * header's scroll edge (DL-028) covers with that fill, not the phone sheet's.
+ * The cover is a token the shared scroll-edge rule reads (DL-031). */
+[data-component="AdminDialog"][data-slot="surface"]:not([data-sheet-surface]) {
+  --sheet-scroll-edge-cover: linear-gradient(
+    rgb(var(--m3-surface-container-high)),
+    rgb(var(--m3-surface-container-high))
+  );
 }
 
 /* ============================================================================

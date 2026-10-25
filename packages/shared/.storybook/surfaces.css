@@ -13,9 +13,11 @@
  * / `?presentation=website`) and updated with DL-029 / DL-030. The Design
  * System foundation stories pin these numbers, so a product change shows up
  * here as a failing parity check instead of silent drift. Sources:
- *   - admin:   packages/admin/src/index.css (`@theme` type + radius aliases,
- *              the Plus Jakarta Sans body font, the Tier 1a colour aliases)
- *   - client:  packages/client/index.html (Inter / Fraunces) and
+ *   - admin:   packages/admin/src/index.css (`@theme` radius aliases, the
+ *              type roles' cockpit values, the Plus Jakarta Sans body font,
+ *              the Tier 1a colour aliases)
+ *   - client:  packages/client/index.html (Plus Jakarta Sans / Inter /
+ *              Fraunces), packages/client/src/index.css and
  *              packages/client/src/styles/typography.css
  * Never import packages/admin/src/index.css wholesale: its document-level
  * shell resets would leak into every story. Its layout and surface classes live
@@ -23,49 +25,9 @@
  * so a class-scoped admin layout rule belongs there rather than here.
  * ============================================================================ */
 
-/* Admin's M3 type aliases (`text-body-*`, `text-title-*`, `text-headline-*`,
- * `text-display-*`) exist only in packages/admin/src/index.css `@theme`, so the
- * shared build never generated those utilities and admin stories inherited
- * 16px everywhere those classes appear. Declaring the keys here makes Tailwind
- * emit the utilities. Outside the admin scopes below they resolve to `1em`, the
- * parent's size, which is exactly what the client build renders where these
- * utilities do not exist (the class emits nothing, so the size inherits). */
-@theme {
-  --text-display-lg: 1em;
-  --text-display-md: 1em;
-  --text-display-sm: 1em;
-  --text-headline-lg: 1em;
-  --text-headline-md: 1em;
-  --text-headline-sm: 1em;
-  --text-title-lg: 1em;
-  --text-title-md: 1em;
-  --text-title-sm: 1em;
-  --text-body-lg: 1em;
-  --text-body-md: 1em;
-  --text-body-sm: 1em;
-}
-
 /* ── Admin cockpit ─────────────────────────────────────────────────────── */
 :root[data-surface="admin"],
 [data-surface-scope="admin"] {
-  /* M3 type scale — packages/admin/src/index.css `@theme` → `--type-*` in theme.css.
-     Labels are 14 / 12 / 11px where the shared theme says 18 / 16 / 14. */
-  --text-display-lg: var(--type-display-lg);
-  --text-display-md: var(--type-display-md);
-  --text-display-sm: var(--type-display-sm);
-  --text-headline-lg: var(--type-headline-lg);
-  --text-headline-md: var(--type-headline-md);
-  --text-headline-sm: var(--type-headline-sm);
-  --text-title-lg: var(--type-title-lg);
-  --text-title-md: var(--type-title-md);
-  --text-title-sm: var(--type-title-sm);
-  --text-body-lg: var(--type-body-lg);
-  --text-body-md: var(--type-body-md);
-  --text-body-sm: var(--type-body-sm);
-  --text-label-lg: var(--type-label-lg);
-  --text-label-md: var(--type-label-md);
-  --text-label-sm: var(--type-label-sm);
-
   /* M3 shape scale — index.css `@theme` plus its unlayered `:root` remap, so
      rounded-xl / rounded-2xl land on the 16px page-container step (DL-030). */
   --admin-radius-xs: 4px;
@@ -131,6 +93,110 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  --gg-button-block-cap-lg: var(--gg-button-block-lg);
+  --gg-button-block-cap-md: var(--gg-button-block-md);
+  --gg-button-block-cap-sm: var(--gg-button-block-sm);
+  --gg-button-block-cap-compact: var(--gg-button-block-compact);
+  --gg-button-reserve-lg: 0.125rem;
+  --gg-button-reserve-md: 0.125rem;
+  --gg-button-reserve-sm: 0.375rem;
+  --gg-button-reserve-compact: 0.375rem;
+  --gg-button-pressed-transform: none;
+  --gg-icon-button-glyph: 1.125rem;
+  --gg-icon-button-radius-pressed: var(--radius-full);
+  --gg-button-disabled-opacity: 1;
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
+  --gg-button-aria-disabled-events: auto;
+  --gg-control-outline: var(--m3-outline);
+  --gg-focus-ring-width: 2px;
+  --gg-focus-halo-alpha: 0;
+  --gg-field-message-lines: 2;
+  --gg-chip-state-hover: var(--m3-state-hover);
+  --gg-chip-state-pressed: var(--m3-state-pressed);
+  --gg-state-mark-fill: rgb(var(--text-strong-950) / 0.06);
+  --gg-state-mark-ink: rgb(var(--text-sub-600));
+
+  /* The type roles at the cockpit's density, as index.css `:root` sets them,
+     with its 640px media rule for field text below. */
+  --gg-type-title-lg-size: 1.375rem;
+  --gg-type-title-lg-line: 1.75rem;
+  --gg-type-title-md-size: 1rem;
+  --gg-type-title-md-line: 1.5rem;
+  --gg-type-title-sm-size: 0.875rem;
+  --gg-type-title-sm-line: 1.25rem;
+  --gg-type-body-size: 0.875rem;
+  --gg-type-body-line: 1.25rem;
+  --gg-type-body-tracking: -0.006em;
+  --gg-type-label-size: 0.875rem;
+  --gg-type-label-line: 1.25rem;
+  --gg-type-label-tracking: -0.006em;
+  --gg-type-label-sm-size: 0.75rem;
+  --gg-type-label-sm-line: 1rem;
+  --gg-type-label-sm-weight: 500;
+  --gg-type-label-sm-tracking: 0px;
+  --gg-type-meta-size: 0.75rem;
+  --gg-type-meta-line: 1rem;
+  --gg-type-meta-sm-size: 0.6875rem;
+  --gg-type-meta-sm-line: 1rem;
+  --gg-type-field-size: 1rem;
+  --gg-type-field-line: 1.25rem;
+  --gg-type-field-tracking: 0px;
+  --gg-type-card-title-size: 0.8125rem;
+  --gg-type-card-title-line: 1.125rem;
+  --gg-type-card-title-weight: 600;
+
+  /* The phone sheet (F5), as index.css `:root` sets it, with its dark pair in
+     the dark block below. */
+  --gg-sheet-fill: rgb(var(--admin-surface-0));
+  --gg-sheet-edge: rgb(var(--neutral-200));
+  --gg-sheet-title-size: var(--gg-type-title-lg-size);
+  --gg-sheet-title-line: var(--gg-type-title-lg-line);
+
+  /* The shared card surface on the cockpit's ladder, as index.css `:root`
+     sets it (its dark block re-declares the three below). */
+  --gg-card-surface: var(--admin-surface-0);
+  --gg-card-edge: var(--neutral-200);
+  --gg-card-fill: var(--m3-surface-container-high);
+}
+
+@media (min-width: 40rem) {
+  :root[data-surface="admin"],
+  [data-surface-scope="admin"] {
+    --gg-type-field-size: 0.875rem;
+  }
+}
+
+/* The glyph tier and the disabled pair over a call site's utility classes, as
+   admin index.css sets them outside every layer (DL-119). */
+:root[data-surface="admin"] .gg-icon-button:not([data-piece-control]) svg,
+[data-surface-scope="admin"] .gg-icon-button:not([data-piece-control]) svg {
+  inline-size: var(--gg-icon-button-glyph, 1.25rem);
+  block-size: var(--gg-icon-button-glyph, 1.25rem);
+}
+
+:root[data-surface="admin"] .gg-icon-button[data-size="compact"]:not([data-piece-control]) svg,
+[data-surface-scope="admin"] .gg-icon-button[data-size="compact"]:not([data-piece-control]) svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+:root[data-surface="admin"] .gg-button[data-emphasis]:is(:disabled, [aria-disabled="true"]),
+[data-surface-scope="admin"] .gg-button[data-emphasis]:is(:disabled, [aria-disabled="true"]) {
+  background: var(--gg-button-disabled-fill, var(--gg-button-fill));
+  color: var(--gg-button-disabled-ink, var(--gg-button-ink));
+}
+
+:root[data-surface="admin"]
+  .gg-icon-button:is([data-emphasis="primary"], [data-emphasis="secondary"]):is(:disabled, [aria-disabled="true"]),
+[data-surface-scope="admin"]
+  .gg-icon-button:is([data-emphasis="primary"], [data-emphasis="secondary"]):is(:disabled, [aria-disabled="true"]) {
+  background-color: var(--gg-button-disabled-fill, var(--gg-icon-button-fill));
+}
+
+:root[data-surface="admin"] .gg-icon-button:is(:disabled, [aria-disabled="true"]),
+[data-surface-scope="admin"] .gg-icon-button:is(:disabled, [aria-disabled="true"]) {
+  color: var(--gg-button-disabled-ink, var(--gg-icon-button-ink));
 }
 
 :root[data-surface="admin"][data-theme="dark"],
@@ -150,6 +216,13 @@
   --g-soft-bg: rgb(var(--green-400) / 0.16);
   --g-soft-fg: rgb(var(--green-300));
   --g-on-action: rgb(var(--neutral-950));
+  --gg-sheet-fill: rgb(var(--admin-surface-0));
+  --gg-sheet-edge: rgb(var(--earth-700));
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
+  --gg-card-surface: var(--admin-surface-0);
+  --gg-card-edge: var(--earth-700);
+  --gg-card-fill: var(--m3-surface-container-high);
 }
 
 /* The cockpit body font. Production sets it on <body> in `@layer base` and has
@@ -161,11 +234,103 @@
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
+/* The garden chip's app density is set in the installed app's scope
+   (theme.css), so a cockpit column inside an app document would inherit it.
+   Production's cockpit never sets these tokens; `initial` returns the column's
+   chip to the same fallbacks, the cockpit's 36px pill. Kept out of the first
+   admin block, which AdminDensityScale.guard pins against index.css. */
+[data-surface-scope="admin"] {
+  --gg-garden-chip-height: initial;
+  --gg-garden-chip-inline-start: initial;
+  --gg-garden-chip-inline-end: initial;
+  --gg-garden-chip-avatar: initial;
+  --gg-garden-chip-glyph: initial;
+  --gg-garden-chip-caret: initial;
+  --gg-garden-chip-edge: initial;
+  --gg-garden-chip-focus-ring: initial;
+}
+
+/* STATUS PALETTE REMAP (mirror). The cockpit's amber, handoff red and azure
+   ramps from index.css, set on <body> as production does, so admin stories and
+   the dialogs and sheets they portal draw the canvas's colors. Copied
+   declaration for declaration; WorkspaceToneContrast.guard fails when the two
+   drift. */
+:root[data-surface="admin"] body,
+[data-surface-scope="admin"] {
+  /* Link-hover step: the generated DesignMD tertiary-action-hover resolves to
+   * a green measuring 4.29:1 on white — one step deeper (green-900, 7.19)
+   * keeps the resting→hover darkening while clearing body-text AA. Dark mode
+   * re-points the .text-primary-* classes separately below. */
+  --primary-darker: var(--green-900);
+  /* Amber (warning) — handoff #D97706 anchor, full scale extrapolated from Tailwind amber */
+  --orange-50: 255 251 235;
+  --orange-100: 254 243 199;
+  --orange-200: 253 230 138;
+  --orange-300: 252 211 77;
+  --orange-400: 251 191 36;
+  --orange-500: 217 119 6;     /* #D97706 — handoff --amber-500 */
+  --orange-600: 180 83 9;
+  --orange-700: 180 83 9;      /* #B45309 — handoff --amber-700 */
+  --orange-800: 146 64 14;
+  --orange-900: 120 53 15;
+  --orange-950: 69 26 3;
+
+  /* Red — less-vivid handoff red */
+  --red-50: 254 242 242;
+  --red-100: 254 226 226;
+  --red-200: 254 202 202;
+  --red-300: 252 165 165;
+  --red-400: 248 113 113;
+  --red-500: 224 56 53;        /* #E03835 — handoff --red-500 */
+  --red-600: 220 38 38;
+  --red-700: 185 28 28;        /* #B91C1C — handoff --red-700 */
+  --red-800: 153 27 27;
+  --red-900: 127 29 29;
+  --red-950: 69 10 10;
+
+  /* Sky — handoff azure replaces our cyan-ish */
+  --sky-50: 239 246 255;
+  --sky-100: 219 234 254;
+  --sky-200: 191 219 254;
+  --sky-300: 147 197 253;
+  --sky-400: 96 165 250;
+  --sky-500: 59 130 246;       /* #3B82F6 — handoff --sky-500 */
+  --sky-600: 37 99 235;
+  --sky-700: 29 78 216;
+  --sky-800: 30 64 175;
+  --sky-900: 30 58 138;
+  --sky-950: 23 37 84;
+
+  /* Information state — remap from --blue-* to --sky-* so info badges in admin
+   * also pick up the handoff azure. Without this, --information-* would
+   * continue to resolve through --blue-* (unchanged in this scope). */
+  --information-dark: var(--sky-950);
+  --information-base: var(--sky-500);
+  --information-light: var(--sky-200);
+  --information-lighter: var(--sky-50);
+}
+
+:root[data-surface="admin"][data-theme="dark"] body,
+[data-theme="dark"] [data-surface-scope="admin"],
+[data-surface-scope="admin"][data-theme="dark"] {
+  /* Dark-mode handoff palette — slightly lighter shades for AA on dark surfaces */
+  --orange-500: 245 158 11;    /* #F59E0B */
+  --red-500: 248 113 113;      /* #F87171 */
+  --sky-500: 96 165 250;       /* #60A5FA */
+}
+
 /* ── Installed app and public website ──────────────────────────────────── */
-/* Both client presentations load Inter (index.html) and set it on :root. The
+/* The client sets Inter on :root and, in the installed app's presentation,
+   Plus Jakarta Sans, the cockpit's face (index.css). The app frame and <body>
+   (for portaled dialogs and sheets) carry the app's face here. The
    button corner and label weight tokens live on :root in shared theme.css
    (`:root:has([data-site="website"])` flips them); a scope wrapper re-declares
    them so an app column and a website column can share one document. */
+:root[data-surface="app"] body,
+:root[data-surface="app"] .storybook-browser-preview {
+  font-family: "Plus Jakarta Sans", system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
 [data-surface-scope="app"],
 [data-surface-scope="website"] {
   /* Back to the app scale inside an admin document: the label sizes take
@@ -186,18 +351,65 @@
   --gg-icon-size-sm: initial;
   --gg-icon-size-compact: initial;
   --gg-hit-block: initial;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --gg-field-message-lines: initial;
+  /* And the cockpit's button look (DL-115, DL-119): no cap or reserve, the
+     press scale, the 20px glyph and the dimmed disabled state. */
+  --gg-button-block-cap-lg: initial;
+  --gg-button-block-cap-md: initial;
+  --gg-button-block-cap-sm: initial;
+  --gg-button-block-cap-compact: initial;
+  --gg-button-reserve-lg: initial;
+  --gg-button-reserve-md: initial;
+  --gg-button-reserve-sm: initial;
+  --gg-button-reserve-compact: initial;
+  --gg-button-pressed-transform: initial;
+  --gg-icon-button-glyph: initial;
+  --gg-icon-button-radius-pressed: initial;
+  --gg-button-disabled-opacity: initial;
+  --gg-button-disabled-fill: initial;
+  --gg-button-disabled-ink: initial;
+  --gg-button-aria-disabled-events: initial;
+
+  /* The card surface falls back to the scope's own card and hairline. */
+  --gg-card-surface: initial;
+  --gg-card-edge: initial;
+  --gg-card-fill: initial;
 }
 
 [data-surface-scope="app"] {
+  font-family: "Plus Jakarta Sans", system-ui, Avenir, Helvetica, Arial, sans-serif;
   --gg-button-radius: var(--radius-lg);
   --gg-button-radius-pressed: var(--radius-squircle);
   --gg-button-radius-compact: var(--radius-squircle);
   --gg-button-radius-compact-pressed: var(--radius-md);
-  --gg-button-weight: var(--text-label-sm--font-weight);
+  --gg-button-weight: 500;
+  --gg-control-outline: var(--neutral-500);
+  --focus-ring: var(--primary-on-surface);
+  --gg-focus-ring-width: 2px;
+  --gg-focus-halo-alpha: 0;
+  /* The garden chip at the app's density, as theme.css's app scope sets it. */
+  --gg-garden-chip-height: 2.75rem;
+  --gg-garden-chip-inline-start: 0.5rem;
+  --gg-garden-chip-inline-end: 1rem;
+  --gg-garden-chip-avatar: 1.75rem;
+  --gg-garden-chip-glyph: 1rem;
+  --gg-garden-chip-caret: 1rem;
+  --gg-garden-chip-edge: var(--gg-control-outline);
+  --gg-garden-chip-focus-ring: var(--focus-ring);
+}
+
+/* The app column in dark takes the dark outline, as theme.css's app dark block
+   does for the installed app (neutral-400 on the lifted card). */
+[data-theme="dark"] [data-surface-scope="app"],
+[data-surface-scope="app"][data-theme="dark"] {
+  --gg-control-outline: var(--neutral-400);
 }
 
 [data-surface-scope="website"] {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --gg-control-outline: var(--stroke-sub-300);
+  --gg-focus-ring-width: 0px;
+  --gg-focus-halo-alpha: 0.16;
   --gg-button-radius: var(--radius-full);
   --gg-button-radius-pressed: var(--radius-full);
   --gg-button-radius-compact: var(--radius-full);

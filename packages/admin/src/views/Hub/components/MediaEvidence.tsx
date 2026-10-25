@@ -1,13 +1,13 @@
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { Button } from "@green-goods/shared/components/Button";
 import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { RiImageLine, RiZoomInLine } from "@remixicon/react";
-import { AdminButton } from "@/components/AdminButton";
-import { imagePreviewLabels } from "@/components/imagePreviewLabels";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { imagePreviewLabels } from "@/components/imagePreviewLabels";
 
 interface MediaEvidenceProps {
   /** IPFS CIDs for photo/video media */
@@ -30,7 +30,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
 
   return (
     <div className="space-y-4">
-      <h3 className="body-sm font-semibold text-text-strong">
+      <h3 className="type-body font-semibold text-text-strong">
         {formatMessage({ id: "admin.work.mediaEvidence", defaultMessage: "Media Evidence" })}
       </h3>
 
@@ -38,13 +38,13 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
       {resolvedMedia.length > 0 ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {resolvedMedia.map((src, index) => (
-            <AdminButton
+            <Button
               key={src}
               type="button"
-              variant="text"
-              size="sm"
+              emphasis="tertiary"
+              size="compact"
               onClick={() => setPreviewIndex(index)}
-              className="group relative aspect-square h-auto min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
+              className="group relative aspect-square h-auto max-h-none min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
               aria-label={`View ${actionTitle ? `${actionTitle} ` : ""}photo ${index + 1} of ${resolvedMedia.length}`}
             >
               <ImageWithFallback
@@ -57,7 +57,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
               <div className="absolute inset-0 flex items-center justify-center bg-static-black/0 transition-colors group-hover:bg-static-black/20">
                 <RiZoomInLine className="h-6 w-6 text-static-white opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
-            </AdminButton>
+            </Button>
           ))}
         </div>
       ) : (
@@ -73,7 +73,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
       {/* Audio notes from gardener */}
       {audioNoteCids && audioNoteCids.length > 0 && (
         <div className="space-y-2">
-          <h4 className="label-xs text-text-sub">
+          <h4 className="type-label-sm text-text-sub">
             {formatMessage({ id: "admin.work.audioNotes", defaultMessage: "Audio notes" })}
           </h4>
           {audioNoteCids.map((cid) => (

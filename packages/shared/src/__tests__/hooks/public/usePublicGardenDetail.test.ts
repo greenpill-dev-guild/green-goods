@@ -20,6 +20,10 @@ import { renderHookWithQueryClient } from "../../test-utils/query-client-render"
 // Mocks
 // ============================================
 
+vi.mock("../../../modules/data/graphql-client", () => ({
+  greenGoodsIndexer: { query: async () => ({ data: { Commitment: [] } }) },
+}));
+
 const mockGetGardens = vi.fn();
 vi.mock("../../../modules/data/greengoods", () => ({
   getGardens: (...args: unknown[]) => mockGetGardens(...args),
@@ -91,6 +95,31 @@ describe("usePublicGardenDetail", () => {
     });
 
     expect(mockGetGardens).not.toHaveBeenCalled();
+  });
+
+  it("holds confirmed tests and uncertain approved submissions out of public field notes", async () => {
+    const gardenAddress = "0xf401f34378384713222d1d21f63359cc4e8a858a";
+    const garden = createMockGarden({ id: gardenAddress, name: "Green Goods Community Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({
+        id: "0x15916dfa15db19351c79a2af1fd4f484cd5792b6f90ea701727b43fd67dac01c",
+        gardenAddress,
+      }),
+      createMockWork({
+        id: "0x5db91be5ad17144250cc04a9339318a017cb7dd0f895c8b75efdcd3d9a959d97",
+        gardenAddress,
+      }),
+      createMockWork({ id: "0x" + "a".repeat(64), gardenAddress, title: "Real support session" }),
+    ]);
+    const { result } = renderHookWithQueryClient(
+      () => usePublicGardenDetail(gardenAddress, { chainId: 42161 }),
+      { queryClient }
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.totalFieldNotes).toBe(1);
+    expect(result.current.data?.fieldNotes[0]?.title).toBe("Real support session");
+    expect(result.current.data?.partialData).toBe(false);
   });
 
   it("resolves a garden by lowercased address", async () => {

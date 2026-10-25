@@ -81,15 +81,6 @@ vi.mock("@remixicon/react", () => ({
 }));
 
 // Mock client components
-vi.mock("@/components/Cards", () => ({
-  Card: ({ children }: { children: React.ReactNode }) =>
-    createElement("div", { "data-testid": "card" }, children),
-}));
-
-vi.mock("@/components/Display", () => ({
-  Avatar: ({ children }: { children: React.ReactNode }) => createElement("div", null, children),
-}));
-
 vi.mock("@/components/Inputs", async () => {
   const React = await import("react");
   const SelectContext = React.createContext<((value: string) => void) | undefined>(undefined);
@@ -207,7 +198,7 @@ describe("AppSettings", () => {
     it("always offers a manual check with the same control width as the selects", () => {
       render(wrap(createElement(AppSettings)));
 
-      expect(screen.getAllByTestId("card")).toHaveLength(4);
+      expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(4);
       expect(screen.getByText(TITLE)).toBeInTheDocument();
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "Check for a newer version."
@@ -239,10 +230,10 @@ describe("AppSettings", () => {
         "Check for a newer version."
       );
       expect(screen.getByRole("button", { name: "Check" })).toBeInTheDocument();
-      expect(screen.getAllByTestId("card")).toHaveLength(4);
+      expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(4);
     });
 
-    it("reserves two subtitle lines in every row so the cards never change height", () => {
+    it("reserves two subtitle lines in every row so the rows never change height", () => {
       render(wrap(createElement(AppSettings)));
 
       const subtitles = [
@@ -317,7 +308,7 @@ describe("AppSettings", () => {
       const control = screen.getByRole("button", { name: label });
       expect(control).toHaveAttribute("aria-busy", "true");
       expect(control).toHaveClass(...widthClasses(screen.getAllByTestId("select-trigger")[0]));
-      expect(screen.getAllByTestId("card")).toHaveLength(4);
+      expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(4);
     });
 
     it("offers Restart when a background check found a waiting update", async () => {

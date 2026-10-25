@@ -114,7 +114,7 @@ export function seedStatusView(input: {
         ),
         description: formatMessage({
           id: "cockpit.garden.pool.seed.status.confirmingHint",
-          defaultMessage: "Your wallet approved. Waiting for the chain to confirm.",
+          defaultMessage: "Your wallet approved. Waiting for confirmation…",
         }),
       };
     case "asking":

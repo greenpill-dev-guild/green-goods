@@ -1,11 +1,11 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiArrowRightSLine } from "@remixicon/react";
+import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
-import { SeedlingIllustration } from "./SeedlingIllustration";
 
 // Paradigm: Ritual — single-purpose garden selection, focused attention.
 
@@ -32,28 +32,29 @@ export function CanvasWorkspaceSelectionState({
     return (
       <div className="py-8">
         <AdminCard density="none" className="mx-auto max-w-xl">
-          <AdminCardBody className="flex flex-col items-center py-12 text-center">
-            <SeedlingIllustration className="h-24 w-24" />
-            <h2 className="mt-4 text-title-md text-text-strong">
-              {formatMessage({
+          <AdminCardBody>
+            <EmptyState
+              titleAs="h2"
+              icon={<RiSeedlingLine />}
+              title={formatMessage({
                 id: "cockpit.workspace.noGardens",
                 defaultMessage: "No gardens yet",
               })}
-            </h2>
-            <p className="mt-2 max-w-md body-sm text-text-sub">
-              {formatMessage({
+              description={formatMessage({
                 id: "cockpit.workspace.noGardensDescription",
                 defaultMessage: "Create your first garden to start using the canvas workspaces.",
               })}
-            </p>
-            <AdminButton className="mt-6" asChild>
-              <Link to={adminRoutes.gardenCreate()}>
-                {formatMessage({
-                  id: "cockpit.workspace.createGarden",
-                  defaultMessage: "Create Garden",
-                })}
-              </Link>
-            </AdminButton>
+              action={
+                <Button size="sm" asChild>
+                  <Link to={adminRoutes.gardenCreate()}>
+                    {formatMessage({
+                      id: "cockpit.workspace.createGarden",
+                      defaultMessage: "Create Garden",
+                    })}
+                  </Link>
+                </Button>
+              }
+            />
           </AdminCardBody>
         </AdminCard>
       </div>
@@ -71,7 +72,7 @@ export function CanvasWorkspaceSelectionState({
                 defaultMessage: "Choose a Garden",
               })}
             </AdminCardTitle>
-            <p className="mt-1 body-sm text-text-sub">
+            <p className="mt-1 type-body text-text-sub">
               {formatMessage(
                 {
                   id: "cockpit.workspace.chooseGardenDescription",
@@ -99,9 +100,11 @@ export function CanvasWorkspaceSelectionState({
                 )}
               >
                 <div className="min-w-0">
-                  <p className="truncate label-md font-medium text-text-strong">{garden.name}</p>
+                  <p className="truncate type-label-sm font-medium text-text-strong">
+                    {garden.name}
+                  </p>
                   {garden.location ? (
-                    <p className="mt-0.5 truncate body-xs text-text-soft">{garden.location}</p>
+                    <p className="mt-0.5 truncate type-meta text-text-soft">{garden.location}</p>
                   ) : null}
                 </div>
                 <RiArrowRightSLine className="h-4 w-4 flex-shrink-0 text-text-soft" />

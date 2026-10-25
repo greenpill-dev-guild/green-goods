@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
@@ -8,17 +9,7 @@ import { railLabel } from "./commitmentDialogPresentation";
 
 /** One label/value line of the record's facts. */
 function fact(label: string, value: ReactNode) {
-  return (
-    <div key={label} className="flex justify-between gap-3 text-body-md">
-      <dt className="shrink-0 text-text-soft">{label}</dt>
-      <dd
-        className="truncate text-right text-text-strong"
-        title={typeof value === "string" ? value : undefined}
-      >
-        {value}
-      </dd>
-    </div>
-  );
+  return <FactRow key={label} label={label} value={value} />;
 }
 
 /**
@@ -43,7 +34,7 @@ export function CommitmentFacts({
         defaultMessage: "Facts",
       })}
     >
-      <dl className="space-y-1">
+      <FactList frame="inset">
         {/* An exact deadline: its date, time and zone (PRD-1025 D3). */}
         {commitment.dueDate
           ? fact(
@@ -235,7 +226,7 @@ export function CommitmentFacts({
               commitment.fallbackReason
             )
           : null}
-      </dl>
+      </FactList>
     </section>
   );
 }

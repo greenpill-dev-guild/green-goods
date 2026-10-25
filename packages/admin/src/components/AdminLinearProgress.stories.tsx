@@ -62,14 +62,12 @@ export const StateCatalog: Story = {
   render: () => (
     <div className="max-w-xl space-y-5">
       <div className="space-y-2">
-        <div className="text-label-lg text-[rgb(var(--m3-on-surface))]">Indeterminate</div>
+        <div className="type-label text-[rgb(var(--m3-on-surface))]">Indeterminate</div>
         <AdminLinearProgress ariaLabel="Loading work queue" />
       </div>
       {[0, 25, 50, 75, 100].map((value) => (
         <div key={value} className="space-y-2">
-          <div className="text-label-lg text-[rgb(var(--m3-on-surface-variant))]">
-            {value} percent
-          </div>
+          <div className="type-label text-[rgb(var(--m3-on-surface-variant))]">{value} percent</div>
           <AdminLinearProgress value={value} ariaLabel={`${value} percent complete`} />
         </div>
       ))}
@@ -90,7 +88,7 @@ export const ToneMatrix: Story = {
           data-tone={tone}
           className="space-y-2 rounded-2xl border border-stroke-soft bg-bg-white-0 p-4"
         >
-          <div className="label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="type-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
             [data-tone=&quot;{tone}&quot;]
           </div>
           <AdminLinearProgress value={50} ariaLabel={`${tone} progress 50 percent`} />

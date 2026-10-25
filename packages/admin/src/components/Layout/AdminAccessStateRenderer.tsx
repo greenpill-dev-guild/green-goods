@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
@@ -6,7 +7,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { AdminSignInContainer } from "@/components/AdminSignIn";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
@@ -47,7 +47,8 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
     return (
       <WalletRequiredConnectShell
         action={
-          <AdminButton
+          <Button
+            size="sm"
             type="button"
             onClick={() => {
               void state.signOut();
@@ -57,7 +58,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
               id: "app.admin.auth.signOutAndReconnect",
               defaultMessage: "Sign Out & Connect Wallet",
             })}
-          </AdminButton>
+          </Button>
         }
       />
     );
@@ -72,13 +73,13 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
           className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
         >
           <SeedlingIllustration className="h-28 w-28" />
-          <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
+          <h1 className="mt-5 type-title-lg font-semibold text-text-strong">
             {intl.formatMessage({
               id: "app.admin.auth.connectRequired",
               defaultMessage: "Connect to continue",
             })}
           </h1>
-          <p className="mt-2 max-w-md body-sm text-text-sub">
+          <p className="mt-2 max-w-md type-body text-text-sub">
             {intl.formatMessage({
               id: "app.admin.auth.connectPrompt",
               defaultMessage:

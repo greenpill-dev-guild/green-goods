@@ -27,9 +27,9 @@ import {
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
-import { getGardenAssessments } from "../../modules/data/eas";
+import { createPublicReportingRead } from "../../modules/commitment-pooling/public-record-exclusions";
+import { getPublicGardenAssessments, getPublicGardenHypercerts } from "./publicReportingRecords";
 import { getActions, getGardens } from "../../modules/data/greengoods";
-import { getGardenHypercerts } from "../../modules/data/hypercerts-fetch";
 import { fetchListedApprovedWorks } from "./listedApprovedWorks";
 import {
   createPublicImpactSlice,
@@ -56,6 +56,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
   return useQuery({
     queryKey: publicKeys.impactEvidence(chainId, page, pageSize),
     queryFn: async (): Promise<PublicImpactSlice> => {
+      const reporting = createPublicReportingRead(chainId);
       const gardens = await getGardens();
       // Same predicate the archive and the proof counters use. A garden hidden
       // from the website must not leak back in through its work records.
@@ -68,7 +69,8 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
       const { works, partial: worksPartial } = await fetchListedApprovedWorks(
         queryClient,
         visibleGardens.map((garden) => garden.id),
-        chainId
+        chainId,
+        reporting
       );
 
       const latestWorkByGarden = new Map<string, number>();
@@ -101,16 +103,18 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
       // `actionUID` but no `domain` field of their own.
       const [assessmentResults, hypercertResults, actions] = await Promise.all([
         Promise.allSettled(
-          cappedGardenSources.map((garden) => getGardenAssessments(garden.id, chainId))
+          cappedGardenSources.map((garden) =>
+            getPublicGardenAssessments(garden.id, chainId, reporting)
+          )
         ),
         Promise.allSettled(
           // One past the cap tells a Garden at the cap from one beyond it.
           cappedGardenSources.map((garden) =>
-            getGardenHypercerts(
+            getPublicGardenHypercerts(
               garden.id,
               chainId,
-              undefined,
-              PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP + 1
+              PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP + 1,
+              reporting
             )
           )
         ),

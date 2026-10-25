@@ -1,10 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminButton } from "./AdminButton";
 import { AdminSideSheet } from "./AdminSideSheet";
 
 const meta: Meta<typeof AdminSideSheet> = {
@@ -55,7 +55,7 @@ const SAMPLE_ROWS = (
     {Array.from({ length: 12 }, (_, i) => (
       <li
         key={i}
-        className="rounded-md border border-stroke-soft bg-bg-white-0 p-3 body-sm text-text-sub"
+        className="rounded-md border border-stroke-soft bg-bg-white-0 p-3 type-body text-text-sub"
       >
         {`Row ${i + 1} — the panel content owns scrolling via SheetBody.`}
       </li>
@@ -84,7 +84,7 @@ function getOpenSurface(): HTMLElement {
 /** Renders an already-open sheet so geometry assertions are deterministic. */
 function OpenSideSheet({ children }: { children?: ReactNode }) {
   return (
-    <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+    <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6 type-meta text-[rgb(var(--m3-on-surface-variant))]">
       Side sheet renders open (portaled to the document body).
       <AdminSideSheet open onOpenChange={() => undefined} title="Notifications" tone="hub">
         {children ?? <SheetBody padded>{SAMPLE_ROWS}</SheetBody>}
@@ -159,6 +159,16 @@ export const MobileBottomSheet: Story = {
     await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
     await expect(Math.abs(rect.left)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
     await expect(Math.abs(rect.right - vw)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
+    // The phone dialog's look (F5): the grip, and the close in the shared header.
+    await expect(surface.querySelector('[data-component="SheetGrip"]')).not.toBeNull();
+    await expect(
+      within(sheet).getByRole("button", { name: "Close" }).closest('[data-component="SheetHeader"]')
+    ).not.toBeNull();
+    // The panel's SheetBody carries the header's scroll edge: a hairline that
+    // shows only while the body scrolls under it (DL-028).
+    const panelBody = surface.querySelector<HTMLElement>('[data-component="SheetBody"]');
+    if (!panelBody) throw new Error("SheetBody not found");
+    await expect(getComputedStyle(panelBody).backgroundAttachment).toBe("local, scroll");
   },
 };
 
@@ -177,12 +187,12 @@ export const WithPinnedFooter: Story = {
       <>
         <SheetBody padded>{SAMPLE_ROWS}</SheetBody>
         <SheetFooter>
-          <AdminButton variant="text" onClick={() => undefined}>
+          <Button type="button" emphasis="tertiary" size="sm" onClick={() => undefined}>
             Secondary
-          </AdminButton>
-          <AdminButton variant="filled" onClick={() => undefined}>
+          </Button>
+          <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
             Primary
-          </AdminButton>
+          </Button>
         </SheetFooter>
       </>
     </OpenSideSheet>
@@ -194,12 +204,12 @@ function SideSheetPreview() {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex min-h-56 items-center justify-center">
-      <AdminButton variant="filled" onClick={() => setOpen(true)}>
+      <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
         Open side sheet
-      </AdminButton>
+      </Button>
       <AdminSideSheet open={open} onOpenChange={setOpen} title="Settings" tone="hub">
         <SheetBody padded>
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             Escape, the scrim, and the close button all close the sheet.
           </p>
         </SheetBody>

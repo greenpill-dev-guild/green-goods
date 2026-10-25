@@ -15,8 +15,8 @@ function OpenInspector({ fallbackTone }: { fallbackTone: "hub" | "garden" }) {
       title: "Review work",
       content: (
         <div className="space-y-2">
-          <h3 className="text-title-sm text-text-strong">Canopy transect upload</h3>
-          <p className="text-body-md text-text-sub">
+          <h3 className="type-title-sm text-text-strong">Canopy transect upload</h3>
+          <p className="type-body text-text-sub">
             Confirm the evidence before approving this work.
           </p>
         </div>

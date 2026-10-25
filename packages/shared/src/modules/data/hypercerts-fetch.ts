@@ -6,6 +6,7 @@ import type {
 } from "../../types/hypercerts";
 import { logger } from "../app/logger";
 import { GQLClient, greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
+import { hypercertExclusionClauses } from "./hypercerts-exclusions";
 import { getHypercertMetadataFromIpfs, normalizeHypercertStatus } from "./hypercerts-metadata";
 
 // =============================================================================
@@ -160,9 +161,13 @@ export async function getHypercertFromSdkApi(
 // =============================================================================
 
 const GARDEN_HYPERCERTS_QUERY = /* GraphQL */ `
-  query GardenHypercerts($gardenId: String!, $chainId: Int!, $limit: Int!) {
+  query GardenHypercerts($gardenId: String!, $chainId: Int!, $limit: Int!,
+    $excludedRecords: [Hypercert_bool_exp!]!, $metadataStates: [Boolean!]!) {
     Hypercert(
-      where: { garden: { _eq: $gardenId }, chainId: { _eq: $chainId } }
+      where: { garden: { _eq: $gardenId }, chainId: { _eq: $chainId },
+        metadataReconciliationRequired: { _in: $metadataStates },
+        _not: { _or: $excludedRecords }
+      }
       order_by: { mintedAt: desc }
       limit: $limit
     ) {
@@ -347,11 +352,25 @@ export async function getGardenHypercerts(
   chainId: number,
   status?: HypercertStatus,
   limit = 50,
-  reader: GraphQLReader = greenGoodsIndexer
+  reader: GraphQLReader = greenGoodsIndexer,
+  exclusions: {
+    commitmentEntityIds: readonly string[];
+    attestationUIDs: readonly string[];
+    requireReconciled?: boolean;
+  } = {
+    commitmentEntityIds: [],
+    attestationUIDs: [],
+  }
 ): Promise<HypercertRecord[]> {
   const { data, error } = await reader.query(
     GARDEN_HYPERCERTS_QUERY,
-    { gardenId, chainId, limit },
+    {
+      gardenId,
+      chainId,
+      limit,
+      excludedRecords: hypercertExclusionClauses(exclusions),
+      metadataStates: exclusions.requireReconciled ? [false] : [false, true],
+    },
     "getGardenHypercerts"
   );
 

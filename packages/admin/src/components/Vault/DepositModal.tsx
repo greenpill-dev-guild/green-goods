@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
@@ -19,7 +20,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog, type AdminDialogProps } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -182,15 +182,17 @@ export function DepositModal({
       actions={
         primaryAddress ? (
           <>
-            <AdminButton
+            <Button
               type="button"
-              variant="text"
+              emphasis="tertiary"
+              size="sm"
               onClick={onClose}
               disabled={depositMutation.isPending}
             >
               {formatMessage({ id: "app.common.cancel" })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
+              size="sm"
               type="button"
               onClick={onSubmit}
               disabled={
@@ -205,21 +207,21 @@ export function DepositModal({
               loading={depositMutation.isPending}
             >
               {formatMessage({ id: "app.treasury.deposit" })}
-            </AdminButton>
+            </Button>
           </>
         ) : null
       }
     >
       {!primaryAddress ? (
         <div className="space-y-4 py-6 text-center">
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({ id: "app.treasury.connectToDeposit" })}
           </p>
           <ConnectButton />
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-lg border border-information-light bg-information-lighter/50 p-3 body-xs text-text-sub">
+          <div className="rounded-lg border border-information-light bg-information-lighter/50 p-3 type-meta text-text-sub">
             <p>
               {formatMessage({
                 id: "app.treasury.deposit.guidance",
@@ -267,10 +269,11 @@ export function DepositModal({
                 }`}
                 inputProps={{ inputMode: "decimal" }}
               />
-              <AdminButton
-                variant="outlined"
-                size="sm"
-                className="w-full sm:mt-2 sm:w-auto"
+              <Button
+                type="button"
+                emphasis="secondary"
+                size="compact"
+                className="w-full sm:mt-8 sm:w-auto"
                 onClick={() => {
                   if (!balance) return;
                   form.setValue("amount", formatUnits(balance.value, balance.decimals), {
@@ -281,10 +284,10 @@ export function DepositModal({
                 disabled={!decimalsReady || depositMutation.isPending}
               >
                 {formatMessage({ id: "app.treasury.max" })}
-              </AdminButton>
+              </Button>
             </div>
             {!decimalsReady && selectedVault && (
-              <p className="mt-1 body-sm text-warning-dark" role="alert">
+              <p className="mt-1 type-body text-warning-dark" role="alert">
                 {formatMessage({
                   id: "app.treasury.decimalsUnavailable",
                   defaultMessage: "Token metadata is still loading. Try again in a moment.",
@@ -293,14 +296,14 @@ export function DepositModal({
             )}
           </div>
 
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {formatMessage({
               id: "app.treasury.deposit.minimumHint",
               defaultMessage: "Minimum deposit: any amount. Deposits can be withdrawn at any time.",
             })}
           </p>
 
-          <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
+          <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 type-body text-text-sub">
             <p>
               {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
               <span className="font-medium text-text-strong">
@@ -324,7 +327,7 @@ export function DepositModal({
           </div>
 
           {healthCheck && selectedVault && (
-            <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
+            <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 type-body text-text-sub">
               <p>
                 {formatMessage({ id: "app.treasury.totalVaultAssets" })}:{" "}
                 <span className="font-medium text-text-strong">
@@ -341,7 +344,7 @@ export function DepositModal({
           )}
 
           {!vaultAcceptingDeposits && (
-            <p className="body-xs text-error-dark" role="alert">
+            <p className="type-meta text-error-dark" role="alert">
               {formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })}
             </p>
           )}

@@ -127,7 +127,7 @@ export function SubmitWorkStepContent({
           disabled={busy}
         />
         {isPreparingMedia ? (
-          <p role="status" className="body-sm text-text-sub">
+          <p role="status" className="type-body text-text-sub">
             {progressMessage}
           </p>
         ) : null}
@@ -153,7 +153,7 @@ export function SubmitWorkStepContent({
           description={selectedAction?.title}
         />
         {selectedAction?.inputs.some((input) => input.required) ? (
-          <p className="body-xs text-text-sub">
+          <p className="type-meta text-text-sub">
             {formatMessage({
               id: "app.admin.work.submit.requiredLegend",
               defaultMessage: "* Required field",

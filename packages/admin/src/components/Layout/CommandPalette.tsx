@@ -131,7 +131,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
               id: "app.admin.nav.searchPlaceholder",
               defaultMessage: "Search pages, gardens, actions...",
             })}
-            className="flex-1 h-10 bg-transparent rounded-sm py-3 text-body-md text-text-strong shadow-[var(--edge-rest)] focus:shadow-[var(--edge-focus)] transition-shadow duration-[var(--spring-effects-fast-duration,150ms)] outline-none"
+            className="flex-1 h-10 bg-transparent rounded-sm py-3 type-body text-text-strong shadow-[var(--edge-rest)] focus:shadow-[var(--edge-focus)] transition-shadow duration-[var(--spring-effects-fast-duration,150ms)] outline-none"
           />
         </div>
 
@@ -148,7 +148,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           })}
         >
           {results.length === 0 ? (
-            <p className="flex h-full items-center justify-center body-sm text-text-soft">
+            <p className="flex h-full items-center justify-center type-body text-text-soft">
               {formatMessage({
                 id: "app.admin.nav.searchNoResults",
                 defaultMessage: "No results found",
@@ -157,7 +157,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           ) : (
             groups.map((group) => (
               <div key={group.category} role="group" aria-label={group.label}>
-                <div className="px-2 py-1.5 text-label-sm text-text-soft">{group.label}</div>
+                <div className="px-2 py-1.5 type-meta-sm text-text-soft">{group.label}</div>
                 {group.items.map((result) => {
                   const index = flatIndex++;
                   const isActive = index === activeIndex;
@@ -179,7 +179,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                       onClick={() => selectResult(result)}
                       onMouseMove={() => setActiveIndex(index)}
                       className={cn(
-                        "flex w-full items-center rounded-sm px-3 py-2 text-body-md text-left transition-colors",
+                        "flex w-full items-center rounded-sm px-3 py-2 type-body text-left transition-colors",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
                         isActive
                           ? "bg-primary-alpha-16 text-primary-darker"
@@ -190,7 +190,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                       <div className="min-w-0 flex-1">
                         <span className="truncate">{result.label}</span>
                         {result.subtitle && (
-                          <span className="block truncate body-xs text-text-soft">
+                          <span className="block truncate type-meta text-text-soft">
                             {result.subtitle}
                           </span>
                         )}
@@ -204,7 +204,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 body-xs text-text-soft">
+        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 type-meta text-text-soft">
           <span className="flex items-center gap-1">
             <RiArrowUpLine className="h-3 w-3" aria-hidden="true" />
             <RiArrowDownLine className="h-3 w-3" aria-hidden="true" />

@@ -7,7 +7,9 @@ import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
-import { FormCard, FormInfo, GardenCard, GardenCardSkeleton } from "@/components/Cards";
+import { GardenCard } from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
+import { MediaCardSkeleton } from "@green-goods/shared/components/Cards/MediaCard";
+import { FormCard, FormInfo } from "@/components/Cards";
 import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
 
 export type WorkViewAction = {
@@ -112,19 +114,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
       <h6 className="text-base font-semibold">
         {intl.formatMessage({ id: "app.home.workApproval.garden", defaultMessage: "Garden" })}
       </h6>
-      {garden ? (
-        <GardenCard
-          garden={garden}
-          media="small"
-          height="default"
-          showStewards={true}
-          selected={false}
-          showDescription={false}
-          showBanner={false}
-        />
-      ) : (
-        <GardenCardSkeleton media="small" height="default" showBanner={false} />
-      )}
+      {garden ? <GardenCard garden={garden} /> : <MediaCardSkeleton mediaShape="banner" />}
 
       {missingOriginals && (
         <p role="status" className="text-sm text-text-sub-600">
@@ -285,7 +275,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
       {reserveFooterSpace ? (
         <div
           aria-hidden="true"
-          className={footerSpacerClassName ?? "h-[calc(96px+env(safe-area-inset-bottom))]"}
+          className={footerSpacerClassName ?? "h-[calc(96px+var(--safe-area-bottom))]"}
         />
       ) : null}
 
@@ -312,7 +302,7 @@ export const WorkViewSkeleton: React.FC<WorkViewSkeletonProps> = ({
 
       {/* Garden section */}
       <div className="h-4 w-28 bg-bg-soft-200 rounded" />
-      <GardenCardSkeleton media="small" height="default" showBanner={false} />
+      <MediaCardSkeleton mediaShape="banner" />
 
       {/* Media section */}
       {showMedia && (

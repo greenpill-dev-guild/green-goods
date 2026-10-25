@@ -26,7 +26,7 @@ import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
-import { QueuedActNotice } from "./QueuedActRow";
+import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
 
@@ -260,7 +260,7 @@ export function GardenCommitment() {
             />
           ) : controller.queue.hasPendingJob && !controller.queue.pendingAct ? (
             <p
-              className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-sm text-text-sub-600"
+              className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,var(--safe-area-bottom))] text-sm text-text-sub-600"
               role="status"
             >
               {formatMessage({ id: "app.commitment.queue.waiting" })}

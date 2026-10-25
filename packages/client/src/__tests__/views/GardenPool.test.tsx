@@ -22,7 +22,7 @@ import {
   selectCommitmentSeat,
 } from "@green-goods/shared/commitment-pooling";
 import { groupCommitmentsForDisplay } from "@green-goods/shared/modules/commitment-pooling/display-groups";
-import { renderWithProviders, screen } from "../test-utils";
+import { renderWithProviders, screen, within } from "../test-utils";
 
 /** The tab navigates into commitment detail, so it needs a router around it. */
 const render = (ui: ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
@@ -335,7 +335,8 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool()} />);
 
     const row = screen.getByRole("button", { name: /A group of 10 separate promises/ });
-    expect(row).toHaveTextContent("4 available · 3 in progress · 3 kept");
+    // What is still available is the row's one pill; the rest of the counts are a detail.
+    expect(row).toHaveTextContent(/4 available.*3 in progress, 3 kept/);
     expect(screen.queryAllByRole("progressbar")).toHaveLength(0);
     await user.click(row);
     // The link names its first copy, so a reload still finds this group if its id ever splits.
@@ -373,6 +374,8 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool()} />);
 
     expect(screen.getByText("Prune the north beds")).toBeInTheDocument();
+    // It has no page yet, so its units stay on its row.
+    expect(screen.getByText("6 hours")).toBeInTheDocument();
     expect(screen.getByText("Waiting to send")).toBeInTheDocument();
     // The phone's own row counts: an otherwise empty pool is not empty.
     expect(screen.queryByText("No promises yet")).not.toBeInTheDocument();
@@ -489,6 +492,10 @@ describe("GardenPool", () => {
           "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
         )
       ).toBeInTheDocument();
+      // Why it failed leads the row's one-line details, so a phone keeps it; the units follow.
+      expect(
+        document.querySelector("[data-component=PendingCreationRow] .gg-item-row-details")
+      ).toHaveTextContent(/^Your wallet needs to be on Arbitrum One.*6 hours$/);
       // Nothing sends it for them, so nothing may say it will.
       expect(screen.queryByText("Waiting to send")).not.toBeInTheDocument();
       expect(screen.queryByText(/sends when you are connected/i)).not.toBeInTheDocument();
@@ -604,8 +611,8 @@ describe("GardenPool", () => {
       />
     );
 
-    const list = screen.getByRole("list", { name: "What this pool still needs" });
-    const rows = list.querySelectorAll("li");
+    const list = screen.getByLabelText("What this pool still needs");
+    const rows = list.querySelectorAll('[data-component="FactRow"]');
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveAttribute("data-done", "true");
     expect(rows[1]).toHaveAttribute("data-done", "false");
@@ -619,7 +626,7 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool({ state: "NOT_READY", charterCID: "bafy-charter" })} />);
 
     expect(screen.queryByText("Your steward is setting this pool up.")).toBeNull();
-    expect(screen.queryByRole("list", { name: "What this pool still needs" })).toBeNull();
+    expect(screen.queryByLabelText("What this pool still needs")).toBeNull();
     expect(screen.getByText(/when its stewards set one up/i)).toBeInTheDocument();
   });
 
@@ -627,7 +634,7 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool({ state: "NOT_READY", charterCID: "bafy-charter" })} />);
 
     expect(screen.getByText("Your steward is setting this pool up.")).toBeInTheDocument();
-    expect(screen.queryByRole("list", { name: "What this pool still needs" })).toBeNull();
+    expect(screen.queryByLabelText("What this pool still needs")).toBeNull();
   });
 
   it("says why a pool is paused even when it holds nothing yet", () => {
@@ -691,15 +698,16 @@ describe("GardenPool", () => {
     expect(screen.getByText("You are offline")).toBeInTheDocument();
   });
 
-  it("names a reader's own relationship to a commitment in someone else's garden", () => {
-    // Their own offer, not yet taken up: nothing waits on them, so the row's one
-    // qualifier says how they are involved.
+  it("names nobody on the reader's own offer until someone takes it up", () => {
+    // How the reader is involved is told on the promise; the row's details name the
+    // other person, and an untaken offer has none yet.
     mockUseCommitments.mockReturnValue(
       commitmentsResult({
         commitments: [
           commitment({
             creator: VIEWER,
             leadProvider: VIEWER,
+            counterparty: null,
             derivedState: "OFFERED",
             onchainState: "OFFERED",
             state: "OFFERED",
@@ -710,7 +718,10 @@ describe("GardenPool", () => {
 
     render(<GardenPool pool={pool()} />);
 
-    expect(screen.getByText("You offered this")).toBeInTheDocument();
+    const row = screen.getByRole("button", { name: /hours/ });
+    expect(row).toHaveTextContent("Offered");
+    expect(row).not.toHaveTextContent("0x11...111");
+    expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
   });
 
   it("leaves a stranger's commitment unclaimed by the reader", () => {
@@ -1015,7 +1026,7 @@ describe("GardenPool", () => {
     expect(await screen.findByText("Reading this pool's agreement…")).toBeInTheDocument();
   });
 
-  it("edges each row by its direction, and sets its marker at label size", () => {
+  it("leads each row with its direction, named, and edges it in its one pill's tone", () => {
     mockUseCommitments.mockReturnValue(
       commitmentsResult({
         commitments: [
@@ -1033,11 +1044,15 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool()} />);
 
     const [offer, request] = screen.getAllByRole("button", { name: /hours|rides/ });
-    expect(offer).toHaveClass("border-s-[3px]", "border-s-primary");
-    expect(request).toHaveClass("border-s-[3px]", "border-s-information-base");
-    const marker = screen.getByText("Needs you");
-    expect(marker).toHaveClass("text-xs");
-    expect(marker).not.toHaveClass("uppercase");
+    // The icon says offer or request, so no detail repeats it (DL-110).
+    expect(within(offer).getByRole("img", { name: "Offer" })).toBeInTheDocument();
+    expect(within(request).getByRole("img", { name: "Request" })).toBeInTheDocument();
+    // Waiting on the reader replaces the state in the pill, and the edge follows it.
+    expect(offer).toHaveTextContent("Needs you");
+    expect(offer).not.toHaveTextContent("Waiting to be confirmed");
+    expect(offer).toHaveAttribute("data-edge", "warning");
+    expect(request).toHaveTextContent("In progress");
+    expect(request).toHaveAttribute("data-edge", "info");
   });
 
   it("keeps the pool's agreement behind the ⓘ beside the count, not on the page", () => {
@@ -1057,7 +1072,7 @@ describe("GardenPool", () => {
 
     expect(screen.getByText(/Gathering…/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "What this pool is for" })).toBeNull();
-    expect(document.querySelectorAll("[data-skeleton=commitment-row]")).toHaveLength(4);
+    expect(document.querySelectorAll("[data-skeleton=item-row]")).toHaveLength(4);
   });
 
   it("says a failed read lost nothing, in place of the list, and tries again", async () => {

@@ -37,36 +37,25 @@ export { Chip, type ChipProps } from "./Chip";
 export { IconButton, type IconButtonProps } from "./IconButton";
 // Card Components
 export {
-  Card,
-  type CardProps,
-  CardBase,
-  CardBody,
-  type CardBaseProps,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  type CardVariantProps,
-  cardVariants,
-  surfaceCardVariants,
+  ActionPicker,
+  type ActionPickerLayout,
+  type ActionPickerProps,
   GardenCard,
   type GardenCardData,
-  type GardenCardLabels,
   type GardenCardProps,
-  type GardenCardVariantProps,
-  gardenCardVariants,
-  VaultPositionCard,
-  type VaultPositionCardProps,
-  getStatusBorderClass,
+  GardenPicker,
+  type GardenPickerProps,
+  MediaCard,
+  type MediaCardLayout,
+  type MediaCardProps,
+  type MediaCardShape,
+  MediaCardSkeleton,
   WorkCard,
   type WorkCardData,
   type WorkCardLabels,
   type WorkCardProps,
-  type WorkCardVariantProps,
-  workCardVariants,
 } from "./Cards";
-// Surface Component (unified surface primitive — preferred over Card/CardBase for new code)
+// Surface Component (the solid surface primitive at four levels, DL-108)
 export { Surface, surfaceVariants } from "./Surface";
 export type { SurfaceProps, SurfaceVariantProps } from "./Surface";
 // Feedback Components
@@ -87,9 +76,6 @@ export {
   type MetaStripProps,
   WorkbenchCard,
   type WorkbenchCardProps,
-  WorkbenchList,
-  WorkbenchRow,
-  type WorkbenchRowProps,
   type WorkbenchTone,
   type CanvasMobilePrimaryAction,
   FabProvider,
@@ -197,15 +183,7 @@ export type { Step } from "./Form/StepIndicator";
 export { StepIndicator } from "./Form/StepIndicator";
 // Select Components
 export type { FormSelectOption, FormSelectProps } from "./Form/Select";
-export {
-  EmptyState,
-  type EmptyStateProps,
-  ListToolbar,
-  type ListToolbarProps,
-  SortSelect,
-  type SortOption,
-  type SortSelectProps,
-} from "./ListPrimitives";
+export { EmptyState, type EmptyStateProps } from "./ListPrimitives";
 export {
   FormSelect,
   Select,
@@ -246,16 +224,10 @@ export { getStatusColors, StatusBadge } from "./StatusBadge";
 export {
   ConvictionMeter,
   type ConvictionMeterProps,
-  ProposalCardConviction,
-  type ProposalCardConvictionProps,
   WeightAllocator,
   type WeightAllocatorProposal,
   type WeightAllocatorProps,
 } from "./Conviction";
-export {
-  StatCard,
-  type StatCardProps,
-} from "./StatCard";
 // Toast Preset i18n Factory Functions
 export type { FormatMessageFn } from "./Toast/presets";
 // Toast Presets (default English)

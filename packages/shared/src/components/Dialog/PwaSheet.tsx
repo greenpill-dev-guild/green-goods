@@ -27,7 +27,10 @@
  * attribute rules, not as utility classes on this JSX, so the geometry stays
  * a set of overridable defaults: the rules sit in `@layer components`, where
  * a consumer's `panelClassName` utilities and unlayered package CSS still
- * override them; inline `panelStyle` wins over everything.
+ * override them; inline `panelStyle` wins over everything. The surface's
+ * material (fill, hairline, top corners, shadow) is the shared
+ * `[data-sheet-surface]` rule, which the cockpit's dialogs also carry below
+ * 640px, and the grip is the shared `SheetGrip`.
  *
  * Open/close uses named CSS keyframes (`dialogSlideInFromBottom` /
  * `dialogSlideOutToBottom` for the panel, `scrimFadeIn` / `scrimFadeOut` for
@@ -61,7 +64,7 @@
  * @module components/Dialog/PwaSheet
  */
 import { SheetActions, type SheetActionsProps } from "./SheetActions";
-import { SheetHeader } from "./SheetHeader";
+import { SheetGrip, SheetHeader } from "./SheetHeader";
 import { hideOthers, openSheetLayer } from "./sheetLayers";
 import { useSheetDrag } from "./sheetDrag";
 import { createPortal } from "react-dom";
@@ -383,28 +386,21 @@ export function PwaSheet({
         aria-describedby={hasHeader && description ? descriptionId : undefined}
         data-component="PwaSheet"
         data-slot="surface"
+        data-sheet-surface=""
         data-sheet-size={size}
         data-state={sheetState}
         data-entry-motion={entryMotion}
         data-testid={testId}
         className={panelClassName}
         style={{
-          paddingBottom: "env(safe-area-inset-bottom)",
+          paddingBottom: "var(--safe-area-bottom)",
           ...panelStyle,
         }}
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >
         {showDragHandle && (
-          <div
-            data-component="PwaSheet"
-            data-slot="drag-handle"
-            data-testid={`${testId}-drag-handle`}
-            style={{ touchAction: "none" }}
-            {...bind()}
-          >
-            <div data-component="PwaSheet" data-slot="grip" />
-          </div>
+          <SheetGrip testId={`${testId}-drag-handle`} dragHandlers={canDrag ? bind() : undefined} />
         )}
         {hasHeader && (
           <SheetHeader

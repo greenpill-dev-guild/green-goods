@@ -209,7 +209,7 @@ describe("data-backed component fallbacks", () => {
     assert.ok(tokens.includes("| `body-md` | Inter | 16px | 400 | 1.5 |"));
     assert.ok(tokens.includes("#### Radii") && tokens.includes("| `sm` | `8px` |"));
 
-    const brand = markdownTwin("<BrandAssets />\n\n## Usage\n", "Brand kit", {
+    const brand = markdownTwin("<BrandAssets />\n\n## Usage\n", "Brand Kit", {
       brandKit: {
         version: 3,
         canonicalColor: "dark-green",
@@ -222,7 +222,7 @@ describe("data-backed component fallbacks", () => {
         files: [{file: "primary/a.svg", format: "svg"}, {file: "primary/a.png", format: "png"}, {file: "palette/p.json", format: "json"}],
       },
     });
-    assert.ok(brand.startsWith("# Brand kit\n\nKit v3. Dark green `#367D44` is the canonical brand color."), brand);
+    assert.ok(brand.startsWith("# Brand Kit\n\nKit v3. Dark green `#367D44` is the canonical brand color."), brand);
     assert.ok(brand.includes("- [Download the whole kit (ZIP)](/brand/kit.zip)\n- [Logos bundle (ZIP)](/brand/logos.zip)"));
     assert.ok(brand.includes("| `primary` | 2 | svg, png |") && brand.includes("| `palette` | 1 | json |"));
     assert.ok(brand.includes("| Inter | Body copy | [Inter source](https://example.org/inter) |"));

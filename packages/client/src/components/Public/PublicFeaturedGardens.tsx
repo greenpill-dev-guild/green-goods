@@ -112,7 +112,7 @@ export function PublicFeaturedGardens() {
               })}
             </EditorialHeading>
           </div>
-          <EditorialLinkArrow to="/gardens">
+          <EditorialLinkArrow to="/gardens" className="shrink-0 whitespace-nowrap">
             {formatMessage({
               id: "public.home.featured.cta",
               defaultMessage: "Browse All Gardens",

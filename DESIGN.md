@@ -18,23 +18,38 @@ colors:
   amber: "#D97706"
   sky: "#3B82F6"
   neutral: "#FAF8F5"
-  neutral-dark: "#1C1917"
+  neutral-dark: "#110C08"
 typography:
   body-md:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 16px
     fontWeight: 400
     lineHeight: 1.5
   label-md:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 12px
     fontWeight: 500
     lineHeight: 16px
+  count:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 11px
+    fontWeight: 600
+    lineHeight: 16px
+  card-title:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 15px
+    fontWeight: 500
+    lineHeight: 20px
   app-title:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 22px
     fontWeight: 600
     lineHeight: 28px
+  website-label:
+    fontFamily: Inter
+    fontSize: 16px
+    fontWeight: 600
+    lineHeight: 24px
   editorial:
     fontFamily: Fraunces
     fontSize: 48px
@@ -76,7 +91,7 @@ components:
   count-badge:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
-    typography: "{typography.label-md}"
+    typography: "{typography.count}"
     rounded: "{rounded.full}"
   accent-ink:
     textColor: "{colors.on-tertiary}"
@@ -118,7 +133,7 @@ components:
   button-primary-website:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
-    typography: "{typography.label-md}"
+    typography: "{typography.website-label}"
     padding: "{spacing.md}"
     rounded: "{rounded.full}"
   button-secondary:
@@ -138,6 +153,13 @@ components:
     textColor: "{colors.primary}"
     typography: "{typography.app-title}"
     rounded: "{rounded.md}"
+  card:
+    rounded: "{rounded.2xl}"
+  item-row:
+    textColor: "{colors.primary}"
+    typography: "{typography.card-title}"
+    rounded: "{rounded.lg}"
+    height: 88px
 ---
 
 # Green Goods Design System
@@ -178,7 +200,7 @@ Green foregrounds and selection marks on a PWA surface use `--primary-on-surface
 A synthesis of Material Design 3 Expressive warmth with Apple Liquid Glass structural precision. Three qualities guide every decision:
 
 1. **Warmth**: Higher chroma, spring motion, shape morphing. Friendly and alive, not sterile.
-2. **Clarity**: Concentricity, functional layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
+2. **Clarity**: Concentricity, clear layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
 3. **Purpose**: Every element serves the mission. No engagement hacking. No dark patterns.
 
 ## Color Hierarchy
@@ -187,12 +209,14 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 
 | Role | Volume | Color | Hex (light / dark) | Job |
 |------|--------|-------|--------------------|-----|
-| **Neutral (canvas)** | 80-90% | Warm linen | #FAF8F5 / #1C1917 | Background, breathing room |
+| **Neutral (canvas)** | 80-90% | Warm linen | #FAF8F5 / #110C08 | Background, breathing room |
 | **Primary (ink)** | 8-15% | Warm charcoal | #292524 / #F5F5F4 | Headings, body, core content |
 | **Secondary (stone)** | 3-5% | Earth stone | #78716C / #A8A29E | Metadata, borders, labels |
 | **Tertiary (accent)** | 1-3% | Garden green | #1FC16B | CTAs, active states, value-flow |
 
 **Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 failure mode.
+
+**Ground.** The installed app and the cockpit lay white cards on the linen canvas; the public website keeps its white ground. In dark both build from one warm ladder, the Earth ramp in shared `theme.css`: the canvas at its floor (`neutral-dark`) and the card ten points of lightness above it, so a card reads against the canvas by a lightness step rather than a shadow. Error, feature and information text take one lighter step in dark, where the lifted card would put them under AA; a fill that carries white keeps its deep action step (`--error-action`, `--information-action`). The browser's status bar and the install manifest take the ground of the presentation they belong to.
 
 **Supporting accents** (situational, not core hierarchy):
 - **Amber** #D97706: Warnings, seasonal indicators, secondary warmth
@@ -205,11 +229,28 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 | Role | Font | Weight | Use |
 |------|------|--------|-----|
 | **Editorial headlines** | Serif display (Fraunces, Lora, or Newsreader) | 600-700 | Browser site only (garden/impact editorial pages) |
-| **App headlines** | Inter (client PWA) / Plus Jakarta Sans (admin) | 600-700 | Functional headings |
-| **Body** | Inter (client) / Plus Jakarta Sans (admin) | 400-500 | Core reading text |
-| **Labels / timestamps** | Inter (client) / Plus Jakarta Sans (admin) | 500 | Utility text, metadata |
+| **App headlines** | Plus Jakarta Sans (installed app and admin) | 600-700 | Functional headings |
+| **Body** | Plus Jakarta Sans (installed app and admin) / Inter (public website) | 400-500 | Core reading text |
+| **Labels / timestamps** | Plus Jakarta Sans (installed app and admin) / Inter (public website) | 500 | Utility text, metadata; the website's button labels are Inter 600 (`website-label`) |
 
-**Rationale:** The serif headline only appears on the public browser site where editorial weight matters. PWA and admin stay utilitarian with their respective sans-serif workhorses.
+**Rationale:** The installed app and the admin cockpit share one sans face, so the two read as one product (DL-096). The public website keeps Inter beside its editorial serif, which only appears there, where editorial weight matters; a public page opened inside the installed app keeps the website's Inter.
+
+**Type roles.** Text takes its size from one set of role names on both surfaces: the `type-*` utilities in shared `theme.css`. Each surface sets its own sizes, so a shared component keeps one class and takes the density of the surface that draws it. The installed app reads at 16px and the cockpit at 14px.
+
+| Role | Installed app | Cockpit | Use |
+|------|---------------|---------|-----|
+| `type-title-lg` | 24/32, 600 | 22/28, 600 | Page, dialog, flow, and step titles |
+| `type-title-md` | 18/24, 600 | 16/24, 600 | Section, sheet, and card titles |
+| `type-title-sm` | 16/24, 600 | 14/20, 600 | Compact titles: list items, values |
+| `type-card-title` | 15/20, 500 | 13/18, 600 | A card's one-line title: item rows and media cards |
+| `type-body` | 16/24 | 14/20 | Reading text |
+| `type-label` | 16/24, 500 | 14/20, 500 | Labels and actions |
+| `type-label-sm` | 14/20 | 12/16, 500 | Small labels, field labels, and secondary lines |
+| `type-meta` | 12/16 | 12/16 | Metadata and supporting text |
+| `type-meta-sm` | 11/16 | 11/16 | Chips and the smallest supporting lines |
+| `type-field` | 16/24 | 16/20, 14/20 from 640px | Field text and checkbox and choice labels |
+
+Values are size and line height in pixels at the default text size, then weight (400 where none is named). The tokens are rem, so text follows the reader's text size. Text at 16px tracks at -0.011em, at 14px at -0.006em, and otherwise at 0. A weight, leading, or tracking utility on the same element adjusts a role (`type-label-sm font-medium`). Status pills are the exception to density: they are one size on both surfaces, the cockpit's chip size (`StatusBadge` `xs` and `sm` on `type-meta-sm`, `md` on `type-meta`). The Material aliases (`text-title-*`, `text-body-*`, `text-label-*` in the cockpit's theme) and the `label-*`, `body-*`, and `subheading-*` classes are retired, and `check:design-tokens` fails on them and on the shared scale's sizes (`text-paragraph-*`, `text-title-h*`, and the like) in the cockpit's and Shared's source. The app's own views still use the shared scale until they move.
 
 ## Voice & Copy
 
@@ -250,7 +291,7 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 |-----|-----------|-----|
 | Garden | Project, organization, DAO | Gardens are the metaphor. |
 | Gardener | User, contributor, member | People who do the work have a name. |
-| Steward | Admin, manager | They operate the garden. |
+| Steward | Admin, manager | They steward the garden; "operator" is retired. |
 | Evaluator | Reviewer, auditor, assessor | They evaluate impact, not audit compliance. |
 | Funder | Investor, backer | Funding a garden, not buying a return. A person who gives through the Donate path is still a funder. |
 | Community member | Visitor, viewer, spectator | Part of the community, not an audience. |
@@ -304,11 +345,18 @@ The full guideline (audiences, the three dialects, claims discipline, the pre-sh
 Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/language.md). AI prompts should honor these one-line rules:
 
 - **Shape**: *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and color carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
+- **Controls**: fields, chips and secondary buttons draw a control-grade outline (`--gg-control-outline`, 3:1 or better in both themes), and focus is one solid 2px ring with a 2px offset: the installed app's green (mint in dark) and the cockpit's workspace tone. The installed app's button labels are weight 500, the cockpit's. Fields in the installed app and the cockpit take one anatomy: the label above, the outlined control, and a message line that reserves two lines (DL-105); `FileUploadField` still puts its help above the upload well. The public website keeps its hairline and its focus halo.
+- **Counts**: one count badge (`CountBadge`) on both surfaces: a capsule 16px tall and at least 16px wide, with 11px numerals at weight 600 (`typography.count`), on the green action pair in the installed app and on the workspace tone's accent in the cockpit. Where it sits on an icon or a control's edge it draws a 2px ring of the surface behind it; beside a label it draws none. It reads 99+ above 99, and 9+ on the installed app's bottom bar.
+- **Cards**: one card surface on both surfaces (`.gg-card`): white, or the lifted card in dark, with a 1px edge that reads in both themes, a faint shadow in light, and the 24px corner (`rounded.2xl`). A list of items is a column of item rows (`ItemRow`): 88px tall in every state and language, a 16px corner (`rounded.lg`), the item's own 88px photo or a centered 56px icon tile, a one-line title (`typography.card-title`, 15px in the installed app and 13px in the cockpit), the one status pill under it, one 11px detail line of at most two details that drops a detail whole rather than wrap, and the row's one action in its right slot, or, on a row with none, the amount the item carries: a jar's or a vault's value with its asset, never cut, over what it is (DL-113); a work row adds the 2px status edge. A list of people is the person row (`PersonRow`): an item row led by the person's 56px round avatar, with their highest role as its one pill and their name from the shared address display (DL-112). Every card list keeps 12px between its cards (`--gg-list-gap`).
+- **Facts**: the facts about one thing, on a review, a record's details or a settings list, are fact rows on both surfaces (`FactRow` in a `FactList`, DL-109): a label beside its value in divided rows, the labels in one column as wide as the longest (up to 40%) on `type-label-sm` in the sub ink and the value on `type-body` at 500 (14 and 16px in the installed app, 12 and 14px in the cockpit), wrapping rather than cut. A row's one action takes its right slot; a setting is a row with no value whose control takes the slot and whose label reads as a field title.
+- **Tabs**: one tab anatomy on both surfaces (DL-100): equal-width cells, the active cell tinted with its accent at 10% under the accent label and a 2px underline, and the count badge beside the label. Each surface keeps its height, 44px in the installed app (48px from 640px) and 36px in the cockpit; labels are 12px below 640px and 14px from 640px, at weight 500. From 640px the cockpit's row is at most 180px per tab and keeps to the left. A cockpit cell is never narrower than its icon, label and count on one line, so a label never clips or wraps there: a cell that needs more than its share takes it, past 180px if it must (Spanish "Configuración de medios" is 191px), and a row that cannot hold its cells scrolls with its edge fade. The installed app's tabs let a long label take a second line.
+- **Navigation**: both bottom bars mark the active tab with a pill behind its icon and an ink label at weight 600: the workspace tone's container in the cockpit, and in the installed app the green container (`--primary-container`) behind a deep green icon. Each bar keeps its chrome: the cockpit's translucent dock, the app's solid white bar (DL-107).
+- **States**: one state block (`EmptyState`) on both surfaces for an empty list, a loading screen with words, a failed read, a feature that is not ready yet, and a page that cannot open: a 56px round tile with a 24px glyph, the title on `type-title-md`, one line on `type-body`, and the surface's own action. A calm tile takes the installed app's green tint and the cockpit's neutral one (`--gg-state-mark-fill`, `--gg-state-mark-ink`); a warning or a failure takes its status tint, and a failure is announced (DL-106). Logo and boot screens keep their own anatomy (`SplashScaffold`, `AppLaunchError`, DL-084), as do skeletons (DL-056), spinners with no words and notices beside content.
 - **Motion**: Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
-- **Material**: Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
+- **Material**: Solid surfaces everywhere: cards, sheets, dialogs, menus, and bars draw an opaque fill, and depth comes from shadow and the scrim. The one translucent surface is the cockpit's nav dock (Navigation/FAB chrome: an 85% fill with a 12px blur). Transparent chrome draws no fill and no blur at all, so it is not glass: the admin `AppBar` root over the canvas and the website's `SiteHeader` over its hero (DL-108).
 - **Elevation**: Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
 - **Progressive disclosure**: Four layers. Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
-- **Hero moments**: Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography + material together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
+- **Hero moments**: Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
 
 ## Interface Principles
 

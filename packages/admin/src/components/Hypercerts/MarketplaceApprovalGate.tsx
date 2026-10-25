@@ -1,11 +1,12 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useMarketplaceApprovals } from "@green-goods/shared/hooks/hypercerts/useMarketplaceApprovals";
 import { getMarketplaceReadiness } from "@green-goods/shared/utils/blockchain/contracts";
 import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
 import { useState } from "react";
-import { AdminConfirmDialog } from "../AdminDialog";
 import { useIntl } from "react-intl";
-import { AdminButton } from "../AdminButton";
+import { AdminConfirmDialog } from "../AdminDialog";
 
 interface MarketplaceApprovalGateProps {
   /** Active chain id; readiness is derived from deployment artifacts. */
@@ -51,7 +52,7 @@ export function MarketplaceApprovalGate({ chainId, children }: MarketplaceApprov
           )}
         </p>
         {readiness.missingFields.length > 0 && (
-          <p className="mt-2 body-xs">
+          <p className="mt-2 type-meta">
             {formatMessage(
               {
                 id: "app.marketplace.unavailable.missingFields",
@@ -90,15 +91,14 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 rounded-lg border border-stroke-soft bg-bg-white p-8">
-        <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-        <span className="body-sm text-text-soft">
-          {formatMessage({
-            id: "app.marketplace.checkingApprovals",
-            defaultMessage: "Checking marketplace approvals...",
-          })}
-        </span>
-      </div>
+      <EmptyState
+        busy
+        icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+        title={formatMessage({
+          id: "app.marketplace.checkingApprovals",
+          defaultMessage: "Checking marketplace approvals...",
+        })}
+      />
     );
   }
 
@@ -111,13 +111,13 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
       <div className="flex items-start gap-3">
         <RiAlertLine className="mt-0.5 h-5 w-5 shrink-0 text-warning-dark" />
         <div className="min-w-0 flex-1">
-          <h3 className="body-sm font-semibold text-text-strong">
+          <h3 className="type-body font-semibold text-text-strong">
             {formatMessage({
               id: "app.marketplace.setupRequired",
               defaultMessage: "Marketplace Setup Required",
             })}
           </h3>
-          <p className="mt-1 body-sm text-text-sub">
+          <p className="mt-1 type-body text-text-sub">
             {formatMessage({
               id: "app.marketplace.setupDescription",
               defaultMessage:
@@ -151,12 +151,13 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
           </div>
 
           {isPending && (
-            <p role="status" className="mt-3 body-xs text-text-soft">
+            <p role="status" className="mt-3 type-meta text-text-soft">
               {formatMessage({ id: "app.account.transactionPending" })}
             </p>
           )}
           {isPending && (
-            <AdminButton
+            <Button
+              size="sm"
               type="button"
               onClick={checkPending}
               disabled={isChecking}
@@ -164,18 +165,19 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
               className="mt-4"
             >
               {formatMessage({ id: "app.admin.work.submit.checkConfirmation" })}
-            </AdminButton>
+            </Button>
           )}
 
           {isPending && (
-            <AdminButton
+            <Button
+              size="sm"
               type="button"
               disabled={isChecking || isClearing}
               onClick={() => setReviewCancellation(true)}
               className="mt-4"
             >
               {formatMessage({ id: "app.account.reviewCancellation" })}
-            </AdminButton>
+            </Button>
           )}
           <AdminConfirmDialog
             isOpen={reviewCancellation}
@@ -198,24 +200,25 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
                       : "app.marketplace.approveTransfer",
                 })}
                 {pendingReference && (
-                  <code className="ml-2 break-all body-xs">{pendingReference}</code>
+                  <code className="ml-2 break-all type-meta">{pendingReference}</code>
                 )}
               </span>
             }
             variant="warning"
           />
-          {error && <p className="mt-3 body-xs text-error-base">{error.message}</p>}
+          {error && <p className="mt-3 type-meta text-error-base">{error.message}</p>}
 
-          <AdminButton
+          <Button
+            size="sm"
             type="button"
             onClick={() => grantApprovals()}
             disabled={isGranting || isPending}
             loading={isGranting}
-            leadingIcon={<RiShieldCheckLine className="h-4 w-4" />}
+            leadingIcon={<RiShieldCheckLine className="h-[18px] w-[18px]" aria-hidden="true" />}
             className="mt-4"
           >
             {formatMessage({ id: "app.marketplace.approveAll", defaultMessage: "Approve All" })}
-          </AdminButton>
+          </Button>
         </div>
       </div>
     </div>
@@ -242,11 +245,11 @@ function ApprovalStep({
       </div>
       <div className="min-w-0">
         <span
-          className={`body-sm font-medium ${approved ? "text-text-soft line-through" : "text-text-strong"}`}
+          className={`type-body font-medium ${approved ? "text-text-soft line-through" : "text-text-strong"}`}
         >
           {label}
         </span>
-        <p className="body-xs text-text-soft">{description}</p>
+        <p className="type-meta text-text-soft">{description}</p>
       </div>
     </div>
   );

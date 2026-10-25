@@ -208,7 +208,7 @@ export function AllocationEditor({
 
   return (
     <div className="space-y-4" data-component="AllocationEditor">
-      <p className="text-body-md font-medium text-text-strong" data-slot="split-fixed">
+      <p className="type-body font-medium text-text-strong" data-slot="split-fixed">
         {formatMessage(
           {
             id: "cockpit.garden.pool.split.fixed",
@@ -292,7 +292,7 @@ export function AllocationEditor({
         ))}
       </div>
 
-      <div id={sumId} className="space-y-1 body-xs" aria-live="polite">
+      <div id={sumId} className="space-y-1 type-meta" aria-live="polite">
         {valid.allocation ? (
           <p className="flex items-center gap-1.5 text-[rgb(var(--tone-on-surface-accent))]">
             <RiCheckLine className="h-3.5 w-3.5" aria-hidden />
@@ -331,7 +331,7 @@ export function AllocationEditor({
             defaultMessage: "Gardeners' part",
           })}
         </AdminCardTitle>
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.split.recognitionHint",
             defaultMessage:
@@ -375,7 +375,7 @@ export function AllocationEditor({
         {valid.recognitionPolicy ? null : (
           <p
             id={recognitionErrorId}
-            className="flex items-center gap-1.5 body-xs text-error-dark"
+            className="flex items-center gap-1.5 type-meta text-error-dark"
             role="alert"
           >
             <RiErrorWarningLine className="h-3.5 w-3.5" aria-hidden />

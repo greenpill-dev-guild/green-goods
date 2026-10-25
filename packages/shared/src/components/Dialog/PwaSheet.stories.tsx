@@ -77,11 +77,11 @@ function SheetBody({
   return (
     <>
       <header className="border-b border-stroke-soft-200 px-5 pb-4 pt-2">
-        <p className="text-label-sm font-semibold uppercase text-text-soft-400">{eyebrow}</p>
+        <p className="type-label-sm font-semibold uppercase text-text-soft-400">{eyebrow}</p>
         <div className="mt-1 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-title-lg font-semibold text-text-strong-950">{title}</h2>
-            <p className="mt-1 text-body-sm text-text-sub-600">{description}</p>
+            <h2 className="type-title-md text-text-strong-950">{title}</h2>
+            <p className="mt-1 type-label-sm text-text-sub-600">{description}</p>
           </div>
           <button
             type="button"
@@ -104,8 +104,8 @@ function SheetBody({
             key={label}
             className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-4"
           >
-            <p className="text-label-md font-medium text-text-strong-950">{label}</p>
-            <p className="mt-1 text-body-sm text-text-sub-600">
+            <p className="type-label font-medium text-text-strong-950">{label}</p>
+            <p className="mt-1 type-label-sm text-text-sub-600">
               Review this section without leaving the active field workflow.
             </p>
           </div>
@@ -130,7 +130,7 @@ function PwaSheetFixture({
   return (
     <div className="min-h-[720px] bg-bg-white-0 text-text-strong-950">
       <div className="mx-auto flex min-h-[720px] max-w-[430px] items-center justify-center px-6 text-center">
-        <p className="text-body-sm text-text-sub-600">
+        <p className="type-label-sm text-text-sub-600">
           The sheet is fixed to the viewport bottom, matching the installed PWA runtime.
         </p>
       </div>
@@ -438,7 +438,7 @@ function DismissibleSheet({ onClose }: Pick<PwaSheetProps, "onClose">) {
           Open Sheet
         </Button>
       </div>
-      <p className="bg-primary-base p-6 text-center text-body-sm text-static-white">
+      <p className="bg-primary-base p-6 text-center type-label-sm text-static-white">
         Page content at the bottom edge of the viewport. It never shows under the open sheet.
       </p>
       <PwaSheet
@@ -453,7 +453,7 @@ function DismissibleSheet({ onClose }: Pick<PwaSheetProps, "onClose">) {
         closeLabel="Close"
         actions={{ primary: { label: "Done", onClick: () => setOpen(false) } }}
       >
-        <p className="text-body-sm text-text-sub-600">
+        <p className="type-label-sm text-text-sub-600">
           The sheet follows the finger one to one and the scrim lifts with it. Letting go under a
           quarter of its height settles it back; past that, or with a flick, it closes from where
           the finger left it. A close from rest accelerates out; a flick keeps its speed.

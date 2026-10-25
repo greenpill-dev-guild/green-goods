@@ -57,7 +57,7 @@ export function SeedStepWhat({
         name="kind"
         render={({ field }) => (
           <fieldset className="space-y-2">
-            <legend className="body-sm font-medium text-text-strong">
+            <legend className="type-body font-medium text-text-strong">
               {formatMessage({
                 id: "cockpit.garden.pool.seed.workQuestion",
                 defaultMessage: "What type of work is it?",

@@ -2968,7 +2968,7 @@
         "Try Next with no action row, then add one with a count of one or more",
         "Set the hours, the due date, and who may take it up, then review and press Request This Work"
       ],
-      "expected": "Next is held until at least one action row has a count of one or more; the review says a garden-work request travels the Work rails; the place button reads Request This Work; the done screen names the request, and it appears under Requests in the pool with the chosen claim mode",
+      "expected": "Next is held until at least one action row has a count of one or more; the review says a garden-work request travels the work rails; the place button reads Request This Work; the done screen names the request, and it appears under Requests in the pool with the chosen claim mode",
       "evidence": "Screenshots of the action rows and the done screen",
       "role": "gardener",
       "tags": ["commitments", "tx"],
@@ -5999,7 +5999,7 @@
         "Turn the network off and read the card with Set Up Promises",
         "Turn the network back on and read it again"
       ],
-      "expected": "Offline, Set Up Promises is closed and the card says Needs a connection. Pool changes are sent straight to the chain.; back online, Set Up Promises is offered again and the line is gone",
+      "expected": "Offline, Set Up Promises is closed and the card says Needs a connection. Pool changes are sent right away, not queued; back online, Set Up Promises is offered again and the line is gone",
       "evidence": "Screenshots of the card offline and online",
       "role": "steward",
       "tags": ["garden-pool", "offline"],

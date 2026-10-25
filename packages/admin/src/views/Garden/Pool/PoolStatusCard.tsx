@@ -1,10 +1,11 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { poolStatusChip } from "./poolPresentation";
 
@@ -22,7 +23,7 @@ export interface PoolStatusCardProps {
 function Checkline({ done, label }: { done: boolean; label: string }) {
   const Icon = done ? RiCheckLine : RiCloseLine;
   return (
-    <li className="flex items-center gap-2 text-body-md text-text-strong">
+    <li className="flex items-center gap-2 type-body text-text-strong">
       <Icon
         className={
           done
@@ -67,7 +68,7 @@ export function PoolStatusCard({
   const cap = pool.pool?.providerOpenCommitmentCap ?? 0n;
   const offlineNote = formatMessage({
     id: "cockpit.garden.pool.offline",
-    defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+    defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
   const actDisabled = offline || isActing;
   // Resume stays closed from the wallet until the pool reads open again.
@@ -142,57 +143,53 @@ export function PoolStatusCard({
           />
         </ul>
       ) : (
-        <dl className="space-y-2 text-body-md">
+        <FactList frame="inset">
           {pool.charter.charter ? (
-            <div>
-              <dt className="label-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.status.charter",
-                  defaultMessage: "What this pool is for",
-                })}
-              </dt>
-              <dd className="line-clamp-3 text-text-strong" title={pool.charter.charter.purpose}>
-                {pool.charter.charter.purpose}
-              </dd>
-            </div>
-          ) : pool.charter.isUnavailable ? (
-            <div>
-              <dt className="label-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.status.charter",
-                  defaultMessage: "What this pool is for",
-                })}
-              </dt>
-              <dd className="text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.status.charterUnavailable",
-                  defaultMessage: "The agreement could not be read right now.",
-                })}
-              </dd>
-            </div>
-          ) : null}
-          <div>
-            <dt className="label-xs text-text-soft">
-              {formatMessage({
-                id: "cockpit.garden.pool.status.cap",
-                defaultMessage: "Promise limit",
+            <FactRow
+              label={formatMessage({
+                id: "cockpit.garden.pool.status.charter",
+                defaultMessage: "What this pool is for",
               })}
-            </dt>
-            <dd className="text-text-strong">
-              {formatMessage(
-                {
-                  id: "cockpit.garden.pool.status.capValue",
-                  defaultMessage: "{count} per person at once",
-                },
-                { count: cap.toString() }
-              )}
-            </dd>
-          </div>
-        </dl>
+              value={
+                <span className="line-clamp-3" title={pool.charter.charter.purpose}>
+                  {pool.charter.charter.purpose}
+                </span>
+              }
+            />
+          ) : pool.charter.isUnavailable ? (
+            <FactRow
+              label={formatMessage({
+                id: "cockpit.garden.pool.status.charter",
+                defaultMessage: "What this pool is for",
+              })}
+              value={
+                <span className="font-normal text-text-soft">
+                  {formatMessage({
+                    id: "cockpit.garden.pool.status.charterUnavailable",
+                    defaultMessage: "The agreement could not be read right now.",
+                  })}
+                </span>
+              }
+            />
+          ) : null}
+          <FactRow
+            label={formatMessage({
+              id: "cockpit.garden.pool.status.cap",
+              defaultMessage: "Promise limit",
+            })}
+            value={formatMessage(
+              {
+                id: "cockpit.garden.pool.status.capValue",
+                defaultMessage: "{count} per person at once",
+              },
+              { count: cap.toString() }
+            )}
+          />
+        </FactList>
       )}
 
       {model.status === "not-ready" ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.setup.note",
             defaultMessage:
@@ -221,7 +218,7 @@ export function PoolStatusCard({
       ) : null}
 
       {running && !model.closure.allowed ? (
-        <p className="body-xs text-text-soft" data-slot="close-blocked">
+        <p className="type-meta text-text-soft" data-slot="close-blocked">
           {formatMessage(
             {
               id: "cockpit.garden.pool.close.blocked",
@@ -234,38 +231,38 @@ export function PoolStatusCard({
             }
           )}{" "}
           {(pool.pool?.liveCommitmentCount ?? 0n) > 0n ? (
-            <AdminButton type="button" variant="text" size="sm" onClick={onReviewLive}>
+            <Button type="button" emphasis="tertiary" size="compact" onClick={onReviewLive}>
               {formatMessage({
                 id: "cockpit.garden.pool.close.reviewLive",
                 defaultMessage: "Review Live Promises",
               })}
-            </AdminButton>
+            </Button>
           ) : null}
         </p>
       ) : null}
 
       {offline && !inSetup ? (
-        <p className="body-xs text-warning-dark" role="status">
+        <p className="type-meta text-warning-dark" role="status">
           {offlineNote}
         </p>
       ) : null}
 
       {!inSetup && model.status !== "closed" && model.status !== "composted" ? (
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={onEditSettings}
             disabled={actDisabled}
           >
             {formatMessage({ id: "cockpit.garden.pool.act.editPool", defaultMessage: "Edit Pool" })}
-          </AdminButton>
+          </Button>
           {model.status === "paused" ? (
-            <AdminButton
+            <Button
               type="button"
-              variant="filled"
-              size="sm"
+              emphasis="primary"
+              size="compact"
               onClick={() => void acts.resume().catch(() => undefined)}
               disabled={actDisabled || resumeHeld}
             >
@@ -273,17 +270,17 @@ export function PoolStatusCard({
                 id: "cockpit.garden.pool.act.resume",
                 defaultMessage: "Resume Pool",
               })}
-            </AdminButton>
+            </Button>
           ) : model.status === "open" ? (
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={onPause}
               disabled={actDisabled}
             >
               {formatMessage({ id: "cockpit.garden.pool.act.pause", defaultMessage: "Pause…" })}
-            </AdminButton>
+            </Button>
           ) : null}
         </div>
       ) : null}
@@ -302,10 +299,10 @@ export function PoolStatusCard({
         // Its own row, outlined where it sits: the red is for the confirm
         // inside the dialog, which names what closing affects.
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={onClosePool}
             disabled={actDisabled}
           >
@@ -313,13 +310,13 @@ export function PoolStatusCard({
               id: "cockpit.garden.pool.act.closePool",
               defaultMessage: "Close Pool…",
             })}
-          </AdminButton>
+          </Button>
         </div>
       ) : null}
 
       {model.status === "closed" ? (
         <div className="space-y-3">
-          <p className="text-body-md text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "cockpit.garden.pool.closed.note",
               defaultMessage:
@@ -327,10 +324,10 @@ export function PoolStatusCard({
             })}
           </p>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={onCompostPool}
               disabled={actDisabled}
             >
@@ -338,14 +335,14 @@ export function PoolStatusCard({
                 id: "cockpit.garden.pool.act.compostPool",
                 defaultMessage: "Archive Pool…",
               })}
-            </AdminButton>
+            </Button>
           </div>
         </div>
       ) : null}
 
       {model.status === "composted" ? (
         <div className="space-y-3">
-          <p className="text-body-md text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "cockpit.garden.pool.composted.note",
               defaultMessage:
@@ -353,10 +350,10 @@ export function PoolStatusCard({
             })}
           </p>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <AdminButton
+            <Button
               type="button"
-              variant="filled"
-              size="sm"
+              emphasis="primary"
+              size="compact"
               onClick={onReopenPool}
               disabled={actDisabled}
             >
@@ -364,7 +361,7 @@ export function PoolStatusCard({
                 id: "cockpit.garden.pool.act.reopenPool",
                 defaultMessage: "Reopen Pool…",
               })}
-            </AdminButton>
+            </Button>
           </div>
         </div>
       ) : null}

@@ -79,7 +79,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
       </span>
       <span
         className={cn(
-          "text-label-md leading-4",
+          "type-label-sm leading-4",
           mobile ? "max-w-full text-center break-words" : "tracking-[0.03125rem]",
           isActive
             ? "font-semibold text-[rgb(var(--m3-on-surface))]"

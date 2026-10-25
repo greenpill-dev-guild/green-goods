@@ -1,6 +1,6 @@
+import { Button, type ButtonProps } from "@green-goods/shared/components/Button";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton, type AdminButtonProps } from "@/components/AdminButton";
 import type { FlowStatusTone } from "./FlowStatusRow";
 
 /** Where a create flow's send stands, as its Review step and its footer show it. */
@@ -59,8 +59,8 @@ export interface FlowSendFooterProps {
   phase: FlowSendPhase;
   /** The act the Review's primary performs, as its label ("Submit Assessment"). */
   sendLabel: string;
-  /** How the primary sends when a press is not all of it: the form it submits, its icon. */
-  sendButtonProps?: Pick<AdminButtonProps, "type" | "form" | "leadingIcon">;
+  /** How the primary sends when a press is not all of it: the form it submits, its 18px icon. */
+  sendButtonProps?: Pick<ButtonProps, "type" | "form" | "leadingIcon">;
   /** Said beside the Review's buttons: how often the wallet asks, or why sending is off. */
   note?: ReactNode;
   /** Next is held: the step has nothing chosen yet. */
@@ -113,18 +113,25 @@ export function FlowSendFooter({
         className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end"
       >
         {another ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
+            emphasis="secondary"
+            size="sm"
             onClick={another.onClick}
             className="w-full sm:w-auto"
           >
             {another.label}
-          </AdminButton>
+          </Button>
         ) : null}
-        <AdminButton type="button" variant="filled" onClick={onDone} className="w-full sm:w-auto">
+        <Button
+          type="button"
+          emphasis="primary"
+          size="sm"
+          onClick={onDone}
+          className="w-full sm:w-auto"
+        >
           {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </AdminButton>
+        </Button>
       </div>
     );
   }
@@ -132,9 +139,10 @@ export function FlowSendFooter({
   const waiting = held || phase === "sending";
   const isFirst = stepIndex === 0;
   const back = (
-    <AdminButton
+    <Button
       type="button"
-      variant={isFirst ? "text" : "outlined"}
+      emphasis={isFirst ? "tertiary" : "secondary"}
+      size="sm"
       onClick={isFirst ? onCancel : onBack}
       disabled={waiting}
       className="self-start sm:self-auto"
@@ -142,7 +150,7 @@ export function FlowSendFooter({
       {isFirst
         ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
         : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-    </AdminButton>
+    </Button>
   );
 
   if (!isLast) {
@@ -153,15 +161,16 @@ export function FlowSendFooter({
         className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end"
       >
         {back}
-        <AdminButton
+        <Button
           type="button"
-          variant="filled"
+          emphasis="primary"
+          size="sm"
           onClick={onNext}
           disabled={waiting || nextDisabled}
           className="w-full sm:w-auto"
         >
           {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-        </AdminButton>
+        </Button>
       </div>
     );
   }
@@ -172,15 +181,16 @@ export function FlowSendFooter({
       data-phase={phase}
       className="flex w-full flex-col gap-2 sm:flex-row sm:items-center"
     >
-      <p className="min-w-0 body-xs text-text-soft sm:flex-1">
+      <p className="min-w-0 type-meta text-text-soft sm:flex-1">
         {note ? <span role="status">{note}</span> : null}
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         {back}
-        <AdminButton
+        <Button
           type="button"
           {...sendButtonProps}
-          variant="filled"
+          emphasis="primary"
+          size="sm"
           onClick={onSend}
           loading={phase === "sending"}
           disabled={waiting || sendDisabled}
@@ -189,7 +199,7 @@ export function FlowSendFooter({
           {phase === "failed"
             ? formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })
             : sendLabel}
-        </AdminButton>
+        </Button>
       </div>
     </div>
   );

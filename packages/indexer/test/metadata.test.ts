@@ -238,6 +238,12 @@ describe("parseHypercertMetadata", () => {
     assert.deepEqual(result.attestationUIDs, ["0xatt-1"]);
   });
 
+  it("normalizes mixed-case attestation UIDs for case-sensitive containment filters", () => {
+    const uid = "0x" + "aB".repeat(32);
+    const result = parseHypercertMetadata({ hidden_properties: { attestationRefs: [{ uid }] } });
+    assert.deepEqual(result.attestationUIDs, [uid.toLowerCase()]);
+  });
+
   it("returns undefined attestationUIDs when refs have no uids", () => {
     const result = parseHypercertMetadata({
       hidden_properties: { attestationRefs: [{ notUid: "value" }] },

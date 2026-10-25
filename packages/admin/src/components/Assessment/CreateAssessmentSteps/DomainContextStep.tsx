@@ -130,13 +130,16 @@ export function DomainContextStep({
             value: String(domain),
             label: resolveDomainLabel(intl, domain),
             leadingVisual: (
-              <i className={cn(DOMAIN_ICON_CONFIG[domain].icon, "body-md")} aria-hidden="true" />
+              <i
+                className={cn(DOMAIN_ICON_CONFIG[domain].icon, "type-title-md font-normal")}
+                aria-hidden="true"
+              />
             ),
             disabled: isSubmitting,
           }))}
         />
         {showValidation && fieldErrors.domain ? (
-          <p role="alert" className="body-sm text-error-dark">
+          <p role="alert" className="type-body text-error-dark">
             {fieldErrors.domain}
           </p>
         ) : null}

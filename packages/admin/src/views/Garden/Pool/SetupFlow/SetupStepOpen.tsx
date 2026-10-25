@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { PoolSetupStepState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence";
@@ -189,24 +190,19 @@ export function SetupStepOpen({
   return (
     <div className="space-y-4">
       {phase === "ready" ? (
-        <dl className="space-y-2">
+        <FactList frame="inset">
           {summaryRows.map(([label, value]) => (
-            <div key={label}>
-              <dt className="label-xs text-text-soft">{label}</dt>
-              <dd className="text-body-md text-text-strong" title={value}>
-                {value}
-              </dd>
-            </div>
+            <FactRow key={label} label={label} value={value} />
           ))}
-        </dl>
+        </FactList>
       ) : null}
 
       <div className="space-y-2">
-        <p className="text-body-md font-medium text-text-strong" aria-live="polite">
+        <p className="type-body font-medium text-text-strong" aria-live="polite">
           {statusLine()}
         </p>
         {batched && phase === "ready" ? (
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.setup.promptBatched",
               defaultMessage:
@@ -251,7 +247,7 @@ export function SetupStepOpen({
         </Alert>
       ) : null}
       {phase === "running" ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.setup.keepOpen",
             defaultMessage:
@@ -281,7 +277,7 @@ export function SetupStepOpen({
         <Alert variant="warning">
           {formatMessage({
             id: "cockpit.garden.pool.offline",
-            defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+            defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
           })}
         </Alert>
       ) : null}

@@ -1,12 +1,12 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type {
   ProtocolFundingOperationsController,
   ProtocolFundingRow,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { Address } from "@green-goods/shared/types/domain";
-import { useIntl } from "react-intl";
 import { RiRefreshLine } from "@remixicon/react";
-import { AdminButton } from "@/components/AdminButton";
+import { useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
 import type { TransferAct } from "@/views/Garden/Pool/TransferReviewDialog";
@@ -83,21 +83,22 @@ export function ProtocolFundingRows({
           })}
         </AdminCardTitle>
         {onRefresh ? (
-          <AdminButton
-            variant="outlined"
-            size="sm"
-            leadingIcon={<RiRefreshLine />}
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
             onClick={onRefresh}
           >
             {formatMessage({
               id: "cockpit.community.protocolFunding.refresh",
               defaultMessage: "Refresh Funding",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
       {operations.rows.length === 0 ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.community.protocolFunding.rows.empty",
             defaultMessage: "No indexed protocol funding transfers yet.",
@@ -111,7 +112,7 @@ export function ProtocolFundingRows({
               <li key={row.id} className="space-y-2 py-3" data-funding-id={row.disbursementId}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate body-sm font-medium text-text-strong" title={to}>
+                    <p className="truncate type-body font-medium text-text-strong" title={to}>
                       {formatMessage(
                         {
                           id: "cockpit.community.protocolFunding.row.transfer",
@@ -120,7 +121,7 @@ export function ProtocolFundingRows({
                         { amount: formatGdollar(row.amount, locale), garden: to }
                       )}
                     </p>
-                    <p className="body-xs text-text-soft" title={row.recipient}>
+                    <p className="type-meta text-text-soft" title={row.recipient}>
                       {formatMessage(
                         {
                           id: "cockpit.community.protocolFunding.row.identity",
@@ -138,21 +139,23 @@ export function ProtocolFundingRows({
                     transfer's Cancel… and Dispatch… are the row's paired decision. */}
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   {row.canCancel ? (
-                    <AdminButton
-                      variant="outlined"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="compact"
                       onClick={() => onCancel(row.disbursementId)}
                     >
                       {formatMessage({
                         id: "cockpit.community.protocolFunding.cancel",
                         defaultMessage: "Cancel…",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : null}
                   {row.canRequeue ? (
-                    <AdminButton
-                      variant="outlined"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="compact"
                       disabled={operations.isActing}
                       onClick={() => onReview("requeue", row)}
                     >
@@ -160,12 +163,13 @@ export function ProtocolFundingRows({
                         id: "cockpit.community.protocolFunding.requeue",
                         defaultMessage: "Requeue…",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : null}
                   {row.canRetry ? (
-                    <AdminButton
-                      variant="outlined"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="compact"
                       disabled={operations.isActing}
                       onClick={() => onReview("retry", row)}
                     >
@@ -173,12 +177,13 @@ export function ProtocolFundingRows({
                         id: "cockpit.community.protocolFunding.retry",
                         defaultMessage: "Resend…",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : null}
                   {row.canDispatch ? (
-                    <AdminButton
-                      variant="filled"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="primary"
+                      size="compact"
                       disabled={operations.isActing}
                       onClick={() => onReview("dispatch", row)}
                     >
@@ -186,7 +191,7 @@ export function ProtocolFundingRows({
                         id: "cockpit.community.protocolFunding.dispatch",
                         defaultMessage: "Dispatch…",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : null}
                 </div>
               </li>

@@ -11,11 +11,6 @@ vi.mock("@/components/Cards", () => ({
     createElement("div", { "data-testid": "work-card" }, work.title),
 }));
 
-vi.mock("@/components/Communication", () => ({
-  EmptyState: () => createElement("div", null, "Empty"),
-  Loader: () => createElement("div", null, "Loading"),
-}));
-
 const messages = {
   itemCount: { id: "count", defaultMessage: "{count} items" },
   loading: { id: "loading", defaultMessage: "Loading" },

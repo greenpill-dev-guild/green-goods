@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
@@ -14,10 +15,9 @@ import { capitalize } from "@green-goods/shared/utils/app/text";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line, RiVolumeVibrateLine } from "@remixicon/react";
 import { type ReactNode, useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Card } from "@/components/Cards";
-import { Avatar } from "@/components/Display";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/Inputs";
 import { OfflineContentRow } from "./OfflineContentRow";
+import { SettingTitle } from "./SettingTitle";
 
 interface ApplicationSettings {
   title: string;
@@ -47,7 +47,7 @@ const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
 
 /**
  * A select keeps its value on one line. The trigger leaves 66px for the text,
- * and "Português" is a few pixels wider than that in Inter. The shared trigger
+ * and "Português" is about 69px in Plus Jakarta Sans at 14px. The shared trigger
  * wraps a value that does not fit, which broke it across two lines; held on
  * one line it borrows those pixels from the gap before the chevron instead.
  * Radix drops a className given to SelectValue, so the trigger styles the span.
@@ -55,44 +55,10 @@ const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
 const SETTING_SELECT_TRIGGER = `${SETTING_CONTROL_WIDTH} [&>span]:whitespace-nowrap`;
 
 /**
- * Every subtitle reserves two lines whether or not it wraps, so the settings
- * cards stay the same height and a status change never moves the row.
+ * Every hint reserves two lines whether or not it wraps, so the settings rows
+ * stay the same height and a status change never moves the row.
  */
-const SETTING_DESCRIPTION = "min-h-8 text-xs text-text-sub-600 line-clamp-2";
-
-/** One settings row: an icon, a fixed title, its two-line description, and one control. */
-function SettingRow({
-  icon,
-  title,
-  titleId,
-  description,
-  control,
-}: {
-  icon: ReactNode;
-  title: string;
-  titleId?: string;
-  description: ReactNode;
-  control: ReactNode;
-}) {
-  return (
-    <Card>
-      <div className="flex flex-row items-center gap-3 w-full">
-        <Avatar>
-          <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
-            {icon}
-          </div>
-        </Avatar>
-        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-          <div id={titleId} className="text-sm font-medium truncate">
-            {title}
-          </div>
-          {description}
-        </div>
-        <div className="shrink-0">{control}</div>
-      </div>
-    </Card>
-  );
-}
+const SETTING_DESCRIPTION = "min-h-8 line-clamp-2";
 
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
@@ -352,74 +318,82 @@ export const AppSettings: React.FC = () => {
           defaultMessage: "Settings",
         })}
       </h5>
-      {applicationSettings.map(({ title, Icon, description, Option }) => (
-        <SettingRow
-          key={title}
-          icon={Icon}
-          title={title}
-          description={<div className={SETTING_DESCRIPTION}>{description}</div>}
-          control={<Option />}
-        />
-      ))}
+      {/* One setting per row: its title and hint, and its control in the right slot (DL-109). */}
+      <FactList>
+        {applicationSettings.map(({ title, Icon, description, Option }) => (
+          <FactRow
+            key={title}
+            icon={Icon}
+            label={<SettingTitle>{title}</SettingTitle>}
+            description={<span className={SETTING_DESCRIPTION}>{description}</span>}
+            action={<Option />}
+          />
+        ))}
 
-      {canVibrate ? (
-        <SettingRow
-          icon={<RiVolumeVibrateLine className="w-4" />}
-          title={intl.formatMessage({ id: "app.settings.vibration", defaultMessage: "Vibration" })}
-          titleId={vibrationTitleId}
+        {canVibrate ? (
+          <FactRow
+            icon={<RiVolumeVibrateLine className="w-4" />}
+            label={
+              <SettingTitle>
+                {intl.formatMessage({ id: "app.settings.vibration", defaultMessage: "Vibration" })}
+              </SettingTitle>
+            }
+            labelId={vibrationTitleId}
+            description={
+              <span className={SETTING_DESCRIPTION}>
+                {intl.formatMessage({
+                  id: "app.settings.vibrationDescription",
+                  defaultMessage: "Vibrate lightly when you tap",
+                })}
+              </span>
+            }
+            action={
+              <Switch
+                checked={vibrationOn}
+                onCheckedChange={handleVibrationChange}
+                aria-labelledby={vibrationTitleId}
+              />
+            }
+          />
+        ) : null}
+
+        <OfflineContentRow controlClassName={SETTING_CONTROL_WIDTH} />
+
+        {/* Always present: with nothing pending there was no way to check (PWA-041). */}
+        <FactRow
+          icon={<RiRefreshLine className="w-4" />}
+          label={
+            <SettingTitle>
+              {intl.formatMessage({ id: "app.update.check.title", defaultMessage: "Update" })}
+            </SettingTitle>
+          }
           description={
-            <div className={SETTING_DESCRIPTION}>
-              {intl.formatMessage({
-                id: "app.settings.vibrationDescription",
-                defaultMessage: "Vibrate lightly when you tap",
+            <span
+              role="status"
+              aria-label={intl.formatMessage({
+                id: "app.update.check.title",
+                defaultMessage: "Update",
               })}
-            </div>
+              className={SETTING_DESCRIPTION}
+            >
+              {updateRow.status}
+            </span>
           }
-          control={
-            <Switch
-              checked={vibrationOn}
-              onCheckedChange={handleVibrationChange}
-              aria-labelledby={vibrationTitleId}
-            />
+          action={
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="sm"
+              loading={updateRow.busy}
+              disabled={phase === "waiting" && activationBlocked}
+              onClick={updateRow.onClick}
+              className={SETTING_CONTROL_WIDTH}
+            >
+              {updateRow.label}
+            </Button>
           }
         />
-      ) : null}
-
-      <OfflineContentRow controlClassName={SETTING_CONTROL_WIDTH} />
-
-      {/* Always present: with nothing pending there was no way to check (PWA-041). */}
-      <SettingRow
-        icon={<RiRefreshLine className="w-4" />}
-        title={intl.formatMessage({
-          id: "app.update.check.title",
-          defaultMessage: "Update",
-        })}
-        description={
-          <div
-            role="status"
-            aria-label={intl.formatMessage({
-              id: "app.update.check.title",
-              defaultMessage: "Update",
-            })}
-            className={SETTING_DESCRIPTION}
-          >
-            {updateRow.status}
-          </div>
-        }
-        control={
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="sm"
-            loading={updateRow.busy}
-            disabled={phase === "waiting" && activationBlocked}
-            onClick={updateRow.onClick}
-            className={SETTING_CONTROL_WIDTH}
-          >
-            {updateRow.label}
-          </Button>
-        }
-      />
+      </FactList>
     </>
   );
 };

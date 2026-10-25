@@ -2,7 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { RiRefreshLine, RiSearchLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-import { EmptyState } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { TopNav } from "@/components/Navigation";
 import { FixedBar } from "../FixedBar";
 
@@ -34,7 +34,7 @@ export function CommitmentDetailShell({
   return (
     <div className="w-full">
       <TopNav onBackClick={onBack} overlay />
-      <div className="space-y-4 p-4 pt-20">
+      <div className="space-y-4 p-4 pt-[var(--app-top-bar-height)]">
         {title ? (
           <h1 className="text-lg font-medium leading-7 text-text-strong-950">{title}</h1>
         ) : null}

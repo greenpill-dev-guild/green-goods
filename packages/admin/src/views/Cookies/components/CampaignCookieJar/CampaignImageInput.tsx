@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { logger } from "@green-goods/shared/modules/app/logger";
@@ -6,7 +7,6 @@ import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import { extractErrorMessage } from "@green-goods/shared/utils/errors/extract-message";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminTextField } from "@/components/AdminTextField";
 import { isValidCampaignCookieJarMetadataUrl } from "../../campaignCookieJarPanel.model";
 
@@ -99,14 +99,14 @@ export function CampaignImageInput({
         }}
       />
       {isUploading ? (
-        <p className="text-body-sm text-text-sub">
+        <p className="type-meta text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.imageUploading",
             defaultMessage: "Uploading campaign image...",
           })}
         </p>
       ) : null}
-      {uploadError ? <p className="text-body-sm text-error-dark">{uploadError}</p> : null}
+      {uploadError ? <p className="type-meta text-error-dark">{uploadError}</p> : null}
       {resolvedPreviewUrl && !file ? (
         <div className="overflow-hidden rounded-[var(--m3-shape-md)] border border-stroke-soft">
           <img
@@ -117,10 +117,10 @@ export function CampaignImageInput({
           />
         </div>
       ) : null}
-      <AdminButton
+      <Button
         type="button"
-        variant="text"
-        size="sm"
+        emphasis="tertiary"
+        size="compact"
         onClick={() => setShowUrlFallback((current) => !current)}
       >
         {showUrlFallback
@@ -132,7 +132,7 @@ export function CampaignImageInput({
               id: "cockpit.community.cookies.pasteImageUrl",
               defaultMessage: "Paste image URL",
             })}
-      </AdminButton>
+      </Button>
       {showUrlFallback ? (
         <AdminTextField
           id={`${source}-url`}

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { STORYBOOK_ADMIN_GARDENS } from "../../../../../../shared/.storybook/adminFixtures";
 import {
   campaignCookieJarStoryDecorators,
   storybookCampaign,
@@ -19,9 +18,6 @@ type Story = StoryObj<typeof CampaignJarListRow>;
 export const Default: Story = {
   args: {
     campaign: storybookCampaign,
-    gardensByAddress: new Map(
-      STORYBOOK_ADMIN_GARDENS.map((garden) => [garden.id.toLowerCase(), garden])
-    ),
     onSelect: () => undefined,
   },
 };

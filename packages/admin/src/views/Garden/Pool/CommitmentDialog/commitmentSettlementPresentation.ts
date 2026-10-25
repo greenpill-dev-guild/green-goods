@@ -169,7 +169,7 @@ const BLOCKER_MESSAGES: Record<SettlementActionBlocker, Message> = {
   },
   offline: {
     id: "cockpit.garden.pool.settlement.blocker.offline",
-    defaultMessage: "Needs a connection. Settlement calls are sent straight to the chain.",
+    defaultMessage: "Needs a connection. Settlement steps are sent right away, not queued.",
   },
   "missing-payer-steward": {
     id: "cockpit.garden.pool.settlement.blocker.missing-payer-steward",

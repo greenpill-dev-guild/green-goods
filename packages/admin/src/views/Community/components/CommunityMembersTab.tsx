@@ -1,4 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
@@ -8,12 +11,10 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { isAddress } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSelect } from "@/components/AdminTextField";
-import { EnsAddressText } from "@/components/EnsAddressText";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { CommunityJoinRequests } from "./CommunityJoinRequests";
 import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
@@ -79,7 +80,7 @@ export function CommunityMembersTab({
               <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.members.directory" })}
               </AdminCardTitle>
-              <p className="mt-1 text-body-sm text-text-sub">
+              <p className="mt-1 type-meta text-text-sub">
                 {formatMessage({ id: "cockpit.community.members.directoryDescription" })}
               </p>
             </div>
@@ -147,47 +148,52 @@ export function CommunityMembersTab({
                 }
               />
             ) : (
-              <AdminCard variant="outlined" density="none" className="divide-y divide-stroke-soft">
+              // One person row each: the highest role is the row's chip, and the count
+              // says how many roles they hold when it is more than that one (DL-112).
+              <ul className="flex flex-col gap-(--gg-list-gap)">
                 {filteredDirectory.map((entry) => (
-                  <div
-                    key={entry.address}
-                    className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0 space-y-2">
-                      <EnsAddressText address={entry.address} />
-                      <div className="flex flex-wrap gap-1.5">
-                        {entry.roles.map((role) => (
-                          <span
-                            key={`${entry.address}-${role}`}
-                            className="rounded-full bg-bg-sub px-2 py-0.5 text-label-sm font-medium text-text-sub"
+                  <li key={entry.address}>
+                    <PersonRow
+                      address={entry.address}
+                      roles={entry.roles}
+                      chainId={garden.chainId}
+                      details={
+                        entry.roles.length > 1
+                          ? [
+                              formatMessage(
+                                { id: "cockpit.community.members.roleCount" },
+                                { count: entry.roles.length }
+                              ),
+                            ]
+                          : undefined
+                      }
+                      action={
+                        canManage ? (
+                          <IconButton
+                            asChild
+                            emphasis="tertiary"
+                            size="sm"
+                            aria-label={formatMessage({
+                              id: "cockpit.community.members.manageRoles",
+                            })}
+                            title={formatMessage({ id: "cockpit.community.members.manageRoles" })}
                           >
-                            {getRoleLabel(role, formatMessage).singular}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    {canManage ? (
-                      <AdminButton
-                        asChild
-                        variant="text"
-                        size="sm"
-                        className="self-start sm:self-center"
-                      >
-                        <Link
-                          to={adminRoutes.communityMembers({
-                            ...gardenRouteContext,
-                            item: "manage-members",
-                            member: entry.address,
-                          })}
-                        >
-                          <RiUserSettingsLine className="h-4 w-4" />
-                          {formatMessage({ id: "cockpit.community.members.manageRoles" })}
-                        </Link>
-                      </AdminButton>
-                    ) : null}
-                  </div>
+                            <Link
+                              to={adminRoutes.communityMembers({
+                                ...gardenRouteContext,
+                                item: "manage-members",
+                                member: entry.address,
+                              })}
+                            >
+                              <RiUserSettingsLine />
+                            </Link>
+                          </IconButton>
+                        ) : undefined
+                      }
+                    />
+                  </li>
                 ))}
-              </AdminCard>
+              </ul>
             )}
           </AdminCard>
         </div>
@@ -200,12 +206,12 @@ export function CommunityMembersTab({
             <AdminCardTitle>
               {formatMessage({ id: "cockpit.community.members.coverage" })}
             </AdminCardTitle>
-            <div className="garden-stat-row">
-              <span className="garden-stat-row-label">
-                {formatMessage({ id: "cockpit.community.members.total" })}
-              </span>
-              <span className="garden-stat-row-value">{memberCount}</span>
-            </div>
+            <FactList frame="inset">
+              <FactRow
+                label={formatMessage({ id: "cockpit.community.members.total" })}
+                value={memberCount}
+              />
+            </FactList>
             {missingCriticalRoles.length > 0 ? (
               <Alert variant="warning" className="p-3">
                 {formatMessage(

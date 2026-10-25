@@ -1,3 +1,4 @@
+import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Confidence, type Work, type WorkMetadata } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { z } from "zod";
@@ -37,44 +38,15 @@ export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | 
 // Sub-components
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Definition row — label left, value right on one line (dialog interior
- * grammar §3.3). Halves the vertical footprint of the old stacked icon rows
- * that made the review dialog read as whitespace.
- */
-export function DetailRow({
-  icon,
-  label,
-  value,
-}: {
-  icon?: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-4">
-      <p className="flex shrink-0 items-center gap-1.5 label-xs text-text-soft">
-        {icon ? (
-          <span aria-hidden className="self-center [&>svg]:h-3.5 [&>svg]:w-3.5">
-            {icon}
-          </span>
-        ) : null}
-        {label}
-      </p>
-      <div className="min-w-0 text-right body-sm text-text-strong">{value}</div>
-    </div>
-  );
-}
-
 export function ReviewSummary({ work }: { work: Work }) {
   const { formatMessage } = useIntl();
   return (
     <div className="mt-4 space-y-3">
       <div className="rounded-md bg-bg-weak p-3">
-        <p className="label-xs text-text-soft">
+        <p className="type-label-sm text-text-soft">
           {formatMessage({ id: "app.work.detail.statusLabel" })}
         </p>
-        <p className="mt-0.5 body-sm font-medium text-text-strong">
+        <p className="mt-0.5 type-body font-medium text-text-strong">
           {work.status === "approved"
             ? formatMessage({ id: "app.work.status.approved" })
             : formatMessage({ id: "app.work.status.rejected" })}
@@ -82,18 +54,18 @@ export function ReviewSummary({ work }: { work: Work }) {
       </div>
       {work.reviewFeedback ? (
         <div className="rounded-md bg-bg-weak p-3">
-          <p className="label-xs text-text-soft">
+          <p className="type-label-sm text-text-soft">
             {formatMessage({
               id: "app.work.detail.reviewFeedback",
               defaultMessage: "Feedback to the gardener",
             })}
           </p>
-          <p className="mt-0.5 whitespace-pre-line break-words body-sm text-text-strong">
+          <p className="mt-0.5 whitespace-pre-line break-words type-body text-text-strong">
             {work.reviewFeedback}
           </p>
         </div>
       ) : null}
-      <p className="body-xs text-text-soft">
+      <p className="type-meta text-text-soft">
         {formatMessage({ id: "app.work.detail.alreadyReviewed" })}
       </p>
     </div>
@@ -136,7 +108,7 @@ export function renderMetadataDetails(metadata: Partial<WorkMetadata>): React.Re
   return (
     <>
       {entries.map((entry) => (
-        <DetailRow key={entry.label} label={entry.label} value={entry.value} />
+        <FactRow key={entry.label} label={entry.label} value={entry.value} />
       ))}
     </>
   );

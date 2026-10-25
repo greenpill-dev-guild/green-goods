@@ -23,6 +23,15 @@ vi.mock("@/components/Garden/AddMembersDialog", () => ({
 vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
   resolveEnsName: async () => null,
 }));
+// Each member is a person row: nobody here has a photo or a Green Goods name, so the row
+// reads neither from a wallet nor the network.
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useResolvedProfileAvatar: () => ({ avatarUri: null, isLoading: false }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
 
 function MembersHarness({
   memberCount = storyDirectory.length,
@@ -63,7 +72,9 @@ describe("CommunityMembersTab", () => {
       </MemoryRouter>
     );
 
-    const total = screen.getByText("Total members").parentElement as HTMLElement;
+    const total = screen
+      .getByText("Total members")
+      .closest('[data-component="FactRow"]') as HTMLElement;
     expect(within(total).getByText("2")).toBeInTheDocument();
     // The rail no longer repeats role counts or the header's member actions (D9, D15).
     expect(screen.queryByRole("link", { name: /^Stewards/ })).not.toBeInTheDocument();

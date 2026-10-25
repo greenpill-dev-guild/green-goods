@@ -1,23 +1,25 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { usePublicCommitmentImpact } from "@green-goods/shared/hooks/public/usePublicCommitmentImpact";
-import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { useApp } from "@green-goods/shared/providers/App";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
 import {
   EditorialGhostLink,
   EditorialPrimaryLink,
   editorialTitleTags,
+  EditorialMediaCardSkeleton,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
-import { PublicFeaturedGardens } from "@/components/Public/PublicFeaturedGardens";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingBridge } from "@/components/Public/PublicFundingBridge";
 import { PublicGetInTouch } from "@/components/Public/PublicGetInTouch";
 import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
-import { PublicProofBand } from "@/components/Public/PublicProofBand";
 import { PublicRecordLoop } from "@/components/Public/PublicRecordLoop";
 import { PublicWhoTendsAGarden } from "@/components/Public/PublicWhoTendsAGarden";
 import { publicCuration } from "@/content/publicCuration";
+
+const PublicHomeEvidence = lazy(() => import("./HomeEvidence"));
 
 /**
  * Home — the editorial public homepage at browser `/`.
@@ -33,16 +35,10 @@ import { publicCuration } from "@/content/publicCuration";
 export default function Home() {
   const { formatMessage } = useIntl();
   const { isMobile } = useApp();
-  const stats = usePublicStats();
-  const commitments = usePublicCommitmentImpact();
-
-  const counts = stats.data ?? {
-    gardenCount: 0,
-    contributorCount: 0,
-    fieldNoteCount: 0,
-    attestationCount: 0,
-  };
-
+  const { ref: evidenceRef, revealed: evidenceVisible } = useInViewReveal<HTMLDivElement>({
+    threshold: 0.01,
+    rootMargin: "0px",
+  });
   const exploreLabel = formatMessage({
     id: "public.home.hero.exploreGardens",
     defaultMessage: "Explore Gardens",
@@ -88,6 +84,9 @@ export default function Home() {
     <>
       <PublicEditorialHero
         imageSrc={publicCuration.heroImagePath}
+        imageWidth={1672}
+        imageHeight={941}
+        portraitImageSrc="/images/hero-home-portrait.avif"
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
         titleId="public-home-hero-title"
@@ -102,26 +101,53 @@ export default function Home() {
         lede={formatMessage({
           id: "public.home.hero.lede",
           defaultMessage:
-            "Green Goods helps community projects document environmental work, have it reviewed by local stewards, and connect with funding. Explore what’s been done, meet the people doing it, and support what comes next.",
+            "Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support. Explore the work, meet the people, and help fund what comes next.",
         })}
         actions={heroActions}
       />
-      <PublicFeaturedGardens />
-      <PublicProofBand
-        gardens={counts.gardenCount}
-        contributors={counts.contributorCount}
-        works={counts.fieldNoteCount}
-        assessments={counts.attestationCount}
-        // A commitment read that settled without data is unknown, never zero.
-        commitmentsKept={commitments.data?.commitmentsFulfilled ?? null}
-        isLoading={stats.isLoading}
-        isCommitmentsLoading={commitments.isLoading}
-      />
+      <div ref={evidenceRef} data-testid="home-evidence">
+        {evidenceVisible ? (
+          <ErrorBoundary
+            context="PublicHomeEvidence"
+            fallback={
+              <div className="bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20" role="alert">
+                <div className="mx-auto max-w-7xl space-y-4">
+                  <p>
+                    {formatMessage({
+                      id: "public.home.evidence.unavailable",
+                      defaultMessage:
+                        "Live garden information is unavailable. You can still explore the site.",
+                    })}
+                  </p>
+                  <EditorialGhostLink to="/gardens">{exploreLabel}</EditorialGhostLink>
+                </div>
+              </div>
+            }
+          >
+            <Suspense fallback={<EvidenceSkeleton />}>
+              <PublicHomeEvidence />
+            </Suspense>
+          </ErrorBoundary>
+        ) : (
+          <EvidenceSkeleton />
+        )}
+      </div>
       <PublicRecordLoop />
       <PublicWhoTendsAGarden />
       <PublicFundingBridge />
       <PublicGetInTouch />
       <PublicFooter />
     </>
+  );
+}
+
+function EvidenceSkeleton() {
+  return (
+    <div className="bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20" aria-busy="true">
+      <div className="mx-auto grid max-w-7xl gap-10 sm:grid-cols-2">
+        <EditorialMediaCardSkeleton mediaClassName="aspect-[4/3]" />
+        <EditorialMediaCardSkeleton mediaClassName="aspect-[4/3]" />
+      </div>
+    </div>
   );
 }

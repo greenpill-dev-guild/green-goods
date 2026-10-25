@@ -23,11 +23,11 @@ const ADMIN_HEIGHT: Record<AdminSize, number> = { sm: 28, md: 32, lg: 40 };
 
 /**
  * Installed app (PWA): the 16px field corner, 12px pressed; 12px and 8px
- * pressed at the compact size; weight 400; 48/44/40/32.
+ * pressed at the compact size; button labels at weight 500 (F3); 48/44/40/32.
  */
 export const APP = {
   name: "Installed app",
-  family: "Inter",
+  family: "Plus Jakarta Sans",
   cornerRest: APP_CORNER.md,
   cornerPressed: 12,
   cornerCompactRest: APP_CORNER.compact,
@@ -35,20 +35,20 @@ export const APP = {
   /** Shown under the specimen that swaps the resting corner token for the pressed one. */
   pressedNote:
     "The resting corner token is swapped for the pressed one: one step tighter (DL-001, DL-026). No morph under reduced motion.",
-  weight: 400,
+  weight: 500,
   rules: [
-    "Every button: the 16px field corner, 12px while pressed, label weight 400 (DL-026, DL-029); the 32px compact size takes 12px, 8px while pressed (DL-038)",
+    "Every button: the 16px field corner, 12px while pressed, label weight 500 (DL-026, DL-029, F3); the 32px compact size takes 12px, 8px while pressed (DL-038)",
     "Heights 48 / 44 / 40 / 32; sm and compact keep a 48px hit area (DL-023)",
     "Icon buttons are circles, chips are 32px capsules with a 44px hit area",
     "Fields: 16px corner, a single-line field is exactly its step (DL-022)",
-    "Inter, from the shared primitives only (DL-025, Rule 19)",
+    "Plus Jakarta Sans, the cockpit's face, from the shared primitives only (DL-025, DL-096, Rule 19)",
   ],
   button: (size: AppSize): Expectation => ({
     height: APP_HEIGHT[size],
     radius: APP_CORNER[size],
-    weight: 400,
+    weight: 500,
     labelSize: size === "lg" || size === "md" ? 16 : 14,
-    family: "Inter",
+    family: "Plus Jakarta Sans",
     hit: size === "sm" || size === "compact" ? 48 : APP_HEIGHT[size],
   }),
   iconButton: (size: AppSize): Expectation => ({
@@ -66,7 +66,7 @@ export const APP = {
   field: (size: "sm" | "md" | "lg" = "md"): Expectation => ({
     height: { sm: 40, md: 44, lg: 48 }[size],
     radius: 16,
-    family: "Inter",
+    family: "Plus Jakarta Sans",
   }),
 };
 
@@ -101,7 +101,8 @@ export const WEBSITE = {
   }),
   iconButton: APP.iconButton,
   chip: APP.chip,
-  field: APP.field,
+  /** The app's field in the website's face (DL-096). */
+  field: (size: "sm" | "md" | "lg" = "md"): Expectation => ({ ...APP.field(size), family: "Inter" }),
   editorialField: (): Expectation => ({
     height: 44,
     radius: "none",
@@ -116,12 +117,12 @@ export const ADMIN = {
   family: "Plus Jakarta Sans",
   corners: [4, 8, 12, 16, 9999],
   rules: [
-    "AdminButton pills at 28 / 32 / 40, each with a 44px finger box (DL-011, DL-030)",
+    "The shared Button and IconButton as pills and circles at 28 / 32 / 40, each with a 44px finger box (DL-011, DL-030, DL-119)",
     "One 14px label on every button size; 11px only inside chips",
-    "Fields 44px / 16px text on touch widths, 40px / 14px from 640px, 12px floating label (DL-030)",
-    "Inline fields 32px; toolbar pills and tabs 36px; chips 32px with 8px corners; identity pill 36px",
+    "Fields 44px / 16px text on touch widths, 40px / 14px from 640px (DL-030), the 14px label above and a two-line message line (F3)",
+    "Inline fields 32px; toolbar pills and tabs 36px; chips 32px capsules, selected in the workspace tone (DL-101); identity pill 36px",
     "Corners only from 4 / 8 / 12 / 16 / 9999px; rounded-xl and rounded-2xl land on 16px",
-    "Plus Jakarta Sans; admin views use the Admin* family, never the shared Button (Rule 18)",
+    "Plus Jakarta Sans; admin views render the shared Button and IconButton directly, and the Admin* family for fields, choices, cards and dialogs (Rule 18)",
     "Shared pieces ride the shared family, which takes this metric from tokens in index.css: lg and md land on 40, sm on 32, compact on 28, with the 44px finger box (DL-031)",
   ],
   button: (size: AdminSize): Expectation => ({
@@ -142,19 +143,24 @@ export const ADMIN = {
     height: typeof window !== "undefined" && window.innerWidth < 640 ? 44 : 40,
     radius: 8,
   }),
-  fieldLabel: (): Expectation => ({ labelSize: 12, family: "Plus Jakarta Sans" }),
   fieldInput: (): Expectation => ({
     labelSize: typeof window !== "undefined" && window.innerWidth < 640 ? 16 : 14,
     family: "Plus Jakarta Sans",
   }),
   inlineField: (): Expectation => ({ height: 32 }),
-  tab: (): Expectation => ({ height: 36, labelSize: 14, family: "Plus Jakarta Sans" }),
+  /** 12px labels below 640px, 14px from 640px, as the app sets its tabs (F8). */
+  tab: (): Expectation => ({
+    height: 36,
+    labelSize: typeof window !== "undefined" && window.innerWidth < 640 ? 12 : 14,
+    weight: 500,
+    family: "Plus Jakarta Sans",
+  }),
   toolbar: (): Expectation => ({ height: 36, radius: "pill" }),
-  chip: (): Expectation => ({ height: 32, radius: 8, labelSize: 14, hit: 44 }),
+  chip: (): Expectation => ({ height: 32, radius: "pill", labelSize: 14, hit: 44 }),
   identityPill: (): Expectation => ({ height: 36, radius: "pill" }),
   close: (): Expectation => ({ height: 40, radius: "circle", hit: 44 }),
   checkbox: (): Expectation => ({ hit: 44 }),
-  /** A shared field's title above the control (`gg-field-label`): the setting-row title. */
+  /** The label above every field, the family's and the shared pieces' (`gg-field-label`): the setting-row title. */
   fieldTitle: (): Expectation => ({ labelSize: 14, weight: 500, family: "Plus Jakarta Sans" }),
   /** The shared Button at its sm size, which the cockpit lands on the 32px md pill (DL-031). */
   sharedButton: (): Expectation => ({
@@ -181,8 +187,8 @@ export const STORY_LINKS = {
   sharedAmount: "shared-form-formattedamountinput--shared-field",
   editorialAtoms: "client-public-editorial-atoms--buttons",
   editorialTokens: "client-public-editorial-tokens--docs",
-  adminButton: "admin-primitives-adminbutton--state-catalog",
-  adminIconButtons: "admin-primitives-adminbutton--icon-buttons",
+  adminButtons: "admin-primitives-buttons--state-catalog",
+  adminIconButtons: "admin-primitives-buttons--icon-buttons",
   adminTextField: "admin-primitives-admintextfield--state-catalog",
   adminInlineField: "admin-primitives-admininlinefield--aligns-with-button",
   adminTabRail: "admin-primitives-admintabrail--state-catalog",
@@ -190,7 +196,7 @@ export const STORY_LINKS = {
   adminChoiceGroup: "admin-primitives-adminchoicegroup--theme-choices",
   adminSelectableCard: "admin-primitives-adminselectablecard--toggle-group",
   adminCheckbox: "admin-primitives-admincheckbox--state-catalog",
-  adminSettingRow: "admin-primitives-adminsettingrow--default",
+  sharedFactRow: "shared-cards-factrow--settings",
   adminSearchToolbar: "admin-primitives-adminsearchtoolbar--state-catalog",
   adminSortSelect: "admin-primitives-adminsortselect--default",
   adminDialog: "admin-primitives-admindialog--close-button-geometry",

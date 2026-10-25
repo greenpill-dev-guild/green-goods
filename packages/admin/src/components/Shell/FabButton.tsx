@@ -147,7 +147,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         <div
           className={cn(
             "pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap",
-            "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface)/0.9)] px-2.5 py-1 text-label-md font-medium text-[rgb(var(--m3-inverse-on-surface))]",
+            "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface))] px-2.5 py-1 type-label-sm font-medium text-[rgb(var(--m3-inverse-on-surface))]",
             "opacity-0 transition-opacity group-hover/fab:opacity-100",
             "motion-reduce:transition-none"
           )}
@@ -200,7 +200,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   "flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-3 py-2",
                   "border border-[color:var(--admin-speed-dial-border,rgb(var(--stroke-soft-200)))]",
                   "bg-[rgb(var(--admin-surface-0))]",
-                  "text-body-md font-medium text-text-strong",
+                  "type-body font-medium text-text-strong",
                   "focus-visible:outline-none",
                   "aria-disabled:cursor-not-allowed aria-disabled:opacity-55",
                   "speed-dial-item",
@@ -231,7 +231,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   {action.disabled && action.disabledReasonId ? (
                     <span
                       id={`${reasonIdBase}-${action.id}`}
-                      className="block text-body-sm font-normal text-text-sub"
+                      className="block type-meta font-normal text-text-sub"
                     >
                       {formatMessage({
                         id: action.disabledReasonId,
@@ -277,17 +277,19 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
           "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
           "shadow-[var(--admin-chrome-shadow)]",
-          "m3-state-layer [--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
+          // The default neutral ink layer (Rule 18), painted beneath the icon and
+          // label, keeps them at their rest contrast.
+          "m3-state-layer m3-state-layer-beneath",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
         )}
       >
         <FabIcon className="h-5 w-5" />
         {mobileFloating && isSingleAction && (
-          <span className="text-left text-body-md font-semibold">
+          <span className="text-left type-body font-semibold">
             {floatingActionLabel}
             {/* Touch has no hover, so a disabled sole action says why in place. */}
             {soleReason ? (
-              <span id={`${reasonIdBase}-fab`} className="block text-body-sm font-normal">
+              <span id={`${reasonIdBase}-fab`} className="block type-meta font-normal">
                 {soleReason}
               </span>
             ) : null}

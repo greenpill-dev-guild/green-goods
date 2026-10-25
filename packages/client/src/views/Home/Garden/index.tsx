@@ -2,6 +2,7 @@ import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
@@ -213,50 +214,57 @@ export const Garden: React.FC = () => {
   };
 
   if (!garden) {
+    // With no garden to draw, the page is the state block under the back bar.
+    let state: React.ReactNode;
     if (gardensInitialLoading) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
-          <TopNav onBackClick={() => navigate("/home")} />
-          <RiLoader4Line className="w-8 h-8 text-text-soft-400 animate-spin" />
-          <p className="text-sm text-text-sub-600 text-center">
-            {intl.formatMessage({
-              id: "app.garden.loading",
-              defaultMessage: "Loading garden...",
-            })}
-          </p>
-        </div>
+      state = (
+        <EmptyState
+          busy
+          icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+          title={intl.formatMessage({
+            id: "app.garden.loading",
+            defaultMessage: "Loading garden...",
+          })}
+        />
       );
-    }
-    if (gardensError) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
-          <TopNav onBackClick={() => navigate("/home")} />
-          <RiErrorWarningLine className="w-10 h-10 text-error-base" />
-          <p className="text-sm text-text-sub-600 text-center max-w-xs">
-            {intl.formatMessage({
-              id: "app.garden.loadError",
-              defaultMessage: "Couldn't load this garden. Check your connection and try again.",
-            })}
-          </p>
-          <Button type="button" onClick={() => refetchGardens()}>
-            {intl.formatMessage({
-              id: "app.garden.loadRetry",
-              defaultMessage: "Try Again",
-            })}
-          </Button>
-        </div>
+    } else if (gardensError) {
+      state = (
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={intl.formatMessage({
+            id: "app.garden.loadError.title",
+            defaultMessage: "Couldn't load this garden",
+          })}
+          description={intl.formatMessage({
+            id: "app.garden.loadError.description",
+            defaultMessage: "Check your connection and try again.",
+          })}
+          action={
+            <Button type="button" onClick={() => refetchGardens()}>
+              {intl.formatMessage({
+                id: "app.garden.loadRetry",
+                defaultMessage: "Try Again",
+              })}
+            </Button>
+          }
+        />
       );
-    }
-    return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
-        <TopNav onBackClick={() => navigate("/home")} />
-        <RiMapPin2Fill className="w-10 h-10 text-text-soft-400" />
-        <p className="text-sm text-text-sub-600 text-center">
-          {intl.formatMessage({
+    } else {
+      state = (
+        <EmptyState
+          icon={<RiMapPin2Fill />}
+          title={intl.formatMessage({
             id: "app.garden.notFound",
             defaultMessage: "Garden not found",
           })}
-        </p>
+        />
+      );
+    }
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <TopNav onBackClick={() => navigate("/home")} />
+        {state}
       </div>
     );
   }
@@ -319,9 +327,11 @@ export const Garden: React.FC = () => {
             <div
               ref={measureHeader}
               data-testid="garden-header"
-              className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20"
+              className="fixed top-0 left-0 right-0 bg-bg-canvas z-20"
             >
-              <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-2xl">
+              {/* The banner runs up under the status bar, so it grows by the top inset
+                  and keeps its height below it. */}
+              <div className="relative w-full h-[calc(9rem+env(safe-area-inset-top,0px))] md:h-[calc(11rem+env(safe-area-inset-top,0px))] overflow-hidden rounded-b-2xl">
                 <ImageWithFallback
                   src={bannerImage || ""}
                   alt={`${name} banner`}
@@ -333,7 +343,7 @@ export const Garden: React.FC = () => {
                 />
                 <div className="absolute top-0 left-0 right-0 z-20">
                   <TopNav
-                    className="flex w-full justify-between items-start p-4 pt-6"
+                    className="flex w-full justify-between items-start p-4 pt-[var(--app-top-offset)]"
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
@@ -349,7 +359,7 @@ export const Garden: React.FC = () => {
               </div>
 
               {/* Title and meta below banner */}
-              <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
+              <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3">
                 <h1 className="line-clamp-2 text-2xl font-bold" title={name}>
                   {name}
                 </h1>
@@ -378,7 +388,7 @@ export const Garden: React.FC = () => {
               </div>
 
               {/* Tabs sticky under header */}
-              <div className="sticky top-0 left-0 right-0 w-full bg-bg-white-0 z-10 shadow-sm">
+              <div className="sticky top-0 left-0 right-0 w-full bg-bg-canvas z-10 shadow-sm">
                 <StandardTabs
                   tabs={tabs}
                   activeTab={activeTab}
@@ -405,7 +415,10 @@ export const Garden: React.FC = () => {
               aria-hidden="true"
             >
               {headerHeight === null && (
-                <div className="h-[288px] md:h-[320px] w-full" aria-hidden="true" />
+                <div
+                  className="h-[calc(288px+env(safe-area-inset-top,0px))] md:h-[calc(320px+env(safe-area-inset-top,0px))] w-full"
+                  aria-hidden="true"
+                />
               )}
             </div>
 

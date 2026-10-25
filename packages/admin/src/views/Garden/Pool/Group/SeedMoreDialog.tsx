@@ -1,6 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
 
@@ -65,17 +65,17 @@ export function SeedMoreDialog({
       })}
       actions={
         <>
-          <AdminButton type="button" variant="text" onClick={onClose}>
+          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose}>
             {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton type="button" variant="filled" onClick={() => onContinue(choice)}>
+          </Button>
+          <Button type="button" emphasis="primary" size="sm" onClick={() => onContinue(choice)}>
             {formatMessage({ id: "app.common.continue", defaultMessage: "Continue" })}
-          </AdminButton>
+          </Button>
         </>
       }
     >
       <div className="space-y-3" data-testid="seed-more">
-        <p className="body-sm text-text-strong">{question}</p>
+        <p className="type-body text-text-strong">{question}</p>
         <AdminChoiceGroup
           ariaLabel={formatMessage({
             id: "cockpit.garden.pool.seedMore.choice",
@@ -133,7 +133,7 @@ export function SeedMoreDialog({
             },
           ]}
         />
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.seedMore.help",
             defaultMessage:

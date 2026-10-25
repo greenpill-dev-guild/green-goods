@@ -1,11 +1,15 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   useGardenJoinRequestAvailability,
   useGardenJoinRequests,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
-import { gardenJoinRequestErrorMessage } from "@green-goods/shared/modules/garden-join-requests";
+import {
+  gardenJoinRequestErrorMessage,
+  welcomeGardenJoinRequest,
+} from "@green-goods/shared/modules/garden-join-requests";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
   type GardenJoinRequestQueueItem,
@@ -42,28 +46,21 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
     setNotice(undefined);
     setLocalError(undefined);
     try {
-      const transaction = await operations.addGardener(request.accountAddress, {
-        trackMemberAnalytics: false,
+      const resolution = await welcomeGardenJoinRequest({
+        request,
+        assignRole: operations.addGardener,
+        resolveRequest: join.resolveRequest,
+        failureMessage: formatMessage({
+          id: "app.garden.joinQueue.membershipAddFailed",
+          defaultMessage: "Membership could not be added.",
+        }),
       });
-      const resolution = await join.resolveRequest(request.id, {
-        action: "welcome",
-        expectedRevision: request.revision,
-      });
-      if (!transaction.success && resolution.pendingOnchainMembership) {
-        throw new Error(
-          transaction.error?.message ??
-            formatMessage({
-              id: "app.garden.joinQueue.membershipAddFailed",
-              defaultMessage: "Membership could not be added.",
-            })
-        );
-      }
       setNotice(
         resolution.pendingOnchainMembership
           ? formatMessage({
               id: "app.garden.joinQueue.membershipPending",
               defaultMessage:
-                "The membership transaction was submitted. Confirm again after it is visible on-chain.",
+                "The membership transaction was sent. Confirm again in a moment, once the new role shows.",
             })
           : formatMessage({
               id: "app.garden.joinQueue.welcomed",
@@ -178,13 +175,14 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
       </div>
 
       {loaded && join.queue.length === 0 && !join.queueState.isLoading ? (
-        <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-bg-white-0 p-3 text-sm text-text-sub-600">
-          <RiGroupLine className="h-5 w-5" />
-          {formatMessage({
+        <EmptyState
+          placement="list"
+          icon={<RiGroupLine />}
+          title={formatMessage({
             id: "app.garden.joinQueue.empty",
             defaultMessage: "There are no pending join requests.",
           })}
-        </div>
+        />
       ) : null}
 
       <div className="space-y-3">

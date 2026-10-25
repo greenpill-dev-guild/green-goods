@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type {
   KarmaIntegrationController,
@@ -6,7 +7,6 @@ import type {
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 
 interface KarmaStatusPresentation {
@@ -138,7 +138,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
               defaultMessage: "Karma Integration",
             })}
           </AdminCardTitle>
-          <p className="mt-1 body-xs text-text-soft">
+          <p className="mt-1 type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.garden.karma.description",
               defaultMessage:
@@ -158,7 +158,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
         </StatusBadge>
       </div>
 
-      <p className="body-sm text-text-sub">
+      <p className="type-body text-text-sub">
         {formatMessage({
           id: presentation.bodyId,
           defaultMessage: presentation.bodyDefault,
@@ -167,17 +167,17 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
 
       <div className="flex flex-wrap items-center gap-2">
         {showPendingAction ? (
-          <AdminButton type="button" variant="tonal" size="sm" loading disabled>
+          <Button type="button" emphasis="secondary" size="compact" loading disabled>
             {formatMessage({
               id: "cockpit.garden.karma.action.retrying",
               defaultMessage: "Syncing…",
             })}
-          </AdminButton>
+          </Button>
         ) : canRunReconcile ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="tonal"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => run(integration.reconcile)}
           >
             {formatMessage({
@@ -188,7 +188,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
               defaultMessage:
                 integration.status.status === "failed" ? "Retry Karma Sync" : "Retry Sync",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
 
         {integration.profileUrl ? (
@@ -196,7 +196,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
             href={integration.profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 text-label-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] focus-visible:ring-offset-2"
+            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 type-meta-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] focus-visible:ring-offset-2"
             aria-label={formatMessage({
               id: "cockpit.garden.karma.profileLinkLabel",
               defaultMessage: "Open This Garden's Karma Profile",

@@ -2,32 +2,21 @@ import clsx, { type ClassValue } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
 
 /**
- * The project's custom `text-*` font-size utilities. tailwind-merge only knows
- * the stock scale (`text-sm`, `text-lg`, ...), so without this registration it
- * read `text-body-sm` or `text-label-lg` as a text *colour* and let any later
- * colour class (`text-[rgb(...)]`, `text-text-sub`) replace it — the admin field
- * label, tab, and chip labels all lost their size that way. Keep this list in
- * step with the `--text-*` keys in `theme.css` and `packages/admin/src/index.css`.
+ * The shared scale's `text-*` font-size utilities (the `--text-*` keys in
+ * `theme.css`). tailwind-merge only knows the stock scale (`text-sm`, `text-lg`,
+ * ...), so without this registration it read `text-label-md` as a text *colour*
+ * and let any later colour class (`text-[rgb(...)]`, `text-text-sub`) replace
+ * it. The type roles below replace this scale; it stays registered while the
+ * app's own views still use it. Keep it in step with the `--text-*` keys in
+ * `theme.css`.
  */
 const FONT_SIZE_UTILITIES = [
-  "display-lg",
-  "display-md",
-  "display-sm",
-  "headline-lg",
-  "headline-md",
-  "headline-sm",
-  "title-lg",
-  "title-md",
-  "title-sm",
   "title-h1",
   "title-h2",
   "title-h3",
   "title-h4",
   "title-h5",
   "title-h6",
-  "body-lg",
-  "body-md",
-  "body-sm",
   "label-xl",
   "label-lg",
   "label-md",
@@ -47,26 +36,27 @@ const FONT_SIZE_UTILITIES = [
 ];
 
 /**
- * The admin's named type classes (`packages/admin/src/styles/admin-type.css`).
- * Each sets a font size, so a raw size and a named class on one element resolve
- * to the last one: a shared `text-sm` default overridden with `className="body-xs"`
- * renders 12px instead of keeping both and losing the override in the cascade.
+ * The type roles (the `type-*` utilities at the end of `theme.css`). Each sets a
+ * font size with its line height, weight and tracking, so it merges with the
+ * other font-size classes: the last one on an element wins.
  */
-const NAMED_TYPE_CLASSES = [
-  "label-md",
-  "label-sm",
-  "label-xs",
-  "body-md",
-  "body-sm",
-  "body-xs",
-  "subheading-sm",
-  "subheading-xs",
+const TYPE_ROLE_CLASSES = [
+  "type-title-lg",
+  "type-title-md",
+  "type-title-sm",
+  "type-body",
+  "type-label",
+  "type-label-sm",
+  "type-meta",
+  "type-meta-sm",
+  "type-field",
+  "type-card-title",
 ];
 
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      "font-size": [{ text: FONT_SIZE_UTILITIES }, ...NAMED_TYPE_CLASSES],
+      "font-size": [{ text: FONT_SIZE_UTILITIES }, ...TYPE_ROLE_CLASSES],
     },
   },
 });

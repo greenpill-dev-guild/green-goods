@@ -1,7 +1,7 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Alert } from "@green-goods/shared/components/Alert";
-import { AdminButton } from "./AdminButton";
 import { AdminConfirmDialog } from "./AdminDialog";
 
 /** Recovery controls for an accepted creation, using the existing wallet-cancellation contract. */
@@ -20,15 +20,21 @@ export function WalletCancellationRecovery({
   const [failed, setFailed] = useState(false);
   return (
     <>
-      <AdminButton size="sm" disabled={disabled || clearing} onClick={() => void onCheck()}>
+      <Button
+        type="button"
+        size="compact"
+        disabled={disabled || clearing}
+        onClick={() => void onCheck()}
+      >
         {formatMessage({
           id: "app.account.checkConfirmation",
           defaultMessage: "Check confirmation",
         })}
-      </AdminButton>
-      <AdminButton
-        size="sm"
-        variant="text"
+      </Button>
+      <Button
+        type="button"
+        emphasis="tertiary"
+        size="compact"
         disabled={disabled || clearing}
         onClick={() => {
           setFailed(false);
@@ -39,7 +45,7 @@ export function WalletCancellationRecovery({
           id: "app.account.reviewCancellation",
           defaultMessage: "Review Cancellation",
         })}
-      </AdminButton>
+      </Button>
       <AdminConfirmDialog
         isOpen={review}
         onClose={() => setReview(false)}

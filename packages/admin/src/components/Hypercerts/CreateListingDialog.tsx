@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import {
   type ListingStep,
@@ -12,7 +13,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { parseEther, zeroAddress } from "viem";
-import { AdminButton } from "../AdminButton";
 import { AdminCheckbox } from "../AdminCheckbox";
 import { AdminConfirmDialog, AdminDialog } from "../AdminDialog";
 import { AdminSelect, AdminTextField } from "../AdminTextField";
@@ -42,7 +42,7 @@ const STEP_LABEL_KEYS: Record<ListingStep, { id: string; defaultMessage: string 
   idle: null,
   building: { id: "app.listing.stepBuilding", defaultMessage: "Building order..." },
   signing: { id: "app.listing.stepSigning", defaultMessage: "Waiting for signature..." },
-  registering: { id: "app.listing.stepRegistering", defaultMessage: "Registering on-chain..." },
+  registering: { id: "app.listing.stepRegistering", defaultMessage: "Registering the listing…" },
   confirming: { id: "app.listing.stepConfirming", defaultMessage: "Confirming transaction..." },
   pending: { id: "app.account.transactionSubmitted", defaultMessage: "Transaction submitted" },
   done: { id: "app.listing.stepDone", defaultMessage: "Listing created!" },
@@ -164,46 +164,49 @@ export function CreateListingDialog({
         actions={
           configuring ? (
             <>
-              <AdminButton type="button" variant="text" onClick={handleClose}>
+              <Button type="button" emphasis="tertiary" size="sm" onClick={handleClose}>
                 {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-              </AdminButton>
-              <AdminButton type="submit" form={formId}>
+              </Button>
+              <Button size="sm" type="submit" form={formId}>
                 {formatMessage({
                   id: "app.listing.signAndList",
                   defaultMessage: "Sign & List",
                 })}
-              </AdminButton>
+              </Button>
             </>
           ) : (
             <>
               {(step === "done" || step === "pending" || isErrorState) && (
-                <AdminButton type="button" variant="text" onClick={handleClose}>
+                <Button type="button" emphasis="tertiary" size="sm" onClick={handleClose}>
                   {step === "done"
                     ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
                     : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-                </AdminButton>
+                </Button>
               )}
               {step === "pending" && (
-                <AdminButton
+                <Button
+                  size="sm"
                   type="button"
                   disabled={isCheckingConfirmation || isClearing}
                   onClick={() => void checkConfirmation()}
                 >
                   {formatMessage({ id: "app.account.checkConfirmation" })}
-                </AdminButton>
+                </Button>
               )}
               {step === "pending" && (
-                <AdminButton
+                <Button
                   type="button"
-                  variant="text"
+                  emphasis="tertiary"
+                  size="sm"
                   disabled={isCheckingConfirmation || isClearing}
                   onClick={() => setReviewCancellation(true)}
                 >
                   {formatMessage({ id: "app.account.reviewCancellation" })}
-                </AdminButton>
+                </Button>
               )}
               {isErrorState && step !== "pending" && (
-                <AdminButton
+                <Button
+                  size="sm"
                   type="button"
                   onClick={() => {
                     setSubmissionError(null);
@@ -212,7 +215,7 @@ export function CreateListingDialog({
                   }}
                 >
                   {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-                </AdminButton>
+                </Button>
               )}
             </>
           )
@@ -281,7 +284,7 @@ export function CreateListingDialog({
                 id: "app.listing.sellLeftover",
                 defaultMessage: "Sell leftover fraction",
               })}
-              className="[&>span:nth-child(2)>span]:body-sm [&>span:nth-child(2)>span]:text-text-sub"
+              className="[&>span:nth-child(2)>span]:type-body [&>span:nth-child(2)>span]:text-text-sub"
             />
           </form>
         ) : (
@@ -369,7 +372,7 @@ function ListingProgress({ step }: { step: ListingStep }) {
               )}
             </div>
             <span
-              className={`body-sm ${
+              className={`type-body ${
                 isDone
                   ? "text-text-soft"
                   : isActive

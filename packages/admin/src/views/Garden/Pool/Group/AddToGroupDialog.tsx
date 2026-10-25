@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
   type GroupToAddTo,
   useAddToGroup,
@@ -6,15 +8,14 @@ import { MAX_COMMITMENT_SET_SIZE } from "@green-goods/shared/hooks/commitment-po
 import type { Address } from "@green-goods/shared/types/domain";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextField } from "@/components/AdminTextField";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { GardenPoolTarget } from "../PoolTarget";
-import { SeedFlowNote } from "../Seed/SeedFlowFooter";
 import { formatUsd } from "../poolPresentation";
+import { SeedFlowNote } from "../Seed/SeedFlowFooter";
 import { addToGroupStatus } from "./addToGroupStatus";
 
 /** How many a steward usually adds at once, as the seeding flow suggests. */
@@ -189,7 +190,7 @@ export function AddToGroupDialog({
 
   const footer = (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 body-xs text-text-soft sm:flex-1" data-testid="add-prompt-count">
+      <p className="min-w-0 type-meta text-text-soft sm:flex-1" data-testid="add-prompt-count">
         <SeedFlowNote
           phase={status.phase}
           busy={status.busy}
@@ -199,18 +200,20 @@ export function AddToGroupDialog({
         />
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton
+        <Button
           type="button"
-          variant="outlined"
+          emphasis="secondary"
+          size="sm"
           onClick={onBack}
           disabled={status.busy || adding.locked}
           className="self-start sm:self-auto"
         >
           {formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="filled"
+          emphasis="primary"
+          size="sm"
           onClick={() => void add()}
           disabled={status.busy || !validCount}
           loading={status.busy}
@@ -236,7 +239,7 @@ export function AddToGroupDialog({
                 },
                 { count: validCount ? count : 1 }
               )}
-        </AdminButton>
+        </Button>
       </div>
     </div>
   );
@@ -329,14 +332,11 @@ export function AddToGroupDialog({
               defaultMessage: "Same as the group",
             })}
           </AdminCardTitle>
-          <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
+          <FactList frame="inset">
             {terms.map(([label, value]) => (
-              <div key={label} className="contents">
-                <dt className="body-sm text-text-soft">{label}</dt>
-                <dd className="body-sm text-text-strong">{value}</dd>
-              </div>
+              <FactRow key={label} label={label} value={value} />
             ))}
-          </dl>
+          </FactList>
         </section>
       </div>
     </AdminDialog>

@@ -2,7 +2,8 @@ import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewpor
 import { useAnalyticsIdentity } from "@green-goods/shared/hooks/analytics/useAnalyticsIdentity";
 import { usePageView } from "@green-goods/shared/hooks/analytics/usePageView";
 import { useApp } from "@green-goods/shared/providers/App";
-import { Outlet } from "react-router-dom";
+import { getAdminWorkspaceForPath } from "@green-goods/shared/utils/navigation/admin-routes";
+import { Outlet, useLocation } from "react-router-dom";
 
 /**
  * Root layout component
@@ -11,6 +12,7 @@ import { Outlet } from "react-router-dom";
  */
 export default function Root() {
   const { locale } = useApp();
+  const { pathname } = useLocation();
 
   // Sync user identity with PostHog
   useAnalyticsIdentity({
@@ -28,7 +30,12 @@ export default function Root() {
   return (
     <>
       <Outlet />
-      <ToastViewport />
+      {/* The toasts sit beside the canvas, outside its [data-tone], so they carry
+          the workspace's tone themselves, as a portaled dialog does: their
+          actions then draw the cockpit's focus ring (DL-098). */}
+      <div data-tone={getAdminWorkspaceForPath(pathname)} className="contents">
+        <ToastViewport />
+      </div>
     </>
   );
 }

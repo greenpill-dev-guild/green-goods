@@ -114,6 +114,19 @@
   ],
   "conditionalRules": [
     {
+      "check": "dependabot-sync-test",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": [
+        ".github/dependabot.yml",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/dependabot-sync.yml",
+        ".github/workflows/dependabot-sync-publish.yml",
+        "scripts/ops/dependabot-sync.mjs",
+        "scripts/ops/dependabot-sync.test.mjs"
+      ]
+    },
+    {
       "check": "review-guardrails-test",
       "runInQa": true,
       "runInEvidence": true,
@@ -239,6 +252,37 @@
       "check": "em-dashes",
       "note": "The same globs check-em-dashes reads and Design CI starts on, so a new DESIGN*.md guide is checked without a policy edit.",
       "globs": ["DESIGN*.md", "docs/DESIGN*.md", "packages/*/DESIGN*.md"]
+    },
+    {
+      "check": "brand-voice-parity",
+      "note": "Every path check-brand-voice-parity reads or inspects (its INPUTS), the check and its test, and check-guidance-links.mjs, whose decision-log rule it reuses. select-validation.test.mjs fails when this list and INPUTS drift apart or one of them does not start Design CI.",
+      "exact": [
+        ".claude/brand-voice-guidelines.md",
+        ".claude/skills/design/client-prompt-contract.md",
+        ".claude/skills/design/decision-log.md",
+        ".claude/skills/design/prompt-contract.md",
+        "DESIGN.md",
+        "README.md",
+        "docs/docs/community/how-it-works.mdx",
+        "docs/docs/community/welcome.mdx",
+        "docs/docs/community/why-we-build.mdx",
+        "docs/docs/reference/brand-voice.mdx",
+        "docs/docusaurus.config.ts",
+        "docs/releases/2.0.0/announcement.md",
+        "docs/releases/2.0.0/release-notes.md",
+        "package.json",
+        "packages/client/DESIGN.browser.md",
+        "packages/client/index.html",
+        "packages/client/src/content/publicSocialPreviews.ts",
+        "packages/shared/src/config/app.ts",
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/i18n/es.json",
+        "packages/shared/src/i18n/pt.json",
+        "scripts/data/banned-vocabulary.json",
+        "scripts/design/check-brand-voice-parity.mjs",
+        "scripts/design/check-brand-voice-parity.test.mjs",
+        "scripts/quality/check-guidance-links.mjs"
+      ]
     },
     {
       "check": "ontology",
@@ -824,6 +868,16 @@
       "budgetSeconds": 5,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
+    },
+    {
+      "id": "dependabot-sync-test",
+      "command": "node scripts/dev/node-cli.js node --test scripts/ops/dependabot-sync.test.mjs",
+      "risk": "dependency repairs can drift or publish unsafe or stale data",
+      "expectedSignal": "pin alignment, generated-file repair and publication boundary fixtures pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 30,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": []
     },
     {
       "id": "validation-system-test",
@@ -1515,6 +1569,16 @@
       "capabilities": ["dependencies"]
     },
     {
+      "id": "brand-voice-parity",
+      "command": "node scripts/dev/node-cli.js node --test scripts/design/check-brand-voice-parity.test.mjs && node scripts/design/check-brand-voice-parity.mjs",
+      "risk": "the brand voice page and a place that restates it say different things: the descriptor or brand line on a product surface, the problem statement on Why We Build, DESIGN.md's voice core, a prompt contract's examples, a model line's source, a decision id, the banned list, or the guidelines symlink",
+      "expectedSignal": "every restatement agrees with the source that owns it, and the check's fixtures pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 5,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "react-patterns",
       "command": "node scripts/quality/check-react-patterns.js",
       "risk": "Independently selectable repository verification must retain its behavior.",
@@ -1663,6 +1727,7 @@
         "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts",
         "packages/shared/src/hooks/cookie-jar/useCookieJarAdmin.ts",
         "packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts",
+        "packages/shared/src/hooks/cookie-jar/useCookieJarDepositMutation.ts",
         "packages/shared/src/hooks/cookie-jar/useCookieJarWithdraw.ts",
         "packages/shared/src/hooks/ens/useENSClaim.ts",
         "packages/shared/src/hooks/ens/useENSReleaseName.ts",
@@ -1846,6 +1911,9 @@
     "prefixes": ["packages/shared/src/__tests__/test-utils/"]
   },
   "workflowRules": {
+    "Dependabot Sync": {
+      "pullRequestAuthor": "dependabot[bot]"
+    },
     "Admin": {
       "exact": [
         "package.json",
@@ -1958,7 +2026,19 @@
         ".github/workflows/design.yml",
         "packages/shared/src/hooks/app/useTheme.ts",
         ".github/actions/setup-playwright/action.yml",
-        "scripts/dev/playwright-setup.test.mjs"
+        "scripts/dev/playwright-setup.test.mjs",
+        ".claude/brand-voice-guidelines.md",
+        "README.md",
+        "docs/docs/community/how-it-works.mdx",
+        "docs/docs/community/welcome.mdx",
+        "docs/docs/community/why-we-build.mdx",
+        "docs/docs/reference/brand-voice.mdx",
+        "docs/docusaurus.config.ts",
+        "docs/releases/2.0.0/announcement.md",
+        "docs/releases/2.0.0/release-notes.md",
+        "packages/client/index.html",
+        "packages/shared/src/config/app.ts",
+        "scripts/quality/check-guidance-links.mjs"
       ],
       "prefixes": [
         ".claude/skills/design/",

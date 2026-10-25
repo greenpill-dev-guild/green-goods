@@ -8,11 +8,11 @@ import { InMemoryPublicRateLimiter } from "../api/public-protection";
 import { createServer } from "../api/server";
 import { compareAndSwapProfileAvatar, getProfileAvatar } from "../services/db/profile-avatars";
 import { initSchema } from "../services/db/schema";
+import { MemoryProfileAvatarStore } from "../services/profile-avatars";
 import {
-  createViemProfileAvatarSignatureVerifier,
-  MemoryProfileAvatarStore,
-  type ProfileAvatarSignatureVerifier,
-} from "../services/profile-avatars";
+  createViemAccountSignatureVerifier,
+  type AccountSignatureVerifier,
+} from "../services/account-signatures";
 
 const ORIGIN = "https://greengoods.app";
 const CHAIN_ID = 42161;
@@ -23,13 +23,13 @@ const URI = "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
 
 function createAvatarApp(
   options: {
-    verify?: ProfileAvatarSignatureVerifier;
+    verify?: AccountSignatureVerifier;
     now?: number;
     configuredChainId?: number | null;
   } = {}
 ) {
   const store = new MemoryProfileAvatarStore();
-  const verify: ProfileAvatarSignatureVerifier = options.verify ?? vi.fn(async () => true);
+  const verify: AccountSignatureVerifier = options.verify ?? vi.fn(async () => true);
   const now = options.now ?? NOW;
   const app = createServer({
     isAIReady: () => true,
@@ -303,7 +303,7 @@ describe("profile avatar public API", () => {
     };
     const { app } = createAvatarApp({
       verify: vi.fn(
-        createViemProfileAvatarSignatureVerifier({
+        createViemAccountSignatureVerifier({
           chain: arbitrum,
           rpcUrl: "http://unused.invalid",
           client: verificationClient,
@@ -327,7 +327,7 @@ describe("profile avatar public API", () => {
     };
     const forged = createAvatarApp({
       verify: vi.fn(
-        createViemProfileAvatarSignatureVerifier({
+        createViemAccountSignatureVerifier({
           chain: arbitrum,
           rpcUrl: "http://unused.invalid",
           client: healthyClient,
@@ -347,7 +347,7 @@ describe("profile avatar public API", () => {
     };
     const empty = createAvatarApp({
       verify: vi.fn(
-        createViemProfileAvatarSignatureVerifier({
+        createViemAccountSignatureVerifier({
           chain: arbitrum,
           rpcUrl: "http://unused.invalid",
           client: emptyClient,
@@ -369,7 +369,7 @@ describe("profile avatar public API", () => {
     };
     const reverted = createAvatarApp({
       verify: vi.fn(
-        createViemProfileAvatarSignatureVerifier({
+        createViemAccountSignatureVerifier({
           chain: arbitrum,
           rpcUrl: "http://unused.invalid",
           client: revertedClient,
@@ -390,7 +390,7 @@ describe("profile avatar public API", () => {
     };
     const unavailable = createAvatarApp({
       verify: vi.fn(
-        createViemProfileAvatarSignatureVerifier({
+        createViemAccountSignatureVerifier({
           chain: arbitrum,
           rpcUrl: "http://unused.invalid",
           client: unavailableClient,
@@ -404,41 +404,6 @@ describe("profile avatar public API", () => {
     });
     await expectErrorCode(unavailableResponse, 503, "provider_unavailable");
     expect(unavailableClient.call).toHaveBeenCalledTimes(1);
-  });
-
-  it("uses the production validator call for deployed and counterfactual smart accounts", async () => {
-    const verificationClient = {
-      call: vi.fn<(parameters: { data: `0x${string}` }) => Promise<{ data: `0x${string}` }>>(
-        async () => ({ data: "0x1" })
-      ),
-    };
-    const verify = createViemProfileAvatarSignatureVerifier({
-      chain: arbitrum,
-      rpcUrl: "http://unused.invalid",
-      client: verificationClient,
-    });
-    const input = {
-      chainId: CHAIN_ID,
-      address: OTHER_ADDRESS as `0x${string}`,
-      message: "signed avatar message",
-      signature: "0x1234" as const,
-    };
-
-    await expect(verify(input)).resolves.toBe(true);
-    await expect(
-      verify({
-        ...input,
-        factory: "0x1111111111111111111111111111111111111111",
-        factoryData: "0xabcdef",
-      })
-    ).resolves.toBe(true);
-
-    expect(verificationClient.call).toHaveBeenCalledTimes(2);
-    const deployedCallData = verificationClient.call.mock.calls[0]?.[0].data;
-    const counterfactualCallData = verificationClient.call.mock.calls[1]?.[0].data;
-    expect(counterfactualCallData).not.toBe(deployedCallData);
-    expect(counterfactualCallData).toContain("1111111111111111111111111111111111111111");
-    expect(counterfactualCallData).toContain("abcdef");
   });
 
   it("passes EOA and ERC-1271/ERC-6492 inputs to the injected verifier", async () => {

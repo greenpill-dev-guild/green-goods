@@ -46,7 +46,7 @@ function failureMessage(
       return formatMessage({
         id: "cockpit.garden.pool.setup.failure.readFailed",
         defaultMessage:
-          "The chain could not be read, so setup stopped where it was. What landed stays landed; try again when the connection is steady.",
+          "The pool could not be checked, so setup stopped where it was. What landed stays landed; try again when the connection is steady.",
       });
     case "cycle-terms-mismatch":
       return isCampaign
@@ -105,7 +105,7 @@ export function SetupFailure({ failure, isCampaign, remainingPrompts }: SetupFai
     <div className="space-y-2" data-testid="pool-setup-failed">
       <Alert variant="error">{failureMessage(failure, isCampaign, formatMessage)}</Alert>
       {isRetriablePoolSetupFailure(failure) ? (
-        <p className="flex items-center gap-1.5 body-xs text-text-soft">
+        <p className="flex items-center gap-1.5 type-meta text-text-soft">
           <RiShieldCheckLine className="h-3.5 w-3.5" aria-hidden />
           {retryPromptCount(remainingPrompts, formatMessage)}
         </p>

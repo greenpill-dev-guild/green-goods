@@ -1,7 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
 import { formatUnixDate } from "../poolPresentation";
@@ -62,12 +62,13 @@ export function CommitmentAssessmentDialog({
       bodyClassName="space-y-3"
       actions={
         <>
-          <AdminButton type="button" variant="text" onClick={() => onClose()}>
+          <Button type="button" emphasis="tertiary" size="sm" onClick={() => onClose()}>
             {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton
+          </Button>
+          <Button
             type="button"
-            variant="filled"
+            emphasis="primary"
+            size="sm"
             disabled={!assessmentUID || actDisabled}
             loading={isActing}
             onClick={async () => {
@@ -80,7 +81,7 @@ export function CommitmentAssessmentDialog({
               id: "cockpit.garden.pool.commitment.attach.confirm",
               defaultMessage: "Attach",
             })}
-          </AdminButton>
+          </Button>
         </>
       }
     >
@@ -94,7 +95,7 @@ export function CommitmentAssessmentDialog({
           })}
         />
       ) : assessments.length === 0 ? (
-        <p className="body-sm text-text-soft" data-testid="attach-assessment-empty">
+        <p className="type-body text-text-soft" data-testid="attach-assessment-empty">
           {formatMessage({
             id: "cockpit.garden.pool.commitment.attach.empty",
             defaultMessage:

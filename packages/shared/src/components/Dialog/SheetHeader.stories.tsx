@@ -93,6 +93,33 @@ export const WithTabRail: Story = {
   },
 };
 
+/** A consequential act names what it writes to between the title and the description. */
+export const WithTarget: Story = {
+  args: {
+    title: "Close This Pool",
+    target: (
+      <p className="text-xs text-text-sub-600">
+        Writing to <span className="font-semibold text-text-strong-950">Rocinha’s pool</span>
+      </p>
+    ),
+    description: "Closing ends participation for every member.",
+  },
+  play: async ({ canvasElement }) => {
+    const slot = (name: string) =>
+      canvasElement.querySelector(
+        `[data-component="SheetHeader"][data-slot="${name}"]`
+      ) as HTMLElement;
+    const target = slot("target");
+    await expect(target).toHaveTextContent("Writing to Rocinha’s pool");
+    await expect(target.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      slot("title").getBoundingClientRect().bottom
+    );
+    await expect(slot("description").getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      target.getBoundingClientRect().bottom
+    );
+  },
+};
+
 export const Standalone: Story = {
   args: { title: "Commitment kept?", description: "Say what you saw.", standalone: true },
   play: async ({ canvasElement }) => {

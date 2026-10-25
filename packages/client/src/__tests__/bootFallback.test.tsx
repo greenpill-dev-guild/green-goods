@@ -49,14 +49,22 @@ interface DetectOptions {
   href: string;
   displayMode?: "standalone" | "window-controls-overlay" | "fullscreen";
   navigator?: Partial<Navigator> & { standalone?: boolean; userAgentData?: { mobile?: boolean } };
+  /** The theme boot-theme already resolved, which the detector reads for the status bar. */
+  theme?: "light" | "dark";
 }
 
-function detectBootDataset({
+/** The installed app's face link (index.html) and the media it starts with. */
+const FACE_LINK = INDEX_HTML.match(/<link\s+id="boot-pwa-face"[\s\S]*?\/>/)?.[0] ?? "";
+const INSTALLED_FACE_MEDIA = FACE_LINK.match(/media="([^"]+)"/)?.[1] ?? "";
+
+function runPresentationDetector({
   href,
   displayMode,
   navigator: navigatorOverrides = {},
-}: DetectOptions): DOMStringMap {
-  const dataset: DOMStringMap = {};
+  theme,
+}: DetectOptions): { dataset: DOMStringMap; faceMedia: string; fontPreloads: string[] } {
+  const dataset: DOMStringMap = theme ? { theme } : {};
+  const face = { media: INSTALLED_FACE_MEDIA };
   const navigator = {
     userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
     platform: "MacIntel",
@@ -71,7 +79,14 @@ function detectBootDataset({
       matches: displayMode ? query === `(display-mode: ${displayMode})` : false,
     }),
   };
-  const documentLike = { documentElement: { dataset } };
+  const documentLike = {
+    documentElement: { dataset },
+    getElementById: (id: string) => (id === "boot-pwa-face" ? face : null),
+    // The theme-color meta, when a test placed one in the real document's head.
+    querySelector: document.querySelector.bind(document),
+    createElement: document.createElement.bind(document),
+    head: document.createElement("head"),
+  };
 
   new Function(
     "window",
@@ -81,7 +96,14 @@ function detectBootDataset({
     inlineScript("boot-presentation-detector")
   )(windowLike, documentLike, navigator, URL);
 
-  return dataset;
+  const fontPreloads = [
+    ...documentLike.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="font"]'),
+  ].map((link) => link.getAttribute("href")!);
+  return { dataset, faceMedia: face.media, fontPreloads };
+}
+
+function detectBootDataset(options: DetectOptions): DOMStringMap {
+  return runPresentationDetector(options).dataset;
 }
 
 function detectPresentation(options: DetectOptions): string | undefined {
@@ -229,6 +251,64 @@ function runController(
     markReactMounted: windowLike.__GG_MARK_REACT_MOUNTED,
   };
 }
+
+describe("the installed app's face", () => {
+  it("preloads Inter only for website presentation, including public routes in an installed window", () => {
+    expect(INDEX_HTML).not.toMatch(/<link[^>]+rel="preload"[^>]+inter-latin-normal/);
+    expect(runPresentationDetector({ href: "https://www.greengoods.app/" }).fontPreloads).toContain(
+      "%BASE_URL%fonts/inter-latin-normal.woff2"
+    );
+    expect(
+      runPresentationDetector({
+        href: "https://www.greengoods.app/gardens",
+        displayMode: "standalone",
+      }).fontPreloads
+    ).toContain("%BASE_URL%fonts/inter-latin-normal.woff2");
+    expect(
+      runPresentationDetector({
+        href: "https://www.greengoods.app/home",
+        displayMode: "standalone",
+      }).fontPreloads
+    ).toEqual([]);
+    expect(
+      runPresentationDetector({
+        href: "https://www.greengoods.app/home",
+        navigator: { standalone: true },
+      }).fontPreloads
+    ).toEqual([]);
+    expect(
+      runPresentationDetector({ href: "http://localhost:3001/home?presentation=pwa" }).fontPreloads
+    ).toEqual([]);
+  });
+
+  it("keeps Plus Jakarta Sans off the website's critical path", () => {
+    expect(FACE_LINK).toContain("fonts/pwa.css");
+    // Only an installed display applies the face before the detector runs, so a
+    // browser tab neither waits for its stylesheet nor fetches its font files.
+    expect(INSTALLED_FACE_MEDIA.split(",").map((query) => query.trim())).toEqual([
+      "(display-mode: standalone)",
+      "(display-mode: fullscreen)",
+      "(display-mode: window-controls-overlay)",
+    ]);
+    expect(INDEX_HTML).not.toMatch(/rel="preload"[^>]*Plus\+Jakarta\+Sans/);
+  });
+
+  it("turns the face on wherever the PWA presentation is chosen, and only there", () => {
+    const faceMedia = (options: DetectOptions) => runPresentationDetector(options).faceMedia;
+    expect(faceMedia({ href: "https://www.greengoods.app/home", displayMode: "standalone" })).toBe(
+      "all"
+    );
+    expect(
+      faceMedia({ href: "https://www.greengoods.app/home", navigator: { standalone: true } })
+    ).toBe("all");
+    expect(faceMedia({ href: "http://localhost:3001/home?presentation=pwa" })).toBe("all");
+    // A public route stays a website even in an installed window, and so does a browser tab.
+    expect(
+      faceMedia({ href: "https://www.greengoods.app/gardens", displayMode: "standalone" })
+    ).toBe(INSTALLED_FACE_MEDIA);
+    expect(faceMedia({ href: "https://www.greengoods.app/" })).toBe(INSTALLED_FACE_MEDIA);
+  });
+});
 
 describe("presentation-specific boot fallback", () => {
   it("keeps the static document shell structurally valid", () => {
@@ -389,13 +469,14 @@ describe("presentation-specific boot fallback", () => {
     )?.[1];
 
     // The loader stays up until auth is ready, then hands off to html, body,
-    // and SplashScaffold, which all paint bg-white-0. It takes the same token
-    // so the selected theme holds through boot and the handoff has no seam.
+    // and SplashScaffold, which all paint the app's canvas (bg-canvas: linen,
+    // and the warm dark floor). It takes the same token so the selected theme
+    // holds through boot and the handoff has no seam.
     expect(styles).toMatch(
-      /html\[data-boot-presentation="pwa"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #ffffff\)/s
+      /html\[data-boot-presentation="pwa"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-canvas, #faf8f5\)/s
     );
     expect(styles).toMatch(
-      /html\[data-boot-presentation="pwa"\]\[data-theme="dark"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #0c0a09\)[^}]*--boot-action:\s*var\(--color-primary-action, #c2f5da\)[^}]*--boot-action-fg:\s*var\(--color-primary-action-foreground, #0c0a09\)/s
+      /html\[data-boot-presentation="pwa"\]\[data-theme="dark"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-canvas, #110c08\)[^}]*--boot-action:\s*var\(--color-primary-action, #c2f5da\)[^}]*--boot-action-fg:\s*var\(--color-primary-action-foreground, #0c0a09\)/s
     );
     expect(styles).toMatch(
       /\.boot-pwa-shell\s*{[^}]*background:\s*var\(--boot-canvas\)[^}]*color:\s*var\(--boot-ink\)/s
@@ -413,9 +494,13 @@ describe("presentation-specific boot fallback", () => {
     if (metas?.length !== 1) throw new Error(`Expected one theme-color meta, got ${metas?.length}`);
     document.head.innerHTML = metas[0]
       .replaceAll("%PWA_THEME_COLOR_LIGHT%", "#ffffff")
-      .replaceAll("%PWA_THEME_COLOR_DARK%", "#0c0a09");
+      .replaceAll("%PWA_THEME_COLOR_DARK%", "#0c0a09")
+      .replaceAll("%PWA_APP_THEME_COLOR_LIGHT%", "#faf8f5")
+      .replaceAll("%PWA_APP_THEME_COLOR_DARK%", "#110c08");
     const storage = createStorage();
     storage.setItem("theme", "dark");
+    const themeColor = () =>
+      document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content;
 
     new Function("window", "document", "localStorage", inlineScript("boot-theme"))(
       { matchMedia: () => ({ matches: false }) },
@@ -424,9 +509,19 @@ describe("presentation-specific boot fallback", () => {
     );
 
     expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content).toBe(
-      "#0c0a09"
-    );
+    expect(themeColor()).toBe("#0c0a09");
+
+    // The website keeps its white ground; an installed launch gives the bar the
+    // app's own ground for the theme boot-theme chose.
+    runPresentationDetector({ href: "http://localhost:3001/gardens", theme: "dark" });
+    expect(themeColor()).toBe("#0c0a09");
+    runPresentationDetector({ href: "http://localhost:3001/home?presentation=pwa", theme: "dark" });
+    expect(themeColor()).toBe("#110c08");
+    runPresentationDetector({
+      href: "http://localhost:3001/home?presentation=pwa",
+      theme: "light",
+    });
+    expect(themeColor()).toBe("#faf8f5");
   });
 
   it("keeps every slot in place in every state, so the logo and the line never move", () => {
@@ -473,6 +568,18 @@ describe("presentation-specific boot fallback", () => {
   it("separates React mount from final PWA readiness", () => {
     expect(MAIN_SOURCE).toContain("__GG_MARK_REACT_MOUNTED");
     expect(MAIN_SOURCE).not.toContain("__GG_CLEAR_BOOT_FALLBACK");
+  });
+
+  it("remembers PWA readiness when content arrives after the ready signal", async () => {
+    const { clearFallback, fallback } = runController("pwa");
+
+    clearFallback?.();
+    expect(fallback).not.toHaveAttribute("hidden");
+
+    document.getElementById("root")?.append(document.createElement("main"));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fallback).toHaveAttribute("hidden");
   });
 
   // The app's own choice: the stored language, else the first browser language with copy, else English.

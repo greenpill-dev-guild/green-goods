@@ -1,5 +1,5 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
-import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
@@ -8,12 +8,11 @@ import type {
   ConfirmQueueRow,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useHubConfirmQueueController } from "@green-goods/shared/hooks/admin-ui/pool/useHubConfirmQueueController";
-import type { Address } from "@green-goods/shared/types/domain";
 import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
-import { RiCheckLine, RiShakeHandsLine } from "@remixicon/react";
+import type { Address } from "@green-goods/shared/types/domain";
+import { RiCheckLine, RiErrorWarningLine, RiShakeHandsLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
@@ -78,19 +77,32 @@ export function HubConfirmQueue({
   if (queue.isError) {
     body = (
       <EmptyStateShell>
-        <Alert variant="error">
-          {formatMessage({
-            id: "cockpit.hub.confirm.readError",
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({
+            id: "cockpit.hub.confirm.readError.title",
+            defaultMessage: "The confirmation queue could not be read",
+          })}
+          description={formatMessage({
+            id: "cockpit.hub.confirm.readError.description",
             defaultMessage:
-              "The confirmation queue could not be read. Nothing was confirmed or disputed while it was unreachable; refresh and try again.",
+              "Nothing was confirmed or disputed while it was unreachable; refresh and try again.",
           })}
-        </Alert>
-        <AdminButton type="button" variant="filled" onClick={() => void toConfirm.refetch()}>
-          {formatMessage({
-            id: "cockpit.garden.pool.readError.retry",
-            defaultMessage: "Try Again",
-          })}
-        </AdminButton>
+          action={
+            <Button
+              type="button"
+              emphasis="primary"
+              size="sm"
+              onClick={() => void toConfirm.refetch()}
+            >
+              {formatMessage({
+                id: "cockpit.garden.pool.readError.retry",
+                defaultMessage: "Try Again",
+              })}
+            </Button>
+          }
+        />
       </EmptyStateShell>
     );
   } else if (queue.isLoading) {
@@ -153,18 +165,18 @@ export function HubConfirmQueue({
                   onClick={() => onOpenCommitment(id)}
                 >
                   <span
-                    className="block truncate text-body-md font-medium text-text-strong"
+                    className="block truncate type-body font-medium text-text-strong"
                     title={title}
                   >
                     {title}
                   </span>
                   {/* Who committed, by name, then where and how much. */}
-                  <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-xs text-text-soft">
+                  <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 type-meta text-text-soft">
                     {committedBy ? (
                       <AddressDisplay
                         address={committedBy}
                         interactive={false}
-                        className="body-xs"
+                        className="type-meta"
                       />
                     ) : null}
                     {/* The acting garden is the one in the header; a commitment that
@@ -214,34 +226,34 @@ export function HubConfirmQueue({
                   ariaLabel={progressLabel}
                   className="flex-1"
                 />
-                <span className="body-xs text-text-soft">{progressLabel}</span>
+                <span className="type-meta text-text-soft">{progressLabel}</span>
               </div>
               {/* One height through every state: the outcome takes the buttons' place. */}
               <div className="mt-2 flex min-h-8 flex-wrap items-center justify-end gap-2">
                 {row.state.status !== "waiting" ? (
                   <ConfirmOutcome state={row.state} />
                 ) : disputed ? (
-                  <AdminButton
+                  <Button
                     type="button"
-                    variant="filled"
-                    size="sm"
+                    emphasis="primary"
+                    size="compact"
                     onClick={() => onOpenCommitment(id)}
                   >
                     {formatMessage({
                       id: "cockpit.hub.confirm.act.resolve",
                       defaultMessage: "Resolve…",
                     })}
-                  </AdminButton>
+                  </Button>
                 ) : (
                   <>
                     {/* Only the pool garden's own steward may raise a dispute
                         (TerminalLib.raiseDispute), so a protocol steward
                         reaching into another garden's pool is not offered one. */}
                     {row.canDispute === false ? null : (
-                      <AdminButton
+                      <Button
                         type="button"
-                        variant="outlined"
-                        size="sm"
+                        emphasis="secondary"
+                        size="compact"
                         onClick={() => setNotYet(row)}
                         disabled={actDisabled}
                       >
@@ -249,13 +261,13 @@ export function HubConfirmQueue({
                           id: "cockpit.hub.confirm.act.notYet",
                           defaultMessage: "Not yet…",
                         })}
-                      </AdminButton>
+                      </Button>
                     )}
                     {row.eligibility === "ORDINARY" ? (
-                      <AdminButton
+                      <Button
                         type="button"
-                        variant="filled"
-                        size="sm"
+                        emphasis="primary"
+                        size="compact"
                         onClick={() => setConfirming(row)}
                         disabled={queue.isConfirming}
                       >
@@ -263,19 +275,19 @@ export function HubConfirmQueue({
                           id: "cockpit.hub.confirm.act.confirm",
                           defaultMessage: "Confirm Kept…",
                         })}
-                      </AdminButton>
+                      </Button>
                     ) : (
-                      <AdminButton
+                      <Button
                         type="button"
-                        variant="filled"
-                        size="sm"
+                        emphasis="primary"
+                        size="compact"
                         onClick={() => onOpenCommitment(id)}
                       >
                         {formatMessage({
                           id: "cockpit.hub.confirm.act.confirm",
                           defaultMessage: "Confirm Kept…",
                         })}
-                      </AdminButton>
+                      </Button>
                     )}
                   </>
                 )}
@@ -290,7 +302,7 @@ export function HubConfirmQueue({
   return (
     <div data-component="HubConfirmQueue" data-region="hub-confirm">
       {!queue.isOnline && queue.rows.length > 0 ? (
-        <p className="mb-2 body-xs text-warning-dark" role="status">
+        <p className="mb-2 type-meta text-warning-dark" role="status">
           {formatMessage({
             id: "cockpit.hub.confirm.offline",
             defaultMessage:
@@ -345,7 +357,7 @@ export function HubConfirmQueue({
             ? undefined
             : formatMessage({
                 id: "cockpit.garden.pool.offline",
-                defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+                defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
               })
         }
         onConfirm={async (reason) => {
@@ -395,7 +407,7 @@ export function HubConfirmQueue({
               tone="hub"
             />
           ) : (
-            <p className="p-4 body-sm text-text-soft">
+            <p className="p-4 type-body text-text-soft">
               {formatMessage({
                 id: "cockpit.hub.confirm.notInQueue",
                 defaultMessage: "This promise is not in your confirmation queue any more.",
@@ -426,7 +438,7 @@ function ConfirmOutcome({
         <time
           dateTime={isoTime(state.at)}
           title={exactTime(intl, state.at)}
-          className="body-xs text-text-soft"
+          className="type-meta text-text-soft"
         >
           {clockTime(intl, state.at)}
         </time>

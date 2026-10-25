@@ -6,7 +6,7 @@ The Docusaurus site serves two audiences from one source tree:
 - **Builders** explains architecture, package boundaries, integrations, testing, and agent workflows.
 - **Reference** holds the shared glossary, formal ontology, design rationale, FAQ, brand kit, and credits.
 
-A page's sidebar can differ from its folder. The FAQ (served at `/faq`) and glossary live in `docs/reference/` and are listed in the Community sidebar. Brand kit and Credits live in the same folder and are linked from the footer. The formal ontology lives there too and is listed under Builders. `sidebars.ts` owns placement.
+A page's sidebar can differ from its folder. The FAQ (served at `/faq`) and glossary live in `docs/reference/` and are listed in the Community sidebar. The same sidebar groups Voice and Kit under Brand. Brand Kit and Credits are also linked from the footer. The formal ontology lives in the reference folder and is listed under Builders. `sidebars.ts` owns placement.
 
 Implementation facts come from code and configuration. Authored pages explain flows and stable rationale; generated pages project routes, exports, deployment artifacts, ontology, workflows, and QA scenarios from their owning sources.
 

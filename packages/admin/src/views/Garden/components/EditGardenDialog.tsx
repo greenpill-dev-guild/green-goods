@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -5,7 +6,6 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowGoBackLine, RiCloseLine, RiImageLine } from "@remixicon/react";
 import { type ReactNode, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
@@ -104,21 +104,23 @@ export function EditGardenDialog({
   const buttons = (): ReactNode => {
     if (run?.status === "complete") {
       return (
-        <AdminButton
+        <Button
           type="button"
-          variant="filled"
+          emphasis="primary"
+          size="sm"
           onClick={() => settingsDirtyClose.onOpenChange(false)}
         >
           {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </AdminButton>
+        </Button>
       );
     }
     if (run?.status === "stopped" || (run?.status === "running" && retrying)) {
       return (
         <>
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
+            emphasis="tertiary"
+            size="sm"
             onClick={() => settingsEditorRef.current?.dismissRun()}
             disabled={settingsForm.isSaving}
           >
@@ -126,32 +128,35 @@ export function EditGardenDialog({
               id: "app.garden.settings.save.keepEditing",
               defaultMessage: "Keep Editing",
             })}
-          </AdminButton>
-          <AdminButton
+          </Button>
+          <Button
             type="button"
-            variant="filled"
+            emphasis="primary"
+            size="sm"
             onClick={() => save(true)}
             disabled={!settingsForm.isDirty || settingsForm.isSaving}
             loading={settingsForm.isSaving}
           >
             {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-          </AdminButton>
+          </Button>
         </>
       );
     }
     return (
       <>
-        <AdminButton
+        <Button
           type="button"
-          variant="text"
+          emphasis="tertiary"
+          size="sm"
           onClick={() => settingsDirtyClose.onOpenChange(false)}
           disabled={settingsForm.isSaving}
         >
           {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="filled"
+          emphasis="primary"
+          size="sm"
           onClick={() => save(false)}
           disabled={
             !settingsForm.isDirty || settingsForm.hasValidationError || settingsForm.isSaving
@@ -159,7 +164,7 @@ export function EditGardenDialog({
           loading={settingsForm.isSaving}
         >
           {formatMessage({ id: "app.garden.settings.saveChanges", defaultMessage: "Save Changes" })}
-        </AdminButton>
+        </Button>
       </>
     );
   };
@@ -182,7 +187,7 @@ export function EditGardenDialog({
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p
                 className={cn(
-                  "body-xs",
+                  "type-meta",
                   settingsForm.isDirty ? "text-warning-dark" : "text-text-soft"
                 )}
                 aria-live="polite"
@@ -242,39 +247,39 @@ export function EditGardenDialog({
                 {bannerRemovalStaged ? (
                   <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-bg-soft px-3 text-center text-text-soft">
                     <RiImageLine className="h-5 w-5" />
-                    <span className="body-xs">
+                    <span className="type-meta">
                       {formatMessage({
                         id: "app.garden.settings.bannerWillBeRemoved",
                         defaultMessage: "Will be removed on save",
                       })}
                     </span>
-                    <AdminButton
+                    <Button
                       type="button"
-                      variant="text"
-                      size="sm"
-                      leadingIcon={<RiArrowGoBackLine />}
+                      emphasis="tertiary"
+                      size="compact"
+                      leadingIcon={<RiArrowGoBackLine className="h-4 w-4" aria-hidden="true" />}
                       onClick={() => settingsEditorRef.current?.undoBannerRemoval()}
                     >
                       {formatMessage({ id: "app.common.undo", defaultMessage: "Undo" })}
-                    </AdminButton>
+                    </Button>
                   </div>
                 ) : bannerSrc ? (
                   <>
                     <img src={bannerSrc} alt="" className="h-28 w-full object-cover" />
                     {bannerCanRemove ? (
-                      <AdminButton
+                      <Button
                         type="button"
-                        variant="text"
-                        size="sm"
-                        leadingIcon={<RiCloseLine />}
+                        emphasis="tertiary"
+                        size="compact"
+                        leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
                         onClick={() => settingsEditorRef.current?.stageBannerRemoval()}
                         className="absolute right-2 top-2 bg-bg-white/90 text-text-sub shadow-[var(--edge-rest)] hover:bg-bg-white"
                       >
                         {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-                      </AdminButton>
+                      </Button>
                     ) : null}
                     {bannerIsDraft ? (
-                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-label-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
+                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 type-meta-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
                         {formatMessage({
                           id: "app.garden.settings.bannerDraft",
                           defaultMessage: "Preview · uploads on save",
@@ -288,8 +293,8 @@ export function EditGardenDialog({
                   </div>
                 )}
               </div>
-              <div className="space-y-1 p-3 body-sm text-text-sub">
-                <h3 className="label-md truncate text-text-strong" title={garden.name}>
+              <div className="space-y-1 p-3 type-body text-text-sub">
+                <h3 className="type-label-sm truncate text-text-strong" title={garden.name}>
                   {garden.name}
                 </h3>
                 {garden.location ? (

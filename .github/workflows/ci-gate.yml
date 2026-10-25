@@ -46,12 +46,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "22.22.1"
 
       - name: Test validation selection, architecture rules, polling, and deploy gating
-        run: node --test scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/check-react-patterns.test.mjs scripts/ops/vercel-ignore.test.mjs scripts/quality/check-commit-identity.test.mjs scripts/ops/prune-codeql-caches.test.mjs
+        run: node --test scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/check-react-patterns.test.mjs scripts/ops/vercel-ignore.test.mjs scripts/quality/check-commit-identity.test.mjs scripts/ops/prune-codeql-caches.test.mjs scripts/ops/dependabot-sync.test.mjs
 
       # Every pull request passes through this gate, whatever it touches, so this is the one place
       # that sees a commit made under a leaked test identity from any machine. The commits come

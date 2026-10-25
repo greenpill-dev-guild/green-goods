@@ -1,7 +1,8 @@
-import { RiAlertLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react";
+import { Button } from "@green-goods/shared/components/Button";
+import { RiAlertLine, RiDeleteBinLine, RiRefreshLine, RiWallet3Line } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
+import { ConnectPrompt } from "@/components/Layout/ConnectPrompt";
 
 /**
  * The boot surfaces render before any provider exists — no IntlProvider, no
@@ -20,6 +21,10 @@ const BOOT_COPY: Record<
     reload: string;
     reset: string;
     details: string;
+    connectTitle: string;
+    connectDescription: string;
+    connect: string;
+    passkey: string;
   }
 > = {
   en: {
@@ -30,6 +35,10 @@ const BOOT_COPY: Record<
     reload: "Reload",
     reset: "Clear Cached Data and Reload",
     details: "Technical details",
+    connectTitle: "Connect to continue",
+    connectDescription: "Connect your wallet or sign in with a passkey to access this feature.",
+    connect: "Connect Wallet",
+    passkey: "Sign in with Passkey",
   },
   es: {
     loading: "Abriendo tu espacio de trabajo…",
@@ -39,6 +48,11 @@ const BOOT_COPY: Record<
     reload: "Recargar",
     reset: "Borrar datos en caché y recargar",
     details: "Detalles técnicos",
+    connectTitle: "Conectar para continuar",
+    connectDescription:
+      "Conecta tu billetera o inicia sesión con una clave de acceso para acceder a esta función.",
+    connect: "Conectar billetera",
+    passkey: "Entrar con passkey",
   },
   pt: {
     loading: "Abrindo seu espaço de trabalho…",
@@ -48,6 +62,11 @@ const BOOT_COPY: Record<
     reload: "Recarregar",
     reset: "Limpar dados em cache e recarregar",
     details: "Detalhes técnicos",
+    connectTitle: "Conectar para continuar",
+    connectDescription:
+      "Conecte sua carteira ou entre com uma chave de acesso para acessar este recurso.",
+    connect: "Conectar carteira",
+    passkey: "Entrar com passkey",
   },
 };
 
@@ -98,6 +117,50 @@ export function BootShell() {
   return <AdminLoadingScreen label={copy.loading} locale={locale} />;
 }
 
+/** Provider-free entry to the existing wallet and passkey sign-in paths. */
+export function BootConnect({
+  onConnect,
+  onPasskey,
+}: {
+  onConnect: () => void;
+  onPasskey: () => void;
+}) {
+  const locale = resolveBootLocale();
+  const copy = BOOT_COPY[locale];
+  return (
+    <main id="main-content">
+      <ConnectPrompt
+        title={copy.connectTitle}
+        description={copy.connectDescription}
+        lang={locale}
+        action={
+          <div className="flex flex-col items-stretch gap-2">
+            <Button
+              type="button"
+              emphasis="primary"
+              size="lg"
+              leadingIcon={<RiWallet3Line className="h-[18px] w-[18px]" aria-hidden="true" />}
+              onClick={onConnect}
+              data-testid="connect-wallet-button"
+            >
+              {copy.connect}
+            </Button>
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="lg"
+              onClick={onPasskey}
+              data-testid="passkey-start-button"
+            >
+              {copy.passkey}
+            </Button>
+          </div>
+        }
+      />
+    </main>
+  );
+}
+
 export interface BootRecoveryProps {
   error: unknown;
   onReload: () => void;
@@ -130,29 +193,29 @@ export function BootRecovery({ error, onReload, onReset }: BootRecoveryProps) {
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning-lighter">
         <RiAlertLine className="h-7 w-7 text-warning-dark" aria-hidden />
       </div>
-      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
-        {copy.failedTitle}
-      </h1>
-      <p className="mb-6 mt-2 max-w-sm body-sm text-text-sub">{copy.failedBody}</p>
+      <h1 className="mt-5 type-title-lg font-semibold text-text-strong">{copy.failedTitle}</h1>
+      <p className="mb-6 mt-2 max-w-sm type-body text-text-sub">{copy.failedBody}</p>
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <AdminButton
+        <Button
           type="button"
-          variant="filled"
-          leadingIcon={<RiRefreshLine />}
+          emphasis="primary"
+          size="sm"
+          leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
           onClick={onReload}
         >
           {copy.reload}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="outlined"
-          leadingIcon={<RiDeleteBinLine />}
+          emphasis="secondary"
+          size="sm"
+          leadingIcon={<RiDeleteBinLine className="h-[18px] w-[18px]" aria-hidden="true" />}
           onClick={onReset}
         >
           {copy.reset}
-        </AdminButton>
+        </Button>
       </div>
-      <details className="mt-6 max-w-lg text-left body-xs text-text-sub">
+      <details className="mt-6 max-w-lg text-left type-meta text-text-sub">
         <summary className="cursor-pointer">{copy.details}</summary>
         <pre
           className="mt-2 whitespace-pre-wrap break-words rounded-[var(--m3-shape-sm)] bg-bg-white p-3"

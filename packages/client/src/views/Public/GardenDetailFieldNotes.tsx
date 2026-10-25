@@ -68,7 +68,7 @@ export function FieldNotesSection({
         <SectionEmpty
           message={formatMessage({
             id: "public.gardenDetail.notes.empty",
-            defaultMessage: "No approved submissions yet. They appear when Work is approved.",
+            defaultMessage: "No approved submissions yet. They appear when work is approved.",
           })}
         />
       ) : (

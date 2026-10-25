@@ -1,9 +1,9 @@
-# Bun remains the source of truth for application dependencies, so npm package
-# update PRs stay disabled. Keep GitHub Actions updates conservative but on so
-# security and workflow patching do not depend on ad hoc maintenance alone.
+# Bun owns the workspace manifests and root bun.lock. Version updates remain
+# disabled; security updates are repaired by dependabot-sync.yml so root pins
+# and generated documentation follow the same upgrade.
 version: 2
 updates:
-  - package-ecosystem: npm
+  - package-ecosystem: bun
     directory: /
     schedule:
       interval: monthly

@@ -49,6 +49,10 @@ export interface PublicEditorialHeroProps {
   disableViewTransition?: boolean;
   /** Primary background image URL. */
   imageSrc: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  /** A center crop of the same fullscreen image for portrait viewports. */
+  portraitImageSrc?: string;
   /** Decorative imagery should pass `""`; otherwise describe the place. */
   imageAlt?: string;
   /** Optional fallback image (e.g. `publicCuration.fallbackImagePaths[0]`). */
@@ -87,6 +91,9 @@ export function PublicEditorialHero({
   variant = "fullscreen",
   disableViewTransition = false,
   imageSrc,
+  imageWidth,
+  imageHeight,
+  portraitImageSrc,
   imageAlt = "",
   imageFallbackSrc,
   kicker,
@@ -123,16 +130,27 @@ export function PublicEditorialHero({
       aria-labelledby={titleId}
     >
       <div className="absolute inset-0 overflow-hidden">
-        <img
-          src={imageSrc}
-          alt={imageAlt}
-          className="absolute inset-0 h-full w-full object-cover"
-          onError={(event) => {
-            if (imageFallbackSrc && event.currentTarget.src.indexOf(imageFallbackSrc) === -1) {
-              event.currentTarget.src = imageFallbackSrc;
-            }
-          }}
-        />
+        <picture>
+          {portraitImageSrc ? (
+            <source media="(max-aspect-ratio: 3/4)" srcSet={portraitImageSrc} />
+          ) : null}
+          <img
+            src={imageSrc}
+            alt={imageAlt}
+            className="absolute inset-0 h-full w-full object-cover"
+            fetchPriority="high"
+            width={imageWidth}
+            height={imageHeight}
+            onError={(event) => {
+              if (imageFallbackSrc && event.currentTarget.src.indexOf(imageFallbackSrc) === -1) {
+                event.currentTarget.parentElement
+                  ?.querySelectorAll("source")
+                  .forEach((source) => source.removeAttribute("srcset"));
+                event.currentTarget.src = imageFallbackSrc;
+              }
+            }}
+          />
+        </picture>
         <div
           aria-hidden="true"
           className="absolute inset-0 bg-gradient-to-b from-static-black/55 via-static-black/5 to-static-black/55"

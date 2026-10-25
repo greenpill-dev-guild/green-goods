@@ -20,19 +20,31 @@ describe("AdminFieldGroup", () => {
     const group = screen.getByRole("group", { name: /Forms of capital/ });
     expect(group.tagName).toBe("FIELDSET");
     expect(group).toHaveAttribute("data-component", "AdminFieldGroup");
-    expect(screen.getByText("Pick at least one")).toHaveClass("body-sm");
+    // The label is the shared field title; the hint sits on the shared message
+    // line under the content, as a field's does (F3), and describes the group.
+    expect(screen.getByText("Forms of capital")).toHaveClass("gg-field-label");
+    const hint = screen.getByText("Pick at least one");
+    expect(hint).toHaveClass("gg-field-help", "gg-field-message");
+    expect(group.lastElementChild).toBe(hint);
+    expect(group).toHaveAccessibleDescription("Pick at least one");
     expect(screen.getByText("*")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("renders the error row on the family error token and recolors the legend", () => {
+  it("puts an error on the hint's line, on the family error token, and recolors the legend", () => {
     render(
-      <AdminFieldGroup label="Forms of capital" error="Select at least one">
+      <AdminFieldGroup
+        label="Forms of capital"
+        hint="Pick at least one"
+        error="Select at least one"
+      >
         <input type="checkbox" aria-label="Social" />
       </AdminFieldGroup>
     );
 
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("Select at least one");
+    expect(alert).toHaveClass("gg-field-message");
+    expect(screen.queryByText("Pick at least one")).not.toBeInTheDocument();
     expect(alert.className).toContain("--m3-error");
     expect(screen.getByText("Forms of capital").className).toContain("--m3-error");
   });

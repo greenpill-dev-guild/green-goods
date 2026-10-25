@@ -335,12 +335,14 @@ collect_admin_invariant_hits() {
 #   1. Shared field primitives rendered directly (TextInput/Textarea/
 #      NativeSelect/FormField and local FormInput/FormTextarea re-wraps) —
 #      the canonical anatomy is AdminTextField/AdminTextArea/AdminSelect/
-#      AdminInlineField.
-#   2. Raw <button> elements — actions ride AdminButton/AdminIconButton,
+#      AdminInlineField, which render those primitives inside (DL-116).
+#   2. Raw <button> elements — actions ride the shared Button/IconButton,
 #      choices ride AdminFilterChip/AdminChoiceGroup/AdminSelectableCard,
 #      tabs ride AdminTabRail. (m3-state-layer row/card buttons are folded
 #      into the baseline until a dedicated row primitive exists.)
-#   3. Legacy shared Card renders — cockpit surfaces are AdminCard.
+#   3. Legacy shared Card renders (the retired shared `Card`) — cockpit cards
+#      are AdminCard, which renders the shared card surface `.gg-card` (DL-102,
+#      DL-118); the pattern matches a `<Card` render, never that class.
 # Scope is packages/admin/src production code only; tests and stories are
 # exercise scaffolding, not adoption surface. The wrapper implementations
 # themselves (components/Admin*.tsx) and the shell chrome (components/Shell —
@@ -369,11 +371,16 @@ collect_admin_wrapper_bypass_hits() {
 #
 # Two drifts the raw-literal pattern cannot see, burned down to zero by the
 # D32 migration and ratcheted here through the same audited baseline:
-#   1. Raw type sizes — admin text takes its size from the cockpit scale: the
-#      named label-*, body-*, and subheading-* classes and the text-title-*,
-#      text-body-*, and text-label-* aliases (packages/admin/DESIGN.md
-#      § Typography). A raw text-xs … text-9xl utility is a value outside the
-#      scale (root DESIGN.md Interface Principle 13). Stories are scanned too:
+#   1. Type sizes — admin text takes its size from the type roles (type-title-lg,
+#      type-title-md, type-title-sm, type-body, type-label, type-label-sm,
+#      type-meta, type-meta-sm, and type-field for field text; packages/admin/DESIGN.md
+#      § Typography). A raw text-xs … text-9xl utility or an arbitrary size is
+#      a value outside the roles (root DESIGN.md Interface Principle 13), and
+#      any other font-size utility is outside them: the retired names (the
+#      Material text-display-*, text-headline-*, text-title-*, text-body-*, and
+#      text-label-* aliases and the label-*, body-*, and subheading-* classes)
+#      and the shared scale's own sizes (text-paragraph-*, text-subheading-*,
+#      text-title-h*, text-label-xl/xs, text-doc-*). Stories are scanned too:
 #      they render the product's components.
 #   2. View-level M3 colours — views colour through the Warm Earth aliases
 #      (text-text-strong, text-text-sub, bg-bg-white, border-stroke-soft, …).
@@ -382,8 +389,11 @@ collect_admin_wrapper_bypass_hits() {
 #      (components/Shell), and ActionFlowShell. Stories are scanned too.
 # Tests are excluded from both.
 # ----------------------------------------------------------------------------
-# Named Tailwind sizes, and arbitrary px/rem/em or `length:` sizes (text-[13px]).
-ADMIN_RAW_TYPE_SIZE_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}text-((xs|sm|base|lg|xl|[2-9]xl)|\[([0-9.]+(px|rem|em)|length:[^]]+)\])${TW_CLASS_BOUNDARY}"
+# Named Tailwind sizes, arbitrary px/rem/em or `length:` sizes (text-[13px]), and
+# every other font-size utility the shared theme or the cockpit defines: the retired
+# Material and named classes, and the shared scale's paragraph, subheading, title-h,
+# label-xl/xs and doc sizes.
+ADMIN_RAW_TYPE_SIZE_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}(text-((xs|sm|base|lg|xl|[2-9]xl)|\[([0-9.]+(px|rem|em)|length:[^]]+)\])|text-(display|headline|title|body|label|paragraph|subheading)-(2xs|xs|sm|md|lg|xl)|text-title-h[1-6]|text-doc-(label|paragraph)|(label|body)-(md|sm|xs)|subheading-(2xs|xs|sm))${TW_CLASS_BOUNDARY}"
 ADMIN_VIEW_M3_COLOUR_PATTERN='rgb\(var\(--m3-'
 ADMIN_M3_COLOUR_OWNERS_REGEX='^packages/admin/src/(components/Admin[^/]*|components/CharacterCounter|components/Shell/.*|components/Layout/ActionFlowShell)\.tsx:'
 
@@ -414,6 +424,37 @@ collect_admin_view_m3_colour_hits() {
   check_collection_statuses 2 "${PIPESTATUS[@]}"
 }
 
+# ----------------------------------------------------------------------------
+# Shared retired type-name sweep (app and cockpit unification, step 1)
+#
+# Shared components and their stories take their size from the type roles too,
+# so the names the roles retired fail here: the Material text-display-*,
+# text-headline-*, text-title-*, text-body-*, and text-label-* aliases (gone from
+# the cockpit's theme), the label-*, body-*, and subheading-* classes (gone with
+# admin-type.css), and the shared scale's sizes (text-paragraph-*,
+# text-subheading-*, text-title-h*, text-label-xl/xs, text-doc-*). The scale keeps
+# its tokens and its cn() registration while the app's own views still use it,
+# so cn.ts, which names its keys, is not scanned. Raw Tailwind sizes are not part
+# of this sweep. Stories and the Storybook design-system pages are scanned;
+# tests are not.
+# ----------------------------------------------------------------------------
+SHARED_RETIRED_TYPE_NAME_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}(text-(display|headline|title|body|label|paragraph|subheading)-(2xs|xs|sm|md|lg|xl)|text-title-h[1-6]|text-doc-(label|paragraph)|(label|body)-(md|sm|xs)|subheading-(2xs|xs|sm))${TW_CLASS_BOUNDARY}"
+SHARED_TYPE_REGISTRY_REGEX='^packages/shared/src/utils/styles/cn\.ts:'
+
+collect_shared_retired_type_name_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
+    --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$SHARED_RETIRED_TYPE_NAME_PATTERN" packages/shared/src packages/shared/.storybook 2>/dev/null \
+    | grep -Ev "$SHARED_TYPE_REGISTRY_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$SHARED_RETIRED_TYPE_NAME_PATTERN" \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+  check_collection_statuses 2 "${PIPESTATUS[@]}"
+}
+
 collect_optional_hits() {
   local status
   if "$@"; then return 0; else status=$?; fi
@@ -424,7 +465,7 @@ collect_optional_hits() {
 
 validate_usage_baseline
 if ! USAGE_HITS="$(
-  for collector in collect_usage_hits collect_admin_invariant_hits collect_admin_wrapper_bypass_hits collect_admin_raw_type_size_hits collect_admin_view_m3_colour_hits; do
+  for collector in collect_usage_hits collect_admin_invariant_hits collect_admin_wrapper_bypass_hits collect_admin_raw_type_size_hits collect_admin_view_m3_colour_hits collect_shared_retired_type_name_hits; do
     collect_optional_hits "$collector" || exit 2
   done | sort -u
 )"; then
@@ -453,7 +494,8 @@ if [[ -n "$NEW_USAGE" ]]; then
   echo "$NEW_USAGE" | sed 's/^/  /'
   echo
   echo "Use Warm Earth tokens instead: --spring-*, --color-*, --radius-*, --color-material-*, --blur-material-*, and semantic utility aliases."
-  echo "For packages/admin hits, the cockpit invariants also apply: depth via --m3-elevation-0/1/2 (never bare shadow-*), hover/press via elevation or the 8% ink layer (never scale/translate), focus rings via --tone-focus-ring only, and state text via text-*-dark (never text-*-base)."
+  echo "For packages/admin hits, the cockpit invariants also apply: text size via the type-* roles (never a raw text-* size, a retired label-*, body-*, text-title-*, text-body-* or text-label-* name, or another shared-scale size such as text-paragraph-* or text-title-h*), depth via --m3-elevation-0/1/2 (never bare shadow-*), hover/press via elevation or the 8% ink layer (never scale/translate), focus rings via --tone-focus-ring only, and state text via text-*-dark (never text-*-base)."
+  echo "For packages/shared hits, text size comes from the type-* roles too: never a retired label-*, body-*, subheading-*, text-title-*, text-body-* or text-label-* name, or a shared-scale size such as text-paragraph-* or text-title-h*."
   echo "If this is intentional legacy debt, migrate it or add an audited baseline entry in $USAGE_BASELINE."
   exit 1
 fi
@@ -493,6 +535,35 @@ if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
 fi
 
 # ----------------------------------------------------------------------------
+# Retired cockpit buttons (DL-119)
+#
+# Admin views render the shared Button and IconButton directly. AdminButton and
+# AdminIconButton, the adapters DL-115 put in front of them, are gone: this sweep
+# fails if either name returns anywhere in admin or shared code, stories and tests
+# included, or if the adapter's file comes back.
+# ----------------------------------------------------------------------------
+RETIRED_ADMIN_BUTTON_PATTERN='(^|[^[:alnum:]_])Admin(Icon)?Button([^[:alnum:]_]|$)'
+
+collect_retired_admin_button_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+    --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$RETIRED_ADMIN_BUTTON_PATTERN" packages/admin/src packages/shared/src packages/shared/.storybook 2>/dev/null
+}
+
+if ! RETIRED_ADMIN_BUTTON_HITS="$(collect_optional_hits collect_retired_admin_button_hits)"; then exit 2; fi
+if [[ -e packages/admin/src/components/AdminButton.tsx ]]; then
+  RETIRED_ADMIN_BUTTON_HITS="packages/admin/src/components/AdminButton.tsx (the file)${RETIRED_ADMIN_BUTTON_HITS:+$'\n'}${RETIRED_ADMIN_BUTTON_HITS}"
+fi
+if [[ -n "$RETIRED_ADMIN_BUTTON_HITS" ]]; then
+  echo "❌ AdminButton and AdminIconButton are retired (DL-119):"
+  echo "$RETIRED_ADMIN_BUTTON_HITS" | sed 's/^/  /'
+  echo
+  echo "Admin views render the shared Button (emphasis primary / secondary / tertiary, tone danger, size compact / sm / lg) and IconButton directly; the cockpit's tokens in packages/admin/src/index.css set their look."
+  exit 1
+fi
+
+# ----------------------------------------------------------------------------
 # Admin focus-ring role guard
 #
 # `--tone-focus-ring` is the focus indicator role. In light mode it resolves to
@@ -523,6 +594,45 @@ if [[ -n "$ADMIN_FOCUS_RING_VIOLATIONS" ]]; then
   echo
   echo "Admin-facing focus indicators must use --tone-focus-ring, with a fallback only as the second var() argument."
   echo "Example: focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+  exit 1
+fi
+
+# ----------------------------------------------------------------------------
+# Installed-app bottom safe-area guard
+#
+# The installed app draws under the iPhone home indicator, and on iOS 26 a Home
+# Screen app can lay out on a viewport one status bar short of the screen, with
+# a blank band below that nothing the page draws reaches. --safe-area-bottom
+# (shared theme.css, Safe Areas) is the inset minus whatever that band already
+# covers, so every bottom bar, sheet and spacer in the client and the PWA sheet
+# surfaces pads by it. A raw env(safe-area-inset-bottom) brings back the double
+# padding that made bars float. The token's definition is exempt, and so is
+# admin-only shared chrome: admin has no viewport-fit=cover, so its insets are 0.
+# ----------------------------------------------------------------------------
+RAW_SAFE_AREA_BOTTOM_PATTERN='env\([[:space:]]*safe-area-inset-bottom'
+SAFE_AREA_BOTTOM_EXEMPT_REGEX='^(packages/shared/src/styles/theme\.css|packages/shared/src/components/Canvas/|packages/shared/src/components/Form/FormWizard\.tsx)'
+
+collect_raw_safe_area_bottom_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
+    --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$RAW_SAFE_AREA_BOTTOM_PATTERN" packages/client/src packages/shared/src 2>/dev/null \
+    | grep -Ev "$SAFE_AREA_BOTTOM_EXEMPT_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$RAW_SAFE_AREA_BOTTOM_PATTERN" \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+  check_collection_statuses 2 "${PIPESTATUS[@]}"
+}
+
+if ! RAW_SAFE_AREA_BOTTOM_HITS="$(collect_optional_hits collect_raw_safe_area_bottom_hits)"; then exit 2; fi
+if [[ -n "$RAW_SAFE_AREA_BOTTOM_HITS" ]]; then
+  echo "❌ Raw bottom safe-area inset in installed-app chrome:"
+  echo "$RAW_SAFE_AREA_BOTTOM_HITS" | sed 's/^/  /'
+  echo
+  echo "Pad bottom bars, sheets and the space kept clear of them by var(--safe-area-bottom), as in calc(0.75rem + var(--safe-area-bottom)) or max(1rem, var(--safe-area-bottom))."
+  echo "The token drops the part of the home-indicator inset that iOS 26's blank bottom band already covers in an installed app (shared theme.css, Safe Areas)."
   exit 1
 fi
 
@@ -673,10 +783,13 @@ echo "✅ workspace tone propagation guard: --m3-primary re-declared at .admin-m
 echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
+echo "✅ retired cockpit button sweep passed: no AdminButton or AdminIconButton in admin or shared code, stories or tests (DL-119)."
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
 echo "✅ admin cockpit invariant sweep passed: off-ladder shadows, hover/press transforms, alias focus rings, and text-*-base stay within the audited baseline."
 echo "✅ admin wrapper-adoption sweep passed: shared field primitives, raw <button> elements, and legacy Card renders stay within the audited baseline."
 echo "✅ admin type-scale and view-colour sweep passed: no raw text sizes, and raw --m3-* colours stay in the Admin* primitives, the shell, and ActionFlowShell (D32)."
+echo "✅ shared type-name sweep passed: packages/shared uses the type-* roles, with no retired Material, named, or shared-scale type names."
 echo "✅ admin focus-ring guard passed: focus indicators use --tone-focus-ring."
 echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
+echo "✅ installed-app safe-area guard passed: client and PWA bottom chrome pads by var(--safe-area-bottom)."
 echo "✅ token_version declared in design skill (${DESIGN_VER})."

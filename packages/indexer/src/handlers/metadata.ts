@@ -156,7 +156,7 @@ export function parseHypercertMetadata(metadata: unknown): {
       ? hidden.attestationRefs.filter(isRecord)
       : [];
     const uids = refs.map((ref) => getString(ref.uid)).filter((uid): uid is string => Boolean(uid));
-    if (uids.length > 0) attestationUIDs = uids;
+    if (uids.length > 0) attestationUIDs = uids.map((uid) => uid.toLowerCase());
   }
 
   const bundleSource = hidden ?? metadata;

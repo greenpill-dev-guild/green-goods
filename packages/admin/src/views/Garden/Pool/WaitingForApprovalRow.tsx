@@ -1,12 +1,12 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import type { WaitingRow } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiLoader4Line } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminListRow } from "@/components/AdminListRow";
 import { ClaimantName } from "./ClaimantName";
 import { directionEdgeClass, directionLabel } from "./poolPresentation";
@@ -64,7 +64,7 @@ export function WaitingForApprovalRow({
     <time
       dateTime={isoTime(ms)}
       title={exactTime(intl, ms)}
-      className="min-w-0 shrink-[10] truncate body-xs text-text-soft"
+      className="min-w-0 shrink-[10] truncate type-meta text-text-soft"
     >
       {text}
     </time>
@@ -73,13 +73,13 @@ export function WaitingForApprovalRow({
   let when: ReactNode = moment(asked, age(asked));
   if (state.status === "waiting" && state.isNew) {
     marker = (
-      <span className="shrink-0 label-xs text-information-dark">
+      <span className="shrink-0 type-label-sm text-information-dark">
         {formatMessage({ id: "cockpit.garden.pool.approvals.new", defaultMessage: "New" })}
       </span>
     );
   } else if (state.status === "failed") {
     marker = (
-      <span role="status" className="shrink-0 label-xs text-error-dark">
+      <span role="status" className="shrink-0 type-label-sm text-error-dark">
         {formatMessage({
           id: "cockpit.garden.pool.approvals.failed",
           defaultMessage: "Didn’t go through",
@@ -162,16 +162,22 @@ export function WaitingForApprovalRow({
   } else {
     action = (
       <>
-        <AdminButton type="button" variant="text" size="sm" onClick={onDecline} disabled={disabled}>
+        <Button
+          type="button"
+          emphasis="tertiary"
+          size="compact"
+          onClick={onDecline}
+          disabled={disabled}
+        >
           {formatMessage({
             id: "cockpit.garden.pool.claims.act.decline",
             defaultMessage: "Decline…",
           })}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="filled"
-          size="sm"
+          emphasis="primary"
+          size="compact"
           onClick={onApprove}
           disabled={disabled}
         >
@@ -185,7 +191,7 @@ export function WaitingForApprovalRow({
                 id: "cockpit.garden.pool.approvals.approve",
                 defaultMessage: "Approve",
               })}
-        </AdminButton>
+        </Button>
       </>
     );
   }
@@ -208,11 +214,11 @@ export function WaitingForApprovalRow({
         <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap">
           {/* The name keeps its length and the age gives way first (D6); only a
               name wider than the whole line is cut. */}
-          <span className="max-w-full shrink-0 truncate body-sm text-text-sub">{who}</span>
+          <span className="max-w-full shrink-0 truncate type-body text-text-sub">{who}</span>
           {marker}
           {when}
         </span>
-        <span className="mt-0.5 block truncate body-xs text-text-sub" title={line}>
+        <span className="mt-0.5 block truncate type-meta text-text-sub" title={line}>
           {line}
         </span>
       </AdminListRow>

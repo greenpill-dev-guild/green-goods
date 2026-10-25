@@ -62,8 +62,9 @@ describe("CommitmentClaims", () => {
     const user = userEvent.setup();
     const accept = screen.getByRole("button", { name: "Approve" });
     const decline = screen.getByRole("button", { name: /Decline/ });
-    expect(accept).toHaveClass("h-7");
-    expect(decline).toHaveClass("h-7");
+    // The 28px tier with its 44px finger box (AdminDensityScale.guard).
+    expect(accept).toHaveAttribute("data-size", "compact");
+    expect(decline).toHaveAttribute("data-size", "compact");
 
     await user.click(accept);
     decline.focus();

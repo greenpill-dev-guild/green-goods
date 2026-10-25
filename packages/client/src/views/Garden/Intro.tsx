@@ -1,17 +1,24 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { ActionPicker } from "@green-goods/shared/components/Cards/ActionPicker";
+import {
+  GardenCard,
+  GardenPicker,
+} from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { expandDomainMask, hasDomain } from "@green-goods/shared/utils/domain";
 import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
-import { RiHammerFill, RiPlantFill, RiUserAddLine } from "@remixicon/react";
+import {
+  RiHammerFill,
+  RiHammerLine,
+  RiPlantFill,
+  RiPlantLine,
+  RiUserAddLine,
+} from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { ActionCard } from "@/components/Cards/Action/ActionCard";
-import { ActionCardSkeleton } from "@/components/Cards/Action/ActionCardSkeleton";
 import { FormInfo } from "@/components/Cards/Form/FormInfo";
-import { GardenCard } from "@/components/Cards/Garden/GardenCard";
-import { GardenCardSkeleton } from "@/components/Cards/Garden/GardenCardSkeleton";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { type WorkCommitmentChoice, WorkCommitmentSelection } from "./WorkCommitmentSelection";
 
@@ -53,31 +60,8 @@ interface WorkIntroProps {
   setSelectedCommitmentKey?: (key: string | null) => void;
 }
 
-/**
- * A picker slide is a toggle: pressing it chooses that card, and `aria-pressed`
- * tells assistive tech which card is chosen and gives the press the selection tap.
- */
-function PickerChoice({
-  selected,
-  onSelect,
-  children,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      data-pressable="card"
-      aria-pressed={selected}
-      onClick={onSelect}
-      className="block w-full rounded-2xl text-left"
-    >
-      {children}
-    </button>
-  );
-}
+/** A picker row bleeds to the page's edges and snaps a card to the page's own inset. */
+const PICKER_ROW_CLASS = "-mx-4 scroll-px-4 px-4";
 
 export const WorkIntro: React.FC<WorkIntroProps> = ({
   actions,
@@ -156,12 +140,13 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
 
       return {
         availableDomains: domains,
-        filteredActions: domainActions,
-        unknownActions: unknownDomainActions,
+        // Each picker card reads its action in the reader's language.
+        filteredActions: domainActions.map((action) => localizeAction(action, intl.locale)),
+        unknownActions: unknownDomainActions.map((action) => localizeAction(action, intl.locale)),
         filteredGardens: domainGardens,
         effectiveDomain: effective,
       };
-    }, [actions, gardens, selectedDomain, selectedActionUID]);
+    }, [actions, gardens, selectedDomain, selectedActionUID, intl.locale]);
 
   // Build tab items from available domains (resolved via intl)
   const domainTabItems: StandardTab[] = useMemo(
@@ -187,6 +172,16 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   );
 
   const showDomainTabs = availableDomains.length > 1;
+
+  // The pickers choose by action id; the flow keeps the action's UID.
+  const selectedActionId =
+    selectedActionUID === null
+      ? null
+      : (actions.find((action) => parseActionUID(action.id) === selectedActionUID)?.id ?? null);
+  const chooseAction = (actionId: string) => {
+    const uid = parseActionUID(actionId);
+    if (uid !== null) setActionUID(uid);
+  };
 
   // Status: show skeletons while data loads
   const actionsStatus: "pending" | "success" =
@@ -232,64 +227,38 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         })}
         Icon={RiHammerFill}
       />
-      <Carousel opts={{ align: "start" }}>
-        <CarouselContent>
-          {actionsStatus === "pending" &&
-            Array.from({ length: 4 }).map((_, idx) => (
-              <CarouselItem key={`action-skel-${idx}`}>
-                <ActionCardSkeleton media="small" height="selection" />
-              </CarouselItem>
-            ))}
-
-          {actions.length === 0 && actionsStatus === "success" && (
-            <CarouselItem className="basis-full max-w-full">
-              <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
-                {intl.formatMessage({
-                  id: "app.garden.noActionsConfigured",
-                  defaultMessage: "No actions have been configured for this garden yet.",
-                })}
-              </div>
-            </CarouselItem>
-          )}
-
-          {actionsStatus === "success" &&
-            actions.length > 0 &&
-            filteredActions.length === 0 &&
-            unknownActions.length === 0 && (
-              <CarouselItem className="basis-full max-w-full">
-                <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
-                  {intl.formatMessage({
-                    id: "app.garden.noActiveActions",
-                    defaultMessage: "No active actions at this time.",
-                  })}
-                </div>
-              </CarouselItem>
-            )}
-
-          {filteredActions.length > 0 &&
-            filteredActions.map((action) => {
-              const uid = parseActionUID(action.id);
-              const displayAction = localizeAction(action, intl.locale);
-              return (
-                <CarouselItem key={action.id}>
-                  <PickerChoice
-                    selected={selectedActionUID === uid}
-                    onSelect={() => {
-                      if (uid !== null) setActionUID(uid);
-                    }}
-                  >
-                    <ActionCard
-                      action={displayAction}
-                      selected={selectedActionUID === uid}
-                      media="small"
-                      height="selection"
-                    />
-                  </PickerChoice>
-                </CarouselItem>
-              );
-            })}
-        </CarouselContent>
-      </Carousel>
+      {actions.length === 0 && actionsStatus === "success" ? (
+        <EmptyState
+          icon={<RiHammerLine />}
+          title={intl.formatMessage({
+            id: "app.garden.noActionsConfigured",
+            defaultMessage: "No actions have been configured for this garden yet.",
+          })}
+        />
+      ) : actionsStatus === "success" &&
+        filteredActions.length === 0 &&
+        unknownActions.length === 0 ? (
+        <EmptyState
+          icon={<RiHammerLine />}
+          title={intl.formatMessage({
+            id: "app.garden.noActiveActions",
+            defaultMessage: "No active actions at this time.",
+          })}
+        />
+      ) : actionsStatus === "pending" || filteredActions.length > 0 ? (
+        <ActionPicker
+          actions={filteredActions}
+          value={selectedActionId}
+          onChange={chooseAction}
+          label={intl.formatMessage({
+            id: "app.garden.selectYourAction",
+            defaultMessage: "Select Your Action",
+          })}
+          layout="row"
+          loading={actionsStatus === "pending"}
+          className={PICKER_ROW_CLASS}
+        />
+      ) : null}
 
       {/* Actions whose domain this client doesn't recognize (newer protocol
           enum) — kept submittable in their own group, never under a named tab. */}
@@ -298,31 +267,14 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           <p className="text-paragraph-md tracking-normal text-text-sub-600">
             {intl.formatMessage({ id: "app.domain.tab.unknown", defaultMessage: "Other" })}
           </p>
-          <Carousel opts={{ align: "start" }}>
-            <CarouselContent>
-              {unknownActions.map((action) => {
-                const uid = parseActionUID(action.id);
-                const displayAction = localizeAction(action, intl.locale);
-                return (
-                  <CarouselItem key={action.id}>
-                    <PickerChoice
-                      selected={selectedActionUID === uid}
-                      onSelect={() => {
-                        if (uid !== null) setActionUID(uid);
-                      }}
-                    >
-                      <ActionCard
-                        action={displayAction}
-                        selected={selectedActionUID === uid}
-                        media="small"
-                        height="selection"
-                      />
-                    </PickerChoice>
-                  </CarouselItem>
-                );
-              })}
-            </CarouselContent>
-          </Carousel>
+          <ActionPicker
+            actions={unknownActions}
+            value={selectedActionId}
+            onChange={chooseAction}
+            label={intl.formatMessage({ id: "app.domain.tab.unknown", defaultMessage: "Other" })}
+            layout="row"
+            className={PICKER_ROW_CLASS}
+          />
         </>
       )}
       <FormInfo
@@ -336,106 +288,65 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         })}
         Icon={RiPlantFill}
       />
-      <Carousel>
-        <CarouselContent>
-          {gardensStatus === "pending" &&
-            Array.from({ length: 4 }).map((_, idx) => (
-              <CarouselItem key={`garden-skel-${idx}`}>
-                <GardenCardSkeleton media="small" height="selection" showStats={false} />
-              </CarouselItem>
-            ))}
-
-          {filteredGardens.length === 0 &&
-            gardensStatus === "success" &&
-            showCommunityOnramp &&
-            communityGardenSelected &&
-            joinableCommunityGarden && (
-              <CarouselItem className="basis-full max-w-full">
-                <GardenCard
-                  garden={joinableCommunityGarden}
-                  media="small"
-                  height="selection"
-                  selected
-                  showDescription={true}
-                  showStewards={false}
-                  showStats={false}
-                />
-              </CarouselItem>
-            )}
-
-          {filteredGardens.length === 0 &&
-            gardensStatus === "success" &&
-            showCommunityOnramp &&
-            !communityGardenSelected && (
-              <CarouselItem className="basis-full max-w-full">
-                <div className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-alpha-10 text-primary-on-surface">
-                      <RiPlantFill className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-text-strong-950">
-                        {intl.formatMessage({
-                          id: "app.garden.communityOnramp.title",
-                          defaultMessage: "Join the Community Garden",
-                        })}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-text-sub-600">
-                        {intl.formatMessage({
-                          id: "app.garden.communityOnramp.description",
-                          defaultMessage:
-                            "The Community Garden is open to everyone and gives you a place to submit your first work.",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={onJoinCommunityGarden}
-                    loading={isJoiningCommunityGarden}
-                    leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
-                    className="w-full"
-                  >
-                    {intl.formatMessage({
-                      id: "app.garden.communityOnramp.action",
-                      defaultMessage: "Join Garden",
-                    })}
-                  </Button>
-                </div>
-              </CarouselItem>
-            )}
-
-          {filteredGardens.length === 0 && gardensStatus === "success" && !showCommunityOnramp && (
-            <div className="p-4 text-sm text-text-sub-600">
+      {filteredGardens.length === 0 &&
+      gardensStatus === "success" &&
+      showCommunityOnramp &&
+      communityGardenSelected &&
+      joinableCommunityGarden ? (
+        <GardenCard garden={joinableCommunityGarden} selected />
+      ) : filteredGardens.length === 0 && gardensStatus === "success" && showCommunityOnramp ? (
+        <EmptyState
+          icon={<RiPlantLine />}
+          title={intl.formatMessage({
+            id: "app.garden.communityOnramp.title",
+            defaultMessage: "Join the Community Garden",
+          })}
+          description={intl.formatMessage({
+            id: "app.garden.communityOnramp.description",
+            defaultMessage:
+              "The Community Garden is open to everyone and gives you a place to submit your first work.",
+          })}
+          action={
+            <Button
+              type="button"
+              size="sm"
+              onClick={onJoinCommunityGarden}
+              loading={isJoiningCommunityGarden}
+              leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
+            >
               {intl.formatMessage({
-                id: "app.garden.noGardensAvailable",
-                defaultMessage: "No gardens available. You may need to join a garden first.",
+                id: "app.garden.communityOnramp.action",
+                defaultMessage: "Join Garden",
               })}
-            </div>
-          )}
-
-          {filteredGardens.length > 0 &&
-            filteredGardens.map((garden) => (
-              <CarouselItem key={garden.id}>
-                <PickerChoice
-                  selected={garden.id === selectedGardenAddress}
-                  onSelect={() => setGardenAddress(garden.id)}
-                >
-                  <GardenCard
-                    garden={garden}
-                    media="small"
-                    height="selection"
-                    selected={garden.id === selectedGardenAddress}
-                    showDescription={true}
-                    showStewards={false}
-                    showStats={false}
-                  />
-                </PickerChoice>
-              </CarouselItem>
-            ))}
-        </CarouselContent>
-      </Carousel>
+            </Button>
+          }
+        />
+      ) : filteredGardens.length === 0 && gardensStatus === "success" ? (
+        <EmptyState
+          icon={<RiPlantLine />}
+          title={intl.formatMessage({
+            id: "app.garden.noGardensAvailable.title",
+            defaultMessage: "No gardens available",
+          })}
+          description={intl.formatMessage({
+            id: "app.garden.noGardensAvailable.description",
+            defaultMessage: "You may need to join a garden first.",
+          })}
+        />
+      ) : (
+        <GardenPicker
+          gardens={filteredGardens}
+          value={selectedGardenAddress}
+          onChange={setGardenAddress}
+          label={intl.formatMessage({
+            id: "app.garden.selectYourGarden",
+            defaultMessage: "Select Your Garden",
+          })}
+          layout="row"
+          loading={gardensStatus === "pending"}
+          className={PICKER_ROW_CLASS}
+        />
+      )}
 
       {showCommitmentChoices ? (
         <WorkCommitmentSelection

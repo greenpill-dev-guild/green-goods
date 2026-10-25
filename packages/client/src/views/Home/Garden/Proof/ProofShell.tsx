@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import type { ProofComposerStatus } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import {
   RiErrorWarningLine,
+  RiLoader4Line,
   RiSearchLine,
   RiWifiOffLine,
   type RemixiconComponentType,
@@ -10,7 +11,8 @@ import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 
 import { FormInfo } from "@/components/Cards";
-import { EmptyState, FormProgress } from "@/components/Communication";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { FormProgress } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
 
 export interface ProofShellProps {
@@ -44,10 +46,10 @@ export function ProofShell({ onBack, progress, heading, pinned, bar, children }:
         <FormProgress currentStep={progress} steps={steps} />
       </TopNav>
       <form
-        className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
+        className="relative py-6 pt-[var(--app-top-bar-height)] flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
         onSubmit={(event) => event.preventDefault()}
       >
-        <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+var(--safe-area-bottom))]">
           <FormInfo title={heading.title} info={heading.info} Icon={heading.Icon} />
           {pinned}
           {children}
@@ -79,7 +81,7 @@ export function ProofState({
   return (
     <>
       <TopNav onBackClick={onBack} overlay />
-      <div className="padded flex flex-col gap-4 pt-20 pb-6">
+      <div className="padded flex flex-col gap-4 pt-[var(--app-top-bar-height)] pb-6">
         {kind === "unavailable" ? (
           <EmptyState
             icon={<RiWifiOffLine />}
@@ -115,11 +117,13 @@ export function ProofState({
             ) : null}
           </div>
         ) : kind === "loading" || kind === "restoringDraft" ? (
-          <p className="text-xs text-text-soft-400" role="status">
-            {formatMessage({
+          <EmptyState
+            busy
+            icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+            title={formatMessage({
               id: kind === "restoringDraft" ? "app.proof.draft.loading" : "app.commitment.loading",
             })}
-          </p>
+          />
         ) : kind === "closed" ? (
           <EmptyState
             icon={<RiSearchLine />}

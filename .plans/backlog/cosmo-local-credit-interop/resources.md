@@ -1,5 +1,9 @@
 # Resources
 
+> Historical research from August 2026. The [current architecture](spec.md) supersedes retired
+> assumptions about weighted issuance, venue ownership and dispatch order. Reverify external
+> configuration before use; this record grants no implementation or transaction authority.
+
 Verified 2026-08-24/25. Addresses and facts below were read from primary sources; anything inferred
 is marked. Re-verify before any transaction.
 
@@ -48,6 +52,25 @@ Judging criteria and prizes were still unpublished as of 2026-08-24; the PS2 bri
 by an unnamed "established actor" at the 16 Oct bootcamp. Stated deliverable is *"MVPs, platform
 concepts, and customer journeys"* — not a deployed protocol.
 
+## Protocol refresh — 20 October 2026 UTC
+
+The user named the current [overview](https://docs.cosmolocal.credit/protocol/overview/),
+[contracts](https://docs.cosmolocal.credit/protocol/smart-contracts/),
+[network](https://docs.cosmolocal.credit/protocol/network/) and
+[repository](https://github.com/cosmo-local-credit/protocol) as research authorities.
+The [architecture alignment](architecture-alignment.md) records the findings and their limits.
+
+The website describes v1.1.0, whose tag resolves to
+`ce090fd3d5a7493c726fb939da39af15ef1c9d7c`. Its README still labels the Gnosis deployment table
+v1.0.0. Do not treat those addresses as verified v1.1.0 instances. Read docs/SPEC.md and docs/DEPLOY.md
+at the pinned release; do not read/import AGPL implementation source. The upstream security
+assessment is described as internal review, not independent certification.
+
+The current Chainlink Gnosis directory lists an outbound Arbitrum lane at 2.0.0, superseding the
+August 1.5.0 note below. Exact peers, both directions and behavior need release-specific proof.
+The August Green Goods ownership/pause/indexer observations below are historical, not current
+state. The dated 20 October Arbitrum/Celo inventory is retained in the corrected upgrade plan.
+
 ## Cosmo-Local Credit (Grassroots Economics, Will Ruddick)
 
 - Site: <https://cosmolocal.credit>
@@ -81,7 +104,13 @@ certification."** It does not satisfy the Green Goods external-audit gate.
 
 ### Deployed — Gnosis mainnet, chain 100, v1.0.0
 
-solc 0.8.36, EVM fork osaka, optimizer 200 runs (Calibur 1000). Deployer
+**Compiler correction, 20 October:** embedded metadata establishes solc **0.8.34** for the
+GiftableToken, SwapPool, Limiter and ERC1967Factory deployments, matching the published artifacts
+([conformance evidence](handoffs/claude-conformance-evidence-2026-10-20.md)). The README's 0.8.36
+line does not describe those four builds; use 0.8.34 to reproduce them. Compiler metadata for the
+other listed implementations remains unchecked. The README reports EVM fork osaka and optimizer
+200 runs (Calibur 1000); those settings are not independently established by the compiler-version
+read. Deployer
 `0x33a573149db22e759fb9a38bcc461c12855c2645`.
 
 | Contract | Address |

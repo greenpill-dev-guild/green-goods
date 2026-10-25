@@ -24,7 +24,7 @@ export function GardenAlertsCard({ alerts }: { alerts: GardenAlert[] }) {
       </AdminCardHeader>
       <AdminCardBody>
         {alerts.length === 0 ? (
-          <p className="body-sm text-text-soft">
+          <p className="type-body text-text-soft">
             {formatMessage({ id: "app.garden.detail.alerts.none" })}
           </p>
         ) : (

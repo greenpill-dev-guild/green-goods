@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
 import { type DistributionMode, sumUnits } from "@green-goods/shared/lib/hypercerts/distribution";
@@ -7,7 +8,6 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { isAddress, zeroAddress } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressWithCopy, formatEnsAddressName } from "@/components/EnsAddressText";
@@ -39,10 +39,10 @@ function RemoveRecipientButton({ entry, onRemove }: RemoveRecipientButtonProps) 
   const recipientLabel = entry.label || formatEnsAddressName(entry.address, ensName);
 
   return (
-    <AdminButton
+    <Button
       type="button"
-      variant="text"
-      size="sm"
+      emphasis="tertiary"
+      size="compact"
       onClick={onRemove}
       aria-label={formatMessage(
         { id: "app.hypercerts.distribution.removeRecipient" },
@@ -51,7 +51,7 @@ function RemoveRecipientButton({ entry, onRemove }: RemoveRecipientButtonProps) 
       className="h-8 min-w-8 rounded-[var(--m3-shape-sm)] px-2 text-text-sub hover:bg-error-lighter hover:text-error-dark"
     >
       <RiCloseLine className="h-4 w-4" />
-    </AdminButton>
+    </Button>
   );
 }
 
@@ -110,10 +110,10 @@ export function DistributionConfig({
   return (
     <div className="space-y-4">
       <header className="space-y-1">
-        <h2 className="text-title-md font-semibold text-text-strong">
+        <h2 className="type-title-md font-semibold text-text-strong">
           {formatMessage({ id: "app.hypercerts.distribution.title" })}
         </h2>
-        <p className="body-sm text-text-sub">
+        <p className="type-body text-text-sub">
           {formatMessage({ id: "app.hypercerts.distribution.subtitle" })}
         </p>
       </header>
@@ -152,7 +152,7 @@ export function DistributionConfig({
       <div className="overflow-x-auto rounded-lg border border-stroke-soft bg-bg-white">
         <div
           className={cn(
-            "grid min-w-[400px] gap-2 border-b border-stroke-soft bg-bg-weak px-4 py-2 label-xs text-text-sub",
+            "grid min-w-[400px] gap-2 border-b border-stroke-soft bg-bg-weak px-4 py-2 type-label-sm text-text-sub",
             mode === "custom"
               ? "grid-cols-[minmax(120px,2fr)_minmax(80px,1fr)_minmax(60px,1fr)_auto]"
               : "grid-cols-[minmax(120px,2fr)_minmax(80px,1fr)_minmax(60px,1fr)]"
@@ -171,7 +171,7 @@ export function DistributionConfig({
               <div
                 key={`${entry.address}-${index}`}
                 className={cn(
-                  "grid min-w-[400px] items-center gap-2 px-4 py-3 body-sm",
+                  "grid min-w-[400px] items-center gap-2 px-4 py-3 type-body",
                   mode === "custom"
                     ? "grid-cols-[minmax(120px,2fr)_minmax(80px,1fr)_minmax(60px,1fr)_auto]"
                     : "grid-cols-[minmax(120px,2fr)_minmax(80px,1fr)_minmax(60px,1fr)]"
@@ -195,9 +195,9 @@ export function DistributionConfig({
                       }
                     />
                   ) : (
-                    <EnsAddressWithCopy address={entry.address} labelClassName="body-xs" />
+                    <EnsAddressWithCopy address={entry.address} labelClassName="type-meta" />
                   )}
-                  {entry.label && <p className="body-xs text-text-sub">{entry.label}</p>}
+                  {entry.label && <p className="type-meta text-text-sub">{entry.label}</p>}
                 </div>
                 <AdminTextField
                   className="w-full"
@@ -206,7 +206,7 @@ export function DistributionConfig({
                   onChange={(event) => handleUnitsChange(index, event.target.value)}
                   disabled={mode !== "custom"}
                 />
-                <span className="body-xs text-text-sub">{percent.toFixed(2)}%</span>
+                <span className="type-meta text-text-sub">{percent.toFixed(2)}%</span>
                 {mode === "custom" && (
                   <RemoveRecipientButton
                     entry={entry}
@@ -220,12 +220,12 @@ export function DistributionConfig({
       </div>
 
       {mode === "custom" && (
-        <AdminButton type="button" variant="outlined" size="sm" onClick={handleAddRecipient}>
+        <Button type="button" emphasis="secondary" size="compact" onClick={handleAddRecipient}>
           {formatMessage({ id: "app.hypercerts.distribution.addRecipient" })}
-        </AdminButton>
+        </Button>
       )}
 
-      <div className="body-xs text-text-sub">
+      <div className="type-meta text-text-sub">
         {formatMessage(
           { id: "app.hypercerts.distribution.total" },
           { total: unitsTotal.toLocaleString() }

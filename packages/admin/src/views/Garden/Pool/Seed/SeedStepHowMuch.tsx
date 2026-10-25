@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import {
   type CommitmentComposerValues,
   MAX_COMMITMENT_SET_SIZE,
@@ -14,7 +15,6 @@ import { hasActionEnded } from "@green-goods/shared/utils/action/window";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
@@ -24,8 +24,8 @@ import { dueDateAfter, formatDueDate } from "./seedReward";
 import {
   actionUIDOf,
   closedSeedActions,
-  seedErrorText,
   type SeedFieldError,
+  seedErrorText,
 } from "./seedStepModel";
 
 /** How many separate promises a steward usually seeds at once. */
@@ -147,7 +147,7 @@ export function SeedStepHowMuch({
           })}
         </AdminCardTitle>
         {isGardenWork ? (
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "cockpit.garden.pool.seed.countedInHours",
               defaultMessage: "Counted in hours",
@@ -314,7 +314,7 @@ export function SeedStepHowMuch({
                 defaultMessage: "Actions this needs",
               })}
             </AdminCardTitle>
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.seed.requirementsHint",
                 defaultMessage:
@@ -394,24 +394,24 @@ export function SeedStepHowMuch({
                   disabled={busy}
                 />
                 {/* Lifted over the fields' reserved supporting line, so it lines up with them. */}
-                <AdminButton
+                <Button
                   type="button"
-                  variant="text"
-                  size="sm"
-                  className="mb-5"
+                  emphasis="tertiary"
+                  size="compact"
+                  className="mb-9"
                   aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
                   onClick={() => requirements.remove(index)}
                   disabled={busy}
                 >
                   <RiCloseLine className="h-4 w-4" />
-                </AdminButton>
+                </Button>
               </div>
             ))}
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
-              leadingIcon={<RiAddLine className="h-4 w-4" />}
+              emphasis="secondary"
+              size="compact"
+              leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
               onClick={() => requirements.append({ actionUID: "", requiredCount: 1 })}
               disabled={busy}
             >
@@ -419,9 +419,9 @@ export function SeedStepHowMuch({
                 id: "cockpit.garden.pool.seed.requirementAdd",
                 defaultMessage: "Add Action",
               })}
-            </AdminButton>
+            </Button>
             {closedSeedActions(values, actions, chainId, now).map((action) => (
-              <p key={action.id} className="body-xs text-error-dark" role="alert">
+              <p key={action.id} className="type-meta text-error-dark" role="alert">
                 {formatMessage(
                   {
                     id: "app.compose.blocked.closedAction",
@@ -434,7 +434,7 @@ export function SeedStepHowMuch({
             ))}
             {(form.formState.errors.requirements?.root?.message ??
             form.formState.errors.requirements?.message) ? (
-              <p className="body-xs text-error-dark" role="alert">
+              <p className="type-meta text-error-dark" role="alert">
                 {seedErrorText(
                   String(
                     form.formState.errors.requirements?.root?.message ??
@@ -446,7 +446,7 @@ export function SeedStepHowMuch({
             ) : null}
           </div>
         ) : (
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.seed.proofOnlyPromise",
               defaultMessage:
@@ -464,7 +464,7 @@ export function SeedStepHowMuch({
         onMakeItOne={() => set("targetUnits", 1)}
       />
       {cap !== null ? (
-        <p className="-mt-2 body-xs text-text-soft">
+        <p className="-mt-2 type-meta text-text-soft">
           {formatMessage(
             {
               id: "cockpit.garden.pool.seed.capHint",

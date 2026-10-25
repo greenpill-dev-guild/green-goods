@@ -138,8 +138,9 @@ const sitsOnTheBackLine: NonNullable<FlowStory["play"]> = async ({ canvasElement
       box(steps[index].lastElementChild!).left
     );
   }
-  // Flow pages offset their content by the bar's 80px.
-  await expect(box(bar).height).toBe(80);
+  // Flow pages offset their content by the bar's 72px: 16px for the offline banner,
+  // the 32px controls, and 24px below them.
+  await expect(box(bar).height).toBe(72);
   for (const [index, step] of steps.entries()) {
     await expect(centreY(box(markerOf(step, index + 1)))).toBeCloseTo(centreY(box(back)), 0);
   }

@@ -56,9 +56,23 @@ vi.mock("@green-goods/shared/hooks/roles/useGardenRoleHat", () => ({
 }));
 
 vi.mock("@/components/EnsAddressText", () => ({
-  EnsAddressText: ({ address }: { address: string }) =>
-    createElement("span", { "data-testid": "staged-address" }, address.slice(0, 10)),
+  EnsAddressText: ({ address }: { address: string }) => createElement("span", null, address),
 }));
+
+// The staged list names each person through the shared address display; nobody here has
+// published a name, so each reads as a short address with the full one in its title.
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: null }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
+
+/** The staged person's name in the Add Members queue. */
+const stagedName = (address: Address) =>
+  within(screen.getByRole("group", { name: "Members to add" })).getByTitle(
+    new RegExp(`· ${address}$`)
+  );
 
 // Stub the confirm to a plain element. The real DiscardChangesDialog mounts the
 // Radix AdminConfirmDialog stack, whose portal content flickers out when opened
@@ -123,7 +137,7 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("staged-address")).toHaveTextContent(ADDRESS_A.slice(0, 10));
+      expect(stagedName(ADDRESS_A)).toBeInTheDocument();
     });
     expect(input).toHaveValue("");
     // The staging region exists even before entries (reserved geometry).
@@ -176,7 +190,7 @@ describe("components/Garden/AddMembersDialog", () => {
       expect(screen.getByText("Failed to add member")).toBeInTheDocument();
     });
     expect(defaultProps.onClose).not.toHaveBeenCalled();
-    expect(screen.getByTestId("staged-address")).toHaveTextContent(ADDRESS_A.slice(0, 10));
+    expect(stagedName(ADDRESS_A)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeInTheDocument();
   });
 
@@ -344,7 +358,7 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add" }));
     await waitFor(() => {
-      expect(screen.getByTestId("staged-address")).toBeInTheDocument();
+      expect(stagedName(ADDRESS_A)).toBeInTheDocument();
     });
 
     // Closing via the dialog X raises the discard confirm instead of dropping

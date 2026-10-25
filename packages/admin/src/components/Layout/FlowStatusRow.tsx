@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCheckboxCircleLine,
@@ -108,8 +109,8 @@ export function FlowStatusRow({
         aria-live="polite"
         className={cn("min-w-0", summary && "min-h-[58px] sm:min-h-10")}
       >
-        <p className={cn("body-sm font-semibold", styles.title)}>{title}</p>
-        <p className="body-xs text-text-sub">{description}</p>
+        <p className={cn("type-body font-semibold", styles.title)}>{title}</p>
+        <p className="type-meta text-text-sub">{description}</p>
         {progress !== null ? (
           <div
             className="mt-2 h-1 overflow-hidden rounded-full bg-stroke-soft"
@@ -118,7 +119,7 @@ export function FlowStatusRow({
             aria-valuemax={100}
             aria-valuenow={Math.round(progress)}
           >
-            {/* A semantic fill, not the workspace tone: the tone's four uses are spoken for (Rule 18). */}
+            {/* A semantic fill, not the workspace tone: the tone's five uses are spoken for (Rule 18). */}
             <div
               className="h-full bg-information-base"
               style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
@@ -127,14 +128,11 @@ export function FlowStatusRow({
         ) : null}
       </div>
       {summary ? (
-        <dl className="col-start-2 mt-2 space-y-1 border-t border-stroke-soft pt-2">
+        <FactList frame="inset" className="col-start-2 mt-2 border-t border-stroke-soft">
           {summary.map(([label, value], index) => (
-            <div key={index} className="flex justify-between gap-4 body-sm">
-              <dt className="max-w-[55%] shrink-0 text-text-soft">{label}</dt>
-              <dd className="min-w-0 text-right text-text-strong">{value}</dd>
-            </div>
+            <FactRow key={index} label={label} value={value} />
           ))}
-        </dl>
+        </FactList>
       ) : null}
     </div>
   );

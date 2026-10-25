@@ -1,4 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useDeregisterHypercert } from "@green-goods/shared/hooks/conviction/useDeregisterHypercert";
 import { useGardenPools } from "@green-goods/shared/hooks/conviction/useGardenPools";
@@ -11,11 +14,10 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { PoolType } from "@green-goods/shared/types/gardens-community";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiDeleteBinLine } from "@remixicon/react";
+import { RiDeleteBinLine, RiErrorWarningLine, RiScales3Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminInlineField } from "@/components/AdminInlineField";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
@@ -261,18 +263,18 @@ export default function GardenSignalPoolView({
           {/* Stats */}
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="surface-inset">
-              <p className="text-label-sm text-text-soft">
+              <p className="type-meta-sm text-text-soft">
                 {formatMessage({ id: "app.conviction.poolAddress" })}
               </p>
-              <p className="mt-1 text-body-md font-medium text-text-strong">
+              <p className="mt-1 type-body font-medium text-text-strong">
                 <EnsAddressText address={poolAddress} />
               </p>
             </div>
             <div className="surface-inset">
-              <p className="text-label-sm text-text-soft">{formatMessage({ id: countLabelKey })}</p>
+              <p className="type-meta-sm text-text-soft">{formatMessage({ id: countLabelKey })}</p>
               {/* Value slots keep their final geometry while loading — a
                   shimmer block the size of the number, never swapped-in text. */}
-              <p className="mt-1 text-title-md font-semibold text-text-strong">
+              <p className="mt-1 type-title-md font-semibold text-text-strong">
                 {itemsError ? (
                   <span className="text-text-soft">—</span>
                 ) : itemsLoading ? (
@@ -283,10 +285,10 @@ export default function GardenSignalPoolView({
               </p>
             </div>
             <div className="surface-inset">
-              <p className="text-label-sm text-text-soft">
+              <p className="type-meta-sm text-text-soft">
                 {formatMessage({ id: "app.signal.weightsRecordedLabel" })}
               </p>
-              <p className="mt-1 text-title-md font-semibold text-text-strong">
+              <p className="mt-1 type-title-md font-semibold text-text-strong">
                 {weightsError ? (
                   <span className="text-text-soft">—</span>
                 ) : weightsLoading ? (
@@ -301,10 +303,10 @@ export default function GardenSignalPoolView({
           {/* Conviction weights */}
           <section className="surface-inset p-0">
             <div className="border-b border-stroke-soft p-4 sm:p-6">
-              <h3 className="text-title-md font-semibold text-text-strong">
+              <h3 className="type-title-md font-semibold text-text-strong">
                 {formatMessage({ id: "app.signal.conviction" })}
               </h3>
-              <p className="mt-1 text-body-md text-text-sub">
+              <p className="mt-1 type-body text-text-sub">
                 {formatMessage({ id: "app.conviction.convictionWeightsDescription" })}
               </p>
             </div>
@@ -313,14 +315,17 @@ export default function GardenSignalPoolView({
               {hasReadError ? (
                 // Read failures fill this reserved region (they never mount as a
                 // banner above content) so a failed load does not shift layout.
-                <div className="flex min-h-40 flex-col items-center justify-center gap-3 text-center">
-                  <p className="text-body-md text-text-soft">
-                    {formatMessage({ id: "app.conviction.errorLoadingFailed" })}
-                  </p>
-                  <AdminButton type="button" variant="tonal" size="sm" onClick={retryReads}>
-                    {formatMessage({ id: "app.common.retry" })}
-                  </AdminButton>
-                </div>
+                <EmptyState
+                  tone="error"
+                  icon={<RiErrorWarningLine />}
+                  title={formatMessage({ id: "app.conviction.loadError.title" })}
+                  description={formatMessage({ id: "app.conviction.loadError.description" })}
+                  action={
+                    <Button type="button" emphasis="secondary" size="compact" onClick={retryReads}>
+                      {formatMessage({ id: "app.common.retry" })}
+                    </Button>
+                  }
+                />
               ) : itemsLoading || weightsLoading ? (
                 // Skeleton rows match the loaded row height so the section
                 // does not shift when weights land.
@@ -334,9 +339,7 @@ export default function GardenSignalPoolView({
                   <div className="h-16 rounded-md skeleton-shimmer" />
                 </div>
               ) : registeredIds.length === 0 ? (
-                <p className="flex min-h-40 items-center justify-center text-center text-body-md text-text-soft">
-                  {formatMessage({ id: emptyKey })}
-                </p>
+                <EmptyState icon={<RiScales3Line />} title={formatMessage({ id: emptyKey })} />
               ) : (
                 <div className="space-y-2">
                   {registeredIds.map((itemId) => {
@@ -347,7 +350,7 @@ export default function GardenSignalPoolView({
                         className="flex items-center justify-between gap-3 rounded-md bg-bg-weak p-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="font-mono text-body-md font-medium text-text-strong">
+                          <p className="font-mono type-body font-medium text-text-strong">
                             #{itemId.toString()}
                           </p>
                           <div className="mt-1 flex items-center gap-2">
@@ -359,18 +362,20 @@ export default function GardenSignalPoolView({
                               )}
                               className="flex-1"
                             />
-                            <span className="text-body-sm text-text-sub">{pct}%</span>
+                            <span className="type-meta text-text-sub">{pct}%</span>
                           </div>
                         </div>
                         {canManage && (
-                          <AdminIconButton
-                            variant="danger"
+                          <IconButton
+                            emphasis="tertiary"
+                            tone="danger"
+                            size="sm"
                             onClick={() => setConfirmDeregister(itemId)}
                             disabled={deregisterMutation.isPending}
-                            label={formatMessage({ id: "app.conviction.removeStrategy" })}
-                          >
-                            <RiDeleteBinLine />
-                          </AdminIconButton>
+                            aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
+                            title={formatMessage({ id: "app.conviction.removeStrategy" })}
+                            icon={<RiDeleteBinLine />}
+                          />
                         )}
                       </div>
                     );
@@ -397,15 +402,16 @@ export default function GardenSignalPoolView({
                   inputMode="numeric"
                   error={inputError || undefined}
                   action={
-                    <AdminButton
+                    <Button
                       type="button"
-                      variant="filled"
+                      emphasis="primary"
+                      size="sm"
                       onClick={handleRegister}
                       disabled={!newItemId.trim() || registerMutation.isPending}
                       loading={registerMutation.isPending}
                     >
                       {formatMessage({ id: "app.conviction.register" })}
-                    </AdminButton>
+                    </Button>
                   }
                 />
               )}

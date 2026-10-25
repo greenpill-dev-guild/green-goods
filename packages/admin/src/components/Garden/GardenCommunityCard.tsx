@@ -1,4 +1,6 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
@@ -13,7 +15,6 @@ import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiAddLine, RiAlertLine, RiCheckLine, RiGroupLine, RiQuestionLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard } from "../AdminCard";
 
@@ -82,7 +83,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                 </div>
                 <div>
                   <AdminCardTitle>{formatMessage({ id: "app.community.title" })}</AdminCardTitle>
-                  <p className="mt-0.5 flex items-center gap-1.5 text-body-md text-text-sub">
+                  <p className="mt-0.5 flex items-center gap-1.5 type-body text-text-sub">
                     <span
                       className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-success-base" : "bg-text-soft"}`}
                       aria-hidden="true"
@@ -96,26 +97,26 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             </div>
 
             <div className="mt-4 rounded-lg bg-bg-weak p-3">
-              <p className="label-xs text-text-soft">
+              <p className="type-label-sm text-text-soft">
                 {formatMessage({ id: "app.community.weightScheme" })}
               </p>
               {communityLoading ? (
-                <p className="mt-1 text-body-md text-text-sub">
+                <p className="mt-1 type-body text-text-sub">
                   {formatMessage({ id: "app.community.loading" })}
                 </p>
               ) : community ? (
                 <div className="mt-1">
-                  <p className="text-body-md font-medium text-text-strong">
+                  <p className="type-body font-medium text-text-strong">
                     {formatMessage({
                       id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
                     })}
                   </p>
-                  <p className="mt-0.5 text-body-sm text-text-sub">
+                  <p className="mt-0.5 type-meta text-text-sub">
                     {formatMessage({
                       id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}Description`,
                     })}
                   </p>
-                  <div className="mt-2 flex gap-3 text-body-sm text-text-sub">
+                  <div className="mt-2 flex gap-3 type-meta text-text-sub">
                     <span>
                       {formatMessage({ id: "app.roles.community" })}:{" "}
                       {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].community /
@@ -137,7 +138,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   </div>
                 </div>
               ) : (
-                <p className="mt-1 text-body-md text-text-sub">
+                <p className="mt-1 type-body text-text-sub">
                   {formatMessage({ id: "app.community.noCommunity" })}
                 </p>
               )}
@@ -147,11 +148,11 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
 
         {showWiringSection && wiringStatus === "connected" ? (
           <div className="mt-3 rounded-lg bg-bg-weak p-3">
-            <p className="flex items-center gap-1.5 text-body-md font-medium text-text-strong">
+            <p className="flex items-center gap-1.5 type-body font-medium text-text-strong">
               <RiCheckLine className="h-4 w-4 flex-shrink-0 text-success-dark" aria-hidden="true" />
               {formatMessage({ id: "app.community.yield.connected" })}
             </p>
-            <p className="mt-0.5 text-body-sm text-text-sub">
+            <p className="mt-0.5 type-meta text-text-sub">
               {formatMessage({ id: "app.community.yield.connectedDescription" })}
             </p>
           </div>
@@ -160,7 +161,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         {showWiringSection &&
         (wiringStatus === "missing-resolver-wiring" || wiringStatus === "mismatch") ? (
           <div className="mt-3 rounded-lg border border-warning-light bg-warning-lighter p-3">
-            <p className="flex items-center gap-1.5 text-body-md font-medium text-warning-dark">
+            <p className="flex items-center gap-1.5 type-body font-medium text-warning-dark">
               <RiAlertLine className="h-4 w-4 flex-shrink-0 text-warning-dark" aria-hidden="true" />
               {wiringStatus === "mismatch"
                 ? formatMessage({ id: "app.community.yield.mismatch" })
@@ -169,7 +170,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             {canShowReconnectLink && repairHref ? (
               <Link
                 to={repairHref}
-                className="mt-2 inline-flex text-label-sm font-medium text-primary-dark hover:text-primary-darker"
+                className="mt-2 inline-flex type-meta-sm font-medium text-primary-dark hover:text-primary-darker"
               >
                 {formatMessage({ id: "app.community.yield.connectAction" })}
               </Link>
@@ -179,7 +180,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
 
         {showWiringSection && wiringStatus === "missing-pool" ? (
           <div className="mt-3 rounded-lg border border-information-light bg-information-lighter p-3">
-            <p className="flex items-center gap-1.5 text-body-md text-information-dark">
+            <p className="flex items-center gap-1.5 type-body text-information-dark">
               <RiQuestionLine
                 className="h-4 w-4 flex-shrink-0 text-information-dark"
                 aria-hidden="true"
@@ -191,7 +192,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
 
         {showWiringSection && wiringState?.readStatus === "unavailable" ? (
           <div className="mt-3 rounded-lg bg-bg-weak p-3">
-            <p className="flex items-center gap-1.5 text-body-md text-text-soft">
+            <p className="flex items-center gap-1.5 type-body text-text-soft">
               <RiQuestionLine className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
               {formatMessage({ id: "app.community.yield.unavailable" })}
             </p>
@@ -203,27 +204,24 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             <>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div className="rounded-lg bg-bg-weak p-3">
-                  <p className="label-xs text-text-soft">
+                  <p className="type-label-sm text-text-soft">
                     {formatMessage({ id: "app.community.poolType.hypercert" })}
                   </p>
-                  <div className="mt-1 text-body-md text-text-sub">
+                  <div className="mt-1 type-body text-text-sub">
                     {hypercertPool ? (
-                      <AddressDisplay
-                        address={hypercertPool.poolAddress}
-                        className="text-body-md"
-                      />
+                      <AddressDisplay address={hypercertPool.poolAddress} className="type-body" />
                     ) : (
                       <>&mdash;</>
                     )}
                   </div>
                 </div>
                 <div className="rounded-lg bg-bg-weak p-3">
-                  <p className="label-xs text-text-soft">
+                  <p className="type-label-sm text-text-soft">
                     {formatMessage({ id: "app.community.poolType.action" })}
                   </p>
-                  <div className="mt-1 text-body-md text-text-sub">
+                  <div className="mt-1 type-body text-text-sub">
                     {actionPool ? (
-                      <AddressDisplay address={actionPool.poolAddress} className="text-body-md" />
+                      <AddressDisplay address={actionPool.poolAddress} className="type-body" />
                     ) : (
                       <>&mdash;</>
                     )}
@@ -237,7 +235,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                       "hypercert",
                       gardenRouteContext
                     )}
-                    className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
+                    className="type-meta-sm font-medium text-primary-dark hover:text-primary-darker"
                   >
                     {formatMessage({ id: "app.signal.viewHypercertPool" })}
                   </Link>
@@ -246,7 +244,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   </span>
                   <Link
                     to={adminRoutes.communityCoordinationSignalPool("action", gardenRouteContext)}
-                    className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
+                    className="type-meta-sm font-medium text-primary-dark hover:text-primary-darker"
                   >
                     {formatMessage({ id: "app.signal.viewActionPool" })}
                   </Link>
@@ -255,7 +253,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   </span>
                   <Link
                     to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}
-                    className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
+                    className="type-meta-sm font-medium text-primary-dark hover:text-primary-darker"
                   >
                     {formatMessage({ id: "app.conviction.manageStrategies" })}
                   </Link>
@@ -263,37 +261,41 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               )}
             </>
           ) : (
-            <div className="mt-3 rounded-lg border border-warning-light bg-warning-lighter p-3">
-              <p className="text-body-md text-warning-dark">
-                {formatMessage({ id: "app.community.noPoolsYet" })}
-              </p>
-              {canManage && community && (
-                <AdminButton
-                  variant="filled"
-                  size="sm"
-                  className="mt-2"
-                  onClick={async () => {
-                    try {
-                      await onCreatePools();
-                      toastService.success({
-                        title: formatMessage({ id: "app.community.poolsCreated" }),
-                      });
-                      onScheduleRefetch();
-                    } catch (error) {
-                      logger.error("Failed to create community pools", { error });
-                      toastService.error({
-                        title: formatMessage({ id: "app.community.poolsCreateFailed" }),
-                      });
-                    }
-                  }}
-                  disabled={isCreatingPools}
-                  loading={isCreatingPools}
-                >
-                  {!isCreatingPools && <RiAddLine className="h-4 w-4" />}
-                  {formatMessage({ id: "app.community.createPools" })}
-                </AdminButton>
-              )}
-            </div>
+            <EmptyState
+              tone="warning"
+              className="mt-3"
+              icon={<RiAlertLine />}
+              title={formatMessage({ id: "app.community.noPoolsYet.title" })}
+              description={formatMessage({ id: "app.community.noPoolsYet.description" })}
+              action={
+                canManage && community ? (
+                  <Button
+                    type="button"
+                    emphasis="primary"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await onCreatePools();
+                        toastService.success({
+                          title: formatMessage({ id: "app.community.poolsCreated" }),
+                        });
+                        onScheduleRefetch();
+                      } catch (error) {
+                        logger.error("Failed to create community pools", { error });
+                        toastService.error({
+                          title: formatMessage({ id: "app.community.poolsCreateFailed" }),
+                        });
+                      }
+                    }}
+                    disabled={isCreatingPools}
+                    loading={isCreatingPools}
+                  >
+                    {!isCreatingPools && <RiAddLine className="h-4 w-4" />}
+                    {formatMessage({ id: "app.community.createPools" })}
+                  </Button>
+                ) : undefined
+              }
+            />
           ))}
       </AdminCard>
     </section>

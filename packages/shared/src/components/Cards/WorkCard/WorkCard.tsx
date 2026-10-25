@@ -1,33 +1,17 @@
-import { RiCloseLine, RiImageLine } from "@remixicon/react";
-import * as React from "react";
-import { tv, type VariantProps } from "tailwind-variants";
+import { RiImageLine } from "@remixicon/react";
+import type * as React from "react";
+import { useIntl } from "react-intl";
 import { useLocalizedRelativeTime } from "../../../hooks/app/useLocalizedRelativeTime";
 import type { Address, WorkDisplayStatus } from "../../../types/domain";
-import { cn } from "../../../utils/styles/cn";
 import { toWorkDisplayTitle } from "../../../utils/work/workTitles";
-import { ImageWithFallback } from "../../Display/ImageWithFallback";
-import { getStatusColors } from "../../StatusBadge";
-
-const workCardVariants = tv({
-  base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] @[480px]:flex-row",
-  variants: {
-    variant: {
-      compact: "flex-row",
-      detailed: "",
-      auto: "",
-    },
-    interactive: {
-      true: "cursor-pointer hover:shadow-md active:brightness-98",
-      false: "",
-    },
-  },
-  defaultVariants: {
-    variant: "auto",
-    interactive: true,
-  },
-});
-
-export type WorkCardVariantProps = VariantProps<typeof workCardVariants>;
+import { normalizeTimestamp } from "../../../utils/time";
+import {
+  ItemRow,
+  type ItemRowDetail,
+  type ItemRowProps,
+  ItemRowSkeleton,
+  type ItemRowTone,
+} from "../ItemRow";
 
 export interface WorkCardData {
   id: string;
@@ -50,10 +34,8 @@ export interface WorkCardData {
 export interface WorkCardLabels {
   /** Title for a work with none of its own: empty, or only a generated name or timestamps */
   untitledWork?: string;
-  /** Label for error badge */
+  /** The pill's words when the work failed to load or send */
   error?: string;
-  /** Label for feedback badge */
-  feedback?: string;
   /** Status display labels */
   status?: {
     approved?: string;
@@ -64,15 +46,12 @@ export interface WorkCardLabels {
     uploading?: string;
     offline?: string;
   };
-  mediaPreviewAlt?: string;
-  closePreview?: string;
 }
 
 /** Default English labels */
 const defaultLabels: Required<WorkCardLabels> = {
   untitledWork: "Untitled Work",
   error: "Error",
-  feedback: "Feedback",
   status: {
     approved: "Approved",
     rejected: "Rejected",
@@ -82,74 +61,65 @@ const defaultLabels: Required<WorkCardLabels> = {
     uploading: "Uploading",
     offline: "Offline",
   },
-  mediaPreviewAlt: "Work media preview",
-  closePreview: "Close preview",
 };
 
-export interface WorkCardProps extends WorkCardVariantProps {
+/** A work's status as a pill and status edge tone. */
+const STATUS_TONE: Record<WorkDisplayStatus, ItemRowTone> = {
+  approved: "success",
+  pending: "warning",
+  rejected: "error",
+  sync_failed: "error",
+  syncing: "info",
+  uploading: "info",
+  offline: "neutral",
+};
+
+export interface WorkCardProps {
   work: WorkCardData;
   className?: string;
   onClick?: () => void;
-  renderActions?: () => React.ReactNode;
+  /** A row with nothing to open is content, not a button. */
+  interactive?: boolean;
+  /** The gardener leads the detail line: who, then the age. */
   showGardener?: boolean;
+  /** The photo count, on the photo. */
   showMediaCount?: boolean;
-  showFeedbackBadge?: boolean;
+  /** A work that failed says so in its pill, in place of its status. */
   showErrorBadge?: boolean;
-  showRetryBadge?: boolean;
-  badges?: React.ReactNode[];
-  /** Compact rows keep one primary state and one supporting line at every status. */
+  /** The pill's words, when a list words the state its own way. */
   statusLabel?: string;
-  statusTone?: WorkDisplayStatus;
+  /** The pill's and the status edge's tone, when a list reads the state its own way. */
+  statusTone?: ItemRowTone;
+  /** The first detail, in place of the gardener. */
   contextLabel?: string;
+  /** The second detail, in place of the age: feedback, for one. */
   supportingText?: string;
+  /** The work the list has open. */
+  selected?: boolean;
   /** Translated labels - defaults to English */
   labels?: WorkCardLabels;
 }
 
 /**
- * Compact list thumbnail: its height follows the compact row and aspect-ratio keeps it square,
- * so the row owns the size and a future row-height change cannot leave a gap (DL-034). The
- * inline styles predate the client build scanning shared source; utilities would work too.
+ * The work row on both surfaces (F7): the shared item row with the work's first photo
+ * and its photo count on it, a one-line title, the status pill under it, and the work's
+ * two details, who and how long ago, in their short form ("2 hr. ago"). The garden name
+ * stays off the line, since the chrome names the garden. The 2px edge takes the status
+ * tone. A row with nothing to open is content and opens nothing.
  */
-const COMPACT_CARD_STYLE: React.CSSProperties = { height: 88 };
-const COMPACT_THUMBNAIL_STYLE: React.CSSProperties = { height: "100%", aspectRatio: "1 / 1" };
-
-/** Maps work status to a left-border accent color class. */
-export function getStatusBorderClass(status: WorkDisplayStatus | string): string {
-  switch (status) {
-    case "approved":
-      return "border-l-2 border-l-success-base";
-    case "pending":
-      return "border-l-2 border-l-warning-base";
-    case "rejected":
-    case "sync_failed":
-      return "border-l-2 border-l-error-base";
-    case "syncing":
-    case "uploading":
-      return "border-l-2 border-l-information-base";
-    case "offline":
-    default:
-      return "border-l-2 border-l-stroke-soft";
-  }
-}
-
 export const WorkCard: React.FC<WorkCardProps> = ({
   work,
-  variant = "auto",
   interactive = true,
   className,
   onClick,
-  renderActions,
   showGardener = false,
   showMediaCount = true,
-  showFeedbackBadge = false,
   showErrorBadge = false,
-  showRetryBadge = false,
-  badges,
   statusLabel,
   statusTone,
   contextLabel,
   supportingText,
+  selected,
   labels: labelsProp,
 }) => {
   const labels = {
@@ -157,262 +127,69 @@ export const WorkCard: React.FC<WorkCardProps> = ({
     ...labelsProp,
     status: { ...defaultLabels.status, ...labelsProp?.status },
   };
+  const { formatMessage, formatDate } = useIntl();
+  // Through react-intl, so the age follows the reader's language, in the short form
+  // every card's detail line takes; the plain util is English-only.
+  const formatAge = useLocalizedRelativeTime({ style: "short" });
 
-  const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
-  // Through react-intl, so the age follows the reader's language; the plain util is English-only.
-  const formatAge = useLocalizedRelativeTime();
-
-  const timeAgo = formatAge(work.createdAt);
-  // Hosted titles can end in the timestamps older submissions appended; the card never shows them.
-  const displayTitle = toWorkDisplayTitle(work.title, "");
-  const thumbUrl = work.mediaPreview?.[0];
-  const displayStatus = statusLabel ?? labels.status[work.status] ?? work.status;
-  const statusColors = getStatusColors(statusTone ?? work.status).combined;
-  const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
-  const hasError = Boolean(work.error);
+  // Hosted titles can end in the timestamps older submissions appended; the row never shows them.
+  const title = toWorkDisplayTitle(work.title, "") || labels.untitledWork;
+  const failed = showErrorBadge && Boolean(work.error);
+  const tone = failed ? "error" : (statusTone ?? STATUS_TONE[work.status] ?? "neutral");
+  const pill = failed ? labels.error : (statusLabel ?? labels.status[work.status] ?? work.status);
   const mediaCount = work.imageCount ?? work.mediaPreview?.length ?? 0;
-  // A card with nothing to open is content, not a button: a button that does
-  // nothing would still take focus, announce itself, and answer a press.
-  const isInteractive = interactive && onClick !== undefined;
-  const canOpenPreview = Boolean(thumbUrl) && !isInteractive;
-  const isCompact = variant === "compact";
-
-  React.useEffect(() => {
-    if (!isPreviewOpen) return;
-
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsPreviewOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", onEscape);
-    return () => {
-      window.removeEventListener("keydown", onEscape);
-    };
-  }, [isPreviewOpen]);
-
-  const Wrapper = isInteractive ? "button" : "div";
-  const wrapperProps = isInteractive
-    ? { onClick, type: "button" as const, "data-pressable": "card" }
-    : {};
+  // Who, then how long ago: the work's order, most important first. The age is a
+  // moment, so it carries its exact time on hover and in its machine-readable form.
+  const createdAtMs = normalizeTimestamp(work.createdAt);
+  const age: ItemRowDetail =
+    supportingText ??
+    (Number.isNaN(createdAtMs)
+      ? formatAge(work.createdAt)
+      : {
+          text: formatAge(work.createdAt),
+          tone: "soft",
+          dateTime: new Date(createdAtMs).toISOString(),
+          title: formatDate(createdAtMs, { dateStyle: "medium", timeStyle: "short" }),
+        });
+  const who = contextLabel ?? (showGardener ? work.gardenerDisplayName : undefined);
+  const details: ItemRowProps["details"] = who ? [who, age] : [age];
+  const photoCount =
+    showMediaCount && mediaCount > 0 ? (
+      <>
+        <RiImageLine aria-hidden="true" />
+        <span aria-hidden="true">{mediaCount}</span>
+        <span className="sr-only">
+          {formatMessage(
+            {
+              id: "app.proof.contents.photos",
+              defaultMessage: "{count, plural, one {# photo} other {# photos}}",
+            },
+            { count: mediaCount }
+          )}
+        </span>
+      </>
+    ) : undefined;
 
   return (
-    <>
-      <Wrapper
-        className={cn(
-          workCardVariants({ variant, interactive: isInteractive }),
-          getStatusBorderClass(statusTone ?? work.status),
-          className
-        )}
-        style={isCompact ? COMPACT_CARD_STYLE : undefined}
-        {...wrapperProps}
-      >
-        <div
-          className={cn(
-            "relative overflow-hidden bg-bg-weak-50",
-            isCompact ? "shrink-0" : "w-full aspect-video @[480px]:w-56 @[480px]:flex-shrink-0"
-          )}
-          style={isCompact ? COMPACT_THUMBNAIL_STYLE : undefined}
-        >
-          {thumbUrl ? (
-            canOpenPreview ? (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setIsPreviewOpen(true);
-                }}
-                className="h-full w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/50"
-                aria-label={labels.mediaPreviewAlt}
-              >
-                <ImageWithFallback
-                  src={thumbUrl}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
-                  fallbackClassName="absolute inset-0 h-full w-full"
-                />
-              </button>
-            ) : (
-              <ImageWithFallback
-                src={thumbUrl}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                fallbackClassName="absolute inset-0 h-full w-full"
-              />
-            )
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-text-soft-400">
-              <RiImageLine className="h-6 w-6" />
-            </div>
-          )}
-        </div>
-
-        <div className={cn("flex min-w-0 flex-1 flex-col", isCompact ? "px-3 py-2" : "px-3 py-3")}>
-          <div className="flex items-start justify-between gap-2">
-            <h4
-              className="min-w-0 flex-1 truncate text-label-md font-medium text-text-strong-950"
-              title={displayTitle || labels.untitledWork}
-            >
-              {displayTitle || labels.untitledWork}
-            </h4>
-            <span
-              className={cn(
-                "flex-shrink-0 truncate rounded-full border px-2 py-0.5 text-xs font-medium",
-                statusColors
-              )}
-              style={{ maxWidth: "48%" }}
-              title={displayStatus}
-            >
-              {displayStatus}
-            </span>
-          </div>
-
-          <div
-            className="mt-0.5 truncate text-xs text-text-sub-600"
-            title={[
-              contextLabel ?? (showGardener && work.gardenerDisplayName),
-              timeAgo,
-              work.gardenName,
-            ]
-              .filter(Boolean)
-              .join(" • ")}
-          >
-            {(contextLabel || (showGardener && work.gardenerDisplayName)) && (
-              <>
-                {contextLabel || work.gardenerDisplayName}
-                <span className="mx-1">•</span>
-              </>
-            )}
-            {timeAgo}
-            {work.gardenName && (
-              <>
-                <span className="mx-1">•</span>
-                {work.gardenName}
-              </>
-            )}
-          </div>
-
-          <div
-            className={cn(
-              "min-w-0 items-center gap-2 text-xs",
-              isCompact ? "mt-1 flex overflow-hidden whitespace-nowrap" : "mt-2 flex flex-wrap"
-            )}
-            title={isCompact ? supportingText : undefined}
-          >
-            {isCompact && supportingText ? (
-              <span className="min-w-0 truncate text-text-sub-600">{supportingText}</span>
-            ) : (
-              <>
-                {showMediaCount && mediaCount > 0 && (
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1",
-                      isCompact
-                        ? "shrink-0 text-text-sub-600"
-                        : "rounded-full border border-information-light bg-information-lighter px-1.5 py-0.5 text-information-dark"
-                    )}
-                  >
-                    <RiImageLine className="h-3 w-3" /> {mediaCount}
-                  </span>
-                )}
-                {showErrorBadge && hasError && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-error-light bg-error-lighter px-1.5 py-0.5 text-error-dark">
-                    {labels.error}
-                  </span>
-                )}
-                {showRetryBadge && work.retryCount && work.retryCount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-warning-light bg-warning-lighter px-1.5 py-0.5 text-warning-dark">
-                    ↻ {work.retryCount}
-                  </span>
-                )}
-                {showFeedbackBadge && hasFeedback && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-feature-light bg-feature-lighter px-1.5 py-0.5 text-feature-dark">
-                    {labels.feedback}
-                  </span>
-                )}
-                {badges?.map((badge, index) => (
-                  <React.Fragment key={index}>{badge}</React.Fragment>
-                ))}
-                {renderActions?.()}
-              </>
-            )}
-          </div>
-        </div>
-      </Wrapper>
-
-      {isPreviewOpen && thumbUrl ? (
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- preview overlay; guarded handlers close on backdrop only, close button is inside
-        <div
-          className="fixed inset-0 z-modal flex items-center justify-center bg-static-black/80 p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) setIsPreviewOpen(false);
-          }}
-          onKeyDown={(event) => {
-            if (
-              event.target === event.currentTarget &&
-              (event.key === "Enter" || event.key === " ")
-            ) {
-              event.preventDefault();
-              setIsPreviewOpen(false);
-            }
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setIsPreviewOpen(false)}
-            className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-bg-white/10 text-static-white transition hover:bg-bg-white/20"
-            aria-label={labels.closePreview}
-          >
-            <RiCloseLine className="h-5 w-5" />
-          </button>
-          <img
-            src={thumbUrl}
-            alt={displayTitle || labels.mediaPreviewAlt}
-            className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
-          />
-        </div>
-      ) : null}
-    </>
+    <ItemRow
+      className={className}
+      data-component="WorkCard"
+      lead={{ kind: "photo", src: work.mediaPreview?.[0], mark: photoCount }}
+      title={title}
+      status={{ label: pill, tone }}
+      details={details}
+      edge={tone}
+      selected={selected}
+      onOpen={interactive ? onClick : undefined}
+    />
   );
 };
 
 /**
- * The compact card's frame with nothing in it, for a list that is still loading:
- * the square thumbnail, the title line with its 22px pill, the meta line and the
- * count line, so the cards that arrive land where these stood (D28). It reads
- * the same frame constants as the card, so the two cannot drift apart.
+ * The work row's frame with nothing in it, for a list that is still loading: the
+ * square photo inside the status edge, the title line, the pill and the detail line,
+ * so the rows that arrive land where these stood (D28).
  */
 export function WorkCardSkeleton() {
-  return (
-    <div
-      aria-hidden="true"
-      data-skeleton="work-card"
-      className={cn(
-        workCardVariants({ variant: "compact", interactive: false }),
-        getStatusBorderClass("offline")
-      )}
-      style={COMPACT_CARD_STYLE}
-    >
-      <div className="shrink-0 bg-bg-soft-200" style={COMPACT_THUMBNAIL_STYLE} />
-      <div className="flex min-w-0 flex-1 flex-col px-3 py-2">
-        <div className="flex items-start justify-between gap-2">
-          <span className="flex h-6 min-w-0 flex-1 items-center">
-            <span className="h-3.5 w-2/3 rounded bg-bg-soft-200" />
-          </span>
-          <span className="block h-[22px] w-[68px] shrink-0 rounded-full bg-bg-soft-200" />
-        </div>
-        <div className="mt-0.5 flex h-4 items-center">
-          <span className="h-2.5 w-1/2 rounded bg-bg-soft-200" />
-        </div>
-        <div className="mt-1 flex h-4 items-center">
-          <span className="h-2.5 w-8 rounded bg-bg-soft-200" />
-        </div>
-      </div>
-    </div>
-  );
+  return <ItemRowSkeleton edge="neutral" />;
 }
-
-export { workCardVariants };

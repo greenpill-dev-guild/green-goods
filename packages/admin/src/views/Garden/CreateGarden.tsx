@@ -1,14 +1,14 @@
-import { WalletCancellationRecovery } from "@/components/WalletCancellationRecovery";
+import { Button } from "@green-goods/shared/components/Button";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { useCreateGardenController } from "@green-goods/shared/hooks/admin-ui/garden/useCreateGardenController";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
 import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
+import { WalletCancellationRecovery } from "@/components/WalletCancellationRecovery";
 
 export default function CreateGarden() {
   const intl = useIntl();
@@ -29,7 +29,7 @@ export default function CreateGarden() {
         description={intl.formatMessage({
           id: "cockpit.garden.createDescription",
           defaultMessage:
-            "Set the garden profile, team plan, and deployment details before going on chain.",
+            "Set the garden profile, team plan, and deployment details before you create it.",
         })}
         variant="canvas"
         backLink={{
@@ -67,26 +67,33 @@ export default function CreateGarden() {
                   disabled={createGarden.isCheckingConfirmation}
                 />
               ) : (
-                <AdminButton variant="tonal" size="sm" onClick={createGarden.retry}>
+                <Button
+                  type="button"
+                  emphasis="secondary"
+                  size="compact"
+                  onClick={createGarden.retry}
+                >
                   {intl.formatMessage({ id: "admin.garden.deploy.retry" })}
-                </AdminButton>
+                </Button>
               )
             }
           />
         }
         actions={
           <>
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
+              emphasis="secondary"
+              size="sm"
               onClick={createGarden.handleCancel}
               disabled={createGarden.isSubmitting}
             >
               {intl.formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
               type="button"
-              variant="filled"
+              emphasis="primary"
+              size="sm"
               onClick={createGarden.handleSubmit}
               disabled={createGarden.isSubmitting}
               loading={createGarden.isSubmitting}
@@ -95,7 +102,7 @@ export default function CreateGarden() {
                 id: "admin.garden.form.deploy",
                 defaultMessage: "Deploy Garden",
               })}
-            </AdminButton>
+            </Button>
           </>
         }
       />

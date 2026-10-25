@@ -163,4 +163,23 @@ describe("AppKit config", () => {
       expect.stringContaining("Set it in .env (or run `bun run env:sync`")
     );
   });
+
+  it.each([
+    '"Plus Jakarta Sans", system-ui, sans-serif',
+    '"Inter", system-ui, sans-serif',
+  ])("uses host font %s without changing wallet or reconnect options", async (fontFamily) => {
+    vi.resetModules();
+    const { ensureAppKit: ensureFreshAppKit } = await import("../../config/appkit");
+    ensureFreshAppKit({ fontFamily });
+    expect(mockCreateAppKit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        themeVariables: expect.objectContaining({
+          "--apkt-font-family": fontFamily,
+        }),
+        allowUnsupportedChain: true,
+        enableNetworkSwitch: true,
+      })
+    );
+    expect(mockCreateAppKit.mock.calls[0]?.[0]).not.toHaveProperty("enableReconnect", false);
+  });
 });
