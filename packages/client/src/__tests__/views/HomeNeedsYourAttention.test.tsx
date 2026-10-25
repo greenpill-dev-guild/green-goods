@@ -1,7 +1,8 @@
 /**
  * Home's Needs Your Attention (PWA Home step 19, decisions 22 and 27): only while something
  * waits that the account can act on, one row per queue with its count, each opening that exact
- * queue. Who may see each queue is the hook's (useStewardDuties); this is what the rows say and do.
+ * queue. HomeJournal reads the duties once (useStewardDuties, which decides who sees which) and
+ * hands them in; this is what the rows say and do.
  */
 
 import type { StewardDuties } from "@green-goods/shared/hooks/garden/useStewardDuties";
@@ -17,17 +18,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const GARDEN = "0x6a7de00000000000000000000000000000000aaa";
 const NOW = 1_800_000_000;
 const mockNavigate = vi.hoisted(() => vi.fn());
-const state = vi.hoisted(() => ({
-  isOnline: true,
-  duties: undefined as unknown as StewardDuties,
-}));
+const state = vi.hoisted(() => ({ isOnline: true }));
 
 vi.mock("react-router-dom", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-router-dom")>()),
   useNavigate: () => mockNavigate,
-}));
-vi.mock("@green-goods/shared/hooks/garden/useStewardDuties", () => ({
-  useStewardDuties: () => state.duties,
 }));
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   useOnlineStatus: () => state.isOnline,
@@ -71,7 +66,7 @@ function duties(overrides: Partial<StewardDuties> = {}): StewardDuties {
   return { duties: [], isLoading: false, isError: false, refetch: vi.fn(), ...overrides };
 }
 
-function renderSection() {
+function renderSection(stewardDuties: StewardDuties) {
   return render(
     createElement(
       MemoryRouter,
@@ -79,7 +74,7 @@ function renderSection() {
       createElement(
         IntlProvider,
         { locale: "en", messages: en },
-        createElement(NeedsYourAttention, { garden })
+        createElement(NeedsYourAttention, { garden, duties: stewardDuties })
       )
     )
   );
@@ -106,31 +101,29 @@ describe("Home Needs Your Attention", () => {
   });
 
   it("is absent while nothing waits that the account can act on, and while it is still finding out", () => {
-    state.duties = duties({ isLoading: true });
-
-    const { container } = renderSection();
+    const { container } = renderSection(duties({ isLoading: true }));
 
     expect(heading()).toBeNull();
     expect(container.textContent).toBe("");
   });
 
   it("gives each waiting queue a row with its count, and each opens its exact queue", () => {
-    state.duties = duties({
-      duties: [
-        {
-          kind: "review",
-          count: 2,
-          works: [
-            work("0x01", "Workshop Delivered", NOW - 2 * 86_400),
-            work("0x02", "Hub Shift", NOW),
-          ],
-        },
-        { kind: "takeUp", count: 1, commitment: promise(4n, "cid-outage"), newestAt: NOW - 3600 },
-        { kind: "confirm", count: 1, commitments: [promise(9n, "cid-solar")] },
-      ],
-    });
-
-    renderSection();
+    renderSection(
+      duties({
+        duties: [
+          {
+            kind: "review",
+            count: 2,
+            works: [
+              work("0x01", "Workshop Delivered", NOW - 2 * 86_400),
+              work("0x02", "Hub Shift", NOW),
+            ],
+          },
+          { kind: "takeUp", count: 1, commitment: promise(4n, "cid-outage"), newestAt: NOW - 3600 },
+          { kind: "confirm", count: 1, commitments: [promise(9n, "cid-solar")] },
+        ],
+      })
+    );
     const [review, takeUp, confirm] = rows();
 
     expect(rows().map(titleOf)).toEqual([
@@ -155,9 +148,7 @@ describe("Home Needs Your Attention", () => {
 
   it("says a queue could not be read rather than going quiet, and reads again on Try Again", () => {
     const refetch = vi.fn();
-    state.duties = duties({ isError: true, refetch });
-
-    renderSection();
+    renderSection(duties({ isError: true, refetch }));
 
     expect(rows().map(titleOf)).toEqual(["Couldn't load it all"]);
     fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
@@ -166,12 +157,12 @@ describe("Home Needs Your Attention", () => {
 
   it("keeps what it could read beside the failure, and offers no Try Again offline", () => {
     state.isOnline = false;
-    state.duties = duties({
-      isError: true,
-      duties: [{ kind: "confirm", count: 2, commitments: [promise(9n, "cid-solar")] }],
-    });
-
-    renderSection();
+    renderSection(
+      duties({
+        isError: true,
+        duties: [{ kind: "confirm", count: 2, commitments: [promise(9n, "cid-solar")] }],
+      })
+    );
 
     expect(rows().map(titleOf)).toEqual(["2 promises to confirm", "Couldn't load it all"]);
     expect(screen.queryByRole("button", { name: "Try Again" })).toBeNull();

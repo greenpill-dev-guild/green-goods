@@ -14,6 +14,8 @@
  * - promises to confirm: the To confirm tab's own, `canManageGarden`, as its rows for the garden.
  *
  * A gardener or an evaluator passes none of them, so neither reads nor sees anything here.
+ * `useOpenStewardDuty` opens a duty's queue, the same from a Needs Your Attention row and from
+ * the Highlights carousel's duty card.
  *
  * @module hooks/garden/useStewardDuties
  */
@@ -21,8 +23,10 @@
 import { useCallback, useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { selectStewardDuties, type StewardDuty } from "../../modules/garden/steward-duties";
+import { useUIStore } from "../../stores/useUIStore";
 import type { Address, Garden } from "../../types/domain";
 import { compareAddresses } from "../../utils/blockchain/address";
+import { useNavigateToTop } from "../app/useNavigateToTop";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
 import { useCommitmentPools } from "../commitment-pooling/useCommitmentPooling";
@@ -105,5 +109,25 @@ export function useStewardDuties(garden: Garden): StewardDuties {
     isError:
       (managesGarden && (review.isError || confirm.isError)) || (decidesClaims && claims.isError),
     refetch,
+  };
+}
+
+/**
+ * Opens a duty's exact queue (DL-127): work to review, the garden's work, Pending first, until
+ * the Work sheet over Home lands (DL-128); a promise's take-up requests, its page, where the
+ * claim panel decides them; promises to confirm, the Promises sheet on To confirm.
+ */
+export function useOpenStewardDuty(gardenId: string): (duty: StewardDuty) => void {
+  const navigate = useNavigateToTop();
+  const openCommitmentsSheet = useUIStore((state) => state.openCommitmentsSheet);
+  return (duty) => {
+    switch (duty.kind) {
+      case "review":
+        return navigate(`/home/${gardenId}`);
+      case "takeUp":
+        return navigate(`/home/${gardenId}/commitments/${duty.commitment.commitmentId.toString()}`);
+      case "confirm":
+        return openCommitmentsSheet({ tab: "to-confirm" });
+    }
   };
 }

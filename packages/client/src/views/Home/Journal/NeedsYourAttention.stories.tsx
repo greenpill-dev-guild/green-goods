@@ -1,10 +1,7 @@
 import { useCommitmentMetadata } from "@green-goods/shared/commitment-pooling";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import {
-  type StewardDuties,
-  useStewardDuties,
-} from "@green-goods/shared/hooks/garden/useStewardDuties";
+import type { StewardDuties } from "@green-goods/shared/hooks/garden/useStewardDuties";
 import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
@@ -68,8 +65,8 @@ const TITLES = new Map([
 ]);
 
 /**
- * What the derivation (`useStewardDuties`) hands a steward of Riverside Commons who wears its
- * steward hat: two works waiting, the older first; take-up requests on two promises, newest first;
+ * What the derivation (`useStewardDuties`, which HomeJournal calls once) hands a steward of
+ * Riverside Commons who wears its steward hat: two works waiting, the older first; take-up requests on two promises, newest first;
  * one promise to confirm. It hands a gardener nothing, whatever waits: each row follows the
  * predicate of its act (useStewardDuties.test.ts proves who gets which).
  */
@@ -99,10 +96,15 @@ interface NeedsYourAttentionStoryProps {
   offline?: boolean;
 }
 
-function NeedsYourAttentionStory(_props: NeedsYourAttentionStoryProps) {
+const refetch = fn();
+
+function NeedsYourAttentionStory({ scene }: NeedsYourAttentionStoryProps) {
   return (
     <div className="min-h-dvh bg-bg-canvas pb-6">
-      <NeedsYourAttention garden={JOURNEY_GARDEN_RECORD as Garden} />
+      <NeedsYourAttention
+        garden={JOURNEY_GARDEN_RECORD as Garden}
+        duties={{ ...SCENES[scene], refetch }}
+      />
     </div>
   );
 }
@@ -138,7 +140,6 @@ const meta: Meta<typeof NeedsYourAttentionStory> = {
   ],
   args: { scene: "stewardWaiting", offline: false },
   beforeEach: ({ args }) => {
-    mocked(useStewardDuties).mockReturnValue({ ...SCENES[args.scene], refetch: fn() });
     mocked(useOnlineStatus).mockReturnValue(!args.offline);
     mocked(useCommitmentMetadata).mockReturnValue({
       byCID: TITLES,
@@ -146,7 +147,7 @@ const meta: Meta<typeof NeedsYourAttentionStory> = {
     mocked(useActions).mockReturnValue({
       data: PENDING_ACTIONS,
     } as unknown as ReturnType<typeof useActions>);
-    return resetHookMocks(useStewardDuties, useOnlineStatus, useCommitmentMetadata, useActions);
+    return resetHookMocks(useOnlineStatus, useCommitmentMetadata, useActions);
   },
 };
 

@@ -9,7 +9,8 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useStewardDuties } from "../../../hooks/garden/useStewardDuties";
+import { useOpenStewardDuty, useStewardDuties } from "../../../hooks/garden/useStewardDuties";
+import { useUIStore } from "../../../stores/useUIStore";
 import type { Garden, Work } from "../../../types/domain";
 import { createMockGarden, createMockWork } from "../../test-utils/mock-factories";
 
@@ -18,6 +19,7 @@ const GARDEN = "0x6A7DE00000000000000000000000000000000AAA";
 const OTHER_GARDEN = "0x0757e00000000000000000000000000000000bbb";
 
 const mocks = vi.hoisted(() => ({
+  navigate: vi.fn(),
   reviewGardens: [] as string[][],
   toReview: [] as Work[],
   reviewLoading: false,
@@ -41,6 +43,7 @@ const mocks = vi.hoisted(() => ({
 // The roster predicates run for real on the garden's record; the reads are the edges.
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => ME }));
 vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => ({ user: { id: ME } }) }));
+vi.mock("../../../hooks/app/useNavigateToTop", () => ({ useNavigateToTop: () => mocks.navigate }));
 vi.mock("../../../hooks/work/useNeedsReview", () => ({
   useNeedsReview: (gardenIds: string[]) => {
     mocks.reviewGardens.push(gardenIds);
@@ -206,5 +209,28 @@ describe("useStewardDuties", () => {
     expect(mocks.reviewRefetch).toHaveBeenCalledTimes(1);
     expect(mocks.claimsRefetch).toHaveBeenCalledTimes(1);
     expect(mocks.confirmRefetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useOpenStewardDuty", () => {
+  it("opens each duty's own queue: the garden's work, the promise's page, Promises on To confirm", () => {
+    const openCommitmentsSheet = vi.fn();
+    const realOpen = useUIStore.getState().openCommitmentsSheet;
+    useUIStore.setState({ openCommitmentsSheet });
+    try {
+      const open = renderHook(() => useOpenStewardDuty(GARDEN)).result.current;
+
+      open({ kind: "review", count: 1, works: [createMockWork({ id: "0x01" })] });
+      expect(mocks.navigate).toHaveBeenLastCalledWith(`/home/${GARDEN}`);
+
+      open({ kind: "takeUp", count: 2, commitment: { commitmentId: 4n } as never, newestAt: 10 });
+      expect(mocks.navigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/4`);
+
+      open({ kind: "confirm", count: 1, commitments: [] });
+      expect(openCommitmentsSheet).toHaveBeenCalledWith({ tab: "to-confirm" });
+      expect(mocks.navigate).toHaveBeenCalledTimes(2);
+    } finally {
+      useUIStore.setState({ openCommitmentsSheet: realOpen });
+    }
   });
 });

@@ -4,14 +4,12 @@ import {
 } from "@green-goods/shared/commitment-pooling";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
   type StewardDuties,
-  useStewardDuties,
+  useOpenStewardDuty,
 } from "@green-goods/shared/hooks/garden/useStewardDuties";
-import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Garden, Work } from "@green-goods/shared/types/domain";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
@@ -23,7 +21,7 @@ import {
   RiUserAddLine,
 } from "@remixicon/react";
 import { useMemo } from "react";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 import { formatAgo } from "@/components/Cards/Work/pendingCopy";
 import { JournalSection } from "./JournalSection";
 
@@ -32,22 +30,56 @@ type StewardDuty = StewardDuties["duties"][number];
 /** The titles a row names before its count says the rest. */
 const NAMED = 2;
 
+const DUTY_ICONS = {
+  review: RiTaskLine,
+  takeUp: RiUserAddLine,
+  confirm: RiShieldCheckLine,
+} satisfies Record<StewardDuty["kind"], unknown>;
+
+/**
+ * What a duty says, the same on its Needs Your Attention row and on the Highlights carousel's
+ * duty card: its count as the title ("2 submissions to review") and its kind as the pill.
+ */
+export function describeStewardDuty(intl: IntlShape, duty: StewardDuty) {
+  const message = (id: string) => intl.formatMessage({ id }, { count: duty.count });
+  switch (duty.kind) {
+    case "review":
+      return {
+        title: message("app.home.attention.review"),
+        pill: message("app.pending.pill.toReview"),
+      };
+    case "takeUp":
+      return {
+        title: message("app.home.attention.takeUp"),
+        pill: message("app.pending.pill.toReview"),
+      };
+    case "confirm":
+      return {
+        title: message("app.home.attention.confirm"),
+        pill: message("app.commitments.tab.toConfirm"),
+      };
+  }
+}
+
+export interface NeedsYourAttentionProps {
+  garden: Garden;
+  /** The active garden's duties, read once by HomeJournal (`useStewardDuties(garden)`). */
+  duties: StewardDuties;
+}
+
 /**
  * Needs Your Attention (PWA Home step 19, DL-127): the queues in the active garden the account
- * can act on, one row each with its count, each opening its exact queue. Work to review opens
- * the garden's work, Pending first, until the Work sheet over Home lands (DL-128); a promise's
- * take-up requests open its page, where the claim panel decides them; promises to confirm open
- * the Promises sheet on To confirm. It appears only with something to show: a queue that waits,
- * or a read that failed and may hide one. Join requests stay in Gardeners, since their queue can
- * be read only through a signature.
+ * can act on, one row each with its count, each opening its exact queue (`useOpenStewardDuty`).
+ * It appears only with something to show: a queue that waits, or a read that failed and may
+ * hide one. Join requests stay in Gardeners, since their queue can be read only through a
+ * signature.
  */
-export function NeedsYourAttention({ garden }: { garden: Garden }) {
+export function NeedsYourAttention({ garden, duties: stewardDuties }: NeedsYourAttentionProps) {
   const intl = useIntl();
-  const navigate = useNavigateToTop();
   const isOnline = useOnlineStatus();
-  const { duties, isError, refetch } = useStewardDuties(garden);
+  const { duties, isError, refetch } = stewardDuties;
+  const openDuty = useOpenStewardDuty(garden.id);
   const { data: actions = [] } = useActions();
-  const openCommitmentsSheet = useUIStore((state) => state.openCommitmentsSheet);
   const promises = useMemo(
     () =>
       duties.flatMap((duty) =>
@@ -59,8 +91,7 @@ export function NeedsYourAttention({ garden }: { garden: Garden }) {
 
   if (duties.length === 0 && !isError) return null;
 
-  const message = (id: string, values?: Record<string, number>) =>
-    intl.formatMessage({ id }, values);
+  const message = (id: string) => intl.formatMessage({ id });
   const promiseTitle = (commitment: CommitmentReadModel) =>
     (commitment.metadataCID && byCID.get(commitment.metadataCID.trim())?.title) ||
     message("app.commitments.row.untitled");
@@ -68,46 +99,19 @@ export function NeedsYourAttention({ garden }: { garden: Garden }) {
     toWorkDisplayTitle(work.title, "") ||
     findActionByUID(actions, work.actionUID)?.title ||
     message("app.workCard.untitledWork");
-  const toReview = { label: message("app.pending.pill.toReview"), tone: "warning" as const };
 
-  const row = (duty: StewardDuty) => {
+  // The work waiting longest leads, with how long it has waited; a promise row names its promise.
+  const detailsOf = (duty: StewardDuty): [string] | [string, string] => {
     switch (duty.kind) {
       case "review":
-        return (
-          <ItemRow
-            lead={{ kind: "icon", icon: <RiTaskLine aria-hidden="true" /> }}
-            title={message("app.home.attention.review", { count: duty.count })}
-            status={toReview}
-            // The work waiting longest leads, with how long it has waited.
-            details={[
-              duty.works.slice(0, NAMED).map(workTitle).join(", "),
-              formatAgo(intl, duty.works[0].createdAt * 1000),
-            ]}
-            onOpen={() => navigate(`/home/${garden.id}`)}
-          />
-        );
+        return [
+          duty.works.slice(0, NAMED).map(workTitle).join(", "),
+          formatAgo(intl, duty.works[0].createdAt * 1000),
+        ];
       case "takeUp":
-        return (
-          <ItemRow
-            lead={{ kind: "icon", icon: <RiUserAddLine aria-hidden="true" /> }}
-            title={message("app.home.attention.takeUp", { count: duty.count })}
-            status={toReview}
-            details={[promiseTitle(duty.commitment), formatAgo(intl, duty.newestAt * 1000)]}
-            onOpen={() =>
-              navigate(`/home/${garden.id}/commitments/${duty.commitment.commitmentId.toString()}`)
-            }
-          />
-        );
+        return [promiseTitle(duty.commitment), formatAgo(intl, duty.newestAt * 1000)];
       case "confirm":
-        return (
-          <ItemRow
-            lead={{ kind: "icon", icon: <RiShieldCheckLine aria-hidden="true" /> }}
-            title={message("app.home.attention.confirm", { count: duty.count })}
-            status={{ label: message("app.commitments.tab.toConfirm"), tone: "warning" }}
-            details={[duty.commitments.slice(0, NAMED).map(promiseTitle).join(", ")]}
-            onOpen={() => openCommitmentsSheet({ tab: "to-confirm" })}
-          />
-        );
+        return [duty.commitments.slice(0, NAMED).map(promiseTitle).join(", ")];
     }
   };
 
@@ -116,11 +120,21 @@ export function NeedsYourAttention({ garden }: { garden: Garden }) {
       data-component="HomeNeedsYourAttention"
       title={message("app.home.attention.title")}
     >
-      {duties.map((duty) => (
-        <li key={duty.kind === "takeUp" ? `takeUp:${duty.commitment.commitmentId}` : duty.kind}>
-          {row(duty)}
-        </li>
-      ))}
+      {duties.map((duty) => {
+        const { title, pill } = describeStewardDuty(intl, duty);
+        const Icon = DUTY_ICONS[duty.kind];
+        return (
+          <li key={duty.kind === "takeUp" ? `takeUp:${duty.commitment.commitmentId}` : duty.kind}>
+            <ItemRow
+              lead={{ kind: "icon", icon: <Icon aria-hidden="true" /> }}
+              title={title}
+              status={{ label: pill, tone: "warning" }}
+              details={detailsOf(duty)}
+              onOpen={() => openDuty(duty)}
+            />
+          </li>
+        );
+      })}
       {isError ? (
         <li>
           <ItemRow
