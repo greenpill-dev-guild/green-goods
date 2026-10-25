@@ -20,6 +20,8 @@ import { useNavigate } from "react-router-dom";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import {
   CommitmentStateLadder,
+  CycleDetailsSheet,
+  CycleRail,
   PendingCreationRow,
   PromiseGroupRow,
   PromiseRow,
@@ -30,8 +32,6 @@ import {
   GardenListHeaderSpace,
 } from "@/components/Features/Garden";
 import { AppSheet } from "@/components/Sheets/AppSheet";
-import { CycleDetailsSheet } from "./CycleDetailsSheet";
-import { CycleRail } from "./CycleRail";
 import { type CommitmentDoor, PoolCreateEntry } from "./PoolCreateEntry";
 import { PoolLifecycleNotice } from "./PoolLifecycleNotice";
 

@@ -113,9 +113,15 @@ export function useCommitmentsToConfirm({
   viewer,
   includeProtocolFallback = false,
   refreshWhileOpen = false,
+  inScope,
 }: {
   chainId: number;
   viewer?: Address;
+  /**
+   * The active garden's scope (`useActiveGarden`, DL-129): only the gardens it shows are
+   * asked, so the queue and `isSteward` answer for the active garden alone.
+   */
+  inScope?: (gardens: readonly (string | null | undefined)[]) => boolean;
   /**
    * Also read the protocol stewards' queue: opted-in commitments from any
    * garden whose ordinary path is unreachable. Off unless the surface is the
@@ -131,14 +137,16 @@ export function useCommitmentsToConfirm({
   const protocolPool = useProtocolPool({ chainId });
 
   const { stewarded, protocolGarden } = useMemo(() => {
-    const stewarded: Garden[] = viewer ? gardens.filter((garden) => canManageGarden(garden)) : [];
+    const stewarded: Garden[] = viewer
+      ? gardens.filter((garden) => canManageGarden(garden) && (!inScope || inScope([garden.id])))
+      : [];
     const root = protocolPool.rootGarden;
     const protocolGarden =
       root && stewarded.some((garden) => isSameGarden(garden.id as Address, root))
         ? (stewarded.find((garden) => isSameGarden(garden.id as Address, root)) ?? null)
         : null;
     return { stewarded, protocolGarden };
-  }, [gardens, viewer, canManageGarden, protocolPool.rootGarden]);
+  }, [gardens, viewer, canManageGarden, inScope, protocolPool.rootGarden]);
 
   // The viewer's own set, which the account query resolves through the
   // contributor roster as well as the named party fields. It is what tells a

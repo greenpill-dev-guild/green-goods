@@ -24,19 +24,25 @@ export type GardenPoolLiveness = "live" | "settled" | "all";
 
 const NON_PARTICIPATING_STATES = new Set(["NOT_READY", "READY", "CLOSED", "COMPOSTED"]);
 
-export function useGardenPoolController(pool: CommitmentPoolRecord) {
-  const chainId = DEFAULT_CHAIN_ID;
-  const viewer = usePrimaryAddress();
-  const isOnline = useOnlineStatus();
-  const [selectedCycleId, setSelectedCycleId] = useState<bigint | null>(null);
-  const [direction, setDirection] = useState<GardenPoolDirection>("all");
-  // The daily list defaults to the living; the settled are the history, one
-  // Status choice away, so kept/withdrawn/lapsed rows never interleave open
-  // offers unless the reader asks for All.
-  const [liveness, setLiveness] = useState<GardenPoolLiveness>("live");
-  const [busyJobId, setBusyJobId] = useState<string | null>(null);
-
-  const { cycles: poolCycles } = useCommitmentCycles({ chainId, poolId: pool.poolId });
+/**
+ * The seasons and campaigns a pool's rail shows, and the one chosen to filter
+ * by. A garden's Pool tab and the Promises sheet (PWA Home decision 32) read
+ * the same rail.
+ */
+export function usePoolCycleRail(input: {
+  chainId: number;
+  /** The pool whose cycles show; null for a garden without one, which draws no rail. */
+  poolId: bigint | null;
+  /** The cycle to open filtered to, such as one Home asked to show the promises of. */
+  initialCycleId?: bigint | null;
+}) {
+  const [selectedCycleId, setSelectedCycleId] = useState<bigint | null>(
+    input.initialCycleId ?? null
+  );
+  const { cycles: poolCycles } = useCommitmentCycles(
+    { chainId: input.chainId, poolId: input.poolId ?? 0n },
+    { enabled: input.poolId !== null }
+  );
   // A cancelled season is not part of the garden's story: the public garden
   // page leaves it out, and so does the member rail. Commitments it once held
   // stay in the list under All and Settled; only the season's own chip goes.
@@ -50,6 +56,21 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     selectedCycleId !== null && cycles.some((cycle) => cycle.cycleId === selectedCycleId)
       ? selectedCycleId
       : null;
+  return { cycles, selectedCycleId: activeCycleId, setSelectedCycleId };
+}
+
+export function useGardenPoolController(pool: CommitmentPoolRecord) {
+  const chainId = DEFAULT_CHAIN_ID;
+  const viewer = usePrimaryAddress();
+  const isOnline = useOnlineStatus();
+  const rail = usePoolCycleRail({ chainId, poolId: pool.poolId });
+  const [direction, setDirection] = useState<GardenPoolDirection>("all");
+  // The daily list defaults to the living; the settled are the history, one
+  // Status choice away, so kept/withdrawn/lapsed rows never interleave open
+  // offers unless the reader asks for All.
+  const [liveness, setLiveness] = useState<GardenPoolLiveness>("live");
+  const [busyJobId, setBusyJobId] = useState<string | null>(null);
+  const activeCycleId = rail.selectedCycleId;
   const stewardRole = useHasRole(
     pool.garden as Address,
     (viewer ?? undefined) as Address | undefined,
@@ -156,9 +177,9 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     /** Who is reading, so their own copies stay out of a group row. */
     viewer: (viewer ?? null) as Address | null,
     isOnline,
-    cycles,
+    cycles: rail.cycles,
     selectedCycleId: activeCycleId,
-    setSelectedCycleId,
+    setSelectedCycleId: rail.setSelectedCycleId,
     direction,
     setDirection,
     liveness,

@@ -1337,6 +1337,7 @@
   "app.common.done": "Done",
   "app.common.edit": "Edit",
   "app.common.failedToLoad": "Failed to load",
+  "app.common.inGarden": "In {garden}",
   "app.common.loading": "Loading...",
   "app.common.loadingApp": "Loading {appName}",
   "app.common.next": "Next",
