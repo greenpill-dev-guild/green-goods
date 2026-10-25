@@ -398,6 +398,16 @@ function needsOwnerCompileProof(paths, surface) {
 // A fast push budgets a focused package suite at this many seconds.
 const FOCUSED_PUSH_SUITE_SECONDS = 30;
 
+// A Shared critical push proves that each consumer of the change still compiles against it; CI's
+// consumer workflows own the whole suites and production builds. Indexer has no standalone
+// typecheck check, and it does not consume Shared.
+const CONSUMER_TYPECHECKS = {
+  shared: "shared-typecheck",
+  client: "client-typecheck",
+  admin: "admin-typecheck",
+  agent: "agent-typecheck",
+};
+
 // The gates that certify readiness, a full local ship, a merge or a release run every check fresh,
 // whatever the plan's risk: they reuse no receipt, and their package suites skip Turbo's cache.
 // Lighter intents may reuse an exact pass, but a critical plan only in push, where the pre-push
@@ -548,6 +558,12 @@ export function selectValidation(input = {}, options = {}) {
     ((intent === "ship" || localMerge) && changedPaths.length === 0);
   const strictScope = strictIntent || fullRepository;
   const surfaces = impactedSurfaces(policy, changedPaths, fullRepository);
+  // The contracts override keeps its complete local gate: its verify step has no pull-request CI
+  // equivalent yet. A Shared critical push keeps the fast-push shape instead, with the owner's
+  // typecheck and focused suite mandatory and every consumer's typechecks added; CI's consumer
+  // workflows own the whole suites and production builds (2026-10-25).
+  const contractsCritical = risk === "critical" && surfaces.has("contracts");
+  const criticalPush = intent === "push" && risk === "critical" && !contractsCritical;
   const selected = new Set();
   const selectionReasons = new Map();
   const select = (id, reason) => {
@@ -586,14 +602,14 @@ export function selectValidation(input = {}, options = {}) {
 
   const includeBuilds =
     ["readiness", "ship", "merge", "release"].includes(intent) ||
-    (intent === "push" && risk === "critical");
+    (intent === "push" && contractsCritical);
   if (evidenceOnly) {
     for (const surface of Object.keys(testPaths)) {
       const testId = `${surface}-test`;
       if (!knownCheckIds.has(testId)) throw new Error(`Unknown focused-test surface: ${surface}`);
       select(testId, `focused-test:${surface}`);
     }
-  } else if (fastPush) {
+  } else if (fastPush || criticalPush) {
     for (const surface of Object.keys(testPaths)) {
       const testId = `${surface}-test`;
       if (!knownCheckIds.has(testId)) throw new Error(`Unknown focused-test surface: ${surface}`);
@@ -620,6 +636,14 @@ export function selectValidation(input = {}, options = {}) {
         if (builds[surface]) select(builds[surface], `push-owner-compile:${surface}`);
       }
       if (surface === "docs") select("docs-authority", "push-owner-proof:docs");
+    }
+    if (criticalPush) {
+      const owners = new Set(changedPaths.map(owningSurface).filter(Boolean));
+      for (const surface of surfaces) {
+        if (owners.has(surface)) continue;
+        const typecheck = CONSUMER_TYPECHECKS[surface];
+        if (typecheck) select(typecheck, `critical-consumer-types:${surface}`);
+      }
     }
   } else {
     for (const surface of surfaces) {
@@ -728,6 +752,15 @@ export function selectValidation(input = {}, options = {}) {
       mandatory.add(id);
     }
   }
+  // D15 moved the consumer suites out of the override's checks for push and qa. The cross-package
+  // checkpoint keeps the complete override, so the consumer suites a Shared critical change fans
+  // out to stay mandatory there, as they did when the override named them.
+  if (!evidenceOnly && risk === "critical" && !contractsCritical && !["push", "qa"].includes(intent)) {
+    for (const surface of surfaces) {
+      const id = `${surface}-test`;
+      if (selected.has(id)) mandatory.add(id);
+    }
+  }
   if (["readiness", "push", "ship", "merge", "release"].includes(intent)) {
     for (const id of selected) mandatory.add(id);
   }
@@ -744,6 +777,7 @@ export function selectValidation(input = {}, options = {}) {
         changedPaths,
         deletedPaths,
         checkpointScope: checkpointScope.effective,
+        contractsCritical,
       });
       return {
         ...materialized,
@@ -775,9 +809,10 @@ export function selectValidation(input = {}, options = {}) {
     (check) => check.state === "blocked" && !isAdvisoryManualCheck(check),
   );
   const budget = summarizeBudget(intent, checks, risk);
-  const missingFocus = fastPush
-    ? focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy)
-    : [];
+  const missingFocus =
+    fastPush || criticalPush
+      ? focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy)
+      : [];
   // Static budgets are ceilings, not measurements. A plan whose package suites are all
   // focused is not over-broad, so it runs and the hard deadline decides; only an
   // unfocused suite turns an over-limit estimate into a request for narrower proof.
@@ -854,8 +889,14 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     (capability) => environment.capabilities[capability] === false,
   );
   const surface = check.id.endsWith("-test") ? check.id.slice(0, -5) : null;
+  // A mandatory critical suite runs whole, except in a Shared critical push or qa run, where the
+  // tests the author names are the local proof and CI runs the whole suites.
+  const wholeCriticalSuite =
+    mandatory &&
+    context.risk === "critical" &&
+    (context.contractsCritical === true || !["push", "qa"].includes(context.intent));
   const focusedPaths =
-    surface && !(mandatory && context.risk === "critical") && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
+    surface && !wholeCriticalSuite && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
       ? testPaths[surface] ?? []
       : [];
   let command = check.command;

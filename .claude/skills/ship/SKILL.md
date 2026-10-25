@@ -9,7 +9,8 @@ argument-hint: "[--dry-run] [--no-commit] [--pr] [--full-local]"
 
 Publish Green Goods changes without duplicating CI locally. Ordinary work proves the changed
 behavior, passes the ready-for-CI push gate, and lets GitHub CI own broad regression coverage and
-merge approval. Critical and release work retain the complete local override.
+merge approval. Critical work keeps its mandatory override; release work keeps the complete local
+gate.
 
 ## Iron law
 
@@ -70,9 +71,11 @@ Use `--test-path <surface>:<path>` to give the selector direct proof. A `needs-f
 nothing: provide a focused test, narrow the change, or choose an existing explicit acceptance
 check.
 
-If the selector marks any surface critical, run its complete mandatory local override. For a
-release or explicit `--full-local` request, run the complete Ship Gate. Do not use compatibility
-flags or receipts to suppress critical checks.
+If the selector marks any surface critical, run its mandatory override: for Shared, the owner's
+typecheck and focused suite plus every consumer's typechecks, with CI owning the consumer suites and
+builds; for contracts, the complete contracts gate. For a release or explicit `--full-local`
+request, run the complete Ship Gate. Do not use compatibility flags or receipts to suppress
+critical checks.
 
 ## 3. Commit the proven change
 
@@ -116,8 +119,8 @@ Wait for all required workflows selected for the changed paths to finish on the 
 SHA. A failure blocks readiness. Pending, missing, or unavailable CI yields a blocked report; do not
 run a broad local fallback and call the PR approved.
 
-Critical surfaces require both the complete local override and current-head CI. Ordinary work needs
-the targeted local contract and current-head CI.
+Critical surfaces require both the selector's mandatory override and current-head CI, which owns
+the consumer suites and builds. Ordinary work needs the targeted local contract and current-head CI.
 
 ## 7. Close out Linear after a merge
 

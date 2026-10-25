@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "toolchain": {
     "bun": "1.4.2",
     "node": "22.22.1",
@@ -1647,7 +1647,7 @@
     },
     {
       "id": "shared-signing-money-queue-auth",
-      "note": "Critical means signing, money, queue and auth (D1, 2026-09-28). The prefixes are critical as a whole. exact lists every other Shared source file whose code reaches a primitive in sharedMutationPrimitives. The selector also escalates any changed Shared file that reaches one, and select-validation.test.mjs fails when exact drifts from the code.",
+      "note": "Critical means signing, money, queue and auth (D1, 2026-09-28). The prefixes are critical as a whole. exact lists every other Shared source file whose code reaches a primitive in sharedMutationPrimitives. The selector also escalates any changed Shared file that reaches one, and select-validation.test.mjs fails when exact drifts from the code. A critical push or qa run keeps the owner's typecheck and focused suite plus every consumer's source and test typecheck mandatory (D15, 2026-10-25); CI's consumer workflows own the whole suites and production builds, so checks names no consumer suite.",
       "prefixes": [
         "packages/shared/src/providers/Auth.tsx",
         "packages/shared/src/providers/JobQueue.tsx",
@@ -1780,7 +1780,17 @@
         "packages/shared/src/providers/AuthGate.tsx"
       ],
       "risk": "critical",
-      "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
+      "checks": [
+        "shared-typecheck",
+        "shared-test-typecheck",
+        "shared-test",
+        "client-typecheck",
+        "client-test-typecheck",
+        "admin-typecheck",
+        "admin-test-typecheck",
+        "agent-typecheck",
+        "agent-test-typecheck"
+      ]
     },
     {
       "id": "reporting-permission-payloads",
@@ -1790,7 +1800,17 @@
         "packages/shared/src/modules/agent-reporting/permission-management.ts"
       ],
       "risk": "critical",
-      "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
+      "checks": [
+        "shared-typecheck",
+        "shared-test-typecheck",
+        "shared-test",
+        "client-typecheck",
+        "client-test-typecheck",
+        "admin-typecheck",
+        "admin-test-typecheck",
+        "agent-typecheck",
+        "agent-test-typecheck"
+      ]
     },
     {
       "contains": ["deploy", "upgrade", "migration", "release", "storage-layout"],

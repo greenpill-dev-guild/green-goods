@@ -150,7 +150,7 @@ clean evidence review is not production certification and returns `COMMENT_ONLY`
 Explicit offline/full-local production-readiness review runs the non-mutating **Production Review
 Readiness Gate** defined in
 [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md). Critical changes
-also retain that complete local override. A required stage that fails → `REQUEST_CHANGES`; a
+also run the selector's mandatory override. A required stage that fails → `REQUEST_CHANGES`; a
 required stage that cannot run → `COMMENT_ONLY`, never silently downgraded or substituted.
 
 For a live PR readiness verdict, inspect every required GitHub workflow at the PR's current head

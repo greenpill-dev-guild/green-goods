@@ -154,9 +154,10 @@ Do not resolve a thread merely because a local edit exists.
    inspect the full cached diff. Select local proof from the union of the committed PR diff and every
    allowlisted staged, unstaged, and untracked path so new fixes cannot escape touched-surface
    detection.
-4. If the selector identifies a critical surface, run its complete mandatory local override before
-   publication. Do not run the full local Ship Gate for ordinary comment fixes merely because a
-   commit or push is in scope.
+4. If the selector identifies a critical surface, run its mandatory override before publication:
+   owner typecheck and focused suite plus consumer typechecks for Shared, the complete contracts
+   gate for contracts. Do not run the full local Ship Gate for ordinary comment fixes merely
+   because a commit or push is in scope.
 5. For visible UI changes, record rendered proof labeled per AGENTS.md § Browser Evidence;
    authenticated-class surfaces need authenticated Brave proof or are recorded as pending.
 6. Repeat the root-cause search after all fixes. Any remaining approved manifestation keeps the
