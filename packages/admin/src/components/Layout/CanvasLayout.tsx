@@ -152,10 +152,11 @@ export function CanvasLayout() {
             data-tone={workspaceId}
             className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
           >
-            {/* Skip to content */}
+            {/* Skip to content. Keyboard focus draws the cockpit's focus ring (DL-098): one
+                solid 2px ring in the workspace tone, 2px off the link's fill. */}
             <a
               href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:type-body focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:type-body focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
             >
               {intl.formatMessage({
                 id: "app.admin.layout.skipToContent",

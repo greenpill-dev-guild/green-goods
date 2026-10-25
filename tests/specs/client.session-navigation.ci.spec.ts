@@ -1,7 +1,14 @@
 /** CI Playwright: navigation with the supported dev-auth seam and fictional garden data. */
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
 import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
+
+// Home opens in the account's one garden, and its header chip names that garden.
+async function expectHomeInGarden(page: Page) {
+  const chip = page.locator('[data-component="HomeHeader"] [data-component="GardenChip"]');
+  await expect(chip).toBeVisible();
+  await expect(chip).toContainText(MOCK_CLIENT_GARDEN.name);
+}
 
 test.describe("Client Navigation", () => {
   test.use({ baseURL: TEST_URLS.client });
@@ -46,7 +53,7 @@ test.describe("Client Navigation", () => {
 
     await page.getByRole("button", { name: "Go back", exact: true }).click();
     await expect(page).toHaveURL(/\/home(?:\?.*)?$/);
-    await expect(page.getByTestId("garden-card").first()).toBeVisible();
+    await expectHomeInGarden(page);
   });
 
   test("preserves Home and Profile through browser back and forward", async ({ page }) => {
@@ -65,7 +72,7 @@ test.describe("Client Navigation", () => {
 
     await page.goBack();
     await expect(page).toHaveURL(/\/home(?:\?.*)?$/);
-    await expect(page.getByTestId("garden-card").first()).toBeVisible();
+    await expectHomeInGarden(page);
     await page.goForward();
     await expect(page).toHaveURL(/\/home\/profile/);
     await expect(

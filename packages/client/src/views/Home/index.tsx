@@ -1,40 +1,34 @@
-import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
-import { IconButton } from "@green-goods/shared/components/IconButton";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { getDefaultChain } from "@green-goods/shared/config/blockchain";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
-import { useLoadingWithMinDuration } from "@green-goods/shared/hooks/app/useLoadingWithMinDuration";
-import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import {
-  type GardenFiltersState,
-  useFilteredGardens,
-} from "@green-goods/shared/hooks/garden/useFilteredGardens";
-import type { Domain } from "@green-goods/shared/types/domain";
+import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
+import { useAwaitingJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiFilterLine } from "@remixicon/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import {
   type ComponentType,
   lazy,
+  type ReactNode,
   Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { useIntl } from "react-intl";
-import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import {
   ARRIVAL_TOASTS,
@@ -42,8 +36,13 @@ import {
   hasArrivalPassed,
   markArrivalPassed,
 } from "./arrivalToast";
+import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
 import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
-import { GardenList } from "./GardenList";
+import { GardenSwitcherSheet } from "./GardenSwitcher";
+import { HomeHeader } from "./HomeHeader";
+import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./HomeStates";
+import { awaitingGardens, switcherRows } from "./homeGardens";
+import { HomeJournal } from "./Journal";
 import { WalletSheetIcon } from "./WalletSheet/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
@@ -59,9 +58,6 @@ const CommitmentsSheetLauncher = lazy(
       // Ambient adjunct: if the launcher chunk cannot load (offline dev serving),
       // hide it rather than failing the whole Home route.
       .catch(() => ({ default: () => null }))
-);
-const GardensFilterSheet = lazy(() =>
-  import("./GardenFilters").then(({ GardensFilterSheet }) => ({ default: GardensFilterSheet }))
 );
 const WalletSheet = lazy(() =>
   import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
@@ -89,6 +85,15 @@ function DeferredCommitmentsSheetLauncher({ onClick }: { onClick: () => void }) 
   );
 }
 
+type SwitcherMode = "switch" | "choose";
+
+/**
+ * Home in the member's active garden (DL-123 to DL-125). The header carries the garden chip and
+ * the launchers; the body follows `useActiveGarden`: a remembered garden goes straight in while
+ * the account's gardens load, a failed read keeps the state block, no garden finds one,
+ * several with none remembered offer the chooser once, and a chosen garden opens its journal.
+ * Only a pick in the switcher changes the active garden: Explore, a row or a link visits.
+ */
 const Home: React.FC = () => {
   const routerNavigate = useNavigate();
   const navigate = useCallback(
@@ -96,40 +101,39 @@ const Home: React.FC = () => {
     [routerNavigate]
   );
   const location = useLocation();
-  const queryClient = useQueryClient();
   const intl = useIntl();
+  const isHomeRoute = location.pathname.replace(/\/$/, "") === APP_ROUTES.home;
 
-  // Data fetching
-  const { data: gardens = [], isFetching, isPending, isError, refetch } = useGardens();
-
-  // Auth & connectivity
-  const isOnline = useOnlineStatus();
+  const { status, gardenId, garden, myGardens, selectGarden } = useActiveGarden();
   const primaryAddress = usePrimaryAddress();
   const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
+
+  // The gardens the app lists: where a request waits, and the Community Garden's door.
+  const { data: listed = [] } = useGardens();
+  const listedIds = useMemo(() => listed.map(({ id }) => id), [listed]);
+  const awaitingIds = useAwaitingJoinRequests(listedIds);
+  const { rows, awaiting, communityGarden, activeMembership } = useMemo(() => {
+    const myGardenIds = new Set(myGardens.gardens.map(({ garden: g }) => g.id.toLowerCase()));
+    const awaitingList = awaitingGardens(listed, awaitingIds, myGardenIds);
+    const rootGarden = getDefaultChain().rootGarden?.address;
+    const community = listed.find(
+      (g) =>
+        compareAddresses(g.id, rootGarden) && g.openJoining && !myGardenIds.has(g.id.toLowerCase())
+    );
+    return {
+      rows: switcherRows(myGardens.gardens, awaitingList, gardenId),
+      awaiting: awaitingList,
+      communityGarden: community ?? null,
+      activeMembership:
+        myGardens.gardens.find(({ garden: g }) => compareAddresses(g.id, gardenId))?.membership ??
+        null,
+    };
+  }, [awaitingIds, gardenId, listed, myGardens.gardens]);
 
   // State-aware arrival orientation (replaces the old generic welcome toast).
   const { kind: arrivalKind, myGardenIds, needsReviewCount } = useArrivalState();
 
-  // Filters live in the UI store so they hold across navigation and relaunch.
-  const filters = useUIStore((s) => s.gardenFilters);
-  const setFilters = useUIStore((s) => s.setGardenFilters);
-  const resetFilters = useUIStore((s) => s.resetGardenFilters);
-
-  // Use extracted hooks for cleaner logic
-  const isLoadingData = isPending || (isFetching && gardens.length === 0);
-  const {
-    showSkeleton,
-    timedOut,
-    reset: resetLoadingState,
-  } = useLoadingWithMinDuration(isLoadingData, gardens.length > 0);
-
-  const { filteredGardens, myGardensCount, openGardensCount, isFilterActive, activeFilterCount } =
-    useFilteredGardens(gardens, filters, normalizedAddress);
-
   // UI state from store
-  const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
-  const openGardenFilter = useUIStore((s) => s.openGardenFilter);
-  const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const isWalletSheetOpen = useUIStore((s) => s.isWalletSheetOpen);
   const openWalletSheet = useUIStore((s) => s.openWalletSheet);
@@ -138,43 +142,65 @@ const Home: React.FC = () => {
   const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
   const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
 
+  // The switcher keeps its mode while it slides out, so its title never flips mid-exit.
+  const [switcher, setSwitcher] = useState<{ open: boolean; mode: SwitcherMode }>({
+    open: false,
+    mode: "switch",
+  });
+  const openSwitcher = useCallback(() => setSwitcher({ open: true, mode: "switch" }), []);
+  const closeSwitcher = useCallback(() => setSwitcher((s) => ({ ...s, open: false })), []);
+
   // Each sheet stays mounted until its exit has played; unmounting it on close
   // removed it before the slide-out could run.
-  const isGardenFilterPresent = useExitPresence(isGardenFilterOpen, getPwaSheetExitMs);
+  const isSwitcherPresent = useExitPresence(switcher.open, getPwaSheetExitMs);
   const isWalletSheetPresent = useExitPresence(isWalletSheetOpen, getPwaSheetExitMs);
   const isCommitmentsSheetPresent = useExitPresence(isCommitmentsSheetOpen, getPwaSheetExitMs);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
+  // Several gardens and none remembered: the switcher opens once as the chooser. Dismissing
+  // it leaves the prompt; only a pick writes.
+  const offerScope = chooserScope(DEFAULT_CHAIN_ID, primaryAddress);
+  useEffect(() => {
+    if (status !== "choose" || !isHomeRoute || !offerScope || hasOfferedChooser(offerScope)) {
+      return;
+    }
+    markChooserOffered(offerScope);
+    setSwitcher({ open: true, mode: "choose" });
+  }, [isHomeRoute, offerScope, status]);
+
   // Auth state for welcome message
   const { isAuthenticated } = useAuthState();
   const hasShownArrivalRef = useRef(false);
   const { set: scheduleArrival, clear: cancelArrival } = useTimeout();
 
-  // Ref for scrolling to article on card click
-  const articleRef = useRef<HTMLElement>(null);
-
-  // Selected garden from the child Outlet's :id route. useMatch is route-shape
-  // aware (won't break if /home/:id is later renamed or nested under another
-  // segment) where pathname.split("/")[2] would silently mis-index.
-  const gardenIdMatch = useMatch("/home/:id/*");
-  const selectedGardenId = gardenIdMatch?.params.id;
-
-  // Reset loading state when navigating back to home
-  useEffect(() => {
-    if (location.pathname.replace(/\/$/, "") === APP_ROUTES.home) {
-      resetLoadingState();
-    }
-  }, [location.pathname, resetLoadingState]);
-
   // Close home drawers when navigating away
   useEffect(() => {
-    if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) {
-      closeGardenFilter();
+    if (!isHomeRoute) {
       closeWalletSheet();
+      closeSwitcher();
     }
-  }, [location.pathname, closeGardenFilter, closeWalletSheet]);
+  }, [closeSwitcher, closeWalletSheet, isHomeRoute]);
+
+  const visitGarden = useCallback(
+    (id: string) => {
+      closeSwitcher();
+      navigate(`${APP_ROUTES.home}/${id}`);
+    },
+    [closeSwitcher, navigate]
+  );
+  const openExplore = useCallback(() => {
+    closeSwitcher();
+    navigate(APP_ROUTES.explore);
+  }, [closeSwitcher, navigate]);
+  const pickGarden = useCallback(
+    (id: string) => {
+      selectGarden(id);
+      closeSwitcher();
+    },
+    [closeSwitcher, selectGarden]
+  );
 
   // Resolve an arrival action to its concrete client side effect.
   const runArrivalAction = useCallback(
@@ -190,28 +216,24 @@ const Home: React.FC = () => {
           openWorkDashboard("pending", "needsReview");
           return;
         case "startWork":
-          // One garden → jump straight in; several → narrow the list so they pick.
-          if (myGardenIds.length === 1) {
-            navigate(`/home/${myGardenIds[0]}`);
-          } else {
-            setFilters((current) =>
-              current.scope === "mine" ? current : { ...current, scope: "mine" }
-            );
-          }
+          // One garden → jump straight in; several → the switcher, so they pick.
+          if (myGardenIds.length === 1) navigate(`${APP_ROUTES.home}/${myGardenIds[0]}`);
+          else openSwitcher();
           return;
         case "openHelp":
           navigate(`${APP_ROUTES.profile}?tab=help`);
           return;
       }
     },
-    [myGardenIds, navigate, openWorkDashboard, setFilters]
+    [myGardenIds, navigate, openSwitcher, openWorkDashboard]
   );
 
-  // A garden opens as a child route, so Home stays mounted and a toast still waiting on its
-  // delay would land on that screen. Leaving Home cancels it; the arrival stays passed.
+  // A child screen (Explore, a garden) opens under Home, so Home stays mounted and a toast
+  // still waiting on its delay would land on that screen. Leaving Home cancels it; the
+  // arrival stays passed.
   useLayoutEffect(() => {
-    if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) cancelArrival();
-  }, [cancelArrival, location.pathname]);
+    if (!isHomeRoute) cancelArrival();
+  }, [cancelArrival, isHomeRoute]);
 
   // Show a state-aware arrival toast once per browser session, scoped to the signed-in address,
   // and only while the session is still on the Home it opened on: AppShell marks the arrival
@@ -219,7 +241,7 @@ const Home: React.FC = () => {
   // useArrivalState already gates on data confidence, so we fire only when arrivalKind !== "none".
   useEffect(() => {
     if (!isAuthenticated || hasShownArrivalRef.current) return;
-    if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) return;
+    if (!isHomeRoute) return;
     if (!normalizedAddress || arrivalKind === "none") return;
 
     if (hasArrivalPassed(normalizedAddress)) {
@@ -251,104 +273,104 @@ const Home: React.FC = () => {
     arrivalKind,
     intl,
     isAuthenticated,
-    location.pathname,
+    isHomeRoute,
     needsReviewCount,
     normalizedAddress,
     runArrivalAction,
     scheduleArrival,
   ]);
 
-  // Handlers
-  const handleRetry = () => {
-    resetLoadingState();
-    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
-    refetch();
-  };
-
-  const handleCardClick = (id: string) => {
-    navigate(`/home/${id}`);
-    articleRef.current?.scrollIntoView();
-  };
-
-  const handleScopeChange = (nextScope: GardenFiltersState["scope"]) => {
-    setFilters((current) =>
-      current.scope === nextScope ? current : { ...current, scope: nextScope }
+  // The header's lead: Home's title with no garden, else the chip, which opens the switcher.
+  let lead: ReactNode;
+  if (status === "none" || status === "error") {
+    lead = (
+      <h1 className="truncate type-title-md text-text-strong">
+        {intl.formatMessage({ id: "app.home" })}
+      </h1>
     );
-  };
+  } else if (status === "loading") {
+    // The garden's name arrives with the list; the chip's place holds still meanwhile.
+    lead = (
+      <span
+        aria-hidden="true"
+        data-skeleton="garden-chip"
+        className="h-8 w-36 max-w-full rounded-full bg-bg-soft-200"
+      />
+    );
+  } else {
+    lead = (
+      <GardenChip
+        gardens={myGardens.gardens.map(({ garden: g }) => ({ id: g.id, name: g.name }))}
+        selectedGarden={
+          garden
+            ? { id: garden.id, name: garden.name, bannerImage: garden.bannerImage ?? "" }
+            : null
+        }
+        onSelectGarden={(chosen) => chosen && pickGarden(chosen.id)}
+        onOpen={openSwitcher}
+        emptyLabel={intl.formatMessage({ id: "app.home.chooser.title" })}
+      />
+    );
+  }
 
-  const handleSortChange = (nextSort: GardenFiltersState["sort"]) => {
-    setFilters((current) => (current.sort === nextSort ? current : { ...current, sort: nextSort }));
-  };
-
-  const handleDomainsChange = (domains: Domain[]) => {
-    setFilters((current) => ({ ...current, domains: domains.length > 0 ? domains : undefined }));
-  };
+  let body: ReactNode;
+  switch (status) {
+    case "loading":
+      body = <HomeLoading remembered={Boolean(gardenId)} />;
+      break;
+    case "error":
+      body = <HomeError onRetry={myGardens.refetch} />;
+      break;
+    case "none":
+      body = (
+        <HomeFindGarden
+          awaiting={awaiting}
+          communityGarden={communityGarden}
+          onExplore={openExplore}
+          onVisit={visitGarden}
+        />
+      );
+      break;
+    case "choose":
+      body = <HomeChoosePrompt onChoose={() => setSwitcher({ open: true, mode: "choose" })} />;
+      break;
+    case "ready":
+      // The journal leaves while a child route shows: a garden page there renders its own
+      // sheets, and the Endowment sheet opens from one app-wide flag.
+      body =
+        isHomeRoute && garden && activeMembership ? (
+          <HomeJournal garden={garden} membership={activeMembership} />
+        ) : null;
+      break;
+  }
 
   return (
-    <article ref={articleRef} className="mb-6">
-      <div hidden={location.pathname.replace(/\/$/, "") !== APP_ROUTES.home}>
-        <div className="flex items-center justify-between w-full pt-[var(--app-top-offset)] pb-6 px-4 sm:px-6 md:px-12">
-          <h4 className="flex-1 text-[1.125rem] font-semibold">
-            {intl.formatMessage({ id: "app.home" })}
-          </h4>
-          <div className="ml-4 flex items-center gap-2">
-            <IconButton
-              emphasis="secondary"
-              size="compact"
-              onClick={openGardenFilter}
-              // Active filters tint the outline and icon, and count on the badge.
-              className={
-                isFilterActive
-                  ? cn(pwaStatusStyles.primary.border, pwaStatusStyles.primary.icon)
-                  : undefined
-              }
-              aria-label={intl.formatMessage({
-                id: "app.home.filters.button",
-                defaultMessage: "Filters",
-              })}
-              icon={<RiFilterLine aria-hidden="true" />}
-              badge={isFilterActive ? <CountBadge count={activeFilterCount} ring /> : undefined}
-            />
-            <WalletSheetIcon onClick={openWalletSheet} />
-            <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
-            <WorkDashboardIcon />
-          </div>
-        </div>
-        <div className="padded flex flex-col gap-(--gg-list-gap)">
-          <GardenList
-            gardens={filteredGardens}
-            selectedGardenId={selectedGardenId}
-            onCardClick={handleCardClick}
-            showSkeleton={showSkeleton}
-            timedOut={timedOut}
-            isError={isError}
-            isOnline={isOnline}
-            onRetry={handleRetry}
-            scope={filters.scope}
-            isFilterActive={isFilterActive}
-            hasUserAddress={Boolean(normalizedAddress)}
-            onBrowseAll={() => handleScopeChange("all")}
-          />
-        </div>
-        {isGardenFilterPresent ? (
-          <Suspense fallback={null}>
-            <GardensFilterSheet
-              isOpen={isGardenFilterOpen}
-              onClose={closeGardenFilter}
-              filters={filters}
-              onScopeChange={handleScopeChange}
-              onSortChange={handleSortChange}
-              onDomainsChange={handleDomainsChange}
-              onReset={resetFilters}
-              canFilterMine={Boolean(normalizedAddress)}
-              myGardensCount={myGardensCount}
-              openGardensCount={openGardensCount}
-              isFilterActive={isFilterActive}
-            />
-          </Suspense>
-        ) : null}
+    <article className="mb-6">
+      <div hidden={!isHomeRoute}>
+        <HomeHeader
+          lead={lead}
+          launchers={
+            <>
+              <WalletSheetIcon onClick={openWalletSheet} />
+              <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
+              <WorkDashboardIcon />
+            </>
+          }
+        />
+        <div className={status === "ready" ? "pt-2" : "padded pt-2"}>{body}</div>
       </div>
       <Outlet />
+      {isSwitcherPresent ? (
+        <GardenSwitcherSheet
+          isOpen={switcher.open}
+          onClose={closeSwitcher}
+          mode={switcher.mode}
+          rows={rows}
+          onPick={pickGarden}
+          onVisit={visitGarden}
+          onExplore={openExplore}
+        />
+      ) : null}
       {isWalletSheetPresent ? (
         <Suspense fallback={null}>
           <WalletSheet isOpen={isWalletSheetOpen} onClose={closeWalletSheet} />

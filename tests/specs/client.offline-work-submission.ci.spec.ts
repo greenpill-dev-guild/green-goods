@@ -88,20 +88,16 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(page.getByTestId("work-dashboard-button")).toBeEnabled({ timeout: 15000 });
     await page.getByRole("link", { name: "Garden" }).click();
 
-    // Each picker is a listbox of cards; a press chooses one.
+    // The picker is a listbox of cards; a press chooses one. The account's one garden is its
+    // active garden, so Start asks only for the action (decision 28).
     const actionCard = page
       .getByRole("listbox", { name: "Select Your Action" })
       .getByRole("option")
       .first();
-    const gardenCard = page
-      .getByRole("listbox", { name: "Select Your Garden" })
-      .getByRole("option")
-      .first();
     // A cold dev server transforms the wizard route on first request.
     await expect(actionCard).toBeVisible({ timeout: 15000 });
-    await expect(gardenCard).toBeVisible();
+    await expect(page.getByRole("listbox", { name: "Select Your Garden" })).toHaveCount(0);
     await actionCard.click();
-    await gardenCard.click();
     const startButton = page.getByRole("button", { name: "Start Gardening" });
     await expect(startButton).toBeEnabled();
     await startButton.click();
@@ -124,7 +120,7 @@ test.describe("Offline Work Submission CI Tests", () => {
     await context.setOffline(true);
     await expect(page.getByRole("status", OFFLINE_STATUS)).toBeVisible({ timeout: 10000 });
 
-    // Step 1: action and garden.
+    // Step 1: the action, in the active garden.
     await startButton.click();
 
     // Step 2: media.

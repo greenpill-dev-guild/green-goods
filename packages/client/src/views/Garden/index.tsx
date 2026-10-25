@@ -3,7 +3,7 @@ import { DraftStatus } from "./DraftStatus";
 import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
 import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
 import type { Address } from "@green-goods/shared/types/domain";
-import { RiErrorWarningLine, RiHammerFill, RiPlantFill, RiRefreshLine } from "@remixicon/react";
+import { RiErrorWarningLine, RiHammerFill, RiRefreshLine } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
@@ -26,6 +26,7 @@ import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
+import { SubmissionGardenLine } from "./SubmissionGardenLine";
 import { WorkForSheet } from "./WorkForSheet";
 
 const trackControllerMediaEvent = (
@@ -47,6 +48,11 @@ const PickerRowSkeleton: React.FC = () => (
   </div>
 );
 
+/**
+ * Start before its lists arrive. The garden question is left out: the flow
+ * usually has its garden already (decision 28), and asking for one that a
+ * moment later disappears would move the step under the member's thumb.
+ */
 const IntroSkeleton: React.FC = () => {
   const intl = useIntl();
   return (
@@ -61,18 +67,6 @@ const IntroSkeleton: React.FC = () => {
           defaultMessage: "What type of work are you submitting?",
         })}
         Icon={RiHammerFill}
-      />
-      <PickerRowSkeleton />
-      <FormInfo
-        title={intl.formatMessage({
-          id: "app.garden.selectYourGarden",
-          defaultMessage: "Select Your Garden",
-        })}
-        info={intl.formatMessage({
-          id: "app.garden.whichGarden",
-          defaultMessage: "Which garden are you submitting for?",
-        })}
-        Icon={RiPlantFill}
       />
       <PickerRowSkeleton />
     </div>
@@ -133,6 +127,7 @@ const Work: React.FC = () => {
     mediaClickRef,
     mediaConfig,
     minRequired,
+    namedSubmissionGarden,
     queueStatusMessage,
     recordingElapsed,
     register,
@@ -150,6 +145,7 @@ const Work: React.FC = () => {
     setValue,
     showSkeleton,
     submissionCompleted,
+    submissionGardenSettled,
     submit,
     timeSpentMinutes,
     toggleAudioRecording,
@@ -259,6 +255,7 @@ const Work: React.FC = () => {
             onJoinCommunityGarden={joinCommunityGarden}
             selectedActionUID={actionUID}
             selectedGardenAddress={gardenAddress}
+            gardenSettled={submissionGardenSettled}
             selectedDomain={selectedDomain}
             setActionUID={(value) => {
               setActionUID(value);
@@ -402,6 +399,7 @@ const Work: React.FC = () => {
               : "padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+var(--safe-area-bottom))]"
           }
         >
+          {namedSubmissionGarden ? <SubmissionGardenLine garden={namedSubmissionGarden} /> : null}
           {controller.submissionOutcome?.kind === "awaiting-confirmation" && (
             <p role="status">{intl.formatMessage({ id: "app.work.awaitingConfirmation" })}</p>
           )}

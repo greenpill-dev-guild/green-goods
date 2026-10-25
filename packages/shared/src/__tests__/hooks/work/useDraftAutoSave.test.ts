@@ -69,6 +69,28 @@ describe("complete draft autosave", () => {
     });
     expect(mocks.save.mock.calls[0][2]).toBe("resumed");
   });
+  it("starts no draft for a garden alone, and carries it into the draft the first action starts", async () => {
+    // The flow chooses a garden before the member does anything (the active garden), so
+    // opening Submit Work and leaving must not leave a draft behind.
+    const garden = "0x2222222222222222222222222222222222222222";
+    const { rerender } = renderHookWithQueryClient(
+      ({ actionUID }) =>
+        useDraftAutoSave({ ...base, feedback: "", gardenAddress: garden, actionUID }, emptyImages),
+      { initialProps: { actionUID: null as number | null } }
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
+
+    rerender({ actionUID: 3 });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(mocks.save.mock.calls[0][3]).toMatchObject({ gardenAddress: garden, actionUID: 3 });
+  });
   it("saves the initial snapshot and debounces subsequent text edits", async () => {
     const { rerender } = renderHookWithQueryClient(
       ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),

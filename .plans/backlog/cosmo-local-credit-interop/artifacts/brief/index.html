@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Green Goods · Companion brief · SustainableFinance.Live 2026</title>
+<meta name="description" content="Six-page companion brief to the Green Goods pitch for SustainableFinance.Live 2026, Problem Statement 2. Page 1 doubles as the one-page mentor brief. Written 24 October 2026, revised after the 25 October review and the RESR-94 evidence pass, and refreshed on 25 October with the voucher deployment status." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" />
+<style>
+  /* Same Warm Earth tokens as the deck. A4 pages; chain names appear here and nowhere on the slides. */
+  :root {
+    --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
+    --rule: #E7E1D9; --rule-2: #D9D1C5; --sand: #F3EEE6;
+    --green: #1FC16B; --green-action: #1A7544; --green-wash: #E3F7EC; --amber: #B45309;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #1C1917; color: var(--ink); font: 400 12.5px/1.46 var(--sans); -webkit-font-smoothing: antialiased; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .page { position: relative; width: 210mm; height: 297mm; margin: 24px auto; padding: 15mm 16mm 22mm; background: var(--linen); overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  .foot { position: absolute; left: 16mm; right: 16mm; bottom: 9mm; display: flex; align-items: center; gap: 10px; font: 500 10.5px/1 var(--sans); color: var(--stone); }
+  .foot img { width: 26px; height: auto; display: block; }
+  .foot .n { margin-left: auto; font-variant-numeric: tabular-nums; }
+  h1 { margin: 0; font: 400 36px/1.08 var(--serif); letter-spacing: -0.02em; color: var(--ink); text-wrap: balance; }
+  h2 { margin: 0 0 8px; font: 400 25px/1.12 var(--serif); letter-spacing: -0.015em; color: var(--ink); text-wrap: balance; }
+  h3 { margin: 0 0 4px; font: 400 16px/1.2 var(--serif); letter-spacing: -0.005em; color: var(--ink); }
+  em.accent { font-style: italic; color: var(--green-action); }
+  p { margin: 0 0 6px; text-wrap: pretty; }
+  ul { margin: 0; padding: 0 0 0 16px; }
+  li { margin: 0 0 4px; text-wrap: pretty; }
+  li::marker { color: var(--green-action); }
+  a { color: var(--green-action); text-decoration: none; }
+  .lede { font-size: 13.5px; line-height: 1.48; color: var(--ink-2); }
+  .meta { font: 500 11px/1.4 var(--sans); color: var(--stone); margin-bottom: 14px; }
+  .small { font-size: 11px; line-height: 1.45; color: var(--stone); }
+  .rule { border-top: 1px solid var(--rule-2); padding-top: 10px; }
+  .section { margin-top: 13px; }
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 22px; }
+  .cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 18px; }
+  .state { font: 600 11px/1.2 var(--sans); margin: 0 0 4px; }
+  .state.live { color: var(--green-action); } .state.pilot { color: var(--amber); } .state.next { color: var(--stone); }
+  .box { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+  .box.wash { background: var(--sand); border-color: var(--rule); }
+  .icon { width: 22px; height: 22px; fill: none; stroke: var(--green-action); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; line-height: 1.38; }
+  th { text-align: left; font: 600 10.5px/1.3 var(--sans); color: var(--ink); padding: 4px 6px 4px 0; border-bottom: 1px solid var(--rule-2); }
+  td { padding: 4px 6px 4px 0; border-bottom: 1px solid var(--rule); vertical-align: top; color: var(--ink-2); }
+  td.num, th.num { text-align: right; padding-right: 0; padding-left: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tr.total td { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--rule-2); }
+  .label { display: inline-block; font: 600 10px/1 var(--sans); letter-spacing: .02em; color: var(--amber); background: #FEF3E2; border-radius: 99px; padding: 4px 8px; vertical-align: 2px; }
+
+  /* Page 1 */
+  .hero { margin: 14px 0 12px; height: 66mm; overflow: hidden; border-radius: 10px; background: var(--sand); }
+  .hero img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; display: block; }
+  .p1 .cols-2 > div { margin-bottom: 12px; }
+  .needs { list-style: none; padding: 0; }
+  .needs li { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 6px; }
+  .contact { margin-top: 10px; font: 400 15px/1.3 var(--serif); color: var(--green-action); }
+
+  /* Page 2 */
+  .loop { display: grid; grid-template-columns: 190px 1fr; column-gap: 18px; align-items: center; }
+  .loop ol { margin: 0; padding-left: 18px; }
+  .loop li::marker { font-weight: 600; color: var(--green-action); }
+  .roles td { vertical-align: baseline; }
+  .roles td:first-child { width: 150px; font-family: var(--serif); font-size: 13.5px; color: var(--ink); }
+  .screens { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; }
+  .phone figcaption { font: 600 11px/1.3 var(--sans); margin-bottom: 6px; }
+  .phone .frame { height: 73mm; overflow: hidden; border-radius: 14px; border: 1px solid var(--rule); background: var(--paper); }
+  .phone img { width: 100%; display: block; }
+  .phone.a img { margin-top: -37.7%; }   /* starts at the garden's name, below the demo photo */
+  .phone.b img { margin-top: -28.5%; }   /* starts at the top edge of the sheet */
+
+  /* Page 3 */
+  .flow { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 14px; margin: 12px 0 4px; }
+  .flow::before { content: ""; position: absolute; left: 26px; right: calc(25% - 4px); top: 25px; height: 2px; background: var(--green); }
+  .flow .disc { position: relative; z-index: 1; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--green-wash); border: 2px solid var(--green); box-shadow: 0 0 0 6px var(--linen); }
+  .flow h3 { margin-top: 10px; }
+  .flow p { font-size: 12px; color: var(--sub); }
+
+  /* Page 4 */
+  .chains { display: grid; grid-template-columns: 1fr 58px 1.18fr 58px 1fr; align-items: start; margin: 10px 0 4px; }
+  .chain { border: 1px solid var(--rule); border-radius: 10px; background: var(--paper); overflow: hidden; }
+  .chain.core { border-color: var(--green); }
+  .chain header { padding: 9px 12px; background: var(--sand); border-bottom: 1px solid var(--rule); }
+  .chain.core header { background: var(--green-wash); border-bottom-color: #BFE8D0; }
+  .chain header b { display: block; font: 400 16px/1.2 var(--serif); }
+  .chain header span { font: 500 10.5px/1.3 var(--sans); color: var(--stone); }
+  .chain ul { list-style: none; padding: 8px 12px 10px; }
+  .chain li { font-size: 11px; line-height: 1.36; padding: 4px 0; border-bottom: 1px solid var(--rule); margin: 0; }
+  .chain li:last-child { border-bottom: 0; }
+  .chain li b { font-weight: 600; color: var(--ink); display: block; }
+  .link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; align-self: center; text-align: center; font: 500 9.5px/1.25 var(--sans); color: var(--stone); }
+
+  /* Page 5 */
+  .mech .box { height: 100%; padding: 10px 12px; font-size: 11.5px; line-height: 1.45; }
+  .tables { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; }
+
+  /* Page 6 */
+  .places { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 14px; margin-top: 8px; }
+  .places div { border-top: 3px solid var(--rule-2); padding-top: 8px; }
+  .places div.now { border-top-color: var(--green-action); }
+  .terms { display: grid; grid-template-columns: 1fr 1fr; column-gap: 22px; }
+  .terms dl { margin: 0; }
+  .terms dt { font-weight: 600; color: var(--ink); }
+  .terms dd { margin: 0 0 6px; color: var(--ink-2); }
+  .sources li { font-size: 11.5px; }
+
+  @page { size: A4; margin: 0; }
+  @media print {
+    html, body { background: var(--linen); }
+    .page { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
+    .page:last-child { break-after: auto; page-break-after: auto; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3.5 8a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v2.2a1.8 1.8 0 0 0 0 3.6V16a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-2.2a1.8 1.8 0 0 0 0-3.6z"/><path d="M14.5 6v2.5M14.5 10.75v2.5M14.5 15.5v2.5"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8.5h13.5M14.5 5.5l3 3-3 3"/><path d="M20 15.5H6.5M9.5 12.5l-3 3 3 3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="1.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-return" viewBox="0 0 24 24"><path d="M9 7.5 5.5 11 9 14.5"/><path d="M5.5 11h9a4 4 0 0 1 0 8h-3"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></symbol>
+  <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h2.5L13 19V5L7.5 9H5a1 1 0 0 0-1 1z"/><path d="M16.5 9a3.5 3.5 0 0 1 0 6"/><path d="M19 6.5a7 7 0 0 1 0 11"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M3 5.5h6.5A2.5 2.5 0 0 1 12 8v12a2 2 0 0 0-2-2H3z"/><path d="M21 5.5h-6.5A2.5 2.5 0 0 0 12 8v12a2 2 0 0 1 2-2h7z"/></symbol>
+  <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1A7544"/></marker>
+  <marker id="ah-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57534E"/></marker>
+</defs></svg>
+
+<!-- 1 · Summary, which doubles as the one-page mentor brief -->
+<section class="page p1">
+  <p class="meta">Companion brief · SustainableFinance.Live 2026 · Problem Statement 2 · 25 October 2026</p>
+  <h1>Green Goods: From <em class="accent">Good</em> Intentions to <em class="accent">Green</em> Outcomes</h1>
+  <p class="lede" style="margin-top:12px">We built commitment pooling: communities promise useful work, prove it, and turn the record into support. We are starting with Tech and Sun, which builds solar-powered hubs in Nigeria; its first hub is live in Awka. We are also showing how diaspora and institutional capital can follow that record and sustain the work.</p>
+  <figure class="hero" style="margin-left:0;margin-right:0"><img src="../deck/assets/photos/awka-hub.jpg" alt="Tech and Sun members standing together outside the solar-roofed hub in Awka" /></figure>
+  <div class="cols-2">
+    <div class="rule"><h3>The problem</h3><p>Communities create value every season, but the record of it stays trapped. Proving work costs more than doing it, reporting tools were built for offices, and the record sits on platforms communities don't own. Groups with a real delivery record still look risky and stay tied to single grants.</p></div>
+    <div class="rule"><h3>What we built</h3><p>Commitment pooling: members offer or request specific work, see what others can offer and need, take promises up and document them. The person served confirms a promise was kept, never the person who did the work. For this hackathon we connected promises to Cosmo-Local Credit service vouchers, so kept promises can earn services that members trade in one shared pool.</p></div>
+    <div class="rule"><h3>How it pays for itself</h3><p>Funders pay Green Goods a separate fee for setup, support and reporting, priced by projects and workload and never taken from a garden's funds or capital. In our illustrative six-month program, $50,000 brings $40,000 to the garden and a $10,000 fee against an assumed $6,500 delivery cost.</p></div>
+    <div class="rule"><h3>Where it stands</h3><p><b>Live:</b> the app, promises, chat reporting and endowments. <b>Deployed:</b> the voucher contracts, on public networks since 24 October. <b>In pilot:</b> service vouchers with Tech and Sun. <b>Next:</b> the hub's first promise season, into January, then more places on the same model.</p></div>
+  </div>
+  <div class="rule" style="margin-top:2px">
+    <h3>What we need, beyond funding</h3>
+    <ul class="needs">
+      <li><svg class="icon"><use href="#i-compass"/></svg><span>Business development mentorship.</span></li>
+      <li><svg class="icon"><use href="#i-link"/></svg><span>Introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods.</span></li>
+      <li><svg class="icon"><use href="#i-megaphone"/></svg><span>Marketing support to help tell our story.</span></li>
+    </ul>
+    <p class="contact">contact@greengoods.app · greengoods.app · beta.greengoods.app · docs.greengoods.app</p>
+  </div>
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Companion brief</span><span class="n">1 / 6</span></footer>
+</section>
+
+<!-- 2 · How Green Goods works -->
+<section class="page">
+  <h2>How Green Goods works</h2>
+  <p class="lede">Green Goods gives a community one record of what it promised, did and proved. It is an offline-ready app for place-based communities, which it calls gardens: gardeners do and document the work, and stewards run the garden from a cockpit. Each step leaves a record the garden owns and supporters can read.</p>
+  <div class="section loop">
+    <svg viewBox="0 0 190 170" width="190" height="170" aria-label="Four steps in a circle: needs, promise, work, funding">
+      <circle cx="95" cy="85" r="62" fill="none" stroke="#EEE8DE" stroke-width="16"/>
+      <path d="M81.3,24.5 A62,62 0 0 1 108.7,24.5" fill="none" stroke="#1A7544" stroke-width="2" marker-end="url(#ah)"/>
+      <path d="M155.5,71.3 A62,62 0 0 1 155.5,98.7" fill="none" stroke="#1A7544" stroke-width="2" marker-end="url(#ah)"/>
+      <path d="M108.7,145.5 A62,62 0 0 1 81.3,145.5" fill="none" stroke="#1A7544" stroke-width="2" marker-end="url(#ah)"/>
+      <path d="M34.5,98.7 A62,62 0 0 1 34.5,71.3" fill="none" stroke="#1A7544" stroke-width="2" marker-end="url(#ah)"/>
+      <g font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#fff" text-anchor="middle">
+        <circle cx="51.2" cy="41.2" r="13" fill="#1A7544"/><text x="51.2" y="45.4">1</text>
+        <circle cx="138.8" cy="41.2" r="13" fill="#1A7544"/><text x="138.8" y="45.4">2</text>
+        <circle cx="138.8" cy="128.8" r="13" fill="#1A7544"/><text x="138.8" y="133">3</text>
+        <circle cx="51.2" cy="128.8" r="13" fill="#1A7544"/><text x="51.2" y="133">4</text>
+      </g>
+      <text x="95" y="82" text-anchor="middle" font-family="Fraunces, serif" font-style="italic" font-size="11.5" fill="#57534E">season after</text>
+      <text x="95" y="96" text-anchor="middle" font-family="Fraunces, serif" font-style="italic" font-size="11.5" fill="#57534E">season</text>
+    </svg>
+    <ol>
+      <li><b>Needs.</b> Stewards and evaluators record what the place needs, from steady power to new skills, and set a baseline.</li>
+      <li><b>Promise.</b> Members promise work to each other and to the garden, and agree who does what by when.</li>
+      <li><b>Work.</b> Gardeners document it with photos, notes, links or audio, by app or by chat. Stewards review it, and the people it served confirm it.</li>
+      <li><b>Funding.</b> Supporters fund what the record shows, directly or through an endowment. What was learned shapes the next season's needs.</li>
+    </ol>
+  </div>
+  <div class="section rule">
+    <h3>Five roles</h3>
+    <table class="roles">
+      <tr><td>Gardeners</td><td>Do the work and document it, offline when they need to.</td></tr>
+      <tr><td>Stewards</td><td>Run the garden: plan seasons, welcome members, review work and help members set up services.</td></tr>
+      <tr><td>Evaluators</td><td>Set the baseline and what good evidence looks like, and record assessments.</td></tr>
+      <tr><td>Funders</td><td>Fund gardens directly or through endowments, and see delivery before and after they give.</td></tr>
+      <tr><td>Community members</td><td>Witness the work and confirm what was done for them.</td></tr>
+    </table>
+    <p class="small" style="margin-top:6px">Two rules hold throughout. The person who did the work never confirms it: the person served does, and if a steward has to step in, the record labels it a fallback. And a steward can help a member set up a service but cannot approve the member's obligations for them.</p>
+  </div>
+  <div class="section cols-2" style="grid-template-columns: 0.9fr 1.1fr">
+    <div class="rule">
+      <h3>Commitment pooling in practice</h3>
+      <ul>
+        <li>A garden opens a season or campaign and sets its promise rules.</li>
+        <li>Members offer or request specific work. Anyone in the garden can take a promise up, as themselves or for their garden.</li>
+        <li>Members see what others nearby can offer and need, so skills, time and equipment move between them.</li>
+        <li>Proof is added and reviewed. The person the promise was made to confirms it was kept.</li>
+        <li>Kept promises earn the recognition the garden agreed, and the record becomes evidence a funder can act on. Money rewards for new promises are deferred to a later release.</li>
+      </ul>
+      <h3 style="margin-top:10px">What the record holds</h3>
+      <p>Work, approvals and assessments are signed attestations, so anyone can check who recorded what and when. Each promise keeps a permanent identity that cannot be transferred.</p>
+    </div>
+    <div class="rule screens">
+      <figure class="phone a" style="margin:0"><figcaption>The garden's promises</figcaption><div class="frame"><img src="../deck/assets/screens/garden-promises.png" alt="A garden's Promises tab with a season card and promises marked Needs you, In progress and Offered" /></div></figure>
+      <figure class="phone b" style="margin:0"><figcaption>Confirm it was kept</figcaption><div class="frame"><img src="../deck/assets/screens/confirm.png" alt="A sheet asking Was the work you asked for done?" /></div></figure>
+      <p class="small" style="grid-column:1/-1;margin-top:6px">App screens with demo data.</p>
+    </div>
+  </div>
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Companion brief</span><span class="n">2 / 6</span></footer>
+</section>
+
+<!-- 3 · Service vouchers and the shared pool -->
+<section class="page">
+  <h2>Service vouchers and the shared pool</h2>
+  <p class="lede">Cosmo-Local Credit is the open voucher protocol from Grassroots Economics, which grew from the Sarafu community pools in Kenya. A voucher represents its issuer's future service under published terms. We connected it to commitment pooling, so kept promises can earn services and members can offer their own.</p>
+  <div class="flow">
+    <div><div class="disc"><svg class="icon"><use href="#i-ticket"/></svg></div><h3>Issue</h3><p>A member or a garden offers a service as vouchers, like an hour of help or a hub visit.</p></div>
+    <div><div class="disc"><svg class="icon"><use href="#i-swap"/></svg></div><h3>Earn or exchange</h3><p>Kept promises earn vouchers. Members can also swap them in one shared pool.</p></div>
+    <div><div class="disc"><svg class="icon"><use href="#i-lock"/></svg></div><h3>Book</h3><p>Both sides consent, and the vouchers are held in escrow until the service happens.</p></div>
+    <div><div class="disc"><svg class="icon"><use href="#i-return"/></svg></div><h3>Confirm</h3><p>Delivered units go back to the issuer. Anything undelivered returns to the holder.</p></div>
+  </div>
+  <div class="section cols-2">
+    <div class="rule">
+      <h3>Who issues vouchers</h3>
+      <ul>
+        <li><b>Members.</b> A member's own account owns their voucher and its reserve. A steward can help set it up, but only the member approves the exact service, terms and capacity.</li>
+        <li><b>Gardens.</b> A garden offers collective services through its existing issuer authority. A member may deliver on its behalf.</li>
+        <li><b>One shared pool.</b> Member and garden vouchers trade in one curated pool. Its administrators set the assets, rates, fees and holding caps. Admission does not guarantee demand, delivery or cash.</li>
+      </ul>
+    </div>
+    <div class="rule">
+      <h3>How a booking stays fair</h3>
+      <ul>
+        <li>Exact consent from the holder and the issuer comes before acceptance.</li>
+        <li>Vouchers sit in escrow before the service is accepted.</li>
+        <li>One final split: delivered units to the issuer, undelivered units to the holder.</li>
+        <li>A swap changes who holds a voucher, never the delivery record. Returned vouchers do not restore capacity already used.</li>
+        <li>No cash-out, automatic burn or pooled guarantee is promised.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section cols-2">
+    <div class="rule">
+      <h3>Money stays separate</h3>
+      <p>G$, GoodDollar's token, stays optional money on Celo, for agreed G$ rewards, which are deferred for new promises in this release, and for buying services offered in other gardens. Each offer uses one payment route: there is no G$ bridge and no mixed checkout.</p>
+    </div>
+    <div class="rule">
+      <h3>The Tech and Sun pilot</h3>
+      <p>A designer, an analyst and an engineer share one brief for the hub's impact website, each with a separate promise, deliverable and reward. In one selected exchange, a member trades their service voucher for another member's, then books it. Peer help stays separate from the funded project work.</p>
+    </div>
+  </div>
+  <div class="section box wash">
+    <p class="state pilot">Evidence so far · 25 October 2026</p>
+    <p style="margin:0">The collective voucher flow (earn, swap, consent, escrow, acceptance, partial settlement and retries) passed 67 rehearsal cases in six suites on 23 October. A later member rehearsal passed 21 cases with synthetic participants; the two counts overlap and are not added. A selected new pilot account completed a sponsored passkey operation on Gnosis. The voucher contracts were deployed to the public networks on 24 October and switched on by their owners, with twenty voucher units issued for each issuer. No member has used them yet, and real participants, services, capacity and prices are still to be agreed.</p>
+  </div>
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Companion brief</span><span class="n">3 / 6</span></footer>
+</section>
+
+<!-- 4 · Architecture -->
+<section class="page">
+  <h2>Architecture</h2>
+  <p class="lede">Green Goods runs on three public networks, each doing one job. Authenticated Chainlink CCIP messages coordinate them: they authorize actions on the other chain, but they never carry money or tokens across.</p>
+  <div class="chains">
+    <div class="chain">
+      <header><b>Celo</b><span>Money: G$</span></header>
+      <ul>
+        <li><b>G$ rewards</b>Agreed rewards for kept promises, paid in GoodDollar's G$; deferred for new promises in this release.</li>
+        <li><b>Service purchases</b>Members buy services offered in other gardens with their own G$.</li>
+        <li><b>Garden accounts</b>Garden Safes and a settlement executor pay providers or refund buyers.</li>
+      </ul>
+    </div>
+    <div class="link"><svg width="44" height="16" viewBox="0 0 44 16"><line x1="6" y1="8" x2="38" y2="8" stroke="#57534E" stroke-width="1.6" marker-start="url(#ah-ink)" marker-end="url(#ah-ink)"/></svg>CCIP<br>messages</div>
+    <div class="chain core">
+      <header><b>Arbitrum One</b><span>Record, roles and capital</span></header>
+      <ul>
+        <li><b>Gardens and roles</b>Garden accounts with roles managed by Hats Protocol.</li>
+        <li><b>Promises</b>The commitment pool and a registry that gives each promise a permanent identity.</li>
+        <li><b>Evidence</b>Work, approvals and assessments as Ethereum Attestation Service records.</li>
+        <li><b>Endowments</b>Octant vaults lent through Aave v3, with a configured split of earnings.</li>
+        <li><b>Vouchers and certificates</b>Voucher terms and results; impact certificates through Hypercerts.</li>
+      </ul>
+    </div>
+    <div class="link"><svg width="44" height="16" viewBox="0 0 44 16"><line x1="6" y1="8" x2="38" y2="8" stroke="#57534E" stroke-width="1.6" marker-start="url(#ah-ink)" marker-end="url(#ah-ink)"/></svg>CCIP<br>messages</div>
+    <div class="chain">
+      <header><b>Gnosis</b><span>Services: vouchers</span></header>
+      <ul>
+        <li><b>Service vouchers</b>Cosmo-Local Credit tokens, one per issuer.</li>
+        <li><b>Shared exchange pool</b>Swaps with limits, quotes and fees.</li>
+        <li><b>Voucher adapter</b>Pays earned vouchers from each issuer's reserve within a finite allowance.</li>
+        <li><b>Service escrow</b>Holds booked vouchers and settles the final split.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section cols-2">
+    <div class="rule">
+      <h3>Around the contracts</h3>
+      <ul>
+        <li><b>Accounts.</b> Passkey smart accounts: members sign with a fingerprint or face, and network fees are sponsored. A new profile keeps one address on all three networks.</li>
+        <li><b>Apps.</b> An offline-first app for gardeners and members, a cockpit for stewards and a Telegram bot for chat reporting.</li>
+        <li><b>Data.</b> An Envio indexer reads the chains so public garden pages load quickly.</li>
+      </ul>
+    </div>
+    <div class="rule">
+      <h3>Safety by design</h3>
+      <ul>
+        <li>Each cross-chain action has a stable identity, runs once and retries without repeating its effects.</li>
+        <li>Token ownership, pool administration and upgrade authority are separate and explicit.</li>
+        <li>Contracts can pause; upgrades need owner approval and compatibility checks.</li>
+        <li>Members approve any delegated or recovery authority over their vouchers.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section rule">
+    <h3>What each claim rests on</h3>
+    <table>
+      <tr><th style="width:118px">Evidence class</th><th style="width:170px">What it means</th><th>Examples today</th></tr>
+      <tr><td><span class="state live">Live</span></td><td>In use on public networks</td><td>The app, promises (since 14 October), chat reporting, endowments, a role-module upgrade on Arbitrum (23 October)</td></tr>
+      <tr><td><span class="state live">Account proof</span></td><td>An account works; no service is proven</td><td>A new pilot account's sponsored passkey operation on Gnosis (23 October)</td></tr>
+      <tr><td><span class="state live">Deployed</span></td><td>On public networks, switched on, not yet used</td><td>The voucher contracts and each issuer's first twenty voucher units (24 October)</td></tr>
+      <tr><td><span class="state pilot">Rehearsal</span></td><td>End to end on owned forks, synthetic participants</td><td>The voucher flow: 67 cases (23 October) and an overlapping 21 member cases (24 October)</td></tr>
+      <tr><td><span class="state next">Planned</span></td><td>Accepted design, not yet built or live</td><td>Pool funds from supporters and endowment earnings, integrated milestone funding, certificate purchases in the app</td></tr>
+    </table>
+  </div>
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Companion brief</span><span class="n">4 / 6</span></footer>
+</section>
+
+<!-- 5 · Capital and the business model -->
+<section class="page">
+  <h2>Capital and the business model</h2>
+  <p class="lede">Hubs like Tech and Sun's are rich in capital, but short of money. Green Goods helps money from people and programs who already care reach them, and shows delivery in return.</p>
+  <table class="section">
+    <tr><th style="width:150px">Who</th><th style="width:190px">Brings</th><th>How</th></tr>
+    <tr><td>Community</td><td>Social, cultural, material and living capital</td><td>Members and neighbors who do, witness and confirm the work, and the spaces, local businesses and equipment around the hub</td></tr>
+    <tr><td>Nigerian diaspora</td><td>Financial, cultural, social and intellectual capital</td><td>Gifts and season sponsorships; associations can pool members' gifts behind a program with no institution. Omo Yoruba of Southern California is our first diaspora community. Nigeria received $22.1bn in personal remittances in 2024, national context rather than our market (World Bank)</td></tr>
+    <tr><td>Institutions and programs</td><td>Financial, intellectual and material capital</td><td>Climate, clean-energy and skills grants, and public goods funds that have backed Green Goods</td></tr>
+  </table>
+  <div class="section cols-3 mech">
+    <div class="box"><p class="state live">Endowment · live</p><p style="margin:0">A supporter deposits DAI or WETH into a garden vault and keeps a withdrawal claim. By default, earnings go 48.65% to the garden's shared fund, 48.65% to certificates and 2.7% to the protocol. Principal can lose value.</p></div>
+    <div class="box"><p class="state live">Commitment pool · live</p><p style="margin:0">Members promise work. Kept promises, confirmed by the people served or, as a labeled fallback, a steward, build the record funders read. Money rewards for new promises are deferred to a later release.</p></div>
+    <div class="box"><p class="state pilot">Exchange pool · in pilot</p><p style="margin:0">Vouchers trade in one shared pool. Next, supporters and endowment earnings could add funds members exchange vouchers into. That route does not exist yet and is no cash-out promise.</p></div>
+  </div>
+  <div class="section rule">
+    <h3>How Green Goods earns <span class="label">Illustrative USD assumptions</span></h3>
+    <p>Organizations such as diaspora associations, NGOs, foundations and program organizers pay Green Goods a separate fee for setup, support and reporting. We price by projects and workload, never as a cut of a garden's funds or endowment capital, and individual supporters never subscribe. This six-month example is not a quote, secured funding or a validated price.</p>
+    <table>
+      <tr><th>Contributor</th><th class="num">To the garden</th><th class="num">Fee to Green Goods</th><th class="num">Total</th></tr>
+      <tr><td>Environmental or clean-energy program</td><td class="num">$30,000</td><td class="num">$10,000</td><td class="num">$40,000</td></tr>
+      <tr><td>100 diaspora supporters at $100 each</td><td class="num">$10,000</td><td class="num">$0</td><td class="num">$10,000</td></tr>
+      <tr class="total"><td>Total</td><td class="num">$40,000</td><td class="num">$10,000</td><td class="num">$50,000</td></tr>
+    </table>
+  </div>
+  <div class="section tables">
+    <table>
+      <tr><th>Garden use</th><th class="num">Budget</th></tr>
+      <tr><td>Stipends and project delivery</td><td class="num">$12,000</td></tr>
+      <tr><td>Local stewardship and facilitation</td><td class="num">$8,000</td></tr>
+      <tr><td>Hub power, connectivity and tools</td><td class="num">$8,000</td></tr>
+      <tr><td>Learning, mentoring and services</td><td class="num">$8,000</td></tr>
+      <tr><td>Contingency and transaction costs</td><td class="num">$4,000</td></tr>
+      <tr class="total"><td>Total to the garden</td><td class="num">$40,000</td></tr>
+    </table>
+    <table>
+      <tr><th>Green Goods delivery cost</th><th class="num">Cost</th></tr>
+      <tr><td>Setup and onboarding, 25 h × $50</td><td class="num">$1,250</td></tr>
+      <tr><td>Steward training and support, 50 h × $40</td><td class="num">$2,000</td></tr>
+      <tr><td>Evidence review and reporting, 30 h × $50</td><td class="num">$1,500</td></tr>
+      <tr><td>Technical operations, 15 h × $60</td><td class="num">$900</td></tr>
+      <tr><td>Hosting, messaging and sponsored fees</td><td class="num">$350</td></tr>
+      <tr><td>Delivery contingency</td><td class="num">$500</td></tr>
+      <tr class="total"><td>Total delivery cost</td><td class="num">$6,500</td></tr>
+    </table>
+  </div>
+  <p style="margin-top:8px">The $10,000 fee ($3,000 setup and $7,000 for support and reporting) leaves a <b>$3,500 contribution, or 35%</b>, before central sales, product and administration costs, so it is not profit. If support takes another 50 hours at $40, the contribution falls to <b>$1,500, or 15%</b>.</p>
+  <p class="small"><b>With an optional endowment.</b> Add a separate $50,000 endowment and the total is $100,000, of which only $50,000 is budgeted for spending. At a hypothetical 4% a year, six months earns $1,000 before costs and losses. If the depositor later grants $20,000, the split becomes $60,000 to the garden, the $10,000 fee and $30,000 still invested. No dollar counts as both kept and spent.</p>
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Companion brief</span><span class="n">5 / 6</span></footer>
+</section>
+
+<!-- 6 · Roadmap, partners and terms -->
+<section class="page">
+  <h2>Roadmap, partners and terms</h2>
+  <div class="cols-3">
+    <div class="rule"><p class="state live">Live</p><p>The app is live. Promises and chat reporting joined it in October 2026.</p></div>
+    <div class="rule"><p class="state pilot">In pilot</p><p>Service vouchers with Tech and Sun, starting at its hub in Awka. Contracts deployed 24 October.</p></div>
+    <div class="rule"><p class="state next">Next</p><p>The hub's first promise season, planned to run into January 2027, with an interim record in December.</p></div>
+  </div>
+  <div class="section">
+    <h3>One hub first, then more places on the same model</h3>
+    <div class="places">
+      <div class="now"><b>Nigeria</b><p class="small" style="margin:2px 0 0">Tech and Sun's first solar hub, in Awka. Now.</p></div>
+      <div><b>South Africa</b><p class="small" style="margin:2px 0 0">Waste work. Next, still in conversation.</p></div>
+      <div><b>Kenya and Brazil</b><p class="small" style="margin:2px 0 0">Agroforestry. Exploring with local groups.</p></div>
+    </div>
+  </div>
+  <div class="section rule">
+    <h3>Report once, and let the record count everywhere</h3>
+    <table>
+      <tr><th style="width:112px">Partner</th><th style="width:246px">What it is</th><th>What the connection does</th><th style="width:112px">Stage</th></tr>
+      <tr><td>Cosmo-Local Credit</td><td>Grassroots Economics' open voucher protocol, grown from Sarafu Network in Kenya</td><td>Kept promises earn service vouchers that trade in a shared pool</td><td><span class="state pilot">In pilot</span></td></tr>
+      <tr><td>Ma Earth, with Certified</td><td>Collective funding for community-led regeneration</td><td>Stewards publish approved work to a linked Ma Earth project</td><td><span class="state next">Next, the first publishing target</span></td></tr>
+      <tr><td>Bloom Network</td><td>A member-run network where local communities share resources</td><td>Publish the same record to Bloom</td><td><span class="state next">After Ma Earth</span></td></tr>
+      <tr><td>Regen Network</td><td>A registry for ecological projects, claims and credits</td><td>Structure evidence for Regen's ecological claims</td><td><span class="state next">Exploring</span></td></tr>
+      <tr><td>Silvi and GainForest</td><td>Ground-verified tree planting; AI and data tools built with local communities</td><td>Agroforestry records and provider pilots</td><td><span class="state next">Research</span></td></tr>
+    </table>
+  </div>
+  <div class="section rule">
+  <h3>Terms</h3>
+  <div class="terms">
+    <dl>
+      <dt>Garden</dt><dd>A place-based community using Green Goods, with its own members, roles and record.</dd>
+      <dt>Promise</dt><dd>An offer or request for specific work, with terms, proof and a confirmation.</dd>
+      <dt>Commitment pool</dt><dd>A garden's set of open promises for a season or campaign.</dd>
+      <dt>Service voucher</dt><dd>A transferable entitlement to an issuer's future service, under published terms.</dd>
+    </dl>
+    <dl>
+      <dt>Exchange pool</dt><dd>The one shared pool where member and garden vouchers trade.</dd>
+      <dt>Endowment</dt><dd>A deposit that stays invested, with earnings supporting the garden. Not guaranteed.</dd>
+      <dt>G$</dt><dd>GoodDollar's token on Celo, used for optional rewards and purchases.</dd>
+      <dt>Attestation</dt><dd>A signed, public record of who stated what and when.</dd>
+    </dl>
+  </div>
+  </div>
+  <div class="section rule sources">
+    <h3>Sources</h3>
+    <ul>
+      <li>World Bank, <i>World Development Indicators</i>: Nigeria's 2024 personal remittances, updated 8 October 2026.</li>
+      <li>Grassroots Economics, Cosmo-Local Credit white paper v0.8, 30 September 2026, and docs.cosmolocal.credit.</li>
+      <li>Green Goods documentation at docs.greengoods.app: funding a garden, opening a pool, creating impact certificates.</li>
+      <li>Omo Yoruba of Southern California, organization website, read 9 October 2026.</li>
+      <li>Tech and Sun, techandsun.com, and each partner's own site, read 25 October 2026.</li>
+    </ul>
+  </div>
+  <p class="contact" style="margin-top:18px">Help us find the first supporter, and tell us what would make you the second.<br>contact@greengoods.app · greengoods.app · beta.greengoods.app</p>
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Companion brief</span><span class="n">6 / 6</span></footer>
+</section>
+</body>
+</html>

@@ -299,6 +299,89 @@ describe("WorkIntro", () => {
     );
   });
 
+  it("asks for the garden only while the chosen one cannot take the work (decision 28)", () => {
+    const gardens = [makeGarden({ id: "0xABC" as Address, name: "My Garden" })];
+    const view = renderIntro({ gardens, selectedGardenAddress: "0xABC" });
+    expect(screen.getByRole("listbox", { name: "Select Your Garden" })).toBeInTheDocument();
+
+    view.rerender(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages },
+        createElement(WorkIntro, {
+          actions: [],
+          gardens,
+          gardenSettled: true,
+          selectedActionUID: null,
+          selectedGardenAddress: "0xABC",
+          selectedDomain: null,
+          setActionUID: vi.fn(),
+          setGardenAddress: vi.fn(),
+          setSelectedDomain: vi.fn(),
+        })
+      )
+    );
+    // The flow names no garden: the chip on Home carries it.
+    expect(screen.queryByText("Select Your Garden")).not.toBeInTheDocument();
+    expect(screen.queryByRole("listbox", { name: "Select Your Garden" })).not.toBeInTheDocument();
+    expect(screen.queryByText("My Garden")).not.toBeInTheDocument();
+  });
+
+  it("offers a settled garden's own domains and keeps the garden when the domain changes", () => {
+    const setActionUID = vi.fn();
+    const setGardenAddress = vi.fn();
+    const setSelectedDomain = vi.fn();
+    const gardens = [
+      makeGarden({
+        id: "0xSun" as Address,
+        name: "Sun Garden",
+        domainMask: (1 << Domain.SOLAR) | (1 << Domain.AGRO),
+      }),
+      makeGarden({
+        id: "0xBin" as Address,
+        name: "Bin Garden",
+        domainMask: (1 << Domain.WASTE) | (1 << Domain.EDU),
+      }),
+    ];
+
+    renderIntro({
+      gardens,
+      gardenSettled: true,
+      selectedGardenAddress: "0xSun",
+      selectedActionUID: 1,
+      setActionUID,
+      setGardenAddress,
+      setSelectedDomain,
+    });
+
+    expect(screen.getByTestId(`domain-tab-${Domain.SOLAR}`)).toBeInTheDocument();
+    expect(screen.getByTestId(`domain-tab-${Domain.AGRO}`)).toBeInTheDocument();
+    expect(screen.queryByTestId(`domain-tab-${Domain.WASTE}`)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(`domain-tab-${Domain.EDU}`)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId(`domain-tab-${Domain.AGRO}`));
+    expect(setSelectedDomain).toHaveBeenCalledWith(Domain.AGRO);
+    expect(setActionUID).toHaveBeenCalledWith(null);
+    expect(setGardenAddress).not.toHaveBeenCalled();
+  });
+
+  it("clears the garden with the action when the domain changes while the step asks for one", () => {
+    const setActionUID = vi.fn();
+    const setGardenAddress = vi.fn();
+    const gardens = [
+      makeGarden({
+        id: "0xSun" as Address,
+        domainMask: (1 << Domain.SOLAR) | (1 << Domain.AGRO),
+      }),
+    ];
+
+    renderIntro({ gardens, selectedGardenAddress: "0xSun", setActionUID, setGardenAddress });
+
+    fireEvent.click(screen.getByTestId(`domain-tab-${Domain.AGRO}`));
+    expect(setActionUID).toHaveBeenCalledWith(null);
+    expect(setGardenAddress).toHaveBeenCalledWith(null);
+  });
+
   it("chooses a garden from the garden picker", () => {
     const setGardenAddress = vi.fn();
     const gardens = [makeGarden({ id: "0xABC" as Address, name: "My Garden" })];

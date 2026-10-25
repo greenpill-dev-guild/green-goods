@@ -575,7 +575,7 @@ Agent: *Reads test output, checks component code*
 ```typescript
 test("shows the garden list", async ({ page }) => {
   const helper = await setupAuthenticatedClient(page);
-  await page.goto("/home?presentation=pwa");
+  await page.goto("/home/explore?presentation=pwa");
   await helper.waitForPageLoad();
   await expect(page.getByTestId("garden-card").first()).toBeVisible();
 });

@@ -10,6 +10,8 @@ interface WorkDashboardShellProps {
   onRequestClose: () => void;
   covered?: boolean;
   restored?: boolean;
+  /** The active garden, whose work the sheet lists (DL-129); unset for a member with none. */
+  gardenName?: string;
   tabs: StandardTab[];
   activeTab: string;
   onTabChange: (tabId: string) => void;
@@ -22,7 +24,8 @@ interface WorkDashboardShellProps {
  * sheet body as the single scroll owner for tab content. Open/close state
  * stays with WorkDashboard so the data hooks and the close timer share one
  * owner; the sheet itself registers as open so the AppBar steps aside
- * (DL-015).
+ * (DL-015). In an active garden the line under the title names it, in the
+ * description's place, so the header keeps its height (DL-129).
  */
 export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   className,
@@ -30,6 +33,7 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   onRequestClose,
   covered = false,
   restored = false,
+  gardenName,
   tabs,
   activeTab,
   onTabChange,
@@ -49,10 +53,14 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
         id: "app.workDashboard.title",
         defaultMessage: "Your Work",
       })}
-      description={intl.formatMessage({
-        id: "app.workDashboard.description",
-        defaultMessage: "Track work submissions and reviews",
-      })}
+      description={
+        gardenName
+          ? intl.formatMessage({ id: "app.common.inGarden" }, { garden: gardenName })
+          : intl.formatMessage({
+              id: "app.workDashboard.description",
+              defaultMessage: "Track work submissions and reviews",
+            })
+      }
       closeLabel={intl.formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
       closeTestId="app-sheet-close"
       testId="app-sheet"

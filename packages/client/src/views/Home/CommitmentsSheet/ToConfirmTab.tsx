@@ -1,4 +1,5 @@
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   type CommitmentsToConfirm,
@@ -6,17 +7,24 @@ import {
   selectConfirmQueueRows,
   useCommitmentMetadata,
 } from "@green-goods/shared/commitment-pooling";
-import { RiShieldCheckLine } from "@remixicon/react";
-import { useMemo } from "react";
+import { RiFilterOffLine, RiShieldCheckLine } from "@remixicon/react";
+import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 
 import { CommitmentStateLadder, PromiseRow } from "@/components/Features/Commitments";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
+import { listedToConfirmCount } from "./grouping";
 
 export interface ToConfirmTabProps {
   toConfirm: CommitmentsToConfirm;
   /** Where a row goes when tapped: the commitment, in the garden it is for. */
   onOpenCommitment: (gardenAddress: string, commitmentId: bigint) => void;
+  /** Drawn first, in every state that lists: the garden's seasons and campaigns. */
+  lead?: ReactNode;
+  /** The season or campaign the queue shows; null shows everything waiting. */
+  cycleId: bigint | null;
+  /** Head each garden's queue with its name; off once the sheet names its one garden. */
+  gardenHeadings: boolean;
 }
 
 /**
@@ -28,7 +36,13 @@ export interface ToConfirmTabProps {
  * in its first line. Confirming itself is an online act on the commitment's
  * own screen, which is where every row leads.
  */
-export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps) {
+export function ToConfirmTab({
+  toConfirm,
+  onOpenCommitment,
+  lead,
+  cycleId,
+  gardenHeadings,
+}: ToConfirmTabProps) {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
@@ -44,16 +58,15 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
       search: "",
       include: ["ORDINARY"],
     });
-    return rows.reduce<Array<{ garden: string; gardenName: string; rows: typeof rows }>>(
-      (result, row) => {
+    return rows
+      .filter((row) => cycleId === null || row.commitment.cycleId === cycleId)
+      .reduce<Array<{ garden: string; gardenName: string; rows: typeof rows }>>((result, row) => {
         const group = result.find((candidate) => candidate.garden === row.garden);
         if (group) group.rows.push(row);
         else result.push({ garden: row.garden, gardenName: row.gardenName, rows: [row] });
         return result;
-      },
-      []
-    );
-  }, [toConfirm, byCID]);
+      }, []);
+  }, [toConfirm, byCID, cycleId]);
 
   return (
     <CommitmentStateLadder
@@ -61,7 +74,8 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
       isLoading={toConfirm.isLoading}
       isError={toConfirm.isError}
       isOnline={isOnline}
-      isEmpty={toConfirm.count === 0}
+      // Empty means nothing this tab lists; the cockpit's fallbacks and disputes are not listed here.
+      isEmpty={listedToConfirmCount(toConfirm) === 0}
       onRetry={() => void toConfirm.refetch()}
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}
       copy={{
@@ -70,17 +84,30 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
         errorDescriptionId: "app.commitments.toConfirm.error.description",
         emptyTitleId: "app.commitments.toConfirm.emptyTitle",
         emptyDescriptionId: "app.commitments.toConfirm.emptyDescription",
+        emptyLead: lead,
       }}
     >
+      {lead}
+
       <p className="text-xs text-text-sub-600">
         {formatMessage({ id: "app.commitments.toConfirm.intro" })}
       </p>
 
+      {groups.length === 0 ? (
+        <EmptyState
+          placement="sheet"
+          icon={<RiFilterOffLine />}
+          title={formatMessage({ id: "app.commitments.toConfirm.emptyTitle" })}
+        />
+      ) : null}
+
       {groups.map((group) => (
         <div key={group.garden} data-component="ToConfirmGroup">
-          <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
-            {group.gardenName}
-          </SheetHeading>
+          {gardenHeadings ? (
+            <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
+              {group.gardenName}
+            </SheetHeading>
+          ) : null}
           <div className="flex flex-col gap-(--gg-list-gap)">
             {/* Every row here waits on the reader, so what kind of ask it is leads its
                 details, where a second pill used to sit under the row. */}

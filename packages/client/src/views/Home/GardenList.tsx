@@ -18,6 +18,8 @@ interface GardenListProps {
   gardens: Garden[];
   selectedGardenId?: string;
   onCardClick: (id: string) => void;
+  /** The one tag on a card's photo, such as Explore's Member, Awaiting review or Open. */
+  tagFor?: (garden: Garden) => string | undefined;
   // Loading states
   showSkeleton: boolean;
   timedOut: boolean;
@@ -36,6 +38,7 @@ export function GardenList({
   gardens,
   selectedGardenId,
   onCardClick,
+  tagFor,
   showSkeleton,
   timedOut,
   isError,
@@ -180,6 +183,7 @@ export function GardenList({
         <GardenCard
           key={garden.id}
           garden={garden}
+          tag={tagFor?.(garden)}
           className="cv-garden-card"
           selected={garden.id === selectedGardenId}
           onClick={() => onCardClick(garden.id)}
