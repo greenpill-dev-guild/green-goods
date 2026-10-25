@@ -166,7 +166,7 @@ Step 1 (`feature/pwa-membership-owner`):
   docs-authority, docs-test, docs-build, staged-modules, source-structure, design-guardrails,
   agent-guidance, supply-chain, docs-generated, em-dashes); `browser-proof` pending (manual,
   advisory)
-- Validated paths: the 28 paths of `git diff --name-only origin/develop d24335631`: the
+- Validated paths: the 28 paths of `git diff --name-only 99884497b d24335631`: the
   membership module and hook, the join reader, the Home filter, the arrival state, Submit Work,
   the offline policy and hook, Karma, the visibility config, the barrels and the Shared
   manifest, Profile's list, their tests, the API index and commands digests, the seam registry,
@@ -180,19 +180,20 @@ Step 1 (`feature/pwa-membership-owner`):
 
 Step 2 (`feature/pwa-active-garden`, stacked on step 1):
 
-- Tested implementation commit SHA: `8bae95387305c632786a1e168c23f7ac5424b550` (step 2's commits
-  over step 1's final head `3cfc9f060`)
-- Run at (UTC): `2026-10-25T04:10:45Z`
+- Tested implementation commit SHA: `478d16f32a1f387793fddf7fed4857780e2c1bb1` (step 2's commits merged with step 1's
+  reviewed head `24bc1fa78` and develop `cf1583ae7`; the first green run was on `8bae95387` at
+  04:10:45Z)
+- Run at (UTC): `2026-10-25T04:55:59Z`
 - Exact command(s): `VITE_PIMLICO_API_KEY=test PATH="$HOME/.local/share/mise/installs/node/22.22.1/bin:$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push`
 - Result: passed, 31 of 32 selected checks fresh (step 1's 30 plus `browser-passkey`);
   `browser-proof` pending (manual, advisory)
-- Validated paths: the 34 paths of `git diff --name-only origin/develop 8bae95387`: step 1's 27
-  plus the active-garden resolver, store and hook, their three tests, and the comment in
+- Validated paths: the 35 paths of `git diff --name-only cf1583ae7 478d16f32`: step 1's 28 plus
+  the active-garden resolver, store and hook, their three tests, and the comment in
   `hooks/auth/useIdentityChangeReset.ts` (the manifest, digests, seam registry and hub files
   changed again)
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
   packages docs scripts` → empty
-- Evidence-only diff command and result: `git diff --exit-code 8bae95387 -- packages docs
+- Evidence-only diff command and result: `git diff --exit-code 478d16f32 -- packages docs
   scripts` → exit 0 (this record changes only `.plans/`)
 - Evidence-only worktree-status command and result: `git status --porcelain=v1
   --untracked-files=all -- packages docs scripts` → empty
