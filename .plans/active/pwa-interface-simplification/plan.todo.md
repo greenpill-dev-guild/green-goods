@@ -49,7 +49,7 @@ record.
 **Feature Slug:** `pwa-interface-simplification`
 **Stage:** active
 **Status:** IN DELIVERY (execution authorized 24 October 2026; the first slice is in progress)
-**Created / Last Updated:** 2026-10-06 / 2026-10-24
+**Created / Last Updated:** 2026-10-06 / 2026-10-25
 **Linear Issue:** RESR-93
 **Linear Project:** Green Goods v2.1.0 QA & Release
 **Linear Source:** source:plans
