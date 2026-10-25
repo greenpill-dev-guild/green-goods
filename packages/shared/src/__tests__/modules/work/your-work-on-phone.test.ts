@@ -5,10 +5,10 @@
  * own garden.
  */
 
-import { describe, expect, it } from "vitest";
 import {
   isWorkOnThisDevice,
   selectYourWorkOnPhone,
+  type YourWorkOnPhoneInput,
 } from "../../../modules/work/your-work-on-phone";
 import type { Work } from "../../../types/domain";
 import { createMockWork } from "../../test-utils/mock-factories";
@@ -32,8 +32,12 @@ function work(overrides: Partial<Work> & { id: string }): Work {
   });
 }
 
-function select(input: Partial<Parameters<typeof selectYourWorkOnPhone>[0]>) {
-  return selectYourWorkOnPhone({
+/** A draft and a proof as the selector reads them: their garden, and an id to name them by. */
+type Draft = { id: string; gardenAddress?: string | null };
+type Proof = { id: string; garden?: string | null; savedGarden: string | null };
+
+function select(input: Partial<YourWorkOnPhoneInput<Draft, Proof>>) {
+  return selectYourWorkOnPhone<Draft, Proof>({
     inScope,
     viewer: ME,
     works: [],
