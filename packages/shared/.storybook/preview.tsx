@@ -16,6 +16,7 @@ import {
 // for every story that does not override it. Storybook only clears a module mock's call history
 // between stories, so a story that overrides hooks returns `resetHookMocks(...)` (./moduleMocks)
 // from `beforeEach`.
+sb.mock(import("../src/hooks/app/useArrivalState.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOffline.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOnlineStatus.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts"), { spy: true });
@@ -65,6 +66,7 @@ sb.mock(import("../src/hooks/ens/useENSReleaseName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useGreenGoodsEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useProtocolMemberStatus.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useSlugAvailability.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useActiveGarden.ts"), { spy: true });
 sb.mock(import("../src/hooks/garden/useGardenJoinRequests.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useClaimGreenWillBadge.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useGreenWillBadges.ts"), { spy: true });
@@ -81,6 +83,7 @@ sb.mock(import("../src/hooks/vault/useVaultPreview.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useVaultWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useDrafts.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useMyWorks.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/useWorks.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useYourWorkCount.ts"), { spy: true });
 sb.mock(import("../src/hooks/yield/useYieldAllocations.ts"), { spy: true });
 // The public vault panel mounts the wallet runtime itself; its stories render the panel without it.
