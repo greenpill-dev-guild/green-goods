@@ -1,8 +1,10 @@
 /** @vitest-environment happy-dom */
+import { webcrypto } from "node:crypto";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../../hooks/work/useDraftAutoSave";
+import { cleanPhoto, photoFile } from "../../test-utils/photo-fixtures";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mocks = vi.hoisted(() => ({
@@ -239,6 +241,12 @@ describe("complete draft autosave", () => {
 });
 
 describe("missing attachment choices", () => {
+  beforeEach(() => {
+    // Photos are binary, so they are hashed with real WebCrypto, not the setup's text-only stand-in.
+    vi.stubGlobal("crypto", { ...crypto, subtle: webcrypto.subtle });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
   it("reselection retains identity and order, and removal cannot revive an earlier missing entry", async () => {
     vi.useRealTimers();
     const { identifyWorkFile } = await import("../../../modules/work/work-attachments");
@@ -255,7 +263,7 @@ describe("missing attachment choices", () => {
     await act(async () => {
       await result.current.reselectMissingAttachment(
         "replace",
-        new File(["replacement"], "new.jpg", { type: "image/jpeg" })
+        photoFile(cleanPhoto("image/jpeg", { label: "replacement" }), "new.jpg", "image/jpeg")
       );
     });
     const state = useWorkFlowStore.getState();
@@ -280,7 +288,7 @@ describe("missing attachment choices", () => {
     await act(async () => {
       await result.current.reselectMissingAttachment(
         "missing",
-        new File(["jpeg"], "found.jpg", { type: "image/jpeg" })
+        photoFile(cleanPhoto("image/jpeg", { label: "found" }), "found.jpg", "image/jpeg")
       );
     });
     expect(useWorkFlowStore.getState().images.map((file) => file.name)).toEqual([

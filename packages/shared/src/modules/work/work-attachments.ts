@@ -1,6 +1,7 @@
 import type { ApproximateWorkLocation } from "../../types/domain";
 import type { SerializedFileData } from "../../types/job-queue";
 import { serializeFile } from "../../utils/storage/file-serialization";
+import { withoutImageMetadata } from "./image-metadata";
 
 export class InvalidWorkAttachmentError extends Error {
   constructor(message: string) {
@@ -130,6 +131,20 @@ export function isHeicFile(file: Pick<File, "name" | "type">): boolean {
  */
 export function isWorkPhoto(file: File, policy: WorkAttachmentPolicy = {}): boolean {
   return PHOTO_TYPES.has(file.type) || (policy.pendingHeic === "accept" && isHeicFile(file));
+}
+
+/**
+ * An attachment as it may be pinned. A photo loses its location and camera
+ * metadata, and one whose bytes cannot be read is refused rather than published
+ * as it was picked: IPFS and the attestation cannot be withdrawn. A video is
+ * published as it was picked, since removing a video container's metadata needs
+ * a parser this does not have.
+ */
+export async function publishableWorkFile(file: File): Promise<File> {
+  if (!PHOTO_TYPES.has(file.type)) return file;
+  const published = await withoutImageMetadata(file);
+  if (!published) throw new InvalidWorkAttachmentError("media-type");
+  return published;
 }
 
 export function validateWorkAttachments(

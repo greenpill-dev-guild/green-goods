@@ -14,7 +14,7 @@ import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
 import { buildCommitmentEvidenceDocument, evidenceMediaKind } from "../commitment-pooling/evidence";
 import type { EvidenceJobPayload } from "../commitment-pooling/jobs";
-import { identifyWorkFile } from "../work/work-attachments";
+import { identifyWorkFile, publishableWorkFile } from "../work/work-attachments";
 import { jobQueueDB } from "./db";
 import { convertQueuedHeicMedia } from "./job-media-conversion";
 import { MAX_RETRIES } from "./queue-policy";
@@ -70,10 +70,12 @@ export async function publishPendingEvidence(jobId: string, job: Job): Promise<P
     // Each CID is written back the moment it exists, so a retry uploads only
     // the files that did not make it.
     const pin = async (file: File, fileIndex: number, totalFiles: number) => {
-      const { contentHash } = await identifyWorkFile(file);
+      // A photo is pinned without its location and camera metadata, like a work's.
+      const published = await publishableWorkFile(file);
+      const { contentHash } = await identifyWorkFile(published);
       const pinned = uploads.files[contentHash];
       if (pinned) return pinned.cid;
-      const { cid } = await uploadFileToIPFS(file, { ...context, fileIndex, totalFiles });
+      const { cid } = await uploadFileToIPFS(published, { ...context, fileIndex, totalFiles });
       uploads.files[contentHash] = { cid };
       // Mutated, not replaced: the caller rewrites this job with the meta it holds.
       job.meta = { ...(job.meta ?? {}), evidenceUploads: uploads };

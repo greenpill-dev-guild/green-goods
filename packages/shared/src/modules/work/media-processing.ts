@@ -4,6 +4,7 @@ import {
   convertHeicToJpeg,
   loadHeicDecoder,
 } from "./heic-conversion";
+import { withoutImageMetadata } from "./image-metadata";
 import { captureWorkFile, isHeicFile } from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
@@ -137,13 +138,31 @@ export async function normalizeWorkMediaFiles(
 
   for (const pickedFile of files) {
     const file = await captureWorkFile(pickedFile);
-    if (isVideoFile(file) || isSupportedImage(file)) {
+    if (isVideoFile(file)) {
       accepted.push({
         file,
         originalFile: file,
         converted: false,
         metadata: getSafeMediaMetadata(file),
       });
+      continue;
+    }
+
+    if (isSupportedImage(file)) {
+      // Location and camera metadata come off as the photo is picked, so the
+      // draft, the queue and the upload all hold the bytes that publish. A photo
+      // whose bytes cannot be read is refused: it could not be checked.
+      const published = await withoutImageMetadata(file);
+      if (published) {
+        accepted.push({
+          file: published,
+          originalFile: file,
+          converted: false,
+          metadata: getSafeMediaMetadata(published),
+        });
+      } else {
+        rejected.push({ file, reason: "unsupported", metadata: getSafeMediaMetadata(file) });
+      }
       continue;
     }
 
@@ -183,6 +202,7 @@ export async function normalizeWorkMediaFiles(
 
     options.onHeicConversionStarted?.(file);
     try {
+      // The conversion draws the photo on a canvas, which writes no metadata.
       const convertedFile = await convertHeicToJpeg(decoder, file, jpegQuality);
       const convertedMetadata = getSafeMediaMetadata(convertedFile);
       accepted.push({
@@ -214,10 +234,10 @@ export interface PreparedMedia {
 
 /**
  * Normalize a picker's files and compress the photos, the way both composers
- * do before queueing: HEIC converted, unsupported types refused, large images
- * brought under the upload ceiling, videos passed through as they are. Kept
- * here so the proof composer and the work composer cannot drift on what a
- * queued photo looks like.
+ * do before queueing: HEIC converted, photo metadata removed, unsupported types
+ * refused, large images brought under the upload ceiling, videos passed through
+ * as they are. Kept here so the proof composer and the work composer cannot
+ * drift on what a queued photo looks like.
  */
 export async function prepareMediaForUpload(
   files: File[],

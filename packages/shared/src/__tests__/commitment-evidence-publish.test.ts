@@ -10,7 +10,9 @@
  * nothing.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { webcrypto } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { bytesOf, cameraPhoto, cleanPhoto, photoFile } from "./test-utils/photo-fixtures";
 
 const store = new Map<string, Record<string, unknown>>();
 const images = new Map<string, Array<{ id: string; file: File; url: string }>>();
@@ -92,7 +94,7 @@ function job(overrides: Record<string, unknown> = {}) {
   } as never;
 }
 
-const photo = new File(["jpeg-bytes"], "beds.jpg", { type: "image/jpeg" });
+const photo = photoFile(cleanPhoto("image/jpeg", { label: "beds" }), "beds.jpg", "image/jpeg");
 const voice = new File(["webm-bytes"], "note.webm", { type: "audio/webm" });
 
 describe("publishing proof at sync", () => {
@@ -102,11 +104,19 @@ describe("publishing proof at sync", () => {
     images.clear();
     mocks.executeCommitmentJob.mockResolvedValue({ status: "sent", txHash: "0xabc" });
     mocks.convertQueuedHeicMedia.mockResolvedValue({ status: "ready" });
+    // Photos are binary, so they are hashed with real WebCrypto, not the setup's text-only stand-in.
+    vi.stubGlobal("crypto", { ...crypto, subtle: webcrypto.subtle });
   });
+  afterEach(() => vi.unstubAllGlobals());
 
   it("uploads the media, pins the document, writes the CID back, then attaches", async () => {
+    const picked = photoFile(
+      cameraPhoto("image/jpeg", { label: "beds" }),
+      "beds.jpg",
+      "image/jpeg"
+    );
     images.set("job-evidence", [
-      { id: "img-1", file: photo, url: "blob:photo" },
+      { id: "img-1", file: picked, url: "blob:photo" },
       { id: "img-2", file: voice, url: "blob:voice" },
     ]);
     mocks.uploadFileToIPFS
@@ -117,6 +127,12 @@ describe("publishing proof at sync", () => {
     const result = await executeCommitmentQueueJob("job-evidence", job(), 42161, {} as never);
 
     expect(result).toEqual({ status: "complete", txHash: "0xabc" });
+    // The photo was pinned without where, or with what, it was taken.
+    const pinned = mocks.uploadFileToIPFS.mock.calls[0]?.[0] as File;
+    expect(pinned.name).toBe("beds.jpg");
+    expect(await bytesOf(pinned)).toEqual(
+      cleanPhoto("image/jpeg", { orientation: 6, label: "beds" })
+    );
     // The document names every piece by its own CID and carries the words.
     expect(mocks.uploadJSONToIPFS).toHaveBeenCalledWith(
       {
@@ -194,7 +210,7 @@ describe("publishing proof at sync", () => {
   });
 
   it("keeps each photo's CID, so a retry uploads only what did not make it", async () => {
-    const path = new File(["path-bytes"], "path.jpg", { type: "image/jpeg" });
+    const path = photoFile(cleanPhoto("image/jpeg", { label: "path" }), "path.jpg", "image/jpeg");
     images.set("job-evidence", [
       { id: "img-1", file: photo, url: "blob:photo" },
       { id: "img-2", file: path, url: "blob:path" },

@@ -1,19 +1,29 @@
 /** @vitest-environment node */
-import type { Hex } from "viem";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { webcrypto } from "node:crypto";
+import { type AbiParameter, decodeAbiParameters, type Hex } from "viem";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EASConfig } from "../../../config/blockchain";
+import { initializeIpfsFromEnv } from "../../../modules/data/ipfs/client";
 import {
   type ContractCall,
   TransactionRevertedError,
   type TransactionSender,
 } from "../../../modules/transactions/types";
 import { SimulationRejected } from "../../../modules/work/simulation-rejected";
+import { uploadKindOf } from "../../../modules/work/upload-kinds";
 import {
   uploadQueuedWork,
   type UploadQueuedWorkPorts,
 } from "../../../modules/work/upload-queued-work";
 import { retainedWorkBroadcast } from "../../../modules/work/work-confirmation";
 import type { Job, SendCheckpoint, WorkJobPayload } from "../../../types/job-queue";
+import {
+  bytesOf,
+  cameraPhoto,
+  cleanPhoto,
+  leakedCameraDetails,
+  photoFile,
+} from "../../test-utils/photo-fixtures";
 import {
   QUEUED_JOB_GARDEN,
   QUEUED_JOB_USER,
@@ -22,6 +32,21 @@ import {
 } from "../../test-utils/queued-jobs";
 import { createMockTransactionSender } from "../../test-utils/transaction-fakes";
 import { sendLockName, stubWebLocks } from "../../test-utils/web-locks";
+
+// The suite-wide EAS SDK double encodes nothing. Here a work attestation carries its
+// fields, so the media it names can be read back out of the call that goes out.
+vi.mock("@ethereum-attestation-service/eas-sdk", async (importOriginal) => {
+  const { encodeAbiParameters } = await vi.importActual<typeof import("viem")>("viem");
+  class SchemaEncoder {
+    encodeData(fields: Array<{ name: string; type: string; value: unknown }>) {
+      return encodeAbiParameters(
+        fields.map(({ name, type }) => ({ name, type })) as AbiParameter[],
+        fields.map(({ value }) => value) as never
+      );
+    }
+  }
+  return { ...(await importOriginal<Record<string, unknown>>()), SchemaEncoder };
+});
 
 const USER = QUEUED_JOB_USER;
 const GARDEN = QUEUED_JOB_GARDEN;
@@ -693,5 +718,120 @@ describe("Upload all", () => {
     });
     expect(sendOf(failing.store, unread.id)).toMatchObject({ transactionHash: TX });
     expect(sendOf(failing.store, unread.id)?.intentChainTime).toBeUndefined();
+  });
+});
+
+describe("Upload all publishing a photo", () => {
+  const SIGNER = "https://agent.greengoods.test/api/uploads/sign";
+  const UPLOAD = "https://uploads.pinata.test/v3/files/signed";
+  const GATEWAY = "https://pinata.example";
+  const WORK_FIELDS = [
+    { name: "actionUID", type: "uint256" },
+    { name: "title", type: "string" },
+    { name: "feedback", type: "string" },
+    { name: "metadata", type: "string" },
+    { name: "media", type: "string[]" },
+  ] as const;
+
+  /** Pinata at its HTTP edge: each file it received, under a CID drawn from its bytes. */
+  async function pinningService() {
+    const pinned = new Map<string, File>();
+    const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      if (url === SIGNER) return Response.json({ ok: true, url: UPLOAD });
+      if (url === UPLOAD) {
+        const file = (init?.body as FormData).get("file") as File;
+        const digest = await webcrypto.subtle.digest("SHA-256", await file.arrayBuffer());
+        const cid = `bafkrei${Buffer.from(digest).toString("hex")}`;
+        pinned.set(cid, file);
+        return Response.json({ data: { cid } });
+      }
+      // The gateway check that follows each upload.
+      if (url.startsWith(`${GATEWAY}/ipfs/`)) return new Response("ok");
+      throw new Error(`Unexpected request to ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await initializeIpfsFromEnv({
+      MODE: "test",
+      VITE_API_BASE_URL: "https://agent.greengoods.test",
+      VITE_PINATA_GATEWAY_URL: GATEWAY,
+    });
+    return { pinned, fetchMock };
+  }
+
+  /** A work queued with one photo, its attestation built the way the app builds it. */
+  function queuedWithPhoto(photo: File) {
+    const queued = queuedWorkJob({
+      id: "work-photo",
+      meta: READY,
+      payload: {
+        // Where the gardener stood, as precisely as the device knew it.
+        location: { lat: 52.37403, lng: 4.88969 },
+        uploadCheckpoint: { submittedAt: "2026-09-17T09:00:00.000Z", files: {} },
+      },
+    });
+    const { ports } = harness([queued]);
+    ports.attestation = (job, { chainId, claim, authMode }) =>
+      uploadKindOf(job)!.attestation(job, {
+        chainId,
+        claim,
+        authMode,
+        save: ports.save,
+        dependencies: { images: async () => [{ file: photo }], easConfig: () => EAS_CONFIG },
+      });
+    return ports;
+  }
+
+  beforeEach(() => {
+    // Photos are binary, so they are hashed with real WebCrypto, not the setup's text-only stand-in.
+    vi.stubGlobal("crypto", { ...crypto, subtle: webcrypto.subtle });
+  });
+  afterEach(async () => {
+    vi.unstubAllGlobals();
+    await initializeIpfsFromEnv({});
+  });
+
+  it("pins a photo under 1 MB without its location or camera details, and attests exactly those bytes", async () => {
+    const { pinned } = await pinningService();
+    const picked = photoFile(cameraPhoto("image/jpeg"), "beds.jpg", "image/jpeg");
+    expect(picked.size).toBeLessThan(1_000_000);
+    const ports = queuedWithPhoto(picked);
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
+
+    // The media the attestation names are the bytes Pinata received.
+    const [call] = vi.mocked(sender.sendContractCall).mock.calls[0];
+    const request = call.args[0] as { data: { data: Hex } };
+    const [, , , metadataCid, media] = decodeAbiParameters(WORK_FIELDS, request.data.data);
+    expect(media).toHaveLength(1);
+    const published = pinned.get(media[0])!;
+    expect([published.name, published.type]).toEqual(["beds.jpg", "image/jpeg"]);
+    expect(leakedCameraDetails(await bytesOf(published))).toEqual([]);
+    expect(await bytesOf(published)).toEqual(cleanPhoto("image/jpeg", { orientation: 6 }));
+    // The garden keeps its own record of where the work happened, rounded.
+    expect(JSON.parse(await pinned.get(metadataCid)!.text())).toMatchObject({
+      location: { lat: 52.374, lng: 4.89 },
+      attachments: [{ cid: media[0], type: "image/jpeg" }],
+    });
+    // Nothing else reached Pinata: no copy of the photo as the camera wrote it.
+    expect([...pinned.values()].map((file) => file.name).sort()).toEqual([
+      "beds.jpg",
+      "metadata.json",
+    ]);
+  });
+
+  it("pins nothing and sends nothing when a queued photo's bytes cannot be read", async () => {
+    const { fetchMock } = await pinningService();
+    const ports = queuedWithPhoto(new File(["jpeg"], "beds.jpg", { type: "image/jpeg" }));
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-sent", flagged: 0 });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });
