@@ -1,6 +1,6 @@
 import { RiMailLine, RiSearchLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminSelect, AdminTextArea, AdminTextField } from "./AdminTextField";
 
@@ -372,5 +372,47 @@ export const StatesShowOnTheBox: Story = {
     );
     await expect(disabledSelect.backgroundImage).not.toBe("none");
     await expect(disabledSelect.backgroundRepeat).toBe("no-repeat");
+  },
+};
+
+/**
+ * In dark each box draws the cockpit's control outline, --m3-outline (#a8a29e,
+ * DL-098), as the running cockpit does. The story sits in Storybook's dark theme
+ * frame, a dark scope the cockpit never has, where shared theme.css re-declares
+ * the outline as its dark hairline (about 1.9:1); surfaces.css gives the cockpit's
+ * back to every dark scope below an admin root. Checked in browser mode, where the
+ * cascade layers apply.
+ */
+export const CockpitOutlineInDark: Story = {
+  tags: ["storybook-ci"],
+  globals: { theme: "dark" },
+  render: () => (
+    <div className="grid max-w-3xl items-start gap-5 sm:grid-cols-3">
+      <AdminTextField label="Name" defaultValue="North Meadow" />
+      <AdminTextArea label="Reason" />
+      <AdminSelect label="Role" defaultValue="gardener">
+        {ROLE_OPTIONS}
+      </AdminSelect>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const token = (element: Element, name: string) =>
+      getComputedStyle(element).getPropertyValue(name).trim();
+    for (const control of [
+      canvas.getByRole("textbox", { name: "Name" }),
+      canvas.getByRole("textbox", { name: "Reason" }),
+      canvas.getByRole("combobox", { name: "Role" }),
+    ]) {
+      await expect(control.closest("[data-theme]")).toHaveAttribute("data-theme", "dark");
+      const outline = token(control, "--m3-outline");
+      await expect(token(control, "--gg-control-outline")).toBe(outline);
+      // The box's color transition covers its border, so wait for it to land.
+      await waitFor(() =>
+        expect(getComputedStyle(control).borderTopColor).toBe(
+          `rgb(${outline.split(" ").join(", ")})`
+        )
+      );
+    }
   },
 };

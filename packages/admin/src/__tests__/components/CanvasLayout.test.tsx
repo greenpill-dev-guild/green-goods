@@ -871,6 +871,21 @@ describe("CanvasLayout", () => {
     expect(screen.queryByTestId("admin-side-sheet-content")).not.toBeInTheDocument();
   });
 
+  it("rings the skip link in the cockpit's focus role, not the browser's own ring", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    // One solid 2px ring in the workspace tone, 2px off the link's fill (DL-098).
+    const skipLink = screen.getByRole("link", { name: "Skip to Content" });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    expect(skipLink.className).toContain("focus-visible:outline-2");
+    expect(skipLink.className).toContain("focus-visible:outline-offset-2");
+    expect(skipLink.className).toContain("focus-visible:outline-[rgb(var(--tone-focus-ring,");
+  });
+
   it("does not apply pl-20 padding on main content", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/hub"]}>
