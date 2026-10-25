@@ -118,7 +118,8 @@ export function useYourWorkOnPhone(): YourWorkOnPhone {
     isLinked,
     count:
       items.submissions.length + items.decisions.length + items.drafts.length + items.proofs.length,
-    isLoading: isLoadingDrafts || myWorks.isLoading || (reviewsWait && needsReview.isLoading),
+    // What is on this phone comes from the queue, so the record's read never holds the list.
+    isLoading: isLoadingDrafts || myWorks.isLoadingQueued || (reviewsWait && needsReview.isLoading),
     // The record's read of the reader's work is left out: what is on this phone comes from the
     // queue, which that read failing does not touch.
     isError: queueUnreadable || (reviewsWait && needsReview.isError),

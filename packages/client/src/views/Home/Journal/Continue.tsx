@@ -72,8 +72,11 @@ export function Continue() {
         const { garden, commitmentId, source } = row.proof;
         if (!garden) return;
         const promise = `/home/${garden}/commitments/${commitmentId.toString()}`;
-        // A draft picks up where it was left; queued proof shows where it stands.
-        return navigate(source === "draft" ? `${promise}/proof` : promise);
+        // A draft picks up where it was left; queued proof shows where it stands. Either way
+        // Back from the promise returns Home.
+        return navigate(source === "draft" ? `${promise}/proof` : promise, {
+          state: { from: "home" },
+        });
       }
       default: {
         const target = resolveWorkNavigation(row.work, NO_REVIEW_WORKS);

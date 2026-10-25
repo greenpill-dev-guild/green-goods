@@ -120,6 +120,9 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     enabled: includeOffline && !!activeAddress,
     networkMode: "always",
     staleTime: 10_000,
+    // The job events below reach only a mounted list, and Submit Work queues work while
+    // Home's lists are not, so each list reads the queue again when it mounts.
+    refetchOnMount: "always",
   });
   useJobQueueEvents(
     ["job:added", "job:completed", "job:failed", "queue:sync-completed"],
@@ -263,6 +266,8 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     isSuccess: online.isSuccess || hasRows,
     isError: online.isError && !hasRows,
     isLoading: isOnline && online.isLoading && !hasRows,
+    /** This phone's queue has not been read yet; only with `includeOffline`. */
+    isLoadingQueued: includeOffline && local.isLoading,
     isFetching: isOnline && online.isFetching,
     isPaused: !isOnline || online.isPaused,
     availability:

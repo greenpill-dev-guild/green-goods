@@ -187,6 +187,7 @@ describe("Home Continue", () => {
     });
     fireEvent.click(within(rows[2]).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/7/proof`, {
+      state: { from: "home" },
       viewTransition: true,
     });
   });

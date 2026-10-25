@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   activeGardenId: null as string | null,
   works: [] as Work[],
   myWorksLoading: false,
+  queuedLoading: false,
   myWorksError: false,
   myWorksRefetch: vi.fn(async () => ({ status: "success" })),
   drafts: [] as Array<{ id: string; gardenAddress: string | null }>,
@@ -57,6 +58,7 @@ vi.mock("../../../hooks/work/useMyWorks", () => ({
   useMyWorks: () => ({
     data: mocks.works,
     isLoading: mocks.myWorksLoading,
+    isLoadingQueued: mocks.queuedLoading,
     isError: mocks.myWorksError,
     refetch: mocks.myWorksRefetch,
   }),
@@ -113,6 +115,7 @@ describe("useYourWorkOnPhone", () => {
     mocks.activeGardenId = GARDEN;
     mocks.works = [];
     mocks.myWorksLoading = false;
+    mocks.queuedLoading = false;
     mocks.myWorksError = false;
     mocks.drafts = [];
     mocks.draftsLoading = false;
@@ -170,7 +173,7 @@ describe("useYourWorkOnPhone", () => {
     expect(onPhone.decisions.map((work) => work.id)).toEqual(["0xDEC1"]);
   });
 
-  it("is loading while the phone's lists are first read, and while a waiting review's garden is", () => {
+  it("is loading while the queue, the drafts or a waiting review's garden is first read, not the record's read of the reader's work", () => {
     expect(render().isLoading).toBe(false);
 
     mocks.draftsLoading = true;
@@ -178,9 +181,13 @@ describe("useYourWorkOnPhone", () => {
 
     mocks.draftsLoading = false;
     mocks.myWorksLoading = true;
-    expect(render().isLoading).toBe(true);
+    expect(render().isLoading).toBe(false);
 
     mocks.myWorksLoading = false;
+    mocks.queuedLoading = true;
+    expect(render().isLoading).toBe(true);
+
+    mocks.queuedLoading = false;
     mocks.needsReviewLoading = true;
     expect(render().isLoading).toBe(false);
     mocks.waitingDecisionWorkIds = new Set(["0xdec1"]);

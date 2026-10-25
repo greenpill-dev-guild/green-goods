@@ -222,6 +222,29 @@ describe("useMyWorks", () => {
       );
     });
 
+    it("reads the queue again on every mount, since work queued while no list was mounted sends it no event", async () => {
+      mockGetWorksByGardener.mockResolvedValue([]);
+      mockDeduplicateById.mockReturnValue([]);
+      mockFetchOfflineWorks.mockResolvedValue([]);
+      const first = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+        queryClient,
+      });
+      await waitFor(() => expect(mockFetchOfflineWorks).toHaveBeenCalledTimes(1));
+      first.unmount();
+
+      // Submit Work queues it away from Home, while no list is mounted to hear the event.
+      mockFetchOfflineWorks.mockResolvedValue([
+        createMockWork({ id: "0xoffline_new", status: "offline" }),
+      ]);
+      const second = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+        queryClient,
+      });
+
+      await waitFor(() => {
+        expect(second.result.current.data?.map((work) => work.id)).toEqual(["0xoffline_new"]);
+      });
+    });
+
     it("returns offline queued works when online fetch fails and includeOffline is true", async () => {
       const offlineWorks = [createMockWork({ id: "offline-queued-1" })];
       mockGetWorksByGardener.mockRejectedValue(new Error("Indexer unavailable"));
