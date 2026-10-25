@@ -23,12 +23,14 @@ export type ChatCommand =
   | { kind: "publish"; token: string | null }
   | { kind: "pair"; code: string }
   | { kind: "connect"; account: Address | null }
+  | { kind: "account" }
   | { kind: "disconnect" }
   | { kind: "switch" }
   | { kind: "garden" }
   | { kind: "join" }
   | { kind: "review"; index: number | null }
-  | { kind: "locale"; locale: "en" | "es" | "pt" };
+  /** LANG with a language sets it; LANG alone asks which one. */
+  | { kind: "locale"; locale: "en" | "es" | "pt" | null };
 
 const WORDS: Record<string, ChatCommand["kind"]> = {
   help: "help",
@@ -68,6 +70,9 @@ const WORDS: Record<string, ChatCommand["kind"]> = {
   vincular: "connect",
   login: "connect",
   signin: "connect",
+  account: "account",
+  cuenta: "account",
+  conta: "account",
   disconnect: "disconnect",
   desconectar: "disconnect",
   unlink: "disconnect",
@@ -113,7 +118,18 @@ export function replyCommand(replyId: string | undefined): ChatCommand | null {
     : null;
 }
 
+/**
+ * STOP, DELETE and CANCEL, typed or tapped: they withdraw consent, remove data or discard a report,
+ * and need no model, so reporting takes them from someone it knows even while their chat channel
+ * is paused. A paused channel's other messages go to the bot's own handlers.
+ */
+export function isPauseControl(message: { text?: string; replyId?: string }): boolean {
+  const kind = (parseCommand(message.text) ?? replyCommand(message.replyId))?.kind;
+  return kind === "stop" || kind === "delete" || kind === "cancel";
+}
+
 const LOCALES = new Set(["en", "es", "pt"]);
+const LANGUAGE_WORDS = new Set(["lang", "language", "idioma"]);
 const ACCOUNT = /^0x[0-9a-f]{40}$/;
 const isAccount = (word: string | undefined): word is Address =>
   word !== undefined && ACCOUNT.test(word);
@@ -208,8 +224,11 @@ export function parseCommand(text: string | undefined): ChatCommand | null {
 function commandWord(words: string[]): ChatCommand | null {
   if (words.length > 2) return null;
   const [head, argument] = words;
-  if ((head === "lang" || head === "idioma") && argument && LOCALES.has(argument)) {
-    return { kind: "locale", locale: argument as "en" | "es" | "pt" };
+  if (head && LANGUAGE_WORDS.has(head)) {
+    if (argument === undefined) return { kind: "locale", locale: null };
+    return LOCALES.has(argument)
+      ? { kind: "locale", locale: argument as "en" | "es" | "pt" }
+      : null;
   }
   if (isAccount(head)) return argument === undefined ? { kind: "connect", account: head } : null;
   const kind = WORDS[head];

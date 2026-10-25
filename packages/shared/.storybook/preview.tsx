@@ -49,6 +49,7 @@ sb.mock(import("../src/hooks/work/useWorkUploads.ts"), { spy: true });
 sb.mock(import("../src/hooks/client-ui/wallet/useSendFlowController.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentCycleNames.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentJobs.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMetadata.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentPooling.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentQueueState.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useServiceAccess.ts"), { spy: true });

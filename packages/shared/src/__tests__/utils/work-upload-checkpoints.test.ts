@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { webcrypto } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { WorkUploadCheckpoint, WorkDraft } from "../../types/domain";
 const mocks = vi.hoisted(() => ({ file: vi.fn(), json: vi.fn() }));
 vi.mock("../../modules/data/ipfs/upload", () => ({
@@ -17,11 +18,15 @@ import {
   InvalidWorkAttachmentError,
   PendingHeicConversionError,
 } from "../../modules/work/work-attachments";
+import { cleanPhoto, photoFile } from "../test-utils/photo-fixtures";
 
 beforeEach(() => {
   mocks.file.mockReset();
   mocks.json.mockReset().mockResolvedValue({ cid: "metadata-cid" });
+  // Photos are binary, so they are hashed with real WebCrypto, not the setup's text-only stand-in.
+  vi.stubGlobal("crypto", { ...crypto, subtle: webcrypto.subtle });
 });
+afterEach(() => vi.unstubAllGlobals());
 const draft = (media: File[], audioNotes: File[] = []): WorkDraft => ({
   actionUID: 1,
   title: "Work",
@@ -31,7 +36,8 @@ const draft = (media: File[], audioNotes: File[] = []): WorkDraft => ({
   media,
   audioNotes,
 });
-const image = (name: string) => new File([name], `${name}.jpg`, { type: "image/jpeg" });
+const image = (name: string) =>
+  photoFile(cleanPhoto("image/jpeg", { label: name }), `${name}.jpg`, "image/jpeg");
 
 describe("durable upload checkpoints", () => {
   it("exposes the exact published metadata and ordered media for a confirmed preview", async () => {
@@ -73,9 +79,7 @@ describe("durable upload checkpoints", () => {
     ).rejects.toThrow("408");
     expect(Object.keys(saved!.files)).toHaveLength(4);
     mocks.file.mockClear().mockResolvedValue({ cid: "cid-three.jpg" });
-    const reloaded = files.map(
-      (file) => new File([file.name.slice(0, -4)], file.name, { type: file.type })
-    );
+    const reloaded = files.map((file) => image(file.name.slice(0, -4)));
     await encodeWorkData(draft(reloaded), 11155111, {
       checkpoint: saved,
       onCheckpoint: async (value) => {
