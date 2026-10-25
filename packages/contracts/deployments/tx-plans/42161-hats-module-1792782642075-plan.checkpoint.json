@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "planHash": "0x71505cc18f9864a63d43002bb053418c875de6ccc4e88b2b7cf11c36a02deafb",
+  "completed": [
+    {
+      "step": 1,
+      "transactionHash": "0x12b9d47a9203fd21e11581d2a150c6912f360331234cc80213ecc001f681dcbd",
+      "blockNumber": "0x1eda62e7",
+      "verifiedAt": "2026-10-23T19:41:13.250Z"
+    },
+    {
+      "step": 2,
+      "transactionHash": "0x546822e9cc1e7e6cc8967a4e10429c4cb7eb0bbc1fba21a47315d99c037884a1",
+      "blockNumber": "0x1edac540",
+      "verifiedAt": "2026-10-23T21:45:49.035Z"
+    }
+  ]
+}

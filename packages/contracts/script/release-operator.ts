@@ -2,7 +2,6 @@
 
 import { execFileSync, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
 import * as dotenv from "dotenv";
@@ -17,6 +16,8 @@ import { buildReleaseLock, loadReleaseManifest, type ReleaseLock, type ReleaseSt
 import { NetworkManager } from "./utils/network";
 import { OPERATOR_ARGUMENTS, resolveOperatorBoundary } from "./cli/operations.mjs";
 import { retryRpcAvailability } from "./utils/rpc-retry";
+import { createPasswordLease, readHiddenPassword } from "./utils/keystore-session";
+export { createPasswordLease } from "./utils/keystore-session";
 
 const CONTRACTS_ROOT = path.join(__dirname, "..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
@@ -150,11 +151,6 @@ export interface SessionOptions {
   help: boolean;
 }
 
-export interface PasswordLease {
-  filePath: string;
-  close: () => void;
-}
-
 export function parseSessionOptions(args: string[]): SessionOptions {
   const options: SessionOptions = { help: false };
   for (let index = 0; index < args.length; index += 1) {
@@ -265,28 +261,6 @@ export function assertAllowedOperatorCommand(tokens: string[]): { script: string
   return { script, args };
 }
 
-export function createPasswordLease(password: string, temporaryRoot = os.tmpdir()): PasswordLease {
-  if (!password) throw new Error("Deployer password may not be empty");
-  const directory = fs.mkdtempSync(path.join(temporaryRoot, "green-goods-release-"));
-  fs.chmodSync(directory, 0o700);
-  const filePath = path.join(directory, "foundry-password");
-  fs.writeFileSync(filePath, `${password}\n`, { encoding: "utf8", flag: "wx", mode: 0o600 });
-  let closed = false;
-  return {
-    filePath,
-    close: () => {
-      if (closed) return;
-      closed = true;
-      if (fs.existsSync(filePath)) {
-        const size = fs.statSync(filePath).size;
-        if (size > 0) fs.writeFileSync(filePath, Buffer.alloc(size), { flag: "r+" });
-        fs.unlinkSync(filePath);
-      }
-      if (fs.existsSync(directory)) fs.rmdirSync(directory);
-    },
-  };
-}
-
 function showHelp(): void {
   console.log(`
 Green Goods release operator session
@@ -330,35 +304,6 @@ backfill, and pooling-unpause orchestrators are retired and cannot be replayed f
 Allowlisted transaction boundaries:
 ${[...RELEASE_OPERATOR_COMMANDS].map(([name, description]) => `  ${name.padEnd(40)} ${description}`).join("\n")}
 `);
-}
-
-async function readHiddenPassword(): Promise<string> {
-  if (!process.stdin.isTTY || !process.stdout.isTTY || !process.stdin.setRawMode) {
-    throw new Error("Release operator password entry requires an interactive TTY");
-  }
-  process.stdout.write("Foundry deployer password: ");
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  return await new Promise<string>((resolve, reject) => {
-    let value = "";
-    const finish = (error?: Error) => {
-      process.stdin.off("data", onData);
-      process.stdin.setRawMode(false);
-      process.stdin.pause();
-      process.stdout.write("\n");
-      if (error) reject(error);
-      else resolve(value);
-    };
-    const onData = (chunk: Buffer) => {
-      for (const character of chunk.toString("utf8")) {
-        if (character === "\u0003") return finish(new Error("Release operator session interrupted"));
-        if (character === "\r" || character === "\n") return finish();
-        if (character === "\u007f" || character === "\b") value = value.slice(0, -1);
-        else value += character;
-      }
-    };
-    process.stdin.on("data", onData);
-  });
 }
 
 export function assertPinnedCheckout(candidateCommit: string, repositoryRoot = REPOSITORY_ROOT): void {

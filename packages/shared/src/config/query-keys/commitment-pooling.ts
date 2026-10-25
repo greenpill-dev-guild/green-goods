@@ -45,6 +45,29 @@ export const commitmentPoolingKeys = {
     [...commitmentPoolingKeys.all(chainId), "commitments", stableFilters(filters)] as const,
   commitment: (chainId: number, commitmentId: bigint | string | number) =>
     [...commitmentPoolingKeys.all(chainId), "commitment", String(commitmentId)] as const,
+  serviceAccess: (
+    chainId: number,
+    module: Address,
+    commitmentId: bigint,
+    buyer: Address,
+    rehearsal: boolean
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "service-access",
+      module.toLowerCase(),
+      String(commitmentId),
+      buyer.toLowerCase(),
+      rehearsal ? "local-rehearsal" : "indexed",
+    ] as const,
+  issuerOperations: (account?: Address | null, routeId?: string, assetId?: string) =>
+    [
+      ...commitmentPoolingKeys.all(100),
+      "issuer-operations",
+      normalizeAddress(account ?? undefined),
+      routeId,
+      assetId,
+    ] as const,
   /**
    * Chain-free on purpose: content at a CID is the same bytes everywhere, so a
    * title resolved on one chain is the same title on another.

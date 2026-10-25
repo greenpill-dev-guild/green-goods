@@ -19,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock shared modules and hooks
 const mockLoginWithPasskey = vi.fn();
+const mockLoginWithOriginalPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
 const mockLoginWithEmbedded = vi.fn();
@@ -43,10 +44,13 @@ let mockIsAuthenticated = false;
 let mockIsReady = true;
 let mockAuthUserName: string | null = null;
 let mockStoredUsername: string | null = null;
+let mockOriginalAddress: string | null = null;
+let mockPilotAuth: Record<string, unknown> = {};
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => ({
     loginWithPasskey: mockLoginWithPasskey,
+    loginWithOriginalPasskey: mockLoginWithOriginalPasskey,
     createAccount: mockCreateAccount,
     loginWithWallet: mockLoginWithWallet,
     loginWithEmbedded: mockLoginWithEmbedded,
@@ -57,6 +61,7 @@ vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
     hasStoredCredential: mockHasStoredCredential,
     userName: mockAuthUserName,
     error: mockAuthError,
+    ...mockPilotAuth,
   }),
 }));
 
@@ -90,6 +95,7 @@ vi.mock("@green-goods/shared/config/passkeyServer", () => ({
 
 vi.mock("@green-goods/shared/modules/auth/session", () => ({
   getStoredUsername: () => mockStoredUsername,
+  getStoredOriginalAccountAddress: () => mockOriginalAddress,
 }));
 vi.mock("@green-goods/shared/modules/app/error-categories", () => ({
   trackAuthError: vi.fn(),
@@ -212,6 +218,122 @@ const createLoginTree = (initialRoute = "/home/login", messages: Record<string, 
 const renderWithRouter = (initialRoute = "/home/login") => {
   return render(createLoginTree(initialRoute));
 };
+
+describe("Login View - explicit pilot enrollment", () => {
+  const oldAddress = "0x1111111111111111111111111111111111111111";
+  const newAddress = "0x2222222222222222222222222222222222222222";
+  const operationHash = `0x${"ab".repeat(32)}`;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIsReady = true;
+    mockIsAuthenticated = false;
+    mockAuthError = null;
+    mockHasStoredCredential = true;
+    mockPasskeyServerEnabled = true;
+    mockPilotAuth = {
+      authMode: "passkey",
+      passkeyAccountProfile: "kernel-0.3.1-legacy",
+      smartAccountAddress: oldAddress,
+      findExistingPilotAccount: vi.fn(async () => null),
+      preparePilotAccount: vi.fn(async () => ({
+        address: newAddress,
+        previousAddress: oldAddress,
+        enrolled: false,
+        pending: false,
+      })),
+      quotePilotAccount: vi.fn(async () => ({
+        operationHash,
+        address: newAddress,
+        chainId: 100,
+        nonce: "7",
+        maxCostWei: "200000000000000",
+        costCeilingWei: "10000000000000000",
+        expiresAt: 9999999999999,
+        sponsored: true,
+      })),
+      confirmPilotAccount: vi.fn(async () => {}),
+      cancelPilotAccountEnrollment: vi.fn(),
+    };
+  });
+  afterEach(() => {
+    cleanup();
+    mockPilotAuth = {};
+    mockIsAuthenticated = false;
+    mockOriginalAddress = null;
+  });
+
+  it("keeps the existing passkey login before any pilot transaction ceremony", async () => {
+    render(createLoginTree("/home/login?pilot=1", en));
+    expect(
+      screen.getByText(/sign in with your existing passkey, then review/i)
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("primary-button"));
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith();
+    expect(mockCreateAccount).not.toHaveBeenCalled();
+    expect(mockPilotAuth.preparePilotAccount).not.toHaveBeenCalled();
+  });
+
+  it("shows both addresses, old-asset notice and reviewed sponsor cost before the separate proof signature", async () => {
+    mockIsAuthenticated = true;
+    render(createLoginTree("/home/login?pilot=1", en));
+    await userEvent.click(screen.getByRole("button", { name: "Review Pilot Account" }));
+    expect(screen.getByText(oldAddress)).toBeInTheDocument();
+    expect(screen.getByText(newAddress)).toBeInTheDocument();
+    expect(screen.getByText(/ENS name stay with your original address/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Prepare Proof Quote" }));
+    expect(screen.getByText(/member gas charge 0.*0.0002 xDAI.*0.01 xDAI/)).toBeInTheDocument();
+    expect(mockPilotAuth.confirmPilotAccount).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Sign Pilot Account Proof" }));
+    expect(mockPilotAuth.confirmPilotAccount).toHaveBeenCalledWith(operationHash);
+  });
+
+  it("allows keeping the original account after a declined enrollment assertion", async () => {
+    mockIsAuthenticated = true;
+    mockPilotAuth.preparePilotAccount = vi.fn(async () => {
+      throw new Error("Passkey ceremony cancelled");
+    });
+    render(createLoginTree("/home/login?pilot=1", en));
+    await userEvent.click(screen.getByRole("button", { name: "Review Pilot Account" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Your original account is still active");
+    expect(screen.getByText(oldAddress)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Keep Original Account" }));
+    expect(await screen.findByText("Home Page")).toBeInTheDocument();
+    expect(mockPilotAuth.confirmPilotAccount).not.toHaveBeenCalled();
+  });
+
+  it("keeps the connected member wallet fallback outside Kernel enrollment", async () => {
+    mockIsAuthenticated = true;
+    mockPilotAuth.authMode = "wallet";
+    render(createLoginTree("/home/login?pilot=1", en));
+    expect(await screen.findByText("Home Page")).toBeInTheDocument();
+    expect(mockPilotAuth.preparePilotAccount).not.toHaveBeenCalled();
+    expect(mockPilotAuth.findExistingPilotAccount).not.toHaveBeenCalled();
+  });
+
+  it("keeps ordinary legacy login independent of unavailable Gnosis discovery", async () => {
+    mockIsAuthenticated = true;
+    mockPilotAuth.findExistingPilotAccount = vi.fn(async () => {
+      throw new Error("Gnosis RPC unavailable");
+    });
+    render(createLoginTree("/home/login", en));
+    expect(await screen.findByText("Home Page")).toBeInTheDocument();
+    expect(screen.queryByText("Pilot Account")).not.toBeInTheDocument();
+    expect(mockPilotAuth.findExistingPilotAccount).not.toHaveBeenCalled();
+    expect(mockPilotAuth.preparePilotAccount).not.toHaveBeenCalled();
+  });
+
+  it("offers the archived original account without changing the selected profile on intent", async () => {
+    mockOriginalAddress = oldAddress;
+    render(createLoginTree("/home/login", en));
+    expect(screen.getByText(/If your pilot account cannot be verified/)).toHaveTextContent(
+      oldAddress
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Use Original Account" }));
+    expect(mockLoginWithOriginalPasskey).toHaveBeenCalledWith();
+    expect(mockCreateAccount).not.toHaveBeenCalled();
+    expect(mockPilotAuth.confirmPilotAccount).not.toHaveBeenCalled();
+  });
+});
 
 // ─── New User (no stored credential) ─────────────────────────────────────────
 

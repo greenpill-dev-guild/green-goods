@@ -18,9 +18,40 @@ import {
   ROSA,
   TUNDE,
 } from "./demo-builders";
+import { REHEARSAL_ISSUER } from "./demo-service-access-fixtures";
 
 export function demoCommitments(V: Address): CommitmentReadModel[] {
   return [
+    ...[1025n, 1026n].map((commitmentId) =>
+      commitment({
+        commitmentId,
+        direction: "REQUEST",
+        commitmentType: "DOMAIN_IMPACT",
+        onchainState: "ACCEPTED",
+        derivedState: "ACTIVE",
+        creator: REHEARSAL_ISSUER,
+        leadProvider: V,
+        counterparty: V,
+        claimMode: "APPROVAL_GATED",
+        unitLabel: "tasks",
+        targetUnits: 1n,
+      })
+    ),
+    ...[1022n, 1023n, 1024n].map((commitmentId) =>
+      commitment({
+        commitmentId,
+        direction: "OFFER",
+        commitmentType: "SUPPORT_SERVICE",
+        onchainState: commitmentId === 1024n ? "ACCEPTED" : "OFFERED",
+        derivedState: commitmentId === 1024n ? "ACTIVE" : "OFFERED",
+        creator: REHEARSAL_ISSUER,
+        leadProvider: REHEARSAL_ISSUER,
+        counterparty: commitmentId === 1024n ? V : null,
+        claimMode: "APPROVAL_GATED",
+        unitLabel: commitmentId === 1023n ? "sessions" : "lessons",
+        targetUnits: commitmentId === 1023n ? 1n : 10n,
+      })
+    ),
     // Browsing: a neighbour's open offer the reader may take up.
     commitment({
       commitmentId: 1001n,

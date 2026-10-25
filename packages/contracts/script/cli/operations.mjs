@@ -52,6 +52,12 @@ for (const [command, target] of [ ['release manifest', 'release-manifest'], ['re
   const offline = ['release-manifest', 'protocol-core', 'indexer-handoff', 'settlement-peer'].includes(target);
   add(command, 'script/deploy.ts', { prefix: [target], modes: target === 'settlement-peer-verify' ? null : offline ? { preflight: ['--pure-simulation'] } : { preflight: ['--pure-simulation'], simulate: [] }, modeOptional: true, flags: ['save-artifacts'], values: words(deployValues), ...(target === 'safe-plan' ? { networks: ['celo'] } : target.startsWith('settlement-peer') ? { networks: ['arbitrum'] } : {}), ...(target === 'settlement-peer-verify' ? { required: ['receipt'] } : {}), offline });
 }
+add('release downstream', 'script/deploy/pilot-downstream.ts', { network: false, modes: { simulate: [], broadcast: ['--broadcast'] }, effects: ['rehearse all approved downstream deployments and atomic Safe packets before prompting once', 'broadcast 23 deployments, the deployer-owned observer registration and capped CCIP fuel; export three consolidated owner packets'], safeguards: ['committed source and exact runtime, chain, nonce, receipt and native budget checks', 'approved bootstrap signer and original GG Safes retained', 'private one-session credential lease and fail-closed durable execution state', 'Safe owner calls are never broadcast by this command'] });
+add('release vouchers', 'script/deploy/voucher-release.ts', { network: false, modes: { preflight: ['--preflight'], plan: ['--plan-only'], simulate: ['--simulate'] }, values: ['manifest', 'plan', 'output'], effects: ['compile production voucher artifacts', 'write paused endpoint plan or isolated fork simulation evidence; no live broadcast'], safeguards: ['Arbitrum/Gnosis chain and nonce binding', 'atomic proxy initialization, paused end state and finite authority boundary', 'reviewed manifest, production library links and runtime checks', 'no broadcast, signer input, allowance or activation command'] });
+add('release steward-safe', 'script/deploy/steward-safe-release.ts', { network: false, modes: { preflight: ['--preflight'], plan: ['--plan-only'], simulate: ['--simulate'] }, values: ['manifest', 'plan', 'output'], effects: ['compile production steward mirror artifacts', 'prepare exact deployments and observer calldata or simulate on owned forks; no live broadcast'], safeguards: ['fixed two valid signatures; locked Hats Signer Gate v2 and dedicated receiver-owned Hat', 'Arbitrum/Gnosis peers, nonces, production artifacts and dependency code bound', 'existing Green Goods Safe untouched; activation and observer registration excluded', 'no broadcast or signer input'] });
+add('release clc', 'script/deploy/clc-release.ts', { network: false, modes: { preflight: ['--preflight'], plan: ['--plan-only'], simulate: ['--simulate'] }, values: ['manifest', 'members', 'receipts', 'plan', 'output'], effects: ['compile production issuer upgrade timelock artifact', 'prepare the unchanged ten CLC base deployments plus explicitly selected member tokens, or rehearse canonical receipt adoption on an owned Gnosis fork'], safeguards: ['existing Green Goods Safe administers its reserve and network pool', 'exact factory, implementation, Safe, nonce and initialized proxy state verification', 'configuration, issuance, allowance and activation remain separate review drafts', 'no broadcast or signer input'] });
+add('release source-upgrades', 'script/deploy/source-upgrade-release.ts', { network: false, modes: { preflight: ['--preflight'], plan: ['--plan-only'], simulate: ['--simulate'], 'prepare-execution': ['--prepare-execution'], broadcast: ['--broadcast'], 'broadcast-creates': ['--broadcast-creates'], 'export-safe': ['--export-safe'], 'sign-safe': ['--sign-safe'], 'broadcast-safe': ['--broadcast-safe'], 'draft-safe-batch': ['--draft-safe-batch'], 'simulate-safe-batch': ['--simulate-safe-batch'], 'export-safe-batch': ['--export-safe-batch'], 'adopt-safe-batch': ['--adopt-safe-batch'], adopt: ['--adopt'] }, flags: ['recover-lock', 'resume-plan'], values: words('manifest plan output rehearsal safe-pins other-reserved-wei envelope step expected-nonce receipt signer-account owner-signature signature-one signature-two batch batch-rehearsal'), effects: ['compile reviewed production source implementations', 'prepare or rehearse exact paused upgrades', 'broadcast one bounded CREATE through the normal operator; collect exact owner signatures and submit or adopt a bound Safe call'], safeguards: ['exact committed source, compiler jobs, runtime, rehearsal and canonical authority binding', 'fixed shared budget, ordered EOA/Safe nonces, durable intent and receipt adoption', 'original Safe retains authority; no activation or reinitialization'] });
+add('release pilot', 'script/deploy/live-pilot-package.ts', { network: false, modes: { preflight: ['--preflight'], plan: ['--plan-only'] }, values: ['manifest', 'source-upgrades-plan', 'steward-safe-plan', 'vouchers-plan', 'clc-plan', 'clc-members', 'output'], effects: ['inspect four component manifests and an optional exact-base-bound member extension offline', 'assemble four validated current-revision plans into a review package'], safeguards: ['four committed manifests and exact production artifacts', 'ordered component boundaries and nonoverlapping native nonce ranges', 'component fork proofs and live binding readback remain separate', 'no compound simulation, broadcast, signer input or activation'] });
 add('release operator', 'script/release-operator.ts', { network: false, values: ['stage', 'commit'], required: ['commit'], capabilities: ['exact reviewed Git commit', 'authorized keystore credential session', 'configured RPC'], effects: ['execute only allowlisted release boundaries through the release operator', 'persist and verify checkpoints; may broadcast transactions'], safeguards: ['exact-commit and checkout checks', 'operator credential session', 'ordered boundaries with nonce/receipt binding', 'stop on failure and clean credentials'], enums: { stage: ['ownership-arbitrum', 'ownership-celo', 'garden-accounts', 'garden-safes', 'relay', 'garden-roles', 'garden-roles-enable', 'garden-routes'] } });
 for (const [domain, handler, actions] of [
  ['garden-accounts', 'celo-garden-accounts', ['plan', 'verify', 'deploy']],
@@ -70,6 +76,41 @@ add('ipfs upload', 'script/utils/ipfs-uploader.ts', { network: false });
 add('ipfs cache', 'script/cli/read-cache.mjs', { network: false });
 add('minting open', 'script/cli/open-minting.mjs', { modes: { broadcast: [] }, networks: ['sepolia', 'arbitrum'] });
 export const OPERATIONS = Object.freeze(definitions.map((operation) => Object.freeze(operation)));
+
+export function validateSourceUpgradeMode(values) {
+  const common = ['mode', 'manifest', 'help', 'explain', 'json', ...(!['plan', 'preflight'].includes(values.mode) ? ['resume-plan'] : [])];
+  const modes = {
+    preflight: [], plan: ['output'], simulate: ['plan', 'output'],
+    'prepare-execution': ['plan', 'rehearsal', 'safe-pins', 'other-reserved-wei', 'output'],
+    broadcast: ['plan', 'rehearsal', 'envelope', 'step', 'expected-nonce'],
+    'broadcast-creates': ['plan', 'rehearsal', 'envelope'],
+    'export-safe': ['plan', 'rehearsal', 'envelope', 'step', 'expected-nonce', 'output'],
+    'sign-safe': ['plan', 'rehearsal', 'envelope', 'step', 'expected-nonce', 'signer-account', 'owner-signature', 'output'],
+    'broadcast-safe': ['plan', 'rehearsal', 'envelope', 'step', 'expected-nonce', 'signature-one', 'signature-two'],
+    adopt: ['plan', 'rehearsal', 'envelope', 'step', 'expected-nonce', 'receipt', 'recover-lock'],
+    'draft-safe-batch': ['plan', 'output'],
+    'simulate-safe-batch': ['plan', 'output'],
+    'export-safe-batch': ['plan', 'rehearsal', 'envelope', 'batch-rehearsal', 'output'],
+    'adopt-safe-batch': ['plan', 'rehearsal', 'envelope', 'batch', 'receipt', 'recover-lock'],
+  };
+  const allowed = modes[values.mode];
+  if (!allowed) throw new Error('Select one supported source upgrade mode');
+  for (const key of Object.keys(values)) if (![...common, ...allowed].includes(key) && values[key] !== undefined)
+    throw new Error(`Unexpected source upgrade --${key} for ${values.mode}`);
+  const required = values.mode === 'broadcast-creates' ? ['plan', 'rehearsal', 'envelope']
+    : values.mode === 'export-safe-batch' ? ['plan', 'rehearsal', 'envelope', 'batch-rehearsal']
+    : values.mode === 'adopt-safe-batch' ? ['plan', 'rehearsal', 'envelope', 'batch', 'receipt']
+    : values.mode === 'prepare-execution' ? ['plan', 'rehearsal', 'safe-pins', 'other-reserved-wei']
+    : ['broadcast', 'export-safe', 'sign-safe', 'broadcast-safe', 'adopt'].includes(values.mode) ? ['plan', 'rehearsal', 'envelope', 'step', 'expected-nonce', ...(values.mode === 'adopt' ? ['receipt'] : values.mode === 'broadcast-safe' ? ['signature-one', 'signature-two'] : [])]
+    : ['simulate', 'draft-safe-batch', 'simulate-safe-batch'].includes(values.mode) ? ['plan'] : [];
+  if (values.mode === 'sign-safe' && Boolean(values['signer-account']) === Boolean(values['owner-signature'])) throw new Error('Select one owner keystore account or one public owner signature');
+  if (values['signer-account'] && !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(values['signer-account'])) throw new Error('Invalid owner keystore alias');
+  if (values['owner-signature'] && !/^0x[a-fA-F0-9]{130}$/.test(values['owner-signature'])) throw new Error('Expected one public 65-byte owner signature');
+  for (const key of required) if (values[key] === undefined || values[key] === '') throw new Error(`Source upgrade ${values.mode} requires --${key}`);
+  for (const key of ['step', 'expected-nonce']) if (values[key] !== undefined && (!/^(0|[1-9][0-9]*)$/.test(values[key]) || !Number.isSafeInteger(Number(values[key])) || Number(values[key]) < (key === 'step' ? 1 : 0))) throw new Error(`Invalid source upgrade --${key}`);
+  if (values.receipt && !/^0x[a-fA-F0-9]{64}$/.test(values.receipt)) throw new Error('Source adoption requires an exact transaction hash');
+  if (values['other-reserved-wei'] !== undefined && !/^(0|[1-9][0-9]*)$/.test(values['other-reserved-wei'])) throw new Error('Source reservation requires unsigned decimal wei');
+}
 
 function parse(operation, args) {
   const values = {};
@@ -125,6 +166,16 @@ function parse(operation, args) {
   if (['check-indexer-runtime', 'start-local-indexer'].some((key) => values[key]) && values['skip-indexer-runtime']) throw new Error('Conflicting indexer options');
   if (values['start-local-indexer'] && values['skip-local-indexer-start']) throw new Error('Conflicting local indexer options');
   if (operation.command === 'release recover' && values.mode === 'preflight' && values['save-artifacts']) throw new Error('Artifact recovery writes require live verification; omit preflight mode');
+  if (operation.command === 'release source-upgrades') validateSourceUpgradeMode(values);
+  if (operation.command === 'release clc') {
+    if (values.mode === 'preflight' && (values.plan || values.output) || values.mode === 'plan' && values.plan || values.mode === 'simulate' && !values.plan) throw new Error('Unexpected or missing release plan/output argument');
+    if (values.receipts && values.mode !== 'simulate') throw new Error('CLC receipt adoption requires simulate mode');
+  }
+  if (operation.command === 'release pilot') {
+    const components = ['source-upgrades-plan', 'steward-safe-plan', 'vouchers-plan', 'clc-plan'];
+    if (values.mode === 'preflight' && [...components, 'output'].some((key) => values[key])) throw new Error('Pilot preflight accepts only its manifest');
+    if (values.mode === 'plan') for (const key of components) if (!values[key]) throw new Error(`Pilot packaging requires --${key}`);
+  }
   if (operation.command === 'ens migrate' && values.mode === 'preflight' && !values['registrations-file']) throw new Error('ENS preflight requires --registrations-file to avoid RPC discovery');
   return { values, positionals };
 }
@@ -152,6 +203,10 @@ export function resolveCommand(input) {
     env.PINATA_JWT = ''; env.PINATA_GATEWAY = '';
   }
   if (operation.command === 'release operator' || operation.command === 'migrate action-instructions-v2 check') env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
+  if (operation.command === 'release source-upgrades' && ['broadcast', 'broadcast-creates', 'broadcast-safe', 'sign-safe'].includes(mode)) {
+    if (mode !== 'sign-safe') env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
+    env.PINATA_JWT = ''; env.PINATA_GATEWAY = '';
+  }
   // The session blanks these for each stage; blank them for the session itself, so its keystore check starts without them too.
   if (operation.command === 'release operator') { env.PINATA_JWT = ''; env.PINATA_GATEWAY = ''; }
   if ((isUpgrade && ['arbitrum', 'sepolia'].includes(network)) || operation.command === 'migrate vaults' || operation.command === 'migrate action-instructions-v2' && mode !== 'simulate' || operation.command.startsWith('marketplace ') || operation.command === 'verify' && network === 'arbitrum') env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
@@ -184,7 +239,23 @@ export function resolveCommand(input) {
   }
   const offline = operation.offline || mode === 'preflight' || mode === 'plan' && operation.modes.plan.includes('--pure-simulation') || operation.command === 'release recover' && !values['save-artifacts'];
   const rpc = !offline && operation.network;
-  return { operation: operation.command, network, mode, command: 'bun', args, cwd: PACKAGE_ROOT, env, checks, explain: Boolean(values.explain), json: Boolean(values.json), capabilities: [...(operation.capabilities ?? []), ...(rpc ? [operation.command.startsWith('settlement safe') || operation.command === 'settlement peer-verify' ? 'Arbitrum and Celo RPC' : 'configured RPC'] : []), ...(mode === 'broadcast' ? ['authorized signer'] : []), ...(mode === 'upload' || operation.command === 'ipfs upload' ? ['IPFS upload credentials'] : []), ...(values['publish-source'] ? ['explorer API key'] : [])], effects: operation.effects ?? (mode === 'broadcast' ? ['broadcast transactions', 'write operation artifacts'] : mode === 'preflight' ? ['compile/check artifacts; no RPC'] : mode === 'plan' ? [...(rpc ? ['RPC simulation'] : []), 'write transaction plan artifacts'] : mode === 'upload' || operation.command === 'ipfs upload' ? ['upload content', 'write cache/artifacts'] : ['run existing handler; may write reports or local configuration']), safeguards: [...(operation.safeguards ?? []), ...checks.map((check) => check.args.join(' '))] };
+  const forkNetworks = { 'release vouchers': 'Arbitrum and Gnosis RPC', 'release steward-safe': 'Arbitrum and Gnosis RPC', 'release clc': 'Gnosis RPC', 'release source-upgrades': 'Arbitrum RPC' };
+  const sourceEffects = operation.command === 'release source-upgrades' ? {
+    preflight: ['compile and inspect production artifacts; no RPC'], plan: ['write the exact source upgrade plan; no broadcast'],
+    simulate: ['rehearse on an owned Arbitrum fork; no live broadcast'],
+    'prepare-execution': ['read canonical Arbitrum state and gas estimates; write a bounded execution envelope'],
+    broadcast: ['submit one bounded CREATE through the normal keystore; verify receipt and persist shared spend'],
+    'broadcast-creates': ['unlock the fixed deployer once; resume and verify each remaining CREATE through its canonical bounded wrapper'],
+    'export-safe': ['recheck live state; export one exact Safe recipe without signing or broadcasting'],
+    'draft-safe-batch': ['export a predicted standard Safe Transaction Builder JSON; not ready for signing'],
+    'simulate-safe-batch': ['rehearse one atomic MultiSendCallOnly batch on an owned fork; no live broadcast'],
+    'export-safe-batch': ['verify all CREATE receipts and export the exact standard Safe batch and review binding'],
+    'adopt-safe-batch': ['verify external Safe batch receipt, actual executor gas, one nonce increment and paused preserved state'],
+    'sign-safe': ['sign exact EIP-712 SafeTx with an owner keystore or verify a public owner signature; no broadcast'],
+    'broadcast-safe': ['simulate two original-owner signatures, then submit one bound deployer Safe transaction with durable receipt verification'],
+    adopt: ['read and verify one canonical receipt; persist shared spend and ordered completion without sending'],
+  }[mode] : undefined;
+  return { operation: operation.command, network, mode, command: 'bun', args, cwd: PACKAGE_ROOT, env, checks, explain: Boolean(values.explain), json: Boolean(values.json), capabilities: [...(operation.capabilities ?? []), ...(forkNetworks[operation.command] && ['simulate', 'simulate-safe-batch'].includes(mode) ? [forkNetworks[operation.command], 'owned isolated Anvil forks'] : []), ...(operation.command === 'release source-upgrades' && !['preflight', 'plan', 'simulate'].includes(mode) ? ['Arbitrum RPC'] : []), ...(rpc ? [operation.command.startsWith('settlement safe') || operation.command === 'settlement peer-verify' ? 'Arbitrum and Celo RPC' : 'configured RPC'] : []), ...(['broadcast', 'broadcast-safe', 'sign-safe'].includes(mode) ? ['authorized signer'] : []), ...(mode === 'upload' || operation.command === 'ipfs upload' ? ['IPFS upload credentials'] : []), ...(values['publish-source'] ? ['explorer API key'] : [])], effects: sourceEffects ?? operation.effects ?? (mode === 'broadcast' ? ['broadcast transactions', 'write operation artifacts'] : mode === 'preflight' ? ['compile/check artifacts; no RPC'] : mode === 'plan' ? [...(rpc ? ['RPC simulation'] : []), 'write transaction plan artifacts'] : mode === 'upload' || operation.command === 'ipfs upload' ? ['upload content', 'write cache/artifacts'] : ['run existing handler; may write reports or local configuration']), safeguards: [...(operation.safeguards ?? []), ...checks.map((check) => check.args.join(' '))] };
 }
 
 export function explainOperation(resolution) {

@@ -29,6 +29,7 @@ const mockSmartAccountClient = {
     userOpHash: hash,
     sender: MOCK_ADDRESSES.smartAccount,
     success: true,
+    logs: [],
     receipt: { status: "success", transactionHash: MOCK_TX_HASH },
   })),
 };
@@ -48,6 +49,12 @@ vi.mock("../../../hooks/auth/useUser", () => ({
     smartAccountClient: mockSmartAccountRef,
     resolveSmartAccountClient: mockResolverAvailable ? mockResolveSmartAccountClient : null,
   }),
+}));
+
+// The account and connector fixtures below both use Arbitrum independently of
+// the chain selected by the test runner's environment.
+vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
+  useCurrentChain: () => 42161,
 }));
 
 // Mock wagmi

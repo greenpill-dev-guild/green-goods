@@ -780,7 +780,7 @@ export async function executePlan(plan, options = {}) {
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
   const baseEnvironment = options.environment ?? process.env;
-  const ignoredConfiguration = options.ignoredConfiguration ?? ignoredConfigurationFingerprint();
+  let ignoredConfiguration;
 
   if (plan.status === "cancelled" || externalSignal?.aborted) {
     return { status: "cancelled", exitCode: 130, results, blocked };
@@ -820,6 +820,9 @@ export async function executePlan(plan, options = {}) {
   // The receipt fingerprints the same environment the check then runs with.
   const reusableReceipt = (check) => {
     const environment = checkEnvironment(check, baseEnvironment, plan.base);
+    // Fresh execution needs no cache identity. Reuse still requires every input.
+    if (!reusePassingReceipts || !receiptsAllowed) return { environment, reusable: false };
+    ignoredConfiguration ??= options.ignoredConfiguration ?? ignoredConfigurationFingerprint();
     const receiptInputs = buildReceiptInputs(plan, check, {
       environment: environmentFingerprint(environment),
       ignoredConfiguration,
