@@ -1,24 +1,183 @@
-# Speaker notes (draft, 9 October 2026; updated 20 October and, for the voucher direction, 21 October)
+# Speaker notes · SustainableFinance.Live 2026
 
-Timings sum to about nine and a half minutes for slides 1 to 13. Appendix slides are for
-questions. The same notes sit in the deck's `#speaker-notes` block; keep both in step.
+Rebuilt 24 October 2026 (Pacific) for the 16-slide deck in five acts: Green Goods and the problem;
+commitment pooling, the loop, the roles and Cosmo-Local; Tech and Sun and its members; capital,
+the diaspora, the mechanisms and the business model; then the roadmap, the technical roadmap and
+what we need. Each note is about 30 seconds of speech, and the timings total **8:00**.
 
-| # | Slide | Time | Notes |
-|---|---|---|---|
-| 1 | Title | 0:30 | Name the three parties: Green Goods, Tech and Sun in Awka, and Omo Yoruba of Southern California as the first diaspora community. Open on the line and the two labels. The record is live, the vouchers are the planned pilot, and a human decision on 22 October picks which demo we show. Everything priced here is a labeled scenario. |
-| 2 | The hub | 0:45 | Describe the hub as its members describe it: internet, power, a place to learn. Then the hub's own asks and what members wanted most in October: introductions and career calls. Name nobody. The photo is the Awka hub, used with Tech and Sun's permission. |
-| 3 | The gap | 0:45 | Real value, scattered records, no collateral. The three things a supporter cannot buy today. Pre-empt the fee question: these corridors are cheap; the gap is legibility. |
-| 4 | Live today | 0:45 | The only present-tense slide without a label. Promise, evidence, confirmation by the person served, G$ support, public record. Fallback confirmations stay visible. Point to the appendix for the test receipt. |
-| 5 | The member | 1:00 | Six steps as one person's week. One to four live, five and six the pilot. Step five: name the voucher with its issuer and unit; presenting it opens a promise the member confirms. Promises can also earn vouchers, agreed before anyone accepts. The member never sees a chain name; a retry never duplicates a payment. |
-| 6 | The supporter | 0:45 | An illustration of the planned passport with placeholder values. Definition, unit, window, source, freshness on every figure. Not a score, an audit or a return. On a no-go the Gnosis panel reads not yet live. |
-| 7 | How vouchers work | 1:15 | A steward admits each issuer with published terms and a cap policy that grows with kept promises. Cap enforcement is undecided: a mint controller or monitored issuer policy still needs to be chosen; a kept promise can also earn vouchers. Supporters buy them from the issuer's Cosmo-Local pool. Presenting a voucher opens a promise: the presenter confirms, and the voucher is discharged once, or a remedy returns it. Holding is not delivery. Two pilot issuers through community Safes; a steward may later admit gardeners. All planned. No cash-out for Green Goods vouchers; the hub's swap-back is rehearsal only. |
-| 8 | Four levels | 0:45 | Resources in, evidence out, ownership at the center. Read the table by status chips. No amounts on any ring until unique receipts exist. |
-| 9 | Nigeria | 0:45 | Four sourced facts, then: we do not compete on fees. National flows are context, not pipeline. The World Bank and central bank series differ by definition and are never added. |
-| 10 | The offer | 0:45 | One season pack from the hub's draft plan: 300 + 120 + 200 + 180 = 800; one seat about $30. How to give today: through Omo Yoruba as fiscal sponsor. Then the coordination package at $1,200 per hub-season from the published unit prices. The steward confirms prices by 21 October; both figures are scenarios. |
-| 11 | Honest status | 0:30 | Live, rehearsal, live only after a go, stretch. A no-go is a valid outcome. One line on Cosmo-Local itself: open for public use since 1 October, network still migrating onto Gnosis, and our pools would be our own instances of its published contracts, checked byte for byte against the deployed code on 20 October. If asked about live pools: none of the five gates was met on 21 October. The 21 October voucher direction is planned, not live. |
-| 12 | Next 90 days | 0:30 | The timeline and what we measure. A bilateral-only exchange result is a valid finding. |
-| 13 | The ask | 0:30 | A first supporter from the Omo Yoruba community, a budget holder, a critique of the terms, a funder's view of the passport. Stop. |
-| 14 | Appendix A | on request | Three lanes; the candidate keeps deployed contracts unchanged subject to consent before core acceptance, or returns for decision if direct core entrypoints bypass it; the voucher leg proposes one module on Arbitrum and one adapter on Gnosis; only an instruction crosses, no bridged value; the message lane runs both ways and quotes our existing message format; presented vouchers wait in escrow on Gnosis until the promise is kept; live escrow contract placement is undecided and the rehearsal uses a separate service desk; no voucher code exists yet. |
-| 15 | Appendix B | on request | Who controls what; a steward admits issuers, gardeners included, with published terms and caps; the five gates, none met on 21 October, and the explicit go; code caveats, including the missing passkey validator on Gnosis. |
-| 16 | Appendix C | on request | Test receipt with commit and date; project records with their recheck note; the 20 October protocol checks; data sources with dates; the claim ledger path. |
-| 17 | Appendix D | on request | Definitions; say and do-not-say. A voucher is named with its issuer and unit, never a credit or a token, and it is used, not redeemed. |
+The notes are a guide to rehearse and shorten, not a script to read. The pitch is scheduled for
+28 October from 10 AM London. The 2026 slot length and demo rules are unconfirmed; 2025 teams had
+eight minutes for pitch and demo together. If the slot is shorter, see the cuts below. Detail
+beyond the slides lives in the [companion brief](../brief/index.html), and claim authority lives
+in the [claim ledger](../../research/claim-ledger.md), current addendum first.
+
+`node render.mjs --sync` copies these notes into the deck's `#speaker-notes` block, and
+`node render.mjs --check` proves the two match.
+
+## 1. Title · 0:25
+
+Green Goods helps communities turn good intentions into green outcomes. We built commitment pooling: members promise useful work, prove it, and turn the record into support. Today I'll show it at Tech and Sun, a solar hub in Awka, Nigeria, and show how diaspora and institutional capital can follow that record and sustain the work.
+
+## 2. The problem · 0:30
+
+Communities create value every season: repairs, workshops, plantings, mentoring. But the record of that work stays trapped. Proving the work costs more than doing it. Reporting tools were built for offices, not the field. And the record sits on platforms the community doesn't own. Inside the community, contribution is thanked but not valued. Outside, supporters can't read it, so groups with a real delivery record still look risky and stay tied to single grants.
+
+## 3. Commitment pooling · 0:35
+
+So we built commitment pooling. Members offer or request specific work, like a workshop, a repair or a planting. Anyone in the garden can take a promise up, as themselves or for their garden. When the work is done, only the person it was made for can confirm it was kept. The person who did it can't, and neither can a steward. Those confirmations build a shared record that rewards and funding can follow. These are real app screens with demo data.
+
+## 4. The loop · 0:30
+
+It runs as a loop, season after season. Needs: stewards and evaluators record what the place needs and where things stand today. Promise: members commit to specific work and agree who does what by when. Work: it is documented with photos and notes, reviewed by stewards and confirmed by the people it served. Funding: supporters fund what the record shows. And what was learned shapes the next season's needs.
+
+## 5. Five roles · 0:25
+
+Five roles keep the loop honest. Gardeners do the work and document it, offline when they need to. Stewards run the garden and review work. Evaluators set the baseline and what good evidence looks like. Funders see delivery before and after they give. Community members witness the work and confirm what was done for them. No one confirms their own work.
+
+## 6. Cosmo-Local vouchers · 0:35
+
+For this hackathon we connected promises to Cosmo-Local service vouchers, the open protocol from Grassroots Economics. A member or a garden offers a service as vouchers: an hour of help, a hub visit, a career call. Kept promises can earn vouchers, and members can swap them in one shared pool. Booking holds the vouchers in escrow until the service happens. Then delivered units go back to the issuer, and anything undelivered returns to the holder. It is rehearsed end to end, and the live deployment is under way.
+
+## 7. Tech and Sun · 0:30
+
+We're starting with Tech and Sun, a solar-powered hub in Awka, in southeast Nigeria. It gives innovators and builders reliable power and internet. Members told us internet and power come first, then learning, engineering and AI. In a member survey in October, introductions to work and one-to-one career calls came out on top. This is the hub's live garden page on Green Goods, and the counts you see come straight from its record.
+
+## 8. Member use cases · 0:35
+
+So what do members get? Credibility they can carry. In the pilot we're setting up, a designer, an analyst and an engineer build a website together, and each confirmed part goes into their portfolio. Vouchers earned on projects can book career calls and one-to-one help, which is what members asked for. Vouchers can also open hub visits and AI tool seats members can't afford alone. Because each promise is confirmed by the person it served, the record carries weight with the next employer, mentor or funder.
+
+## 9. Four levels of capital · 0:30
+
+Here's how we think about capital. The hub at the center is rich in material, intellectual, experiential, social, cultural and spiritual capital. What it is short of is money. Around it, the community brings social, cultural and living capital. The Nigerian diaspora brings money, and also culture, relationships and expertise. Institutions bring money, knowledge and equipment. Money flows in from the outer rings, and evidence of delivery radiates back out to everyone who supports the work.
+
+## 10. Sources of capital · 0:25
+
+That money can come from people and programs who already care. Diaspora supporters give gifts and sponsor seasons. Diaspora associations, like Omo Yoruba, can commission a whole program themselves, with no institution needed. Institutions and programs fund climate, clean energy and skills. And public goods funds in our ecosystem already back Green Goods.
+
+## 11. The Nigerian diaspora · 0:30
+
+The Nigerian diaspora sent 21.3 billion dollars home in 2024, according to the African Development Bank. That is national context, not our market. The diaspora also brings culture and connections. Our first diaspora community is Omo Yoruba of Southern California, a Los Angeles nonprofit since 1997 and Tech and Sun's US fiscal sponsor. Here they are at a festival and in a Yoruba language class. Other diaspora associations can follow the same path.
+
+## 12. Three mechanisms · 0:35
+
+Three mechanisms turn that support into lasting capacity. First, the endowment: supporters deposit, the capital stays invested, and its earnings, which vary, go to the garden. Neither principal nor earnings is guaranteed. Second, the commitment pool, which is live: members promise work, and kept promises earn rewards and build the record. Third, the exchange pool, in pilot: members trade vouchers in one shared pool. Next, supporters and endowment earnings could add funds that members exchange vouchers into. That step is future work, not a cash-out promise.
+
+## 13. Business model · 0:30
+
+How does Green Goods sustain itself? Funders pay us to help them reach more local initiatives. A funder sends money to the community for the work, and pays Green Goods a separate fee for setup, support through the season, and reporting they can act on and renew from. We price by projects and workload, never as a cut of community funds or endowment capital. Individual supporters never need a subscription. A worked example is in our companion brief.
+
+## 14. Where we are and where next · 0:30
+
+Where are we today? The app is live, and promises and chat reporting joined it in October. Service vouchers with Tech and Sun are in pilot: rehearsed end to end, with the live deployment under way. Next is the hub's first promise season, planned to run into January. Then more places on the same model: waste work in South Africa, and agroforestry in Kenya and Brazil, which we are exploring with local groups.
+
+## 15. Technical roadmap · 0:25
+
+Our technical goal is simple: report once, and let the record count everywhere. Communities report by app or by chat. Green Goods carries that record to networks they already use: Cosmo-Local Credit now, Ma Earth next, then Bloom Network. With Regen Network we are exploring evidence for ecological claims, and we are exploring a builder toolkit for other groups.
+
+## 16. What we need · 0:30
+
+Beyond funding, here is what would help most: business development mentorship; introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods; marketing support to help tell our story; and time with Grassroots Economics to learn from their work. So help us find the first supporter, and tell us what would make you the second. Thank you.
+
+## Fitting the slot
+
+- **Recorded clip, a stretch goal.** If a clip of the rehearsed voucher flow is ready, play it
+  right after slide 6 and label it a rehearsal with demo accounts. Pay for its length by
+  trimming slides 4, 5, 9 and 15 to a sentence each.
+- **A five-minute version.** Keep slides 1, 2, 3, 6, 7, 8, 12, 13 and 16 at full length. Say one
+  line each for slides 4, 5, 9, 10, 11, 14 and 15, and click through without stopping.
+- **Questions.** Judges weigh the business model. Keep the brief's worked example ready: a
+  $50,000 six-month program, $40,000 to the community and a separate $10,000 fee.
+
+## Claims to keep straight · as of 24 October 2026
+
+- **Live:** the Green Goods app, promises (since 14 October), chat reporting by Telegram, the
+  endowment and the garden's shared fund, and Tech and Sun's public garden page.
+- **Live account proof, not a live service:** a selected new pilot account completed a sponsored
+  passkey operation on 23 October. A working signature does not prove a delivered service.
+- **Rehearsed, not live:** the voucher flow (earn, swap, consent, escrow, acceptance, partial
+  settlement and retries) passed 67 cases in six suites on 23 October; a later member rehearsal
+  passed 21 cases with synthetic participants. The counts overlap, so never add them.
+- **Not yet:** voucher contracts on the live network, real member approvals and capacity,
+  supporter funds in the exchange pool, endowment earnings routed to the exchange pool,
+  integrated milestone funding, certificate purchases in the app, and the combined capital
+  passport.
+- **Never say:** guaranteed principal or returns, cash-out of vouchers, carbon credits, "proven
+  demand", a named individual sponsor, or a hand-typed garden count. Use the live page's counts.
+- Refresh this list against the [live-pilot handoff](../../handoffs/codex-live-pilot-deployment.md)
+  on Monday 27 October before submission.
+
+## Business model reference for Q&A · illustrative USD assumptions
+
+This six-month Tech and Sun program shows how the business could work. It is **not a quote,
+secured funding, a validated price, or new implementation scope**. The first ask remains one
+cohort, priced against agreed participants, capacity and deliverables.
+
+| Illustrative contributor | Community allocation | Separate Green Goods fee | Total |
+|---|---:|---:|---:|
+| Environmental or clean-energy program | $30,000 | $10,000 | $40,000 |
+| Diaspora: 100 supporters × $100 | $10,000 | $0 | $10,000 |
+| **Total** | **$40,000** | **$10,000** | **$50,000** |
+
+A diaspora association, NGO, foundation, community network or program organizer could be the
+paying customer. An individual supporter never needs to subscribe. Diaspora-led funding can
+proceed without an institutional sponsor, and institutional support needs no diaspora match.
+Community allocations reach the approved Tech and Sun recipient, through the Omo Yoruba
+fiscal-sponsor relationship where appropriate. Confirm recipient, gift method, terms and fees
+before collecting anything. Voucher face value is not extra cash raised.
+
+| Community use over six months | Assumed budget |
+|---|---:|
+| Participant stipends and project delivery | $12,000 |
+| Local stewardship and facilitation | $8,000 |
+| Hub power, connectivity, maintenance and tools | $8,000 |
+| Learning, mentoring and approved service access | $8,000 |
+| Contingency, transaction costs and remedies | $4,000 |
+| **Total community allocation** | **$40,000** |
+
+Proposed fee: **$3,000 setup + $7,000 for six months of support and reporting = $10,000**. It buys
+a defined service, not a percentage of community funds or endowment capital. No asset-based
+charge, swap-fee income or certificate revenue is assumed.
+
+| Direct delivery assumption | Calculation | Cost |
+|---|---:|---:|
+| Setup and onboarding | 25 hours × $50 | $1,250 |
+| Steward training and support | 50 hours × $40 | $2,000 |
+| Evidence review and reporting | 30 hours × $50 | $1,500 |
+| Technical operations | 15 hours × $60 | $900 |
+| Hosting, messaging and sponsored transactions | Six-month allowance | $350 |
+| Delivery contingency | Allowance | $500 |
+| **Total** | **120 labor hours + allowances** | **$6,500** |
+
+**Contribution: $10,000 − $6,500 = $3,500, or 35%,** before central sales, product development and
+administration, so it is not net profit. If support needs another 50 hours at $40, cost rises to
+$8,500 and contribution falls to **$1,500, or 15%**. Measure delivery hours, willingness to pay
+and renewal before claiming repeatable margins.
+
+## Endowment reference for Q&A · existing foundation, future integration
+
+The endowment predates this hackathon. A depositor keeps a withdrawal claim; the funds are lent
+through an external market, and actual earnings go to configured destinations. Principal can
+lose value, earnings vary and withdrawals depend on available liquidity. The code's default split
+is 48.65% to the garden's shared fund, 48.65% toward certificate fractions and 2.7% to protocol
+backing; that is not a read of Tech and Sun's configuration and not Green Goods revenue. No route
+today sends earnings or principal into the exchange pool or a milestone grant.
+
+**Optional capital illustration.** Add a separate **$50,000 endowment** to the **$50,000
+program** and the total is **$100,000**, but only $50,000 is budgeted for spending: $40,000 for
+the community and $10,000 for Green Goods. The other $50,000 stays invested under the depositor's
+claim. At a **hypothetical 4% annual gross rate**, $50,000 × 4% × 6/12 = **$1,000 over six
+months**, before costs, losses and the allocation. That is arithmetic, not an offered rate. If
+the depositor later chooses to withdraw and grant $20,000, the same $100,000 becomes **$60,000
+community + $10,000 Green Goods fee + $30,000 retained capital**, ignoring earnings, losses and
+costs. Never count the same principal as both retained and spent.
+
+**Certificates and scale.** Certificate registration and minting exist; buying or claiming
+fractions in the app is unfinished, and buyer demand is unproven. A certificate documents a
+share of an impact claim, not equity, equipment ownership, an offset or a financial return. The
+direction is repeatable five-figure to low-six-figure programs first; million-dollar portfolios
+are a longer-term ambition, not a forecast.
+
+Sources: [funding guide](../../../../../docs/docs/community/funder-guide/funding-a-garden.mdx),
+[Yield defaults](../../../../../packages/contracts/src/resolvers/Yield.sol),
+[certificate guide](../../../../../docs/docs/community/steward-guide/creating-impact-certificates.mdx),
+and claims C81 to C89 in the claim ledger.
