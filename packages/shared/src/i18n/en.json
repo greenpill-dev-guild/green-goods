@@ -2250,7 +2250,7 @@
   "app.home.attention.review": "{count, plural, one {# submission to review} other {# submissions to review}}",
   "app.home.attention.takeUp": "{count, plural, one {# take-up request} other {# take-up requests}}",
   "app.home.attention.confirm": "{count, plural, one {# promise to confirm} other {# promises to confirm}}",
-  "app.home.attention.error.title": "Not everything loaded",
+  "app.home.attention.error.title": "Couldn't load it all",
   "app.home.attention.error.detail": "Nothing was lost",
   "app.home.filters.button": "Filters",
   "app.home.filters.description": "Narrow and sort the garden list.",

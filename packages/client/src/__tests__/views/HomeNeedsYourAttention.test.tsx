@@ -159,7 +159,7 @@ describe("Home Needs Your Attention", () => {
 
     renderSection();
 
-    expect(rows().map(titleOf)).toEqual(["Not everything loaded"]);
+    expect(rows().map(titleOf)).toEqual(["Couldn't load it all"]);
     fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
@@ -173,7 +173,7 @@ describe("Home Needs Your Attention", () => {
 
     renderSection();
 
-    expect(rows().map(titleOf)).toEqual(["2 promises to confirm", "Not everything loaded"]);
+    expect(rows().map(titleOf)).toEqual(["2 promises to confirm", "Couldn't load it all"]);
     expect(screen.queryByRole("button", { name: "Try Again" })).toBeNull();
   });
 });
