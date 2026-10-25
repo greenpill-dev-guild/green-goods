@@ -10,9 +10,9 @@ import type { WorkLinkIntent } from "../src/modules/commitment-pooling/work-link
 import { WorkTab } from "../src/stores/workFlowTypes";
 import type { Action } from "../src/types/domain";
 import { JOURNEY_GARDEN, JOURNEY_GARDEN_RECORD } from "./clientJourneyFixtures";
-import SEEDLINGS_SVG from "./fixture-art/seedlings.svg?raw";
 import DOCUMENTATION_SEEDLINGS_JPEG from "./fixture-art/documentation-seedlings.jpg?inline";
 import DOCUMENTATION_SEEDLINGS_URL from "./fixture-art/documentation-seedlings.jpg?url";
+import SEEDLINGS_JPEG from "./fixture-art/seedlings.jpg?inline";
 import { stagedWorkPhoto } from "./workPhotoFixtures";
 
 type SubmitWorkController = ReturnType<typeof useWorkSubmissionFlowController>;
@@ -65,9 +65,9 @@ const SEEDLING_ACTION = {
   },
 } as unknown as Action;
 
-/** A small drawing of seedlings in their bed, as a photo on the phone. */
+/** Trays of seedlings, as a photo on the phone. */
 function seedlingPhoto(name: string): File {
-  return new File([SEEDLINGS_SVG], name, { type: "image/svg+xml" });
+  return stagedWorkPhoto(name, 0, SEEDLINGS_JPEG);
 }
 
 const noop = () => undefined;
@@ -100,8 +100,8 @@ export function submitWorkControllerFixture(
   const images = documentationPhoto
     ? [stagedWorkPhoto("lettuce-seedlings.jpg", 0, DOCUMENTATION_SUBMISSION.fileDataUrl)]
     : step === "media"
-      ? [seedlingPhoto("seedlings-1.svg")]
-      : [seedlingPhoto("seedlings-1.svg"), seedlingPhoto("seedlings-2.svg")];
+      ? [seedlingPhoto("seedlings-1.jpg")]
+      : [seedlingPhoto("seedlings-1.jpg"), seedlingPhoto("seedlings-2.jpg")];
   return {
     actionUID: 5,
     actions: [SEEDLING_ACTION],
