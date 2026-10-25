@@ -25,7 +25,7 @@ import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../../components/toast";
 import { getDefaultChain } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { canSubmitWork, gardenMembership } from "../../modules/garden/membership";
+import { canSubmitWork } from "../../modules/garden/membership";
 import { validateWorkSubmissionContext } from "../../modules/work/work-submission";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
@@ -126,8 +126,13 @@ export function useWorkSubmissionFlow(): {
       compareAddresses(garden.id, rootGardenAddress)
     );
     if (!communityGarden?.openJoining) return null;
-    return canSubmitWork(gardenMembership(communityGarden, userAddress)) ? null : communityGarden;
-  }, [gardensData, rootGardenAddress, userAddress]);
+    // The same membership as the list above, so an open join just sent is not offered again.
+    const alreadyIn = myGardens.some(
+      ({ garden, membership }) =>
+        compareAddresses(garden.id, communityGarden.id) && canSubmitWork(membership)
+    );
+    return alreadyIn ? null : communityGarden;
+  }, [gardensData, myGardens, rootGardenAddress, userAddress]);
 
   const {
     actionUID,

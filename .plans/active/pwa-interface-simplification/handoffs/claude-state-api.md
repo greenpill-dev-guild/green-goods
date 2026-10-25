@@ -3,8 +3,9 @@
 ## Lane
 
 - Owner: Claude (a session the orchestrator starts; questions go to the orchestrator)
-- Branch: `feature/pwa-membership-owner` (step 1); step 2 follows on its own branch
-- Status: in progress (step 1 green and out for review; step 2 next)
+- Branch: `feature/pwa-membership-owner` (step 1, PR #1274); `feature/pwa-active-garden` (step 2,
+  stacked on step 1)
+- Status: in progress (steps 1 and 2 built; the state parts of steps 4 and 5 follow their merge)
 
 ## Scope (first slice)
 
@@ -78,6 +79,25 @@ The cockpit's selection pattern, to copy in shape and not in code: `hooks/garden
   pick their garden in Submit Work (the resolver accepts them) while an evaluator alone still
   cannot; Profile shows its loading state, not "No gardens yet", while the list is unknown.
 
+## Step 2: what changed
+
+- `packages/shared/src/stores/useActiveGardenStore.ts` keeps one garden id per `chainId:address`
+  scope in local storage under `green-goods:active-garden`, apart from the UI store and the
+  cockpit's key. Saved choices are read as untrusted input; nothing in it forgets a garden.
+- `packages/shared/src/modules/garden/active-garden.ts` is the pure resolver: `loading` while the
+  account's gardens are unknown (keeping the remembered garden, after a failed read too),
+  `error` when the read failed with nothing remembered, `none` for zero gardens, `ready` with the
+  remembered garden while it is still the account's or with the one garden (which selects itself
+  and is remembered), and `choose` otherwise. No account reads as `loading`.
+- `packages/shared/src/hooks/garden/useActiveGarden.ts` wires the signed-in account, the store and
+  the resolver, writes the one-garden choice, and exposes `selectGarden`, which accepts only one
+  of the account's own gardens. It is a new declared leaf for step 3.
+- `hooks/auth/useIdentityChangeReset.ts` names the store among what stays when another account
+  signs in (keyed by chain and address), as `packages/shared/AGENTS.md` asks.
+- Nothing reads the active garden yet: Home and the chip (step 3), Submit Work's fallback
+  (step 4) and the offline photo garden (step 5) do. Drafts, queued jobs, promise links and
+  permission checks never read it.
+
 ## TDD Proof
 
 - RED (step 1), 2026-10-25, from `packages/shared`: `bun run test
@@ -93,7 +113,20 @@ The cockpit's selection pattern, to copy in shape and not in code: `hooks/garden
 - GREEN (step 1): the same Shared command plus `src/__tests__/hooks/garden/useJoinGarden.test.ts`
   → 7 files, 122 passed; the client command → 9 passed. A mutation check (dropping the
   placeholder guard in `useMyGardens`) failed the chain-switch case, then was restored.
-- Proof limit: none
+- RED (step 2), 2026-10-25, from `packages/shared`: `bun run test
+  src/__tests__/modules/garden/active-garden.test.ts src/__tests__/stores/useActiveGardenStore.test.ts
+  src/__tests__/hooks/garden/useActiveGarden.test.tsx` → 20 failed against "not implemented"
+  stubs: the resolver 11 (zero, one, several, stored-eligible, stored-stale, a stale id replaced by
+  the one garden, none with a remembered id kept, cached-while-loading, error-without-cache,
+  an account switch, the scope's case), the store 4 and the hook 5.
+- GREEN (step 2): the same command → 3 files, 20 passed; the full Shared suite → 7,655 passed.
+  Two mutation checks (dropping the hook's eligibility guard, and reading any account's
+  remembered garden) failed three cases, then were restored.
+- Proof limit (step 2): drafts and queued jobs live in IndexedDB, which the hook test does not
+  open. Their protection is structural: the store, the resolver and the hook import no draft,
+  job-queue or commitment module directly, and the store writes only its own key. The hook test
+  asserts that the work flow store (the submission in progress and its promise link) and every
+  other local-storage record stay identical after a switch.
 
 ## Validation
 
@@ -111,6 +144,19 @@ The cockpit's selection pattern, to copy in shape and not in code: `hooks/garden
 - Rendered proof: none (state only). `browser-proof` is advisory and pending: the offline content
   paths and Profile's list are in the authenticated class; acceptance (step 20) carries that
   proof.
+- Step 2: the full Shared suite passed (7,655); Shared typechecks in both scopes; the four
+  auth-session seam proofs passed (130 tests) before its fingerprint was refreshed for the
+  comment in `useIdentityChangeReset.ts`. The push gate adds `browser-passkey` for that path.
+  Its first run failed one spec, `client.reporting-account.passkey.spec.ts` ("trying again makes
+  one account…"), which failed identically on plain develop `99884497b` in this worktree; with
+  CI's placeholder `VITE_PIMLICO_API_KEY=test` all three passkey specs passed, and so did the
+  rerun below.
+- Step 2 review round (CodeRabbit on #1275): the store now writes through a guarded local
+  storage, so a refused write is logged and the choice lasts for the session (RED: no warning
+  and no guard; GREEN: the store, hook and membership tests, 18 passed). Submit Work's
+  Community Garden offer now reads the same membership as its list, so an open join just sent
+  is not offered again; no direct test of `useWorkSubmissionFlow` exists, and the membership
+  rule it reads is covered by the owner's tests.
 
 ## Validation Receipt
 
@@ -126,7 +172,7 @@ Step 1 (`feature/pwa-membership-owner`):
   docs-authority, docs-test, docs-build, staged-modules, source-structure, design-guardrails,
   agent-guidance, supply-chain, docs-generated, em-dashes); `browser-proof` pending (manual,
   advisory)
-- Validated paths: the 28 paths of `git diff --name-only origin/develop d24335631`: the
+- Validated paths: the 28 paths of `git diff --name-only 99884497b d24335631`: the
   membership module and hook, the join reader, the Home filter, the arrival state, Submit Work,
   the offline policy and hook, Karma, the visibility config, the barrels and the Shared
   manifest, Profile's list, their tests, the API index and commands digests, the seam registry,
@@ -134,6 +180,26 @@ Step 1 (`feature/pwa-membership-owner`):
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
   packages docs scripts` → empty
 - Evidence-only diff command and result: `git diff --exit-code d24335631 -- packages docs
+  scripts` → exit 0 (this record changes only `.plans/`)
+- Evidence-only worktree-status command and result: `git status --porcelain=v1
+  --untracked-files=all -- packages docs scripts` → empty
+
+Step 2 (`feature/pwa-active-garden`, stacked on step 1):
+
+- Tested implementation commit SHA: `f0114c60965b1915d36d954f1c5778f5c76c8a1d` (step 2's commits merged with step 1's
+  reviewed head `24bc1fa78` and develop `cf1583ae7`, plus step 2's review fixes; the first green
+  run was on `8bae95387` at 04:10:45Z)
+- Run at (UTC): `2026-10-25T05:18:09Z`
+- Exact command(s): `VITE_PIMLICO_API_KEY=test PATH="$HOME/.local/share/mise/installs/node/22.22.1/bin:$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push`
+- Result: passed, 31 of 32 selected checks fresh (step 1's 30 plus `browser-passkey`);
+  `browser-proof` pending (manual, advisory)
+- Validated paths: the 35 paths of `git diff --name-only cf1583ae7 f0114c609`: step 1's 28 plus
+  the active-garden resolver, store and hook, their three tests, and the comment in
+  `hooks/auth/useIdentityChangeReset.ts` (the manifest, digests, seam registry and hub files
+  changed again)
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  packages docs scripts` → empty
+- Evidence-only diff command and result: `git diff --exit-code f0114c609 -- packages docs
   scripts` → exit 0 (this record changes only `.plans/`)
 - Evidence-only worktree-status command and result: `git status --porcelain=v1
   --untracked-files=all -- packages docs scripts` → empty

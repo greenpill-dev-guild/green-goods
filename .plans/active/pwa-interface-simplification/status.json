@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-25T03:44:41.020Z"
+    "updated_at": "2026-10-25T03:50:38.949Z"
   },
   "links": {
     "brief": "brief.md",
@@ -101,21 +101,21 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/pwa-membership-owner",
+      "branch": "feature/pwa-active-garden",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "packages/shared: bun run test src/__tests__/modules/garden/membership.test.ts src/__tests__/hooks/garden/useMyGardens.test.tsx src/__tests__/modules/garden-filters.test.ts src/__tests__/hooks/useArrivalState.test.ts src/__tests__/modules/offline-content.test.ts src/__tests__/hooks/garden/useKarmaIntegration.test.ts; packages/client: bun run test src/__tests__/views/GardensList.test.tsx",
-          "evidence": "Step 1: 44 Shared and 9 client tests failed before the membership owner existed: membership 22 and useMyGardens 8 against not-implemented stubs, filters 2, arrival 10, offline 1 (TypeError: garden.gardeners is not iterable) and Karma 1 (TypeError: input.owners is not iterable), Profile 9."
+          "command": "packages/shared: bun run test src/__tests__/modules/garden/active-garden.test.ts src/__tests__/stores/useActiveGardenStore.test.ts src/__tests__/hooks/garden/useActiveGarden.test.tsx (step 1's RED is in the handoff)",
+          "evidence": "Step 2: 20 failed against not-implemented stubs: resolver 11 (zero, one, several, stored-eligible, stored-stale, stale id replaced by the one garden, none keeping a remembered id, cached-while-loading, error-without-cache, account switch, scope case), store 4, hook 5."
         },
         "green": {
-          "command": "The same commands, plus packages/shared src/__tests__/hooks/garden/useJoinGarden.test.ts; then node scripts/dev/ci-local.js --intent push",
-          "evidence": "Step 1: 122 Shared tests in 7 files and 9 client tests passed; full suites Shared 7,635, client 1,747, admin 1,383; push gate passed at ffdbd834a (30 of 31 fresh, browser-proof pending)."
+          "command": "The same command; the full Shared suite; then node scripts/dev/ci-local.js --intent push",
+          "evidence": "Step 2: 20 passed; full Shared suite 7,655 passed; two mutation checks failed three cases and were restored. Step 1 is recorded in the handoff and PR #1274."
         },
-        "note": "Slice 1, step 1 (membership owner) recorded; step 2's proof follows on its own PR, then the state parts of steps 4 and 5."
+        "note": "Slice 1, steps 1 and 2 recorded (membership owner, active-garden store and resolver); the state parts of steps 4 and 5 follow their merge."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"],
       "ready_when_dependencies_met": true,
@@ -325,6 +325,22 @@
       "status": "tdd_recorded",
       "branch": "feature/pwa-membership-owner",
       "note": "Slice 1, step 1 (membership owner) recorded; step 2's proof follows on its own PR, then the state parts of steps 4 and 5."
+    },
+    {
+      "timestamp": "2026-10-25T03:50:10.067Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/pwa-active-garden",
+      "note": null
+    },
+    {
+      "timestamp": "2026-10-25T03:50:38.950Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/pwa-active-garden",
+      "note": "Slice 1, steps 1 and 2 recorded (membership owner, active-garden store and resolver); the state parts of steps 4 and 5 follow their merge."
     }
   ]
 }
