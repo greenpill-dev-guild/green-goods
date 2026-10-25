@@ -74,6 +74,18 @@ const STATUS_TONE: Record<WorkDisplayStatus, ItemRowTone> = {
   offline: "neutral",
 };
 
+/**
+ * A work's own pill: its status in a list's words and its tone. The row reads it, and so does
+ * any card that shows the same work, so the two never word a status differently.
+ */
+export function workStatusPill(
+  status: WorkDisplayStatus,
+  labels?: WorkCardLabels
+): { label: string; tone: ItemRowTone } {
+  const words = { ...defaultLabels.status, ...labels?.status };
+  return { label: words[status] ?? status, tone: STATUS_TONE[status] ?? "neutral" };
+}
+
 export interface WorkCardProps {
   work: WorkCardData;
   className?: string;
@@ -135,8 +147,9 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   // Hosted titles can end in the timestamps older submissions appended; the row never shows them.
   const title = toWorkDisplayTitle(work.title, "") || labels.untitledWork;
   const failed = showErrorBadge && Boolean(work.error);
-  const tone = failed ? "error" : (statusTone ?? STATUS_TONE[work.status] ?? "neutral");
-  const pill = failed ? labels.error : (statusLabel ?? labels.status[work.status] ?? work.status);
+  const own = workStatusPill(work.status, labels);
+  const tone = failed ? "error" : (statusTone ?? own.tone);
+  const pill = failed ? labels.error : (statusLabel ?? own.label);
   const mediaCount = work.imageCount ?? work.mediaPreview?.length ?? 0;
   // Who, then how long ago: the work's order, most important first. The age is a
   // moment, so it carries its exact time on hover and in its machine-readable form.

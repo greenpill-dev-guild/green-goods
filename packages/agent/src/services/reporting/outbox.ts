@@ -1,14 +1,18 @@
+import { createLogger } from "../logger";
 import { readControl } from "./controls";
 import { inTransaction } from "./database";
 import { decryptConversationChat } from "./identity-store";
 import type { ReportingCore } from "./runtime";
 import type { OutboundMessage, OutboundTransport } from "./transport";
 
+const log = createLogger("reporting");
+
 /**
  * Durable reply outbox. Reply intents commit with the domain transition that produced them, and
  * only this dispatcher sends. Replies in one conversation go out in commit order; a newer prompt
- * suppresses unsent older prompts. A private notification rechecks the recipient's live binding
- * and identity epoch at send time, so relinking silences the old channel.
+ * suppresses unsent older prompts, and once sent takes the buttons off the question it replaced
+ * where the channel can edit a sent message. A private notification rechecks the recipient's live
+ * binding and identity epoch at send time, so relinking silences the old channel.
  */
 export interface ReplyIntent {
   conversationId: string;
@@ -98,6 +102,8 @@ interface OutboxRow {
   id: string;
   conversation_id: string;
   channel_subject_id: string;
+  prompt_id: string | null;
+  dispatch_seq: number;
   reply_kind: string;
   channel_binding_id: string | null;
   identity_epoch: number | null;
@@ -113,8 +119,8 @@ function claimNext(
   return inTransaction(core.db, () => {
     const row = core.db
       .query(
-        `SELECT id, conversation_id, channel_subject_id, reply_kind, channel_binding_id, identity_epoch, audience,
-                payload_ciphertext, attempts, state, next_attempt_at
+        `SELECT id, conversation_id, channel_subject_id, prompt_id, dispatch_seq, reply_kind, channel_binding_id,
+                identity_epoch, audience, payload_ciphertext, attempts, state, next_attempt_at
          FROM delivery_outbox WHERE conversation_id = $conversation
            AND state IN ('pending','retry_wait','dispatching') ORDER BY dispatch_seq LIMIT 1`
       )
@@ -188,9 +194,12 @@ export async function dispatchOutbox(
     )
     .all({ now: core.clock.now(), limit }) as Array<{ conversation_id: string }>;
   let sent = 0;
+  // Each question sent takes the buttons off the one before it. Those edits start at once and run
+  // beside the sends after them, so none holds up a reply; the pass waits for them only at its end.
+  const retiring: Array<Promise<void>> = [];
   for (const { conversation_id: conversationId } of conversations) {
     for (;;) {
-      if (stopping?.aborted) return { sent, held: false };
+      if (stopping?.aborted) return settled(retiring, { sent, held: false });
       const claim = claimNext(core, conversationId);
       if (!claim) break;
       const chat = decryptConversationChat(core, conversationId);
@@ -217,9 +226,75 @@ export async function dispatchOutbox(
       recordSendResult(core, claim.row, claim.attemptId, result);
       if (result.status !== "accepted") break;
       sent += 1;
+      if (chat && claim.row.prompt_id && transport.retireChoices)
+        retiring.push(retireEarlierQuestion(core, transport, claim.row, chat));
     }
   }
-  return { sent, held: false };
+  return settled(retiring, { sent, held: false });
+}
+
+/** The pass's outcome once its edits have settled; they never reject. */
+async function settled<T>(retiring: Array<Promise<void>>, outcome: T): Promise<T> {
+  await Promise.allSettled(retiring);
+  return outcome;
+}
+
+/**
+ * A question just sent replaces the one sent before it, so that one's buttons come off. Each
+ * question is retired by the next question to reach the chat, once; a question with no choices is
+ * left alone. Whether it had choices is read from the question itself, which outlives the purge
+ * of a cancelled report's sent text; the text, while held, lets the channel keep the question's
+ * links. The lookup runs when this is called, before its first await.
+ * Retiring is best effort and never rejects: a button left behind only puts the open question
+ * again.
+ */
+async function retireEarlierQuestion(
+  core: ReportingCore,
+  transport: OutboundTransport,
+  sent: OutboxRow,
+  chat: { providerRealm: string; chatId: string }
+): Promise<void> {
+  try {
+    const earlier = core.db
+      .query(
+        // The prompt and state terms match the index of sent questions word for word, so the
+        // newest earlier question is the first entry read.
+        `SELECT o.id, o.payload_ciphertext, p.options_json, a.provider_message_id
+         FROM delivery_outbox o
+           JOIN conversation_prompts p ON p.id = o.prompt_id
+           JOIN delivery_attempts a ON a.outbox_id = o.id
+         WHERE o.conversation_id = $conversation AND o.dispatch_seq < $seq
+           AND o.prompt_id IS NOT NULL AND o.state IN ('accepted','sent','delivered','read')
+           AND o.prompt_id <> $prompt
+           AND a.state IN ('accepted','sent','delivered','read') AND a.provider_message_id IS NOT NULL
+         ORDER BY o.dispatch_seq DESC LIMIT 1`
+      )
+      .get({
+        conversation: sent.conversation_id,
+        prompt: sent.prompt_id,
+        seq: sent.dispatch_seq,
+      }) as {
+      id: string;
+      payload_ciphertext: string | null;
+      options_json: string;
+      provider_message_id: string;
+    } | null;
+    if (!earlier || (JSON.parse(earlier.options_json) as unknown[]).length === 0) return;
+    // The question as sent lets the channel keep its links; a purge leaves only the question row.
+    const message = earlier.payload_ciphertext
+      ? (JSON.parse(
+          core.keyring.open(earlier.payload_ciphertext, payloadContext(earlier.id))
+        ) as OutboundMessage)
+      : null;
+    await transport.retireChoices?.({
+      providerRealm: chat.providerRealm,
+      externalChatId: chat.chatId,
+      providerMessageId: earlier.provider_message_id,
+      ...(message ? { message } : {}),
+    });
+  } catch (error) {
+    log.warn({ error: errorCodeOf(error) }, "Could not retire an earlier question's buttons");
+  }
 }
 
 function errorCodeOf(error: unknown): string {

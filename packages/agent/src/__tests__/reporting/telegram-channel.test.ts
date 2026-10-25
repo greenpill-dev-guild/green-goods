@@ -112,6 +112,9 @@ describe("Telegram updates", () => {
     ["/help", "help"],
     ["/confirm 1234", "confirm 1234"],
     ["/connect", "connect"],
+    ["/account", "account"],
+    ["/language", "language"],
+    ["/language pt", "language pt"],
     ["/lang es", "lang es"],
     ["/approve 3", "help"],
     ["/path/to/file", "/path/to/file"],
@@ -242,6 +245,64 @@ describe("Telegram delivery", () => {
         chat_id: "7001",
         text: "b".repeat(3000),
         reply_markup: { inline_keyboard: [[{ text: "Confirm", callback_data: "p:q2:confirm" }]] },
+      },
+    ]);
+  });
+
+  it("takes every button off a replaced question and never fails over it", async () => {
+    const transport = createTelegramTransport(telegram);
+    const question = {
+      providerRealm: TEST_BOT_REALM,
+      externalChatId: "7001",
+      providerMessageId: "104",
+    };
+    await transport.retireChoices?.(question);
+    // A tap already took the keyboard off, or the person deleted the message: nothing is lost.
+    api.reply({ ok: false, error_code: 400, description: "Bad Request: message is not modified" });
+    await expect(transport.retireChoices?.(question)).resolves.toBeUndefined();
+    api.reply({
+      ok: false,
+      error_code: 400,
+      description: "Bad Request: message to edit not found",
+    });
+    await expect(transport.retireChoices?.(question)).resolves.toBeUndefined();
+    // With no reply_markup, Telegram removes the whole inline keyboard.
+    expect(api.calls).toEqual(
+      Array.from({ length: 3 }, () => ({
+        method: "editMessageReplyMarkup",
+        payload: { chat_id: "7001", message_id: 104 },
+      }))
+    );
+  });
+
+  it("keeps a replaced question's link, copy button and records, and takes only its choices off", async () => {
+    const production = "https://www.greengoods.app/agent/reporting/r1";
+    const attestation = "https://arbitrum.easscan.org/attestation/view/0xabc";
+    await createTelegramTransport(telegram).retireChoices?.({
+      providerRealm: TEST_BOT_REALM,
+      externalChatId: "7001",
+      providerMessageId: "105",
+      message: {
+        text: "Join the Community Garden, then tap I've joined.",
+        choices: [{ id: "p:q3:joined", label: "I've joined" }],
+        link: { url: production, label: "Join", copyLabel: "Copy link" },
+        records: [{ url: attestation, label: "View attestation" }],
+      },
+    });
+    expect(api.calls).toEqual([
+      {
+        method: "editMessageReplyMarkup",
+        payload: {
+          chat_id: "7001",
+          message_id: 105,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "Join", url: production }],
+              [{ text: "Copy link", copy_text: { text: production } }],
+              [{ text: "View attestation", url: attestation }],
+            ],
+          },
+        },
       },
     ]);
   });
