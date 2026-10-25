@@ -49,7 +49,7 @@ function work(overrides: Partial<Work> & Pick<Work, "id" | "title">): Work {
   return {
     actionUID: 1,
     gardenerAddress: STORY_ACCOUNT,
-    gardenAddress: TAS_HUB.id,
+    gardenAddress: TAS_HUB.id as Address,
     feedback: "",
     metadata: "{}",
     media: [],
