@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
 import {
@@ -35,7 +35,7 @@ import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useAuth } from "../auth/useAuth";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { useGardenJoinRequestSession } from "./useGardenJoinRequestSession";
+import { joinRequestStatusQuery, useGardenJoinRequestSession } from "./useGardenJoinRequestSession";
 import { useGardenJoinRequestMutationBarrier } from "./useGardenJoinRequestMutationBarrier";
 
 type AsyncState = { isLoading: boolean; error: Error | null };
@@ -63,6 +63,33 @@ export function useGardenJoinRequestAvailabilityState(
     isLoading: query.isPending,
     error: query.error,
   };
+}
+
+/**
+ * The gardens among `gardenIds` where the signed-in account's request to join waits for a
+ * steward, as this device knows it: a request sent or checked in this session (DL-125). The
+ * service shows a request only to the account's signature, so this reads the session's own
+ * records and never asks for one; observing them keeps them while a list shows them. Ids come
+ * back lowercased.
+ */
+export function useAwaitingJoinRequests(gardenIds: readonly string[]): ReadonlySet<string> {
+  const chainId = useCurrentChain();
+  const account = usePrimaryAddress();
+  const { authMode } = useAuth();
+  const records = useQueries({
+    queries: account
+      ? gardenIds.map((gardenId) =>
+          joinRequestStatusQuery(chainId, gardenId, account, authMode ?? "none")
+        )
+      : [],
+  });
+  // One string per answer, so the set keeps its identity until a request changes.
+  const awaiting = records
+    .flatMap((record, index) =>
+      record.data?.request?.state === "pending" ? [gardenIds[index].toLowerCase()] : []
+    )
+    .join(",");
+  return useMemo(() => new Set(awaiting ? awaiting.split(",") : []), [awaiting]);
 }
 
 export function useGardenJoinRequests(

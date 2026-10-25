@@ -16,6 +16,28 @@ const EMPTY: Status = { request: null, hasCheckedStatus: false, outcomeUnknown: 
 // Authorization never enters query data, browser persistence, URLs or telemetry.
 const sessions = new WeakMap<Query, { proof?: GardenJoinProofEnvelope; operation: number }>();
 
+/**
+ * This session's record of one account's request to join one garden: in memory only, outside
+ * the persisted namespace, and removed with the account's other private queries at sign-out.
+ * The join dialog's session and the lists that mark a garden awaiting review observe the same
+ * record, so both build it from here.
+ */
+export function joinRequestStatusQuery(
+  chainId: number,
+  garden: string,
+  account: string,
+  authMode: string,
+  kind: GardenJoinRequestKind = "garden_membership"
+) {
+  return {
+    queryKey: gardenJoinRequestKeys.self(chainId, garden, account, authMode, kind),
+    queryFn: async (): Promise<Status> => EMPTY,
+    enabled: false,
+    initialData: EMPTY,
+    gcTime: 5 * 60_000,
+  };
+}
+
 export function useGardenJoinRequestSession(
   chainId: number,
   garden: string,
@@ -48,13 +70,7 @@ export function useGardenJoinRequestSession(
   const scopeKey = `${identity}:${generation.current.value}`;
   const latestScope = useRef(scopeKey);
   latestScope.current = scopeKey;
-  const observed = useQuery({
-    queryKey: key,
-    queryFn: async () => EMPTY,
-    enabled: false,
-    initialData: EMPTY,
-    gcTime: 5 * 60_000,
-  });
+  const observed = useQuery(joinRequestStatusQuery(chainId, garden, account, authMode, kind));
   const query = client.getQueryCache().build<unknown>(client, { queryKey: key });
   const privateSession = sessions.get(query) ?? { operation: 0 };
   sessions.set(query, privateSession);
