@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-25T13:20:48.353Z"
+    "updated_at": "2026-10-25T13:32:43.666Z"
   },
   "links": {
     "brief": "brief.md",
@@ -86,16 +86,16 @@
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run test (shared GardenChip, useAwaitingJoinRequests; client Home, Explore, homeGardens, routes.presentation; admin CanvasLayout) on feature/pwa-home-shell at 4f8197ac5",
+          "evidence": "Shared 10 failed, 44 passed: the five new GardenChip cases and the five useAwaitingJoinRequests cases; client Explore route 'declared before the garden route' had no such route (PR #1289 body)"
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "the same suites at c8032ea66, plus the push gate (33 fresh of 34, critical plan)",
+          "evidence": "shared GardenChip 18, join requests 38; client Home 21, Explore 5, homeGardens 7; admin CanvasLayout 30; the review round's 'leaves the journal while a garden page shows' RED at 560c29bcd, GREEN at 58c5d6936 (PR #1289 body)"
         },
-        "note": "Slice 1 (steps 3, 4's interface and 6) is behavior-changing: focused RED/GREEN proof is required; rendered proof follows AGENTS.md Browser Evidence labels."
+        "note": ""
       },
       "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": false,
@@ -376,6 +376,14 @@
       "status": "in_progress",
       "branch": null,
       "note": "Steps 1 (#1274), 2 (#1275), 5 (#1278) and 14 (#1288) merged; step 4 (#1291) in review; the join-request device record proposed; 17 and 18 to come."
+    },
+    {
+      "timestamp": "2026-10-25T13:32:43.672Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ]
 }
