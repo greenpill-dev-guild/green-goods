@@ -3,7 +3,12 @@ import { worksKeys } from "../../config/query-keys/work";
 import type { Garden, WorkMetadata } from "../../types/domain";
 import type { EASWorkListRow } from "../../types/eas-responses";
 import { WORK_LIST_PAGE_SIZE } from "../data/eas";
-import { OFFLINE_REFRESH_MS, planOfflineContent } from "./policy";
+import {
+  OFFLINE_REFRESH_MS,
+  type OfflineFocus,
+  offlinePhotoGardens,
+  planOfflineContent,
+} from "./policy";
 import { OfflineRunQueue, type OfflineTask, sameAddress } from "./run-queue";
 import { getOfflineProgress, updateOfflineProgress } from "./store";
 import type { OfflinePauseReason } from "./types";
@@ -56,7 +61,7 @@ class RunStopped extends Error {}
  * read is written to the reading cache once it has landed.
  */
 export class OfflineScheduler {
-  private activeGarden?: string;
+  private gardenInView?: string;
   private userPaused = false;
   private dataSaverOverride = false;
   private running = false;
@@ -78,9 +83,10 @@ export class OfflineScheduler {
     return this.lastRunAt;
   }
 
-  setActiveGarden(garden?: string): void {
-    if (sameAddress(garden, this.activeGarden) || (!garden && !this.activeGarden)) return;
-    this.activeGarden = garden;
+  /** The garden on screen, whose photos are kept too. */
+  setGardenInView(garden?: string): void {
+    if (sameAddress(garden, this.gardenInView) || (!garden && !this.gardenInView)) return;
+    this.gardenInView = garden;
     this.wake();
   }
 
@@ -176,9 +182,10 @@ export class OfflineScheduler {
     const account = ports.account();
     const gardens = ports.gardens();
     if (!account || !gardens) return;
+    const focus = (): OfflineFocus => ({ gardenInView: this.gardenInView });
     const queue = new OfflineRunQueue(
-      { client: ports.client, account, gardens, gardenInView: () => this.activeGarden },
-      planOfflineContent(gardens, account, ports.chainId, this.activeGarden),
+      { client: ports.client, account, gardens, photoGardens: () => offlinePhotoGardens(focus()) },
+      planOfflineContent(gardens, account, ports.chainId, focus()),
       ports.avatarUrl()
     );
     const staleTime = refresh ? 0 : OFFLINE_REFRESH_MS;

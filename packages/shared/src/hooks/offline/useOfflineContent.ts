@@ -122,7 +122,7 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
       idle: waitForIdle,
       now: Date.now,
     });
-    scheduler.setActiveGarden(gardenInView);
+    scheduler.setGardenInView(gardenInView);
     activeScheduler = scheduler;
 
     const refreshStats = () =>
@@ -189,16 +189,16 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
 }
 
 /** Marks the garden on screen so its photos are kept too, once the screen settles. */
-export function useActiveOfflineGarden(gardenId?: string): void {
+export function useOfflineGardenInView(gardenId?: string): void {
   useEffect(() => {
     if (!gardenId) return;
     gardenInView = gardenId;
-    activeScheduler?.setActiveGarden(gardenId);
+    activeScheduler?.setGardenInView(gardenId);
     activeScheduler?.schedule(GARDEN_IN_VIEW_DELAY_MS);
     return () => {
       if (gardenInView !== gardenId) return;
       gardenInView = undefined;
-      activeScheduler?.setActiveGarden(undefined);
+      activeScheduler?.setGardenInView(undefined);
     };
   }, [gardenId]);
 }

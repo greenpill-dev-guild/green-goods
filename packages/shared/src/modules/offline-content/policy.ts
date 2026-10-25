@@ -9,8 +9,21 @@ export const OFFLINE_REFRESH_MS = 15 * 60_000;
 export interface OfflinePlan {
   /** Gardens whose work lists and details are kept offline, in download order. */
   lists: string[];
-  /** The garden whose photos are downloaded too, besides the account's own work. */
-  photoGarden?: string;
+  /** The gardens whose photos are downloaded too, besides the account's own work. */
+  photoGardens: string[];
+}
+
+/** The gardens the member is in, which decide whose photos are kept. */
+export interface OfflineFocus {
+  /** The garden on screen, which can be any garden. */
+  gardenInView?: string;
+}
+
+const sameGarden = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
+
+/** The gardens whose photos are kept, in download order. */
+export function offlinePhotoGardens({ gardenInView }: OfflineFocus): string[] {
+  return gardenInView ? [gardenInView] : [];
 }
 
 /**
@@ -24,19 +37,19 @@ export function planOfflineContent(
   gardens: Garden[],
   account: string,
   chainId: number,
-  activeGarden?: string
+  focus: OfflineFocus = {}
 ): OfflinePlan {
   const onChain = gardens.filter((garden) => garden.chainId === chainId);
   const joined = onChain
     .filter((garden) => isMyGarden(gardenMembership(garden, account)))
     .map((garden) => garden.id);
-  const active = activeGarden
-    ? (onChain.find((garden) => garden.id.toLowerCase() === activeGarden.toLowerCase())?.id ??
-      activeGarden)
-    : undefined;
-  if (!active) return { lists: joined };
-  const others = joined.filter((id) => id.toLowerCase() !== active.toLowerCase());
-  return { lists: [active, ...others], photoGarden: active };
+  const photoGardens = offlinePhotoGardens(focus).map(
+    (photoGarden) => onChain.find((garden) => sameGarden(garden.id, photoGarden))?.id ?? photoGarden
+  );
+  const others = joined.filter(
+    (id) => !photoGardens.some((photoGarden) => sameGarden(photoGarden, id))
+  );
+  return { lists: [...photoGardens, ...others], photoGardens };
 }
 
 /** Match the same display variant the image component actually requests. */

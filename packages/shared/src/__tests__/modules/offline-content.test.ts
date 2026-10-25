@@ -132,15 +132,16 @@ describe("offline plan", () => {
       garden("0xDDDD00000000000000000000000000000000dDdD", [account], 42161),
     ];
 
-    expect(planOfflineContent(gardens, account, chainId)).toEqual({ lists: [gardenA, gardenB] });
-    expect(planOfflineContent(gardens, account, chainId, gardenB.toLowerCase())).toEqual({
-      lists: [gardenB, gardenA],
-      photoGarden: gardenB,
+    expect(planOfflineContent(gardens, account, chainId)).toEqual({
+      lists: [gardenA, gardenB],
+      photoGardens: [],
     });
-    expect(planOfflineContent(gardens, account, chainId, visited.toLowerCase())).toEqual({
-      lists: [visited, gardenA, gardenB],
-      photoGarden: visited,
-    });
+    expect(
+      planOfflineContent(gardens, account, chainId, { gardenInView: gardenB.toLowerCase() })
+    ).toEqual({ lists: [gardenB, gardenA], photoGardens: [gardenB] });
+    expect(
+      planOfflineContent(gardens, account, chainId, { gardenInView: visited.toLowerCase() })
+    ).toEqual({ lists: [visited, gardenA, gardenB], photoGardens: [visited] });
   });
 
   it("keeps an owner's and an evaluator's gardens, and reads gardens missing a role list", () => {
@@ -152,7 +153,10 @@ describe("offline plan", () => {
       { id: visited, chainId, gardeners: [neighbour], stewards: {} },
     ] as unknown as Garden[];
 
-    expect(planOfflineContent(gardens, account, chainId)).toEqual({ lists: [gardenA, gardenB] });
+    expect(planOfflineContent(gardens, account, chainId)).toEqual({
+      lists: [gardenA, gardenB],
+      photoGardens: [],
+    });
   });
 });
 
@@ -160,7 +164,7 @@ describe("offline scheduler", () => {
   it("prepares lists and details everywhere, photos only for the garden in view and own work", async () => {
     const { client, events, ports } = harness();
     const scheduler = new OfflineScheduler(ports);
-    scheduler.setActiveGarden(gardenA.toLowerCase());
+    scheduler.setGardenInView(gardenA.toLowerCase());
 
     await scheduler.run();
 
@@ -218,7 +222,7 @@ describe("offline scheduler", () => {
     const scheduler = new OfflineScheduler(ports);
     vi.mocked(ports.fetchWorks).mockImplementation(async (gardenId: string, take: number) => {
       events.push(`list:${gardenId.toLowerCase()}:${take}`);
-      if (gardenId === gardenB) scheduler.setActiveGarden(gardenA);
+      if (gardenId === gardenB) scheduler.setGardenInView(gardenA);
       return harness().works[gardenId.toLowerCase()];
     });
 
@@ -433,7 +437,7 @@ describe("offline scheduler", () => {
   it("lets another account on the same phone reuse downloaded lists and photos", async () => {
     const first = harness();
     const firstScheduler = new OfflineScheduler(first.ports);
-    firstScheduler.setActiveGarden(gardenA);
+    firstScheduler.setGardenInView(gardenA);
     await firstScheduler.run();
     const downloads = vi.mocked(first.ports.media.download).mock.calls.length;
 
@@ -443,7 +447,7 @@ describe("offline scheduler", () => {
       account: () => steward,
       gardens: () => [garden(gardenA, [account, steward])],
     });
-    second.setActiveGarden(gardenA);
+    second.setGardenInView(gardenA);
     await second.run();
 
     expect(first.ports.fetchWorks).toHaveBeenCalledTimes(2);
