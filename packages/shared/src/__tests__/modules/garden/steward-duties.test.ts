@@ -22,14 +22,29 @@ function commitment(commitmentId: bigint): CommitmentReadModel {
   return { commitmentId, id: `42161-${commitmentId}` } as unknown as CommitmentReadModel;
 }
 
-function claim(commitmentId: bigint, requestedAt: number, state = "PENDING"): PoolClaimRequestRow {
+const READER = "0xa11ce00000000000000000000000000000000001";
+const NEIGHBOUR = "0xb0b0000000000000000000000000000000000002";
+
+function claim(
+  commitmentId: bigint,
+  requestedAt: number,
+  state = "PENDING",
+  who: { claimant?: string; requestedBy?: string } = {}
+): PoolClaimRequestRow {
+  const claimant = who.claimant ?? NEIGHBOUR;
   return {
-    claim: { commitmentId, requestedAt, state } as unknown as CommitmentClaimRequestRecord,
+    claim: {
+      commitmentId,
+      requestedAt,
+      state,
+      claimant,
+      requestedBy: who.requestedBy ?? claimant,
+    } as unknown as CommitmentClaimRequestRecord,
     commitment: commitment(commitmentId),
   };
 }
 
-const NOTHING = { toReview: [], pendingClaims: [], toConfirm: [] };
+const NOTHING = { viewer: READER, toReview: [], pendingClaims: [], toConfirm: [] };
 
 describe("selectStewardDuties", () => {
   it("lists nothing when nothing waits", () => {
@@ -38,6 +53,7 @@ describe("selectStewardDuties", () => {
 
   it("lists work to review, then take-up requests, then promises to confirm, each with its count", () => {
     const duties = selectStewardDuties({
+      viewer: READER,
       toReview: [work("0x02", 200), work("0x01", 100)],
       pendingClaims: [claim(4n, 10)],
       toConfirm: [commitment(9n), commitment(8n)],
@@ -77,5 +93,18 @@ describe("selectStewardDuties", () => {
       [5n, 1, 50],
       [4n, 2, 30],
     ]);
+  });
+
+  it("does not count a take-up request the reader made, for themselves or for someone else", () => {
+    const duties = selectStewardDuties({
+      ...NOTHING,
+      pendingClaims: [
+        claim(4n, 10, "PENDING", { claimant: READER.toUpperCase().replace("0X", "0x") }),
+        claim(4n, 20, "PENDING", { claimant: NEIGHBOUR, requestedBy: READER }),
+        claim(4n, 30),
+      ],
+    });
+
+    expect(duties.map((duty) => (duty.kind === "takeUp" ? duty.count : null))).toEqual([1]);
   });
 });

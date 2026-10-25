@@ -6,9 +6,12 @@
  * confirms (the Promises sheet's To confirm). A queue with nothing in it is left out. Who may see
  * a queue is decided where it is read (`useStewardDuties`), by the predicate of the act it opens.
  * Join requests have no count the app can read without a signature, so they stay in Gardeners.
+ * Nothing the reader did themselves waits on them: their own submissions are not in the review
+ * queue, and their own take-up requests are not counted, as the bell lists neither (DL-130).
  */
 
 import type { Work } from "../../types/domain";
+import { compareAddresses } from "../../utils/blockchain/address";
 import type { CommitmentReadModel, PoolClaimRequestRow } from "../commitment-pooling/types-core";
 
 export type StewardDuty =
@@ -20,6 +23,8 @@ export type StewardDuty =
   | { kind: "confirm"; count: number; commitments: CommitmentReadModel[] };
 
 export interface StewardDutyInputs {
+  /** The reader, whose own take-up requests are not counted. */
+  viewer: string | null | undefined;
   /** Work someone else submitted in the garden and nobody has reviewed yet. */
   toReview: readonly Work[];
   /** Take-up requests on the garden's pool. */
@@ -39,6 +44,8 @@ export function selectStewardDuties(input: StewardDutyInputs): StewardDuty[] {
   const byPromise = new Map<string, Extract<StewardDuty, { kind: "takeUp" }>>();
   for (const { claim, commitment } of input.pendingClaims) {
     if (claim.state !== "PENDING") continue;
+    if (compareAddresses(claim.claimant, input.viewer)) continue;
+    if (compareAddresses(claim.requestedBy, input.viewer)) continue;
     const key = claim.commitmentId.toString();
     const duty = byPromise.get(key);
     if (duty) {

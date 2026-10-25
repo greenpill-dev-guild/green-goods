@@ -78,12 +78,13 @@ export function useStewardDuties(garden: Garden): StewardDuties {
   const duties = useMemo(
     () =>
       selectStewardDuties({
+        viewer: account,
         toReview: review.works,
         // A disabled read still hands back what it read before; only a decider sees it.
         pendingClaims: stewardsPoolGarden ? claims.rows : [],
         toConfirm,
       }),
-    [review.works, stewardsPoolGarden, claims.rows, toConfirm]
+    [account, review.works, stewardsPoolGarden, claims.rows, toConfirm]
   );
 
   const { refetch: refetchReview } = review;
