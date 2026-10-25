@@ -2272,7 +2272,7 @@
   "app.home.journal.highlights.daysLeft": "{count, plural, one {Queda # día} other {Quedan # días}}",
   "app.home.journal.highlights.loading": "Reuniendo los destacados…",
   "app.home.journal.highlights.recentWork": "Trabajo reciente",
-  "app.home.journal.nothingLost": "No se ha perdido nada",
+  "app.home.journal.nothingLost": "No se perdió nada",
   "app.home.journal.offlineDetail": "Se carga cuando vuelva la conexión",
   "app.home.journal.offlineTitle": "Aún no está en este teléfono",
   "app.home.journal.recentActivity": "Actividad reciente",
