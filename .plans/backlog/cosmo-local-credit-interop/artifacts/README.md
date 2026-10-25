@@ -8,7 +8,11 @@ before the loop, a world map and a closing slide whose QR code opens the beta; t
 against primary sources in the [RESR-94 evidence pass](../research/diaspora-evidence-pass-2026-10-25.md)
 and completed the same day; then **refreshed on 25 October** after the voucher contracts reached
 the public networks, so the notes and brief say "deployed", never "live"; see
-[the status refresh](#status-refresh--25-october-2026). The pitch is scheduled for 28 October
+[the status refresh](#status-refresh--25-october-2026); and **polished after his second review
+on 25 October**, which fixed the title slide in print, put the five roles on the solution slide,
+the Awka photo on the Tech and Sun slide, four mechanisms, four places and a centered closing
+slide in the deck, and renamed, linked and re-fitted the brief; see
+[the final polish](#the-final-polish--25-october-2026). The pitch is scheduled for 28 October
 from 10 AM London; submission is due 27 October.
 
 The [claim ledger](../research/claim-ledger.md), current addendum first, owns wording boundaries.
@@ -22,10 +26,10 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | [`deck/index.html`](deck/index.html) | The 18-slide deck: one HTML file with inline diagrams, map and QR code, the Warm Earth tokens and the speaker notes in its `#speaker-notes` block |
 | [`deck/speaker-notes.md`](deck/speaker-notes.md) | Eighteen notes of 10 to 35 seconds each, 8:00 in total, plus cuts for a shorter slot, claims to keep straight and the Q&A business-model and endowment references |
 | [`deck/render.mjs`](deck/render.mjs) | Checks the deck, syncs the notes, renders PNGs, a contact sheet and the PDF |
-| [`deck/capture-screens.mjs`](deck/capture-screens.mjs) | Captures the three product screens the deck and brief use |
+| [`deck/capture-screens.mjs`](deck/capture-screens.mjs) | Captures the two product screens the deck and brief use |
 | [`deck/assets/brand/`](deck/assets/brand/) | The official logo and the symbol, cropped to its shapes for the corner mark |
 | `deck/assets/screens/`, `deck/assets/photos/` | Local images, not committed; see [Photos and screens](#photos-and-screens) |
-| [`brief/index.html`](brief/index.html) | The companion brief: six A4 pages in the same style; page 1 doubles as the one-page mentor brief |
+| [`brief/index.html`](brief/index.html) | The Green Goods brief: six A4 pages in the same style, made to stand on its own; page 1 doubles as the one-page summary; its links are clickable in the PDF |
 | [`brief/render.mjs`](brief/render.mjs) | Checks the brief and renders its PDF and page PNGs |
 | [`review-2026-10-25.md`](review-2026-10-25.md) | Afo's 25 October slide and brief review, with the Tech and Sun research; implemented in [the revision](#the-revision--25-october-2026) |
 | [`../research/diaspora-evidence-pass-2026-10-25.md`](../research/diaspora-evidence-pass-2026-10-25.md) | The RESR-94 evidence pass: every diaspora, remittance, hub and funding claim checked against primary sources, with proposed ledger rows and open questions; applied in [the evidence pass](#the-evidence-pass--25-october-2026) |
@@ -59,9 +63,13 @@ The deck script checks 18 slides, the corner symbol on each, the slide number on
 title and the closing slide, notes identical in the HTML and the Markdown, each slide's timing
 equal to its notes heading, 8:00 in total and no em dashes. While rendering it reports text
 outside the 128px side margins or in the corner band, text or artwork over a headline, artwork
-over the corner symbol, headlines over two lines (three on the title) and images that did not
-load. `--only=3,7` re-renders single slides while editing. The brief script checks six pages,
-margins, footers, images and em dashes. Both exit with status 1 after reporting a problem.
+over the corner symbol, headlines over two lines (three on the title), images that did not
+load, and any block whose layout box leaves the slide before transforms are applied, because
+print lays blocks out before transforms and fragments what overruns the page (the title slide's
+last line once landed below the footer that way). After the PDF it runs `pdftotext -bbox`, where
+installed, and reports any word outside its page. `--only=3,7` re-renders single slides while
+editing. The brief script checks six pages, margins, footers, images and em dashes. Both exit with
+status 1 after reporting a problem.
 
 The closing slide's QR code is inline SVG for `https://beta.greengoods.app`, made with the
 repository's installed `qrcode` package (no new dependency). To point it at another link, print
@@ -78,8 +86,8 @@ circles in the same SVG, placed at the projected position of each place.
 
 ## Photos and screens
 
-The pitch uses four approved photographs: the Awka hub from outside (the brief's first page) and
-inside (slide 17), and the two Omo Yoruba photos (slide 12). They show identifiable people
+The pitch uses four approved photographs: the Awka hub from outside (slide 8 and the brief's
+first page) and inside (slide 17), and the two Omo Yoruba photos (slide 12). They show identifiable people
 and belong to Tech and Sun and Omo Yoruba, so they stay out of git. Authorized copies sit in the
 June 2026 Octant demo-day deck's folder; place them with:
 
@@ -87,13 +95,11 @@ June 2026 Octant demo-day deck's folder; place them with:
 cp /Users/afo/Code/greenpill/artifacts/octant-e12-deck/assets/photos/{awka-hub,tas-hub-build,odunde-masquerade,omo-yoruba-bridge}.jpg .plans/backlog/cosmo-local-credit-interop/artifacts/deck/assets/photos/
 ```
 
-`capture-screens.mjs` writes three screens, also kept out of git:
-
-- `garden-promises.png` and `confirm.png` come from the deployed Storybook at
-  design.greengoods.app: real components with demo data. The deck and brief label them "App
-  screens with demo data". Their fixture names and shortened addresses are synthetic.
-- `tas-garden.png` is Tech and Sun's live public garden page on greengoods.app. Its counts are
-  live at capture time, so re-capture it before presenting.
+`capture-screens.mjs` writes two screens, also kept out of git: `garden-promises.png` and
+`confirm.png`, from the deployed Storybook at design.greengoods.app, real components with demo
+data (Riverside Commons Garden; the fixture names and shortened addresses are synthetic). Since
+the final polish the slide and the brief no longer label them, so the notes' claims list reminds
+the presenter. The live garden page capture retired with the Tech and Sun slide's photo.
 
 ## The revision · 25 October 2026
 
@@ -214,6 +220,59 @@ refresh the status facts the pitch carries. Repeat the check on 27 October (inpu
   0. Brief pages 1, 3, 4 and 6, the deck's contact sheet and the photo slides 8, 12 and 17 were
   inspected.
 
+## The final polish · 25 October 2026
+
+Applied from Afo's second review, given in chat on 25 October after the merge, with four
+decisions he made when asked: G$ rewards are presented as live, impact certificates become a
+fourth mechanism, "cockpit" becomes "steward dashboard" in the brief, and the brief is named
+"Green Goods brief · October 2026".
+
+- **Title slide in print.** The PDF cut the subtitle's last line off at the page's foot. Chromium
+  lays an absolutely positioned block out before its transform, so the title block's
+  untransformed box (top 540px, 564px tall) overran the page and fragmented. Both the title and
+  the closing block now use fixed offsets, `render.mjs` checks layout boxes before transforms,
+  and a `pdftotext -bbox` pass checks every word of the PDF sits inside its page.
+- **Slides.** The solution slide's Record and Supporters captions name evaluators, funders and
+  community members, so all five roles appear. The pooling slide's captions sit under the phones
+  and the demo-data label is gone. The Tech and Sun slide shows the Awka hub photo instead of the
+  garden page, and its needs text adds opportunity (introductions to work and career calls from
+  the October survey, and the hub as where members find people to build with). The Omo Yoruba
+  caption names the Odunde Festival 2026 in Leimert Park, a procession and a language class. The
+  remittance slide drops "not our market size". The mechanisms slide has four circles: the
+  endowment loses "which vary", the commitment pool earns "agreed rewards in G$", the exchange
+  pool is explained in plainer words, and certificates are "partly built" (minting exists, buying
+  in the app is unfinished, part of the endowment's earnings is set aside for them). The business
+  model headline reads "Our revenue model: funders pay Green Goods to reach more local
+  initiatives." The places slide lists Kenya and Brazil separately, both agroforestry, with
+  Greenpill Kenya, AgroforestDAO and Growecosystems named in the note and brief as gardens already
+  on Green Goods. Bloom Network and Regen Network are "in conversation". The closing slide is a
+  centered column: THANK YOU, "From good intentions to green outcomes.", a smaller QR code (9px a
+  module, still decoded by Core Image) and the beta link under it.
+- **Notes.** Slide 13 takes 0:40 and slide 11 gives back 5 seconds, so the total stays 8:00. The
+  claims list gains the G$ switch, the demo-data reminder, certificates, the Odunde spelling, the
+  partner labels and the three gardens.
+- **Brief.** Renamed in the title, header line and footers. About twenty links, underlined in a
+  light green so a reader sees them: the site addresses, the sources, each partner, and the
+  technical names on page 4 (every target returned 200 on 25 October). Captions under the
+  screenshots, no demo-data line. "Money stays separate" became "Two kinds of reward" (G$ and
+  vouchers, both carried by this season's promises). "Evidence so far" is in plain words with no
+  test counts or chain names. Page 5 has four mechanism boxes, the certificate share described in
+  words, and a tighter "How Green Goods earns" paragraph; page 6 has four places, "in conversation"
+  for Bloom and Regen, and an "Impact certificate" term. Pages 5 and 6 sit a little tighter
+  (`.p5`, `.p6`) so the additions fit.
+- **G$ rewards, the one claim to watch.** The deck and brief now say kept promises earn agreed
+  rewards in G$. The G$ path is live and paid its first reward in August (claim C08), but creating
+  new G$ reward promises in the app sits behind `SETTLEMENT_ENABLED = false` in
+  `packages/shared/src/config/app.ts`, and the app tells members that sending them "is
+  unavailable in this release". That switch must be on and deployed before the pitch; the notes'
+  claims list says what to say until it is.
+- **Facts checked.** Odunde Festival 2026, Leimert Park, 6 June, with masquerade performances and a
+  language tent (LA event listings; the ledger's C50 spells it "Odun De"). Greenpill Kenya,
+  AgroforestDAO (Lima Duarte, Minas Gerais) and Growecosystems (Rio Claro, São Paulo) are public
+  gardens on greengoods.app; their pages do not show areas of work, so Kenya keeps agroforestry
+  per Afo's 24 October call. "Nobody can buy a certificate through Green Goods" comes from the
+  steward guide.
+
 ## The rebuild · 24 October 2026
 
 Superseded in part by the revision above. Applied from Afo's review and two rounds of questions;
@@ -245,33 +304,36 @@ reproduced exactly.
 Rendered proof is **headless Playwright Chromium 148, clean profile, file URLs**. Neither
 artifact has an authenticated surface, so authenticated Brave proof does not apply.
 
-- **Deck:** source checks pass (18 slides, 18 notes, 8:00, no em dashes). After the evidence pass
-  all 18 slides, the contact sheet and the 18-page PDF were rendered again with a clean probe, and
-  the changed slides (8, 11, 12 and 13) were inspected; every slide was inspected after the
-  revision. After the status refresh the unchanged deck rendered again with a clean probe, and the
-  contact sheet and the photo slides 8, 12 and 17 were inspected. In print mode every slide is
-  one 1920 x 1080 page. In screen mode `End`, `Home`, the
-  arrow keys, number keys, `#15` deep links, the notes panel and the progress line work.
-- **QR code:** Core Image's QR detector decodes the rendered closing slide to
-  `https://beta.greengoods.app`; the beta home and Tech and Sun's beta garden page both loaded
-  in headless Chromium. The closing slide has not changed since.
-- **Brief:** six A4 pages rendered to PDF and PNG and inspected page by page after the evidence
-  pass; rendered again after the status refresh with a clean probe, and pages 1, 3, 4 and 6
-  inspected.
-- **Screens:** re-captured at 09:23 UTC on 25 October. Tech and Sun's live page still reads 16
-  approved submissions, 14 members, 0 assessments and 0 certificates.
+- **Deck:** source checks pass (18 slides, 18 notes, 8:00, no em dashes). After the final polish
+  all 18 slides, the contact sheet and the 18-page PDF were rendered with a clean probe, now
+  including the layout-box check and the `pdftotext` word-position check, and slides 1, 3, 6, 8,
+  12, 13, 14, 15 and 18 were inspected, with PDF pages 1 and 6 read as pages. In print mode every
+  slide is one 1920 x 1080 page. In screen mode `End`, `Home`, the arrow keys, number keys, `#15`
+  deep links, the notes panel and the progress line work.
+- **QR code:** Core Image's QR detector decodes the rendered closing slide, at its smaller size, to
+  `https://beta.greengoods.app`; the beta home loaded in headless Chromium.
+- **Brief:** six A4 pages rendered to PDF and PNG with a clean probe after the final polish, and
+  pages 2, 3, 5 and 6 inspected (pages 1 and 4 changed only in the footer line, a link and one
+  evidence-table phrase).
+- **Links:** the 24 addresses the brief links or cites returned HTTP 200 on 25 October.
+- **Screens:** the two Storybook screens were re-captured at 09:23 UTC on 25 October. The live
+  garden page is no longer shown.
 - **Chain state:** the deployment facts in the notes and brief rest on public RPC reads at 09:28
   UTC on 25 October, recorded in the [status refresh](#status-refresh--25-october-2026).
 - **Arithmetic:** the program figures are unchanged, so the rebuild's 15 recomputed checks still
   cover them. The one new headline figure, $22.1bn, matches the World Bank's $22,126,757,545 for
   2024 as read on 25 October.
-- **Pacing:** every note runs between 122 and 150 words a minute.
+- **Pacing:** every note runs between 108 and 158 words a minute.
 - **Copy:** no em dashes, US spelling, lowercase roles in running text, "promise" in user-facing
   copy, no hand-typed garden counts, every financial example labeled illustrative, no chain names
   on slides.
 
 ## Unresolved presentation inputs
 
+0. **The G$ switch.** The deck and brief say kept promises earn agreed rewards in G$. New G$ reward
+   promises are gated by `SETTLEMENT_ENABLED = false` in `packages/shared/src/config/app.ts`; it
+   must be on and deployed before the pitch, or the presenter follows the claims list's fallback.
+   The ledger's C91 (proposed in the evidence note) should record whichever is true on the day.
 1. **Claim sources.** The deck follows the claim ledger's 23 October addendum, the event research
    note and the live-pilot handoff. If one of them is missing from `../research/` or `../handoffs/`,
    it has not landed from the Cosmo-Local contracts work yet; read the current copy there. On
@@ -284,7 +346,9 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    the registered string before using it anywhere. The
    [evidence note](../research/diaspora-evidence-pass-2026-10-25.md#proposed-ledger-row-changes)
    proposes changes to C33, C37 to C40, C47 and C48, retires the African Development Bank figure,
-   adds C90 to C94, and asks for the addendum's reused IDs (C68 to C80) to be renumbered.
+   adds C90 to C94, and asks for the addendum's reused IDs (C68 to C80) to be renumbered. C50
+   should spell the festival "Odunde". Kenya's area of work on the roadmap (agroforestry) rests on
+   Afo's 24 October call, since Greenpill Kenya's garden page does not show one.
 3. **Nsukka.** The Greenpill Nigeria round page names the University of Nigeria, Nsukka, as a
    second university; techandsun.com does not. Nothing mentions it until Afo confirms.
 4. **Omo Yoruba facts.** Its founding year, exemption history, California charity registration,
@@ -300,8 +364,8 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    five-minute cut.
 7. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
    gift method (the Omo Yoruba donate page has no payment form).
-8. **Live counts.** Re-capture the Tech and Sun page before presenting; its counts are live
-   (16, 14, 0 and 0 at 09:23 UTC on 25 October).
+8. **Live counts.** No slide shows the live garden page any more, so nothing needs re-capturing
+   before presenting; the Storybook screens show demo data.
 9. **Recorded clip.** The stretch-goal clip of the rehearsed voucher flow was not made; the notes
    say where it would go.
 10. **Member-proof timestamp.** The claim ledger's C89 cites 01:17:19 UTC on 24 October; the proof
@@ -309,6 +373,21 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
     line is the ledger owner's to reconcile; the deck states no time of day.
 11. **Fonts offline.** Fraunces and Inter load from Google Fonts. Vendoring the OFL files would
     remove that dependency; it needs a download this task did not authorize. The PDFs embed both.
+
+## Task record · final polish
+
+Task record: SF.Live pitch final polish after Afo's second review | Type: documentation/design |
+Outcome: complete locally; the G$ switch and the inputs above wait on Afo
+Agent/model: Claude Code / Claude Fable 5.1 | Coverage: deck, notes, brief, render and capture
+scripts and this README, from `7ff3e82ed`
+
+| Phase | Start → end (UTC, 25 October 2026) | Result / evidence |
+|---|---|---|
+| investigate | unknown → unknown | Title-slide PDF cut-off reproduced in both PDFs; gardens listed from greengoods.app; festival name, link targets and the G$ gate checked; outline and four decisions agreed with Afo |
+| implement | unknown → unknown | Slides 1, 3, 6, 8, 11 to 16 and 18 edited; notes and claims list rewritten; brief renamed, linked and re-fitted; render checks extended; live-page capture retired |
+| verify | unknown → unknown | Deck and brief renders exit 0 with the new checks; slides and pages inspected; QR decoded |
+
+Human corrections: 0 observed in this segment (the review itself was the request); attention unknown.
 
 ## Task record · status refresh
 

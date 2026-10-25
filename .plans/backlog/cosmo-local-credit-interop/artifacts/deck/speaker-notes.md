@@ -1,6 +1,6 @@
 # Speaker notes · SustainableFinance.Live 2026
 
-Rebuilt 24 October 2026 (Pacific) and revised after the 25 October review, for the 18-slide deck
+Rebuilt 24 October 2026 (Pacific) and revised after the 25 October reviews, for the 18-slide deck
 in five acts: Green Goods, the problem and the solution; the roles, the loop, commitment pooling
 and Cosmo-Local; Tech and Sun and its members; capital, the diaspora, the mechanisms and the
 business model; then the roadmap, the technical roadmap, what we need and thanks. Each note is 10
@@ -25,7 +25,7 @@ Communities create value every season: repairs, workshops, plantings, mentoring.
 
 ## 3. The solution · 0:25
 
-So we built Green Goods. It gives a community one record of what it promised, did and proved. We call each community a garden. Gardeners do the work and document it, by app or by chat, and stewards run the garden. The garden owns its record, and supporters can read it and fund what it shows.
+So we built Green Goods. It gives a community one record of what it promised, did and proved. We call each community a garden. Gardeners do the work and document it, and stewards run the garden. Evaluators set the baseline and what good evidence looks like. Funders and community members read the record: members confirm what was done for them, and funders fund what it shows.
 
 ## 4. Five roles · 0:15
 
@@ -37,7 +37,7 @@ A garden runs as a loop, season after season. Needs: stewards and evaluators rec
 
 ## 6. Commitment pooling · 0:35
 
-We built commitment pooling for that Promise step. Members offer or request specific work, like a workshop, a repair or a planting, and see what others offer and need, so skills and help move between them. Anyone in the garden can take a promise up. When the work is done, the person it was made for confirms it was kept. The person who did it never can, and if a steward has to step in, the record shows it. These are real app screens with demo data.
+We built commitment pooling for that Promise step. Members offer or request specific work, like a workshop, a repair or a planting, and see what others offer and need, so skills and help move between them. Anyone in the garden can take a promise up. When the work is done, the person it was made for confirms it was kept. The person who did it never can, and if a steward has to step in, the record shows it. These are real app screens.
 
 ## 7. Cosmo-Local vouchers · 0:30
 
@@ -45,7 +45,7 @@ For this hackathon we connected promises to Cosmo-Local service vouchers, the op
 
 ## 8. Tech and Sun · 0:30
 
-We're starting with Tech and Sun, an initiative that builds solar-powered hubs in Nigeria. Its first hub is live in Awka, near Nnamdi Azikiwe University, and its plan names Enugu and Abuja next. Members told us internet and power come first, then learning, engineering and AI. In an October survey, introductions to work and one-to-one career calls came out on top. This is the hub's live garden page, and its counts come from the record.
+We're starting with Tech and Sun, an initiative that builds solar-powered hubs in Nigeria. Its first hub is live in Awka, and its plan names Enugu and Abuja next. Members told us internet and power come first, then learning, engineering and AI. What they want most is opportunity: an October survey put introductions to work and career calls first, and the hub is where they find people to build with. This is the hub in Awka.
 
 ## 9. Member use cases · 0:35
 
@@ -55,29 +55,29 @@ So what do members get? Credibility they can carry. In the pilot we're setting u
 
 Hubs are rich in capital, but short of money. Around the hub, the community adds social, cultural, material and living capital. The diaspora brings money, culture, relationships and expertise, and institutions bring money, knowledge and equipment. Money flows in, and evidence of delivery radiates back out.
 
-## 11. Sources of capital · 0:25
+## 11. Sources of capital · 0:20
 
-That money can come from people and programs who already care. Diaspora supporters can give gifts and sponsor seasons. Diaspora associations can pool their members' gifts behind a whole program, with no institution needed. Institutions and programs fund climate, clean energy and skills. And public goods funds in our ecosystem have already backed Green Goods.
+That money can come from people and programs who already care. Diaspora supporters give gifts and sponsor seasons. Diaspora associations can pool their members' gifts behind a whole program, with no institution needed. Institutions fund climate, clean energy and skills, and public goods funds have already backed Green Goods.
 
 ## 12. The Nigerian diaspora · 0:30
 
-In 2024, 22.1 billion dollars in remittances reached Nigeria, according to the World Bank. That is national context, not our market. The diaspora also brings culture and connections. Our first diaspora community is Omo Yoruba of Southern California, a Yoruba community nonprofit in Los Angeles. Here they are at a festival and in a Yoruba language class. Other diaspora associations can follow the same path.
+In 2024, 22.1 billion dollars in remittances reached Nigeria, according to the World Bank, and Nigeria is where Tech and Sun is building hubs. The diaspora also brings culture and connections. Our first diaspora community is Omo Yoruba of Southern California, a Yoruba community nonprofit in Los Angeles. Here they are at the Odunde Festival in Leimert Park, in a procession and a Yoruba language class. Other diaspora associations can follow the same path.
 
-## 13. Three mechanisms · 0:35
+## 13. Four mechanisms · 0:40
 
-Three mechanisms turn that support into lasting capacity. First, the endowment: supporters deposit, the capital stays invested, and part of its earnings, which vary, goes to the garden's shared fund. Neither principal nor earnings is guaranteed. Second, the commitment pool, which is live: members promise work, and kept promises build the record. Third, the exchange pool, in pilot: members trade vouchers in one shared pool. Next, supporters and endowment earnings could add funds that members exchange vouchers into. That step is future work, not a cash-out promise.
+Four mechanisms turn support into lasting capacity. The endowment: supporters deposit, the capital stays invested, and part of its earnings, which vary, goes to the garden. Nothing is guaranteed. The commitment pool: members promise work, and kept promises earn agreed rewards in G$ and build the record. The exchange pool, in pilot: members swap service vouchers in one pool; later, supporters and endowment earnings could add money members swap vouchers for. That is future work, not a cash-out promise. And certificates: a garden documents a season's impact, supporters can hold a share; minting exists, buying in the app is unfinished.
 
 ## 14. Business model · 0:30
 
-How does Green Goods sustain itself? Funders pay us to help them reach more local initiatives. A funder sends money to the garden for the work, and pays Green Goods a separate fee for setup, support and reporting they can act on. We price by projects and workload, never as a cut of a garden's funds or endowment capital. Individual supporters never need a subscription. A worked example is in our companion brief.
+This is our revenue model. Funders pay us to help their money reach more local initiatives. A funder sends money to the garden for the work, and pays Green Goods a separate fee for setup, support and reporting they can act on. We price by projects and workload, never as a cut of a garden's funds or endowment capital. Individual supporters never need a subscription. A worked example is in our companion brief.
 
 ## 15. Where we are and where next · 0:30
 
-Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is planned to run into January. Then more places on the same model: waste work in South Africa next, and agroforestry in Kenya and Brazil, which we are exploring with local groups.
+Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is planned to run into January. Then more places on the same model: waste work in South Africa next, and agroforestry in Kenya and in Brazil, where Greenpill Kenya, AgroforestDAO and Growecosystems already keep gardens on Green Goods. We are exploring both with local groups.
 
 ## 16. Technical roadmap · 0:20
 
-Our technical goal is simple: report once, and let the record count everywhere. Communities report by app or by chat, and Green Goods carries that record to networks they already use: Cosmo-Local Credit now, Ma Earth next, then Bloom Network. With Regen Network we are exploring evidence for ecological claims.
+Our technical goal is simple: report once, and let the record count everywhere. Communities report by app or chat, and Green Goods carries the record to networks they already use: Cosmo-Local Credit now, Ma Earth next, and Bloom Network and Regen Network in conversation about the record and ecological claims.
 
 ## 17. What we need · 0:25
 
@@ -85,7 +85,7 @@ Beyond funding, here is what would help us most: business development mentorship
 
 ## 18. Thank you · 0:10
 
-Thank you for listening. Scan the code to see commitment pooling live on our beta, at beta.greengoods.app. We'd love your questions.
+Thank you. Scan the code to see commitment pooling live on our beta, and we'd love your questions.
 
 ## Fitting the slot
 
@@ -116,12 +116,21 @@ Thank you for listening. Scan the code to see commitment pooling live on our bet
 - **Not yet:** the app pointed at the deployed contracts, a first real booking, real member
   approvals and capacity, supporter funds in the exchange pool, endowment earnings routed to the
   exchange pool, integrated milestone funding, certificate purchases in the app, and the combined
-  capital passport. Money rewards for new promises are deferred: the app says sending G$ reward
-  promises "is unavailable in this release", so kept promises build the record and agreed
-  recognition today.
+  capital passport.
+- **G$ rewards.** The deck and brief say kept promises earn agreed rewards in G$ (Afo's call,
+  25 October). The G$ path is live and paid its first reward in August (C08), but creating new G$
+  reward promises in the app sits behind `SETTLEMENT_ENABLED = false` in
+  `packages/shared/src/config/app.ts`, and the app tells members that sending them "is unavailable
+  in this release". That switch must be on and deployed before the pitch; until it is, say "earn
+  agreed rewards" and, if asked, that G$ rewards are being switched on for this season.
+- **Screens.** The two phone screens on slide 6 show demo data (Riverside Commons Garden). The
+  slide no longer says so; say it if asked.
+- **Certificates.** A garden can document a season's impact as a certificate and supporters can
+  hold a share; minting exists, nobody can buy a share through Green Goods today, and demand is
+  unproven. Say "partly built". Never equity, land, a carbon offset or audited impact.
 - **Remittances.** Say 22.1 billion dollars in 2024, from the World Bank's personal remittances
-  series. Never mix it with central bank or African Development Bank figures, and never call it
-  our market.
+  series, and that Nigeria is where Tech and Sun builds. Never mix it with central bank or African
+  Development Bank figures, and never call it our pipeline or share.
 - **Voucher status on the day.** The slides state no deployment status beyond "in pilot". On
   slide 7 say the contracts are deployed on public networks and the flow is rehearsed end to end
   with demo accounts. Say vouchers are live only if the live-pilot handoff records a real
@@ -132,14 +141,19 @@ Thank you for listening. Scan the code to see commitment pooling live on our bet
 - **Tech and Sun.** An initiative that builds solar-powered hubs in Nigeria; its first hub is live
   in Awka, near Nnamdi Azikiwe University (UNIZIK). Its site, read 25 October, lists Enugu and
   Abuja as next locations still being confirmed: present them as its plan, never as hubs. Its site
-  names neither Lagos nor Nsukka, so leave both out.
+  names neither Lagos nor Nsukka, so leave both out. Members' top wants (introductions to work,
+  career calls) come from the October survey (C03); "people to build with" describes the hub and
+  the pilot, not a survey result.
 - **Omo Yoruba of Southern California** is our first diaspora community. Do not describe it as
   Tech and Sun's fiscal sponsor, say "since 1997", or say it funds or commissions a program: it
-  is a small nonprofit, and no agreement to fund exists.
+  is a small nonprofit, and no agreement to fund exists. The photos are from the Odunde Festival
+  2026 in Leimert Park; the ledger's C50 spelling, "Odun De", is the ledger owner's to fix.
 - **Partners.** Each context line on slide 16 comes from the partner's own site, read 25 October.
+  Ma Earth is the first publishing target; Bloom Network and Regen Network are in conversation.
+- **Places.** Greenpill Kenya, AgroforestDAO and Growecosystems keep public gardens on Green
+  Goods; Kenya and Brazil stay "exploring" because no hub season is agreed there.
 - **Never say:** guaranteed principal or returns, cash-out of vouchers, carbon credits, "proven
-  demand", a named individual sponsor, fee savings on transfers, or a hand-typed garden count. Use
-  the live page's counts.
+  demand", a named individual sponsor, fee savings on transfers, or a hand-typed garden count.
 - Refresh this list against the [live-pilot handoff](../../handoffs/codex-live-pilot-deployment.md)
   on Monday 27 October before submission. On 25 October the handoff still ended before the
   deployment; the chain and the deployment artifacts carry it, as the

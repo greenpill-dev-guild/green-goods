@@ -8,10 +8,13 @@
 // the closing slide carry none), the HTML notes equal the Markdown notes, data-time equals each
 // notes heading, the spoken timings total 8:00, and no em dashes. While rendering it also reports
 // text outside the 128px side margins or in the corner band, text or artwork over the headline,
-// artwork over the corner symbol, any headline over two lines (three on the title), and any image
-// that did not load.
+// artwork over the corner symbol, any headline over two lines (three on the title), any image
+// that did not load, and any block whose layout box (before transforms) leaves the slide, because
+// print lays blocks out before transforms and fragments what overruns the page. After the PDF it
+// checks, with pdftotext where installed, that every word sits inside its page.
 // A failed check exits with status 1 after reporting.
 import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -147,6 +150,14 @@ for (const i of targets) {
     }
     const lines = Math.round(h1r.height / parseFloat(getComputedStyle(h1).lineHeight));
     if (lines > (isTitle ? 3 : 2)) issues.push(`headline runs to ${lines} lines`);
+    // Layout boxes ignore transforms (offsetTop does, getBoundingClientRect does not), which is what print paginates by.
+    for (const el of slide.querySelectorAll("div, figure, h1, h2, h3, p, ul, li, img")) {
+      if (!el.offsetHeight || el.closest(".num, .event, .corner") || el.matches(".corner")) continue;
+      if (el.matches("img") && el.closest(".frame")) continue; // cropped by its frame on purpose
+      let top = 0;
+      for (let n = el; n && n !== slide; n = n.offsetParent) top += n.offsetTop;
+      if (top < -0.5 || top + el.offsetHeight > 1080.5) issues.push(`layout box leaves the page before transforms (${Math.round(top)}..${Math.round(top + el.offsetHeight)}): ${name(el)}`);
+    }
     for (const img of slide.querySelectorAll("img")) {
       if (!(img.complete && img.naturalWidth > 0)) issues.push(`image did not load: ${img.getAttribute("src")}`);
     }
@@ -178,6 +189,20 @@ if (!only.length) {
   const pdf = join(out, "deck.pdf");
   await page.pdf({ path: pdf, width: "1920px", height: "1080px", printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
   console.log(pdf);
+
+  // Every word of the PDF must sit inside its page; a word past the page edge is a fragmented block.
+  let bbox = null;
+  try { bbox = execFileSync("pdftotext", ["-bbox", pdf, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }); } catch { console.log("pdf check: pdftotext not installed, word positions not checked"); }
+  if (bbox) {
+    const pages = [...bbox.matchAll(/<page width="([\d.]+)" height="([\d.]+)">([\s\S]*?)<\/page>/g)];
+    if (pages.length !== EXPECTED_SLIDES) note(`deck.pdf has ${pages.length} pages, expected ${EXPECTED_SLIDES}`);
+    pages.forEach(([, w, h, body], i) => {
+      for (const [, xMin, yMin, xMax, yMax, word] of body.matchAll(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<\/word>/g)) {
+        if (+yMin < -0.5 || +yMax > +h + 0.5 || +xMin < -0.5 || +xMax > +w + 0.5) note(`page ${i + 1}: word outside the page (${Math.round(+xMin)},${Math.round(+yMin)} to ${Math.round(+xMax)},${Math.round(+yMax)} of ${Math.round(+w)}x${Math.round(+h)}): "${word}"`);
+      }
+    });
+    console.log(`pdf check: ${pages.length} pages, word positions read`);
+  }
 }
 await browser.close();
 
@@ -186,4 +211,4 @@ if (problems.length) {
   for (const p of problems) console.log(`  ${p}`);
   process.exit(1);
 }
-console.log("render checks: margins, corner band, headline clearance, headline length and images all clean");
+console.log("render checks: margins, corner band, headline clearance, headline length, images, layout boxes and PDF word positions all clean");
