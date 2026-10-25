@@ -27,7 +27,7 @@
     <div class="grip"></div>
     <div class="shead">
       <div><h2 class="stitle" id="pay-title">{{sheetTitle}}</h2><p class="sdesc">{{offerTitle}}</p></div>
-      <a class="close" href="SOffer.dc.html" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+      <a class="close" href="SOffer.dc.html?kind={{kindParam}}" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
     </div>
     <sc-if value="{{stepsStrip}}" hint-placeholder-val="{{true}}">
       <ol class="jstrip" aria-label="{{journeyLabel}}">
@@ -79,7 +79,7 @@ class Component extends DCLogic {
     // the copy names them through {issuer} and {unit}, and each garden's Safe through {sigs}
     var ISS = member ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
       : course ? { issuer: t0('who.ggShort'), issuerFull: t0('who.gg'), unit: t0('u.ggMany'), garden: t0('who.rc'), sigs: t0('c.sigs25') }
-      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc'), sigs: t0('c.sigs23') };
+      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc'), sigs: t0('c.sigs1') };
     var unitOne = member ? t0('u.teo') : course ? t0('u.ggOne') : t0('u.sunOne');
     var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
     t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
@@ -151,6 +151,7 @@ class Component extends DCLogic {
     if (st === 'Signing not available') { R.why = gd ? ['warn', WARN, t('pay.r.unavailG.t'), t('pay.r.unavailG.b')] : ['warn', WARN, t('pay.r.unavail.t'), t('pay.r.unavail.b')]; R.mode = 'off'; R.foot = ''; }
     if (st === 'Offline') { R.why = ['info', '#ri-cloud-off-line', t('pay.r.offline.t'), gd ? t('pay.r.offline.b') : t('pay.r.offlineV.b')]; R.mode = 'off'; R.foot = ''; }
     return Object.assign(GGTW(this.props), {
+      kindParam: encodeURIComponent(kind),
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
       offline: st === 'Offline', offlineMode: t('c.offline'),
       // The promise page stays behind the sheet: its title, where it lives and its status band

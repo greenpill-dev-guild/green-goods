@@ -55,7 +55,7 @@
                     <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
                     <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="iss-f2">{{fLabel}}</label><div class="ctl" id="iss-f2" role="textbox" aria-describedby="iss-h2">{{fValue}}</div><span class="msg" id="iss-h2">{{fHint}}</span></div></sc-if>
                     <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
-                    <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><button type="button" class="abtn {{dCtaCls}}">{{dCta}}</button></div>
+                    <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn">{{cancel}}</button><button type="button" class="abtn {{dCtaCls}}">{{dCta}}</button></div>
                   </div>
                 </sc-if>
               </li>
@@ -80,15 +80,16 @@
   <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
     <div class="dscrim"></div>
     <section class="dlg {{dlgSize}}" role="dialog" aria-modal="true" aria-labelledby="iss-dlg" data-focus="1">
-      <div class="dh"><div><h2 id="iss-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="dh" data-component="SheetHeader"><div><h2 id="iss-dlg">{{dTitle}}</h2><sc-if value="{{dHasSub}}" hint-placeholder-val="{{true}}"><p>{{dSub}}</p></sc-if></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
       <div class="db">
         <sc-if value="{{dWarn}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{dWarnT}}</span><p>{{dWarnText}}</p></div></sc-if>
         <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
         <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
         <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="iss-f1">{{fLabel}}</label><div class="ctl" id="iss-f1" role="textbox" aria-describedby="iss-h1">{{fValue}}</div><span class="msg" id="iss-h1">{{fHint}}</span></div></sc-if>
         <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+        <sc-if value="{{dHasNote}}" hint-placeholder-val="{{true}}"><p class="dnote">{{dNote}}</p></sc-if>
       </div>
-      <div class="df"><span class="note">{{dNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button><button type="button" class="abtn lg {{dCtaCls}}">{{dCta}}</button></div>
+      <div class="df" data-component="SheetActions"><button type="button" class="abtn lg">{{cancel}}</button><button type="button" class="abtn lg {{dCtaCls}}">{{dCta}}</button></div>
     </section>
   </sc-if>
 </div>
@@ -119,7 +120,7 @@ class Component extends DCLogic {
       'Awaiting Teo': { title: t('iss.d.wait.t'), sub: t('iss.d.prepare.sub'), facts: [[t('iss.w.sent'), t.d('2026-10-23'), ''], [t('iss.w.terms'), t('iss.w.termsV'), ''], [t('iss.w.account'), t('iss.w.accountV'), '']],
         note: t('iss.d.note'), fsr: ['info', t('iss.f.wait.t'), t('iss.f.wait.b')], cta: t('iss.a.remind'), ctaCls: '', at: 'teo', size: '' },
       'Owner Safe drafts': { title: t('iss.d.drafts.t'), sub: t('sh.ck.viDraftOnly'), facts: [[t('iss.dr.source'), t('iss.dr.sourceS'), ''], [t('iss.dr.register'), t('iss.dr.registerS'), ''], [t('iss.dr.cap'), t('iss.dr.registerS'), ''], [t('iss.dr.price'), t('iss.dr.priceS'), '']],
-        warn: [t('iss.d.pauseT'), t('iss.d.pause')], note: t('c.safe25'), fsr: ['info', t('iss.f.drafts.t'), t('iss.f.drafts.b')], cta: t('sh.ck.viCopy'), ctaCls: 'fill', at: 'teo', size: 'lg' },
+        warn: [t('iss.d.pauseT'), t('iss.d.pause')], note: '', fsr: ['info', t('iss.f.drafts.t'), t('iss.f.drafts.b')], cta: t('sh.ck.viCopy'), ctaCls: 'fill', at: 'teo', size: 'lg' },
       'Admitted': { title: t('iss.d.admitted.t'), sub: t('iss.d.prepare.sub'), facts: [], checks: [ck(t('ob.sub.registered'), t.d('2026-10-24')), ck(t('ob.sub.admitted'), t.d('2026-10-24')), ck(t('iss.dr.cap')), ck(t('iss.dr.price'))],
         note: '', fsr: ['ok', t('iss.d.admitted.t'), t('iss.d.admitted.b')], cta: t('c.done'), ctaCls: 'fill', at: 'teo', size: '' },
       'Delist': { title: t('iss.d.delist.t'), sub: t('iss.d.delist.sub'), facts: [], checks: [ck(t('iss.c.hold')), ck(t('iss.c.book')), ck(t('iss.c.ex'), '', 'pol'), ck(t('iss.c.obl'))],
@@ -144,7 +145,7 @@ class Component extends DCLogic {
       poolTitle: t('iss.pool.t'), poolDesc: t('iss.pool.d'),
       pool: [{ k: t('iss.p.assets'), v: t('iss.p.assetsV'), s: t('iss.p.assetsS') }, { k: t('iss.p.fees'), v: t('iss.p.feesV'), s: t('iss.p.feesS') }, { k: t('iss.p.caps'), v: t('iss.p.capsV'), s: t('sh.ck.viCapacityHelp') }],
       dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
-      showDlg: dlgOpen, dlgSize: D ? D.size : '', dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: D ? D.note : '',
+      showDlg: dlgOpen, dlgSize: D ? D.size : '', dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: D ? D.note : '', dHasSub: !!(D && D.sub), dHasNote: !!(D && D.note),
       dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
       dHasChecks: !!(D && D.checks), dChecks: D && D.checks ? D.checks : [],
       dField: !!(D && D.field), fLabel: D && D.field ? D.field[0] : '', fValue: D && D.field ? D.field[1] : '', fHint: D && D.field ? D.field[2] : '',

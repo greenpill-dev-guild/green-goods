@@ -10,14 +10,11 @@
 // Usage: node check.mjs. Uses the repo's @playwright/test; set CHROMIUM_PATH to use a specific Chromium build.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const dir = path.dirname(new URL(import.meta.url).pathname);
-const page0 = fs.readFileSync(path.join(dir, '..', 'voucher-lab.html'), 'utf8');
-const wrapped = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
-  + '<style>:root{color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body>'
-  + page0 + '</body></html>';
-const testFile = path.join(dir, '.check.html');
-fs.writeFileSync(testFile, wrapped);
+const dir = path.dirname(fileURLToPath(import.meta.url));
+// The checks load the built page exactly as a reviewer opens it, so they see the document it really is
+const labUrl = pathToFileURL(path.join(dir, '..', 'voucher-lab.html')).href;
 
 const { chromium } = await import('@playwright/test').catch(() => import('playwright'));
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
@@ -31,9 +28,11 @@ const views = [['openFlow', 's-earn', 0], ['openFlow', 's-redeem', 10], ['openFl
 for (const [width, height] of [[1440, 900], [1280, 720], [1024, 768], [390, 844]]) {
   const page = await browser.newPage({ viewport: { width, height } });
   page.on('pageerror', (e) => problems.push(`${width}x${height} page error: ${e.message}`));
-  await page.goto('file://' + testFile);
+  await page.goto(labUrl);
   await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* storage unavailable */ } });
   if (width === 1440) {
+    const mode = await page.evaluate(() => ({ compat: document.compatMode, viewport: !!document.querySelector('meta[name="viewport"]') }));
+    if (mode.compat !== 'CSS1Compat' || !mode.viewport) problems.push('the built lab is not a standards document with a viewport meta: ' + JSON.stringify(mode));
     for (const e of await page.evaluate(() => window.__labSelfTest())) problems.push('self-test: ' + e);
     notes.push('Plus Jakarta Sans loaded: ' + await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('16px "Plus Jakarta Sans"'); }));
   }
@@ -55,12 +54,27 @@ for (const [width, height] of [[1440, 900], [1280, 720], [1024, 768], [390, 844]
     const panelFails = width >= 1024 && (v[0] === 'openFlow' || v[0] === 'openPair' || v[0] === 'openScreen') && r.panelOver > 0;
     if (r.outside || r.docClipped || r.stageBelowFold || r.sideways || panelFails) problems.push(`${width}x${height} ${v.join(':')}: ${JSON.stringify(r)}`);
   }
+  // Below 1200px the contents are a drawer: closed, nothing in it takes focus; open, it holds focus with the page
+  // behind it inert; Escape closes it and hands focus back to the Contents button.
+  if (width < 1200) {
+    const d = await page.evaluate(async () => {
+      const frame = () => new Promise((res) => requestAnimationFrame(res));
+      const nav = document.getElementById('nav'), btn = document.getElementById('contents-btn');
+      const closed = { inert: nav.inert, hidden: nav.getAttribute('aria-hidden') };
+      btn.focus(); btn.click(); await frame();
+      const open = { focusInNav: nav.contains(document.activeElement), navInert: nav.inert, mainInert: document.getElementById('main').inert, panelInert: document.getElementById('panel').inert };
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await frame();
+      return { closed, open, back: document.activeElement && document.activeElement.id };
+    });
+    const ok = d.closed.inert && d.closed.hidden === 'true' && d.open.focusInNav && !d.open.navInert && d.open.mainInert && d.open.panelInert && d.back === 'contents-btn';
+    if (!ok) problems.push(`${width}x${height} contents drawer: ${JSON.stringify(d)}`);
+  }
   await page.close();
 }
 
 // 3, 4 and 5: every pilot screen state, mounted at its own size, in every language; contrast in light and dark
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-await page.goto('file://' + testFile);
+await page.goto(labUrl);
 await page.evaluate(async () => { await document.fonts.ready; });
 const sweep = await page.evaluate(() => {
   const out = { clipped: [], overflow: [], names: [], contrast: [], combos: 0 };
@@ -100,9 +114,10 @@ const sweep = await page.evaluate(() => {
         else if (modal && !modal.contains(el)) out.names.push([id, tag, 'focusable behind an open dialog: ' + what]);
       }
       if (el.closest('[aria-hidden="true"], [inert]')) continue;
-      // An item row's one-line title and its detail line end in an ellipsis or drop whole details by design (DL-102);
-      // everything else must show its whole text.
-      const designedCut = el.matches('.gg-item-row-title') || !!el.closest('.gg-item-row-details');
+      // An item row's one-line title and its detail line end in an ellipsis or drop whole details by design (DL-102), and a
+      // dialog's target line truncates with its whole text in its title, as the shipped PoolTarget does; everything else
+      // must show its whole text.
+      const designedCut = el.matches('.gg-item-row-title') || !!el.closest('.gg-item-row-details') || (el.matches('.tgt dd') && el.title === el.textContent);
       if (!designedCut && s.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1) out.clipped.push([id, tag, '"' + el.textContent.trim().slice(0, 60) + '" (' + el.className + ')']);
       if ((el.matches('.btn, .abtn')) && (el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2)) out.clipped.push([id, tag, 'button "' + el.textContent.trim().slice(0, 60) + '"']);
       if (el.matches('.btn, .abtn, .pill, .jstep > span:last-child')) {
@@ -179,7 +194,6 @@ const sweep = await page.evaluate(() => {
 });
 await page.close();
 await browser.close();
-fs.rmSync(testFile);
 
 // Group each finding by screen and detail, so one fault across many states reads as one line.
 for (const [k, label] of [['clipped', 'clipped text'], ['overflow', 'runs past its frame'], ['names', 'accessible name'], ['contrast', 'contrast']]) {

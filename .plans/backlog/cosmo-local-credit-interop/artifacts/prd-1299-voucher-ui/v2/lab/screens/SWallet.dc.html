@@ -25,6 +25,13 @@
     </div>
     <div class="sbody">
       <div class="gg-list">
+        <sc-for list="{{bookings}}" as="b" hint-placeholder-count="1">
+          <a class="gg-item-row gg-card" data-edge="info" href="{{b.href}}" data-component="ItemRow">
+            <span class="gg-item-row-lead"><span class="gg-item-row-tile"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{b.icon}}"/></svg></span></span>
+            <span class="gg-item-row-body"><span class="gg-item-row-title">{{b.name}}</span><span class="gg-badge" data-tone="info">{{b.pill}}</span><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><sc-for list="{{b.details}}" as="d" hint-placeholder-count="2"><span class="gg-item-row-detail"><span>{{d}}</span></span></sc-for></span></span></span>
+            <span class="gg-item-row-amount"><span class="gg-item-row-amount-value">{{b.amt}}</span><span class="gg-item-row-amount-caption">{{b.cap}}</span></span>
+          </a>
+        </sc-for>
         <sc-for list="{{hold}}" as="h" hint-placeholder-count="3">
           <div class="gg-item-row gg-card" data-selected="{{h.sel}}" data-edge="{{h.edge}}">
             <button type="button" class="gg-item-row-open" aria-expanded="{{h.sel}}" onClick="{{h.toggle}}">
@@ -38,17 +45,17 @@
               <dl class="gg-fact-list" data-frame="inset">
                 <sc-for list="{{h.facts}}" as="f" hint-placeholder-count="2"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}</dd></div></sc-for>
               </dl>
-              <div class="wl-acts"><a class="btn sm" href="{{h.bookHref}}">{{bookLabel}}</a><a class="btn sm sec" href="SExchange.dc.html">{{exLabel}}</a></div>
+              <div class="wl-acts"><a class="btn sm" href="{{h.bookHref}}">{{bookLabel}}</a><a class="btn sm sec" href="{{h.exHref}}">{{exLabel}}</a></div>
             </div>
           </sc-if>
         </sc-for>
       </div>
-      <p class="wl-where"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg><span>{{where}} <a class="tlink" href="SRedeem.dc.html">{{whereLink}}</a></span></p>
+      <p class="wl-where"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg><span>{{where}}</span></p>
     </div>
   </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["Vouchers","Voucher open","Vouchers, return pending"],"default":"Vouchers","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["Vouchers","Voucher open","Vouchers, booked","Vouchers, return pending"],"default":"Vouchers","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
     var t = GGT(this.props.lang);
@@ -56,27 +63,33 @@ class Component extends DCLogic {
     var tab = this.props.tab ?? 'Vouchers';
     var dark = this.props.dark ?? false;
     var later = tab === 'Vouchers, return pending';
+    var booked = tab === 'Vouchers, booked';
     // A holding is a record on the item row with its amount in the right slot (DL-113); it opens in place
     var openId = this.state && this.state.open != null ? this.state.open : (tab === 'Voucher open' ? 'sun' : '');
     var toggle = function (id) { return function () { self.setState({ open: openId === id ? '' : id }); }; };
     var hold = [
-      { id: 'sun', icon: '#ri-sun-line', name: t('u.sunMany'), details: [t('who.sun'), t('wl.sunS')], amt: later ? t.v(0.99) : t.n(9), cap: t('wl.avail'), bookHref: 'SServices.dc.html',
+      { id: 'sun', icon: '#ri-sun-line', name: t('u.sunMany'), details: [t('who.sun'), t('wl.sunS')], amt: later ? t.v(0.99) : t.n(booked ? 8 : 9), cap: t('wl.avail'), bookHref: 'SServices.dc.html', exHref: 'SExchange.dc.html',
         facts: [{ k: t('wl.f.issuer'), v: t('who.sun') }, { k: t('wl.f.books'), v: t('wl.sunS') }] },
-      { id: 'teo', icon: '#ri-user-line', name: t('u.teoMany'), details: [t('who.teoFull'), t('wl.teoB')], amt: t.v(1), cap: t('wl.avail'), bookHref: 'SOffer.dc.html',
+      { id: 'teo', icon: '#ri-user-line', name: t('u.teoMany'), details: [t('who.teoFull'), t('wl.teoB')], amt: t.v(1), cap: t('wl.avail'), bookHref: 'SOffer.dc.html?kind=Member%20lesson', exHref: 'SExchange.dc.html?pair=Maya%20to%20Teo',
         facts: [{ k: t('wl.f.issuer'), v: t('wl.f.member', { name: t('who.teoFull'), garden: t('who.sun') }) }, { k: t('wl.f.books'), v: t('wl.teoB') }] },
-      { id: 'gg', icon: '#ri-seedling-line', name: t('u.ggMany'), details: [t('who.ggShort'), t('wl.ggS')], amt: t.n(later ? 0 : 2), cap: t('wl.avail'), bookHref: 'SOffer.dc.html',
+      { id: 'gg', icon: '#ri-seedling-line', name: t('u.ggMany'), details: [t('who.ggShort'), t('wl.ggS')], amt: t.n(later ? 0 : 2), cap: t('wl.avail'), bookHref: 'SOffer.dc.html?kind=Claude%20access', exHref: 'SExchange.dc.html',
         facts: [{ k: t('wl.f.issuer'), v: t('who.gg') }, { k: t('wl.f.books'), v: t('wl.ggB') }] }
     ];
     hold.forEach(function (h) { h.sel = openId === h.id ? 'true' : 'false'; h.open = openId === h.id; h.toggle = toggle(h.id); h.hasPill = false; h.pill = ''; h.edge = ''; });
     // A return still on its way is its own row: pending until it arrives
     if (later) hold.splice(1, 0, { id: 'back', icon: '#ri-arrow-go-back-line', name: t('wl.back', { n: t.n(6) }), details: [t('wl.backS')], amt: t.n(6), cap: t('wl.coming'), hasPill: true, pill: t('wl.pending'), edge: 'info',
-      sel: 'false', open: false, toggle: function () {}, bookHref: '#', facts: [] });
+      sel: 'false', open: false, toggle: function () {}, bookHref: '#', exHref: '#', facts: [] });
+    // A voucher a booking holds is its own row, which opens the booking. The wallet is account-wide, while the
+    // Promises sheet shows only the member's active garden, so this is the way back to a booking at another garden.
+    var bookings = booked ? [{ icon: '#ri-sun-line', name: t('of.s.title'), pill: t('wl.bk.pill', { issuer: t('who.sun') }),
+      details: [t('who.sun'), t('wl.bk.d', { date: t.d('2026-10-26') })], amt: t.n(1), cap: t('wl.bk.cap'),
+      href: 'SRedeem.dc.html?kind=Hub%20day&state=Waiting%20for%20acceptance' }] : [];
     return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.rc'),
       title: t('sh.w.title'), sub: t('sh.w.sub'), closeLabel: t('c.close'),
       tCookies: t('sh.w.cookies'), tTokens: t('sh.w.tokens'), tVouchers: t('wl.t.vouchers'),
-      hold: hold, bookLabel: t('wl.book'), exLabel: t('wl.exchange'),
-      where: t('wl.where'), whereLink: t('wl.whereLink')
+      bookings: bookings, hold: hold, bookLabel: t('wl.book'), exLabel: t('wl.exchange'),
+      where: t('wl.where')
     });
   }
 }

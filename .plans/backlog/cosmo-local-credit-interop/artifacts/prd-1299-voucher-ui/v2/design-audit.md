@@ -9,7 +9,10 @@ The pilot revision on 23 Oct 2026 kept these corrections, changed the rows marke
 revision" below, and added the patterns under [Pilot revision](#pilot-revision-23-oct-2026). On
 24 Oct a second pass rebuilt the pilot screens on the components `develop` now ships; see
 [Built on the shipped surfaces](#built-on-the-shipped-surfaces-24-oct-2026-second-pass). Where the
-two disagree, the second pass holds.
+two disagree, the second pass holds. That evening a fifth pass moved the cockpit screens onto the
+shared controls `develop` merged the same afternoon; see [The cockpit's shared
+controls](#the-cockpits-shared-controls-24-oct-2026-fifth-pass), which holds over both for the
+cockpit.
 
 Sources compared:
 
@@ -182,6 +185,36 @@ peer-help note in `SBrief` flush against the screen edges: the note rule's `marg
 overrode its 16px gutter class. The rule now sets only the top and bottom margins, which leaves the
 wallet's note, the rule's other user, unchanged.
 
+## The cockpit's shared controls, 24 Oct 2026, fifth pass
+
+**What moved.** On the afternoon of 24 Oct `develop` put the cockpit's buttons (DL-115, DL-119),
+fields and filter chip (DL-116, DL-122), cards and tabs (DL-118) and dialogs (DL-117) on the shared
+family. The lab's cockpit screens still drew their dialogs, buttons and fields from its older
+layers. Afo approved one redrawn dialog, Tech and Sun's Accept, beside a shipped dialog from the
+deployed Storybook, before the rest changed.
+
+**The redraw.** The rules sit in `lab/gg.css` after the "Shipped cockpit controls (develop, 24
+Oct, evening)" comment, scoped to the pilot cockpit screens (`.gg.ck[data-density]`), so v1's
+reference desks keep their look:
+
+| Shipped piece | Shipped values the lab copies | Where the pilot uses it |
+|---|---|---|
+| Dialog header (`SheetHeader` in `AdminDialog`) | The 22/28px title at 600, no rule under it, a 40px Close on the title's line; the target line, then the description | Every cockpit dialog |
+| Target line (`PoolTarget`) | "Writing to" over the record and its pool, the record truncating with its whole text as its title; in the protocol pool, the warning alert in its place | Accept, Accept member booking and Report visit; every dialog in the protocol garden's console |
+| Action bar (`SheetActions`) | A white footer under a hairline, Cancel outlined and the confirm filled, 40px, primary on the right | Every cockpit dialog |
+| Buttons (`Button`) | Pills, one 14px label at 500, no elevation; filled in the workspace tone, outlined on the control outline (`--m3-outline`) in the strong ink, text in the sub ink; 32px, 40px in the action bar, 28px in Review Promises; disabled as a 12% ink fill under a 38% ink label | Every cockpit screen |
+| Fields (`TextInput` on the admin surface) | A 1px control-grade outline round a white box, 40px with 14px text, an 8px corner; an error is a 1px border in the field family's red | Propose return, Raise allowance, the dispute reason, the draft fields |
+| Filter chip (`Chip`) | 32px, the control outline, the sub ink; the selected chip filled in the workspace tone | Offers and Requests |
+| Search (`AdminSearchToolbar`) | A 36px pill on the container step with the decorative edge and a 13px glyph | Offers and Requests |
+| Dark dialog surface | `--m3-surface-container-high` in dark, earth-800, with the raised footer on earth-850 | Every cockpit dialog in dark |
+
+A confirm dialog has no note in its footer any more, so the wallet's or Safe's note closes the
+dialog's body, as the shipped pool settings dialog says its prompt count. The confirm opened in a
+row (dial V5) keeps its note beside the two buttons.
+
+**Two contrast gaps in the shipped pieces**, which the lab's check caught and the lab works
+around; they are listed under [Remaining](#remaining) for the design system's owner.
+
 ## Kept on purpose
 
 - **The v1 reference screens keep chain and wallet names** (Celo, Gnosis, the Gnosis wallet,
@@ -203,7 +236,9 @@ These need a local checkout, a running app, or a decision. Items closed on 24 Oc
    (`--gg-radius-lg`). The lab matches both.
 2. **Approximated values.** Elevation shadows, the dark weak surface, dark soft text, the dark
    neutral border and the cockpit wash were estimated from the guides, not read from computed
-   styles. Compare with a running app in light and dark.
+   styles. Compare with a running app in light and dark. On 24 Oct the cockpit's dark dialog
+   surface and its dark sub ink moved to the shipped tokens (earth-800 and neutral-300); the
+   member app's dark values are still estimates.
 3. **Spanish and Portuguese.** The pilot revision drafts every pilot string in both. Portuguese
    awaits Gui's review (PRD-1312), and Spanish awaits a native speaker. The first cohort gets
    English (decided 24 Oct), so neither review blocks it.
@@ -223,5 +258,13 @@ These need a local checkout, a running app, or a decision. Items closed on 24 Oc
 9. **Community route.** Closed on 24 Oct against `develop`: Community's tabs are Members ·
    Coordination · Endowment · Payouts, and the contract branch mounts `VoucherIssuerOnboarding` in
    Coordination, for the protocol garden only. `SIssuers` follows that.
-10. **The promise row.** The lab follows the codified DL-110 row, which PR #1239 implements and
-    neither `develop` nor the deployed Storybook renders yet. Compare again once it merges.
+10. **The promise row.** Closed on 24 Oct: PR #1239 put every promise on the shared item row on
+    `develop`, and #1261 and #1264 fixed its rows. The deployed Storybook draws it, and the fifth
+    pass's comparison uses it.
+11. **"Writing to" in a cockpit dialog** (for the design system's owner). `PoolTarget` sets its
+    label in the soft ink, `--text-soft-400` (#78716C), which measures 3.96:1 at 12px on the
+    dialog's surface (#ECE9E2), under AA. The lab uses the sub ink.
+12. **A dark error alert in a dark cockpit dialog** (for the design system's owner). The shared
+    `Alert`'s error ink in dark, red-400 (#FF6875), over its 16% red tint on the dialog's earth-800
+    surface measures 4.17:1 at 14px, under AA; the lifted surface the alert sits on is what drops
+    it. The lab lifts the ink one step, to #FF8A95.

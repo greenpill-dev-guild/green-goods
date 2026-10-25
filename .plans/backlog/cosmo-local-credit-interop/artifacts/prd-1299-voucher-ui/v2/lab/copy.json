@@ -16,10 +16,10 @@
     "Tu billetera te pedirá aprobar.",
     "Sua carteira vai pedir sua aprovação."
   ],
-  "c.safe23": [
-    "Your Safe needs 2 of 3 signatures.",
-    "Tu Safe necesita 2 de 3 firmas.",
-    "Seu Safe precisa de 2 de 3 assinaturas."
+  "c.safe1": [
+    "Your Safe needs 1 signature.",
+    "Tu Safe necesita 1 firma.",
+    "Seu Safe precisa de 1 assinatura."
   ],
   "c.cancel": ["Cancel", "Cancelar", "Cancelar"],
   "c.done": ["Done", "Listo", "Pronto"],
@@ -538,9 +538,9 @@
     "Agora {issuer} aprova a reserva."
   ],
   "pay.v.wait.b": [
-    "Its Safe needs {sigs} signatures, so it can take a day. Nothing has left your account. We'll let you know when you can deposit.",
-    "Su Safe necesita {sigs} firmas, así que puede tardar un día. No salió nada de tu cuenta. Te avisaremos cuando puedas depositar.",
-    "O Safe precisa de {sigs} assinaturas, então pode levar um dia. Nada saiu da sua conta. Avisaremos quando você puder depositar."
+    "Its Safe needs {sigs}, so it can take a day. Nothing has left your account. We'll let you know when you can deposit.",
+    "Su Safe necesita {sigs}, así que puede tardar un día. No salió nada de tu cuenta. Te avisaremos cuando puedas depositar.",
+    "O Safe precisa de {sigs}, então pode levar um dia. Nada saiu da sua conta. Avisaremos quando você puder depositar."
   ],
   "pay.v.depositS": ["From your account", "De tu cuenta", "Da sua conta"],
   "pay.v.into": [
@@ -992,9 +992,9 @@
     "Agora: {issuer} aprova sua reserva"
   ],
   "rd.n.approval.b": [
-    "{issuer}'s Safe needs {sigs} signatures. Nothing has left your account. You can cancel any time before {issuer} accepts.",
-    "El Safe de {issuer} necesita {sigs} firmas. No salió nada de tu cuenta. Puedes cancelar cuando quieras antes de que {issuer} acepte.",
-    "O Safe de {issuer} precisa de {sigs} assinaturas. Nada saiu da sua conta. Você pode cancelar quando quiser antes de {issuer} aceitar."
+    "{issuer}'s Safe needs {sigs}. Nothing has left your account. You can cancel any time before {issuer} accepts.",
+    "El Safe de {issuer} necesita {sigs}. No salió nada de tu cuenta. Puedes cancelar cuando quieras antes de que {issuer} acepte.",
+    "O Safe de {issuer} precisa de {sigs}. Nada saiu da sua conta. Você pode cancelar quando quiser antes de {issuer} aceitar."
   ],
   "rd.n.deposit.t": [
     "Next: deposit your vouchers",
@@ -1324,9 +1324,9 @@
   "rw.get": ["What You Get", "Lo que recibes", "O que você recebe"],
   "rw.vou": ["{n} {unit}", "{n} {unit}", "{n} {unit}"],
   "rw.vouS": [
-    "From {issuer}'s reserve. 1 books one hub day.",
-    "De la reserva de {issuer}. Con 1 reservas un día en el hub.",
-    "Da reserva de {issuer}. Com 1 você reserva um dia no hub."
+    "From {issuer}'s reserve. 1 voucher per hub day.",
+    "De la reserva de {issuer}. 1 vale por día en el hub.",
+    "Da reserva de {issuer}. 1 vale por dia no hub."
   ],
   "rw.gd": ["{amt} G$", "{amt} G$", "{amt} G$"],
   "rw.gdS": [
@@ -1659,11 +1659,7 @@
   "wl.heldTitle": ["Held or on the way", "Guardado o en camino", "Guardado ou a caminho"],
   "wl.use": ["Use them", "Úsalos", "Use-os"],
   "wl.avail": ["available", "disponibles", "disponíveis"],
-  "wl.sunS": [
-    "1 books one hub day",
-    "Con 1 reservas un día en el hub",
-    "Com 1 você reserva um dia no hub"
-  ],
+  "wl.sunS": ["1 voucher per hub day", "1 vale por día en el hub", "1 vale por dia no hub"],
   "wl.back": ["{n} coming back", "{n} de vuelta", "{n} voltando"],
   "wl.backS": [
     "Return from your Claude access",
@@ -2193,16 +2189,6 @@
     "Accept Lina's Request?",
     "¿Aceptar la solicitud de Lina?",
     "Aceitar o pedido de Lina?"
-  ],
-  "rq.pt.t": [
-    "Writing to the Green Goods protocol pool",
-    "Escribiendo en el fondo del protocolo de Green Goods",
-    "Gravando no fundo do protocolo do Green Goods"
-  ],
-  "rq.pt.b": [
-    "This offer lives in Green Goods Community Garden's own pool, where the protocol's promises live.",
-    "Esta oferta está en el fondo propio de Green Goods Community Garden, donde viven las promesas del protocolo.",
-    "Esta oferta fica no fundo próprio do Green Goods Community Garden, onde ficam as promessas do protocolo."
   ],
   "rq.c.terms": [
     "Lina agreed to the current terms",
@@ -3586,9 +3572,9 @@
   "iss.k.garden": ["Garden issuer", "Emisor jardín", "Emissor jardim"],
   "iss.k.member": ["Member issuer", "Emisor miembro", "Emissor membro"],
   "iss.m.sun": [
-    "Hub days · 20 vouchers · 2 of 3 Safe",
-    "Días en el hub · 20 vales · Safe 2 de 3",
-    "Dias no hub · 20 vales · Safe 2 de 3"
+    "Hub days · 20 vouchers · 1 of 1 Safe",
+    "Días en el hub · 20 vales · Safe 1 de 1",
+    "Dias no hub · 20 vales · Safe 1 de 1"
   ],
   "iss.m.teo": [
     "Integration lesson · draft sent {date}",
@@ -4082,6 +4068,22 @@
   "sh.ck.nothing": ["Nothing to review.", "Nada que revisar.", "Nada para revisar."],
   "sh.ck.approve": ["Approve", "Aprobar", "Aprovar"],
   "sh.ck.decline": ["Decline…", "Rechazar…", "Recusar…"],
+  "sh.ck.writingTo": ["Writing to", "Escribiendo en", "Escrevendo em"],
+  "sh.ck.targetRecord": [
+    "“{record}” in {garden}’s pool",
+    "«{record}» en el fondo común de {garden}",
+    "“{record}” no fundo comum de {garden}"
+  ],
+  "sh.ck.targetProtocol": [
+    "Writing to the Green Goods protocol pool",
+    "Escribiendo en el fondo del protocolo de Green Goods",
+    "Escrevendo no fundo comum do protocolo Green Goods"
+  ],
+  "sh.ck.targetProtocolRecord": [
+    "“{record}”, in the Green Goods Community Garden’s own pool, where the protocol’s promises live. Changes here can affect promises across gardens.",
+    "«{record}», en el fondo común del Green Goods Community Garden, donde viven las promesas del protocolo. Los cambios aquí pueden afectar promesas de varios jardines.",
+    "“{record}”, no fundo comum do Green Goods Community Garden, onde vivem as promessas do protocolo. As alterações aqui podem afetar promessas de vários jardins."
+  ],
   "sh.ck.promises": ["Offers and Requests", "Ofertas y peticiones", "Ofertas e pedidos"],
   "sh.ck.seed": ["Seed Promises", "Sembrar promesas", "Semear promessas"],
   "sh.ck.search": ["Search promises", "Buscar promesas", "Buscar promessas"],
@@ -4215,9 +4217,9 @@
   "sh.prog.count": ["{done} of {of}", "{done} de {of}", "{done} de {of}"],
   "pp.st.endedEarly": ["Ended early", "Terminó antes", "Terminou antes"],
   "rd.band.approval": [
-    "{issuer} approves your booking next; their Safe needs {sigs} signatures. Nothing has left your account, and you can cancel any time before {issuer} accepts.",
-    "{issuer} aprueba tu reserva ahora; su Safe necesita {sigs} firmas. No salió nada de tu cuenta, y puedes cancelar en cualquier momento antes de que {issuer} acepte.",
-    "{issuer} aprova sua reserva agora; o Safe precisa de {sigs} assinaturas. Nada saiu da sua conta, e você pode cancelar a qualquer momento antes que {issuer} aceite."
+    "{issuer} approves your booking next; their Safe needs {sigs}. Nothing has left your account, and you can cancel any time before {issuer} accepts.",
+    "{issuer} aprueba tu reserva ahora; su Safe necesita {sigs}. No salió nada de tu cuenta, y puedes cancelar en cualquier momento antes de que {issuer} acepte.",
+    "{issuer} aprova sua reserva agora; o Safe precisa de {sigs}. Nada saiu da sua conta, e você pode cancelar a qualquer momento antes que {issuer} aceite."
   ],
   "rd.f.vouchers": ["Your vouchers", "Tus vales", "Seus vales"],
   "rd.steps": ["Booking steps", "Pasos de la reserva", "Etapas da reserva"],
@@ -4286,9 +4288,9 @@
   ],
   "gp.tabs": ["Garden sections", "Secciones del jardín", "Seções do jardim"],
   "wl.teoB": [
-    "1 books one 60-minute lesson",
-    "1 reserva una clase de 60 minutos",
-    "1 reserva uma aula de 60 minutos"
+    "1 voucher per 60-minute lesson",
+    "1 vale por clase de 60 minutos",
+    "1 vale por aula de 60 minutos"
   ],
   "wl.f.issuer": ["Issued by", "Emitido por", "Emitido por"],
   "wl.f.books": ["What it books", "Qué reserva", "O que reserva"],
@@ -4301,11 +4303,13 @@
   "wl.book": ["Book a Service", "Reservar un servicio", "Reservar um serviço"],
   "wl.exchange": ["Exchange", "Intercambiar", "Trocar"],
   "wl.where": [
-    "Bookings and purchases are promises, so they live with your other promises.",
-    "Las reservas y compras son promesas, así que están con tus otras promesas.",
-    "Reservas e compras são promessas, então ficam junto com suas outras promessas."
+    "A voucher held in a booking shows here, and its row opens the booking.",
+    "Un vale retenido en una reserva aparece aquí, y su fila abre la reserva.",
+    "Um vale retido em uma reserva aparece aqui, e a linha dele abre a reserva."
   ],
-  "wl.whereLink": ["Open Promises", "Abrir promesas", "Abrir promessas"],
+  "wl.bk.pill": ["Waiting for {issuer}", "Esperando a {issuer}", "Aguardando {issuer}"],
+  "wl.bk.d": ["Booked {date}", "Reservado el {date}", "Reservado em {date}"],
+  "wl.bk.cap": ["in a booking", "en una reserva", "em uma reserva"],
   "br.t.analysis": [
     "Write the impact summary",
     "Redactar el resumen de impacto",
@@ -4513,8 +4517,8 @@
   "who.ggShort": ["Green Goods", "Green Goods", "Green Goods"],
   "u.sunOne": ["Tech and Sun voucher", "vale de Tech and Sun", "vale da Tech and Sun"],
   "u.ggOne": ["Green Goods voucher", "vale de Green Goods", "vale do Green Goods"],
-  "c.sigs23": ["2 of 3", "2 de 3", "2 de 3"],
-  "c.sigs25": ["2 of 5", "2 de 5", "2 de 5"],
+  "c.sigs1": ["1 signature", "1 firma", "1 assinatura"],
+  "c.sigs25": ["2 of 5 signatures", "2 de 5 firmas", "2 de 5 assinaturas"],
   "rd.n.deposit1.b": [
     "{issuer} approved. Deposit your voucher into the escrow for this booking. {issuer} must accept by {d1}.",
     "{issuer} aprobó. Deposita tu vale en la garantía de esta reserva. {issuer} debe aceptar antes del {d1}.",
@@ -4568,14 +4572,14 @@
     "A proporção aceita do piloto; não iguala o valor dos serviços"
   ],
   "wl.ggS": [
-    "2 book an assisted session",
-    "Con 2 reservas una sesión asistida",
-    "Com 2 você reserva uma sessão assistida"
+    "2 vouchers per assisted session",
+    "2 vales por sesión asistida",
+    "2 vales por sessão assistida"
   ],
   "wl.ggB": [
-    "2 book a 30-minute assisted session; 10 book 30 days of Claude access",
-    "Con 2 reservas una sesión asistida de 30 minutos; con 10, 30 días de acceso a Claude",
-    "Com 2 você reserva uma sessão assistida de 30 minutos; com 10, 30 dias de acesso ao Claude"
+    "2 vouchers per 30-minute assisted session; 10 per 30 days of Claude access",
+    "2 vales por sesión asistida de 30 minutos; 10 por 30 días de acceso a Claude",
+    "2 vales por sessão assistida de 30 minutos; 10 por 30 dias de acesso ao Claude"
   ],
   "rd.b.toSun1": [
     "{unit} on its way to {issuer}'s reserve",

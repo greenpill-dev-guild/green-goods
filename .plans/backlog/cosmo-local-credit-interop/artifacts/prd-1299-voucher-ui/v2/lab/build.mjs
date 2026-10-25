@@ -4,8 +4,9 @@
 // Usage: node build.mjs [output path]; the default writes ../voucher-lab.html next to this folder.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const dir = path.dirname(new URL(import.meta.url).pathname);
+const dir = path.dirname(fileURLToPath(import.meta.url));
 const ids = ['Main', 'Visit', 'Offer', 'Pay', 'Send', 'Status', 'ProviderReview', 'BuyerDeposits', 'Inspector',
   'VOffer', 'VSetup', 'Holder', 'Split', 'IssuerDesk', 'EscrowInspector', 'Wallet', 'Exchange', 'Rewards', 'RewardsDesk', 'IssuersDesk',
   'SOffer', 'SPay', 'SPurchase', 'SRedeem', 'SReward', 'SExchange', 'SWallet', 'SFunds', 'SRequests', 'SIssuer',
@@ -41,6 +42,8 @@ const safe = (o) => JSON.stringify(o).replace(/<\//g, '<\\/').replace(/<!--/g, '
 const css = fs.readFileSync(path.join(dir, 'gg.css'), 'utf8');
 const sprite = fs.readFileSync(path.join(dir, 'remix-sprite.svg'), 'utf8').trim();
 let page = fs.readFileSync(path.join(dir, 'shell.html'), 'utf8');
+// The lab opens straight from disk, so it must be a whole standards document with a phone viewport
+if (!/^<!doctype html>\s*<html[\s>]/i.test(page) || !/<meta name="viewport"/.test(page) || !/<\/html>\s*$/.test(page)) throw new Error('shell.html must be a complete document: doctype, html, viewport meta');
 for (const hole of ['/*__GG_CSS__*/', '/*__SOURCES__*/', '/*__COPY__*/', '/*__CROSSWALK__*/', '<!--__SPRITE__-->']) if (!page.includes(hole)) throw new Error('Shell placeholder missing: ' + hole);
 page = page.replace('/*__GG_CSS__*/', () => css).replace('/*__SOURCES__*/', () => safe(sources)).replace('/*__COPY__*/', () => safe(copy))
   .replace('/*__CROSSWALK__*/', () => safe(crosswalk)).replace('<!--__SPRITE__-->', () => sprite);

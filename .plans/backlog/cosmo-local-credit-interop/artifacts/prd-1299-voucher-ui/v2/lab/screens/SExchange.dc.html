@@ -27,7 +27,7 @@
     <div class="grip"></div>
     <div class="shead">
       <div><h2 class="stitle" id="ex-title">{{shTitle}}</h2><p class="sdesc">{{shSub}}</p></div>
-      <a class="close" href="SOffer.dc.html" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+      <a class="close" href="SOffer.dc.html?kind={{offerKind}}" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
     </div>
     <div class="sbody">
       <sc-if value="{{quoteView}}" hint-placeholder-val="{{true}}">
@@ -69,7 +69,7 @@
       </sc-if>
       <sc-if value="{{quoteView}}" hint-placeholder-val="{{true}}">
         <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{true}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
-        <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="SOffer.dc.html">{{secondary}}</a></sc-if>
+        <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="SOffer.dc.html?kind={{offerKind}}">{{secondary}}</a></sc-if>
       </sc-if>
     </div>
   </section>
@@ -113,6 +113,7 @@ class Component extends DCLogic {
     var receipt = [{ k: t('ex.rc.spent'), v: f(Q.inA) + ' ' + ISS.inUnit }, { k: t('ex.rc.got'), v: gotV },
       { k: t('ex.rc.fees'), v: f(Q.fee) + ' ' + ISS.outUnit }, { k: t('ex.rc.when'), v: t.d('2026-10-25') + ' · 14:03' }];
     return Object.assign(GGTW(this.props), {
+      offerKind: encodeURIComponent(member ? 'Member lesson' : 'Claude access'),
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
       baseHidden: sheet ? 'true' : 'false',
       kindLine: t('ex.kind'), title: t('ex.title'), desc: t('ex.desc'),

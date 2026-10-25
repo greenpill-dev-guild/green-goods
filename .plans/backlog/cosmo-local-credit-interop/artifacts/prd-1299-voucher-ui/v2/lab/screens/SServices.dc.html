@@ -64,11 +64,11 @@ class Component extends DCLogic {
     // the promise's state as the pill, and the detail line naming what booking takes first, then who promises it.
     var offer = t('sh.ck.offer'), request = t('sh.ck.request'), offered = t('sh.st.offered');
     var rows = [
-      { dir: offer, icon: '#ri-seedling-line', title: t('of.m.title'), pill: offered, tone: 'info', href: 'SOffer.dc.html',
+      { dir: offer, icon: '#ri-seedling-line', title: t('of.m.title'), pill: offered, tone: 'info', href: 'SOffer.dc.html?kind=Member%20lesson',
         details: [paused ? D(t('sv.d.paused'), 'error') : D(t('sv.p.hold', { n: t.v(1) })), D(t('who.teoFull'))] },
-      { dir: offer, icon: '#ri-seedling-line', title: t('sv.s.coachT'), pill: offered, tone: 'info', href: 'SExchange.dc.html',
+      { dir: offer, icon: '#ri-seedling-line', title: t('sv.s.coachT'), pill: offered, tone: 'info', href: '#',
         details: [delisted ? D(t('sv.d.delisted'), 'error') : D(t('sv.p.ex')), D(t('who.mayaFull'))] },
-      { dir: offer, icon: '#ri-seedling-line', title: t('of.s.title'), pill: offered, tone: 'info', href: 'SOffer.dc.html',
+      { dir: offer, icon: '#ri-seedling-line', title: t('of.s.title'), pill: offered, tone: 'info', href: 'SOffer.dc.html?kind=Hub%20day',
         details: [D(t('sv.p.hold', { n: t.n(9) })), D(t('who.sun'))] },
       { dir: request, icon: '#ri-hand-heart-line', title: t('gp.r.shelves'), pill: t('sh.st.requested'), tone: 'info', href: '#',
         details: [D(t('gp.d.due', { date: t.d('2026-11-12') })), D(t('who.ade'))] }

@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cosmo-Local Voucher Lab</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
@@ -22,7 +27,9 @@
   --danger: #FCA5A5; --scrim: rgba(0, 0, 0, .6); --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px rgba(0, 0, 0, .4); color-scheme: dark;
 }
 html, body { height: 100%; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
 
 .lab { height: 100%; display: grid; grid-template-columns: 256px minmax(0, 1fr) 360px; gap: 20px; box-sizing: border-box;
@@ -234,6 +241,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .gg .lessons span.d { background: var(--edge-ok); border-color: transparent; }
 .gg details.tech summary { color: var(--strong); }
 </style>
+</head>
+<body>
 
 <!--__SPRITE__-->
 <div class="lab">
@@ -412,7 +421,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       var a = e.target.closest ? e.target.closest('a') : null;
       if (!a || !host.contains(a)) return;
       var href = a.getAttribute('href') || '';
-      if (/\.dc\.html$/.test(href)) { e.preventDefault(); followLink(href.replace(/^.*\//, '').replace(/\.dc\.html$/, '')); }
+      /* A link names a screen and may carry the row's own props as a query (SOffer.dc.html?kind=Hub%20day) */
+      var m = href.match(/(?:^|\/)(\w+)\.dc\.html(?:\?(.*))?$/);
+      if (m) {
+        e.preventDefault();
+        var preset = null;
+        if (m[2]) { preset = {}; new URLSearchParams(m[2]).forEach(function (v, k) { preset[k] = v; }); }
+        followLink(m[1], preset);
+      }
       else if (href === '' || href.charAt(0) === '#') e.preventDefault();
     };
     render();
@@ -572,17 +588,18 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       s('SWallet', { tab: 'Vouchers' }, L, 'The vouchers sit in Lina’s wallet under the issuer’s name, ready to redeem.'),
       s('SReward', { kind: 'Vouchers only', state: 'Reserve short' }, L, 'Another request pays 2 Tech and Sun vouchers only. Tech and Sun’s allowance for Riverside is used up, so the reward waits. It is not lost and not delivered twice.'),
       s('SIssuer', { state: 'Reserve short' }, A, 'Ade sees the waiting reward next to Tech and Sun’s reserve and allowances.'),
-      s('SIssuer', { state: 'Raise allowance' }, A, 'Raising the allowance needs Tech and Sun’s Safe, 2 of 3 stewards. It creates no vouchers.'),
+      s('SIssuer', { state: 'Raise allowance' }, A, 'Raising the allowance needs Tech and Sun’s Safe, which has one signer until two of its stewards join it. It creates no vouchers.'),
       s('SReward', { kind: 'Vouchers only', state: 'Received' }, L, 'The reward arrives once.')
     ] },
     { id: 's-redeem', simple: true, remap: REMAP, title: 'Redeem a voucher you hold', note: 'Lina holds Tech and Sun vouchers and books a hub day directly: agree, Tech and Sun approves, deposit, Tech and Sun accepts, then the visit, the final split and the confirmation, each with its own approval.', steps: [
-      s('SWallet', { tab: 'Vouchers' }, L, 'Lina holds 9 Tech and Sun vouchers. 1 books a hub day: a reserved visit of up to four hours.'),
+      s('SWallet', { tab: 'Vouchers' }, L, 'Lina holds 9 Tech and Sun vouchers, at 1 voucher per hub day: a reserved visit of up to four hours.'),
       s('SOffer', { kind: VSN, state: 'Open' }, L, 'The offer opens as a promise page. Its Service Access section answers what you get, what you give, who holds it, who acts next and what can come back.'),
       s('SPay', { kind: VSN, state: 'Agree' }, L, 'Step 1 is Lina’s: agree to the exact terms, including the acceptance deadline, seven days out. The voucher doesn’t move yet.'),
       s('SPay', { kind: VSN, state: 'Waiting for issuer' }, L, 'Step 2 is Tech and Sun’s: approve the booking. Lina can close the sheet and come back.'),
-      s('SIssuer', { state: 'Approve booking' }, A, 'Ade approves. Tech and Sun’s Safe needs 2 of 3 signatures. Approving isn’t accepting.'),
+      s('SIssuer', { state: 'Approve booking' }, A, 'Ade approves. Tech and Sun’s Safe needs one signature until two of its stewards join it. Approving isn’t accepting.'),
       s('SPay', { kind: VSN, state: 'Pay or deposit' }, L, 'Step 3 is Lina’s again: deposit her voucher into the escrow. There may be two prompts.'),
       s('SRedeem', { kind: 'Hub day', state: 'Confirming deposit' }, L, 'The deposit is confirmed on Green Goods before Tech and Sun can accept.'),
+      s('SWallet', { tab: 'Vouchers, booked' }, L, 'Lina’s wallet shows the voucher the booking holds, and its row opens the booking. Promises shows only her own garden, Riverside Commons, so the wallet is her way back.'),
       s('SIssuer', { state: 'Accept' }, A, 'With consent, approval, deposit and deadline checked, Ade accepts.'),
       s('SRedeem', { kind: 'Hub day', state: 'In progress' }, L, 'Booked for Oct 30, 10:00 to 14:00. Starting fixes the terms; it doesn’t mean the visit happened.'),
       s('SRedeem', { kind: 'Hub day', state: 'Ready to close' }, L, 'Tech and Sun reported the hub day. Lina closes the booking.'),
@@ -745,9 +762,21 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         if (!db) return;
         self.db = db; self.shared = true;
         var localPicks = self.picks, localNotes = self.notes.slice();
-        Object.keys(localPicks).forEach(function (q) { if (QMAP[q]) db.doc('picks/' + q).set({ pick: localPicks[q], question: QMAP[q].title, at: new Date().toISOString() }).catch(function () {}); });
-        localNotes.forEach(function (n) { var c = Object.assign({}, n); delete c.id; db.collection('notes').add(c).catch(function () {}); });
-        lsSet('vlab.picks', {}); lsSet('vlab.notes', []);
+        var pickIds = Object.keys(localPicks).filter(function (q) { return QMAP[q]; });
+        var writes = pickIds.map(function (q) { return db.doc('picks/' + q).set({ pick: localPicks[q], question: QMAP[q].title, at: new Date().toISOString() }); })
+          .concat(localNotes.map(function (n) { var c = Object.assign({}, n); delete c.id; return db.collection('notes').add(c); }));
+        /* Clear only what reached the shared store. Anything that failed stays in this browser and moves on the next visit. */
+        Promise.allSettled(writes).then(function (results) {
+          var leftPicks = {}, leftNotes = [], firstError = null;
+          results.forEach(function (r, i) {
+            if (r.status === 'fulfilled') return;
+            firstError = firstError || r.reason;
+            if (i < pickIds.length) leftPicks[pickIds[i]] = localPicks[pickIds[i]];
+            else leftNotes.push(localNotes[i - pickIds.length]);
+          });
+          lsSet('vlab.picks', leftPicks); lsSet('vlab.notes', leftNotes);
+          if (firstError) self.fail(firstError);
+        });
         db.collection('picks').onSnapshot(function (snap) {
           var p = {};
           snap.docs.forEach(function (d) { var x = d.data(); if (x && typeof x.pick === 'string') p[d.id] = x.pick; });
@@ -894,26 +923,33 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     view.variant = pickedVariant(st.screen);
     renderAll(!keepScroll);
   }
-  function openScreen(id, back) {
+  function openScreen(id, back, preset) {
     if (!SCREENS[id]) return;
     view.mode = 'screen'; view.id = id; view.step = 0; view.back = back || null;
-    view.props = defaultsFor(id); view.variant = pickedVariant(id);
+    view.props = Object.assign(defaultsFor(id), preset || {}); view.variant = pickedVariant(id);
     renderAll(true);
   }
   function restore(snap) {
     view.mode = snap.mode; view.id = snap.id; view.step = snap.step; view.variant = snap.variant; view.compare = snap.compare; view.props = snap.props; view.back = null;
     renderAll(true);
   }
-  function followLink(target) {
+  function followLink(target, preset) {
     if (!SCREENS[target]) return;
     if (view.mode === 'flow' && FMAP[view.id].simple && REMAP[target]) target = REMAP[target];
     if (view.mode === 'flow') {
+      /* Inside a journey, go to the nearest step showing that screen, and the link's own record when it names one */
       var f = FMAP[view.id], j = -1, i;
-      for (i = view.step + 1; i < f.steps.length; i++) if (f.steps[i].screen === target) { j = i; break; }
-      if (j < 0) for (i = view.step - 1; i >= 0; i--) if (f.steps[i].screen === target) { j = i; break; }
+      var fits = function (st) {
+        if (st.screen !== target) return false;
+        if (!preset) return true;
+        var p = Object.assign(defaultsFor(st.screen), st.props || {});
+        return Object.keys(preset).every(function (k) { return p[k] === preset[k]; });
+      };
+      for (i = view.step + 1; i < f.steps.length; i++) if (fits(f.steps[i])) { j = i; break; }
+      if (j < 0) for (i = view.step - 1; i >= 0; i--) if (fits(f.steps[i])) { j = i; break; }
       if (j >= 0) { openFlow(f.id, j, true); return; }
     }
-    openScreen(target, snapshotView());
+    openScreen(target, snapshotView(), preset);
   }
   function viewTitle(snap) {
     if (snap.mode === 'question') return QMAP[snap.id].title;
@@ -955,6 +991,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         ['scen', 'Lina books a hub day with a voucher she holds', [
           'Lina holds 9 Tech and Sun vouchers. One books a hub day: a reserved visit of up to four hours, with workspace, power and connectivity.',
           'Lina agrees to the exact terms, Tech and Sun approves the booking, Lina deposits her voucher into escrow, and Tech and Sun accepts the booking within seven days.',
+          'While the booking holds her voucher, her wallet shows it as its own row, which opens the booking. Her Promises sheet shows only her own garden.',
           'After the visit Lina approves the final split and, separately, confirms the promise was kept. The transfer shows as pending until it arrives.'
         ], 's-redeem'],
         ['scen', 'Lina exchanges, then books Claude access', [
@@ -1010,10 +1047,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         ]],
         ['h', 'Recommendations'],
         ['ul', [
-          '**Build on what ships.** Each piece extends a surface the app or the cockpit already has, drawn with that surface’s components: the promise page’s Service Access section and its sheets, the garden’s Promises tab, a Vouchers tab in the wallet, Service Assets in Profile, the Promises console and the Voucher Issuers card. None of them replaces the status band, What was promised, Team, Progress and proof, History or the page’s one action bar.',
+          '**Build on what ships.** Each piece extends a surface the app or the cockpit already has, drawn with that surface’s components: the promise page’s Service Access section and its sheets, the garden’s list of promises (the Promises sheet over Home for its members once the Home redesign lands, the garden page for visitors), a Vouchers tab in the wallet, Service Assets in Profile, the Promises console and the Voucher Issuers card. None of them replaces the status band, What was promised, Team, Progress and proof, History or the page’s one action bar. The cockpit’s dialogs, buttons, fields and filter chips are the shared family `develop` moved them onto on 24 October (DL-115 to DL-119).',
           '**Show every approval, grouped in one sheet.** Don’t promise one prompt or sponsored network fees until a route is proven. The sheet’s strip shows whose step comes next.',
           '**Show money exactly.** Gross debit, token fee, recorded deposit and eligible refund, from the offer to the receipt. Refunds return the recorded deposit, so the sending fee isn’t returned, and the home garden’s Safe pays the refund transfer’s fee. 450.00 G$ and the 0.1% fee are fictional.',
-          '**Accept after the check.** The provider’s Accept waits for the home garden’s recorded deposit. This is a design rule; the contract keeps acceptance and funding separate.',
+          '**Accept after the check.** The provider’s Accept waits for the home garden’s recorded deposit. This is a design rule; the contract keeps acceptance and funding separate. It ships with the G$ purchase, which pilot members don’t see.',
           '**Acceptance deadline:** seven days from agreeing, set in the issuer’s terms and shown as a date before the member agrees. That leaves room for the issuer’s reply, the deposit and the stewards’ acceptance. The contract takes whatever deadline the setup chooses.',
           '**Disputes:** for G$ purchases, suggest a 7-day response and escalation after 14 days, labeled as policy. For vouchers, the working terms propose a help acknowledgment within two business days and a remedy proposal within five. The pool’s stewards resolve the promise; they can’t move a holder’s vouchers.',
           '**Kept** only after the member confirms. Provider reports, payouts and transfers have their own words.',
@@ -1027,7 +1064,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         ['h', 'The working pilot services on these screens'],
         ['ul', [
           'The terms (`pilot-issuer-terms.md`, draft 3) are a business baseline the release owner accepted on 22 October. Each issuer accepts them, and confirms its capacity and addresses, at onboarding; on 24 October Afo took those out of the blockers and chose to show the services now, so every voucher service here is a real offer under terms still to be accepted.',
-          '**Tech and Sun hub day** (1 Tech and Sun voucher: one named person’s visit of up to four hours, with workspace, power and connectivity) is “Redeem a voucher you hold”. Tech and Sun’s Safe signs 2 of 3, and a short visit returns by usable time out of 240 minutes.',
+          '**Tech and Sun hub day** (1 Tech and Sun voucher: one named person’s visit of up to four hours, with workspace, power and connectivity) is “Redeem a voucher you hold”. Tech and Sun’s Safe starts with one signer and moves to two of its stewards, and a short visit returns by usable time out of 240 minutes.',
           '**Claude access** (10 Green Goods vouchers: 30 days of a named Claude Team seat from working access) is the exchange and the early-end journeys. Green Goods’ Safe signs 2 of 5, and a short month returns by available days out of 30.',
           '**Green Goods assisted session** (2 Green Goods vouchers, 30 minutes) shows in Green Goods’ console and the wallet; it books the same way as a hub day.',
           '**Ceilings:** 20 vouchers per issuer, 10 in the shared pool and 10 in reserve, at most 10 per participant, a 20-voucher pool holding limit, ten participants, and first bookings on 25 and 26 October with the calendar open to 30 November.',
@@ -1047,7 +1084,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           '**Placement:** each piece lives on the shipped surface the contract branch extends.'
         ]],
         ['h', 'Decided by Afo on 24 October'],
-        ['p', 'Nine follow the lab’s recommendation; the last does not.'],
+        ['p', 'Ten that day, and two more that evening once the Home redesign was cleared to build. All but the tenth follow the lab’s recommendation.'],
         ['ol', [
           '**The member’s approval of a draft** is a signed approval in the app, bound to the terms digest, which the issuer metadata then references.',
           '**Partial delivery:** after the holder approves the split, the stewards close the promise as canceled with the reason, and the app shows it as “Ended early”, never “Kept”.',
@@ -1058,7 +1095,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           '**Accept after the payment check** stays a cockpit rule for the pilot.',
           '**Personal G$ purchases are hidden from pilot members.** The working terms don’t offer them; the designed journey stays for later.',
           '**English first.** The first cohort gets English; Spanish and Portuguese follow once native reviewers sign off.',
-          '**The working pilot services now:** the lab shows the real services before the issuers accept their terms.'
+          '**The working pilot services now:** the lab shows the real services before the issuers accept their terms.',
+          '**A booking at another garden is reached from the wallet.** Home’s Promises sheet will show the active garden only, so the wallet’s Vouchers tab shows a voucher a booking holds as its own row, which opens the booking.',
+          '**Services show wherever the garden’s promises are listed:** the Promises sheet over Home for its members, the garden page for visitors, on the same rows. The lab draws the visitor’s view.'
         ]],
         ['h', 'Still open'],
         ['p', '**The direction.** Afo approves the rebuilt screens and the eight journeys, or marks what to change.'],
@@ -1077,9 +1116,11 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         ]],
         ['h', 'Live state and blockers'],
         ['ul', [
-          'As the implementation lane recorded them in its deployment handoff and the member-issuer proof, last at 08:37 UTC on 24 October; not rerun here, and the upgrade below may have moved since. The Hats upgrade is live on Arbitrum; no source, voucher, pool or member-issuer transaction has been broadcast.',
-          '**Next: the Arbitrum source upgrade.** The deployer sends 23 contract deployments, then the original 2-of-5 Safe runs one batch of four calls that leaves both modules paused. Its rehearsal against the live network is pending, because the implementation session’s network access was refused.',
-          '**Member tokens are prepared.** The release adds two member tokens beside the ten collective deployments, signed in the implementation checkpoint and rehearsed on owned forks with fictional members. A real member’s token goes live only after that member’s onboarding.',
+          'As the implementation lane recorded them in its deployment handoff, last on the evening of 24 October UTC, and the member-issuer proof; not rerun here. The Hats upgrade and the Arbitrum source upgrade are live; no voucher, pool or member-issuer transaction has been broadcast.',
+          '**Done: the Arbitrum source upgrade.** The original 2-of-5 Safe’s batch executed (Safe nonce 33), leaving Pooling and Settlement paused on their new implementations.',
+          '**Next: the downstream deployment.** One operator command sends 23 deployments, the Hats observer registration and five transport fuel transfers, after rehearsing both chains. Two runs stopped before sending anything, and both causes are fixed. Then three owner packets: the Green Goods Safe’s on Gnosis (14 calls) and on Arbitrum (8 calls), and Tech and Sun’s on Gnosis (5 calls).',
+          '**Tech and Sun’s Safe** on Gnosis starts with one approved bootstrap signer and moves to two signatures once two source-verified steward owners exist, so the app reads the threshold instead of stating one.',
+          '**Member tokens come later.** The downstream deployment creates the two collective issuers only. The member extension is prepared and rehearsed on owned forks with fictional members, and a real member’s token goes live only after that member’s onboarding.',
           '**Accounts.** The pilot cohort uses new patched passkey accounts that keep one new address on all three networks, with a member-owned connected wallet as fallback; keeping each member’s original address was dropped on 23 October. The selected pilot account completed an authenticated, sponsored Gnosis proof. That proves one account, not every member issuer’s signing.',
           '**Routes and data.** The app’s issuer and service routes are empty and Gnosis indexing is unbound until the deployment is adopted, so every member-issuer screen here is a design, not a read.',
           '**Earned consent.** Agreeing to a voucher reward on the source network stays operator-assisted; approving a booking on Gnosis doesn’t replace it.',
@@ -1090,7 +1131,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         ['h', 'Text owners'],
         ['ul', [
           'The first cohort gets English. Gui reviews the Portuguese, and a native speaker the Spanish, before either ships.',
-          'The hub spec still says “Redeem” keeps its vault meaning (lines 45 to 50 on develop). Its owner should record the Redeem decision for vouchers.',
+          'Develop’s copy of the hub spec still says “Redeem” keeps its vault meaning. The accepted spec on the contract branch no longer says so, so the line goes when that branch’s hub merges.',
           'The contract branch’s brief keeps a member’s G$ in the buyer garden’s Safe. The pilot design now follows that rule, so v2’s earlier request to change it is withdrawn.'
         ]]
       ] },
@@ -1123,8 +1164,32 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       $('#panel').scrollTop = 0;
     }
   }
-  function openNav() { $('#nav').classList.add('is-open'); $('#scrim').classList.add('is-open'); }
-  function closeNav() { $('#nav').classList.remove('is-open'); $('#scrim').classList.remove('is-open'); }
+  /* Below 1200px the contents are a drawer. Closed, it is inert and hidden from assistive technology; open, it takes
+     focus, the page behind it goes inert, and closing it hands focus back to the control that opened it. */
+  var narrowNav = window.matchMedia('(max-width: 1199px)');
+  var navOpener = null;
+  function syncNav() {
+    var nav = $('#nav'), open = nav.classList.contains('is-open'), hide = narrowNav.matches && !open;
+    nav.inert = hide;
+    if (hide) nav.setAttribute('aria-hidden', 'true'); else nav.removeAttribute('aria-hidden');
+    $('#main').inert = $('#panel').inert = narrowNav.matches && open;
+  }
+  function openNav() {
+    navOpener = document.activeElement;
+    $('#nav').classList.add('is-open'); $('#scrim').classList.add('is-open'); syncNav();
+    var first = $('#nav').querySelector('button, a[href], summary');
+    if (first) first.focus();
+  }
+  function closeNav() {
+    var wasOpen = $('#nav').classList.contains('is-open');
+    $('#nav').classList.remove('is-open'); $('#scrim').classList.remove('is-open'); syncNav();
+    if (!wasOpen) return;
+    /* The panel redraws its Contents button when a pick switches the view, so find the opener again by its id */
+    var back = navOpener && navOpener.isConnected ? navOpener : navOpener && navOpener.id ? document.getElementById(navOpener.id) : null;
+    navOpener = null;
+    if (back) back.focus({ preventScroll: true });
+  }
+  narrowNav.addEventListener('change', syncNav);
 
   function navItem(active, title, meta, badge, onClick) {
     var b = el('button', 'lab-item'); b.type = 'button';
@@ -1750,3 +1815,5 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   store.connect();
 })();
 </script>
+</body>
+</html>

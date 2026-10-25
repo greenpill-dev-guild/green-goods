@@ -53,7 +53,7 @@
                     <sc-if value="{{dBar}}" hint-placeholder-val="{{true}}"><div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: 40">{{barA}}</span><span class="b" style="flex: 60">{{barB}}</span></div></sc-if></sc-if>
                   <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}"><div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div><div class="gg-field"><label for="ck-r1">{{reasonLabel}}</label><div class="ctl" id="ck-r1" role="textbox">{{reasonV}}</div><span class="msg">{{reasonHint}}</span></div></sc-if>
                   <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
-                  <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                  <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
                 </div>
               </sc-if>
             </sc-for>
@@ -70,7 +70,7 @@
                 <li class="{{c.cls}}">
                   <span class="who">{{c.who}}<small>{{c.when}}</small></span>
                   <span class="what">{{c.what}}<sc-if value="{{c.hasTag}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="{{c.tagTone}}">{{c.tag}}</span></sc-if></span>
-                  <span class="acts"><sc-if value="{{c.canDecline}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn link">{{decline}}</button></sc-if><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn {{c.actCls}}">{{c.act}}</button></sc-if><sc-if value="{{c.blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled aria-describedby="{{c.whyId}}">{{c.act}}</button></sc-if></span>
+                  <span class="acts"><sc-if value="{{c.canDecline}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn cmp link">{{decline}}</button></sc-if><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn cmp {{c.actCls}}">{{c.act}}</button></sc-if><sc-if value="{{c.blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn cmp fill off" disabled aria-describedby="{{c.whyId}}">{{c.act}}</button></sc-if></span>
                   <sc-if value="{{c.hasWhy}}" hint-placeholder-val="{{false}}"><span class="why2 {{c.whyCls}}" id="{{c.whyId}}">{{c.why}}</span></sc-if>
                   <sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
                     <div class="ck-xp" style="grid-column: 1 / -1">
@@ -79,7 +79,7 @@
                       <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="k" hint-placeholder-count="4"><div class="ckr {{k.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{k.icon}}"/></svg></span><span>{{k.t}}<small>{{k.s}}</small></span></div></sc-for></div></sc-if>
                       <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}"><div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div><div class="gg-field"><label for="ck-r3">{{reasonLabel}}</label><div class="ctl" id="ck-r3" role="textbox">{{reasonV}}</div><span class="msg">{{reasonHint}}</span></div></sc-if>
                       <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
-                      <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                      <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
                     </div>
                   </sc-if>
                 </li>
@@ -99,14 +99,14 @@
                   <li class="{{c.cls}}">
                     <span class="who">{{c.who}}<small>{{c.when}}</small></span>
                     <span class="what">{{c.what}}<sc-if value="{{c.hasTag}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="{{c.tagTone}}">{{c.tag}}</span></sc-if></span>
-                    <span class="acts"><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn {{c.actCls}}">{{c.act}}</button></sc-if></span>
+                    <span class="acts"><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn cmp {{c.actCls}}">{{c.act}}</button></sc-if></span>
                     <sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
                       <div class="ck-xp" style="grid-column: 1 / -1">
                         <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
                         <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
                         <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="k" hint-placeholder-count="4"><div class="ckr {{k.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{k.icon}}"/></svg></span><span>{{k.t}}<small>{{k.s}}</small></span></div></sc-for></div></sc-if>
                         <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
-                        <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                        <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
                       </div>
                     </sc-if>
                   </li>
@@ -119,7 +119,7 @@
                 <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
                 <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="ck-f3">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f3" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h3">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h3">{{fHint}}</span></div></sc-if>
                 <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
-                <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
               </div>
             </sc-if>
           </section>
@@ -147,7 +147,7 @@
   <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
     <div class="dscrim"></div>
     <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="ck-dlg" data-focus="1">
-      <div class="dh"><div><h2 id="ck-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="dh" data-component="SheetHeader"><div><h2 id="ck-dlg">{{dTitle}}</h2><sc-if value="{{dHasTarget}}" hint-placeholder-val="{{true}}"><dl class="tgt" data-component="PoolTarget"><dt>{{writingTo}}</dt><dd title="{{dTarget}}">{{dTarget}}</dd></dl></sc-if><sc-if value="{{dHasSub}}" hint-placeholder-val="{{false}}"><p>{{dSub}}</p></sc-if></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
       <div class="db">
         <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
         <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
@@ -163,8 +163,9 @@
         </sc-if>
         <sc-if value="{{dHasKeep}}" hint-placeholder-val="{{false}}"><div class="target"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>{{keepNote}}</div></sc-if>
         <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+        <sc-if value="{{dHasNote}}" hint-placeholder-val="{{true}}"><p class="dnote">{{dNote}}</p></sc-if>
       </div>
-      <div class="df"><span class="note">{{dNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button>
+      <div class="df" data-component="SheetActions"><button type="button" class="abtn lg">{{cancel}}</button>
         <sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn lg fill {{dCtaCls}}">{{dCta}}</button></sc-if>
         <sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn lg fill off" disabled>{{dCta}}</button></sc-if>
       </div>
@@ -210,19 +211,19 @@ class Component extends DCLogic {
     // While the reserve is short, the moment in play is the reserve card, so only the newest ask waits beside it
     if (short) claims = claims.slice(2);
     var D = {
-      'Approve booking': { title: t('is.d.approve.t'), sub: t('of.s.title'), cta: t('is.d.approve.cta'), note: t('c.safe23'),
+      'Approve booking': { title: t('is.d.approve.t'), sub: t('of.s.title'), cta: t('is.d.approve.cta'), note: t('c.safe1'),
         facts: [[t('is.d.f.vouchers'), n(1) + ' ' + unitOne, ''], [t('is.d.f.from'), t('is.d.f.fromV'), t('is.d.f.fromS')], [t('is.d.f.due'), t.d('2026-11-02'), t('is.d.f.dueS')], [t('c.terms'), t('is.d.f.termsV'), '']], fsr: 'is.f.approve', at: 'approve' },
-      'Accept': { title: t('is.d.accept.t'), sub: t('of.s.title'), cta: t('is.d.accept.cta'), note: t('c.wallet'), facts: [],
+      'Accept': { title: t('is.d.accept.t'), sub: '', record: t('of.s.title'), cta: t('is.d.accept.cta'), note: t('c.wallet'), facts: [],
         checks: [{ t: t('is.c.terms'), s: t('is.c.termsS') }, { t: t('is.c.approved'), s: t.d('2026-10-27') }, { t: t('is.c.deposit'), s: t('is.c.depositS') }, { t: t('is.c.due'), s: t.d('2026-11-02') }], fsr: 'is.f.accept', at: 'accept' },
-      'Accept member booking': { title: t('is.d.acceptM.t'), sub: t('of.m.title'), cta: t('is.d.acceptM.cta'), note: t('c.wallet'), facts: [],
+      'Accept member booking': { title: t('is.d.acceptM.t'), sub: '', record: t('of.m.title'), cta: t('is.d.acceptM.cta'), note: t('c.wallet'), facts: [],
         checks: [{ t: t('is.c.termsM'), s: t('is.c.termsS') }, { t: t('is.c.teo'), s: t.d('2026-10-27') }, { t: t('is.c.depositM'), s: t('is.c.depositS') }, { t: t('is.c.due'), s: t.d('2026-11-02') }], fsr: 'is.f.acceptM', at: 'acceptM' },
-      'Report visit': { title: t('is.d.report.t'), sub: t('is.d.report.sub'), cta: t('is.d.report.cta'), note: t('c.wallet'),
+      'Report visit': { title: t('is.d.report.t'), sub: t('is.d.report.sub'), record: t('of.s.title'), cta: t('is.d.report.cta'), note: t('c.wallet'),
         facts: [[t('is.d.f.date'), t.d('2026-10-30'), ''], [t('is.d.f.attend'), t('is.d.f.attendV'), ''], [t('is.d.f.usable'), t('is.d.f.usableV'), ''], [t('is.d.f.evidence'), t('is.d.f.evidenceV'), '']], fsr: 'is.f.report', at: 'report' },
       'Propose return': { title: t('is.d.propose.t'), sub: t('is.d.propose.sub'), cta: t('is.d.propose.cta'), note: t('c.safe25'), facts: [[t('is.d.f.lessons'), t('is.d.f.lessonsV'), t('is.d.f.lessonsS')]],
         field: [t('is.fl.back'), n(6), t('is.fl.hint'), false], bar: true, fsr: 'is.f.propose', at: 'propose' },
       'Above terms': { title: t('is.d.propose.t'), sub: t('is.d.propose.sub'), cta: t('is.d.propose.cta'), note: t('c.safe25'), facts: [[t('is.d.f.lessons'), t('is.d.f.lessonsV'), t('is.d.f.lessonsS')]],
         field: [t('is.fl.back'), n(7), t('is.fl.err'), true], bar: false, fsr: 'is.f.propose', off: true, at: 'propose' },
-      'Raise allowance': { title: t('is.d.raise.t'), sub: t('who.rc'), cta: t('is.d.raise.cta'), note: t('c.safe23'),
+      'Raise allowance': { title: t('is.d.raise.t'), sub: t('who.rc'), cta: t('is.d.raise.cta'), note: t('c.safe1'),
         facts: [[t('is.d.f.allow'), t('is.d.f.allowV', { n: n(4) }), ''], [t('is.d.f.waiting'), t('is.d.f.waitingV', { n: n(2) }), t('is.d.f.waitingS')], [t('is.res.reserve'), n(8), '']],
         field: [t('is.fl.new'), n(6), t('is.fl.newHint'), false], bar: false, fsr: 'is.f.raise', at: 'raise' }
     }[st];
@@ -245,7 +246,7 @@ class Component extends DCLogic {
       { k: t('is.res.allow'), v: short ? t('is.res.allowV', { left: n(0), of: n(4) }) : t('is.res.allowV', { left: n(2), of: n(4) }), s: t('is.res.allowS') },
       { k: t('is.res.open'), v: n(3), s: t('is.res.openS') },
       { k: t('is.s.terms'), v: t('is.s.termsV'), s: t('is.s.termsS') },
-      { k: t('is.s.approvals'), v: t('is.s.approvalsV'), s: t('is.s.approvalsS', { sigs: t('c.sigs23') }) },
+      { k: t('is.s.approvals'), v: t('is.s.approvalsV'), s: t('is.s.approvalsS', { sigs: t('c.sigs1') }) },
       { k: t('is.s.cap'), v: t('is.s.capV', { a: n(20), b: n(20) }), s: t('is.s.capS') }];
     // Where the lab's focus crop looks: the dialog when one is open, else the card in play
     var focusEx = short && !(D && !inline) && (st === 'Reserve short' || exOpen);
@@ -272,6 +273,9 @@ class Component extends DCLogic {
       fundingTitle: t('sh.ck.funding'), fundingAvail: t('sh.ck.available'), fundingValue: t.g(1200) + ' G$', fundingNote: t('ck.fund.safe', { garden: gg ? t('who.gg') : t('who.sun') }), viewDetails: t('sh.ck.viewDetails'),
       dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
       showDlg: dlgOpen, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: D ? D.note : '', dHasErr: false, dErrT: '', dErrB: '', dHasKeep: false, keepNote: '',
+      // A write to the garden's pool names its record in the header, as PoolTarget does; an escrow or reserve write keeps a plain description
+      writingTo: t('sh.ck.writingTo'), dHasTarget: !!(D && D.record), dTarget: D && D.record ? t('sh.ck.targetRecord', { record: D.record, garden: gg ? t('who.gg') : t('who.sun') }) : '',
+      dHasSub: !!(D && D.sub), dHasNote: !!(D && D.note),
       dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
       dHasChecks: !!(D && D.checks), dChecks: D && D.checks ? D.checks.map(function (c) { return { t: c.t, s: c.s, cls: 'ok', icon: '#ri-check-line' }; }) : [],
       dField: !!(D && D.field), fLabel: D && D.field ? D.field[0] : '', fValue: D && D.field ? D.field[1] : '', fUnit: unitMany,

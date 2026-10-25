@@ -49,7 +49,7 @@
     <div class="pp-bar">
       <sc-if value="{{hasReason}}" hint-placeholder-val="{{false}}"><p class="pp-reason" role="status">{{reason}}</p></sc-if>
       <div class="pp-acts">
-        <sc-if value="{{canGo}}" hint-placeholder-val="{{true}}"><a class="btn" href="SPay.dc.html">{{cta}}</a></sc-if>
+        <sc-if value="{{canGo}}" hint-placeholder-val="{{true}}"><a class="btn" href="SPay.dc.html?kind={{kindParam}}">{{cta}}</a></sc-if>
         <sc-if value="{{blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{cta}}</button></sc-if>
       </div>
     </div>
@@ -131,6 +131,7 @@ class Component extends DCLogic {
     var reason = REASON[st] || '';
     var hasBar = !d;
     return Object.assign(GGTW(this.props), {
+      kindParam: encodeURIComponent(kind),
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
       offline: st === 'Offline', offlineMode: t('c.offline'), backLabel: t('c.back'),
       title: K.title, cycle: K.cycle, garden: K.garden, bandLabel: t('sh.where'), pill: t('sh.st.offered'), bandText: K.band,

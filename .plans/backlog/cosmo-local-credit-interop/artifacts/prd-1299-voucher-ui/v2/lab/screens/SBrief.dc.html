@@ -37,7 +37,7 @@
         </a>
       </sc-for>
     </div>
-    <p class="wl-where mx16"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg><span><b>{{peerT}}</b> {{peerS}} <a class="tlink" href="SRedeem.dc.html">{{peerLink}}</a></span></p>
+    <p class="wl-where mx16"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg><span><b>{{peerT}}</b> {{peerS}} <a class="tlink" href="SRedeem.dc.html?kind=Lesson">{{peerLink}}</a></span></p>
   </div>
   <sc-if value="{{details}}" hint-placeholder-val="{{false}}">
     <div class="scrim"></div>
@@ -68,7 +68,7 @@ class Component extends DCLogic {
     var S = { 'Open': ['progress', 'requested', 'requested'], 'In progress': ['awaiting', 'progress', 'requested'], 'One kept': ['kept', 'progress', 'requested'], 'Campaign details': ['progress', 'requested', 'requested'] }[st];
     var req = t('sh.ck.request');
     var rows = [
-      { title: t('rw.m.title'), details: [t('gp.d.due', { date: t.d('2026-11-20') }), t('who.noor')], href: 'SReward.dc.html' },
+      { title: t('rw.m.title'), details: [t('gp.d.due', { date: t.d('2026-11-20') }), t('who.noor')], href: 'SReward.dc.html?kind=Member%20voucher' },
       { title: t('br.t.analysis'), details: [t('gp.d.due', { date: t.d('2026-11-24') }), t('who.mayaFull')], href: '#' },
       { title: t('br.t.build'), details: [t('gp.d.due', { date: t.d('2026-11-30') }), t('who.teoFull')], href: '#' }
     ].map(function (r, i) { r.dir = req; r.pill = t(P[S[i]][0]); r.tone = P[S[i]][1]; return r; });

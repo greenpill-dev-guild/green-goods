@@ -962,3 +962,59 @@
 .gg .pf-head b { display: block; font-size: 18px; line-height: 24px; font-weight: 600; color: var(--strong); }
 .gg .pf-head small { display: block; font-size: 12px; line-height: 16px; color: var(--muted); }
 .gg .pf-secs { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
+
+/* ================= Shipped cockpit controls (develop, 24 Oct, evening) =================
+   DL-115 to DL-119 and DL-122 put the cockpit's buttons, fields, filter chip and dialogs on the
+   shared family (packages/shared theme.css and utilities.css, admin index.css and
+   admin-m3-tokens.css). These rules redraw them on the pilot's cockpit screens, the ones that
+   carry the dials ([data-density]); v1's reference desks keep their older look. */
+.gg.ck[data-density] { --ctl-outline: #78716C; --ctl-err: #D02533; --ctl-fill: #FFFFFF; --srch: #F7F4EF; --dis-fill: rgba(12, 10, 9, .12); --dis-ink: rgba(12, 10, 9, .38); --raised: #FFFFFF; }
+.gg.ck[data-density].dark { --ctl-outline: #A8A29E; --ctl-err: #FF6875; --ctl-fill: #110C08; --srch: #2A231C; --dis-fill: rgba(250, 250, 249, .12); --dis-ink: rgba(250, 250, 249, .38); --dlg: #342C24; --raised: #2A231C; }
+/* Dark ink on the lifted dialog surface: the sub ink is the cockpit's neutral-300, as shipped, and the error ink takes
+   one step lighter than the shipped red-400, which measures 4.17:1 inside an error alert on that surface (design-audit.md) */
+.gg.ck[data-density].dark { --muted: #D6D3D1; --err: #FF8A95; }
+
+/* Buttons (DL-115, DL-119): pills with one 14px label at 500 and no elevation. Filled is the
+   workspace tone, outlined sits on the control outline in the strong ink, text takes the sub ink;
+   32px, 40px in a dialog's action bar, 28px in a Review Promises row. Disabled is a 12% ink fill
+   under a 38% ink label, not a dim. */
+.gg.ck[data-density] .abtn { height: 32px; padding: 0 16px; border: 1px solid var(--ctl-outline); border-radius: 999px; background: var(--card); color: var(--strong); font-size: 14px; font-weight: 500; box-shadow: none; }
+.gg.ck[data-density] .abtn.lg { height: 40px; padding: 0 20px; }
+.gg.ck[data-density] .abtn.cmp { height: 28px; padding: 0 10px; }
+.gg.ck[data-density] .abtn.fill { border-color: transparent; background: var(--t-action); color: var(--t-action-ink); }
+.gg.ck[data-density] .abtn.txt, .gg.ck[data-density] .abtn.link { border-color: transparent; background: transparent; color: var(--muted); }
+.gg.ck[data-density] .abtn.off, .gg.ck[data-density] .abtn:disabled { opacity: 1; border-color: transparent; background: var(--dis-fill); color: var(--dis-ink); }
+
+/* Dialogs (DL-117): the shared header with no rule under it (the 22px title, the target line, the
+   description, and Close on the title's line), the body, then the shared action bar on the
+   raised footer: Cancel outlined, the confirm filled. A wallet note closes the body. */
+.gg.ck[data-density] .dlg .dh { position: static; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 16px 12px; border-bottom: 0; }
+.gg.ck[data-density] .dlg .dh > div { flex: 1 1 auto; min-width: 0; padding-top: 4px; }
+.gg.ck[data-density] .dlg .dh h2 { font-size: 22px; line-height: 28px; font-weight: 600; overflow-wrap: anywhere; }
+.gg.ck[data-density] .dlg .dh > div > p { margin: 4px 0 0; font-size: 14px; line-height: 20px; color: var(--muted); }
+.gg.ck[data-density] .dlg .dh .close { position: static; flex: 0 0 40px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; color: var(--muted); }
+.gg.ck[data-density] .dlg .tgt { margin: 8px 0 0; min-width: 0; }
+/* The shipped label takes the soft ink, 3.96:1 on the dialog surface; the lab uses the sub ink to hold AA (design-audit.md) */
+.gg.ck[data-density] .dlg .tgt dt { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); }
+.gg.ck[data-density] .dlg .tgt dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--strong); }
+.gg.ck[data-density] .dlg .df { gap: 8px; padding: 12px 24px; border-top: 1px solid var(--line); background: var(--raised); }
+.gg.ck[data-density] .dnote { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--strong); }
+/* In the protocol pool the warning takes the target line's place (PoolTarget) */
+.gg.ck[data-density] .dlg .dh .tgt-alert { margin-top: 8px; }
+/* The confirm opened in a row (dial V5): the note takes what the two buttons leave, so they keep one line */
+.gg.ck[data-density] .ck-xp .xacts { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; column-gap: 8px; }
+.gg.ck[data-density] .ck-xp .xacts .note { margin-right: 0; }
+
+/* Fields (DL-116): the shared control on the admin surface, a 1px control-grade outline round a
+   white box, 40px with 14px text; an error is a 1px border in the field family's red */
+.gg.ck[data-density] .gg-field .ctl { border-color: var(--ctl-outline); background: var(--ctl-fill); box-shadow: none; }
+.gg.ck[data-density] .gg-field .ctl.bad { border-color: var(--ctl-err); box-shadow: none; }
+
+/* Filter chips (DL-116, DL-122): the shared chip, 32px, on the control outline in the sub ink;
+   the selected chip fills with the workspace tone */
+.gg.ck[data-density] .chipf { height: 32px; padding: 0 14px; border: 1px solid var(--ctl-outline); background: var(--card); color: var(--muted); font-size: 14px; font-weight: 500; }
+.gg.ck[data-density] .chipf.on { border-color: transparent; background: var(--t-action); color: var(--t-action-ink); }
+
+/* Search (AdminSearchToolbar): a 36px pill on the container step with the decorative edge and a 13px glyph */
+.gg.ck[data-density] .ck-search { height: 36px; border: 1px solid var(--line); background: var(--srch); }
+.gg.ck[data-density] .ck-search .i { width: 13px; height: 13px; }

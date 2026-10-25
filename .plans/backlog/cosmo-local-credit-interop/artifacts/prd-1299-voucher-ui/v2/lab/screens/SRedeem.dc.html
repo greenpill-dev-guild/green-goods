@@ -206,10 +206,10 @@ class Component extends DCLogic {
     var self = this;
     var checked = !!(this.state && this.state.checked);
     // A lesson is a member's service: Teo approves and keeps the reserve; the garden's stewards accept the booking
-    // A hub day is Tech and Sun's, whose Safe signs 2 of 3; Claude access is Green Goods', whose Safe signs 2 of 5
+    // A hub day is Tech and Sun's, whose Safe starts with one signer and moves to two; Claude access is Green Goods', whose Safe signs 2 of 5
     var ISS = lesson ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
       : course ? { issuer: t0('who.ggShort'), issuerFull: t0('who.gg'), unit: t0('u.ggMany'), garden: t0('who.rc'), sigs: t0('c.sigs25') }
-      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc'), sigs: t0('c.sigs23') };
+      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc'), sigs: t0('c.sigs1') };
     var unitOne = lesson ? t0('u.teo') : course ? t0('u.ggOne') : t0('u.sunOne');
     var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
     t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
