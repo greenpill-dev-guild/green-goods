@@ -25,20 +25,16 @@ test.describe("Work Submission CI Tests", () => {
       await page.goto("/home/garden?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      // Each picker is a listbox of cards; a press chooses one.
+      // The picker is a listbox of cards; a press chooses one. The account's one garden is its
+      // active garden, so Start asks only for the action (decision 28).
       const actionCard = page
         .getByRole("listbox", { name: "Select Your Action" })
         .getByRole("option")
         .first();
-      const gardenCard = page
-        .getByRole("listbox", { name: "Select Your Garden" })
-        .getByRole("option")
-        .first();
       await expect(actionCard).toBeVisible();
-      await expect(gardenCard).toBeVisible();
+      await expect(page.getByRole("listbox", { name: "Select Your Garden" })).toHaveCount(0);
 
       await actionCard.click();
-      await gardenCard.click();
 
       const startButton = page.getByRole("button", { name: "Start Gardening" });
       await expect(startButton).toBeEnabled();

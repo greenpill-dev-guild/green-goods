@@ -7,6 +7,7 @@ const seams = vi.hoisted(() => ({
   approvals: vi.fn(),
   byUID: vi.fn(),
   approvalsForWork: vi.fn(),
+  activity: vi.fn(),
 }));
 
 vi.mock("../../../modules/data/eas", () => ({
@@ -15,6 +16,7 @@ vi.mock("../../../modules/data/eas", () => ({
   getWorksByUIDs: seams.byUID,
   getWorkApprovalsForWork: seams.approvalsForWork,
   readWorkApprovalsForWorks: seams.approvals,
+  getGardenActivitySince: seams.activity,
 }));
 
 const CONFIGURED_UID = `0x${"1".repeat(64)}`;
@@ -24,7 +26,7 @@ vi.mock("../../../config/blockchain", async (importOriginal) => ({
   getEASConfig: () => ({ WORK_APPROVAL: { uid: chain.workApprovalUID } }),
 }));
 
-const { readApprovedWorks, readWorkByUID, readWorkList } = await import(
+const { readApprovedWorks, readGardenActivity, readWorkByUID, readWorkList } = await import(
   "../../../modules/work/work-list"
 );
 
@@ -158,6 +160,51 @@ describe("readWorkList", () => {
       vi.unstubAllGlobals();
       vi.useRealTimers();
     }
+  });
+});
+
+describe("readGardenActivity", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("reads a garden's week however far back each work began", async () => {
+    seams.activity.mockResolvedValue({
+      works: [work("work-new"), work("work-decided")],
+      decisions: [
+        approval("approval-new", "work-decided", true),
+        // A work from before the window, decided inside it.
+        approval("approval-old", "work-old", false),
+      ],
+      truncated: false,
+    });
+    seams.byUID.mockResolvedValue([work("work-old")]);
+
+    const activity = await readGardenActivity({ garden: "garden", chainId: 42161, since: 5 });
+
+    expect(seams.activity).toHaveBeenCalledWith("garden", { chainId: 42161, since: 5 });
+    expect(seams.byUID).toHaveBeenCalledWith(["work-old"], 42161);
+    expect(activity.complete).toBe(true);
+    expect(activity.rows.map(({ id, approval }) => [id, approval?.id ?? approval])).toEqual([
+      ["work-new", null],
+      ["work-decided", "approval-new"],
+      ["work-old", "approval-old"],
+    ]);
+  });
+
+  it("says the week is incomplete when a list ran over or an older work could not be read", async () => {
+    seams.activity.mockResolvedValue({
+      works: [work("work-new")],
+      decisions: [approval("approval-old", "work-old", false)],
+      truncated: false,
+    });
+    seams.byUID.mockRejectedValue(new Error("getWorksByUIDs timed out"));
+
+    const unread = await readGardenActivity({ garden: "garden", chainId: 42161, since: 5 });
+    expect(unread.complete).toBe(false);
+    expect(unread.rows.map(({ id }) => id)).toEqual(["work-new"]);
+
+    seams.activity.mockResolvedValue({ works: [work("work-new")], decisions: [], truncated: true });
+    const cut = await readGardenActivity({ garden: "garden", chainId: 42161, since: 5 });
+    expect(cut.complete).toBe(false);
   });
 });
 

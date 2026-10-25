@@ -12,6 +12,11 @@ import type {
 import { publishSignOut } from "../../modules/auth/sessionSignOut";
 import { createAuthServices } from "../../workflows/authServices";
 import { passkeyServerRefusal } from "../test-utils/passkey-server-refusal";
+import {
+  LEGACY_PASSKEY_PROFILE,
+  PILOT_PASSKEY_PROFILE,
+  type PasskeyAccountProfileId,
+} from "../../modules/auth/account-profile";
 
 const CHAIN_ID = 11155111;
 const USER = "testuser";
@@ -57,6 +62,7 @@ function createHarness() {
     expectedAddress: Hex | null;
     serverEnabled: boolean;
     directoryEnabled: boolean;
+    profile: PasskeyAccountProfileId;
   } = {
     signedOut: false,
     authMode: null,
@@ -66,6 +72,7 @@ function createHarness() {
     expectedAddress: null,
     serverEnabled: false,
     directoryEnabled: false,
+    profile: LEGACY_PASSKEY_PROFILE,
   };
 
   const sessionSpies = {
@@ -97,6 +104,12 @@ function createHarness() {
     setStoredUsername: sessionSpies.setUserName,
     getStoredSmartAccountAddress: () => state.expectedAddress,
     setStoredSmartAccountAddress: sessionSpies.setAddress,
+    getStoredAccountProfile: () => state.profile,
+    setStoredAccountProfile: vi.fn((profile) => {
+      state.profile = profile;
+    }),
+    getStoredProfileAddress: () => null,
+    setStoredProfileAddress: vi.fn(),
   };
 
   const telemetry: AuthTelemetryAdapter = {
@@ -161,6 +174,7 @@ function createHarness() {
     }),
   };
   const adapters: PasskeyAdapters = {
+    hasPilotAccountProof: vi.fn(async () => true),
     session,
     telemetry,
     isServerEnabled: () => state.serverEnabled,
@@ -175,10 +189,12 @@ function createHarness() {
     getRpId: () => "localhost",
     getSiteRpId: () => SITE_HOST,
     randomChallenge: () => new Uint8Array([1, 2, 3]),
-    buildSmartAccount: (credential, chainId, rpId, knownAddress) =>
-      knownAddress
-        ? calls.buildSmartAccount(credential, chainId, rpId, knownAddress)
-        : calls.buildSmartAccount(credential, chainId, rpId),
+    buildSmartAccount: (credential, chainId, rpId, knownAddress, profile) =>
+      profile
+        ? calls.buildSmartAccount(credential, chainId, rpId, knownAddress, profile)
+        : knownAddress
+          ? calls.buildSmartAccount(credential, chainId, rpId, knownAddress)
+          : calls.buildSmartAccount(credential, chainId, rpId),
   };
   return {
     state,
@@ -187,6 +203,7 @@ function createHarness() {
     server,
     directory,
     calls,
+    adapters,
     services: createAuthServices(adapters),
   };
 }
@@ -196,6 +213,106 @@ describe("createAuthServices", () => {
 
   beforeEach(() => {
     harness = createHarness();
+  });
+
+  it("restores a selected pilot by derivation without an address override and requires its chain proof", async () => {
+    harness.state.profile = PILOT_PASSKEY_PROFILE;
+    harness.state.credential = CREDENTIAL;
+    harness.state.expectedAddress = ADDRESS;
+    const result = await invoke(harness.services.restoreSession, { chainId: 42161 });
+    expect(result).toMatchObject({
+      accountProfile: PILOT_PASSKEY_PROFILE,
+      smartAccountAddress: ADDRESS,
+    });
+    expect(harness.calls.buildSmartAccount).toHaveBeenCalledWith(
+      CREDENTIAL,
+      42161,
+      "localhost",
+      undefined,
+      PILOT_PASSKEY_PROFILE
+    );
+    vi.mocked(harness.adapters.hasPilotAccountProof).mockResolvedValue(false);
+    harness.sessionSpies.setAddress.mockClear();
+    expect(await invoke(harness.services.restoreSession, { chainId: 42161 })).toBeNull();
+    expect(harness.state.profile).toBe(PILOT_PASSKEY_PROFILE);
+    expect(harness.sessionSpies.setAddress).not.toHaveBeenCalled();
+  });
+
+  it("uses the legacy profile when another verified hosted credential signs in after a pilot account", async () => {
+    harness.state.profile = PILOT_PASSKEY_PROFILE;
+    harness.state.credential = CREDENTIAL;
+    harness.state.expectedAddress = OTHER_ADDRESS;
+    harness.state.serverEnabled = true;
+    harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+    const result = await invoke(harness.services.authenticatePasskey, {
+      userName: USER,
+      chainId: CHAIN_ID,
+    });
+    expect(result).toMatchObject({
+      accountProfile: LEGACY_PASSKEY_PROFILE,
+      smartAccountAddress: ADDRESS,
+    });
+    expect(harness.state.profile).toBe(LEGACY_PASSKEY_PROFILE);
+    expect(harness.adapters.hasPilotAccountProof).not.toHaveBeenCalled();
+  });
+
+  it("reopens the archived original address only after explicit verified passkey sign-in", async () => {
+    harness.state.profile = PILOT_PASSKEY_PROFILE;
+    harness.state.credential = CREDENTIAL;
+    harness.state.expectedAddress = OTHER_ADDRESS;
+    vi.spyOn(harness.adapters.session, "getStoredProfileAddress").mockImplementation((profile) =>
+      profile === LEGACY_PASSKEY_PROFILE ? ADDRESS : null
+    );
+    const result = await invoke(harness.services.authenticatePasskey, {
+      userName: "",
+      chainId: 42161,
+      originalAccount: true,
+    });
+    expect(result).toMatchObject({
+      accountProfile: LEGACY_PASSKEY_PROFILE,
+      smartAccountAddress: ADDRESS,
+    });
+    expect(harness.calls.verifyAssertion).toHaveBeenCalled();
+    expect(harness.state.profile).toBe(LEGACY_PASSKEY_PROFILE);
+    expect(harness.adapters.session.setStoredProfileAddress).toHaveBeenCalledWith(
+      PILOT_PASSKEY_PROFILE,
+      CREDENTIAL,
+      OTHER_ADDRESS,
+      "localhost",
+      ""
+    );
+    expect(harness.adapters.hasPilotAccountProof).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "cancel",
+    "invalid_assertion",
+    "address_mismatch",
+  ])("keeps the pilot and original recovery metadata when original sign-in has %s", async (failure) => {
+    harness.state.profile = PILOT_PASSKEY_PROFILE;
+    harness.state.credential = CREDENTIAL;
+    harness.state.expectedAddress = OTHER_ADDRESS;
+    vi.spyOn(harness.adapters.session, "getStoredProfileAddress").mockImplementation((profile) =>
+      profile === LEGACY_PASSKEY_PROFILE ? ADDRESS : null
+    );
+    if (failure === "cancel") harness.calls.getWebAuthnCredential.mockResolvedValueOnce(null);
+    if (failure === "invalid_assertion") harness.calls.verifyAssertion.mockResolvedValueOnce(false);
+    if (failure === "address_mismatch")
+      harness.calls.buildSmartAccount.mockResolvedValue({
+        client: { account: { address: OTHER_ADDRESS } } as SmartAccountClient,
+        address: OTHER_ADDRESS,
+      });
+    await expect(
+      invoke(harness.services.authenticatePasskey, {
+        userName: "",
+        chainId: 42161,
+        originalAccount: true,
+      })
+    ).rejects.toBeInstanceOf(Error);
+    expect(harness.state.profile).toBe(PILOT_PASSKEY_PROFILE);
+    expect(harness.state.expectedAddress).toBe(OTHER_ADDRESS);
+    expect(harness.adapters.session.setStoredProfileAddress).not.toHaveBeenCalled();
+    expect(harness.adapters.session.setStoredAccountProfile).not.toHaveBeenCalled();
   });
 
   it.each([

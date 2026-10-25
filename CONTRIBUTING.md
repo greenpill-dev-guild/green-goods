@@ -1,6 +1,6 @@
 # Contributing to Green Goods
 
-Green Goods is open source infrastructure, and we welcome contributions. This file is the repo-level quick reference; the full contributor guide lives at [docs.greengoods.app/builders/how-to-contribute](https://docs.greengoods.app/builders/how-to-contribute).
+Green Goods is open source infrastructure built and maintained by its contributors. We welcome contributions. This file is the repo-level quick reference; the full contributor guide lives at [docs.greengoods.app/builders/how-to-contribute](https://docs.greengoods.app/builders/how-to-contribute).
 
 ## First setup
 

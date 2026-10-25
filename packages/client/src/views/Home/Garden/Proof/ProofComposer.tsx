@@ -74,8 +74,8 @@ export function ProofComposer() {
 
   // Leaving goes back to the promise this flow came from, so Back from the
   // promise reaches the Promises tab; a proof link opened directly replaces
-  // itself with the promise (PRD-1015). Opened from Your Work, the promise
-  // takes this screen's place and its Back reopens Your Work.
+  // itself with the promise (PRD-1015). Opened from Your Work or Home, the
+  // promise takes this screen's place and its Back returns there.
   const toPromise = useCallback(() => {
     const parent = location.pathname.replace(/\/proof\/?$/, "");
     if (location.state?.proofOrigin === parent) navigate(-1);
@@ -84,7 +84,9 @@ export function ProofComposer() {
         relative: "path",
         replace: true,
         state:
-          location.state?.from === "dashboard" ? { from: "dashboard" } : { proofDirectEntry: true },
+          location.state?.from === "dashboard" || location.state?.from === "home"
+            ? { from: location.state.from }
+            : { proofDirectEntry: true },
       });
   }, [dashboardNavigation, location.pathname, location.state, navigate]);
   // Once the proof is admitted and no prompt waits here, the proof screens

@@ -21,6 +21,7 @@ const MAYA = {
 };
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
+  useAwaitingJoinRequests: () => new Set<string>(),
   useGardenJoinRequestAvailability: () => true,
   useGardenJoinRequests: () => ({
     queue: queue.current,

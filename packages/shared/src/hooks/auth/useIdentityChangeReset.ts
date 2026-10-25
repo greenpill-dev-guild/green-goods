@@ -22,7 +22,9 @@
  * language, debug mode, install and shell flags (the offline banner, the admin
  * sidebar), the media policy, the reading cache's shared reads, the admin's
  * last garden and the app's active garden (`useActiveGardenStore`; each keyed
- * by chain and address), drafts and queued work, and a
+ * by chain and address), the garden events this device has shown
+ * (`useGardenNotificationsSeenStore`, keyed by chain, address and garden),
+ * drafts and queued work, and a
  * username change in flight (`useUsernameChangeStore`). That change is keyed by
  * its owner on the default chain, where names live: its release is already on
  * the chain, the next account never reads it, and only the same account coming

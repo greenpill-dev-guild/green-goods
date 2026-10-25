@@ -473,6 +473,15 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
                 priority: 45,
                 includeDependenciesRecursively: false,
               },
+              // The entry loads its error reporting before any route. A route that reaches only
+              // part of it, as the reporting pages reach the categories, must not split it into
+              // one more file the page preloads.
+              {
+                name: "error-reporting",
+                test: /\/packages\/shared\/src\/modules\/app\/error-(?:breadcrumbs|categories|events)\.ts$/,
+                priority: 45,
+                includeDependenciesRecursively: false,
+              },
               // Public read paths use viem without needing Reown/Wagmi UI.
               {
                 name: "vendor-viem",

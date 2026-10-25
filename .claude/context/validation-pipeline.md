@@ -54,7 +54,12 @@ Push plans also report `budget.estimatedWallSeconds`, `budget.hardLimitSeconds`,
 `budget.enforced`. Checks run one at a time, so the estimate is the sum of their budgets, which are
 cold measurements on a quiet machine; package suites get the whole machine through the test lease.
 Routine pushes have a 90-second hard limit; sensitive pushes have 180 seconds. Critical checks are
-uncapped and cannot be suppressed by a budget or compatibility flag. The manual `browser-proof`
+uncapped and cannot be suppressed by a budget or compatibility flag. The hard limit assumes a host
+with room to run the plan: when the 1-minute load average exceeds one and a half times the host's
+CPU count, sampled when the plan starts and again when the limit fires, the runner suspends the
+limit and says so in its Budget line or a closing note. A suspended limit stops no check and skips
+none; failures and cancellation end the run as they always do. Where the host CPU count is unknown
+the limit stays in force. The manual `browser-proof`
 check is advisory: it is reported separately, never blocks a local plan, and is not part of the
 automated deadline.
 
@@ -67,9 +72,9 @@ kept beside tests (Markdown) select no test run. A plan whose
 selected suites are all focused runs even when its static estimate exceeds the limit; the hard
 deadline then decides. Supply a focused test with
 `--test-path <surface>:<path>`, narrow the change, or select an existing explicit acceptance check.
-If execution reaches the deadline, the runner terminates the active noncritical process group,
-returns `budget-exceeded`, preserves receipts for checks that already passed, and starts no further
-checks.
+If execution reaches the deadline on a host with room, the runner terminates the active
+noncritical process group, returns `budget-exceeded`, preserves receipts for checks that already
+passed, and starts no further checks.
 
 Receipt reuse is opt-in and off by default. Pass `--reuse-passing-receipts` to
 `node scripts/dev/ci-local.js` to skip checks whose exact fingerprint already passed. The store

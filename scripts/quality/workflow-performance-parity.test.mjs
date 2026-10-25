@@ -982,7 +982,12 @@ test("contract fork CI selects the same shards through the argument-based runner
   assert.doesNotMatch(source, /test:fork:[\w:-]+/);
 });
 
+// Three tests run the fixture in sequence inside the push gate's 180s budget. A hang in one
+// chain is systemic, so the rest skip instead of each waiting out their own cap.
+let aggregateFixtureHung = false;
+
 function aggregateFixture(command, failingPackage) {
+  assert.equal(aggregateFixtureHung, false, "an earlier aggregate chain hung; skipping this one");
   const fixture = mkdtempSync(join(tmpdir(), "gg-aggregate-selection-"));
   const log = join(fixture, "calls");
   const rootScripts = JSON.parse(read("package.json")).scripts;
@@ -1018,9 +1023,14 @@ fi
   try {
     if (command === "test") assert.equal(rootScripts.test, "node scripts/dev/test.js");
     const result = spawnSync(command === "test" ? "node" : "bun", command === "test" ? ["scripts/dev/test.js"] : ["--no-env-file", "run", command], {
-      cwd: fixture, encoding: "utf8", timeout: 10_000,
+      // The chain spawns five to seven `bun run` processes; under the load of several push gates
+      // at once each spawn slows and a 10s cap failed runs whose diffs never touched this file.
+      // The tests check order, not speed, so the cap only has to catch a hang, and three caps
+      // in a row still fit the 180s push budget.
+      cwd: fixture, encoding: "utf8", timeout: 45_000,
       env: { ...process.env, CALL_LOG: log, AGGREGATE_PATH: process.env.PATH, PATH: `${join(fixture, "bin")}:${process.env.PATH}` },
     });
+    if (result.error?.code === "ETIMEDOUT" || result.signal === "SIGTERM") aggregateFixtureHung = true;
     return { ...result, calls: readFileSync(log, "utf8").trim().split("\n") };
   } finally {
     rmSync(fixture, { recursive: true, force: true });
