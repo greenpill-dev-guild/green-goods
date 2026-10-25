@@ -974,15 +974,18 @@
    * the pale green behind a deep green icon. */
   --primary-container: var(--green-100);
   --primary-container-foreground: var(--green-900);
-  /* The garden context chip at the app's density: a 44px capsule, a 28px
-   * avatar with a 16px glyph and caret, the 16px label role, the control
-   * outline, and focus in the app's green. Unset, the chip keeps the
-   * cockpit's 36px pill. Its two colors are set again in the dark block. */
-  --gg-garden-chip-height: 2.75rem;
-  --gg-garden-chip-inline-start: 0.5rem;
-  --gg-garden-chip-inline-end: 1rem;
-  --gg-garden-chip-avatar: 1.75rem;
-  --gg-garden-chip-glyph: 1rem;
+  /* The garden context chip at the app's density (DL-124): a 32px capsule, the
+   * height of the compact icon buttons beside it, with a 48px hit area; the
+   * garden's banner as a 22px avatar inset 4px inside the edge (a 14px glyph
+   * where it falls back to the seedling), a 16px caret, the 16px label role,
+   * the control outline, and focus in the app's green. Unset, the chip keeps
+   * the cockpit's 36px pill. Its two colors are set again in the dark block. */
+  --gg-garden-chip-height: 2rem;
+  --gg-garden-chip-hit: var(--gg-hit-block, 3rem);
+  --gg-garden-chip-inline-start: 0.25rem;
+  --gg-garden-chip-inline-end: 0.75rem;
+  --gg-garden-chip-avatar: 1.375rem;
+  --gg-garden-chip-glyph: 0.875rem;
   --gg-garden-chip-caret: 1rem;
   --gg-garden-chip-edge: var(--gg-control-outline);
   --gg-garden-chip-focus-ring: var(--focus-ring);
@@ -1770,6 +1773,17 @@
     position: absolute;
     inset: calc((var(--gg-icon-button-size) - var(--gg-hit-block, 3rem)) / 2 - 1px);
     border-radius: 50%;
+  }
+
+  /* The garden chip's hit area (DL-124), drawn as the icon button's: where a
+   * surface sets --gg-garden-chip-hit (the app's 48px), the box reaches it above
+   * and below, inside the 1px border; sideways it is the chip. The cockpit sets
+   * none, so its chip keeps its own box. */
+  .gg-garden-chip::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--gg-garden-chip-height, 36px) - var(--gg-garden-chip-hit, var(--gg-garden-chip-height, 36px))) / 2 - 1px) -1px;
+    border-radius: inherit;
   }
 
   .gg-icon-button:hover {

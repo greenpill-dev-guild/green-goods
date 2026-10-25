@@ -7,11 +7,13 @@ import {
   useRefreshAction,
 } from "@green-goods/shared/components/Canvas/RefreshActionContext";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
+import { FIXTURE_IMAGE_BANNER } from "../../../../shared/.storybook/fixtures";
 import { AppBar } from "./AppBar";
 
+// The cockpit hands the chip the selected garden's banner for its avatar (DL-124).
 const gardens = [
-  { id: "g1", name: "Rio Claro Community Garden" },
-  { id: "g2", name: "Jardim Botafogo" },
+  { id: "g1", name: "Rio Claro Community Garden", bannerImage: FIXTURE_IMAGE_BANNER },
+  { id: "g2", name: "Jardim Botafogo", bannerImage: "" },
 ];
 
 const gardenChipElement = (
@@ -70,8 +72,8 @@ export const SheetContext: Story = {
 };
 
 const longNamedGardens = [
-  { id: "g1", name: "Green Goods Community Garden" },
-  { id: "g2", name: "TAS HUB" },
+  { id: "g1", name: "Green Goods Community Garden", bannerImage: "" },
+  { id: "g2", name: "TAS HUB", bannerImage: FIXTURE_IMAGE_BANNER },
 ];
 
 function WithRefresh({ children }: { children: ReactNode }) {
