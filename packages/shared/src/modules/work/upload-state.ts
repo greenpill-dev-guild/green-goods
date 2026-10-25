@@ -14,8 +14,9 @@ import { hasRecordedSend, isTerminallyFailedJob } from "../job-queue/queue-polic
 
 /** What background preparation last found for a queued item. */
 export type UploadPreparation =
-  | { status: "ready"; checkedAt: string }
-  | { status: "photo-pending" | "photo-needs-attention"; checkedAt: string }
+  | { status: "ready" | "photo-pending"; checkedAt: string }
+  /** `photo` names one that cannot be published, when that is what needs attention. */
+  | { status: "photo-needs-attention"; photo?: string; checkedAt: string }
   | { status: "blocked"; reason: string; checkedAt: string };
 
 export type QueuedUploadState =
@@ -40,6 +41,8 @@ export interface QueuedUploadStatus {
   state: QueuedUploadState;
   /** Why a blocked item cannot be sent. */
   reason?: string;
+  /** The photo that needs attention, by file name, when one is named. */
+  photo?: string;
 }
 
 // Each kind here needs an entry in upload-kinds.ts, which says how it is prepared
@@ -58,8 +61,15 @@ export function uploadPreparationOf(job: Pick<Job, "meta">): UploadPreparation |
   switch (preparation.status) {
     case "ready":
     case "photo-pending":
-    case "photo-needs-attention":
       return { status: preparation.status, checkedAt: preparation.checkedAt };
+    case "photo-needs-attention": {
+      const { photo } = preparation as { photo?: unknown };
+      return {
+        status: preparation.status,
+        ...(typeof photo === "string" ? { photo } : {}),
+        checkedAt: preparation.checkedAt,
+      };
+    }
     case "blocked":
       return typeof (preparation as { reason?: unknown }).reason === "string"
         ? {
@@ -89,5 +99,7 @@ export function queuedUploadStatus(job: Job): QueuedUploadStatus {
   if (waiting === "photo-needs-attention") return { state: "photo-needs-attention" };
   if (!preparation) return { state: "preparing" };
   if (preparation.status === "blocked") return { state: "blocked", reason: preparation.reason };
+  if (preparation.status === "photo-needs-attention" && preparation.photo)
+    return { state: preparation.status, photo: preparation.photo };
   return { state: preparation.status };
 }
