@@ -40,6 +40,12 @@ export interface PendingProof {
   commitmentId: bigint;
   /** The garden whose pool holds the promise, where its page opens; null until known. */
   garden: Address | null;
+  /**
+   * The garden saved with this proof: its queued job's, or the one its draft was opened
+   * under; null for an older draft saved without one. A garden-scoped list reads this, as
+   * the Your Work count does, so the two agree.
+   */
+  savedGarden: Address | null;
   /** The promise as read, for its title; null until its record is read. */
   commitment: CommitmentReadModel | null;
   /** The promise's own title, from its metadata. */
@@ -100,6 +106,7 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
       items.push({
         id: job.id,
         source: "queued",
+        savedGarden: (payload.gardenAddress as Address | undefined) ?? null,
         commitmentId: BigInt(payload.commitmentId),
         savedAt: job.createdAt,
         contents: proofContentsOf(payload),
@@ -127,6 +134,7 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
       items.push({
         id: key,
         source: "draft",
+        savedGarden: (draft.garden as Address | undefined) ?? null,
         commitmentId,
         savedAt: draft.updatedAt,
         contents,

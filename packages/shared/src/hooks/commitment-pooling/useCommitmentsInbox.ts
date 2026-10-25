@@ -13,6 +13,10 @@
  *    *on that tab*, and the header control carries their sum, so the two are
  *    derived from one number rather than computed twice.
  *
+ * Given the active garden's scope (DL-129), both rules apply to the promises that
+ * involve that garden: those in its pool, those its people work and those it pays
+ * for. The queue's notices follow the pool of the promise waiting to send.
+ *
  * @module hooks/commitment-pooling/useCommitmentsInbox
  */
 
@@ -26,7 +30,7 @@ import {
   selectCommitmentSeat,
 } from "../../modules/commitment-pooling";
 import type { Address } from "../../types/domain";
-import { useCommitments } from "./useCommitmentPooling";
+import { useCommitmentPools, useCommitments } from "./useCommitmentPooling";
 import { useCommitmentQueueState } from "./useCommitmentQueueState";
 
 export interface InboxCommitment {
@@ -73,7 +77,8 @@ export interface CommitmentsInbox {
    * see any.
    */
   queueUnavailable: boolean;
-  refetch: ReturnType<typeof useCommitments>["refetch"];
+  /** Reads the commitments again, and a scoped inbox's pools with them. */
+  refetch: () => Promise<unknown>;
 }
 
 /**
@@ -99,27 +104,44 @@ function seatOnOwnList(
 export function useCommitmentsInbox({
   chainId,
   viewer,
+  inScope,
 }: {
   chainId: number;
   viewer?: Address;
+  /** The active garden's scope (`useActiveGarden`); without it every garden's are listed. */
+  inScope?: (gardens: readonly (string | null | undefined)[]) => boolean;
 }): CommitmentsInbox {
   // Without a viewer there is no "mine" to scope to, and an unscoped read would
   // return every commitment on the chain rather than none. Signed out means no
   // inbox, so the query never runs.
   const query = useCommitments({ chainId, account: viewer }, { enabled: Boolean(viewer) });
+  // A promise names its pool, and the pool names its garden. Without the pools a
+  // scoped list cannot tell another garden's promise from its own, so a failed
+  // read is the list's error rather than a list of promises it cannot place.
+  const pools = useCommitmentPools({ chainId }, { enabled: Boolean(inScope) });
+  const poolsUnavailable = Boolean(inScope) && pools.isError && pools.data === undefined;
 
   // Read from the queue rather than counted from events: a counter incremented
   // on job:failed never resets, is lost on unmount, and double-counts because
   // Home and the sheet both mount this hook.
-  const { failedCount, failedCommitmentIds, hasPendingCreate, isUnavailable } =
+  const { failedCount, failedCommitmentIds, hasPendingCreate, pendingCreates, isUnavailable } =
     useCommitmentQueueState(viewer);
   const { commitments } = query;
 
   const partitioned = useMemo(() => {
     const live: InboxCommitment[] = [];
     const settled: InboxCommitment[] = [];
+    const poolGardens = new Map(
+      (pools.data ?? []).map((pool) => [pool.poolId.toString(), pool.garden])
+    );
+    const poolGarden = (poolId: bigint | string | null | undefined) =>
+      poolId === null || poolId === undefined ? null : (poolGardens.get(poolId.toString()) ?? null);
+    const involvesScope = (commitment: CommitmentReadModel) =>
+      !inScope ||
+      inScope([poolGarden(commitment.poolId), commitment.providerGarden, commitment.payerGarden]);
 
-    for (const commitment of viewer ? commitments : []) {
+    const listed = viewer && !poolsUnavailable ? commitments.filter(involvesScope) : [];
+    for (const commitment of listed) {
       const seat = seatOnOwnList(commitment, viewer);
       const isSettled = isSettledCommitmentState(commitment.derivedState);
       // Asked of the one act table, so this count and the detail screen's
@@ -139,21 +161,48 @@ export function useCommitmentsInbox({
 
     const liveActCount = live.filter((row) => row.needsYou).length;
     const settledActCount = settled.filter((row) => row.needsYou).length;
-    return { live, settled, liveActCount, settledActCount };
-  }, [commitments, viewer]);
+
+    // Never negative: every named failure is also counted in the total.
+    const unlisted = Math.max(0, failedCount - failedCommitmentIds.size);
+    if (!inScope) {
+      const notices = { hasPendingCreate, unlistedFailureCount: unlisted };
+      return { live, settled, liveActCount, settledActCount, ...notices };
+    }
+    // A promise still on the phone belongs to its pool's garden. A failure no
+    // pool places, a series say, has nowhere else to be said, so it stays.
+    const placed = (creation: { poolId: string }) => inScope([poolGarden(creation.poolId)]);
+    const failedCreations = pendingCreates.filter((creation) => creation.failed);
+    return {
+      live,
+      settled,
+      liveActCount,
+      settledActCount,
+      hasPendingCreate: pendingCreates.some((creation) => !creation.failed && placed(creation)),
+      unlistedFailureCount:
+        failedCreations.filter(placed).length + Math.max(0, unlisted - failedCreations.length),
+    };
+  }, [
+    commitments,
+    viewer,
+    inScope,
+    pools.data,
+    poolsUnavailable,
+    failedCount,
+    failedCommitmentIds,
+    hasPendingCreate,
+    pendingCreates,
+  ]);
 
   return {
     ...partitioned,
     totalActCount: partitioned.liveActCount + partitioned.settledActCount,
     availability: query.availability,
-    isLoading: query.isLoading,
-    isError: query.isError,
+    // A scoped list waits for the pools, or it would show promises it cannot place yet.
+    isLoading: query.isLoading || pools.isLoading,
+    isError: query.isError || poolsUnavailable,
     failedJobCount: failedCount,
     failedCommitmentIds,
-    // Never negative: every named failure is also counted in the total.
-    unlistedFailureCount: Math.max(0, failedCount - failedCommitmentIds.size),
-    hasPendingCreate,
     queueUnavailable: isUnavailable,
-    refetch: query.refetch,
+    refetch: () => Promise.all([query.refetch(), inScope ? pools.refetch() : undefined]),
   };
 }
