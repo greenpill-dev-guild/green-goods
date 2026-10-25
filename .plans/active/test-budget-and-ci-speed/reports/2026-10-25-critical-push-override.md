@@ -49,10 +49,21 @@ consumer suites, the test and story typechecks and the production builds on the 
 
 Added everywhere: `client-typecheck` and `admin-typecheck` as consumer proof. The owner's suite now
 runs focused on the named tests and the plan returns `needs-focus` without one, as a sensitive push
-does. In qa the override's mandatory set is the same typechecks and the focused owner suite; the
-consumer suites qa selects for every Shared change stay selected and non-mandatory, which is qa's
-own fan-out rule and not part of this decision. The cross-package checkpoint keeps the complete
-override: its consumer suites stay mandatory and its mandatory suites run whole.
+does. A critical qa run follows the same consumer rule: consumer typechecks, and a consumer suite
+only for a named test; qa's fan-out for sensitive Shared changes is unchanged. The cross-package
+checkpoint keeps the complete override: its consumer suites stay mandatory and its mandatory suites
+run whole.
+
+## Review round one (Codex, 2026-10-25)
+
+Five findings on the first head, all accepted: a critical barrel change (`modules/auth/index.ts`)
+counted compile proof and ran the whole Shared suite plus the owner build, so a critical owner now
+names a test and gets no build; the ship skill's iron law and activation table still demanded the
+complete Ship Gate for critical surfaces; critical qa still selected the consumer suites, so it now
+selects their typechecks and a suite only for a named test; `contractsCritical` fired on any
+`packages/contracts/` path beside a critical Shared change, so it now requires a matched contract
+override rule; and format, lint and the CI-owned design and supply-chain conditionals were not
+scoped the fast-push way for critical pushes.
 
 ## What to measure next
 

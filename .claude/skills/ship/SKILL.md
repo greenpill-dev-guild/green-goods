@@ -22,9 +22,10 @@ For ordinary publication, fresh evidence means targeted behavior proof, the post
 and required GitHub CI green for the PR's current head SHA. Pending, missing, stale-SHA, or
 unavailable CI is `BLOCKED`; a local full-suite run is not a substitute for PR approval.
 
-For critical surfaces, releases, or an explicit offline/full-local readiness request, fresh
-evidence also includes the complete local Ship Gate from
-[`validation-pipeline.md`](../../context/validation-pipeline.md).
+For releases or an explicit offline/full-local readiness request, fresh evidence also includes the
+complete local Ship Gate from [`validation-pipeline.md`](../../context/validation-pipeline.md). For
+critical surfaces it includes the selector's mandatory override (step 2); an ordinary critical
+commit or push does not require the complete Ship Gate.
 
 ## Activation
 
@@ -32,7 +33,8 @@ evidence also includes the complete local Ship Gate from
 |---|---|
 | “commit”, “push”, or “open a PR” | Targeted proof → commit → Push Gate → push/PR → current-head CI |
 | “ready to ship” or `--full-local` | Full local Ship Gate, then the publication flow |
-| Critical or release surface | Mandatory full local override, then the publication flow |
+| Critical surface | Mandatory override (owner typecheck and focused suite plus consumer typechecks; the complete contracts gate for contracts), then the publication flow |
+| Release | Complete local Ship Gate, then the publication flow |
 | “dry-run ship check” | Selected validation only; no commit, push, or PR |
 
 Do not activate this skill for "QA mode", "quick fix", "get this to staging", or similar requests

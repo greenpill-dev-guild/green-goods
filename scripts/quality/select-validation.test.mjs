@@ -931,10 +931,10 @@ test("mutation-rich shared hooks retain the critical override", () => {
     const plan = selectValidation({ intent: "qa", changedPaths: [changedPath] });
     assert.equal(plan.risk, "critical", changedPath);
     assert.ok(plan.checks.find((check) => check.id === "shared-test")?.mandatory, changedPath);
-    // The override mandates the consumers' typechecks. qa's own Shared fan-out still lists the
-    // consumer suites, but CI owns running them whole (D15, 2026-10-25).
+    // The override mandates the consumers' typechecks; a consumer suite runs only when the author
+    // names one of its tests, and CI owns running them whole (D15, 2026-10-25).
     assert.ok(plan.checks.find((check) => check.id === "client-typecheck")?.mandatory, changedPath);
-    assert.equal(plan.checks.find((check) => check.id === "client-test")?.mandatory, false, changedPath);
+    assert.equal(plan.checks.find((check) => check.id === "client-test"), undefined, changedPath);
   }
 });
 
@@ -3011,14 +3011,103 @@ test("a critical qa run focuses the owner's suite and mandates consumer typechec
   ]) {
     assert.ok(qa.checks.find((check) => check.id === id)?.mandatory, id);
   }
-  // qa's own Shared fan-out still lists the consumer suites; the override no longer mandates them.
+  // Consumer suites leave the critical qa plan unless the author names one of their tests.
   for (const id of ["client-test", "admin-test", "agent-test"]) {
-    assert.equal(qa.checks.find((check) => check.id === id)?.mandatory, false, id);
+    assert.equal(qa.checks.find((check) => check.id === id), undefined, id);
   }
+  const clientTest = "src/__tests__/views/SubmitWork.test.tsx";
+  const focusedConsumer = selectValidation({
+    intent: "qa",
+    changedPaths,
+    testPaths: { shared: [sharedTest], client: [clientTest] },
+  });
+  const consumerSuite = focusedConsumer.checks.find((check) => check.id === "client-test");
+  assert.deepEqual(consumerSuite?.focusedPaths, [clientTest]);
+  assert.ok(consumerSuite.selectedBy.includes("focused-test:client"));
+  assert.equal(focusedConsumer.checks.find((check) => check.id === "admin-test"), undefined);
 
   // The cross-package checkpoint keeps the complete override: its mandatory suites run whole.
   const checkpoint = selectValidation({ intent: "checkpoint", changedPaths, testPaths: { shared: [sharedTest] } });
   assert.equal(checkpoint.risk, "critical");
   assert.deepEqual(checkpoint.checks.find((check) => check.id === "shared-test").focusedPaths, []);
   assert.ok(checkpoint.checks.find((check) => check.id === "client-test")?.mandatory);
+});
+
+test("a critical barrel change still names its test and gets no owner build", () => {
+  const barrel = "packages/shared/src/modules/auth/index.ts";
+  const unfocused = selectValidation({ intent: "push", changedPaths: [barrel] });
+  assert.equal(unfocused.risk, "critical");
+  assert.equal(unfocused.status, "needs-focus");
+  assert.equal(unfocused.stopReason, "focused-proof-required");
+
+  const sharedTest = "src/__tests__/modules/auth/index.test.ts";
+  const plan = selectValidation({ intent: "push", changedPaths: [barrel], testPaths: { shared: [sharedTest] } });
+  assert.equal(plan.status, "ready");
+  const typecheck = plan.checks.find((check) => check.id === "shared-typecheck");
+  assert.ok(typecheck?.mandatory);
+  assert.ok(typecheck.selectedBy.includes("push-owner-compile:shared"));
+  assert.ok(!ids(plan).includes("shared-build"), "the critical owner's build belongs to CI");
+  assert.deepEqual(plan.checks.find((check) => check.id === "shared-test").focusedPaths, [sharedTest]);
+  // Hygiene stays scoped to the changed paths, as in every push.
+  assert.equal(
+    plan.checks.find((check) => check.id === "format").command,
+    `bunx @biomejs/biome format --no-errors-on-unmatched '${barrel}'`,
+  );
+  assert.equal(
+    plan.checks.find((check) => check.id === "lint").command,
+    `bun --bun run oxlint '${barrel}' --deny-warnings`,
+  );
+
+  // A sensitive barrel change keeps compile proof as its focus and its owner build.
+  const sensitive = selectValidation({ intent: "push", changedPaths: ["packages/shared/src/hooks/garden/index.ts"] });
+  assert.notEqual(sensitive.risk, "critical");
+  assert.equal(sensitive.status, "ready");
+  assert.ok(ids(sensitive).includes("shared-build"));
+});
+
+test("a noncritical contracts file beside a critical Shared change keeps the Shared push shape", () => {
+  const sharedTest = "src/__tests__/providers/Auth.test.tsx";
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/providers/Auth.tsx", "packages/contracts/README.md"],
+    testPaths: { shared: [sharedTest] },
+  });
+  assert.equal(plan.risk, "critical");
+  assert.equal(plan.status, "ready");
+  assert.equal(plan.budget.hardLimitSeconds, null);
+  for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast", "client-test", "client-build", "admin-test", "admin-build", "agent-test", "agent-build", "shared-build"]) {
+    assert.ok(!ids(plan).includes(id), `${id} must not join a Shared critical push`);
+  }
+  assert.ok(plan.checks.find((check) => check.id === "client-typecheck")?.mandatory);
+  assert.deepEqual(plan.checks.find((check) => check.id === "shared-test").focusedPaths, [sharedTest]);
+
+  // A matched contract override still keeps the complete contracts gate.
+  const contracts = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/providers/Auth.tsx", "packages/contracts/src/modules/HatsModule.sol"],
+    testPaths: { shared: [sharedTest] },
+  });
+  for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]) {
+    assert.ok(ids(contracts).includes(id), id);
+  }
+});
+
+test("a critical push skips the CI-owned design and supply-chain conditionals like a fast push", () => {
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: [
+      "packages/shared/src/hooks/garden/useGardenJoinRequests.ts",
+      "packages/client/src/views/Garden/GardenPage.tsx",
+    ],
+    testPaths: {
+      shared: ["src/__tests__/hooks/garden/useGardenJoinRequests.test.ts"],
+      client: ["src/__tests__/views/GardenPage.test.tsx"],
+    },
+  });
+  assert.equal(plan.risk, "critical");
+  assert.equal(plan.status, "ready");
+  assert.ok(!ids(plan).includes("design-guardrails"));
+  assert.ok(!ids(plan).includes("supply-chain"));
+  assert.ok(ids(plan).includes("staged-modules"));
+  assert.deepEqual(plan.checks.find((check) => check.id === "client-test").focusedPaths, ["src/__tests__/views/GardenPage.test.tsx"]);
 });

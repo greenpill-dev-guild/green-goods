@@ -426,14 +426,23 @@ export function receiptPolicyFor(intent, risk) {
   };
 }
 
-function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy) {
+function focusedProofMissing(
+  changedPaths,
+  testPaths,
+  requestedChecks,
+  deletedPaths,
+  policy,
+  ownersRequiringFocus = new Set(),
+) {
   if (requestedChecks.length > 0) return [];
   const missing = new Set();
   for (const path of changedPaths) {
     if (!/^packages\/[^/]+\/src\//.test(path) || isValidationOnlyPath(path)) continue;
     const surface = owningSurface(path);
     if (!surface || testPaths[surface]?.length > 0) continue;
-    if (needsOwnerCompileProof(changedPaths, surface)) continue;
+    // Compile proof stands in for a barrel or entry change, except for a critical owner, whose
+    // mandatory suite must run focused rather than whole.
+    if (!ownersRequiringFocus.has(surface) && needsOwnerCompileProof(changedPaths, surface)) continue;
     missing.add(surface);
   }
   // A deleted package test leaves its suite with nothing to focus on, and so does a changed helper
@@ -558,12 +567,29 @@ export function selectValidation(input = {}, options = {}) {
     ((intent === "ship" || localMerge) && changedPaths.length === 0);
   const strictScope = strictIntent || fullRepository;
   const surfaces = impactedSurfaces(policy, changedPaths, fullRepository);
+  const owners = new Set(changedPaths.map(owningSurface).filter(Boolean));
   // The contracts override keeps its complete local gate: its verify step has no pull-request CI
-  // equivalent yet. A Shared critical push keeps the fast-push shape instead, with the owner's
+  // equivalent yet. It is active only when a contract override rule matched a contracts-owned
+  // path; a README or test under packages/contracts/ beside a critical Shared change does not
+  // count. A Shared critical push or qa run keeps the fast-push shape instead, with the owner's
   // typecheck and focused suite mandatory and every consumer's typechecks added; CI's consumer
-  // workflows own the whole suites and production builds (2026-10-25).
-  const contractsCritical = risk === "critical" && surfaces.has("contracts");
+  // workflows own the whole suites and production builds (D15, 2026-10-25).
+  const contractsCritical = hardRules.some((rule) =>
+    changedPaths.some((path) => owningSurface(path) === "contracts" && groupMatches(path, rule)),
+  );
   const criticalPush = intent === "push" && risk === "critical" && !contractsCritical;
+  const criticalQa = intent === "qa" && risk === "critical" && !contractsCritical;
+  // The surfaces whose own files put the plan in the critical tier. In a critical push they prove
+  // themselves with a focused suite even when a barrel change would otherwise count compile proof,
+  // and CI owns their builds.
+  const criticalOwners = new Set(
+    [
+      ...changedPaths.filter((path) => hardRules.some((rule) => groupMatches(path, rule))),
+      ...contentCriticalPaths,
+    ]
+      .map(owningSurface)
+      .filter(Boolean),
+  );
   const selected = new Set();
   const selectionReasons = new Map();
   const select = (id, reason) => {
@@ -633,12 +659,14 @@ export function selectValidation(input = {}, options = {}) {
           agent: "agent-build",
         };
         if (typechecks[surface]) select(typechecks[surface], `push-owner-compile:${surface}`);
-        if (builds[surface]) select(builds[surface], `push-owner-compile:${surface}`);
+        // A critical owner proves itself with its focused suite and typecheck; CI owns its build.
+        if (builds[surface] && !(criticalPush && criticalOwners.has(surface))) {
+          select(builds[surface], `push-owner-compile:${surface}`);
+        }
       }
       if (surface === "docs") select("docs-authority", "push-owner-proof:docs");
     }
     if (criticalPush) {
-      const owners = new Set(changedPaths.map(owningSurface).filter(Boolean));
       for (const surface of surfaces) {
         if (owners.has(surface)) continue;
         const typecheck = CONSUMER_TYPECHECKS[surface];
@@ -647,6 +675,14 @@ export function selectValidation(input = {}, options = {}) {
     }
   } else {
     for (const surface of surfaces) {
+      // A critical qa run proves its consumers by typecheck and runs a consumer suite only when
+      // the author names one of its tests; CI owns the whole consumer suites (D15).
+      if (criticalQa && !owners.has(surface)) {
+        const typecheck = CONSUMER_TYPECHECKS[surface];
+        if (typecheck) select(typecheck, `critical-consumer-types:${surface}`);
+        if (testPaths[surface]?.length > 0) select(`${surface}-test`, `focused-test:${surface}`);
+        continue;
+      }
       // Shared test support a consumer's tests import counts as that consumer's own test files.
       const surfacePaths = changedPaths.filter(
         (path) =>
@@ -692,7 +728,9 @@ export function selectValidation(input = {}, options = {}) {
   }
 
   if (strictScope) {
-    if (fullRepository || surfaces.has("contracts")) {
+    // A critical Shared push keeps the fast-push shape, so a noncritical contracts file beside it
+    // (a README, an ordinary test) adds no contract gate; a matched contract override still does.
+    if (fullRepository || (surfaces.has("contracts") && !criticalPush)) {
       select("abi-artifacts", "strict-intent:contracts");
       select("contracts-verify-fast", "strict-intent:contracts");
     }
@@ -714,7 +752,7 @@ export function selectValidation(input = {}, options = {}) {
   for (const rule of policy.conditionalRules ?? []) {
     if (evidenceOnly && rule.runInEvidence !== true) continue;
     if (rule.intents && !rule.intents.includes(intent)) continue;
-    if (fastPush && ["design-guardrails", "supply-chain"].includes(rule.check)) continue;
+    if ((fastPush || criticalPush) && ["design-guardrails", "supply-chain"].includes(rule.check)) continue;
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
       if (rule.exact?.includes(path)) return true;
@@ -778,6 +816,7 @@ export function selectValidation(input = {}, options = {}) {
         deletedPaths,
         checkpointScope: checkpointScope.effective,
         contractsCritical,
+        criticalPush,
       });
       return {
         ...materialized,
@@ -811,7 +850,14 @@ export function selectValidation(input = {}, options = {}) {
   const budget = summarizeBudget(intent, checks, risk);
   const missingFocus =
     fastPush || criticalPush
-      ? focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy)
+      ? focusedProofMissing(
+          changedPaths,
+          testPaths,
+          requestedChecks,
+          deletedPaths,
+          policy,
+          criticalPush ? criticalOwners : new Set(),
+        )
       : [];
   // Static budgets are ceilings, not measurements. A plan whose package suites are all
   // focused is not over-broad, so it runs and the hard deadline decides; only an
@@ -924,7 +970,10 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   if (check.id === "format" && !context.ci && ["ship", "merge", "release"].includes(context.intent)) {
     command = "bunx @biomejs/biome format .";
   }
-  const fastPush = context.intent === "push" && context.risk !== "critical";
+  // A critical push keeps the fast-push shape, so its format and lint stay scoped to the changed
+  // paths and its focused suites take the fast-push budget.
+  const fastPush =
+    (context.intent === "push" && context.risk !== "critical") || context.criticalPush === true;
   if (
     check.id === "format" &&
     (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint || fastPush) &&
