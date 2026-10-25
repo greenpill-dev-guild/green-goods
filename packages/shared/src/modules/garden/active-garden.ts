@@ -18,6 +18,8 @@
  * carries or reads its own garden.
  */
 
+import { isZeroAddress } from "../../utils/blockchain/address";
+
 export type ActiveGardenStatus = "loading" | "error" | "none" | "choose" | "ready";
 
 export type ActiveGardenResolution =
@@ -66,4 +68,35 @@ export function resolveActiveGarden({
   if (stillMine) return { status: "ready", gardenId: stillMine, remember: false };
   if (gardenIds.length === 1) return { status: "ready", gardenId: gardenIds[0], remember: true };
   return { status: "choose", gardenId: null };
+}
+
+/**
+ * What a garden-scoped list reads (DL-129): the Promises and Your Work sheets and their badges.
+ */
+export interface GardenListScope {
+  /** The active garden, or the remembered one while the account's gardens load; null for none. */
+  activeGardenId: string | null;
+  /** The account's gardens, lowercased, which the chip can switch to; null while unknown. */
+  memberGardenIds: ReadonlySet<string> | null;
+}
+
+/**
+ * Whether a garden-scoped list shows an item that names these gardens. With an active garden it
+ * hides only what names another of the account's gardens, since switching the chip shows it
+ * there. What names the active garden stays, and so does what names none of the account's
+ * gardens: a garden the account left, a promise in a pool of a garden it does not belong to,
+ * or a record that names no garden has nowhere else to show. While the account's gardens are
+ * unknown, every other garden is taken for one of them. With no active garden nothing is hidden.
+ */
+export function isInGardenListScope(
+  scope: GardenListScope,
+  gardens: readonly (string | null | undefined)[]
+): boolean {
+  if (!scope.activeGardenId) return true;
+  const named = gardens.flatMap((garden) =>
+    garden && !isZeroAddress(garden) ? [garden.toLowerCase()] : []
+  );
+  if (named.length === 0 || named.includes(scope.activeGardenId.toLowerCase())) return true;
+  const { memberGardenIds } = scope;
+  return memberGardenIds !== null && !named.some((garden) => memberGardenIds.has(garden));
 }
