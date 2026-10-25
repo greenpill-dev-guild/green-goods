@@ -39,10 +39,11 @@ export interface HighlightsCarouselProps {
  * open season and campaigns lead, each opening its details sheet; then the garden's newest
  * work with a photo, opening the work; then the newest ask open to take up, opening its page.
  *
- * It appears only when it has something to show (DL-127): a read still loading or one that
- * failed adds no card. Recent Activity and Take Part draw those reads' states in their own
- * place, and the cycles show only once read, as on the Pool tab's rail. With no card the
- * carousel is absent.
+ * It appears only when it has something to show (DL-127), once every read has settled: a card
+ * slid in ahead of the one in view would scroll the row, so the cards arrive together, in order.
+ * A read that failed adds no card. Recent Activity and Take Part draw those reads' states in
+ * their own place, and the cycles show only once read, as on the Pool tab's rail. With no card
+ * the carousel is absent.
  */
 export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
   const { formatMessage } = useIntl();
@@ -57,6 +58,7 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
     open: false,
   });
 
+  const settled = [cycles, activity, promises].every(({ state }) => state.status !== "loading");
   const cards = [
     ...cycleCards(cycles, (cycle) => setDetails({ cycle, open: true })),
     ...workCard(activity, (work) =>
@@ -64,7 +66,7 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
     ),
     ...askCard(promises, (entry) => navigate(takePartPath(gardenId, entry))),
   ];
-  if (cards.length === 0) return null;
+  if (!settled || cards.length === 0) return null;
 
   return (
     <JournalSection
@@ -77,10 +79,9 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
         cycle={details.cycle}
         isOpen={details.open}
         onClose={() => setDetails((current) => ({ ...current, open: false }))}
-        // Until the Promises sheet can open filtered to a cycle (step 11), it opens whole.
-        onShowPromises={() => {
+        onShowPromises={(cycleId) => {
           setDetails((current) => ({ ...current, open: false }));
-          openCommitmentsSheet();
+          openCommitmentsSheet({ cycleId: cycleId.toString() });
         }}
       />
     </JournalSection>

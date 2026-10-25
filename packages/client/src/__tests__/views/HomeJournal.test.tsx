@@ -15,7 +15,7 @@ import type {
   TakePartEntry,
 } from "@green-goods/shared/hooks/garden/useGardenJournal";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import type { Address, Work } from "@green-goods/shared/types/domain";
+import type { Address, Garden, Work } from "@green-goods/shared/types/domain";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -60,6 +60,7 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
 const { HighlightsCarousel } = await import("../../views/Home/Journal/HighlightsCarousel");
 const { RecentActivity } = await import("../../views/Home/Journal/RecentActivity");
 const { TakePart } = await import("../../views/Home/Journal/TakePart");
+const { HomeJournal } = await import("../../views/Home/Journal");
 
 const render = (ui: ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
 
@@ -204,7 +205,7 @@ function promises(overrides: Partial<GardenOpenPromises> = {}): GardenOpenPromis
 describe("Home journal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useUIStore.setState({ isCommitmentsSheetOpen: false });
+    useUIStore.setState({ isCommitmentsSheetOpen: false, commitmentsSheetOpening: undefined });
     mocks.recent.mockReturnValue(recent());
     mocks.cycles.mockReturnValue(cycles());
     mocks.promises.mockReturnValue(promises());
@@ -357,7 +358,12 @@ describe("Home journal", () => {
       render(<TakePart gardenId={GARDEN} withCycleLines />);
       expect(screen.getByRole("button", { name: /Seed Swap Weekend/ })).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
-      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      const sheet = await screen.findByRole("dialog");
+      await user.click(within(sheet).getByRole("button", { name: "Show Its Promises" }));
+      expect(useUIStore.getState()).toMatchObject({
+        isCommitmentsSheetOpen: true,
+        commitmentsSheetOpening: { cycleId: SEASON.cycle.cycleId.toString() },
+      });
     });
   });
 
@@ -382,7 +388,7 @@ describe("Home journal", () => {
       expect(cards[3]).toHaveTextContent("Two hours sorting the seed library");
     });
 
-    it("opens the work's page, the ask's page and a cycle's details sheet from their cards", async () => {
+    it("opens the work's page, the ask's page, and a cycle's details with its own promises", async () => {
       const user = userEvent.setup();
       render(<HighlightsCarousel gardenId={GARDEN} />);
 
@@ -395,7 +401,13 @@ describe("Home journal", () => {
       expect(mocks.navigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/20`);
 
       await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
-      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      const sheet = await screen.findByRole("dialog");
+      await user.click(within(sheet).getByRole("button", { name: "Show Its Promises" }));
+      // The Promises sheet opens filtered to the season (step 11), not whole.
+      expect(useUIStore.getState()).toMatchObject({
+        isCommitmentsSheetOpen: true,
+        commitmentsSheetOpening: { cycleId: SEASON.cycle.cycleId.toString() },
+      });
     });
 
     it("is absent when it has no card", () => {
@@ -408,10 +420,9 @@ describe("Home journal", () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it("adds no card for a read still loading or one that failed", () => {
+    it("waits until every read settles, then adds no card for one that failed", () => {
+      // A card slid in ahead of the one in view would scroll the row, so they arrive together.
       mocks.cycles.mockReturnValue(cycles({ state: { status: "loading" } }));
-      mocks.recent.mockReturnValue(recent({ state: { status: "loading" }, featured: null }));
-      mocks.promises.mockReturnValue(promises({ state: { status: "loading" }, ask: null }));
       const { container, rerender } = render(<HighlightsCarousel gardenId={GARDEN} />);
       expect(container).toBeEmptyDOMElement();
 
@@ -426,5 +437,20 @@ describe("Home journal", () => {
       const cards = within(screen.getByRole("list")).getAllByRole("button");
       expect(cards.map((card) => card.getAttribute("data-highlight"))).toEqual(["work", "ask"]);
     });
+  });
+
+  it("mounts Highlights, Recent Activity and Take Part on Home in DL-127's order", () => {
+    const garden = { id: GARDEN, name: "Riverside Commons Garden" } as Garden;
+    const { container } = render(
+      <HomeJournal garden={garden} membership={{ roles: ["gardener"], pendingJoin: false }} />
+    );
+
+    const sections = [...container.querySelectorAll("section[data-component]")].map((section) =>
+      section.getAttribute("data-component")
+    );
+    expect(sections).toEqual(["HighlightsCarousel", "RecentActivity", "TakePart"]);
+    for (const read of [mocks.cycles, mocks.recent, mocks.promises]) {
+      expect(read).toHaveBeenCalledWith(GARDEN);
+    }
   });
 });

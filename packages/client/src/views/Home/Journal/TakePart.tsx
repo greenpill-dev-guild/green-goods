@@ -214,10 +214,9 @@ function CycleLines({ gardenId }: { gardenId: string }) {
         cycle={details.cycle}
         isOpen={details.open}
         onClose={() => setDetails((current) => ({ ...current, open: false }))}
-        // Until the Promises sheet can open filtered to a cycle (step 11), it opens whole.
-        onShowPromises={() => {
+        onShowPromises={(cycleId) => {
           setDetails((current) => ({ ...current, open: false }));
-          openCommitmentsSheet();
+          openCommitmentsSheet({ cycleId: cycleId.toString() });
         }}
       />
     </>

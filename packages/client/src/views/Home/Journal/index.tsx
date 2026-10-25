@@ -1,13 +1,8 @@
 import type { Garden } from "@green-goods/shared/types/domain";
-import { lazy, Suspense } from "react";
-import { HomeLoading } from "../HomeStates";
 import type { MemberGarden } from "../homeGardens";
-
-// The interim body is the whole garden page (tabs, sheets, pools), so it loads on its own and
-// stays out of the installed app's startup bundle.
-const GardenPage = lazy(() =>
-  import("../Garden/GardenPage").then(({ GardenPage }) => ({ default: GardenPage }))
-);
+import { HighlightsCarousel } from "./HighlightsCarousel";
+import { RecentActivity } from "./RecentActivity";
+import { TakePart } from "./TakePart";
 
 export interface HomeJournalProps {
   /** The active garden's record (`useActiveGarden().garden` once `ready`). */
@@ -23,14 +18,15 @@ export interface HomeJournalProps {
  *
  * This is the one place the compact journal's sections mount, in this order: Needs Your
  * Attention for stewards (step 19), the Highlights carousel and Recent Activity (step 7),
- * Continue (step 8), Take Part (step 9), then the About entry (step 10). Until they land it shows
- * the garden's own page, its banner, tabs and actions without Back, the way the lab's promoted
- * garden page draws it.
+ * Continue (step 8), Take Part (step 9), then the About entry (step 10). Each section brings its
+ * own 16px gutter, so the carousel can scroll to the screen's edges.
  */
 export function HomeJournal({ garden }: HomeJournalProps) {
   return (
-    <Suspense fallback={<HomeLoading remembered />}>
-      <GardenPage garden={garden} layout="home" />
-    </Suspense>
+    <div data-component="HomeJournal" className="flex flex-col gap-4">
+      <HighlightsCarousel gardenId={garden.id} />
+      <RecentActivity gardenId={garden.id} />
+      <TakePart gardenId={garden.id} />
+    </div>
   );
 }
