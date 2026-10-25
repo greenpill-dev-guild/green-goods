@@ -1,0 +1,210 @@
+/**
+ * What waits for the reader in one garden's queues (PWA Home step 19): each queue is read, and
+ * listed, only for an account that can perform the act it opens, under that act's existing
+ * predicate. The ordering and grouping are the selector's (modules/garden/steward-duties.test.ts).
+ *
+ * @vitest-environment happy-dom
+ */
+
+import { renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { useStewardDuties } from "../../../hooks/garden/useStewardDuties";
+import type { Garden, Work } from "../../../types/domain";
+import { createMockGarden, createMockWork } from "../../test-utils/mock-factories";
+
+const ME = "0xa11ce00000000000000000000000000000000001";
+const GARDEN = "0x6A7DE00000000000000000000000000000000AAA";
+const OTHER_GARDEN = "0x0757e00000000000000000000000000000000bbb";
+
+const mocks = vi.hoisted(() => ({
+  reviewGardens: [] as string[][],
+  toReview: [] as Work[],
+  reviewLoading: false,
+  reviewError: false,
+  reviewRefetch: vi.fn(async () => true),
+  hatGarden: [] as Array<string | null | undefined>,
+  wearsStewardHat: false,
+  pools: [] as Array<{ poolId: bigint; garden: string }>,
+  claimsEnabled: [] as boolean[],
+  claimRows: [] as unknown[],
+  claimsLoading: false,
+  claimsError: false,
+  claimsRefetch: vi.fn(async () => ({})),
+  confirmViewer: [] as Array<string | undefined>,
+  confirmGroups: [] as Array<{ garden: string; rows: Array<{ commitment: unknown }> }>,
+  confirmLoading: false,
+  confirmError: false,
+  confirmRefetch: vi.fn(async () => []),
+}));
+
+// The roster predicates run for real on the garden's record; the reads are the edges.
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => ME }));
+vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => ({ user: { id: ME } }) }));
+vi.mock("../../../hooks/work/useNeedsReview", () => ({
+  useNeedsReview: (gardenIds: string[]) => {
+    mocks.reviewGardens.push(gardenIds);
+    return {
+      works: gardenIds.length > 0 ? mocks.toReview : [],
+      isLoading: gardenIds.length > 0 && mocks.reviewLoading,
+      isError: gardenIds.length > 0 && mocks.reviewError,
+      refetch: mocks.reviewRefetch,
+    };
+  },
+}));
+vi.mock("../../../hooks/roles/useHasRole", () => ({
+  useHasRole: (garden: string | null | undefined) => {
+    mocks.hatGarden.push(garden);
+    return { hasRole: Boolean(garden) && mocks.wearsStewardHat, isLoading: false, error: null };
+  },
+}));
+vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
+  useCommitmentPools: () => ({ pools: mocks.pools }),
+}));
+vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
+  usePoolClaimRequests: (_input: unknown, options: { enabled?: boolean }) => {
+    const enabled = options.enabled !== false;
+    mocks.claimsEnabled.push(enabled);
+    // A disabled query still hands back what it read before, as React Query does.
+    return {
+      rows: mocks.claimRows,
+      isLoading: enabled && mocks.claimsLoading,
+      isError: enabled && mocks.claimsError,
+      refetch: mocks.claimsRefetch,
+    };
+  },
+}));
+vi.mock("../../../hooks/commitment-pooling/useCommitmentsToConfirm", () => ({
+  useCommitmentsToConfirm: ({ viewer }: { viewer?: string }) => {
+    mocks.confirmViewer.push(viewer);
+    return {
+      groups: viewer ? mocks.confirmGroups : [],
+      isLoading: Boolean(viewer) && mocks.confirmLoading,
+      isError: Boolean(viewer) && mocks.confirmError,
+      refetch: mocks.confirmRefetch,
+    };
+  },
+}));
+
+function garden(roles: { stewards?: string[]; owners?: string[]; gardeners?: string[] }): Garden {
+  return createMockGarden({
+    id: GARDEN,
+    stewards: roles.stewards ?? [],
+    owners: roles.owners ?? [],
+    gardeners: roles.gardeners ?? [],
+    evaluators: [],
+  });
+}
+
+const render = (record: Garden) => renderHook(() => useStewardDuties(record)).result.current;
+
+function pendingClaim(commitmentId: bigint) {
+  return {
+    claim: { commitmentId, requestedAt: 100, state: "PENDING" },
+    commitment: { commitmentId },
+  };
+}
+
+function everythingWaits() {
+  mocks.toReview = [createMockWork({ id: "0x01" })];
+  mocks.claimRows = [pendingClaim(4n)];
+  mocks.confirmGroups = [
+    { garden: OTHER_GARDEN, rows: [{ commitment: { commitmentId: 7n } }] },
+    { garden: GARDEN.toLowerCase(), rows: [{ commitment: { commitmentId: 9n } }] },
+  ];
+}
+
+describe("useStewardDuties", () => {
+  beforeEach(() => {
+    mocks.reviewGardens = [];
+    mocks.toReview = [];
+    mocks.reviewLoading = false;
+    mocks.reviewError = false;
+    mocks.hatGarden = [];
+    mocks.wearsStewardHat = false;
+    mocks.pools = [{ poolId: 3n, garden: GARDEN.toLowerCase() }];
+    mocks.claimsEnabled = [];
+    mocks.claimRows = [];
+    mocks.claimsLoading = false;
+    mocks.claimsError = false;
+    mocks.confirmViewer = [];
+    mocks.confirmGroups = [];
+    mocks.confirmLoading = false;
+    mocks.confirmError = false;
+    vi.clearAllMocks();
+  });
+
+  it("reads and lists nothing for a gardener or an evaluator, whatever waits", () => {
+    everythingWaits();
+    const record = { ...garden({ gardeners: [ME] }), evaluators: [ME] };
+
+    const duties = render(record);
+
+    expect(duties.duties).toEqual([]);
+    expect(mocks.reviewGardens.at(-1)).toEqual([]);
+    expect(mocks.claimsEnabled.at(-1)).toBe(false);
+    expect(mocks.confirmViewer.at(-1)).toBeUndefined();
+  });
+
+  it("lists every queue for a steward the chain says may decide take-ups, and only this garden's promises", () => {
+    everythingWaits();
+    mocks.wearsStewardHat = true;
+
+    const duties = render(garden({ stewards: [ME] }));
+
+    expect(mocks.reviewGardens.at(-1)).toEqual([GARDEN]);
+    expect(mocks.hatGarden.at(-1)).toBe(GARDEN.toLowerCase());
+    expect(duties.duties.map((duty) => [duty.kind, duty.count])).toEqual([
+      ["review", 1],
+      ["takeUp", 1],
+      ["confirm", 1],
+    ]);
+    const confirm = duties.duties.find((duty) => duty.kind === "confirm");
+    expect(confirm?.kind === "confirm" && confirm.commitments[0]?.commitmentId).toBe(9n);
+  });
+
+  it("shows an owner who is not a steward the queues an owner acts on, and no take-up requests", () => {
+    everythingWaits();
+
+    const duties = render(garden({ owners: [ME] }));
+
+    expect(duties.duties.map((duty) => duty.kind)).toEqual(["review", "confirm"]);
+    expect(mocks.claimsEnabled.at(-1)).toBe(false);
+  });
+
+  it("leaves take-up requests out for a steward the chain does not say may decide them", () => {
+    everythingWaits();
+
+    const duties = render(garden({ stewards: [ME] }));
+
+    expect(duties.duties.map((duty) => duty.kind)).toEqual(["review", "confirm"]);
+    expect(mocks.claimsEnabled.at(-1)).toBe(false);
+  });
+
+  it("is loading or failed only for a queue the account can act on", () => {
+    mocks.claimsLoading = true;
+    mocks.claimsError = true;
+    expect(render(garden({ stewards: [ME] }))).toMatchObject({ isLoading: false, isError: false });
+
+    mocks.wearsStewardHat = true;
+    expect(render(garden({ stewards: [ME] }))).toMatchObject({ isLoading: true, isError: true });
+
+    mocks.claimsLoading = false;
+    mocks.claimsError = false;
+    mocks.reviewLoading = true;
+    expect(render(garden({ stewards: [ME] })).isLoading).toBe(true);
+    mocks.reviewLoading = false;
+    mocks.confirmError = true;
+    expect(render(garden({ stewards: [ME] })).isError).toBe(true);
+  });
+
+  it("reads every queue again on refetch", () => {
+    mocks.wearsStewardHat = true;
+
+    render(garden({ stewards: [ME] })).refetch();
+
+    expect(mocks.reviewRefetch).toHaveBeenCalledTimes(1);
+    expect(mocks.claimsRefetch).toHaveBeenCalledTimes(1);
+    expect(mocks.confirmRefetch).toHaveBeenCalledTimes(1);
+  });
+});

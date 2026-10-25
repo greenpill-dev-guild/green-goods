@@ -456,6 +456,7 @@
     "./hooks/garden/useGardenTabs": "./src/hooks/garden/useGardenTabs.ts",
     "./hooks/garden/useJoinGarden": "./src/hooks/garden/useJoinGarden.ts",
     "./hooks/garden/useMyGardens": "./src/hooks/garden/useMyGardens.ts",
+    "./hooks/garden/useStewardDuties": "./src/hooks/garden/useStewardDuties.ts",
     "./hooks/gardener/useGardenerProfile": "./src/hooks/gardener/useGardenerProfile.ts",
     "./hooks/greenwill/useClaimGreenWillBadge": "./src/hooks/greenwill/useClaimGreenWillBadge.ts",
     "./hooks/public/usePublicEndowmentPositions": "./src/hooks/public/usePublicEndowmentPositions.ts",
