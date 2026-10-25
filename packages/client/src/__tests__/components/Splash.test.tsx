@@ -67,6 +67,12 @@ const entryReturning: SplashProps = {
   tertiaryAction: { label: "Recover with Username", onClick: vi.fn() },
 };
 
+const passkeyInFlight: SplashProps = {
+  ...entryReturning,
+  isLoggingIn: true,
+  loadingState: "default",
+};
+
 const form = (buttonLabel: string): SplashProps => ({
   login: vi.fn(),
   buttonLabel,
@@ -94,7 +100,7 @@ describe("Splash on a translated page", () => {
     {
       change: "a passkey sign-in starts",
       from: entryReturning,
-      to: { ...entryReturning, isLoggingIn: true, loadingState: "default" },
+      to: passkeyInFlight,
       slotTwo: "Sign in with a Wallet",
     },
   ])("keeps the screen when $change", ({ from, to, slotTwo }) => {
