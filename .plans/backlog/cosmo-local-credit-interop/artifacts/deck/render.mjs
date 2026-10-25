@@ -4,18 +4,19 @@
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --check      checks only, no browser
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --sync       copy the Markdown notes into index.html, then check
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --only=3,7   render and probe only those slides
-// Source checks: 16 slides, the corner symbol on every slide, slide numbers in order, the HTML
-// notes equal the Markdown notes, data-time equals each notes heading, the spoken timings total
-// 8:00, and no em dashes. While rendering it also reports text outside the 128px side margins or
-// in the corner band, text or artwork over the headline, artwork over the corner symbol, any
-// headline over two lines (three on the title), and any image that did not load.
+// Source checks: 18 slides, the corner symbol on every slide, slide numbers in order (the title and
+// the closing slide carry none), the HTML notes equal the Markdown notes, data-time equals each
+// notes heading, the spoken timings total 8:00, and no em dashes. While rendering it also reports
+// text outside the 128px side margins or in the corner band, text or artwork over the headline,
+// artwork over the corner symbol, any headline over two lines (three on the title), and any image
+// that did not load.
 // A failed check exits with status 1 after reporting.
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const EXPECTED_SLIDES = 16;
+const EXPECTED_SLIDES = 18;
 const EXPECTED_SECONDS = 8 * 60;
 const here = dirname(fileURLToPath(import.meta.url));
 const htmlPath = join(here, "index.html");
@@ -78,6 +79,7 @@ html.split(/<section class="slide/).slice(1).forEach((block, i) => {
   const body = block.split("</section>")[0];
   if (!/class="corner"/.test(body)) note(`slide ${i + 1} has no corner symbol`);
   if (i === 0) return; // the title carries the event line instead of a number
+  if (block.startsWith(" s-thanks")) return; // the closing slide keeps only the thank-you, the link, its code and the symbol
   const m = body.match(/<span class="num">(\d+) \/ (\d+)<\/span>/);
   if (!m) note(`slide ${i + 1} has no slide number`);
   else if (Number(m[1]) !== i + 1 || Number(m[2]) !== EXPECTED_SLIDES) note(`slide ${i + 1} is numbered "${m[1]} / ${m[2]}"`);
