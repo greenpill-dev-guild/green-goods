@@ -13,10 +13,10 @@ import {
 import { announceGarden, readOwnGardens } from "../coordinator/garden-step";
 import { type CatalogView, promptNextStepFor } from "../coordinator/prompting";
 import { keepAcceptedPhotos, takeSoleGarden, type Working } from "../coordinator/report-work";
-import type { ConversationWriter } from "../coordinator/writer";
 import { createLogger } from "../../logger";
 import { inTransaction } from "../database";
 import { DraftContentUnavailableError, type DraftRecord, loadDraft } from "../drafts";
+import { acknowledgeFiles } from "../media-intake";
 import { participantWriter } from "../notify";
 import { activeAccount } from "../participants";
 import { openPrompt } from "../prompts";
@@ -180,61 +180,6 @@ function batchOf(core: ReportingCore, asset: ProcessedAsset): { pending: number;
     .get({ draft: asset.draftId, id: asset.id }) as { pending: number; used: number };
 }
 
-/**
- * The batch's one acknowledgement, said with its last file: how many photos the report took, the
- * activity's limit when it had no room for some, and whether other files were read or only kept.
- */
-function acknowledgeBatch(
-  core: ReportingCore,
-  writer: ConversationWriter,
-  draft: DraftRecord
-): void {
-  const files = core.db
-    .query(
-      `SELECT id, asset_kind, state, sanitized_digest, processing_manifest FROM media_assets
-       WHERE draft_id = $draft AND acknowledged_at IS NULL`
-    )
-    .all({ draft: draft.id }) as Array<{
-    id: string;
-    asset_kind: string;
-    state: string;
-    sanitized_digest: string | null;
-    processing_manifest: string;
-  }>;
-  core.db
-    .query(
-      "UPDATE media_assets SET acknowledged_at = $now WHERE draft_id = $draft AND acknowledged_at IS NULL"
-    )
-    .run({ draft: draft.id, now: core.clock.now() });
-  const used = files.filter((file) => file.state === "ready");
-  const photos = used.filter((file) => file.asset_kind === "image");
-  const added = photos.filter((photo) =>
-    draft.content.evidence.some((item) => item.assetId === photo.id)
-  ).length;
-  // A photo already in the report under another file is a repeat, not one left out.
-  const leftOut = photos.some(
-    (photo) =>
-      photo.sanitized_digest !== null &&
-      !draft.content.evidence.some((item) => item.sanitizedDigest === photo.sanitized_digest)
-  );
-  const maximum = draft.snapshot?.definition.media.maxImageCount ?? null;
-  const said = [
-    ...(added === 1 ? [writer.text("media.photoAdded")] : []),
-    ...(added > 1 ? [writer.text("media.photosAdded", { count: added })] : []),
-    ...(leftOut && maximum !== null ? [writer.text("report.photosKept", { maximum })] : []),
-  ];
-  if (said.length > 0) writer.reply({ text: said.join(" ") }, "media.photosAdded");
-  // A voice note's words were shown back as it was heard.
-  const documents = used.filter((file) => !["image", "audio"].includes(file.asset_kind));
-  if (documents.length > 0) {
-    // Without an extraction (model processing off or unavailable) a file was only kept.
-    const read = documents.some(
-      (file) => (JSON.parse(file.processing_manifest) as { model?: string | null }).model
-    );
-    writer.say(read ? "media.fileRead" : "media.fileKept");
-  }
-}
-
 function commitInTransaction(
   core: ReportingCore,
   asset: ProcessedAsset,
@@ -276,7 +221,7 @@ function commitInTransaction(
     // left standing: the next step is put again.
     const stands = questionStands(core, asset.conversationId, draft);
     if (stands && (batch.pending > 0 || batch.used === 0)) {
-      if (batch.pending === 0) acknowledgeBatch(core, writer, draft);
+      if (batch.pending === 0) acknowledgeFiles(core, writer, draft);
       return done;
     }
   } else if (!editable) {
@@ -303,7 +248,10 @@ function commitInTransaction(
     if (placed.content.evidence.some((photo) => photo.assetId === asset.id))
       content = placed.content;
   }
-  let changes = changesFrom(asset, result);
+  // A photo the report did not keep, a repeat or one past the limit, gives it nothing the model
+  // read from it either.
+  const keptOut = result.evidence !== null && !content.evidence.some((p) => p.assetId === asset.id);
+  let changes = keptOut ? [] : changesFrom(asset, result);
   if (result.transcript && !content.feedback) {
     // The recording's words become the description, marked transcribed rather than typed.
     changes = [
@@ -372,7 +320,7 @@ function commitInTransaction(
     writer.say("media.partial");
   // One reply after the last file of a batch, not one per photo, and then one question.
   if (batch.pending === 0) {
-    acknowledgeBatch(core, writer, next);
+    acknowledgeFiles(core, writer, next);
     promptNextStepFor(writer, next, catalog, account?.address ?? null);
   }
   return done;

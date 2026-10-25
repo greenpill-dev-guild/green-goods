@@ -514,6 +514,39 @@ describe("albums", () => {
     expect(evidenceFiles(harness.core, draft())).toEqual(["before-21", "before-22", "before-23"]);
   });
 
+  it("takes nothing from a photo it had no room for, not even what the model read in it", async () => {
+    await plantingDraft();
+    await postAlbum("room", [{ message: 71 }, { message: 72 }, { message: 73 }]);
+    expect((await whenQuiet())[0]).toBe("3 photos added to your report.");
+    const openai = scriptedOpenAI([
+      {
+        observations: ["Seedlings in a row"],
+        uncertain: [],
+        facts: [
+          {
+            field: "details.seedlings",
+            value: 99,
+            page: null,
+            cell: null,
+            sumRange: null,
+            original: null,
+            unit: "seedlings",
+          },
+        ],
+      },
+    ]);
+    harness.openai = openai.config;
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "over limit" });
+    const revision = draft()?.revision;
+    const replies = await send("room-74", await shadedPhoto(74), "image/jpeg");
+    expect(openai.requests).toHaveLength(1);
+    expect(replies).toHaveLength(2);
+    expect(replies[0]).toBe(KEPT);
+    expect(replies[1]).toContain("Seedlings planted?");
+    expect(draft()?.content.details.seedlings).toBeUndefined();
+    expect(draft()?.revision).toBe(revision);
+  });
+
   it("withdraws a summary or confirmation when photos follow it, until they are in", async () => {
     const shown = await reportUntilSummary(harness);
     await postAlbum("late", [{ message: 41 }, { message: 42 }]);
