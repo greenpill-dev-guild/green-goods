@@ -3,7 +3,8 @@ import { resolveCommand } from "../cli/operations.mjs";
 import path from "node:path";
 import { sourceUpgradeOutputPath, sourceUpgradeCreateArgs } from "./source-upgrade-operator";
 import { CONTRACTS_ROOT } from "./paths";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import type { SourceUpgradeDeployment } from "./source-upgrade-release";
 import type { SourceExecutionBoundary } from "./source-upgrade-execution-types";
 
@@ -80,7 +81,7 @@ describe("source upgrade operator command boundaries", () => {
     ).toThrow("approved deployer");
   });
   it("preserves active execution inputs when preparation is rerun", () => {
-    const root = mkdtempSync("/private/tmp/source-operator-output-");
+    const root = realpathSync(mkdtempSync(path.join(tmpdir(), "source-operator-output-")));
     try {
       writeFileSync(path.join(root, "42161-source-upgrade-execution.json"), "{}");
       for (const mode of ["plan", "simulate", "prepare-execution"])

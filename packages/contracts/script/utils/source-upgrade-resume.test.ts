@@ -1,5 +1,7 @@
 /** @direct-test-subject ./source-upgrade-resume */
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import { sourceUpgradePlanRevision } from "./source-upgrade-resume";
@@ -9,7 +11,7 @@ afterEach(() => {
   for (const root of directories.splice(0)) fs.rmSync(root, { recursive: true, force: true });
 });
 function fixture() {
-  const repository = fs.mkdtempSync("/private/tmp/source-plan-resume-");
+  const repository = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "source-plan-resume-")));
   directories.push(repository);
   const root = repository + "/packages/contracts";
   fs.mkdirSync(root, { recursive: true });

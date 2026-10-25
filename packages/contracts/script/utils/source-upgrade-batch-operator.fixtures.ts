@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { Block, getCreateAddress, Interface, JsonRpcProvider, keccak256 } from "ethers";
 import { vi } from "vitest";
@@ -18,7 +19,7 @@ export async function sourceBatchOperatorFixture(
 ) {
   const f = await sourceSafeSigningFixture(),
     c = f.context;
-  const directory = fs.mkdtempSync("/private/tmp/source-batch-adoption-");
+  const directory = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "source-batch-adoption-")));
   const hash = (n: number) => "0x" + n.toString(16).padStart(64, "0");
   const codeHash = keccak256("0x6000");
   c.manifest.authority.nonce = 33;

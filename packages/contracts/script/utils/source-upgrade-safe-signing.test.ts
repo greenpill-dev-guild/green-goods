@@ -6,6 +6,7 @@
  * @direct-test-subject ./source-upgrade-execution-store
  */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { Interface, Wallet } from "ethers";
@@ -137,7 +138,7 @@ describe("source Safe owner signing and bound submission", () => {
   });
   it("does not inherit deployer identity or password selectors when an owner signs", async () => {
     const f = await sourceSafeSigningFixture(),
-      dir = fs.mkdtempSync("/private/tmp/source-safe-owner-env-");
+      dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "source-safe-owner-env-")));
     vi.stubEnv("ETH_FROM", f.context.manifest.deployer!);
     vi.stubEnv("ETH_PASSWORD", "public-fixture-selector");
     const signer = vi.spyOn(cast, "execCastCaptured").mockImplementation((args, options) => {
@@ -162,7 +163,7 @@ describe("source Safe owner signing and bound submission", () => {
   });
   it("proves Cast's installed typed-data signing interoperates using only an isolated encrypted fixture", async () => {
     const f = await sourceSafeSigningFixture(),
-      dir = fs.mkdtempSync("/private/tmp/source-safe-cast-");
+      dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "source-safe-cast-")));
     try {
       const request = path.join(dir, "typed.json"),
         keyfile = path.join(dir, "synthetic-wallet.json");
@@ -288,7 +289,7 @@ describe("source Safe owner signing and bound submission", () => {
   });
   it("reloads a bound Safe pending journal and rejects a mutated intent hash", async () => {
     const f = await sourceSafeSigningFixture(),
-      dir = fs.mkdtempSync("/private/tmp/source-safe-journal-");
+      dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "source-safe-journal-")));
     try {
       f.journal.pending = {
         step: 2,
