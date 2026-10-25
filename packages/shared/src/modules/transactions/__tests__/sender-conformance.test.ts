@@ -163,11 +163,31 @@ const cases: SenderCase[] = [
         trace.push("receipt");
         receiptHashes.push(hash);
         return {
+          actualGasCost: 1n,
+          actualGasUsed: 1n,
+          entryPoint: client.account!.entryPoint.address,
+          nonce: 0n,
           userOpHash: hash,
           sender: client.account!.address,
           success: scenario.receiptStatus !== "reverted",
-          receipt: { status: "success", transactionHash: hash },
-        } as Awaited<ReturnType<typeof client.waitForUserOperationReceipt>>;
+          logs: [],
+          receipt: {
+            blockHash: SECOND_TX_HASH,
+            blockNumber: 1n,
+            contractAddress: null,
+            cumulativeGasUsed: 1n,
+            effectiveGasPrice: 1n,
+            from: CONNECTED,
+            gasUsed: 1n,
+            logs: [],
+            logsBloom: `0x${"0".repeat(512)}`,
+            status: "success",
+            to: client.account!.entryPoint.address,
+            transactionHash: hash,
+            transactionIndex: 0,
+            type: "eip1559",
+          },
+        } satisfies Awaited<ReturnType<typeof client.waitForUserOperationReceipt>>;
       });
       const assertWriteSafety = vi.fn(async () => {
         trace.push("safety");

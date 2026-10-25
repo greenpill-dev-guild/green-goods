@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
 import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
+import { CommitmentPoolingServiceOfferStorageLib } from "./ServiceOfferStorageLib.sol";
 
 /// @title CommitmentPoolingCreationChecksLib
 /// @notice Creation-time input validation and the frozen payload hash, shared by commitment
@@ -128,6 +129,7 @@ library CommitmentPoolingCreationChecksLib {
             revert ICommitmentPoolingModule.CounterCommitmentPoolMismatch(params.poolId, counterId);
         }
         if (params.direction == ICommitmentPoolingModule.CommitmentDirection.Offer) {
+            CommitmentPoolingServiceOfferStorageLib.requireNoExchange(counterId);
             if (
                 params.claimType != ICommitmentPoolingModule.ClaimType.Individual
                     || params.commitmentType == ICommitmentPoolingModule.CommitmentType.StewardCaptured

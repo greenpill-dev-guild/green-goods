@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { parseGeneratorArgs, syncProjections } from "./generator-core.mjs";
@@ -71,9 +72,10 @@ function mcpWrapperSources(root) {
 export function createProjections(root = REPO_ROOT) {
   const ontology = readJson(root, ONTOLOGY);
   const taskRouting = readJson(root, TASK_ROUTING);
-  const deployments = supportedChainIds(root, CHAINS).map(
-    (chainId) => `packages/contracts/deployments/${chainId}-latest.json`
-  );
+  // Wallet support can precede a protocol deployment. Only persisted artifacts can own deployment facts.
+  const deployments = supportedChainIds(root, CHAINS)
+    .map((chainId) => `packages/contracts/deployments/${chainId}-latest.json`)
+    .filter((source) => existsSync(path.join(root, source)));
   const integrationCommon = [
     ...deployments,
     NETWORKS,

@@ -1,9 +1,14 @@
+import {
+  useServiceAccess,
+  useServiceAccessMutation,
+  writeWorkLinkIntent,
+} from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import type { Address } from "@green-goods/shared/types/domain";
-import { writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
+import type { Address } from "@green-goods/shared/types/domain";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -11,7 +16,6 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { describeProofContents } from "@/components/Features/Commitments";
 import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
-import { commitmentActForKind } from "./commitmentActions";
 import { CommitmentClaims } from "./CommitmentClaims";
 import { CommitmentDetailShell, CommitmentDetailState } from "./CommitmentDetailShell";
 import { CommitmentEvidence } from "./CommitmentEvidence";
@@ -22,11 +26,13 @@ import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
+import { commitmentActForKind } from "./commitmentActions";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
 import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
+import { ServiceAccessPanel } from "./ServiceAccessPanel";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
 
@@ -61,6 +67,24 @@ export function GardenCommitment() {
     commitmentId,
     routeGarden: gardenAddress,
   });
+  const serviceKey = useMemo(
+    () =>
+      controller.viewer && commitmentId !== null
+        ? {
+            sourceChainId: controller.chainId,
+            coreModule: getNetworkContracts(controller.chainId).commitmentPoolingModule,
+            commitmentId,
+            buyer: controller.viewer,
+          }
+        : null,
+    [controller.viewer, controller.chainId, commitmentId]
+  );
+  const serviceAccess = useServiceAccess(serviceKey);
+  const serviceMutation = useServiceAccessMutation(serviceKey);
+  const serviceBranch =
+    serviceAccess.data?.knownService === true ||
+    serviceAccess.data?.acceptancePolicy.blockGenericMemberAcceptance === true;
+  const showServicePanel = serviceBranch || (serviceAccess.data?.voucherSetups.length ?? 0) > 0;
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
@@ -95,7 +119,11 @@ export function GardenCommitment() {
   const { commitment, contributors, requirements } = controller.detail;
   const requiredWorkApproved =
     requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
-  const selectedAct = commitmentActForKind(controller.actKind);
+  const genericAct = commitmentActForKind(controller.actKind);
+  const selectedAct =
+    serviceBranch && (genericAct?.kind === "takeUp" || genericAct?.kind === "askToTakeUp")
+      ? null
+      : genericAct;
   // Linking the required work advances Garden Work promises; proof stays available.
   const workIsPrimary =
     selectedAct?.kind === "addProof" && controller.linkable && !requiredWorkApproved;
@@ -107,11 +135,19 @@ export function GardenCommitment() {
   // membership is still being read, or while an act is already on its way.
   const untaken = commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED";
   const showJoinToAct =
-    !act && !controller.queue.hasPendingJob && controller.membership.isMember === false && untaken;
+    !serviceBranch &&
+    !act &&
+    !controller.queue.hasPendingJob &&
+    controller.membership.isMember === false &&
+    untaken;
   // A read the answer depends on failed: say so and offer it again, rather than
   // an empty bar or a join card for someone who may already belong.
   const showMembershipRetry =
-    !act && !controller.queue.hasPendingJob && controller.membership.unavailable && untaken;
+    !serviceBranch &&
+    !act &&
+    !controller.queue.hasPendingJob &&
+    controller.membership.unavailable &&
+    untaken;
   const band = selectStatusBand({
     commitment,
     seat: controller.seat,
@@ -293,6 +329,15 @@ export function GardenCommitment() {
           viewer={controller.viewer}
           stewards={stewards}
         />
+        {serviceAccess.data && showServicePanel ? (
+          <ServiceAccessPanel
+            key={`${serviceKey?.sourceChainId}:${serviceKey?.coreModule}:${serviceKey?.commitmentId}:${serviceKey?.buyer}`}
+            snapshot={serviceAccess.data}
+            isPending={serviceMutation.isPending}
+            onAction={serviceMutation.mutateAsync}
+            onRefresh={() => void serviceAccess.refetch()}
+          />
+        ) : null}
         <PromiseGroupNote
           chainId={controller.chainId}
           commitment={commitment}
@@ -318,29 +363,31 @@ export function GardenCommitment() {
           isJoining={controller.isSending}
           onJoin={() => keepSurfaceOnFailure(controller.acts.join())}
         />
-        <CommitmentClaims
-          commitment={commitment}
-          viewer={controller.viewer}
-          ownRequest={controller.ownRequest}
-          pendingRequests={controller.pendingClaimRequests}
-          canAskAgain={controller.canAskAgain}
-          stewardsPoolGarden={controller.roles.stewardsPoolGarden}
-          claimGardens={controller.roles.claimGardens}
-          contextOpen={contextOpen}
-          onContextOpenChange={setContextOpen}
-          isClaiming={controller.isQueueing}
-          isDeciding={controller.isSending}
-          onAskAgain={() => {
-            if (controller.claimNeedsContext) setContextOpen(true);
-            else keepSurfaceOnFailure(controller.acts.claimPersonal());
-          }}
-          onContinue={claim}
-          onBackToBrowse={() => navigate("../..", { relative: "path" })}
-          onAccept={(claimant) => keepSurfaceOnFailure(controller.acts.acceptClaim(claimant))}
-          onDecline={(claimant, reason) =>
-            keepSurfaceOnFailure(controller.acts.declineClaim(claimant, reason))
-          }
-        />
+        {!serviceBranch ? (
+          <CommitmentClaims
+            commitment={commitment}
+            viewer={controller.viewer}
+            ownRequest={controller.ownRequest}
+            pendingRequests={controller.pendingClaimRequests}
+            canAskAgain={controller.canAskAgain}
+            stewardsPoolGarden={controller.roles.stewardsPoolGarden}
+            claimGardens={controller.roles.claimGardens}
+            contextOpen={contextOpen}
+            onContextOpenChange={setContextOpen}
+            isClaiming={controller.isQueueing}
+            isDeciding={controller.isSending}
+            onAskAgain={() => {
+              if (controller.claimNeedsContext) setContextOpen(true);
+              else keepSurfaceOnFailure(controller.acts.claimPersonal());
+            }}
+            onContinue={claim}
+            onBackToBrowse={() => navigate("../..", { relative: "path" })}
+            onAccept={(claimant) => keepSurfaceOnFailure(controller.acts.acceptClaim(claimant))}
+            onDecline={(claimant, reason) =>
+              keepSurfaceOnFailure(controller.acts.declineClaim(claimant, reason))
+            }
+          />
+        ) : null}
         <CommitmentProgress
           chainId={controller.chainId}
           commitment={commitment}
