@@ -105,21 +105,27 @@ Thank you for listening. Scan the code to see commitment pooling live on our bet
   pooling is live on the beta at beta.greengoods.app, which the closing slide's code opens.
 - **Live account proof, not a live service:** a selected new pilot account completed a sponsored
   passkey operation on 23 October. A working signature does not prove a delivered service.
+- **Deployed and switched on, not yet used:** the voucher contracts went onto the public networks
+  on 24 October, and their owners activated them the same day: every endpoint is unpaused, each
+  issuer has twenty voucher units, ten in the shared pool and ten in reserve, and no member holds
+  one yet. Say "deployed", never "live", until a real member has earned, swapped or booked a
+  voucher and the live-pilot handoff records it.
 - **Rehearsed, not live:** the voucher flow (earn, swap, consent, escrow, acceptance, partial
   settlement and retries) passed 67 cases in six suites on 23 October; a later member rehearsal
   passed 21 cases with synthetic participants. The counts overlap, so never add them.
-- **Not yet:** voucher contracts on the live network, real member approvals and capacity,
-  supporter funds in the exchange pool, endowment earnings routed to the exchange pool,
-  integrated milestone funding, certificate purchases in the app, and the combined capital
-  passport. Money rewards for new promises are deferred: the app says sending G$ reward
+- **Not yet:** the app pointed at the deployed contracts, a first real booking, real member
+  approvals and capacity, supporter funds in the exchange pool, endowment earnings routed to the
+  exchange pool, integrated milestone funding, certificate purchases in the app, and the combined
+  capital passport. Money rewards for new promises are deferred: the app says sending G$ reward
   promises "is unavailable in this release", so kept promises build the record and agreed
   recognition today.
 - **Remittances.** Say 22.1 billion dollars in 2024, from the World Bank's personal remittances
   series. Never mix it with central bank or African Development Bank figures, and never call it
   our market.
-- **Voucher status on the day.** The slides state no deployment status beyond "in pilot". If the
-  voucher contracts are live by the pitch, say so on slide 7; if not, say the flow is rehearsed
-  end to end with demo accounts. Either way, never call the flow live before it is.
+- **Voucher status on the day.** The slides state no deployment status beyond "in pilot". On
+  slide 7 say the contracts are deployed on public networks and the flow is rehearsed end to end
+  with demo accounts. Say vouchers are live only if the live-pilot handoff records a real
+  member's booking before the pitch. Never call the flow live before it is.
 - **Confirmation.** The person who did the work never confirms it, and the person served does. A
   steward can confirm only as a fallback, and the record labels it one, so never say every kept
   promise was confirmed by the person served.
@@ -135,7 +141,9 @@ Thank you for listening. Scan the code to see commitment pooling live on our bet
   demand", a named individual sponsor, fee savings on transfers, or a hand-typed garden count. Use
   the live page's counts.
 - Refresh this list against the [live-pilot handoff](../../handoffs/codex-live-pilot-deployment.md)
-  on Monday 27 October before submission.
+  on Monday 27 October before submission. On 25 October the handoff still ended before the
+  deployment; the chain and the deployment artifacts carry it, as the
+  [README's status refresh](../README.md#status-refresh--25-october-2026) records.
 
 ## Context reference for Q&A · read 25 October 2026
 

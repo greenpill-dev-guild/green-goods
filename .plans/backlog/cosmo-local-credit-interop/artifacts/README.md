@@ -6,8 +6,10 @@ Pitch material for the SustainableFinance.Live 2026 entry (Problem Statement 2).
 brief; **revised after his 25 October review** into 18 slides, with a solution slide, the roles
 before the loop, a world map and a closing slide whose QR code opens the beta; then checked
 against primary sources in the [RESR-94 evidence pass](../research/diaspora-evidence-pass-2026-10-25.md)
-and completed the same day. The pitch is scheduled for 28 October from 10 AM London; submission
-is due 27 October.
+and completed the same day; then **refreshed on 25 October** after the voucher contracts reached
+the public networks, so the notes and brief say "deployed", never "live"; see
+[the status refresh](#status-refresh--25-october-2026). The pitch is scheduled for 28 October
+from 10 AM London; submission is due 27 October.
 
 The [claim ledger](../research/claim-ledger.md), current addendum first, owns wording boundaries.
 The [event research](../research/hackathon-pitch-research-2026-10-23.md) explains the strategy and
@@ -168,6 +170,50 @@ completed on the same branch.
   findings; the giving-gap line was left out). The brief names `contact@greengoods.app` on pages
   1 and 6. The screens were re-captured at 09:00 UTC on 25 October; the counts are unchanged.
 
+## Status refresh · 25 October 2026
+
+Run on 25 October, between about 09:15 and 09:40 UTC, ahead of the 27 October submission, to
+refresh the status facts the pitch carries. Repeat the check on 27 October (input 5 below).
+
+- **Voucher contracts: deployed and switched on, not yet used.** The
+  [live-pilot handoff](../handoffs/codex-live-pilot-deployment.md), read at its latest commit
+  (`c2eafb2cc`, 24 October 15:34 Pacific), still ends with the operator prepared and signing
+  pending. The deployment came after it. The public artifacts
+  `packages/contracts/deployments/42161-pilot-downstream.json` and `100-pilot-downstream.json`
+  (untracked in the main checkout, written 22:54 UTC on 24 October, source commit `c2eafb2cc`)
+  record seven contracts and eleven receipts on Arbitrum One and sixteen contracts and eighteen
+  receipts on Gnosis. Public RPC reads at 09:28 UTC on 25 October confirmed every receipt (status
+  1, matching blocks, first mined 22:50 UTC), code at every address, and the deployer's nonces at
+  1073 and 18. The three owner packets had executed since: the Green Goods Safe's nonce is 35 on
+  Arbitrum One and 3 on Gnosis, the Tech and Sun Safe's is 1, the four voucher endpoints answer
+  `paused()` false, and each issuer token has twenty units at six decimals, ten in the shared pool
+  and ten in the issuer's own Safe, with a ten-unit allowance to the adapter. Those holders
+  account for the whole supply, so no member holds a voucher and the escrow is empty. No tracked
+  file on `develop`, `feature/cosmo-local-contracts` or `codex/linked-gnosis-onboarding` binds
+  the app or the indexer to the new Gnosis addresses; the two matches on `develop` are ENS
+  receivers on Ethereum at the same nonce-derived addresses.
+- **Wording.** The slides keep "in pilot" and did not change. The notes' claims list gains
+  "Deployed and switched on, not yet used" and tells the presenter to say "deployed", never
+  "live", until the handoff records a real member's booking. The brief says "Deployed: the
+  voucher contracts, on public networks since 24 October" on page 1, dates the page 3 evidence
+  box 25 October and states the deployment and the twenty units there, adds a "Deployed" evidence
+  class on page 4, and adds "Contracts deployed 24 October" to page 6. The handoff and the claim
+  ledger were not edited; their owners should record the deployment.
+- **Remittance Prices Worldwide.** Read in the browser pane on 25 October: the home page says
+  "Last update: August 18, 2025" and lists the Q3 2025 report as its latest; the United States to
+  Nigeria and United Kingdom to Nigeria corridor pages both offer Third Quarter 2025 as the latest
+  period, collected 8 to 20 and 8 to 22 August 2025. No newer quarter exists, so the Q&A
+  transfer-cost line is unchanged.
+- **Photos and screens.** The four approved photos were placed from the June Octant deck folder.
+  The three screens were re-captured at 09:23 UTC; Tech and Sun's live page still reads 16
+  approved submissions, 14 members, 0 assessments and 0 certificates.
+- **Renders.** The deck's checks and render pass with exit 0 (18 slides, 8:00, no em dashes,
+  every image loaded); its source did not change, so no `--sync` was needed. The brief's first
+  render failed on page 6, where a longer pilot line pushed the closing paragraph into the
+  footer; the line was shortened to "Contracts deployed 24 October" and the second render exits
+  0. Brief pages 1, 3, 4 and 6, the deck's contact sheet and the photo slides 8, 12 and 17 were
+  inspected.
+
 ## The rebuild · 24 October 2026
 
 Superseded in part by the revision above. Applied from Afo's review and two rounds of questions;
@@ -202,15 +248,20 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
 - **Deck:** source checks pass (18 slides, 18 notes, 8:00, no em dashes). After the evidence pass
   all 18 slides, the contact sheet and the 18-page PDF were rendered again with a clean probe, and
   the changed slides (8, 11, 12 and 13) were inspected; every slide was inspected after the
-  revision. In print mode every slide is one 1920 x 1080 page. In screen mode `End`, `Home`, the
+  revision. After the status refresh the unchanged deck rendered again with a clean probe, and the
+  contact sheet and the photo slides 8, 12 and 17 were inspected. In print mode every slide is
+  one 1920 x 1080 page. In screen mode `End`, `Home`, the
   arrow keys, number keys, `#15` deep links, the notes panel and the progress line work.
 - **QR code:** Core Image's QR detector decodes the rendered closing slide to
   `https://beta.greengoods.app`; the beta home and Tech and Sun's beta garden page both loaded
   in headless Chromium. The closing slide has not changed since.
 - **Brief:** six A4 pages rendered to PDF and PNG and inspected page by page after the evidence
-  pass; the probe is clean.
-- **Screens:** re-captured at 09:00 UTC on 25 October. Tech and Sun's live page still reads 16
+  pass; rendered again after the status refresh with a clean probe, and pages 1, 3, 4 and 6
+  inspected.
+- **Screens:** re-captured at 09:23 UTC on 25 October. Tech and Sun's live page still reads 16
   approved submissions, 14 members, 0 assessments and 0 certificates.
+- **Chain state:** the deployment facts in the notes and brief rest on public RPC reads at 09:28
+  UTC on 25 October, recorded in the [status refresh](#status-refresh--25-october-2026).
 - **Arithmetic:** the program figures are unchanged, so the rebuild's 15 recomputed checks still
   cover them. The one new headline figure, $22.1bn, matches the World Bank's $22,126,757,545 for
   2024 as read on 25 October.
@@ -223,7 +274,9 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
 
 1. **Claim sources.** The deck follows the claim ledger's 23 October addendum, the event research
    note and the live-pilot handoff. If one of them is missing from `../research/` or `../handoffs/`,
-   it has not landed from the Cosmo-Local contracts work yet; read the current copy there.
+   it has not landed from the Cosmo-Local contracts work yet; read the current copy there. On
+   25 October the handoff ended before the 24 October deployment; the status refresh above holds
+   the chain evidence until the handoff and the ledger record it.
 2. **Ledger owner's updates.** C01 should describe Tech and Sun as an initiative building
    solar-powered hubs, with the Awka hub live and Enugu and Abuja as its site's next locations.
    C48 should drop the fiscal-sponsor role and keep Omo Yoruba as the first diaspora community.
@@ -237,16 +290,18 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
 4. **Omo Yoruba facts.** Its founding year, exemption history, California charity registration,
    gift method and board approval for any role are unconfirmed; the slides say only "a Yoruba
    community nonprofit in Los Angeles".
-5. **Status refresh before submission.** The slides carry no voucher deployment status beyond
-   "in pilot". Re-check the [live-pilot handoff](../handoffs/codex-live-pilot-deployment.md) on
-   27 October and update the notes' claims list, which says what to say on slide 7, and brief
-   pages 1, 3, 4 and 6 if vouchers go live. Check whether Remittance Prices Worldwide has
-   published a quarter after Q3 2025 for the Q&A transfer-cost line.
+5. **Status refresh before submission.** Done on 25 October: the voucher contracts are deployed
+   and switched on, not yet used, and the slides keep "in pilot". Re-check the
+   [live-pilot handoff](../handoffs/codex-live-pilot-deployment.md) on 27 October. If it records
+   a real member's booking through the app, the notes' claims list, which says what to say on
+   slide 7, and brief pages 1, 3, 4 and 6 may move from "deployed" to "live"; if not, leave them.
+   Remittance Prices Worldwide had no quarter after Q3 2025 on 25 October.
 6. **Slot length.** The 2026 per-team time is unconfirmed; the notes run 8:00 and include a
    five-minute cut.
 7. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
    gift method (the Omo Yoruba donate page has no payment form).
-8. **Live counts.** Re-capture the Tech and Sun page before presenting; its counts are live.
+8. **Live counts.** Re-capture the Tech and Sun page before presenting; its counts are live
+   (16, 14, 0 and 0 at 09:23 UTC on 25 October).
 9. **Recorded clip.** The stretch-goal clip of the rehearsed voucher flow was not made; the notes
    say where it would go.
 10. **Member-proof timestamp.** The claim ledger's C89 cites 01:17:19 UTC on 24 October; the proof
@@ -254,6 +309,22 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
     line is the ledger owner's to reconcile; the deck states no time of day.
 11. **Fonts offline.** Fraunces and Inter load from Google Fonts. Vendoring the OFL files would
     remove that dependency; it needs a download this task did not authorize. The PDFs embed both.
+
+## Task record · status refresh
+
+Task record: SF.Live pitch status refresh before submission | Type: documentation |
+Outcome: complete locally; the 27 October re-check and the push wait on Afo
+Agent/model: Claude Code / Claude Fable 5.1 | Coverage: the notes' claims list, brief pages 1, 3,
+4 and 6, this README, local photos and screens, on branch `claude/peaceful-curran-fbf867` from
+`e1b65cf1a`
+
+| Phase | Start → end (UTC, 25 October 2026) | Result / evidence |
+|---|---|---|
+| investigate | unknown → 09:31 | Handoff, deployment artifacts and chain state read; Remittance Prices Worldwide read in the browser pane; photos placed; screens re-captured at 09:23 |
+| implement | 09:31 → 09:36 | Claims list, brief status lines and evidence box, page 6 fix, README |
+| verify | 09:34 → 09:36 | Deck render exit 0; brief render exit 0 after the page 6 fix; changed pages and photo slides inspected |
+
+Human corrections: 0 observed in this segment; attention unknown.
 
 ## Task record · 18-slide revision
 
