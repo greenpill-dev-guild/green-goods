@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { logger } from "../modules/app/logger";
 
 /** Where the installed app keeps each account's active garden on this device. */
 export const ACTIVE_GARDEN_STORAGE_KEY = "green-goods:active-garden";
@@ -10,6 +11,34 @@ interface ActiveGardenState {
   /** Remember a garden for one chain and account; the next open starts there. */
   rememberGarden: (scope: string, gardenId: string) => void;
 }
+
+/**
+ * Local storage read at call time, so a refused write (a full quota, blocked storage) is logged
+ * and the choice lasts for this session instead of breaking the screen that made it.
+ */
+const deviceStorage: StateStorage = {
+  getItem: (name) => {
+    try {
+      return localStorage.getItem(name);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name, value) => {
+    try {
+      localStorage.setItem(name, value);
+    } catch (error) {
+      logger.warn("Could not save the active garden", { source: "useActiveGardenStore", error });
+    }
+  },
+  removeItem: (name) => {
+    try {
+      localStorage.removeItem(name);
+    } catch {
+      // Storage that cannot be read holds nothing to remove.
+    }
+  },
+};
 
 /** Saved choices are untrusted input: only a garden id string per scope survives. */
 function parseGardenIdsByScope(value: unknown): Record<string, string> {
@@ -40,7 +69,7 @@ export const useActiveGardenStore = create<ActiveGardenState>()(
     }),
     {
       name: ACTIVE_GARDEN_STORAGE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => deviceStorage),
       partialize: (state) => ({ gardenIdsByScope: state.gardenIdsByScope }),
       merge: (persisted, current) => ({
         ...current,

@@ -3,7 +3,8 @@
  * key, brought back after a reload, with malformed saved choices dropped.
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { logger } from "../../modules/app/logger";
 import { ACTIVE_GARDEN_STORAGE_KEY, useActiveGardenStore } from "../../stores/useActiveGardenStore";
 
 const ALICE_SCOPE = "42161:0xa11ce00000000000000000000000000000000001";
@@ -25,6 +26,11 @@ function saveChoices(gardenIdsByScope: unknown) {
 beforeEach(() => {
   localStorage.clear();
   useActiveGardenStore.setState({ gardenIdsByScope: {} });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("stores/useActiveGardenStore", () => {
@@ -68,5 +74,25 @@ describe("stores/useActiveGardenStore", () => {
     saveChoices("not a map");
     await useActiveGardenStore.persist.rehydrate();
     expect(useActiveGardenStore.getState().gardenIdsByScope).toEqual({});
+  });
+
+  it("keeps the choice for this session when storage refuses the write, and says so", () => {
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+      setItem: () => {
+        throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+      },
+      removeItem: () => {},
+    });
+
+    expect(() =>
+      useActiveGardenStore.getState().rememberGarden(ALICE_SCOPE, GARDEN_A)
+    ).not.toThrow();
+    expect(useActiveGardenStore.getState().gardenIdsByScope).toEqual({ [ALICE_SCOPE]: GARDEN_A });
+    expect(warn).toHaveBeenCalledWith(
+      "Could not save the active garden",
+      expect.objectContaining({ source: "useActiveGardenStore" })
+    );
   });
 });
