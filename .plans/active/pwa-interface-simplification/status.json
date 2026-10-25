@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-25T02:08:18.929Z"
+    "updated_at": "2026-10-25T02:29:25.614Z"
   },
   "links": {
     "brief": "brief.md",
@@ -100,8 +100,8 @@
     },
     "state_api": {
       "owner": "claude",
-      "status": "ready",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "feature/pwa-membership-owner",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
       "tdd": {
@@ -309,6 +309,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-25T02:29:25.621Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/pwa-membership-owner",
+      "note": null
     }
   ]
 }
