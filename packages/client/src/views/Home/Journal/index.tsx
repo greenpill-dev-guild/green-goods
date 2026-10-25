@@ -3,6 +3,9 @@ import { lazy, Suspense } from "react";
 import { HomeLoading } from "../HomeStates";
 import type { MemberGarden } from "../homeGardens";
 import { Continue } from "./Continue";
+import { HighlightsCarousel } from "./HighlightsCarousel";
+import { RecentActivity } from "./RecentActivity";
+import { TakePart } from "./TakePart";
 
 // The interim end of the journal is the whole garden page (tabs, sheets, pools), so it loads on
 // its own and stays out of the installed app's startup bundle.
@@ -32,7 +35,10 @@ export interface HomeJournalProps {
 export function HomeJournal({ garden }: HomeJournalProps) {
   return (
     <div className="flex flex-col">
+      <HighlightsCarousel gardenId={garden.id} />
+      <RecentActivity gardenId={garden.id} />
       <Continue />
+      <TakePart gardenId={garden.id} />
       <div className="pt-4">
         <Suspense fallback={<HomeLoading remembered />}>
           <GardenPage garden={garden} layout="home" />
