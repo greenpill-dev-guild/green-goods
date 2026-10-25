@@ -510,8 +510,10 @@ const SHARED_SPECIFIER =
 const MOCKED_SPECIFIER = /vi\.(?:mock|importActual)\s*\(\s*["']([^"']+)["']/g;
 const DEEP_RELATIVE_SHARED_SOURCE =
   /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
+// External SDKs own their public exports (for example permissionless/utils).
+// Only Shared's relative paths and its declared aliases name internal barrels.
 const SHARED_INTERNAL_BARREL =
-  /from\s+["'][^"']*\/(?:config(?:\/query-keys)?|hooks|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
+  /from\s+["'](?:\.{1,2}\/|@shared\/|@green-goods\/shared\/)(?:[^"']*\/)?(?:config(?:\/query-keys)?|hooks|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
 const QUERY_KEY_REGISTRY = /from\s+["'][^"']*config\/query-keys\/registry["']/;
 const DEFAULT_CHAIN_FROM_BLOCKCHAIN = /DEFAULT_CHAIN_ID[^\n]*from\s+["'][^"']*config\/blockchain["']/;
 

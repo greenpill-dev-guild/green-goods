@@ -52,6 +52,9 @@ export interface UseUserReturn {
   eoa: { address: Address } | null;
   /** Smart account address (only set when authMode === "passkey") */
   smartAccountAddress: Address | null;
+  passkeyAccountProfile?:
+    | import("../../modules/auth/account-profile").PasskeyAccountProfileId
+    | null;
   /** Smart account client for transactions (passkey mode only) */
   smartAccountClient: SmartAccountClient | null;
   resolveSmartAccountClient: SmartAccountClientResolver | null;
@@ -103,6 +106,7 @@ export function useUser(): UseUserReturn {
       : null;
 
   return {
+    passkeyAccountProfile: auth.passkeyAccountProfile ?? null,
     user,
     ready: isReady,
     eoa,

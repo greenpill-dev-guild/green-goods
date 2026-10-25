@@ -6,7 +6,8 @@ import * as path from "node:path";
 import * as dotenv from "dotenv";
 import { getCreateAddress, Interface, getAddress, keccak256, toUtf8Bytes, ZeroAddress } from "ethers";
 import { NetworkManager } from "./utils/network";
-import { CONTRACTS_ROOT, getFoundryBroadcastPath } from "./utils/paths";
+import { CONTRACTS_ROOT, getFoundryBroadcastPath, getFoundryOutDir } from "./utils/paths";
+import { releaseJsonPath, releaseRevision } from "./utils/release-inputs";
 import {
   POOLING_INTEGRATION_UPGRADE_KEYS,
   assertProxyOwnership,
@@ -21,9 +22,6 @@ import {
   type ReleaseLock,
   type ReleaseManifest,
 } from "./utils/release-manifest";
-
-// Load environment variables from root .env
-dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
 
 export type ContractName =
   | "action-registry"
@@ -154,6 +152,7 @@ export interface PersistedUpgradeTransaction {
   to: string | null;
   nonce: string | null;
   value: string | null;
+  gas?: string | null;
   data: string | null;
   contractAddress: string | null;
   function: string | null;
@@ -169,6 +168,7 @@ export interface PersistedUpgradePlan {
   expectedNonce: number;
   releaseManifestHash?: string;
   releaseSourceCommit?: string;
+  hatsUpgrade?: { maxFeePerGasWei: string };
   transactionCount?: number;
   transactions: PersistedUpgradeTransaction[];
   upgrades: Array<{
@@ -222,6 +222,112 @@ export interface UpgradePreState {
 
 const EIP1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const upgradeInterface = new Interface(["function upgradeTo(address)"]);
+const HATS_MAX_FEE_PER_GAS_WEI = "50000000";
+const HATS_MAX_GAS_COST_WEI = 5_000_000_000_000_000n;
+
+function isArbitrumHatsUpgrade(options: Pick<UpgradeOptions, "contract" | "network">): boolean {
+  return options.contract === "hats-module" && options.network === "arbitrum";
+}
+
+function hatsReleaseRevision(): string {
+  return releaseRevision(CONTRACTS_ROOT, resolveDeploymentArtifactPath("42161-latest.json"));
+}
+
+function hatsArtifact() {
+  const artifact = JSON.parse(
+    fs.readFileSync(path.join(getFoundryOutDir("production"), "Hats.sol/HatsModule.json"), "utf8"),
+  );
+  const refs = Object.values(artifact.deployedBytecode.immutableReferences ?? {}) as Array<
+    Array<{ start: number; length: number }>
+  >;
+  if (Object.keys(artifact.bytecode.linkReferences ?? {}).length || refs.length !== 1)
+    throw new Error("Hats artifact must have no library links and exactly one self immutable");
+  return {
+    creationCode: artifact.bytecode.object as string,
+    runtime: artifact.deployedBytecode.object as string,
+    selfReferences: refs[0],
+  };
+}
+
+export function hatsUpgradeRuntime(
+  template: string,
+  references: Array<{ start: number; length: number }>,
+  implementation: string,
+): string {
+  let bytes = template.slice(2);
+  for (const { start, length } of references) {
+    if (!Number.isInteger(start) || start < 0 || length !== 32 || start + length > bytes.length / 2)
+      throw new Error("Invalid Hats self immutable reference");
+    bytes =
+      bytes.slice(0, start * 2) +
+      getAddress(implementation).slice(2).padStart(64, "0") +
+      bytes.slice((start + length) * 2);
+  }
+  return `0x${bytes}`;
+}
+
+export function validateHatsUpgradePlan(
+  plan: PersistedUpgradePlan,
+  expected: { sender: string; proxy: string; sourceCommit: string; creationCode: string },
+): void {
+  if (
+    plan.contract !== "hats-module" ||
+    plan.network !== "arbitrum" ||
+    plan.chainId !== 42161 ||
+    plan.releaseSourceCommit !== expected.sourceCommit ||
+    !/^[a-f0-9]{40}$/.test(expected.sourceCommit) ||
+    plan.functionSignature !== "upgradeHatsModule()" ||
+    plan.transactionBoundaryRule !== UPGRADE_TRANSACTION_BOUNDARY_RULE ||
+    !Number.isSafeInteger(plan.expectedNonce) ||
+    plan.expectedNonce < 0 ||
+    plan.transactionCount !== 2 ||
+    plan.transactions.length !== 2 ||
+    plan.upgrades.length !== 1 ||
+    plan.wiring.length ||
+    plan.assessmentSchemaPin ||
+    plan.hatsUpgrade?.maxFeePerGasWei !== HATS_MAX_FEE_PER_GAS_WEI
+  )
+    throw new Error("Hats plan requires the exact committed, fee-capped two-boundary release");
+  sameAddress(plan.sender, expected.sender, "Hats sender");
+  const upgrade = plan.upgrades[0];
+  sameAddress(upgrade.proxy, expected.proxy, "Hats proxy");
+  sameAddress(upgrade.ownerAtPlan, expected.sender, "Hats owner");
+  if (
+    upgrade.deploymentKey !== "hatsModule" ||
+    upgrade.deployTransactionIndex !== 0 ||
+    upgrade.upgradeTransactionIndex !== 1 ||
+    !isAddress(upgrade.previousImplementation) ||
+    !/^0x[0-9a-f]{64}$/iu.test(upgrade.previousImplementationCodeHash ?? "")
+  )
+    throw new Error("Hats plan has invalid previous implementation or boundary ownership");
+  const create = assertCanonicalUpgradeTransaction(plan.transactions[0], plan, 0);
+  const call = assertCanonicalUpgradeTransaction(plan.transactions[1], plan, 1);
+  const implementation = getCreateAddress({ from: expected.sender, nonce: plan.expectedNonce });
+  if (
+    create.to !== null ||
+    create.transactionType !== "CREATE" ||
+    create.contractName !== "HatsModule" ||
+    create.data!.toLowerCase() !== expected.creationCode.toLowerCase() ||
+    upgrade.newImplementationCreationCodeHash !== keccak256(expected.creationCode)
+  )
+    throw new Error("Hats creation differs from the reviewed production artifact");
+  sameAddress(create.contractAddress, implementation, "Hats CREATE address");
+  sameAddress(upgrade.newImplementation, implementation, "Hats new implementation");
+  sameAddress(call.to, expected.proxy, "Hats upgrade target");
+  if (
+    call.transactionType !== "CALL" ||
+    call.data!.toLowerCase() !== upgradeInterface.encodeFunctionData("upgradeTo", [implementation]).toLowerCase()
+  )
+    throw new Error("Hats upgrade calldata differs from its reviewed CREATE");
+  const gas = [create, call].map((tx) => {
+    if (!/^(?:0x[0-9a-f]+|[1-9][0-9]*)$/iu.test(tx.gas ?? "")) throw new Error("Missing Hats gas limit");
+    const limit = BigInt(tx.gas!);
+    if (limit <= 0n) throw new Error("Invalid Hats gas limit");
+    return limit;
+  });
+  if ((gas[0] + gas[1]) * BigInt(HATS_MAX_FEE_PER_GAS_WEI) > HATS_MAX_GAS_COST_WEI)
+    throw new Error("Hats gas cost exceeds the approved Arbitrum cap");
+}
 const assessmentSchemaInterface = new Interface([
   "function schemaUID() view returns (bytes32)",
   "function setSchemaUID(bytes32 uid)",
@@ -624,7 +730,12 @@ function findLatestUpgradeArtifact(chainId: number, functionSignature: string): 
   return findLatestUpgradeArtifactIn(baseDir, functionSignature);
 }
 
-function persistTxPlan(options: UpgradeOptions, chainId: number, preState: UpgradePreState[]): string {
+function persistTxPlan(
+  options: UpgradeOptions,
+  chainId: number,
+  preState: UpgradePreState[],
+  hatsSourceCommit?: string,
+): string {
   const artifactPath = findLatestUpgradeArtifact(chainId, CONTRACT_FUNCTIONS[options.contract]);
   const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8")) as ForgeBroadcastArtifact;
   const transactions = (artifact.transactions ?? []).map((entry, index) => ({
@@ -771,6 +882,8 @@ function persistTxPlan(options: UpgradeOptions, chainId: number, preState: Upgra
   );
   const releaseLock = releaseOwned ? buildReleaseLock(loadReleaseManifest()) : undefined;
 
+  if (hatsSourceCommit && hatsReleaseRevision() !== hatsSourceCommit)
+    throw new Error("Hats release sources changed during planning");
   const plan = {
     generatedAt: new Date().toISOString(),
     network: options.network,
@@ -778,9 +891,11 @@ function persistTxPlan(options: UpgradeOptions, chainId: number, preState: Upgra
     contract: options.contract,
     functionSignature: CONTRACT_FUNCTIONS[options.contract],
     sender: options.sender ?? process.env.SENDER_ADDRESS ?? null,
-    expectedNonce: options.expectedNonce ?? null,
+    expectedNonce:
+      options.expectedNonce ?? (hatsSourceCommit ? parsePlannedNonce(transactions[0]?.nonce ?? null) : null),
     releaseManifestHash: releaseLock?.manifestHash ?? null,
-    releaseSourceCommit: releaseLock?.sourceCommit ?? null,
+    releaseSourceCommit: hatsSourceCommit ?? releaseLock?.sourceCommit ?? null,
+    ...(hatsSourceCommit ? { hatsUpgrade: { maxFeePerGasWei: HATS_MAX_FEE_PER_GAS_WEI } } : {}),
     sourceArtifact: path.relative(CONTRACTS_ROOT, artifactPath),
     transactionCount: transactions.length,
     transactions,
@@ -790,6 +905,16 @@ function persistTxPlan(options: UpgradeOptions, chainId: number, preState: Upgra
     assessmentSchemaPin,
     transactionBoundaryRule: UPGRADE_TRANSACTION_BOUNDARY_RULE,
   };
+
+  if (hatsSourceCommit) {
+    const snapshot = preState[0];
+    validateHatsUpgradePlan(plan as PersistedUpgradePlan, {
+      sender: options.sender!,
+      proxy: snapshot.proxy,
+      sourceCommit: hatsSourceCommit,
+      creationCode: hatsArtifact().creationCode,
+    });
+  }
 
   const runDate = new Date().toISOString().slice(0, 10);
   let fileName: string;
@@ -1055,8 +1180,18 @@ export function buildUpgradeBoundarySendArgs(
   chainId: string,
   plannedNonce: number,
   account: string,
+  feeCapWei?: string,
 ): string[] {
   const sharedArgs = ["send", "--chain", chainId, "--nonce", String(plannedNonce), "--account", account];
+  if (feeCapWei)
+    sharedArgs.push(
+      "--gas-limit",
+      String(BigInt(transaction.gas!)),
+      "--gas-price",
+      feeCapWei,
+      "--priority-gas-price",
+      "0",
+    );
   return transaction.to
     ? [...sharedArgs, transaction.to, transaction.data ?? "0x"]
     : [...sharedArgs, "--create", transaction.data ?? "0x"];
@@ -1123,7 +1258,15 @@ function verifyUpgradeBoundary(
 ): void {
   if (!transaction.to) {
     if (!transaction.contractAddress) throw new Error("CREATE boundary has no predicted contract address");
-    readCodeHash(transaction.contractAddress, rpcUrl);
+    const codeHash = readCodeHash(transaction.contractAddress, rpcUrl);
+    if (isArbitrumHatsUpgrade(plan)) {
+      const artifact = hatsArtifact();
+      if (
+        codeHash !==
+        keccak256(hatsUpgradeRuntime(artifact.runtime, artifact.selfReferences, transaction.contractAddress))
+      )
+        throw new Error("Hats deployed runtime differs from the reviewed production artifact");
+    }
     return;
   }
   const upgrade = plan.upgrades.find((candidate) => candidate.upgradeTransactionIndex === transaction.index);
@@ -1131,6 +1274,15 @@ function verifyUpgradeBoundary(
     const implementation = readStorageAddress(upgrade.proxy, rpcUrl);
     if (implementation !== getAddress(upgrade.newImplementation)) {
       throw new Error(`Post-upgrade implementation mismatch for ${upgrade.deploymentKey}`);
+    }
+    if (isArbitrumHatsUpgrade(plan)) {
+      const owner = execFileSync("cast", ["call", upgrade.proxy, "owner()(address)", "--rpc-url", rpcUrl], {
+        cwd: CONTRACTS_ROOT,
+        env: buildReadOnlyCastEnv(),
+        encoding: "utf8",
+      }).trim();
+      sameAddress(owner, plan.sender, "Post-upgrade Hats owner");
+      verifyUpgradeBoundary(plan, plan.transactions[0], rpcUrl);
     }
     return;
   }
@@ -1280,12 +1432,27 @@ function executeUpgradeBoundary(
   ) {
     throw new Error("Upgrade plan does not match the exact contract, network, chain, or sender");
   }
-  const manifest = loadReleaseManifest();
-  const lock = buildReleaseLock(manifest);
   const deployment = JSON.parse(
     fs.readFileSync(resolveDeploymentArtifactPath(`${chainId}-latest.json`), "utf8"),
   ) as Record<string, unknown>;
-  validateReleaseOwnedUpgradePlan(plan, manifest, lock, deployment);
+  const hats = isArbitrumHatsUpgrade(options);
+  if (hats) {
+    const liveChainId = execFileSync("cast", ["chain-id", "--rpc-url", rpcUrl], {
+      cwd: CONTRACTS_ROOT,
+      env: buildReadOnlyCastEnv(),
+      encoding: "utf8",
+    }).trim();
+    if (Number(liveChainId) !== 42161) throw new Error("Hats RPC chain differs from Arbitrum");
+    validateHatsUpgradePlan(plan, {
+      sender: options.sender,
+      proxy: deployment.hatsModule as string,
+      sourceCommit: hatsReleaseRevision(),
+      creationCode: hatsArtifact().creationCode,
+    });
+  } else {
+    const manifest = loadReleaseManifest();
+    validateReleaseOwnedUpgradePlan(plan, manifest, buildReleaseLock(manifest), deployment);
+  }
   const transaction = plan.transactions[options.releaseStep - 1];
   if (!transaction || transaction.index !== options.releaseStep - 1) {
     throw new Error(`Upgrade plan has no boundary ${options.releaseStep}`);
@@ -1295,6 +1462,7 @@ function executeUpgradeBoundary(
     throw new Error(`Boundary nonce is ${plannedNonce}, not ${options.expectedNonce}`);
 
   const checkpointPath = planPath.replace(/\.json$/u, ".checkpoint.json");
+  if (hats) releaseJsonPath(resolveUpgradePlanOutputDir(), checkpointPath);
   const planHash = keccak256(toUtf8Bytes(stable(plan)));
   const checkpoint = fs.existsSync(checkpointPath)
     ? (JSON.parse(fs.readFileSync(checkpointPath, "utf8")) as UpgradeCheckpoint)
@@ -1307,6 +1475,15 @@ function executeUpgradeBoundary(
     verifyUpgradeBoundary(plan, transaction, rpcUrl);
     console.log(`Boundary ${options.releaseStep} is already verified; no replay transaction was sent`);
     return;
+  }
+
+  if (hats) {
+    // Recheck earlier receipts even when the operator starts a later boundary in a new process.
+    for (const previous of checkpoint.completed) {
+      const tx = plan.transactions[previous.step - 1];
+      assertReceiptAndTransaction(plan, tx, previous.transactionHash, rpcUrl);
+      verifyUpgradeBoundary(plan, tx, rpcUrl);
+    }
   }
 
   const pendingNonce = Number(
@@ -1324,6 +1501,22 @@ function executeUpgradeBoundary(
           "If the boundary mined before local persistence failed, retry this Bun target with --receipt <tx-hash>.",
       );
     }
+    if (hats) {
+      const upgrade = plan.upgrades[0];
+      const owner = execFileSync("cast", ["call", upgrade.proxy, "owner()(address)", "--rpc-url", rpcUrl], {
+        cwd: CONTRACTS_ROOT,
+        env: buildReadOnlyCastEnv(),
+        encoding: "utf8",
+      }).trim();
+      sameAddress(owner, plan.sender, "Live Hats owner");
+      sameAddress(
+        readStorageAddress(upgrade.proxy, rpcUrl),
+        upgrade.previousImplementation,
+        "Live Hats implementation",
+      );
+      if (readCodeHash(upgrade.previousImplementation, rpcUrl) !== upgrade.previousImplementationCodeHash)
+        throw new Error("Previous Hats implementation code changed");
+    }
     assertUpgradeBoundaryPreconditions(plan, transaction, rpcUrl);
     const account = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
     const output = execCastCaptured(
@@ -1333,6 +1526,7 @@ function executeUpgradeBoundary(
           networkManager.getChainIdString(options.network),
           plannedNonce,
           account,
+          hats ? HATS_MAX_FEE_PER_GAS_WEI : undefined,
         ),
         rpcUrl,
       ),
@@ -1351,6 +1545,24 @@ function executeUpgradeBoundary(
   });
   writeReleaseJsonAtomic(checkpointPath, checkpoint);
   console.log(`Boundary ${options.releaseStep} receipt and post-state verified; checkpoint written atomically`);
+}
+
+function executeHatsUpgradeBoundary(
+  options: UpgradeOptions,
+  rpcUrl: string,
+  chainId: number,
+  manager: NetworkManager,
+): void {
+  if (!options.planPath) throw new Error("Hats broadcast requires a reviewed plan");
+  const planPath = releaseJsonPath(resolveUpgradePlanOutputDir(), options.planPath);
+  const lockPath = `${planPath}.lock`;
+  const fd = fs.openSync(lockPath, "wx", 0o600);
+  try {
+    executeUpgradeBoundary({ ...options, planPath }, rpcUrl, chainId, manager);
+  } finally {
+    fs.closeSync(fd);
+    fs.unlinkSync(lockPath);
+  }
 }
 
 function main(): void {
@@ -1397,13 +1609,16 @@ function main(): void {
     process.exit(1);
   }
 
-  const releaseOwnedUpgrade = [
-    "assessment-resolver",
-    "garden-token",
-    "work-approval-resolver",
-    "commitment-pooling",
-  ].includes(options.contract);
-  if ((options.txPlan || options.broadcast) && releaseOwnedUpgrade && options.expectedNonce === undefined) {
+  const releaseOwnedUpgrade =
+    ["assessment-resolver", "garden-token", "work-approval-resolver", "commitment-pooling"].includes(
+      options.contract,
+    ) || isArbitrumHatsUpgrade(options);
+  if (
+    (options.txPlan || options.broadcast) &&
+    releaseOwnedUpgrade &&
+    options.expectedNonce === undefined &&
+    !(options.txPlan && isArbitrumHatsUpgrade(options))
+  ) {
     console.error("Release-owned upgrade planning/broadcast requires --expected-nonce <n>");
     process.exit(1);
   }
@@ -1417,6 +1632,9 @@ function main(): void {
     process.exit(1);
   }
 
+  // Only an operational invocation loads the operator's root environment. Imports, help and
+  // rejected arguments never read it.
+  dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
   const networkManager = new NetworkManager();
 
   if (options.pureSimulation) {
@@ -1450,7 +1668,8 @@ function main(): void {
 
   if (options.broadcast && releaseOwnedUpgrade) {
     try {
-      executeUpgradeBoundary(options, rpcUrl, chainId, networkManager);
+      if (isArbitrumHatsUpgrade(options)) executeHatsUpgradeBoundary(options, rpcUrl, chainId, networkManager);
+      else executeUpgradeBoundary(options, rpcUrl, chainId, networkManager);
       process.exit(0);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1462,6 +1681,7 @@ function main(): void {
   // Anything that will produce a real transaction proves the sender owns every target first.
   // A plain simulation stays runnable without a sender.
   let preState: UpgradePreState[] = [];
+  const hatsSourceCommit = options.txPlan && isArbitrumHatsUpgrade(options) ? hatsReleaseRevision() : undefined;
   if (options.broadcast || options.txPlan) {
     try {
       preState = readUpgradePreState(options, rpcUrl, networkManager);
@@ -1555,7 +1775,7 @@ function main(): void {
     }
 
     if (options.txPlan) {
-      const planPath = persistTxPlan(options, chainId, preState);
+      const planPath = persistTxPlan(options, chainId, preState, hatsSourceCommit);
       console.log(`\n✅ Upgrade transaction plan saved to ${planPath}`);
     } else {
       console.log("\n✅ Upgrade completed successfully");

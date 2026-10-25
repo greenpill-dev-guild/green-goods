@@ -445,3 +445,58 @@ test("accepts leaf imports, and leaves Shared's own barrels, tests and commented
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("accepts external public utility exports as dependencies rather than Shared barrels", () => {
+  const files = {
+    "packages/shared/src/modules/auth/proof.ts": 'import { encode7579Calls } from "permissionless/utils";',
+    "packages/shared/src/modules/wallet/connector.ts": 'import { getSdkError } from "@walletconnect/utils";',
+  };
+  const root = fixture(files);
+  try {
+    assert.deepEqual(
+      audit(root, Object.keys(files)).filter((finding) => finding.rule === "import-seam"),
+      []
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects every local Shared barrel family through relative paths and Shared aliases", () => {
+  const barrels = [
+    "config",
+    "config/query-keys",
+    "hooks",
+    "modules",
+    "modules/data/ipfs",
+    "modules/job-queue",
+    "modules/marketplace",
+    "public-contracts",
+    "public-contracts/saved-offers",
+    "utils",
+    "utils/blockchain/abis",
+  ];
+  const specifiers = [
+    ...barrels.map((barrel) => `../../${barrel}`),
+    "./utils",
+    "../utils",
+    "@shared/utils",
+    "@green-goods/shared/utils",
+  ];
+  const files = Object.fromEntries(
+    specifiers.map((specifier, index) => [
+      `packages/shared/src/modules/auth/check${index}.ts`,
+      `import { dependency } from "${specifier}";`,
+    ])
+  );
+  const root = fixture(files);
+  try {
+    const findings = audit(root, Object.keys(files)).filter((finding) => finding.rule === "import-seam");
+    assert.deepEqual(
+      ids(findings).sort(),
+      Object.keys(files).map((file) => `import-seam:${file}:internal-barrel`).sort()
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
