@@ -2,7 +2,8 @@
  * GardensList Component Tests
  *
  * Tests the profile's "My gardens" list: loading, empty, and error states, the
- * gardens an account belongs to, and opening one. Joining lives on the garden.
+ * gardens an account belongs to, the active garden's mark, and opening one.
+ * Joining lives on the garden, and only Home's chip switches the active garden.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -25,9 +26,14 @@ const asMine = (garden: any) => ({
   garden,
   membership: { roles: ["gardener"], pendingJoin: false },
 });
+// The garden Home opens in, as the resolver reports it.
+const mockActiveGarden = { gardenId: null as string | null, selectGarden: vi.fn() };
 // Mock @green-goods/shared
 vi.mock("@green-goods/shared/hooks/garden/useMyGardens", () => ({
   useMyGardens: () => mockMyGardens,
+}));
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => mockActiveGarden,
 }));
 
 // Mock @tanstack/react-query
@@ -49,6 +55,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 vi.mock("@remixicon/react", () => ({
   RiArrowRightSLine: (props: any) => createElement("span", props),
   RiErrorWarningLine: (props: any) => createElement("span", props),
+  RiHomeLine: (props: any) => createElement("span", props),
   RiMapPinLine: (props: any) => createElement("span", props),
   RiLoader4Line: (props: any) => createElement("span", props),
   RiPlantLine: (props: any) => createElement("span", props),
@@ -85,6 +92,7 @@ describe("GardensList", () => {
     mockMyGardens.isLoaded = true;
     mockMyGardens.isError = false;
     mockMyGardens.isStale = false;
+    mockActiveGarden.gardenId = null;
   });
 
   afterEach(() => {
@@ -173,6 +181,39 @@ describe("GardensList", () => {
     expect(screen.getByText("Berlin")).toBeInTheDocument();
     // Joining lives on the garden itself, so this list offers no join.
     expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
+  });
+
+  it("marks the active garden On Home and offers no control to switch it", async () => {
+    const user = userEvent.setup();
+    mockMyGardens.gardens = [
+      asMine({ id: "0xgarden1", name: "My Garden" }),
+      asMine({ id: "0xGarden2", name: "Rooftop Garden" }),
+    ];
+    mockActiveGarden.gardenId = "0xgarden2";
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+
+    // Only Home's chip switches: the list holds its rows and nothing else.
+    const rows = screen.getAllByRole("button");
+    expect(rows).toHaveLength(2);
+    expect(rows[1]).toHaveTextContent("On Home");
+    expect(rows[0]).not.toHaveTextContent("On Home");
+
+    await user.click(rows[1]);
+    expect(mockNavigate).toHaveBeenCalledWith("/home/0xGarden2");
+    expect(mockActiveGarden.selectGarden).not.toHaveBeenCalled();
+  });
+
+  it("marks no garden while the member has not chosen one", () => {
+    mockMyGardens.gardens = [
+      asMine({ id: "0xgarden1", name: "My Garden" }),
+      asMine({ id: "0xgarden2", name: "Rooftop Garden" }),
+    ];
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.queryByText("On Home")).not.toBeInTheDocument();
   });
 
   it("opens the garden when its row is pressed", async () => {
