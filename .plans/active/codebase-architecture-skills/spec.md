@@ -96,6 +96,13 @@ forward test supplements the pilot and never fills its real-task rows.
 Execution, verification, and limitations live in
 [the workflow handoff](handoffs/skill-workflow-simplification.md).
 
+Current reconciliation (2026-10-25): all five ordinary-task observations are recorded in `eval.md`,
+including recovered domain/UI evidence and the bounded runtime refactor in merged PR #1289.
+Actual Claude Desktop Code hook loading and the independent QA proposal comparison remain open;
+the comparison is currently network-blocked. The earlier pending statements describe their dated
+checkpoints. See [pilot reconciliation](handoffs/pilot-reconciliation.md) for current evidence and
+completion boundaries.
+
 ## Risks
 
 - Registry staleness: bounded to four certified seams and selected hotspots; fingerprints fail
