@@ -21,6 +21,7 @@ import {
   type GardenJoinProofEnvelope,
   type GardenJoinRequestQueueItem,
   type GardenJoinRequestKind,
+  type GardenJoinRequestSelfRecord,
   type ResolveGardenJoinRequestInput,
   validateCreateGardenJoinRequest,
 } from "../../public-contracts/join-requests";
@@ -28,6 +29,10 @@ import {
   type GardenJoinRequestFailure,
   trackGardenJoinRequestFailed,
 } from "../../modules/garden-join-requests/analytics";
+import {
+  awaitingJoinRequestScope,
+  useAwaitingJoinRequestsStore,
+} from "../../stores/useAwaitingJoinRequestsStore";
 import type { Address } from "../../types/domain";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useAuth } from "../auth/useAuth";
@@ -78,6 +83,20 @@ export function useGardenJoinRequests(
 
   const latestResolver = useRef(resolveSmartAccountClient);
   latestResolver.current = resolveSmartAccountClient;
+
+  // The device keeps which gardens the account asked to join, so Awaiting review outlives this
+  // session (DL-123). Only a membership request marks a garden; a steward-access ask is no join.
+  const awaitingScope =
+    kind === "garden_membership" ? awaitingJoinRequestScope(chainId, accountAddress) : null;
+  const noteAwaiting = useCallback(
+    (answer: GardenJoinRequestSelfRecord | null) => {
+      if (!awaitingScope || !gardenAddress) return;
+      useAwaitingJoinRequestsStore
+        .getState()
+        .noteRequest(awaitingScope, gardenAddress, answer, Date.now());
+    },
+    [awaitingScope, gardenAddress]
+  );
 
   const signProof = useCallback(
     async (
@@ -184,6 +203,7 @@ export function useGardenJoinRequests(
           setRequest(response.request);
           setHasCheckedStatus(true);
           session.setOutcomeUnknown(false);
+          noteAwaiting(response.request);
         }
         return isCurrentScope(operationScope) && session.isCurrentOperation(operationId)
           ? response.request
@@ -216,6 +236,7 @@ export function useGardenJoinRequests(
       session,
       setRequest,
       setHasCheckedStatus,
+      noteAwaiting,
     ]
   );
 
@@ -261,6 +282,7 @@ export function useGardenJoinRequests(
           setRequest(response.request);
           setHasCheckedStatus(true);
           session.setOutcomeUnknown(false);
+          noteAwaiting(response.request);
         }
         return isCurrentScope(operationScope) && session.isCurrentOperation(operationId)
           ? response.request
@@ -290,6 +312,7 @@ export function useGardenJoinRequests(
       session,
       setRequest,
       setHasCheckedStatus,
+      noteAwaiting,
     ]
   );
 
@@ -317,6 +340,7 @@ export function useGardenJoinRequests(
         setRequest(null);
         setHasCheckedStatus(true);
         session.setOutcomeUnknown(false);
+        noteAwaiting(null);
       }
       return isCurrentScope(operationScope) && session.isCurrentOperation(operationId);
     } catch (caught) {
@@ -341,6 +365,7 @@ export function useGardenJoinRequests(
     session,
     setRequest,
     setHasCheckedStatus,
+    noteAwaiting,
   ]);
 
   const loadQueue = useCallback(

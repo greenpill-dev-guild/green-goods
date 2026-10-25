@@ -85,6 +85,11 @@ import {
   useGardenJoinRequests,
 } from "../../hooks/garden/useGardenJoinRequests";
 import { GardenJoinRequestTransportError } from "../../modules/garden-join-requests";
+import {
+  AWAITING_JOIN_REQUESTS_STORAGE_KEY,
+  awaitingJoinRequestScope,
+  useAwaitingJoinRequestsStore,
+} from "../../stores/useAwaitingJoinRequestsStore";
 
 let testClient: QueryClient;
 function renderHook<Result, Props>(
@@ -139,6 +144,8 @@ const queueResponse: GardenJoinRequestQueueResponse = {
 describe("useGardenJoinRequests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    useAwaitingJoinRequestsStore.setState({ requestsByScope: {} });
     testClient = createTestQueryClient();
     // Remount tests need the normal cache lifetime; the helper otherwise collects immediately.
     testClient.setDefaultOptions({
@@ -866,19 +873,47 @@ describe("useGardenJoinRequests", () => {
 
 // Home's switcher, Explore and the no-garden Home mark a garden the member asked to join.
 describe("useAwaitingJoinRequests", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  // A request still open: the service answers it with an expiry a month out.
+  const openResponse: GardenJoinRequestSelfResponse = {
+    ok: true,
+    request: {
+      ...selfResponse.request!,
+      expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+    },
+  };
+  const scope = () => awaitingJoinRequestScope(mocks.chainId, mocks.accountAddress)!;
+
+  function newQueryClient() {
     testClient = createTestQueryClient();
     testClient.setDefaultOptions({
       ...testClient.getDefaultOptions(),
       queries: { ...testClient.getDefaultOptions().queries, gcTime: 5 * 60 * 1000 },
     });
+  }
+
+  // A relaunch: the session's cache is gone, and the device's records come back from storage.
+  // The store persists its reset too, so storage is restored to what the last launch wrote.
+  async function relaunch() {
+    newQueryClient();
+    const saved = localStorage.getItem(AWAITING_JOIN_REQUESTS_STORAGE_KEY);
+    useAwaitingJoinRequestsStore.setState({ requestsByScope: {} });
+    if (saved === null) localStorage.removeItem(AWAITING_JOIN_REQUESTS_STORAGE_KEY);
+    else localStorage.setItem(AWAITING_JOIN_REQUESTS_STORAGE_KEY, saved);
+    await useAwaitingJoinRequestsStore.persist.rehydrate();
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    useAwaitingJoinRequestsStore.setState({ requestsByScope: {} });
+    newQueryClient();
     mocks.accountAddress = "0x2222222222222222222222222222222222222222";
     mocks.authMode = "wallet";
     mocks.hasSmartClient = true;
     mocks.chainId = 42161;
     mocks.sign.mockResolvedValue("0x1234");
-    mocks.create.mockResolvedValue(selfResponse);
+    mocks.create.mockResolvedValue(openResponse);
+    mocks.mine.mockResolvedValue(openResponse);
     mocks.withdraw.mockResolvedValue({ ok: true });
   });
 
@@ -959,6 +994,91 @@ describe("useAwaitingJoinRequests", () => {
 
   it("marks nothing without a signed-in account", () => {
     mocks.accountAddress = null as unknown as Address;
+
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+
+    expect(result.current.size).toBe(0);
+  });
+
+  // The service shows a request only to the account's signature, so what this device sent is
+  // kept on the device: Awaiting review survives a relaunch without a signature prompt.
+  it("keeps the mark through a relaunch from the record the device kept, with no signature", async () => {
+    const dialog = await sendRequest(GARDEN_A);
+    dialog.unmount();
+    await relaunch();
+    mocks.sign.mockClear();
+
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A, GARDEN_B]));
+
+    expect([...result.current]).toEqual([GARDEN_A.toLowerCase()]);
+    expect(mocks.sign).not.toHaveBeenCalled();
+    expect(mocks.mine).not.toHaveBeenCalled();
+  });
+
+  it("records only the garden and the request's expiry: no proof, nonce or signature", async () => {
+    await sendRequest(GARDEN_A);
+
+    const saved = localStorage.getItem(AWAITING_JOIN_REQUESTS_STORAGE_KEY) ?? "null";
+    expect(JSON.parse(saved).state).toEqual({
+      requestsByScope: {
+        [scope()]: {
+          [GARDEN_A.toLowerCase()]: { expiresAt: Date.parse(openResponse.request!.expiresAt) },
+        },
+      },
+    });
+    expect(saved).not.toMatch(/0x1234|nonce|signature|request-a/);
+  });
+
+  it("forgets the record once the request is withdrawn", async () => {
+    const dialog = await sendRequest(GARDEN_A);
+    await act(async () => {
+      await dialog.result.current.withdrawRequest();
+    });
+    dialog.unmount();
+    await relaunch();
+
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+
+    expect(result.current.size).toBe(0);
+  });
+
+  it("forgets the record once a check finds the request answered", async () => {
+    const dialog = await sendRequest(GARDEN_A);
+    mocks.mine.mockResolvedValue({
+      ok: true,
+      request: { ...openResponse.request!, state: "welcomed" },
+    });
+    await act(async () => {
+      await dialog.result.current.checkStatus();
+    });
+    dialog.unmount();
+    await relaunch();
+
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+
+    expect(result.current.size).toBe(0);
+  });
+
+  it("lets a check made this session outrank a record the device kept", async () => {
+    const dialog = await sendRequest(GARDEN_A);
+    mocks.mine.mockResolvedValue({ ok: true, request: null });
+    await act(async () => {
+      await dialog.result.current.checkStatus();
+    });
+    // A record that outlived its answer: a refused storage write, or an older launch's note.
+    useAwaitingJoinRequestsStore
+      .getState()
+      .noteRequest(scope(), GARDEN_A, openResponse.request!, Date.now());
+
+    const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+
+    expect(result.current.size).toBe(0);
+  });
+
+  it("drops the mark once the recorded request expires", () => {
+    useAwaitingJoinRequestsStore.setState({
+      requestsByScope: { [scope()]: { [GARDEN_A.toLowerCase()]: { expiresAt: Date.now() - 1 } } },
+    });
 
     const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
 

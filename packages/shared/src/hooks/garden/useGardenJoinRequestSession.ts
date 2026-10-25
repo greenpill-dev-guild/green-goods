@@ -6,6 +6,10 @@ import type {
   GardenJoinRequestSelfRecord,
   GardenJoinRequestKind,
 } from "../../public-contracts/join-requests";
+import {
+  awaitingJoinRequestScope,
+  useAwaitingJoinRequestsStore,
+} from "../../stores/useAwaitingJoinRequestsStore";
 import { useAuth } from "../auth/useAuth";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -115,10 +119,12 @@ export function useGardenJoinRequestSession(
 
 /**
  * The gardens among `gardenIds` where the signed-in account's request to join waits for a
- * steward, as this device knows it: a request sent or checked in this session (DL-125). The
- * service shows a request only to the account's signature, so this reads the session's own
- * records and never asks for one; observing them keeps them while a list shows them. Ids come
- * back lowercased.
+ * steward, as this device knows it (DL-125): a request sent or checked in this session, or one
+ * this device sent in an earlier one and still holds a record of (`useAwaitingJoinRequestsStore`).
+ * The service shows a request only to the account's signature, so this reads the session's own
+ * records and the device's and never asks for one; observing the session's keeps them while a
+ * list shows them. An answer this session learned outranks the device's record. Ids come back
+ * lowercased.
  */
 export function useAwaitingJoinRequests(gardenIds: readonly string[]): ReadonlySet<string> {
   const chainId = useCurrentChain();
@@ -131,11 +137,21 @@ export function useAwaitingJoinRequests(gardenIds: readonly string[]): ReadonlyS
         )
       : [],
   });
+  const scope = awaitingJoinRequestScope(chainId, account);
+  const kept = useAwaitingJoinRequestsStore((state) =>
+    scope ? state.requestsByScope[scope] : undefined
+  );
+  const now = Date.now();
   // One string per answer, so the set keeps its identity until a request changes.
-  const awaiting = records
-    .flatMap((record, index) =>
-      record.data?.request?.state === "pending" ? [gardenIds[index].toLowerCase()] : []
-    )
+  const awaiting = gardenIds
+    .flatMap((gardenId, index) => {
+      const id = gardenId.toLowerCase();
+      const session = records[index]?.data;
+      const pending =
+        session?.request?.state === "pending" ||
+        (!session?.hasCheckedStatus && (kept?.[id]?.expiresAt ?? 0) > now);
+      return pending ? [id] : [];
+    })
     .join(",");
   return useMemo(() => new Set(awaiting ? awaiting.split(",") : []), [awaiting]);
 }
