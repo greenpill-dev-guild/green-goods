@@ -186,8 +186,16 @@ export function useCanvasShellController({
     () => eligibleGardens.map((garden) => ({ id: garden.id, name: garden.name })),
     [eligibleGardens]
   );
+  // The chip draws the selected garden's banner as its avatar (DL-124).
   const selectedGardenOption = useMemo(
-    () => (selectedGarden ? { id: selectedGarden.id, name: selectedGarden.name } : null),
+    () =>
+      selectedGarden
+        ? {
+            id: selectedGarden.id,
+            name: selectedGarden.name,
+            bannerImage: selectedGarden.bannerImage ?? "",
+          }
+        : null,
     [selectedGarden]
   );
   const selectGarden = useCallback(
