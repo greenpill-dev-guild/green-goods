@@ -209,6 +209,7 @@ function workable(
     dueDate: null,
     targetUnits: 0n,
     unitLabel: null,
+    progress: null,
     choices,
     takesEvidence,
   };
@@ -221,6 +222,7 @@ const quietStep = {
   promises: { status: "ready", count: 0 },
   openAsks: 0,
   actionUIDs: [7, 8],
+  heldActionUID: null,
 } as const;
 
 describe("the Start step (DL-131)", () => {
@@ -312,6 +314,16 @@ describe("the Start step (DL-131)", () => {
     ],
     ["a garden with no live action keeps the step", { actionUIDs: [] }, { kind: "stay" }],
     [
+      "work already holding another action keeps the step: the flow never replaces it",
+      { actionUIDs: [7], heldActionUID: 5 },
+      { kind: "stay" },
+    ],
+    [
+      "work already holding the garden's one action still skips",
+      { actionUIDs: [7], heldActionUID: 7 },
+      { kind: "skip", actionUID: 7 },
+    ],
+    [
       "while the garden's actions are read the step waits, even with nothing owed",
       { actionUIDs: null },
       { kind: "wait" },
@@ -329,12 +341,32 @@ describe("the Start step (DL-131)", () => {
         workable([linkChoice(9, 0)], true, 3n),
         workable([linkChoice(8, 0)], true, 4n),
       ],
-      new Set([7, 8])
+      new Set([7, 8]),
+      () => false
     );
 
     expect(listed.map((promise) => promise.commitmentId)).toEqual([1n, 3n, 4n]);
     expect(listed[0].choices.map((choice) => choice.requirementIndex)).toEqual([1]);
     expect(listed.map(startPromiseKind)).toEqual(["actions", "evidence", "both"]);
     expect(startPromiseKind(workable([], false))).toBeNull();
+  });
+
+  it("lists only requirements still short of their count, and evidence only where none waits to send", () => {
+    const listed = listStartPromises(
+      [
+        // Its one requirement here is met, and it takes no evidence: nothing to do.
+        workable([linkChoice(7, 0, 4, 4)], false, 1n),
+        workable([linkChoice(7, 0, 4, 4)], true, 2n),
+        // Proof for these two already waits to send on this phone.
+        workable([linkChoice(7, 0, 1, 4)], true, 3n),
+        workable([], true, 4n),
+      ],
+      new Set([7]),
+      (commitmentId) => commitmentId === 3n || commitmentId === 4n
+    );
+
+    expect(listed.map((promise) => promise.commitmentId)).toEqual([2n, 3n]);
+    expect(listed.map(startPromiseKind)).toEqual(["evidence", "actions"]);
+    expect(listed[0].choices).toEqual([]);
   });
 });

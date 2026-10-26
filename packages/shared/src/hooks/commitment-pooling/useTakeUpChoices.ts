@@ -44,6 +44,10 @@ export function takeUpAsk(
   input: { workGarden: Address; returnGarden: Address; title: string }
 ): WorkablePromise {
   const returnTo = workLinkReturnTo(input.returnGarden, commitment.commitmentId);
+  const required = (commitment.requirements ?? []).reduce(
+    (sum, requirement) => sum + requirement.requiredCount,
+    0
+  );
   return {
     commitmentId: commitment.commitmentId,
     title: input.title,
@@ -52,6 +56,8 @@ export function takeUpAsk(
     dueDate: commitment.dueDate ?? null,
     targetUnits: commitment.targetUnits,
     unitLabel: commitment.unitLabel ?? null,
+    // Nobody holds an ask yet, so none of its approvals have come.
+    progress: required > 0 ? { approved: 0, required } : null,
     takesEvidence: false,
     choices: (commitment.requirements ?? []).map(
       (requirement, requirementIndex): WorkLinkChoice => ({

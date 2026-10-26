@@ -30,8 +30,6 @@ export function startPromiseCard(
   titleOf: (actionUID: number) => string | null
 ): Omit<PromiseCardProps, "onOpen"> {
   const state = presentState(promise.state);
-  const required = promise.choices.reduce((sum, choice) => sum + (choice.requiredCount ?? 0), 0);
-  const approved = promise.choices.reduce((sum, choice) => sum + (choice.approvedCount ?? 0), 0);
   const needs = promise.choices
     .map((choice) => titleOf(choice.actionUID))
     .filter((title): title is string => title !== null);
@@ -41,7 +39,8 @@ export function startPromiseCard(
     title: promise.title,
     direction: promise.direction,
     status: { label: intl.formatMessage({ id: state.labelId }), tone: state.tone },
-    progress: required > 0 ? { approved, required } : null,
+    // The whole promise's, not the requirements listed here: a met one is not offered.
+    progress: promise.progress,
     units: promise.unitLabel
       ? formatCommitmentUnits(intl, promise.targetUnits, promise.unitLabel)
       : null,

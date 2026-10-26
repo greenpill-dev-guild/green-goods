@@ -9,6 +9,7 @@ import {
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
   sameWorkLinkIdentity,
+  type WorkLinkChoice,
   type WorkLinkIntent,
   workLinkReturnGarden,
   writeWorkLinkIntent,
@@ -43,9 +44,9 @@ interface WorkLinkIntentOptions {
  *
  * - one of the member's own, which the work links to as it is sent;
  * - one of the garden's Open asks the member could take up (decision 18), which Submit takes up
- *   first, in the same tap. Declined or refused, nothing of the work is queued; still waiting
- *   to go, the work is queued behind it. A take-up that landed from this composer is not run
- *   again, though the indexer may still list its ask as open.
+ *   once the work has passed its own checks, before it is admitted. Declined or refused, nothing
+ *   of the work is queued; still waiting to go, the work is queued behind it. A take-up that
+ *   landed from this composer is not run again, though the indexer may still list its ask as open.
  *
  * The garden never changes for an ask: it is its own garden's, so choosing one keeps the work
  * there. It also reads the flow's garden's promises the member can work on and its Open asks,
@@ -64,8 +65,8 @@ export function useWorkLinkIntent({
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
   const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
   // A promise link the page was opened with, as from a promise's page; one chosen at Start or
-  // brought back with a draft arrives later.
-  const [linkAtEntry] = useState(() => hasWorkLinkIntentParams(searchParams));
+  // brought back with a draft arrives later. Taking it off or choosing another ends it.
+  const [linkAtEntry, setLinkAtEntry] = useState(() => hasWorkLinkIntentParams(searchParams));
   // The link is checked in its own garden, which the flow takes up once it holds.
   const linkGardens = {
     chainId: DEFAULT_CHAIN_ID,
@@ -119,11 +120,13 @@ export function useWorkLinkIntent({
                   : "invalid";
   // Taking the promise off is saved with the draft; see draftLinkCleared.
   const clearLinkIntent = useCallback(() => {
+    setLinkAtEntry(false);
     useWorkFlowStore.setState({ draftLinkCleared: true });
     setSearchParams(writeWorkLinkIntent(searchParams, null), { replace: true });
   }, [searchParams, setSearchParams]);
+  /** Links the work to a live choice matching `intent`, and returns it; null takes the link off. */
   const selectLinkIntent = useCallback(
-    (intent: WorkLinkIntent | null) => {
+    (intent: WorkLinkIntent | null): WorkLinkChoice | null => {
       const live = [
         ...(workablePromises.data ?? []).flatMap((promise) => promise.choices),
         ...openAsks.choices,
@@ -133,12 +136,14 @@ export function useWorkLinkIntent({
       const canonical = intent
         ? (live.find((choice) => sameWorkLinkIdentity(choice, intent)) ?? null)
         : null;
+      setLinkAtEntry(false);
       useWorkFlowStore.setState({ draftLinkCleared: !canonical });
       setSearchParams(writeWorkLinkIntent(searchParams, canonical), { replace: true });
       if (canonical) {
         setGardenAddress(canonical.garden);
         useWorkFlowStore.getState().setActionUID(canonical.actionUID);
       }
+      return canonical;
     },
     [
       linkChoices.choices,
