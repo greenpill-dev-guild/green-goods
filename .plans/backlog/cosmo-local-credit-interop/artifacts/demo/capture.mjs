@@ -655,6 +655,15 @@ async function shoot(page, session, step, width, height) {
     else if (box.width * box.height > width * height * 0.6) note(`${step.shot}: hotspot target covers ${Math.round((box.width * box.height) / (width * height) * 100)}% of the screen; target the visible control (${JSON.stringify(step.tap)})`);
     else hotspot = [box.x / width, box.y / height, box.width / width, box.height / height].map((v) => Math.round(v * 10000) / 10000);
   }
+  // Every image a person can see on the screen has to have decoded pixels, the live pages' own
+  // photos and banners included, or a failed or undecodable image request would bake a blank
+  // picture into the screen that no later check can see.
+  const blank = await page.evaluate(() => [...document.querySelectorAll("img")].filter((img) => {
+    const r = img.getBoundingClientRect();
+    const visible = r.width >= 24 && r.height >= 24 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth && getComputedStyle(img).visibility !== "hidden";
+    return visible && !(img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
+  }).map((img) => (img.currentSrc || img.getAttribute("src") || "(no src)").replace(/^data:[^,]*,.*/, "(data URI)").slice(0, 90)));
+  if (blank.length) note(`${step.shot}: ${blank.length} visible image(s) did not load or decode: ${blank.join(" | ")}`);
   const file = join(staging, `${step.shot}.jpg`);
   if (step.over) hotspot = await composeOver(page, session, step, file, hotspot);
   else await page.screenshot({ path: file, type: "jpeg", quality: 82 });
@@ -851,12 +860,15 @@ html = html.replace(block[0], `<script type="application/json" id="flows">\n${js
 const stagedHtml = join(here, ".index.html.staged");
 writeFileSync(stagedHtml, html);
 const backup = mkdtempSync(join(out, ".previous-"));
+const names = readdirSync(staging);
 try {
-  const names = readdirSync(staging);
   for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
   for (const name of names) renameSync(join(staging, name), join(out, name));
   renameSync(stagedHtml, htmlPath);
 } catch (error) {
+  // A screen captured for the first time has no backup, so every promoted name goes first, or a
+  // new screen could outlive the rollback beside the old index.html.
+  for (const name of names) rmSync(join(out, name), { force: true });
   for (const name of readdirSync(backup)) copyFileSync(join(backup, name), join(out, name));
   for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
   rmSync(stagedHtml, { force: true });

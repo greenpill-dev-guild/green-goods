@@ -122,6 +122,12 @@ const files = [];
 for (const i of targets) {
   await page.goto(`${url}?static=1&slide=${i}`, { waitUntil: "load" });
   await page.evaluate(() => document.fonts.ready);
+  // fonts.ready also resolves when the Google Fonts stylesheet failed, and the slides would then
+  // render in Georgia and the system sans with different line breaks, so both faces must be loaded.
+  if (i === targets[0]) {
+    const missingFonts = await page.evaluate(() => ["Fraunces", "Inter"].filter((family) => ![...document.fonts].some((f) => f.family.replace(/["']/g, "") === family && f.status === "loaded")));
+    if (missingFonts.length) note(`font(s) not loaded, so the slides fell back: ${missingFonts.join(", ")}`);
+  }
   await page.waitForTimeout(150);
   const report = await page.evaluate((isTitle) => {
     const slide = document.querySelector(".slide.active");

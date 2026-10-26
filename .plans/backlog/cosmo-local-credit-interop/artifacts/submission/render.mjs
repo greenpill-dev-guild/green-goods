@@ -9,7 +9,7 @@
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const PAGES = ["business-model-canvas", "logical-architecture"];
@@ -32,6 +32,10 @@ for (const name of PAGES) {
   const page = await browser.newPage({ viewport: { width: 1300, height: 900 }, deviceScaleFactor: 2 });
   await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "load" });
   await page.evaluate(() => document.fonts.ready);
+  // fonts.ready also resolves when the Google Fonts stylesheet failed, and the page would then
+  // render in Georgia and the system sans with different line breaks, so both faces must be loaded.
+  const missingFonts = await page.evaluate(() => ["Fraunces", "Inter"].filter((family) => ![...document.fonts].some((f) => f.family.replace(/["']/g, "") === family && f.status === "loaded")));
+  if (missingFonts.length) problems.push(`${name}: font(s) not loaded, so the page fell back: ${missingFonts.join(", ")}`);
   await page.emulateMedia({ media: "print" });
   await page.waitForTimeout(300);
   const report = await page.evaluate(() => {
@@ -96,6 +100,18 @@ if (problems.length) {
   for (const p of problems) console.log(`  ${p}`);
   process.exit(1);
 }
-for (const name of readdirSync(staging)) { renameSync(join(staging, name), join(out, name)); console.log(join(out, name)); }
-rmSync(staging, { recursive: true, force: true });
+// The outputs are replaced as a set: the current files are backed up, and a rename that fails
+// halfway removes every promoted name and puts the backup back.
+const backup = mkdtempSync(join(out, ".previous-"));
+const names = readdirSync(staging);
+try {
+  for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+  for (const name of names) { renameSync(join(staging, name), join(out, name)); console.log(join(out, name)); }
+} catch (error) {
+  for (const name of names) rmSync(join(out, name), { force: true });
+  for (const name of readdirSync(backup)) copyFileSync(join(backup, name), join(out, name));
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  throw new Error(`${error.message}; the previous outputs were put back`);
+}
+for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
 console.log(`submission checks: ${PAGES.length} one-pagers, nothing past the margins, into a footer or out of a box, images loaded, PDF words in place`);

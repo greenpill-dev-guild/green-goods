@@ -83,7 +83,8 @@ does not decode; when a record photo's title in `record-photos.tsv` no longer ma
 submission `RECORDS` binds it to (the hub's page lists newest first, so a new approved submission
 renumbers the files); when Storybook shows its not-found view; when a screen without a hotspot
 shows neither its `expect` copy nor any of its own swaps; or when a hotspot target is missing, off
-screen, or the size of the screen (a scrim, not the control the caption names). The check then taps
+screen, or the size of the screen (a scrim, not the control the caption names); or when a visible
+image did not load or decode, the live pages' own photos and banners included. The check then taps
 beside the hotspot on every screen and expects not to advance.
 
 Check fails on an em dash in the demo's HTML or Markdown; a caption over eight words; a caption,
