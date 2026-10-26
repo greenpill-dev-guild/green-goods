@@ -18,6 +18,14 @@ export interface GardenFiltersState {
 export const DEFAULT_GARDEN_FILTERS: GardenFiltersState = { scope: "all", sort: "recent" };
 
 /**
+ * Whether the app may list a garden for an account: a family garden kept for its members is
+ * listed only when the account is one of them (DL-126); every other garden is listed for anyone.
+ */
+export function isGardenListedFor(garden: { id: string }, isMember: boolean): boolean {
+  return isMember || !isGardenMembersOnly(garden.id as Address);
+}
+
+/**
  * Read filters saved on the device. Saved input is untrusted: anything that is
  * not a known scope, sort, or domain falls back to the default for that field.
  */
@@ -77,9 +85,7 @@ export function filterGardens(
 ): FilteredGardensResult {
   const { scope, sort, domains = [] } = filters;
   const isMine = (garden: Garden) => isMyGarden(gardenMembership(garden, userAddress));
-  const visibleGardens = gardens.filter(
-    (garden) => !isGardenMembersOnly(garden.id as Address) || isMine(garden)
-  );
+  const visibleGardens = gardens.filter((garden) => isGardenListedFor(garden, isMine(garden)));
 
   const myGardens = visibleGardens.filter(isMine);
   const openGardens = visibleGardens.filter((garden) => garden.openJoining === true);
