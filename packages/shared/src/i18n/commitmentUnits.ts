@@ -43,27 +43,67 @@ function pluralCount(count: bigint | number | string): number {
   }
 }
 
+type SingularRule = readonly [plural: RegExp, singular: string | null];
+
+/** Plurals that read the same way in English, Spanish and Portuguese ("photos", "aulas"). */
+const SINGULAR_ANY_LANGUAGE: readonly SingularRule[] = [
+  [/iones$/, "ión"],
+  [/ões$/, "ão"],
+  [/(.{2}[ao])s$/i, "$1"],
+];
+
+/**
+ * English plurals, tried only for an English reader: in Spanish "árboles" is
+ * "árbol", not "árbole". A rule with no singular leaves the word as written.
+ */
+const SINGULAR_ENGLISH: readonly SingularRule[] = [
+  [/(ss|sh|ch|x)es$/i, "$1"],
+  // "activities" and "movies" end alike; "status" and "basis" are not plurals.
+  [/(ies|ss|us|is)$/i, null],
+  [/(.{3})s$/i, "$1"],
+];
+
+/**
+ * A garden's own unit, read for a count of one. Units are written as plurals
+ * (the composer's chips are too), so the raw word would say "1 certificates".
+ * Only a single word in a plural these rules can undo with confidence changes;
+ * the reader's language stands in for the garden's, which isn't recorded.
+ */
+function singularOf(unit: string, locale: string): string {
+  if (/\s/.test(unit)) return unit;
+  const english = locale.toLowerCase().split("-")[0] === "en";
+  for (const [plural, singular] of [
+    ...SINGULAR_ANY_LANGUAGE,
+    ...(english ? SINGULAR_ENGLISH : []),
+  ]) {
+    if (plural.test(unit)) return singular === null ? unit : unit.replace(plural, singular);
+  }
+  return unit;
+}
+
 /**
  * Format a commitment quantity without losing bigint precision. The catalog
  * owns the language-specific nouns; the raw unit remains the fallback for
- * garden-authored units outside the known composer choices.
+ * garden-authored units outside the known composer choices, in its singular
+ * for a count of one when that is certain.
  */
 export function formatCommitmentUnits(
-  intl: Pick<IntlShape, "formatMessage">,
+  intl: Pick<IntlShape, "formatMessage" | "locale">,
   count: bigint | number | string,
   unit: string
 ): string {
   const normalizedUnit = unit.trim();
-  const unitKey: CommitmentUnitKey =
-    UNIT_KEY_BY_LABEL[normalizedUnit.toLocaleLowerCase()] ?? "other";
+  const knownKey: CommitmentUnitKey | undefined =
+    UNIT_KEY_BY_LABEL[normalizedUnit.toLocaleLowerCase()];
+  const one = pluralCount(count) === 1;
 
   return intl.formatMessage(
     { id: "app.commitments.row.units" },
     {
       count: String(count),
       pluralCount: pluralCount(count),
-      unit: normalizedUnit,
-      unitKey,
+      unit: one && !knownKey ? singularOf(normalizedUnit, intl.locale) : normalizedUnit,
+      unitKey: knownKey ?? "other",
     }
   );
 }
