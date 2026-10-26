@@ -27,6 +27,12 @@ export * from "./service-access";
 export * from "./service-access-pilot-types";
 export * from "./service-access-types";
 export * from "./service-access-voucher-types";
+export {
+  requestRewardDeliveries,
+  voucherBookingEscrow,
+  voucherPendingReturn,
+} from "./service-access-wallet";
+export type * from "./service-access-wallet-types";
 export type * from "./service-issuer-types";
 export { SERVICE_ISSUER_ROUTES } from "./service-issuer-metadata";
 export { serviceIssuerGovernanceDrafts } from "./service-issuer-governance";

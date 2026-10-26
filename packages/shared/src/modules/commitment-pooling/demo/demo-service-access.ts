@@ -7,6 +7,7 @@ import type {
   ServiceAccessSnapshot,
 } from "../service-access-types";
 import { voucherSetupAvailableActions } from "../service-access-voucher";
+import type { VoucherWalletScope, VoucherWalletSnapshot } from "../service-access-wallet-types";
 import {
   createServiceRehearsalSnapshot,
   SERVICE_REHEARSAL_IDS,
@@ -25,16 +26,22 @@ import {
   pilotLedgerIdentity,
 } from "./demo-service-pilot";
 import { applyRehearsalVoucherAction } from "./demo-voucher-setup";
+import { rehearsalVoucherWallet } from "./demo-service-wallet";
 
 function isServiceRehearsalKey(key: ServiceAccessKey): boolean {
   return key.sourceChainId === 42161 && SERVICE_REHEARSAL_IDS.some((id) => id === key.commitmentId);
+}
+
+export interface ServiceRehearsalAdapter extends ServiceAccessAdapter {
+  /** The account's vouchers across every rehearsal booking, from the same ledger. */
+  wallet(scope: VoucherWalletScope): Promise<VoucherWalletSnapshot>;
 }
 
 /** In-memory fictional observations; reload starts a new rehearsal. No signing or RPC exists here. */
 export function createServiceRehearsalAdapter(
   transferSucceeds: () => boolean = () => true,
   createSnapshot: (key: ServiceAccessKey) => ServiceAccessSnapshot = createServiceRehearsalSnapshot
-): ServiceAccessAdapter {
+): ServiceRehearsalAdapter {
   const records = new Map<string, ServiceAccessSnapshot>();
   const ledgers = new Map<string, PilotLedger>();
   const ledger = (key: ServiceAccessKey) => {
@@ -85,6 +92,18 @@ export function createServiceRehearsalAdapter(
   return {
     async read(key: ServiceAccessKey): Promise<ServiceAccessSnapshot> {
       return copy(current(key));
+    },
+    async wallet(scope: VoucherWalletScope): Promise<VoucherWalletSnapshot> {
+      const key: ServiceAccessKey = {
+        sourceChainId: scope.sourceChainId,
+        coreModule: scope.coreModule,
+        commitmentId: 0n,
+        buyer: scope.account,
+      };
+      const snapshots = SERVICE_REHEARSAL_IDS.map((commitmentId) =>
+        copy(current({ ...key, commitmentId }))
+      );
+      return structuredClone(rehearsalVoucherWallet(scope, ledger(key), snapshots));
     },
     async execute(key: ServiceAccessKey, action: ServiceAccessAction) {
       // No await separates the fresh observation, validation and fictional state transition.

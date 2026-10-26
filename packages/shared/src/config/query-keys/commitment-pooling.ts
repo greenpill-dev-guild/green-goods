@@ -60,6 +60,24 @@ export const commitmentPoolingKeys = {
       buyer.toLowerCase(),
       rehearsal ? "local-rehearsal" : "indexed",
     ] as const,
+  /** Every account's voucher wallet on a source chain, so a service act refreshes them all. */
+  voucherWallets: (chainId: number) =>
+    [...commitmentPoolingKeys.all(chainId), "voucher-wallet"] as const,
+  voucherWallet: (chainId: number, module: Address, account: Address, rehearsal: boolean) =>
+    [
+      ...commitmentPoolingKeys.voucherWallets(chainId),
+      module.toLowerCase(),
+      account.toLowerCase(),
+      rehearsal ? "local-rehearsal" : "onchain",
+    ] as const,
+  /** Keyed by the issuer's own chain: the threshold is read from the issuer's Safe there. */
+  issuerApproval: (chainId: number, issuer: Address, rehearsal: boolean) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "issuer-approval",
+      issuer.toLowerCase(),
+      rehearsal ? "local-rehearsal" : "onchain",
+    ] as const,
   issuerOperations: (account?: Address | null, routeId?: string, assetId?: string) =>
     [
       ...commitmentPoolingKeys.all(100),

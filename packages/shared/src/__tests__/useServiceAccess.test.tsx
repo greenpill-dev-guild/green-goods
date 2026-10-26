@@ -5,6 +5,10 @@ import {
   useServiceAccess,
   useServiceAccessMutation,
 } from "../hooks/commitment-pooling/useServiceAccess";
+import {
+  useVoucherIssuerApproval,
+  useVoucherWallet,
+} from "../hooks/commitment-pooling/useVoucherWallet";
 import { unavailableServiceAccess } from "../modules/commitment-pooling/data-service-access";
 import type { ServiceAccessKey } from "../modules/commitment-pooling/service-access-types";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
@@ -30,6 +34,11 @@ const key: ServiceAccessKey = {
   coreModule: "0x0000000000000000000000000000000000000001",
   commitmentId: 1022n,
   buyer: "0x0000000000000000000000000000000000000002",
+};
+const walletScope = {
+  sourceChainId: key.sourceChainId,
+  coreModule: key.coreModule,
+  account: key.buyer,
 };
 
 describe("service access hooks", () => {
@@ -64,13 +73,25 @@ describe("service access hooks", () => {
   it("refreshes the same member's service holdings after an independent request reward", async () => {
     const requestKey = { ...key, commitmentId: 1025n };
     const serviceKey = { ...key, commitmentId: 1023n };
-    const { result } = renderHookWithProviders(() => ({
-      request: useServiceAccess(requestKey),
-      service: useServiceAccess(serviceKey),
-      mutation: useServiceAccessMutation(requestKey),
-    }));
+    const { result } = renderHookWithProviders(() => {
+      const wallet = useVoucherWallet(walletScope);
+      const issuer =
+        wallet.data?.holdings.find((holding) => holding.issuer.name === "Tech and Sun")?.issuer ??
+        null;
+      return {
+        request: useServiceAccess(requestKey),
+        service: useServiceAccess(serviceKey),
+        mutation: useServiceAccessMutation(requestKey),
+        held: wallet.data?.holdings.find((holding) => holding.issuer === issuer)?.available,
+        approval: useVoucherIssuerApproval(issuer),
+      };
+    });
     await waitFor(() => expect(result.current.request.data?.pilot?.holdings.b).toBe(0n));
     await waitFor(() => expect(result.current.service.data?.pilot?.holdings.b).toBe(0n));
+    await waitFor(() => expect(result.current.held).toBe(0n));
+    await waitFor(() =>
+      expect(result.current.approval.data).toMatchObject({ kind: "safe", threshold: 1, owners: 1 })
+    );
     await act(async () => {
       await result.current.mutation.mutateAsync({
         action: "observePilotRole",
@@ -83,6 +104,7 @@ describe("service access hooks", () => {
       await result.current.mutation.mutateAsync({ action: "deliverPilotReward", asset: "voucher" });
     });
     await waitFor(() => expect(result.current.service.data?.pilot?.holdings.b).toBe(1_000_000n));
+    await waitFor(() => expect(result.current.held).toBe(1_000_000n));
     expect(result.current.service.data!.capabilities.sourceBuyer).toBe(key.buyer);
     expect(result.current.service.data!.capabilities.gnosisHolder).toBe(key.buyer);
     expect(result.current.request.data!.capabilities.celoDepositor).toBeNull();
@@ -94,8 +116,16 @@ describe("service access hooks", () => {
     const { result } = renderHookWithProviders(() => ({
       read: useServiceAccess(key),
       mutation: useServiceAccessMutation(key),
+      wallet: useVoucherWallet(walletScope),
     }));
     await waitFor(() => expect(result.current.read.data?.mode).toBe("unavailable"));
+    await waitFor(() =>
+      expect(result.current.wallet.data).toMatchObject({
+        evidence: "unavailable",
+        reason: "routes-unconfigured",
+        holdings: [],
+      })
+    );
     await act(async () => {
       await expect(
         result.current.mutation.mutateAsync({
