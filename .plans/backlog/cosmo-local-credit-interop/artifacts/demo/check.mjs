@@ -115,12 +115,14 @@ for (const [index, flow] of flows.entries()) {
     if (!hot || hot.width < 24 || hot.height < 24) { note(`${s.file}: the hotspot is missing or too small`); await page.keyboard.press("Escape"); break; }
     const scr = await page.locator("#screen").boundingBox();
     if (hot.x < scr.x - 8 || hot.y < scr.y - 8 || hot.x + hot.width > scr.x + scr.width + 8 || hot.y + hot.height > scr.y + scr.height + 8) note(`${s.file}: the hotspot leaves the screen`);
-    if (i === 0) {
-      // A tap beside the hotspot must not advance.
-      const corners = [[scr.x + 14, scr.y + 14], [scr.x + scr.width - 14, scr.y + 14], [scr.x + 14, scr.y + scr.height - 14], [scr.x + scr.width - 14, scr.y + scr.height - 14]];
-      const [mx, my] = corners.find(([x, y]) => x < hot.x || x > hot.x + hot.width || y < hot.y || y > hot.y + hot.height);
-      await page.mouse.click(mx, my);
-      if ((await state(page)).step !== 1) note(`${flow.id}: a tap beside the hotspot advanced the flow`);
+    // On every screen a tap beside the hotspot must not advance, and a hotspot that leaves no
+    // corner of the screen free is a scrim, not the control the caption names.
+    const corners = [[scr.x + 14, scr.y + 14], [scr.x + scr.width - 14, scr.y + 14], [scr.x + 14, scr.y + scr.height - 14], [scr.x + scr.width - 14, scr.y + scr.height - 14]];
+    const beside = corners.find(([x, y]) => x < hot.x || x > hot.x + hot.width || y < hot.y || y > hot.y + hot.height);
+    if (!beside) note(`${s.file}: the hotspot covers the whole screen`);
+    else {
+      await page.mouse.click(beside[0], beside[1]);
+      if ((await state(page)).step !== i + 1) note(`${s.file}: a tap beside the hotspot advanced the flow`);
     }
     await page.click("#hotspot");
   }

@@ -404,7 +404,7 @@ const SESSIONS = [
       { shot: "funding-4", swaps: [...ENDOW, ...BASE], over: { screen: "funding-3", text: "Endow to", minHeight: 150 }, tap: { role: "button", name: "Endow $500.00 in DAI" } },
     ],
   },
-  { id: "funding-5", device: DESKTOP, url: story("public-documentation-funding--endowed"), steps: [{ shot: "funding-5", swaps: [...ENDOW, ...BASE], over: { screen: "funding-3", text: "Endow to", minHeight: 150 }, tap: { role: "button", name: "Close" } }] },
+  { id: "funding-5", device: DESKTOP, url: story("public-documentation-funding--endowed"), steps: [{ shot: "funding-5", swaps: [...ENDOW, ...BASE], over: { screen: "funding-3", text: "Endow to", minHeight: 150 }, tap: { within: '[role="status"]', role: "button", name: "Close" } }] },
   {
     id: "funding-6", device: DESKTOP, url: `${APP}/gardens/tas-hub`, app: true, live: true, swaps: PEOPLE,
     steps: [{ scrollTo: { text: "Recent approved submissions", align: "start", top: 48 } }, { shot: "funding-6", expect: ["Recent approved submissions", "Hub Service Session"] }],
@@ -647,6 +647,9 @@ async function shoot(page, session, step, width, height) {
     const box = await hotspotBox(page, step.tap);
     if (!box) note(`${step.shot}: hotspot target ${JSON.stringify(step.tap)} not found`);
     else if (box.x < 0 || box.y < 0 || box.x + box.width > width + 1 || box.y + box.height > height + 1) note(`${step.shot}: hotspot target is outside the screen (${JSON.stringify(box)})`);
+    // A target the size of the screen is a scrim or a backdrop, not the control the caption names,
+    // and it would let any tap advance the flow.
+    else if (box.width * box.height > width * height * 0.6) note(`${step.shot}: hotspot target covers ${Math.round((box.width * box.height) / (width * height) * 100)}% of the screen; target the visible control (${JSON.stringify(step.tap)})`);
     else hotspot = [box.x / width, box.y / height, box.width / width, box.height / height].map((v) => Math.round(v * 10000) / 10000);
   }
   const file = join(staging, `${step.shot}.jpg`);
@@ -836,22 +839,25 @@ if (problems.length) {
   console.log(`capture failed with ${problems.length} problem(s); the existing screens and index.html are untouched`);
   process.exit(1);
 }
-// The screens being replaced are backed up first, so a rename that fails halfway puts the old
-// set back rather than leaving new screens beside old ones.
+// The new index.html is written beside the old one first, the screens being replaced are backed
+// up, and the backup lives until the staged index.html has taken the old one's place, so a
+// failure at any point puts the old screens back and leaves the old index.html, and the screens
+// and their metadata never disagree.
+const json = JSON.stringify(data, null, 2).replace(/<\//g, "<\\/");
+html = html.replace(block[0], `<script type="application/json" id="flows">\n${json}\n</script>`);
+const stagedHtml = join(here, ".index.html.staged");
+writeFileSync(stagedHtml, html);
 const backup = mkdtempSync(join(out, ".previous-"));
 try {
   const names = readdirSync(staging);
   for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
   for (const name of names) renameSync(join(staging, name), join(out, name));
+  renameSync(stagedHtml, htmlPath);
 } catch (error) {
   for (const name of readdirSync(backup)) copyFileSync(join(backup, name), join(out, name));
-  rmSync(staging, { recursive: true, force: true });
-  rmSync(backup, { recursive: true, force: true });
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  rmSync(stagedHtml, { force: true });
   throw new Error(`${error.message}; the previous screens were put back and index.html is untouched`);
 }
-rmSync(staging, { recursive: true, force: true });
-rmSync(backup, { recursive: true, force: true });
-const json = JSON.stringify(data, null, 2).replace(/<\//g, "<\\/");
-html = html.replace(block[0], `<script type="application/json" id="flows">\n${json}\n</script>`);
-writeFileSync(htmlPath, html);
+for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
 console.log(`captured ${results.size} screens into ${out}; 0 problems`);

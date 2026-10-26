@@ -82,8 +82,9 @@ included, matches nothing on a full capture; when a fixture name survives, or a 
 does not decode; when a record photo's title in `record-photos.tsv` no longer matches the
 submission `RECORDS` binds it to (the hub's page lists newest first, so a new approved submission
 renumbers the files); when Storybook shows its not-found view; when a screen without a hotspot
-shows neither its `expect` copy nor any of its own swaps; or when a hotspot target is missing or
-off screen.
+shows neither its `expect` copy nor any of its own swaps; or when a hotspot target is missing, off
+screen, or the size of the screen (a scrim, not the control the caption names). The check then taps
+beside the hotspot on every screen and expects not to advance.
 
 Check fails on an em dash in the demo's HTML or Markdown; a caption over eight words; a caption,
 tile line or "who you are" line using "commitment", "chain", "blockchain", "Arbitrum", "Celo",
