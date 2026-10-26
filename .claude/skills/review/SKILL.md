@@ -53,8 +53,9 @@ Resolve intent separately from code scope:
 Render the planned checks with `bun run check --plan -- --intent review`. For explicit
 offline/full-local production readiness, use `--intent readiness` so the plan remains non-mutating
 while criticality can only add checks. For a live PR, use `--intent review` for direct local
-evidence and inspect required CI at the current head SHA; criticality may still escalate the local
-plan. Execute the returned plan. If the selector is unavailable or fails, follow the shared validation
+evidence and inspect required CI at the current head SHA. Review intent classifies risk but selects
+no override checks, so when it reports `critical`, also render `--intent push` with the owner's
+`--test-path` and run that plan's mandatory override. Execute the returned plan. If the selector is unavailable or fails, follow the shared validation
 pipeline directly, report the selector problem, and preserve every hard gate.
 
 ### Authoritative requirements
@@ -165,7 +166,7 @@ For narrower explicit intents, pick the lightest honest rung per `.claude/contex
 - live PR approval → direct local evidence + required current-head CI
 - explicit offline/full-local readiness → full readiness gate + conditional gates
 - critical work → the selector's mandatory override: owner typecheck and focused suite plus
-  consumer typechecks for Shared, the complete contracts gate for contracts
+  consumer typechecks for Shared, the full local gate for contracts
 
 For every selected check, name its risk, expected signal, freshness rule, and stopping condition.
 State what ran with real output. Record the tested commit SHA, UTC timestamp, exact command, and
