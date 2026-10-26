@@ -87,6 +87,7 @@ const CHAIN_START_BLOCK = {
   42161: 433_713_812,
   11155111: 10_243_363,
   42220: 74_691_430,
+  100: 48_925_690,
 } as const;
 type SupportedChainId = keyof typeof CHAIN_START_BLOCK;
 type ProcessConfig = Parameters<TestIndexer["process"]>[0];
@@ -108,7 +109,7 @@ export function executedMockEventNames(mockDb?: TestIndexer): ReadonlySet<string
 }
 
 function normalizeChainId(chainId: number): SupportedChainId {
-  if (chainId !== 42161 && chainId !== 11155111 && chainId !== 42220) {
+  if (chainId !== 42161 && chainId !== 11155111 && chainId !== 42220 && chainId !== 100) {
     throw new Error(`Unsupported Green Goods test chain: ${chainId}`);
   }
   return chainId;
@@ -174,6 +175,7 @@ export async function processEvents(
       ...(chainConfigs[42161] ? { 42161: chainConfigs[42161] } : {}),
       ...(chainConfigs[11155111] ? { 11155111: chainConfigs[11155111] } : {}),
       ...(chainConfigs[42220] ? { 42220: chainConfigs[42220] } : {}),
+      ...(chainConfigs[100] ? { 100: chainConfigs[100] } : {}),
     },
   };
 
