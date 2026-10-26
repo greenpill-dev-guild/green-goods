@@ -362,16 +362,25 @@ export function useWorkSubmissionFlowController({
     attempt();
   }, [intl, saveOnExit]);
   const start = useStartStep({
+    account: primaryAddress as Address | null,
     actions,
     actionsLoading: selection.isLoading,
+    actionUID,
     gardens,
     gardenAddress,
     gardenSettled: submissionGardenSettled,
     activeTab,
     holding: isResumingFromUrl || legacyRecovery || showDraftSheet,
     hasDraft,
-    link: { status: linkIntentStatus, atEntry: linkAtEntry, hasParams: hasLinkIntentParams },
+    link: {
+      status: linkIntentStatus,
+      atEntry: linkAtEntry,
+      hasParams: hasLinkIntentParams,
+      intent: parsedLinkIntent,
+      garden: linkIntent?.garden ?? null,
+    },
     promises: workablePromises,
+    setGardenAddress: selection.setGardenAddress,
     setActiveTab,
     changeTab,
     selectLinkIntent,

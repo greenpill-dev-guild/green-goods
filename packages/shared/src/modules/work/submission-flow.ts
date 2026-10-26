@@ -152,24 +152,29 @@ export function startPromiseKind(
 }
 
 /**
- * The promises the Start step lists, each with one choice per action the garden offers: the
- * requirement still short of its count when a promise asks for the same action twice. A promise
- * left with nothing the member can do here drops.
+ * The promises the Start step lists, each with one choice per action the garden offers: a
+ * requirement still short of its count, since a met one is done (its promise's page can still
+ * link more work to it). Evidence is offered only where none already waits to send on this phone,
+ * or the queue cannot be read (`evidencePending`): a second proof would duplicate the first. A
+ * promise left with nothing the member can do here drops.
  */
 export function listStartPromises(
   promises: readonly WorkablePromise[],
-  offeredActionUIDs: ReadonlySet<number>
+  offeredActionUIDs: ReadonlySet<number>,
+  evidencePending: (commitmentId: bigint) => boolean
 ): WorkablePromise[] {
   return promises.flatMap((promise) => {
     const byAction = new Map<number, WorkablePromise["choices"][number]>();
     for (const choice of promise.choices) {
-      if (!offeredActionUIDs.has(choice.actionUID)) continue;
-      const kept = byAction.get(choice.actionUID);
       const open = (choice.approvedCount ?? 0) < (choice.requiredCount ?? 0);
-      const keptOpen = kept && (kept.approvedCount ?? 0) < (kept.requiredCount ?? 0);
-      if (!kept || (open && !keptOpen)) byAction.set(choice.actionUID, choice);
+      if (open && offeredActionUIDs.has(choice.actionUID) && !byAction.has(choice.actionUID))
+        byAction.set(choice.actionUID, choice);
     }
-    const listed = { ...promise, choices: Array.from(byAction.values()) };
+    const listed = {
+      ...promise,
+      choices: Array.from(byAction.values()),
+      takesEvidence: promise.takesEvidence && !evidencePending(promise.commitmentId),
+    };
     return startPromiseKind(listed) ? [listed] : [];
   });
 }
@@ -195,6 +200,7 @@ export type StartStepAnswer =
  * or a garden with one action, nothing owed and no Open ask listed (the flow picks that action).
  * An Open ask listed is a choice to make, so the step stays. A link chosen at Start, or one that
  * no longer holds, never skips it, and promises that could not be read are never taken as none.
+ * Work that already holds another action stays too: the flow never replaces the member's choice.
  */
 export function answerStartStep(input: {
   link: { status: WorkLinkStatus; atEntry: boolean };
@@ -205,6 +211,8 @@ export function answerStartStep(input: {
   openAsks: number;
   /** The actions the garden offers (`listGardenActions`), by UID; null while they are read. */
   actionUIDs: readonly number[] | null;
+  /** The action the work already holds, chosen or from a draft; the flow's own pick is none. */
+  heldActionUID: number | null;
 }): StartStepAnswer {
   const { link, promises } = input;
   if (!input.gardenSettled) return { kind: "stay" };
@@ -217,8 +225,10 @@ export function answerStartStep(input: {
   if (promises.status === "loading" || input.actionUIDs === null) return { kind: "wait" };
   if (promises.status === "unknown" || promises.count > 0 || input.openAsks > 0)
     return { kind: "stay" };
-  return input.actionUIDs.length === 1
-    ? { kind: "skip", actionUID: input.actionUIDs[0] }
+  const [only] = input.actionUIDs;
+  return input.actionUIDs.length === 1 &&
+    (input.heldActionUID === null || input.heldActionUID === only)
+    ? { kind: "skip", actionUID: only }
     : { kind: "stay" };
 }
 

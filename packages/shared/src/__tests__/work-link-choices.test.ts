@@ -107,6 +107,21 @@ describe("workable promises", () => {
     expect(frozen).toMatchObject({ takesEvidence: true, choices: [] });
   });
 
+  it("carries the whole promise's progress, each requirement's approvals capped at its count", () => {
+    // A frozen team links no work here, so its card reads progress from every requirement.
+    const promise = read(
+      commitmentDetailFixture({
+        commitment: commitmentFixture({
+          commitmentType: "DOMAIN_IMPACT",
+          contributorsFrozen: true,
+        }),
+        requirements: [{ ...requirement(0, 5n), approvedCount: 6 }, requirement(1, 6n)],
+      })
+    );
+    expect(promise).toMatchObject({ choices: [], progress: { approved: 5, required: 8 } });
+    expect(read(commitmentDetailFixture())?.progress).toBeNull();
+  });
+
   it("reads nothing workable on a promise the account has no seat on", () => {
     const someoneElses = commitmentDetailFixture({
       commitment: commitmentFixture({

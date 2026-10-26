@@ -64,6 +64,8 @@ function promise(uids: number[], takesEvidence: boolean): StartPromise {
     dueDate: null,
     targetUnits: 0n,
     unitLabel: null,
+    // The whole promise's progress, which the requirements listed here only part of.
+    progress: { approved: 5, required: 8 },
     choices: uids.map((uid) => choice(uid)),
     takesEvidence,
   };
@@ -81,8 +83,9 @@ function startStep(overrides: Partial<StartStep> = {}): StartStep {
     screen: { kind: "actions" },
     pickPromise: vi.fn(),
     logWorkOnItsOwn: vi.fn(),
-    chooseAction: vi.fn(async () => undefined),
-    choosePromiseAction: vi.fn(async () => undefined),
+    chooseAction: vi.fn(),
+    choosePromiseAction: vi.fn(),
+    chooseGarden: vi.fn(),
     addEvidence: vi.fn(),
     back: vi.fn(() => false),
     ...overrides,
@@ -176,7 +179,8 @@ describe("WorkStart", () => {
     expect(within(card).getByText("Workshop Delivered")).toBeVisible();
     expect(within(card).queryByText("Mentoring Session")).toBeNull();
     expect(within(card).getByText("+2")).toBeVisible();
-    expect(within(card).getByText("3 of 12 approved")).toBeVisible();
+    // The promise's own progress, not the sum of the three requirements it lists here.
+    expect(within(card).getByText("5 of 8 approved")).toBeVisible();
 
     const rows = container.querySelector(".flex.flex-col.gap-\\(--gg-list-gap\\)") as HTMLElement;
     expect(rows.lastElementChild).toHaveAttribute("data-component", "LogWorkOnItsOwn");

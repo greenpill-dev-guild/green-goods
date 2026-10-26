@@ -192,6 +192,7 @@ export const START_PROMISE_ONE_ACTION: WorkablePromise = {
   dueDate: DUE_JAN_31,
   targetUnits: 12n,
   unitLabel: "photos",
+  progress: { approved: 3, required: 12 },
   choices: [startChoice(21n, "Workshop photos", 1, 0, 3, 12)],
   takesEvidence: false,
 };
@@ -205,6 +206,7 @@ export const START_PROMISE_THREE_ACTIONS: WorkablePromise = {
   dueDate: DUE_DEC_15,
   targetUnits: 8n,
   unitLabel: "reports",
+  progress: { approved: 3, required: 8 },
   choices: [
     startChoice(22n, "Node uptime log", 2, 0, 2, 4),
     startChoice(22n, "Node uptime log", 3, 1, 1, 2),
@@ -228,8 +230,9 @@ export function startStepFixture(overrides: Partial<StartStep> = {}): StartStep 
     screen: { kind: "actions" },
     pickPromise: noop,
     logWorkOnItsOwn: noop,
-    chooseAction: async () => undefined,
-    choosePromiseAction: async () => undefined,
+    chooseAction: noop,
+    choosePromiseAction: noop,
+    chooseGarden: noop,
     addEvidence: noop,
     back: () => false,
     ...overrides,

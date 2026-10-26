@@ -55,6 +55,7 @@ const mocks = vi.hoisted(() => ({
     fetchStatus: "idle" as "idle" | "fetching" | "paused",
   },
   startSkipAction: null as null | { garden: string; actionUID: number },
+  queue: { pendingCommitmentIds: new Set<string>(), isUnavailable: false },
 }));
 
 vi.mock("../../../hooks/garden/useActiveGarden", () => ({
@@ -110,6 +111,10 @@ vi.mock("../../../hooks/commitment-pooling/useWorkLinkChoices", async (importOri
     refetch: vi.fn(),
   }),
   useWorkablePromises: () => ({ ...mocks.workable, refetch: vi.fn() }),
+}));
+
+vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
+  useCommitmentQueueState: () => mocks.queue,
 }));
 
 vi.mock("../../../utils/errors/contract-errors", () => ({
@@ -199,6 +204,7 @@ vi.mock("../../../stores/useWorkFlowStore", () => ({
         setAudioNotes: vi.fn(),
         draftLinkCleared: mocks.linkCleared,
         activeDraftId: mocks.activeDraftId,
+        startSkipAction: mocks.startSkipAction,
       }),
     {
       getState: () => ({
@@ -381,6 +387,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.actions = [];
     mocks.workable = { data: [], isPending: false, isError: false, fetchStatus: "idle" };
     mocks.startSkipAction = null;
+    mocks.queue = { pendingCommitmentIds: new Set(), isUnavailable: false };
     mocks.toastError.mockReset();
     navigateShareRoute = null;
     exitPath = "";
@@ -1394,32 +1401,141 @@ describe("useWorkSubmissionFlowController", () => {
     }
   });
 
-  it("moves on once an action or a promise's action is chosen, and opens evidence for its promise", async () => {
+  const owedChoice = {
+    ...commitmentLinkIntent,
+    garden: ACTIVE_GARDEN,
+    actionUID: 9,
+    approvedCount: 0,
+    requiredCount: 4,
+  };
+
+  it("moves on once an action or a promise's action is chosen and saved, and opens evidence for its promise", async () => {
     solarGarden();
     mocks.actions = [liveAction(7, Domain.SOLAR), liveAction(9, Domain.SOLAR)];
-    const choice = { ...commitmentLinkIntent, garden: ACTIVE_GARDEN, actionUID: 9 };
+    const choice = owedChoice;
     mocks.workable = {
       data: [promiseOwed([choice], true)],
       isPending: false,
       isError: false,
       fetchStatus: "idle",
     };
+    // The store renders the flow again with the pick; the save the move makes must hold it.
+    mocks.setDraftAction.mockImplementation((uid: number | null) => {
+      mocks.actionUID = uid;
+    });
+    const saved: Array<Record<string, unknown> | null> = [];
+    mocks.saveOnExit.mockImplementation(async () => {
+      saved.push(mocks.autoSaveFields);
+      return "draft-1";
+    });
     const view = renderFlow(ExitWrapper);
     expect(view.result.current.start.promises.map((each) => each.commitmentId)).toEqual([9n]);
 
     await act(async () => view.result.current.start.chooseAction(7));
-    expect(mocks.setDraftAction).toHaveBeenLastCalledWith(7);
-    expect(mocks.setActiveTab).toHaveBeenLastCalledWith("Media");
+    await waitFor(() => expect(mocks.setActiveTab).toHaveBeenLastCalledWith("Media"));
+    expect(saved.at(-1)).toMatchObject({ actionUID: 7, linkIntent: undefined });
 
     mocks.setActiveTab.mockClear();
     await act(async () => view.result.current.start.choosePromiseAction(choice));
+    await waitFor(() => expect(mocks.setActiveTab).toHaveBeenLastCalledWith("Media"));
     expect(mocks.setDraftGarden).toHaveBeenLastCalledWith(ACTIVE_GARDEN);
-    expect(mocks.setDraftAction).toHaveBeenLastCalledWith(9);
-    expect(mocks.setActiveTab).toHaveBeenLastCalledWith("Media");
+    expect(saved.at(-1)).toMatchObject({
+      actionUID: 9,
+      linkIntent: expect.objectContaining({ commitmentId: "9", actionUID: 9 }),
+    });
 
     await act(async () =>
       view.result.current.start.addEvidence(view.result.current.start.promises[0])
     );
     expect(exitPath).toBe(`/home/${ACTIVE_GARDEN}/commitments/9/proof`);
+  });
+
+  it("keeps Start on the path for a promise chosen there after the page's own link stopped holding", async () => {
+    mocks.gardens = memberGardens;
+    mocks.activeGarden = { status: "ready", gardenId: ACTIVE_GARDEN };
+    mocks.gardenAddress = commitmentLinkIntent.garden;
+    mocks.actions = [liveAction(1, null), liveAction(2, null)];
+    // The page's link names the first requirement, which no longer holds; the second does.
+    const other = {
+      ...commitmentLinkIntent,
+      requirementIndex: 1,
+      requirementLabel: "2",
+      actionUID: 2,
+      approvedCount: 0,
+      requiredCount: 4,
+    };
+    mocks.choices = [other];
+    mocks.workable = {
+      data: [promiseOwed([other], false)],
+      isPending: false,
+      isError: false,
+      fetchStatus: "idle",
+    };
+    const view = enterFlow({ search: linkSearch });
+    expect(view.result.current.linkIntentStatus).toBe("invalid");
+
+    await act(async () => view.result.current.start.choosePromiseAction(other));
+
+    expect(view.result.current.linkIntentStatus).toBe("valid");
+    // Chosen on Start, so Back from Media returns to it rather than leaving the flow.
+    expect(view.result.current.start.skipped).toBe(false);
+  });
+
+  it("lets go of a draft's action the garden chosen at Start does not offer, then waits for the member's pick", () => {
+    solarGarden();
+    // The draft's garden was curated away: its Agroforestry action stayed, its garden did not.
+    mocks.gardenAddress = null;
+    mocks.activeDraftId = "draft-1";
+    mocks.actionUID = 5;
+    mocks.actions = [liveAction(5, Domain.AGRO), liveAction(7, Domain.SOLAR)];
+    const view = enterFlow();
+    expect(view.result.current.submissionGardenSettled).toBe(false);
+
+    act(() => view.result.current.start.chooseGarden(ACTIVE_GARDEN));
+    expect(mocks.selectGarden).toHaveBeenLastCalledWith(ACTIVE_GARDEN);
+    expect(mocks.setDraftAction).toHaveBeenLastCalledWith(null);
+
+    // The garden settles with one action, and the flow does not choose it for the member.
+    mocks.gardenAddress = ACTIVE_GARDEN;
+    mocks.actionUID = null;
+    view.rerender();
+    expect(mocks.setActiveTab).not.toHaveBeenCalledWith("Media");
+    expect(view.result.current.start.skipped).toBe(false);
+  });
+
+  it("never replaces a draft's own action with the garden's only one", () => {
+    solarGarden();
+    mocks.activeDraftId = "draft-1";
+    // The draft's Solar action has ended; the garden now offers one other.
+    mocks.actionUID = 5;
+    mocks.actions = [
+      { ...liveAction(5, Domain.SOLAR), endTime: Date.now() - 1 },
+      liveAction(7, Domain.SOLAR),
+    ];
+    const { result } = enterFlow();
+
+    expect(mocks.setDraftAction).not.toHaveBeenCalled();
+    expect(mocks.setActiveTab).not.toHaveBeenCalled();
+    expect(result.current.start.skipped).toBe(false);
+  });
+
+  it.each([
+    ["while a proof for it waits to send", new Set(["9"]), false],
+    ["while the queue cannot be read", new Set<string>(), true],
+  ])("offers no evidence on a promise %s", (_case, pendingCommitmentIds, isUnavailable) => {
+    solarGarden();
+    mocks.actions = [liveAction(7, Domain.SOLAR), liveAction(9, Domain.SOLAR)];
+    mocks.workable = {
+      data: [promiseOwed([owedChoice], true)],
+      isPending: false,
+      isError: false,
+      fetchStatus: "idle",
+    };
+    mocks.queue = { pendingCommitmentIds, isUnavailable };
+    const { result } = enterFlow();
+
+    expect(result.current.start.promises).toEqual([
+      expect.objectContaining({ commitmentId: 9n, takesEvidence: false }),
+    ]);
   });
 });

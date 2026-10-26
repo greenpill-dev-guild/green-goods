@@ -89,7 +89,6 @@ const Work: React.FC = () => {
     reviewData,
     selectedDomain,
     setAudioNotes,
-    setGardenAddress,
     setImages,
     setSelectedDomain,
     setValue,
@@ -124,12 +123,7 @@ const Work: React.FC = () => {
                 : {
                     gardens,
                     selected: gardenAddress,
-                    onSelect: (value) => {
-                      setGardenAddress(value as Address | null);
-                      if (linkIntent && value?.toLowerCase() !== linkIntent.garden.toLowerCase()) {
-                        clearLinkIntent();
-                      }
-                    },
+                    onSelect: (value) => start.chooseGarden(value as Address | null),
                     hasJoined: hasJoinedGardens,
                     loading: isLoading,
                     joinable: joinableCommunityGarden,

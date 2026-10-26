@@ -50,6 +50,11 @@ export function workablePromiseOf(
   const linkable = isEligibleWorkLinkDetail(detail, input.account);
   if (!linkable && !takesEvidence) return null;
   const returnTo = workLinkReturnTo(input.returnGarden, commitment.commitmentId);
+  const required = detail.requirements.reduce((sum, row) => sum + row.requiredCount, 0);
+  const approved = detail.requirements.reduce(
+    (sum, row) => sum + Math.min(row.approvedCount, row.requiredCount),
+    0
+  );
   return {
     commitmentId: commitment.commitmentId,
     title: input.title,
@@ -58,6 +63,7 @@ export function workablePromiseOf(
     dueDate: commitment.dueDate ?? null,
     targetUnits: commitment.targetUnits,
     unitLabel: commitment.unitLabel ?? null,
+    progress: required > 0 ? { approved, required } : null,
     takesEvidence,
     choices: linkable
       ? detail.requirements.map(

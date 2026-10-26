@@ -35,6 +35,11 @@ export interface WorkablePromise {
   /** What it promises, for a promise that counts no approvals. */
   targetUnits: bigint;
   unitLabel: string | null;
+  /**
+   * Its approvals against every requirement's count, each capped at its count as the contract
+   * counts progress; null for a promise that counts no approvals.
+   */
+  progress: { approved: number; required: number } | null;
   /** One choice per requirement the account can link work to; none when it cannot link work. */
   choices: readonly WorkLinkChoice[];
   /** The account can add evidence to it: the promise offers them Add Proof. */
