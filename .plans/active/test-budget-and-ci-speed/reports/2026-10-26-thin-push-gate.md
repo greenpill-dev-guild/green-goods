@@ -77,3 +77,14 @@ time from the receipt stores (2026-08-16 to 2026-10-25).
 2. A cheap whole suite no longer counts as proof on push; qa still accepts one.
 3. `react-patterns` runs on push for the package source and manifests it reads.
 4. Checkpoint, ship, readiness, merge and release are unchanged. The policy version moves to 4.
+
+## #1308's last review, addressed here
+
+D15 merged as #1308 on 2026-10-26 at 02:22Z (merge commit `6be990807`). Codex's review of its final
+head landed about a minute before the merge, with three findings, all accepted and fixed in this PR:
+a contract-artifact push left the Indexer, one of its consumers, with no local proof, and a
+hand-escalated Indexer entry point lost its compile proof, both because the typecheck map had no
+Indexer entry; the Indexer now maps to its build, which is its typecheck. And the review skill told
+reviewers to render `--intent review`, which classifies risk but selects no override checks; for a
+critical change it now also renders `--intent push` with the owner's test.
+

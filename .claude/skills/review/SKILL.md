@@ -53,8 +53,9 @@ Resolve intent separately from code scope:
 Render the planned checks with `bun run check --plan -- --intent review`. For explicit
 offline/full-local production readiness, use `--intent readiness` so the plan remains non-mutating
 while criticality can only add checks. For a live PR, use `--intent review` for direct local
-evidence and inspect required CI at the current head SHA; criticality may still escalate the local
-plan. Execute the returned plan. If the selector is unavailable or fails, follow the shared validation
+evidence and inspect required CI at the current head SHA. Review intent classifies risk but selects
+no override checks, so when it reports `critical`, also render `--intent push` with the owner's
+`--test-path` and run that plan's mandatory override. Execute the returned plan. If the selector is unavailable or fails, follow the shared validation
 pipeline directly, report the selector problem, and preserve every hard gate.
 
 ### Authoritative requirements

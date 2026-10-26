@@ -3435,3 +3435,30 @@ test("react-patterns runs on push for the source and manifests it reads, never f
   // Only the push selects it from this rule.
   assert.ok(!ids(selectValidation({ intent: "qa", changedPaths: ["packages/admin/src/views/Hub/index.tsx"] })).includes("react-patterns"));
 });
+
+test("the Indexer keeps its typecheck, its build, as owner and consumer proof on a critical push", () => {
+  // A contract artifact makes the push critical and fans out to the Indexer as a consumer.
+  const artifact = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/contracts/deployments/11155111-latest.json"],
+    mutationPaths: [],
+  });
+  assert.equal(artifact.risk, "critical");
+  assert.ok(artifact.surfaces.includes("indexer"));
+  assert.ok(artifact.checks.find((check) => check.id === "indexer-build")?.selectedBy.includes("critical-consumer-types:indexer"));
+  for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]) {
+    assert.ok(ids(artifact).includes(id), id);
+  }
+
+  // A hand-escalated Indexer entry point keeps its compile proof beside its focused test.
+  const manual = selectValidation({
+    intent: "push",
+    risk: "critical",
+    changedPaths: ["packages/indexer/src/index.ts"],
+    testPaths: { indexer: ["test/handlers.test.ts"] },
+    mutationPaths: [],
+  });
+  assert.equal(manual.status, "ready");
+  assert.ok(manual.checks.find((check) => check.id === "indexer-build")?.selectedBy.includes("critical-owner-types:indexer"));
+  assert.deepEqual(manual.checks.find((check) => check.id === "indexer-test").focusedPaths, ["test/handlers.test.ts"]);
+});

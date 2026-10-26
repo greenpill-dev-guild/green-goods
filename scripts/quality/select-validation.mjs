@@ -400,12 +400,14 @@ const FOCUSED_PUSH_SUITE_SECONDS = 30;
 
 // The typecheck that proves a surface still compiles. A critical push or qa run selects it for the
 // critical owner and for every consumer of the change; CI's consumer workflows own the whole suites
-// and production builds. Indexer and contracts have no standalone typecheck check.
+// and production builds. The Indexer's build is its typecheck (Envio codegen plus `tsc --noEmit`,
+// with nothing emitted), so it stands in there. Contracts has no standalone typecheck check.
 const SURFACE_TYPECHECKS = {
   shared: "shared-typecheck",
   client: "client-typecheck",
   admin: "admin-typecheck",
   agent: "agent-typecheck",
+  indexer: "indexer-build",
 };
 const SURFACE_TEST_TYPECHECKS = {
   shared: "shared-test-typecheck",
