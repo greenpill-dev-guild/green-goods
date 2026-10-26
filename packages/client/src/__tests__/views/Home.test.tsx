@@ -121,6 +121,11 @@ vi.mock("../../views/Home/Notifications/Launcher", () => ({
   },
 }));
 vi.mock("../../views/Home/CommitmentsSheet", () => ({ CommitmentsSheet: () => null }));
+// The Promises launcher loads once Home is idle, reading the inbox through the query cache; a
+// test that renders after its chunk resolved would draw the real one without a query client.
+vi.mock("../../views/Home/CommitmentsSheet/Launcher", () => ({
+  CommitmentsSheetLauncher: () => createElement("button", { type: "button" }, "Promises"),
+}));
 vi.mock("../../views/Home/WalletSheet", () => ({ WalletSheet: () => null }));
 // The journal is the seam the journal steps fill; Home only mounts it. Its row opens a page under
 // Home, as a Recent Activity or Take Part row does.
