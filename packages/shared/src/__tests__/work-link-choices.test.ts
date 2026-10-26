@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   isEligibleWorkLinkDetail,
+  workablePromiseOf,
   workLinkReturnTo,
 } from "../hooks/commitment-pooling/useWorkLinkChoices";
+import { MARIA } from "../modules/commitment-pooling/demo/demo-builders";
+import type { CommitmentRequirementRecord } from "../modules/commitment-pooling/types-core";
 import type { CommitmentDetail } from "../modules/commitment-pooling/types-relations";
+import {
+  commitmentDetailFixture,
+  commitmentFixture,
+  contributorFixture,
+} from "./test-utils/commitment-pooling-fixtures";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111" as const;
 const ROUTE_GARDEN = "0x2222222222222222222222222222222222222222" as const;
@@ -47,5 +55,83 @@ describe("eligible Work-link choices", () => {
 
   it("builds the return route from the route garden, independently of the Work garden", () => {
     expect(workLinkReturnTo(ROUTE_GARDEN, 9n)).toBe(`/home/${ROUTE_GARDEN}/commitments/9`);
+  });
+});
+
+describe("workable promises", () => {
+  const requirement = (index: number, actionUID: bigint) =>
+    ({
+      requirementIndex: index,
+      actionUID,
+      requiredCount: 4,
+      approvedCount: 1,
+    }) as CommitmentRequirementRecord;
+  const read = (detail: CommitmentDetail) =>
+    workablePromiseOf(detail, {
+      account: MARIA,
+      workGarden: ROUTE_GARDEN,
+      returnGarden: ROUTE_GARDEN,
+      title: "Workshop photos",
+    });
+
+  it("lets the promise's own act rules say what its member can do on it", () => {
+    // Garden work its lead can link to each requirement, and add evidence to.
+    const gardenWork = read(
+      commitmentDetailFixture({
+        commitment: commitmentFixture({ commitmentId: 9n, commitmentType: "DOMAIN_IMPACT" }),
+        requirements: [requirement(0, 5n), requirement(1, 6n)],
+        contributors: [contributorFixture({ commitmentId: 9n })],
+      })
+    );
+    expect(gardenWork?.takesEvidence).toBe(true);
+    expect(gardenWork?.choices).toEqual([
+      expect.objectContaining({ actionUID: 5, requirementIndex: 0, approvedCount: 1 }),
+      expect.objectContaining({ actionUID: 6, requirementIndex: 1, requiredCount: 4 }),
+    ]);
+    expect(gardenWork?.choices[0]?.returnTo).toBe(`/home/${ROUTE_GARDEN}/commitments/9`);
+
+    // A service takes evidence only: no work links to it.
+    const service = read(commitmentDetailFixture());
+    expect(service).toMatchObject({ takesEvidence: true, choices: [] });
+
+    // A frozen team takes no new work, yet Add Proof stays its lead's.
+    const frozen = read(
+      commitmentDetailFixture({
+        commitment: commitmentFixture({
+          commitmentType: "DOMAIN_IMPACT",
+          contributorsFrozen: true,
+        }),
+        requirements: [requirement(0, 5n)],
+      })
+    );
+    expect(frozen).toMatchObject({ takesEvidence: true, choices: [] });
+  });
+
+  it("carries the whole promise's progress, each requirement's approvals capped at its count", () => {
+    // A frozen team links no work here, so its card reads progress from every requirement.
+    const promise = read(
+      commitmentDetailFixture({
+        commitment: commitmentFixture({
+          commitmentType: "DOMAIN_IMPACT",
+          contributorsFrozen: true,
+        }),
+        requirements: [{ ...requirement(0, 5n), approvedCount: 6 }, requirement(1, 6n)],
+      })
+    );
+    expect(promise).toMatchObject({ choices: [], progress: { approved: 5, required: 8 } });
+    expect(read(commitmentDetailFixture())?.progress).toBeNull();
+  });
+
+  it("reads nothing workable on a promise the account has no seat on", () => {
+    const someoneElses = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        commitmentType: "DOMAIN_IMPACT",
+        leadProvider: ROUTE_GARDEN,
+        creator: ROUTE_GARDEN,
+      }),
+      contributors: [],
+      requirements: [requirement(0, 5n)],
+    });
+    expect(read(someoneElses)).toBeNull();
   });
 });

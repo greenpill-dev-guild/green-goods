@@ -431,16 +431,16 @@ describe("useProofComposerController", () => {
     });
 
     expect(result.current.flow.stage).toBe("media");
-    act(() => result.current.flow.forward.run());
-    act(() => result.current.flow.forward.run());
+    act(() => result.current.flow.forward?.run());
+    act(() => result.current.flow.forward?.run());
     expect(result.current.flow.stage).toBe("review");
-    expect(result.current.flow.forward.labelId).toBe("app.proof.submit");
+    expect(result.current.flow.forward?.labelId).toBe("app.proof.submit");
     // Moving through the stages wrote nothing: the record is the same one.
     expect(useCommitmentProofDraftStore.getState().drafts[key]).toBe(saved);
     expect(repository.save).not.toHaveBeenCalled();
 
     await act(async () => {
-      result.current.flow.forward.run();
+      result.current.flow.forward?.run();
     });
 
     await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledOnce());

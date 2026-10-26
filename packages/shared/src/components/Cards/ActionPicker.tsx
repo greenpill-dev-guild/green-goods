@@ -35,7 +35,10 @@ export interface ActionPickerProps {
   onChange: (actionId: string) => void;
   /** Names the group for assistive technology. */
   label: string;
-  /** `row` in the installed app, where the picker scrolls sideways; `grid` in the cockpit. */
+  /**
+   * `row` where the picker scrolls sideways; `grid` in the cockpit; `tiles` on the installed
+   * app's Start step, two to a row with two-line titles.
+   */
   layout: ActionPickerLayout;
   /** Turns every card off while choosing cannot happen. */
   disabled?: boolean;
