@@ -124,6 +124,7 @@ const { HighlightsCarousel } = await import("../../views/Home/Journal/Highlights
 const { RecentActivity } = await import("../../views/Home/Journal/RecentActivity");
 const { TakePart } = await import("../../views/Home/Journal/TakePart");
 const { HomeJournal } = await import("../../views/Home/Journal");
+const { TakePartSheet } = await import("../../views/Home/Journal/TakePartSheet");
 
 const render = (ui: ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
 
@@ -254,11 +255,25 @@ const ASK = single(
 const TITLES: Record<string, string> = {
   "cid-21": "Teach the composting basics workshop",
   "cid-20": "Two hours sorting the seed library",
+  "cid-19": "Water the new beds",
+  "cid-18": "Mulch the orchard rows",
 };
+
+/** An ask open to take up, with its own title by metadata CID. */
+const openAsk = (id: number, overrides: Partial<CommitmentReadModel> = {}) =>
+  single(
+    promise(id, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      ...overrides,
+    })
+  );
 
 function promises(overrides: Partial<GardenOpenPromises> = {}): GardenOpenPromises {
   return {
     state: { status: "ready", items: [OFFER, ASK], savedAt: null },
+    all: { status: "ready", items: [OFFER, ASK], savedAt: null },
     ask: ASK,
     titleOf: (cid) => (cid ? (TITLES[cid] ?? null) : null),
     refetch: vi.fn(),
@@ -266,16 +281,25 @@ function promises(overrides: Partial<GardenOpenPromises> = {}): GardenOpenPromis
   };
 }
 
-/** What held focus as the Promises sheet opened: the opener it hands focus back to on close. */
+/** What held focus as the open promises' sheet opened: the opener it hands focus back to. */
 function recordPromisesOpener() {
   const recorded: { opener: Element | null } = { opener: null };
   const stop = useUIStore.subscribe((state, previous) => {
-    if (state.isCommitmentsSheetOpen && !previous.isCommitmentsSheetOpen) {
+    if (state.takePartSheet && !previous.takePartSheet) {
       recorded.opener = document.activeElement;
     }
   });
   return { recorded, stop };
 }
+
+const GARDEN_RECORD = { id: GARDEN, name: "Riverside Commons Garden" };
+
+/** The rows a sheet lists, by their titles. */
+const sheetRows = (sheet: HTMLElement) =>
+  within(sheet)
+    .getAllByRole("button")
+    .filter((button) => button.getAttribute("data-component") === "CommitmentRow")
+    .map((row) => Object.values(TITLES).find((title) => row.textContent?.includes(title)));
 
 describe("Home journal", () => {
   beforeEach(() => {
@@ -283,6 +307,7 @@ describe("Home journal", () => {
     useUIStore.setState({
       isCommitmentsSheetOpen: false,
       commitmentsSheetOpening: undefined,
+      takePartSheet: null,
       gardenSheet: null,
       isEndowmentSheetOpen: false,
     });
@@ -409,13 +434,67 @@ describe("Home journal", () => {
       expect(mocks.navigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/20`);
     });
 
-    it("opens the Promises sheet from See All, the one promise workflow", async () => {
+    it("opens every promise the reader could take up from See All, not the reader's own", async () => {
       const user = userEvent.setup();
-      render(<TakePart gardenId={GARDEN} />);
+      // Take Part previews the first entries; the sheet lists the whole read.
+      mocks.promises.mockReturnValue(
+        promises({ all: { status: "ready", items: [OFFER, ASK, openAsk(19)], savedAt: null } })
+      );
+      render(
+        <>
+          <TakePart gardenId={GARDEN} />
+          <TakePartSheet garden={GARDEN_RECORD} />
+        </>
+      );
 
       await user.click(screen.getByRole("button", { name: "See All" }));
-      expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(true);
-      expect(mocks.navigate).not.toHaveBeenCalled();
+      const sheet = await screen.findByRole("dialog");
+      expect(within(sheet).getByText("In Riverside Commons Garden")).toBeVisible();
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Two hours sorting the seed library",
+        "Water the new beds",
+      ]);
+      expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
+
+      // A row opens its promise's page and puts the sheet away.
+      await user.click(within(sheet).getByRole("button", { name: /Water the new beds/ }));
+      expect(mocks.navigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/19`);
+      expect(useUIStore.getState().takePartSheet).toBeNull();
+    });
+
+    it("opens the sheet at a season's promises from Show Its Promises, which its rail widens", async () => {
+      const user = userEvent.setup();
+      const inSeason = openAsk(18, { cycleId: SEASON.cycle.cycleId });
+      mocks.promises.mockReturnValue(
+        promises({ all: { status: "ready", items: [OFFER, inSeason], savedAt: null } })
+      );
+      // The rail names each cycle from its metadata, as the Promises sheet's does.
+      mocks.cycleNames.mockReturnValue({
+        byCycleId: new Map([
+          [SEASON.cycle.cycleId.toString(), { status: "resolved", name: "Autumn Planting 2026" }],
+          [CAMPAIGN.cycle.cycleId.toString(), { status: "resolved", name: "Seed Swap Weekend" }],
+        ]),
+        isLoading: false,
+      });
+      useUIStore.setState({ takePartSheet: { cycleId: SEASON.cycle.cycleId.toString() } });
+      render(<TakePartSheet garden={GARDEN_RECORD} />);
+
+      const sheet = await screen.findByRole("dialog");
+      expect(sheetRows(sheet)).toEqual(["Mulch the orchard rows"]);
+      const season = within(sheet).getByRole("button", { name: /Autumn Planting 2026/ });
+      expect(season).toHaveAttribute("aria-pressed", "true");
+
+      // Nothing in the campaign is open to take up, and the sheet says so for the campaign.
+      await user.click(within(sheet).getByRole("button", { name: /Seed Swap Weekend/ }));
+      expect(within(sheet).getByText("Nothing open in this campaign")).toBeVisible();
+
+      // Tapping the chosen cycle again lists them all.
+      await user.click(within(sheet).getByRole("button", { name: /Seed Swap Weekend/ }));
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Mulch the orchard rows",
+      ]);
     });
 
     it("tells a chain without promises, a failure, a wait and nothing open apart", async () => {
@@ -466,13 +545,13 @@ describe("Home journal", () => {
       const promises = recordPromisesOpener();
       await user.click(within(sheet).getByRole("button", { name: "Show Its Promises" }));
       await waitFor(() =>
-        expect(useUIStore.getState()).toMatchObject({
-          isCommitmentsSheetOpen: true,
-          commitmentsSheetOpening: { cycleId: SEASON.cycle.cycleId.toString() },
+        expect(useUIStore.getState().takePartSheet).toEqual({
+          cycleId: SEASON.cycle.cycleId.toString(),
         })
       );
+      expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
       promises.stop();
-      // The details close first and hand focus back to the line, so the Promises sheet
+      // The details close first and hand focus back to the line, so the open promises' sheet
       // returns focus there rather than to the details' own button, which unmounts.
       expect(promises.recorded.opener).toBe(line);
     });
@@ -516,14 +595,14 @@ describe("Home journal", () => {
       const sheet = await screen.findByRole("dialog");
       const promises = recordPromisesOpener();
       await user.click(within(sheet).getByRole("button", { name: "Show Its Promises" }));
-      // The Promises sheet opens filtered to the season (step 11), not whole, and once the
-      // details have closed, so it returns focus to the card.
+      // The garden's open promises open at the season, not the reader's own, and once the
+      // details have closed, so the sheet returns focus to the card.
       await waitFor(() =>
-        expect(useUIStore.getState()).toMatchObject({
-          isCommitmentsSheetOpen: true,
-          commitmentsSheetOpening: { cycleId: SEASON.cycle.cycleId.toString() },
+        expect(useUIStore.getState().takePartSheet).toEqual({
+          cycleId: SEASON.cycle.cycleId.toString(),
         })
       );
+      expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
       promises.stop();
       expect(promises.recorded.opener).toBe(card);
     });

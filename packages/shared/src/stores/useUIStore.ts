@@ -56,6 +56,12 @@ export interface CommitmentsSheetOpening {
   cycleId?: string;
 }
 
+/** Home's sheet of the garden's open promises, as it opens: whole, or at one season or campaign. */
+export interface TakePartSheetOpening {
+  /** A season's or campaign's id as a decimal string, from its Show Its Promises; null for all. */
+  cycleId: string | null;
+}
+
 export type DashboardSnapshot =
   | ({ kind: "work" } & WorkDashboardReturnState)
   | ({ kind: "commitments" } & CommitmentsDashboardReturnState);
@@ -137,6 +143,15 @@ export type UIState = {
   closeCommitmentsSheet: () => void;
 
   /**
+   * The garden's open promises as a sheet over Home (client): every promise Take Part could list,
+   * not the reader's own, which the Promises sheet keeps. Null while it is closed.
+   */
+  takePartSheet: TakePartSheetOpening | null;
+  /** Opens it whole, or at one season or campaign (`cycleId` as a decimal string). */
+  openTakePartSheet: (opening?: { cycleId?: string }) => void;
+  closeTakePartSheet: () => void;
+
+  /**
    * How many sheets and dialogs are open right now. Every sheet surface
    * registers itself while open (`useSheetPresence`), so chrome that must step
    * aside for any overlay, such as the PWA AppBar, reads one count instead of
@@ -210,6 +225,7 @@ export const useUIStore = create<UIState>()(
           isWalletSheetOpen: false,
           isCommitmentsSheetOpen: false,
           commitmentsSheetOpening: undefined,
+          takePartSheet: null,
           isWorkDashboardOpen: false,
           workDashboardInitialTab: undefined,
           workDashboardInitialPendingFilter: undefined,
@@ -239,6 +255,16 @@ export const useUIStore = create<UIState>()(
           commitmentsSheetReturnState: undefined,
         }),
       closeCommitmentsSheet: () => set({ isCommitmentsSheetOpen: false }),
+
+      takePartSheet: null,
+      // Only a string cycle id is read: Home may hand this straight to a button.
+      openTakePartSheet: (opening) =>
+        set({
+          takePartSheet: {
+            cycleId: typeof opening?.cycleId === "string" ? opening.cycleId : null,
+          },
+        }),
+      closeTakePartSheet: () => set({ takePartSheet: null }),
 
       openSheetCount: 0,
       registerOpenSheet: () => {

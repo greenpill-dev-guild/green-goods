@@ -45,14 +45,15 @@ export function takePartPath(gardenId: string, entry: TakePartEntry): string {
 
 /**
  * Take Part: the garden's open and asked-for promises as the Pool tab's commitment rows, each
- * opening its own page, and See All opening the Promises sheet. There is no second promise
- * workflow here: taking one up happens on its page, as everywhere else.
+ * opening its own page, and See All opening every one of them in a sheet over Home
+ * (`TakePartSheet`). There is no second promise workflow here: taking one up happens on its
+ * page, as everywhere else.
  */
 export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const navigate = useNavigateToTop();
-  const openCommitmentsSheet = useUIStore((state) => state.openCommitmentsSheet);
+  const openTakePartSheet = useUIStore((state) => state.openTakePartSheet);
   const promises = useGardenOpenPromises(gardenId);
   const { state } = promises;
 
@@ -62,7 +63,7 @@ export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
       title={formatMessage({ id: "app.home.journal.takePart" })}
       action={{
         label: formatMessage({ id: "app.home.journal.seeAll" }),
-        onClick: () => openCommitmentsSheet(),
+        onClick: () => openTakePartSheet(),
       }}
       note={
         state.status === "ready" && state.savedAt
@@ -76,18 +77,29 @@ export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
     >
       {withCycleLines ? <CycleLines gardenId={gardenId} /> : null}
       <TakePartRows
-        promises={promises}
+        state={state}
+        titleOf={promises.titleOf}
+        onRetry={promises.refetch}
         onOpen={(entry) => navigate(takePartPath(gardenId, entry))}
       />
     </JournalSection>
   );
 }
 
-function TakePartRows({
-  promises: { state, titleOf, refetch },
+/**
+ * Take Part's rows for one of its reads: the Pool tab's commitment rows, or the one row that
+ * stands for them while there are none, they load, or the read failed. The section shows the
+ * first entries and the sheet every one.
+ */
+export function TakePartRows({
+  state,
+  titleOf,
+  onRetry,
   onOpen,
 }: {
-  promises: GardenOpenPromises;
+  state: GardenOpenPromises["state"];
+  titleOf: GardenOpenPromises["titleOf"];
+  onRetry: () => void;
   onOpen: (entry: TakePartEntry) => void;
 }): ReactNode {
   const { formatMessage } = useIntl();
@@ -114,7 +126,7 @@ function TakePartRows({
         <JournalStateRow
           kind="error"
           title={formatMessage({ id: "app.home.journal.takePart.errorTitle" })}
-          onRetry={refetch}
+          onRetry={onRetry}
         />
       );
     case "offline":

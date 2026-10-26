@@ -135,6 +135,8 @@ export function useGardenOpenCycles(gardenId: string): GardenOpenCycles {
 export interface GardenOpenPromises {
   /** Take Part's first entries: the open promises, copies of one set as one row. */
   state: JournalSectionState<TakePartEntry>;
+  /** Every entry, from the same read, for the sheet of open promises See All opens. */
+  all: JournalSectionState<TakePartEntry>;
   /** The newest ask open to take up, from every entry, for the carousel. */
   ask: TakePartEntry | null;
   /** A promise's own name, once its metadata has resolved. */
@@ -185,7 +187,7 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
     [listed, byCID, viewer, poolOpen, takeUps, now]
   );
 
-  const state = poolSectionState({
+  const read = {
     available: commitments.availability.status === "available",
     isOnline,
     pools: {
@@ -201,11 +203,13 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
       isError: commitments.isError || unavailable,
       dataUpdatedAt: commitments.dataUpdatedAt,
     },
-    items: entries.slice(0, JOURNAL_PREVIEW_COUNT),
-  });
+  };
+  const state = poolSectionState({ ...read, items: entries.slice(0, JOURNAL_PREVIEW_COUNT) });
+  const all = poolSectionState({ ...read, items: entries });
 
   return {
     state,
+    all,
     ask: state.status === "ready" ? openAsk(entries) : null,
     titleOf: (metadataCID) => (metadataCID ? (byCID.get(metadataCID.trim())?.title ?? null) : null),
     refetch: () => {
