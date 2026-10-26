@@ -862,6 +862,9 @@
         "packages/admin/package.json",
         "packages/agent/package.json",
         "packages/indexer/package.json",
+        "packages/contracts/package.json",
+        "packages/extension/package.json",
+        "packages/qa/package.json",
         "scripts/quality/check-react-patterns.js",
         "scripts/quality/data/lint-rules-baseline.json"
       ],
@@ -870,7 +873,8 @@
         "packages/client/src/",
         "packages/admin/src/",
         "packages/agent/src/",
-        "packages/indexer/src/"
+        "packages/indexer/src/",
+        "packages/extension/src/"
       ]
     }
   ],

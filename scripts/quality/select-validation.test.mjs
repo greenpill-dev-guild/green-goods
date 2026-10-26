@@ -3427,7 +3427,8 @@ test("a push replaces builds with typechecks, leaves presets and Storybook to CI
 });
 
 test("react-patterns runs on push for the source and manifests it reads, never for tests or docs", () => {
-  for (const path of ["packages/admin/src/views/Hub/index.tsx", "packages/agent/src/services/analytics.ts", "packages/shared/package.json", "scripts/quality/check-react-patterns.js"]) {
+  // Every manifest the architecture walk reads, and every package source it scans for imports.
+  for (const path of ["packages/admin/src/views/Hub/index.tsx", "packages/agent/src/services/analytics.ts", "packages/extension/src/graph/canvas.ts", "packages/shared/package.json", "packages/contracts/package.json", "packages/qa/package.json", "packages/extension/package.json", "scripts/quality/check-react-patterns.js"]) {
     const plan = selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] });
     assert.ok(plan.checks.find((check) => check.id === "react-patterns")?.selectedBy.includes("conditional:react-patterns"), path);
   }
