@@ -1,9 +1,4 @@
-import { readIndexedEarnedOptIn, retainIndexedEarnedOptIn } from "./data-earned-voucher";
 import type { GraphQLReader } from "../data/graphql-client";
-import { discoverVoucherSetups, readVoucherDestinationObservation } from "./data-voucher-service";
-import { getServiceAccessProjection } from "./data-service-access";
-import type { ServiceAccessKey } from "./service-access-types";
-import { readServiceAccess } from "./service-access-chain";
 import { getCommitmentActivity, getPoolMemberHistory } from "./data-activity";
 import {
   getCommitmentClaimRequests,
@@ -20,35 +15,14 @@ import {
   getCommitmentPools,
 } from "./data-pools";
 
-export function createCommitmentPoolingReadRepository(
-  reader: GraphQLReader,
-  serviceReads?: Parameters<typeof readServiceAccess>[2]
-) {
+/**
+ * The pooling reads behind every member screen, bound to one GraphQL reader. The voucher
+ * booking's reads have a repository of their own (`service-access-read-repository`): this one
+ * is built at import time by the hooks the installed app starts with, so it carries only what
+ * those screens read.
+ */
+export function createCommitmentPoolingReadRepository(reader: GraphQLReader) {
   return {
-    getServiceAccess: async (key: ServiceAccessKey) => {
-      const [snapshot, projection, earned] = await Promise.all([
-        readServiceAccess(key, undefined, {
-          discoverSetups: (scope, module) => discoverVoucherSetups(scope, module, reader),
-          observeDestination: (setup) => readVoucherDestinationObservation(setup, reader),
-          ...serviceReads,
-        }),
-        getServiceAccessProjection(key, reader).catch(() => undefined),
-        readIndexedEarnedOptIn(key, reader).catch(() => null),
-      ]);
-      // Index availability never downgrades authoritative reads or establishes Legacy.
-      if (
-        snapshot.mode === "unavailable" &&
-        projection?.offer &&
-        projection.offer.paymentRoute !== 0
-      ) {
-        snapshot.knownService = true;
-        snapshot.acceptancePolicy.knownOptIn = true;
-        snapshot.acceptancePolicy.blockGenericMemberAcceptance = true;
-      }
-      retainIndexedEarnedOptIn(snapshot, earned);
-      return snapshot;
-    },
-    getServiceAccessProjection: (key: ServiceAccessKey) => getServiceAccessProjection(key, reader),
     getCommitments: (input: Parameters<typeof getCommitments>[0]) => getCommitments(input, reader),
     getCommitmentDetail: (
       chainId: Parameters<typeof getCommitmentDetail>[0],

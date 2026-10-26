@@ -172,7 +172,10 @@ export interface CommitmentQueueState {
    * or not yet. A surface that offers an act waits rather than read it as empty.
    */
   isLoading: boolean;
-  /** The queue is being read again, a cached answer's included: what it says may still change. */
+  /**
+   * The queue is being read again, a cached answer's included, or a failed read waits to be tried
+   * again (the app is away): what it says may still change.
+   */
   isFetching: boolean;
   refresh: () => void;
 }
@@ -282,6 +285,9 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       const jobs = all.filter((job) => COMMITMENT_JOB_KINDS.includes(job.kind as never));
       return { jobs, failedLinkRecordIds: await recordIdsOfFailedLinks(jobs, viewer as Address) };
     },
+    // The queue is this phone's own storage, so no read of it waits for a connection: not a
+    // first read, nor another try of a failed one. Offline, the queue still answers.
+    networkMode: "always",
     staleTime: Number.POSITIVE_INFINITY,
     // The event bus is in-process, so a second tab never hears the first one
     // queue something. Without this it would keep offering an act already
@@ -419,8 +425,9 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       isUnavailable: Boolean(viewer) && query.isError,
       // Pending covers a first read that is running or paused; without a reader nothing runs.
       isLoading: Boolean(viewer) && query.isPending,
-      isFetching: Boolean(viewer) && query.isFetching,
+      // TanStack reports a read that waits to be tried again paused, not fetching.
+      isFetching: Boolean(viewer) && query.fetchStatus !== "idle",
       refresh,
     };
-  }, [query.data, query.isError, query.isPending, query.isFetching, viewer, refresh]);
+  }, [query.data, query.isError, query.isPending, query.fetchStatus, viewer, refresh]);
 }

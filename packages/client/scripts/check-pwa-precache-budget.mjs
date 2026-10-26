@@ -59,6 +59,32 @@ const FORBIDDEN_REPORTING_MODULES = [
   "/components/Cards/MediaCard",
 ];
 
+// The installed app's startup path. The app opens at Home, behind the session gate: the runtime and
+// its wallet providers load first, then the gate, then Home when signed in, or Login once the gate
+// has sent a signed-out visitor there.
+const PWA_RUNTIME_SOURCES = [
+  "src/routes/PwaRuntime.tsx",
+  "src/routes/WalletRuntimeProviders.tsx",
+  "src/routes/SessionGate.tsx",
+];
+const PWA_SIGNED_IN_SOURCES = ["src/routes/AppShell.tsx", "src/views/Home/index.tsx"];
+const PWA_SIGNED_OUT_SOURCES = ["src/views/Login/index.tsx"];
+
+// The voucher screens (PRD-1297) load with the promise page and the wallet's Vouchers tab. Their
+// reads once rode in the installed startup bundle through the pooling read repository every
+// startup hook builds, so a startup module that reaches them again fails the build, signed in or
+// signed out.
+const FORBIDDEN_INSTALLED_STARTUP_MODULES = [
+  "/modules/commitment-pooling/service-access",
+  "/modules/commitment-pooling/service-issuer",
+  "/modules/commitment-pooling/data-voucher-service",
+  "/modules/commitment-pooling/data-earned-voucher",
+  "/views/Home/Garden/Commitment/Service",
+  "/views/Home/Garden/Commitment/Voucher",
+  "/views/Home/WalletSheet/VouchersTab",
+  "/views/Home/WalletSheet/voucherWallet",
+];
+
 // The shape of every lazy chunk's file name, set by `chunkFileNames` in
 // vite.config.ts. Privacy filters match a site's own files by name (Brave's
 // Aggressive blocking, uBlock Origin): EasyPrivacy's `/analytics-events-` rule
@@ -240,16 +266,16 @@ try {
     );
   }
 
-  const pwaShellSources = [
-    "src/bootstrapPwa.tsx",
-    "src/routes/PwaRuntime.tsx",
-    "src/routes/WalletRuntimeProviders.tsx",
-    "src/routes/RequireAuth.tsx",
-    "src/routes/AppShell.tsx",
-    "src/views/Home/index.tsx",
-  ];
-  const signedInRoots = [mainKey, pwaKey, ...pwaShellSources.map((src) => findManifestKey(manifest, src))];
-  const signedOutRoots = [...signedInRoots.slice(0, 2), findManifestKey(manifest, "src/views/Login/index.tsx")];
+  // A startup module that has moved must fail the check, not drop out of the measurement: the
+  // session gate's chunk went unmeasured for weeks under the name of a file that no longer existed.
+  const startupKey = (source) => {
+    const key = findManifestKey(manifest, source);
+    if (!key) throw new Error(`The installed app's startup module (${source}) is missing from Vite manifest`);
+    return key;
+  };
+  const runtimeRoots = [mainKey, pwaKey, ...PWA_RUNTIME_SOURCES.map(startupKey)];
+  const signedInRoots = [...runtimeRoots, ...PWA_SIGNED_IN_SOURCES.map(startupKey)];
+  const signedOutRoots = [...runtimeRoots, ...PWA_SIGNED_OUT_SOURCES.map(startupKey)];
   const signedIn = collectManifestClosure(manifest, signedInRoots);
   const signedOut = collectManifestClosure(manifest, signedOutRoots);
   const signedInGzip = [...signedIn.files].reduce((sum, file) => sum + fileSize(file, true), 0);
@@ -354,6 +380,15 @@ try {
   if (forbiddenUnderShell.length) {
     failures.push(
       `forbidden public dependencies under the website frame (${PUBLIC_SHELL_SOURCE}):\n  ${forbiddenUnderShell.join("\n  ")}`
+    );
+  }
+  const voucherCodeAtStartup = forbiddenUnder(
+    [...signedIn.files, ...signedOut.files],
+    FORBIDDEN_INSTALLED_STARTUP_MODULES
+  );
+  if (voucherCodeAtStartup.length) {
+    failures.push(
+      `voucher code in the installed startup bundle:\n  ${voucherCodeAtStartup.join("\n  ")}`
     );
   }
   for (const { source, key } of reportingPageKeys) {

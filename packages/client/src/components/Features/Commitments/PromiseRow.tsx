@@ -1,4 +1,7 @@
-import { CommitmentRow } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
+import {
+  CommitmentRow,
+  type CommitmentRowProps,
+} from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { InboxCommitment } from "@green-goods/shared/commitment-pooling";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
@@ -14,6 +17,8 @@ export interface PromiseRowProps {
   sendFailed?: boolean;
   /** What kind of ask it is, leading the details: the garden's To confirm names it. */
   kind?: string | null;
+  /** A service offer's line: what booking takes first, then who promises it (PRD-1299). */
+  service?: CommitmentRowProps["service"];
   /** Given a destination, the row becomes the way into the promise. */
   onOpen?: (commitmentId: bigint) => void;
 }
@@ -25,7 +30,7 @@ export interface PromiseRowProps {
  * The details give the due date, then the other person from the reader's side; how the
  * reader is involved, its units and its team live on the promise.
  */
-export function PromiseRow({ row, title, sendFailed, kind, onOpen }: PromiseRowProps) {
+export function PromiseRow({ row, title, sendFailed, kind, service, onOpen }: PromiseRowProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const { commitment, seat, needsYou } = row;
@@ -49,6 +54,7 @@ export function PromiseRow({ row, title, sendFailed, kind, onOpen }: PromiseRowP
       }
       pending={sendFailed ? "sendFailed" : null}
       note={kind}
+      service={service}
       due={promiseDueDetail(intl, commitment.dueDate)}
       party={{ commitment, seat }}
       // A row without a destination is a record, not a control.

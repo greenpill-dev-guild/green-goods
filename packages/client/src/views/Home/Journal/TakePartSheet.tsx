@@ -1,6 +1,10 @@
 // Command Surface: the garden's open promises as a sheet over Home (DL-127).
-import type { CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
+import {
+  type CommitmentCycleRecord,
+  useServiceOfferLines,
+} from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import {
   useGardenOpenCycles,
@@ -9,10 +13,11 @@ import {
 import { type TakePartSheetOpening, useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { RiFilterOffLine } from "@remixicon/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { CycleRail } from "@/components/Features/Commitments";
+import { serviceOfferDetail } from "@/components/Features/Commitments/serviceOfferDetail";
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { JournalStateRow } from "./JournalStateRow";
 import { TakePartRows, takePartPath } from "./TakePart";
@@ -36,12 +41,20 @@ interface Narrowed {
  * Promises sheet, which keeps the reader's own promises.
  */
 export function TakePartSheet({ garden }: TakePartSheetProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const navigate = useNavigateToTop();
   const opening = useUIStore((state) => state.takePartSheet);
   const close = useUIStore((state) => state.closeTakePartSheet);
   const promises = useGardenOpenPromises(garden.id);
   const { state: cycleRead } = useGardenOpenCycles(garden.id);
+  // A service offer says what booking takes first and who promises it (PRD-1299, decision 12),
+  // on the garden's list for its members; Take Part on Home itself stays as it is.
+  const offers = useMemo(
+    () => (promises.all.status === "ready" ? promises.all.items.map((entry) => entry.copy) : []),
+    [promises.all]
+  );
+  const serviceLines = useServiceOfferLines({ chainId: DEFAULT_CHAIN_ID, offers });
 
   // The cycle the list is narrowed to, taken afresh each time the sheet opens.
   const [opened, setOpened] = useState(opening);
@@ -110,6 +123,7 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
             state={inCycle && all.status === "ready" ? { ...all, items: inCycle } : all}
             titleOf={promises.titleOf}
             onRetry={promises.refetch}
+            serviceOf={(id) => serviceOfferDetail(intl, serviceLines.get(id.toString()))}
             onOpen={(entry) => {
               // The sheet sits over Home, so it goes away before the promise's page opens.
               close();

@@ -2,9 +2,16 @@ import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useJoinGarden } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useIntl } from "react-intl";
-import { JoinGardenConfirmDialog } from "./JoinGardenConfirmDialog";
+
+// The confirmation, and the dialog primitives with it, load with the first press: Home and the
+// garden page draw the button long before anyone asks to join.
+const JoinGardenConfirmDialog = lazy(() =>
+  import("./JoinGardenConfirmDialog").then(({ JoinGardenConfirmDialog }) => ({
+    default: JoinGardenConfirmDialog,
+  }))
+);
 
 export interface JoinGardenButtonProps {
   gardenId: string;
@@ -20,6 +27,8 @@ export function JoinGardenButton({ gardenId, gardenName }: JoinGardenButtonProps
   const intl = useIntl();
   const { joinGarden, isJoining } = useJoinGarden();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Mounted from the first press on, so every later opening and closing plays as before.
+  const [confirmRequested, setConfirmRequested] = useState(false);
 
   const join = async () => {
     try {
@@ -54,19 +63,31 @@ export function JoinGardenButton({ gardenId, gardenName }: JoinGardenButtonProps
 
   return (
     <>
-      <Button type="button" size="compact" onClick={() => setConfirmOpen(true)} loading={isJoining}>
+      <Button
+        type="button"
+        size="compact"
+        onClick={() => {
+          setConfirmRequested(true);
+          setConfirmOpen(true);
+        }}
+        loading={isJoining}
+      >
         {intl.formatMessage({
           id: "app.garden.join",
           defaultMessage: "Join Garden",
         })}
       </Button>
-      <JoinGardenConfirmDialog
-        isOpen={confirmOpen}
-        gardenName={gardenName}
-        isJoining={isJoining}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={join}
-      />
+      {confirmRequested ? (
+        <Suspense fallback={null}>
+          <JoinGardenConfirmDialog
+            isOpen={confirmOpen}
+            gardenName={gardenName}
+            isJoining={isJoining}
+            onClose={() => setConfirmOpen(false)}
+            onConfirm={join}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 }

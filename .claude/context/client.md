@@ -18,7 +18,7 @@ Loaded when working in `packages/client/`. Extends `packages/client/AGENTS.md`.
 - [Critical Patterns](#critical-patterns)
 - [Anti-Patterns](#anti-patterns)
 - [Common Mistakes](#common-mistakes)
-- [Sync Triggers](#sync-triggers)
+- [Upload and Sync Triggers](#upload-and-sync-triggers)
 - [Form Accessibility](#form-accessibility-mandatory)
 - [Testing Coverage](#testing-coverage)
 - [Reference Files](#reference-files)
@@ -40,58 +40,27 @@ packages/client/src/
 
 ### Offline-First Architecture (MANDATORY)
 
-**Never poll. Use event-driven updates:**
-
-```typescript
-// ✅ Correct — event-driven
-import { useJobQueueEvents, queryKeys } from "@green-goods/shared";
-
-useJobQueueEvents(["job:completed"], () => {
-  queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
-});
-
-// ❌ Wrong — polling
-setInterval(() => queryClient.invalidateQueries(), 5000);
-```
+Use event-driven updates for queued work. The shared
+[`useWorks`](../../packages/shared/src/hooks/work/useWorks.ts) hook subscribes to queue events
+and invalidates the centralized work query keys. Follow that owner when adding a work read;
+keep queue subscriptions in shared hooks instead of adding polling or a second subscription in a view.
 
 ### Job Queue for Work Submission
 
-All work submissions go through the job queue for offline support:
+Keep work submission behind the shared flow controller and mutation:
 
-```typescript
-import {
-  submitWorkToQueue,
-  processWorkJobInline,
-  validateWorkSubmissionContext,
-} from "@green-goods/shared";
+- [`useWorkSubmissionFlowController`](../../packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts)
+  owns the client flow, draft retirement, and dependent commitment-link recovery.
+- [`useWorkMutation`](../../packages/shared/src/hooks/work/useWorkMutation.ts) captures the
+  submitting identity and delegates to the
+  [`submitWork` command](../../packages/shared/src/modules/work/submit-work-command.ts).
+- The command owns queue admission, explicit sending, direct-wallet submission, and recovery.
+  Preserve its connectivity, ownership, and transaction-confirmation checks.
 
-const handleSubmit = async () => {
-  // 1. Validate
-  const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images);
-  if (errors.length > 0) {
-    toast.error(errors[0]);
-    return;
-  }
-
-  // 2. Add to queue (persists to IndexedDB)
-  const { txHash, jobId } = await submitWorkToQueue(
-    draft, gardenAddress, actionUID, actions, DEFAULT_CHAIN_ID, images
-  );
-
-  // 3. Auto-process if client available
-  if (smartAccountClient) {
-    try {
-      await processWorkJobInline(jobId, chainId, smartAccountClient);
-    } catch {
-      // Job remains queued for later
-    }
-  }
-
-  // 4. Navigate
-  navigate("/home");
-  sessionStorage.setItem("openWorkDashboard", "true");
-};
-```
+The internal [`submitWorkToQueue`](../../packages/shared/src/modules/work/work-submission.ts)
+adapter requires `userAddress` after `images` to scope the saved job to its owner. Queueing a job
+is not proof it was sent. Reuse the command's explicit-send path rather than processing a job
+from view code.
 
 ### Draft Persistence
 
@@ -106,7 +75,7 @@ Work/garden drafts persist to the `green-goods-drafts` IndexedDB via shared hook
 **Never create orphan blob URLs:**
 
 ```typescript
-import { mediaResourceManager } from "@green-goods/shared";
+import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
 
 // ✅ Correct — tracked URLs
 const url = mediaResourceManager.getOrCreateUrl(file, "work-draft");
@@ -129,7 +98,7 @@ setImageUrl(url);
 ### Passkey-First Authentication
 
 ```typescript
-import { useAuth } from "@green-goods/shared";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
 
 const {
   authMode,           // "passkey" | "wallet" | null
@@ -153,20 +122,11 @@ const {
 
 ### Auth Mode Branching
 
-```typescript
-const { authMode, smartAccountClient } = useAuth();
-
-if (authMode === "wallet") {
-  // Direct wallet transaction
-  await submitWorkDirectly(draft, gardenAddress, actionUID);
-} else {
-  // Passkey — use job queue
-  const { txHash, jobId } = await submitWorkToQueue(draft, gardenAddress, actionUID);
-  if (smartAccountClient) {
-    await processWorkJobInline(jobId, chainId, smartAccountClient);
-  }
-}
-```
+Read auth state through the declared auth hook entrypoints. Keep submission-specific branching
+in the [`submitWork` command](../../packages/shared/src/modules/work/submit-work-command.ts),
+which applies the surface's offline-queue policy, preserves ownership across asynchronous work,
+and distinguishes queued, sent, and awaiting-confirmation outcomes. Views consume those outcomes
+through the shared mutation; they do not choose queue or direct-wallet helpers themselves.
 
 ### Route Guards
 
@@ -201,7 +161,7 @@ toast.error("Upload failed", { id: `job-${jobId}` });
 
 ```typescript
 // StatusBadge for work states
-import { StatusBadge } from "@green-goods/shared";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 
 <StatusBadge status="pending" />   // warning (orange)
 <StatusBadge status="approved" />  // success (green)

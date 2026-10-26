@@ -12,12 +12,9 @@ import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarde
 import { useAwaitingJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
-import { logger } from "@green-goods/shared/modules/app/logger";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import {
-  type ComponentType,
-  lazy,
   type ReactNode,
   Suspense,
   useCallback,
@@ -41,8 +38,14 @@ import {
 import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
 import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
 import { DeferredLauncher } from "./DeferredLauncher";
+import {
+  CommitmentsSheet,
+  CommitmentsSheetLauncher,
+  GardenSwitcherSheet,
+  NotificationsLauncher,
+  WalletSheet,
+} from "./DeferredSurfaces";
 import type { GardenVisitState } from "./Garden";
-import { GardenSwitcherSheet } from "./GardenSwitcher";
 import { HomeHeader } from "./HomeHeader";
 import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./HomeStates";
 import { awaitingGardens, switcherRows } from "./homeGardens";
@@ -50,41 +53,8 @@ import { followHomePlace, type HomePlace, restoreHomePlace } from "./homePlace";
 import { HomeJournal } from "./Journal";
 import { HomeShownContext } from "./Journal/homeShown";
 import { NotificationsIcon } from "./Notifications/Icon";
-import type { NotificationsLauncherProps } from "./Notifications/Launcher";
 import { WalletSheetIcon } from "./WalletSheet/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
-
-const CommitmentsSheet = lazy(() =>
-  import("./CommitmentsSheet").then(({ CommitmentsSheet }) => ({ default: CommitmentsSheet }))
-);
-const CommitmentsSheetLauncher = lazy(
-  (): Promise<{ default: ComponentType<{ onClick: () => void }> }> =>
-    import("./CommitmentsSheet/Launcher")
-      .then(({ CommitmentsSheetLauncher }) => ({
-        default: CommitmentsSheetLauncher,
-      }))
-      // Ambient adjunct: if the launcher chunk cannot load (offline dev serving),
-      // hide it rather than failing the whole Home route.
-      .catch(() => ({ default: () => null }))
-);
-const NotificationsLauncher = lazy(
-  (): Promise<{ default: ComponentType<NotificationsLauncherProps> }> =>
-    import("./Notifications/Launcher")
-      .then(({ NotificationsLauncher }) => ({ default: NotificationsLauncher }))
-      // Ambient adjunct: without its chunk the bell keeps its place, disabled. A browser keeps a
-      // failed dynamic import for the page's life, so a bell left enabled would do nothing on
-      // every tap until a reload.
-      .catch((error: unknown) => {
-        logger.warn("The notifications bell's code could not load", {
-          source: "Home",
-          error,
-        });
-        return { default: () => <NotificationsIcon disabled /> };
-      })
-);
-const WalletSheet = lazy(() =>
-  import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
-);
 
 type SwitcherMode = "switch" | "choose";
 
@@ -473,15 +443,17 @@ const Home: React.FC = () => {
       </div>
       <Outlet />
       {isSwitcherPresent ? (
-        <GardenSwitcherSheet
-          isOpen={switcher.open}
-          onClose={closeSwitcher}
-          mode={switcher.mode}
-          rows={rows}
-          onPick={pickGarden}
-          onVisit={visitGarden}
-          onExplore={openExplore}
-        />
+        <Suspense fallback={null}>
+          <GardenSwitcherSheet
+            isOpen={switcher.open}
+            onClose={closeSwitcher}
+            mode={switcher.mode}
+            rows={rows}
+            onPick={pickGarden}
+            onVisit={visitGarden}
+            onExplore={openExplore}
+          />
+        </Suspense>
       ) : null}
       {isWalletSheetPresent ? (
         <Suspense fallback={null}>

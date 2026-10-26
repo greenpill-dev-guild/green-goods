@@ -1,7 +1,7 @@
 /**
  * Authentication Session Utilities
  *
- * Client-only session management for passkey authentication.
+ * Browser session storage for passkey and wallet authentication.
  *
  * Storage keys:
  * - AUTH_MODE_STORAGE_KEY: Which auth method is active ("passkey" | "wallet")
@@ -9,9 +9,10 @@
  * - CREDENTIAL_STORAGE_KEY: Passkey credential (id + publicKey)
  * - SMART_ACCOUNT_ADDRESS_STORAGE_KEY: Expected passkey smart-account address
  *
- * Note: This is a simplified client-only approach following Pimlico's documentation.
- * Credentials are stored in localStorage - no server-side storage needed.
- * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
+ * Credential metadata is stored locally for session restoration. Server selection
+ * and legacy-account lookup are owned by config/passkeyServer.ts and the auth
+ * workflows; local session storage does not replace the passkey directory.
+ * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey
  */
 
 import type { Address, Hex } from "viem";

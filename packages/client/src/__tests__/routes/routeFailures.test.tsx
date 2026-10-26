@@ -8,7 +8,7 @@
  */
 
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import type { ComponentType, ReactNode } from "react";
+import { type ComponentType, lazy, type ReactNode, Suspense } from "react";
 import { createMemoryRouter, Outlet, type RouteObject, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -59,8 +59,16 @@ function layout(name: string) {
   };
 }
 
-/** The real table with every route's code stood in, and the chosen route's failing to arrive. */
-function standIn(routes: RouteObject[], failing: Failing, error: Error): RouteObject[] {
+/**
+ * The real table with every route's code stood in, and the chosen route's failing to arrive.
+ * `screens` puts a component of the test's own in a route's place.
+ */
+function standIn(
+  routes: RouteObject[],
+  failing: Failing,
+  error: Error,
+  screens: Record<string, ComponentType> = {}
+): RouteObject[] {
   return routes.map((route) => {
     const {
       lazy,
@@ -77,10 +85,13 @@ function standIn(routes: RouteObject[], failing: Failing, error: Error): RouteOb
         ? {
             lazy: failing(route)
               ? () => Promise.reject(error)
-              : async () => ({ Component: children ? layout(route.id ?? "layout") : Page }),
+              : async () => ({
+                  Component:
+                    screens[route.id ?? ""] ?? (children ? layout(route.id ?? "layout") : Page),
+                }),
           }
         : {}),
-      ...(children ? { children: standIn(children, failing, error) } : {}),
+      ...(children ? { children: standIn(children, failing, error, screens) } : {}),
     } as RouteObject;
   });
 }
@@ -91,14 +102,18 @@ function fail({
   path,
   failing,
   error = new Error("The screen's code did not arrive"),
+  screens,
 }: {
   table: RouteObject[];
   views: ComponentType<{ children: ReactNode }>;
   path: string;
   failing: Failing;
   error?: Error;
+  screens?: Record<string, ComponentType>;
 }) {
-  const router = createMemoryRouter(standIn(table, failing, error), { initialEntries: [path] });
+  const router = createMemoryRouter(standIn(table, failing, error, screens), {
+    initialEntries: [path],
+  });
   renderWithProviders(
     <Views>
       <RouterProvider router={router} />
@@ -184,6 +199,31 @@ describe("a failing route in the real route tables", () => {
     ).toBeInTheDocument();
     expect(framesUp()).toEqual(APP_FRAME);
     expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
+  });
+
+  // Home's sheets (the switcher, the cycle details, the join confirmation) load their code with
+  // their first opening. Code that fails to arrive reaches the screen's frame, not a blank sheet.
+  it("replaces Home inside the shell when a sheet's code fails to arrive", async () => {
+    const Sheet = lazy(() => Promise.reject(new Error("The sheet's code did not arrive")));
+    function HomeWithSheet() {
+      return (
+        <Suspense fallback={null}>
+          <Sheet />
+        </Suspense>
+      );
+    }
+    fail({
+      table: pwaAppRoutes,
+      views: AppRecoveryViews,
+      path: "/home",
+      failing: () => false,
+      screens: { [CLIENT_ROUTE_IDS.home]: HomeWithSheet },
+    });
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "This screen didn't load" })
+    ).toBeInTheDocument();
+    expect(framesUp()).toEqual(APP_FRAME);
   });
 
   it("gives a garden's page, which hides the bottom bar, a Back that reaches Home", async () => {

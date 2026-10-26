@@ -134,7 +134,7 @@ describe("GardenChip + useGardenUrlSync integration", () => {
     expect(trigger).toHaveAttribute("data-slot", "trigger");
 
     await user.click(trigger);
-    await user.click(screen.getByRole("button", { name: "Garden Two" }));
+    await user.click(await screen.findByRole("button", { name: "Garden Two" }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /garden two/i })).toBeInTheDocument();

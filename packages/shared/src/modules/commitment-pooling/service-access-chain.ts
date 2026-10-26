@@ -9,11 +9,8 @@ import PersonalPurchasesABI from "@green-goods/contracts/abis/ISettlementPersona
 import { isChainSupported } from "../../config/chains";
 import { CELO_G_DOLLAR_TOKEN } from "../../config/tokens";
 import type { Address } from "../../types/domain";
-import {
-  CommitmentPoolingModuleABI,
-  getNetworkContracts,
-  SettlementModuleABI,
-} from "../../utils/blockchain/contracts";
+import { SettlementModuleABI } from "../../utils/blockchain/contract-abis/settlement-module";
+import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { readSettlementFunction } from "./data-settlement-chain";
 import { unavailableServiceAccess, type ServiceAccessProjection } from "./data-service-access";
 import {
