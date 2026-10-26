@@ -187,9 +187,12 @@ function workKind(controller: WorkSubmissionFlowController): SubmissionKindModul
       isRecording: controller.isRecording,
       disabled: false,
     },
+    // A send that failed after the queue took the work retires the draft with no outcome; its
+    // markers stay on Review while the composer leaves for Your Work.
     completed:
       controller.submissionCompleted &&
-      controller.submissionOutcome?.kind !== "awaiting-confirmation",
+      controller.submissionOutcome !== null &&
+      controller.submissionOutcome.kind !== "awaiting-confirmation",
     promise: controller.linkIntent
       ? {
           title: controller.linkIntent.commitmentTitle,

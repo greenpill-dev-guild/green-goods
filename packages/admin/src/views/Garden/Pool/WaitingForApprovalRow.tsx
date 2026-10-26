@@ -265,7 +265,12 @@ export function WaitingForApprovalRow({
       {/* A booking's pill and its line take the row's whole width, under the acts. */}
       {voucher && !decided ? (
         <p className="col-span-2 mt-1 flex min-w-0 items-center gap-2 px-1">
-          <StatusBadge variant={voucher.tag.tone} size="sm" showIcon={false}>
+          <StatusBadge
+            variant={voucher.tag.tone}
+            size="sm"
+            showIcon={false}
+            className="shrink-0 whitespace-nowrap"
+          >
             {voucher.tag.label}
           </StatusBadge>
           <span className="min-w-0 truncate type-meta text-text-soft" title={voucher.detail}>
