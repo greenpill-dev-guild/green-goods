@@ -64,11 +64,13 @@ test("hook and doctor edits select their behavioral proof", () => {
     }
   }
   // The Shared Vitest config reads this helper to decide which tests share a module graph. Review
-  // selects no package suite, so the Shared suite runs for it in qa and push.
-  for (const intent of ["qa", "push"]) {
-    const plan = selectValidation({ intent, changedPaths: ["scripts/lib/vitest-shared-graph.mjs"] });
-    assert.ok(ids(plan).includes("shared-test"), `${intent}: scripts/lib/vitest-shared-graph.mjs`);
-  }
+  // selects no package suite, so the Shared suite runs for it in qa; a push leaves that whole
+  // suite to the Shared workflow (D16), which runs for the helper.
+  const graphHelper = "scripts/lib/vitest-shared-graph.mjs";
+  assert.ok(ids(selectValidation({ intent: "qa", changedPaths: [graphHelper] })).includes("shared-test"));
+  const graphPush = selectValidation({ intent: "push", changedPaths: [graphHelper] });
+  assert.ok(!ids(graphPush).includes("shared-test"));
+  assert.deepEqual(graphPush.ciOwned, [{ id: "shared-test", workflow: "Shared" }]);
   // shared.yml runs for it too, so CI Gate must expect that workflow.
   assert.deepEqual(
     selectExpectedWorkflows({ changedPaths: ["scripts/lib/vitest-shared-graph.mjs"], intent: "merge", ci: true }),
@@ -725,7 +727,7 @@ test("routine push uses focused owner proof inside the hard 90-second limit", ()
   });
 
   assert.equal(plan.status, "ready");
-  assert.deepEqual(ids(plan), ["format", "lint", "shared-test", "docs-authority", "source-structure"]);
+  assert.deepEqual(ids(plan), ["format", "lint", "shared-test", "docs-authority", "source-structure", "react-patterns"]);
   assert.equal(
     plan.checks.find((check) => check.id === "format").command,
     `bunx @biomejs/biome format --no-errors-on-unmatched '${changedPath}'`,
@@ -1278,6 +1280,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "docs-authority",
     "staged-modules",
     "source-structure",
+    "react-patterns",
   ]);
 
   const focusedPush = selectValidation({
@@ -1293,6 +1296,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "docs-authority",
     "staged-modules",
     "source-structure",
+    "react-patterns",
   ]);
 
   const ship = selectValidation({
@@ -1429,6 +1433,7 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
         "docs-authority",
         "source-structure",
         ...advisoryProof,
+        "react-patterns",
       ],
       changedPath,
     );
@@ -2670,10 +2675,10 @@ test("measured budgets keep routine and sensitive push decisions", () => {
       "routine",
       "ready",
     ],
-    // A deleted test leaves its suite unfocused: name the surviving proof, unless the whole suite
-    // is cheaper than a focused run.
+    // A deleted test leaves its suite unfocused: name the surviving proof. A push runs no whole
+    // suite (D16), so a cheap one no longer stands in for it.
     [{ changedPaths: ["packages/admin/src/__tests__/components/AdminDialog.test.tsx"], deletedPaths: ["packages/admin/src/__tests__/components/AdminDialog.test.tsx"] }, "routine", "needs-focus"],
-    [{ changedPaths: ["packages/agent/src/__tests__/analytics.test.ts"], deletedPaths: ["packages/agent/src/__tests__/analytics.test.ts"] }, "sensitive", "ready"],
+    [{ changedPaths: ["packages/agent/src/__tests__/analytics.test.ts"], deletedPaths: ["packages/agent/src/__tests__/analytics.test.ts"] }, "sensitive", "needs-focus"],
     [{ changedPaths: ["docs/scripts/docs-audit.test.mjs"] }, "routine", "ready"],
     [{ changedPaths: ["packages/agent/src/services/analytics.ts"] }, "sensitive", "needs-focus"],
   ];
@@ -2712,11 +2717,14 @@ test("only a test file becomes a focused run; helpers and notes under a test dir
     assert.equal(packageTest(plan, "shared"), undefined, changedPaths.join(" + "));
   }
 
-  // A helper is never the focus. A suite as cheap as a focused run runs whole.
+  // A helper is never the focus. A push runs no whole suite (D16), so even a suite as cheap as a
+  // focused run asks for the test that exercises the helper; qa still runs a cheap suite whole.
   const helper = "packages/agent/src/__tests__/reporting/driver/server.ts";
-  const whole = packageTest(push([helper]), "agent");
+  const helperPush = push([helper]);
+  assert.equal(helperPush.status, "needs-focus");
+  assert.ok(helperPush.remediation.includes("--test-path agent:"));
+  const whole = packageTest(selectValidation({ intent: "qa", changedPaths: [helper] }), "agent");
   assert.deepEqual(whole.focusedPaths, []);
-  assert.equal(whole.command, turboTestCommand("agent"));
   // Changed beside a test, the test alone is the focus.
   const sqliteTest = "src/__tests__/reporting/driver.sqlite.test.ts";
   assert.deepEqual(packageTest(push([helper, `packages/agent/${sqliteTest}`]), "agent").focusedPaths, [sqliteTest]);
@@ -3062,11 +3070,13 @@ test("a critical barrel change still names its test and gets no owner build", ()
     `bun --bun run oxlint '${barrel}' --deny-warnings`,
   );
 
-  // A sensitive barrel change keeps compile proof as its focus and its owner build.
+  // A sensitive barrel change keeps compile proof as its focus: the Shared typecheck. Its build is
+  // an echo, so a push leaves it out (D16).
   const sensitive = selectValidation({ intent: "push", changedPaths: ["packages/shared/src/hooks/garden/index.ts"] });
   assert.notEqual(sensitive.risk, "critical");
   assert.equal(sensitive.status, "ready");
-  assert.ok(ids(sensitive).includes("shared-build"));
+  assert.ok(sensitive.checks.find((check) => check.id === "shared-typecheck")?.selectedBy.includes("push-owner-compile:shared"));
+  assert.ok(sensitive.ciOwned.some((entry) => entry.id === "shared-build" && entry.workflow === null));
 });
 
 test("a noncritical contracts file beside a critical Shared change keeps the Shared push shape", () => {
@@ -3202,8 +3212,10 @@ test("a critical scripts/contracts path does not make an ordinary owner beside i
   });
   assert.equal(plan.risk, "critical");
   assert.equal(plan.status, "ready");
-  // The client entry point keeps its ordinary compile proof; only contracts is the critical owner.
-  assert.ok(plan.checks.find((check) => check.id === "client-build")?.selectedBy.includes("push-owner-compile:client"));
+  // The client entry point keeps its ordinary compile proof, now its typecheck, and the Client
+  // workflow builds it (D16); only contracts is the critical owner.
+  assert.ok(plan.checks.find((check) => check.id === "client-typecheck")?.selectedBy.includes("push-owner-compile:client"));
+  assert.ok(plan.ciOwned.some((entry) => entry.id === "client-build" && entry.workflow === "Client"));
   for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]) {
     assert.ok(plan.checks.find((check) => check.id === id)?.mandatory, id);
   }
@@ -3297,4 +3309,129 @@ test("needs-focus remediation offers --check only when no critical owner needs f
   const sensitive = selectValidation({ intent: "push", changedPaths: ["packages/shared/src/hooks/garden/useFilteredGardens.ts"] });
   assert.equal(sensitive.status, "needs-focus");
   assert.match(sensitive.remediation, /select an existing acceptance check with --check/);
+});
+
+// D16, 2026-10-26: a push is a thin pre-check, and PR CI owns builds, the Storybook build, the
+// browser presets and whole package suites.
+const CI_OWNED_CHECKS = new Set([
+  "shared-build",
+  "client-build",
+  "admin-build",
+  "agent-build",
+  "storybook-build",
+  "browser-passkey",
+  "browser-work-exploration",
+  "browser-pwa-preview",
+  "docs-build",
+]);
+const PACKAGE_SUITES = new Set(["shared-test", "client-test", "admin-test", "agent-test", "indexer-test", "docs-test"]);
+
+function policyRulePaths() {
+  const policy = loadPolicy();
+  const paths = new Set();
+  for (const rule of [...policy.conditionalRules, ...policy.criticalOverrides]) {
+    for (const path of rule.exact ?? []) paths.add(path);
+    for (const prefix of rule.prefixes ?? []) paths.add(prefix.endsWith("/") ? `${prefix}example.ts` : prefix);
+  }
+  for (const surface of ["shared", "client", "admin", "agent", "indexer"]) {
+    for (const path of ["src/index.ts", "src/main.tsx", "src/routes/index.tsx", "package.json", "vite.config.ts", "src/__tests__/helpers/example.ts"]) {
+      paths.add(`packages/${surface}/${path}`);
+    }
+  }
+  paths.add("packages/shared/.storybook/preview.tsx");
+  return [...paths];
+}
+
+test("a push leaves a check to CI only when the workflow that runs it is expected", () => {
+  let left = 0;
+  for (const path of policyRulePaths()) {
+    const plan = selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] });
+    const workflows = selectExpectedWorkflows({ changedPaths: [path], intent: "merge", ci: true });
+    for (const { id, workflow } of plan.ciOwned) {
+      left += 1;
+      assert.ok(!ids(plan).includes(id), `${path}: ${id} is both run and left to CI`);
+      if (workflow !== null) assert.ok(workflows.includes(workflow), `${path}: ${id} left to ${workflow}, which does not run`);
+    }
+    for (const check of plan.checks) {
+      const workflowRuns = (name) => workflows.includes(name);
+      if (CI_OWNED_CHECKS.has(check.id)) {
+        // A CI-owned check that a push keeps must lack its workflow for this path.
+        const expected = { "storybook-build": "Design", "docs-build": "Docs" }[check.id] ?? (check.id.startsWith("browser-") ? "Client" : check.id.replace(/-build$/, "").replace(/^./, (c) => c.toUpperCase()));
+        assert.ok(!workflowRuns(expected), `${path}: ${check.id} stays local although ${expected} runs`);
+      }
+      if (PACKAGE_SUITES.has(check.id) && check.focusedPaths.length === 0) {
+        // A whole suite stays on a push only while the plan asks for its test, or where its
+        // workflow does not run for the path.
+        const workflow = { "shared-test": "Shared", "client-test": "Client", "admin-test": "Admin", "agent-test": "Agent", "indexer-test": "Indexer", "docs-test": "Docs" }[check.id];
+        assert.ok(plan.status === "needs-focus" || !workflowRuns(workflow), `${path}: ${check.id} runs whole on push`);
+      }
+    }
+  }
+  assert.ok(left > 20, `the push leaves work to CI for many policy paths, got ${left}`);
+});
+
+test("a push keeps a CI-owned check local where its workflow does not run", () => {
+  // The passkey preset reads the Agent's test driver, but an Agent-only change runs no Client CI.
+  const driver = "packages/agent/src/__tests__/reporting/driver/server.ts";
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: [driver],
+    testPaths: { agent: ["src/__tests__/reporting/driver.test.ts"] },
+  });
+  assert.ok(!selectExpectedWorkflows({ changedPaths: [driver], intent: "merge", ci: true }).includes("Client"));
+  assert.ok(ids(plan).includes("browser-passkey"));
+  assert.ok(!plan.ciOwned.some((entry) => entry.id === "browser-passkey"));
+});
+
+test("a push replaces builds with typechecks, leaves presets and Storybook to CI, and keeps explicit checks", () => {
+  const entry = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/client/src/main.tsx"],
+    testPaths: { client: ["src/__tests__/main.test.tsx"] },
+  });
+  assert.ok(entry.checks.find((check) => check.id === "client-typecheck")?.selectedBy.includes("push-owner-compile:client"));
+  assert.deepEqual(
+    entry.ciOwned.map((owned) => `${owned.id}:${owned.workflow}`).sort(),
+    ["browser-pwa-preview:Client", "client-build:Client"],
+  );
+
+  const storybook = selectValidation({ intent: "push", changedPaths: ["packages/shared/.storybook/preview.tsx"] });
+  assert.ok(!ids(storybook).includes("storybook-build"));
+  assert.deepEqual(storybook.ciOwned, [{ id: "storybook-build", workflow: "Design" }]);
+
+  // The Indexer build is its typecheck (codegen plus tsc --noEmit), so it stays local.
+  const indexer = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/indexer/src/index.ts"],
+    testPaths: { indexer: ["test/handlers.test.ts"] },
+  });
+  assert.ok(ids(indexer).includes("indexer-build"));
+
+  // An explicit --check always runs, CI-owned or not.
+  const explicit = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/.storybook/preview.tsx"],
+    checkIds: ["storybook-build"],
+  });
+  assert.ok(ids(explicit).includes("storybook-build"));
+  assert.deepEqual(explicit.ciOwned, []);
+
+  // Checkpoint and the strict intents keep their builds.
+  for (const intent of ["checkpoint", "ship"]) {
+    const strict = selectValidation({ intent, changedPaths: ["packages/client/src/main.tsx"] });
+    assert.ok(ids(strict).includes("client-build") || intent === "checkpoint", intent);
+    assert.deepEqual(strict.ciOwned, [], intent);
+  }
+});
+
+test("react-patterns runs on push for the source and manifests it reads, never for tests or docs", () => {
+  for (const path of ["packages/admin/src/views/Hub/index.tsx", "packages/agent/src/services/analytics.ts", "packages/shared/package.json", "scripts/quality/check-react-patterns.js"]) {
+    const plan = selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] });
+    assert.ok(plan.checks.find((check) => check.id === "react-patterns")?.selectedBy.includes("conditional:react-patterns"), path);
+  }
+  for (const path of ["packages/shared/src/__tests__/components/Button.test.tsx", "docs/docs/intro.mdx", ".plans/active/x/status.json"]) {
+    assert.ok(!ids(selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] })).includes("react-patterns"), path);
+  }
+  // Only the push selects it from this rule.
+  assert.ok(!ids(selectValidation({ intent: "qa", changedPaths: ["packages/admin/src/views/Hub/index.tsx"] })).includes("react-patterns"));
 });

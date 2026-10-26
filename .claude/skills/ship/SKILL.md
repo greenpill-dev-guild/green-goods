@@ -101,6 +101,11 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
   --test-path <surface>:<focused-test-path>
 ```
 
+The push gate is a thin pre-check: format, lint, cheap repository checks, owner and consumer
+typechecks, docs drift and focused tests, plus the complete contracts gate for a critical contracts
+change. The plan lists the builds, Storybook build, browser presets and whole suites it leaves to PR
+CI; current-head CI runs them (step 6).
+
 Routine work has a 90-second hard limit; sensitive work has 180 seconds; a saturated host (1-minute
 load above 1.5× the host CPU count) suspends the limit, so it stops no check. `needs-focus` and
 `budget-exceeded` block publication. Passing receipts are reusable only when the commit,

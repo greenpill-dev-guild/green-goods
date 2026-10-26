@@ -414,6 +414,29 @@ const SURFACE_TEST_TYPECHECKS = {
   agent: "agent-test-typecheck",
 };
 
+// A push is a thin pre-check (D16, 2026-10-26). These checks belong to the pull-request workflow
+// named beside each: a push leaves one to CI only when that workflow is expected for the change,
+// and a package suite only when no test path focuses it. The Shared build is an echo, so it needs
+// no workflow. The Indexer build stays local: it is codegen plus `tsc --noEmit`, the Indexer's only
+// typecheck. The contracts gate stays local whole, because its verify step has no CI equivalent.
+const CI_OWNED_ON_PUSH = {
+  "shared-build": null,
+  "client-build": "Client",
+  "admin-build": "Admin",
+  "agent-build": "Agent",
+  "storybook-build": "Design",
+  "browser-passkey": "Client",
+  "browser-work-exploration": "Client",
+  "browser-pwa-preview": "Client",
+  "shared-test": "Shared",
+  "client-test": "Client",
+  "admin-test": "Admin",
+  "agent-test": "Agent",
+  "indexer-test": "Indexer",
+  "docs-test": "Docs",
+  "docs-build": "Docs",
+};
+
 // The gates that certify readiness, a full local ship, a merge or a release run every check fresh,
 // whatever the plan's risk: they reuse no receipt, and their package suites skip Turbo's cache.
 // Lighter intents may reuse an exact pass, but a critical plan only in push, where the pre-push
@@ -438,7 +461,7 @@ function focusedProofMissing(
   requestedChecks,
   deletedPaths,
   policy,
-  { ownersRequiringFocus = new Set(), exemptSurfaces = new Set() } = {},
+  { ownersRequiringFocus = new Set(), exemptSurfaces = new Set(), cheapWholeSuiteIsProof = true } = {},
 ) {
   // An explicit --check stands in for an ordinary owner's focus, never for a critical owner, whose
   // mandatory suite must still run focused on a named test.
@@ -473,7 +496,8 @@ function focusedProofMissing(
     }
     if (explicit && !ownersRequiringFocus.has(surface)) continue;
     const suite = policy.checks.find((check) => check.id === `${surface}-test`);
-    if (suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
+    // A push runs no whole suite (D16), so only qa still accepts a cheap one as proof.
+    if (cheapWholeSuiteIsProof && suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
     missing.add(surface);
   }
   return [...missing].sort();
@@ -677,10 +701,8 @@ export function selectValidation(input = {}, options = {}) {
         addValidationOnlyChecks(select, surface, surfacePaths, { includeTypecheck: false });
       }
       if (needsOwnerCompileProof(changedPaths, surface)) {
-        const typechecks = {
-          shared: "shared-typecheck",
-          agent: "agent-typecheck",
-        };
+        // The typecheck is the push's compile proof; a build stays only where CI does not run it.
+        const typechecks = SURFACE_TYPECHECKS;
         const builds = {
           shared: "shared-build",
           indexer: "indexer-build",
@@ -852,6 +874,28 @@ export function selectValidation(input = {}, options = {}) {
       mandatory.add(id);
     }
   }
+  // Leave builds, the Storybook build, the browser presets and whole package suites to the
+  // pull-request workflow that runs them, when that workflow is expected for this change.
+  const ciOwned = [];
+  if (fastPush || criticalPush) {
+    const expectedWorkflows = new Set(
+      selectExpectedWorkflows({ changedPaths, intent: "merge", ci: true }, { policy }),
+    );
+    for (const id of [...selected]) {
+      if (!Object.hasOwn(CI_OWNED_ON_PUSH, id)) continue;
+      // An explicit --check always runs.
+      if (requestedChecks.includes(id)) continue;
+      const surface = id.endsWith("-test") ? id.slice(0, -5) : null;
+      // A focused suite runs locally, and a critical owner's suite stays to be focused: the plan
+      // asks for its test rather than leaving it to CI.
+      if (surface && (testPaths[surface]?.length > 0 || ownersRequiringFocus.has(surface))) continue;
+      const workflow = CI_OWNED_ON_PUSH[id];
+      if (workflow !== null && !expectedWorkflows.has(workflow)) continue;
+      selected.delete(id);
+      mandatory.delete(id);
+      ciOwned.push({ id, workflow });
+    }
+  }
   if (["readiness", "push", "ship", "merge", "release"].includes(intent)) {
     for (const id of selected) mandatory.add(id);
   }
@@ -906,6 +950,7 @@ export function selectValidation(input = {}, options = {}) {
       ? focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy, {
           ownersRequiringFocus: criticalPush || criticalQa ? ownersRequiringFocus : new Set(),
           exemptSurfaces: contractsCritical ? new Set(["contracts"]) : new Set(),
+          cheapWholeSuiteIsProof: !(fastPush || criticalPush),
         })
       : [];
   // Static budgets are ceilings, not measurements. A plan whose package suites are all
@@ -952,6 +997,7 @@ export function selectValidation(input = {}, options = {}) {
     environment,
     environmentBlockers: toolchainBlockers,
     checks,
+    ciOwned,
     budget,
     receiptPolicy: receiptPolicyFor(intent, risk),
   };
