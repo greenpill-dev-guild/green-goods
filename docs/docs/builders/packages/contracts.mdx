@@ -4,12 +4,19 @@ sidebar_label: Contracts
 slug: /builders/packages/contracts
 audience: developer
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-10-25
 feature_status: Live
 source_of_truth:
   - packages/contracts/AGENTS.md
   - packages/contracts/package.json
   - packages/contracts/src/resolvers/Yield.sol
+  - packages/contracts/src/modules/SettlementModule.sol
+  - packages/contracts/src/modules/CeloSettlementExecutor.sol
+  - packages/contracts/src/modules/VoucherEndpoint.sol
+  - packages/contracts/src/registries/Credit.sol
+  - packages/contracts/deployments/100-pilot-downstream.json
+  - packages/contracts/deployments/42161-pilot-downstream.json
+  - packages/shared/src/config/app.ts
 keywords:
   - solidity
   - foundry
@@ -42,13 +49,13 @@ sit in `test/` by area, and `deployments/` records the outcome.
 
 | Directory | What lives there |
 |---|---|
-| `src/accounts/` | Garden token-bound accounts, action routing, Celo relay and coordinator |
+| `src/accounts/` | Garden token-bound accounts, action routing, the Celo relay and coordinator, and the steward-role publisher and Safe receiver that keep a garden's Gnosis steward Safe in step with its stewards for the voucher pilot |
 | `src/resolvers/` | The EAS resolvers for work, approval, assessment, and testimony, and beside them the yield resolver, which is not an EAS resolver: it is the Octant accountant that distributes vault yield |
-| `src/modules/` | The modules the protocol wires per chain: Hats, which every mint requires, the other integrations (Karma, Octant, Gardens, Cookie Jar, Hypercerts, Unlock), and the pooling and settlement control planes |
-| `src/registries/` | Action, commitment, credit, deployment, ENS, power, GreenWill |
+| `src/modules/` | The modules the protocol wires per chain: Hats, which every mint requires, the other integrations (Karma, Octant, Gardens, Cookie Jar, Hypercerts, Unlock), the pooling and settlement control planes with the Celo settlement executor, and the voucher pilot's endpoints, entitlement, redemption and Gnosis adapter and escrow modules |
+| `src/registries/` | Action, commitment, credit, deployment, ENS, power, GreenWill, and a same-chain CCIP router for testnet deployments. The credit registry backs Commitment Credit, which no app offers |
 | `src/tokens/` | The Garden and Goods tokens |
 | `src/lib/` | The pooling and settlement libraries the modules link against at deploy time (`CommitmentPooling/`, `Settlement/`), the garden mint hooks, and shared helpers for Hats, Karma, strings, and token-bound accounts |
-| `src/libraries/` | Garden Safe execution and its action codec, the Celo garden account ledger, and the settlement message codec |
+| `src/libraries/` | Garden Safe execution and its action codec, the Celo garden account ledger, the settlement message codec, and the steward-role and voucher codecs |
 | `src/interfaces/` | The interfaces every contract speaks |
 | `src/markets/` and `src/strategies/` | Hypercert marketplace adapters and their strategies |
 | `src/vendor/` and `src/mocks/` | Vendored partner contracts (Gardens, Octant) and the test doubles |
@@ -90,7 +97,13 @@ meaning. The [Architecture page](../architecture) shows the whole loop.
   broadcasting needs release authorization. The [contract operations](./contract-operations) page
   has the full list.
 - A deployment artifact records that something was deployed, not that it is live and healthy.
-  Never present an address as an active feature without separate evidence.
+  Never present an address as an active feature without separate evidence. Three current
+  examples: the settlement contracts are deployed while the apps keep settlement writes off
+  (`SETTLEMENT_ENABLED` in `packages/shared/src/config/app.ts`), the voucher pilot's records in
+  `deployments/100-pilot-downstream.json` and `deployments/42161-pilot-downstream.json` mark its
+  endpoints paused with activation pending, and the credit registry has no app surface. The
+  [Architecture page](../architecture#commitment-pooling-settlement-and-pilots) keeps their
+  states apart.
 - Storage-layout, contract-size, and fork checks are selected by the root validation pipeline for
   risky changes; when selected, they all have to pass.
 - Shared Solidity helpers live in `src/lib/` (EAS, strings, token-bound accounts); reach for them

@@ -12,6 +12,7 @@ import type { Address, WorkInput } from "@green-goods/shared/types/domain";
 import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
 import { findGarden, type GardenDirectory, isUnlisted, type ReportingGarden } from "../gardens";
+import { filesInProgress } from "../media-intake";
 import { closeConversationPrompt, type PromptOption, promptsAsked } from "../prompts";
 import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import { askGarden } from "./garden-step";
@@ -304,12 +305,20 @@ function conflictValue(draft: DraftRecord, field: string): unknown {
   ];
 }
 
-/** Renders the confirmation summary from validated state and issues the token-bound prompt. */
+/**
+ * Renders the confirmation summary from validated state and issues the token-bound prompt. While
+ * files sent for the report are still being processed there is no summary to confirm, so nothing
+ * on its way is left out of what is confirmed: the reply to the last file puts it.
+ */
 export function askConfirmation(
   writer: ConversationWriter,
   draft: DraftRecord,
   account: string | null
 ): void {
+  if (filesInProgress(writer.core, draft.id)) {
+    writer.say("media.stillAdding");
+    return;
+  }
   const snapshot = draft.snapshot as ActionDefinitionSnapshot;
   const summary = buildReportSummary({
     draftId: draft.id,
