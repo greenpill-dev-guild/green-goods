@@ -31,6 +31,9 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | `deck/assets/screens/`, `deck/assets/photos/` | Local images, not committed; see [Photos and screens](#photos-and-screens) |
 | [`brief/index.html`](brief/index.html) | The Green Goods brief: six A4 pages in the same style, made to stand on its own; page 1 doubles as the one-page summary; its links are clickable in the PDF |
 | [`brief/render.mjs`](brief/render.mjs) | Checks the brief and renders its PDF and page PNGs |
+| [`submission/business-model-canvas.html`](submission/business-model-canvas.html) | The Business Model Canvas the event asks for: one A4 landscape page, the nine standard blocks, figures from the brief and labeled illustrative |
+| [`submission/logical-architecture.html`](submission/logical-architecture.html) | The logical architecture the event asks for: one A4 landscape page from the five roles down to the three networks, with data in and out and the rules that hold everywhere |
+| [`submission/render.mjs`](submission/render.mjs) | Checks both one-pagers (margins, footers, box overflow, images, em dashes, PDF word positions) and renders their PDFs and PNGs |
 | [`review-2026-10-25.md`](review-2026-10-25.md) | Afo's 25 October slide and brief review, with the Tech and Sun research; implemented in [the revision](#the-revision--25-october-2026) |
 | [`../research/diaspora-evidence-pass-2026-10-25.md`](../research/diaspora-evidence-pass-2026-10-25.md) | The RESR-94 evidence pass: every diaspora, remittance, hub and funding claim checked against primary sources, with proposed ledger rows and open questions; applied in [the evidence pass](#the-evidence-pass--25-october-2026) |
 
@@ -220,6 +223,33 @@ refresh the status facts the pitch carries. Repeat the check on 27 October (inpu
   0. Brief pages 1, 3, 4 and 6, the deck's contact sheet and the photo slides 8, 12 and 17 were
   inspected.
 
+## The submission items · 25 October 2026
+
+The event's submission brief (read 25 October) asks for four items: a solution presentation, a
+Business Model Canvas, a logical architecture and a demonstrator such as a clickable demo, judged
+on business idea, technical implementation, use of data sets, presentation, feasibility,
+scalability and impact potential. Materials go to the team's Microsoft Teams room by Monday
+27 October, 2 to 3 PM UK time, and the brief says to plan for eight minutes a team, which the
+notes already run. The deck is the presentation; the canvas and the architecture are the two
+one-pagers in `submission/`, in the brief's style and checked by `submission/render.mjs`; the
+clickable demo is built in a side session as `demo/` (four flows, Needs, Promise, Work and
+Support, from captures of the real app screens in the deployed Storybook, set at Tech and Sun's
+hub by swapping demo copy at capture time), with its own `demo/README.md`.
+
+- **Canvas.** The nine blocks sit in their standard places, placed by hand in the grid. Partners,
+  segments and the value propositions carry what the deck and brief say; the revenue and cost
+  blocks carry the brief's illustrative six-month program ($50,000, $40,000 to the garden, a
+  $10,000 fee against $6,500 of delivery cost) and nothing new.
+- **Architecture.** Five bands, people to networks, with a side column for data in (field
+  evidence, confirmations, assessments, and the context data the pitch cites), data out (public
+  pages, reports, records published to partners, certificates) and the rules that hold everywhere
+  (the person served confirms; signed records; cross-network messages authorize and never carry
+  funds). Network names appear here and in the brief's architecture page, never on the slides.
+  Media storage is IPFS (`packages/shared/src/modules/job-queue/evidence-publisher.ts`); the
+  persona lines follow `packages/shared/src/ontology/green-goods-ontology.json`.
+- **Checks.** Both pages render as one A4 landscape page each with a clean probe; the probe also
+  reports a block whose content overflows its box, since print clips it silently.
+
 ## The final polish · 25 October 2026
 
 Applied from Afo's second review, given in chat on 25 October after the merge, with four
@@ -365,14 +395,19 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    a real member's booking through the app, the notes' claims list, which says what to say on
    slide 7, and brief pages 1, 3, 4 and 6 may move from "deployed" to "live"; if not, leave them.
    Remittance Prices Worldwide had no quarter after Q3 2025 on 25 October.
-6. **Slot length.** The 2026 per-team time is unconfirmed; the notes run 8:00 and include a
-   five-minute cut.
+6. **Slot length.** Settled: the submission brief says to plan for eight minutes a team, which
+   the notes run; the five-minute cut stays as a fallback.
 7. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
    gift method (the Omo Yoruba donate page has no payment form).
 8. **Live counts.** No slide shows the live garden page any more, so nothing needs re-capturing
    before presenting; the Storybook screens show demo data.
 9. **Recorded clip.** The stretch-goal clip of the rehearsed voucher flow was not made; the notes
-   say where it would go.
+   say where it would go. Afo plans a walkthrough video for the submission; the clickable demo
+   is its path.
+12. **Event data sets.** "Use of data sets" is a judging criterion, and the event's Teams folder
+    holds an open public data catalogue and an API dataset ranking that were not available here.
+    The canvas and architecture cite the sets the pitch uses (the garden record, World Bank WDI,
+    Remittance Prices Worldwide, ACS and ONS); map them to the event's catalogue once it is to hand.
 10. **Member-proof timestamp.** The claim ledger's C89 cites 01:17:19 UTC on 24 October; the proof
     record says its tests completed at 01:08:44 UTC and it was written at 02:09:22 UTC. The ledger
     line is the ledger owner's to reconcile; the deck states no time of day.

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Green Goods · Business Model Canvas · October 2026</title>
+<meta name="description" content="One-page Business Model Canvas for Green Goods, written for SustainableFinance.Live 2026, Problem Statement 2. The nine standard blocks in their standard places, with illustrative figures from the Green Goods brief. Written 25 October 2026." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" />
+<style>
+  /* Same Warm Earth tokens as the deck and the brief. One A4 landscape page. */
+  :root {
+    --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
+    --rule: #E7E1D9; --rule-2: #D9D1C5; --sand: #F3EEE6;
+    --green: #1FC16B; --green-action: #1A7544; --green-wash: #E3F7EC; --amber: #B45309;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #1C1917; color: var(--ink); font: 400 10.15px/1.35 var(--sans); -webkit-font-smoothing: antialiased; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .page { position: relative; width: 297mm; height: 210mm; margin: 24px auto; padding: 9mm 12mm 14mm; background: var(--linen); overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.4); display: flex; flex-direction: column; }
+  .foot { position: absolute; left: 12mm; right: 12mm; bottom: 7mm; display: flex; align-items: center; gap: 10px; font: 500 10px/1 var(--sans); color: var(--stone); }
+  .foot img { width: 24px; height: auto; display: block; }
+  .foot .n { margin-left: auto; }
+  .meta { font: 500 10.5px/1.4 var(--sans); color: var(--stone); margin: 0 0 3px; }
+  h1 { margin: 0; font: 400 24px/1.1 var(--serif); letter-spacing: -0.02em; color: var(--ink); }
+  em.accent { font-style: italic; color: var(--green-action); }
+  .lede { margin: 3px 0 0; font-size: 11px; line-height: 1.42; color: var(--ink-2); max-width: 1010px; text-wrap: pretty; }
+  p { margin: 0; text-wrap: pretty; }
+  ul { margin: 0; padding: 0 0 0 11px; }
+  li { margin: 0 0 2px; text-wrap: pretty; color: var(--ink-2); }
+  li::marker { color: var(--green-action); }
+  li b, p b { font-weight: 600; color: var(--ink); }
+
+  /* The canvas: the standard nine blocks in their standard places, placed by hand so the order
+     never depends on auto-placement. Columns: partners, activities over resources, value,
+     relationships over channels, segments; the bottom row holds costs and revenue. */
+  .canvas { display: grid; grid-template-columns: 1fr 1fr 1.12fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 7px; margin-top: 8px; flex: 1; min-height: 0; }
+  .block { position: relative; background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; padding: 7px 10px 5px; overflow: hidden; min-height: 0; }
+  .block.core { border-color: var(--green); background: #FBFEFC; }
+  .block h3 { margin: 0 0 4px; font: 400 13.5px/1.15 var(--serif); letter-spacing: -0.005em; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .block h3 svg { width: 15px; height: 15px; fill: none; stroke: var(--green-action); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .partners { grid-column: 1; grid-row: 1 / 3; }
+  .activities { grid-column: 2; grid-row: 1; }
+  .resources { grid-column: 2; grid-row: 2; }
+  .value { grid-column: 3; grid-row: 1 / 3; }
+  .relationships { grid-column: 4; grid-row: 1; }
+  .channels { grid-column: 4; grid-row: 2; }
+  .segments { grid-column: 5; grid-row: 1 / 3; }
+  .costs { grid-column: 1 / 3; grid-row: 3; }
+  .revenue { grid-column: 3 / 6; grid-row: 3; }
+  .money { display: grid; grid-template-columns: 1fr 1.1fr; column-gap: 12px; align-items: start; }
+  .money p { margin-bottom: 4px; color: var(--ink-2); }
+  .figures { list-style: none; padding: 0; margin: 1px 0 0; }
+  .figures li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--rule); padding: 1px 0; margin: 0; line-height: 1.3; }
+  .figures li:last-child { border-bottom: 0; }
+  .figures li.total { font-weight: 600; color: var(--ink); border-top: 1px solid var(--rule-2); }
+  .figures .num { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
+  .label { display: inline-block; font: 600 9px/1 var(--sans); letter-spacing: .02em; color: var(--amber); background: #FEF3E2; border-radius: 99px; padding: 3px 7px; margin-left: 6px; vertical-align: 2px; }
+  .who { font-size: 9.6px; color: var(--sub); margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--rule); }
+  .sources { margin-top: 6px; font-size: 9.3px; line-height: 1.38; color: var(--stone); }
+
+  @page { size: A4 landscape; margin: 0; }
+  @media print {
+    html, body { background: var(--linen); }
+    .page { margin: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-partners" viewBox="0 0 24 24"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M3.5 19a4.5 4.5 0 0 1 9 0M11.5 19a4.5 4.5 0 0 1 9 0"/></symbol>
+  <symbol id="i-activities" viewBox="0 0 24 24"><path d="M5 6.5h14M5 12h14M5 17.5h9"/><path d="M18.5 15.5l1.5 1.5 3-3"/></symbol>
+  <symbol id="i-resources" viewBox="0 0 24 24"><path d="M4 7.5l8-3.5 8 3.5-8 3.5z"/><path d="M4 12l8 3.5 8-3.5M4 16.5l8 3.5 8-3.5"/></symbol>
+  <symbol id="i-value" viewBox="0 0 24 24"><path d="M12 3.5l2.4 5 5.5.7-4 3.8 1 5.5-4.9-2.7-4.9 2.7 1-5.5-4-3.8 5.5-.7z"/></symbol>
+  <symbol id="i-relationships" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.4C19 15.6 12 20 12 20z"/></symbol>
+  <symbol id="i-channels" viewBox="0 0 24 24"><path d="M4 6h16v10H8l-4 4z"/><path d="M8 10h8M8 13h5"/></symbol>
+  <symbol id="i-segments" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l6 6"/></symbol>
+  <symbol id="i-cost" viewBox="0 0 24 24"><path d="M4 18.5L10 12l4 4 6-7"/><path d="M15.5 9H20v4.5"/></symbol>
+  <symbol id="i-revenue" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v10M9.5 9.5h3.75a1.75 1.75 0 0 1 0 3.5H10.75a1.75 1.75 0 0 0 0 3.5H14.5"/></symbol>
+</defs></svg>
+
+<section class="page">
+  <p class="meta">Business Model Canvas · Green Goods · October 2026 · Written for SustainableFinance.Live 2026, Problem Statement 2</p>
+  <h1>Green Goods: From <em class="accent">Good</em> Intentions to <em class="accent">Green</em> Outcomes</h1>
+  <p class="lede">Green Goods gives a community one record of what it promised, did and proved, and helps money from people and programs who already care reach it. Organizations pay for the service; communities and individual supporters never do. Every figure here is illustrative.</p>
+
+  <div class="canvas">
+    <div class="block partners">
+      <h3><svg><use href="#i-partners"/></svg>Key partners</h3>
+      <ul>
+        <li><b>Tech and Sun</b>: solar-powered hubs in Nigeria; the first garden, in Awka.</li>
+        <li><b>Omo Yoruba of Southern California</b>: the first diaspora community.</li>
+        <li><b>Grassroots Economics</b>: service vouchers on Cosmo-Local Credit.</li>
+        <li><b>GoodDollar</b> for G$ rewards; <b>Octant</b> and <b>Aave</b> for endowments.</li>
+        <li><b>Hypercerts Foundation</b> (Certified): certificates; publishing to <b>Ma Earth</b>.</li>
+        <li><b>Bloom Network</b> and <b>Regen Network</b>: where the record counts next.</li>
+        <li>Open infrastructure: EAS, Hats Protocol, Safe, Chainlink CCIP, Envio, IPFS.</li>
+        <li><b>Greenpill Network</b>: chapters and guilds that bring gardens.</li>
+      </ul>
+    </div>
+
+    <div class="block activities">
+      <h3><svg><use href="#i-activities"/></svg>Key activities</h3>
+      <ul>
+        <li>Onboard gardens and train their stewards.</li>
+        <li>Run seasons of promises; review the evidence.</li>
+        <li>Report to funders in a form they can act on.</li>
+        <li>Build and run the apps, contracts and indexer.</li>
+        <li>Connect partner networks, so one record counts everywhere.</li>
+      </ul>
+    </div>
+
+    <div class="block resources">
+      <h3><svg><use href="#i-resources"/></svg>Key resources</h3>
+      <ul>
+        <li>The record: signed attestations, read by our indexer.</li>
+        <li>The apps: member, steward, chat and public pages.</li>
+        <li>Contracts: gardens, promises, rewards, vouchers, endowments.</li>
+        <li>Passkey accounts, sponsored fees.</li>
+        <li>A small team in the Greenpill network.</li>
+      </ul>
+    </div>
+
+    <div class="block core value">
+      <h3><svg><use href="#i-value"/></svg>Value propositions</h3>
+      <ul>
+        <li><b>For communities:</b> one record of what they promised, did and proved, owned by the garden and usable offline; promises between members with agreed rewards; credibility members carry to the next employer, mentor or funder.</li>
+        <li><b>For funders:</b> delivery they can see before and after they give, confirmed by the people served and never by the person who did the work; reporting they can act on; more local initiatives reached with less overhead.</li>
+        <li><b>For the diaspora:</b> a way to support home with evidence, not only transfers, alone or through an association that pools members' gifts.</li>
+        <li><b>For networks and registries:</b> report once, and let the record count everywhere.</li>
+      </ul>
+    </div>
+
+    <div class="block relationships">
+      <h3><svg><use href="#i-relationships"/></svg>Customer relationships</h3>
+      <ul>
+        <li>Hands-on setup of each garden with its stewards, then support through the season.</li>
+        <li>Evaluators set the baseline and what good evidence looks like.</li>
+        <li>Funders get reporting and a place in the record.</li>
+        <li>Community members confirm what was done for them.</li>
+        <li>Public pages anyone can check.</li>
+      </ul>
+    </div>
+
+    <div class="block channels">
+      <h3><svg><use href="#i-channels"/></svg>Channels</h3>
+      <ul>
+        <li>The Green Goods app, installable and offline-ready.</li>
+        <li>Chat reporting by Telegram.</li>
+        <li>Public garden pages at greengoods.app.</li>
+        <li>The steward dashboard.</li>
+        <li>Partner networks that carry the record.</li>
+        <li>Greenpill chapters and guilds.</li>
+      </ul>
+    </div>
+
+    <div class="block segments">
+      <h3><svg><use href="#i-segments"/></svg>Customer segments</h3>
+      <ul>
+        <li><b>Place-based communities</b> doing regenerative work: solar hubs, agroforestry collectives, waste cleanups, education programs. First: Tech and Sun's hub in Awka; Kenya, Brazil and South Africa next.</li>
+        <li><b>Funders</b> of that work: climate, clean energy and skills programs, foundations, public goods funds, and institutions piloting allocation tools.</li>
+        <li><b>Diaspora supporters</b> and their associations, starting with the Nigerian diaspora.</li>
+        <li><b>Networks and registries</b> that need evidence behind claims.</li>
+      </ul>
+      <p class="who">Who pays: funders, programs and associations. Who uses: gardeners, stewards, evaluators, funders and community members.</p>
+    </div>
+
+    <div class="block costs">
+      <h3><svg><use href="#i-cost"/></svg>Cost structure <span class="label">Illustrative USD</span></h3>
+      <div class="money">
+        <div>
+          <p>Delivery for one six-month program, priced by hours. Central costs (product, sales and administration) sit outside this figure.</p>
+          <p>Costs scale with gardens and seasons, not with the funds that move.</p>
+        </div>
+        <ul class="figures">
+          <li><span>Setup and onboarding, 25 h</span><span class="num">$1,250</span></li>
+          <li><span>Steward training and support, 50 h</span><span class="num">$2,000</span></li>
+          <li><span>Evidence review and reporting, 30 h</span><span class="num">$1,500</span></li>
+          <li><span>Technical operations, 15 h</span><span class="num">$900</span></li>
+          <li><span>Hosting, messaging, sponsored fees</span><span class="num">$350</span></li>
+          <li><span>Delivery contingency</span><span class="num">$500</span></li>
+          <li class="total"><span>Delivery cost per program</span><span class="num">$6,500</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block revenue">
+      <h3><svg><use href="#i-revenue"/></svg>Revenue streams <span class="label">Illustrative USD</span></h3>
+      <div class="money">
+        <div>
+          <p>Programs, foundations, diaspora associations and NGOs pay Green Goods a <b>separate fee</b> for setting a garden up, supporting its stewards through a season, and reporting the funder can act on and renew from.</p>
+          <p>Priced by projects and workload, <b>never as a cut</b> of a garden's funds or endowment capital. Individual supporters never subscribe. Renewals follow delivery the funder can see; more gardens in a program raise the fee with the workload.</p>
+        </div>
+        <ul class="figures">
+          <li><span>Clean-energy program, to the garden</span><span class="num">$30,000</span></li>
+          <li><span>Clean-energy program, fee to Green Goods</span><span class="num">$10,000</span></li>
+          <li><span>100 diaspora supporters at $100, to the garden</span><span class="num">$10,000</span></li>
+          <li class="total"><span>Six-month program ($40,000 to the garden)</span><span class="num">$50,000</span></li>
+          <li><span>Fee: $3,000 setup, $7,000 support and reporting</span><span class="num">$10,000</span></li>
+          <li><span>Contribution before central costs</span><span class="num">$3,500, or 35%</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <p class="sources">Figures from the Green Goods brief, October 2026, and illustrative only: not a quote, secured funding or a validated price. Status on 25 October 2026: the app, promises, chat reporting and endowments are live; service vouchers are in pilot with Tech and Sun; impact certificates are partly built. Sources: greengoods.app, docs.greengoods.app, and each partner's own site.</p>
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Business Model Canvas · October 2026</span><span class="n">contact@greengoods.app · greengoods.app</span></footer>
+</section>
+</body>
+</html>
