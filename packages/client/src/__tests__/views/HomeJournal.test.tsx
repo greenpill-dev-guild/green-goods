@@ -20,7 +20,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
+import { act, fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN = "0x5000000000000000000000000000000000000001";
 const NEIGHBOUR = "0xb0b0000000000000000000000000000000000002" as Address;
@@ -460,6 +460,24 @@ describe("Home journal", () => {
       // A row opens its promise's page and puts the sheet away.
       await user.click(within(sheet).getByRole("button", { name: /Water the new beds/ }));
       expect(mocks.navigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/19`);
+      expect(useUIStore.getState().takePartSheet).toBeNull();
+    });
+
+    it("closes the open promises when the journal leaves Home or turns to another garden", () => {
+      const membership = { roles: ["gardener" as const], pendingJoin: false };
+      const journal = (id: string) => (
+        <MemoryRouter>
+          <HomeJournal garden={{ ...GARDEN_RECORD, id } as Garden} membership={membership} />
+        </MemoryRouter>
+      );
+      const { rerender, unmount } = renderWithProviders(journal(GARDEN));
+
+      act(() => useUIStore.getState().openTakePartSheet());
+      rerender(journal("0x5000000000000000000000000000000000000002"));
+      expect(useUIStore.getState().takePartSheet).toBeNull();
+
+      act(() => useUIStore.getState().openTakePartSheet());
+      unmount();
       expect(useUIStore.getState().takePartSheet).toBeNull();
     });
 

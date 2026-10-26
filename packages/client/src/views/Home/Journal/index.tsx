@@ -2,7 +2,7 @@ import { useStewardDuties } from "@green-goods/shared/hooks/garden/useStewardDut
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Garden } from "@green-goods/shared/types/domain";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import type { MemberGarden } from "../homeGardens";
@@ -38,13 +38,18 @@ export interface HomeJournalProps {
  *
  * The garden's duties are read once here. Needs Your Attention draws them, and a duty card in
  * the carousel would take the first of the same read, so both show one count. Take Part's See
- * All and a cycle's Show Its Promises open the garden's open promises over the journal.
+ * All and a cycle's Show Its Promises open the garden's open promises over the journal; they
+ * close when the journal leaves Home or turns to another garden.
  */
 export function HomeJournal({ garden }: HomeJournalProps) {
   const duties = useStewardDuties(garden);
   const takePartOpen = useUIStore((state) => state.takePartSheet !== null);
+  const closeTakePartSheet = useUIStore((state) => state.closeTakePartSheet);
   // The sheet stays mounted until its exit has played.
   const takePartPresent = useExitPresence(takePartOpen, getPwaSheetExitMs);
+  // The store outlives the journal: leaving Home or turning to another garden closes the sheet,
+  // so it never reopens stale.
+  useEffect(() => closeTakePartSheet, [closeTakePartSheet, garden.id]);
   return (
     <div className="flex flex-col pb-4">
       <NeedsYourAttention garden={garden} duties={duties} />
