@@ -5,7 +5,7 @@ slug: /community/gardener-guide/make-a-promise
 description: "Make an offer or request with clear work, evidence and independent confirmation."
 audience: gardener
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-10-25
 feature_status: Live
 goal: "Make an offer or request with clear work, evidence and independent confirmation."
 difficulty: "standard"
@@ -16,12 +16,14 @@ persona_context: "Gardeners offering help, asking for it, or providing evidence 
 source_of_truth:
   - packages/client/src/views/Home/CommitmentsSheet/index.tsx
   - packages/client/src/views/Home/Garden/Compose/ComposeCommitment.tsx
+  - packages/client/src/views/Home/Garden/Compose/ComposeDetails.tsx
   - packages/client/src/views/Home/Garden/Commitment
   - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
   - packages/client/src/views/Home/Garden/Commitment/ConfirmNotYet.tsx
   - packages/shared/src/modules/commitment-pooling/acts.ts
   - packages/shared/src/modules/commitment-pooling/selectors.ts
   - packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts
+  - packages/shared/src/hooks/commitment-pooling/useCommitmentComposerForm.ts
   - packages/shared/src/config/app.ts
   - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
   - packages/contracts/src/lib/CommitmentPooling/TerminalLib.sol
@@ -70,6 +72,8 @@ Make an offer when you can provide help, or a request when you need it. A promis
 
 A promise can name a group of confirmers instead. The person doing the work and everyone on its contributing team are excluded from confirming it, including through a steward fallback.
 
+If nobody eligible can still confirm, for example because the person who should confirm has left the garden, a steward of the garden who is not on the team can confirm it as a fallback. A fallback always records a written reason. Once the promise is kept, it shows who confirmed it, and a fallback also shows why.
+
 **Example:** you offer a seedling-care session, and a neighbor takes it up. You do the session and supply evidence; your neighbor confirms it. If your neighbor requests the session first and you take it up, you still provide the help and your neighbor still confirms it.
 
 
@@ -82,7 +86,8 @@ A promise can name a group of confirmers instead. The person doing the work and 
 
 1. Use **+** in the garden's Promises and choose an offer or request.
 2. Follow the questions about the kind of help, how much, and its details. Garden work names the garden's actions; other help uses proof such as photos, notes, or links.
-3. Read the final review, including who acts next, then choose **Make This Offer**, **Make This Request**, or **Request This Work**, as shown.
+3. In **Who confirms**, read who will confirm the promise. **Let the Green Goods team confirm if nobody local can** starts on, so a promise that nobody in your garden can confirm can still be kept. The team can step in only when nobody local is eligible, and the record names them and their reason. Under **Team**, **Let others help** lets eligible members join and add proof.
+4. Read the final review, including who acts next, then choose **Make This Offer**, **Make This Request**, or **Request This Work**, as shown.
 
 
 <figure className="gg-figure" style={{maxWidth: '480px'}}>

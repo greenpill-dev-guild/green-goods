@@ -2,6 +2,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
+import { FIXTURE_IMAGE_WASTE, FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
 import { DraftCard } from "./DraftCard";
 
 const now = Date.now();
@@ -32,19 +33,19 @@ const draftWithImages = makeDraft({
   firstIncompleteStep: "details",
   currentStep: "details",
   images: [
-    { id: "img-1", file: new File([""], "photo1.jpg"), url: "/placeholder-tree.jpg" },
-    { id: "img-2", file: new File([""], "photo2.jpg"), url: "/placeholder-tree.jpg" },
-    { id: "img-3", file: new File([""], "photo3.jpg"), url: "/placeholder-tree.jpg" },
+    { id: "img-1", file: new File([""], "photo1.jpg"), url: FIXTURE_WORK_MEDIA[0] },
+    { id: "img-2", file: new File([""], "photo2.jpg"), url: FIXTURE_WORK_MEDIA[1] },
+    { id: "img-3", file: new File([""], "photo3.jpg"), url: FIXTURE_WORK_MEDIA[2] },
   ],
-  thumbnailUrl: "/placeholder-tree.jpg",
+  thumbnailUrl: FIXTURE_WORK_MEDIA[0],
 });
 
 const draftReviewStep = makeDraft({
   id: "draft-3",
   firstIncompleteStep: "review",
   currentStep: "review",
-  images: [{ id: "img-1", file: new File([""], "photo1.jpg"), url: "/placeholder-tree.jpg" }],
-  thumbnailUrl: "/placeholder-tree.jpg",
+  images: [{ id: "img-1", file: new File([""], "photo1.jpg"), url: FIXTURE_IMAGE_WASTE }],
+  thumbnailUrl: FIXTURE_IMAGE_WASTE,
   updatedAt: now - 60000,
 });
 

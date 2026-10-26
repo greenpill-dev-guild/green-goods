@@ -11,7 +11,7 @@ import { Confidence, VerificationMethod } from "@green-goods/shared/types/domain
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { HelmetProvider } from "react-helmet-async";
 import { IntlProvider } from "react-intl";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { FocusedShell } from "@/components/Navigation/FocusedSiteHeader";
 import {
   FIXTURE_IMAGE_AGROFORESTRY,
@@ -180,6 +180,34 @@ export default meta;
 type Story = StoryObj<typeof CeremonyView>;
 
 export const Intro: Story = {};
+/**
+ * The page opens on the account this browser last used. Before Continue, the profile names it
+ * and signs the browser out of it, with nothing to sign, in each language.
+ */
+export const IntroConnected: Story = {
+  args: { account: ACCOUNT },
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement, parameters }) => {
+    const messages = MESSAGES[(parameters.locale as Locale | undefined) ?? "en"];
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: messages["public.reporting.account.title"] })
+    );
+    const sheet = within(await within(canvasElement.ownerDocument.body).findByRole("dialog"));
+    await expect(sheet.getByTitle(ACCOUNT)).toBeVisible();
+    await expect(
+      sheet.getByRole("button", { name: messages["public.reporting.account.signOut"] })
+    ).toBeVisible();
+    await expect(
+      sheet.queryByRole("button", { name: messages["public.reporting.leave"] })
+    ).not.toBeInTheDocument();
+  },
+};
+export const IntroConnectedSpanish: Story = { ...IntroConnected, parameters: { locale: "es" } };
+export const IntroConnectedPortuguese: Story = {
+  ...IntroConnected,
+  parameters: { locale: "pt" },
+};
 export const Opening: Story = { args: { stage: "opening" } };
 export const Loading: Story = {
   args: { stage: "loading", purpose: "publish_work", account: ACCOUNT, sessionAccount: ACCOUNT },

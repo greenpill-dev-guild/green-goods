@@ -359,9 +359,15 @@ describe("reporting ceremony page", () => {
     expect(opened()).toHaveLength(2);
   });
 
-  it("leaves no mark when the account is let go before the link was opened", async () => {
+  it("signs the browser out before the link is opened, and the next account proves for itself", async () => {
+    agent.purpose = "link_account";
+    agent.boundAccount = null;
     const first = render();
-    await act(() => first.result.current.changeAccount());
+    await act(async () => expect(await first.result.current.changeAccount()).toBe(true));
+    // Signing out before Continue asks the Agent for nothing and signs nothing.
+    expect(mocks.signOut).toHaveBeenCalledTimes(1);
+    expect(agent.calls).toEqual([]);
+    expect(mocks.signMessage).not.toHaveBeenCalled();
     first.unmount();
     mocks.account = OTHER_ACCOUNT;
     const second = render();
@@ -369,6 +375,17 @@ describe("reporting ceremony page", () => {
     // Nothing continued by itself: the start screen, with its warning for in-app browsers, stays.
     expect(second.result.current.stage).toBe("intro");
     expect(opened()).toHaveLength(0);
+
+    await act(() => second.result.current.start());
+    await act(() => second.result.current.prove());
+    const proof = (await agent.client().challenge("ch-1")).proof;
+    expect(mocks.signMessage).toHaveBeenCalledExactlyOnceWith({
+      message: buildReportingProofMessage(proof, OTHER_ACCOUNT),
+    });
+    expect(second.result.current).toMatchObject({
+      stage: "pairing",
+      linkedAccount: OTHER_ACCOUNT,
+    });
   });
 
   it("returns to its account step when the account created there is new to this device", async () => {
@@ -458,6 +475,23 @@ describe("reporting ceremony page", () => {
     expect(result.current.error).toBe("wrong_account");
   });
 
+  it("never lets the account the browser switched to publish what another account proved", async () => {
+    const calls = wallet("send");
+    const first = render();
+    await reachReview(first.result);
+    await act(() => first.result.current.changeAccount());
+    // Another account signing in remounts every screen; the page resumes the session it proved.
+    first.unmount();
+    mocks.account = OTHER_ACCOUNT;
+    const { result } = render();
+    await waitFor(() => expect(result.current.stage).toBe("review"));
+    expect(result.current.sessionAccount).toBe(ACCOUNT);
+    await act(() => result.current.publish());
+    expect(result.current.error).toBe("wrong_account");
+    expect(agent.requests("POST", "/operations/op-1/attempts")).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
   it("sends exactly the frozen attestation, reports its hash once, and follows it to publication", async () => {
     const calls = wallet("send");
     const { result } = render();
@@ -538,7 +572,7 @@ describe("reporting ceremony page", () => {
     expect(calls).toEqual([]);
   });
 
-  it("replays an outcome it could not deliver, with the same key, after a reload", async () => {
+  it("replays an outcome it could not deliver unchanged after the browser switches accounts, and sends it for no one else", async () => {
     wallet("send");
     agent.dropOutcomes = 2;
     const first = render();
@@ -546,8 +580,13 @@ describe("reporting ceremony page", () => {
     await act(() => first.result.current.publish());
     expect(first.result.current.stage).toBe("submitted");
     expect(agent.operation.state).toBe("prepared");
+    // Signing the browser out lets go of its account, never of the send.
+    await act(() => first.result.current.changeAccount());
+    expect(first.result.current.stage).toBe("submitted");
     first.unmount();
 
+    // Another account signing in remounts the page, which reports the send as it was.
+    mocks.account = OTHER_ACCOUNT;
     const { result } = render();
     await waitFor(() => expect(result.current.stage).toBe("submitted"));
     const outcomes = agent.requests("POST", "/operations/op-1/outcome");
@@ -558,6 +597,14 @@ describe("reporting ceremony page", () => {
       outcome: { kind: "broadcast", transactionHash: TX_HASH },
     });
     expect(agent.operation.state).toBe("reconciling");
+    // Its author is the envelope's, frozen by the Agent and settled by the chain. The page's part
+    // is to report the send as it was, never send it again for the account now connected, and
+    // follow it until it settles.
+    await act(() => result.current.publish());
+    expect(result.current.error).toBe("wrong_account");
+    agent.operation = { ...agent.operation, state: "published", transactionHash: TX_HASH };
+    await waitFor(() => expect(result.current.stage).toBe("published"));
+    expect(agent.requests("POST", "/operations/op-1/attempts")).toHaveLength(1);
   });
 
   it("resumes its own session after a refresh without opening a new challenge", async () => {
@@ -631,6 +678,26 @@ describe("reporting ceremony page", () => {
     expect(
       agent.requests("POST", "/execution-grants/g-1/activation/outcome").at(-1)?.body
     ).toMatchObject({ idempotencyKey: "at-1:uncertain", outcome: { userOperationHash: TX_HASH } });
+  });
+
+  it("never lets the account the browser switched to allow a permission another account proved", async () => {
+    wallet("send");
+    const first = render();
+    await reachGrant(first.result);
+    // The first report is prepared for the account that proved; nothing is signed yet.
+    await act(() => first.result.current.installGrant());
+    await act(() => first.result.current.changeAccount());
+    // Another account signing in remounts every screen; the page resumes what was prepared.
+    first.unmount();
+    mocks.account = OTHER_ACCOUNT;
+    const { result } = render();
+    await waitFor(() => expect(result.current.resource?.title).toBe("Planted seedlings"));
+    expect(result.current.stage).toBe("grant_ready");
+    await act(() => result.current.installGrant());
+    expect(result.current.error).toBe("wrong_account");
+    // Refused before the activation is reserved or anyone is asked to sign.
+    expect(agent.requests("POST", "/execution-grants/g-1/activation/attempts")).toEqual([]);
+    expect(mocks.sendActivation).not.toHaveBeenCalled();
   });
 
   it("reports an owner decline before delegate signing and closes the grant", async () => {

@@ -5,7 +5,7 @@
 - Owner: Claude (a session the orchestrator starts; questions go to the orchestrator)
 - Branch: `feature/pwa-membership-owner` (step 1, PR #1274); `feature/pwa-active-garden` (step 2,
   stacked on step 1)
-- Status: in progress. Merged: steps 1 (#1274), 2 (#1275), 5 (#1278), 14 (#1288); in review: step 4 (#1291). Steps 5 and 14's RED/GREEN records and receipts are in their PR bodies; steps 1 and 2's are below.
+- Status: in progress. Merged: steps 1 (#1274), 2 (#1275), 4 (#1291), 5 (#1278), 14 (#1288); in progress in their sessions: step 18 (one submission flow) and the join-request device record (decision 2); to come: step 17. Steps 4, 5 and 14's RED/GREEN records and receipts are in their PR bodies; steps 1 and 2's are below.
 
 ## Scope (first slice)
 

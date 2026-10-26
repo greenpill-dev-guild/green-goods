@@ -1,6 +1,6 @@
 # ship
 
-Publication without ceremony. Ship proves the changed behavior locally, runs the budgeted push gate, and lets GitHub CI own broad regression coverage; the complete local gate is reserved for releases, critical surfaces, and explicit full-local requests.
+Publication without ceremony. Ship proves the changed behavior locally, runs the budgeted push gate, and lets GitHub CI own broad regression coverage; the complete local gate is reserved for releases and explicit full-local requests, while critical surfaces run the selector's mandatory override.
 
 **When to use it:** When your change is ready to commit, push, or open as a pull request.
 

@@ -15,6 +15,7 @@ import {
 } from "../../../../../shared/.storybook/fixtures";
 import { ProfileAvatarEditor } from "./ProfileAvatarEditor";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
+import { stagedWorkPhoto } from "../../../../../shared/.storybook/workPhotoFixtures";
 
 const ACCOUNT = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e" as Address;
 const FALLBACK_AVATAR = FIXTURE_IMAGE_BANNER;
@@ -22,16 +23,8 @@ const FALLBACK_AVATAR = FIXTURE_IMAGE_BANNER;
 type Editor = ReturnType<typeof useProfileAvatarEditor>;
 type Resolved = ReturnType<typeof useResolvedProfileAvatar>;
 
-// The draft photo reuses a shared Storybook fixture image, so no raw colors live in this story.
-const DRAFT_FILE = new File(
-  [
-    decodeURIComponent(
-      FIXTURE_IMAGE_AGROFORESTRY.slice(FIXTURE_IMAGE_AGROFORESTRY.indexOf(",") + 1)
-    ),
-  ],
-  "garden-portrait.svg",
-  { type: "image/svg+xml" }
-);
+// The draft is one of the shared Storybook fixture photos, as a JPEG file on the phone.
+const DRAFT_FILE = stagedWorkPhoto("garden-portrait.jpg", 0, FIXTURE_IMAGE_AGROFORESTRY);
 
 function editor(overrides: Partial<Editor> = {}): Editor {
   return {
