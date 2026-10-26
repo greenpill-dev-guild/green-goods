@@ -1,5 +1,16 @@
 # PWA Interface Simplification Plan
 
+**2026-10-26 closeout:** every implementation step is on develop. The second slice merged
+overnight: step 10 (#1315), 12 (#1312), 13 (#1321), 15 (#1307, hardened in #1326), 17 (#1318,
+#1327, and #1334 for a resumed take-up draft), 18 (#1311, and #1332 for a duplicate upload), 19
+(#1296) and 21 (#1316, #1322). Step 20 ran as two passes, with receipts in `handoffs/`: the
+user-flow pass found 21 findings in mock-auth localhost and Storybook, seven fixed the same
+morning (#1331 for findings 1 and 8 with the maintainer's defaults, #1333 for 2, 3 and 11, #1332
+for 15, #1334 for 19); the Codex regression pass found a duplicate-submission path (fixed in
+#1332) and a failed open-ask read shown as none (fixed in #1334). The authenticated class was
+never reachable from a session, so acceptance stays pending under PRD-1262. The maintainer landed
+the last PRs with their remaining review points answered and recorded instead of fixed.
+
 **2026-10-25 wave A:** steps 1 and 2 merged (#1274, #1275), with PRD-1311's fix. The maintainer
 asked for every step that can run in parallel to run in parallel, so seven sessions build steps 3,
 4, 5 and 6, 11, 14 and 16, 7 and 9, and 8 and 19 at once, each on its own files; step 3 owns the
@@ -48,8 +59,8 @@ record.
 
 **Feature Slug:** `pwa-interface-simplification`
 **Stage:** active
-**Status:** IN DELIVERY (execution authorized 24 October 2026; the first slice is in progress)
-**Created / Last Updated:** 2026-10-06 / 2026-10-25
+**Status:** `CLOSED — shipped to develop in 36 PRs between 25 and 26 October 2026, the last #1325 and #1331; step 20's authenticated proof is pending under PRD-1262`
+**Created / Last Updated:** 2026-10-06 / 2026-10-26
 **Linear Issue:** RESR-93
 **Linear Project:** Green Goods v2.1.0 QA & Release
 **Linear Source:** source:plans
@@ -161,3 +172,35 @@ to this planning record; no implementation lane is passed by these document chec
 
 Validation results are recorded in [eval.md](eval.md#hub-creation-check) and
 [eval.md](eval.md#scope-lock-check-2026-10-18).
+
+## Closeout (2026-10-26)
+
+Closed as `closed`. Shipped to develop in 36 PRs from #1271 (25 October) to #1325 and #1331
+(26 October, last merge fb4905f36). The implementation lanes were never certified as `passed`:
+their receipts live in the PR bodies rather than the lane handoffs, and step 20's
+authenticated-class proof was never reachable from a session, so the hub cannot close as
+`completed`.
+
+Still open:
+- Authenticated Brave proof for the queued take-up chain, a real Upload Work and its failed-send
+  retry, the Check Requests signed flow, a queued steward decision, the installed app offline and
+  passkey signing → PRD-1262 (release acceptance).
+- QA pass 1 findings not fixed: 4 (the draft prompt's "stays in Your Work" for another garden's
+  draft), 6 (a steward's own work in the review queue, pre-existing), 7 (a pending take-up request
+  shown only in Needs Your Attention), 9 (the Highlights work card repeats Recent Activity's first
+  row), 10 (decision 32's season card in Insights), 12 (sheet heights and Endowment's description),
+  13 (the no-garden Home's disabled bell), 14 ("New submission" on months-old work), 16 (the
+  onramp row truncates the garden's name in PT at 360), 17 (ES and PT "take up" reads as
+  acceptance), 18 (Endowment for evaluators, not owners), 20 (the submission bar counts every
+  garden's uploads) → the UX audit the maintainer starts from the handover prompt, then one Linear
+  issue with a checklist.
+- Review points recorded at merge rather than fixed: Home polish from #1333 and the read-settlement
+  points from #1312 → PRD-1296; the take-up draft's points from #1334 and the group page's
+  available count after due filtering → PRD-1347; the promises screen's open-ask warning → PRD-1345;
+  the due clock's chain-time seed → PRD-1347 (the due gate on Ask Again and the unknown clock on a
+  missing cycle land in #1336).
+- A failed upload's toast shows the job's raw error instead of "Open Your Work to try again" →
+  PRD-1296.
+- Join requests have no signature-free source, so the bell has no join-request row and Needs Your
+  Attention three rows → a scope question for the maintainer, recorded on PRD-1346.
+- The Cosmo-Local voucher UI's deferred points → PRD-1297.

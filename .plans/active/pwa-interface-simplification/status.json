@@ -7,24 +7,23 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "closed",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-25T21:34:06.774Z"
+    "updated_at": "2026-10-26T10:58:34.321Z"
   },
   "links": {
     "brief": "brief.md",
     "spec": "spec.md",
     "plan": "plan.todo.md",
-    "eval": "eval.md",
-    "lab": "artifacts/README.md"
+    "eval": "eval.md"
   },
   "linear": {
     "parentIssue": "RESR-93",
     "project": "Green Goods v2.1.0 QA & Release",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-10-16T04:18:44Z",
+    "lastSyncedAt": "2026-10-26T10:58:34.321Z",
     "lanes": {},
     "laneSyncMode": "parent_only",
     "stateSyncMode": "preserve_existing",
@@ -52,6 +51,7 @@
     "depends_on_features": []
   },
   "notes": [
+    "2026-10-26 (closeout): every implementation step is on develop; the second slice merged overnight (#1307, #1311, #1312, #1315, #1316, #1318, #1321, #1322, #1326, #1327) and the QA fixes this morning (#1331 to #1334). Step 20 ran as two passes; the authenticated class is pending under PRD-1262. The maintainer landed the last PRs with their remaining review points recorded rather than fixed. The hub closes as closed.",
     "2026-10-25 (overnight, 13:20Z): merged step 11 (#1290), step 14 (#1288) and the shell, step 3 (#1289, with 36 labeled mock-auth captures and the cockpit's before-and-after pairs; PRD-1278 In Review with its closeout). Open: step 4 (#1291), steps 7 and 9 (#1292), step 8 (#1295), step 19 (#1296), all rebasing onto develop. Proposed to the maintainer as session cards: step 15 (the bell) and the join-request device record, since automated turns may not start sessions. Follow-ups recorded on #1289 and #1288 for steps 10 and 15. Develop's token check was repaired (#1272) and a load-sensitive validation test given a 45s cap (#1282).",
     "2026-10-25 (overnight): the maintainer asked for every phase to complete tonight, reviewed and merged into develop, with a standing OK to dismiss CodeRabbit's stale change requests once threads are settled and the current-head CI Gate is green. Merged so far: steps 5 (#1278), 6 (#1280) and 16 (#1279), guides DL-127 to DL-131 (#1277). Steps 3, 4, 7 and 9, 8 and 19, 11 and 14 are in their push gates or waiting on the shell and step 11. Join requests cannot be counted or listed without a signed proof (the agent claims a nonce per read), so Needs Your Attention ships three rows and the bell five event kinds; a signature-free source is a scope question for the maintainer. Steward rows and events follow each act's existing permission check.",
     "2026-10-25 (wave A): steps 1 and 2 merged (#1274, #1275; PRD-1311 In Review with its closeout). The maintainer asked for every independent step to run in parallel, so seven sessions build steps 3, 4, 5 and 6, 11, 14 and 16, 7 and 9, and 8 and 19 at once, each on its own files; sessions leave .plans to the orchestrator and put their proof in their PR bodies. The remaining design rules are DL-127 to DL-131 (#1277). Next wave: steps 10 (after the About review), 15, 18, 13, 17 and 12.",
@@ -147,9 +147,9 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": false,
-      "manual_blocked": true,
+      "manual_blocked": false,
       "branch": null,
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
@@ -158,9 +158,9 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": false,
-      "manual_blocked": true,
+      "manual_blocked": false,
       "branch": null,
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
@@ -192,14 +192,6 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
-    },
-    {
-      "timestamp": "2026-10-09T10:00:46.226Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "linear_sync_confirmed",
-      "branch": null,
-      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     },
     {
       "timestamp": "2026-10-09T19:23:18Z",
@@ -400,6 +392,38 @@
       "status": "in_progress",
       "branch": null,
       "note": "Step 4 (#1291) merged; step 18 and the join-request device record in progress in their sessions; step 17 to come. The push gate's deadline is suspended on a saturated host since #1300."
+    },
+    {
+      "timestamp": "2026-10-26T10:58:32.927Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": null,
+      "note": "User-flow pass on develop 1931f0acb (batches on fccccadfe, 907664c07, ba1875933): 21 findings in mock-auth localhost and Storybook, 7 fixed the same morning (#1331, #1332, #1333, #1334); authenticated-class items pending under PRD-1262."
+    },
+    {
+      "timestamp": "2026-10-26T10:58:33.618Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": null,
+      "note": "Static regression review of the 22 merges at 1931f0acb: a duplicate-submission path (fixed in #1332) and a failed open-ask read shown as none (fixed in #1334); focused tests could not run in that worktree."
+    },
+    {
+      "timestamp": "2026-10-26T10:58:34.278Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closed as closed: every step shipped to develop in 36 PRs (#1271 to #1331, last merge fb4905f36); step 20 ran as two passes with receipts in handoffs/; authenticated-class proof pending under PRD-1262; open findings and recorded review points listed in plan.todo.md closeout."
+    },
+    {
+      "timestamp": "2026-10-26T10:58:34.321Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ]
 }
