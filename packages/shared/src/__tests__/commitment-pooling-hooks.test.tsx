@@ -140,8 +140,10 @@ vi.mock("../hooks/blockchain/useTransactionSender", () => ({
 
 vi.mock("../utils/blockchain/contracts", () => ({
   CommitmentPoolingModuleABI: [],
-  CommitmentServiceOffersABI: [{ type: "function", name: "acceptServiceClaim" }],
   getNetworkContracts: () => ({ commitmentPoolingModule: mocks.moduleAddress }),
+}));
+vi.mock("../utils/blockchain/contract-abis/commitment-service-offers", () => ({
+  CommitmentServiceOffersABI: [{ type: "function", name: "acceptServiceClaim" }],
 }));
 
 vi.mock("../utils/errors/contract-errors", () => ({

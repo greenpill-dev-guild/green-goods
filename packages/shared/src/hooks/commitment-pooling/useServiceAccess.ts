@@ -3,7 +3,7 @@ import { useMemo, useRef } from "react";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { unavailableServiceAccess } from "../../modules/commitment-pooling/data-service-access";
 import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
-import { createCommitmentPoolingReadRepository } from "../../modules/commitment-pooling/read-repository";
+import { createServiceAccessReadRepository } from "../../modules/commitment-pooling/service-access-read-repository";
 import type {
   ServiceAccessAction,
   ServiceAccessKey,
@@ -17,7 +17,7 @@ import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 
 const EMPTY_ADDRESS = `0x${"0".repeat(40)}` as Address;
-const serviceReads = createCommitmentPoolingReadRepository(greenGoodsIndexer);
+const serviceReads = createServiceAccessReadRepository(greenGoodsIndexer);
 
 function rehearsalEnabled(key: ServiceAccessKey): boolean {
   return (

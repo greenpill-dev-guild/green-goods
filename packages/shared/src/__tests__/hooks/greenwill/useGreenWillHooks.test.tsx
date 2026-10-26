@@ -99,8 +99,10 @@ vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   }),
 }));
 
-vi.mock("../../../utils/blockchain/contracts", () => ({
+vi.mock("../../../utils/blockchain/contract-abis/green-will", () => ({
   GreenWillABI: [{ type: "function", name: "claimBadge" }],
+}));
+vi.mock("../../../utils/blockchain/contracts", () => ({
   getNetworkContracts: () => ({
     greenWill: TEST_GREENWILL,
   }),

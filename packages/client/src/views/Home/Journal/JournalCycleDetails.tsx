@@ -1,9 +1,15 @@
 // Command Surface: a season's or campaign's details over Home (DL-127).
 import type { CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
-import { CycleDetailsSheet } from "@/components/Features/Commitments";
+// The details sheet, and the app's sheet frame with it, load with the first details opened rather
+// than with Home.
+const CycleDetailsSheet = lazy(() =>
+  import("@/components/Features/Commitments/CycleDetailsSheet").then(({ CycleDetailsSheet }) => ({
+    default: CycleDetailsSheet,
+  }))
+);
 
 export interface JournalCycleDetailsProps {
   cycle: CommitmentCycleRecord | null;
@@ -24,6 +30,9 @@ type PromisesFor = { cycleId: string; cycleType: CommitmentCycleRecord["cycleTyp
 export function JournalCycleDetails({ cycle, isOpen, onClose }: JournalCycleDetailsProps) {
   const openTakePartSheet = useUIStore((state) => state.openTakePartSheet);
   const [promisesFor, setPromisesFor] = useState<PromisesFor | null>(null);
+  // Mounted from the first opening on, so every later opening and closing plays as before.
+  const [requested, setRequested] = useState(isOpen);
+  if (isOpen && !requested) setRequested(true);
 
   // Runs after the commit that closed the details, whose opener focus was restored before it.
   useEffect(() => {
@@ -32,15 +41,18 @@ export function JournalCycleDetails({ cycle, isOpen, onClose }: JournalCycleDeta
     openTakePartSheet(promisesFor);
   }, [isOpen, promisesFor, openTakePartSheet]);
 
+  if (!requested) return null;
   return (
-    <CycleDetailsSheet
-      cycle={cycle}
-      isOpen={isOpen}
-      onClose={onClose}
-      onShowPromises={(cycleId) => {
-        setPromisesFor({ cycleId: cycleId.toString(), cycleType: cycle?.cycleType ?? null });
-        onClose();
-      }}
-    />
+    <Suspense fallback={null}>
+      <CycleDetailsSheet
+        cycle={cycle}
+        isOpen={isOpen}
+        onClose={onClose}
+        onShowPromises={(cycleId) => {
+          setPromisesFor({ cycleId: cycleId.toString(), cycleType: cycle?.cycleType ?? null });
+          onClose();
+        }}
+      />
+    </Suspense>
   );
 }

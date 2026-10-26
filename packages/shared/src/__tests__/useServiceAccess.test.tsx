@@ -23,8 +23,8 @@ vi.mock("../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: key.buyer, authMode: "wallet", passkeyAccountProfile: null }),
 }));
 vi.mock("../hooks/blockchain/useTransactionSender", () => ({ useTransactionSender: () => null }));
-vi.mock("../modules/commitment-pooling/read-repository", () => ({
-  createCommitmentPoolingReadRepository: () => ({ getServiceAccess: mocks.read }),
+vi.mock("../modules/commitment-pooling/service-access-read-repository", () => ({
+  createServiceAccessReadRepository: () => ({ getServiceAccess: mocks.read }),
 }));
 vi.mock("../utils/errors/mutation-error-handler", () => ({
   createMutationErrorHandler: () => mocks.error,

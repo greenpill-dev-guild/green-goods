@@ -158,10 +158,10 @@ export {
   GreenGoodsENSABI,
   getMarketplaceReadiness,
   getNetworkContracts,
-  HatsABI,
   MARKETPLACE_READINESS_REQUIRED_FIELDS,
-  SettlementModuleABI,
 } from "./blockchain/contracts";
+export { HatsABI } from "./blockchain/contract-abis/hats";
+export { SettlementModuleABI } from "./blockchain/contract-abis/settlement-module";
 export type {
   ResolveEnsAddressOptions,
   ResolveEnsOptions,

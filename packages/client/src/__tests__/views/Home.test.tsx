@@ -358,10 +358,11 @@ describe("the one-time chooser", () => {
     ]);
   });
 
-  it("opens once as Choose a Garden, and dismissing it leaves a quiet prompt without a write", () => {
+  it("opens once as Choose a Garden, and dismissing it leaves a quiet prompt without a write", async () => {
     const view = renderHome();
 
-    const chooser = screen.getByRole("dialog", { name: "Choose a Garden" });
+    // The switcher's code loads with its first opening.
+    const chooser = await screen.findByRole("dialog", { name: "Choose a Garden" });
     fireEvent.click(within(chooser).getByTestId("app-sheet-close"));
     finishSheetMotion();
 
@@ -378,11 +379,11 @@ describe("the one-time chooser", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("writes only the garden the member picks", () => {
+  it("writes only the garden the member picks", async () => {
     renderHome();
 
     fireEvent.click(
-      within(screen.getByRole("dialog", { name: "Choose a Garden" })).getByRole("button", {
+      within(await screen.findByRole("dialog", { name: "Choose a Garden" })).getByRole("button", {
         name: /Aiyeloja Family Garden/,
       })
     );
@@ -405,14 +406,15 @@ describe("the switcher", () => {
     state.awaiting = new Set([VIDA.id.toLowerCase()]);
   });
 
+  // The switcher's code loads with its first opening.
   const openSwitcher = () => {
     fireEvent.click(screen.getByRole("button", { name: /TAS HUB/ }));
-    return screen.getByRole("dialog", { name: "Your Gardens" });
+    return screen.findByRole("dialog", { name: "Your Gardens" });
   };
 
-  it("lists the member's gardens with their place and role, the active one marked, and Explore last", () => {
+  it("lists the member's gardens with their place and role, the active one marked, and Explore last", async () => {
     renderHome();
-    const switcher = openSwitcher();
+    const switcher = await openSwitcher();
 
     const rows = within(switcher).getAllByRole("button", { name: /./ }).slice(1);
     expect(rows.map((row) => row.textContent)).toEqual([
@@ -425,24 +427,26 @@ describe("the switcher", () => {
     expect(rows[1]).not.toHaveAttribute("aria-current");
   });
 
-  it("opens with one garden too", () => {
+  it("opens with one garden too", async () => {
     setActive("ready", [[TAS, ["gardener"]]], TAS.id);
     renderHome();
 
-    expect(openSwitcher()).toBeInTheDocument();
+    expect(await openSwitcher()).toBeInTheDocument();
   });
 
-  it("switches on a pick and stays on Home", () => {
+  it("switches on a pick and stays on Home", async () => {
     renderHome();
-    fireEvent.click(within(openSwitcher()).getByRole("button", { name: /Aiyeloja Family Garden/ }));
+    fireEvent.click(
+      within(await openSwitcher()).getByRole("button", { name: /Aiyeloja Family Garden/ })
+    );
 
     expect(selectGarden).toHaveBeenCalledExactlyOnceWith(AIYELOJA.id);
     expect(location).toBe("/home");
   });
 
-  it("visits a garden awaiting review without switching to it", () => {
+  it("visits a garden awaiting review without switching to it", async () => {
     renderHome();
-    fireEvent.click(within(openSwitcher()).getByRole("button", { name: /Vida Verde/ }));
+    fireEvent.click(within(await openSwitcher()).getByRole("button", { name: /Vida Verde/ }));
 
     expect(location).toBe(`/home/${VIDA.id}`);
     // Home names itself as where the visit came from, so the garden's Back steps back here.
@@ -450,9 +454,9 @@ describe("the switcher", () => {
     expect(selectGarden).not.toHaveBeenCalled();
   });
 
-  it("opens Explore from its last row", () => {
+  it("opens Explore from its last row", async () => {
     renderHome();
-    fireEvent.click(within(openSwitcher()).getByRole("button", { name: /Explore Gardens/ }));
+    fireEvent.click(within(await openSwitcher()).getByRole("button", { name: /Explore Gardens/ }));
 
     expect(location).toBe("/home/explore");
     expect(selectGarden).not.toHaveBeenCalled();
