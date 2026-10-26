@@ -2,26 +2,40 @@ import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
-import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { RiErrorWarningLine, RiLoader4Line, RiMapPin2Fill } from "@remixicon/react";
-import type React from "react";
+import { type FC, type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
-import { Outlet, useLocation, useParams } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/Errors/AppErrorBoundary";
 import { TopNav } from "@/components/Navigation";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { GardenPage } from "./GardenPage";
 
-/** Where a visit returns to: the list it came from (Explore), else Home. */
+/**
+ * What a page that opens a garden says about itself: Explore and Home name themselves, so the
+ * garden's Back steps back to them. A visit that names neither returns Home.
+ */
 export interface GardenVisitState {
   returnTo?: string;
 }
 
 const RETURN_ROUTES: ReadonlySet<string> = new Set([APP_ROUTES.home, APP_ROUTES.explore]);
 
-export const Garden: React.FC = () => {
+/**
+ * What this visit remembers from the entry that opened it: which garden, where Back returns
+ * to, the entry's key, and whether the entry before it is where Back returns to (that page
+ * named itself and pushed this entry, so Back can step back to it).
+ */
+interface Visit {
+  gardenId: string | undefined;
+  returnTo: string;
+  key: string;
+  cameFromReturnTarget: boolean;
+}
+
+export const Garden: FC = () => {
   const intl = useIntl();
 
   // Ensure proper re-rendering on browser navigation
@@ -30,12 +44,37 @@ export const Garden: React.FC = () => {
   // Reset scroll position before paint — prevents flash from stale scroll state
   useScrollToTop();
 
-  const navigate = useNavigateToTop();
+  const navigate = useNavigate();
+  const navigationType = useNavigationType();
   const { id: gardenIdParam } = useParams<{ id: string }>();
-  const { pathname, state } = useLocation();
-  // A visit from Explore goes back there; any other visit, a link included, goes Home.
-  const returnTo = (state as GardenVisitState | null)?.returnTo;
-  const back = () => navigate(returnTo && RETURN_ROUTES.has(returnTo) ? returnTo : APP_ROUTES.home);
+  const { pathname, state, key } = useLocation();
+
+  // A visit from Explore goes back there; any other visit, a link or Profile's list included,
+  // goes Home. The target is kept from the entry that opened the garden: its child pages (a
+  // work, a promise) push `/home/:id` again on their own Back, without Explore's state, and a
+  // garden that stays mounted while its id changes is a new visit.
+  const capture = (): Visit => {
+    const named = (state as GardenVisitState | null)?.returnTo;
+    const origin = named && RETURN_ROUTES.has(named) ? named : undefined;
+    return {
+      gardenId: gardenIdParam,
+      returnTo: origin ?? APP_ROUTES.home,
+      key,
+      cameFromReturnTarget: navigationType === "PUSH" && origin !== undefined,
+    };
+  };
+  const [visit, setVisit] = useState(capture);
+  if (visit.gardenId !== gardenIdParam) setVisit(capture());
+
+  // Back steps back to its target when that is the entry before this one, and otherwise
+  // replaces this entry with it, so pressing Back never grows the history.
+  const back = () => {
+    if (visit.key === key && visit.cameFromReturnTarget) {
+      void navigate(-1);
+      return;
+    }
+    void navigate(visit.returnTo, { replace: true, viewTransition: true });
+  };
   const {
     data: allGardens = [],
     isLoading: gardensInitialLoading,
@@ -48,7 +87,7 @@ export const Garden: React.FC = () => {
 
   if (!garden) {
     // With no garden to draw, the page is the state block under the back bar.
-    let pageState: React.ReactNode;
+    let pageState: ReactNode;
     if (gardensInitialLoading) {
       pageState = (
         <EmptyState
@@ -111,7 +150,8 @@ export const Garden: React.FC = () => {
     // A garden's page hides the bottom bar, so a failure inside it is the screen state with Back.
     // It stays mounted across its child pages, so the path tells the boundary when to let go.
     <AppErrorBoundary view="screen" name="GardenErrorBoundary" resetKey={pathname}>
-      <GardenPage garden={garden} layout="route" onBack={back} showHeader={!isChildPage}>
+      {/* Keyed by the garden, so another garden's page starts afresh: its open tab included. */}
+      <GardenPage key={garden.id} garden={garden} onBack={back} showHeader={!isChildPage}>
         <Outlet context={{ gardenId: garden.id }} />
       </GardenPage>
     </AppErrorBoundary>
