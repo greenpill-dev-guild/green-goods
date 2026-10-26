@@ -7,6 +7,7 @@
  * @vitest-environment happy-dom
  */
 
+import { onlineManager } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTakeUpChoices } from "../../../hooks/commitment-pooling/useTakeUpChoices";
@@ -395,6 +396,21 @@ describe("useGardenJournal", () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.choices).toEqual([]);
       expect(result.current.asks).toEqual([]);
+    });
+
+    // TanStack reports a first read that waits for a connection neither loading nor failed, so
+    // without its own word Start read it as no asks at all (Codex on #1334).
+    it("says the asks are unknown, not none, while their first read waits for a connection", async () => {
+      onlineManager.setOnline(false);
+      try {
+        const { result } = choices();
+
+        await waitFor(() => expect(result.current.isPaused).toBe(true));
+        expect(result.current).toMatchObject({ isLoading: false, isError: false, asks: [] });
+        expect(mocks.getCommitmentPools).not.toHaveBeenCalled();
+      } finally {
+        onlineManager.setOnline(true);
+      }
     });
   });
 });

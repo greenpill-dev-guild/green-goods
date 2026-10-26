@@ -9,6 +9,7 @@ type CycleRow = { cycleId: bigint; endTime: bigint | null };
 const mocks = vi.hoisted(() => ({
   cycles: undefined as CycleRow[] | undefined,
   isError: false,
+  fetchStatus: "idle" as "idle" | "fetching" | "paused",
   /** Whether each render asked for the cycles at all. */
   enabled: [] as boolean[],
   refetch: vi.fn(),
@@ -17,7 +18,12 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitmentCycles: (_input: unknown, options?: { enabled?: boolean }) => {
     mocks.enabled.push(options?.enabled ?? true);
-    return { data: mocks.cycles, isError: mocks.isError, refetch: mocks.refetch };
+    return {
+      data: mocks.cycles,
+      isError: mocks.isError,
+      fetchStatus: mocks.fetchStatus,
+      refetch: mocks.refetch,
+    };
   },
 }));
 
@@ -37,6 +43,7 @@ const render = (commitments: readonly Clocked[]) =>
 beforeEach(() => {
   mocks.cycles = undefined;
   mocks.isError = false;
+  mocks.fetchStatus = "idle";
   mocks.enabled = [];
   mocks.refetch.mockReset();
 });
@@ -89,5 +96,14 @@ describe("useDueClock", () => {
 
     expect(result.current.known).toBe(false);
     expect(result.current.isError).toBe(true);
+  });
+
+  // Offline with nothing saved, the read is neither loading nor failed: without its own word a
+  // surface waits on it for as long as the phone is offline.
+  it("says the cycles' first read waits for a connection, unknown but not failed", () => {
+    mocks.fetchStatus = "paused";
+    const { result } = render([promise()]);
+
+    expect(result.current).toMatchObject({ known: false, isError: false, isPaused: true });
   });
 });

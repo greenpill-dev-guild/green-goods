@@ -172,7 +172,8 @@ export function useWorkSubmissionFlowController({
       tags,
       location: roundWorkLocation(formLocation),
       currentStep: activeTab.toLowerCase() as "intro" | "media" | "details" | "review",
-      linkIntent: draftLink ?? (linkCleared ? null : undefined),
+      // Taking the promise off wins over a link still in the address; else the draft's stands.
+      linkIntent: linkCleared ? null : (draftLink ?? undefined),
     },
     images,
     { enabled: !legacyRecovery && !isResumingFromUrl }
