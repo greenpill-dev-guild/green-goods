@@ -249,6 +249,23 @@ hub by swapping demo copy at capture time), with its own `demo/README.md`.
   persona lines follow `packages/shared/src/ontology/green-goods-ontology.json`.
 - **Checks.** Both pages render as one A4 landscape page each with a clean probe; the probe also
   reports a block whose content overflows its box, since print clips it silently.
+- **Revenue, 26 October.** Afo's review of the canvas asked that the endowment share be shown as
+  a revenue stream instead of "never a cut of a garden's funds or endowment capital". Read-only
+  research first: `Yield.sol` splits each garden's endowment earnings 48.65% to the cookie jar,
+  48.65% to certificate fractions and 2.7% to a Juicebox project by default, settable per garden
+  by its steward or the protocol owner; the steward and funder guides already say earnings can go
+  to the protocol; the docs' Protocol Economics Explorer models garden, report, cookie jar and
+  certificate fees, a 12 to 20% share of vault yield, grants, licensing and protocol-owned
+  principal as scenario presets; the Green Goods OS research priced support and onboarding and
+  kept protocol fees out of its forecast. One on-chain fact bounded the wording: on the deployed
+  Arbitrum splitter `juiceboxProjectId` is 0 and the terminal unset (read 26 October), so the
+  2.7% leg falls back to the garden's own treasury today. Afo's decisions: show fees for service,
+  the endowment share at the live 2.7% default ("routing to Green Goods is being switched on"),
+  planned report and certificate fees, and grants labeled as today's income; replace the
+  "never a cut" line with "Never a supporter's deposit, never a garden's shared fund"; and mirror
+  it on slide 14 and its note, the claims list, brief pages 1, 5 and 6 and the architecture's
+  endowment box. The same pass fixed "the first garden" (the pilot garden), the places' stages,
+  the Hypercerts Certified name, the architecture's "four surfaces" and the endowment leg count.
 
 ## The final polish · 25 October 2026
 
@@ -408,6 +425,11 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
     holds an open public data catalogue and an API dataset ranking that were not available here.
     The canvas and architecture cite the sets the pitch uses (the garden record, World Bank WDI,
     Remittance Prices Worldwide, ACS and ONS); map them to the event's catalogue once it is to hand.
+13. **Endowment share routing.** The materials say the protocol's share of endowment earnings is
+    "being switched on". The deployed splitter routes that leg to a Juicebox project when one is
+    configured and otherwise to the garden's treasury (`_routeToJuicebox` in `Yield.sol`), so
+    switching it on means configuring a Juicebox project or changing the fallback. A product
+    decision and a contracts change, outside this pitch work.
 10. **Member-proof timestamp.** The claim ledger's C89 cites 01:17:19 UTC on 24 October; the proof
     record says its tests completed at 01:08:44 UTC and it was written at 02:09:22 UTC. The ledger
     line is the ledger owner's to reconcile; the deck states no time of day.

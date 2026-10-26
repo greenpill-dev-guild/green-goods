@@ -69,7 +69,7 @@ Four mechanisms turn support into lasting capacity. The endowment: supporters de
 
 ## 14. Business model · 0:30
 
-This is our revenue model. Funders pay us to help their money reach more local initiatives. A funder sends money to the garden for the work, and pays Green Goods a separate fee for setup, support and reporting they can act on. We price by projects and workload, never as a cut of a garden's funds or endowment capital. Individual supporters never need a subscription. A worked example is in our companion brief.
+This is our revenue model. Funders pay us to help their money reach more local initiatives: a separate fee for setup, support and reporting, priced by projects and workload. Green Goods also takes a share of what each garden's endowment earns, 2.7% by default and set per garden. Never a supporter's deposit, never a garden's shared fund. Today our income is grants; the fee and the share are the path. A worked example is in our brief.
 
 ## 15. Where we are and where next · 0:30
 
@@ -123,6 +123,14 @@ Let's grow together. Thank you. Scan the code to see commitment pooling live on 
   `packages/shared/src/config/app.ts`, and the app tells members that sending them "is unavailable
   in this release". That switch must be on and deployed before the pitch; until it is, say "earn
   agreed rewards" and, if asked, that G$ rewards are being switched on for this season.
+- **Revenue.** Say fees for service (setup, support, reporting) and a share of endowment earnings.
+  The share is the yield split's third leg, 2.7% by default (`DEFAULT_JUICEBOX_BPS` in
+  `packages/contracts/src/resolvers/Yield.sol`), set per garden by its steward or the protocol
+  owner. On the deployed Arbitrum splitter `juiceboxProjectId` is 0 (read 26 October), so that leg
+  falls back to the garden's own treasury today: say the routing to Green Goods "is being switched
+  on", never that it pays us now. Today's income is grants and ecosystem funds. Report and
+  certificate fees are planned; the docs' Protocol Economics Explorer presets are scenarios, never
+  forecasts. Never a supporter's deposit, never a garden's shared fund.
 - **Screens.** The two phone screens on slide 6 show demo data (Riverside Commons Garden). The
   slide no longer says so; say it if asked.
 - **Certificates.** A garden turns a season's impact into a certificate, and part of the

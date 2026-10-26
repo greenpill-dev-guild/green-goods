@@ -51,6 +51,7 @@
   .costs { grid-column: 1 / 3; grid-row: 3; }
   .revenue { grid-column: 3 / 6; grid-row: 3; }
   .money { display: grid; grid-template-columns: 1fr 1.1fr; column-gap: 12px; align-items: start; }
+  .revenue .money { grid-template-columns: 1.25fr 1fr; }
   .money p { margin-bottom: 4px; color: var(--ink-2); }
   .figures { list-style: none; padding: 0; margin: 1px 0 0; }
   .figures li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--rule); padding: 1px 0; margin: 0; line-height: 1.3; }
@@ -90,13 +91,13 @@
     <div class="block partners">
       <h3><svg><use href="#i-partners"/></svg>Key partners</h3>
       <ul>
-        <li><b>Tech and Sun</b>: solar-powered hubs in Nigeria; the first garden, in Awka.</li>
+        <li><b>Tech and Sun</b>: solar-powered hubs in Nigeria; the pilot garden, at its Awka hub.</li>
         <li><b>Omo Yoruba of Southern California</b>: the first diaspora community.</li>
         <li><b>Grassroots Economics</b>: service vouchers on Cosmo-Local Credit.</li>
         <li><b>GoodDollar</b> for G$ rewards; <b>Octant</b> and <b>Aave</b> for endowments.</li>
-        <li><b>Hypercerts Foundation</b> (Certified): certificates; publishing to <b>Ma Earth</b>.</li>
+        <li><b>Hypercerts Certified</b>: certificates; publishing to <b>Ma Earth</b>.</li>
         <li><b>Bloom Network</b> and <b>Regen Network</b>: where the record counts next.</li>
-        <li>Open infrastructure: EAS, Hats Protocol, Safe, Chainlink CCIP, Envio, IPFS.</li>
+        <li>Open infrastructure: attestations (EAS), Hats Protocol, Safe, Chainlink CCIP, Envio, IPFS.</li>
         <li><b>Greenpill Network</b>: chapters and guilds that bring gardens.</li>
       </ul>
     </div>
@@ -159,7 +160,7 @@
     <div class="block segments">
       <h3><svg><use href="#i-segments"/></svg>Customer segments</h3>
       <ul>
-        <li><b>Place-based communities</b> doing regenerative work: solar hubs, agroforestry collectives, waste cleanups, education programs. First: Tech and Sun's hub in Awka; Kenya, Brazil and South Africa next.</li>
+        <li><b>Place-based communities</b> doing regenerative work: solar hubs, agroforestry collectives, waste cleanups, education programs. Pilot: Tech and Sun's hub in Awka; South Africa next; Kenya and Brazil exploring.</li>
         <li><b>Funders</b> of that work: climate, clean energy and skills programs, foundations, public goods funds, and institutions piloting allocation tools.</li>
         <li><b>Diaspora supporters</b> and their associations, starting with the Nigerian diaspora.</li>
         <li><b>Networks and registries</b> that need evidence behind claims.</li>
@@ -190,8 +191,9 @@
       <h3><svg><use href="#i-revenue"/></svg>Revenue streams <span class="label">Illustrative USD</span></h3>
       <div class="money">
         <div>
-          <p>Programs, foundations, diaspora associations and NGOs pay Green Goods a <b>separate fee</b> for setting a garden up, supporting its stewards through a season, and reporting the funder can act on and renew from.</p>
-          <p>Priced by projects and workload, <b>never as a cut</b> of a garden's funds or endowment capital. Individual supporters never subscribe. Renewals follow delivery the funder can see; more gardens in a program raise the fee with the workload.</p>
+          <p><b>Fees for service.</b> Programs, foundations, associations and NGOs pay a separate fee for setting a garden up, supporting its stewards through a season, and reporting the funder can act on, priced by projects and workload.</p>
+          <p><b>A share of endowment earnings.</b> 2.7% of what each garden's endowment earns by default, set per garden; routing to Green Goods is being switched on.</p>
+          <p><b>Planned:</b> report and certificate fees once buying certificates ships. <b>Today's income</b> is grants and ecosystem funds. Never a supporter's deposit, never a garden's shared fund.</p>
         </div>
         <ul class="figures">
           <li><span>Clean-energy program, to the garden</span><span class="num">$30,000</span></li>
@@ -205,7 +207,7 @@
     </div>
   </div>
 
-  <p class="sources">Figures from the Green Goods brief, October 2026, and illustrative only: not a quote, secured funding or a validated price. Status on 25 October 2026: the app, promises, chat reporting and endowments are live; service vouchers are in pilot with Tech and Sun; impact certificates are partly built. Sources: greengoods.app, docs.greengoods.app, and each partner's own site.</p>
+  <p class="sources">Figures from the Green Goods brief, October 2026, and illustrative only: not a quote, secured funding or a validated price. The endowment share is the yield split's default third leg, which a garden can change; planned fees follow the docs' Protocol Economics Explorer, whose presets are scenarios, not forecasts. Status on 25 October 2026: the app, promises, chat reporting and endowments are live; service vouchers are in pilot with Tech and Sun; impact certificates are partly built.</p>
   <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Business Model Canvas · October 2026</span><span class="n">contact@greengoods.app · greengoods.app</span></footer>
 </section>
 </body>
