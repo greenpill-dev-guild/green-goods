@@ -28,6 +28,7 @@ export {
   UNAVAILABLE_VOUCHER_CONSOLE,
 } from "./voucher-console";
 export type {
+  IssuerSafeThreshold,
   VoucherAcceptanceChecks,
   VoucherAsk,
   VoucherAskStage,

@@ -7,6 +7,11 @@ interface FormProgressProps {
   currentStep: number;
   /** Each step's name, shown under its marker. */
   steps: string[];
+  /**
+   * `compact` centres 48px columns; `spread` shares the bar's width between the steps, as the
+   * one submission flow lays them beside Back (DL-131, decision 31).
+   */
+  layout?: "compact" | "spread";
 }
 
 /**
@@ -15,14 +20,18 @@ interface FormProgressProps {
  * compose share it, so every flow names its steps (D6).
  *
  * Compact 48px columns keep all four names centred on a 320px phone while
- * leaving the back button its own tap area. Connectors span the marker gaps.
+ * leaving the back button its own tap area; spread columns share the width they
+ * are given. Connectors span the marker gaps.
  */
-export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
+export const FormProgress = ({ currentStep, steps, layout = "compact" }: FormProgressProps) => {
   const { formatMessage } = useIntl();
   return (
     <ol
       aria-label={formatMessage({ id: "app.form.progress.label" })}
-      className="grid w-full grid-flow-col auto-cols-[minmax(0,3rem)] justify-center"
+      className={cn(
+        "grid w-full grid-flow-col",
+        layout === "spread" ? "auto-cols-fr" : "auto-cols-[minmax(0,3rem)] justify-center"
+      )}
     >
       {steps.map((step, index) => {
         const isCurrentStep = currentStep === index + 1;

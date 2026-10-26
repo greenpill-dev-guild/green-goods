@@ -7,13 +7,13 @@
  * every address, balance and moment are fictional, on the frozen Storybook clock.
  */
 
-import type { IssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { VoucherConsoleView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
+  type IssuerSafeThreshold,
   UNAVAILABLE_VOUCHER_CONSOLE,
   type VoucherAsk,
   type VoucherBooking,

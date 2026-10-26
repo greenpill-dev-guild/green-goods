@@ -1,10 +1,10 @@
-import type { IssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import type {
   PoolConsoleController,
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useWaitingForApproval } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import {
+  type IssuerSafeThreshold,
   selectVoucherAskStage,
   type VoucherAsk,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";

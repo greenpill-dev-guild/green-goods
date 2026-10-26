@@ -1,8 +1,10 @@
-import type { IssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
-import type { VoucherIssuerReserve } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type {
+  IssuerSafeThreshold,
+  VoucherIssuerReserve,
+} from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
