@@ -8,6 +8,10 @@ remain. The [working issuer terms](../pilot-issuer-terms.md) record accepted ser
 capacity distinctions and draft remedies, including the selected Claude Team offer.
 Older local-only dispatch limits below are historical.
 
+[Tech and Sun steward Safe finalize runbook, 26 October](tas-steward-safe-finalize-runbook.md)
+closes the bootstrap-mode gap found in the 26 October review, in which every mirrored steward
+could sign alone. It also records the general steward Safe model accepted the same day.
+
 [Current account/provider proof](codex-gnosis-account-provider-proof.md) owns the root-signing
 traces, native batch candidate review and open same-address/provider gates. The
 [helper/failure record](codex-helper-provenance-and-failure-safety.md) retains exact provenance

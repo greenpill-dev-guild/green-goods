@@ -236,6 +236,12 @@ jobs:
             label: Sepolia
           - shard: ethereum
             label: Ethereum ENS
+          - shard: garden-account-release
+            label: Celo Garden Account Release
+          - shard: garden-roles
+            label: Celo Garden Roles and Personal Service
+          - shard: gnosis-vouchers
+            label: Gnosis Vouchers
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -316,6 +322,21 @@ jobs:
           echo "ETHEREUM_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
           echo "MAINNET_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
           echo "::notice::Fork shard=${{ matrix.shard }} blocks: arbitrum=$ARBITRUM_FORK_BLOCK_NUMBER sepolia=$SEPOLIA_FORK_BLOCK_NUMBER ethereum=$ETHEREUM_FORK_BLOCK_NUMBER"
+
+      # The Gnosis voucher and Celo release suites pin their own blocks; the public nodes serve
+      # that history, so a dedicated secret is optional.
+      - name: Resolve Gnosis and Celo fork RPCs
+        env:
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+          CELO_RPC_URL: ${{ secrets.CELO_RPC_URL }}
+        run: |
+          set -euo pipefail
+          GNOSIS_RPC_URL="${GNOSIS_RPC_URL:-https://rpc.gnosischain.com}"
+          CELO_RPC_URL="${CELO_RPC_URL:-https://forno.celo.org}"
+          echo "::add-mask::$GNOSIS_RPC_URL"
+          echo "::add-mask::$CELO_RPC_URL"
+          echo "GNOSIS_RPC_URL=$GNOSIS_RPC_URL" >> "$GITHUB_ENV"
+          echo "CELO_RPC_URL=$CELO_RPC_URL" >> "$GITHUB_ENV"
 
       # Also cache Foundry's RPC response cache: fork tests pin block numbers,
       # so remote chain state is fully reusable across runs.
