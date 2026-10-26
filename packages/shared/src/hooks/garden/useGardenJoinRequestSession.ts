@@ -168,14 +168,20 @@ export function useAwaitingJoinRequests(gardenIds: readonly string[]): ReadonlyS
   for (let index = 0; index < gardenIds.length; index++) {
     const id = gardenIds[index].toLowerCase();
     const session = records[index]?.data;
-    if (session?.request?.state === "pending") {
+    // This session's pending answer lapses on its own expiry; an answer already checked here
+    // leaves the device's record out.
+    const lapse =
+      session?.request?.state === "pending"
+        ? Date.parse(session.request.expiresAt)
+        : session?.hasCheckedStatus
+          ? 0
+          : (kept?.[id]?.expiresAt ?? 0);
+    // A pending answer whose expiry does not parse stays awaiting.
+    if (Number.isNaN(lapse)) {
       awaitingIds.push(id);
-      continue;
-    }
-    const expiresAt = session?.hasCheckedStatus ? 0 : (kept?.[id]?.expiresAt ?? 0);
-    if (expiresAt > now) {
+    } else if (lapse > now) {
       awaitingIds.push(id);
-      nextLapse = Math.min(nextLapse, expiresAt);
+      nextLapse = Math.min(nextLapse, lapse);
     }
   }
   useEffect(() => {
