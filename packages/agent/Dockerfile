@@ -5,7 +5,9 @@ ARG BUN_VERSION=1.3.14
 FROM oven/bun:${BUN_VERSION} AS base
 WORKDIR /app
 
-# Workspace manifests and runtime package sources.
+# Workspace manifests and runtime package sources. Every workspace in bun.lock needs its
+# package.json here, or `bun install --frozen-lockfile` refuses the lockfile ("lockfile had
+# changes"); add a new workspace to both install stages and to the root .dockerignore.
 COPY package.json bun.lock ./
 COPY patches ./patches
 COPY packages/admin/package.json ./packages/admin/package.json
@@ -15,6 +17,7 @@ COPY packages/shared ./packages/shared
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/contracts/deployments ./packages/contracts/deployments
 COPY packages/contracts/abis ./packages/contracts/abis
+COPY packages/extension/package.json ./packages/extension/package.json
 COPY packages/indexer/package.json ./packages/indexer/package.json
 COPY packages/qa/package.json ./packages/qa/package.json
 COPY docs/package.json ./docs/package.json
@@ -51,6 +54,7 @@ COPY packages/shared ./packages/shared
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/contracts/deployments ./packages/contracts/deployments
 COPY packages/contracts/abis ./packages/contracts/abis
+COPY packages/extension/package.json ./packages/extension/package.json
 COPY packages/indexer/package.json ./packages/indexer/package.json
 COPY packages/qa/package.json ./packages/qa/package.json
 COPY docs/package.json ./docs/package.json
@@ -72,8 +76,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       poppler-utils=25.03.0-5+deb13u4 \
       ffmpeg=7:7.1.5-0+deb13u1 \
-      libreoffice-writer=4:25.2.3-2+deb13u7 \
-      libreoffice-calc=4:25.2.3-2+deb13u7 \
+      libreoffice-writer=4:25.2.3-2+deb13u8 \
+      libreoffice-calc=4:25.2.3-2+deb13u8 \
       bubblewrap=0.12.0-1~deb13u1 \
       util-linux=2.41.5-0+deb13u1 \
     && rm -rf /var/lib/apt/lists/* \

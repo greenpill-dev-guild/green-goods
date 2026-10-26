@@ -3,7 +3,7 @@
  * against the Agent's reporting driver. Unit tests and stories run without the React Compiler, so
  * a stale render that only the compiled page shows is caught here and nowhere below.
  *
- * Both journeys stop at Sign to Continue. The driver checks wallet signatures only, so a passkey
+ * Every journey stops at Sign to Continue. The driver checks wallet signatures only, so a passkey
  * account's proof cannot pass it. That signature, a real device and a synced passkey need their
  * own proof.
  */
@@ -57,7 +57,19 @@ async function connectedAccount(page: Page) {
   await expect(act(page, "Sign to Continue")).toBeEnabled(CEREMONY);
   const account = await otherAccount(page).locator("span[title]").getAttribute("title");
   expect(account).toMatch(/^0x[0-9a-fA-F]{40}$/);
-  return account;
+  return account as string;
+}
+
+/**
+ * Account and Help, opened from the top bar's profile button by its name in the page's language.
+ * Each opening follows a load of the dev client, and the name waits for that language's catalogue,
+ * so it waits as a first paint does.
+ */
+async function openAccount(page: Page, name = "Account and Help") {
+  await page.getByRole("button", { name, exact: true }).click({ timeout: FIRST_PAINT });
+  const sheet = page.getByRole("dialog", { name });
+  await expect(sheet).toBeVisible();
+  return sheet;
 }
 
 test.describe("on a phone that last saw someone else's account", () => {
@@ -180,6 +192,64 @@ test("someone with an account gets back in, by its passkey and then by its name"
     expect(await connectedAccount(page)).toBe(account);
     expect(await world.passkeys()).toBe(1);
     await keep(page, "account-found-by-name");
+  });
+  expect(world.pageErrors).toEqual([]);
+});
+
+test("a link opened on the wrong account signs the browser out before Continue", async ({
+  page,
+  request,
+}) => {
+  const world = await standInBehindAccountStep(page);
+  await arrive(page, await requestAccountLink(request));
+  await createAccount(page, "dana");
+  const first = await connectedAccount(page);
+
+  await test.step("the next link names that account in the profile, before Continue", async () => {
+    await page.goto(await requestAccountLink(request), { waitUntil: "domcontentloaded" });
+    await expect(act(page, "Continue")).toBeVisible({ timeout: FIRST_PAINT });
+    const sheet = await openAccount(page);
+    await expect(sheet.getByTitle(first, { exact: true })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Sign Out of This Browser" })).toBeVisible();
+    await keep(page, "sign-out-before-continue");
+    await page.keyboard.press("Escape");
+  });
+  await test.step("Spanish and Portuguese name the same control in their own words", async () => {
+    for (const [language, profile, signOut] of [
+      ["es", "Cuenta y ayuda", "Cerrar sesión en este navegador"],
+      ["pt", "Conta e ajuda", "Sair da conta neste navegador"],
+    ] as const) {
+      // The reader's stored choice, as the language picker leaves it.
+      await page.evaluate((chosen) => localStorage.setItem("gg-language", chosen), language);
+      await page.reload({ waitUntil: "domcontentloaded" });
+      const sheet = await openAccount(page, profile);
+      await expect(sheet.getByRole("button", { name: signOut })).toBeVisible(CEREMONY);
+      await keep(page, `sign-out-${language}`);
+      await page.keyboard.press("Escape");
+    }
+    await page.evaluate(() => localStorage.removeItem("gg-language"));
+    await page.reload({ waitUntil: "domcontentloaded" });
+  });
+  await test.step("signing out opens nothing and signs nothing", async () => {
+    const sheet = await openAccount(page);
+    const signOut = sheet.getByRole("button", { name: "Sign Out of This Browser" });
+    await expect(signOut).toBeVisible(CEREMONY);
+    const openings = world.linkOpenings();
+    const signatures = await world.signatures();
+    await signOut.click();
+    await expect(sheet.getByText("Not signed in yet")).toBeVisible();
+    expect(await world.signatures()).toBe(signatures);
+    expect(world.linkOpenings()).toBe(openings);
+    await page.keyboard.press("Escape");
+  });
+  await test.step("after Continue another account connects", async () => {
+    await act(page, "Continue").click();
+    await page.getByRole("button", { name: "New here? Create an account" }).click();
+    await nameField(page).fill("eve");
+    await act(page, "Create Account").click();
+    expect(await connectedAccount(page)).not.toBe(first);
+    expect(await world.passkeys()).toBe(2);
+    await keep(page, "another-account-connected");
   });
   expect(world.pageErrors).toEqual([]);
 });

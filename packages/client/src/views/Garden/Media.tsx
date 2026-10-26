@@ -1,8 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { track } from "@green-goods/shared/modules/app/posthog";
 import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
+import { track } from "@green-goods/shared/modules/app/posthog";
 import {
   getSafeMediaBatchMetadata,
   getSafeMediaMetadata,
@@ -21,15 +20,13 @@ import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Display";
-import { Books } from "@/components/Features";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 import {
   MediaRulePill,
   type PendingPhotoState,
-  WorkMediaPhotoCard,
-  WorkMediaVideoCard,
+  SubmissionMediaList,
 } from "@/components/Features/Work";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];
@@ -110,7 +107,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   );
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -432,14 +428,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   };
 
   const removeMedia = (file: File) => {
-    const mediaId = getWorkMediaId(file);
-    if (playingVideoId === mediaId) setPlayingVideoId(null);
-
     if (onRemoveMedia) {
       onRemoveMedia(file, "media");
       return;
     }
 
+    const mediaId = getWorkMediaId(file);
     setImages((prev) => prev.filter((item) => getWorkMediaId(item) !== mediaId));
   };
 
@@ -646,68 +640,24 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         </div>
       )}
 
-      {/* Unified media grid: list on mobile, 2-col grid on tablet+ */}
-      {images.length > 0 || audioNotes.length > 0 ? (
-        <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-2">
-          {/* Photo and video cards */}
-          {images.map((file, index) => {
-            const isVideo = isVideoFile(file);
-            const url = mediaUrls[index];
-            const mediaId = getWorkMediaId(file);
-            const isBroken = brokenMediaIds?.has(mediaId) ?? false;
-
-            if (isVideo) {
-              return (
-                <WorkMediaVideoCard
-                  key={mediaId}
-                  index={index}
-                  url={url}
-                  isBroken={isBroken}
-                  isPlaying={playingVideoId === mediaId}
-                  onPlay={() => setPlayingVideoId(mediaId)}
-                  onPreviewFailed={() => onPreviewFailed?.(file, "media")}
-                  onRemove={() => removeMedia(file)}
-                />
-              );
-            }
-
-            // Photo card
-            const photoIndex = photoOnlyData.findIndex((p) => p.originalIndex === index);
-            return (
-              <WorkMediaPhotoCard
-                key={mediaId}
-                file={file}
-                index={index}
-                url={url}
-                isBroken={isBroken}
-                heicState={heicStateOf?.(file)}
-                onPreview={() => {
-                  if (photoIndex >= 0) setPreviewIndex(photoIndex);
-                }}
-                onPreviewFailed={() => onPreviewFailed?.(file, "media")}
-                onRemove={() => removeMedia(file)}
-                onRetryConversion={() => onRetryHeicConversion?.(file)}
-              />
-            );
-          })}
-
-          {/* Audio note cards (span full width in grid) */}
-          {audioNotes.map((file, index) => (
-            <div key={`audio-${file.name}-${index}`} className="md:col-span-2">
-              <AudioPlayer
-                file={file}
-                onDelete={() => {
-                  setAudioNotes(audioNotes.filter((_, i) => i !== index));
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="pt-8 px-4 grid place-items-center">
-          <Books />
-        </div>
-      )}
+      {/* The one media list both kinds draw (DL-131); this step owns the files and their URLs. */}
+      <SubmissionMediaList
+        media={images}
+        urls={mediaUrls}
+        audioNotes={audioNotes}
+        isBroken={(file) => brokenMediaIds?.has(getWorkMediaId(file)) ?? false}
+        heicStateOf={heicStateOf}
+        onPreview={(_, index) => {
+          const photoIndex = photoOnlyData.findIndex((p) => p.originalIndex === index);
+          if (photoIndex >= 0) setPreviewIndex(photoIndex);
+        }}
+        onPreviewFailed={(file) => onPreviewFailed?.(file, "media")}
+        onRemoveMedia={(file) => removeMedia(file)}
+        onRemoveAudio={(index) => {
+          setAudioNotes(audioNotes.filter((_, i) => i !== index));
+        }}
+        onRetryHeicConversion={(file) => onRetryHeicConversion?.(file)}
+      />
 
       <ImagePreviewDialog
         isOpen={previewIndex !== null}

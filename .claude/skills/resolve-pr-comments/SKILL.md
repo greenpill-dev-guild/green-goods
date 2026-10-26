@@ -121,8 +121,8 @@ unresolved actionable feedback item.
 Interpret "fix all comments" as authorization to fix all `ACTIONABLE` feedback items and their
 approved in-scope sibling instances. On a safe existing PR branch, it also authorizes staging only
 the scoped files, creating a conventional commit, and pushing normally to that tracked branch after
-targeted proof and the ready-for-CI Push Gate pass. Critical surfaces retain their complete local
-override. It does not authorize:
+targeted proof and the ready-for-CI Push Gate pass. Critical surfaces also run the selector's
+mandatory override. It does not authorize:
 
 - ambiguous or conflicting changes;
 - unrelated repository cleanup;
@@ -154,9 +154,10 @@ Do not resolve a thread merely because a local edit exists.
    inspect the full cached diff. Select local proof from the union of the committed PR diff and every
    allowlisted staged, unstaged, and untracked path so new fixes cannot escape touched-surface
    detection.
-4. If the selector identifies a critical surface, run its complete mandatory local override before
-   publication. Do not run the full local Ship Gate for ordinary comment fixes merely because a
-   commit or push is in scope.
+4. If the selector identifies a critical surface, run its mandatory override before publication:
+   owner typecheck and focused suite plus consumer typechecks for Shared, the complete contracts
+   gate for contracts. Do not run the full local Ship Gate for ordinary comment fixes merely
+   because a commit or push is in scope.
 5. For visible UI changes, record rendered proof labeled per AGENTS.md § Browser Evidence;
    authenticated-class surfaces need authenticated Brave proof or are recorded as pending.
 6. Repeat the root-cause search after all fixes. Any remaining approved manifestation keeps the

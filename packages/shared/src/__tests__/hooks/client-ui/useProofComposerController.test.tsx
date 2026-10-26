@@ -11,13 +11,10 @@ import {
   useProofSend,
 } from "../../../hooks/client-ui/commitment/proofSend";
 import { useProofComposerController } from "../../../hooks/client-ui/commitment/useProofComposerController";
+import { useSubmissionFlowController } from "../../../hooks/client-ui/submission/useSubmissionFlowController";
 import type { CommitmentJobVariables } from "../../../hooks/commitment-pooling/useCommitmentJobs";
 import type { CommitmentProofDraftHandle } from "../../../hooks/commitment-pooling/useCommitmentProofDraft";
-import type { ProofDraftRepository } from "../../../modules/commitment-pooling/proof-draft-repository";
-import {
-  commitmentProofDraftKey,
-  useCommitmentProofDraftStore,
-} from "../../../stores/useCommitmentProofDraftStore";
+import { logger } from "../../../modules/app/logger";
 import {
   DEMO_CHAIN_ID,
   DEMO_GARDEN,
@@ -25,15 +22,19 @@ import {
   MARIA,
   TUNDE,
 } from "../../../modules/commitment-pooling/demo/demo-builders";
+import type { ProofDraftRepository } from "../../../modules/commitment-pooling/proof-draft-repository";
 import type {
   CommitmentCycleRecord,
   CommitmentDetail,
   CommitmentPoolRecord,
 } from "../../../modules/commitment-pooling/types";
 import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
-import { logger } from "../../../modules/app/logger";
-import type { Job } from "../../../types/job-queue";
+import {
+  commitmentProofDraftKey,
+  useCommitmentProofDraftStore,
+} from "../../../stores/useCommitmentProofDraftStore";
 import type { Address } from "../../../types/domain";
+import type { Job } from "../../../types/job-queue";
 import {
   availableCapability,
   commitmentDetailFixture,
@@ -369,6 +370,94 @@ describe("useProofComposerController", () => {
     expect(mocks.draft.clear).toHaveBeenCalledTimes(1);
     expect(result.current.landing).toBe("sending");
     expect(mocks.toasts.added).toHaveBeenCalledWith({ sent: false, leads: true });
+  });
+
+  it("reaches the queue through the shared Review stage with the same payload, and moving stages leaves the draft alone", async () => {
+    mocks.realDraft = true;
+    const repository: ProofDraftRepository = {
+      load: vi.fn(async () => []),
+      save: vi.fn(async () => undefined),
+      clear: vi.fn(async () => undefined),
+      previewUrls: () => [],
+      revoke: () => undefined,
+    };
+    const leave = vi.fn();
+    const { result } = renderHook(
+      () => {
+        const controller = useProofComposerController({
+          chainId: DEMO_CHAIN_ID,
+          commitmentId: 1001n,
+          routeGarden: DEMO_GARDEN,
+          onOpenYourWork,
+          draftRepository: repository,
+        });
+        const flow = useSubmissionFlowController({
+          kind: "evidence",
+          controller,
+          commitmentId: 1001n,
+          leave,
+          promiseTitle: "Restore the tool shed",
+        });
+        return { controller, flow };
+      },
+      { wrapper }
+    );
+    await waitFor(() => expect(result.current.controller.draftPersistence).toBe("saved"));
+    act(() => result.current.controller.setNote("  Beds cleared  "));
+    await waitFor(() => expect(result.current.controller.draftPersistence).toBe("saved"));
+    const key = commitmentProofDraftKey({
+      chainId: DEMO_CHAIN_ID,
+      viewer: TUNDE,
+      commitmentId: 1001n,
+    });
+    const saved = useCommitmentProofDraftStore.getState().drafts[key];
+    // The draft's record keeps its shape and keys, so a draft saved before this flow still reads.
+    expect(Object.keys(saved).sort()).toEqual([
+      "clientEvidenceId",
+      "credited",
+      "files",
+      "garden",
+      "links",
+      "note",
+      "updatedAt",
+    ]);
+    // No files yet, so no count is written: Your Work reads such a draft as holding none.
+    expect(saved).toMatchObject({
+      note: "  Beds cleared  ",
+      links: [],
+      credited: null,
+      garden: DEMO_GARDEN,
+      files: undefined,
+    });
+
+    expect(result.current.flow.stage).toBe("media");
+    act(() => result.current.flow.forward.run());
+    act(() => result.current.flow.forward.run());
+    expect(result.current.flow.stage).toBe("review");
+    expect(result.current.flow.forward.labelId).toBe("app.proof.submit");
+    // Moving through the stages wrote nothing: the record is the same one.
+    expect(useCommitmentProofDraftStore.getState().drafts[key]).toBe(saved);
+    expect(repository.save).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.flow.forward.run();
+    });
+
+    await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledOnce());
+    expect(mocks.enqueue).toHaveBeenCalledWith({
+      act: "evidence",
+      report: expect.any(Function),
+      payload: {
+        clientEvidenceId: saved.clientEvidenceId,
+        commitmentId: 1001n,
+        creditedContributors: [TUNDE],
+        gardenAddress: DEMO_GARDEN,
+        note: "Beds cleared",
+      },
+    });
+    await waitFor(() => expect(repository.clear).toHaveBeenCalledWith(key));
+    expect(result.current.controller.landing).toBe("sending");
+    expect(leave).not.toHaveBeenCalled();
   });
 
   it("hands over to the promise once signed, never while the prompt is open", async () => {
