@@ -25,10 +25,25 @@ const DEFAULTS = {
   SEPOLIA_FORK_BLOCK_NUMBER: "10917257",
   ETHEREUM_RPC_URL: "https://ethereum.drpc.org",
   ETHEREUM_FORK_BLOCK_NUMBER: "25170563",
-  // Celo's public node. Only the settlement-lane shard forks Celo, and it is read-only.
+  // Celo's public node. The settlement-lane shard and the Celo release proofs fork it read-only.
   CELO_RPC_URL: "https://forno.celo.org",
   CELO_FORK_BLOCK_NUMBER: "74700818",
+  // Gnosis' public node serves the voucher suites' pinned historical state.
+  GNOSIS_RPC_URL: "https://rpc.gnosischain.com",
 };
+// Production-profile artifacts the Gnosis voucher journeys deploy through ERC1967 proxies.
+const VOUCHER_PRODUCTION_TARGETS = [
+  "lib/tokenbound/lib/openzeppelin-contracts/contracts/governance/TimelockController.sol",
+  "lib/tokenbound/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol",
+  "src/modules/CommitmentPooling.sol",
+  "src/modules/GnosisVoucherAdapter.sol",
+  "src/modules/GnosisVoucherEscrow.sol",
+  "src/modules/Hats.sol",
+  "src/modules/VoucherEntitlementModule.sol",
+  "src/modules/VoucherRedemptionModule.sol",
+  "src/registries/Action.sol",
+  "src/registries/Commitment.sol",
+];
 
 export const SHARDS = {
   arbitrum: {
@@ -121,13 +136,26 @@ export const SHARDS = {
     runner: "run-garden-account-release.ts",
   },
   "garden-roles": {
-    description: "Pinned Celo Roles permission proof with reviewed Safe bindings and isolated transactions",
-    glob: "test/fork/CeloGardenRolesPermission.t.sol",
+    description:
+      "Pinned Celo Roles permission and personal service deposit proofs with reviewed Safe bindings and isolated transactions",
+    glob: "test/fork/{CeloGardenRolesPermission,CeloPersonalServiceDeposit}.t.sol",
     runner: "run-garden-roles-proof.ts",
+  },
+  "gnosis-vouchers": {
+    description:
+      "Gnosis voucher pilot, purchase, redemption, reserve and steward Safe suites against published CLC, Hats, HSG and Safe bytecode",
+    // Each suite selects its own pinned Gnosis (and Arbitrum) forks, so no process fork is set.
+    glob: "test/fork/{GnosisStewardSafe,GnosisVoucherPilot,GnosisVoucherPurchase,GnosisVoucherRedemption,GnosisVoucherReserve}.t.sol",
+    productionTargets: VOUCHER_PRODUCTION_TARGETS,
   },
 };
 
-export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant", "garden-account-release", "garden-roles"];
+export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant", "garden-account-release", "garden-roles", "gnosis-vouchers"];
+
+// Fork files deliberately outside every shard. Each needs a reason; anything else must join a shard.
+export const MANUAL_FORK_FILES = {
+  "test/fork/CeloHats.t.sol": "Legacy unpinned probe of Celo Hats tree 31; it reads the latest block and skips without CELO_RPC_URL.",
+};
 
 function loadEnv() {
   loadDotenv({ path: path.resolve(process.cwd(), "../../.env"), override: false, quiet: true });
@@ -239,6 +267,15 @@ function runShard(name) {
     if (result.error) throw result.error;
     if (result.status !== 0) process.exit(result.status ?? 1);
     return;
+  }
+  if (shard.productionTargets) {
+    console.log(`[fork-shard] ${name}: building production-profile artifacts the suites deploy`);
+    const build = spawnSync("bun", ["script/utils/build-target.ts", ...shard.productionTargets], {
+      env: { ...forgeEnv(), FOUNDRY_PROFILE: "production" },
+      stdio: "inherit",
+    });
+    if (build.error) throw build.error;
+    if (build.status !== 0) process.exit(build.status ?? 1);
   }
   const forkArgs = forkArgsForChain(shard.chain);
   if (forkArgs.length) {

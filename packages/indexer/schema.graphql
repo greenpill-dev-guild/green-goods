@@ -2343,3 +2343,199 @@ type VoucherServiceAcknowledgment {
   txHash: String!
   timestamp: Int!
 }
+
+# Earned-voucher source lifecycle on Arbitrum. Rows mirror the module's emitted facts. A recorded
+# result is the module's authenticated acknowledgment; none of these rows authorizes delivery.
+type EarnedVoucherTerms {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  commitmentId: BigInt!
+  revision: BigInt!
+  termsHash: String
+  registeredSeen: Boolean!
+  issuerAuthority: String
+  approvedSeen: Boolean!
+  registeredBlockNumber: BigInt
+  registeredLogIndex: Int
+  registeredTxHash: String
+  registeredAt: Int
+  approvedBlockNumber: BigInt
+  approvedLogIndex: Int
+  approvedTxHash: String
+  approvedAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+# First consent per participant and exact revision. Acceptance still requires the core's binding.
+type EarnedVoucherConsent {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  commitmentId: BigInt!
+  revision: BigInt!
+  participant: String!
+  termsEntityId: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type EarnedVoucherDistribution {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  entitlementId: String!
+  commitmentId: BigInt
+  payloadHash: String
+  preparedSeen: Boolean!
+  lastMessageId: String
+  resultSequence: BigInt
+  delivered: Boolean
+  failureHash: String
+  preparedBlockNumber: BigInt
+  preparedLogIndex: Int
+  preparedTxHash: String
+  preparedAt: Int
+  dispatchBlockNumber: BigInt
+  dispatchLogIndex: Int
+  dispatchTxHash: String
+  dispatchAt: Int
+  resultBlockNumber: BigInt
+  resultLogIndex: Int
+  resultTxHash: String
+  resultAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+# One row per CCIP send. Retries resend the same authorized bytes under a new message.
+type EarnedVoucherDispatch {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  entitlementId: String!
+  messageId: String!
+  distributionEntityId: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+# Gnosis adapter delivery. Attempts are the adapter's own execution records; the source learns
+# the outcome only from an authenticated acknowledgment.
+type VoucherDistributionCommand {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  entitlementId: String!
+  payloadHash: String
+  firstMessageId: String
+  recordedSeen: Boolean!
+  latestSequence: BigInt
+  delivered: Boolean!
+  recordedBlockNumber: BigInt
+  recordedLogIndex: Int
+  recordedTxHash: String
+  recordedAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type VoucherDistributionAttempt {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  entitlementId: String!
+  sequence: BigInt!
+  success: Boolean!
+  failureHash: String!
+  reason: String!
+  commandEntityId: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type VoucherDistributionAcknowledgment {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  entitlementId: String!
+  sequence: BigInt!
+  sent: Boolean!
+  messageId: String
+  reason: String
+  commandEntityId: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+# Steward Safe roster mirroring. Source rows record what the Arbitrum publisher queued, sent or
+# deferred; mirror rows record what the Gnosis receiver applied. Neither proves current ownership.
+type StewardRoleSource {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  account: String!
+  queuedRevision: BigInt
+  queuedEligible: Boolean
+  dispatchedRevision: BigInt
+  dispatchedEligible: Boolean
+  lastMessageId: String
+  deferredRevision: BigInt
+  queuedBlockNumber: BigInt
+  queuedLogIndex: Int
+  queuedTxHash: String
+  queuedAt: Int
+  dispatchBlockNumber: BigInt
+  dispatchLogIndex: Int
+  dispatchTxHash: String
+  dispatchAt: Int
+  deferredBlockNumber: BigInt
+  deferredLogIndex: Int
+  deferredTxHash: String
+  deferredAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type StewardRoleMirror {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  account: String!
+  revision: BigInt
+  eligible: Boolean
+  reconciledEligible: Boolean
+  reconciliationDeferred: Boolean!
+  mirroredBlockNumber: BigInt
+  mirroredLogIndex: Int
+  mirroredTxHash: String
+  mirroredAt: Int
+  reconcileBlockNumber: BigInt
+  reconcileLogIndex: Int
+  reconcileTxHash: String
+  reconcileAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type StewardSafeReceiverState {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  bootstrapFinalized: Boolean!
+  finalizedBlockNumber: BigInt
+  finalizedLogIndex: Int
+  finalizedTxHash: String
+  finalizedAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
