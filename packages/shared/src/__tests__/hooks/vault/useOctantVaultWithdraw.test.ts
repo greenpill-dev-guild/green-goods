@@ -186,14 +186,18 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
     );
   });
 
-  it("rejects when shares exceed maxRedeem and never signs", async () => {
-    mockReadContract.mockResolvedValueOnce(100n); // maxRedeem below requested shares
+  // The error view shows these words as they are, so they say withdraw: Redeem belongs to vouchers.
+  it.each([
+    [100n, "Withdrawal exceeds the available share balance"],
+    [0n, "Vault is not accepting withdrawals right now"],
+  ])("rejects before signing when maxRedeem is %s", async (maxRedeem, message) => {
+    mockReadContract.mockResolvedValueOnce(maxRedeem);
     const { result } = renderHookWithProviders(() => useOctantVaultRedeem());
 
     await act(async () => {
       await expect(
         result.current.mutateAsync({ chainId: OCTANT_CHAIN_ID, vaultAddress: VAULT, shares: 400n })
-      ).rejects.toThrow(/exceed/i);
+      ).rejects.toThrow(message);
     });
     expect(mockSendContractCall).not.toHaveBeenCalled();
   });

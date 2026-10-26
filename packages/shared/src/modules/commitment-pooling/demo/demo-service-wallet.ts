@@ -42,8 +42,12 @@ const REHEARSAL_SAFES: Readonly<Record<Address, { threshold: number; owners: num
   [PILOT_ISSUERS.b]: { threshold: 1, owners: 1 },
 };
 
-export function rehearsalIssuerApproval(account: Address): VoucherIssuerApproval {
-  const rule = REHEARSAL_SAFES[account.toLowerCase() as Address];
+/** As the live read: an individual approves from its own account; a collective, by its Safe. */
+export function rehearsalIssuerApproval(
+  issuer: Pick<VoucherIssuer, "account" | "kind">
+): VoucherIssuerApproval {
+  if (issuer.kind === "individual") return { kind: "account", evidence: "local-rehearsal" };
+  const rule = REHEARSAL_SAFES[issuer.account.toLowerCase() as Address];
   return rule
     ? { kind: "safe", evidence: "local-rehearsal", ...rule }
     : { kind: "unavailable", reason: "unconfigured" };
