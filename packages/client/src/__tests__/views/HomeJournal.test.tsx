@@ -125,8 +125,15 @@ const { RecentActivity } = await import("../../views/Home/Journal/RecentActivity
 const { TakePart } = await import("../../views/Home/Journal/TakePart");
 const { HomeJournal } = await import("../../views/Home/Journal");
 const { TakePartSheet } = await import("../../views/Home/Journal/TakePartSheet");
+const { HomeShownContext } = await import("../../views/Home/Journal/homeShown");
 
 const render = (ui: ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
+/** The journal as Home holds it: shown, or out of sight under a page Home opened. */
+const asHomeHolds = (ui: ReactElement, shown: boolean) => (
+  <MemoryRouter>
+    <HomeShownContext value={shown}>{ui}</HomeShownContext>
+  </MemoryRouter>
+);
 
 function work(id: string, status: Work["status"], title: string, media: string[] = []): Work {
   return {
@@ -873,5 +880,41 @@ describe("Home journal", () => {
         })
       );
     });
+
+    // Its sheets portal past Home's hidden wrapper, so leaving Home closes them with Home's own
+    // drawers instead of leaving them over the page Home opened (Codex P2 on #1333).
+    it("closes Endowment when Home opens a page, and it stays closed on return", async () => {
+      const user = userEvent.setup();
+      mocks.account = ME;
+      mocks.vaults = [{}];
+      const journal = (
+        <HomeJournal
+          garden={garden({ stewards: [ME] })}
+          membership={{ roles: ["steward"], pendingJoin: false }}
+        />
+      );
+      const { rerender } = renderWithProviders(asHomeHolds(journal, true));
+      await user.click(screen.getByRole("button", { name: /Endowment/ }));
+      expect(await screen.findByTestId("endowment-sheet")).toBeInTheDocument();
+
+      rerender(asHomeHolds(journal, false));
+      expect(screen.queryByTestId("endowment-sheet")).not.toBeInTheDocument();
+      rerender(asHomeHolds(journal, true));
+      expect(screen.queryByTestId("endowment-sheet")).not.toBeInTheDocument();
+    });
+  });
+
+  // The cycle details portal past Home's hidden wrapper too (Codex P2 on #1333).
+  it.each([
+    ["the carousel's", <HighlightsCarousel key="carousel" gardenId={GARDEN} />],
+    ["Take Part's", <TakePart key="take-part" gardenId={GARDEN} withCycleLines />],
+  ])("closes %s cycle details when Home opens a page", async (_host, host) => {
+    const user = userEvent.setup();
+    const { rerender } = renderWithProviders(asHomeHolds(host, true));
+    await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+    rerender(asHomeHolds(host, false));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 });

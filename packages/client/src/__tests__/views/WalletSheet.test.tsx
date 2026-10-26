@@ -13,6 +13,24 @@ const TEST_GARDEN_TOKEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const TEST_TOKEN = "0x3333333333333333333333333333333333333333" as const;
 
 const mockUseAccessibleCookieJars = vi.fn();
+const mockUseVoucherWallet = vi.fn();
+const ACCOUNT = "0x6666666666666666666666666666666666666666" as const;
+
+/** A voucher wallet read: what the voucher pilot answers for the account. */
+function voucherWallet(evidence: "onchain" | "unavailable") {
+  return {
+    data: {
+      account: ACCOUNT,
+      evidence,
+      complete: evidence === "onchain",
+      reason: evidence === "onchain" ? null : "routes-unconfigured",
+      issuers: [],
+      holdings: [],
+      bookings: [],
+      returns: [],
+    },
+  };
+}
 
 const baseJar = {
   jarAddress: "0x2222222222222222222222222222222222222222" as const,
@@ -95,12 +113,24 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars", async (i
   };
 });
 
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: ACCOUNT, authMode: "passkey" }),
+}));
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useVoucherWallet: (...args: unknown[]) => mockUseVoucherWallet(...args),
+  };
+});
+
 import { WalletSheet } from "../../views/Home/WalletSheet";
 
 describe("WalletSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAccessibleCookieJars.mockReturnValue(jarsState([baseJar]));
+    mockUseVoucherWallet.mockReturnValue(voucherWallet("unavailable"));
   });
 
   it("counts only jars that can actually be claimed in the Cookies badge", () => {
@@ -128,5 +158,17 @@ describe("WalletSheet", () => {
     expect(screen.getByTestId("tab-cookie-jar")).toBeInTheDocument();
     expect(screen.getByTestId("tab-send")).toBeInTheDocument();
     expect(screen.queryByTestId("tab-pools")).not.toBeInTheDocument();
+  });
+
+  it("adds Vouchers third once the voucher wallet reads, and leaves it out while it can't", () => {
+    const view = render(<WalletSheet isOpen onClose={() => {}} />);
+    expect(screen.queryByTestId("tab-vouchers")).not.toBeInTheDocument();
+
+    mockUseVoucherWallet.mockReturnValue(voucherWallet("onchain"));
+    view.rerender(<WalletSheet isOpen onClose={() => {}} />);
+
+    const tabs = screen.getAllByRole("tab").map((tab) => tab.getAttribute("data-testid"));
+    expect(tabs).toEqual(["tab-cookie-jar", "tab-send", "tab-vouchers"]);
+    expect(screen.getByTestId("tab-vouchers")).toHaveTextContent("Vouchers");
   });
 });

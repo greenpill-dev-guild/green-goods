@@ -9,7 +9,7 @@ import {
 } from "@green-goods/shared/hooks/garden/useGardenJournal";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { RiInboxLine, RiPlantLine } from "@remixicon/react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useContext, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
@@ -20,6 +20,7 @@ import {
   PromiseRow,
   PromiseRowSkeleton,
 } from "@/components/Features/Commitments";
+import { HomeShownContext } from "./homeShown";
 import { JournalCycleDetails } from "./JournalCycleDetails";
 import { JournalSection } from "./JournalSection";
 import { JournalLoadingRows, JournalStateRow } from "./JournalStateRow";
@@ -181,6 +182,9 @@ function CycleLines({ gardenId }: { gardenId: string }) {
     cycle: null,
     open: false,
   });
+  // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
+  const homeShown = useContext(HomeShownContext);
+  if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
   if (state.status !== "ready") return null;
 
   return (

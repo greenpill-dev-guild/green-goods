@@ -4,9 +4,12 @@
  * changes it (decision 6). `resolveActiveGarden` combines the account's gardens
  * (`useMyGardens`) with the garden this device remembers for the chain and account:
  *
- * - `loading` while the account's gardens are unknown. It keeps the remembered garden so an
- *   offline open goes straight in, after a failed read too.
- * - `error` when the read failed and nothing is remembered, kept apart from no gardens.
+ * - `loading` while the account's gardens are being read. It keeps the remembered garden, so Home
+ *   names it and the scoped lists keep reading it.
+ * - `error` when the read failed before any list arrived, kept apart from no gardens. It keeps
+ *   a remembered garden the same way: a remembered garden never hides the failure behind a
+ *   loading state that cannot end. A failed refresh of a list that did arrive resolves from that
+ *   list, so nothing is lost.
  * - `none` when the account has no garden.
  * - `ready` with the remembered garden while it is still the account's, or with the one
  *   garden, which selects itself and is remembered.
@@ -23,9 +26,12 @@ import { isZeroAddress } from "../../utils/blockchain/address";
 export type ActiveGardenStatus = "loading" | "error" | "none" | "choose" | "ready";
 
 export type ActiveGardenResolution =
-  /** The account's gardens are unknown; `gardenId` is the remembered garden, if any. */
-  | { status: "loading"; gardenId: string | null }
-  | { status: "error" | "none" | "choose"; gardenId: null }
+  /**
+   * The account's gardens are unknown, being read or after a read that failed; `gardenId` is the
+   * remembered garden, if any.
+   */
+  | { status: "loading" | "error"; gardenId: string | null }
+  | { status: "none" | "choose"; gardenId: null }
   /** `remember` is true when the one garden selected itself and the device should keep it. */
   | { status: "ready"; gardenId: string; remember: boolean };
 
@@ -56,8 +62,7 @@ export function resolveActiveGarden({
   if (!scope) return { status: "loading", gardenId: null };
   const rememberedId = remembered[scope] ?? null;
   if (!myGardens.isLoaded) {
-    if (myGardens.isError && !rememberedId) return { status: "error", gardenId: null };
-    return { status: "loading", gardenId: rememberedId };
+    return { status: myGardens.isError ? "error" : "loading", gardenId: rememberedId };
   }
 
   const gardenIds = myGardens.gardens.map(({ garden }) => garden.id);
