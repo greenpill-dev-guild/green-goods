@@ -29,7 +29,7 @@
 // swaps, or a hotspot target is missing or off screen.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -827,8 +827,21 @@ if (problems.length) {
   console.log(`capture failed with ${problems.length} problem(s); the existing screens and index.html are untouched`);
   process.exit(1);
 }
-for (const name of readdirSync(staging)) renameSync(join(staging, name), join(out, name));
+// The screens being replaced are backed up first, so a rename that fails halfway puts the old
+// set back rather than leaving new screens beside old ones.
+const backup = mkdtempSync(join(out, ".previous-"));
+try {
+  const names = readdirSync(staging);
+  for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+  for (const name of names) renameSync(join(staging, name), join(out, name));
+} catch (error) {
+  for (const name of readdirSync(backup)) copyFileSync(join(backup, name), join(out, name));
+  rmSync(staging, { recursive: true, force: true });
+  rmSync(backup, { recursive: true, force: true });
+  throw new Error(`${error.message}; the previous screens were put back and index.html is untouched`);
+}
 rmSync(staging, { recursive: true, force: true });
+rmSync(backup, { recursive: true, force: true });
 const json = JSON.stringify(data, null, 2).replace(/<\//g, "<\\/");
 html = html.replace(block[0], `<script type="application/json" id="flows">\n${json}\n</script>`);
 writeFileSync(htmlPath, html);
