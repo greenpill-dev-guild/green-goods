@@ -19,6 +19,7 @@ import {
 } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
+import { workInputLabel } from "@/components/Features/Work/workInputLabel";
 
 import { FormInput, FormSelect, FormText } from "@/components/Inputs";
 
@@ -70,7 +71,7 @@ const WorkRepeaterInput: React.FC<WorkRepeaterInputProps> = ({
                 <FormSelect
                   key={child.key}
                   name={fieldName}
-                  label={child.unit ? `${child.title} (${child.unit})` : child.title}
+                  label={workInputLabel(child)}
                   placeholder={child.placeholder}
                   options={options.map((option) => ({
                     label: child.optionLabels?.[option] ?? child.bandLabels?.[option] ?? option,
@@ -123,7 +124,7 @@ const WorkRepeaterInput: React.FC<WorkRepeaterInputProps> = ({
                   child.type === "number" ? { setValueAs: normalizeNumberDetail } : undefined
                 )}
                 id={fieldName}
-                label={child.unit ? `${child.title} (${child.unit})` : child.title}
+                label={workInputLabel(child)}
                 type={child.type === "number" ? "number" : "text"}
                 inputMode={child.type === "number" ? "decimal" : undefined}
                 placeholder={child.placeholder}
@@ -271,7 +272,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               key={key}
               {...register(fieldKey, registerOptions)}
               id={key}
-              label={unit ? `${title} (${unit})` : title}
+              label={workInputLabel({ title, unit })}
               type="number"
               placeholder={placeholder}
               required={required}
