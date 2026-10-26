@@ -5,8 +5,7 @@ import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNa
 import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { RiErrorWarningLine, RiLoader4Line, RiMapPin2Fill } from "@remixicon/react";
-import type React from "react";
-import { useState } from "react";
+import { type FC, type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/Errors/AppErrorBoundary";
@@ -33,7 +32,7 @@ interface Visit {
   cameFromPrevious: boolean;
 }
 
-export const Garden: React.FC = () => {
+export const Garden: FC = () => {
   const intl = useIntl();
 
   // Ensure proper re-rendering on browser navigation
@@ -84,7 +83,7 @@ export const Garden: React.FC = () => {
 
   if (!garden) {
     // With no garden to draw, the page is the state block under the back bar.
-    let pageState: React.ReactNode;
+    let pageState: ReactNode;
     if (gardensInitialLoading) {
       pageState = (
         <EmptyState

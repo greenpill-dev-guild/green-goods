@@ -129,7 +129,7 @@ const SCENES: Record<Scene, { sheet: GardenSheet; garden: Garden; access: Garden
 };
 
 /** The reads behind each section, set for one story. */
-const withScene = (scene: Scene) => () => {
+const withSectionReads = () => {
   mocked(useWorks).mockReturnValue({
     works: JOURNAL_WORKS,
     isFetching: false,
@@ -245,7 +245,7 @@ const meta: Meta<typeof GardenSheetsStory> = {
       options: ["insights", "insightsNoBanner", "gardenersSteward", "gardenersGardener", "work"],
     },
   },
-  beforeEach: ({ args }) => withScene(args.scene)(),
+  beforeEach: withSectionReads,
 };
 
 export default meta;
