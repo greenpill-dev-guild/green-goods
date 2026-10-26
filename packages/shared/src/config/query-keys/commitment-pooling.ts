@@ -60,6 +60,16 @@ export const commitmentPoolingKeys = {
       buyer.toLowerCase(),
       rehearsal ? "local-rehearsal" : "indexed",
     ] as const,
+  /** A garden pool's voucher bookings, its voucher issuer and that issuer's reserve. */
+  voucherConsole: (chainId: number, garden: Address | string) =>
+    [...commitmentPoolingKeys.all(chainId), "voucher-console", normalizeAddress(garden)] as const,
+  /** An issuer Safe's signature rule on the voucher network. */
+  issuerSafeThreshold: (chainId: number, safe?: Address | string) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "issuer-safe-threshold",
+      normalizeAddress(safe),
+    ] as const,
   issuerOperations: (account?: Address | null, routeId?: string, assetId?: string) =>
     [
       ...commitmentPoolingKeys.all(100),
