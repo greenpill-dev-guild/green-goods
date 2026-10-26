@@ -42,6 +42,24 @@ const photo = (name) => {
   return existsSync(path) ? `data:image/jpeg;base64,${readFileSync(path).toString("base64")}` : null;
 };
 const BANNER = "awka-hub.jpg";
+// The record photos the recipes use, by the titles the hub's page gave them on 26 October 2026.
+// photos.mjs numbers files by page position, and the page lists newest first, so a new approved
+// submission would renumber every later photo; a file whose title no longer matches fails the
+// capture instead of putting an unrelated photo on a screen.
+const RECORDS = {
+  "record-01.jpg": "Working at the hub during morning hours",
+  "record-03.jpg": "Hub usage May 2026",
+  "record-04.jpg": "Hub usage June 2026",
+  "record-06.jpg": "A one week content creation bootcamp with AI",
+  "record-09.jpg": "Structure was given a green customization",
+  "record-14.jpg": "A robust reinforced concrete foundation",
+};
+const tsvPath = join(PHOTOS, "record-photos.tsv");
+const recordTitles = existsSync(tsvPath) ? Object.fromEntries(readFileSync(tsvPath, "utf8").split("\n").filter(Boolean).map((line) => line.split("\t"))) : {};
+for (const [name, fragment] of Object.entries(RECORDS)) {
+  if (!recordTitles[name]) note(`${name} is not listed in record-photos.tsv; run README's photo step`);
+  else if (!recordTitles[name].includes(fragment)) note(`${name} is now "${recordTitles[name].slice(0, 70)}", expected the record "${fragment}"; the hub's list changed, so re-map RECORDS in capture.mjs`);
+}
 
 // The season, from Tech and Sun's public record (pool 3 on its garden, read 26 October 2026).
 const SEASON = "Climate and Tech Education";
@@ -287,15 +305,18 @@ async function swapPhotos(page, sources) {
       return r.width >= 60 && !(r.top < 40 && r.width > 300);
     });
     let swapped = 0;
+    const failed = [];
     for (const [i, img] of imgs.entries()) {
       if (!sources[i]) continue;
       img.closest("picture")?.querySelectorAll("source").forEach((s) => s.remove());
       img.removeAttribute("srcset");
       img.src = sources[i];
-      await img.decode().catch(() => {});
-      swapped += 1;
+      // A photo that does not decode (an HTML error body saved as a .jpg, truncated bytes) would
+      // bake a broken image into the screen, so it counts as a failure, never as a swap.
+      const decoded = await img.decode().then(() => img.naturalWidth > 0 && img.naturalHeight > 0, () => false);
+      if (decoded) swapped += 1; else failed.push(i + 1);
     }
-    return { swapped, found: imgs.length };
+    return { swapped, found: imgs.length, failed };
   }, sources);
 }
 
@@ -360,7 +381,8 @@ async function capture(browser, file, shot) {
     if (shot.photos) {
       const sources = shot.photos.map(photo);
       shot.photos.forEach((name, i) => { if (!sources[i]) note(`${file}: ${name} is missing; run README's photo step`); });
-      const { swapped, found } = await swapPhotos(page, sources);
+      const { swapped, found, failed } = await swapPhotos(page, sources);
+      if (failed.length) note(`${file}: photo ${failed.map((i) => shot.photos[i - 1]).join(", ")} did not decode; refresh it with README's photo step`);
       if (swapped !== shot.photos.length || found !== shot.photos.length) note(`${file}: ${found} content photos on screen, ${swapped} swapped, ${shot.photos.length} listed`);
     }
     // Swap first so scroll and hotspot targets can name the demo copy, then again after the
@@ -409,6 +431,7 @@ const data = JSON.parse(block[1]);
 const screens = data.flows.flatMap((flow) => flow.screens);
 for (const s of screens) if (!SHOTS[s.file]) note(`index.html lists ${s.file}, which has no capture recipe`);
 for (const file of Object.keys(SHOTS)) if (!screens.some((s) => s.file === file)) note(`capture recipe ${file} is not in index.html`);
+for (const [file, shot] of Object.entries(SHOTS)) for (const name of shot.photos || []) if (!RECORDS[name]) note(`${file} uses ${name}, which RECORDS does not bind to a submission title`);
 // An `--only` id with no recipe would leave an empty queue and a clean exit, so it stops the run
 // before anything is captured or index.html is rewritten.
 const unknown = only.filter((id) => !SHOTS[id]);

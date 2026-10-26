@@ -389,6 +389,10 @@ material, and an accuracy pass over the four documents.
   files were moved through the desktop mount, which keeps their ids and links (checked on the first
   file before the rest moved). The older Google Docs conversion of the deck stays loose in Growth;
   it is not this work's file.
+- **Indexer coverage (review, 26 October).** The architecture's indexer box said it reads every
+  network and brief page 4 said it reads "the chains", but `packages/indexer/config.yaml` lists
+  Arbitrum One, Sepolia and Celo only, and no tracked file binds it to the Gnosis addresses (the
+  status refresh above). Both now say Arbitrum One and Celo today, Gnosis next.
 - **The demo.** The side session's `c0fc53dc5` grounds the four flows in the hub's real season,
   request, form and photos, with invented names; merged here as `b3197abfe`, keeping the
   `--only` validation and the last-screen focus restore, rebuilt from its 22 captures (the check

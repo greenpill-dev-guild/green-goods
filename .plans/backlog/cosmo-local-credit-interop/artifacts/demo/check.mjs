@@ -8,6 +8,7 @@
 // Rendered checks (Chromium, light, 1440x900): four tiles with loaded thumbnails; each flow walked by
 // clicking its hotspots, with each step's image loaded and its caption changed; a tap beside the
 // hotspot does not advance; Right, Left and Escape, Back and Restart, and a #work-3 deep link work;
+// focus held on the hotspot survives the last screen and Left from it;
 // "Try another flow" returns to the landing; no request leaves the page except Google Fonts; no
 // console errors. Then 390x844 without sideways scroll, and dark mode. Every step is screenshot to
 // ./output/ with a contact sheet. A failed check exits with status 1 after reporting.
@@ -124,6 +125,20 @@ await page.click("#restart");
 if ((await state(page)).step !== 1) note("Restart did not return to the first screen");
 await page.keyboard.press("Escape");
 if ((await state(page)).view !== "landing") note("Escape did not return to the landing");
+// A keyboard user who holds the hotspot keeps a visible control focused across the last screen
+// and back from it: Enter walks the flow, the last screen hands focus to "Try another flow", and
+// Left from there hands it back to the hotspot.
+await page.click("#tile-promise");
+await page.focus("#hotspot");
+const promiseScreens = flows.find((f) => f.id === "promise").screens.length;
+for (let i = 1; i < promiseScreens; i += 1) await page.keyboard.press("Enter");
+const active = () => page.evaluate(() => ({ id: document.activeElement?.id || document.activeElement?.tagName, hidden: document.activeElement?.hidden ?? true }));
+if ((await state(page)).step !== promiseScreens) note("Enter on the hotspot did not reach the last screen");
+if ((await active()).id !== "another") note(`focus on the last screen sits on "${(await active()).id}", not on "Try another flow"`);
+await page.keyboard.press("ArrowLeft");
+const after = await active();
+if (after.id !== "hotspot" || after.hidden) note(`focus after Left from the last screen sits on "${after.id}"${after.hidden ? " (hidden)" : ""}, not on the hotspot`);
+await page.keyboard.press("Escape");
 await page.goto(`${url}#work-3`, { waitUntil: "load" });
 const deep = await state(page);
 if (deep.flow !== "work" || deep.step !== 3) note(`the #work-3 link opened ${JSON.stringify(deep)}`);

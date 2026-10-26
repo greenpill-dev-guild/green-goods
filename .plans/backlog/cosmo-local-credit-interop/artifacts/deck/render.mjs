@@ -201,7 +201,9 @@ if (!only.length) {
     const pages = [...bbox.matchAll(/<page width="([\d.]+)" height="([\d.]+)">([\s\S]*?)<\/page>/g)];
     if (pages.length !== EXPECTED_SLIDES) note(`deck.pdf has ${pages.length} pages, expected ${EXPECTED_SLIDES}`);
     pages.forEach(([, w, h, body], i) => {
-      for (const [, xMin, yMin, xMax, yMax, word] of body.matchAll(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<\/word>/g)) {
+      // Coordinates can be negative for a word above or left of the page, which is exactly the
+      // overflow this check exists to catch, so the pattern accepts a sign.
+      for (const [, xMin, yMin, xMax, yMax, word] of body.matchAll(/<word xMin="(-?[\d.]+)" yMin="(-?[\d.]+)" xMax="(-?[\d.]+)" yMax="(-?[\d.]+)">([^<]*)<\/word>/g)) {
         if (+yMin < -0.5 || +yMax > +h + 0.5 || +xMin < -0.5 || +xMax > +w + 0.5) note(`page ${i + 1}: word outside the page (${Math.round(+xMin)},${Math.round(+yMin)} to ${Math.round(+xMax)},${Math.round(+yMax)} of ${Math.round(+w)}x${Math.round(+h)}): "${word}"`);
       }
     });

@@ -78,7 +78,9 @@ for (const name of PAGES) {
     const pdfPages = [...bbox.matchAll(/<page width="([\d.]+)" height="([\d.]+)">([\s\S]*?)<\/page>/g)];
     if (pdfPages.length !== 1) problems.push(`${name}: the PDF has ${pdfPages.length} pages, expected 1`);
     pdfPages.forEach(([, w, h, body], i) => {
-      for (const [, xMin, yMin, xMax, yMax, word] of body.matchAll(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<\/word>/g)) {
+      // Coordinates can be negative for a word above or left of the page, which is exactly the
+      // overflow this check exists to catch, so the pattern accepts a sign.
+      for (const [, xMin, yMin, xMax, yMax, word] of body.matchAll(/<word xMin="(-?[\d.]+)" yMin="(-?[\d.]+)" xMax="(-?[\d.]+)" yMax="(-?[\d.]+)">([^<]*)<\/word>/g)) {
         if (+yMin < -0.5 || +yMax > +h + 0.5 || +xMin < -0.5 || +xMax > +w + 0.5) problems.push(`${name}: PDF page ${i + 1} has a word outside the page: "${word}"`);
       }
     });

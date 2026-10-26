@@ -42,10 +42,18 @@ if (!wanted.length) {
 const temp = mkdtempSync(join(out, ".refresh-"));
 const rows = [];
 const failures = [];
+// A 200 with an HTML error body or a truncated file is not a photo: the body must start like an
+// image (JPEG, PNG, WebP or GIF), or the refresh fails.
+const looksLikeImage = (body) => (body[0] === 0xff && body[1] === 0xd8 && body[2] === 0xff)
+  || body.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  || (body.subarray(0, 4).toString("latin1") === "RIFF" && body.subarray(8, 12).toString("latin1") === "WEBP")
+  || body.subarray(0, 4).toString("latin1") === "GIF8";
 for (const card of wanted) {
   const res = await page.request.get(card.src);
   if (!res.ok()) { failures.push(`${card.file}: ${res.status()} for ${card.src}`); continue; }
-  writeFileSync(join(temp, card.file), await res.body());
+  const body = await res.body();
+  if (body.length < 1024 || !looksLikeImage(body)) { failures.push(`${card.file}: not an image (${res.headers()["content-type"] || "no content type"}, ${body.length} bytes) for ${card.src}`); continue; }
+  writeFileSync(join(temp, card.file), body);
   rows.push(`${card.file}\t${card.text}`);
 }
 await browser.close();

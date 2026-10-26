@@ -26,7 +26,7 @@ does not advance.
 | Path | What it is |
 |---|---|
 | [`index.html`](index.html) | The page: landing, flow view and the `#flows` block with every caption, source and hotspot. It shows the screens from `assets/screens/` when they are present |
-| [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, replacing the set whole; one failed download leaves the old set untouched and exits 1 |
+| [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, replacing the set whole; one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
 | [`capture.mjs`](capture.mjs) | Captures the 22 screens, swaps in the hub's content and writes each screen's source, size and measured hotspot into `#flows` |
 | [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper) |
 | [`check.mjs`](check.mjs) | Checks the build and walks every flow headless; screenshots each step and a contact sheet into `output/` |
@@ -50,7 +50,10 @@ node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/check.mjs
 run before anything is captured or written, and swap rules shared with screens outside `--only`
 are reported as not validated rather than passed. A full capture fails when any swap rule, the
 shared hub and people rules included, matches nothing on any screen, a fixture name survives, the
-Awka banner or a listed photo is missing, or a hotspot target is missing or off screen. Check fails on an em dash in the demo's HTML or Markdown, a caption over eight words
+Awka banner or a listed photo is missing, a record photo's title in `record-photos.tsv` no longer
+matches the submission `RECORDS` binds it to (the hub's page lists newest first, so a new approved
+submission renumbers the files), a photo does not decode, or a hotspot target is missing or off
+screen. Check fails on an em dash in the demo's HTML or Markdown, a caption over eight words
 or using "commitment", "chain", "blockchain", "Arbitrum", "Celo", "Gnosis" or "live", a tile line that
 is not five words, a missing or extra hotspot, a stale build, a file over 15 MB, an image that does
 not load, a caption that does not change, a tap beside the hotspot that advances, broken keys

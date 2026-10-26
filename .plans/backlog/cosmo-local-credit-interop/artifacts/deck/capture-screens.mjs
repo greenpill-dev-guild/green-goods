@@ -17,9 +17,12 @@ mkdirSync(out, { recursive: true });
 const story = (id) => `https://design.greengoods.app/iframe.html?viewMode=story&id=${id}`;
 // Slide 3 crops each phone screen in CSS: the garden page below its demo photo, and the whole
 // confirm sheet, captured at a shorter viewport so the sheet fits its content.
+// `expect` names copy the story must show: Storybook's own "story not found" view also fills
+// #storybook-root, so a removed or renamed story would otherwise overwrite a screen with an error
+// page that the deck and brief checks, which only test that the image loads, would pass.
 const shots = [
-  { file: "garden-promises.png", url: story("client-commitments-gardenpool--live"), w: 390, h: 1100, storybook: true },
-  { file: "confirm.png", url: story("client-commitments-confirmsheet--ask-garden-work"), w: 390, h: 740, storybook: true },
+  { file: "garden-promises.png", url: story("client-commitments-gardenpool--live"), w: 390, h: 1100, storybook: true, expect: ["3 of 7 kept", "Needs you"] },
+  { file: "confirm.png", url: story("client-commitments-confirmsheet--ask-garden-work"), w: 390, h: 740, storybook: true, expect: ["Was the work you asked for done?"] },
 ];
 const browser = await pw.chromium.launch();
 for (const s of shots) {
@@ -29,6 +32,12 @@ for (const s of shots) {
   if (s.storybook) await page.waitForSelector("#storybook-root > *", { timeout: 60000 });
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(s.storybook ? 2500 : 6000);
+  const text = await page.evaluate(() => document.body.innerText);
+  const missing = s.expect.filter((t) => !text.includes(t));
+  if (/couldn't find story|story not found|no story matched/i.test(text) || missing.length) {
+    await browser.close();
+    throw new Error(`${s.file}: the story did not show ${missing.length ? `"${missing.join('", "')}"` : "its content"}; nothing was saved`);
+  }
   await page.evaluate(() => document.activeElement?.blur?.());
   await page.mouse.move(1, 1);
   await page.screenshot({ path: join(out, s.file) });

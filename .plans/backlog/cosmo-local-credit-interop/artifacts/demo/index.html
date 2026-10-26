@@ -615,17 +615,29 @@
       if (!hotspot.hidden) hotspot.style.setProperty("--r", `${Math.min(hotspot.getBoundingClientRect().height / 2, 20)}px`);
     }
 
+    // A render hides the hotspot on the last screen and "Try another flow" everywhere else, so a
+    // keyboard user who held either lands on the one now in play instead of on a hidden control.
+    function keepFocus(before) {
+      if (before !== hotspot && before !== $("another")) return;
+      if (!hotspot.hidden) hotspot.focus({ preventScroll: true });
+      else if (!$("another").hidden) $("another").focus({ preventScroll: true });
+    }
     function advance() {
       if (!flow) return;
       if (step < flow.screens.length - 1) {
-        // The last screen hides the hotspot; a keyboard user who held it lands on "Try another flow".
-        const hadFocus = document.activeElement === hotspot;
+        const before = document.activeElement;
         step += 1;
         render();
-        if (hadFocus && hotspot.hidden) $("another").focus({ preventScroll: true });
+        keepFocus(before);
       } else home();
     }
-    function retreat() { if (flow && step > 0) { step -= 1; render(); } }
+    function retreat() {
+      if (!flow || step === 0) return;
+      const before = document.activeElement;
+      step -= 1;
+      render();
+      keepFocus(before);
+    }
 
     hotspot.addEventListener("click", (event) => { event.stopPropagation(); advance(); });
     // A tap anywhere else on the screen never advances; it only points at the hotspot again.
