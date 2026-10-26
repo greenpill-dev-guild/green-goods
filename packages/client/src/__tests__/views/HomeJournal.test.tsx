@@ -31,6 +31,13 @@ const mocks = vi.hoisted(() => ({
   cycles: vi.fn(),
   promises: vi.fn(),
   cycleNames: vi.fn(),
+  shareLink: vi.fn(),
+  // The edges of the About section's access predicate (`useGardenAccess`): who is signed in,
+  // the garden's vaults, the account's deposits, and the chain's answer on the evaluator role.
+  account: null as string | null,
+  vaults: [] as unknown[],
+  deposits: [] as Array<{ shares: bigint }>,
+  evaluatorOnChain: false,
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
@@ -49,8 +56,8 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentCycleNames: () => mocks.cycleNames(),
 }));
 
-// Needs Your Attention (step 19) and Continue (step 8), each with its own tests, and the garden's
-// own page, which closes the journal until About lands, stand in as markers here.
+// Needs Your Attention (step 19) and Continue (step 8), each with its own tests, stand in as
+// markers here.
 vi.mock("@green-goods/shared/hooks/garden/useStewardDuties", () => ({
   useStewardDuties: () => ({ duties: [], isLoading: false, isError: false, refetch: () => {} }),
 }));
@@ -60,8 +67,49 @@ vi.mock("../../views/Home/Journal/NeedsYourAttention", () => ({
 vi.mock("../../views/Home/Journal/Continue", () => ({
   Continue: () => <section data-component="Continue" />,
 }));
-vi.mock("../../views/Home/Garden/GardenPage", () => ({
-  GardenPage: () => <div data-component="GardenPage" />,
+
+// The section sheets over Home wrap the garden page's own section component, which has its own
+// tests; a marker stands in for it, naming the section it was handed and whether the reader
+// manages join requests. The Endowment and governance sheets are the garden page's too.
+vi.mock("../../views/Home/Garden/GardenSection", () => ({
+  GardenSection: ({ tab, canManageRequests }: { tab: string; canManageRequests: boolean }) => (
+    <div data-testid="garden-section" data-tab={tab} data-requests={String(canManageRequests)} />
+  ),
+}));
+vi.mock("@/components/Sheets", () => ({
+  EndowmentSheet: ({ isOpen, gardenAddress }: { isOpen: boolean; gardenAddress: string }) =>
+    isOpen ? <div data-testid="endowment-sheet">{gardenAddress}</div> : null,
+  ConvictionSheet: () => null,
+}));
+vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
+  shareLink: (...args: unknown[]) => mocks.shareLink(...args),
+}));
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: mocks.account }),
+}));
+vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
+  useGardenVaults: () => ({ vaults: mocks.vaults }),
+}));
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposits", () => ({
+  useVaultDeposits: () => ({ deposits: mocks.deposits }),
+}));
+vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
+  useHasRole: () => ({ hasRole: mocks.evaluatorOnChain }),
+}));
+vi.mock("@green-goods/shared/hooks/conviction/useConvictionStrategies", () => ({
+  useConvictionStrategies: () => ({ strategies: [] }),
+}));
+// The Work sheet reads the garden's work as the Work tab does; the marker above draws it.
+vi.mock("@green-goods/shared/hooks/work/useWorks", () => ({
+  useWorks: () => ({
+    works: [],
+    isFetching: false,
+    isLoading: false,
+    isError: false,
+    isPaused: false,
+    availability: "empty",
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
@@ -232,7 +280,17 @@ function recordPromisesOpener() {
 describe("Home journal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useUIStore.setState({ isCommitmentsSheetOpen: false, commitmentsSheetOpening: undefined });
+    useUIStore.setState({
+      isCommitmentsSheetOpen: false,
+      commitmentsSheetOpening: undefined,
+      gardenSheet: null,
+      isEndowmentSheetOpen: false,
+    });
+    mocks.account = null;
+    mocks.vaults = [];
+    mocks.deposits = [];
+    mocks.evaluatorOnChain = false;
+    mocks.shareLink.mockResolvedValue(undefined);
     mocks.recent.mockReturnValue(recent());
     mocks.cycles.mockReturnValue(cycles());
     mocks.promises.mockReturnValue(promises());
@@ -257,7 +315,7 @@ describe("Home journal", () => {
       expect(mocks.recent).toHaveBeenCalledWith(GARDEN);
     });
 
-    it("opens a pending work's page, coming back to Home, and See All opens the garden's work", async () => {
+    it("opens a pending work's page, coming back to Home, and See All opens the Work sheet over Home", async () => {
       const user = userEvent.setup();
       render(<RecentActivity gardenId={GARDEN} />);
 
@@ -267,8 +325,10 @@ describe("Home journal", () => {
         expect.objectContaining({ state: { from: "home", returnTo: "/home" } })
       );
 
+      // The garden's Work opens as a sheet over Home (DL-128), so Home keeps its place.
       await user.click(screen.getByRole("button", { name: "See All" }));
-      expect(mocks.navigate).toHaveBeenLastCalledWith(`/home/${GARDEN}`);
+      expect(useUIStore.getState().gardenSheet).toBe("work");
+      expect(mocks.navigate).toHaveBeenCalledTimes(1);
     });
 
     it("keeps its place while loading, and tells a failure, a wait and an empty garden apart", async () => {
@@ -527,16 +587,12 @@ describe("Home journal", () => {
     });
   });
 
-  it("mounts the journal's sections in DL-127's order, then the garden's page", async () => {
+  it("mounts the journal's sections in DL-127's order, closing with About This Garden", () => {
     const garden = { id: GARDEN, name: "Riverside Commons Garden" } as Garden;
     const { container } = render(
       <HomeJournal garden={garden} membership={{ roles: ["gardener"], pendingJoin: false }} />
     );
 
-    // Until step 10's About entry, the garden's own page keeps its tabs and actions within reach.
-    await waitFor(() =>
-      expect(container.querySelector("[data-component='GardenPage']")).not.toBeNull()
-    );
     const order = [...container.querySelectorAll("[data-component]")]
       .map((node) => node.getAttribute("data-component"))
       .filter((name) =>
@@ -546,6 +602,7 @@ describe("Home journal", () => {
           "RecentActivity",
           "Continue",
           "TakePart",
+          "AboutGarden",
           "GardenPage",
         ].includes(name ?? "")
       );
@@ -555,10 +612,153 @@ describe("Home journal", () => {
       "RecentActivity",
       "Continue",
       "TakePart",
-      "GardenPage",
+      "AboutGarden",
     ]);
+    // The interim garden page that stood in About's slot (steps 8 and 19) is gone.
+    expect(screen.queryByTestId("home-garden-page")).toBeNull();
     for (const read of [mocks.cycles, mocks.recent, mocks.promises]) {
       expect(read).toHaveBeenCalledWith(GARDEN);
     }
+  });
+
+  describe("About This Garden", () => {
+    const ME = "0xa11ce00000000000000000000000000000000001";
+    const garden = (overrides: Partial<Garden> = {}) =>
+      ({
+        id: GARDEN,
+        name: "Riverside Commons Garden",
+        bannerImage: "https://example.test/riverside.jpg",
+        description: "Food for the block.",
+        gardeners: [NEIGHBOUR],
+        stewards: [],
+        owners: [],
+        evaluators: [],
+        ...overrides,
+      }) as Garden;
+    const renderAbout = (record: Garden, roles: Array<"gardener" | "steward" | "owner"> = []) =>
+      render(<HomeJournal garden={record} membership={{ roles, pendingJoin: false }} />);
+    const aboutRows = () =>
+      within(screen.getByRole("heading", { name: "About This Garden" }).closest("section")!)
+        .getAllByRole("button")
+        .map((row) => row.querySelector(".gg-item-row-title")?.textContent);
+
+    it("gives a gardener Insights, Gardeners and Share, and never Endowment", () => {
+      mocks.account = NEIGHBOUR;
+      mocks.vaults = [{}];
+      renderAbout(garden(), ["gardener"]);
+
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden"]);
+      expect(screen.getByText("1 member")).toBeInTheDocument();
+    });
+
+    it("opens Insights as a tall sheet named for the garden, with its banner, and hands focus back to the row", async () => {
+      const user = userEvent.setup();
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden(), ["gardener"]);
+
+      const row = screen.getByRole("button", { name: /Insights/ });
+      await user.click(row);
+      const sheet = await screen.findByRole("dialog", { name: "Insights" });
+      expect(sheet).toHaveAttribute("data-sheet-size", "tall");
+      expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
+      // The banner is decorative: the title names the garden's section, the chip the garden.
+      expect(within(sheet).getByTestId("garden-sheet-banner").querySelector("img")).toHaveAttribute(
+        "src",
+        "https://example.test/riverside.jpg"
+      );
+      expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-tab", "insights");
+
+      await user.click(within(sheet).getByRole("button", { name: "Close" }));
+      expect(useUIStore.getState().gardenSheet).toBeNull();
+      expect(document.activeElement).toBe(row);
+    });
+
+    it("opens Insights without a banner for a garden that has none", async () => {
+      const user = userEvent.setup();
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden({ bannerImage: "" }), ["gardener"]);
+
+      await user.click(screen.getByRole("button", { name: /Insights/ }));
+      const sheet = await screen.findByRole("dialog", { name: "Insights" });
+      expect(within(sheet).queryByTestId("garden-sheet-banner")).toBeNull();
+      expect(within(sheet).getByTestId("garden-section")).toBeInTheDocument();
+    });
+
+    it("hands a steward the Gardeners sheet with the requests queue, and a gardener without it", async () => {
+      const user = userEvent.setup();
+      mocks.account = ME;
+      const { unmount } = renderAbout(garden({ stewards: [ME] }), ["steward"]);
+
+      await user.click(screen.getByRole("button", { name: /Gardeners/ }));
+      let sheet = await screen.findByRole("dialog", { name: "Gardeners" });
+      expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-requests", "true");
+      // Check Requests is the queue's own control; no count stands beside the row (every read
+      // of the queue needs a signed proof, so no count exists).
+      expect(screen.queryByText(/request/i)).toBeNull();
+      unmount();
+      useUIStore.getState().closeGardenSheet();
+
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden(), ["gardener"]);
+      await user.click(screen.getByRole("button", { name: /Gardeners/ }));
+      sheet = await screen.findByRole("dialog", { name: "Gardeners" });
+      expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-requests", "false");
+    });
+
+    it("opens the garden's Work as a sheet from the store, so See All and a duty row land there", async () => {
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden(), ["gardener"]);
+
+      useUIStore.getState().openGardenSheet("work");
+      const sheet = await screen.findByRole("dialog", { name: "Work" });
+      expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
+      expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-tab", "work");
+    });
+
+    it("shows Endowment to a steward of a garden with a vault, and opens the Endowment sheet", async () => {
+      const user = userEvent.setup();
+      mocks.account = ME;
+      mocks.vaults = [{}];
+      renderAbout(garden({ stewards: [ME] }), ["steward"]);
+
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden", "Endowment"]);
+      await user.click(screen.getByRole("button", { name: /Endowment/ }));
+      expect(await screen.findByTestId("endowment-sheet")).toHaveTextContent(GARDEN);
+      // Its own state, not the app-wide flag the garden's page reads: a sheet left open on Home
+      // can never open itself on a garden's page the member goes back to.
+      expect(useUIStore.getState().isEndowmentSheetOpen).toBe(false);
+    });
+
+    it("shows Endowment to a depositor who holds no role, naming their deposit", () => {
+      mocks.account = ME;
+      mocks.vaults = [{}];
+      mocks.deposits = [{ shares: 3n }];
+      renderAbout(garden());
+
+      const endowment = screen.getByRole("button", { name: /Endowment/ });
+      expect(endowment).toHaveTextContent("Your deposit");
+      expect(screen.queryByText("Needs Your Attention")).toBeNull();
+    });
+
+    it("keeps Endowment out while the garden has no vault, and Governance out while its flag is off", () => {
+      mocks.account = ME;
+      renderAbout(garden({ stewards: [ME] }), ["steward"]);
+
+      expect(aboutRows()).toEqual(["Insights", "Gardeners", "Share Garden"]);
+    });
+
+    it("shares the garden's own link from the Share row", async () => {
+      const user = userEvent.setup();
+      mocks.account = NEIGHBOUR;
+      renderAbout(garden(), ["gardener"]);
+
+      await user.click(screen.getByRole("button", { name: /Share Garden/ }));
+      await waitFor(() =>
+        expect(mocks.shareLink).toHaveBeenCalledWith({
+          title: "Riverside Commons Garden",
+          url: `${window.location.origin}/home/${GARDEN}`,
+        })
+      );
+    });
   });
 });

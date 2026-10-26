@@ -1,9 +1,16 @@
+import messages from "@green-goods/shared/i18n/en.json";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, type NavigateFunction, Route, Routes, useNavigate } from "react-router-dom";
+import {
+  MemoryRouter,
+  type NavigateFunction,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import messages from "@green-goods/shared/i18n/en.json";
 
 const mockShareLink = vi.fn().mockResolvedValue(undefined);
 vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
@@ -49,7 +56,10 @@ vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
-vi.mock("@green-goods/shared/hooks/garden/useGardenTabs", () => ({
+// The tabs are held still; the access predicate (`useGardenAccess`) runs for real on the
+// garden's record and the mocked reads below.
+vi.mock("@green-goods/shared/hooks/garden/useGardenTabs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/hooks/garden/useGardenTabs")>()),
   GardenTab: {
     Work: "Work",
     Insights: "Insights",
@@ -515,6 +525,151 @@ describe("Home garden route", () => {
     );
 
     expect(screen.getByTestId("join-garden-button")).toHaveTextContent("Open Garden");
+  });
+});
+
+describe("Home garden visit", () => {
+  const gardenRecord = (id: string, name: string) => ({
+    id,
+    name,
+    location: "Here",
+    createdAt: 0,
+    assessments: [],
+    gardeners: [],
+    stewards: [],
+    openJoining: false,
+  });
+
+  let navigate: NavigateFunction;
+  let location = "";
+  function Probe() {
+    navigate = useNavigate();
+    location = useLocation().pathname;
+    return null;
+  }
+
+  /** Explore, then the garden's page with its child work page, as the app routes them. */
+  const renderVisit = () =>
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/explore"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(Probe),
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/explore",
+              element: createElement("p", null, "Explore gardens"),
+            }),
+            createElement(
+              Route,
+              { path: "/home/:id", element: createElement(Garden) },
+              createElement(Route, {
+                path: "work/:workId",
+                element: createElement("p", null, "Work detail"),
+              })
+            )
+          )
+        )
+      )
+    );
+  const visitFromExplore = (id = "garden-1") =>
+    act(() => {
+      void navigate(`/home/${id}`, { state: { returnTo: "/home/explore" } });
+    });
+  const back = () => fireEvent.click(screen.getByTestId("top-nav-back"));
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrimaryAddress = null;
+    mockUseGardenTabs.mockReturnValue({ activeTab: "Work", setActiveTab: vi.fn() });
+    mockUseGardens.mockReturnValue({
+      data: [gardenRecord("garden-1", "Garden One"), gardenRecord("garden-2", "Garden Two")],
+      isLoading: false,
+      isFetching: false,
+    });
+  });
+
+  it("goes back to Explore from a garden visited there, by stepping back rather than pushing", () => {
+    renderVisit();
+    visitFromExplore();
+    expect(screen.getByRole("heading", { level: 1, name: "Garden One" })).toBeInTheDocument();
+
+    back();
+    expect(location).toBe("/home/explore");
+    expect(screen.getByText("Explore gardens")).toBeInTheDocument();
+    // The visit was popped, not covered: forward returns to it.
+    act(() => {
+      void navigate(1);
+    });
+    expect(location).toBe("/home/garden-1");
+  });
+
+  it("keeps the return target across the garden's child pages, replacing the page they return to", () => {
+    renderVisit();
+    visitFromExplore();
+    // A work's page pushes the garden's page again on its own Back, without Explore's state.
+    act(() => {
+      void navigate("/home/garden-1/work/work-1");
+    });
+    expect(screen.getByText("Work detail")).toBeInTheDocument();
+    act(() => {
+      void navigate("/home/garden-1");
+    });
+
+    back();
+    expect(location).toBe("/home/explore");
+    // The garden's second entry was replaced, so Back from here is the work page, and nothing
+    // was pushed: the history never grows from pressing Back.
+    act(() => {
+      void navigate(-1);
+    });
+    expect(location).toBe("/home/garden-1/work/work-1");
+  });
+
+  it("goes Home from a garden opened by link, replacing the entry rather than stacking on it", () => {
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(Probe),
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home", element: createElement("p", null, "Home") }),
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+
+    back();
+    expect(location).toBe("/home");
+    act(() => {
+      void navigate(-1);
+    });
+    // Nothing before the link to go back to: the entry was replaced, so Back stays put.
+    expect(location).toBe("/home");
+  });
+
+  it("starts the garden's page afresh when the garden changes, so its open tab resets", () => {
+    renderVisit();
+    visitFromExplore("garden-1");
+    const first = screen.getByTestId("garden-header");
+
+    act(() => {
+      void navigate("/home/garden-2");
+    });
+    expect(screen.getByRole("heading", { level: 1, name: "Garden Two" })).toBeInTheDocument();
+    // A new page element: the tabs' state, which lives in the page, started over with it.
+    expect(screen.getByTestId("garden-header")).not.toBe(first);
   });
 });
 

@@ -36,8 +36,8 @@ import {
   hasArrivalPassed,
   markArrivalPassed,
 } from "./arrivalToast";
-import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
 import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
+import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
 import { GardenSwitcherSheet } from "./GardenSwitcher";
 import { HomeHeader } from "./HomeHeader";
 import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./HomeStates";
@@ -141,6 +141,7 @@ const Home: React.FC = () => {
   const isCommitmentsSheetOpen = useUIStore((s) => s.isCommitmentsSheetOpen);
   const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
   const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
+  const closeGardenSheet = useUIStore((s) => s.closeGardenSheet);
 
   // The switcher keeps its mode while it slides out, so its title never flips mid-exit.
   const [switcher, setSwitcher] = useState<{ open: boolean; mode: SwitcherMode }>({
@@ -175,13 +176,15 @@ const Home: React.FC = () => {
   const hasShownArrivalRef = useRef(false);
   const { set: scheduleArrival, clear: cancelArrival } = useTimeout();
 
-  // Close home drawers when navigating away
+  // Close home drawers when navigating away. The journal's section sheet (DL-128) closes with
+  // them: a work opened from the Work sheet returns to Home itself, not to the sheet.
   useEffect(() => {
     if (!isHomeRoute) {
       closeWalletSheet();
       closeSwitcher();
+      closeGardenSheet();
     }
-  }, [closeSwitcher, closeWalletSheet, isHomeRoute]);
+  }, [closeGardenSheet, closeSwitcher, closeWalletSheet, isHomeRoute]);
 
   const visitGarden = useCallback(
     (id: string) => {

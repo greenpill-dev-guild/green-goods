@@ -22,15 +22,25 @@ interface GardenSectionProps {
   pool: ComponentProps<typeof GardenPool>["pool"] | undefined;
   /** Stewards and owners answer join requests from the Gardeners tab. */
   canManageRequests: boolean;
+  /**
+   * Where a work's page returns on its Back: the garden's own page by default, or Home when the
+   * section is a sheet over it (DL-128).
+   */
+  workReturnTo?: string;
 }
 
-/** The garden page's open section: its work, its pool, its insights or its gardeners. */
+/**
+ * The garden page's open section: its work, its pool, its insights or its gardeners. The sheets
+ * over Home (Work, Insights and Gardeners) render the same sections, so neither surface forks
+ * them.
+ */
 export function GardenSection({
   garden,
   tab,
   workRead,
   pool,
   canManageRequests,
+  workReturnTo,
 }: GardenSectionProps) {
   const chainId = DEFAULT_CHAIN_ID;
   // Read only once the reader opens Insights: an EAS read, then two IPFS files
@@ -85,6 +95,7 @@ export function GardenSection({
           gardenId={garden.id}
           chainId={chainId}
           onRefresh={workRead.refetch}
+          returnTo={workReturnTo}
         />
       );
     case GardenTab.Pool:
@@ -92,6 +103,7 @@ export function GardenSection({
     case GardenTab.Insights:
       return (
         <GardenAssessments
+          gardenId={garden.id}
           assessmentFetchStatus={assessmentStatus}
           records={assessmentRecords}
           description={garden.description}

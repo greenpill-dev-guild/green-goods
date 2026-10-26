@@ -90,17 +90,21 @@ const titleOf = (row: HTMLElement) => row.querySelector(".gg-item-row-title")?.t
 
 describe("Home Needs Your Attention", () => {
   const openCommitmentsSheet = vi.fn();
-  const realOpen = useUIStore.getState().openCommitmentsSheet;
+  const openGardenSheet = vi.fn();
+  const real = {
+    openCommitmentsSheet: useUIStore.getState().openCommitmentsSheet,
+    openGardenSheet: useUIStore.getState().openGardenSheet,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
     state.isOnline = true;
     vi.spyOn(Date, "now").mockReturnValue(NOW * 1000);
-    useUIStore.setState({ openCommitmentsSheet });
+    useUIStore.setState({ openCommitmentsSheet, openGardenSheet });
   });
 
   afterEach(() => {
-    useUIStore.setState({ openCommitmentsSheet: realOpen });
+    useUIStore.setState(real);
     vi.restoreAllMocks();
   });
 
@@ -140,8 +144,10 @@ describe("Home Needs Your Attention", () => {
     expect(takeUp.textContent).toContain("Outage log");
     expect(confirm.textContent).toContain("Solar install help");
 
+    // Work to review opens the garden's Work as a sheet over Home (DL-128), pending first.
     fireEvent.click(within(review).getByRole("button"));
-    expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}`, { viewTransition: true });
+    expect(openGardenSheet).toHaveBeenCalledWith("work");
+    expect(mockNavigate).not.toHaveBeenCalled();
     fireEvent.click(within(takeUp).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/4`, {
       viewTransition: true,

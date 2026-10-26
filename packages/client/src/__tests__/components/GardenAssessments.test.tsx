@@ -1,8 +1,8 @@
+import type { GardenAssessmentRecord } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
-import type { GardenAssessmentRecord } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
 
 import { GardenAssessments } from "../../components/Features/Garden/Assessments";
 
@@ -51,19 +51,22 @@ const messages = {
 };
 
 // A reader west of UTC, set on the provider so no case depends on the zone of
-// the machine running it.
+// the machine running it. The list draws on the garden's page by default, or on Home under
+// the Insights sheet (DL-128), which is not a garden route.
 const renderAssessments = (
   records: GardenAssessmentRecord[],
-  assessmentFetchStatus: "pending" | "success" | "error" = "success"
+  assessmentFetchStatus: "pending" | "success" | "error" = "success",
+  at: "/home/garden-1" | "/home" = "/home/garden-1"
 ) =>
   render(
-    <MemoryRouter initialEntries={["/home/garden-1"]}>
+    <MemoryRouter initialEntries={[at]}>
       <IntlProvider locale="en" messages={messages} defaultLocale="en" timeZone="America/Sao_Paulo">
         <Routes>
           <Route
-            path="/home/garden-1"
+            path={at}
             element={
               <GardenAssessments
+                gardenId="garden-1"
                 records={records}
                 assessmentFetchStatus={assessmentFetchStatus}
                 description={null}
@@ -92,6 +95,13 @@ describe("GardenAssessments", () => {
     const row = screen.getByRole("button", { name: /Soil workshops, second stage/ });
     expect(row).toHaveAccessibleName(/Jul 1\s–\sSep 30, 2026.*Education/u);
     fireEvent.click(row);
+    expect(screen.getByText("Assessment page")).toBeInTheDocument();
+  });
+
+  it("opens the assessment's page from the Insights sheet over Home, by the garden's own path", () => {
+    renderAssessments([loaded], "success", "/home");
+
+    fireEvent.click(screen.getByRole("button", { name: /Soil workshops, second stage/ }));
     expect(screen.getByText("Assessment page")).toBeInTheDocument();
   });
 

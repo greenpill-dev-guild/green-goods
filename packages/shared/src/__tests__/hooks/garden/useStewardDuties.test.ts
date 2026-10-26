@@ -300,24 +300,31 @@ describe("useStewardDuties", () => {
 });
 
 describe("useOpenStewardDuty", () => {
-  it("opens each duty's own queue: the garden's work, the promise's page, Promises on To confirm", () => {
+  it("opens each duty's own queue: the Work sheet over Home, the promise's page, Promises on To confirm", () => {
     const openCommitmentsSheet = vi.fn();
-    const realOpen = useUIStore.getState().openCommitmentsSheet;
-    useUIStore.setState({ openCommitmentsSheet });
+    const openGardenSheet = vi.fn();
+    const real = {
+      openCommitmentsSheet: useUIStore.getState().openCommitmentsSheet,
+      openGardenSheet: useUIStore.getState().openGardenSheet,
+    };
+    useUIStore.setState({ openCommitmentsSheet, openGardenSheet });
     try {
       const open = renderHook(() => useOpenStewardDuty(GARDEN)).result.current;
 
+      // Work to review opens the garden's Work as a sheet over Home (DL-128), whose list puts
+      // pending work first; Home keeps its place under it.
       open({ kind: "review", count: 1, works: [createMockWork({ id: "0x01" })] });
-      expect(mocks.navigate).toHaveBeenLastCalledWith(`/home/${GARDEN}`);
+      expect(openGardenSheet).toHaveBeenCalledWith("work");
+      expect(mocks.navigate).not.toHaveBeenCalled();
 
       open({ kind: "takeUp", count: 2, commitment: { commitmentId: 4n } as never, newestAt: 10 });
       expect(mocks.navigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/4`);
 
       open({ kind: "confirm", count: 1, commitments: [] });
       expect(openCommitmentsSheet).toHaveBeenCalledWith({ tab: "to-confirm" });
-      expect(mocks.navigate).toHaveBeenCalledTimes(2);
+      expect(mocks.navigate).toHaveBeenCalledTimes(1);
     } finally {
-      useUIStore.setState({ openCommitmentsSheet: realOpen });
+      useUIStore.setState(real);
     }
   });
 });
