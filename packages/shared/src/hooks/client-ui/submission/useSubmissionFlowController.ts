@@ -178,7 +178,7 @@ function workKind(controller: WorkSubmissionFlowController): SubmissionKindModul
       loading: false,
       blockedReasonId: null,
       // Start's asks say it as one is picked; a resumed draft skips Start, so Review says it too.
-      takeUpPrompts: current === "review" && controller.takesUp ? controller.promptCount : null,
+      takeUpPrompts: current === "review" ? controller.takeUpPrompts : null,
     }),
     mediaTools: {
       // The media step registers its own openers once mounted; its hidden inputs are the fallback.

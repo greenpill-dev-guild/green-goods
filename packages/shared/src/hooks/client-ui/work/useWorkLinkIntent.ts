@@ -119,14 +119,13 @@ export function useWorkLinkIntent({
                 : takeUpChoices.isError
                   ? "unavailable"
                   : "invalid";
-  // The link as a draft keeps it: an ask's take-up as the page says while the live reads answer
-  // nothing yet, so a resumed draft keeps saying so meanwhile, and as they say once they answer.
+  // What a draft keeps and Review says of a take-up: the page's word while the live reads answer
+  // nothing yet, so a resumed draft keeps saying so meanwhile (offline too), and theirs once they
+  // answer. Only `takesUp`, the live answer, decides that Submit takes the ask up.
   const unanswered = linkIntentStatus === "validating" || linkIntentStatus === "unavailable";
+  const saysTakeUp = unanswered ? parsedLinkIntent?.takesUp === true : takesUp;
   const draftLink = parsedLinkIntent
-    ? toDraftWorkLink({
-        ...parsedLinkIntent,
-        takesUp: (unanswered ? parsedLinkIntent.takesUp : takesUp) || undefined,
-      })
+    ? toDraftWorkLink({ ...parsedLinkIntent, takesUp: saysTakeUp || undefined })
     : null;
   /** Reads the link's standing again: the member's promises, and the Open asks it may be one of. */
   const retryLink = () => {
@@ -227,6 +226,8 @@ export function useWorkLinkIntent({
     takeUpFirst,
     /** Submit takes the link's Open ask up first, as the live asks say. */
     takesUp,
+    /** The prompts Review says before the first when the work takes an ask up; null otherwise. */
+    takeUpPrompts: saysTakeUp ? submissionPromptCount({ linksPromise: true, takesUp: true }) : null,
     /** Prompts this submission asks for, to say before the first: take-up, work, link. */
     promptCount: submissionPromptCount({ linksPromise: Boolean(linkIntent), takesUp }),
   };

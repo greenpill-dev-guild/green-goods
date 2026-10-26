@@ -80,8 +80,7 @@ let mockIsQueueingDependentLink = false;
 let mockDraftSaveState: "saving" | "saved" | "failed" | undefined;
 let mockNamedGarden: { id: string; name: string; bannerImage: string } | null = null;
 let mockGardenSettled = false;
-let mockTakesUp = false;
-let mockPromptCount = 1;
+let mockTakeUpPrompts: number | null = null;
 const mockDraftRetry = vi.fn().mockResolvedValue(undefined);
 const mockActions = [
   {
@@ -160,8 +159,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     joinCommunityGarden: vi.fn(),
     linkIntent: mockLinkIntent,
     linkIntentStatus: mockLinkIntentStatus,
-    takesUp: mockTakesUp,
-    promptCount: mockPromptCount,
+    takeUpPrompts: mockTakeUpPrompts,
     namedSubmissionGarden: mockNamedGarden,
     submissionGardenSettled: mockGardenSettled,
     refetchCommitmentLinkChoices: mockRefetchCommitmentLinkChoices,
@@ -342,8 +340,7 @@ describe("Garden (Work) View", () => {
     mockDraftSaveState = undefined;
     mockNamedGarden = null;
     mockGardenSettled = false;
-    mockTakesUp = false;
-    mockPromptCount = 1;
+    mockTakeUpPrompts = null;
   });
 
   afterEach(() => {
@@ -503,8 +500,7 @@ describe("Garden (Work) View", () => {
       returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9",
       direction: "REQUEST",
     };
-    mockTakesUp = true;
-    mockPromptCount = 3;
+    mockTakeUpPrompts = 3;
     renderWithProviders();
 
     const note =
@@ -514,8 +510,7 @@ describe("Garden (Work) View", () => {
     cleanup();
 
     // A draft for a promise of the member's own: Review says nothing more.
-    mockTakesUp = false;
-    mockPromptCount = 2;
+    mockTakeUpPrompts = null;
     renderWithProviders();
     expect(screen.queryByText(/takes up the ask/)).toBeNull();
     expect(screen.getByRole("button", { name: "Upload Work" })).not.toHaveAccessibleDescription();

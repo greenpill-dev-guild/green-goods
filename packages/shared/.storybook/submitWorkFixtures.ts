@@ -379,7 +379,7 @@ export function submitWorkControllerFixture(
         : SEEDLING_INTENT
       : null,
     linkIntentStatus: linked ? "valid" : "none",
-    takesUp: linked && takesUp,
+    takeUpPrompts: linked && takesUp ? 3 : null,
     promptCount: linked ? (takesUp ? 3 : 2) : 1,
     namedSubmissionGarden: namedGarden,
     submissionGardenSettled: true,

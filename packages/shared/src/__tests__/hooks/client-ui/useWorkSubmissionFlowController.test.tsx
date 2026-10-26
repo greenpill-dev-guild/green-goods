@@ -968,6 +968,28 @@ describe("useWorkSubmissionFlowController", () => {
     expect(own.result.current.flow.forward?.takeUpPrompts).toBeNull();
   });
 
+  it("says a resumed draft's take-up on Review while its asks are read, and takes nothing up once the ask has closed", async () => {
+    // Resumed while its asks are still read (or paused offline): the page's word is all there is.
+    const ask = { ...commitmentLinkIntent, takesUp: true as const };
+    mocks.actionUID = ask.actionUID;
+    mocks.gardenAddress = ask.garden;
+    mocks.activeTab = "Review";
+    mocks.takeUpLoading = true;
+    const view = renderThroughFlow(pageAt(writeWorkLinkIntent(new URLSearchParams(), ask)));
+    expect(view.result.current.controller.linkIntentStatus).toBe("validating");
+    expect(view.result.current.flow.forward?.takeUpPrompts).toBe(3);
+
+    // Read, the ask has closed: neither an Open ask nor a promise of theirs.
+    mocks.takeUpLoading = false;
+    view.rerender();
+    await waitFor(() => expect(view.result.current.controller.linkIntentStatus).toBe("invalid"));
+    expect(view.result.current.flow.forward?.takeUpPrompts).toBeNull();
+    await act(async () => {
+      await expect(view.result.current.controller.submit()).resolves.toBe(false);
+    });
+    expect(mocks.takeUp).not.toHaveBeenCalled();
+  });
+
   const communityGarden = "0x3333333333333333333333333333333333333333";
   const renderFlow = (wrapper = Wrapper) =>
     renderHook(
@@ -1275,14 +1297,15 @@ describe("useWorkSubmissionFlowController", () => {
       mocks.takeUpLoading = false;
       mocks.takeUpChoices = [ask];
       view.rerender();
-      await waitFor(() => expect(view.result.current.takesUp).toBe(true));
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+      expect(view.result.current.promptCount).toBe(3);
       expect(mocks.autoSaveFields?.linkIntent).toMatchObject({ takesUp: true });
 
       mocks.takeUpChoices = [];
       mocks.choices = [...own];
       view.rerender();
       await waitFor(() => expect(view.result.current.linkIntentStatus).toBe(status));
-      expect(view.result.current.takesUp).toBe(false);
+      expect(view.result.current.takeUpPrompts).toBeNull();
       expect(mocks.autoSaveFields?.linkIntent).not.toHaveProperty("takesUp");
     });
   });

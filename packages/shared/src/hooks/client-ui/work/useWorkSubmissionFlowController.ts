@@ -128,7 +128,7 @@ export function useWorkSubmissionFlowController({
     clearLinkIntent,
     selectLinkIntent,
     takeUpFirst,
-    takesUp,
+    takeUpPrompts,
     promptCount,
   } = useWorkLinkIntent({
     searchParams,
@@ -457,7 +457,7 @@ export function useWorkSubmissionFlowController({
     linkIntent,
     linkGardenAddress: linkIntent?.garden ?? null,
     linkIntentStatus,
-    takesUp,
+    takeUpPrompts,
     promptCount,
     refetchCommitmentLinkChoices: retryLink,
     clearLinkIntent,
