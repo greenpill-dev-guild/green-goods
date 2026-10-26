@@ -5,6 +5,7 @@ import type {
   HubConfirmQueueController,
   PoolConsoleActs,
   PoolConsoleController,
+  VoucherConsoleView,
 } from "../../hooks/admin-ui/pool";
 import type {
   GardenCommitmentActs,
@@ -28,6 +29,11 @@ import {
   selectConfirmationEligibility,
 } from "../../modules/commitment-pooling/selectors";
 import type { CommitmentPoolRecord, HexString } from "../../modules/commitment-pooling/types";
+import {
+  UNAVAILABLE_VOUCHER_CONSOLE,
+  type VoucherConsoleSnapshot,
+} from "../../modules/commitment-pooling/voucher-console";
+import { claimActKey } from "../../modules/transactions/act-phase";
 import {
   availableCapability,
   commitmentDetailFixture,
@@ -236,6 +242,7 @@ const poolActs: PoolConsoleActs = {
   compostCycle: successfulTransaction,
   expire: successfulTransaction,
   acceptClaim: successfulTransaction,
+  acceptServiceClaim: successfulTransaction,
   declineClaim: successfulTransaction,
   retryQueued: async () => undefined,
   discardQueued: async () => undefined,
@@ -306,6 +313,38 @@ export function poolConsoleControllerFixture(
     isError: false,
     refetch: async () => [],
     ...controllerOverrides,
+  };
+}
+
+/**
+ * The voucher console as `useVoucherConsole` hands it to the Promises tab:
+ * unavailable by default, as it is until the pilot deployment is adopted, or
+ * over a snapshot. Its issuer acts resolve without sending anything.
+ */
+export function voucherConsoleViewFixture(
+  overrides: Partial<Omit<VoucherConsoleView, "snapshot">> & {
+    snapshot?: Partial<VoucherConsoleSnapshot>;
+  } = {}
+): VoucherConsoleView {
+  const { snapshot: snapshotOverrides, ...viewOverrides } = overrides;
+  const snapshot = { ...UNAVAILABLE_VOUCHER_CONSOLE, ...snapshotOverrides };
+  return {
+    snapshot,
+    now: snapshot.observedAt || NOW,
+    askFor: (commitmentId, buyer) =>
+      snapshot.asks.find(
+        (ask) => claimActKey(ask.commitmentId, ask.buyer) === claimActKey(commitmentId, buyer)
+      ),
+    bookingFor: (commitmentId) =>
+      snapshot.bookings.find((booking) => booking.commitmentId === commitmentId),
+    acts: {
+      approveBooking: async () => undefined,
+      reportVisit: async () => undefined,
+      proposeReturn: async () => undefined,
+      retryTransfer: async () => undefined,
+      raiseAllowance: async () => undefined,
+    },
+    ...viewOverrides,
   };
 }
 

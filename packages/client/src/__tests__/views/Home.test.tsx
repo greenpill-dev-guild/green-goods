@@ -14,6 +14,7 @@ import { MemoryRouter, Route, Routes, useLocation, useParams } from "react-route
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const ACCOUNT = "0x1234567890abcdef1234567890abcdef12345678";
+const OTHER_ACCOUNT = "0xabcdef1234567890abcdef1234567890abcdef12";
 
 const garden = (suffix: string, name: string, overrides: Partial<Garden> = {}) =>
   ({
@@ -36,10 +37,13 @@ const COMMUNITY = garden("04", "Green Goods Community Garden", { openJoining: tr
 
 const state = vi.hoisted(() => ({
   active: {} as Record<string, unknown>,
+  account: "",
   listed: [] as unknown[],
   awaiting: new Set<string>(),
   arrival: "none" as "none" | "draft",
   rootGarden: "",
+  /** Every render of the bell's launcher: which account and garden it read, and whether open. */
+  launcherRenders: [] as Array<{ account: string; gardenId: string; open: boolean }>,
 }));
 
 vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
@@ -71,7 +75,7 @@ vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => ({ isAuthenticated: true }),
 }));
 vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
-  usePrimaryAddress: () => ACCOUNT,
+  usePrimaryAddress: () => state.account,
 }));
 vi.mock("@green-goods/shared/hooks/app/useBrowserNavigation", () => ({
   useBrowserNavigation: vi.fn(),
@@ -90,6 +94,29 @@ vi.mock("../../views/Home/CommitmentsSheet/Icon", () => ({
 vi.mock("../../views/Home/WorkDashboard/Icon", () => ({
   WorkDashboardIcon: () =>
     createElement("button", { type: "button", "data-testid": "work-dashboard-icon" }, "Your Work"),
+}));
+vi.mock("../../views/Home/Notifications/Icon", () => ({
+  NotificationsIcon: ({ onClick, disabled }: { onClick?: () => void; disabled?: boolean }) =>
+    createElement("button", { type: "button", onClick, disabled }, "Notifications"),
+}));
+vi.mock("../../views/Home/Notifications/Launcher", () => ({
+  NotificationsLauncher: ({
+    gardenId,
+    open,
+    onOpen,
+  }: {
+    gardenId: string;
+    open: boolean;
+    onOpen: () => void;
+  }) => {
+    state.launcherRenders.push({ account: state.account, gardenId, open });
+    return createElement(
+      "div",
+      { "data-testid": "notifications-launcher" },
+      createElement("button", { type: "button", onClick: onOpen }, "Notifications"),
+      open ? createElement("div", { "data-testid": "notifications-sheet" }) : null
+    );
+  },
 }));
 vi.mock("../../views/Home/CommitmentsSheet", () => ({ CommitmentsSheet: () => null }));
 vi.mock("../../views/Home/WalletSheet", () => ({ WalletSheet: () => null }));
@@ -141,37 +168,43 @@ function VisitedGarden() {
   return createElement("p", null, `Visiting ${useParams().id}`);
 }
 
-function renderHome(entry = "/home") {
-  return render(
+function homeTree(entry = "/home") {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: [entry] },
     createElement(
-      MemoryRouter,
-      { initialEntries: [entry] },
+      IntlProvider,
+      { locale: "en", messages },
+      createElement(LocationProbe),
       createElement(
-        IntlProvider,
-        { locale: "en", messages },
-        createElement(LocationProbe),
+        Routes,
+        null,
         createElement(
-          Routes,
-          null,
-          createElement(
-            Route,
-            { path: "/home", element: createElement(Home) },
-            createElement(Route, { path: "explore", element: createElement("p", null, "Explore") }),
-            createElement(Route, { path: ":id", element: createElement(VisitedGarden) })
-          )
+          Route,
+          { path: "/home", element: createElement(Home) },
+          createElement(Route, { path: "explore", element: createElement("p", null, "Explore") }),
+          createElement(Route, { path: ":id", element: createElement(VisitedGarden) })
         )
       )
     )
   );
 }
 
+function renderHome(entry = "/home") {
+  return render(homeTree(entry));
+}
+
 /** Lets a closing sheet finish its exit. */
 const finishSheetMotion = () => act(() => vi.runAllTimers());
+/** Lets the launchers Home defers to an idle moment load. */
+const passIdle = () => act(() => vi.advanceTimersByTime(1_000));
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.clearAllMocks();
   sessionStorage.clear();
+  state.account = ACCOUNT;
+  state.launcherRenders = [];
   state.listed = [TAS, AIYELOJA, VIDA, COMMUNITY];
   state.awaiting = new Set();
   state.arrival = "none";
@@ -184,7 +217,7 @@ afterEach(() => {
 });
 
 describe("Home's header", () => {
-  it("starts with the active garden's chip in the title's place, then Wallet, Promises and Your Work", () => {
+  it("starts with the active garden's chip in the title's place, then Wallet, Promises, Your Work and the bell", () => {
     renderHome();
 
     const chip = screen.getByRole("button", { name: /TAS HUB/ });
@@ -194,17 +227,27 @@ describe("Home's header", () => {
       within(header)
         .getAllByRole("button")
         .map((button) => button.textContent)
-    ).toEqual(["TAS HUB", "Wallet", "Promises", "Your Work"]);
+    ).toEqual(["TAS HUB", "Wallet", "Promises", "Your Work", "Notifications"]);
     // Filters moved to Explore's top bar.
     expect(screen.queryByRole("button", { name: "Filters" })).not.toBeInTheDocument();
   });
 
-  it("names Home in the chip's place when the member has no garden", () => {
+  it("names Home in the chip's place when the member has no garden, and the bell has nothing to list", () => {
     setActive("none");
     renderHome();
 
     expect(screen.getByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
     expect(document.querySelector("[data-component='GardenChip']")).toBeNull();
+    // The other launchers keep their places: the bell stays, with no garden's events to show.
+    expect(screen.getByRole("button", { name: "Notifications" })).toBeDisabled();
+  });
+
+  it("mounts the bell's read with a remembered garden while the account's gardens still load", async () => {
+    setActive("loading", [], TAS.id);
+    renderHome();
+    passIdle();
+
+    expect(await screen.findByTestId("notifications-launcher")).toBeInTheDocument();
   });
 });
 
@@ -393,6 +436,87 @@ describe("Home under its child routes", () => {
 
     expect(screen.getByText(`Visiting ${AIYELOJA.id}`)).toBeInTheDocument();
     expect(screen.queryByTestId("home-journal")).not.toBeInTheDocument();
+  });
+
+  // The header stays mounted under a child screen, so a sheet it opened would stay drawn over
+  // that screen; Home closes the bell's sheet with its other drawers.
+  it("closes the bell's sheet when Home opens a child screen", async () => {
+    renderHome();
+    passIdle();
+    const launcher = await screen.findByTestId("notifications-launcher");
+
+    fireEvent.click(within(launcher).getByRole("button", { name: "Notifications" }));
+    expect(screen.getByTestId("notifications-sheet")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /TAS HUB/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Explore Gardens/ }));
+    finishSheetMotion();
+
+    expect(screen.getByText("Explore")).toBeInTheDocument();
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
+  });
+
+  // Its sheet marks the events it shows as seen, so a sheet that opened for another account or
+  // garden would clear that scope's badge without anyone opening its bell.
+  it.each([
+    [
+      "garden",
+      () =>
+        setActive(
+          "ready",
+          [
+            [TAS, ["steward"]],
+            [AIYELOJA, ["gardener"]],
+          ],
+          AIYELOJA.id
+        ),
+      () =>
+        setActive(
+          "ready",
+          [
+            [TAS, ["steward"]],
+            [AIYELOJA, ["gardener"]],
+          ],
+          TAS.id
+        ),
+    ],
+    [
+      "account",
+      () => {
+        state.account = OTHER_ACCOUNT;
+      },
+      () => {
+        state.account = ACCOUNT;
+      },
+    ],
+  ])("never opens the bell's sheet for a changed %s, nor again when it changes back", async (_scope, change, changeBack) => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [AIYELOJA, ["gardener"]],
+      ],
+      TAS.id
+    );
+    const view = renderHome();
+    passIdle();
+    const launcher = await screen.findByTestId("notifications-launcher");
+    fireEvent.click(within(launcher).getByRole("button", { name: "Notifications" }));
+    expect(screen.getByTestId("notifications-sheet")).toBeInTheDocument();
+
+    state.launcherRenders = [];
+    change();
+    view.rerender(homeTree());
+    finishSheetMotion();
+
+    expect(state.launcherRenders.length).toBeGreaterThan(0);
+    expect(state.launcherRenders.filter(({ open }) => open)).toEqual([]);
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
+
+    changeBack();
+    view.rerender(homeTree());
+
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
   });
 
   it.each(["/home", "/home/"])("shows Home at the compatible entry %s", (entry) => {

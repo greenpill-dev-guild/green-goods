@@ -21,6 +21,11 @@ interface FormInfoProps {
    * given focus by the page, as when its step changes, though never by the Tab key.
    */
   headingId?: string;
+  /**
+   * `line` keeps the card one height across a step's contexts (DL-131, decision 30): the title
+   * stays on one line, the info clips at two, and the card never drops below its one-line height.
+   */
+  fit?: "content" | "line";
 }
 
 const variants = {
@@ -37,15 +42,24 @@ export const FormInfo = ({
   className = "",
   titleAs: Title = "h6",
   headingId,
+  fit = "content",
   ...props
 }: FormInfoProps) => {
   const variantClasses = variants[variant];
+  const oneLine = fit === "line";
 
   return (
     <Card
-      className={cn(variantClasses, "p-4 rounded-lg flex gap-4 max-h-36", className)}
+      className={cn(
+        variantClasses,
+        "p-4 rounded-lg flex gap-4 max-h-36",
+        oneLine && "items-center min-h-20",
+        className
+      )}
       variant="primary"
       mode="filled"
+      data-component="FormInfo"
+      data-fit={fit}
       {...props}
     >
       {Icon && (
@@ -53,15 +67,29 @@ export const FormInfo = ({
           <Icon size={24} className="text-primary-on-surface" />
         </div>
       )}
-      <div className="flex min-w-0 flex-col gap-0.5 grow [overflow-wrap:anywhere]">
+      <div
+        className={cn(
+          "flex min-w-0 flex-col gap-0.5 grow",
+          oneLine ? "justify-center" : "[overflow-wrap:anywhere]"
+        )}
+      >
         <Title
           id={headingId}
           tabIndex={headingId ? -1 : undefined}
-          className="text-base font-semibold text-text-strong-950 scroll-mt-24 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-action"
+          title={oneLine ? title : undefined}
+          className={cn(
+            "text-base font-semibold text-text-strong-950 scroll-mt-24 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-action",
+            oneLine && "truncate"
+          )}
         >
           {title}
         </Title>
-        <div className="text-xs leading-tight text-text-sub-600">{info}</div>
+        <div
+          className={cn("text-xs leading-tight text-text-sub-600", oneLine && "line-clamp-2")}
+          title={oneLine && typeof info === "string" ? info : undefined}
+        >
+          {info}
+        </div>
       </div>
     </Card>
   );

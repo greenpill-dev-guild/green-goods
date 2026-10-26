@@ -60,6 +60,16 @@ export const commitmentPoolingKeys = {
       buyer.toLowerCase(),
       rehearsal ? "local-rehearsal" : "indexed",
     ] as const,
+  /** A garden pool's voucher bookings, its voucher issuer and that issuer's reserve. */
+  voucherConsole: (chainId: number, garden: Address | string) =>
+    [...commitmentPoolingKeys.all(chainId), "voucher-console", normalizeAddress(garden)] as const,
+  /** An issuer Safe's signature rule on the voucher network. */
+  issuerSafeThreshold: (chainId: number, safe?: Address | string) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "issuer-safe-threshold",
+      normalizeAddress(safe),
+    ] as const,
   issuerOperations: (account?: Address | null, routeId?: string, assetId?: string) =>
     [
       ...commitmentPoolingKeys.all(100),
@@ -94,20 +104,19 @@ export const commitmentPoolingKeys = {
       commitmentId === null ? null : String(commitmentId),
       workUIDs.join(","),
     ] as const,
-  workLinkChoices: (
+  /** The account's promises it can work on in a garden: the Start step's list and the link check. */
+  workablePromises: (
     chainId: number,
     account: Address | string | undefined,
     workGarden: Address | string | undefined,
-    returnGarden: Address | string | undefined,
-    actionUID: number | null
+    returnGarden: Address | string | undefined
   ) =>
     [
       ...commitmentPoolingKeys.all(chainId),
-      "work-link-choices",
+      "workable-promises",
       normalizeAddress(account),
       normalizeAddress(workGarden),
       normalizeAddress(returnGarden),
-      actionUID,
     ] as const,
   linkedWorks: (chainId: number, workUIDs: readonly string[]) =>
     [...commitmentPoolingKeys.all(chainId), "linked-works", workUIDs.join(",")] as const,

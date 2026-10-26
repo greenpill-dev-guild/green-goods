@@ -8,6 +8,7 @@ import { holdingSend } from "../job-queue/send-guards";
 import { MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
+import { findTakeUpOf } from "../job-queue/take-up-hold";
 import { isHeicFile, PendingHeicConversionError } from "./work-attachments";
 import {
   type QueuedWorkSubmission,
@@ -208,6 +209,9 @@ async function admitAndSend(
         ...queuedOutcome(queued, ports.sender),
         kind: "awaiting-confirmation",
       } as SubmitWorkOutcome;
+    // Work for a promise this account is still taking up waits, queued, for the take-up.
+    if (!checkpoint?.transactionHash && (await findTakeUpOf(job, jobQueueDB)))
+      return queuedOutcome(queued, ports.sender);
     // A photo picked before the decoder could load converts in storage first, and
     // the send reads the stored JPEG. Until it can convert, the work waits queued.
     let images = input.images;
