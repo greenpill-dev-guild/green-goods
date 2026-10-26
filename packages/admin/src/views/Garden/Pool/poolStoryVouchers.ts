@@ -13,6 +13,7 @@ import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { VoucherConsoleView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
+  type IssuerSafeThreshold,
   UNAVAILABLE_VOUCHER_CONSOLE,
   type VoucherAsk,
   type VoucherBooking,
@@ -24,7 +25,6 @@ import type {
   PoolClaimRequestRow,
 } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Address } from "@green-goods/shared/types/domain";
-import type { QueryKey } from "@tanstack/react-query";
 import { mocked } from "storybook/test";
 import {
   daysAgo,
@@ -54,9 +54,17 @@ const STORY_VOUCHER_NAMES: Record<string, string> = {
   [STORY_RAFA.toLowerCase()]: "Rafa",
 };
 
-const issuer = (name: string, safe: Address) => ({ name, safe, decimals: 6 });
+// The vouchers and their issuers' Safes live on Gnosis, the pilot's voucher network.
+const issuer = (name: string, safe: Address) => ({ name, chainId: 100, safe, decimals: 6 });
 const TECH_AND_SUN = issuer("Tech and Sun", "0x5afe00000000000000000000000000000000a1b2");
 const GREEN_GOODS = issuer("Green Goods", "0x5afe00000000000000000000000000000000c3d4");
+
+function observedSafe(safe: Address, threshold: number, owners: number): IssuerSafeThreshold {
+  return { safe, status: "observed", threshold, owners };
+}
+/** Tech and Sun's Safe starts with one approved signer; the Green Goods Safe signs two of five. */
+export const STORY_TECH_AND_SUN_SAFE = observedSafe(TECH_AND_SUN.safe, 1, 1);
+export const STORY_GREEN_GOODS_SAFE = observedSafe(GREEN_GOODS.safe, 2, 5);
 
 /** The offers' titles, as their issuers wrote them. */
 export const STORY_VOUCHER_TITLES = new Map([
@@ -89,20 +97,13 @@ function offer(
   });
 }
 
-function accepted(
-  commitmentId: bigint,
-  metadataCID: string,
-  holder: Address,
-  overrides: Partial<CommitmentReadModel> = {}
-): CommitmentReadModel {
-  return offer(commitmentId, metadataCID, {
+const accepted = (commitmentId: bigint, metadataCID: string, holder: Address) =>
+  offer(commitmentId, metadataCID, {
     onchainState: "ACCEPTED",
     derivedState: "ACTIVE",
     state: "ACCEPTED",
     counterparty: holder,
-    ...overrides,
   });
-}
 
 function ask(
   commitmentId: bigint,
@@ -212,9 +213,8 @@ export const STORY_TECH_AND_SUN_VOUCHERS: VoucherConsoleSnapshot = {
   observedAt: STORYBOOK_NOW_SECONDS,
   asks: [STORY_LINA_ASK, STORY_KWESI_ASK],
   bookings: [STORY_MARA_VISIT],
+  issuer: TECH_AND_SUN,
   reserve: TECH_AND_SUN_RESERVE,
-  // Tech and Sun's Safe starts with one approved signer, read from the Safe.
-  safe: { status: "observed", threshold: 1, owners: 1 },
 };
 
 /** Riverside Commons' allowance is used up, so Lina's reward of 2 vouchers waits. */
@@ -273,6 +273,7 @@ export const STORY_GREEN_GOODS_VOUCHERS: VoucherConsoleSnapshot = {
       stage: { kind: "in-progress" },
     },
   ],
+  issuer: GREEN_GOODS,
   reserve: {
     issuer: GREEN_GOODS,
     inReserve: 10n * VOUCHER,
@@ -283,7 +284,6 @@ export const STORY_GREEN_GOODS_VOUCHERS: VoucherConsoleSnapshot = {
     cap: { issued: 20n * VOUCHER, ceiling: 20n * VOUCHER },
     waitingReward: null,
   },
-  safe: { status: "observed", threshold: 2, owners: 5 },
 };
 
 /** Lina approved the split, and the 6 vouchers back to her didn't arrive: anyone can retry. */
@@ -323,9 +323,13 @@ export function storyVoucherConsole(
   };
 }
 
-/** The voucher read seeded under the key `useVoucherConsole` reads, for the route stories. */
-export function voucherConsoleSeed(snapshot: VoucherConsoleSnapshot): readonly [QueryKey, unknown] {
-  return [queryKeys.commitmentPooling.voucherConsole(DEFAULT_CHAIN_ID, STORY_GARDEN), snapshot];
+/** The voucher read and its issuer Safe's rule, seeded under the keys the console reads. */
+export function voucherConsoleSeeds(snapshot: VoucherConsoleSnapshot, safe: IssuerSafeThreshold) {
+  const voucherChain = snapshot.issuer?.chainId ?? DEFAULT_CHAIN_ID;
+  return [
+    [queryKeys.commitmentPooling.voucherConsole(DEFAULT_CHAIN_ID, STORY_GARDEN), snapshot],
+    [queryKeys.commitmentPooling.issuerSafeThreshold(voucherChain, safe.safe), safe],
+  ] as const;
 }
 
 /**

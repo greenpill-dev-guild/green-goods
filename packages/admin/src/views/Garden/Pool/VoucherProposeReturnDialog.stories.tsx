@@ -5,7 +5,7 @@ import type { ComponentType } from "react";
 import { IntlProvider } from "react-intl";
 import { expect, screen, userEvent, within } from "storybook/test";
 import { VoucherProposeReturnDialog } from "./VoucherProposeReturnDialog";
-import { STORY_LINA_ENDED, nameVoucherMembers } from "./poolStoryVouchers";
+import { STORY_GREEN_GOODS_SAFE, STORY_LINA_ENDED, nameVoucherMembers } from "./poolStoryVouchers";
 
 function inLocale(locale: "es" | "pt") {
   return (Story: ComponentType) => (
@@ -30,7 +30,7 @@ const meta: Meta<typeof VoucherProposeReturnDialog> = {
   args: {
     booking: STORY_LINA_ENDED,
     title: "Claude access, 30 days",
-    safe: { status: "observed", threshold: 2, owners: 5 },
+    safe: STORY_GREEN_GOODS_SAFE,
     tone: "garden",
     onClose: () => undefined,
     onPropose: async () => undefined,

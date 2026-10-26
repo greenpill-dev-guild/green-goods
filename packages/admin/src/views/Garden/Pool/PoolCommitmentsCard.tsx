@@ -6,6 +6,7 @@ import type {
   PoolConsoleController,
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { IssuerSafeThreshold } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiCalendarCloseLine, RiFilterOffLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
@@ -38,6 +39,8 @@ export interface PoolCommitmentsCardProps {
   vouchers: VoucherConsoleView;
   /** The pool a visit report is recorded in, named in its dialog. */
   target: PoolWriteTarget;
+  /** The issuer Safe's signature rule, read from the Safe, for a proposed return's dialog. */
+  safe?: IssuerSafeThreshold;
   scope: PoolCommitmentScope;
   onScopeChange: (scope: PoolCommitmentScope) => void;
   focus: PoolCommitmentFocus;
@@ -67,6 +70,7 @@ export function PoolCommitmentsCard({
   console: pool,
   vouchers,
   target,
+  safe,
   scope,
   onScopeChange,
   focus,
@@ -383,6 +387,7 @@ export function PoolCommitmentsCard({
         open={bookingAct}
         title={bookingAct ? titleFor(bookingAct.booking.commitmentId) : ""}
         vouchers={vouchers}
+        safe={safe}
         target={target}
         nowMs={now}
         tone={tone}

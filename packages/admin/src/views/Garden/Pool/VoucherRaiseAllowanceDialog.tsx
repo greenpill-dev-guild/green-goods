@@ -1,10 +1,10 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
+  type IssuerSafeThreshold,
   parseVoucherAmount,
   selectAllowanceRaise,
   type VoucherIssuerReserve,
-  type VoucherIssuerSafe,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -17,7 +17,8 @@ import { voucherCount, voucherSafeNote } from "./voucherPresentation";
 export interface VoucherRaiseAllowanceDialogProps {
   /** The reserve whose allowance to raise; the dialog is open while one is set. */
   reserve: VoucherIssuerReserve | null;
-  safe: VoucherIssuerSafe;
+  /** The issuer Safe's signature rule, read from the Safe. */
+  safe: IssuerSafeThreshold | undefined;
   tone?: AdminDialogProps["tone"];
   onClose: () => void;
   onRaise: (reserve: VoucherIssuerReserve, allowance: bigint) => Promise<void>;

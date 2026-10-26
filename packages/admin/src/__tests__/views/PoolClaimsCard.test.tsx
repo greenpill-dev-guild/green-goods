@@ -208,7 +208,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
         agreed: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
         current: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
         agreedAt: NOW - 172_800,
-        issuer: { name: "Tech and Sun", safe: LINA, decimals: 6 },
+        issuer: { name: "Tech and Sun", chainId: 100, safe: LINA, decimals: 6 },
         setup: {
           voucherUnits: 1_000_000n,
           approvedAt: NOW - 86_400,
@@ -231,7 +231,6 @@ describe("PoolClaimsCard (Review Promises)", () => {
           status: "observed",
           observedAt: NOW,
           asks,
-          safe: { status: "observed", threshold: 1, owners: 1 },
         },
       });
     const bookingTitles = new Map([

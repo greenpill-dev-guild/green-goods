@@ -26,6 +26,7 @@ import { commitmentNeedsSeat } from "../../../modules/commitment-pooling/acts";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
 import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
 import {
+  type IssuerSafeThreshold,
   selectVoucherAcceptanceChecks,
   UNAVAILABLE_VOUCHER_CONSOLE,
   type VoucherAsk,
@@ -115,6 +116,33 @@ export function useVoucherConsole(input: { chainId: number; garden: Address }): 
     ...lookups,
     acts: VOUCHER_ACTS_NOT_ADOPTED,
   };
+}
+
+/**
+ * Stands in for the shared issuer Safe threshold read under the name and shape
+ * its owner fixed (`useIssuerSafeThreshold` in `@green-goods/shared/commitment-pooling`,
+ * PRD-1297's shared reads). It answers unavailable, as the Safe can't be read
+ * before the pilot is adopted, and Storybook seeds its key with the pilot's
+ * Safes. Delete it and import the shared read once that lands.
+ */
+export function useIssuerSafeThreshold({
+  chainId,
+  safe,
+}: {
+  chainId: number;
+  safe: Address | undefined;
+}) {
+  return useQuery({
+    queryKey: commitmentPoolingKeys.issuerSafeThreshold(chainId, safe),
+    queryFn: async (): Promise<IssuerSafeThreshold> => ({
+      safe: safe as Address,
+      status: "unavailable",
+      threshold: null,
+      owners: null,
+    }),
+    enabled: safe !== undefined,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
 }
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */

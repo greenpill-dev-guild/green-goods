@@ -27,12 +27,14 @@ import {
   STORY_GREEN_GOODS_CLAIMS,
   STORY_GREEN_GOODS_COMMITMENTS,
   STORY_GREEN_GOODS_RETURN_FAILED,
+  STORY_GREEN_GOODS_SAFE,
   STORY_TECH_AND_SUN_CLAIMS,
   STORY_TECH_AND_SUN_COMMITMENTS,
+  STORY_TECH_AND_SUN_SAFE,
   STORY_TECH_AND_SUN_SHORT,
   STORY_TECH_AND_SUN_VOUCHERS,
   STORY_VOUCHER_TITLES,
-  voucherConsoleSeed,
+  voucherConsoleSeeds,
 } from "./poolStoryVouchers";
 
 const OPEN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
@@ -59,11 +61,12 @@ const UNREGISTERED_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   [queryKeys.commitmentPooling.pools(DEFAULT_CHAIN_ID, STORY_GARDEN), []],
 ];
 
-/** An issuing garden's pool with the voucher pilot read in (PRD-1297 surface 6). */
+/** An issuing garden's pool, its voucher bookings and its Safe's rule (PRD-1297 surface 6). */
 function voucherSeeds(
   commitments: typeof STORY_TECH_AND_SUN_COMMITMENTS,
   claims: typeof STORY_TECH_AND_SUN_CLAIMS,
-  vouchers: Parameters<typeof voucherConsoleSeed>[0]
+  vouchers: Parameters<typeof voucherConsoleSeeds>[0],
+  safe: Parameters<typeof voucherConsoleSeeds>[1]
 ): ReadonlyArray<readonly [QueryKey, unknown]> {
   return [
     ...STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -81,9 +84,16 @@ function voucherSeeds(
     ...[...STORY_VOUCHER_TITLES].map(
       ([cid, metadata]) => [queryKeys.commitmentPooling.metadata(cid), metadata] as const
     ),
-    voucherConsoleSeed(vouchers),
+    ...voucherConsoleSeeds(vouchers, safe),
   ];
 }
+
+const TECH_AND_SUN_SEEDS = voucherSeeds(
+  STORY_TECH_AND_SUN_COMMITMENTS,
+  STORY_TECH_AND_SUN_CLAIMS,
+  STORY_TECH_AND_SUN_VOUCHERS,
+  STORY_TECH_AND_SUN_SAFE
+);
 
 function decorators(seeds: ReadonlyArray<readonly [QueryKey, unknown]>) {
   return [
@@ -161,13 +171,7 @@ export const ReaderView: Story = {
  */
 export const TechAndSunVouchers: Story = {
   args: { garden: { id: STORY_GARDEN, name: "Tech and Sun" } },
-  decorators: decorators(
-    voucherSeeds(
-      STORY_TECH_AND_SUN_COMMITMENTS,
-      STORY_TECH_AND_SUN_CLAIMS,
-      STORY_TECH_AND_SUN_VOUCHERS
-    )
-  ),
+  decorators: decorators(TECH_AND_SUN_SEEDS),
   beforeEach: nameVoucherMembers,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -184,7 +188,8 @@ export const TechAndSunReserveShort: Story = {
     voucherSeeds(
       STORY_TECH_AND_SUN_COMMITMENTS,
       STORY_TECH_AND_SUN_CLAIMS,
-      STORY_TECH_AND_SUN_SHORT
+      STORY_TECH_AND_SUN_SHORT,
+      STORY_TECH_AND_SUN_SAFE
     )
   ),
   beforeEach: nameVoucherMembers,
@@ -197,7 +202,8 @@ export const GreenGoodsTransferFailed: Story = {
     voucherSeeds(
       STORY_GREEN_GOODS_COMMITMENTS,
       STORY_GREEN_GOODS_CLAIMS,
-      STORY_GREEN_GOODS_RETURN_FAILED
+      STORY_GREEN_GOODS_RETURN_FAILED,
+      STORY_GREEN_GOODS_SAFE
     )
   ),
   beforeEach: nameVoucherMembers,
@@ -216,13 +222,7 @@ export const TechAndSunVouchersEs: Story = {
         <Story />
       </IntlProvider>
     ),
-    ...decorators(
-      voucherSeeds(
-        STORY_TECH_AND_SUN_COMMITMENTS,
-        STORY_TECH_AND_SUN_CLAIMS,
-        STORY_TECH_AND_SUN_VOUCHERS
-      )
-    ),
+    ...decorators(TECH_AND_SUN_SEEDS),
   ],
   play: undefined,
 };
@@ -236,12 +236,6 @@ export const TechAndSunVouchersPt: Story = {
         <Story />
       </IntlProvider>
     ),
-    ...decorators(
-      voucherSeeds(
-        STORY_TECH_AND_SUN_COMMITMENTS,
-        STORY_TECH_AND_SUN_CLAIMS,
-        STORY_TECH_AND_SUN_VOUCHERS
-      )
-    ),
+    ...decorators(TECH_AND_SUN_SEEDS),
   ],
 };

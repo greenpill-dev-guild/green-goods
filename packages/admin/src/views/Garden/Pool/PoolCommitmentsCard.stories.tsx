@@ -23,6 +23,7 @@ import {
   nameVoucherMembers,
   STORY_GREEN_GOODS_COMMITMENTS,
   STORY_GREEN_GOODS_RETURN_FAILED,
+  STORY_GREEN_GOODS_SAFE,
   STORY_GREEN_GOODS_VOUCHERS,
   STORY_TECH_AND_SUN_COMMITMENTS,
   STORY_TECH_AND_SUN_VOUCHERS,
@@ -451,6 +452,7 @@ export const VoucherEndedEarly: Story = {
     }),
     vouchers: storyVoucherConsole(STORY_GREEN_GOODS_VOUCHERS),
     target: { gardenName: "Green Goods Community Garden", isProtocol: true },
+    safe: STORY_GREEN_GOODS_SAFE,
   },
   beforeEach: nameVoucherMembers,
   play: async ({ canvasElement }) => {

@@ -603,7 +603,7 @@ describe("usePoolConsoleController", () => {
       agreed: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
       current: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
       agreedAt: at - 172_800,
-      issuer: { name: "Tech and Sun", safe: GARDEN, decimals: 6 },
+      issuer: { name: "Tech and Sun", chainId: 100, safe: GARDEN, decimals: 6 },
       setup: {
         voucherUnits: 1_000_000n,
         approvedAt: at - 86_400,

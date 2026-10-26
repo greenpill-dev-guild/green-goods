@@ -4,6 +4,7 @@ import type {
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useWaitingForApproval } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import {
+  type IssuerSafeThreshold,
   selectVoucherAskStage,
   type VoucherAsk,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
@@ -23,6 +24,8 @@ export interface PoolClaimsCardProps {
   vouchers: VoucherConsoleView;
   /** The pool an acceptance writes to, named in its dialog. */
   target: PoolWriteTarget;
+  /** The issuer Safe's signature rule, read from the Safe, for its approval's dialog. */
+  safe?: IssuerSafeThreshold;
   tone?: AdminDialogProps["tone"];
   onDecline: (row: PoolClaimRequestRow) => void;
   /** Open the ask's promise, at its waiting list. */
@@ -51,6 +54,7 @@ export function PoolClaimsCard({
   console: pool,
   vouchers,
   target,
+  safe,
   tone,
   onDecline,
   onOpen,
@@ -174,7 +178,7 @@ export function PoolClaimsCard({
       <VoucherApproveDialog
         ask={approving}
         title={titleFor(approving)}
-        safe={vouchers.snapshot.safe}
+        safe={safe}
         nowMs={nowMs}
         tone={tone}
         onClose={() => setApproving(null)}

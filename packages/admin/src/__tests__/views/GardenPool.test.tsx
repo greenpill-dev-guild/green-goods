@@ -49,6 +49,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", asyn
   return {
     usePoolConsoleController: () => mocks.controller!,
     useVoucherConsole: () => vouchers,
+    useIssuerSafeThreshold: () => ({ data: undefined }),
   };
 });
 

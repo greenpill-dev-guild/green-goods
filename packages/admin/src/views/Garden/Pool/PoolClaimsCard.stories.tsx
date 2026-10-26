@@ -20,8 +20,10 @@ import {
 import {
   nameVoucherMembers,
   STORY_GREEN_GOODS_CLAIMS,
+  STORY_GREEN_GOODS_SAFE,
   STORY_GREEN_GOODS_VOUCHERS,
   STORY_TECH_AND_SUN_CLAIMS,
+  STORY_TECH_AND_SUN_SAFE,
   STORY_TECH_AND_SUN_VOUCHERS,
   STORY_VOUCHER_TITLES,
   storyVoucherConsole,
@@ -191,6 +193,7 @@ export const VoucherAsks: Story = {
     console: storyPoolConsole({ claims: STORY_TECH_AND_SUN_CLAIMS, titles: STORY_VOUCHER_TITLES }),
     vouchers: storyVoucherConsole(STORY_TECH_AND_SUN_VOUCHERS),
     target: { gardenName: "Tech and Sun", isProtocol: false },
+    safe: STORY_TECH_AND_SUN_SAFE,
   },
   beforeEach: nameVoucherMembers,
   play: async ({ canvasElement }) => {
@@ -245,6 +248,7 @@ export const VoucherAskGreenGoods: Story = {
     console: storyPoolConsole({ claims: STORY_GREEN_GOODS_CLAIMS, titles: STORY_VOUCHER_TITLES }),
     vouchers: storyVoucherConsole(STORY_GREEN_GOODS_VOUCHERS),
     target: { gardenName: "Green Goods Community Garden", isProtocol: true },
+    safe: STORY_GREEN_GOODS_SAFE,
   },
   beforeEach: nameVoucherMembers,
 };

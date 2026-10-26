@@ -46,6 +46,7 @@ const NOW = 1_771_800_000;
 const VOUCHER = 1_000_000n;
 const ISSUER = {
   name: "Green Goods",
+  chainId: 100,
   safe: "0x5afe00000000000000000000000000000000c3d4" as Address,
   decimals: 6,
 };
@@ -81,7 +82,7 @@ function offers(bookings: VoucherBooking[], acts: Partial<VoucherConsoleView["ac
       status: "observed",
       observedAt: NOW,
       bookings,
-      safe: { status: "observed", threshold: 2, owners: 5 },
+      issuer: ISSUER,
     },
   });
   const view = { ...vouchers, acts: { ...vouchers.acts, ...acts } };
@@ -183,7 +184,7 @@ describe("the issuer's acts in the Promises console", () => {
     renderWithProviders(
       <VoucherReserveCard
         reserve={reserve}
-        safe={{ status: "observed", threshold: 1, owners: 1 }}
+        safe={{ safe: ISSUER.safe, status: "observed", threshold: 1, owners: 1 }}
         disabled={false}
         onRaiseAllowance={onRaiseAllowance}
       />

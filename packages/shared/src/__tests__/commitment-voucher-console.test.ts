@@ -36,6 +36,7 @@ function ask(
     agreedAt: NOW - 2 * DAY,
     issuer: {
       name: "Tech and Sun",
+      chainId: 100,
       safe: "0x5afe000000000000000000000000000000005afe",
       decimals: 6,
     },

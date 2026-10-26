@@ -25,6 +25,8 @@ import type { Address } from "../../types/domain";
 export interface VoucherIssuer {
   /** How members know the issuer: "Tech and Sun", "Green Goods". */
   name: string;
+  /** The voucher network the issuer's token and Safe live on. */
+  chainId: number;
   /** The issuer's Safe on the voucher network: it approves each booking and proposes returns. */
   safe: Address;
   /** A voucher is 10^decimals of the token's units. */
@@ -116,10 +118,17 @@ export interface VoucherIssuerReserve {
   waitingReward: { recipient: Address; units: bigint; title: string } | null;
 }
 
-/** The issuer Safe's signature rule, read from the Safe and never written into copy. */
-export type VoucherIssuerSafe =
-  | { status: "observed"; threshold: number; owners: number }
-  | { status: "unavailable" };
+/**
+ * An issuer Safe's signature rule, read from the Safe and never written into
+ * copy (PRD-1297 task 13). The shared read owns this shape; the console reads
+ * it through `useIssuerSafeThreshold`.
+ */
+export interface IssuerSafeThreshold {
+  safe: Address;
+  status: "observed" | "unavailable";
+  threshold: number | null;
+  owners: number | null;
+}
 
 export interface VoucherConsoleSnapshot {
   /** Unavailable until the voucher pilot deployment is adopted and its reads are wired. */
@@ -128,9 +137,10 @@ export interface VoucherConsoleSnapshot {
   observedAt: number;
   asks: readonly VoucherAsk[];
   bookings: readonly VoucherBooking[];
+  /** The garden's own voucher issuer, whose Safe approves its bookings; null if it issues none. */
+  issuer: VoucherIssuer | null;
   /** The garden's own issuer reserve, when the garden issues vouchers. */
   reserve: VoucherIssuerReserve | null;
-  safe: VoucherIssuerSafe;
 }
 
 export const UNAVAILABLE_VOUCHER_CONSOLE: VoucherConsoleSnapshot = {
@@ -138,8 +148,8 @@ export const UNAVAILABLE_VOUCHER_CONSOLE: VoucherConsoleSnapshot = {
   observedAt: 0,
   asks: [],
   bookings: [],
+  issuer: null,
   reserve: null,
-  safe: { status: "unavailable" },
 };
 
 const HASH = /^0x[0-9a-f]{64}$/i;

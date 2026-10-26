@@ -4,11 +4,11 @@ import type {
 } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { VoucherConsoleView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
+  type IssuerSafeThreshold,
   selectVoucherAskStage,
   type VoucherAsk,
   type VoucherAskStage,
   type VoucherBooking,
-  type VoucherIssuerSafe,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { IntlShape } from "react-intl";
 import { formatUnits } from "viem";
@@ -277,8 +277,11 @@ export function voucherOfferRow(
 }
 
 /** The issuer Safe's signature rule, closing a Safe write's dialog as the shipped dialogs say their prompts. */
-export function voucherSafeNote(safe: VoucherIssuerSafe, formatMessage: FormatMessage): string {
-  if (safe.status !== "observed") {
+export function voucherSafeNote(
+  safe: IssuerSafeThreshold | undefined,
+  formatMessage: FormatMessage
+): string {
+  if (safe?.status !== "observed" || safe.threshold === null || safe.owners === null) {
     return formatMessage({
       id: "cockpit.garden.pool.voucher.safe.unread",
       defaultMessage: "Your Safe signs this. Its signature count can’t be read right now.",

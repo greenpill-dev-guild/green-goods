@@ -28,13 +28,13 @@ export {
   UNAVAILABLE_VOUCHER_CONSOLE,
 } from "./voucher-console";
 export type {
+  IssuerSafeThreshold,
   VoucherAcceptanceChecks,
   VoucherAsk,
   VoucherAskStage,
   VoucherBooking,
   VoucherConsoleSnapshot,
   VoucherIssuerReserve,
-  VoucherIssuerSafe,
 } from "./voucher-console";
 
 export type PoolConsoleStatus =

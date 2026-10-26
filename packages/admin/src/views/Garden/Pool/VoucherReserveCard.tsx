@@ -2,8 +2,8 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type {
+  IssuerSafeThreshold,
   VoucherIssuerReserve,
-  VoucherIssuerSafe,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -15,7 +15,8 @@ import { voucherCount } from "./voucherPresentation";
 
 export interface VoucherReserveCardProps {
   reserve: VoucherIssuerReserve;
-  safe: VoucherIssuerSafe;
+  /** The issuer Safe's signature rule, read from the Safe. */
+  safe: IssuerSafeThreshold | undefined;
   /** Offline, or another act is with the wallet or the chain. */
   disabled: boolean;
   tone?: AdminDialogProps["tone"];
@@ -181,7 +182,7 @@ export function VoucherReserveCard({
                 defaultMessage: "Each booking",
               })}
               note={
-                safe.status === "observed"
+                safe?.status === "observed" && safe.threshold !== null && safe.owners !== null
                   ? formatMessage(
                       {
                         id: "cockpit.garden.pool.voucher.reserve.safeSigns",

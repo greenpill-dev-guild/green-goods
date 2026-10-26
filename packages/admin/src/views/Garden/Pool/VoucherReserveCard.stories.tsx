@@ -6,7 +6,9 @@ import { IntlProvider } from "react-intl";
 import { expect, screen, userEvent, within } from "storybook/test";
 import { VoucherReserveCard } from "./VoucherReserveCard";
 import {
+  STORY_GREEN_GOODS_SAFE,
   STORY_GREEN_GOODS_VOUCHERS,
+  STORY_TECH_AND_SUN_SAFE,
   STORY_TECH_AND_SUN_SHORT,
   STORY_TECH_AND_SUN_VOUCHERS,
   nameVoucherMembers,
@@ -34,7 +36,7 @@ const meta: Meta<typeof VoucherReserveCard> = {
   },
   args: {
     reserve: STORY_TECH_AND_SUN_VOUCHERS.reserve!,
-    safe: STORY_TECH_AND_SUN_VOUCHERS.safe,
+    safe: STORY_TECH_AND_SUN_SAFE,
     disabled: false,
     tone: "garden",
     onRaiseAllowance: async () => undefined,
@@ -59,7 +61,7 @@ export const TechAndSun: Story = {};
 export const GreenGoods: Story = {
   args: {
     reserve: STORY_GREEN_GOODS_VOUCHERS.reserve!,
-    safe: STORY_GREEN_GOODS_VOUCHERS.safe,
+    safe: STORY_GREEN_GOODS_SAFE,
   },
   play: async ({ canvasElement }) => {
     await expect(
@@ -92,7 +94,9 @@ export const RaiseAllowance: Story = {
 
 /** The Safe can't be read: the card says the Safe signs each booking, without a count. */
 export const SafeUnread: Story = {
-  args: { safe: { status: "unavailable" } },
+  args: {
+    safe: { ...STORY_TECH_AND_SUN_SAFE, status: "unavailable", threshold: null, owners: null },
+  },
 };
 
 export const ReserveShortEs: Story = {

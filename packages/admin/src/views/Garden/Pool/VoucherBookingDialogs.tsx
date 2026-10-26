@@ -1,7 +1,10 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { VoucherConsoleView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import type { VoucherBooking } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type {
+  IssuerSafeThreshold,
+  VoucherBooking,
+} from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import { useIntl } from "react-intl";
 import type { AdminDialogProps } from "@/components/AdminDialog";
 import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
@@ -160,6 +163,7 @@ export function VoucherBookingDialogs({
   open,
   title,
   vouchers,
+  safe,
   target,
   nowMs,
   tone,
@@ -168,7 +172,9 @@ export function VoucherBookingDialogs({
   open: VoucherBookingAct;
   /** The offer the booking is for. */
   title: string;
-  vouchers: Pick<VoucherConsoleView, "acts" | "snapshot">;
+  vouchers: Pick<VoucherConsoleView, "acts">;
+  /** The issuer Safe's signature rule, read from the Safe. */
+  safe: IssuerSafeThreshold | undefined;
   target: PoolWriteTarget;
   nowMs: number;
   tone?: AdminDialogProps["tone"];
@@ -188,7 +194,7 @@ export function VoucherBookingDialogs({
       <VoucherProposeReturnDialog
         booking={open?.kind === "propose" ? open.booking : null}
         title={title}
-        safe={vouchers.snapshot.safe}
+        safe={safe}
         tone={tone}
         onClose={onClose}
         onPropose={vouchers.acts.proposeReturn}

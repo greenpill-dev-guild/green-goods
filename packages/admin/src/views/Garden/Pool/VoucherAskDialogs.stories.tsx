@@ -6,7 +6,13 @@ import { IntlProvider } from "react-intl";
 import { expect, screen, userEvent, within } from "storybook/test";
 import { STORYBOOK_NOW_SECONDS } from "../../../../../shared/.storybook/fixtures";
 import { VoucherAcceptDialog, VoucherApproveDialog } from "./VoucherAskDialogs";
-import { STORY_KWESI_ASK, STORY_LINA_ASK, nameVoucherMembers } from "./poolStoryVouchers";
+import {
+  STORY_GREEN_GOODS_SAFE,
+  STORY_KWESI_ASK,
+  STORY_LINA_ASK,
+  STORY_TECH_AND_SUN_SAFE,
+  nameVoucherMembers,
+} from "./poolStoryVouchers";
 
 const NOW_MS = STORYBOOK_NOW_SECONDS * 1000;
 const TARGET = { gardenName: "Tech and Sun", isProtocol: false };
@@ -40,7 +46,7 @@ const approve = (overrides: Partial<Parameters<typeof VoucherApproveDialog>[0]> 
   <VoucherApproveDialog
     ask={STORY_LINA_ASK}
     title="Hub day, up to 4 hours"
-    safe={{ status: "observed", threshold: 1, owners: 1 }}
+    safe={STORY_TECH_AND_SUN_SAFE}
     nowMs={NOW_MS}
     tone="garden"
     onClose={() => undefined}
@@ -79,7 +85,7 @@ export const ApproveBooking: Story = {
 
 /** Green Goods' Safe signs two of five, so the dialog says so. */
 export const ApproveTwoOfFive: Story = {
-  render: () => approve({ safe: { status: "observed", threshold: 2, owners: 5 } }),
+  render: () => approve({ safe: STORY_GREEN_GOODS_SAFE }),
   play: async () => {
     const dialog = within(await screen.findByRole("dialog"));
     await expect(dialog.getByText("Your Safe needs 2 of 5 signatures.")).toBeVisible();
@@ -88,7 +94,10 @@ export const ApproveTwoOfFive: Story = {
 
 /** The Safe can't be read: the dialog says the Safe signs, without inventing a count. */
 export const ApproveSafeUnread: Story = {
-  render: () => approve({ safe: { status: "unavailable" } }),
+  render: () =>
+    approve({
+      safe: { ...STORY_TECH_AND_SUN_SAFE, status: "unavailable", threshold: null, owners: null },
+    }),
 };
 
 /** Kwesi's deposit is confirmed on Green Goods: every check holds, and Accept is on. */

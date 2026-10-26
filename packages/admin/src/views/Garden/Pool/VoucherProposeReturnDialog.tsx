@@ -1,10 +1,10 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
+  type IssuerSafeThreshold,
   parseVoucherAmount,
   selectReturnProposal,
   type VoucherBooking,
-  type VoucherIssuerSafe,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -19,7 +19,8 @@ export interface VoucherProposeReturnDialogProps {
   booking: VoucherBooking | null;
   /** The offer the booking is for. */
   title: string;
-  safe: VoucherIssuerSafe;
+  /** The issuer Safe's signature rule, read from the Safe. */
+  safe: IssuerSafeThreshold | undefined;
   tone?: AdminDialogProps["tone"];
   onClose: () => void;
   onPropose: (booking: VoucherBooking, refund: bigint) => Promise<void>;

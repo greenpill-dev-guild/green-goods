@@ -5,7 +5,11 @@ import type { ComponentType } from "react";
 import { IntlProvider } from "react-intl";
 import { expect, screen, userEvent, within } from "storybook/test";
 import { VoucherRaiseAllowanceDialog } from "./VoucherRaiseAllowanceDialog";
-import { STORY_TECH_AND_SUN_SHORT, nameVoucherMembers } from "./poolStoryVouchers";
+import {
+  STORY_TECH_AND_SUN_SAFE,
+  STORY_TECH_AND_SUN_SHORT,
+  nameVoucherMembers,
+} from "./poolStoryVouchers";
 
 function inLocale(locale: "es" | "pt") {
   return (Story: ComponentType) => (
@@ -29,7 +33,7 @@ const meta: Meta<typeof VoucherRaiseAllowanceDialog> = {
   },
   args: {
     reserve: STORY_TECH_AND_SUN_SHORT.reserve,
-    safe: STORY_TECH_AND_SUN_SHORT.safe,
+    safe: STORY_TECH_AND_SUN_SAFE,
     tone: "garden",
     onClose: () => undefined,
     onRaise: async () => undefined,

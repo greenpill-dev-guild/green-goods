@@ -2,9 +2,9 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { TxActPhase } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
+  type IssuerSafeThreshold,
   selectVoucherAcceptanceChecks,
   type VoucherAsk,
-  type VoucherIssuerSafe,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
@@ -23,7 +23,8 @@ export interface VoucherApproveDialogProps {
   ask: VoucherAsk | null;
   /** The offer the booking is for. */
   title: string;
-  safe: VoucherIssuerSafe;
+  /** The issuer Safe's signature rule, read from the Safe. */
+  safe: IssuerSafeThreshold | undefined;
   nowMs: number;
   tone?: AdminDialogProps["tone"];
   onClose: () => void;
