@@ -204,3 +204,50 @@ describe("Pending rows", () => {
     expect(card({ ...wallet, ...offline }, sent)?.status).toBe("Check again when you're connected");
   });
 });
+
+describe("a work for a promise taken up in the same tap (decision 18)", () => {
+  const held = (stage: "pending" | "failed"): PendingRowContext => ({
+    ...context,
+    takeUpStage: () => stage,
+  });
+
+  it("says the take-up goes first while it is on its way, and how a wallet reader sends it", () => {
+    const row = submissionRow(queuedWork("ready"), true, held("pending"));
+    expect(row.type === "work" && row.card).toMatchObject({
+      kind: "upload",
+      pill: "To upload",
+      status: "Waits for the promise to be taken up",
+    });
+
+    const wallet = submissionRow(queuedWork("ready"), true, {
+      ...held("pending"),
+      sendsFromTap: true,
+    });
+    expect(wallet.type === "work" && wallet.card.status).toBe(
+      "Not sent. Open it to take up the promise first"
+    );
+  });
+
+  it("names the take-up as the stage that failed, and keeps the work discardable", () => {
+    const row = submissionRow(queuedWork("ready"), true, held("failed"));
+
+    expect(row).toMatchObject({ kind: "needs", discardable: true });
+    expect(row.type === "work" && row.card).toMatchObject({
+      pill: "Can't upload",
+      status: "Taking up the promise didn't go",
+      statusTone: "error",
+    });
+  });
+
+  it("names the link as the stage that failed once the work is in review", () => {
+    const sent: Work = { ...queuedWork("none"), id: "0xwork", status: "pending" };
+    const row = submissionRow(sent, false, { ...context, linkFailed: () => true });
+
+    expect(row.type === "work" && row.card).toMatchObject({
+      kind: "review",
+      pill: "In review",
+      status: "Linking it to the promise didn't go",
+      statusTone: "error",
+    });
+  });
+});

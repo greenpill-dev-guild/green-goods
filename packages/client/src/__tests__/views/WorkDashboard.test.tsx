@@ -206,6 +206,7 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => 
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => ({
     linkedWorkIds: new Set<string>(),
+    failedLinkWorkIds: new Set<string>(),
     refresh: mockQueueRefresh,
   }),
 }));

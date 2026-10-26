@@ -182,6 +182,7 @@ function DashboardFrame({
           decisions={decisions}
           uploads={{
             pausedForDataSaver: uploads?.pausedForDataSaver ?? false,
+            statusOf: () => undefined,
             decisionFor: (workId) => {
               const decided = decisions.find((work) => work.id === workId);
               return decided
@@ -278,6 +279,7 @@ const meta: Meta<typeof DashboardFrame> = {
     } as unknown as ReturnType<typeof useCommitmentJobs>);
     mocked(useCommitmentQueueState).mockReturnValue({
       linkedWorkIds: fixture.linkedWorkIds,
+      failedLinkWorkIds: new Set(),
     } as unknown as ReturnType<typeof useCommitmentQueueState>);
     mocked(useLinkedWorkUIDs).mockReturnValue({
       linked: fixture.linkedWorkUIDs,

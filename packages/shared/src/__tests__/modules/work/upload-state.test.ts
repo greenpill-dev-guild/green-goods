@@ -99,6 +99,26 @@ describe("where a queued item stands for Upload all", () => {
     ).toBe("failed");
   });
 
+  it("holds a work behind its take-up: on its way while the take-up is, stopped once it gave up", () => {
+    const prepared = queued("work", {
+      meta: { preparation: { status: "ready", checkedAt: CHECKED_AT } },
+    });
+    const takeUp = queued("claim");
+
+    expect(queuedUploadStatus(prepared, { takeUp })).toEqual({ state: "take-up-pending" });
+    expect(
+      queuedUploadStatus(prepared, {
+        takeUp: { ...takeUp, attempts: 5, lastError: "Max retries (5) exceeded" },
+      })
+    ).toEqual({ state: "take-up-failed" });
+    expect(queuedUploadStatus(prepared, { takeUp: null })).toEqual({ state: "ready" });
+    // A work whose send is on record is confirmed, never held: it may already be on the chain.
+    const sent = queued("work", {
+      payload: { uploadCheckpoint: { submittedAt: "", files: {}, broadcastPending: true } },
+    });
+    expect(queuedUploadStatus(sent, { takeUp })).toEqual({ state: "sent" });
+  });
+
   it("ignores a preparation record it does not understand", () => {
     expect(uploadPreparationOf({ meta: { preparation: { status: "ready" } } })).toBeUndefined();
     expect(

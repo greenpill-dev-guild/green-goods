@@ -26,6 +26,15 @@ export interface WorkSubmissionProgress {
   bypassMediaRequirement?: boolean;
 }
 
+/**
+ * How many times one submission asks the member to sign, said before the first prompt (decision
+ * 18; a write that needs several signatures says how many up front): the work, its link when it
+ * is for a promise, and the take-up first when the same tap takes that promise up.
+ */
+export function submissionPromptCount(input: { linksPromise: boolean; takesUp: boolean }): number {
+  return 1 + (input.linksPromise ? 1 : 0) + (input.linksPromise && input.takesUp ? 1 : 0);
+}
+
 export function canProceedWithWorkSubmission(progress: WorkSubmissionProgress): boolean {
   switch (progress.tab) {
     case WorkTab.Intro:

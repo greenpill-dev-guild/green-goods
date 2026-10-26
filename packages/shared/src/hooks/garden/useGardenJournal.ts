@@ -38,6 +38,7 @@ import {
   useCommitmentPools,
   useCommitments,
 } from "../commitment-pooling/useCommitmentPooling";
+import { useViewerTakeUps } from "../commitment-pooling/useViewerTakeUps";
 import { useDocumentEvent } from "../utils/useEventListener";
 import { useWorks } from "../work/useWorks";
 
@@ -142,7 +143,10 @@ export interface GardenOpenPromises {
 
 const NO_COMMITMENTS: CommitmentReadModel[] = [];
 
-/** The promises in the garden's pool that the reader could take part in. */
+/**
+ * The promises in the garden's pool that the reader could take part in: none they already
+ * asked for or are taking up from this phone.
+ */
 export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   const isOnline = useOnlineStatus();
   const viewer = usePrimaryAddress();
@@ -151,12 +155,18 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
     { chainId, poolId: pool?.poolId ?? 0n },
     { enabled: pool !== null }
   );
+  const { takeUps, settled } = useViewerTakeUps({
+    chainId,
+    poolId: pool?.poolId ?? 0n,
+    viewer,
+    enabled: pool !== null,
+  });
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
   const poolOpen = pool?.state === "OPEN";
   const entries = useMemo(
-    () => takePartEntries({ commitments: listed, metadataByCID: byCID, viewer, poolOpen }),
-    [listed, byCID, viewer, poolOpen]
+    () => takePartEntries({ commitments: listed, metadataByCID: byCID, viewer, poolOpen, takeUps }),
+    [listed, byCID, viewer, poolOpen, takeUps]
   );
 
   const state = poolSectionState({
@@ -169,7 +179,8 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
       dataUpdatedAt: pools.dataUpdatedAt,
     },
     list: {
-      hasData: commitments.data !== undefined,
+      // A request in flight would show an ask the reader asked for, then take it away.
+      hasData: commitments.data !== undefined && settled,
       isError: commitments.isError,
       dataUpdatedAt: commitments.dataUpdatedAt,
     },

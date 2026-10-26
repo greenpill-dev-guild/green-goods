@@ -149,6 +149,14 @@ export interface CommitmentQueueState {
    */
   linkedWorkIds: ReadonlySet<string>;
   /**
+   * Promises this member is taking up from this phone, by decimal id: a claim
+   * queued, sending, or failed and not yet discarded. A promise listed here is
+   * not offered for taking up again.
+   */
+  takeUpIds: ReadonlySet<string>;
+  /** Sent work whose link to its promise gave up, by client work id, so Your Work names it. */
+  failedLinkWorkIds: ReadonlySet<string>;
+  /**
    * The queue could not be read. Distinct from "nothing is queued": a surface
    * that treats a failed read as an empty queue re-enables an act already
    * taken and reports no failures when it cannot see any.
@@ -264,6 +272,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     const pendingCreates: PendingCommitmentCreation[] = [];
     const proofJobs: Job[] = [];
     const linkedWorkIds = new Set<string>();
+    const takeUpIds = new Set<string>();
+    const failedLinkWorkIds = new Set<string>();
     let failedCount = 0;
     let hasPendingCreate = false;
     // Add and Send's send waits behind its proof. Until the proof lands the
@@ -281,6 +291,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
         if (link.clientWorkId) linkedWorkIds.add(link.clientWorkId);
       }
       const commitmentId = commitmentIdOf(job);
+      if (job.kind === "claim" && commitmentId) takeUpIds.add(commitmentId);
       const failed = isTerminallyFailedJob(job);
       if (job.kind === "commitment") {
         const payload = job.payload as {
@@ -317,6 +328,10 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           sendFailure: failed ? undefined : explainFailedSend(job.lastError),
           createdAt: job.createdAt,
         });
+      }
+      if (failed && job.kind === "workLink") {
+        const { clientWorkId } = job.payload as { clientWorkId?: string };
+        if (clientWorkId) failedLinkWorkIds.add(clientWorkId);
       }
       if (failed) {
         failedCount += 1;
@@ -361,6 +376,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       pendingCreates,
       proofJobs,
       linkedWorkIds,
+      takeUpIds,
+      failedLinkWorkIds,
       isUnavailable: Boolean(viewer) && query.isError,
       refresh,
     };

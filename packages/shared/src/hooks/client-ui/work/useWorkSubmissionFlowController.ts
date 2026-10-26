@@ -11,13 +11,8 @@ import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { logger } from "../../../modules/app/logger";
 import {
   dependentWorkLinkPayload,
-  hasWorkLinkIntentParams,
-  parseWorkLinkIntent,
-  sameWorkLinkIdentity,
   toDraftWorkLink,
   type WorkLinkIntent,
-  workLinkReturnGarden,
-  writeWorkLinkIntent,
 } from "../../../modules/commitment-pooling/work-link-intent";
 import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
 import { useWorkFormContext, useWorkSelection } from "../../../providers/Work";
@@ -31,13 +26,13 @@ import { useOffline } from "../../app/useOffline";
 import { scrollAppToTop } from "../../app/useScrollToTop";
 import { useUser } from "../../auth/useUser";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
-import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
 import { useWorkAudioRecording } from "../../work/useWorkAudioRecording";
 import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
 import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
 import { useCommunityGardenOnramp } from "./useCommunityGardenOnramp";
+import { useSubmissionPromiseLink } from "./useSubmissionPromiseLink";
 import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
 
@@ -45,7 +40,6 @@ type MediaJourneyEvent =
   | "work_media_preview_failed"
   | "work_media_removed"
   | "work_broken_media_removed";
-type LinkIntentStatus = "none" | "validating" | "valid" | "invalid" | "unavailable";
 
 interface PendingLinkRecovery {
   intent: WorkLinkIntent;
@@ -119,8 +113,6 @@ export function useWorkSubmissionFlowController({
     ...details
   } = form.values;
   const commitmentJobs = useCommitmentJobs({ chainId: DEFAULT_CHAIN_ID });
-  const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
-  const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
   // Hold submission and draft retirement until the dependent link settles. Queueing starts
   // only after Work was sent; scheduling also covers Work saved on this device.
@@ -128,53 +120,24 @@ export function useWorkSubmissionFlowController({
   const [isQueueingDependentLink, setIsQueueingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
   const [linkSchedulingWorkSent, setLinkSchedulingWorkSent] = useState<boolean | null>(null);
-  const linkChoices = useWorkLinkChoices({
-    chainId: DEFAULT_CHAIN_ID,
-    account: primaryAddress as `0x${string}` | null,
-    workGarden: (parsedLinkIntent?.garden ?? gardenAddress) as `0x${string}` | null,
-    returnGarden: (parsedLinkIntent ? workLinkReturnGarden(parsedLinkIntent) : gardenAddress) as
-      | `0x${string}`
-      | null,
-    actionUID: parsedLinkIntent?.actionUID ?? actionUID,
+  const promiseLink = useSubmissionPromiseLink({
+    searchParams,
+    setSearchParams,
+    account: primaryAddress as Address | null,
+    gardenAddress: gardenAddress as Address | null,
+    actionUID,
+    setGardenAddress: setGardenAddressStable,
+    takeUp: commitmentJobs.takeUp,
   });
-  const linkIntent = useMemo(
-    () =>
-      parsedLinkIntent
-        ? (linkChoices.choices.find((choice) => sameWorkLinkIdentity(choice, parsedLinkIntent)) ??
-          null)
-        : null,
-    [linkChoices.choices, parsedLinkIntent]
-  );
-  const linkIntentStatus: LinkIntentStatus = !hasLinkIntentParams
-    ? "none"
-    : !parsedLinkIntent
-      ? "invalid"
-      : !primaryAddress || linkChoices.isLoading
-        ? "validating"
-        : linkChoices.isError
-          ? "unavailable"
-          : linkIntent
-            ? "valid"
-            : "invalid";
-  // Taking the promise off is saved with the draft; see draftLinkCleared.
-  const clearLinkIntent = useCallback(() => {
-    useWorkFlowStore.setState({ draftLinkCleared: true });
-    setSearchParams(writeWorkLinkIntent(searchParams, null), { replace: true });
-  }, [searchParams, setSearchParams]);
-  const selectLinkIntent = useCallback(
-    (intent: WorkLinkIntent | null) => {
-      const canonical = intent
-        ? (linkChoices.choices.find((choice) => sameWorkLinkIdentity(choice, intent)) ?? null)
-        : null;
-      useWorkFlowStore.setState({ draftLinkCleared: !canonical });
-      setSearchParams(writeWorkLinkIntent(searchParams, canonical), { replace: true });
-      if (canonical) {
-        setGardenAddressStable(canonical.garden);
-        useWorkFlowStore.getState().setActionUID(canonical.actionUID);
-      }
-    },
-    [linkChoices.choices, searchParams, setGardenAddressStable, setSearchParams]
-  );
+  const {
+    parsedLinkIntent,
+    hasLinkIntentParams,
+    linkIntent,
+    linkIntentStatus,
+    linkChoices,
+    clearLinkIntent,
+    selectLinkIntent,
+  } = promiseLink;
 
   const audio = useWorkAudioRecording();
   const { audioNotes } = audio;
@@ -291,6 +254,11 @@ export function useWorkSubmissionFlowController({
     if (linkIntent) setIsSchedulingDependentLink(true);
     try {
       await saveOnExit();
+      // An Open ask is taken up first; declined or refused, nothing of the work is queued.
+      if (!(await promiseLink.takeUpFirst())) {
+        setIsSchedulingDependentLink(false);
+        return false;
+      }
       workMutation.clearLastSubmissionOutcome();
       await form.uploadWork();
       const outcome = workMutation.getLastSubmissionOutcome();
@@ -459,6 +427,10 @@ export function useWorkSubmissionFlowController({
     linkGardenAddress: linkIntent?.garden ?? null,
     linkIntentStatus,
     commitmentLinkChoices: linkChoices.choices,
+    /** The garden's Open asks the member could take up while logging this work. */
+    takeUpChoices: promiseLink.takeUpChoices.choices,
+    takeUpChoicesLoading: promiseLink.takeUpChoices.isLoading,
+    promptCount: promiseLink.promptCount,
     commitmentLinkChoicesLoading: linkChoices.isLoading,
     commitmentLinkChoicesError: linkChoices.error,
     refetchCommitmentLinkChoices: linkChoices.refetch,

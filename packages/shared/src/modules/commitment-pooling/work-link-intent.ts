@@ -20,6 +20,8 @@ export interface WorkLinkChoice extends WorkLinkIntent {
   requiredCount?: number;
   dueDate?: bigint | null;
   direction?: CommitmentReadModel["direction"];
+  /** An Open ask the member takes up in the same tap that logs the work (decision 18). */
+  takesUp?: true;
 }
 
 /** One operation identity shared by admission, the wizard and queue recovery. */
