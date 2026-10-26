@@ -242,8 +242,11 @@ export function useWorkSubmissionFlow(): {
     },
     [gardenAddress, actionUID, images, workMutation, minRequiredImages, userAddress, intl]
   );
-  const uploadWork = (options?: UploadWorkOptions) =>
-    workForm.handleSubmit((data) => handleUploadWork(data, options))();
+  const { handleSubmit } = workForm;
+  const uploadWork = useCallback(
+    (options?: UploadWorkOptions) => handleSubmit((data) => handleUploadWork(data, options))(),
+    [handleSubmit, handleUploadWork]
+  );
   const isLoading = actionsLoading || gardensLoading;
   const hasJoinedGardens = userGardens.length > 0;
 
