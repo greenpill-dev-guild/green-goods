@@ -20,7 +20,8 @@ joins the local checks (D16). This report records the mapping and the evidence. 
 - Docs drift: `docs-generated`, `docs-authority`.
 - Focused tests named by `--test-path` or inferred from a changed test file. A changed test helper or
   a deleted test now names the test that still proves it, however cheap its suite.
-- The complete contracts gate for a critical contracts change.
+- For a critical contracts change, the full local gate it had before D15, unchanged: the contracts
+  gate plus every consumer's whole suites and builds.
 
 ## What a push leaves to PR CI
 
@@ -53,7 +54,8 @@ time from the receipt stores (2026-08-16 to 2026-10-25).
 - `validation-system-test`: CI runs 7 of its 16 test files.
 - `review-guardrails-test`: 6 of its 11 test files run in no workflow.
 - `agent-tools-test` and `fork-fixtures-test`: no workflow runs them.
-- The contracts gate: `contracts-verify-fast` has no pull-request CI equivalent.
+- A critical contracts change: its whole pre-D15 gate, consumer suites and builds included, because
+  `contracts-verify-fast` has no pull-request CI equivalent.
 - Any check above whose workflow does not run for the change. Two such paths turned up while
   mapping: the passkey preset reads the Agent's test driver
   (`packages/agent/src/__tests__/reporting/driver/server.ts`), whose changes run no Client CI, and
@@ -81,10 +83,12 @@ time from the receipt stores (2026-08-16 to 2026-10-25).
 ## #1308's last review, addressed here
 
 D15 merged as #1308 on 2026-10-26 at 02:22Z (merge commit `6be990807`). Codex's review of its final
-head landed about a minute before the merge, with three findings, all accepted and fixed in this PR:
-a contract-artifact push left the Indexer, one of its consumers, with no local proof, and a
-hand-escalated Indexer entry point lost its compile proof, both because the typecheck map had no
-Indexer entry; the Indexer now maps to its build, which is its typecheck. And the review skill told
-reviewers to render `--intent review`, which classifies risk but selects no override checks; for a
-critical change it now also renders `--intent push` with the owner's test.
-
+head landed about a minute before the merge, with three findings, all accepted and fixed in this PR.
+First, a contract-critical push (an ABI or deployment artifact, or contract source) had taken the
+Shared fast shape and lost its consumers' suites and builds, although D15 locked contracts as
+unchanged; a contract-critical push now keeps its full pre-D15 local gate, and a comparison with
+develop's selector from before #1308 shows those plans identical apart from `react-patterns`.
+Second, a hand-escalated Indexer entry point lost its compile proof because the typecheck map had no
+Indexer entry; the Indexer now maps to its build, which is its typecheck. Third, the review skill
+told reviewers to render `--intent review`, which classifies risk but selects no override checks;
+for a critical change it now also renders `--intent push` with the owner's test.

@@ -166,7 +166,7 @@ For narrower explicit intents, pick the lightest honest rung per `.claude/contex
 - live PR approval → direct local evidence + required current-head CI
 - explicit offline/full-local readiness → full readiness gate + conditional gates
 - critical work → the selector's mandatory override: owner typecheck and focused suite plus
-  consumer typechecks for Shared, the complete contracts gate for contracts
+  consumer typechecks for Shared, the full local gate for contracts
 
 For every selected check, name its risk, expected signal, freshness rule, and stopping condition.
 State what ran with real output. Record the tested commit SHA, UTC timestamp, exact command, and

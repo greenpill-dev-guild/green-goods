@@ -420,7 +420,7 @@ const SURFACE_TEST_TYPECHECKS = {
 // named beside each: a push leaves one to CI only when that workflow is expected for the change,
 // and a package suite only when no test path focuses it. The Shared build is an echo, so it needs
 // no workflow. The Indexer build stays local: it is codegen plus `tsc --noEmit`, the Indexer's only
-// typecheck. The contracts gate stays local whole, because its verify step has no CI equivalent.
+// typecheck. A critical contracts change keeps all of these local: its full gate is unchanged.
 const CI_OWNED_ON_PUSH = {
   "shared-build": null,
   "client-build": "Client",
@@ -620,11 +620,13 @@ export function selectValidation(input = {}, options = {}) {
   // focused suite are mandatory and every consumer adds its typechecks; CI's consumer workflows
   // own the whole suites and production builds (D15, 2026-10-25). The paths that make a plan
   // critical are the ones an override or content escalation matched; an explicit --risk critical
-  // with nothing matched makes every changed path critical. A contracts-owned critical path brings
-  // the complete contracts gate on top, because its verify step has no pull-request CI equivalent
-  // yet; a README or ordinary test under packages/contracts/ beside a critical Shared change does
-  // not. Critical owners prove themselves with a focused suite even when a barrel change would
-  // otherwise count compile proof, and CI owns their builds; contracts runs its whole suite.
+  // with nothing matched makes every changed path critical. A contracts-owned critical path keeps
+  // the full local gate it had before D15, unchanged: the contracts gate plus every consumer's whole
+  // suites and builds, because the contracts verify step has no pull-request CI equivalent; neither
+  // the fast shape nor D16's thin pre-check applies to it. A README or ordinary test under
+  // packages/contracts/ beside a critical Shared change is not such a path. Critical owners prove
+  // themselves with a focused suite even when a barrel change would otherwise count compile proof,
+  // and CI owns their builds.
   const ruleCriticalPaths = [
     ...changedPaths.filter((path) => hardRules.some((rule) => groupMatches(path, rule))),
     ...contentCriticalPaths,
@@ -632,8 +634,8 @@ export function selectValidation(input = {}, options = {}) {
   const criticalPaths =
     baseRisk === "critical" && ruleCriticalPaths.length === 0 ? changedPaths : ruleCriticalPaths;
   const contractsCritical = risk === "critical" && criticalPaths.some(contractsOwned);
-  const criticalPush = intent === "push" && risk === "critical";
-  const criticalQa = intent === "qa" && risk === "critical";
+  const criticalPush = intent === "push" && risk === "critical" && !contractsCritical;
+  const criticalQa = intent === "qa" && risk === "critical" && !contractsCritical;
   const criticalOwners = new Set(
     risk === "critical" ? criticalPaths.map(ownerOf).filter(Boolean) : [],
   );
@@ -684,7 +686,9 @@ export function selectValidation(input = {}, options = {}) {
     }
   }
 
-  const includeBuilds = ["readiness", "ship", "merge", "release"].includes(intent);
+  const includeBuilds =
+    ["readiness", "ship", "merge", "release"].includes(intent) ||
+    (intent === "push" && contractsCritical);
   if (evidenceOnly) {
     for (const surface of Object.keys(testPaths)) {
       const testId = `${surface}-test`;
@@ -870,7 +874,7 @@ export function selectValidation(input = {}, options = {}) {
   }
   // A critical contracts path brings the complete contracts gate in push and qa, whether an
   // override matched it or an explicit --risk critical did; the strict intents select it already.
-  if (contractsCritical && (criticalPush || criticalQa)) {
+  if (contractsCritical && ["push", "qa"].includes(intent)) {
     for (const id of contractsGateChecks) {
       select(id, "critical-contracts");
       mandatory.add(id);
@@ -1041,12 +1045,12 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   );
   const surface = check.id.endsWith("-test") ? check.id.slice(0, -5) : null;
   // A mandatory critical suite runs whole, except in a Shared critical push or qa run, where the
-  // tests the author names are the local proof and CI runs the whole suites.
+  // tests the author names are the local proof and CI runs the whole suites. A critical contracts
+  // change keeps its full local gate, so every mandatory suite in it runs whole.
   const wholeCriticalSuite =
     mandatory &&
     context.risk === "critical" &&
-    ((surface === "contracts" && context.contractsCritical === true) ||
-      !["push", "qa"].includes(context.intent));
+    (context.contractsCritical === true || !["push", "qa"].includes(context.intent));
   const focusedPaths =
     surface && !wholeCriticalSuite && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
       ? testPaths[surface] ?? []

@@ -3095,8 +3095,8 @@ test("a noncritical contracts file beside a critical Shared change keeps the Sha
   assert.ok(plan.checks.find((check) => check.id === "client-typecheck")?.mandatory);
   assert.deepEqual(plan.checks.find((check) => check.id === "shared-test").focusedPaths, [sharedTest]);
 
-  // A matched contract override composes with the Shared shape: the Shared owner keeps its focused
-  // suite and consumer typechecks while the complete contracts gate runs whole beside it.
+  // A matched contract override keeps the full local gate it had before D15: the contracts gate
+  // plus every consumer's whole suites and builds, the Shared suite included.
   const contracts = selectValidation({
     intent: "push",
     changedPaths: [
@@ -3106,16 +3106,12 @@ test("a noncritical contracts file beside a critical Shared change keeps the Sha
     testPaths: { shared: [sharedTest] },
   });
   assert.equal(contracts.status, "ready");
-  for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]) {
+  assert.deepEqual(contracts.ciOwned, []);
+  for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast", "client-test", "admin-test", "agent-test", "client-build", "admin-build", "agent-build"]) {
     assert.ok(contracts.checks.find((check) => check.id === id)?.mandatory, id);
   }
-  const contractsSuite = contracts.checks.find((check) => check.id === "contracts-test");
-  assert.equal(contractsSuite.command, "bun run test");
-  assert.deepEqual(contractsSuite.focusedPaths, []);
-  assert.deepEqual(contracts.checks.find((check) => check.id === "shared-test").focusedPaths, [sharedTest]);
-  assert.ok(contracts.checks.find((check) => check.id === "client-typecheck")?.mandatory);
-  for (const id of ["client-test", "admin-test", "agent-test", "client-build", "admin-build", "agent-build", "shared-build"]) {
-    assert.ok(!ids(contracts).includes(id), `${id} must not join the mixed critical push`);
+  for (const id of ["contracts-test", "shared-test", "client-test"]) {
+    assert.deepEqual(contracts.checks.find((check) => check.id === id).focusedPaths, [], id);
   }
 });
 
@@ -3205,17 +3201,18 @@ test("a critical scripts/contracts change keeps the whole contracts suite despit
   assert.deepEqual(suite.focusedPaths, []);
 });
 
-test("a critical scripts/contracts path does not make an ordinary owner beside it critical", () => {
+test("a critical scripts/contracts path keeps the full local gate for everything beside it", () => {
   const plan = selectValidation({
     intent: "push",
     changedPaths: ["scripts/contracts/deploy.mjs", "packages/client/src/main.tsx"],
   });
   assert.equal(plan.risk, "critical");
   assert.equal(plan.status, "ready");
-  // The client entry point keeps its ordinary compile proof, now its typecheck, and the Client
-  // workflow builds it (D16); only contracts is the critical owner.
-  assert.ok(plan.checks.find((check) => check.id === "client-typecheck")?.selectedBy.includes("push-owner-compile:client"));
-  assert.ok(plan.ciOwned.some((entry) => entry.id === "client-build" && entry.workflow === "Client"));
+  // A critical contracts change keeps its pre-D15 gate: the client entry point is built and its
+  // suite runs whole, locally, and nothing is left to CI.
+  assert.ok(plan.checks.find((check) => check.id === "client-build")?.selectedBy.includes("surface:client:build"));
+  assert.deepEqual(plan.checks.find((check) => check.id === "client-test")?.focusedPaths, []);
+  assert.deepEqual(plan.ciOwned, []);
   for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]) {
     assert.ok(plan.checks.find((check) => check.id === id)?.mandatory, id);
   }
@@ -3347,6 +3344,11 @@ test("a push leaves a check to CI only when the workflow that runs it is expecte
   for (const path of policyRulePaths()) {
     const plan = selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] });
     const workflows = selectExpectedWorkflows({ changedPaths: [path], intent: "merge", ci: true });
+    // A critical contracts change keeps its full local gate, so it leaves nothing to CI.
+    if (ids(plan).includes("contracts-verify-fast")) {
+      assert.deepEqual(plan.ciOwned, [], `${path}: a critical contracts change leaves nothing to CI`);
+      continue;
+    }
     for (const { id, workflow } of plan.ciOwned) {
       left += 1;
       assert.ok(!ids(plan).includes(id), `${path}: ${id} is both run and left to CI`);
@@ -3445,7 +3447,11 @@ test("the Indexer keeps its typecheck, its build, as owner and consumer proof on
   });
   assert.equal(artifact.risk, "critical");
   assert.ok(artifact.surfaces.includes("indexer"));
-  assert.ok(artifact.checks.find((check) => check.id === "indexer-build")?.selectedBy.includes("critical-consumer-types:indexer"));
+  // A critical contracts change keeps its full local gate, so the Indexer consumer is built and its
+  // suite runs whole, as before D15.
+  assert.ok(artifact.checks.find((check) => check.id === "indexer-build")?.selectedBy.includes("surface:indexer:build"));
+  assert.deepEqual(artifact.checks.find((check) => check.id === "indexer-test")?.focusedPaths, []);
+  assert.deepEqual(artifact.ciOwned, []);
   for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]) {
     assert.ok(ids(artifact).includes(id), id);
   }

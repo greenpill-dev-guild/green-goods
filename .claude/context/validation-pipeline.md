@@ -204,7 +204,8 @@ push leaves each to the workflow that runs it (Client, Admin, Agent, Design, Sha
 Docs) when that workflow is expected for the change, and the plan lists it as left to CI; where the
 workflow does not run for the path, the check stays local. A push runs no suite whole, so a changed
 test helper or a deleted test names the test that still proves it, however cheap its suite. An
-explicit `--check` always runs.
+explicit `--check` always runs. A critical contracts change is the exception: it keeps its full
+local gate, builds and whole suites included.
 
 A critical Shared push (`AGENTS.md § Change Criticality`) keeps that shape. Its mandatory, uncapped
 override is the owner's typecheck and focused suite plus every consumer's source and test typecheck;
@@ -213,10 +214,10 @@ production builds stay with CI's Shared, Client, Admin and Agent workflows, whic
 the current head. The critical owner names a test even for a barrel change, since its mandatory
 suite runs focused rather than whole, and format and lint stay scoped to the changed paths as in
 every push. A critical qa run keeps the same consumer rule. An explicit `--risk critical` with no
-matched override makes every changed owner critical. The contracts override keeps its
-complete local gate (`abi-artifacts`,
-`contracts-build`, `contracts-test`, `contracts-verify-fast`) because its verify step has no
-pull-request CI equivalent.
+matched override makes every changed owner critical. A critical contracts change keeps the full
+local gate it had before D15, unchanged: the contracts gate (`abi-artifacts`, `contracts-build`,
+`contracts-test`, `contracts-verify-fast`) plus every consumer's whole suites and builds, because
+the contracts verify step has no pull-request CI equivalent.
 
 Comparison scope comes from the live PR base when available, otherwise `origin/develop`. A
 release promotion (a `release/*` head into `main`) compares against `origin/develop`, in CI and
@@ -255,7 +256,7 @@ review, ship may run mutating format and branch/commit safety steps because the 
 requested the full local gate. Ordinary commit, push, and PR creation use targeted proof plus the
 Ready-for-CI Push Gate, then rely on current-head GitHub CI for merge approval. Critical surfaces
 still require their selector-mandated override before push and CI afterward: owner typecheck and
-focused suite plus consumer typechecks for Shared, the complete contracts gate for contracts.
+focused suite plus consumer typechecks for Shared, the full local gate for contracts.
 
 Release runs `node scripts/dev/ci-local.js --intent release`. When the change touches the
 authenticated surface class, that gate requires `--attest browser-proof="<engine, session, date,
