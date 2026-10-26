@@ -375,6 +375,10 @@ export function useGardenCommitmentController(input: {
     isQueueing: jobs.isPending,
     isSending: mutation.isPending,
     acts,
-    refetch: commitmentQuery.refetch,
+    refetch: async () => {
+      // A failed read of the cycle the promise falls due with is retried with the page.
+      if (due.isError) due.retry();
+      return commitmentQuery.refetch();
+    },
   };
 }
