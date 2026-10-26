@@ -334,6 +334,42 @@ describe("hooks/work/useWorkMutation", () => {
     expect(result.current.lastSubmissionOutcome?.clientWorkId).toBe(firstId);
   });
 
+  it("admits one work when a Submit with no draft is declined and sent again, and new work for the next journey", async () => {
+    // The flow chose the garden's only action and nothing else was added, so autosave kept no
+    // draft (the active draft is null) and the work has no identity of its own from a draft.
+    const declined = Object.assign(new Error("User rejected the request"), { code: 4001 });
+    vi.mocked(submitWorkDirectly)
+      .mockRejectedValueOnce(declined)
+      .mockResolvedValueOnce(MOCK_TX_HASH);
+    const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+      wrapper: createWrapper(),
+    });
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] })
+      ).rejects.toBe(declined);
+    });
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+
+    expect(submitWorkDirectly).toHaveBeenCalledTimes(2);
+    const admitted: string[] = await Promise.all(
+      vi.mocked(jobQueueDB.addJob).mock.results.map((admission) => admission.value)
+    );
+    expect(new Set(admitted).size).toBe(1);
+    // The second Submit sent the work the queue held, so no copy waits to be sent again.
+    expect(await jobQueueDB.getJob(admitted[0])).toBeUndefined();
+
+    // The next journey is new work: it is sent, not answered with the first work's send.
+    workMutationStoreMocks.ensureWorkSubmissionJourneyId.mockReturnValue("journey-456");
+    vi.mocked(submitWorkDirectly).mockResolvedValueOnce(MOCK_TX_HASH);
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    expect(submitWorkDirectly).toHaveBeenCalledTimes(3);
+  });
+
   it("keeps an ambiguous send intent for reconciliation without sending again", async () => {
     vi.mocked(submitWorkDirectly).mockImplementationOnce(
       async (_draft, _garden, _action, _title, _chain, _images, options) => {

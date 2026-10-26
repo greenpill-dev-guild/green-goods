@@ -109,6 +109,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   );
   const lastSubmissionOutcomeRef = useRef<SubmitWorkOutcome | null>(null);
   const retainedSubmission = useRef<{ scope: string; id: string } | null>(null);
+  const journeyWork = useRef<{ scope: string; id: string } | null>(null);
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
@@ -177,9 +178,21 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
       const submission = retainSubmission ? retainedSubmission.current : null;
       origin.clientWorkId = submission?.id;
+      // A draft names its work, but autosave keeps none when there is nothing to save, as when the
+      // flow chose a garden's only action and nothing was added. Such work keeps one identity for
+      // its journey, so a Submit after a declined prompt reaches the work the queue already holds
+      // instead of admitting a second copy that could also be sent.
+      let journeyWorkId: string | undefined;
+      if (completeClientFlow && !submission && !persistedDraft?.clientWorkId) {
+        const scope = `${origin.identity}:${origin.generation}:${origin.journeyId}:${gardenAddress}:${actionUID}`;
+        if (journeyWork.current?.scope !== scope)
+          journeyWork.current = { scope, id: crypto.randomUUID() };
+        journeyWorkId = journeyWork.current.id;
+      }
       const outcome = await submitWork(
         {
           ...persistence,
+          ...(journeyWorkId ? { clientWorkId: journeyWorkId } : {}),
           ...(submission
             ? {
                 clientWorkId: submission.id,
@@ -484,6 +497,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     ...useSafeMutation(mutation),
     reset: () => {
       retainedSubmission.current = null;
+      journeyWork.current = null;
       lastSubmissionOutcomeRef.current = null;
       setLastSubmissionOutcome(null);
       mutation.reset();
