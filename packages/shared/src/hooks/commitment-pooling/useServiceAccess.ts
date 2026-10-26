@@ -156,5 +156,12 @@ export function useServiceAccessMutation(key: ServiceAccessKey | null) {
       if (key)
         void client.invalidateQueries({ queryKey: queryKey(key, live.session), exact: true });
     },
+    // Holdings, escrow and returns move with any service act, on this promise or another.
+    onSettled: () => {
+      if (key)
+        void client.invalidateQueries({
+          queryKey: commitmentPoolingKeys.voucherWallets(key.sourceChainId),
+        });
+    },
   });
 }
