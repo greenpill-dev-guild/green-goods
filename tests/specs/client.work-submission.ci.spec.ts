@@ -29,8 +29,8 @@ test.describe("Work Submission CI Tests", () => {
       // Start's answer is known and the flow opens on Media with that action (DL-131). Start
       // has no button to press, and the step markers still count four.
       const steps = page.getByRole("list", { name: "Steps" }).getByRole("listitem");
-      await expect(steps).toHaveCount(4);
       await expect(steps.nth(1)).toHaveAttribute("aria-current", "step", { timeout: 15000 });
+      await expect(steps).toHaveCount(4);
       await expect(page.getByRole("listbox", { name: "Select Your Action" })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Start Gardening" })).toHaveCount(0);
 
