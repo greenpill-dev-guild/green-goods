@@ -7,9 +7,11 @@
 import { describe, expect, it } from "vitest";
 
 import { groupCommitmentsForDisplay } from "../modules/commitment-pooling/display-groups";
+import type { DueClock } from "../modules/commitment-pooling/due-dates";
 import {
   findDisplayGroup,
   isAtTakeUpLimit,
+  isOpenToTakeUp,
   pickCopyToTakeUp,
   selectGroupTakeUpBar,
   selectPoolListEntries,
@@ -41,6 +43,9 @@ const metadata = new Map<string, CommitmentMetadataV1>([
 ]);
 
 const NOBODY_ASKED = new Set<string>();
+/** The chain's clock the copy choice reads, in Unix seconds. */
+const NOW = 1_800_000_000n;
+const CLOCK: DueClock = { now: NOW, cycleEndTimes: new Map() };
 
 describe("group browsing", () => {
   it("takes the oldest copy nobody holds, passing over taken, ended, skipped and own copies", () => {
@@ -54,15 +59,20 @@ describe("group browsing", () => {
       copy(9, { derivedState: "EXPIRED" }),
     ];
 
-    expect(pickCopyToTakeUp(copies, { viewer: LINA, askedFor: NOBODY_ASKED })?.commitmentId).toBe(
-      13n
-    );
     expect(
-      pickCopyToTakeUp(copies, { viewer: LINA, askedFor: NOBODY_ASKED, skip: new Set(["13"]) })
-        ?.commitmentId
+      pickCopyToTakeUp(copies, { clock: CLOCK, viewer: LINA, askedFor: NOBODY_ASKED })?.commitmentId
+    ).toBe(13n);
+    expect(
+      pickCopyToTakeUp(copies, {
+        clock: CLOCK,
+        viewer: LINA,
+        askedFor: NOBODY_ASKED,
+        skip: new Set(["13"]),
+      })?.commitmentId
     ).toBe(14n);
     expect(
       pickCopyToTakeUp(copies, {
+        clock: CLOCK,
         viewer: LINA,
         askedFor: NOBODY_ASKED,
         skip: new Set(["13", "14"]),
@@ -70,17 +80,72 @@ describe("group browsing", () => {
     ).toBeNull();
   });
 
+  it("passes over a copy past its due date on the chain's clock, keeping one due later today", () => {
+    const lapsed = copy(11, { dueDate: NOW - 1n });
+    const dueNow = copy(12, { dueDate: NOW });
+    const dueTonight = copy(13, { dueDate: NOW + 6n * 3_600n });
+
+    // The chain lets anyone expire a copy only after its due second.
+    expect([lapsed, dueNow, dueTonight].map((each) => isOpenToTakeUp(each, CLOCK))).toEqual([
+      false,
+      true,
+      true,
+    ]);
+    expect(
+      pickCopyToTakeUp([lapsed, dueNow, dueTonight], {
+        viewer: LINA,
+        askedFor: NOBODY_ASKED,
+        clock: CLOCK,
+      })?.commitmentId
+    ).toBe(12n);
+    expect(
+      pickCopyToTakeUp([lapsed], { viewer: LINA, askedFor: NOBODY_ASKED, clock: CLOCK })
+    ).toBeNull();
+  });
+
+  it("reads an undated copy's due date from its season's end, as the chain does", () => {
+    // Season 5 ended a second ago and season 6 ends now. A copy's own due date still governs.
+    const clock = {
+      now: NOW,
+      cycleEndTimes: new Map([
+        ["5", NOW - 1n],
+        ["6", NOW],
+      ]),
+    };
+    const lapsed = copy(11, { cycleId: 5n });
+    const running = copy(12, { cycleId: 6n });
+    const dated = copy(13, { cycleId: 5n, dueDate: NOW + 60n });
+
+    expect([lapsed, running, dated].map((each) => isOpenToTakeUp(each, clock))).toEqual([
+      false,
+      true,
+      true,
+    ]);
+    expect(
+      pickCopyToTakeUp([lapsed, running], { viewer: LINA, askedFor: NOBODY_ASKED, clock })
+        ?.commitmentId
+    ).toBe(12n);
+  });
+
   it("asks for a copy nobody has asked for yet in a reviewed group (D5), and never an open one's", () => {
     const reviewed = [11, 12, 13].map((id) => copy(id, { claimMode: "APPROVAL_GATED" }));
     const asked = new Set(["11", "12"]);
 
-    expect(pickCopyToTakeUp(reviewed, { viewer: LINA, askedFor: asked })?.commitmentId).toBe(13n);
     expect(
-      pickCopyToTakeUp(reviewed, { viewer: LINA, askedFor: new Set(["11", "12", "13"]) })
+      pickCopyToTakeUp(reviewed, { clock: CLOCK, viewer: LINA, askedFor: asked })?.commitmentId
+    ).toBe(13n);
+    expect(
+      pickCopyToTakeUp(reviewed, {
+        clock: CLOCK,
+        viewer: LINA,
+        askedFor: new Set(["11", "12", "13"]),
+      })
     ).toBeNull();
     // An ask means nothing on an open copy: nobody reviews it, so it stays choosable.
     const open = [11, 12].map((id) => copy(id));
-    expect(pickCopyToTakeUp(open, { viewer: LINA, askedFor: asked })?.commitmentId).toBe(11n);
+    expect(
+      pickCopyToTakeUp(open, { clock: CLOCK, viewer: LINA, askedFor: asked })?.commitmentId
+    ).toBe(11n);
   });
 
   it.each([

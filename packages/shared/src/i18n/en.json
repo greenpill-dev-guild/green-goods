@@ -2442,6 +2442,8 @@
   "app.home.journal.recentActivity.loading": "Gathering recent activity…",
   "app.home.journal.seeAll": "See All",
   "app.home.journal.takePart": "Take Part",
+  "app.home.journal.takePart.cycleEmptyDetail": "Tap it again to see them all",
+  "app.home.journal.takePart.cycleEmptyTitle": "{kind, select, campaign {Nothing open in this campaign} other {Nothing open in this season}}",
   "app.home.journal.takePart.cycleLine": "{name} · {details}",
   "app.home.journal.takePart.emptyDetail": "New offers and asks show up here",
   "app.home.journal.takePart.emptyTitle": "No open promises right now",

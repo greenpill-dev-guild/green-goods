@@ -43,6 +43,7 @@ import {
 import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQueueState";
 import type { InboxCommitment } from "../../commitment-pooling/useCommitmentsInbox";
 import { useCommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
+import { useDueClock } from "../../commitment-pooling/useDueClock";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { type GroupTakeUpContext, type GroupTakeUpState, useGroupTakeUp } from "./useGroupTakeUp";
 
@@ -97,6 +98,8 @@ export interface PromiseGroupController {
   };
   refresh: () => void;
 }
+
+const NO_COPIES: CommitmentReadModel[] = [];
 
 export function usePromiseGroupController(input: {
   chainId: number;
@@ -210,11 +213,17 @@ export function usePromiseGroupController(input: {
     [group, viewer]
   );
 
+  // Ticks when a copy falls due, so a lapsed copy is never the one offered.
+  const due = useDueClock({
+    chainId,
+    poolId: pool ? poolId : null,
+    commitments: group?.children ?? NO_COPIES,
+  });
   const availabilityKnown =
-    !commitments.isError && !(approvalGated && (asks.isError || asks.isLoading));
+    due.known && !commitments.isError && !(approvalGated && (asks.isError || asks.isLoading));
   const choice =
     group && availabilityKnown
-      ? pickCopyToTakeUp(group.children, { viewer, askedFor, skip: queued })
+      ? pickCopyToTakeUp(group.children, { viewer, askedFor, skip: queued, clock: due.clock })
       : null;
   const cap = poolDetail.pool?.providerOpenCommitmentCap ?? null;
   const madeIt = Boolean(
@@ -257,7 +266,13 @@ export function usePromiseGroupController(input: {
       askedFor: new Set((freshAsks?.data ?? []).map((row) => row.claim.commitmentId.toString())),
     };
   }, [approvalGated, byCID, copyId, displayGroupId, group?.key, refetchAsks, refetchCommitments]);
-  const takeUp = useGroupTakeUp({ chainId, viewer, queued, reread });
+  const takeUp = useGroupTakeUp({
+    chainId,
+    viewer,
+    queued,
+    reread,
+    cycleEndTimes: due.clock.cycleEndTimes,
+  });
   const { takeUp: send, settle } = takeUp;
   const takeUpState = takeUp.state;
 
@@ -318,6 +333,7 @@ export function usePromiseGroupController(input: {
       retryMetadata?.();
       void refetchCommitments();
       if (approvalGated) void refetchAsks();
+      if (due.isError) due.retry();
       queue.refresh();
     },
   };

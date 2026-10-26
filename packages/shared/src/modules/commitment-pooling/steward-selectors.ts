@@ -4,6 +4,7 @@
  * out of `selectors.ts`, which is at its source-structure cap.
  */
 import type { Address } from "../../types/domain";
+import { type CycleEndTimes, effectiveDueDate, isPastDue } from "./due-dates";
 import { isSameAccount } from "./selectors";
 import type { CommitmentReadModel } from "./types";
 
@@ -28,8 +29,8 @@ const EXPIRABLE_STATES = new Set<string>([
 
 /**
  * Live commitments the chain would let anyone expire: one of the four
- * expirable states, and strictly past its own due date or, when it carries
- * none, its cycle's end (TerminalLib.sol:71-72, `_effectiveDueDate`). A
+ * expirable states, and past due (`isPastDue`): strictly past its own due date
+ * or, when it carries none, its cycle's end (TerminalLib.sol:71-72). A
  * cycle-less, undated commitment is never due.
  *
  * Past due alone never renders Expired: the row stays live until the indexer
@@ -41,20 +42,13 @@ export function selectDueLiveCommitments<
 >(input: {
   commitments: readonly T[];
   /** Decimal cycle id → `endTime`, from the cycles already loaded. */
-  cycleEndTimes: ReadonlyMap<string, bigint | null>;
+  cycleEndTimes: CycleEndTimes;
   /** Unix seconds. */
   now: bigint;
 }): T[] {
-  return input.commitments.filter((commitment) => {
-    if (!EXPIRABLE_STATES.has(commitment.onchainState)) return false;
-    const due =
-      commitment.dueDate !== null && commitment.dueDate !== undefined && commitment.dueDate !== 0n
-        ? commitment.dueDate
-        : commitment.cycleId !== null && commitment.cycleId !== 0n
-          ? (input.cycleEndTimes.get(commitment.cycleId.toString()) ?? null)
-          : null;
-    return due !== null && due !== 0n && input.now > due;
-  });
+  return input.commitments.filter(
+    (commitment) => EXPIRABLE_STATES.has(commitment.onchainState) && isPastDue(commitment, input)
+  );
 }
 
 /**
@@ -64,21 +58,12 @@ export function selectDueLiveCommitments<
  */
 export function selectNextDueBoundary<
   T extends Pick<CommitmentReadModel, "onchainState" | "cycleId" | "dueDate">,
->(input: {
-  commitments: readonly T[];
-  cycleEndTimes: ReadonlyMap<string, bigint | null>;
-  now: bigint;
-}): bigint | null {
+>(input: { commitments: readonly T[]; cycleEndTimes: CycleEndTimes; now: bigint }): bigint | null {
   let next: bigint | null = null;
   for (const commitment of input.commitments) {
     if (!EXPIRABLE_STATES.has(commitment.onchainState)) continue;
-    const due =
-      commitment.dueDate !== null && commitment.dueDate !== undefined && commitment.dueDate !== 0n
-        ? commitment.dueDate
-        : commitment.cycleId !== null && commitment.cycleId !== 0n
-          ? (input.cycleEndTimes.get(commitment.cycleId.toString()) ?? null)
-          : null;
-    if (due === null || due === 0n || due < input.now) continue;
+    const due = effectiveDueDate(commitment, input.cycleEndTimes);
+    if (due === null || due < input.now) continue;
     if (next === null || due < next) next = due;
   }
   return next;

@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import type { DueClock } from "../../../modules/commitment-pooling/due-dates";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type {
   CommitmentCycleRecord,
@@ -38,6 +39,9 @@ import {
 } from "../../test-utils/commitment-pooling-fixtures";
 
 const READER = "0xa11ce00000000000000000000000000000000001" as Address;
+/** The chain's clock every take-up rule reads, in Unix seconds. */
+const NOW = 1_800_000_000n;
+const CLOCK: DueClock = { now: NOW, cycleEndTimes: new Map() };
 const NEIGHBOUR = "0xb0b0000000000000000000000000000000000002" as Address;
 const DAY_MS = 86_400_000;
 const NOW_MS = Date.UTC(2026, 9, 25, 12);
@@ -249,12 +253,13 @@ describe("Take Part", () => {
     const offered = takePartPromises(
       [openOffer, openAsk, readersOwn, takenUp, lapsed, kept],
       READER,
-      NO_TAKE_UPS
+      NO_TAKE_UPS,
+      CLOCK
     );
 
     expect(offered.map((item) => item.commitmentId)).toEqual([9n, 8n]);
     // Signed out, nothing is anyone's own, so every open promise is listed.
-    expect(takePartPromises([openOffer, readersOwn], null, NO_TAKE_UPS)).toHaveLength(2);
+    expect(takePartPromises([openOffer, readersOwn], null, NO_TAKE_UPS, CLOCK)).toHaveLength(2);
   });
 
   it("folds copies of one set into one row, as the Pool tab does", () => {
@@ -274,6 +279,7 @@ describe("Take Part", () => {
       metadataByCID: metadata,
       viewer: READER,
       poolOpen: true,
+      clock: CLOCK,
       takeUps: NO_TAKE_UPS,
     });
 
@@ -299,6 +305,7 @@ describe("Take Part", () => {
       metadataByCID: NO_METADATA,
       viewer: READER,
       poolOpen: true,
+      clock: CLOCK,
       takeUps: NO_TAKE_UPS,
     });
 
@@ -325,6 +332,7 @@ describe("Take Part", () => {
       metadataByCID: metadata,
       viewer: READER,
       poolOpen: true,
+      clock: CLOCK,
       takeUps: NO_TAKE_UPS,
     });
 
@@ -343,6 +351,7 @@ describe("Take Part", () => {
       metadataByCID: NO_METADATA,
       viewer: READER,
       poolOpen: false,
+      clock: CLOCK,
       takeUps: NO_TAKE_UPS,
     });
 
@@ -374,6 +383,7 @@ describe("the reader's own take-ups (#1292's review, decision 18)", () => {
       metadataByCID: NO_METADATA,
       viewer: READER,
       poolOpen: true,
+      clock: CLOCK,
       takeUps,
     }).map((entry) => entry.copy.commitmentId);
 
@@ -432,7 +442,7 @@ describe("the reader's own take-ups (#1292's review, decision 18)", () => {
     });
 
     expect(listed([ask(9), yours], takeUps)).toEqual([9n]);
-    expect(isTakeableBy(yours, READER, takeUps)).toBe(false);
+    expect(isTakeableBy(yours, READER, takeUps, CLOCK)).toBe(false);
   });
 
   it("leaves the carousel's ask out on the same terms as Take Part", () => {
@@ -441,6 +451,7 @@ describe("the reader's own take-ups (#1292's review, decision 18)", () => {
       metadataByCID: NO_METADATA,
       viewer: READER,
       poolOpen: true,
+      clock: CLOCK,
       takeUps: viewerTakeUps({ viewer: READER, pendingRequests: [], queued: new Set(["9"]) }),
     });
 
@@ -450,7 +461,7 @@ describe("the reader's own take-ups (#1292's review, decision 18)", () => {
   it("lists in one tap only the asks the chain hands the reader at once", () => {
     const none = viewerTakeUps({ viewer: READER, pendingRequests: [], queued: new Set() });
     const oneTap = (commitment: CommitmentReadModel, takeUps = none) =>
-      isOneTapTakeUp(commitment, READER, takeUps);
+      isOneTapTakeUp(commitment, READER, takeUps, CLOCK);
 
     expect(oneTap(ask(9))).toBe(true);
     // A steward of the pool's garden accepts or declines a gated take-up, so it never takes one tap.
@@ -480,6 +491,7 @@ describe("the reader's own take-ups (#1292's review, decision 18)", () => {
       metadataByCID: metadata,
       viewer: READER,
       poolOpen: true,
+      clock: CLOCK,
       takeUps: viewerTakeUps({
         viewer: READER,
         pendingRequests: [request(7, "PENDING")],
@@ -488,5 +500,34 @@ describe("the reader's own take-ups (#1292's review, decision 18)", () => {
     });
 
     expect(asks.map((each) => each.commitmentId)).toEqual([9n, 6n]);
+  });
+});
+
+describe("a promise past its due date", () => {
+  const ask = (id: number, dueDate: bigint) =>
+    promise(id, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      claimMode: "OPEN",
+      dueDate,
+    });
+
+  it("is offered for take-up nowhere on Home, while one due later today still is", () => {
+    const input = {
+      commitments: [ask(9, NOW - 86_400n), ask(8, NOW), ask(7, NOW + 6n * 3_600n)],
+      metadataByCID: NO_METADATA,
+      viewer: READER,
+      poolOpen: true,
+      takeUps: NO_TAKE_UPS,
+      clock: CLOCK,
+    };
+    const listed = (read: typeof input) =>
+      takePartEntries(read).map((entry) => entry.copy.commitmentId);
+
+    // The chain lets anyone expire a promise only after its due second, so one due now counts.
+    expect(listed(input)).toEqual([8n, 7n]);
+    expect(oneTapAsks(input).map((copy) => copy.commitmentId)).toEqual([8n, 7n]);
+    expect(listed({ ...input, clock: { ...CLOCK, now: NOW + 1n } })).toEqual([7n]);
   });
 });

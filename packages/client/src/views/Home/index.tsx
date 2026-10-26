@@ -145,6 +145,7 @@ const Home: React.FC = () => {
   const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
   const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
   const closeGardenSheet = useUIStore((s) => s.closeGardenSheet);
+  const closeTakePartSheet = useUIStore((s) => s.closeTakePartSheet);
   const gardenSwitcherRequested = useUIStore((s) => s.gardenSwitcherRequested);
   const clearGardenSwitcherRequest = useUIStore((s) => s.clearGardenSwitcherRequest);
 
@@ -239,16 +240,24 @@ const Home: React.FC = () => {
   const hasShownArrivalRef = useRef(false);
   const { set: scheduleArrival, clear: cancelArrival } = useTimeout();
 
-  // Close home drawers when navigating away. The journal's section sheet (DL-128) closes with
-  // them: a work opened from the Work sheet returns to Home itself, not to the sheet.
+  // Close home drawers when navigating away. The journal's section sheet (DL-128) and its open
+  // promises close with them: a work or promise opened from a sheet returns to Home itself.
   useEffect(() => {
     if (!isHomeRoute) {
       closeWalletSheet();
       closeSwitcher();
       closeNotifications();
       closeGardenSheet();
+      closeTakePartSheet();
     }
-  }, [closeGardenSheet, closeNotifications, closeSwitcher, closeWalletSheet, isHomeRoute]);
+  }, [
+    closeGardenSheet,
+    closeNotifications,
+    closeSwitcher,
+    closeTakePartSheet,
+    closeWalletSheet,
+    isHomeRoute,
+  ]);
 
   // Home names itself as where the visit came from, so the garden's Back steps back here.
   const visitGarden = useCallback(

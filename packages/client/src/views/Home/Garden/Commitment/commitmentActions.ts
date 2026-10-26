@@ -1,4 +1,5 @@
 import {
+  type CommitmentActInput,
   type CommitmentActKind,
   type CommitmentReadModel,
   type CommitmentSeat,
@@ -53,6 +54,8 @@ export function selectCommitmentAct(input: {
   hasPendingJob?: boolean;
   isCreator?: boolean;
   isMember?: boolean;
+  /** The chain's clock and cycle ends: take-up is offered only until the promise is past due. */
+  clock?: CommitmentActInput["clock"];
 }): CommitmentAct | null {
   const kind = selectCommitmentActKind(input);
   return commitmentActForKind(kind);

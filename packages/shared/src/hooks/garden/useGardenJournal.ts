@@ -38,6 +38,7 @@ import {
   useCommitmentPools,
   useCommitments,
 } from "../commitment-pooling/useCommitmentPooling";
+import { useDueClock } from "../commitment-pooling/useDueClock";
 import { useViewerTakeUps } from "../commitment-pooling/useViewerTakeUps";
 import { useDocumentEvent } from "../utils/useEventListener";
 import { useWorks } from "../work/useWorks";
@@ -134,6 +135,8 @@ export function useGardenOpenCycles(gardenId: string): GardenOpenCycles {
 export interface GardenOpenPromises {
   /** Take Part's first entries: the open promises, copies of one set as one row. */
   state: JournalSectionState<TakePartEntry>;
+  /** Every entry, from the same read, for the sheet of open promises See All opens. */
+  all: JournalSectionState<TakePartEntry>;
   /** The newest ask open to take up, from every entry, for the carousel. */
   ask: TakePartEntry | null;
   /** A promise's own name, once its metadata has resolved. */
@@ -169,12 +172,22 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
   const poolOpen = pool?.state === "OPEN";
+  // Ticks when a listed promise falls due, so a lapsed one leaves the list.
+  const due = useDueClock({ chainId, poolId: pool?.poolId ?? null, commitments: listed });
   const entries = useMemo(
-    () => takePartEntries({ commitments: listed, metadataByCID: byCID, viewer, poolOpen, takeUps }),
-    [listed, byCID, viewer, poolOpen, takeUps]
+    () =>
+      takePartEntries({
+        commitments: listed,
+        metadataByCID: byCID,
+        viewer,
+        poolOpen,
+        takeUps,
+        clock: due.clock,
+      }),
+    [listed, byCID, viewer, poolOpen, takeUps, due.clock]
   );
 
-  const state = poolSectionState({
+  const read = {
     available: commitments.availability.status === "available",
     isOnline,
     pools: {
@@ -184,23 +197,27 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
       dataUpdatedAt: pools.dataUpdatedAt,
     },
     list: {
-      // A request in flight would show an ask the reader asked for, then take it away, and a
-      // queue that cannot be read could offer again a take-up already on this phone.
-      hasData: commitments.data !== undefined && settled && !unavailable,
-      isError: commitments.isError || unavailable,
+      // A request in flight would show an ask the reader asked for, then take it away, a queue
+      // that cannot be read could offer again a take-up already on this phone, and an ask whose
+      // cycle's end is unread may already be past due.
+      hasData: commitments.data !== undefined && settled && !unavailable && due.known,
+      isError: commitments.isError || unavailable || due.isError,
       dataUpdatedAt: commitments.dataUpdatedAt,
     },
-    items: entries.slice(0, JOURNAL_PREVIEW_COUNT),
-  });
+  };
+  const state = poolSectionState({ ...read, items: entries.slice(0, JOURNAL_PREVIEW_COUNT) });
+  const all = poolSectionState({ ...read, items: entries });
 
   return {
     state,
+    all,
     ask: state.status === "ready" ? openAsk(entries) : null,
     titleOf: (metadataCID) => (metadataCID ? (byCID.get(metadataCID.trim())?.title ?? null) : null),
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();
       if (unavailable) retryTakeUps();
+      if (due.isError) due.retry();
     },
   };
 }

@@ -7,6 +7,7 @@
  * @module hooks/client-ui/commitment/useGardenCommitmentController
  */
 
+import { useMemo } from "react";
 import type { Hex } from "viem";
 
 import {
@@ -35,6 +36,7 @@ import {
 import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQueueState";
 import { useCommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
 import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
+import { useDueClock } from "../../commitment-pooling/useDueClock";
 import { useWorks } from "../../work/useWorks";
 import type {
   GardenCommitmentActs,
@@ -88,6 +90,9 @@ export function useGardenCommitmentController(input: {
 
   const detail = commitmentQuery.detail;
   const commitment = detail?.commitment;
+  // The chain's clock, ticking when the promise falls due: past it, nothing offers a take-up.
+  const clocked = useMemo(() => (commitment ? [commitment] : []), [commitment]);
+  const due = useDueClock({ chainId, poolId: commitment?.poolId ?? null, commitments: clocked });
   const workDecisions = useCommitmentWorkDecisions({
     chainId,
     garden: commitment?.providerGarden ?? routeGarden,
@@ -171,6 +176,8 @@ export function useGardenCommitmentController(input: {
         hasPendingJob: pending || hasPendingClaimRequest || queueState.isUnavailable,
         isCreator: isCommitmentCreator({ commitment, viewer: viewer ?? undefined }),
         isMember: canClaimHere === null ? undefined : canClaimHere,
+        // Until the end of the cycle it falls due with is read, its due date is unknown.
+        clock: due.known ? due.clock : undefined,
       })
     : null;
   const actGarden = commitment ? (commitment.providerGarden as Address | null) : null;

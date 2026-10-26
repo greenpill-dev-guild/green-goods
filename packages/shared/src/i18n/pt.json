@@ -2442,6 +2442,8 @@
   "app.home.journal.recentActivity.loading": "Reunindo a atividade recente…",
   "app.home.journal.seeAll": "Ver tudo",
   "app.home.journal.takePart": "Participe",
+  "app.home.journal.takePart.cycleEmptyDetail": "Toque nela de novo para ver todas",
+  "app.home.journal.takePart.cycleEmptyTitle": "{kind, select, campaign {Nada aberto nesta campanha} other {Nada aberto nesta temporada}}",
   "app.home.journal.takePart.cycleLine": "{name} · {details}",
   "app.home.journal.takePart.emptyDetail": "Ofertas e pedidos novos aparecem aqui",
   "app.home.journal.takePart.emptyTitle": "Não há promessas abertas",
