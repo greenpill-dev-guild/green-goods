@@ -40,9 +40,18 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController"
     mocks.gardenController!) as unknown as GardenWorkspaceModule["useGardenWorkspaceController"],
 }));
 
-vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () => ({
-  usePoolConsoleController: () => mocks.controller!,
-}));
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", async () => {
+  const { voucherConsoleViewFixture } = await import(
+    "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+  );
+  // No voucher pilot here: the console reads it as unavailable, as it is until adoption.
+  const vouchers = voucherConsoleViewFixture();
+  return {
+    usePoolConsoleController: () => mocks.controller!,
+    useVoucherConsole: () => vouchers,
+    useIssuerSafeThreshold: () => ({ data: undefined }),
+  };
+});
 
 // This view proves pool actions; name resolution has its own coverage.
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
@@ -285,6 +294,7 @@ function controller(overrides: ControllerOverrides = {}): PoolConsoleController 
     compostCycle: vi.fn().mockResolvedValue("0x1"),
     expire: vi.fn().mockResolvedValue("0x1"),
     acceptClaim: vi.fn().mockResolvedValue("0x1"),
+    acceptServiceClaim: vi.fn().mockResolvedValue("0x1"),
     declineClaim: vi.fn().mockResolvedValue("0x1"),
     retryQueued: vi.fn().mockResolvedValue(undefined),
     discardQueued: vi.fn().mockResolvedValue(undefined),

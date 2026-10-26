@@ -92,6 +92,9 @@ export const commitmentPoolingKeys = {
           "issuer-safe-threshold",
           normalizeAddress(safe),
         ] as const),
+  /** A garden pool's voucher bookings, its voucher issuer and that issuer's reserve. */
+  voucherConsole: (chainId: number, garden: Address | string) =>
+    [...commitmentPoolingKeys.all(chainId), "voucher-console", normalizeAddress(garden)] as const,
   issuerOperations: (account?: Address | null, routeId?: string, assetId?: string) =>
     [
       ...commitmentPoolingKeys.all(100),

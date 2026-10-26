@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import type { ItemRowTone } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { WaitingRow } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
@@ -12,6 +13,16 @@ import { ClaimantName } from "./ClaimantName";
 import { directionEdgeClass, directionLabel } from "./poolPresentation";
 import { clockTime, exactTime, isoTime } from "./poolTime";
 
+/** A voucher booking's ask, which the pool's steward never approves in one tap. */
+export interface VoucherAskRowView {
+  /** What the booking waits on now. */
+  tag: { label: string; tone: ItemRowTone };
+  /** When the member agreed, what the escrow holds, and the deadline. */
+  detail: string;
+  /** Approve… or Accept…, each opening its confirm dialog; none while the booking waits on someone else. */
+  act: { label: string; onAct: () => void } | null;
+}
+
 export interface WaitingForApprovalRowProps {
   item: WaitingRow;
   title: string;
@@ -23,6 +34,8 @@ export interface WaitingForApprovalRowProps {
   onOpen: () => void;
   onApprove: () => void;
   onDecline: () => void;
+  /** Set when the ask is a voucher booking: its acts open dialogs with their checks. */
+  voucher?: VoucherAskRowView;
 }
 
 /**
@@ -41,6 +54,7 @@ export function WaitingForApprovalRow({
   onOpen,
   onApprove,
   onDecline,
+  voucher,
 }: WaitingForApprovalRowProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -132,10 +146,16 @@ export function WaitingForApprovalRow({
   } else if (state.status === "approved") {
     action = (
       <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
-        {formatMessage({
-          id: "cockpit.garden.pool.approvals.approved",
-          defaultMessage: "Approved",
-        })}
+        {/* The issuer approves a booking; the pool's steward accepts it. */}
+        {voucher
+          ? formatMessage({
+              id: "cockpit.garden.pool.voucher.accepted",
+              defaultMessage: "Accepted",
+            })
+          : formatMessage({
+              id: "cockpit.garden.pool.approvals.approved",
+              defaultMessage: "Approved",
+            })}
       </StatusBadge>
     );
   } else if (decided) {
@@ -160,6 +180,27 @@ export function WaitingForApprovalRow({
   } else if (paused) {
     action = null;
   } else {
+    const retryLabel = formatMessage({
+      id: "cockpit.garden.pool.approvals.retry",
+      defaultMessage: "Try Again",
+    });
+    // A voucher booking's act opens its dialog, and one that waits on someone else has none.
+    const primary = voucher
+      ? voucher.act && {
+          label: state.status === "failed" ? retryLabel : voucher.act.label,
+          onClick: voucher.act.onAct,
+        }
+      : {
+          // Its own id: es and pt need a label short enough to leave the row its name.
+          label:
+            state.status === "failed"
+              ? retryLabel
+              : formatMessage({
+                  id: "cockpit.garden.pool.approvals.approve",
+                  defaultMessage: "Approve",
+                }),
+          onClick: onApprove,
+        };
     action = (
       <>
         <Button
@@ -174,29 +215,27 @@ export function WaitingForApprovalRow({
             defaultMessage: "Decline…",
           })}
         </Button>
-        <Button
-          type="button"
-          emphasis="primary"
-          size="compact"
-          onClick={onApprove}
-          disabled={disabled}
-        >
-          {/* Its own id: es and pt need a label short enough to leave the row its name. */}
-          {state.status === "failed"
-            ? formatMessage({
-                id: "cockpit.garden.pool.approvals.retry",
-                defaultMessage: "Try Again",
-              })
-            : formatMessage({
-                id: "cockpit.garden.pool.approvals.approve",
-                defaultMessage: "Approve",
-              })}
-        </Button>
+        {primary ? (
+          <Button
+            type="button"
+            emphasis="primary"
+            size="compact"
+            onClick={primary.onClick}
+            disabled={disabled}
+          >
+            {primary.label}
+          </Button>
+        ) : null}
       </>
     );
   }
 
-  const line = `${directionLabel(row.commitment.direction, formatMessage)} · ${title}`;
+  const line = voucher
+    ? formatMessage(
+        { id: "cockpit.garden.pool.voucher.ask.what", defaultMessage: "Booking · {title}" },
+        { title }
+      )
+    : `${directionLabel(row.commitment.direction, formatMessage)} · ${title}`;
   return (
     <li
       className={cn(
@@ -223,6 +262,22 @@ export function WaitingForApprovalRow({
         </span>
       </AdminListRow>
       <div className="flex min-h-7 items-center justify-end gap-1">{action}</div>
+      {/* A booking's pill and its line take the row's whole width, under the acts. */}
+      {voucher && !decided ? (
+        <p className="col-span-2 mt-1 flex min-w-0 items-center gap-2 px-1">
+          <StatusBadge
+            variant={voucher.tag.tone}
+            size="sm"
+            showIcon={false}
+            className="shrink-0 whitespace-nowrap"
+          >
+            {voucher.tag.label}
+          </StatusBadge>
+          <span className="min-w-0 truncate type-meta text-text-soft" title={voucher.detail}>
+            {voucher.detail}
+          </span>
+        </p>
+      ) : null}
     </li>
   );
 }
