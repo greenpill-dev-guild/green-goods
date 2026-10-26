@@ -7,9 +7,10 @@
  * @vitest-environment happy-dom
  */
 
-import { focusManager, onlineManager } from "@tanstack/react-query";
+import { focusManager, onlineManager, type QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { useTakeUpChoices } from "../../../hooks/commitment-pooling/useTakeUpChoices";
 import { useGardenOpenCycles, useGardenOpenPromises } from "../../../hooks/garden/useGardenJournal";
 import type {
@@ -27,6 +28,7 @@ import {
   cycleFixture,
   poolFixture,
 } from "../../test-utils/commitment-pooling-fixtures";
+import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const READER = "0xa11ce00000000000000000000000000000000001" as Address;
@@ -373,14 +375,16 @@ describe("useGardenJournal", () => {
         { provider: READER, openCommitmentCount: open },
       ] as CommitmentPoolDetail["providerExposures"],
     });
-    const choices = () =>
-      renderHookWithProviders(() =>
-        useTakeUpChoices({
-          chainId: 42161,
-          account: READER,
-          workGarden: GARDEN as Address,
-          returnGarden: GARDEN as Address,
-        })
+    const choices = (queryClient?: QueryClient) =>
+      renderHookWithProviders(
+        () =>
+          useTakeUpChoices({
+            chainId: 42161,
+            account: READER,
+            workGarden: GARDEN as Address,
+            returnGarden: GARDEN as Address,
+          }),
+        { queryClient }
       );
 
     beforeEach(() => {
@@ -454,6 +458,33 @@ describe("useGardenJournal", () => {
         expect(result.current.choices).toHaveLength(1);
       } finally {
         focusManager.setFocused(undefined);
+      }
+    });
+
+    // A read that starts offline waits for a connection: TanStack reports it paused, neither
+    // fetching nor failed, though its answer may still change the cached one (Codex on #1340).
+    it.each([
+      ["the garden's pools", commitmentPoolingKeys.pools(42161, GARDEN)],
+      [
+        "the pool's promises",
+        commitmentPoolingKeys.commitments(42161, { chainId: 42161, poolId: 7n }),
+      ],
+      ["the pool's limit", commitmentPoolingKeys.pool(42161, 7n)],
+      ["the reader's requests", commitmentPoolingKeys.poolClaims(42161, 7n, "PENDING")],
+    ])("says the asks are still being read while a read of %s waits for a connection", async (_read, queryKey) => {
+      const queryClient = createTestQueryClient();
+      const { result } = choices(queryClient);
+      await waitFor(() => expect(result.current.choices).toHaveLength(1));
+      expect(result.current.isFetching).toBe(false);
+
+      onlineManager.setOnline(false);
+      try {
+        await act(() => queryClient.invalidateQueries({ queryKey }));
+        expect(queryClient.getQueryState(queryKey)?.fetchStatus).toBe("paused");
+        await waitFor(() => expect(result.current.isFetching).toBe(true));
+        expect(result.current.choices).toHaveLength(1);
+      } finally {
+        onlineManager.setOnline(true);
       }
     });
 

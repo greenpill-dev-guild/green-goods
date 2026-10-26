@@ -45,6 +45,12 @@ const firstReadPaused = (read: { data: unknown; fetchStatus: string }) =>
   read.data === undefined && read.fetchStatus === "paused";
 
 /**
+ * A read in flight, one that waits for a connection included: TanStack reports a read started
+ * offline paused, not fetching, though its answer may still change what is cached.
+ */
+const inFlight = (read: { fetchStatus: string }) => read.fetchStatus !== "idle";
+
+/**
  * An Open ask as Submit Work offers it: a promise the reader does not hold yet, so it takes no
  * evidence, with each requirement a choice the work takes up first.
  */
@@ -194,13 +200,14 @@ export function useTakeUpChoices(input: {
       (firstReadPaused(pools) ||
         (ownPool && (firstReadPaused(commitments) || firstReadPaused(poolDetail) || due.isPaused))),
     /**
-     * A read is in flight, a cached answer's included: what it says may still change. That covers
-     * the reader's own take-ups too, the requests and this phone's queue, which leave asks out.
+     * A read is in flight, a cached answer's included, offline too: what it says may still change.
+     * That covers the reader's own take-ups as well, the requests and this phone's queue, which
+     * leave asks out.
      */
     isFetching:
       enabled &&
-      (pools.isFetching ||
-        (ownPool && (commitments.isFetching || poolDetail.isFetching || refreshing))),
+      (inFlight(pools) ||
+        (ownPool && (inFlight(commitments) || inFlight(poolDetail) || refreshing))),
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();
