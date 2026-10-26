@@ -495,11 +495,17 @@ describe("Home under its child routes", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Open Its Page" }));
       expect(screen.getByText(`Visiting ${TAS.id}`)).toBeInTheDocument();
-      // The shell scrolls every new route to the top.
+      // The shell scrolls every new route to the top, and the member scrolls the page.
       scroller.scrollTop = 0;
+      fireEvent.scroll(scroller);
+      scroller.scrollTop = 300;
       fireEvent.scroll(scroller);
 
       fireEvent.click(screen.getByRole("button", { name: "Back" }));
+      // Home shows again before the shell resets the scroller, so that reset's scroll event
+      // arrives while Home shows; it must not replace the place (Codex P1 on #1333).
+      scroller.scrollTop = 0;
+      fireEvent.scroll(scroller);
       await waitFor(() => expect(scroller.scrollTop).toBe(567));
       expect(screen.getByRole("button", { name: "Open Its Page" })).toHaveFocus();
     } finally {

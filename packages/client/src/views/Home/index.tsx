@@ -48,6 +48,7 @@ import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./Home
 import { awaitingGardens, switcherRows } from "./homeGardens";
 import { followHomePlace, type HomePlace, restoreHomePlace } from "./homePlace";
 import { HomeJournal } from "./Journal";
+import { HomeShownContext } from "./Journal/homeShown";
 import { NotificationsIcon } from "./Notifications/Icon";
 import type { NotificationsLauncherProps } from "./Notifications/Launcher";
 import { WalletSheetIcon } from "./WalletSheet/Icon";
@@ -214,25 +215,23 @@ const Home: React.FC = () => {
     contentRef.current = node;
     setScroller(node?.closest<HTMLElement>("#app-scroll") ?? null);
   }, []);
-  const place = useRef<HomePlace>({ scrollTop: 0, opener: null });
-  const awayFromHome = useRef(false);
+  const place = useRef<HomePlace>({ scrollTop: 0, opener: null, away: false });
   useEffect(() => {
     const content = contentRef.current;
     if (!content || !scroller) return;
     return followHomePlace(content, scroller, place.current);
   }, [scroller]);
-  // A layout effect, so the restore is scheduled before the first paint of Home shown again. The
-  // flag clears only once the place is back: StrictMode's second run must restore as well.
+  // A layout effect, so leaving stops the following before the shell's reset, and the restore
+  // is scheduled before the first paint of Home shown again. `away` clears only once the place
+  // is back: StrictMode's second run must restore as well.
   useLayoutEffect(() => {
     if (!isHomeRoute) {
-      awayFromHome.current = true;
+      place.current.away = true;
       return;
     }
     const content = contentRef.current;
-    if (!awayFromHome.current || !content || !scroller) return;
-    return restoreHomePlace(content, scroller, place.current, () => {
-      awayFromHome.current = false;
-    });
+    if (!place.current.away || !content || !scroller) return;
+    return restoreHomePlace(content, scroller, place.current);
   }, [isHomeRoute, scroller]);
 
   // Auth state for welcome message
@@ -456,7 +455,10 @@ const Home: React.FC = () => {
             </>
           }
         />
-        <div className={status === "ready" ? "pt-2" : "padded pt-2"}>{body}</div>
+        {/* The journal's sections close the sheets they open themselves as Home stops showing. */}
+        <HomeShownContext value={isHomeRoute}>
+          <div className={status === "ready" ? "pt-2" : "padded pt-2"}>{body}</div>
+        </HomeShownContext>
       </div>
       <Outlet />
       {isSwitcherPresent ? (
