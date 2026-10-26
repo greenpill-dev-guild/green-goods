@@ -22,6 +22,30 @@ export interface WorkLinkChoice extends WorkLinkIntent {
   direction?: CommitmentReadModel["direction"];
 }
 
+/**
+ * A promise the account can work on in a garden: the requirements it can link work to, and
+ * whether it can add evidence, each by the promise's own act rules (`canLinkWork`, Add Proof).
+ */
+export interface WorkablePromise {
+  commitmentId: bigint;
+  title: string;
+  direction: CommitmentReadModel["direction"];
+  state: CommitmentReadModel["derivedState"];
+  dueDate: bigint | null;
+  /** What it promises, for a promise that counts no approvals. */
+  targetUnits: bigint;
+  unitLabel: string | null;
+  /**
+   * Its approvals against every requirement's count, each capped at its count as the contract
+   * counts progress; null for a promise that counts no approvals.
+   */
+  progress: { approved: number; required: number } | null;
+  /** One choice per requirement the account can link work to; none when it cannot link work. */
+  choices: readonly WorkLinkChoice[];
+  /** The account can add evidence to it: the promise offers them Add Proof. */
+  takesEvidence: boolean;
+}
+
 /** One operation identity shared by admission, the wizard and queue recovery. */
 export function dependentWorkLinkPayload(
   clientWorkId: string,

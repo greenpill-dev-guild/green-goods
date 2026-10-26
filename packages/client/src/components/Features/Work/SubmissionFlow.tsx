@@ -2,6 +2,7 @@ import type {
   SubmissionFlowController,
   SubmissionStage,
 } from "@green-goods/shared/hooks/client-ui/submission/useSubmissionFlowController";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { FormEvent, ReactNode } from "react";
 import { useIntl } from "react-intl";
 
@@ -29,10 +30,11 @@ export interface SubmissionFlowProps {
 }
 
 /**
- * The one submission flow's page (DL-131): the top bar with the step markers, the stage the kind
- * renders under the body's lead, and the fixed bar with why the step waits, the media tools on
- * Media, and the one forward act. Once a promise is chosen, the kind places the pinned promise
- * after its heading, so the heading scrolls away and the promise stays in view (DL-058).
+ * The one submission flow's page (DL-131): the top bar with the step markers spread beside Back,
+ * the stage the kind renders under the body's lead, and the fixed bar with why the step waits,
+ * the media tools on Media, and the one forward act. Start has no forward act, so it has no bar:
+ * choosing moves on. Once a promise is chosen, the kind places the pinned promise after its
+ * heading, so the heading scrolls away and the promise stays in view (DL-058).
  */
 export function SubmissionFlow({
   flow,
@@ -52,61 +54,72 @@ export function SubmissionFlow({
       onOpen={flow.promise.show}
     />
   ) : null;
-  const blockedReason = flow.forward.blockedReasonId
-    ? formatMessage({ id: flow.forward.blockedReasonId })
+  const { forward } = flow;
+  const blockedReason = forward?.blockedReasonId
+    ? formatMessage({ id: forward.blockedReasonId })
     : null;
 
   return (
     <>
-      <TopNav onBackClick={flow.back} overlay>
-        <FormProgress
-          currentStep={flow.progress}
-          steps={flow.stageLabelIds.map((id) => formatMessage({ id }))}
-        />
-      </TopNav>
+      <TopNav
+        onBackClick={flow.back}
+        overlay
+        steps={
+          <FormProgress
+            layout="spread"
+            currentStep={flow.progress}
+            steps={flow.stageLabelIds.map((id) => formatMessage({ id }))}
+          />
+        }
+      />
       <form
         id={formId}
         className="relative py-6 pt-[var(--app-top-bar-height)] flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
         onSubmit={keepFormStill ? preventSubmit : undefined}
       >
         <div
-          className={
-            tallBar
-              ? "padded relative flex flex-col gap-4 flex-1 pb-[calc(14rem+var(--safe-area-bottom))]"
-              : "padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+var(--safe-area-bottom))]"
-          }
+          className={cn(
+            "padded relative flex flex-col gap-4 flex-1",
+            !forward
+              ? "pb-[calc(1.5rem+var(--safe-area-bottom))]"
+              : tallBar
+                ? "pb-[calc(14rem+var(--safe-area-bottom))]"
+                : "pb-[calc(7rem+var(--safe-area-bottom))]"
+          )}
         >
           {lead}
           {renderStage(flow.stage, pinned)}
         </div>
       </form>
-      <FlowBar
-        status={
-          <>
-            {blockedReason ? <FlowBarNote id={BLOCKED_ID}>{blockedReason}</FlowBarNote> : null}
-            {barStatus}
-          </>
-        }
-        tools={
-          flow.mediaTools ? (
-            <MediaTools
-              onGallery={flow.mediaTools.openGallery}
-              onCamera={flow.mediaTools.openCamera}
-              onToggleRecording={flow.mediaTools.toggleRecording}
-              isRecording={flow.mediaTools.isRecording}
-              disabled={flow.mediaTools.disabled}
-            />
-          ) : null
-        }
-      >
-        <FlowForward
-          label={formatMessage({ id: flow.forward.labelId })}
-          onClick={flow.forward.run}
-          disabled={flow.forward.disabled}
-          loading={flow.forward.loading}
-          describedBy={blockedReason ? BLOCKED_ID : undefined}
-        />
-      </FlowBar>
+      {forward ? (
+        <FlowBar
+          status={
+            <>
+              {blockedReason ? <FlowBarNote id={BLOCKED_ID}>{blockedReason}</FlowBarNote> : null}
+              {barStatus}
+            </>
+          }
+          tools={
+            flow.mediaTools ? (
+              <MediaTools
+                onGallery={flow.mediaTools.openGallery}
+                onCamera={flow.mediaTools.openCamera}
+                onToggleRecording={flow.mediaTools.toggleRecording}
+                isRecording={flow.mediaTools.isRecording}
+                disabled={flow.mediaTools.disabled}
+              />
+            ) : null
+          }
+        >
+          <FlowForward
+            label={formatMessage({ id: forward.labelId })}
+            onClick={forward.run}
+            disabled={forward.disabled}
+            loading={forward.loading}
+            describedBy={blockedReason ? BLOCKED_ID : undefined}
+          />
+        </FlowBar>
+      ) : null}
     </>
   );
 }

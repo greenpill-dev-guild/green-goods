@@ -143,6 +143,36 @@ export const InTheCockpit: Story = {
   },
 };
 
+/**
+ * The installed app's Start step (DL-131): two tiles to a row at a 360px phone, every tile one
+ * height, each title on two lines, a longer one clipped at the second.
+ */
+export const StartTiles: Story = {
+  args: { layout: "tiles", value: null },
+  // storybook-quality-allow state-harness: Picker owns the choice while rendering the real ActionPicker.
+  render: (args) => (
+    <div style={{ width: 360 }} className="px-4">
+      <Picker {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement, args }) => {
+    const cards = within(canvasElement).getAllByRole("option");
+    const heights = cards.map((card) => card.getBoundingClientRect().height);
+    await expect(new Set(heights).size).toBe(1);
+    // Two to a row: the second card sits beside the first, the third under it.
+    const [first, second, third] = cards.map((card) => card.getBoundingClientRect());
+    await expect(second.top).toBe(first.top);
+    await expect(third.top).toBeGreaterThan(first.bottom);
+    for (const card of cards) {
+      const title = card.querySelector("h3") as HTMLElement;
+      const line = Number.parseFloat(getComputedStyle(title).lineHeight);
+      await expect(title.getBoundingClientRect().height).toBeCloseTo(line * 2, 0);
+    }
+    await userEvent.click(cards[2]);
+    await expect(args.onChange).toHaveBeenCalledWith("workshop");
+  },
+};
+
 /** While the actions load, four empty cards hold their place. */
 export const Loading: Story = {
   args: { layout: "row", loading: true },

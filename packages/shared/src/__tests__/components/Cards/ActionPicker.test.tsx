@@ -4,7 +4,7 @@
  *
  * One action picker on both surfaces: a listbox of banner cards with one tab stop, where
  * the arrow keys move and only Space, Enter or a press chooses, and a card says its domain and
- * what it asks for. The row and grid layouts are measured in a real browser by the stories.
+ * what it asks for. The row, grid and tiles layouts are measured in a real browser by the stories.
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
