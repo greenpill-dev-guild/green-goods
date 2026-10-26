@@ -37,6 +37,7 @@ const EventSchema = z.discriminatedUnion("kind", [
       )
       .max(10)
       .optional(),
+    mediaGroupId: z.string().min(1).max(128).optional(),
     locale: z.string().max(10).optional(),
   }),
   z.object({

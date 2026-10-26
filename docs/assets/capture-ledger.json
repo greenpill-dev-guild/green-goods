@@ -1,6 +1,6 @@
 {
-  "recorded_at": "2026-10-17",
-  "notes": "Current captures use real components with fictional records. Storybook captures demonstrate interface states, not signed transactions, installation or product certification. Generated task photos contain no people or faces.",
+  "recorded_at": "2026-10-25",
+  "notes": "Current captures use real components with fictional records. Storybook captures demonstrate interface states, not signed transactions, installation or product certification. Generated task photos and sourced fixture photos contain no people or faces; the sourced photos' licenses are in packages/shared/.storybook/fixture-art/LICENSES.md.",
   "captures": [
     {
       "page": "docs/docs/builders/architecture.mdx",
@@ -151,8 +151,66 @@
     },
     {
       "page": "docs/docs/builders/architecture/anatomy.mdx",
+      "images": ["/img/screenshots/client-work-media.webp"],
+      "capture_note": "Submit Work on Media with one photo of seedling trays added, for work that is not for a promise.",
+      "recorded_at": "2026-10-25",
+      "proof_class": "Storybook",
+      "engine": "Headless Chromium 148 (Playwright), Storybook 10.6.2 static build",
+      "data": "Fictional garden/account/work records; the fixture photo is CC0 (packages/shared/.storybook/fixture-art/LICENSES.md).",
+      "capture_name": "work-media",
+      "width": 780,
+      "height": 1688,
+      "sha256": "f8227db8f4c19e261ba7e55ca52cc0af1a168022656cdfb58a5f6075f19f5404",
+      "source_revision": "1a5c8d643",
+      "status": "current",
+      "story_id": "client-work-submitwork--media-without-a-promise",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "framing": "Complete phone viewport at 2x; no UI compositing"
+    },
+    {
+      "page": "docs/docs/builders/architecture/anatomy.mdx",
+      "images": ["/img/screenshots/client-work-review.webp"],
+      "capture_note": "Submit Work on Review for the east-beds promise: the promise, the garden and two seedling photos.",
+      "recorded_at": "2026-10-25",
+      "proof_class": "Storybook",
+      "engine": "Headless Chromium 148 (Playwright), Storybook 10.6.2 static build",
+      "data": "Fictional garden/account/work records; the fixture photo is CC0 (packages/shared/.storybook/fixture-art/LICENSES.md).",
+      "capture_name": "work-review",
+      "width": 780,
+      "height": 1688,
+      "sha256": "12e06def46b60e10ce6f8279d568655d47996da8756381fea0f57783c1868784",
+      "source_revision": "1a5c8d643",
+      "status": "current",
+      "story_id": "client-work-submitwork--review-for-a-promise",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "framing": "Complete phone viewport at 2x; no UI compositing"
+    },
+    {
+      "page": "docs/docs/builders/architecture/anatomy.mdx",
       "images": ["/img/builders/client-work-dashboard.webp"],
-      "capture_note": "Your Work in the PWA: every item carries its queue state until the chain has confirmed it."
+      "capture_note": "Your Work in the PWA: every item carries its queue state until the chain has confirmed it.",
+      "recorded_at": "2026-10-25",
+      "proof_class": "Storybook",
+      "engine": "Headless Chromium 148 (Playwright), Storybook 10.6.2 static build",
+      "data": "Fictional garden/account/work records; fixture photos are public domain or CC0 (packages/shared/.storybook/fixture-art/LICENSES.md).",
+      "capture_name": "work-dashboard",
+      "width": 780,
+      "height": 1688,
+      "sha256": "6407f8ff4e380e1df3393f3e35b9b1d24eb810b809e2793ef85512d50a36e26c",
+      "source_revision": "1a5c8d643",
+      "status": "current",
+      "story_id": "client-work-workdashboard--pending",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "framing": "Complete phone viewport at 2x; no UI compositing"
     },
     {
       "page": "docs/docs/builders/architecture/anatomy.mdx",
@@ -184,7 +242,23 @@
     {
       "page": "docs/docs/builders/packages/admin.mdx",
       "images": ["/img/builders/admin-actions-registry.webp"],
-      "capture_note": "The Actions workspace: the registry a steward maintains for the garden."
+      "capture_note": "The Actions workspace: the registry a steward maintains for the garden.",
+      "recorded_at": "2026-10-25",
+      "proof_class": "Storybook",
+      "engine": "Headless Chromium 148 (Playwright), Storybook 10.6.2 static build",
+      "data": "Fictional garden/account/work records; fixture photos are public domain or CC0 (packages/shared/.storybook/fixture-art/LICENSES.md).",
+      "capture_name": "actions-registry",
+      "width": 2000,
+      "height": 1250,
+      "sha256": "b9f310a8924eae39e3a1476483b76f819356ce9bd6b89a8fb85bfc0f3d6c1db0",
+      "source_revision": "1a5c8d643",
+      "status": "current",
+      "story_id": "admin-workspaces-actions--registry",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "framing": "Complete desktop viewport at 2x, resized to 2000 \u00d7 1250; no UI compositing"
     },
     {
       "page": "docs/docs/builders/packages/qa.mdx",
@@ -441,16 +515,66 @@
     },
     {
       "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
-      "images": [
-        "/img/screenshots/client-work-pending-rich.png",
-        "/img/screenshots/client-work-completed-rich.png"
-      ],
-      "capture_note": "Storybook in Brave at 390 \u00d7 844, 2026-10-15. Client/Work/WorkDashboard PendingWithExamplePhoto and CompletedWithExamplePhoto, fictional mixed work, linked drafts and proofs; two approvals and a rejection. No account or transaction proof."
+      "images": ["/img/screenshots/client-work-pending-rich.png"],
+      "capture_note": "Fictional mixed work, linked drafts and proofs, each with a photo of its own task. No account or transaction proof. The file holds JPEG data under its .png name, as it has since it was added.",
+      "recorded_at": "2026-10-25",
+      "proof_class": "Storybook",
+      "engine": "Headless Chromium 148 (Playwright), Storybook 10.6.2 static build",
+      "data": "Fictional garden/account/work records; fixture photos are public domain or CC0 (packages/shared/.storybook/fixture-art/LICENSES.md).",
+      "capture_name": "work-pending-rich",
+      "width": 390,
+      "height": 844,
+      "sha256": "1e23b4e58a1b625df72052e0b1e9eacec3938b364c21437f30d1377722530481",
+      "source_revision": "1a5c8d643",
+      "status": "current",
+      "story_id": "client-work-workdashboard--pending-with-example-photo",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "framing": "Complete phone viewport at 1x; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
+      "images": ["/img/screenshots/client-work-completed-rich.png"],
+      "capture_note": "My work on Completed: two approvals and a rejection, each with a photo of its own task. No account or transaction proof. The file holds JPEG data under its .png name, as it has since it was added.",
+      "recorded_at": "2026-10-25",
+      "proof_class": "Storybook",
+      "engine": "Headless Chromium 148 (Playwright), Storybook 10.6.2 static build",
+      "data": "Fictional garden/account/work records; fixture photos are public domain or CC0 (packages/shared/.storybook/fixture-art/LICENSES.md).",
+      "capture_name": "work-completed-rich",
+      "width": 390,
+      "height": 844,
+      "sha256": "0a83bf188282d679b7bdac77d825dcbc808b24aab85c1186f79e317a70c7ef62",
+      "source_revision": "1a5c8d643",
+      "status": "current",
+      "story_id": "client-work-workdashboard--completed-with-example-photo",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "framing": "Complete phone viewport at 1x; no UI compositing"
     },
     {
       "page": "docs/docs/community/gardener-guide/recovery-and-sync.mdx",
       "images": ["/img/screenshots/client-work-recovery-rich.png"],
-      "capture_note": "Storybook in Brave at 390 \u00d7 844, 2026-10-15. RecoveryWithExamplePhoto, To upload filter: two prepared work items, a converting photo, and proof. The controlled frame does not run real uploads."
+      "capture_note": "To upload filter: two prepared work items, a converting photo, and proof. The controlled frame does not run real uploads. Earlier bytes were a 1440 \u00d7 1000 frame; this capture matches the 390 \u00d7 844 the page declares. The file holds JPEG data under its .png name.",
+      "recorded_at": "2026-10-25",
+      "proof_class": "Storybook",
+      "engine": "Headless Chromium 148 (Playwright), Storybook 10.6.2 static build",
+      "data": "Fictional garden/account/work records; fixture photos are public domain or CC0 (packages/shared/.storybook/fixture-art/LICENSES.md).",
+      "capture_name": "work-recovery-rich",
+      "width": 390,
+      "height": 844,
+      "sha256": "56e051f7b80149ed15d34a171905e67d94659c9c2b4bbe8365391463e64f4442",
+      "source_revision": "1a5c8d643",
+      "status": "current",
+      "story_id": "client-work-workdashboard--recovery-with-example-photo",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "framing": "Complete phone viewport at 1x; no UI compositing"
     },
     {
       "page": "docs/docs/community/gardener-guide/commitments.mdx",

@@ -1,7 +1,44 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
-import { type ResolvedEvidence } from "@green-goods/shared/commitment-pooling";
+import {
+  type CommitmentMetadataLink,
+  type ResolvedEvidence,
+} from "@green-goods/shared/commitment-pooling";
 import { RiLink, RiMicLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+
+/**
+ * The proof's own words, as body text. A note keeps the paragraphs it was
+ * written with, and a long address in it wraps rather than widening the page.
+ */
+export function EvidenceNote({ note }: { note: string }) {
+  return <p className="whitespace-pre-line break-words text-sm text-text-strong-950">{note}</p>;
+}
+
+/**
+ * The proof's links, one tappable row each at one height: its label, or the
+ * address when it has none, cut to one line with the full address on hover.
+ */
+export function EvidenceLinks({ links }: { links: readonly CommitmentMetadataLink[] }) {
+  return (
+    <ul>
+      {links.map((link) => (
+        <li key={link.url}>
+          <a
+            href={link.url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex min-h-11 items-center gap-2 text-xs text-primary-on-surface underline-offset-2 hover:underline"
+          >
+            <RiLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 truncate" title={link.url}>
+              {link.label ?? link.url}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export interface EvidencePreviewProps {
   evidence: ResolvedEvidence[];
@@ -59,9 +96,7 @@ export function EvidencePreview({ evidence, isLoading, recordedCount = 0 }: Evid
             </p>
           ) : (
             <>
-              {item.document.note ? (
-                <p className="text-sm text-text-strong-950">{item.document.note}</p>
-              ) : null}
+              {item.document.note ? <EvidenceNote note={item.document.note} /> : null}
               {item.mediaUrls.length > 0 ? (
                 <ul className="grid grid-cols-3 gap-2">
                   {item.mediaUrls.map((url, index) => {
@@ -101,20 +136,7 @@ export function EvidencePreview({ evidence, isLoading, recordedCount = 0 }: Evid
                   />
                 </div>
               ))}
-              {(item.document.links ?? []).map((link) => (
-                <a
-                  key={link.url}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-2 text-xs text-primary-on-surface underline-offset-2 hover:underline"
-                >
-                  <RiLink className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span className="min-w-0 truncate" title={link.url}>
-                    {link.label ?? link.url}
-                  </span>
-                </a>
-              ))}
+              {item.document.links?.length ? <EvidenceLinks links={item.document.links} /> : null}
             </>
           )}
         </li>

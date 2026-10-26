@@ -1,11 +1,17 @@
 import { applyReportChanges, emptyReport } from "@green-goods/shared/modules/agent-reporting";
-import { createDraft } from "../drafts";
+import { createDraft, type DraftRecord } from "../drafts";
 import { gardenScope } from "../gardens";
 import { recordMediaIntake } from "../media-intake";
+import { closeConversationPrompt } from "../prompts";
 import { requestConnection, welcome } from "./account-steps";
 import { isGreeting } from "./commands";
 import type { TurnPlan } from "./context";
-import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
+import {
+  commitContentChange,
+  commitLifecycle,
+  EDITABLE_STATES,
+  lifecycleState,
+} from "./draft-commit";
 import { promptNextStep } from "./prompting";
 import { handleReportCommand } from "./report-commands";
 import {
@@ -21,6 +27,25 @@ import type { TurnWriter } from "./writer";
 
 /** The longest message the model may call a hello or an account request rather than a story. */
 const MAX_ASIDE_WORDS = 12;
+
+/**
+ * Files sent once the summary is out change what would be confirmed, before they are even
+ * processed. The report goes back to review as a correction would: the summary showing no longer
+ * confirms it, and a confirmation not yet being sent is withdrawn with its publication. The
+ * summary is put again once the files are in.
+ */
+function reopenForFiles(writer: TurnWriter, draft: DraftRecord): DraftRecord {
+  const state = lifecycleState(draft);
+  if (state === "collecting") return draft;
+  const reopened = commitContentChange(writer.core, draft, {
+    content: draft.content,
+    cause: "files",
+    sourceEventId: writer.ctx.event.id,
+  });
+  // Past the summary, the open question is about publishing what was confirmed.
+  if (state !== "review") closeConversationPrompt(writer.core, writer.ctx.conversationId);
+  return reopened;
+}
 
 /** A story, correction or attachment that is not an answer to the open question. */
 export function handleReportMessage(
@@ -90,6 +115,7 @@ export function handleReportMessage(
       sourceEntryId,
       media: plan.media,
     });
+    draft = reopenForFiles(writer, draft);
   }
 
   const work: Working = { content: draft.content, snapshot: draft.snapshot, changed: false };
@@ -101,9 +127,10 @@ export function handleReportMessage(
       { field: "feedback", value: text, provenance: gardenerFact(sourceEntryId, text) },
     ]);
   }
-  // A file sent on its own is answered by the media job once it is processed, whether or not it
-  // could be used. That job takes the chat's only garden itself, so the garden is said and the
-  // next question asked once, not twice.
+  // Files are answered by the media job once they are processed, whether or not they could be
+  // used: one reply for all of them, then the next question. That job takes the chat's only
+  // garden itself, so the garden is said and the next question asked once, not twice. A caption
+  // is applied now, and its question waits for the files.
   const fileOnly = !text && plan.media.length > 0;
   if (!fileOnly) autoFill(writer, work, external, sourceEntryId);
 
@@ -124,5 +151,7 @@ export function handleReportMessage(
     handleReportCommand(writer, { kind: "status" }, external);
     return;
   }
-  finish(writer, draft, work, external, ctx.draft ? "message" : "story");
+  finish(writer, draft, work, external, ctx.draft ? "message" : "story", {
+    ask: plan.media.length === 0,
+  });
 }
