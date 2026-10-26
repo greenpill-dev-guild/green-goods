@@ -52,8 +52,10 @@ are reported as not validated rather than passed. A full capture fails when any 
 shared hub and people rules included, matches nothing on any screen, a fixture name survives, the
 Awka banner or a listed photo is missing, a record photo's title in `record-photos.tsv` no longer
 matches the submission `RECORDS` binds it to (the hub's page lists newest first, so a new approved
-submission renumbers the files), a photo does not decode, or a hotspot target is missing or off
-screen. Check fails on an em dash in the demo's HTML or Markdown, a caption over eight words
+submission renumbers the files), the banner or a photo does not decode, a hotspot target is missing
+or off screen, Storybook shows its not-found view, or a screen without a hotspot shows neither its
+`expect` copy nor any of its own swaps. Screens are staged and replace the current set only when
+the run has no problem, so a failed capture leaves the existing screens and `index.html` untouched. Check fails on an em dash in the demo's HTML or Markdown, a caption over eight words
 or using "commitment", "chain", "blockchain", "Arbitrum", "Celo", "Gnosis" or "live", a tile line that
 is not five words, a missing or extra hotspot, a stale build, a file over 15 MB, an image that does
 not load, a caption that does not change, a tap beside the hotspot that advances, broken keys

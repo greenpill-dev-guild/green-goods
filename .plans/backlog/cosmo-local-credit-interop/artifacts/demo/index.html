@@ -615,10 +615,12 @@
       if (!hotspot.hidden) hotspot.style.setProperty("--r", `${Math.min(hotspot.getBoundingClientRect().height / 2, 20)}px`);
     }
 
-    // A render hides the hotspot on the last screen and "Try another flow" everywhere else, so a
-    // keyboard user who held either lands on the one now in play instead of on a hidden control.
+    // A render hides the hotspot on the last screen, hides "Try another flow" everywhere else and
+    // disables Back and Restart on the first screen, so a keyboard user who held a control that
+    // just went away lands on the one now in play instead of on a hidden or disabled one.
     function keepFocus(before) {
-      if (before !== hotspot && before !== $("another")) return;
+      if (![hotspot, $("another"), $("back"), $("restart")].includes(before)) return;
+      if (!before.hidden && !before.disabled) return;
       if (!hotspot.hidden) hotspot.focus({ preventScroll: true });
       else if (!$("another").hidden) $("another").focus({ preventScroll: true });
     }
@@ -649,7 +651,7 @@
     });
     hotspot.addEventListener("animationend", (event) => { if (event.animationName === "nudge") hotspot.classList.remove("nudge"); });
     $("back").addEventListener("click", retreat);
-    $("restart").addEventListener("click", () => { step = 0; render(); });
+    $("restart").addEventListener("click", () => { const before = document.activeElement; step = 0; render(); keepFocus(before); });
     $("another").addEventListener("click", home);
     $("home-flow").addEventListener("click", home);
     $("home-landing").addEventListener("click", home);

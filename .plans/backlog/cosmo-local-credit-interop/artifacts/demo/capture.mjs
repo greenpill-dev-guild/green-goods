@@ -16,7 +16,7 @@
 // fixture name survives the swaps.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -215,7 +215,7 @@ const SHOTS = {
     tap: { role: "button", name: "Connect Wallet" },
   },
   "funding-4": { url: story("client-public-vault-vaultmanagepositionspanel--positions"), device: DESKTOP, swaps: [...FUNDER, ...BASE], tap: { role: "button", name: "Close Manage Endowments" } },
-  "funding-5": { url: "https://greengoods.app/gardens/tas-hub", live: true, device: DESKTOP, scrollTo: { text: "A one week content creation bootcamp with AI", align: "start", card: "img", top: 28 } },
+  "funding-5": { url: "https://greengoods.app/gardens/tas-hub", live: true, device: DESKTOP, scrollTo: { text: "A one week content creation bootcamp with AI", align: "start", card: "img", top: 28 }, expect: ["TAS HUB", "A one week content creation bootcamp with AI"] },
 };
 
 function locate(page, spec) {
@@ -285,15 +285,17 @@ async function swapBanner(page, src) {
       const r = img.getBoundingClientRect();
       return r.top < 40 && r.width > 300 && r.height > 100;
     });
+    let swapped = 0;
     for (const img of imgs) {
       img.closest("picture")?.querySelectorAll("source").forEach((s) => s.remove());
       img.removeAttribute("srcset");
       img.removeAttribute("sizes");
       img.src = src;
       img.alt = "TAS Hub in Awka";
-      await img.decode().catch(() => {});
+      // A banner that does not decode would be baked into the screen, so it never counts as swapped.
+      if (await img.decode().then(() => img.naturalWidth > 0 && img.naturalHeight > 0, () => false)) swapped += 1;
     }
-    return imgs.length;
+    return { swapped, found: imgs.length };
   }, src);
 }
 
@@ -375,7 +377,11 @@ async function capture(browser, file, shot) {
       // A missing banner leaves the fixture image on a screen the demo presents as the hub's, and
       // no later check can see it, so it fails the capture like a missing record photo.
       if (!banner) note(`${file}: ${BANNER} is missing; place the approved Awka photo (README, Photos)`);
-      else if (shot.banner && !(await swapBanner(page, banner))) note(`${file}: no banner image found to swap`);
+      else if (shot.banner) {
+        const { swapped, found } = await swapBanner(page, banner);
+        if (!found) note(`${file}: no banner image found to swap`);
+        else if (swapped !== found) note(`${file}: ${BANNER} did not decode; replace it with the approved Awka photo`);
+      }
       else if (shot.gardenCard && !(await swapGardenCard(page, banner))) note(`${file}: no garden card pattern found to swap`);
     }
     if (shot.photos) {
@@ -404,10 +410,14 @@ async function capture(browser, file, shot) {
     await page.waitForTimeout(400);
     (shot.swaps || []).forEach(([from, to], i) => { swapHits.set(`${from} → ${to}`, (swapHits.get(`${from} → ${to}`) || 0) + hits[i]); });
     const used = (shot.swaps || []).filter((_, i) => hits[i] > 0).map(([from, to]) => `${from} → ${to}`);
-    if (!shot.live) {
-      const text = await page.evaluate(() => document.body.innerText);
-      for (const word of LEFTOVERS) if (word.test(text)) note(`${file}: fixture text ${word} is still visible`);
-    }
+    const text = await page.evaluate(() => document.body.innerText);
+    if (!shot.live) for (const word of LEFTOVERS) if (word.test(text)) note(`${file}: fixture text ${word} is still visible`);
+    // Every screen has to show what the demo says it shows: Storybook's not-found view also fills
+    // #storybook-root, a hotspot target proves its screen rendered, and a screen without one
+    // needs its own `expect` copy or at least one of its own swap rules to have matched here.
+    if (/couldn't find story|story not found|no story matched/i.test(text)) note(`${file}: Storybook shows its not-found view instead of the story`);
+    for (const expected of shot.expect || []) if (!text.includes(expected)) note(`${file}: expected "${expected}" on the screen`);
+    if (!shot.tap && !shot.expect && !hits.some((n) => n > 0)) note(`${file}: no hotspot target, no expected copy and no swap matched; the story did not render what the demo shows`);
     let hotspot = null;
     if (shot.tap) {
       const box = await hotspotBox(page, shot.tap);
@@ -415,7 +425,7 @@ async function capture(browser, file, shot) {
       else if (box.x < 0 || box.y < 0 || box.x + box.width > width + 1 || box.y + box.height > height + 1) note(`${file}: hotspot target is outside the screen (${JSON.stringify(box)})`);
       else hotspot = [box.x / width, box.y / height, box.width / width, box.height / height].map((v) => Math.round(v * 10000) / 10000);
     }
-    await page.screenshot({ path: join(out, `${file}.jpg`), type: "jpeg", quality: 82 });
+    await page.screenshot({ path: join(staging, `${file}.jpg`), type: "jpeg", quality: 82 });
     console.log(`${file}.jpg  ${shot.live ? shot.url : shot.url.split("id=")[1]}${used.length ? `\n    swaps: ${used.join(" | ")}` : ""}`);
     return { story: shot.live ? shot.url : shot.url.split("id=")[1], width, height, hotspot };
   } finally {
@@ -438,6 +448,9 @@ const unknown = only.filter((id) => !SHOTS[id]);
 if (unknown.length) throw new Error(`--only names ${unknown.join(", ")}, which ${unknown.length === 1 ? "has" : "have"} no capture recipe; nothing was captured or rewritten`);
 const queue = screens.filter((s) => SHOTS[s.file] && (!only.length || only.includes(s.file)));
 if (only.length && !queue.length) throw new Error(`--only matched no screen listed in index.html; nothing was captured or rewritten`);
+// Screens land in a staging folder and replace the current set only when the run has no problem,
+// so a failed capture never overwrites a known-good screen or rewrites index.html.
+const staging = mkdtempSync(join(out, ".capture-"));
 const browser = await pw.chromium.launch();
 const results = new Map();
 const swapHits = new Map();
@@ -475,8 +488,14 @@ for (const s of screens) {
   s.size = [r.width, r.height];
   if (r.hotspot) s.hotspot = r.hotspot; else delete s.hotspot;
 }
+if (problems.length) {
+  rmSync(staging, { recursive: true, force: true });
+  console.log(`capture failed with ${problems.length} problem(s); the existing screens and index.html are untouched`);
+  process.exit(1);
+}
+for (const name of readdirSync(staging)) renameSync(join(staging, name), join(out, name));
+rmSync(staging, { recursive: true, force: true });
 const json = JSON.stringify(data, null, 2).replace(/<\//g, "<\\/");
 html = html.replace(block[0], `<script type="application/json" id="flows">\n${json}\n</script>`);
 writeFileSync(htmlPath, html);
-console.log(`captured ${results.size} screens into ${out}; ${problems.length} problem(s)`);
-process.exit(problems.length ? 1 : 0);
+console.log(`captured ${results.size} screens into ${out}; 0 problems`);

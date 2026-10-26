@@ -8,7 +8,7 @@
 // Rendered checks (Chromium, light, 1440x900): four tiles with loaded thumbnails; each flow walked by
 // clicking its hotspots, with each step's image loaded and its caption changed; a tap beside the
 // hotspot does not advance; Right, Left and Escape, Back and Restart, and a #work-3 deep link work;
-// focus held on the hotspot survives the last screen and Left from it;
+// focus held on the hotspot survives the last screen and Left from it, and Back or Restart by keyboard;
 // "Try another flow" returns to the landing; no request leaves the page except Google Fonts; no
 // console errors. Then 390x844 without sideways scroll, and dark mode. Every step is screenshot to
 // ./output/ with a contact sheet. A failed check exits with status 1 after reporting.
@@ -138,6 +138,23 @@ if ((await active()).id !== "another") note(`focus on the last screen sits on "$
 await page.keyboard.press("ArrowLeft");
 const after = await active();
 if (after.id !== "hotspot" || after.hidden) note(`focus after Left from the last screen sits on "${after.id}"${after.hidden ? " (hidden)" : ""}, not on the hotspot`);
+await page.keyboard.press("Escape");
+// Back from the second screen and Restart from a later one disable the button that was pressed,
+// so focus has to move to the hotspot, or Enter would stop working.
+await page.click("#tile-promise");
+await page.keyboard.press("ArrowRight");
+await page.focus("#back");
+await page.keyboard.press("Enter");
+const afterBack = await active();
+if ((await state(page)).step !== 1) note("Enter on Back did not go back");
+if (afterBack.id !== "hotspot" || afterBack.hidden) note(`focus after Back from the second screen sits on "${afterBack.id}", not on the hotspot`);
+await page.keyboard.press("ArrowRight");
+await page.keyboard.press("ArrowRight");
+await page.focus("#restart");
+await page.keyboard.press("Enter");
+const afterRestart = await active();
+if ((await state(page)).step !== 1) note("Enter on Restart did not return to the first screen");
+if (afterRestart.id !== "hotspot" || afterRestart.hidden) note(`focus after Restart sits on "${afterRestart.id}", not on the hotspot`);
 await page.keyboard.press("Escape");
 await page.goto(`${url}#work-3`, { waitUntil: "load" });
 const deep = await state(page);
