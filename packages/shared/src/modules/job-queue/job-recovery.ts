@@ -58,7 +58,8 @@ export function createJobRecovery(
    * The chain one tap queued to take a promise up while logging work for it (decision 18).
    * Discarding its work takes its take-up too, while nothing of that was sent and no other
    * work waits on it. Discarding the take-up takes the links that waited on it, which could
-   * never land without it; each work stays, as work on its own.
+   * never land without it; each work stays, as work on its own, so it no longer names the
+   * promise either: taking that promise up again later holds none of it.
    */
   async function discardTakeUpChain(job: Job, discard: (jobId: string) => Promise<boolean>) {
     if (!store.getJobs || (job.kind !== "work" && job.kind !== "claim")) return;
@@ -72,12 +73,24 @@ export function createJobRecovery(
       return;
     }
     const held = new Set(queued.filter((work) => isTakeUpOf(job, work)).map((work) => work.id));
+    const linkKept = new Set<string>();
     for (const link of queued) {
       const source = (link.payload as { sourceWorkJobId?: string } | undefined)?.sourceWorkJobId;
-      if (link.kind !== "workLink" || !source || !held.has(source) || !isDiscardableJob(link))
+      if (link.kind !== "workLink" || !source || !held.has(source)) continue;
+      // A link whose send is on record may still land, so its work keeps naming the promise.
+      if (!isDiscardableJob(link)) {
+        linkKept.add(source);
         continue;
+      }
       await store.deleteJob(link.id);
       events.emit("job:failed", { jobId: link.id, job: link, error: JOB_DISCARDED });
+    }
+    for (const workId of held) {
+      if (linkKept.has(workId)) continue;
+      await store.amendJob(workId, (work) => {
+        if (work.synced) return;
+        delete (work.payload as WorkJobPayload).dependentWorkLink;
+      });
     }
   }
 

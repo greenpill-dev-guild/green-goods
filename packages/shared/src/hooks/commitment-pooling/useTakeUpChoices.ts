@@ -8,8 +8,11 @@
  * Choosing one queues the claim before the work, and the work stays in its garden, since the
  * ask is that garden's.
  *
- * The reads are the garden page's own (its pool, the pool's promises, their metadata), and the
- * asks the reader already asked for or is taking up are left out (`oneTapAsks`).
+ * The reads are the garden page's own (its pool and its detail, the pool's promises, their
+ * metadata), and the asks the reader already asked for or is taking up are left out
+ * (`oneTapAsks`). It offers none while this phone's queue cannot be read, since a take-up
+ * already on it could not be ruled out, nor to a reader at the pool's limit of promises held at
+ * once, whose take-up the registry would refuse (`isAtTakeUpLimit`, as on the promise page).
  *
  * @module hooks/commitment-pooling/useTakeUpChoices
  */
@@ -17,6 +20,7 @@
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 
+import { isAtTakeUpLimit } from "../../modules/commitment-pooling/group-browsing";
 import type { CommitmentReadModel } from "../../modules/commitment-pooling/types-core";
 import type {
   WorkablePromise,
@@ -25,7 +29,7 @@ import type {
 import { isOneTapTakeUp, oneTapAsks } from "../../modules/garden/journal";
 import type { Address } from "../../types/domain";
 import { useCommitmentMetadata } from "./useCommitmentMetadata";
-import { useCommitmentPools, useCommitments } from "./useCommitmentPooling";
+import { useCommitmentPool, useCommitmentPools, useCommitments } from "./useCommitmentPooling";
 import { useViewerTakeUps } from "./useViewerTakeUps";
 import { workLinkReturnTo } from "./useWorkLinkChoices";
 
@@ -81,7 +85,16 @@ export function useTakeUpChoices(input: {
   const pool = pools.data?.[0] ?? null;
   const ownPool = enabled && pool !== null && pool.poolType !== "PROTOCOL";
   const commitments = useCommitments({ chainId, poolId: pool?.poolId ?? 0n }, { enabled: ownPool });
-  const { takeUps, settled } = useViewerTakeUps({
+  const poolDetail = useCommitmentPool(
+    { chainId, poolId: pool?.poolId ?? 0n },
+    { enabled: ownPool }
+  );
+  const {
+    takeUps,
+    settled,
+    unavailable,
+    retry: retryTakeUps,
+  } = useViewerTakeUps({
     chainId,
     poolId: pool?.poolId ?? 0n,
     viewer: account,
@@ -90,6 +103,13 @@ export function useTakeUpChoices(input: {
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
   const untitled = formatMessage({ id: "app.commitments.row.untitled" });
+  const atLimit = isAtTakeUpLimit({
+    direction: "REQUEST",
+    cap: poolDetail.pool?.providerOpenCommitmentCap,
+    exposures: poolDetail.detail?.providerExposures ?? null,
+    viewer: account,
+    queued: takeUps.queued.size,
+  });
 
   const { asks, choices } = useMemo(() => {
     if (!ownPool || !workGarden || !returnGarden) return { asks: [], choices: [] };
@@ -99,33 +119,48 @@ export function useTakeUpChoices(input: {
         returnGarden,
         title: byCID.get(commitment.metadataCID?.trim() ?? "")?.title?.trim() || untitled,
       });
-    // A pool that is not open takes nothing up.
-    const poolOpen = pool?.state === "OPEN";
+    // A pool that is not open takes nothing up, and neither does a reader at its limit or a
+    // phone whose queue cannot be read.
+    if (pool?.state !== "OPEN" || unavailable || atLimit) return { asks: [], choices: [] };
     return {
       asks: oneTapAsks({
         commitments: listed,
         metadataByCID: byCID,
         viewer: account,
-        poolOpen,
+        poolOpen: true,
         takeUps,
       }).map(shape),
       // Every copy of a set, so a link to any of them holds, whichever one Start lists.
-      choices: poolOpen
-        ? listed
-            .filter((commitment) => isOneTapTakeUp(commitment, account, takeUps))
-            .flatMap((commitment) => shape(commitment).choices)
-        : [],
+      choices: listed
+        .filter((commitment) => isOneTapTakeUp(commitment, account, takeUps))
+        .flatMap((commitment) => shape(commitment).choices),
     };
-  }, [ownPool, pool?.state, workGarden, returnGarden, listed, account, takeUps, byCID, untitled]);
+  }, [
+    ownPool,
+    pool?.state,
+    workGarden,
+    returnGarden,
+    unavailable,
+    atLimit,
+    listed,
+    account,
+    takeUps,
+    byCID,
+    untitled,
+  ]);
 
   return {
     asks,
     choices,
-    isLoading: enabled && (pools.isLoading || (ownPool && (commitments.isLoading || !settled))),
-    isError: pools.isError || commitments.isError,
+    // The pool's limit is held for while it is read; one that cannot be read reads as room.
+    isLoading:
+      enabled &&
+      (pools.isLoading || (ownPool && (commitments.isLoading || poolDetail.isLoading || !settled))),
+    isError: pools.isError || commitments.isError || unavailable,
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();
+      if (unavailable) retryTakeUps();
     },
   };
 }

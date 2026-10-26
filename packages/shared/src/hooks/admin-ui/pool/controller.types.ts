@@ -29,6 +29,12 @@ import type {
 } from "../../../modules/commitment-pooling/waiting-for-approval";
 import type { Address } from "../../../types/domain";
 import type { EASGardenAssessment } from "../../../types/eas-responses";
+import type {
+  VoucherAsk,
+  VoucherBooking,
+  VoucherConsoleSnapshot,
+  VoucherIssuerReserve,
+} from "../../../modules/commitment-pooling/voucher-console";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type { PoolFundingSnapshot } from "../../../modules/commitment-pooling/pool-funding";
@@ -67,6 +73,12 @@ export interface PoolConsoleActs {
   compostCycle: (cycleId: bigint) => Promise<HexString>;
   expire: (commitmentId: bigint) => Promise<HexString>;
   acceptClaim: (commitmentId: bigint, claimant: Address) => Promise<HexString>;
+  /**
+   * Accept a voucher booking through `acceptServiceClaim`, naming the member's
+   * exact consent. `now` is the clock the steward's checks were read against;
+   * the act reads them again and refuses before the wallet while one fails.
+   */
+  acceptServiceClaim: (ask: VoucherAsk, now: number) => Promise<HexString>;
   declineClaim: (commitmentId: bigint, claimant: Address, reason: string) => Promise<HexString>;
   /** Send a creation still queued on this device, as the steward's own tap. */
   retryQueued: (jobId: string) => Promise<void>;
@@ -127,6 +139,35 @@ export interface PoolConsoleController {
   isLoading: boolean;
   isError: boolean;
   refetch: () => Promise<unknown[]>;
+}
+
+/**
+ * The issuer's acts on its bookings and reserve. Each signs with the issuer's
+ * Safe on the voucher network, except a retried transfer, which anyone may send.
+ */
+export interface VoucherConsoleActs {
+  /** `approveSetupAuthorization`: lets the member deposit; it is not acceptance. */
+  approveBooking: (ask: VoucherAsk) => Promise<void>;
+  /** Evidence for the final split; it moves no vouchers. */
+  reportVisit: (booking: VoucherBooking) => Promise<void>;
+  /** `authorizeReturn`: the most that can come back; the holder still decides the split. */
+  proposeReturn: (booking: VoucherBooking, refund: bigint) => Promise<void>;
+  /** The same transfer again; it can't be sent twice. */
+  retryTransfer: (booking: VoucherBooking) => Promise<void>;
+  /** The reserve's allowance for promised rewards; it creates no vouchers. */
+  raiseAllowance: (reserve: VoucherIssuerReserve, allowance: bigint) => Promise<void>;
+}
+
+/** What the voucher console reads for a garden's pool, and the issuer's acts on it. */
+export interface VoucherConsoleView {
+  snapshot: VoucherConsoleSnapshot;
+  /** The clock acceptance checks read against, in seconds: the later of the read's and this device's. */
+  now: number;
+  /** The booking a pending ask asked for, when the ask is a voucher booking. */
+  askFor: (commitmentId: bigint, buyer: Address) => VoucherAsk | undefined;
+  /** The booking under way on an offer, if one is. */
+  bookingFor: (commitmentId: bigint) => VoucherBooking | undefined;
+  acts: VoucherConsoleActs;
 }
 
 export type ConfirmQueueEligibility =

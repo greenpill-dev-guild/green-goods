@@ -167,6 +167,11 @@ export interface CommitmentQueueState {
    * taken and reports no failures when it cannot see any.
    */
   isUnavailable: boolean;
+  /**
+   * The queue's first read is still in flight, so nothing is known to be queued
+   * or not yet. A surface that offers an act waits rather than read it as empty.
+   */
+  isLoading: boolean;
   refresh: () => void;
 }
 
@@ -410,7 +415,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       takeUpIds,
       failedLinkWorkIds,
       isUnavailable: Boolean(viewer) && query.isError,
+      isLoading: Boolean(viewer) && query.isPending,
       refresh,
     };
-  }, [query.data, query.isError, viewer, refresh]);
+  }, [query.data, query.isError, query.isPending, viewer, refresh]);
 }

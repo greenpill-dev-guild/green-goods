@@ -384,6 +384,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.enqueue.mockResolvedValue("link-job");
     mocks.consumeShareTarget.mockResolvedValue(undefined);
     mocks.loadShareTarget.mockReset();
+    mocks.uploadWork.mockReset();
     mocks.normalizeWorkMediaFiles.mockReset();
     mocks.saveOnExit.mockReset();
     mocks.saveOnExit.mockResolvedValue("draft-1");
@@ -1063,17 +1064,40 @@ describe("useWorkSubmissionFlowController", () => {
       gardenContext: ask.garden,
       gardenAddress: ask.garden,
     };
+    const admit = vi.fn();
+    /**
+     * Submit Work's form as the controller drives it: the work's own checks, then the act the
+     * controller hands it to run before admission, then admission, which puts the work's outcome
+     * on record. `failsAdmission` fails that many admissions after the act has run.
+     */
+    const submitWorkForm = ({ passesChecks = true, failsAdmission = 0 } = {}) => {
+      let failures = failsAdmission;
+      // The outcome a test sets is what an admission records; a run that admits nothing records none.
+      let configured: typeof mocks.outcome = null;
+      mocks.uploadWork.mockImplementation(
+        async (options?: { beforeAdmission?: () => Promise<boolean> }) => {
+          configured = mocks.outcome ?? configured;
+          mocks.outcome = null;
+          if (!passesChecks) return;
+          if (options?.beforeAdmission && !(await options.beforeAdmission())) return;
+          if (failures-- > 0) throw new Error("upload failed");
+          admit();
+          mocks.outcome = configured;
+        }
+      );
+    };
     const withAskChosen = () => {
       mocks.actionUID = ask.actionUID;
       mocks.gardenAddress = ask.garden;
       mocks.takeUpChoices = [ask];
       mocks.outcome = { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false };
+      submitWorkForm();
       const view = renderFlow();
       act(() => view.result.current.selectLinkIntent(ask));
       return view;
     };
 
-    it("takes the ask up before it queues the work, and counts each prompt up front", async () => {
+    it("takes the ask up before it admits the work, and counts each prompt up front", async () => {
       mocks.takeUp.mockResolvedValue({ status: "landed" });
       const view = withAskChosen();
       await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
@@ -1086,7 +1110,7 @@ describe("useWorkSubmissionFlowController", () => {
 
       expect(mocks.takeUp).toHaveBeenCalledWith(claim);
       expect(mocks.takeUp.mock.invocationCallOrder[0]).toBeLessThan(
-        mocks.uploadWork.mock.invocationCallOrder[0]
+        admit.mock.invocationCallOrder[0]
       );
       expect(mocks.enqueue).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1110,9 +1134,23 @@ describe("useWorkSubmissionFlowController", () => {
         await expect(view.result.current.submit()).resolves.toBe(false);
       });
 
-      expect(mocks.uploadWork).not.toHaveBeenCalled();
+      expect(admit).not.toHaveBeenCalled();
       expect(mocks.enqueue).not.toHaveBeenCalled();
       expect(mocks.toastError).toHaveBeenCalledWith(expect.objectContaining({ title }));
+    });
+
+    it("takes nothing up for work that fails its own checks", async () => {
+      const view = withAskChosen();
+      submitWorkForm({ passesChecks: false });
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+
+      await act(async () => {
+        await expect(view.result.current.submit()).resolves.toBe(false);
+      });
+
+      // A take-up cannot be taken back, so it goes only for work its checks let through.
+      expect(mocks.takeUp).not.toHaveBeenCalled();
+      expect(mocks.enqueue).not.toHaveBeenCalled();
     });
 
     it("queues the work behind a take-up the queue holds for later", async () => {
@@ -1131,7 +1169,7 @@ describe("useWorkSubmissionFlowController", () => {
         await expect(view.result.current.submit()).resolves.toBe(true);
       });
 
-      expect(mocks.uploadWork).toHaveBeenCalledOnce();
+      expect(admit).toHaveBeenCalledOnce();
       expect(mocks.enqueue).toHaveBeenCalledWith(
         expect.objectContaining({
           act: "workLink",
@@ -1143,8 +1181,8 @@ describe("useWorkSubmissionFlowController", () => {
 
     it("takes the promise up once from one composer, whatever happens to the work after", async () => {
       mocks.takeUp.mockResolvedValue({ status: "landed" });
-      mocks.uploadWork.mockRejectedValueOnce(new Error("upload failed"));
       const view = withAskChosen();
+      submitWorkForm({ failsAdmission: 1 });
       await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
 
       await act(async () => {

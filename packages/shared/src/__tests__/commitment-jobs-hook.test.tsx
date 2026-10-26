@@ -17,6 +17,7 @@ import {
   retryQueuedCommitmentJob,
   useCommitmentJobs,
 } from "../hooks/commitment-pooling/useCommitmentJobs";
+import { toastService } from "../components/Toast/toast.service";
 import { TakeUpNotSent } from "../modules/commitment-pooling/take-up";
 import type { Address } from "../types/domain";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
@@ -432,6 +433,20 @@ describe("useCommitmentJobs", () => {
       await expect(taking).rejects.toBeInstanceOf(TakeUpNotSent);
       await expect(taking).rejects.toMatchObject({ declined });
       expect(mocks.discardJob).toHaveBeenCalledWith("job-1");
+    });
+
+    it("says an unexpected take-up failure as any act's, and leaves a decline to Submit's own copy", async () => {
+      const toastError = vi.spyOn(toastService, "error").mockImplementation(() => "toast");
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockResolvedValue({ success: false, error: "User rejected the request." });
+      await expect(jobs().current.takeUp(payload)).rejects.toBeInstanceOf(TakeUpNotSent);
+      expect(toastError).not.toHaveBeenCalled();
+
+      // The queue could not admit it: nothing else would say why Submit did nothing.
+      mocks.addJob.mockRejectedValue(new Error("QuotaExceededError"));
+      await expect(jobs().current.takeUp(payload)).rejects.toThrow("QuotaExceededError");
+      expect(toastError).toHaveBeenCalledOnce();
+      toastError.mockRestore();
     });
 
     it("leaves a take-up queued before this tap as it was when it is refused again", async () => {

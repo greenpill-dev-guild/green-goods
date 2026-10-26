@@ -1,15 +1,18 @@
 /**
  * useGardenJournal tests: Home's Highlights and Take Part read the garden's own pool the way
  * the garden page and its Pool tab do, so their seasons and promises are the Pool tab's, and
- * a chain without promises reads nothing at all (DL-127, decision 32).
+ * a chain without promises reads nothing at all (DL-127, decision 32). Submit Work's one-tap
+ * asks (`useTakeUpChoices`) read the same pool through the same take-up rules.
  *
  * @vitest-environment happy-dom
  */
 
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useTakeUpChoices } from "../../../hooks/commitment-pooling/useTakeUpChoices";
 import { useGardenOpenCycles, useGardenOpenPromises } from "../../../hooks/garden/useGardenJournal";
 import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types-core";
+import type { CommitmentPoolDetail } from "../../../modules/commitment-pooling/types-relations";
 import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
 import type { Address } from "../../../types/domain";
 import type { Job } from "../../../types/job-queue";
@@ -32,6 +35,7 @@ const mocks = vi.hoisted(() => ({
   getCommitmentCycles: vi.fn(),
   getCommitments: vi.fn(),
   getPoolClaimRequests: vi.fn(),
+  getCommitmentPoolDetail: vi.fn(),
   getJobs: vi.fn(),
 }));
 
@@ -46,6 +50,7 @@ vi.mock("../../../modules/commitment-pooling/data", () => ({
   getCommitmentCycles: mocks.getCommitmentCycles,
   getCommitments: mocks.getCommitments,
   getPoolClaimRequests: mocks.getPoolClaimRequests,
+  getCommitmentPoolDetail: mocks.getCommitmentPoolDetail,
 }));
 
 vi.mock("../../../modules/job-queue/default-instance", () => ({
@@ -256,6 +261,89 @@ describe("useGardenJournal", () => {
       act(() => failRequests(new Error("indexer down")));
       // The promise's own page still shows a pending request, so a failed read hides nothing.
       await waitFor(() => expect(ids(result)).toEqual({ takePart: [12n], highlights: 12n }));
+    });
+
+    it("waits for the take-ups on this phone, and lists nothing it cannot check against them", async () => {
+      mocks.getCommitments.mockResolvedValue([ask(11, "OPEN")]);
+      let failQueue: (error: Error) => void = () => undefined;
+      mocks.getJobs.mockReturnValue(
+        new Promise((_resolve, reject) => {
+          failQueue = reject;
+        })
+      );
+
+      const { result } = renderHookWithProviders(() => useGardenOpenPromises(GARDEN));
+
+      await waitFor(() => expect(mocks.getPoolClaimRequests).toHaveBeenCalled());
+      await waitFor(() => expect(mocks.getJobs).toHaveBeenCalled());
+      expect(result.current.state.status).toBe("loading");
+      // Read as empty, the queue would offer again a take-up already on this phone.
+      act(() => failQueue(new Error("IndexedDB unavailable")));
+      await waitFor(() => expect(result.current.state.status).toBe("error"));
+      expect(result.current.ask).toBeNull();
+    });
+  });
+
+  describe("Submit Work's one-tap asks, read the same way (decision 18)", () => {
+    const openAsk = promise(9, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      claimMode: "OPEN",
+      claimType: "INDIVIDUAL",
+      requirements: [{ actionUID: 5n, requiredCount: 2 }],
+    });
+    /** The pool allows two open promises at once per person; the reader holds `open` of them. */
+    const readerHolds = (open: bigint): CommitmentPoolDetail => ({
+      pool: { ...gardenPool, providerOpenCommitmentCap: 2n },
+      unitSummaries: [],
+      providerExposures: [
+        { provider: READER, openCommitmentCount: open },
+      ] as CommitmentPoolDetail["providerExposures"],
+    });
+    const choices = () =>
+      renderHookWithProviders(() =>
+        useTakeUpChoices({
+          chainId: 42161,
+          account: READER,
+          workGarden: GARDEN as Address,
+          returnGarden: GARDEN as Address,
+        })
+      );
+
+    beforeEach(() => {
+      mocks.getCommitments.mockResolvedValue([openAsk]);
+      mocks.getCommitmentPoolDetail.mockResolvedValue(readerHolds(0n));
+    });
+
+    it("offers the ask's requirement for the action, to take up before the work", async () => {
+      const { result } = choices();
+
+      await waitFor(() =>
+        expect(result.current.choices).toEqual([
+          expect.objectContaining({ commitmentId: 9n, actionUID: 5, takesUp: true }),
+        ])
+      );
+    });
+
+    it("offers none to a reader who holds as many promises as the pool allows at once", async () => {
+      mocks.getCommitmentPoolDetail.mockResolvedValue(readerHolds(2n));
+      const { result } = choices();
+
+      await waitFor(() => expect(mocks.getCommitmentPoolDetail).toHaveBeenCalled());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      // The registry would refuse the take-up, and the work composed for it would go nowhere.
+      expect(result.current.choices).toEqual([]);
+      expect(result.current.asks).toEqual([]);
+    });
+
+    it("offers none while the take-ups on this phone cannot be read", async () => {
+      mocks.getJobs.mockRejectedValue(new Error("IndexedDB unavailable"));
+      const { result } = choices();
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.choices).toEqual([]);
+      expect(result.current.asks).toEqual([]);
     });
   });
 });
