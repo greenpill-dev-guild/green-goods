@@ -137,6 +137,7 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 import { useWorkDetailController } from "../../../hooks/client-ui/work/useWorkDetailController";
 import { useUIStore } from "../../../stores/useUIStore";
 import { createMockAction } from "../../test-utils/mock-factories";
+import { queuedTakeUpChain } from "../../test-utils/queued-jobs";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -375,6 +376,66 @@ describe("useWorkDetailController", () => {
     } finally {
       confirm.mockRestore();
     }
+  });
+
+  describe("Upload now on a work whose promise is still being taken up (decision 18)", () => {
+    const chain = () => {
+      const { claim, work } = queuedTakeUpChain();
+      return [claim, { ...work, id: "work-1" }];
+    };
+
+    it("sends the take-up first, then the work, as the member's own tap", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+      const { connectivityStore } = await import("../../../stores/connectivity");
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+      vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
+      vi.mocked(jobQueue.processJob).mockResolvedValue({ success: true, txHash: "0x1" });
+      try {
+        const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+        await act(async () => {
+          await result.current.retry();
+        });
+
+        expect(jobQueue.retryJob).toHaveBeenCalledWith("take-up");
+        expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
+          "take-up",
+          "work-1",
+        ]);
+      } finally {
+        confirm.mockRestore();
+      }
+    });
+
+    it("stops at a take-up that does not land and says so, sending none of the work", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+      const { toastService } = await import("../../../components/Toast/toast.service");
+      const { connectivityStore } = await import("../../../stores/connectivity");
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+      vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
+      vi.mocked(jobQueue.processJob).mockResolvedValue({
+        success: false,
+        error: "execution reverted",
+      });
+      try {
+        const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+        await act(async () => {
+          await result.current.retry();
+        });
+
+        expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
+          "take-up",
+        ]);
+        expect(toastService.error).toHaveBeenCalledWith(
+          expect.objectContaining({ title: "app.garden.takeUp.failed.title" })
+        );
+      } finally {
+        confirm.mockRestore();
+      }
+    });
   });
 
   it("projects steward, gardener, and viewer modes with steward precedence", () => {

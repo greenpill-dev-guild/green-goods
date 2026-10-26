@@ -26,6 +26,10 @@ export type QueuedUploadState =
   | "reverted"
   /** It used up its retries: the person tries it again or discards it. */
   | "failed"
+  /** A work for a promise this account is still taking up: it goes once the take-up lands. */
+  | "take-up-pending"
+  /** That take-up gave up: the person sends it again or discards it. */
+  | "take-up-failed"
   /** A HEIC photo is waiting for the decoder. */
   | "photo-pending"
   /** A photo could not be converted. */
@@ -83,7 +87,14 @@ export function uploadPreparationOf(job: Pick<Job, "meta">): UploadPreparation |
   }
 }
 
-export function queuedUploadStatus(job: Job): QueuedUploadStatus {
+/**
+ * Where a queued item stands. `takeUp` is the claim a work waits on, when the same tap took its
+ * promise up (`take-up-hold`); the caller reads it from the jobs it already holds.
+ */
+export function queuedUploadStatus(
+  job: Job,
+  options: { takeUp?: Job | null } = {}
+): QueuedUploadStatus {
   if (
     job.meta?.workTransactionReverted ||
     (job.kind === "work" && (job.payload as WorkJobPayload).uploadCheckpoint?.transactionReverted)
@@ -91,6 +102,9 @@ export function queuedUploadStatus(job: Job): QueuedUploadStatus {
     return { state: "reverted" };
   if (hasRecordedSend(job)) return { state: "sent" };
   if (isTerminallyFailedJob(job)) return { state: "failed" };
+  // However far it was prepared, a work goes only after the take-up of its promise.
+  if (options.takeUp)
+    return { state: isTerminallyFailedJob(options.takeUp) ? "take-up-failed" : "take-up-pending" };
 
   const preparation = uploadPreparationOf(job);
   // A send attempt's own wait outranks an older preparation answer.

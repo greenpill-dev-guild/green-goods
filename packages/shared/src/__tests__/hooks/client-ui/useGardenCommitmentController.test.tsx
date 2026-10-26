@@ -82,6 +82,8 @@ const mocks = vi.hoisted(() => ({
     pendingCreates: [],
     proofJobs: [],
     linkedWorkIds: new Set<string>(),
+    takeUpIds: new Set<string>(),
+    failedLinkWorkIds: new Set<string>(),
     isUnavailable: false,
     refresh: vi.fn(),
   },

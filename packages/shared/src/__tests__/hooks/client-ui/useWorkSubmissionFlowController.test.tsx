@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   ensureJourney: vi.fn(() => "journey-1"),
   reset: vi.fn(),
   enqueue: vi.fn(),
+  takeUp: vi.fn(),
+  takeUpChoices: [] as Array<Record<string, unknown>>,
   uploadWork: vi.fn(),
   consumeShareTarget: vi.fn(),
   loadShareTarget: vi.fn(),
@@ -93,6 +95,7 @@ vi.mock("../../../modules/app/logger", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
   useCommitmentJobs: () => ({
     enqueue: mocks.enqueue,
+    takeUp: mocks.takeUp,
     isPending: false,
     error: null,
     viewer: null,
@@ -115,6 +118,15 @@ vi.mock("../../../hooks/commitment-pooling/useWorkLinkChoices", async (importOri
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => mocks.queue,
+}));
+
+vi.mock("../../../hooks/commitment-pooling/useTakeUpChoices", () => ({
+  useTakeUpChoices: () => ({
+    choices: mocks.takeUpChoices,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock("../../../utils/errors/contract-errors", () => ({
@@ -282,6 +294,7 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
 }));
 
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
+import { TakeUpNotSent } from "../../../modules/commitment-pooling/take-up";
 import { useSubmissionFlowController } from "../../../hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
 import { useUIStore } from "../../../stores/useUIStore";
@@ -366,11 +379,13 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.gardenAddress = null;
     mocks.outcome = null;
     mocks.choices = [];
+    mocks.takeUpChoices = [];
     mocks.communityGarden = null;
     mocks.joinState = { isJoining: false, joiningGardenId: null };
     mocks.enqueue.mockResolvedValue("link-job");
     mocks.consumeShareTarget.mockResolvedValue(undefined);
     mocks.loadShareTarget.mockReset();
+    mocks.uploadWork.mockReset();
     mocks.normalizeWorkMediaFiles.mockReset();
     mocks.saveOnExit.mockReset();
     mocks.saveOnExit.mockResolvedValue("draft-1");
@@ -1041,6 +1056,147 @@ describe("useWorkSubmissionFlowController", () => {
       },
     });
     expect(mocks.uploadWork).toHaveBeenCalledOnce();
+  });
+
+  describe("taking up an Open ask in the tap that logs work for it (decision 18)", () => {
+    const ask = { ...commitmentLinkIntent, takesUp: true as const };
+    const claim = {
+      commitmentId: 9n,
+      kind: 1,
+      gardenContext: ask.garden,
+      gardenAddress: ask.garden,
+    };
+    const admit = vi.fn();
+    /**
+     * Submit Work's form as the controller drives it: the work's own checks, then the act the
+     * controller hands it to run before admission, then admission, which puts the work's outcome
+     * on record. `failsAdmission` fails that many admissions after the act has run.
+     */
+    const submitWorkForm = ({ passesChecks = true, failsAdmission = 0 } = {}) => {
+      let failures = failsAdmission;
+      // The outcome a test sets is what an admission records; a run that admits nothing records none.
+      let configured: typeof mocks.outcome = null;
+      mocks.uploadWork.mockImplementation(
+        async (options?: { beforeAdmission?: () => Promise<boolean> }) => {
+          configured = mocks.outcome ?? configured;
+          mocks.outcome = null;
+          if (!passesChecks) return;
+          if (options?.beforeAdmission && !(await options.beforeAdmission())) return;
+          if (failures-- > 0) throw new Error("upload failed");
+          admit();
+          mocks.outcome = configured;
+        }
+      );
+    };
+    const withAskChosen = () => {
+      mocks.actionUID = ask.actionUID;
+      mocks.gardenAddress = ask.garden;
+      mocks.takeUpChoices = [ask];
+      mocks.outcome = { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false };
+      submitWorkForm();
+      const view = renderFlow();
+      act(() => view.result.current.selectLinkIntent(ask));
+      return view;
+    };
+
+    it("takes the ask up before it admits the work, and counts each prompt up front", async () => {
+      mocks.takeUp.mockResolvedValue({ status: "landed" });
+      const view = withAskChosen();
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+      // The take-up, the work and its link: three prompts, said before the first.
+      expect(view.result.current.promptCount).toBe(3);
+
+      await act(async () => {
+        await expect(view.result.current.submit()).resolves.toBe(true);
+      });
+
+      expect(mocks.takeUp).toHaveBeenCalledWith(claim);
+      expect(mocks.takeUp.mock.invocationCallOrder[0]).toBeLessThan(
+        admit.mock.invocationCallOrder[0]
+      );
+      expect(mocks.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          act: "workLink",
+          payload: expect.objectContaining({ commitmentId: 9n }),
+        })
+      );
+      // Taken up from here, the promise asks for no take-up again.
+      expect(view.result.current.promptCount).toBe(2);
+    });
+
+    it.each([
+      ["declined", true, "app.garden.takeUp.declined.title"],
+      ["refused", false, "app.garden.takeUp.failed.title"],
+    ] as const)("queues none of the work when the take-up is %s", async (_case, declined, title) => {
+      mocks.takeUp.mockRejectedValue(new TakeUpNotSent("not sent", declined));
+      const view = withAskChosen();
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+
+      await act(async () => {
+        await expect(view.result.current.submit()).resolves.toBe(false);
+      });
+
+      expect(admit).not.toHaveBeenCalled();
+      expect(mocks.enqueue).not.toHaveBeenCalled();
+      expect(mocks.toastError).toHaveBeenCalledWith(expect.objectContaining({ title }));
+    });
+
+    it("takes nothing up for work that fails its own checks", async () => {
+      const view = withAskChosen();
+      submitWorkForm({ passesChecks: false });
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+
+      await act(async () => {
+        await expect(view.result.current.submit()).resolves.toBe(false);
+      });
+
+      // A take-up cannot be taken back, so it goes only for work its checks let through.
+      expect(mocks.takeUp).not.toHaveBeenCalled();
+      expect(mocks.enqueue).not.toHaveBeenCalled();
+    });
+
+    it("queues the work behind a take-up the queue holds for later", async () => {
+      mocks.takeUp.mockResolvedValue({ status: "queued", reason: "offline" });
+      const view = withAskChosen();
+      mocks.outcome = {
+        kind: "queued",
+        clientWorkId: "client-1",
+        jobId: "work-job",
+        txHash: "0x1",
+        sponsored: false,
+      };
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+
+      await act(async () => {
+        await expect(view.result.current.submit()).resolves.toBe(true);
+      });
+
+      expect(admit).toHaveBeenCalledOnce();
+      expect(mocks.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          act: "workLink",
+          payload: expect.objectContaining({ sourceWorkJobId: "work-job" }),
+        })
+      );
+      expect(view.result.current.promptCount).toBe(3);
+    });
+
+    it("takes the promise up once from one composer, whatever happens to the work after", async () => {
+      mocks.takeUp.mockResolvedValue({ status: "landed" });
+      const view = withAskChosen();
+      submitWorkForm({ failsAdmission: 1 });
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+
+      await act(async () => {
+        await expect(view.result.current.submit()).resolves.toBe(false);
+      });
+      await act(async () => {
+        await expect(view.result.current.submit()).resolves.toBe(true);
+      });
+
+      expect(mocks.takeUp).toHaveBeenCalledOnce();
+      expect(mocks.uploadWork).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("releases dependent-link scheduling when validation stops the Work submission", async () => {

@@ -126,6 +126,8 @@ export function useWorkSubmissionFlowController({
     workablePromises,
     clearLinkIntent,
     selectLinkIntent,
+    takeUpFirst,
+    promptCount,
   } = useWorkLinkIntent({
     searchParams,
     setSearchParams,
@@ -133,6 +135,7 @@ export function useWorkSubmissionFlowController({
     gardenAddress,
     actionUID,
     setGardenAddress: setGardenAddressStable,
+    takeUp: commitmentJobs.takeUp,
   });
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
   // Hold submission and draft retirement until the dependent link settles. Queueing starts
@@ -258,10 +261,12 @@ export function useWorkSubmissionFlowController({
     try {
       await saveOnExit();
       workMutation.clearLastSubmissionOutcome();
-      await form.uploadWork();
+      // An Open ask is taken up once the work has passed its own checks, before it is admitted;
+      // a take-up that does not go admits none of the work.
+      await form.uploadWork({ beforeAdmission: takeUpFirst });
       const outcome = workMutation.getLastSubmissionOutcome();
       if (!outcome) {
-        // uploadWork resolves without an outcome when validation stops it: no link to schedule.
+        // uploadWork resolves without an outcome when its checks or the take-up stop it.
         setIsSchedulingDependentLink(false);
         return false;
       }
@@ -455,6 +460,7 @@ export function useWorkSubmissionFlowController({
     linkIntent,
     linkGardenAddress: linkIntent?.garden ?? null,
     linkIntentStatus,
+    promptCount,
     refetchCommitmentLinkChoices: linkChoices.refetch,
     clearLinkIntent,
     selectLinkIntent,
