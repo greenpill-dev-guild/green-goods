@@ -11,11 +11,12 @@ import { queryInvalidation } from "../config/query-keys/invalidation";
 import { draftsKeys, queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
 import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
+import { useUploadFailureToast } from "../hooks/work/useUploadFailureToast";
 import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
 import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
-import { isTerminallyFailedJob, JOB_DISCARDED } from "../modules/job-queue/queue-policy";
+import { gaveUpAfter, JOB_DISCARDED } from "../modules/job-queue/queue-policy";
 import { isTakeUpOf } from "../modules/job-queue/take-up-hold";
 import { logger } from "../modules/app/logger";
 import { deleteDraftOfQueuedWork } from "../modules/work/draft-lifecycle";
@@ -64,6 +65,12 @@ export const useQueueStats = () => {
 interface JobQueueProviderProps {
   children: React.ReactNode;
   queue?: JobQueueHandle;
+  /**
+   * Open Home's garden switcher (PWA Home step 12). Your Work lists the active garden only, so a
+   * failed upload that waits in another of the member's gardens names that garden and offers
+   * this instead of Your Work. Without it, every failed upload keeps the Your Work toast.
+   */
+  onOpenGardenSwitcher?: () => void;
 }
 
 const EMPTY_QUEUE_STATS: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
@@ -83,18 +90,11 @@ interface Work {
 
 const SOURCE_WORK_TERMINAL = "identity_conflict:source-work-terminal";
 
-/** Whether a failed attempt was the last: the job will not be tried again on its own. */
-function gaveUp(event: QueueEvent): boolean {
-  const error = event.error ?? "";
-  return (
-    error.startsWith("Max retries") ||
-    error.startsWith("identity_conflict:") ||
-    error.startsWith("unavailable:") ||
-    (event.job ? isTerminallyFailedJob(event.job) : false)
-  );
-}
-
-const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queue = jobQueue }) => {
+const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
+  children,
+  queue = jobQueue,
+  onOpenGardenSwitcher,
+}) => {
   const { formatMessage } = useIntl();
   // One object per intl instance: the effects below list it as a dependency, so
   // a fresh one on every render would resubscribe the queue on every render.
@@ -104,6 +104,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
 
   // Use single source of truth for primary address
   const currentUserAddress = usePrimaryAddress();
+
+  // A failed upload's toast points where the upload is listed. The event handlers below subscribe
+  // once, so they take this stable function, which reads the latest active garden.
+  const toastFailure = useUploadFailureToast(
+    currentUserAddress,
+    queueToasts.jobFailed,
+    onOpenGardenSwitcher
+  );
 
   const [stats, setStats] = useState<QueueStats>(EMPTY_QUEUE_STATS);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -250,15 +258,15 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         // A discard is the person's own act, which its screen confirms: not a failed sync.
         // The discard removed the work's draft before the work, so the drafts are read again.
         if (event.error === JOB_DISCARDED) void rereadDrafts();
-        else queueToasts.jobFailed("work", event.error);
+        else toastFailure({ kind: "work", detail: event.error, job: event.job });
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
         queryClient.invalidateQueries({ queryKey: worksKeys.offline(gardenId) });
         queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
       } else if (event.job.kind === "approval") {
-        queueToasts.jobFailed("approval", event.error);
-      } else if (event.error !== JOB_DISCARDED && gaveUp(event)) {
+        toastFailure({ kind: "approval", detail: event.error, job: event.job });
+      } else if (event.error !== JOB_DISCARDED && gaveUpAfter(event.error, event.job)) {
         void nameFailedChainStage(event.job, event.error);
       }
     };
@@ -334,7 +342,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, queue, queueToasts, refreshStats]);
+  }, [currentUserAddress, queue, queueToasts, refreshStats, toastFailure]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
@@ -476,6 +484,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;
 };
 
-export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ children, queue }) => {
-  return <JobQueueProviderInner queue={queue ?? jobQueue}>{children}</JobQueueProviderInner>;
+export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({
+  children,
+  queue,
+  onOpenGardenSwitcher,
+}) => {
+  return (
+    <JobQueueProviderInner queue={queue ?? jobQueue} onOpenGardenSwitcher={onOpenGardenSwitcher}>
+      {children}
+    </JobQueueProviderInner>
+  );
 };

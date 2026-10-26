@@ -16,6 +16,7 @@
  */
 
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { isUploadOnPhone, uploadGarden } from "../../modules/work/your-work-on-phone";
 import {
   commitmentProofDraftPrefix,
   proofDraftHasContent,
@@ -26,9 +27,6 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useActiveGarden } from "../garden/useActiveGarden";
 import { useLiveQuery } from "../utils/useLiveQuery";
 import { useDrafts } from "./useDrafts";
-
-/** The queued kinds that are work on this phone; other promise acts are not. */
-const ON_PHONE_KINDS = new Set(["work", "approval", "evidence"]);
 
 export function useYourWorkCount(): { count: number } {
   const primaryAddress = usePrimaryAddress();
@@ -50,10 +48,7 @@ export function useYourWorkCount(): { count: number } {
   // Pending lists this chain's items, so the badge counts the same ones. Every
   // counted kind's payload names the garden it writes to.
   const jobs = (queued.data ?? []).filter(
-    (job) =>
-      ON_PHONE_KINDS.has(job.kind) &&
-      (job.chainId ?? chainId) === chainId &&
-      inScope([(job.payload as { gardenAddress?: string } | undefined)?.gardenAddress])
+    (job) => isUploadOnPhone(job, chainId) && inScope([uploadGarden(job)])
   ).length;
   return { count: workDrafts + jobs + proofDrafts };
 }

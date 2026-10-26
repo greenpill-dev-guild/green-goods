@@ -415,6 +415,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       takeUpIds,
       failedLinkWorkIds,
       isUnavailable: Boolean(viewer) && query.isError,
+      // Pending covers a first read that is running or paused; without a reader nothing runs.
       isLoading: Boolean(viewer) && query.isPending,
       refresh,
     };
