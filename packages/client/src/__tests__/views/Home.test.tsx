@@ -473,6 +473,14 @@ describe("Home under its child routes", () => {
     expect(screen.getByTestId("home-journal")).not.toBeVisible();
   });
 
+  // The open promises are held in the store, which outlives Home's visit to the page.
+  it("closes the journal's open promises while a page under Home shows, so they stay closed on return", () => {
+    act(() => useUIStore.getState().openTakePartSheet());
+    renderHome(`/home/${AIYELOJA.id}`);
+
+    expect(useUIStore.getState().takePartSheet).toBeNull();
+  });
+
   // QA finding 3: Back from a page Home opened came back at the top with focus on the page.
   it("comes back from a page it opened where it was, with focus on the row that opened it", async () => {
     const offsets = new WeakMap<Element, number>();

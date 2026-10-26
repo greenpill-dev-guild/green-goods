@@ -47,8 +47,8 @@ export function HomeJournal({ garden }: HomeJournalProps) {
   const closeTakePartSheet = useUIStore((state) => state.closeTakePartSheet);
   // The sheet stays mounted until its exit has played.
   const takePartPresent = useExitPresence(takePartOpen, getPwaSheetExitMs);
-  // The store outlives the journal: leaving Home or turning to another garden closes the sheet,
-  // so it never reopens stale.
+  // Home closes the open promises as it is left; turning to another garden closes them here, so
+  // they never reopen over that garden's journal.
   useEffect(() => closeTakePartSheet, [closeTakePartSheet, garden.id]);
   return (
     <div className="flex flex-col pb-4">

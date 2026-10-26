@@ -470,7 +470,7 @@ describe("Home journal", () => {
       expect(useUIStore.getState().takePartSheet).toBeNull();
     });
 
-    it("closes the open promises when the journal leaves Home or turns to another garden", () => {
+    it("closes the open promises when the journal turns to another garden or goes away", () => {
       const membership = { roles: ["gardener" as const], pendingJoin: false };
       const journal = (id: string) => (
         <MemoryRouter>
