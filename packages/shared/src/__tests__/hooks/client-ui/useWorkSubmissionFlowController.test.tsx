@@ -873,11 +873,11 @@ describe("useWorkSubmissionFlowController", () => {
     act(() => view.result.current.controller.selectLinkIntent(intent));
     await waitFor(() => expect(view.result.current.controller.linkIntentStatus).toBe("valid"));
     expect(view.result.current.flow.stage).toBe("review");
-    expect(view.result.current.flow.forward.labelId).toBe("app.garden.submit.tab.review.label");
+    expect(view.result.current.flow.forward?.labelId).toBe("app.garden.submit.tab.review.label");
     expect(mocks.autoSaveFields).toMatchObject({ currentStep: "review" });
 
     await act(async () => {
-      view.result.current.flow.forward.run();
+      view.result.current.flow.forward?.run();
     });
 
     await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledOnce());
