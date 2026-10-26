@@ -11,6 +11,7 @@ import {
   type Locale,
   loadLocaleCatalogue,
   type LocaleCatalogue,
+  resolveRequestedLocale,
   supportedLanguages,
 } from "../modules/app/locale-messages";
 import { track } from "../modules/app/posthog";
@@ -64,20 +65,13 @@ export interface AppDataProps {
   switchLanguage: (lang: Locale) => void;
 }
 
-function getBrowserLocale(available: readonly string[], fallback: string): string {
-  if (typeof navigator === "undefined") return fallback;
-
-  const browserLocales = navigator.languages || [navigator.language];
-
-  for (const locale of browserLocales) {
-    const lang = locale.split("-")[0]; // "en-US" -> "en"
-    if (available.includes(lang)) {
-      return lang;
-    }
-  }
-
-  return fallback;
+function readRequestedLocale(): Locale {
+  const browserLanguages = navigator.languages?.length ? navigator.languages : [navigator.language];
+  return resolveRequestedLocale(localStorage.getItem("gg-language"), browserLanguages);
 }
+
+/** What the page shows until a catalogue lands, or when none can: each component's English copy. */
+const ENGLISH_FALLBACK: LocaleCatalogue = { locale: "en", messages: {} };
 
 export const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
@@ -121,13 +115,11 @@ export const AppProvider = ({
 }: AppProviderProps) => {
   // Use provided key or fall back to default client key
   const apiKey = posthogKey || (allowPosthogKeyFallback ? import.meta.env.VITE_POSTHOG_KEY : "");
-  const defaultLocale = localStorage.getItem("gg-language")
-    ? (localStorage.getItem("gg-language") as Locale)
-    : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
-  const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
-  // Until a catalogue lands, components show their English fallback copy.
-  const [catalogue, setCatalogue] = useState<LocaleCatalogue>({ locale: "en", messages: {} });
-  const localeMessages = catalogue.messages;
+  const [locale, setLocale] = useState<Locale>(readRequestedLocale);
+  // Null until the first catalogue lands; components show their English fallback copy meanwhile.
+  const [catalogue, setCatalogue] = useState<LocaleCatalogue | null>(null);
+  const shownCatalogue = catalogue ?? ENGLISH_FALLBACK;
+  const localeMessages = shownCatalogue.messages;
   const [deferredPrompt, setDeferredPrompt] = useState<InstallPromptEvent | null>(null);
   // Chromium fires `beforeinstallprompt` only while the app is not installed, so
   // observing it is a verified negative that outlives the prompt itself: consuming
@@ -206,6 +198,9 @@ export const AppProvider = ({
       },
       (error: unknown) => {
         logger.error("[App] Locale messages could not be loaded", { locale, error });
+        // With no catalogue at all, the English fallback copy on screen is what stays. A switch
+        // that fails keeps the catalogue already showing.
+        if (!cancelled) setCatalogue((current) => current ?? ENGLISH_FALLBACK);
       }
     );
     return () => {
@@ -214,10 +209,15 @@ export const AppProvider = ({
   }, [locale, importCatalogue]);
 
   // The page declares the language of the copy on screen, so assistive technology reads it in
-  // that language. It is English until a reader's own catalogue lands.
+  // that language, and a switch changes it once the new copy is showing. Until the first
+  // catalogue lands, it declares the reader's language instead, as index.html did before the app
+  // loaded: the browser judges a page's language while it loads, and a page that says English
+  // gets a Portuguese or Spanish reader offered, or auto-run, a translation that rewrites text
+  // React still owns. A reader whose catalogue cannot load is corrected to English.
+  const pageLanguage = catalogue?.locale ?? locale;
   useEffect(() => {
-    document.documentElement.lang = catalogue.locale;
-  }, [catalogue.locale]);
+    document.documentElement.lang = pageLanguage;
+  }, [pageLanguage]);
 
   const isStandalone = React.useMemo(() => isStandaloneMode(), []);
 
@@ -455,7 +455,7 @@ export const AppProvider = ({
     <AppContext.Provider value={contextValue}>
       {/* The locale here is the language of the catalogue on screen, not the one requested:
           react-intl formats the copy with it, and display code reads it as the language to show. */}
-      <IntlProvider locale={catalogue.locale} messages={localeMessages}>
+      <IntlProvider locale={shownCatalogue.locale} messages={localeMessages}>
         {children}
       </IntlProvider>
     </AppContext.Provider>

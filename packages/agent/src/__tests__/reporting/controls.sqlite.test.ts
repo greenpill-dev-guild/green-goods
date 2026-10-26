@@ -135,6 +135,11 @@ describe("operator controls", () => {
     expect(core.db.query("PRAGMA user_version").get()).toEqual({
       user_version: REPORTING_MIGRATIONS.at(-1)?.version,
     });
+    // Versions climb by one from 1. A number two branches both take, or one skipped for a branch
+    // not yet merged, would leave a database that already reached it without the other change.
+    expect(REPORTING_MIGRATIONS.map((migration) => migration.version)).toEqual(
+      REPORTING_MIGRATIONS.map((_, index) => index + 1)
+    );
     expect(readControl(core, "publication")).toEqual({ enabled: true, version: 3 });
     expect(readControl(core, "voice")).toEqual({ enabled: false, version: 1 });
     expect(setControl(core, "voice", true, { actor: "operator", reason: "pilot" })).toEqual({
@@ -146,5 +151,26 @@ describe("operator controls", () => {
       setControl(core, "channel_telegram", true, { actor: "operator", reason: "pilot" }).enabled
     ).toBe(true);
     core.db.close();
+  });
+
+  it("upgrades a database that a branch build already gave a migration's column", () => {
+    const adds = REPORTING_MIGRATIONS.findIndex((migration) =>
+      migration.columns?.some(({ column }) => column === "acknowledged_at")
+    );
+    const path = join(dir, "reporting.db");
+    const branch = new Database(path, { create: true, strict: true });
+    for (const migration of REPORTING_MIGRATIONS.slice(0, adds)) {
+      for (const statement of migration.statements) branch.exec(statement);
+    }
+    // A branch build numbered the same change differently, so the column is there already.
+    branch.exec("ALTER TABLE media_assets ADD COLUMN acknowledged_at INTEGER");
+    branch.exec(`PRAGMA user_version = ${adds}`);
+    branch.close();
+
+    const db = openReportingDatabase(path);
+    expect(db.query("PRAGMA user_version").get()).toEqual({
+      user_version: REPORTING_MIGRATIONS.at(-1)?.version,
+    });
+    db.close();
   });
 });

@@ -53,6 +53,9 @@ export const EN_REPORTING_COPY = {
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
+  "media.photosAdded": "{count} photos added to your report.",
+  "media.stillAdding":
+    "I'm still adding your files. I'll show you the summary as soon as they're in.",
   "media.fileRead": "I read your file and added what I could to your report.",
   "media.fileKept": "I saved your file privately. I'll ask you for the details instead.",
   "media.tooLarge": "That file is larger than 10 MB, so I can't use it. Your report is saved.",
@@ -139,6 +142,8 @@ export const EN_REPORTING_COPY = {
   "report.askEvidence": "Please send {count} photo(s) of the work.",
   "report.evidenceLimit":
     "This activity accepts up to {maximum} photos, so I didn't add the last one.",
+  "report.photosKept":
+    "This activity accepts up to {maximum} photos, so your report keeps the first {maximum} you sent.",
   "report.photoAdded": "Photo received ({have} so far).",
   "report.conflict":
     "You told me “{current}” for {field}, but “{proposed}” was suggested from {source}. Which is right?",
