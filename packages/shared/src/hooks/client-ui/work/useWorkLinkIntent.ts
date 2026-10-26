@@ -130,11 +130,14 @@ export function useWorkLinkIntent({
   const draftLink = parsedLinkIntent
     ? toDraftWorkLink({ ...parsedLinkIntent, takesUp: saysTakeUp || undefined })
     : null;
-  // Once the live reads answer that the link is no Open ask to take up (the member's own promise
+  // Once fresh live reads answer that the link is no Open ask to take up (the member's own promise
   // now, or neither), its take-up leaves the page's address as it leaves the draft, so a reload
-  // or a later failed read never brings it back.
+  // or a later failed read never brings it back. A cached answer still being read again waits:
+  // the fresh one may yet find the ask.
   const takeUpDisproved =
     parsedLinkIntent?.takesUp === true &&
+    !linkChoices.isFetching &&
+    !takeUpChoices.isFetching &&
     (linkIntentStatus === "invalid" || (linkIntentStatus === "valid" && !takeUpLink));
   useEffect(() => {
     if (!takeUpDisproved || !parsedLinkIntent) return;

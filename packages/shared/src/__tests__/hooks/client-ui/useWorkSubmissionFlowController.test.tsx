@@ -22,6 +22,8 @@ const mocks = vi.hoisted(() => ({
   takeUpPaused: false,
   /** The member's promises' read, as TanStack reports it; "paused" waits for a connection. */
   linkFetchStatus: "idle" as "idle" | "fetching" | "paused",
+  /** The asks are read again over a cached answer. */
+  takeUpFetching: false,
   takeUpRefetch: vi.fn(),
   uploadWork: vi.fn(),
   consumeShareTarget: vi.fn(),
@@ -119,6 +121,7 @@ vi.mock("../../../hooks/commitment-pooling/useWorkLinkChoices", async (importOri
     isLoading: false,
     isError: false,
     fetchStatus: mocks.linkFetchStatus,
+    isFetching: mocks.linkFetchStatus === "fetching",
     error: null,
     refetch: vi.fn(),
   }),
@@ -136,6 +139,7 @@ vi.mock("../../../hooks/commitment-pooling/useTakeUpChoices", () => ({
     isLoading: mocks.takeUpLoading,
     isError: mocks.takeUpError,
     isPaused: mocks.takeUpPaused,
+    isFetching: mocks.takeUpFetching,
     refetch: mocks.takeUpRefetch,
   }),
 }));
@@ -420,6 +424,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.takeUpError = false;
     mocks.takeUpPaused = false;
     mocks.linkFetchStatus = "idle";
+    mocks.takeUpFetching = false;
     pageSearch = "";
     mocks.communityGarden = null;
     mocks.joinState = { isJoining: false, joiningGardenId: null };
@@ -1341,10 +1346,17 @@ describe("useWorkSubmissionFlowController", () => {
       expect(mocks.autoSaveFields?.linkIntent).toMatchObject({ takesUp: true });
       expect(pageParams().get("linkTakesUp")).toBe("1");
 
+      // A cached answer that no longer finds the ask, read again: the fresh read may yet find it,
+      // so the address keeps the take-up meanwhile (Codex on #1340).
       mocks.takeUpChoices = [];
       mocks.choices = [...own];
+      mocks.takeUpFetching = true;
       view.rerender();
       await waitFor(() => expect(view.result.current.linkIntentStatus).toBe(status));
+      expect(pageParams().get("linkTakesUp")).toBe("1");
+
+      mocks.takeUpFetching = false;
+      view.rerender();
       expect(view.result.current.takeUpPrompts).toBeNull();
       expect(mocks.autoSaveFields?.linkIntent).not.toHaveProperty("takesUp");
       // The address loses the take-up too, so a reload or a later failed read cannot bring it

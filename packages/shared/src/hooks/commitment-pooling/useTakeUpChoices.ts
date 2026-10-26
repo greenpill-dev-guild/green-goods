@@ -192,6 +192,10 @@ export function useTakeUpChoices(input: {
       enabled &&
       (firstReadPaused(pools) ||
         (ownPool && (firstReadPaused(commitments) || firstReadPaused(poolDetail) || due.isPaused))),
+    /** A read is in flight, a cached answer's included: what it says may still change. */
+    isFetching:
+      enabled &&
+      (pools.isFetching || (ownPool && (commitments.isFetching || poolDetail.isFetching))),
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();
