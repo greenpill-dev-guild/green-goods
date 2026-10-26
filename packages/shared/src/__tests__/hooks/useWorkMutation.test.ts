@@ -1000,7 +1000,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
     });
 
-    it("keeps wallet request expiry on the direct Review retry path", async () => {
+    it("reports an expired wallet request and hands the work the queue kept to Your Work", async () => {
       const expiredError = new WorkSubmissionError(
         "Wallet request expired",
         "transaction",
@@ -1020,11 +1020,13 @@ describe("hooks/work/useWorkMutation", () => {
             images: createMockFiles(2),
           });
         } catch {
-          // Expected to throw so the Review step can keep the same draft state.
+          // Expected to throw: the send failed, though the queue already holds the work.
         }
       });
 
       expect(submitWorkToQueue).not.toHaveBeenCalled();
+      // Your Work's Pending offers the queued work again, so its draft retires as after a send.
+      expect(workMutationStoreMocks.setSubmissionCompleted).toHaveBeenCalledWith(true);
       expect(trackWorkWalletRequestExpired).toHaveBeenCalledWith(
         expect.objectContaining({
           workSubmissionJourneyId: "journey-123",

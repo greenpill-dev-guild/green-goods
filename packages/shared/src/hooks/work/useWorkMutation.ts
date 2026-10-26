@@ -86,6 +86,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     journeyId: string;
     clientWorkId?: string;
     outcome?: SubmitWorkOutcome;
+    /** The queue took the work, so the draft is no longer its only copy. */
+    admitted?: boolean;
   };
   const origins = useRef(new WeakMap<Variables, Origin>());
   const ownsSession = (origin: Origin | undefined) =>
@@ -189,6 +191,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             : {}),
           assertOwnership: () => {
             if (!ownsSession(origin)) throw new Error("submission-ownership-changed");
+          },
+          onAdmitted: () => {
+            origin.admitted = true;
           },
           authMode,
           gardenAddress,
@@ -461,6 +466,12 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         imageCount: variables?.images.length ?? 0,
         workSubmissionJourneyId,
       });
+
+      // The queue holds admitted work whatever its send did, and Your Work's Pending offers it
+      // again, so its draft is retired as after a send: resuming it would be a second copy of the
+      // same work. Only work the queue never took keeps its draft for another Submit.
+      if (completeClientFlow && origin.admitted)
+        useWorkFlowStore.getState().setSubmissionCompleted(true);
 
       onError?.(error);
     },
