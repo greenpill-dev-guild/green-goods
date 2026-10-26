@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef } from "react";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { unavailableServiceAccess } from "../../modules/commitment-pooling/data-service-access";
@@ -68,6 +68,21 @@ function useLiveServiceAdapter() {
   return { adapter, session: `${identity}:${state.current.generation}` };
 }
 
+/** One promise's service read: the DEV rehearsal's for its fixtures, the live adapter's otherwise. */
+async function readServiceAccess(
+  key: ServiceAccessKey,
+  live: ReturnType<typeof useLiveServiceAdapter>
+) {
+  if (rehearsalEnabled(key)) {
+    const { serviceRehearsalAdapter } = await import(
+      "../../modules/commitment-pooling/demo/demo-service-access"
+    );
+    if (!rehearsalEnabled(key)) return unavailableServiceAccess(key);
+    return serviceRehearsalAdapter.read(key);
+  }
+  return live.adapter.read(key);
+}
+
 export function useServiceAccess(key: ServiceAccessKey | null) {
   const online = useOnlineStatus();
   const live = useLiveServiceAdapter();
@@ -77,14 +92,7 @@ export function useServiceAccess(key: ServiceAccessKey | null) {
     retry: false,
     queryFn: async () => {
       if (!key) throw new Error("Service context required");
-      if (rehearsalEnabled(key)) {
-        const { serviceRehearsalAdapter } = await import(
-          "../../modules/commitment-pooling/demo/demo-service-access"
-        );
-        if (!rehearsalEnabled(key)) return unavailableServiceAccess(key);
-        return serviceRehearsalAdapter.read(key);
-      }
-      return live.adapter.read(key);
+      return readServiceAccess(key, live);
     },
   });
   const data = useMemo(() => {
@@ -100,6 +108,21 @@ export function useServiceAccess(key: ServiceAccessKey | null) {
     };
   }, [query.data, online]);
   return { ...query, data };
+}
+
+/**
+ * Many promises' service reads at once, for a garden's list of promises (PRD-1299 surface 5).
+ * Each shares its promise page's cached read under the same key; a list only reads, never acts.
+ */
+export function useServiceAccessReads(keys: readonly ServiceAccessKey[]) {
+  const live = useLiveServiceAdapter();
+  return useQueries({
+    queries: keys.map((key) => ({
+      queryKey: queryKey(key, live.session),
+      retry: false,
+      queryFn: () => readServiceAccess(key, live),
+    })),
+  });
 }
 
 /** Online-only explicit acts. No financial action is admitted to the legacy offline claim queue. */
