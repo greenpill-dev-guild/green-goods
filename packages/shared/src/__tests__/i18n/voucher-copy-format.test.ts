@@ -11,15 +11,14 @@ import pt from "../../i18n/pt.json";
  */
 type Catalog = Record<string, string>;
 const VOUCHER = /^app\.voucher\./;
-/** Argument names, after dropping plain select and plural arms such as `feminine {da}`. */
+/**
+ * Argument names. A plain select or plural arm such as `feminine {da}` reads like an argument, so
+ * a brace that follows an arm's selector is skipped.
+ */
+const ARGUMENT =
+  /(\b(?:feminine|masculine|other|zero|one|two|few|many|=\d+)\s*)?\{\s*(\w+)\s*[,}]/g;
 const args = (text: string) =>
-  new Set(
-    [
-      ...text
-        .replace(/\b(?:feminine|masculine|other|zero|one|two|few|many|=\d+)\s*\{[^{}]*\}/g, "")
-        .matchAll(/\{\s*(\w+)\s*[,}]/g),
-    ].map((m) => m[1])
-  );
+  new Set([...text.matchAll(ARGUMENT)].filter((m) => m[1] === undefined).map((m) => m[2]));
 const keys = Object.keys(en).filter((key) => VOUCHER.test(key));
 const sample: Record<string, string | number> = {
   issuer: "Tech and Sun",

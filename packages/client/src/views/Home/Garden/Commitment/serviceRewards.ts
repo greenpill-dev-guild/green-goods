@@ -31,8 +31,6 @@ export interface ServiceRewardsView {
    * says so with one door instead of an act that can't be signed here.
    */
   agreementUnavailable: { title: string; body: string; label: string } | null;
-  /** The rewards have all arrived: the reader's way to see them. */
-  seeVouchers: string | null;
 }
 
 export interface ServiceRewardsInput {
@@ -148,6 +146,5 @@ export function serviceRewardsView(
       earned.status === "bound" && OPEN.includes(input.coreState)
         ? { title: t("rw.n.consent.t"), body: t("rw.n.consent.b"), label: t("rw.a.help") }
         : null,
-    seeVouchers: all && voucher ? t("rw.a.wallet") : null,
   };
 }

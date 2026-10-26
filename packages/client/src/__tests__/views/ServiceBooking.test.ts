@@ -1,4 +1,8 @@
-import type { CommitmentDerivedState } from "@green-goods/shared/commitment-pooling";
+import type {
+  CommitmentDerivedState,
+  ServiceAccessAction,
+  ServiceAccessSnapshot,
+} from "@green-goods/shared/commitment-pooling";
 import en from "@green-goods/shared/i18n/en";
 import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
@@ -16,6 +20,12 @@ import {
   VOUCHER_STORY_ISSUERS,
   vouchers,
 } from "../../../../shared/.storybook/voucherPilotFixtures";
+import {
+  agreeStep,
+  runServiceAct,
+  serviceActOffered,
+  type ServiceActStep,
+} from "../../views/Home/Garden/Commitment/serviceActs";
 import { serviceBookingView } from "../../views/Home/Garden/Commitment/serviceBooking";
 import { serviceRewardsView } from "../../views/Home/Garden/Commitment/serviceRewards";
 
@@ -233,5 +243,108 @@ describe("a request's rewards", () => {
     expect(rewards.rows.map((row) => row.status.label)).toEqual(pills);
     expect(rewards.band.sentence).toContain(sentence);
     expect(rewards.rows[0]?.title).toBe("2 Tech and Sun vouchers");
+  });
+});
+
+describe("a member's act on a voucher booking", () => {
+  /** Snapshots that carry only what the runner reads: each setup's final transfers. */
+  const legs = (rows: [setupId: string, refund: string, release: string][]) =>
+    ({
+      voucherSetups: rows.map(([setupId, refund, release]) => ({
+        setupId,
+        destination: {
+          finalAllocation: { refund: { state: refund }, release: { state: release } },
+        },
+      })),
+    }) as unknown as ServiceAccessSnapshot;
+  const leg = (setupId: string, name: "refund" | "release") =>
+    ({ action: "executeVoucherFinalLeg", setupId, leg: name }) as unknown as ServiceAccessAction;
+  const offered = () => true;
+
+  it("checks only the acted-on booking's transfer before stopping", async () => {
+    // An earlier booking's release failed; this booking's refund arrives, then its release runs.
+    const before = legs([
+      ["0xold", "succeeded", "failed"],
+      ["0xnow", "pending", "pending"],
+    ]);
+    const afterRefund = legs([
+      ["0xold", "succeeded", "failed"],
+      ["0xnow", "succeeded", "pending"],
+    ]);
+    const done = legs([
+      ["0xold", "succeeded", "failed"],
+      ["0xnow", "succeeded", "succeeded"],
+    ]);
+    const step: ServiceActStep = (s) =>
+      s === before ? leg("0xnow", "refund") : s === afterRefund ? leg("0xnow", "release") : null;
+    const sent: ServiceAccessAction[] = [];
+    const send = async (action: ServiceAccessAction) => {
+      sent.push(action);
+      return { snapshot: sent.length === 1 ? afterRefund : done };
+    };
+    expect(await runServiceAct(before, step, send, offered)).toBe("done");
+    expect(sent.map((action) => "leg" in action && action.leg)).toEqual(["refund", "release"]);
+  });
+
+  it.each([
+    [
+      "declined after an earlier write landed",
+      1,
+      new Error("User rejected the request."),
+      "stopped",
+    ],
+    [
+      "declined before anything was sent",
+      0,
+      new Error("User rejected the request."),
+      "nothingSent",
+    ],
+    ["failed for another reason", 1, new Error("execution reverted"), "noResult"],
+  ] as const)("reports an act %s", async (_case, landed, error, end) => {
+    const first = legs([["0xnow", "pending", "pending"]]);
+    const allowance = {
+      action: "approveVoucherAllowance",
+      setupId: "0xnow",
+    } as unknown as ServiceAccessAction;
+    const step: ServiceActStep = () => allowance;
+    let calls = 0;
+    const send = async () => {
+      calls += 1;
+      if (calls > landed) throw error;
+      return { snapshot: legs([["0xnow", "pending", "pending"]]) };
+    };
+    expect(await runServiceAct(first, step, send, offered)).toBe(end);
+  });
+
+  it("sends nothing for an act the shared selector doesn't offer", async () => {
+    const sent: ServiceAccessAction[] = [];
+    const send = async (action: ServiceAccessAction) => {
+      sent.push(action);
+      return { snapshot: legs([]) };
+    };
+    const result = await runServiceAct(
+      legs([]),
+      () => leg("0xnow", "refund"),
+      send,
+      () => false
+    );
+    expect(result).toBe("notOffered");
+    expect(sent).toEqual([]);
+  });
+
+  it("shows an act only when its first write is offered, and never reads a garden that isn't there", () => {
+    const open = bookingStorySnapshot("hubDay", "open");
+    expect(serviceActOffered("redeem", open, null)).toBe(true);
+    const noGarden = { ...open, eligibleBuyerGardens: [] };
+    expect(agreeStep(noGarden)).toBeNull();
+    expect(serviceActOffered("redeem", noGarden, null)).toBe(false);
+    const closing = bookingStorySnapshot("hubDay", "readyToClose");
+    const split = { delivered: 1n, release: vouchers(1), refund: 0n };
+    expect(serviceActOffered("close", closing, split)).toBe(true);
+    const refused = {
+      ...closing,
+      voucherSetups: closing.voucherSetups.map((row) => ({ ...row, availableActions: [] })),
+    };
+    expect(serviceActOffered("close", refused, split)).toBe(false);
   });
 });

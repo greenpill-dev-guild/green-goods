@@ -4,12 +4,10 @@ import {
   type ServiceAccessAction,
   type ServiceAccessKey,
   type ServiceAccessSnapshot,
-  selectServiceAccessAction,
   useServiceAccessMutation,
   useVoucherIssuerApproval,
   useVoucherWallet,
 } from "@green-goods/shared/commitment-pooling";
-import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { RiExchangeLine } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -23,7 +21,10 @@ import {
   cancelStep,
   depositStep,
   legStep,
+  runServiceAct,
+  type ServiceActEnd,
   type ServiceActStep,
+  serviceActOffered,
   splitStep,
 } from "./serviceActs";
 import { formatVoucherMessage, isServiceAccessPromise, serviceBookingView } from "./serviceBooking";
@@ -34,9 +35,6 @@ import type { ServiceRedeemOutcome } from "./ServiceRedeemSheet";
 import { ServiceRewardsSection } from "./ServiceRewardsSection";
 import { serviceRewardsView } from "./serviceRewards";
 import { VoucherPilotJourney } from "./VoucherPilotJourney";
-
-/** An approval the reader closed before it finished: nothing was sent. */
-const DECLINED = /reject|cancel|denied|user refused/i;
 
 /** What a voucher booking or a request's rewards hand the promise page. */
 export interface ServicePromiseParts {
@@ -105,7 +103,6 @@ export function ServicePromise({
       (entry) => token !== undefined && entry.asset.token.toLowerCase() === token.toLowerCase()
     ) ?? null;
   const approval = useVoucherIssuerApproval(issuer).data ?? null;
-  const openWalletSheet = useUIStore((s) => s.openWalletSheet);
   const [sheet, setSheet] = useState<ServiceSheet>(null);
   const [outcome, setOutcome] = useState<ServiceRedeemOutcome>(null);
   const [reviewed, setReviewed] = useState<{ revision: bigint; units: bigint } | null>(null);
@@ -136,37 +133,22 @@ export function ServicePromise({
       : null;
   const pending = running || mutation.isPending;
 
-  /** One member act: each write only when the shared selector offers it, one prompt each. */
-  const runSteps = async (step: ServiceActStep): Promise<ServiceRedeemOutcome> => {
-    if (!snapshot) return null;
-    let current: ServiceAccessSnapshot = snapshot;
+  /** One member act through the shared runner; the page only shows that it is running. */
+  const act = async (step: ServiceActStep): Promise<ServiceActEnd> => {
+    if (!snapshot) return "notOffered";
     setRunning(true);
     try {
-      for (let guard = 0; guard < 6; guard += 1) {
-        const action = step(current);
-        if (!action || !selectServiceAccessAction(current, action).allowed) return null;
-        current = (await mutation.mutateAsync(action)).snapshot;
-        // A transfer still on its way shows as pending; one that didn't go through waits for
-        // its own Retry Transfer. Neither is sent again from here.
-        if (
-          action.action === "executeVoucherFinalLeg" &&
-          current.voucherSetups.some((row) => {
-            const leg = row.destination?.finalAllocation?.[action.leg];
-            return leg !== undefined && leg.state !== "succeeded";
-          })
-        )
-          return null;
-      }
-      return null;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return DECLINED.test(message) ? "nothingSent" : "noResult";
+      return await runServiceAct(snapshot, step, mutation.mutateAsync);
     } finally {
       setRunning(false);
     }
   };
+  // The redeem sheet speaks only when nothing was sent or the result is unknown; otherwise the
+  // page already shows where the act stands.
+  const notice = (end: ServiceActEnd): ServiceRedeemOutcome =>
+    end === "nothingSent" || end === "noResult" ? end : null;
   const runOnce = (action: ServiceAccessAction) =>
-    runSteps((current) => (current === snapshot ? action : null));
+    act((current) => (current === snapshot ? action : null));
   const openExchange = () => {
     setReviewingExchange(false);
     setSheet("exchange");
@@ -201,23 +183,32 @@ export function ServicePromise({
     } else if (kind === "close" || kind === "review") setSheet("split");
     else if (kind === "report") report?.();
     else if (kind === "exchange") openExchange();
-    else if (kind === "cancel" || kind === "cancelChanged") void runSteps(cancelStep);
-    else if (kind === "retry") void runSteps(legStep);
+    else if (kind === "cancel" || kind === "cancelChanged") void act(cancelStep);
+    else if (kind === "retry") void act(legStep);
   };
+  // The bar offers an act only when the shared selector offers its first write. Deposit's sheet
+  // and a paused or offline offer say why an act can't run; any other refusal hides the act.
+  const shown = (kind: ServiceActKind) =>
+    kind === "deposit" ||
+    (kind === "redeem" && blocked !== null) ||
+    (snapshot !== null && serviceActOffered(kind, snapshot, booking?.split ?? null));
+  const primary = booking?.primary && shown(booking.primary.kind) ? booking.primary : null;
   const secondary =
-    booking?.secondary && (booking.secondary.kind !== "report" || report)
+    booking?.secondary &&
+    shown(booking.secondary.kind) &&
+    (booking.secondary.kind !== "report" || report)
       ? booking.secondary
       : null;
-  const bar = booking?.primary ? (
+  const bar = primary ? (
     <CommitmentActionBar
-      act={{ kind: "service", labelId: "", label: booking.primary.label, needsNetwork: true }}
+      act={{ kind: "service", labelId: "", label: primary.label, needsNetwork: true }}
       isPending={pending}
       isOnline={isOnline}
       blockedReason={blocked}
       secondary={
         secondary ? { labelId: "", label: secondary.label, onRun: () => run(secondary.kind) } : null
       }
-      onRun={() => booking.primary && run(booking.primary.kind)}
+      onRun={() => run(primary.kind)}
     />
   ) : !hasCoreAct && secondary ? (
     <CommitmentActionBar
@@ -231,13 +222,6 @@ export function ServicePromise({
       isPending={pending}
       isOnline={isOnline}
       onRun={() => run(secondary.kind)}
-    />
-  ) : !hasCoreAct && rewards?.seeVouchers ? (
-    <CommitmentActionBar
-      act={{ kind: "service", labelId: "", label: rewards.seeVouchers }}
-      isPending={false}
-      isOnline={isOnline}
-      onRun={openWalletSheet}
     />
   ) : null;
   // A service promise with neither a voucher booking nor rewards keeps the service panel.
@@ -307,8 +291,8 @@ export function ServicePromise({
             reviewed,
             outcome,
             held: booking.setup?.destination?.holderBalance ?? held,
-            onAgree: () => void runSteps(agreeStep).then(setOutcome),
-            onDeposit: () => void runSteps(depositStep).then(setOutcome),
+            onAgree: () => void act(agreeStep).then((end) => setOutcome(notice(end))),
+            onDeposit: () => void act(depositStep).then((end) => setOutcome(notice(end))),
             onCheck: () => {
               setOutcome(null);
               void access.refetch();
@@ -316,8 +300,9 @@ export function ServicePromise({
           }}
           onApproveSplit={() => {
             if (!booking.split) return;
-            void runSteps(splitStep(booking.split)).then((result) => {
-              if (!result) setSheet(null);
+            // The split is fixed once approved, even if a transfer prompt is declined after it.
+            void act(splitStep(booking.split)).then((end) => {
+              if (end === "done" || end === "stopped") setSheet(null);
             });
           }}
           onReport={report}
@@ -328,7 +313,7 @@ export function ServicePromise({
             reviewing: reviewingExchange,
             onOpen: openExchange,
             onReview: () => setReviewingExchange(true),
-            onExchange: () => void runSteps(exchangeStep).then(() => setReviewingExchange(false)),
+            onExchange: () => void act(exchangeStep).then(() => setReviewingExchange(false)),
             onCheck: () => void runOnce({ action: "resolvePilotExchange" }),
             onRequote: () => {
               setReviewingExchange(false);

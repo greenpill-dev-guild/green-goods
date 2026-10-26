@@ -1,9 +1,11 @@
-import type {
-  ServiceAccessAction,
-  ServiceAccessSnapshot,
-  ServiceVoucherSetup,
+import {
+  type ServiceAccessAction,
+  type ServiceAccessSnapshot,
+  type ServiceVoucherSetup,
+  selectServiceAccessAction,
 } from "@green-goods/shared/commitment-pooling";
 import { currentVoucherSetup, SERVICE_ACCEPTANCE_WINDOW_SECONDS } from "./serviceBooking";
+import type { ServiceActKind } from "./serviceBookingTypes";
 import { boundVoucherSetup } from "./serviceVoucherReview";
 
 /**
@@ -23,15 +25,20 @@ const setupOffers = (row: ServiceVoucherSetup, kind: ServiceAccessAction["action
 export const agreeStep: ServiceActStep = (s) => {
   const offer = s.offer;
   if (!offer) return null;
-  if (offers(s, "requestClaim"))
-    return {
-      action: "requestClaim",
-      expectedRevision: offer.revision,
-      expectedTermsHash: offer.termsHash,
-      requestNonce: s.nextRequestNonce,
-      buyerGarden: s.eligibleBuyerGardens[0]!.address,
-      voucherHolder: s.capabilities.gnosisHolder ?? s.key.buyer,
-    };
+  if (offers(s, "requestClaim")) {
+    // A request names the reader's garden; with none eligible there is nothing to agree to here.
+    const garden = s.eligibleBuyerGardens[0];
+    return garden
+      ? {
+          action: "requestClaim",
+          expectedRevision: offer.revision,
+          expectedTermsHash: offer.termsHash,
+          requestNonce: s.nextRequestNonce,
+          buyerGarden: garden.address,
+          voucherHolder: s.capabilities.gnosisHolder ?? s.key.buyer,
+        }
+      : null;
+  }
   if (offers(s, "prepareVoucherSetup") && s.consent && s.sourceTimestamp !== null)
     return {
       action: "prepareVoucherSetup",
@@ -149,3 +156,75 @@ export const legStep: ServiceActStep = (s) => {
       }
     : null;
 };
+
+/**
+ * How a member act ended. `done`: nothing left to send, or a transfer is on its way. `stopped`:
+ * the reader declined a later prompt after an earlier write landed, so the page shows where the
+ * act stopped and its act sends the rest. `notOffered`, `nothingSent` and `noResult`: nothing was
+ * sent because nothing was offered or the reader declined, or the result is unknown.
+ */
+export type ServiceActEnd = "done" | "stopped" | "notOffered" | "nothingSent" | "noResult";
+
+/** An approval the reader closed before it finished. */
+const DECLINED = /reject|cancel|denied|user refused/i;
+const MAX_WRITES = 6;
+
+/**
+ * Runs one member act, one write at a time, each only when the shared selector offers it and each
+ * its own prompt. It stops at the acted-on booking's transfer when that hasn't arrived: a pending
+ * transfer is on its way, and a failed one waits for its own Retry Transfer.
+ */
+export async function runServiceAct(
+  snapshot: ServiceAccessSnapshot,
+  step: ServiceActStep,
+  send: (action: ServiceAccessAction) => Promise<{ snapshot: ServiceAccessSnapshot }>,
+  offered: (s: ServiceAccessSnapshot, action: ServiceAccessAction) => boolean = (s, action) =>
+    selectServiceAccessAction(s, action).allowed
+): Promise<ServiceActEnd> {
+  let current = snapshot;
+  let landed = false;
+  try {
+    for (let write = 0; write < MAX_WRITES; write += 1) {
+      const action = step(current);
+      if (!action || !offered(current, action)) return landed ? "done" : "notOffered";
+      current = (await send(action)).snapshot;
+      landed = true;
+      if (action.action === "executeVoucherFinalLeg") {
+        const row = current.voucherSetups.find((setup) => setup.setupId === action.setupId);
+        const state = row?.destination?.finalAllocation?.[action.leg].state;
+        if (state !== undefined && state !== "succeeded") return "done";
+      }
+    }
+    return "done";
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!DECLINED.test(message)) return "noResult";
+    return landed ? "stopped" : "nothingSent";
+  }
+}
+
+/**
+ * Whether the shared selector offers a page act's first write, so the bar shows only acts that
+ * can run. Report a Problem and Exchange aren't service writes; their own surfaces decide.
+ */
+export function serviceActOffered(
+  kind: ServiceActKind,
+  snapshot: ServiceAccessSnapshot,
+  split: { delivered: bigint; release: bigint; refund: bigint } | null
+): boolean {
+  if (kind === "report" || kind === "exchange") return true;
+  const step =
+    kind === "redeem"
+      ? agreeStep
+      : kind === "deposit"
+        ? depositStep
+        : kind === "cancel" || kind === "cancelChanged"
+          ? cancelStep
+          : kind === "retry"
+            ? legStep
+            : split
+              ? splitStep(split)
+              : null;
+  const action = step?.(snapshot) ?? null;
+  return action !== null && selectServiceAccessAction(snapshot, action).allowed;
+}

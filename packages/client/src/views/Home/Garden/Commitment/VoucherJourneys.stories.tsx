@@ -38,6 +38,7 @@ import {
   VOUCHER_STORY_WALLET_KEY,
 } from "../../../../../../shared/.storybook/voucherBookingFixtures";
 import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import {
   VOUCHER_STORY_SCOPE,
   voucherStorySeeds,
@@ -475,6 +476,20 @@ const meta: Meta<typeof VoucherJourney> = {
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile" } },
   decorators: [withSeededQueryClient(voucherStorySeeds(voucherWalletStory("empty")))],
+  // The journey sets these hooks while it renders; give every later story the real ones back.
+  beforeEach: () =>
+    resetHookMocks(
+      useServiceAccess,
+      useServiceAccessMutation,
+      useGardenCommitmentController,
+      usePrimaryAddress,
+      useCommitmentActivity,
+      useCommitmentCycle,
+      useGardens,
+      useActions,
+      useGreenGoodsEnsName,
+      useEnsName
+    ),
   argTypes: {
     journey: { control: false },
     start: { control: { type: "number", min: 0 } },
