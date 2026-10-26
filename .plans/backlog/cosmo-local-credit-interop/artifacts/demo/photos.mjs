@@ -24,7 +24,11 @@ const browser = await pw.chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 await page.goto("https://greengoods.app/gardens/tas-hub", { waitUntil: "networkidle", timeout: 90000 });
 await page.waitForTimeout(3000);
-await page.getByRole("button", { name: /Show more submissions/i }).first().click().catch(() => console.log("no Show more button; saving what the page shows"));
+// Only a button that is genuinely absent is skipped; a click that fails on a present button would
+// truncate the list and the whole-set replacement would then delete the photos behind it.
+const more = page.getByRole("button", { name: /Show more submissions/i });
+if (await more.count()) await more.first().click({ timeout: 15000 });
+else console.log("no Show more button; saving what the page shows");
 await page.waitForTimeout(2500);
 // The section's images load as they scroll into view.
 for (let y = 0; y < 9000; y += 600) { await page.evaluate((top) => window.scrollTo(0, top), y); await page.waitForTimeout(400); }

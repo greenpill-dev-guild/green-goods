@@ -671,16 +671,26 @@ async function shoot(page, session, step, width, height) {
   // The page's own fonts: fonts.ready also resolves after a font request fails, and text set in a
   // fallback face would be rasterized into the screen, so no face may be in error and every face
   // used by visible text must be loaded.
-  const fontProblems = await page.evaluate(() => {
-    const errors = [...document.fonts].filter((f) => f.status === "error").map((f) => `${f.family.replace(/["']/g, "")} ${f.weight} ${f.style} failed to load`);
-    const fallback = new Set();
+  // For every web font that visible text asks for first (system and generic families aside), the
+  // exact face is loaded on purpose and must come back loaded: fonts.check() says yes when no face
+  // exists at all, which is just what a failed stylesheet looks like, so it is never trusted here.
+  const fontProblems = await page.evaluate(async () => {
+    const system = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded", "-apple-system", "blinkmacsystemfont", "segoe ui", "roboto", "helvetica", "helvetica neue", "arial", "georgia", "times new roman", "times", "courier", "courier new", "apple color emoji", "segoe ui emoji", "noto color emoji"]);
+    const problems = [...document.fonts].filter((f) => f.status === "error").map((f) => `${f.family.replace(/["']/g, "")} ${f.weight} ${f.style} failed to load`);
+    const wanted = new Map();
     for (const el of document.querySelectorAll("body *")) {
       if (![...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())) continue;
       const cs = getComputedStyle(el);
       if (cs.visibility === "hidden" || cs.display === "none") continue;
-      if (!document.fonts.check(`${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`)) fallback.add(cs.fontFamily.split(",")[0].replace(/["']/g, ""));
+      const family = cs.fontFamily.split(",")[0].trim().replace(/["']/g, "");
+      if (system.has(family.toLowerCase())) continue;
+      wanted.set(`${cs.fontStyle} ${cs.fontWeight} 16px "${family}"`, family);
     }
-    return [...errors, ...[...fallback].map((family) => `${family} is not loaded for visible text`)];
+    for (const [spec, family] of wanted) {
+      const faces = await document.fonts.load(spec, "Aa").catch(() => []);
+      if (!faces.length || faces.some((f) => f.status !== "loaded")) problems.push(`${family} (${spec.split(" ").slice(0, 2).join(" ")}) is not loaded for visible text`);
+    }
+    return problems;
   });
   if (fontProblems.length) note(`${step.shot}: ${fontProblems.join("; ")}`);
   const file = join(staging, `${step.shot}.jpg`);
@@ -877,33 +887,34 @@ for (const [rule, n] of swapHits) {
   if (only.length && elsewhere.length) unvalidated.push(pair); else note(`swap "${pair}" matched nothing`);
 }
 if (unvalidated.length) console.log(`partial capture: ${unvalidated.length} swap(s) shared with sessions outside --only were not validated; run a full capture before building`);
-for (const s of screens) {
+if (problems.length) {
+  rmSync(staging, { recursive: true, force: true });
+  console.log(`capture failed with ${problems.length} problem(s); the existing screens and index.html are untouched`);
+  process.exit(1);
+}
+// The swap of screens and metadata runs under a lock, and index.html is read again inside it, so
+// a run that overlapped with another merges its results into the metadata that run published
+// instead of reverting it. The staged index.html lives in this run's own staging folder, and the
+// backup of the screens being replaced lives until the staged file has taken the old one's place,
+// so a failure at any point puts the old screens back and leaves the old index.html.
+const lock = join(out, ".publish-lock");
+try { mkdirSync(lock); } catch (error) {
+  rmSync(staging, { recursive: true, force: true });
+  throw new Error(`${error.code === "EEXIST" ? "another capture is publishing (" + lock + " exists)" : error.message}; nothing was replaced and index.html is untouched`);
+}
+const current = readFileSync(htmlPath, "utf8");
+const currentBlock = current.match(/<script type="application\/json" id="flows">([\s\S]*?)<\/script>/);
+const currentData = JSON.parse(currentBlock[1]);
+for (const s of currentData.flows.flatMap((flow) => flow.screens)) {
   const r = results.get(s.file);
   if (!r) continue;
   s.story = r.story;
   s.size = [r.width, r.height];
   if (r.hotspot) s.hotspot = r.hotspot; else delete s.hotspot;
 }
-if (problems.length) {
-  rmSync(staging, { recursive: true, force: true });
-  console.log(`capture failed with ${problems.length} problem(s); the existing screens and index.html are untouched`);
-  process.exit(1);
-}
-// The new index.html is written beside the old one first, the screens being replaced are backed
-// up, and the backup lives until the staged index.html has taken the old one's place, so a
-// failure at any point puts the old screens back and leaves the old index.html, and the screens
-// and their metadata never disagree.
-const json = JSON.stringify(data, null, 2).replace(/<\//g, "<\\/");
-html = html.replace(block[0], `<script type="application/json" id="flows">\n${json}\n</script>`);
-// The staged index.html lives in this run's own staging folder, and the swap of screens and
-// metadata happens under a lock, so two runs that overlap can never publish each other's files.
+const json = JSON.stringify(currentData, null, 2).replace(/<\//g, "<\\/");
 const stagedHtml = join(staging, "index.html.staged");
-writeFileSync(stagedHtml, html);
-const lock = join(out, ".publish-lock");
-try { mkdirSync(lock); } catch (error) {
-  rmSync(staging, { recursive: true, force: true });
-  throw new Error(`${error.code === "EEXIST" ? "another capture is publishing (" + lock + " exists)" : error.message}; nothing was replaced and index.html is untouched`);
-}
+writeFileSync(stagedHtml, current.replace(currentBlock[0], `<script type="application/json" id="flows">\n${json}\n</script>`));
 const backup = mkdtempSync(join(out, ".previous-"));
 const names = readdirSync(staging).filter((name) => name !== "index.html.staged");
 // The backup completes before any screen is touched: a copy that fails leaves the set as it was.
