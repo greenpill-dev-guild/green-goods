@@ -108,6 +108,7 @@ export function useTakeUpChoices(input: {
     takeUps,
     settled,
     unavailable,
+    refreshing,
     retry: retryTakeUps,
   } = useViewerTakeUps({
     chainId,
@@ -192,10 +193,14 @@ export function useTakeUpChoices(input: {
       enabled &&
       (firstReadPaused(pools) ||
         (ownPool && (firstReadPaused(commitments) || firstReadPaused(poolDetail) || due.isPaused))),
-    /** A read is in flight, a cached answer's included: what it says may still change. */
+    /**
+     * A read is in flight, a cached answer's included: what it says may still change. That covers
+     * the reader's own take-ups too, the requests and this phone's queue, which leave asks out.
+     */
     isFetching:
       enabled &&
-      (pools.isFetching || (ownPool && (commitments.isFetching || poolDetail.isFetching))),
+      (pools.isFetching ||
+        (ownPool && (commitments.isFetching || poolDetail.isFetching || refreshing))),
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();

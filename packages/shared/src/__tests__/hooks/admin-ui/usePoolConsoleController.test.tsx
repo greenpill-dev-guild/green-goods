@@ -202,6 +202,7 @@ function queueState(overrides: Partial<CommitmentQueueState> = {}): CommitmentQu
     failedLinkWorkIds: new Set<string>(),
     isUnavailable: false,
     isLoading: false,
+    isFetching: false,
     refresh: vi.fn(),
     ...overrides,
   };
