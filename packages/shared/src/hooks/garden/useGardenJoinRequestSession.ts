@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueries, useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
 import type {
@@ -6,9 +6,17 @@ import type {
   GardenJoinRequestSelfRecord,
   GardenJoinRequestKind,
 } from "../../public-contracts/join-requests";
+import {
+  awaitingJoinRequestScope,
+  useAwaitingJoinRequestsStore,
+} from "../../stores/useAwaitingJoinRequestsStore";
 import { useAuth } from "../auth/useAuth";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useTimeout } from "../utils/useTimeout";
+
+/** The longest delay a browser timer holds; a longer one fires at once. */
+const MAX_TIMEOUT_MS = 2_147_483_647;
 
 type Status = {
   request: GardenJoinRequestSelfRecord | null;
@@ -23,7 +31,8 @@ const sessions = new WeakMap<Query, { proof?: GardenJoinProofEnvelope; operation
  * This session's record of one account's request to join one garden: in memory only, outside
  * the persisted namespace, and removed with the account's other private queries at sign-out.
  * The join dialog's session and the lists that mark a garden awaiting review observe the same
- * record, so both build it from here.
+ * record, so both build it from here. Setting it also notes the device's own record of the
+ * request (`useAwaitingJoinRequestsStore`), which holds no proof and outlives the session.
  */
 function joinRequestStatusQuery(
   chainId: number,
@@ -87,6 +96,16 @@ export function useGardenJoinRequestSession(
     if (!isCurrentScope(scopeKey)) return;
     client.setQueryData<Status>(key, (current) => ({ ...(current ?? EMPTY), ...patch }));
   }
+  // The device keeps which gardens the account asked to join, so Awaiting review outlives this
+  // session (DL-123). The record follows the session's own answer, for a membership request with
+  // a real garden and account; a steward-access ask is no join.
+  function noteOnDevice(request: GardenJoinRequestSelfRecord | null) {
+    if (kind !== "garden_membership" || garden === "none" || account === "none") return;
+    const scope = awaitingJoinRequestScope(chainId, account);
+    if (scope) {
+      useAwaitingJoinRequestsStore.getState().noteRequest(scope, garden, request, Date.now());
+    }
+  }
   return {
     ...observed.data,
     scopeKey,
@@ -94,7 +113,11 @@ export function useGardenJoinRequestSession(
     beginOperation: () => ++privateSession.operation,
     isCurrentOperation: (operation: number) => privateSession.operation === operation,
     isCurrentScope,
-    setRequest: (request: GardenJoinRequestSelfRecord | null) => update({ request }),
+    setRequest: (request: GardenJoinRequestSelfRecord | null) => {
+      if (!isCurrentScope(scopeKey)) return;
+      update({ request });
+      noteOnDevice(request);
+    },
     setHasCheckedStatus: (hasCheckedStatus: boolean) => update({ hasCheckedStatus }),
     setOutcomeUnknown: (outcomeUnknown: boolean) => update({ outcomeUnknown }),
     readAuthorization() {
@@ -115,10 +138,12 @@ export function useGardenJoinRequestSession(
 
 /**
  * The gardens among `gardenIds` where the signed-in account's request to join waits for a
- * steward, as this device knows it: a request sent or checked in this session (DL-125). The
- * service shows a request only to the account's signature, so this reads the session's own
- * records and never asks for one; observing them keeps them while a list shows them. Ids come
- * back lowercased.
+ * steward, as this device knows it (DL-125): a request sent or checked in this session, or one
+ * this device sent in an earlier one and still holds a record of (`useAwaitingJoinRequestsStore`).
+ * The service shows a request only to the account's signature, so this reads the session's own
+ * records and the device's and never asks for one; observing the session's keeps them while a
+ * list shows them. An answer this session learned outranks the device's record. Ids come back
+ * lowercased.
  */
 export function useAwaitingJoinRequests(gardenIds: readonly string[]): ReadonlySet<string> {
   const chainId = useCurrentChain();
@@ -131,11 +156,42 @@ export function useAwaitingJoinRequests(gardenIds: readonly string[]): ReadonlyS
         )
       : [],
   });
+  const scope = awaitingJoinRequestScope(chainId, account);
+  const kept = useAwaitingJoinRequestsStore((state) =>
+    scope ? state.requestsByScope[scope] : undefined
+  );
+  // The clock moves when the soonest device record lapses, so a list on screen drops its mark.
+  const [now, setNow] = useState(Date.now);
+  const { set: setTimer, clear: clearTimer } = useTimeout();
+  const awaitingIds: string[] = [];
+  let nextLapse = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < gardenIds.length; index++) {
+    const id = gardenIds[index].toLowerCase();
+    const session = records[index]?.data;
+    // This session's pending answer lapses on its own expiry; an answer already checked here
+    // leaves the device's record out.
+    const lapse =
+      session?.request?.state === "pending"
+        ? Date.parse(session.request.expiresAt)
+        : session?.hasCheckedStatus
+          ? 0
+          : (kept?.[id]?.expiresAt ?? 0);
+    // A pending answer whose expiry does not parse stays awaiting.
+    if (Number.isNaN(lapse)) {
+      awaitingIds.push(id);
+    } else if (lapse > now) {
+      awaitingIds.push(id);
+      nextLapse = Math.min(nextLapse, lapse);
+    }
+  }
+  useEffect(() => {
+    if (!Number.isFinite(nextLapse)) return;
+    // A request lapses a month out, past the timer limit: wait in steps, then read the clock.
+    const delay = Math.min(Math.max(nextLapse - Date.now(), 0), MAX_TIMEOUT_MS);
+    setTimer(() => setNow(Date.now()), delay);
+    return clearTimer;
+  }, [nextLapse, now, setTimer, clearTimer]);
   // One string per answer, so the set keeps its identity until a request changes.
-  const awaiting = records
-    .flatMap((record, index) =>
-      record.data?.request?.state === "pending" ? [gardenIds[index].toLowerCase()] : []
-    )
-    .join(",");
+  const awaiting = awaitingIds.join(",");
   return useMemo(() => new Set(awaiting ? awaiting.split(",") : []), [awaiting]);
 }

@@ -1,4 +1,5 @@
 import type { ActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
+import { isGardenListedFor } from "@green-goods/shared/hooks/garden/useFilteredGardens";
 import type { Garden } from "@green-goods/shared/types/domain";
 
 /** One of the account's gardens with the account's roles in it (`useActiveGarden().myGardens`). */
@@ -37,7 +38,8 @@ export function exploreGardens(
 
 /**
  * The listed gardens the member asked to join and does not belong to yet: a request waits for a
- * steward there, which is not membership (DL-123). Ids in both sets are lowercase.
+ * steward there, which is not membership (DL-123). A family garden kept for its members is never
+ * among them, since a request there is a nonmember's (DL-126). Ids in both sets are lowercase.
  */
 export function awaitingGardens(
   listed: readonly Garden[],
@@ -46,7 +48,7 @@ export function awaitingGardens(
 ): Garden[] {
   return listed.filter((garden) => {
     const id = garden.id.toLowerCase();
-    return awaitingIds.has(id) && !myGardenIds.has(id);
+    return awaitingIds.has(id) && !myGardenIds.has(id) && isGardenListedFor(garden, false);
   });
 }
 
