@@ -7,6 +7,7 @@ import { logger } from "../../modules/app/logger";
 import { appCodeRecovery } from "../../modules/app/cache-recovery";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
+import { takeUpOf } from "../../modules/job-queue/take-up-hold";
 import { uploadOutcomeToast } from "../../modules/work/upload-outcome-toast";
 import {
   prepareUploadsNow,
@@ -42,6 +43,11 @@ export interface WorkUploads {
   isUploading: boolean;
   /** Works whose decision from this device has not finished queue confirmation. */
   waitingDecisionWorkIds: ReadonlySet<string>;
+  /**
+   * The gardens those decisions write to, in lowercase, whatever the scope: a list reads each
+   * one's works to show the decisions it lists (`useQueuedDecisions`).
+   */
+  waitingDecisionGardenIds: readonly string[];
   /** A review made on this device and still queued: its job, its upload, and when it was saved (ms). */
   decisionFor(
     workUID: string
@@ -52,6 +58,11 @@ export interface WorkUploads {
   retryOne(jobId: string): Promise<void>;
   checkOne(jobId: string): Promise<void>;
   prepareNow(): void;
+  /** This phone's queue has not answered yet, so every list above may still be missing items. */
+  isLoading: boolean;
+  /** This phone's queue could not be read; `refetch` reads it again, with no connection. */
+  isError: boolean;
+  refetch(): void;
 }
 
 /** Whether a garden-scoped list shows an item naming these gardens (`useActiveGarden`). */
@@ -60,6 +71,7 @@ type GardenScopeFilter = (gardens: readonly (string | null | undefined)[]) => bo
 function summarize(jobs: Job[], chainId: number, inScope?: GardenScopeFilter) {
   const statuses = new Map<string, QueuedUploadStatus>();
   const waitingDecisionWorkIds = new Set<string>();
+  const waitingDecisionGardenIds = new Set<string>();
   const decisionsByWorkId = new Map<string, NonNullable<ReturnType<WorkUploads["decisionFor"]>>>();
   const scopedJobIds: string[] = [];
   let readyCount = 0;
@@ -67,11 +79,13 @@ function summarize(jobs: Job[], chainId: number, inScope?: GardenScopeFilter) {
   let attentionCount = 0;
   for (const job of jobs) {
     if (!isUploadJob(job) || (job.chainId ?? chainId) !== chainId) continue;
-    const status = queuedUploadStatus(job);
+    const status = queuedUploadStatus(job, { takeUp: takeUpOf(job, jobs) });
     statuses.set(job.id, status);
     if (job.kind === "approval") {
-      const workId = (job.payload as ApprovalJobPayload).workUID.toLowerCase();
+      const { workUID, gardenAddress } = job.payload as ApprovalJobPayload;
+      const workId = workUID.toLowerCase();
       waitingDecisionWorkIds.add(workId);
+      if (gardenAddress) waitingDecisionGardenIds.add(gardenAddress.toLowerCase());
       decisionsByWorkId.set(workId, { jobId: job.id, status, savedAt: job.createdAt });
     }
     // Work and decisions both name the garden they write to.
@@ -80,13 +94,19 @@ function summarize(jobs: Job[], chainId: number, inScope?: GardenScopeFilter) {
     // A sent item is still visible until the queue confirms it, but cannot be sent twice.
     if (status.state === "sent") continue;
     if (status.state === "ready") readyCount += 1;
-    else if (status.state === "preparing" || status.state === "photo-pending") preparingCount += 1;
+    else if (
+      status.state === "preparing" ||
+      status.state === "photo-pending" ||
+      status.state === "take-up-pending"
+    )
+      preparingCount += 1;
     else attentionCount += 1;
   }
   return {
     statuses,
     decisionsByWorkId,
     waitingDecisionWorkIds,
+    waitingDecisionGardenIds: [...waitingDecisionGardenIds],
     scopedJobIds,
     readyCount,
     preparingCount,
@@ -190,6 +210,7 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
       summary.preparingCount > 0 && preparation.paused === null && connectivity.state === "online",
     isUploading: mutation.isPending,
     waitingDecisionWorkIds: summary.waitingDecisionWorkIds,
+    waitingDecisionGardenIds: summary.waitingDecisionGardenIds,
     decisionFor: (workUID) => summary.decisionsByWorkId.get(workUID.toLowerCase()),
     statusOf: (jobId) => summary.statuses.get(jobId),
     // The upload reads each job's readiness again; scoped, it is handed this list's jobs only.
@@ -229,5 +250,8 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
           });
         });
     },
+    isLoading: live.isLoading,
+    isError: live.isError,
+    refetch: live.retry,
   };
 }

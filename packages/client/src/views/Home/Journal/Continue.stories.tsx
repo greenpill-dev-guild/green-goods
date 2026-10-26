@@ -6,6 +6,7 @@ import {
   useYourWorkOnPhone,
 } from "@green-goods/shared/hooks/work/useYourWorkOnPhone";
 import en from "@green-goods/shared/i18n/en";
+import type { Work } from "@green-goods/shared/types/domain";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
@@ -35,7 +36,20 @@ const PHONE_VIEWPORTS = {
 const MESSAGES = { en, es, pt } as const;
 type Locale = keyof typeof MESSAGES;
 
-type Scene = "rows" | "oneDraft" | "empty" | "loading" | "error";
+type Scene = "rows" | "oneDraft" | "leftGardenReview" | "empty" | "loading" | "error";
+
+/**
+ * A review this phone made in a garden the member has since left: its queued upload is blocked
+ * (only a steward can send it), and Continue lists it, as the Your Work badge counts it.
+ */
+const LEFT_GARDEN_REVIEW: Work = {
+  ...pendingWorkFixture("all").submissions[0],
+  id: "0xleftgardenreview",
+  title: "Hedge laying along the north path",
+  gardenerAddress: "0x5eed00000000000000000000000000000000beef",
+  gardenAddress: "0x1ef7000000000000000000000000000000000c3d",
+  status: "approved",
+};
 
 /** The garden's Your Work on this phone, as the frames draw it, for each scene. */
 function onPhoneFor(scene: Scene): YourWorkOnPhone {
@@ -51,10 +65,24 @@ function onPhoneFor(scene: Scene): YourWorkOnPhone {
         }
       : scene === "oneDraft"
         ? { submissions: [], decisions: [], drafts: fixture.drafts.slice(0, 1), proofs: [] }
-        : { submissions: [], decisions: [], drafts: [], proofs: [] };
+        : scene === "leftGardenReview"
+          ? {
+              submissions: [],
+              decisions: [LEFT_GARDEN_REVIEW],
+              drafts: fixture.drafts.slice(0, 1),
+              proofs: [],
+            }
+          : { submissions: [], decisions: [], drafts: [], proofs: [] };
   return {
     ...items,
-    decisionFor: () => undefined,
+    decisionFor: (workUID) =>
+      workUID === LEFT_GARDEN_REVIEW.id
+        ? {
+            jobId: "job-left-garden-review",
+            status: { state: "blocked" as const, reason: "NotGardenOperator" },
+            savedAt: Date.now() - 3 * 60 * 60 * 1000,
+          }
+        : undefined,
     isLinked: (work) => fixture.linkedWorkIds.has(work.id),
     count:
       items.submissions.length + items.decisions.length + items.drafts.length + items.proofs.length,
@@ -68,6 +96,8 @@ function onPhoneFor(scene: Scene): YourWorkOnPhone {
 interface ContinueStoryProps {
   scene: Scene;
   offline?: boolean;
+  /** The language, also settable from the URL (`args=locale:es`). */
+  locale?: Locale;
 }
 
 function ContinueStory(_props: ContinueStoryProps) {
@@ -78,9 +108,12 @@ function ContinueStory(_props: ContinueStoryProps) {
   );
 }
 
-/** Stories pick a language through `parameters.locale`; the global decorator stays English. */
+/** Stories pick a language through `parameters.locale` or the `locale` arg; the global decorator stays English. */
 const withLocale: Decorator = (Story, context) => {
-  const locale = (context.parameters.locale as Locale | undefined) ?? "en";
+  const locale =
+    (context.parameters.locale as Locale | undefined) ??
+    (context.args.locale as Locale | undefined) ??
+    "en";
   return (
     <IntlProvider locale={locale} messages={MESSAGES[locale]}>
       <Story />
@@ -108,7 +141,7 @@ const meta: Meta<typeof ContinueStory> = {
       </MemoryRouter>
     ),
   ],
-  args: { scene: "rows", offline: false },
+  args: { scene: "rows", offline: false, locale: "en" },
   beforeEach: ({ args }) => {
     mocked(useYourWorkOnPhone).mockReturnValue(onPhoneFor(args.scene));
     mocked(useOnlineStatus).mockReturnValue(!args.offline);
@@ -144,6 +177,17 @@ export const RowsPortuguese: Story = { parameters: { locale: "pt" } };
 
 /** One draft: the section lists what there is and keeps Open Your Work. */
 export const OneDraft: Story = { args: { scene: "oneDraft" } };
+
+/** A review queued for a garden the member has left: listed, with why it can't go, as the badge counts it. */
+export const ReviewFromALeftGarden: Story = {
+  args: { scene: "leftGardenReview" },
+  play: async ({ canvasElement }) => {
+    const section = within(canvasElement);
+    await expect(section.getByText("Hedge laying along the north path")).toBeInTheDocument();
+    await expect(section.getByText("Your review")).toBeInTheDocument();
+    await expect(section.getByText("Not a steward")).toBeInTheDocument();
+  },
+};
 
 /** Offline, the rows say what waits for the connection; nothing is lost. */
 export const Offline: Story = { args: { offline: true } };

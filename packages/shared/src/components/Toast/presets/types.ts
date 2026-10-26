@@ -113,6 +113,10 @@ export const toastMessageIds = {
       title: "app.toast.queue.jobFailed.title",
       workMessage: "app.toast.queue.jobFailed.workMessage",
       approvalMessage: "app.toast.queue.jobFailed.approvalMessage",
+      workMessageInGarden: "app.toast.queue.jobFailed.workMessageInGarden",
+      approvalMessageInGarden: "app.toast.queue.jobFailed.approvalMessageInGarden",
+      /** The switcher's own words, as Home's chooser prompt opens it. */
+      seeGardens: "app.home.chooser.action",
     },
     retryFailed: {
       title: "app.toast.queue.retryFailed.title",
@@ -127,6 +131,14 @@ export const toastMessageIds = {
     queueClear: {
       title: "app.toast.queue.queueClear.title",
       message: "app.toast.queue.queueClear.message",
+    },
+    takeUpFailed: {
+      title: "app.garden.takeUp.failed.title",
+      message: "app.toast.queue.takeUpFailed.message",
+    },
+    linkFailed: {
+      title: "app.toast.queue.linkFailed.title",
+      message: "app.toast.queue.linkFailed.message",
     },
   },
   // Validation

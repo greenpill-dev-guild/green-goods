@@ -2,11 +2,14 @@
  * Your Work on this phone, in the active garden's scope: what Home's Continue lists (PWA Home
  * step 8) and the Your Work badge counts (DL-061 as DL-129 amends it). Which gardens the scope
  * shows is the active garden's rule (`useActiveGarden().inScope`); this asks it about each item's
- * own garden.
+ * own garden. A notice about uploads points where they are listed (PWA Home step 12).
  */
 
+import { isInGardenListScope } from "../../../modules/garden/active-garden";
 import {
   isWorkOnThisDevice,
+  orientUploads,
+  selectQueuedDecisions,
   selectYourWorkOnPhone,
   type YourWorkOnPhoneInput,
 } from "../../../modules/work/your-work-on-phone";
@@ -17,6 +20,8 @@ const ME = "0xA11CE00000000000000000000000000000000001";
 const SOMEONE_ELSE = "0xB0B0000000000000000000000000000000000002";
 const GARDEN = "0x6A7DE00000000000000000000000000000000AAA";
 const OTHER_GARDEN = "0x0757E00000000000000000000000000000000BBB";
+const THIRD_GARDEN = "0x7A1DE00000000000000000000000000000000CCC";
+const LEFT_GARDEN = "0x1EF70000000000000000000000000000000000DD";
 
 /** A scope that shows the active garden and what names none, as the active garden's rule does. */
 const inScope = (gardens: readonly (string | null | undefined)[]) =>
@@ -41,8 +46,6 @@ function select(input: Partial<YourWorkOnPhoneInput<Draft, Proof>>) {
     inScope,
     viewer: ME,
     works: [],
-    decidedHere: [],
-    waitingDecisionWorkIds: new Set(),
     drafts: [],
     proofs: [],
     ...input,
@@ -86,25 +89,6 @@ describe("selectYourWorkOnPhone", () => {
     expect(submissions.map((item) => item.id)).toEqual(["0xoffline_0001", "0xoffline_0002"]);
   });
 
-  it("lists a review made here only while its upload waits, and only where the scope shows it", () => {
-    const waiting = work({ id: "0xDEC1", status: "approved", gardenerAddress: SOMEONE_ELSE });
-    const alreadySent = work({ id: "0xdec2", status: "rejected", gardenerAddress: SOMEONE_ELSE });
-    const waitingElsewhere = work({
-      id: "0xdec3",
-      status: "approved",
-      gardenerAddress: SOMEONE_ELSE,
-      gardenAddress: OTHER_GARDEN,
-    });
-
-    const { decisions } = select({
-      decidedHere: [waiting, alreadySent, waitingElsewhere],
-      // The upload queue names works in lowercase.
-      waitingDecisionWorkIds: new Set(["0xdec1", "0xdec3"]),
-    });
-
-    expect(decisions.map((item) => item.id)).toEqual(["0xDEC1"]);
-  });
-
   it("asks the scope about a draft's garden, and about the garden saved with proof, not its pool's", () => {
     const drafts = [
       { id: "here", gardenAddress: GARDEN.toLowerCase() },
@@ -130,5 +114,66 @@ describe("selectYourWorkOnPhone", () => {
     });
 
     expect(submissions).toEqual([]);
+  });
+});
+
+describe("selectQueuedDecisions", () => {
+  it("lists a review made here only while its upload waits, and only where the scope shows it", () => {
+    const waiting = work({ id: "0xDEC1", status: "approved", gardenerAddress: SOMEONE_ELSE });
+    const alreadySent = work({ id: "0xdec2", status: "rejected", gardenerAddress: SOMEONE_ELSE });
+    const waitingElsewhere = work({
+      id: "0xdec3",
+      status: "approved",
+      gardenerAddress: SOMEONE_ELSE,
+      gardenAddress: OTHER_GARDEN,
+    });
+
+    const decisions = selectQueuedDecisions({
+      inScope,
+      decidedHere: [waiting, alreadySent, waitingElsewhere],
+      // The upload queue names works in lowercase.
+      waitingDecisionWorkIds: new Set(["0xdec1", "0xdec3"]),
+    });
+
+    expect(decisions.map((item) => item.id)).toEqual(["0xDEC1"]);
+  });
+});
+
+describe("orientUploads", () => {
+  /** The member's gardens: the active one, and two the chip can switch to. LEFT_GARDEN is not. */
+  const MEMBER_GARDENS = [
+    { id: GARDEN, name: "TAS HUB" },
+    { id: OTHER_GARDEN, name: "Vida Verde" },
+    { id: THIRD_GARDEN, name: "Ilhas" },
+  ];
+  /** The active garden's own rule, as `useActiveGarden().inScope` binds it. */
+  const scopeOf =
+    (memberGardenIds: ReadonlySet<string> | null) =>
+    (gardens: readonly (string | null | undefined)[]) =>
+      isInGardenListScope({ activeGardenId: GARDEN, memberGardenIds }, gardens);
+  const memberScope = scopeOf(new Set(MEMBER_GARDENS.map(({ id }) => id.toLowerCase())));
+
+  it.each([
+    ["in the active garden", [GARDEN]],
+    ["in a garden the member left", [LEFT_GARDEN]],
+    ["that name no garden", [null]],
+    ["here and in another of the member's gardens", [OTHER_GARDEN, GARDEN]],
+  ])("points at Your Work for uploads %s, since its list shows them", (_case, gardens) => {
+    expect(orientUploads(memberScope, MEMBER_GARDENS, gardens)).toEqual({ target: "yourWork" });
+  });
+
+  it("names the garden the newest upload waits in when all of them wait in the member's other gardens", () => {
+    expect(orientUploads(memberScope, MEMBER_GARDENS, [THIRD_GARDEN, OTHER_GARDEN])).toEqual({
+      target: "switcher",
+      gardenId: THIRD_GARDEN,
+      gardenName: "Ilhas",
+    });
+  });
+
+  it("cannot place an upload outside the active garden until the member's gardens are known", () => {
+    const loading = scopeOf(null);
+
+    expect(orientUploads(loading, null, [OTHER_GARDEN])).toBeNull();
+    expect(orientUploads(loading, null, [GARDEN, OTHER_GARDEN])).toEqual({ target: "yourWork" });
   });
 });

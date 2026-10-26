@@ -28,6 +28,15 @@ export interface WorkSubmissionProgress {
   bypassMediaRequirement?: boolean;
 }
 
+/**
+ * How many times one submission asks the member to sign, said before the first prompt (decision
+ * 18; a write that needs several signatures says how many up front): the work, its link when it
+ * is for a promise, and the take-up first when the same tap takes that promise up.
+ */
+export function submissionPromptCount(input: { linksPromise: boolean; takesUp: boolean }): number {
+  return 1 + (input.linksPromise ? 1 : 0) + (input.linksPromise && input.takesUp ? 1 : 0);
+}
+
 export function canProceedWithWorkSubmission(progress: WorkSubmissionProgress): boolean {
   switch (progress.tab) {
     case WorkTab.Intro:
@@ -198,17 +207,18 @@ export type StartStepAnswer =
  * Whether the Start step has anything to ask (DL-131, decision 17). It is skipped when the answer
  * is known: a promise link the page was opened with, once confirmed (the link names the action),
  * or a garden with one action, nothing owed and no Open ask listed (the flow picks that action).
- * An Open ask listed is a choice to make, so the step stays. A link chosen at Start, or one that
- * no longer holds, never skips it, and promises that could not be read are never taken as none.
- * Work that already holds another action stays too: the flow never replaces the member's choice.
+ * An Open ask listed is a choice to make, so the step stays, and it waits while the asks are
+ * read. A link chosen at Start, or one that no longer holds, never skips it, and promises that
+ * could not be read are never taken as none. Work that already holds another action stays too:
+ * the flow never replaces the member's choice.
  */
 export function answerStartStep(input: {
   link: { status: WorkLinkStatus; atEntry: boolean };
   /** The flow's garden is one the member can submit work to (`isSubmissionGardenSettled`). */
   gardenSettled: boolean;
   promises: StartPromisesRead;
-  /** The garden's Open asks the step lists beside the member's promises. */
-  openAsks: number;
+  /** The garden's Open asks the step lists beside the member's promises; null while read. */
+  openAsks: number | null;
   /** The actions the garden offers (`listGardenActions`), by UID; null while they are read. */
   actionUIDs: readonly number[] | null;
   /** The action the work already holds, chosen or from a draft; the flow's own pick is none. */
@@ -222,7 +232,8 @@ export function answerStartStep(input: {
       ? { kind: "skip", actionUID: null }
       : { kind: "stay" };
   }
-  if (promises.status === "loading" || input.actionUIDs === null) return { kind: "wait" };
+  if (promises.status === "loading" || input.openAsks === null || input.actionUIDs === null)
+    return { kind: "wait" };
   if (promises.status === "unknown" || promises.count > 0 || input.openAsks > 0)
     return { kind: "stay" };
   const [only] = input.actionUIDs;

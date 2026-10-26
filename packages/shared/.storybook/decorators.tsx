@@ -18,6 +18,7 @@ import { WagmiProvider, createConfig, mock } from "wagmi";
 import { arbitrum, arbitrumSepolia, mainnet, sepolia } from "wagmi/chains";
 import toast from "react-hot-toast";
 import { createProofToasts } from "../src/components/Toast/presets/proof";
+import { createQueueToasts } from "../src/components/Toast/presets/queue";
 import { ToastViewport } from "../src/components/Toast/ToastViewport";
 import { JobQueueProvider } from "../src/providers/JobQueue";
 import { WorkProvider } from "../src/providers/Work";
@@ -618,4 +619,17 @@ function showProofToast(moment: ProofToastMoment, formatMessage: IntlShape["form
 /** A client page with one proof toast over it, where the app's viewport draws it. */
 export function withProofToast(moment: ProofToastMoment): Decorator {
   return withHeldToast((formatMessage) => showProofToast(moment, formatMessage));
+}
+
+/**
+ * A client page with the queue's failure toast over it, for an upload that waits in another of
+ * the member's gardens: it names the garden and offers the switcher (PWA Home step 12).
+ */
+export function withQueueFailureToast(kind: "work" | "approval", gardenName: string): Decorator {
+  return withHeldToast((formatMessage) =>
+    createQueueToasts(formatMessage).jobFailed(kind, undefined, {
+      gardenName,
+      openSwitcher: () => undefined,
+    })
+  );
 }

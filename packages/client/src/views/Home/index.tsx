@@ -7,6 +7,7 @@ import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNa
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useAwaitingJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
@@ -32,8 +33,8 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import {
-  ARRIVAL_TOASTS,
   type ArrivalActionKind,
+  arrivalToastSpec,
   hasArrivalPassed,
   markArrivalPassed,
 } from "./arrivalToast";
@@ -160,8 +161,9 @@ const Home: React.FC = () => {
     };
   }, [awaitingIds, gardenId, listed, myGardens.gardens]);
 
-  // State-aware arrival orientation (replaces the old generic welcome toast).
-  const { kind: arrivalKind, myGardenIds, needsReviewCount } = useArrivalState();
+  // The arrival toast: uploads still on this phone, and where they are listed (PWA Home step 12).
+  const arrival = useArrivalState();
+  const dashboardNavigation = useDashboardNavigation();
 
   // UI state from store
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
@@ -172,6 +174,8 @@ const Home: React.FC = () => {
   const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
   const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
   const closeGardenSheet = useUIStore((s) => s.closeGardenSheet);
+  const gardenSwitcherRequested = useUIStore((s) => s.gardenSwitcherRequested);
+  const clearGardenSwitcherRequest = useUIStore((s) => s.clearGardenSwitcherRequest);
 
   // The switcher keeps its mode while it slides out, so its title never flips mid-exit.
   const [switcher, setSwitcher] = useState<{ open: boolean; mode: SwitcherMode }>({
@@ -208,6 +212,14 @@ const Home: React.FC = () => {
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
+
+  // A toast asked for the switcher, about an upload waiting in another garden: it opens once
+  // Home shows, never over a garden page Home holds open, and the member picks there.
+  useEffect(() => {
+    if (!gardenSwitcherRequested || !isHomeRoute) return;
+    clearGardenSwitcherRequest();
+    openSwitcher();
+  }, [clearGardenSwitcherRequest, gardenSwitcherRequested, isHomeRoute, openSwitcher]);
 
   // Several gardens and none remembered: the switcher opens once as the chooser. Dismissing
   // it leaves the prompt; only a pick writes.
@@ -260,26 +272,16 @@ const Home: React.FC = () => {
   const runArrivalAction = useCallback(
     (action: ArrivalActionKind) => {
       switch (action) {
-        case "openWorkDashboardDrafts":
-          openWorkDashboard("pending", "editing");
-          return;
         case "openWorkDashboardPending":
           openWorkDashboard("pending");
           return;
-        case "openWorkDashboardNeedsReview":
-          openWorkDashboard("pending", "needsReview");
-          return;
-        case "startWork":
-          // One garden → jump straight in; several → the switcher, so they pick.
-          if (myGardenIds.length === 1) visitGarden(myGardenIds[0]);
-          else openSwitcher();
-          return;
-        case "openHelp":
-          navigate(`${APP_ROUTES.profile}?tab=help`);
+        case "openGardenSwitcher":
+          // The switcher opens on Home, wherever the member has gone since; it switches nothing.
+          dashboardNavigation.openGardenSwitcher();
           return;
       }
     },
-    [myGardenIds, navigate, openSwitcher, openWorkDashboard, visitGarden]
+    [dashboardNavigation, openWorkDashboard]
   );
 
   // A child screen (Explore, a garden) opens under Home, so Home stays mounted and a toast
@@ -289,14 +291,21 @@ const Home: React.FC = () => {
     if (!isHomeRoute) cancelArrival();
   }, [cancelArrival, isHomeRoute]);
 
-  // Show a state-aware arrival toast once per browser session, scoped to the signed-in address,
-  // and only while the session is still on the Home it opened on: AppShell marks the arrival
-  // passed as soon as the session is on any other screen.
-  // useArrivalState already gates on data confidence, so we fire only when arrivalKind !== "none".
+  // The toast reads the arrival as it shows: a garden switch during its delay moves where the
+  // uploads are listed, and uploads sent meanwhile leave nothing to say.
+  const latestArrival = useRef(arrival);
+  useEffect(() => {
+    latestArrival.current = arrival;
+  }, [arrival]);
+
+  // Show the arrival toast once per browser session, scoped to the signed-in address, and only
+  // while the session is still on the Home it opened on: AppShell marks the arrival passed as
+  // soon as the session is on any other screen. useArrivalState stays pending until it knows,
+  // and an arrival with nothing waiting passes quietly, so work queued later raises no toast.
   useEffect(() => {
     if (!isAuthenticated || hasShownArrivalRef.current) return;
     if (!isHomeRoute) return;
-    if (!normalizedAddress || arrivalKind === "none") return;
+    if (!normalizedAddress || arrival.kind === "pending") return;
 
     if (hasArrivalPassed(normalizedAddress)) {
       hasShownArrivalRef.current = true;
@@ -306,14 +315,16 @@ const Home: React.FC = () => {
     // Mark it passed BEFORE scheduling so re-renders / remounts this session don't re-fire.
     markArrivalPassed(normalizedAddress);
     hasShownArrivalRef.current = true;
+    if (arrival.kind === "none") return;
 
-    const spec = ARRIVAL_TOASTS[arrivalKind];
     // Small delay to let the page render first.
     scheduleArrival(() => {
-      toastService[spec.status]({
+      const shown = latestArrival.current;
+      if (shown.kind !== "queue") return;
+      const spec = arrivalToastSpec(shown.orientation);
+      toastService.info({
         title: intl.formatMessage({ id: spec.titleId }),
-        // `count` backs the review message's plural; other messages ignore unused values.
-        message: intl.formatMessage({ id: spec.messageId }, { count: needsReviewCount }),
+        message: intl.formatMessage({ id: spec.messageId }, spec.values),
         duration: 6000,
         action: {
           label: intl.formatMessage({ id: spec.actionLabelId }),
@@ -324,11 +335,10 @@ const Home: React.FC = () => {
       });
     }, 700);
   }, [
-    arrivalKind,
+    arrival.kind,
     intl,
     isAuthenticated,
     isHomeRoute,
-    needsReviewCount,
     normalizedAddress,
     runArrivalAction,
     scheduleArrival,

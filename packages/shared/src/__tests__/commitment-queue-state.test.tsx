@@ -11,10 +11,13 @@ import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
 
-const mocks = vi.hoisted(() => ({ getJobs: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getJobs: vi.fn(), getWorkCompletion: vi.fn() }));
 
 vi.mock("../modules/job-queue/db", () => ({
-  jobQueueDB: { getJobs: (input: unknown) => mocks.getJobs(input) },
+  jobQueueDB: {
+    getJobs: (input: unknown) => mocks.getJobs(input),
+    getWorkCompletion: (...input: unknown[]) => mocks.getWorkCompletion(...input),
+  },
 }));
 
 function creation(overrides: Partial<Job> = {}): Job {
@@ -87,6 +90,21 @@ describe("useCommitmentQueueState", () => {
     ).toBeUndefined();
   });
 
+  it("is loading until the queue is first read for a known reader, then reports what it holds", async () => {
+    let answer: (jobs: Job[]) => void = () => undefined;
+    mocks.getJobs.mockReturnValueOnce(new Promise<Job[]>((resolve) => (answer = resolve)));
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.proofJobs).toEqual([]);
+
+    answer([creation({ id: "proof", kind: "evidence", payload: { commitmentId: 7n } })]);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.proofJobs.map((job) => job.id)).toEqual(["proof"]);
+
+    const anonymous = renderHookWithProviders(() => useCommitmentQueueState(null));
+    expect(anonymous.result.current.isLoading).toBe(false);
+  });
+
   it("re-reads the stored job when a flush ends without completing or failing it", async () => {
     // A flush that only parks a creation on its membership preflight rewrites
     // the record without a completed or failed event. The query never goes
@@ -131,6 +149,26 @@ describe("useCommitmentQueueState", () => {
       reason: "membershipLost",
       retryable: false,
     });
+  });
+
+  it("names a sent work whose link gave up by its record id, as its Your Work row knows it", async () => {
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "link-1",
+        kind: "workLink",
+        payload: { commitmentId: 9n, clientWorkId: "client-1", sourceWorkJobId: "work-1" },
+        attempts: 5,
+        lastError: "identity_conflict:commitment-frozen",
+      }),
+    ]);
+    // The work landed from this phone, so its completion keeps the record id the link does not.
+    mocks.getWorkCompletion.mockResolvedValue({ clientWorkId: "client-1", workUID: "0xABCD" });
+
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+
+    await waitFor(() => expect(result.current.failedLinkWorkIds.has("0xabcd")).toBe(true));
+    expect(result.current.failedLinkWorkIds.has("client-1")).toBe(true);
+    expect(mocks.getWorkCompletion).toHaveBeenCalledWith(VIEWER, 42161, "client-1");
   });
 
   it("names the act still on this phone for its commitment, with why it waits", async () => {

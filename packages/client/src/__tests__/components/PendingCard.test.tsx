@@ -105,21 +105,26 @@ describe("PendingCard", () => {
     expect(screen.getByText("Step 1 of 4")).toBeInTheDocument();
   });
 
-  it("drops a status line that only repeats the pill", () => {
-    renderWithIntl(
-      <PendingCard
-        kind="review"
-        pill="In review"
-        title="Mulch Delivery Log"
-        meta="You submitted · Oct 2"
-        status="Waiting for a review"
-        discardLabel="Discard Mulch Delivery Log"
-      />
-    );
+  it("drops a status line that only repeats the pill, never one that says what stopped", () => {
+    const review = {
+      kind: "review" as const,
+      pill: "In review",
+      title: "Mulch Delivery Log",
+      meta: "You submitted · Oct 2",
+      discardLabel: "Discard Mulch Delivery Log",
+    };
+    renderWithIntl(<PendingCard {...review} status="Waiting for a review" />);
 
     expect(screen.getByRole("status")).toHaveTextContent("In review");
     expect(screen.getByText("You submitted · Oct 2")).toBeInTheDocument();
     expect(screen.queryByText("Waiting for a review")).not.toBeInTheDocument();
+    cleanup();
+
+    // Sent work whose link to its promise gave up is still in review; its line names the link.
+    renderWithIntl(
+      <PendingCard {...review} status="Couldn't link it to the promise" statusTone="error" />
+    );
+    expect(screen.getByText("Couldn't link it to the promise")).toBeInTheDocument();
   });
 
   it("offers Discard only when the list hands it one", () => {
