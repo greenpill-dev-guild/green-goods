@@ -100,6 +100,7 @@ const allowedIdenticalLocalizedKeys = new Set([
   "app.community.weightScheme.linear",
   "cockpit.community.stats.pools",
   // An amount beside the G$ symbol has no words to translate.
+  "app.commitment.reward.goodDollars",
   "cockpit.garden.pool.reward.inGoodDollars",
   "public.fund.vaults.vaultCount",
   // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
