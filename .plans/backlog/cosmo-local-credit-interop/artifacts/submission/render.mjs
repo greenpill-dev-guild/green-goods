@@ -120,11 +120,14 @@ try {
   for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; nothing in output/ was replaced`);
 }
+// Only the names that were promoted are rolled back, each on its own, so one that cannot be
+// removed never stops the rest from being restored.
+const promoted = [];
 try {
-  for (const name of names) { renameSync(join(staging, name), join(out, name)); console.log(join(out, name)); }
+  for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); console.log(join(out, name)); }
 } catch (error) {
-  for (const name of names) rmSync(join(out, name), { force: true });
-  for (const name of readdirSync(backup)) copyFileSync(join(backup, name), join(out, name));
+  for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch {} }
+  for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch {} }
   for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; the previous outputs were put back`);
 }

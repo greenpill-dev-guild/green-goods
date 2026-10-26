@@ -913,14 +913,16 @@ try {
   for (const dir of [staging, backup, lock]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; nothing was replaced and index.html is untouched`);
 }
+// Only the names that were promoted are rolled back, each on its own, so one that cannot be
+// removed never stops the rest from being restored; a screen captured for the first time has no
+// backup, so every promoted name goes first, or a new screen could outlive the rollback.
+const promoted = [];
 try {
-  for (const name of names) renameSync(join(staging, name), join(out, name));
+  for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); }
   renameSync(stagedHtml, htmlPath);
 } catch (error) {
-  // A screen captured for the first time has no backup, so every promoted name goes first, or a
-  // new screen could outlive the rollback beside the old index.html.
-  for (const name of names) rmSync(join(out, name), { force: true });
-  for (const name of readdirSync(backup)) copyFileSync(join(backup, name), join(out, name));
+  for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch {} }
+  for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch {} }
   for (const dir of [staging, backup, lock]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; the previous screens were put back and index.html is untouched`);
 }

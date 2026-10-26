@@ -5,7 +5,7 @@
 // brief show them on the commitment pooling slide and page.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, renameSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -64,11 +64,20 @@ try {
   // The current pair is backed up first, so a rename that fails halfway puts the old pair back
   // rather than leaving one new screen beside one old one.
   const backup = mkdtempSync(join(out, ".previous-"));
+  // The backup completes before either screen is touched, and only the screens that were
+  // promoted are rolled back, each on its own.
   try {
     for (const s of shots) if (existsSync(join(out, s.file))) copyFileSync(join(out, s.file), join(backup, s.file));
-    for (const s of shots) { renameSync(join(staging, s.file), join(out, s.file)); console.log(join(out, s.file)); }
   } catch (error) {
-    for (const s of shots) if (existsSync(join(backup, s.file))) copyFileSync(join(backup, s.file), join(out, s.file));
+    rmSync(backup, { recursive: true, force: true });
+    throw new Error(`${error.message}; neither screen was replaced`);
+  }
+  const promoted = [];
+  try {
+    for (const s of shots) { renameSync(join(staging, s.file), join(out, s.file)); promoted.push(s.file); console.log(join(out, s.file)); }
+  } catch (error) {
+    for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch {} }
+    for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch {} }
     throw new Error(`${error.message}; the previous pair was put back`);
   } finally {
     rmSync(backup, { recursive: true, force: true });

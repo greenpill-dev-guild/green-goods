@@ -105,17 +105,20 @@ const previous = readdirSync(out).filter(isRecord);
 try {
   for (const name of previous) renameSync(join(out, name), join(backup, name));
 } catch (error) {
-  for (const name of readdirSync(backup)) renameSync(join(backup, name), join(out, name));
+  for (const name of readdirSync(backup)) { try { renameSync(join(backup, name), join(out, name)); } catch {} }
   for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; the photo set is as it was`);
 }
-const installed = readdirSync(temp);
+// Only the files that were installed are rolled back, each on its own, so one that cannot be
+// removed never stops the rest from being restored.
+const installed = [];
 try {
-  for (const name of installed) renameSync(join(temp, name), join(out, name));
+  for (const name of readdirSync(temp)) { renameSync(join(temp, name), join(out, name)); installed.push(name); }
   writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
+  installed.push("record-photos.tsv");
 } catch (error) {
-  for (const name of [...installed, "record-photos.tsv"]) rmSync(join(out, name), { force: true });
-  for (const name of readdirSync(backup)) renameSync(join(backup, name), join(out, name));
+  for (const name of installed) { try { rmSync(join(out, name), { force: true }); } catch {} }
+  for (const name of readdirSync(backup)) { try { renameSync(join(backup, name), join(out, name)); } catch {} }
   for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; the previous photo set was put back`);
 }
