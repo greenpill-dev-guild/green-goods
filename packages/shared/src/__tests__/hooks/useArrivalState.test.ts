@@ -2,7 +2,8 @@
  * The arrival toast's one remaining orientation (PWA Home step 12): uploads still on this phone.
  * Home's chip and Continue show the member's garden and drafts, so those branches are gone. Where
  * the toast points is `orientUploads`, tested with the rest of Your Work on this phone; here the
- * queue's jobs reach it, and silence holds until the answer is known.
+ * queue's jobs reach it, it stays pending until the answer is known, and an arrival with nothing
+ * waiting is told apart from one still unknown, so Home can let it pass.
  */
 
 import { renderHook } from "@testing-library/react";
@@ -83,12 +84,12 @@ describe("useArrivalState", () => {
     mocks.gardensLoaded = true;
   });
 
-  it("stays silent until the queue answers, and when nothing waits on this phone", () => {
-    expect(arriveWith(undefined)).toEqual({ kind: "none" });
+  it("stays pending until the queue answers, and says when nothing waits on this phone", () => {
+    expect(arriveWith(undefined)).toEqual({ kind: "pending" });
     expect(arriveWith([])).toEqual({ kind: "none" });
 
     mocks.account = null;
-    expect(arriveWith([job("work", GARDEN, 1)])).toEqual({ kind: "none" });
+    expect(arriveWith([job("work", GARDEN, 1)])).toEqual({ kind: "pending" });
   });
 
   it("speaks only for what Your Work lists: work, reviews and proof queued on this chain", () => {
@@ -117,7 +118,7 @@ describe("useArrivalState", () => {
 
   it("waits for the member's gardens before pointing at an upload outside the active garden", () => {
     mocks.gardensLoaded = false;
-    expect(arriveWith([job("work", OTHER_GARDEN, 1)])).toEqual({ kind: "none" });
+    expect(arriveWith([job("work", OTHER_GARDEN, 1)])).toEqual({ kind: "pending" });
     expect(arriveWith([job("work", GARDEN, 1)])).toEqual({
       kind: "queue",
       orientation: { target: "yourWork" },

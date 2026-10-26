@@ -30,6 +30,7 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../types/job-queue";
+import { compareAddresses } from "../utils/blockchain/address";
 import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
 
 interface JobQueueContextValue {
@@ -76,6 +77,13 @@ interface JobQueueProviderProps {
 
 const EMPTY_QUEUE_STATS: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
 
+/** A work or review upload the queue gave up on, and the error it reported. */
+interface FailedUpload {
+  kind: "work" | "approval";
+  detail?: string;
+  job: Job;
+}
+
 const areQueueStatsEqual = (left: QueueStats, right: QueueStats) =>
   left.total === right.total &&
   left.pending === right.pending &&
@@ -104,23 +112,44 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
   // Use single source of truth for primary address
   const currentUserAddress = usePrimaryAddress();
 
-  // Where a failed upload is listed, read when it fails: the event handlers below subscribe
-  // once, so they reach the latest active garden through this ref.
+  // A failed upload's toast points where the upload is listed, read as it is raised: the event
+  // handlers below subscribe once, so they reach the latest active garden through this ref. One
+  // outside the active garden waits while the member's gardens load, then names its garden; if
+  // they can't load, today's toast stands.
   const { inScope, myGardens } = useActiveGarden();
-  const failedElsewhereRef = useRef<(job: Job) => FailedInAnotherGarden | undefined>(
-    () => undefined
-  );
-  failedElsewhereRef.current = (job) => {
-    if (!onOpenGardenSwitcher) return undefined;
-    const orientation = orientUploads(
-      inScope,
-      myGardens.isLoaded ? myGardens.gardens.map(({ garden }) => garden) : null,
-      [uploadGarden(job)]
-    );
-    return orientation?.target === "switcher"
-      ? { gardenName: orientation.gardenName, openSwitcher: onOpenGardenSwitcher }
+  const heldFailuresRef = useRef(new Map<FailedUpload["kind"], FailedUpload>());
+  const toastFailureRef = useRef<(failure: FailedUpload) => void>(() => undefined);
+  toastFailureRef.current = (failure) => {
+    const orientation = onOpenGardenSwitcher
+      ? orientUploads(
+          inScope,
+          myGardens.isLoaded ? myGardens.gardens.map(({ garden }) => garden) : null,
+          [uploadGarden(failure.job)]
+        )
       : undefined;
+    if (orientation === null && !myGardens.isError) {
+      // A later failure of the same kind takes its toast's place, so one of each waits.
+      heldFailuresRef.current.set(failure.kind, failure);
+      return;
+    }
+    const elsewhere: FailedInAnotherGarden | undefined =
+      orientation?.target === "switcher" && onOpenGardenSwitcher
+        ? { gardenName: orientation.gardenName, openSwitcher: onOpenGardenSwitcher }
+        : undefined;
+    queueToasts.jobFailed(failure.kind, failure.detail, elsewhere);
   };
+  const gardensSettled = myGardens.isLoaded || myGardens.isError;
+  useEffect(() => {
+    if (!gardensSettled) return;
+    const held = [...heldFailuresRef.current.values()];
+    heldFailuresRef.current.clear();
+    // A failure held for an account that has since signed out is not this account's to show.
+    for (const failure of held) {
+      if (compareAddresses(failure.job.userAddress, currentUserAddress)) {
+        toastFailureRef.current(failure);
+      }
+    }
+  }, [currentUserAddress, gardensSettled]);
 
   const [stats, setStats] = useState<QueueStats>(EMPTY_QUEUE_STATS);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -267,14 +296,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
         // A discard is the person's own act, which its screen confirms: not a failed sync.
         // The discard removed the work's draft before the work, so the drafts are read again.
         if (event.error === JOB_DISCARDED) void rereadDrafts();
-        else queueToasts.jobFailed("work", event.error, failedElsewhereRef.current(event.job));
+        else toastFailureRef.current({ kind: "work", detail: event.error, job: event.job });
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
         queryClient.invalidateQueries({ queryKey: worksKeys.offline(gardenId) });
         queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
       } else if (event.job.kind === "approval") {
-        queueToasts.jobFailed("approval", event.error, failedElsewhereRef.current(event.job));
+        toastFailureRef.current({ kind: "approval", detail: event.error, job: event.job });
       }
     };
 

@@ -44,9 +44,9 @@ export function arrivalToastSpec(orientation: UploadOrientation): ArrivalToastSp
 
 /**
  * The arrival toast belongs to a session that opens on Home. The arrival has passed once the
- * toast was shown, or once the session was anywhere else first: an app restored into the
- * garden flow already met its drafts there, so a later Home visit must not repeat the
- * orientation. Kept per browser session and per address, so another account signing in on the
+ * toast was shown, once Home opened with nothing waiting, or once the session was anywhere else
+ * first: an app restored into the garden flow already met its drafts there, so a later Home
+ * visit must not repeat the orientation. Kept per browser session and per address, so another account signing in on the
  * same tab still arrives fresh.
  */
 const arrivalPassedKey = (address: string) => `greengoods:arrival-shown:${address.toLowerCase()}`;

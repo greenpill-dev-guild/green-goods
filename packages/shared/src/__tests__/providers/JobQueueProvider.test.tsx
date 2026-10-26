@@ -96,7 +96,11 @@ vi.mock("../../config/default-chain", () => ({
 
 // The active garden's own rule over the member's gardens: garden A is active, B is another of
 // theirs, which its Your Work lists once the chip switches there.
-const activeGarden = vi.hoisted(() => ({ selectGarden: vi.fn() }));
+const activeGarden = vi.hoisted(() => ({
+  selectGarden: vi.fn(),
+  /** Where the read of the member's gardens stands. */
+  gardens: "loaded" as "loading" | "loaded" | "failed",
+}));
 vi.mock("../../hooks/garden/useActiveGarden", async () => {
   const { isInGardenListScope } = await vi.importActual<
     typeof import("../../modules/garden/active-garden")
@@ -106,26 +110,34 @@ vi.mock("../../hooks/garden/useActiveGarden", async () => {
     { id: "0xgardenb", name: "Vida Verde" },
   ];
   return {
-    useActiveGarden: () => ({
-      status: "ready",
-      gardenId: "0xgardena",
-      inScope: (named: readonly (string | null | undefined)[]) =>
-        isInGardenListScope(
-          { activeGardenId: "0xgardena", memberGardenIds: new Set(gardens.map(({ id }) => id)) },
-          named
-        ),
-      myGardens: {
-        gardens: gardens.map((garden) => ({
-          garden,
-          membership: { roles: ["gardener"], pendingJoin: false },
-        })),
-        isLoaded: true,
-        isError: false,
-        isStale: false,
-        refetch: vi.fn(),
-      },
-      selectGarden: activeGarden.selectGarden,
-    }),
+    useActiveGarden: () => {
+      const isLoaded = activeGarden.gardens === "loaded";
+      return {
+        status: "ready",
+        gardenId: "0xgardena",
+        inScope: (named: readonly (string | null | undefined)[]) =>
+          isInGardenListScope(
+            {
+              activeGardenId: "0xgardena",
+              memberGardenIds: isLoaded ? new Set(gardens.map(({ id }) => id)) : null,
+            },
+            named
+          ),
+        myGardens: {
+          gardens: isLoaded
+            ? gardens.map((garden) => ({
+                garden,
+                membership: { roles: ["gardener"], pendingJoin: false },
+              }))
+            : [],
+          isLoaded,
+          isError: activeGarden.gardens === "failed",
+          isStale: false,
+          refetch: vi.fn(),
+        },
+        selectGarden: activeGarden.selectGarden,
+      };
+    },
   };
 });
 
@@ -176,6 +188,7 @@ describe("providers/JobQueueProvider", () => {
       defaultOptions: { queries: { retry: false } },
     });
     vi.clearAllMocks();
+    activeGarden.gardens = "loaded";
 
     // Reset mock implementations
     mockUseAuth.mockReturnValue({ authMode: "passkey", walletAddress: null });
@@ -419,32 +432,38 @@ describe("providers/JobQueueProvider", () => {
       );
     });
 
-    it("names the other garden a failed upload waits in, and its action opens the switcher without switching", async () => {
+    // An upload that failed in a garden, as the queue reports it.
+    const failed = (kind: "work" | "approval", gardenAddress: string): QueueEvent => ({
+      type: "job_failed",
+      jobId: `${kind}-in-${gardenAddress}`,
+      job: {
+        id: `${kind}-in-${gardenAddress}`,
+        kind,
+        chainId: 11155111,
+        payload: { actionUID: 1, gardenAddress, feedback: "" },
+        createdAt: Date.now(),
+        attempts: 3,
+        synced: false,
+        userAddress: "0xSmartAccount",
+      } as Job,
+      error: "network",
+    });
+    /** Listens to the provider's queue subscription; the result raises an event to it. */
+    const listen = () => {
       const subscribedHandlers = new Set<(event: QueueEvent) => void>();
       mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
         subscribedHandlers.add(handler);
         return () => subscribedHandlers.delete(handler);
       });
-      const failed = (kind: "work" | "approval", gardenAddress: string): QueueEvent => ({
-        type: "job_failed",
-        jobId: `${kind}-in-${gardenAddress}`,
-        job: {
-          id: `${kind}-in-${gardenAddress}`,
-          kind,
-          chainId: 11155111,
-          payload: { actionUID: 1, gardenAddress, feedback: "" },
-          createdAt: Date.now(),
-          attempts: 3,
-          synced: false,
-          userAddress: "0xSmartAccount",
-        } as Job,
-        error: "network",
-      });
-      const emit = (event: QueueEvent) =>
+      return (event: QueueEvent) =>
         act(async () => {
           subscribedHandlers.forEach((handler) => handler(event));
           await Promise.resolve();
         });
+    };
+
+    it("names the other garden a failed upload waits in, and its action opens the switcher without switching", async () => {
+      const emit = listen();
       const onOpenGardenSwitcher = vi.fn();
       renderHook(() => useJobQueue(), {
         wrapper: createWrapper(mockJobQueue, onOpenGardenSwitcher),
@@ -467,6 +486,29 @@ describe("providers/JobQueueProvider", () => {
       // The active garden's Your Work lists it already: today's toast stands.
       await emit(failed("work", "0xgardena"));
       expect(queueToasts.jobFailed.mock.lastCall).toEqual(["work", "network", undefined]);
+    });
+
+    it.each([
+      [
+        "load, naming its garden",
+        "loaded",
+        { gardenName: "Vida Verde", openSwitcher: expect.any(Function) },
+      ],
+      ["fail to load, as today's toast", "failed", undefined],
+    ] as const)("holds a failure outside the active garden until the member's gardens %s", async (_, gardens, elsewhere) => {
+      const emit = listen();
+      activeGarden.gardens = "loading";
+      const { rerender } = renderHook(() => useJobQueue(), {
+        wrapper: createWrapper(mockJobQueue, vi.fn()),
+      });
+
+      await emit(failed("work", "0xgardenb"));
+      expect(queueToasts.jobFailed).not.toHaveBeenCalled();
+
+      activeGarden.gardens = gardens;
+      rerender();
+      expect(queueToasts.jobFailed).toHaveBeenCalledOnce();
+      expect(queueToasts.jobFailed).toHaveBeenLastCalledWith("work", "network", elsewhere);
     });
 
     it("invalidates recipient-scoped approval reads when an approval job completes", async () => {

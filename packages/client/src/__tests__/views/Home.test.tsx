@@ -103,7 +103,7 @@ vi.mock("../../views/Home/Journal", () => ({
 
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import Home from "../../views/Home";
-import { markArrivalPassed } from "../../views/Home/arrivalToast";
+import { hasArrivalPassed, markArrivalPassed } from "../../views/Home/arrivalToast";
 
 type Status = "loading" | "error" | "none" | "choose" | "ready";
 type Role = "owner" | "steward" | "evaluator" | "gardener";
@@ -140,28 +140,31 @@ function VisitedGarden() {
   return createElement("p", null, `Visiting ${useParams().id}`);
 }
 
-function renderHome(entry = "/home") {
-  return render(
+const homeTree = (entry: string) =>
+  createElement(
+    MemoryRouter,
+    { initialEntries: [entry] },
     createElement(
-      MemoryRouter,
-      { initialEntries: [entry] },
+      IntlProvider,
+      { locale: "en", messages },
+      createElement(LocationProbe),
       createElement(
-        IntlProvider,
-        { locale: "en", messages },
-        createElement(LocationProbe),
+        Routes,
+        null,
         createElement(
-          Routes,
-          null,
-          createElement(
-            Route,
-            { path: "/home", element: createElement(Home) },
-            createElement(Route, { path: "explore", element: createElement("p", null, "Explore") }),
-            createElement(Route, { path: ":id", element: createElement(VisitedGarden) })
-          )
+          Route,
+          { path: "/home", element: createElement(Home) },
+          createElement(Route, { path: "explore", element: createElement("p", null, "Explore") }),
+          createElement(Route, { path: ":id", element: createElement(VisitedGarden) })
         )
       )
     )
   );
+
+/** Renders Home; `rerender` draws it again in place, as a change to a read it holds would. */
+function renderHome(entry = "/home") {
+  const view = render(homeTree(entry));
+  return { ...view, rerender: () => view.rerender(homeTree(entry)) };
 }
 
 /** Lets a closing sheet finish its exit. */
@@ -452,6 +455,47 @@ describe("arrival toast", () => {
     expect(await screen.findByRole("dialog", { name: "Your Gardens" })).toBeInTheDocument();
     expect(selectGarden).not.toHaveBeenCalled();
     expect(useUIStore.getState().gardenSwitcherRequested).toBe(false);
+  });
+
+  it("names where the uploads wait as the toast shows, after a garden switch during its delay", () => {
+    const mine: Array<[Garden, Role[]]> = [
+      [TAS, ["steward"]],
+      [VIDA, ["gardener"]],
+    ];
+    setActive("ready", mine, TAS.id);
+    const home = renderHome();
+
+    // The member switches to Vida Verde first, so the uploads wait in another garden now.
+    setActive("ready", mine, VIDA.id);
+    state.arrival = {
+      kind: "queue",
+      orientation: { target: "switcher", gardenId: TAS.id, gardenName: TAS.name },
+    };
+    home.rerender();
+    passArrivalDelay();
+
+    expect(toastService.info).toHaveBeenCalledOnce();
+    expect(shownToast()).toMatchObject({
+      message: "Some of your work in TAS HUB hasn't uploaded yet.",
+      action: { label: "See Your Gardens" },
+    });
+  });
+
+  it("waits while the queue is unread, and lets an arrival with nothing waiting pass", () => {
+    state.arrival = { kind: "pending" };
+    const home = renderHome();
+    passArrivalDelay();
+    expect(hasArrivalPassed(ACCOUNT)).toBe(false);
+
+    state.arrival = { kind: "none" };
+    home.rerender();
+    expect(hasArrivalPassed(ACCOUNT)).toBe(true);
+
+    // Work queued later in the session raises no arrival toast.
+    state.arrival = { kind: "queue", orientation: { target: "yourWork" } };
+    home.rerender();
+    passArrivalDelay();
+    expect(toastService.info).not.toHaveBeenCalled();
   });
 
   it("stays quiet on Home once the session has arrived on another screen", () => {

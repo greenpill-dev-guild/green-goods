@@ -20,6 +20,8 @@ let mockActiveGarden: { id: string; name: string } | null = null;
 let mockUploadOptions: unknown;
 /** The gardens each review read asked for: reviewer gardens, and gardens waiting reviews name. */
 let mockNeedsReviewReads: string[][] = [];
+/** Gardens whose review read fails; a read that asks for one of them fails whole. */
+let mockFailedReviewGardens: string[] = [];
 /** The member's gardens, which the chip can switch to; a garden the member left is not one. */
 let mockMemberGardenIds: string[] = [];
 let mockQueueUnreadable = false;
@@ -256,6 +258,7 @@ vi.mock("@green-goods/shared/hooks/work/useNeedsReview", () => ({
     const inRead = (item: Work) => read.has(item.gardenAddress.toLowerCase());
     return {
       ...mockNeedsReviewState,
+      isError: mockNeedsReviewState.isError || mockFailedReviewGardens.some((g) => read.has(g)),
       allWorks: mockNeedsReviewState.allWorks.filter(inRead),
       works: mockNeedsReviewState.works.filter(inRead),
       decidedHere: mockNeedsReviewState.decidedHere.filter(inRead),
@@ -365,6 +368,7 @@ describe("WorkDashboard", () => {
     vi.clearAllMocks();
     mockReviewerGardenIds = [];
     mockNeedsReviewReads = [];
+    mockFailedReviewGardens = [];
     mockMemberGardenIds = [
       "0x00000000000000000000000000000000000000a1",
       "0x00000000000000000000000000000000000000b2",
@@ -714,6 +718,36 @@ describe("WorkDashboard", () => {
       .closest("[data-component='PendingCard']");
     if (!(row instanceof HTMLElement)) throw new Error("The queued review has no row");
     expect(within(row).getByText("Your review")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["needsReview", "Nothing pending"],
+    ["upload", "Unable to load work"],
+  ] as const)("answers an empty %s filter alone for a left garden's failed review read", (filter, expected) => {
+    const here = "0x00000000000000000000000000000000000000a1";
+    const left = "0x00000000000000000000000000000000000000c3";
+    mockActiveGarden = { id: here, name: "TAS HUB" };
+    mockReviewerGardenIds = [here];
+    // The review waiting to upload names a garden the member left, and that garden won't read.
+    mockFailedReviewGardens = [left];
+    mockUploads = {
+      ...idleUploads(),
+      attentionCount: 1,
+      queuedCount: 1,
+      waitingDecisionWorkIds: new Set(["0xleft-review"]),
+      waitingDecisionGardenIds: [left],
+    };
+    mockUseMyWorks.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+    mockInitialPendingFilter = filter;
+
+    renderDashboard();
+
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
   it("keeps an on-chain submission out of Pending until its review read lands", () => {

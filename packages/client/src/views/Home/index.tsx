@@ -237,13 +237,21 @@ const Home: React.FC = () => {
     if (!isHomeRoute) cancelArrival();
   }, [cancelArrival, isHomeRoute]);
 
+  // The toast reads the arrival as it shows: a garden switch during its delay moves where the
+  // uploads are listed, and uploads sent meanwhile leave nothing to say.
+  const latestArrival = useRef(arrival);
+  useEffect(() => {
+    latestArrival.current = arrival;
+  }, [arrival]);
+
   // Show the arrival toast once per browser session, scoped to the signed-in address, and only
   // while the session is still on the Home it opened on: AppShell marks the arrival passed as
-  // soon as the session is on any other screen. useArrivalState stays silent until it knows.
+  // soon as the session is on any other screen. useArrivalState stays pending until it knows,
+  // and an arrival with nothing waiting passes quietly, so work queued later raises no toast.
   useEffect(() => {
     if (!isAuthenticated || hasShownArrivalRef.current) return;
     if (!isHomeRoute) return;
-    if (!normalizedAddress || arrival.kind === "none") return;
+    if (!normalizedAddress || arrival.kind === "pending") return;
 
     if (hasArrivalPassed(normalizedAddress)) {
       hasShownArrivalRef.current = true;
@@ -253,10 +261,13 @@ const Home: React.FC = () => {
     // Mark it passed BEFORE scheduling so re-renders / remounts this session don't re-fire.
     markArrivalPassed(normalizedAddress);
     hasShownArrivalRef.current = true;
+    if (arrival.kind === "none") return;
 
-    const spec = arrivalToastSpec(arrival.orientation);
     // Small delay to let the page render first.
     scheduleArrival(() => {
+      const shown = latestArrival.current;
+      if (shown.kind !== "queue") return;
+      const spec = arrivalToastSpec(shown.orientation);
       toastService.info({
         title: intl.formatMessage({ id: spec.titleId }),
         message: intl.formatMessage({ id: spec.messageId }, spec.values),
@@ -270,7 +281,7 @@ const Home: React.FC = () => {
       });
     }, 700);
   }, [
-    arrival,
+    arrival.kind,
     intl,
     isAuthenticated,
     isHomeRoute,

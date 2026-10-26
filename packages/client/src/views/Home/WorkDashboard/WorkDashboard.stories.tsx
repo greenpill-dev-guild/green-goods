@@ -196,6 +196,7 @@ function DashboardFrame({
           viewer={JOURNEY_VIEWER}
           reads={{
             needsReview: { isLoading: false, isError: false },
+            decisions: { isLoading: false, isError: false },
             myWork: { isLoading: false, isError: false },
           }}
           isFetching={isFetching}

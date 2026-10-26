@@ -363,9 +363,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Loading and errors follow the source the active filter shows, and an error
   // takes over a tab only when there is nothing to show.
-  const needsReviewState = {
-    isLoading: isLoadingReviewerGardens || needsReview.isLoading || queuedDecisions.isLoading,
-    isError: needsReview.isError || queuedDecisions.isError,
+  const toReviewState = {
+    isLoading: isLoadingReviewerGardens || needsReview.isLoading,
+    isError: needsReview.isError,
   };
   // My pending submissions and my reviewed work both come from my works joined to approvals.
   const myWorkState = {
@@ -448,7 +448,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             uploads={uploads}
             viewer={viewer}
             // Pending weighs each read against the filter in use and the rows it shows.
-            reads={{ needsReview: needsReviewState, myWork: myWorkState }}
+            reads={{ needsReview: toReviewState, decisions: queuedDecisions, myWork: myWorkState }}
             isFetching={isRefreshing}
             isOffline={isOffline}
             savedAt={pendingSavedAt}
