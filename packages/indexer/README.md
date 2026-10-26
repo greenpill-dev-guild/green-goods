@@ -128,10 +128,13 @@ populate them. The client resolves those values from ENS text records.
 ### Service-access projections
 
 `VoucherIssuerAuthority` records the latest source issuer/token authority binding, including
-revocation. On Arbitrum, the configured core's `EarnedVoucherModulePinned` and
-`VoucherServiceSetupModulePinned` events discover the earned-voucher and redemption source
-modules. Discovery registers nothing on another chain and never changes previously snapshotted
-terms approvals.
+revocation. On Arbitrum, the earned-voucher and redemption source proxies are registered
+statically from `42161-pilot-downstream.json`. Each initializer emits `VoucherEndpointPinned` and
+the first `VoucherPauseChanged` before the core pins the module, and Envio drops a dynamic
+contract's events from before its registration block. The core's `EarnedVoucherModulePinned` and
+`VoucherServiceSetupModulePinned` events still register the modules, which Envio skips as
+duplicates. Discovery registers nothing on another chain and never changes previously
+snapshotted terms approvals.
 
 `VoucherReserveAsset` records issuer-owned adapter configuration. `VoucherPoolExchange` preserves
 the exact amounts and fees emitted by `SwapSettlement`, identified by chain, pool, transaction

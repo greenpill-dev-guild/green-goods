@@ -335,10 +335,15 @@ chains:
         address: "0x294d222eDE6DF6625B43544F1C634322467528Da"
       - name: CommitmentPoolingModule
         address: "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a"
-      # Discovered locally from the core's immutable EarnedVoucherModulePinned event.
+      # Proxies from 42161-pilot-downstream.json, registered statically: each initializer emits
+      # VoucherEndpointPinned and VoucherPauseChanged before the core's pin event, and Envio drops a
+      # dynamic contract's events from before its registration block. The core's
+      # EarnedVoucherModulePinned and VoucherServiceSetupModulePinned events still register them;
+      # Envio skips those duplicates.
       - name: VoucherEntitlementModule
-      # Discovered locally from the core's immutable VoucherServiceSetupModulePinned event.
+        address: "0x9eeA83dc46433F646707076294627E49692CC6Ed"
       - name: VoucherRedemptionModule
+        address: "0xB9D3fBeaEb9Ba5635ce2FCb630af7c55c11f9BE6"
       # Tech and Sun publisher from 42161-pilot-downstream.json (deployed at block 517974589).
       - name: StewardRolePublisher
         address: "0xdc53b8EAe588a923D13650339De0c99D29968804"

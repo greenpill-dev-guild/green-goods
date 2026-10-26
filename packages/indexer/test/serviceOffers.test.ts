@@ -96,7 +96,8 @@ describe("opt-in service offer facts", () => {
       config.chains.map(({ id }) => id),
       [42161, 11155111, 42220, 100]
     );
-    // The redemption source is discovered on Arbitrum only; the escrow is pinned on Gnosis only.
+    // Both Arbitrum source proxies are static, so their initializer events are indexed; the escrow
+    // is pinned on Gnosis only.
     const registered = (name: string) =>
       config.chains
         .filter(({ contracts }) => contracts.some((contract) => contract.name === name))
@@ -104,7 +105,12 @@ describe("opt-in service offer facts", () => {
           id,
           address: contracts.find((contract) => contract.name === name)?.address,
         }));
-    assert.deepEqual(registered("VoucherRedemptionModule"), [{ id: 42161, address: undefined }]);
+    assert.deepEqual(registered("VoucherEntitlementModule"), [
+      { id: 42161, address: "0x9eeA83dc46433F646707076294627E49692CC6Ed" },
+    ]);
+    assert.deepEqual(registered("VoucherRedemptionModule"), [
+      { id: 42161, address: "0xB9D3fBeaEb9Ba5635ce2FCb630af7c55c11f9BE6" },
+    ]);
     assert.deepEqual(registered("GnosisVoucherEscrow"), [
       { id: 100, address: "0x742c8935d314363e8c16df5b0791525109Fb9387" },
     ]);
