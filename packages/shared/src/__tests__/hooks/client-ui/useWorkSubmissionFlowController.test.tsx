@@ -47,6 +47,14 @@ const mocks = vi.hoisted(() => ({
     status: "choose" as "loading" | "error" | "none" | "choose" | "ready",
     gardenId: null as string | null,
   },
+  actions: [] as Array<Record<string, unknown>>,
+  workable: {
+    data: [] as Array<Record<string, unknown>> | undefined,
+    isPending: false,
+    isError: false,
+    fetchStatus: "idle" as "idle" | "fetching" | "paused",
+  },
+  startSkipAction: null as null | { garden: string; actionUID: number },
 }));
 
 vi.mock("../../../hooks/garden/useActiveGarden", () => ({
@@ -71,7 +79,8 @@ vi.mock("../../../stores/workFlowTypes", () => ({
   WorkTab: { Intro: "Intro", Media: "Media", Details: "Details", Review: "Review" },
 }));
 
-vi.mock("../../../utils/action/parsers", () => ({
+vi.mock("../../../utils/action/parsers", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../utils/action/parsers")>()),
   findActionByUID: () => ({}),
 }));
 
@@ -89,7 +98,10 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
   }),
 }));
 
-vi.mock("../../../hooks/commitment-pooling/useWorkLinkChoices", () => ({
+vi.mock("../../../hooks/commitment-pooling/useWorkLinkChoices", async (importOriginal) => ({
+  workLinkReturnTo: (
+    await importOriginal<typeof import("../../../hooks/commitment-pooling/useWorkLinkChoices")>()
+  ).workLinkReturnTo,
   useWorkLinkChoices: () => ({
     choices: mocks.choices,
     isLoading: false,
@@ -97,6 +109,7 @@ vi.mock("../../../hooks/commitment-pooling/useWorkLinkChoices", () => ({
     error: null,
     refetch: vi.fn(),
   }),
+  useWorkablePromises: () => ({ ...mocks.workable, refetch: vi.fn() }),
 }));
 
 vi.mock("../../../utils/errors/contract-errors", () => ({
@@ -193,6 +206,8 @@ vi.mock("../../../stores/useWorkFlowStore", () => ({
         reset: mocks.reset,
         setActionUID: mocks.setDraftAction,
         gardenAddress: mocks.gardenAddress,
+        actionUID: mocks.actionUID,
+        startSkipAction: mocks.startSkipAction,
       }),
       setState: mocks.setFlowState,
     }
@@ -221,7 +236,7 @@ vi.mock("../../../providers/Work", () => ({
     },
   }),
   useWorkSelection: () => ({
-    actions: [],
+    actions: mocks.actions,
     gardens: mocks.gardens,
     hasJoinedGardens: false,
     joinableCommunityGarden: mocks.communityGarden,
@@ -264,6 +279,7 @@ import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { useSubmissionFlowController } from "../../../hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
 import { useUIStore } from "../../../stores/useUIStore";
+import { Domain } from "../../../types/domain";
 
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(
@@ -362,6 +378,9 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.allGardens = [];
     mocks.gardenRecord = null;
     mocks.activeGarden = { status: "choose", gardenId: null };
+    mocks.actions = [];
+    mocks.workable = { data: [], isPending: false, isError: false, fetchStatus: "idle" };
+    mocks.startSkipAction = null;
     mocks.toastError.mockReset();
     navigateShareRoute = null;
     exitPath = "";
@@ -1263,5 +1282,144 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.gardenAddress = "0x7777777777777777777777777777777777777777";
     view.rerender();
     expect(view.result.current.submissionGardenSettled).toBe(false);
+  });
+
+  /** A live action of a garden; the Start step offers it while `now` falls inside its dates. */
+  const liveAction = (uid: number, domain: Domain | null) => ({
+    id: `${DEFAULT_CHAIN_ID}-${uid}`,
+    title: `Action ${uid}`,
+    domain,
+    startTime: Date.now() - 86_400_000,
+    endTime: Date.now() + 86_400_000,
+    media: [],
+  });
+  const promiseOwed = (choices: Array<Record<string, unknown>>, takesEvidence: boolean) => ({
+    commitmentId: 9n,
+    title: "Trees",
+    direction: "REQUEST",
+    state: "ACTIVE",
+    dueDate: null,
+    targetUnits: 0n,
+    unitLabel: null,
+    choices,
+    takesEvidence,
+  });
+  /** The active garden, which offers Solar actions only. */
+  const solarGarden = () => {
+    mocks.gardens = [{ id: ACTIVE_GARDEN, name: "Riverside", domainMask: 1 << Domain.SOLAR }];
+    mocks.activeGarden = { status: "ready", gardenId: ACTIVE_GARDEN };
+    mocks.gardenAddress = ACTIVE_GARDEN;
+  };
+
+  it("opens Media with a garden's only action, the flow's own pick, when nothing else is owed", () => {
+    solarGarden();
+    // The Agroforestry action is not one this garden offers.
+    mocks.actions = [liveAction(7, Domain.SOLAR), liveAction(8, Domain.AGRO)];
+    const { result } = enterFlow();
+
+    expect(mocks.setDraftAction).toHaveBeenCalledWith(7);
+    expect(mocks.setFlowState).toHaveBeenCalledWith({
+      startSkipAction: { garden: ACTIVE_GARDEN, actionUID: 7 },
+    });
+    expect(mocks.setActiveTab).toHaveBeenCalledWith("Media");
+    expect(result.current.start.skipped).toBe(true);
+  });
+
+  it.each([
+    [
+      "while the member's promises are read",
+      { data: undefined, isPending: true, isError: false, fetchStatus: "fetching" as const },
+    ],
+    [
+      "when the member owes a promise here",
+      {
+        data: [promiseOwed([], true)],
+        isPending: false,
+        isError: false,
+        fetchStatus: "idle" as const,
+      },
+    ],
+    [
+      "when the promises could not be read",
+      { data: undefined, isPending: false, isError: true, fetchStatus: "idle" as const },
+    ],
+  ])("keeps Start %s, even with one action", (_case, read) => {
+    solarGarden();
+    mocks.actions = [liveAction(7, Domain.SOLAR)];
+    mocks.workable = read;
+    const { result } = enterFlow();
+
+    expect(mocks.setActiveTab).not.toHaveBeenCalled();
+    expect(mocks.setDraftAction).not.toHaveBeenCalled();
+    expect(result.current.start.skipped).toBe(false);
+  });
+
+  it("opens a promise's page link on Media once confirmed, in the link's own garden", () => {
+    mocks.gardens = memberGardens;
+    mocks.activeGarden = { status: "ready", gardenId: ACTIVE_GARDEN };
+    // The link's garden comes first in the precedence, so the flow holds it.
+    mocks.gardenAddress = commitmentLinkIntent.garden;
+    mocks.choices = [commitmentLinkIntent];
+    mocks.actions = [liveAction(1, null), liveAction(2, null)];
+    const { result } = enterFlow({ search: linkSearch });
+
+    expect(mocks.setActiveTab).toHaveBeenCalledWith("Media");
+    expect(mocks.setFlowState).not.toHaveBeenCalledWith(
+      expect.objectContaining({ startSkipAction: expect.anything() })
+    );
+    expect(result.current.start.skipped).toBe(true);
+  });
+
+  it.each([
+    ["gives the flow's pick back", null, true],
+    ["keeps a draft's action", "draft-1", false],
+  ])("%s when the work's garden changes", (_case, draft, givenBack) => {
+    mocks.gardens = memberGardens;
+    mocks.activeGarden = { status: "ready", gardenId: ACTIVE_GARDEN };
+    mocks.gardenAddress = draft ? DRAFT_GARDEN : ACTIVE_GARDEN;
+    mocks.activeDraftId = draft;
+    mocks.startSkipAction = { garden: DRAFT_GARDEN, actionUID: 7 };
+    mocks.actionUID = 7;
+    mocks.activeTab = "Media";
+    mocks.actions = [liveAction(7, null), liveAction(8, null)];
+    enterFlow();
+
+    if (givenBack) {
+      expect(mocks.setFlowState).toHaveBeenCalledWith({ startSkipAction: null });
+      expect(mocks.setDraftAction).toHaveBeenCalledWith(null);
+      expect(mocks.setActiveTab).toHaveBeenCalledWith("Intro");
+    } else {
+      expect(mocks.setDraftAction).not.toHaveBeenCalled();
+      expect(mocks.setActiveTab).not.toHaveBeenCalled();
+    }
+  });
+
+  it("moves on once an action or a promise's action is chosen, and opens evidence for its promise", async () => {
+    solarGarden();
+    mocks.actions = [liveAction(7, Domain.SOLAR), liveAction(9, Domain.SOLAR)];
+    const choice = { ...commitmentLinkIntent, garden: ACTIVE_GARDEN, actionUID: 9 };
+    mocks.workable = {
+      data: [promiseOwed([choice], true)],
+      isPending: false,
+      isError: false,
+      fetchStatus: "idle",
+    };
+    const view = renderFlow(ExitWrapper);
+    expect(view.result.current.start.promises.map((each) => each.commitmentId)).toEqual([9n]);
+
+    await act(async () => view.result.current.start.chooseAction(7));
+    expect(mocks.setDraftAction).toHaveBeenLastCalledWith(7);
+    expect(mocks.setActiveTab).toHaveBeenLastCalledWith("Media");
+
+    mocks.setActiveTab.mockClear();
+    await act(async () => view.result.current.start.choosePromiseAction(choice));
+    expect(mocks.setDraftGarden).toHaveBeenLastCalledWith(ACTIVE_GARDEN);
+    expect(mocks.setDraftAction).toHaveBeenLastCalledWith(9);
+    expect(mocks.setActiveTab).toHaveBeenLastCalledWith("Media");
+
+    await act(async () =>
+      view.result.current.start.addEvidence(view.result.current.start.promises[0])
+    );
+    expect(exitPath).toBe(`/home/${ACTIVE_GARDEN}/commitments/9/proof`);
   });
 });
