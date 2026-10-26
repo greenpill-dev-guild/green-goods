@@ -51,6 +51,9 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "intake.paused":
     "Os relatos estão pausados para manutenção. Sua mensagem foi guardada e vou responder quando voltarem. Suporte: {support}",
   "media.photoAdded": "Foto adicionada ao seu relato.",
+  "media.photosAdded": "{count} fotos adicionadas ao seu relato.",
+  "media.stillAdding":
+    "Ainda estou adicionando seus arquivos. Vou mostrar o resumo assim que estiverem prontos.",
   "media.fileRead": "Li seu arquivo e adicionei ao seu relato o que consegui.",
   "media.fileKept": "Salvei seu arquivo com privacidade. Vou perguntar os detalhes.",
   "media.tooLarge":
@@ -143,6 +146,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.askEvidence": "Envie {count} foto(s) do trabalho.",
   "report.evidenceLimit":
     "Esta atividade aceita até {maximum} fotos, então não adicionei a última.",
+  "report.photosKept":
+    "Esta atividade aceita até {maximum} fotos, então seu relato mantém as primeiras {maximum} que você enviou.",
   "report.photoAdded": "Foto recebida ({have} até agora).",
   "report.conflict":
     "Você me disse “{current}” para {field}, mas “{proposed}” foi sugerido a partir de {source}. Qual está certo?",

@@ -1,4 +1,6 @@
 import { deflateRawSync } from "node:zlib";
+import sharp from "sharp";
+import type { DraftRecord } from "../../../services/reporting/drafts";
 import {
   type AudioTools,
   type NormalizedAudio,
@@ -6,7 +8,32 @@ import {
 } from "../../../services/reporting/media/audio";
 import type { DocumentTools, PdfInspection } from "../../../services/reporting/media/documents";
 import { LocalToolError } from "../../../services/reporting/media/subprocess";
+import type { ReportingCore } from "../../../services/reporting/runtime";
 import type { InboundMediaFetcher } from "../../../services/reporting/transport";
+
+/** A small JPEG of one flat shade: photos of different shades stay different once sanitized. */
+export async function shadedPhoto(shade: number): Promise<Uint8Array> {
+  const background = { r: (shade * 37) % 256, g: 106, b: 79 };
+  return new Uint8Array(
+    await sharp({ create: { width: 32, height: 24, channels: 3, background } })
+      .jpeg()
+      .toBuffer()
+  );
+}
+
+/** The provider file behind each photo in a draft's evidence, in the report's order. */
+export function evidenceFiles(core: ReportingCore, draft: DraftRecord | null): string[] {
+  return (draft?.content.evidence ?? []).map(({ assetId }) => {
+    const row = core.db
+      .query("SELECT provider_ref_ciphertext FROM media_assets WHERE id = $id")
+      .get({ id: assetId }) as { provider_ref_ciphertext: string };
+    const reference = core.keyring.open(
+      row.provider_ref_ciphertext,
+      `media_assets.provider_ref:${assetId}`
+    );
+    return (JSON.parse(reference) as { providerMediaId: string }).providerMediaId;
+  });
+}
 
 /**
  * Media doubles: provider downloads served from memory, document and audio tools with scripted

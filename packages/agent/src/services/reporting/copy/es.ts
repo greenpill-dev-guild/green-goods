@@ -51,6 +51,9 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "intake.paused":
     "Los reportes están en pausa por mantenimiento. Tu mensaje está guardado y responderé cuando se reanuden. Soporte: {support}",
   "media.photoAdded": "Foto agregada a tu reporte.",
+  "media.photosAdded": "{count} fotos agregadas a tu reporte.",
+  "media.stillAdding":
+    "Todavía estoy agregando tus archivos. Te mostraré el resumen en cuanto estén listos.",
   "media.fileRead": "Leí tu archivo y agregué a tu reporte lo que pude.",
   "media.fileKept": "Guardé tu archivo en privado. Te preguntaré los detalles.",
   "media.tooLarge":
@@ -140,6 +143,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.askEvidence": "Envía {count} foto(s) del trabajo.",
   "report.evidenceLimit":
     "Esta actividad acepta hasta {maximum} fotos, así que no agregué la última.",
+  "report.photosKept":
+    "Esta actividad acepta hasta {maximum} fotos, así que tu reporte conserva las primeras {maximum} que enviaste.",
   "report.photoAdded": "Foto recibida ({have} hasta ahora).",
   "report.conflict":
     "Me dijiste «{current}» para {field}, pero se sugirió «{proposed}» a partir de {source}. ¿Cuál es correcto?",
