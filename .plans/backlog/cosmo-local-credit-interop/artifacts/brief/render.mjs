@@ -97,9 +97,13 @@ const promoted = [];
 try {
   for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); console.log(join(out, name)); }
 } catch (error) {
-  for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch {} }
-  for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch {} }
-  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  // A restore that fails keeps the backup folder and names it, so the last good output is never lost.
+  const unrestored = [];
+  for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch { unrestored.push(name); } }
+  for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch { unrestored.push(name); } }
+  rmSync(staging, { recursive: true, force: true });
+  if (unrestored.length) throw new Error(`${error.message}; the rollback could not restore ${[...new Set(unrestored)].join(", ")}, so the backup is kept at ${backup}`);
+  rmSync(backup, { recursive: true, force: true });
   throw new Error(`${error.message}; the previous outputs were put back`);
 }
 for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });

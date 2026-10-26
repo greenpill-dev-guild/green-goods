@@ -932,9 +932,13 @@ try {
   for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); }
   renameSync(stagedHtml, htmlPath);
 } catch (error) {
-  for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch {} }
-  for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch {} }
-  for (const dir of [staging, backup, lock]) rmSync(dir, { recursive: true, force: true });
+  // A restore that fails keeps the backup folder and names it, so the last good screens are never lost.
+  const unrestored = [];
+  for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch { unrestored.push(name); } }
+  for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch { unrestored.push(name); } }
+  for (const dir of [staging, lock]) rmSync(dir, { recursive: true, force: true });
+  if (unrestored.length) throw new Error(`${error.message}; the rollback could not restore ${[...new Set(unrestored)].join(", ")}, so the backup is kept at ${backup}; index.html is untouched`);
+  rmSync(backup, { recursive: true, force: true });
   throw new Error(`${error.message}; the previous screens were put back and index.html is untouched`);
 }
 for (const dir of [staging, backup, lock]) rmSync(dir, { recursive: true, force: true });

@@ -106,24 +106,37 @@ const backup = mkdtempSync(join(out, ".previous-"));
 const previous = readdirSync(out).filter(isRecord);
 // The current set moves aside whole before anything is installed; a move that fails halfway moves
 // back what had gone and installs nothing.
+// A move back that fails keeps the backup folder and names it, so the only copy of a photo is never
+// deleted; the raw proof in particular may not be available again.
+const restore = () => {
+  const unrestored = [];
+  for (const name of readdirSync(backup)) { try { renameSync(join(backup, name), join(out, name)); } catch { unrestored.push(name); } }
+  return unrestored;
+};
 try {
   for (const name of previous) renameSync(join(out, name), join(backup, name));
 } catch (error) {
-  for (const name of readdirSync(backup)) { try { renameSync(join(backup, name), join(out, name)); } catch {} }
-  for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });
+  const unrestored = restore();
+  rmSync(temp, { recursive: true, force: true });
+  if (unrestored.length) throw new Error(`${error.message}; the rollback could not move ${unrestored.join(", ")} back, so the backup is kept at ${backup}`);
+  rmSync(backup, { recursive: true, force: true });
   throw new Error(`${error.message}; the photo set is as it was`);
 }
 // Only the files that were installed are rolled back, each on its own, so one that cannot be
-// removed never stops the rest from being restored.
+// removed never stops the rest from being restored; a name goes on the list before the write that
+// creates it, so a file the write left half-written is rolled back too.
 const installed = [];
 try {
-  for (const name of readdirSync(temp)) { renameSync(join(temp, name), join(out, name)); installed.push(name); }
-  writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
+  for (const name of readdirSync(temp)) { installed.push(name); renameSync(join(temp, name), join(out, name)); }
   installed.push("record-photos.tsv");
+  writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
 } catch (error) {
-  for (const name of installed) { try { rmSync(join(out, name), { force: true }); } catch {} }
-  for (const name of readdirSync(backup)) { try { renameSync(join(backup, name), join(out, name)); } catch {} }
-  for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });
+  const unrestored = [];
+  for (const name of installed) { try { rmSync(join(out, name), { force: true }); } catch { unrestored.push(name); } }
+  unrestored.push(...restore());
+  rmSync(temp, { recursive: true, force: true });
+  if (unrestored.length) throw new Error(`${error.message}; the rollback could not restore ${[...new Set(unrestored)].join(", ")}, so the backup is kept at ${backup}`);
+  rmSync(backup, { recursive: true, force: true });
   throw new Error(`${error.message}; the previous photo set was put back`);
 }
 for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });

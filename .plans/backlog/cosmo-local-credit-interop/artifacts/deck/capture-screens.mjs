@@ -86,12 +86,15 @@ try {
   try {
     for (const s of shots) { renameSync(join(staging, s.file), join(out, s.file)); promoted.push(s.file); console.log(join(out, s.file)); }
   } catch (error) {
-    for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch {} }
-    for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch {} }
-    throw new Error(`${error.message}; the previous pair was put back`);
-  } finally {
+    // A restore that fails keeps the backup folder and names it, so the last good pair is never lost.
+    const unrestored = [];
+    for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch { unrestored.push(name); } }
+    for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch { unrestored.push(name); } }
+    if (unrestored.length) throw new Error(`${error.message}; the rollback could not restore ${[...new Set(unrestored)].join(", ")}, so the backup is kept at ${backup}`);
     rmSync(backup, { recursive: true, force: true });
+    throw new Error(`${error.message}; the previous pair was put back`);
   }
+  rmSync(backup, { recursive: true, force: true });
 } finally {
   rmSync(staging, { recursive: true, force: true });
   await browser.close();
