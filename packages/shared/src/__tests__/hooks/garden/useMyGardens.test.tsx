@@ -1,7 +1,8 @@
 /**
  * useMyGardens tests: the account's gardens read from the gardens list, with loaded, error and
  * stale flags that keep "could not read" apart from "none", an open join counted until the
- * roster shows it, and a join request waiting for a steward counted for nothing.
+ * roster shows it, and a join request waiting for a steward counted for nothing and forgotten
+ * once the roster lists the account.
  */
 
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,6 +13,10 @@ import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { gardensKeys } from "../../../config/query-keys/garden";
 import { gardenJoinRequestKeys } from "../../../config/query-keys/garden-join-requests";
 import { useMyGardens } from "../../../hooks/garden/useMyGardens";
+import {
+  awaitingJoinRequestScope,
+  useAwaitingJoinRequestsStore,
+} from "../../../stores/useAwaitingJoinRequestsStore";
 import type { Garden } from "../../../types/domain";
 import { createMockGarden } from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
@@ -62,6 +67,7 @@ function savePendingJoins(records: Record<string, { address: string; timestamp: 
 beforeEach(() => {
   client = createTestQueryClient();
   localStorage.clear();
+  useAwaitingJoinRequestsStore.setState({ requestsByScope: {} });
   getGardens.mockReset();
 });
 
@@ -129,6 +135,34 @@ describe("useMyGardens", () => {
       roles: ["steward"],
       pendingJoin: false,
     });
+  });
+
+  // The device keeps a sent join request so Awaiting review survives a relaunch; a roster that
+  // lists the account means a steward answered it, in this scope only.
+  it("forgets a join request once the roster lists the account", async () => {
+    const scope = awaitingJoinRequestScope(DEFAULT_CHAIN_ID, ACCOUNT)!;
+    const otherScope = awaitingJoinRequestScope(DEFAULT_CHAIN_ID, OTHER)!;
+    const waiting = {
+      state: "pending" as const,
+      expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+    };
+    const { noteRequest } = useAwaitingJoinRequestsStore.getState();
+    noteRequest(scope, stewarded.id, waiting, Date.now());
+    noteRequest(scope, requested.id, waiting, Date.now());
+    noteRequest(otherScope, stewarded.id, waiting, Date.now());
+    getGardens.mockResolvedValue([stewarded, requested]);
+
+    const { result } = renderMyGardens();
+
+    await waitFor(() =>
+      expect(Object.keys(useAwaitingJoinRequestsStore.getState().requestsByScope[scope])).toEqual([
+        requested.id.toLowerCase(),
+      ])
+    );
+    expect(
+      Object.keys(useAwaitingJoinRequestsStore.getState().requestsByScope[otherScope])
+    ).toEqual([stewarded.id.toLowerCase()]);
+    expect(result.current.gardens.map(({ garden }) => garden.id)).toEqual([stewarded.id]);
   });
 
   it("keeps the last good list, flagged stale, when a refresh fails", async () => {

@@ -1,28 +1,23 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { DraftStatus } from "./DraftStatus";
-import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
-import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
-import type { Address } from "@green-goods/shared/types/domain";
-import { RiErrorWarningLine, RiHammerFill, RiRefreshLine } from "@remixicon/react";
-import React, { useState } from "react";
-import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
 import { MediaCardSkeleton } from "@green-goods/shared/components/Cards/MediaCard";
-import { FormInfo } from "@/components/Cards";
-import { FormProgress } from "@/components/Communication";
-import { PinnedPromiseCard } from "@/components/Features/Commitments";
-import { DraftSheet } from "@/components/Sheets";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
-  FlowBar,
-  FlowBarNote,
-  FlowForward,
-  MediaTools,
-  WorkViewSkeleton,
-} from "@/components/Features/Work";
-import { TopNav } from "@/components/Navigation";
+  type SubmissionStage,
+  useSubmissionFlowController,
+} from "@green-goods/shared/hooks/client-ui/submission/useSubmissionFlowController";
+import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
+import type { Address } from "@green-goods/shared/types/domain";
+import { RiErrorWarningLine, RiHammerFill, RiRefreshLine } from "@remixicon/react";
+import type React from "react";
+import type { ReactNode } from "react";
+import { useIntl } from "react-intl";
+import { FormInfo } from "@/components/Cards";
+import { FlowBarNote, SubmissionFlow, WorkViewSkeleton } from "@/components/Features/Work";
+import { DraftSheet } from "@/components/Sheets";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { WorkDetails } from "./Details";
+import { DraftStatus } from "./DraftStatus";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
@@ -73,6 +68,11 @@ const IntroSkeleton: React.FC = () => {
   );
 };
 
+/**
+ * Logging work: the one submission flow's work kind (DL-131). Start, Media, Details and Review
+ * on the shared shell, with the work kind's pieces at each stage and its own queue path, the
+ * Work send and its dependent link to the promise, unchanged.
+ */
 const Work: React.FC = () => {
   const intl = useIntl();
   const controller = useWorkSubmissionFlowController({
@@ -80,22 +80,19 @@ const Work: React.FC = () => {
     profileRoute: APP_ROUTES.profile,
     trackMediaJourneyEvent: trackControllerMediaEvent,
   });
+  const flow = useSubmissionFlowController({ kind: "work", controller });
   const {
     actionUID,
     actions,
-    activeTab,
     audioNotes,
     authMode,
     brokenMediaIds,
     cameraClickRef,
-    canProceed,
-    changeTab,
     control,
     detailsConfig,
     detailInputs,
     draft,
     ensureWorkSubmissionJourneyId,
-    exit,
     feedback,
     gardenAddress,
     gardens,
@@ -105,7 +102,6 @@ const Work: React.FC = () => {
     isJoiningCommunityGarden,
     isLoading,
     isRecording,
-    isWalletRequestExpired,
     joinableCommunityGarden,
     joinCommunityGarden,
     linkIntent,
@@ -146,9 +142,7 @@ const Work: React.FC = () => {
     showSkeleton,
     submissionCompleted,
     submissionGardenSettled,
-    submit,
     timeSpentMinutes,
-    toggleAudioRecording,
     values,
     workSubmissionJourneyId,
   } = controller;
@@ -170,78 +164,13 @@ const Work: React.FC = () => {
     actionTitle: actions.find((action) => action.id === `${DEFAULT_CHAIN_ID}-${choice.actionUID}`)
       ?.title,
   }));
-  // Once a promise is chosen at Start, every later step names it after its
-  // heading (D16, O9); the card opens the promise, which can unlink the work.
-  const [promiseOpen, setPromiseOpen] = useState(false);
-  const pinned = linkIntent ? (
-    <PinnedPromiseCard
-      kind="work"
-      title={linkIntent.commitmentTitle}
-      direction={linkIntent.direction}
-      onOpen={() => setPromiseOpen(true)}
-    />
-  ) : null;
 
-  const currentTab = {
-    [WorkTab.Intro]: {
-      primary: () => changeTab(WorkTab.Media),
-      primaryLabel: intl.formatMessage({
-        id: "app.garden.submit.tab.intro.label",
-        defaultMessage: "Start Gardening",
-      }),
-      customSecondary: null,
-      backButton: exit,
-    },
-    [WorkTab.Media]: {
-      primary: () => changeTab(WorkTab.Details),
-      primaryLabel: intl.formatMessage({
-        id: "app.garden.submit.tab.media.label",
-        defaultMessage: "Details",
-      }),
-      customSecondary: (
-        <MediaTools
-          onGallery={() => {
-            if (mediaClickRef.current) mediaClickRef.current();
-            else document.getElementById("work-media-upload")?.click();
-          }}
-          onCamera={() => {
-            if (cameraClickRef.current) cameraClickRef.current();
-            else document.getElementById("work-media-camera")?.click();
-          }}
-          onToggleRecording={toggleAudioRecording}
-          isRecording={isRecording}
-        />
-      ),
-      backButton: () => changeTab(WorkTab.Intro),
-    },
-    [WorkTab.Details]: {
-      primary: () => changeTab(WorkTab.Review),
-      primaryLabel: intl.formatMessage({
-        id: "app.garden.submit.tab.details.label",
-        defaultMessage: "Review Work",
-      }),
-      customSecondary: null,
-      backButton: () => changeTab(WorkTab.Media),
-    },
-    [WorkTab.Review]: {
-      primary: submit,
-      primaryLabel: isWalletRequestExpired
-        ? intl.formatMessage({
-            id: "app.garden.submit.tab.review.retryLabel",
-            defaultMessage: "Submit Again",
-          })
-        : intl.formatMessage({
-            id: "app.garden.submit.tab.review.label",
-            defaultMessage: "Upload Work",
-          }),
-      customSecondary: null,
-      backButton: () => changeTab(WorkTab.Details),
-    },
-  }[activeTab];
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case WorkTab.Intro:
+  // The work kind's piece at each stage. Once a promise is chosen at Start, every later step
+  // names it after its heading (D16, O9): the shell hands the pinned card in, and its sheet
+  // can unlink the work.
+  const renderStage = (stage: SubmissionStage, pinned: ReactNode) => {
+    switch (stage) {
+      case "start":
         return showSkeleton ? (
           <IntroSkeleton />
         ) : (
@@ -288,7 +217,7 @@ const Work: React.FC = () => {
             }}
           />
         );
-      case WorkTab.Media:
+      case "media":
         return (
           <WorkMedia
             config={mediaConfig}
@@ -314,7 +243,7 @@ const Work: React.FC = () => {
             pinned={pinned}
           />
         );
-      case WorkTab.Details:
+      case "details":
         return (
           <WorkDetails
             pinned={pinned}
@@ -325,7 +254,7 @@ const Work: React.FC = () => {
             setValue={setValue}
           />
         );
-      case WorkTab.Review:
+      case "review":
         return showSkeleton ? (
           <div className="padded">
             <WorkViewSkeleton showMedia showActions={false} numDetails={4} />
@@ -355,11 +284,11 @@ const Work: React.FC = () => {
     <>
       {linkIntent ? (
         <WorkForSheet
-          open={promiseOpen}
-          onClose={() => setPromiseOpen(false)}
+          open={flow.promise.open}
+          onClose={flow.promise.hide}
           intent={linkIntent}
           onUnlink={() => {
-            setPromiseOpen(false);
+            flow.promise.hide();
             clearLinkIntent();
           }}
         />
@@ -373,111 +302,83 @@ const Work: React.FC = () => {
         onManage={draft.manage}
         imageCount={images.length}
       />
-      <TopNav onBackClick={currentTab.backButton} overlay>
-        <FormProgress
-          currentStep={
-            submissionCompleted && controller.submissionOutcome?.kind !== "awaiting-confirmation"
-              ? 5
-              : Object.values(WorkTab).indexOf(activeTab) + 1
-          }
-          steps={[
-            intl.formatMessage({ id: "app.work.step.start" }),
-            intl.formatMessage({ id: "app.work.step.media" }),
-            intl.formatMessage({ id: "app.work.step.details" }),
-            intl.formatMessage({ id: "app.work.step.review" }),
-          ]}
-        />
-      </TopNav>
-      <form
-        id="work-form"
-        className="relative py-6 pt-[var(--app-top-bar-height)] flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
-      >
-        <div
-          className={
-            isSchedulingDependentLink || hasPendingLinkRecovery
-              ? "padded relative flex flex-col gap-4 flex-1 pb-[calc(14rem+var(--safe-area-bottom))]"
-              : "padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+var(--safe-area-bottom))]"
-          }
-        >
-          {namedSubmissionGarden ? <SubmissionGardenLine garden={namedSubmissionGarden} /> : null}
-          {controller.submissionOutcome?.kind === "awaiting-confirmation" && (
-            <p role="status">{intl.formatMessage({ id: "app.work.awaitingConfirmation" })}</p>
-          )}
-          <DraftStatus draft={draft} submissionCompleted={submissionCompleted} />
-          {renderTabContent()}
-        </div>
-        <FlowBar
-          status={
-            <>
-              {queueStatusMessage ? <FlowBarNote>{queueStatusMessage}</FlowBarNote> : null}
-              {isQueueingDependentLink ? (
-                <FlowBarNote>
-                  {intl.formatMessage({
-                    id: "app.garden.commitment.linkScheduling",
-                    defaultMessage: "Work submitted. Queueing its link to the promise…",
-                  })}
-                </FlowBarNote>
-              ) : null}
-              {linkSchedulingSucceeded ? (
-                <FlowBarNote tone="success">
+      <SubmissionFlow
+        flow={flow}
+        formId="work-form"
+        tallBar={isSchedulingDependentLink || hasPendingLinkRecovery}
+        lead={
+          <>
+            {namedSubmissionGarden ? <SubmissionGardenLine garden={namedSubmissionGarden} /> : null}
+            {controller.submissionOutcome?.kind === "awaiting-confirmation" && (
+              <p role="status">{intl.formatMessage({ id: "app.work.awaitingConfirmation" })}</p>
+            )}
+            <DraftStatus draft={draft} submissionCompleted={submissionCompleted} />
+          </>
+        }
+        barStatus={
+          <>
+            {queueStatusMessage ? <FlowBarNote>{queueStatusMessage}</FlowBarNote> : null}
+            {isQueueingDependentLink ? (
+              <FlowBarNote>
+                {intl.formatMessage({
+                  id: "app.garden.commitment.linkScheduling",
+                  defaultMessage: "Work submitted. Queueing its link to the promise…",
+                })}
+              </FlowBarNote>
+            ) : null}
+            {linkSchedulingSucceeded ? (
+              <FlowBarNote tone="success">
+                {linkSchedulingWorkSent
+                  ? intl.formatMessage({
+                      id: "app.garden.commitment.linkScheduled",
+                      defaultMessage: "Work submitted. Its link to the promise is queued.",
+                    })
+                  : intl.formatMessage({
+                      id: "app.garden.commitment.linkSavedQueued",
+                      defaultMessage:
+                        "Work saved on this device. Its link to the promise is queued.",
+                    })}
+              </FlowBarNote>
+            ) : null}
+            {hasPendingLinkRecovery && linkSchedulingError ? (
+              <div
+                className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter p-3 text-sm text-warning-dark"
+                role="alert"
+              >
+                <span className="flex items-center gap-2">
+                  <RiErrorWarningLine className="h-4 w-4 shrink-0" aria-hidden="true" />
                   {linkSchedulingWorkSent
                     ? intl.formatMessage({
-                        id: "app.garden.commitment.linkScheduled",
-                        defaultMessage: "Work submitted. Its link to the promise is queued.",
+                        id: "app.garden.commitment.linkSchedulingError",
+                        defaultMessage:
+                          "Your work was submitted, but its link to the promise could not be queued.",
                       })
                     : intl.formatMessage({
-                        id: "app.garden.commitment.linkSavedQueued",
+                        id: "app.garden.commitment.linkSavedQueueError",
                         defaultMessage:
-                          "Work saved on this device. Its link to the promise is queued.",
+                          "Your work is saved on this device, but its link to the promise could not be queued.",
                       })}
-                </FlowBarNote>
-              ) : null}
-              {hasPendingLinkRecovery && linkSchedulingError ? (
-                <div
-                  className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter p-3 text-sm text-warning-dark"
-                  role="alert"
+                </span>
+                <Button
+                  type="button"
+                  emphasis="tertiary"
+                  size="compact"
+                  onClick={() => void retryLinkOnly()}
+                  loading={isSchedulingDependentLink}
+                  leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+                  className="shrink-0"
                 >
-                  <span className="flex items-center gap-2">
-                    <RiErrorWarningLine className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    {linkSchedulingWorkSent
-                      ? intl.formatMessage({
-                          id: "app.garden.commitment.linkSchedulingError",
-                          defaultMessage:
-                            "Your work was submitted, but its link to the promise could not be queued.",
-                        })
-                      : intl.formatMessage({
-                          id: "app.garden.commitment.linkSavedQueueError",
-                          defaultMessage:
-                            "Your work is saved on this device, but its link to the promise could not be queued.",
-                        })}
-                  </span>
-                  <Button
-                    type="button"
-                    emphasis="tertiary"
-                    size="compact"
-                    onClick={() => void retryLinkOnly()}
-                    loading={isSchedulingDependentLink}
-                    leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-                    className="shrink-0"
-                  >
-                    {intl.formatMessage({
-                      id: "app.garden.commitment.retryLink",
-                      defaultMessage: "Retry Link",
-                    })}
-                  </Button>
-                </div>
-              ) : null}
-            </>
-          }
-          tools={currentTab.customSecondary}
-        >
-          <FlowForward
-            label={currentTab.primaryLabel}
-            onClick={currentTab.primary}
-            disabled={!canProceed || isSchedulingDependentLink || hasPendingLinkRecovery}
-          />
-        </FlowBar>
-      </form>
+                  {intl.formatMessage({
+                    id: "app.garden.commitment.retryLink",
+                    defaultMessage: "Retry Link",
+                  })}
+                </Button>
+              </div>
+            ) : null}
+          </>
+        }
+        renderStage={renderStage}
+      />
     </>
   );
 };

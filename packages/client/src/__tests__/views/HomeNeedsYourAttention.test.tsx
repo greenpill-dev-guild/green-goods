@@ -90,17 +90,21 @@ const titleOf = (row: HTMLElement) => row.querySelector(".gg-item-row-title")?.t
 
 describe("Home Needs Your Attention", () => {
   const openCommitmentsSheet = vi.fn();
-  const realOpen = useUIStore.getState().openCommitmentsSheet;
+  const openGardenSheet = vi.fn();
+  const real = {
+    openCommitmentsSheet: useUIStore.getState().openCommitmentsSheet,
+    openGardenSheet: useUIStore.getState().openGardenSheet,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
     state.isOnline = true;
     vi.spyOn(Date, "now").mockReturnValue(NOW * 1000);
-    useUIStore.setState({ openCommitmentsSheet });
+    useUIStore.setState({ openCommitmentsSheet, openGardenSheet });
   });
 
   afterEach(() => {
-    useUIStore.setState({ openCommitmentsSheet: realOpen });
+    useUIStore.setState(real);
     vi.restoreAllMocks();
   });
 
@@ -140,14 +144,37 @@ describe("Home Needs Your Attention", () => {
     expect(takeUp.textContent).toContain("Outage log");
     expect(confirm.textContent).toContain("Solar install help");
 
+    // Work to review opens the garden's Work as a sheet over Home (DL-128), pending first.
     fireEvent.click(within(review).getByRole("button"));
-    expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}`, { viewTransition: true });
+    expect(openGardenSheet).toHaveBeenCalledWith("work");
+    expect(mockNavigate).not.toHaveBeenCalled();
     fireEvent.click(within(takeUp).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/4`, {
       viewTransition: true,
     });
     fireEvent.click(within(confirm).getByRole("button"));
     expect(openCommitmentsSheet).toHaveBeenCalledWith({ tab: "to-confirm" });
+  });
+
+  it("hands the Work sheet the row that opened it: a duty row takes focus as it is pressed", () => {
+    renderSection(
+      duties({
+        duties: [{ kind: "review", count: 1, works: [work("0x01", "Workshop Delivered", NOW)] }],
+      })
+    );
+    const row = within(rows()[0]).getByRole("button");
+    let focusedAtOpen: Element | null = null;
+    openGardenSheet.mockImplementationOnce(() => {
+      focusedAtOpen = document.activeElement;
+    });
+
+    // A tap presses and clicks a button, and in Safari it focuses nothing; the sheet hands
+    // focus back to whatever held it as it opened.
+    fireEvent.pointerDown(row);
+    fireEvent.click(row);
+
+    expect(openGardenSheet).toHaveBeenCalledWith("work");
+    expect(focusedAtOpen).toBe(row);
   });
 
   it("reads the titles it names and no more, and names an incomplete review queue without a count", () => {

@@ -1,5 +1,6 @@
 export {
   DEFAULT_GARDEN_FILTERS,
+  isGardenListedFor,
   parseGardenFilters,
   filterGardens as useFilteredGardens,
   type GardenFilterScope,

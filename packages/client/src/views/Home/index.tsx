@@ -36,13 +36,16 @@ import {
   hasArrivalPassed,
   markArrivalPassed,
 } from "./arrivalToast";
-import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
 import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
+import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
+import type { GardenVisitState } from "./Garden";
 import { GardenSwitcherSheet } from "./GardenSwitcher";
 import { HomeHeader } from "./HomeHeader";
 import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./HomeStates";
 import { awaitingGardens, switcherRows } from "./homeGardens";
 import { HomeJournal } from "./Journal";
+import { NotificationsIcon } from "./Notifications/Icon";
+import type { NotificationsLauncherProps } from "./Notifications/Launcher";
 import { WalletSheetIcon } from "./WalletSheet/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
@@ -59,30 +62,49 @@ const CommitmentsSheetLauncher = lazy(
       // hide it rather than failing the whole Home route.
       .catch(() => ({ default: () => null }))
 );
+const NotificationsLauncher = lazy(
+  (): Promise<{ default: ComponentType<NotificationsLauncherProps> }> =>
+    import("./Notifications/Launcher")
+      .then(({ NotificationsLauncher }) => ({ default: NotificationsLauncher }))
+      // Ambient adjunct: without its chunk the bell stays, with nothing counted.
+      .catch(() => ({
+        default: ({ onOpen }: NotificationsLauncherProps) => <NotificationsIcon onClick={onOpen} />,
+      }))
+);
 const WalletSheet = lazy(() =>
   import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
 );
 
-function DeferredCommitmentsSheetLauncher({ onClick }: { onClick: () => void }) {
-  const [loadCounts, setLoadCounts] = useState(false);
+/**
+ * Mounts a launcher's reads at an idle moment, so Home's first paint waits on none of them. The
+ * placeholder is the same icon with nothing counted, so nothing moves when the reads land. A tap
+ * on the placeholder before that moment asks for the launcher's sheet, so `requested` mounts the
+ * launcher at once instead of leaving the tap to a later idle period.
+ */
+function DeferredLauncher({
+  placeholder,
+  requested = false,
+  children,
+}: {
+  placeholder: ReactNode;
+  requested?: boolean;
+  children: ReactNode;
+}) {
+  const [loadReads, setLoadReads] = useState(false);
 
   useEffect(() => {
     const idleCallback =
       window.requestIdleCallback ??
       ((callback: IdleRequestCallback) => window.setTimeout(callback, 1_000));
-    const handle = idleCallback(() => setLoadCounts(true));
+    const handle = idleCallback(() => setLoadReads(true));
     return () => {
       if (window.cancelIdleCallback) window.cancelIdleCallback(handle);
       else window.clearTimeout(handle);
     };
   }, []);
 
-  if (!loadCounts) return <CommitmentsSheetIcon onClick={onClick} actCount={0} />;
-  return (
-    <Suspense fallback={<CommitmentsSheetIcon onClick={onClick} actCount={0} />}>
-      <CommitmentsSheetLauncher onClick={onClick} />
-    </Suspense>
-  );
+  if (!loadReads && !requested) return <>{placeholder}</>;
+  return <Suspense fallback={placeholder}>{children}</Suspense>;
 }
 
 type SwitcherMode = "switch" | "choose";
@@ -97,7 +119,8 @@ type SwitcherMode = "switch" | "choose";
 const Home: React.FC = () => {
   const routerNavigate = useNavigate();
   const navigate = useCallback(
-    (path: string) => routerNavigate(path, { viewTransition: true }),
+    (path: string, state?: GardenVisitState) =>
+      routerNavigate(path, { viewTransition: true, state }),
     [routerNavigate]
   );
   const location = useLocation();
@@ -141,6 +164,7 @@ const Home: React.FC = () => {
   const isCommitmentsSheetOpen = useUIStore((s) => s.isCommitmentsSheetOpen);
   const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
   const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
+  const closeGardenSheet = useUIStore((s) => s.closeGardenSheet);
 
   // The switcher keeps its mode while it slides out, so its title never flips mid-exit.
   const [switcher, setSwitcher] = useState<{ open: boolean; mode: SwitcherMode }>({
@@ -149,6 +173,10 @@ const Home: React.FC = () => {
   });
   const openSwitcher = useCallback(() => setSwitcher({ open: true, mode: "switch" }), []);
   const closeSwitcher = useCallback(() => setSwitcher((s) => ({ ...s, open: false })), []);
+  // The bell's sheet (DL-130) is Home's drawer like the others: it closes with them.
+  const [isNotificationsOpen, setNotificationsOpen] = useState(false);
+  const openNotifications = useCallback(() => setNotificationsOpen(true), []);
+  const closeNotifications = useCallback(() => setNotificationsOpen(false), []);
 
   // Each sheet stays mounted until its exit has played; unmounting it on close
   // removed it before the slide-out could run.
@@ -175,18 +203,22 @@ const Home: React.FC = () => {
   const hasShownArrivalRef = useRef(false);
   const { set: scheduleArrival, clear: cancelArrival } = useTimeout();
 
-  // Close home drawers when navigating away
+  // Close home drawers when navigating away. The journal's section sheet (DL-128) closes with
+  // them: a work opened from the Work sheet returns to Home itself, not to the sheet.
   useEffect(() => {
     if (!isHomeRoute) {
       closeWalletSheet();
       closeSwitcher();
+      closeNotifications();
+      closeGardenSheet();
     }
-  }, [closeSwitcher, closeWalletSheet, isHomeRoute]);
+  }, [closeGardenSheet, closeNotifications, closeSwitcher, closeWalletSheet, isHomeRoute]);
 
+  // Home names itself as where the visit came from, so the garden's Back steps back here.
   const visitGarden = useCallback(
     (id: string) => {
       closeSwitcher();
-      navigate(`${APP_ROUTES.home}/${id}`);
+      navigate(`${APP_ROUTES.home}/${id}`, { returnTo: APP_ROUTES.home });
     },
     [closeSwitcher, navigate]
   );
@@ -217,7 +249,7 @@ const Home: React.FC = () => {
           return;
         case "startWork":
           // One garden → jump straight in; several → the switcher, so they pick.
-          if (myGardenIds.length === 1) navigate(`${APP_ROUTES.home}/${myGardenIds[0]}`);
+          if (myGardenIds.length === 1) visitGarden(myGardenIds[0]);
           else openSwitcher();
           return;
         case "openHelp":
@@ -225,7 +257,7 @@ const Home: React.FC = () => {
           return;
       }
     },
-    [myGardenIds, navigate, openSwitcher, openWorkDashboard]
+    [myGardenIds, navigate, openSwitcher, openWorkDashboard, visitGarden]
   );
 
   // A child screen (Explore, a garden) opens under Home, so Home stays mounted and a toast
@@ -352,8 +384,31 @@ const Home: React.FC = () => {
           launchers={
             <>
               <WalletSheetIcon onClick={openWalletSheet} />
-              <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
+              <DeferredLauncher
+                placeholder={<CommitmentsSheetIcon onClick={openCommitmentsSheet} actCount={0} />}
+              >
+                <CommitmentsSheetLauncher onClick={openCommitmentsSheet} />
+              </DeferredLauncher>
               <WorkDashboardIcon />
+              {/* The bell reads the active garden's events once the garden is known: a
+                  remembered one while the list loads, or the chosen one. Without a garden it
+                  keeps its place with nothing to list (DL-130). */}
+              {gardenId ? (
+                <DeferredLauncher
+                  placeholder={<NotificationsIcon onClick={openNotifications} />}
+                  requested={isNotificationsOpen}
+                >
+                  <NotificationsLauncher
+                    gardenId={gardenId}
+                    gardenName={garden?.name}
+                    open={isNotificationsOpen}
+                    onOpen={openNotifications}
+                    onClose={closeNotifications}
+                  />
+                </DeferredLauncher>
+              ) : (
+                <NotificationsIcon disabled />
+              )}
             </>
           }
         />

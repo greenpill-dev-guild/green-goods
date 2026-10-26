@@ -59,7 +59,10 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path 
 ```
 
 Replace the example with the package and test that prove your change. CI owns broad
-regression coverage; critical and release changes retain their complete local requirements.
+regression coverage; a critical Shared change also runs the selector's mandatory override (owner
+typecheck and focused suite plus consumer typechecks), a critical contracts change keeps its full
+local gate (`abi-artifacts`, `contracts-build`, `contracts-test`, `contracts-verify-fast` plus every
+consumer's suites and builds), and release changes retain their complete local gate.
 See the [validation contract](.claude/context/validation-pipeline.md) for exact gates.
 Formatting changes use `bun run format`; `bun run format --check` is read-only.
 

@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 4,
   "toolchain": {
     "bun": "1.4.2",
     "node": "22.22.1",
@@ -850,6 +850,32 @@
         "packages/client/src/views/Home/Garden/Work",
         "packages/shared/src/hooks/client-ui/work/"
       ]
+    },
+    {
+      "check": "react-patterns",
+      "intents": ["push"],
+      "note": "CI Gate runs these package-boundary and source-pattern rules on every pull request; a push runs them first, over the source and manifests they read (D16, 2026-10-26). The walk skips test directories.",
+      "excludeTests": true,
+      "exact": [
+        "packages/shared/package.json",
+        "packages/client/package.json",
+        "packages/admin/package.json",
+        "packages/agent/package.json",
+        "packages/indexer/package.json",
+        "packages/contracts/package.json",
+        "packages/extension/package.json",
+        "packages/qa/package.json",
+        "scripts/quality/check-react-patterns.js",
+        "scripts/quality/data/lint-rules-baseline.json"
+      ],
+      "prefixes": [
+        "packages/shared/src/",
+        "packages/client/src/",
+        "packages/admin/src/",
+        "packages/agent/src/",
+        "packages/indexer/src/",
+        "packages/extension/src/"
+      ]
     }
   ],
   "checks": [
@@ -1588,7 +1614,7 @@
       "risk": "Independently selectable repository verification must retain its behavior.",
       "expectedSignal": "react-patterns completes successfully",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 60,
+      "budgetSeconds": 10,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -1651,7 +1677,7 @@
     },
     {
       "id": "shared-signing-money-queue-auth",
-      "note": "Critical means signing, money, queue and auth (D1, 2026-09-28). The prefixes are critical as a whole. exact lists every other Shared source file whose code reaches a primitive in sharedMutationPrimitives. The selector also escalates any changed Shared file that reaches one, and select-validation.test.mjs fails when exact drifts from the code.",
+      "note": "Critical means signing, money, queue and auth (D1, 2026-09-28). The prefixes are critical as a whole. exact lists every other Shared source file whose code reaches a primitive in sharedMutationPrimitives. The selector also escalates any changed Shared file that reaches one, and select-validation.test.mjs fails when exact drifts from the code. checks names the complete override, which checkpoint and the strict intents apply as written. A critical push or qa run keeps the owner's typecheck and focused suite and turns each consumer suite into that consumer's source and test typecheck (D15, 2026-10-25), because CI's consumer workflows own the whole suites and production builds.",
       "prefixes": [
         "packages/shared/src/providers/Auth.tsx",
         "packages/shared/src/providers/JobQueue.tsx",
@@ -1661,6 +1687,7 @@
         "packages/shared/src/modules/work/",
         "packages/shared/src/workflows/",
         "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/client-ui/submission/",
         "packages/shared/src/hooks/work/",
         "packages/shared/src/hooks/vault/"
       ],

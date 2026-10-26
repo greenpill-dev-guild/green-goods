@@ -35,7 +35,7 @@ generated_from:
   - .claude/skills/review/SKILL.md
   - .claude/skills/ship/README.md
   - .claude/skills/ship/SKILL.md
-source_digest: "sha256:39146f0730cec8243f2afd100a603e82dd0fa05c4d72222841652f95912feacf"
+source_digest: "sha256:36e379b13947f4996f64ce5a928a4352d94d7ddcb21c7af5cc4c6c1af46ab569"
 source_of_truth:
   - .claude/skills/audit/README.md
   - .claude/skills/audit/SKILL.md
@@ -223,7 +223,7 @@ The full change review. Review hunts regressions, remaining gaps, and production
 
 ## ship {#ship}
 
-Publication without ceremony. Ship proves the changed behavior locally, runs the budgeted push gate, and lets GitHub CI own broad regression coverage; the complete local gate is reserved for releases, critical surfaces, and explicit full-local requests.
+Publication without ceremony. Ship proves the changed behavior locally, runs the budgeted push gate, and lets GitHub CI own broad regression coverage; the complete local gate is reserved for releases and explicit full-local requests, while critical surfaces run the selector's mandatory override.
 
 - **When to use it:** When your change is ready to commit, push, or open as a pull request.
 - **What you get:** Your change published with targeted local proof and a green push gate, with GitHub CI as the final check.

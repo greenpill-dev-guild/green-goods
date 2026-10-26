@@ -91,6 +91,19 @@ vi.mock("../../views/Home/WorkDashboard/Icon", () => ({
   WorkDashboardIcon: () =>
     createElement("button", { type: "button", "data-testid": "work-dashboard-icon" }, "Your Work"),
 }));
+vi.mock("../../views/Home/Notifications/Icon", () => ({
+  NotificationsIcon: ({ onClick, disabled }: { onClick?: () => void; disabled?: boolean }) =>
+    createElement("button", { type: "button", onClick, disabled }, "Notifications"),
+}));
+vi.mock("../../views/Home/Notifications/Launcher", () => ({
+  NotificationsLauncher: ({ open, onOpen }: { open: boolean; onOpen: () => void }) =>
+    createElement(
+      "div",
+      { "data-testid": "notifications-launcher" },
+      createElement("button", { type: "button", onClick: onOpen }, "Notifications"),
+      open ? createElement("div", { "data-testid": "notifications-sheet" }) : null
+    ),
+}));
 vi.mock("../../views/Home/CommitmentsSheet", () => ({ CommitmentsSheet: () => null }));
 vi.mock("../../views/Home/WalletSheet", () => ({ WalletSheet: () => null }));
 // The journal is the seam the journal steps fill; Home only mounts it.
@@ -130,8 +143,11 @@ function setActive(
 }
 
 let location = "";
+let locationState: unknown;
 function LocationProbe() {
-  location = useLocation().pathname;
+  const current = useLocation();
+  location = current.pathname;
+  locationState = current.state;
   return null;
 }
 function VisitedGarden() {
@@ -164,6 +180,8 @@ function renderHome(entry = "/home") {
 
 /** Lets a closing sheet finish its exit. */
 const finishSheetMotion = () => act(() => vi.runAllTimers());
+/** Lets the launchers Home defers to an idle moment load. */
+const passIdle = () => act(() => vi.advanceTimersByTime(1_000));
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -181,7 +199,7 @@ afterEach(() => {
 });
 
 describe("Home's header", () => {
-  it("starts with the active garden's chip in the title's place, then Wallet, Promises and Your Work", () => {
+  it("starts with the active garden's chip in the title's place, then Wallet, Promises, Your Work and the bell", () => {
     renderHome();
 
     const chip = screen.getByRole("button", { name: /TAS HUB/ });
@@ -191,17 +209,27 @@ describe("Home's header", () => {
       within(header)
         .getAllByRole("button")
         .map((button) => button.textContent)
-    ).toEqual(["TAS HUB", "Wallet", "Promises", "Your Work"]);
+    ).toEqual(["TAS HUB", "Wallet", "Promises", "Your Work", "Notifications"]);
     // Filters moved to Explore's top bar.
     expect(screen.queryByRole("button", { name: "Filters" })).not.toBeInTheDocument();
   });
 
-  it("names Home in the chip's place when the member has no garden", () => {
+  it("names Home in the chip's place when the member has no garden, and the bell has nothing to list", () => {
     setActive("none");
     renderHome();
 
     expect(screen.getByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
     expect(document.querySelector("[data-component='GardenChip']")).toBeNull();
+    // The other launchers keep their places: the bell stays, with no garden's events to show.
+    expect(screen.getByRole("button", { name: "Notifications" })).toBeDisabled();
+  });
+
+  it("mounts the bell's read with a remembered garden while the account's gardens still load", async () => {
+    setActive("loading", [], TAS.id);
+    renderHome();
+    passIdle();
+
+    expect(await screen.findByTestId("notifications-launcher")).toBeInTheDocument();
   });
 });
 
@@ -355,6 +383,8 @@ describe("the switcher", () => {
     fireEvent.click(within(openSwitcher()).getByRole("button", { name: /Vida Verde/ }));
 
     expect(location).toBe(`/home/${VIDA.id}`);
+    // Home names itself as where the visit came from, so the garden's Back steps back here.
+    expect(locationState).toEqual({ returnTo: "/home" });
     expect(selectGarden).not.toHaveBeenCalled();
   });
 
@@ -388,6 +418,24 @@ describe("Home under its child routes", () => {
 
     expect(screen.getByText(`Visiting ${AIYELOJA.id}`)).toBeInTheDocument();
     expect(screen.queryByTestId("home-journal")).not.toBeInTheDocument();
+  });
+
+  // The header stays mounted under a child screen, so a sheet it opened would stay drawn over
+  // that screen; Home closes the bell's sheet with its other drawers.
+  it("closes the bell's sheet when Home opens a child screen", async () => {
+    renderHome();
+    passIdle();
+    const launcher = await screen.findByTestId("notifications-launcher");
+
+    fireEvent.click(within(launcher).getByRole("button", { name: "Notifications" }));
+    expect(screen.getByTestId("notifications-sheet")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /TAS HUB/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Explore Gardens/ }));
+    finishSheetMotion();
+
+    expect(screen.getByText("Explore")).toBeInTheDocument();
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
   });
 
   it.each(["/home", "/home/"])("shows Home at the compatible entry %s", (entry) => {

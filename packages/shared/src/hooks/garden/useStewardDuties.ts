@@ -22,7 +22,7 @@
 
 import { useCallback, useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { selectStewardDuties, type StewardDuty } from "../../modules/garden/steward-duties";
+import { type StewardDuty, selectStewardDuties } from "../../modules/garden/steward-duties";
 import { useUIStore } from "../../stores/useUIStore";
 import type { Address, Garden } from "../../types/domain";
 import { compareAddresses } from "../../utils/blockchain/address";
@@ -142,17 +142,19 @@ export function useStewardDuties(garden: Garden): StewardDuties {
 }
 
 /**
- * Opens a duty's exact queue (DL-127): work to review, the garden's work, Pending first, until
- * the Work sheet over Home lands (DL-128); a promise's take-up requests, its page, where the
- * claim panel decides them; promises to confirm, the Promises sheet on To confirm.
+ * Opens a duty's exact queue (DL-127): work to review, the garden's Work as a sheet over Home
+ * (DL-128), whose list puts pending work first, so Home keeps its place under it; a promise's
+ * take-up requests, its page, where the claim panel decides them; promises to confirm, the
+ * Promises sheet on To confirm.
  */
 export function useOpenStewardDuty(gardenId: string): (duty: StewardDuty) => void {
   const navigate = useNavigateToTop();
   const openCommitmentsSheet = useUIStore((state) => state.openCommitmentsSheet);
+  const openGardenSheet = useUIStore((state) => state.openGardenSheet);
   return (duty) => {
     switch (duty.kind) {
       case "review":
-        return navigate(`/home/${gardenId}`);
+        return openGardenSheet("work");
       case "takeUp":
         return navigate(`/home/${gardenId}/commitments/${duty.commitment.commitmentId.toString()}`);
       case "confirm":
