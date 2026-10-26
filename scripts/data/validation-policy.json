@@ -1775,6 +1775,7 @@
         "packages/shared/src/modules/commitment-pooling/service-access-live-submission.ts",
         "packages/shared/src/modules/commitment-pooling/service-access-live.ts",
         "packages/shared/src/modules/commitment-pooling/service-issuer-operations.ts",
+        "packages/shared/src/modules/commitment-pooling/take-up.ts",
         "packages/shared/src/modules/garden/create-garden-command.ts",
         "packages/shared/src/modules/garden/join-garden-command.ts",
         "packages/shared/src/modules/marketplace/client.ts",

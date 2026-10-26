@@ -155,7 +155,10 @@ export const PendingTab: React.FC<PendingTabProps> = ({
     },
     linkFailed: (work) => {
       const clientWorkId = clientWorkIdOf(work);
-      return clientWorkId !== null && queue.failedLinkWorkIds.has(clientWorkId);
+      return (
+        queue.failedLinkWorkIds.has(work.id.toLowerCase()) ||
+        (clientWorkId !== null && queue.failedLinkWorkIds.has(clientWorkId))
+      );
     },
   };
   const rows = sortPendingRows([

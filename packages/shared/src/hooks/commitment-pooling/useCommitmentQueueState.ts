@@ -21,6 +21,8 @@ import { SETTLEMENT_ENABLED } from "../../config/app";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
@@ -154,7 +156,10 @@ export interface CommitmentQueueState {
    * not offered for taking up again.
    */
   takeUpIds: ReadonlySet<string>;
-  /** Sent work whose link to its promise gave up, by client work id, so Your Work names it. */
+  /**
+   * Sent work whose link to its promise gave up, by client work id and, for work sent from this
+   * phone, by its record id (lowercased), so Your Work's row names the stage that stopped.
+   */
   failedLinkWorkIds: ReadonlySet<string>;
   /**
    * The queue could not be read. Distinct from "nothing is queued": a surface
@@ -230,6 +235,31 @@ function pendingActWaitingReason(job: Job): string | null {
   return typeof reason === "string" && reason !== "awaiting-confirmation" ? reason : null;
 }
 
+interface QueueRead {
+  jobs: Job[];
+  /** The record id of each sent work whose link gave up, lowercased. */
+  failedLinkRecordIds: string[];
+}
+
+/**
+ * A sent work's row names it by its record id, which its link does not keep. The work's
+ * completion on this phone does, for work sent from here.
+ */
+async function recordIdsOfFailedLinks(jobs: Job[], viewer: Address): Promise<string[]> {
+  const ids: string[] = [];
+  for (const job of jobs) {
+    const { clientWorkId } = job.payload as { clientWorkId?: string };
+    if (job.kind !== "workLink" || !clientWorkId || !isTerminallyFailedJob(job)) continue;
+    const completion = await jobQueueDB.getWorkCompletion(
+      viewer,
+      job.chainId ?? DEFAULT_CHAIN_ID,
+      clientWorkId
+    );
+    if (completion?.workUID) ids.push(completion.workUID.toLowerCase());
+  }
+  return ids;
+}
+
 export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueueState {
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => commitmentPoolingKeys.queueState(viewer), [viewer]);
@@ -240,9 +270,10 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
   const query = useQuery({
     queryKey,
     enabled: Boolean(viewer),
-    queryFn: async () => {
+    queryFn: async (): Promise<QueueRead> => {
       const all = await jobQueue.getJobs(viewer as string);
-      return all.filter((job) => COMMITMENT_JOB_KINDS.includes(job.kind as never));
+      const jobs = all.filter((job) => COMMITMENT_JOB_KINDS.includes(job.kind as never));
+      return { jobs, failedLinkRecordIds: await recordIdsOfFailedLinks(jobs, viewer as Address) };
     },
     staleTime: Number.POSITIVE_INFINITY,
     // The event bus is in-process, so a second tab never hears the first one
@@ -264,7 +295,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
   ]);
 
   return useMemo(() => {
-    const jobs: Job[] = query.data ?? [];
+    const jobs: Job[] = query.data?.jobs ?? [];
+    const failedLinkWorkIds = new Set<string>(query.data?.failedLinkRecordIds);
     const pendingCommitmentIds = new Set<string>();
     const failedCommitmentIds = new Set<string>();
     const failedJobs = new Map<string, FailedCommitmentJob>();
@@ -273,7 +305,6 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     const proofJobs: Job[] = [];
     const linkedWorkIds = new Set<string>();
     const takeUpIds = new Set<string>();
-    const failedLinkWorkIds = new Set<string>();
     let failedCount = 0;
     let hasPendingCreate = false;
     // Add and Send's send waits behind its proof. Until the proof lands the

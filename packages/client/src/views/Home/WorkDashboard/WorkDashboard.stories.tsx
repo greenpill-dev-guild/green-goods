@@ -6,6 +6,7 @@ import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/
 import { useLinkedWorkUIDs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
 import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
+import type { WorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
@@ -54,7 +55,7 @@ const PHONE_VIEWPORT = {
 const MESSAGES = { en, es, pt } as const;
 type Locale = keyof typeof MESSAGES;
 
-type Moment = "all" | "afterCancel" | "afterDiscard" | "empty";
+type Moment = "all" | "afterCancel" | "afterDiscard" | "empty" | "takeUp";
 
 const EMPTY: PendingWorkFixture = {
   submissions: [],
@@ -65,8 +66,46 @@ const EMPTY: PendingWorkFixture = {
   onPhone: 0,
 };
 
+/** Work queued on this phone, for a promise the same tap took up (decision 18). */
+function forPromise(id: string, title: string, actionUID: number, savedAt: number): Work {
+  return {
+    ...gardenWork(id, title, { actionUID, gardenerAddress: JOURNEY_VIEWER, createdAt: savedAt }),
+    metadata: JSON.stringify({ clientWorkId: `client-${id}`, submissionState: "ready" }),
+    status: "offline",
+  };
+}
+
+/**
+ * The three stages of a take-up chain, as Your Work names them: a work waiting for its take-up,
+ * one whose take-up gave up, and a sent work whose link to the promise gave up.
+ */
+const TAKE_UP_CHAIN: PendingWorkFixture = {
+  submissions: [
+    forPromise("job-compost", "Compost Turn", 2, hoursAgo(2)),
+    forPromise("job-mulch", "Mulching", 4, hoursAgo(3)),
+    gardenWork("0x5eed07", "Seedling Transplant", {
+      actionUID: 5,
+      gardenerAddress: JOURNEY_VIEWER,
+      createdAt: hoursAgo(26),
+    }),
+  ],
+  drafts: [],
+  proofs: [],
+  linkedWorkIds: new Set(["job-compost", "job-mulch"]),
+  linkedWorkUIDs: new Set(),
+  onPhone: 2,
+};
+const TAKE_UP_STATES = new Map<string, NonNullable<ReturnType<WorkUploads["statusOf"]>>>([
+  ["job-compost", { state: "take-up-pending" }],
+  ["job-mulch", { state: "take-up-failed" }],
+]);
+
 const fixtureAt = (moment: Moment, documentationPhoto = false) =>
-  moment === "empty" ? EMPTY : pendingWorkFixture(moment, documentationPhoto);
+  moment === "empty"
+    ? EMPTY
+    : moment === "takeUp"
+      ? TAKE_UP_CHAIN
+      : pendingWorkFixture(moment, documentationPhoto);
 
 /** Work in a garden the steward reviews, and a review of theirs still on this phone. */
 function gardenWork(id: string, title: string, overrides: Partial<Work> = {}): Work {
@@ -182,7 +221,7 @@ function DashboardFrame({
           decisions={decisions}
           uploads={{
             pausedForDataSaver: uploads?.pausedForDataSaver ?? false,
-            statusOf: () => undefined,
+            statusOf: (jobId) => (moment === "takeUp" ? TAKE_UP_STATES.get(jobId) : undefined),
             decisionFor: (workId) => {
               const decided = decisions.find((work) => work.id === workId);
               return decided
@@ -279,7 +318,7 @@ const meta: Meta<typeof DashboardFrame> = {
     } as unknown as ReturnType<typeof useCommitmentJobs>);
     mocked(useCommitmentQueueState).mockReturnValue({
       linkedWorkIds: fixture.linkedWorkIds,
-      failedLinkWorkIds: new Set(),
+      failedLinkWorkIds: new Set(args.moment === "takeUp" ? ["0x5eed07"] : []),
     } as unknown as ReturnType<typeof useCommitmentQueueState>);
     mocked(useLinkedWorkUIDs).mockReturnValue({
       linked: fixture.linkedWorkUIDs,
@@ -447,6 +486,31 @@ export const PendingSteward: Story = {
     toReview: [gardenWork("0xreview", "Compost Turn", { createdAt: hoursAgo(20) })],
     decisions: [gardenWork("0xdecided", "Path Edging", { status: "approved" })],
   },
+};
+
+/**
+ * Work for a promise taken up in the same tap (decision 18): each row names the stage that
+ * stopped, the take-up first, the work's own upload after it, and the link once the work is sent.
+ */
+export const PendingTakeUpChain: Story = {
+  args: { moment: "takeUp" },
+  play: async ({ canvasElement }) => {
+    // The sheet draws in a portal, so its rows are found from the page body.
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByText("Waits for the promise to be taken up")).toBeVisible();
+    await expect(body.getByText("Taking up the promise didn't go")).toBeVisible();
+    await expect(body.getByText("Linking it to the promise didn't go")).toBeVisible();
+  },
+};
+
+export const PendingTakeUpChainSpanish: Story = {
+  args: { moment: "takeUp" },
+  parameters: { locale: "es" },
+};
+
+export const PendingTakeUpChainPortuguese: Story = {
+  args: { moment: "takeUp" },
+  parameters: { locale: "pt" },
 };
 
 /** The same list where its words run longest. */
