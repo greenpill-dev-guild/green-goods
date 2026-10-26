@@ -1,4 +1,5 @@
 import { parseAbi } from "viem";
+import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import type { ServiceChainRead } from "./service-access-chain";
 import { serviceAddress, serviceUint } from "./service-access-chain-values";
@@ -6,6 +7,7 @@ import type { PilotRewardItem } from "./service-access-pilot-types";
 import type { ServiceAccessSnapshot } from "./service-access-types";
 import type { ServiceVoucherSetup } from "./service-access-voucher-types";
 import type {
+  IssuerSafeThreshold,
   RequestRewardDelivery,
   VoucherBookingEscrow,
   VoucherBookingRef,
@@ -154,14 +156,14 @@ export async function readLiveVoucherWallet(
   return unavailableVoucherWallet(scope, "routes-unconfigured");
 }
 
-/** The signature count comes from the Safe itself; a member issuer approves from its own account. */
-export async function readVoucherIssuerApproval(
+/** A Safe's threshold and owner count; null when the read fails or the answer is impossible. */
+async function readSafeRule(
   read: ServiceChainRead,
-  issuer: Pick<VoucherIssuer, "account" | "kind" | "asset">
-): Promise<VoucherIssuerApproval> {
-  if (issuer.kind === "individual") return { kind: "account", evidence: "onchain" };
+  chainId: number,
+  safe: Address
+): Promise<{ threshold: number; owners: number } | null> {
   const call = (functionName: "getThreshold" | "getOwners") =>
-    read({ chainId: issuer.asset.chainId, address: issuer.account, abi: SAFE_ABI, functionName });
+    read({ chainId, address: safe, abi: SAFE_ABI, functionName });
   try {
     const [rawThreshold, rawOwners] = await Promise.all([call("getThreshold"), call("getOwners")]);
     const threshold = serviceUint(rawThreshold);
@@ -170,11 +172,35 @@ export async function readVoucherIssuerApproval(
     const owners = new Set(rawOwners.map(serviceAddress)).size;
     if (owners !== rawOwners.length || threshold < 1n || threshold > BigInt(owners))
       throw new Error("Safe threshold outside its owners");
-    return { kind: "safe", evidence: "onchain", threshold: Number(threshold), owners };
+    return { threshold: Number(threshold), owners };
   } catch (error) {
-    logger.warn("Issuer Safe threshold read failed", { error, issuer: issuer.account });
-    return { kind: "unavailable", reason: "read-failed" };
+    logger.warn("Issuer Safe threshold read failed", { error, safe });
+    return null;
   }
+}
+
+/** An issuer Safe's signature rule in the console's contract: a count only when observed. */
+export async function readIssuerSafeThreshold(
+  read: ServiceChainRead,
+  chainId: number,
+  safe: Address
+): Promise<IssuerSafeThreshold> {
+  const rule = await readSafeRule(read, chainId, safe);
+  return rule
+    ? { safe, status: "observed", ...rule }
+    : { safe, status: "unavailable", threshold: null, owners: null };
+}
+
+/** The signature count comes from the Safe itself; a member issuer approves from its own account. */
+export async function readVoucherIssuerApproval(
+  read: ServiceChainRead,
+  issuer: Pick<VoucherIssuer, "account" | "kind" | "asset">
+): Promise<VoucherIssuerApproval> {
+  if (issuer.kind === "individual") return { kind: "account", evidence: "onchain" };
+  const rule = await readSafeRule(read, issuer.asset.chainId, issuer.account);
+  return rule
+    ? { kind: "safe", evidence: "onchain", ...rule }
+    : { kind: "unavailable", reason: "read-failed" };
 }
 
 function rewardDelivery(

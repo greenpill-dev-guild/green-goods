@@ -2,6 +2,7 @@ import type { Address } from "../../../types/domain";
 import type { ServiceAccessSnapshot } from "../service-access-types";
 import { voucherWalletFromSetups } from "../service-access-wallet";
 import type {
+  IssuerSafeThreshold,
   VoucherIssuer,
   VoucherIssuerApproval,
   VoucherWalletScope,
@@ -36,18 +37,24 @@ export const REHEARSAL_VOUCHER_ISSUERS: Readonly<
 };
 
 /** Green Goods' Safe takes two of five; Tech and Sun's starts with its one bootstrap signer. */
-const REHEARSAL_APPROVALS: Readonly<Record<Address, VoucherIssuerApproval>> = {
-  [PILOT_ISSUERS.a]: { kind: "safe", evidence: "local-rehearsal", threshold: 2, owners: 5 },
-  [PILOT_ISSUERS.b]: { kind: "safe", evidence: "local-rehearsal", threshold: 1, owners: 1 },
+const REHEARSAL_SAFES: Readonly<Record<Address, { threshold: number; owners: number }>> = {
+  [PILOT_ISSUERS.a]: { threshold: 2, owners: 5 },
+  [PILOT_ISSUERS.b]: { threshold: 1, owners: 1 },
 };
 
 export function rehearsalIssuerApproval(account: Address): VoucherIssuerApproval {
-  return (
-    REHEARSAL_APPROVALS[account.toLowerCase() as Address] ?? {
-      kind: "unavailable",
-      reason: "unconfigured",
-    }
-  );
+  const rule = REHEARSAL_SAFES[account.toLowerCase() as Address];
+  return rule
+    ? { kind: "safe", evidence: "local-rehearsal", ...rule }
+    : { kind: "unavailable", reason: "unconfigured" };
+}
+
+/** The same Safes in the console's contract: observed for the pilot's two, unread otherwise. */
+export function rehearsalIssuerSafeThreshold(safe: Address): IssuerSafeThreshold {
+  const rule = REHEARSAL_SAFES[safe.toLowerCase() as Address];
+  return rule
+    ? { safe, status: "observed", ...rule }
+    : { safe, status: "unavailable", threshold: null, owners: null };
 }
 
 /** Holdings come from the shared ledger; escrow and returns from the account's own setups. */

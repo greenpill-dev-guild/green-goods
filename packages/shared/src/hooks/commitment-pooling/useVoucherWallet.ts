@@ -3,10 +3,12 @@ import { commitmentPoolingKeys } from "../../config/query-keys/commitment-poolin
 import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import { serviceLiveChain } from "../../modules/commitment-pooling/service-access-live-chain";
 import {
+  readIssuerSafeThreshold,
   readLiveVoucherWallet,
   readVoucherIssuerApproval,
 } from "../../modules/commitment-pooling/service-access-wallet";
 import type {
+  IssuerSafeThreshold,
   VoucherIssuer,
   VoucherWalletScope,
 } from "../../modules/commitment-pooling/service-access-wallet-types";
@@ -61,6 +63,33 @@ export function useVoucherIssuerApproval(
         "../../modules/commitment-pooling/demo/demo-service-wallet"
       );
       return rehearsalIssuerApproval(issuer.account);
+    },
+  });
+}
+
+/**
+ * An issuer Safe's signature rule (task 13), the count the stewards' console names, read from the
+ * Safe. Disabled until the garden names its issuer's Safe; `unavailable` means the read failed.
+ */
+export function useIssuerSafeThreshold({
+  chainId,
+  safe,
+}: {
+  chainId: number;
+  safe: Address | undefined;
+}) {
+  const rehearsal = rehearsalActive();
+  return useQuery({
+    queryKey: commitmentPoolingKeys.issuerSafeThreshold(chainId, safe, rehearsal),
+    enabled: safe !== undefined,
+    retry: false,
+    queryFn: async (): Promise<IssuerSafeThreshold> => {
+      if (!safe) throw new Error("Issuer Safe required");
+      if (!rehearsal) return readIssuerSafeThreshold(serviceLiveChain.read, chainId, safe);
+      const { rehearsalIssuerSafeThreshold } = await import(
+        "../../modules/commitment-pooling/demo/demo-service-wallet"
+      );
+      return rehearsalIssuerSafeThreshold(safe);
     },
   });
 }

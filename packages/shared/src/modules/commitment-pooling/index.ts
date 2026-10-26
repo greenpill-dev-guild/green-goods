@@ -28,6 +28,7 @@ export * from "./service-access-pilot-types";
 export * from "./service-access-types";
 export * from "./service-access-voucher-types";
 export {
+  readIssuerSafeThreshold,
   requestRewardDeliveries,
   voucherBookingEscrow,
   voucherPendingReturn,

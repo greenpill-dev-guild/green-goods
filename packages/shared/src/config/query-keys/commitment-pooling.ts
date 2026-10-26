@@ -78,6 +78,20 @@ export const commitmentPoolingKeys = {
       issuer.toLowerCase(),
       rehearsal ? "local-rehearsal" : "onchain",
     ] as const,
+  /** An issuer Safe's signature rule on the voucher network; the DEV rehearsal keeps its own. */
+  issuerSafeThreshold: (chainId: number, safe?: Address | string, rehearsal = false) =>
+    rehearsal
+      ? ([
+          ...commitmentPoolingKeys.all(chainId),
+          "issuer-safe-threshold",
+          normalizeAddress(safe),
+          "local-rehearsal",
+        ] as const)
+      : ([
+          ...commitmentPoolingKeys.all(chainId),
+          "issuer-safe-threshold",
+          normalizeAddress(safe),
+        ] as const),
   issuerOperations: (account?: Address | null, routeId?: string, assetId?: string) =>
     [
       ...commitmentPoolingKeys.all(100),

@@ -6,6 +6,7 @@ import {
   useServiceAccessMutation,
 } from "../hooks/commitment-pooling/useServiceAccess";
 import {
+  useIssuerSafeThreshold,
   useVoucherIssuerApproval,
   useVoucherWallet,
 } from "../hooks/commitment-pooling/useVoucherWallet";
@@ -84,6 +85,7 @@ describe("service access hooks", () => {
         mutation: useServiceAccessMutation(requestKey),
         held: wallet.data?.holdings.find((holding) => holding.issuer === issuer)?.available,
         approval: useVoucherIssuerApproval(issuer),
+        safe: useIssuerSafeThreshold({ chainId: 100, safe: issuer?.account }),
       };
     });
     await waitFor(() => expect(result.current.request.data?.pilot?.holdings.b).toBe(0n));
@@ -91,6 +93,13 @@ describe("service access hooks", () => {
     await waitFor(() => expect(result.current.held).toBe(0n));
     await waitFor(() =>
       expect(result.current.approval.data).toMatchObject({ kind: "safe", threshold: 1, owners: 1 })
+    );
+    await waitFor(() =>
+      expect(result.current.safe.data).toMatchObject({
+        status: "observed",
+        threshold: 1,
+        owners: 1,
+      })
     );
     await act(async () => {
       await result.current.mutation.mutateAsync({
@@ -117,8 +126,12 @@ describe("service access hooks", () => {
       read: useServiceAccess(key),
       mutation: useServiceAccessMutation(key),
       wallet: useVoucherWallet(walletScope),
+      noSafe: useIssuerSafeThreshold({ chainId: 100, safe: undefined }),
     }));
     await waitFor(() => expect(result.current.read.data?.mode).toBe("unavailable"));
+    // Disabled until the garden names an issuer Safe.
+    expect(result.current.noSafe.fetchStatus).toBe("idle");
+    expect(result.current.noSafe.data).toBeUndefined();
     await waitFor(() =>
       expect(result.current.wallet.data).toMatchObject({
         evidence: "unavailable",

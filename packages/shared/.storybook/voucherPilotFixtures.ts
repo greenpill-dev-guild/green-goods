@@ -2,6 +2,7 @@ import type { QueryKey } from "@tanstack/react-query";
 import { commitmentPoolingKeys } from "../src/config/query-keys/commitment-pooling";
 import { REHEARSAL_VOUCHER_ISSUERS } from "../src/modules/commitment-pooling/demo/demo-service-wallet";
 import type {
+  IssuerSafeThreshold,
   VoucherIssuer,
   VoucherIssuerApproval,
   VoucherWalletScope,
@@ -98,7 +99,7 @@ export const VOUCHER_STORY_APPROVALS = {
   unavailable: { kind: "unavailable", reason: "read-failed" },
 } as const satisfies Record<string, VoucherIssuerApproval>;
 
-/** Query seeds for `useVoucherWallet` and `useVoucherIssuerApproval` outside the demo flag. */
+/** Query seeds for the voucher wallet, the issuer approval and the Safe threshold reads. */
 export function voucherStorySeeds(
   wallet: VoucherWalletSnapshot,
   approvals: Partial<Record<"greenGoods" | "techAndSun", VoucherIssuerApproval>> = {
@@ -109,12 +110,22 @@ export function voucherStorySeeds(
   const { sourceChainId, coreModule, account } = VOUCHER_STORY_SCOPE;
   return [
     [commitmentPoolingKeys.voucherWallet(sourceChainId, coreModule, account, false), wallet],
-    ...Object.entries(approvals).map(([id, approval]) => {
+    ...Object.entries(approvals).flatMap(([id, approval]) => {
       const issuer = VOUCHER_STORY_ISSUERS[id as keyof typeof VOUCHER_STORY_ISSUERS];
+      const { chainId } = issuer.asset;
+      const safe: IssuerSafeThreshold =
+        approval.kind === "safe"
+          ? {
+              safe: issuer.account,
+              status: "observed",
+              threshold: approval.threshold,
+              owners: approval.owners,
+            }
+          : { safe: issuer.account, status: "unavailable", threshold: null, owners: null };
       return [
-        commitmentPoolingKeys.issuerApproval(issuer.asset.chainId, issuer.account, false),
-        approval,
-      ] as const;
+        [commitmentPoolingKeys.issuerApproval(chainId, issuer.account, false), approval] as const,
+        [commitmentPoolingKeys.issuerSafeThreshold(chainId, issuer.account), safe] as const,
+      ];
     }),
   ];
 }

@@ -4,6 +4,7 @@ import { REHEARSAL_VOUCHER_ISSUERS } from "../modules/commitment-pooling/demo/de
 import type { ServiceChainRead } from "../modules/commitment-pooling/service-access-chain";
 import type { ServiceAccessKey } from "../modules/commitment-pooling/service-access-types";
 import {
+  readIssuerSafeThreshold,
   readVoucherIssuerApproval,
   requestRewardDeliveries,
 } from "../modules/commitment-pooling/service-access-wallet";
@@ -208,24 +209,34 @@ describe("voucher wallet reads", () => {
     ).toBe(1_000_000n);
   });
 
+  const safe = REHEARSAL_VOUCHER_ISSUERS.greenGoods.account;
+  const unread = { safe, status: "unavailable", threshold: null, owners: null } as const;
   it.each([
     [
       "a Safe's own threshold",
       2n,
       ["0x01", "0x02", "0x03", "0x04", "0x05"],
       { kind: "safe", threshold: 2, owners: 5 },
+      { safe, status: "observed", threshold: 2, owners: 5 },
     ],
     [
       "a threshold above its owners",
       3n,
       ["0x01", "0x02"],
       { kind: "unavailable", reason: "read-failed" },
+      unread,
     ],
-    ["a repeated owner", 1n, ["0x01", "0x01"], { kind: "unavailable", reason: "read-failed" }],
-    ["a zero threshold", 0n, ["0x01"], { kind: "unavailable", reason: "read-failed" }],
-  ] as const)("reads the signature count from the issuer: %s", async (_case, threshold, owners, expected) => {
+    [
+      "a repeated owner",
+      1n,
+      ["0x01", "0x01"],
+      { kind: "unavailable", reason: "read-failed" },
+      unread,
+    ],
+    ["a zero threshold", 0n, ["0x01"], { kind: "unavailable", reason: "read-failed" }, unread],
+  ] as const)("reads the signature count from the issuer: %s", async (_case, threshold, owners, expected, rule) => {
     const read: ServiceChainRead = async ({ functionName, chainId, address }) => {
-      expect([chainId, address]).toEqual([100, REHEARSAL_VOUCHER_ISSUERS.greenGoods.account]);
+      expect([chainId, address]).toEqual([100, safe]);
       return functionName === "getThreshold"
         ? threshold
         : owners.map((owner) => owner.padEnd(42, "0"));
@@ -233,6 +244,8 @@ describe("voucher wallet reads", () => {
     expect(
       await readVoucherIssuerApproval(read, REHEARSAL_VOUCHER_ISSUERS.greenGoods)
     ).toMatchObject(expected);
+    // The console's contract for the same Safe: a number only when the read is observed.
+    expect(await readIssuerSafeThreshold(read, 100, safe)).toEqual(rule);
   });
 
   it("answers without a Safe read for a member's own account, and reports a failed read", async () => {
@@ -247,6 +260,13 @@ describe("voucher wallet reads", () => {
     expect(
       await readVoucherIssuerApproval(reverting, REHEARSAL_VOUCHER_ISSUERS.techAndSun)
     ).toEqual({ kind: "unavailable", reason: "read-failed" });
+    const techAndSun = REHEARSAL_VOUCHER_ISSUERS.techAndSun.account;
+    expect(await readIssuerSafeThreshold(reverting, 100, techAndSun)).toEqual({
+      safe: techAndSun,
+      status: "unavailable",
+      threshold: null,
+      owners: null,
+    });
   });
 
   it("keeps each reward's delivery apart: waiting on a short reserve while G$ arrives", async () => {
