@@ -1,5 +1,5 @@
+import { useIssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import {
-  useIssuerSafeThreshold,
   usePoolConsoleController,
   useVoucherConsole,
 } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
