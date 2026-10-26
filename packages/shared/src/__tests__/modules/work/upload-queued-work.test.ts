@@ -30,6 +30,7 @@ import {
   QUEUED_JOB_GARDEN,
   QUEUED_JOB_USER,
   queuedDecisionJob,
+  queuedTakeUpChain,
   queuedWorkJob,
 } from "../../test-utils/queued-jobs";
 import { createMockTransactionSender } from "../../test-utils/transaction-fakes";
@@ -154,6 +155,22 @@ describe("Upload all", () => {
       explicit: true,
     });
     expect(ports.processJob).not.toHaveBeenCalledWith(first.id, expect.anything());
+  });
+
+  it("leaves a prepared work behind its take-up, and sends it once the take-up has landed", async () => {
+    const chain = queuedTakeUpChain();
+    const { ports, store } = harness([chain.claim, { ...chain.work, meta: READY }]);
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-ready" });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+
+    store.delete(chain.claim.id);
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
   });
 
   it("refuses on an unconfirmed connection before claiming anything", async () => {
