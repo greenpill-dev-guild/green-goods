@@ -1,19 +1,28 @@
 // Captures the clickable demo's screens into ./assets/screens (not committed) and writes each
-// screen's story, size and measured hotspot into index.html's #flows block.
-// Usage, from the repository root (needs the repository's Playwright install and network access):
-//   node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/capture.mjs                  every screen
-//   node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/capture.mjs --only=work-3   single screens
-// The demo tells one season at Tech and Sun's hub: the steward names the need, members promise the
-// season's climate course, the hub delivers the bootcamp, and supporters fund the next cohort.
-// Storybook screens come from the deployed Storybook at design.greengoods.app: real components
-// with fixture data, into which this script swaps the hub's own content after each screen renders
-// (text, the work photos, the garden banners; see the tables below and README.md). The facts come
-// from Tech and Sun's public record: its season, request, action forms, dates and photos. People's
-// names are invented. The Funding flow's public pages come from greengoods.app as they stand.
-// Components, layout, controls and state stay as rendered; where a recipe lists actions, they are
-// the clicks and typing a person would do in that same screen.
-// Exits with status 1 when a swap matched nothing, a hotspot target is missing or off screen, or a
-// fixture name survives the swaps.
+// screen's source, size and measured hotspot into index.html's #flows block.
+//
+// The demo follows one season at Tech and Sun's hub, TAS HUB in Awka, through the current app:
+// the steward names the need, a member keeps the season's climate course promise, the hub logs
+// the bootcamp, and a supporter endows the hub. Each flow is a session that starts where a
+// person starts and walks the app on develop, clicking, typing and attaching photos, with Tech
+// and Sun's record behind it. A step that would need a signature is never pressed; the screens
+// after it come from the deployed Storybook, which is built from develop, with the hub's content
+// swapped in.
+//
+// Needs, run before capturing (README, Capture, build and check):
+// - the develop app and dashboard on http://localhost:3122 and https://localhost:3102 (.claude/launch.json
+//   "demo-client" and "demo-admin", serving a develop worktree, chain 42161, the hosted indexer);
+// - the photos in ./assets/photos (awka-hub.jpg, and the record-NN.jpg and proof-course.jpg
+//   that photos.mjs saves).
+//
+// Usage, from the repository root:
+//   node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/capture.mjs                   every screen
+//   node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/capture.mjs --only=work-app   one session
+// After a screen settles, names and fixture copy are swapped in its text (see the tables below):
+// every person's name is invented, addresses become invented handles, and fixture places, dates
+// and photos become the hub's. Components, layout, controls and state stay as rendered.
+// Exits with status 1 when a swap matched nothing, a fixture name survives, a listed photo is
+// missing, a step fails, or a hotspot target is missing or off screen.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -27,15 +36,18 @@ const out = join(here, "assets", "screens");
 const htmlPath = join(here, "index.html");
 mkdirSync(out, { recursive: true });
 const only = (process.argv.find((a) => a.startsWith("--only=")) || "").replace("--only=", "").split(",").filter(Boolean);
+const debug = process.argv.includes("--debug");
 const problems = [];
 const note = (message) => { problems.push(message); console.log(`  problem: ${message}`); };
 
 const PHONE = { width: 390, height: 844, scale: 2 };
 const DESKTOP = { width: 1440, height: 900, scale: 1.5 };
+const APP = "http://localhost:3122";
+const ADMIN = "https://localhost:3102";
+const TAS = "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3";
+const HOME = `${APP}/home?mockAuth=deployer&presentation=pwa`;
 const story = (id) => `https://design.greengoods.app/iframe.html?viewMode=story&id=${id}`;
 
-// Photos: the approved Awka photo (README, Photos) and the hub's public submission photos, saved
-// as record-NN.jpg by README's photo step. A missing photo leaves the fixture image and is reported.
 const PHOTOS = join(here, "assets", "photos");
 const photo = (name) => {
   const path = join(PHOTOS, name);
@@ -43,172 +55,354 @@ const photo = (name) => {
 };
 const BANNER = "awka-hub.jpg";
 
-// The season, from Tech and Sun's public record (pool 3 on its garden, read 26 October 2026).
+// The season, its request and the one promise kept so far, from Tech and Sun's record (pool 3 and
+// its commitment 19, read 26 October 2026).
 const SEASON = "Climate and Tech Education";
 const COURSE = "Complete the UN CC:Learn climate course";
 const COURSE_NOTE = "Complete the agreed UN CC:Learn course and submit your certificate so the hub can verify your learning.";
 const DUE = "Jan 31, 2027";
-// The bootcamp: the real Workshop Delivered action's form, with this season's notes.
-const BOOTCAMP_NOTE = "One-week bootcamp at the hub. Members worked through the UN CC:Learn climate course and made short videos about it with AI tools.";
-// The steward's assessment of what members need.
+const PROOF_NOTE = "I completed the course, I attached my Proof too.";
+const MEMBER = "0x67...e96";
+const HUB_ABOUT = "Supporting Nigeria’s innovators and builders with reliable power and internet access.";
+// The steward's assessment and the bootcamp, as this demo tells them.
 const NEED_TITLE = "Climate and tech skills for members";
 const NEED_ABOUT = "Members have steady power and internet at the hub. Few have climate or digital training, and most want paid work.";
+const NEED_CHALLENGE = "Members want paid work, but few have the climate or digital skills that clients ask for.";
+// The Work flow replays how the hub's real bootcamp reached its record, so the note is the record's
+// own description; the hours and facilitator count are sample.
+const BOOTCAMP_NOTE = "A one week content creation bootcamp with AI";
 
-// Demo copy. Each rule replaces exact text inside text nodes and in alt, aria-label, title,
-// placeholder and field values: [from, to, nth, whole]. `nth` limits a rule to one visible
-// occurrence in page order; `whole` matches only a text node that is exactly `from`.
-const HUB = [
-  ["Riverside Commons Garden", "TAS Hub"],
-  ["Riverside District", "Awka, Nigeria"],
-  ["Rio Rainforest Lab", "TAS Hub"],
-  ["Botanic Commons", "TAS Hub"],
-  ["Founded Mar 14, 2024", "Founded Feb 27, 2026"],
-  ["3 members", "14 members", undefined, true],
-  ["riverside-commons.example", "tas-hub.example"],
-  ["Autumn Planting 2026", SEASON],
-  ["Sep 1 – Nov 30 · 3 of 7 kept", "Oct 10 – Jan 31 · 0 of 1 kept"],
-  ["Seed Swap Weekend", "Bootcamp week"],
-  ["Oct 10 – Oct 11 · 0 of 2 kept", "Oct 19 – Oct 23 · 0 of 1 kept"],
-  ["Summer 2026", "Hub opening"],
-  ["Jun 1 – Aug 31 · 9 of 11 kept", "Mar 14 – Apr 30 · 4 of 4 kept"],
-];
-// People. Every name is invented: the steward Obinna, the learner Chiamaka and her study partner
-// Uche, the facilitator Ifeoma, another member Tobenna, and the supporter Funmi.
+// Names. Every person is invented: Obinna the steward, Chiamaka the member who finished the
+// course (the record's first finisher), Ifeoma who ran the bootcamp, and Funmi the supporter.
+// Any other shortened address becomes one of ADDRESS_NAMES, the same one for the same address.
+const ADDRESS_NAMES = ["tobenna.eth", "kelechi.eth", "nneka.eth", "ada.eth", "uche.eth", "ngozi.eth", "chidi.eth", "amaka.eth"];
 const PEOPLE = [
-  ["tomas", "obinna"],
-  ["amara", "chiamaka"],
-  ["dele", "uche", undefined, true],
-  ["0x5e...0b2", "obinna.eth"],
-  ["0x22...222", "chiamaka.eth"],
-  ["0x5eed...00b2", "ifeoma.eth"],
-  ["0x5eed...00a1", "tobenna.eth"],
+  ["afo", "obinna", undefined, true],
+  ["tomas", "obinna", undefined, true],
+  ["amara", "chiamaka", undefined, true],
+  [MEMBER, "chiamaka"],
+  // The hub's two other stewards, named as confirmers and on its public page.
+  ["nansel.eth", "adaeze.eth"],
+  ["amioantho.eth", "ikenna.eth"],
   ["vault-owner.eth", "funmi.eth"],
 ];
-const BASE = [...HUB, ...PEOPLE];
-
-// The Promises tab: the season's real request, one more member who took it, and other hub asks.
-const POOL_LIST = [
-  ["Repair the north fence panel by the compost bays before the first frost", "Fix the hub's router before Friday's class"],
-  ["Survey one household about rain barrel use", "Host the weekly climate discussion", 1],
-  ["Survey one household about rain barrel use", COURSE],
-  ["Water the seedling beds every morning while the Okafor family is traveling", "Lend my spare laptop to a new builder"],
-  ["Lend the seed dibber set for the swap weekend", "Set up the solar classroom lights"],
-  ["Two hours sorting the seed library", COURSE],
-  ["Teach the composting basics workshop for new members", "Teach a prompt-writing session for new members"],
+// The only names a screen may show; any other name ending in .eth is a real one left over.
+const INVENTED = new Set([...ADDRESS_NAMES, "adaeze.eth", "ikenna.eth", "funmi.eth"]);
+// Storybook fixtures' hub and season.
+const HUB = [
+  ["Riverside Commons Garden", "TAS HUB"],
+  ["Riverside District", "Awka, Nigeria"],
+  ["Rio Rainforest Lab", "TAS HUB"],
+  ["Botanic Commons", "TAS HUB"],
+  ["3 members", "14 members", undefined, true],
+  ["Autumn Planting 2026", SEASON],
 ];
-// The request Chiamaka takes up, in every Promise screen that names it.
+const BASE = [...HUB, ...PEOPLE];
+// Home's recent activity: the steward's own pending entry is a node log, which the pitch leaves out.
+const HOME_ACTIVITY = [["Node Operation Log", "Energy & Uptime Check"]];
+// The steward's Home a few minutes after Ifeoma uploads: her bootcamp waits at the top.
+const HOME_REVIEW = [["Node Operation Log", "Workshop Delivered"], ["afo", "ifeoma", undefined, true], ["3 wk. ago", "4 min. ago"]];
+
+// Chiamaka's promise in the Storybook screens: the season's real request, its real dates, and
+// the real proof (one photo and a note).
 const PROMISE = [
   ["Survey household water use on Mill Lane", COURSE],
   ["Repair the north fence panel by the compost bays before the first frost", COURSE],
   ["Visit one household, ask the six survey questions, and photograph the meter.", COURSE_NOTE],
   ["Two slats are split and loose after the storm. Materials are in the tool shed.", COURSE_NOTE],
-  ["Replaced two split slats and secured the panel. Dele helped with measuring and fastening.", "Finished the course during the hub's bootcamp week. My certificate is attached."],
-  ["receipts/fence-posts", "certificates/chiamaka"],
-  ["4 available · 3 in progress · 3 kept", "23 available · 1 in progress · 0 kept"],
+  ["Replaced two split slats and secured the panel. Dele helped with measuring and fastening.", PROOF_NOTE],
+  ["4 available · 3 in progress · 3 kept", "24 available · 0 in progress · 0 kept"],
+  ["Proof added: 2 photos, 1 voice note", "Proof added: 1 photo"],
+  ["Optional: you already added 2 photos and 1 voice note.", "Optional: you already added 1 photo."],
   ["2 hours", "1 certificate"],
   ["1 repair", "1 certificate"],
   ["Oct 30, 2026", DUE],
   ["Oct 20, 2026", DUE],
-  ["Repair notes", "Course notes"],
+  ["Oct 2, 2026 · 4:40 PM", "Oct 13, 2026 · 2:55 PM"],
+  ["Oct 3, 2026 · 9:12 AM", "Oct 21, 2026 · 2:53 PM"],
+  ["Oct 12, 2026 · 10:24 AM", "Oct 21, 2026 · 2:57 PM"],
+  ["Oct 12, 2026 · 10:41 AM", "Oct 21, 2026 · 2:57 PM"],
+  ["Oct 14, 2026 · 8:03 AM", "Oct 26, 2026 · 9:05 AM"],
+  ["Added Oct 12, 10:24 AM, by", "Added Oct 21, 2:57 PM, by"],
 ];
-// The bootcamp in the submit, review and list screens: the real Workshop Delivered labels.
+// The fixture promise asks for linked garden work; a course promise asks for proof. These are
+// the band line and button the app shows for that type (statusBand.ts, GardenCommitment.tsx).
+const PROOF_BAND = [
+  ["Link the required work below. Garden stewards approve it; no separate send is needed.", "Add proof as you go. When it's complete, send it to be confirmed."],
+  ["Link Work", "Add Proof", undefined, true],
+];
+// The bootcamp in the Storybook review screens: the real Workshop Delivered labels.
 const WORK = [
-  ["Upload Media", "Capture Workshop Photo"],
-  ["Take a clear photo of the moved seedlings, or choose one from your photos.", "Take a photo of the room, materials, or session in progress."],
   ["Moved 36 lettuce seedlings into the east bed and watered them after transplanting.", BOOTCAMP_NOTE],
   ["Seedling Transplant", "Workshop Delivered"],
-  ["Plants moved", "Facilitators"],
   ["Plants Moved", "Facilitators"],
   ["36", "2", undefined, true],
-  ["1h 30m", "5h"],
-  ["The count and note match the evidence checked at the garden.", "The photos and attendance match the session I saw at the hub."],
+  ["1h 30m", "20h"],
+  ["The count and note match the evidence checked at the garden.", "The photos match the session I saw at the hub."],
 ];
-const WORK_LIST = [
-  ["Compost Turn", "Workshop Delivered", 0],
-  ["Compost Turn", "Hub Service Session"],
-  ["Seed Library Count", "Hub Service Session"],
-  ["Path Edging", "Infrastructure Milestone"],
-  ["Mulch Delivery Log", "Energy & Uptime Check"],
-  ["Herb Spiral Weeding", "Site & Readiness Setup"],
-];
-const WORK_DONE = [
-  ["Compost Turn", "Hub Service Session"],
-  ["Path Edging", "Energy & Uptime Check"],
-];
-// The steward's assessment, in the form's own Education metrics.
+// The steward's assessment in the Storybook "sent" screen, matching what the wizard was given.
 const ASSESSMENT = [
-  ["East plot, Rio Rainforest Lab", "TAS Hub", 0],
+  ["East plot, Rio Rainforest Lab", "TAS HUB", 0],
   ["East plot, Rio Rainforest Lab", "Awka, Nigeria"],
   ["Agroforestry", "Education"],
   ["Rio canopy baseline, wet season", NEED_TITLE],
   ["Canopy cover and seedling survival across the east plot, measured before the wet-season planting.", NEED_ABOUT],
-  ["Cattle grazing thinned the canopy along the east boundary, and the seedlings planted last season have no shade.", "Members want paid work, but few have the climate or digital skills that clients ask for."],
+  ["Cattle grazing thinned the canopy along the east boundary, and the seedlings planted last season have no shade.", NEED_CHALLENGE],
   ["The east plot regains its canopy", "Members earn the UN CC:Learn climate certificate"],
   ["Trees planted · 200 trees", "Participants · 24 people"],
-  ["Seedlings survive their first dry season", "Members make paid-quality content with AI"],
+  ["Seedlings survive their first dry season", "The hub runs hands-on bootcamp sessions"],
   ["Area covered · 5 ha", "Sessions delivered · 5 sessions"],
   ["Canopy baseline", "Workshop Delivered"],
   ["Jul 1 – Sep 30, 2026", "Oct 10, 2026 – Jan 31, 2027"],
 ];
-const FUNDER = [["Greenpill NYC", "TAS Hub"], ["1.2 WETH", "500 DAI"]];
+const INSIGHTS = [
+  ["Riverside Commons grows food along the river and shares the harvest with its block.", HUB_ABOUT],
+  ["Native canopy returns along the riverbank", NEED_TITLE],
+  ["Oct 18, 2025 – Jan 16, 2026", "Oct 10, 2026 – Jan 31, 2027"],
+  ["Agroforestry", "Education"],
+];
+const ENDOW = [["$50.00", "$500.00"], ["50.00", "500.00", undefined, true], ["0x5eed...00a1", "funmi.eth"]];
 
-// Fixture text that must not survive a swap (the Funding flow's live pages are exempt).
-const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Botanic/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /Seed Swap/, /\btomas\b/, /\bamara\b/, /\bdele\b/, /Greenpill NYC/, /vault-owner/, /Cerrado/, /rain barrel/, /[Ss]eedling/, /lettuce/, /Compost/, /Path Edging/, /Herb Spiral/, /Mulch/, /Seed Library/, /canopy/i, /WETH/];
+// Fixture text that must not survive in a Storybook screen.
+const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Botanic/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /\btomas\b/, /\bamara\b/, /\bdele\b/i, /Greenpill NYC/, /vault-owner/, /[Ss]eedling/, /lettuce/, /Mulch/, /Pond/, /canopy/i, /\bafo\b/, /Node Operation/, /Muizenberg/];
 
-// One recipe per screen, keyed by the file name in index.html's #flows block. `tap` names the
-// control the hotspot sits on, measured after the swaps; the last screen of a flow has none.
-// `photos` replaces the screen's content images in page order; `gardenCard` puts the hub's banner
-// photo in the garden card in place of the no-banner pattern.
-const SHOTS = {
-  "needs-1": { url: story("admin-workspaces-hub--assessments-tab"), device: DESKTOP, swaps: [["Rainforest canopy strategy", "Solar and internet baseline"], ["Jan 3, 2026", "Mar 14, 2026"], ["Agroforestry", "Solar"], ...BASE], tap: { role: "button", name: "Create Assessment" } },
-  "needs-2": {
-    url: story("admin-workspaces-hub--create-assessment-route"), device: DESKTOP, swaps: BASE,
-    actions: [
-      { click: { role: "radio", name: "Education" } },
+// Sessions. Each opens one browser context at `url` and runs `steps` in order. A step is an
+// action ({ click }, { fill, value }, { select, value }, { pickDate }, { files }, { reveal },
+// { remove }, { script }, { scrollTo }, { scroll }) or a screen ({ shot, tap, swaps, photos, banner, gardenCard,
+// box, over }). `tap` names the control the hotspot sits on, measured after the swaps; each flow's
+// last screen has none. Session `swaps` apply to every screen in the session, after the screen's
+// own; a `live` session keeps its page's own copy and counts, and swaps only names. `box` records
+// where a real dialog sits (found by its title text); `over` draws a Storybook dialog in its place,
+// on that real screen, so a state the app reaches only after a signature keeps the page behind it.
+const SESSIONS = [
+  // Needs: Obinna records the season's need in the dashboard, every step of the wizard.
+  {
+    id: "needs-admin", device: DESKTOP, url: `${ADMIN}/hub/assess?gardenId=${TAS}&mockAuth=deployer`, app: true, ready: "Create Assessment", swaps: PEOPLE,
+    steps: [
+      { shot: "needs-1", tap: { role: "button", name: "Create Assessment" } },
+      { click: { role: "button", name: "Create Assessment" }, wait: 5000 },
+      { click: { role: "radio", name: "Education" }, force: true, wait: 800 },
       { fill: { label: /^Title/ }, value: NEED_TITLE },
       { fill: { label: /^Location/ }, value: "Awka, Nigeria" },
       { fill: { label: /^Description/ }, value: NEED_ABOUT },
+      { shot: "needs-2", tap: { role: "button", name: "Next" } },
+      { click: { role: "button", name: "Next" }, wait: 3000 },
+      { fill: { css: '[role="dialog"] textarea[data-component="Textarea"]' }, value: NEED_CHALLENGE },
+      { fill: { css: 'input[placeholder="A sentence about people or land"]' }, value: "Members earn the UN CC:Learn climate certificate" },
+      { select: { css: 'select[data-component="NativeSelect"]' }, value: { label: "Participants (people)" } },
+      { fill: { css: '[role="dialog"] input[type="number"]' }, value: "24" },
+      { click: { role: "button", name: "Add Outcome" }, wait: 1000 },
+      { fill: { css: 'input[placeholder="A sentence about people or land"]', nth: 1 }, value: "The hub runs hands-on bootcamp sessions" },
+      { select: { css: 'select[data-component="NativeSelect"]', nth: 1 }, value: { label: "Sessions delivered (sessions)" } },
+      { fill: { css: '[role="dialog"] input[type="number"]', nth: 1 }, value: "5" },
+      { click: { text: "Complicated" }, wait: 800 },
+      { shot: "needs-3", tap: { role: "button", name: "Next" } },
+      { click: { role: "button", name: "Next" }, wait: 3000, dump: "step3" },
+      { click: { text: "Workshop Delivered" }, wait: 800 },
+      { pickDate: { trigger: "#reportingPeriodStart", day: "2026-10-10" }, wait: 800 },
+      { pickDate: { trigger: "#reportingPeriodEnd", day: "2027-01-31" }, wait: 800 },
+      { shot: "needs-4", tap: { role: "button", name: "Next" } },
+      { click: { role: "button", name: "Next" }, wait: 3000, dump: "step4" },
+      { shot: "needs-5", box: { text: "Create Assessment", minHeight: 400 }, tap: { role: "button", name: "Submit Assessment" } },
     ],
-    tap: { role: "button", name: "Next" },
   },
-  "needs-3": { url: story("admin-workflows-assessment-reviewstep--in-flow-ready"), device: DESKTOP, swaps: [...ASSESSMENT, ...BASE], tap: { role: "button", name: "Submit Assessment" } },
-  "needs-4": { url: story("admin-workflows-assessment-reviewstep--in-flow-sent"), device: DESKTOP, swaps: [...ASSESSMENT, ...BASE], tap: { role: "button", name: "Done" } },
-  "needs-5": { url: story("client-garden-assessments--education"), device: PHONE, swaps: [["Gardeners learn to restore and care for their soil", NEED_TITLE], ["Oct 18, 2025 – Jan 16, 2026", "Oct 10, 2026 – Jan 31, 2027"], ...BASE] },
-
-  "promise-1": { url: story("client-commitments-gardenpool--live"), device: PHONE, banner: true, swaps: [...POOL_LIST, ...BASE], scrollTo: { text: COURSE, nth: 1, margin: 128 }, tap: { text: COURSE, nth: 1 } },
-  "promise-2": { url: story("client-commitments-promisegrouppage--open"), device: PHONE, swaps: [...PROMISE, ...BASE], tap: { role: "button", name: "Take Up One" } },
-  "promise-3": { url: story("client-commitments-takeuponesheet--ready"), device: PHONE, swaps: [...PROMISE, ...BASE], tap: { role: "button", name: "Take Up One" } },
-  "promise-4": { url: story("client-commitments-proofcomposer--details"), device: PHONE, swaps: [...PROMISE, ...BASE], tap: { role: "button", name: "Review Proof" } },
-  "promise-5": { url: story("client-commitments-confirmsheet--ask-garden-work"), device: PHONE, swaps: BASE, tap: { role: "button", name: "Confirm the Work Was Done" } },
-  "promise-6": { url: story("client-commitments-gardencommitment--kept"), device: PHONE, swaps: [...PROMISE, ...BASE] },
-
-  "work-1": { url: story("client-work-submitwork--media-with-example-photo"), device: PHONE, swaps: [...WORK, ...BASE], photos: ["record-06.jpg"], tap: { role: "button", name: "Details" } },
-  "work-2": { url: story("client-work-submitwork--review-with-example-photo"), device: PHONE, swaps: [...WORK, ...BASE], photos: ["record-06.jpg"], gardenCard: true, tap: { role: "button", name: "Upload Work" } },
-  "work-3": { url: story("client-garden-gardenwork--all-work"), device: PHONE, swaps: [...WORK_LIST, ...BASE], photos: ["record-06.jpg", "record-01.jpg", "record-04.jpg", "record-09.jpg", "record-03.jpg", "record-14.jpg"], tap: { text: "Workshop Delivered" } },
-  "work-4": { url: story("client-work-reviewwork--evaluate-example"), device: PHONE, swaps: [...WORK, ...BASE], photos: ["record-06.jpg"], gardenCard: true, tap: { role: "button", name: "Approve" } },
-  "work-5": { url: story("client-work-reviewwork--feedback-example"), device: PHONE, swaps: [...WORK, ...BASE], photos: ["record-06.jpg"], gardenCard: true, tap: { role: "button", name: "Submit" } },
-  "work-6": { url: story("client-work-workdashboard--completed-with-example-photo"), device: PHONE, swaps: [...WORK, ...WORK_DONE, ...BASE], photos: ["record-06.jpg", "record-04.jpg", "record-03.jpg"] },
-
-  "funding-1": { url: "https://greengoods.app/gardens/tas-hub", live: true, device: DESKTOP, tap: { role: "link", name: "Fund" } },
-  "funding-2": { url: "https://greengoods.app/fund", live: true, device: DESKTOP, scrollTo: { text: "TAS HUB", align: "start" }, tap: { card: "TAS HUB", role: "button", name: "Endow" } },
-  "funding-3": {
-    url: "https://greengoods.app/fund", live: true, device: DESKTOP, scrollTo: { text: "TAS HUB", align: "start" },
-    actions: [{ click: { card: "TAS HUB", role: "button", name: "Endow" } }, { fill: { css: '[role="dialog"] input' }, value: "500" }],
-    tap: { role: "button", name: "Connect Wallet" },
+  // After Submit the wallet signs; the saved state is the Storybook dialog, drawn over the real
+  // page it replaces (see `over`).
+  { id: "needs-6", device: DESKTOP, url: story("admin-workflows-assessment-reviewstep--in-flow-sent"), steps: [{ shot: "needs-6", swaps: [...ASSESSMENT, ...BASE], over: { screen: "needs-5", text: "Create Assessment", minHeight: 400 }, tap: { role: "button", name: "Done" } }] },
+  {
+    id: "needs-7", device: PHONE, url: story("client-home-gardensheets--insights-with-banner-at-390"),
+    steps: [
+      // The fixture lists a second, older assessment; the hub has only this one.
+      { remove: { text: "Gardeners learn to restore and care for their soil" }, up: 3 },
+      // Members open Insights from the hub's Home; the sheet and its scrim are drawn over the real
+      // Home (promise-1).
+      { shot: "needs-7", swaps: [...INSIGHTS, ...BASE], photos: [BANNER], over: { screen: "promise-1", text: "Insights", minHeight: 300, scrim: '[data-component="PwaSheet"]:not([role])' } },
+    ],
   },
-  "funding-4": { url: story("client-public-vault-vaultmanagepositionspanel--positions"), device: DESKTOP, swaps: [...FUNDER, ...BASE], tap: { role: "button", name: "Close Manage Endowments" } },
-  "funding-5": { url: "https://greengoods.app/gardens/tas-hub", live: true, device: DESKTOP, scrollTo: { text: "A one week content creation bootcamp with AI", align: "start", card: "img", top: 28 } },
-};
+
+  // Promise: Chiamaka opens the season from Home and takes up its request, then keeps it.
+  {
+    id: "promise-app", device: PHONE, url: HOME, app: true, swaps: PEOPLE,
+    steps: [
+      { click: { text: "TAS HUB" }, wait: 7000 },
+      { shot: "promise-1", swaps: HOME_ACTIVITY, photos: ["record-03.jpg", "record-03.jpg"], tap: { text: SEASON, card: true } },
+      { click: { text: SEASON }, wait: 3500 },
+      { shot: "promise-2", tap: { role: "button", name: "Show Its Promises" } },
+      { click: { role: "button", name: "Show Its Promises" }, wait: 7000 },
+      // As the list stood before Chiamaka took hers up: the one already waiting is hers.
+      { remove: { text: "Needs you", card: true } },
+      { shot: "promise-3", tap: { text: COURSE, card: true } },
+    ],
+  },
+  { id: "promise-4", device: PHONE, url: story("client-commitments-promisegrouppage--open"), steps: [{ shot: "promise-4", swaps: [...PROMISE, ...BASE], tap: { role: "button", name: "Take Up One" } }] },
+  { id: "promise-5", device: PHONE, url: story("client-commitments-takeuponesheet--ready"), steps: [{ shot: "promise-5", swaps: [...PROMISE, ...BASE], tap: { role: "button", name: "Take Up One" } }] },
+  {
+    id: "promise-6", device: PHONE, url: story("client-commitments-gardencommitment--in-progress"),
+    steps: [
+      // She is doing it alone, as on the record, and a course promise asks for proof, not
+      // linked garden work: the app then shows one Add Proof button and the proof line.
+      { remove: { text: /is helping/ }, up: 1 },
+      { remove: { css: 'section[data-component="CommitmentTeam"] li:nth-child(2)' } },
+      { remove: { css: '[data-component="CommitmentActionBarSecondary"]' } },
+      { shot: "promise-6", swaps: [...PROOF_BAND, ...PROMISE, ...BASE], tap: { role: "button", name: "Add Proof" } },
+    ],
+  },
+  {
+    id: "promise-7", device: PHONE, url: story("client-commitments-proofcomposer--media-added"),
+    steps: [
+      // The story's remove buttons are inert, so its second photo and voice note go here.
+      { script: () => { document.querySelector('img[alt="Uploaded 2"]')?.closest("div.relative")?.remove(); document.querySelector('[aria-label="Delete audio"]')?.parentElement?.parentElement?.remove(); } },
+      { shot: "promise-7", swaps: [...PROMISE, ...BASE], photos: ["proof-course.jpg"], tap: { role: "button", name: "Details" } },
+    ],
+  },
+  {
+    id: "promise-8", device: PHONE, url: story("client-commitments-proofcomposer--details"),
+    steps: [
+      { remove: { text: "dele", whole: true }, up: 2 },
+      { remove: { css: 'button[aria-label^="Remove link"], [title="https://riverside-commons.example/receipts/fence-posts"]' }, up: 1 },
+      { shot: "promise-8", swaps: [...PROMISE, ...BASE], tap: { role: "button", name: "Review Proof" } },
+    ],
+  },
+  {
+    id: "promise-9", device: PHONE, url: story("client-commitments-proofcomposer--review-send"),
+    steps: [
+      {
+        script: () => {
+          const audio = [...document.querySelectorAll("h3")].find((h) => h.textContent.trim() === "Audio notes");
+          audio?.nextElementSibling?.remove();
+          audio?.remove();
+          document.querySelector('img[alt="Proof photo 2"]')?.closest('[role="group"]')?.remove();
+          [...document.querySelectorAll(".gg-card")].find((card) => card.textContent.trim().startsWith("Links"))?.remove();
+          document.querySelector('img[alt="Proof photo 1"]')?.style.setProperty("object-position", "8% 50%");
+        },
+      },
+      { shot: "promise-9", swaps: [["dele", "", 0, true], [",", "", undefined, true], ["dele", "chiamaka", undefined, true], ...PROMISE, ...BASE], photos: ["proof-course.jpg"], tap: { role: "button", name: "Add and Send" } },
+    ],
+  },
+  {
+    id: "promise-steward", device: PHONE, url: `${APP}/home/${TAS}/commitments/19?mockAuth=deployer&presentation=pwa`, app: true, ready: "Progress and proof", swaps: PEOPLE,
+    steps: [
+      { shot: "promise-10", photos: ["proof-course.jpg"], tap: { role: "button", name: "Confirm It Was Kept" } },
+      { click: { role: "button", name: "Confirm It Was Kept" }, wait: 3000, dump: "confirm" },
+      { shot: "promise-11", photos: ["proof-course.jpg", "proof-course.jpg"], tap: { role: "button", name: "Confirm the Help Arrived", within: '[role="dialog"]' } },
+    ],
+  },
+  {
+    id: "promise-12", device: PHONE, url: story("client-commitments-gardencommitment--kept"),
+    steps: [
+      { remove: { text: /is helping/ }, up: 1 },
+      { remove: { css: 'section[data-component="CommitmentTeam"] li:nth-child(2)' } },
+      { shot: "promise-12", swaps: [["No approved work yet · no proof yet", "No approved work yet · 1 proof"], ...PROMISE, ...BASE] },
+    ],
+  },
+
+  // Work: Ifeoma logs the bootcamp from TAS HUB's Home.
+  {
+    id: "work-app", device: PHONE, url: HOME, app: true, swaps: PEOPLE,
+    steps: [
+      { click: { text: "TAS HUB" }, wait: 7000 },
+      { shot: "work-1", swaps: HOME_ACTIVITY, photos: ["record-03.jpg", "record-03.jpg"], tap: { role: "link", name: "Garden" } },
+      { click: { role: "link", name: "Garden" }, wait: 7000 },
+      // The hub's node log leads the Solar actions; the pitch leaves the node out.
+      { remove: { text: "Node Operation Log", card: true } },
+      { shot: "work-2", tap: { text: "Education" } },
+      { click: { text: "Education" }, wait: 3000 },
+      { reveal: { text: "Workshop Delivered" } },
+      { shot: "work-3", tap: { text: "Workshop Delivered", card: true } },
+      { click: { text: "Workshop Delivered" }, wait: 3000 },
+      { shot: "work-4", tap: { role: "button", name: "Start Gardening" } },
+      { click: { role: "button", name: "Start Gardening" }, wait: 5000 },
+      { shot: "work-5", tap: { role: "button", name: "Choose from Your Photos" } },
+      { files: "#work-media-upload", photos: ["record-06.jpg", "record-07.jpg", "record-04.jpg"], wait: 9000 },
+      { shot: "work-6", tap: { role: "button", name: "Details" } },
+      { click: { role: "button", name: "Details" }, wait: 4000 },
+      { fill: { css: "#timeSpentMinutes" }, value: "20" },
+      { fill: { css: "#deliveredDurationMin" }, value: "1200" },
+      { fill: { css: "#facilitators" }, value: "2" },
+      { click: { text: "Impact measurement" }, wait: 400 },
+      { click: { text: "Other" }, wait: 400 },
+      { fill: { css: "#feedback" }, value: BOOTCAMP_NOTE },
+      { scroll: 0 },
+      { shot: "work-7", tap: { role: "button", name: "Review Work" } },
+      { click: { role: "button", name: "Review Work" }, wait: 5000 },
+      { shot: "work-8", tap: { role: "button", name: "Upload Work" } },
+    ],
+  },
+  {
+    id: "work-steward", device: PHONE, url: HOME, app: true, swaps: PEOPLE,
+    steps: [
+      { click: { text: "TAS HUB" }, wait: 7000 },
+      // The bootcamp entry carries three photos.
+      {
+        script: () => {
+          // The smallest element around the pending row's title (under Recent Activity, not the
+          // highlight card) that also holds its photo count.
+          const leaves = [...document.querySelectorAll("body *")].filter((el) => el.children.length === 0);
+          const below = leaves.find((el) => el.textContent.trim() === "Recent Activity")?.getBoundingClientRect().top ?? 0;
+          const title = leaves.find((el) => el.textContent.trim() === "Node Operation Log" && el.getBoundingClientRect().top > below);
+          for (let row = title?.parentElement; row; row = row.parentElement) {
+            const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+            let count = null;
+            while (walker.nextNode()) if (walker.currentNode.nodeValue.trim() === "1") { count = walker.currentNode; break; }
+            if (count) { count.nodeValue = count.nodeValue.replace("1", "3"); break; }
+          }
+        },
+      },
+      { shot: "work-9", swaps: HOME_REVIEW, photos: ["record-06.jpg", "record-06.jpg"], tap: { text: "Workshop Delivered", nth: 1, card: true } },
+    ],
+  },
+  { id: "work-10", device: PHONE, url: story("client-work-reviewwork--evaluate-example"), steps: [{ shot: "work-10", swaps: [...WORK, ...BASE], photos: ["record-06.jpg"], gardenCard: true, tap: { role: "button", name: "Approve" } }] },
+  { id: "work-11", device: PHONE, url: story("client-work-reviewwork--feedback-example"), steps: [{ shot: "work-11", swaps: [...WORK, ...BASE], photos: ["record-06.jpg"], gardenCard: true, tap: { role: "button", name: "Submit" } }] },
+  {
+    id: "work-12", device: DESKTOP, url: `${APP}/gardens/tas-hub`, app: true, live: true, swaps: PEOPLE,
+    steps: [{ scrollTo: { text: "A one week content creation bootcamp with AI", align: "start", card: "img", top: 28 } }, { shot: "work-12" }],
+  },
+
+  // Funding: Funmi finds the hub's public page and endows it.
+  {
+    id: "funding-app", device: DESKTOP, url: `${APP}/gardens/tas-hub`, app: true, live: true, swaps: PEOPLE,
+    steps: [
+      // "Support This Garden" closes the hub's page, under its stewards.
+      { scroll: 99999, wait: 2500 },
+      { shot: "funding-1", tap: { role: "link", name: "Support This Garden" } },
+      { click: { role: "link", name: "Support This Garden" }, wait: 7000 },
+      { shot: "funding-2", tap: { card: "TAS HUB", role: "button", name: "Endow" } },
+      { click: { card: "TAS HUB", role: "button", name: "Endow" }, wait: 3500 },
+      { fill: { css: '[role="dialog"] input' }, value: "500" },
+      { shot: "funding-3", box: { text: "Endow to", minHeight: 150 }, tap: { role: "button", name: "Connect Wallet" } },
+    ],
+  },
+  // Once a wallet is connected: the Storybook dialog states, drawn over the real Fund page.
+  {
+    id: "funding-4", device: DESKTOP, url: story("public-documentation-funding--endow"),
+    steps: [
+      // The app lists WETH before DAI (funding-3); the story lists DAI first.
+      {
+        script: () => {
+          const button = (label) => [...document.querySelectorAll("button")].find((b) => [...b.querySelectorAll("*")].some((el) => el.children.length === 0 && el.textContent.trim() === label));
+          const [dai, weth] = [button("DAI"), button("WETH")];
+          if (dai && weth && dai.compareDocumentPosition(weth) & Node.DOCUMENT_POSITION_FOLLOWING) weth.after(dai);
+        },
+      },
+      { shot: "funding-4", swaps: [...ENDOW, ...BASE], over: { screen: "funding-3", text: "Endow to", minHeight: 150 }, tap: { role: "button", name: "Endow $500.00 in DAI" } },
+    ],
+  },
+  { id: "funding-5", device: DESKTOP, url: story("public-documentation-funding--endowed"), steps: [{ shot: "funding-5", swaps: [...ENDOW, ...BASE], over: { screen: "funding-3", text: "Endow to", minHeight: 150 }, tap: { role: "button", name: "Close" } }] },
+  {
+    id: "funding-6", device: DESKTOP, url: `${APP}/gardens/tas-hub`, app: true, live: true, swaps: PEOPLE,
+    steps: [{ scrollTo: { text: "Recent approved submissions", align: "start", top: 48 } }, { shot: "funding-6" }],
+  },
+];
 
 function locate(page, spec) {
-  let scope = page;
-  if (spec.card) scope = page.locator("article, li, section > div, div").filter({ hasText: spec.card }).filter({ has: page.getByRole(spec.role, { name: spec.name, exact: true }) }).last();
-  if (spec.css) return scope.locator(spec.css).first();
+  let scope = spec.within ? page.locator(spec.within).last() : page;
+  if (spec.card && spec.role) scope = page.locator("article, li, section > div, div").filter({ hasText: spec.card }).filter({ has: page.getByRole(spec.role, { name: spec.name, exact: true }) }).last();
+  if (spec.css) return scope.locator(spec.css).nth(spec.nth ?? 0);
   if (spec.label) return scope.getByLabel(spec.label).first();
   if (spec.role) return scope.getByRole(spec.role, { name: spec.name, exact: true }).first();
+  const text = scope.getByText(spec.text, { exact: true }).nth(spec.nth ?? 0);
   // A row or card that opens something: the nearest pressable ancestor of its text.
-  return scope.getByText(spec.text, { exact: true }).nth(spec.nth ?? 0)
-    .locator("xpath=ancestor-or-self::*[self::button or self::a or @role='button' or @role='link' or @data-pressable][1]");
+  return spec.card ? text.locator("xpath=ancestor-or-self::*[self::button or self::a or @role='button' or @role='link' or @role='radio' or @data-pressable][1]") : text;
 }
 
 async function hotspotBox(page, spec) {
@@ -218,7 +412,7 @@ async function hotspotBox(page, spec) {
 }
 
 async function applySwaps(page, swaps, withNth) {
-  return page.evaluate(({ rules, withNth }) => {
+  return page.evaluate(({ rules, withNth, names }) => {
     const hits = rules.map(() => 0);
     const seen = rules.map(() => 0);
     // A rule with `nth` counts only text a person can see (not, say, a closed select's options),
@@ -236,7 +430,12 @@ async function applySwaps(page, swaps, withNth) {
         v = whole ? v.replace(from, to) : v.split(from).join(to);
         hits[i] += 1;
       });
-      return v;
+      // A shortened address becomes the same invented handle wherever it appears.
+      return v.replace(/0x[0-9a-fA-F]{2,8}\.{2,3}[0-9a-fA-F]{2,8}/g, (address) => {
+        let h = 0;
+        for (const ch of address.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+        return names[h % names.length];
+      });
     };
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const nodes = [];
@@ -257,7 +456,7 @@ async function applySwaps(page, swaps, withNth) {
       }
     }
     return hits;
-  }, { rules: swaps, withNth });
+  }, { rules: swaps, withNth, names: ADDRESS_NAMES });
 }
 
 // The garden page's header photo.
@@ -265,26 +464,27 @@ async function swapBanner(page, src) {
   return page.evaluate(async (src) => {
     const imgs = [...document.querySelectorAll("img")].filter((img) => {
       const r = img.getBoundingClientRect();
-      return r.top < 40 && r.width > 300 && r.height > 100;
+      return r.top < 120 && r.width > 300 && r.height > 100;
     });
     for (const img of imgs) {
       img.closest("picture")?.querySelectorAll("source").forEach((s) => s.remove());
       img.removeAttribute("srcset");
       img.removeAttribute("sizes");
       img.src = src;
-      img.alt = "TAS Hub in Awka";
+      img.alt = "TAS HUB in Awka";
       await img.decode().catch(() => {});
     }
     return imgs.length;
   }, src);
 }
 
-// Content photos in page order: every image at least 60px wide that is not the header banner.
+// Content photos in page order: every image at least 60px wide that is not a header banner. A
+// null in the list keeps that image.
 async function swapPhotos(page, sources) {
   return page.evaluate(async (sources) => {
     const imgs = [...document.querySelectorAll("img")].filter((img) => {
       const r = img.getBoundingClientRect();
-      return r.width >= 60 && !(r.top < 40 && r.width > 300);
+      return r.width >= 60 && r.height >= 40 && !(r.top < 120 && r.width > 300);
     });
     let swapped = 0;
     for (const [i, img] of imgs.entries()) {
@@ -318,16 +518,27 @@ async function swapGardenCard(page, src) {
   }, src);
 }
 
+// Hides an element the hub's record does not have: the located element, `up` levels above it, or
+// its nearest pressable ancestor with `card`. Hidden rather than removed, so the app's own later
+// updates still find their nodes.
+async function removeTarget(page, spec, up) {
+  const target = spec.whole ? page.getByText(spec.text, { exact: true }).first() : locate(page, spec);
+  if (!(await target.count())) return false;
+  await target.first().evaluate((el, up) => {
+    let node = el;
+    for (let i = 0; i < up && node.parentElement; i += 1) node = node.parentElement;
+    node.style.setProperty("display", "none", "important");
+  }, up ?? 0);
+  return true;
+}
+
 async function scrollTarget(page, spec) {
   let target = spec.card === "img" ? page.getByText(spec.text, { exact: true }).nth(spec.nth ?? 0) : locate(page, spec);
   if (!(await target.count()) && spec.text) target = page.getByText(spec.text, { exact: true }).nth(spec.nth ?? 0);
-  await target.waitFor({ state: "attached", timeout: 30000 });
+  await target.waitFor({ state: "attached", timeout: 60000 });
   // Twice, since images that load after the first scroll can move the target.
   for (let pass = 0; pass < 2; pass += 1) {
     await target.evaluate((el, { align, margin, card, top }) => {
-      // Scroll the nearest scrolling ancestor (or the page) so the target sits inside the screen:
-      // its top `top` px below the top edge, or its bottom `margin` above the bottom edge. With
-      // `card: "img"` the target is the card holding the text and its photo, aligned by the photo.
       if (card === "img") { let c = el; while (c && !c.querySelector("img")) c = c.parentElement; el = c?.querySelector("img") || el; }
       let box = el.parentElement;
       while (box && !(box.scrollHeight > box.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(box).overflowY))) box = box.parentElement;
@@ -340,88 +551,212 @@ async function scrollTarget(page, spec) {
   }
 }
 
-async function capture(browser, file, shot) {
-  const { width, height, scale } = shot.device;
-  const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale, colorScheme: "light", reducedMotion: "reduce" });
+// Opens a date picker and pages its calendar to `day` (YYYY-MM-DD), then picks it.
+async function pickDate(page, { trigger, day }) {
+  await page.locator(trigger).click();
+  const popover = page.locator('[data-component="DatePickerPopover"]').last();
+  await popover.waitFor({ timeout: 10000 });
+  for (let turn = 0; turn < 24; turn += 1) {
+    const cell = popover.locator(`td[data-day="${day}"] button`);
+    if (await cell.count()) { await cell.first().click(); return; }
+    const shown = await popover.locator("td[data-day]").evaluateAll((cells) => cells.map((c) => c.getAttribute("data-day")).sort()[15]);
+    await popover.getByRole("button", { name: shown < day ? "Go to the Next Month" : "Go to the Previous Month" }).click();
+    await page.waitForTimeout(250);
+  }
+  throw new Error(`no ${day} in the date picker`);
+}
+
+async function waitReady(page, session) {
+  if (session.ready) { await page.getByText(session.ready).first().waitFor({ timeout: 900000 }); return; }
+  if (!session.app) { await page.waitForSelector("#storybook-root > *", { timeout: 120000 }); return; }
+  await page.waitForFunction(() => (document.getElementById("root")?.childElementCount ?? 0) > 0 && document.getElementById("boot-fallback")?.hidden !== false, null, { timeout: 900000, polling: 1000 });
+}
+
+async function shoot(page, session, step, width, height) {
+  const banner = photo(BANNER);
+  if (step.banner || step.gardenCard) {
+    if (!banner) note(`${step.shot}: ${BANNER} is missing; place it per README`);
+    else if (step.banner && !(await swapBanner(page, banner))) note(`${step.shot}: no banner image found to swap`);
+    else if (step.gardenCard && !(await swapGardenCard(page, banner))) note(`${step.shot}: no garden card pattern found to swap`);
+  }
+  if (step.photos) {
+    const sources = step.photos.map((name) => (name ? photo(name) : null));
+    step.photos.forEach((name, i) => { if (name && !sources[i]) note(`${step.shot}: ${name} is missing; run photos.mjs`); });
+    const { swapped, found } = await swapPhotos(page, sources);
+    const wanted = step.photos.filter(Boolean).length;
+    if (swapped !== wanted) note(`${step.shot}: ${found} content photos on screen, ${swapped} swapped, ${wanted} listed`);
+  }
+  const swaps = [...(step.swaps || []), ...(session.swaps || [])];
+  const hits = swaps.map(() => 0);
+  const swap = async (withNth) => (await applySwaps(page, swaps, withNth)).forEach((n, i) => { hits[i] += n; });
+  await swap(true);
+  await page.waitForTimeout(600);
+  await swap(false);
+  await page.evaluate(() => document.activeElement?.blur?.());
+  await page.mouse.move(1, 1);
+  await page.waitForTimeout(400);
+  swaps.forEach(([from, to], i) => { swapHits.set(`${from} → ${to}`, (swapHits.get(`${from} → ${to}`) || 0) + hits[i]); });
+  const text = await page.evaluate(() => document.body.innerText);
+  if (!session.live) for (const word of LEFTOVERS) if (word.test(text)) note(`${step.shot}: fixture text ${word} is still visible`);
+  for (const name of new Set(text.match(/\b[\w-]+\.eth\b/g) || [])) if (!INVENTED.has(name)) note(`${step.shot}: the name ${name} is on screen`);
+  if (debug) console.log(`--- ${step.shot}\n${(await page.evaluate(() => document.body.innerText)).slice(0, 2500)}`);
+  let hotspot = null;
+  if (step.tap) {
+    const box = await hotspotBox(page, step.tap);
+    if (!box) note(`${step.shot}: hotspot target ${JSON.stringify(step.tap)} not found`);
+    else if (box.x < 0 || box.y < 0 || box.x + box.width > width + 1 || box.y + box.height > height + 1) note(`${step.shot}: hotspot target is outside the screen (${JSON.stringify(box)})`);
+    else hotspot = [box.x / width, box.y / height, box.width / width, box.height / height].map((v) => Math.round(v * 10000) / 10000);
+  }
+  const file = join(out, `${step.shot}.jpg`);
+  if (step.over) hotspot = await composeOver(page, session, step, file, hotspot);
+  else await page.screenshot({ path: file, type: "jpeg", quality: 82 });
+  // A screen a Storybook dialog will be drawn over: where its dialog sits, and the same screen
+  // without that dialog (backdrop kept), saved beside it as <shot>-bare.jpg.
+  if (step.box) {
+    const box = await markPanel(page, step.box);
+    if (!box) note(`${step.shot}: no dialog around "${step.box.text}" to record`);
+    else {
+      saveBox(step.shot, box);
+      const hide = await page.addStyleTag({ content: "[data-demo-panel], [data-demo-panel] * { visibility: hidden !important; }" });
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: join(out, `${step.shot}-bare.jpg`), type: "jpeg", quality: 82 });
+      await hide.evaluate((el) => el.remove());
+    }
+  }
+  const source = session.url.includes("design.greengoods.app") ? session.url.split("id=")[1] : session.url.replace(/\?.*$/, "").replace(APP, "app").replace(ADMIN, "dashboard");
+  console.log(`${step.shot}.jpg  ${source}${step.over ? ` over ${step.over.screen}` : ""}`);
+  results.set(step.shot, { story: source, width, height, hotspot });
+}
+
+const boxesPath = join(out, "boxes.json");
+const readBoxes = () => (existsSync(boxesPath) ? JSON.parse(readFileSync(boxesPath, "utf8")) : {});
+function saveBox(shot, box) { writeFileSync(boxesPath, JSON.stringify({ ...readBoxes(), [shot]: box }, null, 2)); }
+
+// The visible panel of a dialog or sheet: the nearest opaque ancestor, at least `minHeight` tall
+// and smaller than the whole screen, of the last element whose own text is `text`. It is marked
+// data-demo-panel so a style can single it out.
+async function markPanel(page, { text, minHeight = 120 }) {
+  return page.evaluate(({ text, minHeight }) => {
+    document.querySelectorAll("[data-demo-panel]").forEach((el) => el.removeAttribute("data-demo-panel"));
+    const owners = [...document.querySelectorAll("body *")].filter((el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim() === text));
+    for (const owner of owners.reverse()) {
+      for (let el = owner; el && el !== document.body; el = el.parentElement) {
+        const bg = getComputedStyle(el).backgroundColor;
+        const alpha = bg.startsWith("rgba") ? Number(bg.match(/[\d.]+/g)[3]) : 1;
+        const r = el.getBoundingClientRect();
+        const fullScreen = r.width >= window.innerWidth - 2 && r.height >= window.innerHeight - 2;
+        if (bg !== "transparent" && alpha > 0.95 && r.height >= minHeight && !fullScreen) {
+          el.setAttribute("data-demo-panel", "");
+          return { x: r.x, y: r.y, width: r.width, height: r.height };
+        }
+      }
+    }
+    return null;
+  }, { text, minHeight });
+}
+
+// Cuts the story's dialog panel out (everything else hidden, the page transparent) and draws it on
+// the real screen it follows, with that screen's own dialog taken out, centred where that dialog
+// was. Returns the hotspot moved with it.
+async function composeOver(page, session, step, file, hotspot) {
+  const { width, height, scale } = session.device;
+  if (step.over.scrim) return composeSheet(page, session, step, file, hotspot);
+  const under = join(out, `${step.over.screen}-bare.jpg`);
+  const ubox = readBoxes()[step.over.screen];
+  const sbox = await markPanel(page, step.over);
+  if (!existsSync(under) || !ubox || !sbox) { note(`${step.shot}: cannot draw over ${step.over.screen}; capture it first`); return hotspot; }
+  await page.addStyleTag({ content: "html, body { background: transparent !important; } body * { visibility: hidden !important; } [data-demo-panel], [data-demo-panel] * { visibility: visible !important; }" });
+  await page.waitForTimeout(300);
+  const clip = await page.screenshot({ type: "png", omitBackground: true, clip: sbox });
+  const left = ubox.x + (ubox.width - sbox.width) / 2;
+  const top = ubox.y + (ubox.height - sbox.height) / 2;
+  const canvas = await page.context().browser().newPage({ viewport: { width, height }, deviceScaleFactor: scale });
+  await canvas.setContent(`<body style="margin:0"><img src="data:image/jpeg;base64,${readFileSync(under).toString("base64")}" style="position:absolute;inset:0;width:${width}px;height:${height}px"><img src="data:image/png;base64,${clip.toString("base64")}" style="position:absolute;left:${left}px;top:${top}px;width:${sbox.width}px;height:${sbox.height}px"></body>`);
+  await canvas.evaluate(() => Promise.all([...document.images].map((img) => img.decode())));
+  await canvas.screenshot({ path: file, type: "jpeg", quality: 82 });
+  await canvas.close();
+  if (!hotspot) return hotspot;
+  const [x, y, w, h] = hotspot;
+  return [x + (left - sbox.x) / width, y + (top - sbox.y) / height, w, h].map((v) => Math.round(v * 10000) / 10000);
+}
+
+// A sheet that opens over a screen with no dialog of its own: the story's sheet and its scrim, in
+// place, drawn over that whole screen.
+async function composeSheet(page, session, step, file, hotspot) {
+  const { width, height, scale } = session.device;
+  const under = join(out, `${step.over.screen}.jpg`);
+  if (!existsSync(under) || !(await markPanel(page, step.over))) { note(`${step.shot}: cannot draw over ${step.over.screen}; capture it first`); return hotspot; }
+  await page.addStyleTag({ content: `html, body { background: transparent !important; } body * { visibility: hidden !important; } ${step.over.scrim} { visibility: visible !important; } [data-demo-panel], [data-demo-panel] * { visibility: visible !important; }` });
+  await page.waitForTimeout(300);
+  const layer = await page.screenshot({ type: "png", omitBackground: true });
+  const canvas = await page.context().browser().newPage({ viewport: { width, height }, deviceScaleFactor: scale });
+  await canvas.setContent(`<body style="margin:0"><img src="data:image/jpeg;base64,${readFileSync(under).toString("base64")}" style="position:absolute;inset:0;width:${width}px;height:${height}px"><img src="data:image/png;base64,${layer.toString("base64")}" style="position:absolute;inset:0;width:${width}px;height:${height}px"></body>`);
+  await canvas.evaluate(() => Promise.all([...document.images].map((img) => img.decode())));
+  await canvas.screenshot({ path: file, type: "jpeg", quality: 82 });
+  await canvas.close();
+  return hotspot;
+}
+
+async function runSession(browser, session) {
+  const { width, height, scale } = session.device;
+  const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale, colorScheme: "light", reducedMotion: "reduce", ignoreHTTPSErrors: true, serviceWorkers: "block" });
   const page = await context.newPage();
   try {
-    await page.goto(shot.url, { waitUntil: "networkidle", timeout: 90000 });
-    if (!shot.live) await page.waitForSelector("#storybook-root > *", { timeout: 60000 });
+    await page.goto(session.url, { waitUntil: "domcontentloaded", timeout: 900000 });
+    await waitReady(page, session);
     await page.evaluate(() => document.fonts.ready);
-    await page.waitForTimeout(shot.live ? 6000 : 3000);
-    const banner = photo(BANNER);
-    if (shot.banner || shot.gardenCard) {
-      if (!banner) console.log(`  ${file}: ${BANNER} is not present locally; the fixture banner stays`);
-      else if (shot.banner && !(await swapBanner(page, banner))) note(`${file}: no banner image found to swap`);
-      else if (shot.gardenCard && !(await swapGardenCard(page, banner))) note(`${file}: no garden card pattern found to swap`);
+    await page.waitForTimeout(session.app ? 5000 : 3000);
+    for (const step of session.steps) {
+      if (step.shot) { await shoot(page, session, step, width, height); continue; }
+      if (step.click) await locate(page, step.click).click({ timeout: 60000, force: Boolean(step.force) });
+      if (step.fill) await locate(page, step.fill).fill(step.value, { timeout: 30000 });
+      if (step.select) await locate(page, step.select).selectOption(step.value, { timeout: 30000 });
+      if (step.files) await page.locator(step.files).first().setInputFiles(step.photos.map((name) => join(PHOTOS, name)));
+      if (step.pickDate) await pickDate(page, step.pickDate);
+      if (step.reveal) await locate(page, step.reveal).evaluate((el) => el.scrollIntoView({ block: "nearest", inline: "center" }));
+      if (step.remove && !(await removeTarget(page, step.remove, step.up))) note(`${session.id}: nothing to remove for ${JSON.stringify(step.remove)}`);
+      if (step.script) await page.evaluate(step.script);
+      if (step.scrollTo) await scrollTarget(page, step.scrollTo);
+      if (step.scroll !== undefined) await page.evaluate((y) => window.scrollTo(0, y), step.scroll);
+      await page.waitForTimeout(step.wait ?? 600);
+      if (step.dump && debug) writeFileSync(join(out, `${session.id}-${step.dump}.txt`), await page.evaluate(() => document.body.innerText));
     }
-    if (shot.photos) {
-      const sources = shot.photos.map(photo);
-      shot.photos.forEach((name, i) => { if (!sources[i]) note(`${file}: ${name} is missing; run README's photo step`); });
-      const { swapped, found } = await swapPhotos(page, sources);
-      if (swapped !== shot.photos.length || found !== shot.photos.length) note(`${file}: ${found} content photos on screen, ${swapped} swapped, ${shot.photos.length} listed`);
-    }
-    // Swap first so scroll and hotspot targets can name the demo copy, then again after the
-    // scroll, the actions and a short wait, in case a re-render restored fixture text.
-    const hits = (shot.swaps || []).map(() => 0);
-    const swap = async (withNth) => { if (shot.swaps) (await applySwaps(page, shot.swaps, withNth)).forEach((n, i) => { hits[i] += n; }); };
-    await swap(true);
-    if (shot.scrollTo) { await scrollTarget(page, shot.scrollTo); await page.waitForTimeout(shot.live ? 3000 : 800); }
-    for (const action of shot.actions || []) {
-      const target = locate(page, action.click || action.fill);
-      if (action.click) await target.click({ force: true, timeout: 15000 });
-      if (action.fill) await target.fill(action.value, { timeout: 15000 });
-      await page.waitForTimeout(shot.live ? 2500 : 700);
-    }
-    await page.waitForTimeout(500);
-    await swap(false);
-    await page.evaluate(() => document.activeElement?.blur?.());
-    await page.mouse.move(1, 1);
-    await page.waitForTimeout(400);
-    (shot.swaps || []).forEach(([from, to], i) => { swapHits.set(`${from} → ${to}`, (swapHits.get(`${from} → ${to}`) || 0) + hits[i]); });
-    const used = (shot.swaps || []).filter((_, i) => hits[i] > 0).map(([from, to]) => `${from} → ${to}`);
-    if (!shot.live) {
-      const text = await page.evaluate(() => document.body.innerText);
-      for (const word of LEFTOVERS) if (word.test(text)) note(`${file}: fixture text ${word} is still visible`);
-    }
-    let hotspot = null;
-    if (shot.tap) {
-      const box = await hotspotBox(page, shot.tap);
-      if (!box) note(`${file}: hotspot target ${JSON.stringify(shot.tap)} not found`);
-      else if (box.x < 0 || box.y < 0 || box.x + box.width > width + 1 || box.y + box.height > height + 1) note(`${file}: hotspot target is outside the screen (${JSON.stringify(box)})`);
-      else hotspot = [box.x / width, box.y / height, box.width / width, box.height / height].map((v) => Math.round(v * 10000) / 10000);
-    }
-    await page.screenshot({ path: join(out, `${file}.jpg`), type: "jpeg", quality: 82 });
-    console.log(`${file}.jpg  ${shot.live ? shot.url : shot.url.split("id=")[1]}${used.length ? `\n    swaps: ${used.join(" | ")}` : ""}`);
-    return { story: shot.live ? shot.url : shot.url.split("id=")[1], width, height, hotspot };
+  } catch (error) {
+    note(`${session.id}: ${error.message.split("\n")[0]}`);
+    await page.screenshot({ path: join(out, `${session.id}-failed.png`) }).catch(() => {});
+    if (debug) writeFileSync(join(out, `${session.id}-failed.txt`), await page.evaluate(() => document.body.innerText).catch(() => ""));
   } finally {
     await context.close();
   }
 }
 
-// Captures run four at a time; each writes its own file, then the #flows block is updated once.
+// Storybook sessions run three at a time; the app sessions one at a time, since the dev servers
+// share one busy machine. Then the #flows block is updated once.
 let html = readFileSync(htmlPath, "utf8");
 const block = html.match(/<script type="application\/json" id="flows">([\s\S]*?)<\/script>/);
 if (!block) throw new Error("index.html has no #flows JSON block");
 const data = JSON.parse(block[1]);
 const screens = data.flows.flatMap((flow) => flow.screens);
-for (const s of screens) if (!SHOTS[s.file]) note(`index.html lists ${s.file}, which has no capture recipe`);
-for (const file of Object.keys(SHOTS)) if (!screens.some((s) => s.file === file)) note(`capture recipe ${file} is not in index.html`);
-const queue = screens.filter((s) => SHOTS[s.file] && (!only.length || only.includes(s.file)));
-const browser = await pw.chromium.launch();
+const shots = SESSIONS.flatMap((s) => s.steps.filter((st) => st.shot).map((st) => st.shot));
+for (const s of screens) if (!shots.includes(s.file)) note(`index.html lists ${s.file}, which no session captures`);
+for (const file of shots) if (!screens.some((s) => s.file === file)) note(`a session captures ${file}, which index.html does not list`);
+const selected = SESSIONS.filter((s) => !only.length || only.includes(s.id));
 const results = new Map();
 const swapHits = new Map();
-await Promise.all(Array.from({ length: 4 }, async () => {
-  while (queue.length) {
-    const s = queue.shift();
-    try { results.set(s.file, await capture(browser, s.file, SHOTS[s.file])); }
-    catch (error) { note(`${s.file}: ${error.message.split("\n")[0]}`); }
-  }
-}));
+const browser = await pw.chromium.launch();
+const drawnOver = (s) => s.steps.some((st) => st.over);
+const stories = selected.filter((s) => !s.app && !drawnOver(s));
+const apps = selected.filter((s) => s.app);
+await Promise.all([
+  (async () => { for (const s of apps) await runSession(browser, s); })(),
+  ...Array.from({ length: 3 }, async () => { while (stories.length) await runSession(browser, stories.shift()); }),
+]);
+for (const s of selected.filter(drawnOver)) await runSession(browser, s);
 await browser.close();
-// A rule that never matched on any screen it was listed for is stale (shared hub and people
-// rules excepted, since each screen shows only some of them).
-if (!only.length) for (const [pair, n] of swapHits) if (!n && !BASE.some(([f, t]) => `${f} → ${t}` === pair)) note(`swap "${pair}" matched nothing`);
+// A rule that never matched on any screen it was listed for is stale (shared rules excepted,
+// since each screen shows only some of them).
+const shared = [...BASE, ...PEOPLE, ...PROMISE].map(([f, t]) => `${f} → ${t}`);
+if (!only.length) for (const [pair, n] of swapHits) if (!n && !shared.includes(pair)) note(`swap "${pair}" matched nothing`);
 for (const s of screens) {
   const r = results.get(s.file);
   if (!r) continue;

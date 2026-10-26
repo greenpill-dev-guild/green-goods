@@ -41,4 +41,26 @@ for (const [i, card] of cards.entries()) {
 }
 writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
 console.log(`saved ${rows.length} photos into ${out}`);
+
+// The proof on the hub's one course promise that is waiting to be confirmed: a photo of the
+// course's final assessment. The photo also shows the member's browser profile menu with their
+// name and email, so only the assessment panel is kept, as proof-course.jpg.
+const PROOF = "https://greengoods.mypinata.cloud/ipfs/bafkreie3p3ji5l7lufiocgkdswktr2rj7tiptklzd3cdnkx6ifvk4bjzvi";
+const proof = await page.request.get(PROOF);
+if (!proof.ok()) console.log(`skipped the course proof: ${proof.status()}`);
+else {
+  const cropped = await page.evaluate(async (src) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    // The 1280x720 photo: the assessment panel sits left of the profile menu (x 882 and right)
+    // and below the tab and address bars (y 140 and up).
+    const [sx, sy, sw, sh] = [140, 140, 735, 500];
+    const canvas = Object.assign(document.createElement("canvas"), { width: sw, height: sh });
+    canvas.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    return canvas.toDataURL("image/jpeg", 0.9);
+  }, `data:image/jpeg;base64,${(await proof.body()).toString("base64")}`);
+  writeFileSync(join(out, "proof-course.jpg"), Buffer.from(cropped.split(",")[1], "base64"));
+  console.log("saved proof-course.jpg");
+}
 await browser.close();
