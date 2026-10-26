@@ -10,7 +10,7 @@ import {
   useDashboardNavigation,
   useDashboardRestoration,
 } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication/Offline/OfflineIndicator";
 import { InstallNudge } from "@/components/Communication/Offline/InstallNudge";
@@ -70,8 +70,7 @@ export default function AppShell() {
   useDashboardRestoration();
   // The queue's failure toast opens Your Work on Pending, where the active garden's uploads are
   // listed, or Home's switcher for an upload waiting in another garden.
-  const { openWork, openGardenSwitcher } = useDashboardNavigation();
-  const openYourWork = useCallback(() => openWork("pending", "all"), [openWork]);
+  const { openYourWork, openGardenSwitcher } = useDashboardNavigation();
   const primaryAddress = usePrimaryAddress();
   useWalletNetworkAlignment();
 

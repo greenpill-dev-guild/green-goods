@@ -481,11 +481,12 @@ describe("providers/JobQueueProvider", () => {
 
       // Garden B's Your Work lists it, which the chip shows only once it switches there.
       await emit(failed("work", "0xgardenb"));
+      // It offers the switcher, never Review: Your Work lists the active garden's uploads only.
       expect(queueToasts.jobFailed).toHaveBeenLastCalledWith(
         "work",
         "network",
         { gardenName: "Vida Verde", openSwitcher: expect.any(Function) },
-        onOpenYourWork
+        undefined
       );
       queueToasts.jobFailed.mock.lastCall?.[2]?.openSwitcher();
       expect(onOpenGardenSwitcher).toHaveBeenCalledOnce();
@@ -517,7 +518,7 @@ describe("providers/JobQueueProvider", () => {
       const emit = listen();
       activeGarden.gardens = "loading";
       const { rerender } = renderHook(() => useJobQueue(), {
-        wrapper: createWrapper(mockJobQueue, vi.fn()),
+        wrapper: createWrapper(mockJobQueue, vi.fn(), vi.fn()),
       });
 
       await emit(failed("work", "0xgardenb"));
@@ -526,6 +527,8 @@ describe("providers/JobQueueProvider", () => {
       activeGarden.gardens = gardens;
       rerender();
       expect(queueToasts.jobFailed).toHaveBeenCalledOnce();
+      // No Review either way: the upload waits in another garden, or its garden is unknown, so
+      // Your Work may not list it (CodeRabbit on #1339).
       expect(queueToasts.jobFailed).toHaveBeenLastCalledWith(
         "work",
         "network",

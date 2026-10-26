@@ -22,11 +22,12 @@ type ShowFailure = (
 /**
  * Raises the toast for an upload the queue gave up on, pointed where the upload is listed (PWA
  * Home step 12). Your Work lists the active garden only, so a failure in another of the member's
- * gardens names that garden and offers `openSwitcher`; without it, every failure keeps the Your
- * Work toast, whose Review opens Your Work through `openYourWork`. A failure outside the active
- * garden that lands while the member's gardens load waits for them, one of each kind, since a
- * later failure takes the same toast's place. If they can't load, the Your Work toast stands, and
- * a failure held for an account that has since signed out is dropped.
+ * gardens names that garden and offers `openSwitcher`, and one Your Work lists offers Review
+ * through `openYourWork`; without `openSwitcher`, every failure keeps the Your Work toast, with no
+ * action. A failure outside the active garden that lands while the member's gardens load waits for
+ * them, one of each kind, since a later failure takes the same toast's place. If they can't load,
+ * the Your Work toast stands without Review, and a failure held for an account that has since
+ * signed out is dropped.
  *
  * The returned function is stable and reads the latest gardens, for event handlers that subscribe
  * once.
@@ -58,7 +59,9 @@ export function useUploadFailureToast(
       orientation?.target === "switcher" && openSwitcher
         ? { gardenName: orientation.gardenName, openSwitcher }
         : undefined,
-      openYourWork
+      // Review only where Your Work is known to list it: never for an upload whose garden the
+      // member's gardens could not place.
+      orientation?.target === "yourWork" ? openYourWork : undefined
     );
   };
 

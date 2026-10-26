@@ -525,33 +525,56 @@ describe("Home journal", () => {
 
     // A cycle that closed on a refetch between the details and the sheet is no longer on the
     // rail; Show Its Promises must not widen to the garden's whole list (Codex on #1331).
-    it("keeps a cycle the rail no longer lists as the filter, with See All to widen the list", async () => {
+    // A cycle can close on a refetch between its details and the sheet, or after it is chosen
+    // on the rail; Show Its Promises must not widen to the garden's list then (Codex on #1331),
+    // and the list must keep a way back to all of them (Codex on #1339) and its campaign's name
+    // (CodeRabbit on #1339).
+    it("keeps a cycle the rail no longer lists as the filter, named, with See All to widen it", async () => {
       const user = userEvent.setup();
       const inClosed = openAsk(19, { cycleId: 99n });
       mocks.promises.mockReturnValue(
         promises({ all: { status: "ready", items: [OFFER, inClosed], savedAt: null } })
       );
+      mocks.cycleNames.mockReturnValue({
+        byCycleId: new Map([
+          [CAMPAIGN.cycle.cycleId.toString(), { status: "resolved", name: "Seed Swap Weekend" }],
+        ]),
+        isLoading: false,
+      });
       useUIStore.setState({ takePartSheet: { cycleId: "99", cycleType: "CAMPAIGN" } });
       const { rerender } = render(<TakePartSheet garden={GARDEN_RECORD} />);
+      const again = () =>
+        rerender(
+          <MemoryRouter>
+            <TakePartSheet garden={GARDEN_RECORD} />
+          </MemoryRouter>
+        );
 
+      // The cycle's own rows, with no card chosen on the rail: See All is the way back.
       const sheet = await screen.findByRole("dialog");
       expect(sheetRows(sheet)).toEqual(["Water the new beds"]);
       expect(within(sheet).queryByRole("button", { pressed: true })).toBeNull();
+      await user.click(within(sheet).getByRole("button", { name: "See All" }));
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Water the new beds",
+      ]);
 
-      // Its last promise taken, the list says so for the campaign, and See All widens it: the
-      // card to tap again is not on the rail.
-      mocks.promises.mockReturnValue(
-        promises({ all: { status: "ready", items: [OFFER], savedAt: null } })
+      // A campaign chosen on the rail, with nothing open in it, then dropped by a refetch: the
+      // row still names a campaign, and See All stands in for the card that is gone.
+      await user.click(within(sheet).getByRole("button", { name: /Seed Swap Weekend/ }));
+      expect(within(sheet).getByText("Tap it again to see them all")).toBeVisible();
+      mocks.cycles.mockReturnValue(
+        cycles({ state: { status: "ready", items: [SEASON], savedAt: null } })
       );
-      rerender(
-        <MemoryRouter>
-          <TakePartSheet garden={GARDEN_RECORD} />
-        </MemoryRouter>
-      );
+      again();
       expect(within(sheet).getByText("Nothing open in this campaign")).toBeVisible();
       expect(within(sheet).queryByText("Tap it again to see them all")).toBeNull();
       await user.click(within(sheet).getByRole("button", { name: "See All" }));
-      expect(sheetRows(sheet)).toEqual(["Teach the composting basics workshop"]);
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Water the new beds",
+      ]);
     });
 
     it("tells a chain without promises, a failure, a wait and nothing open apart", async () => {

@@ -126,12 +126,16 @@ vi.mock("../../views/Home/WalletSheet", () => ({ WalletSheet: () => null }));
 // Home, as a Recent Activity or Take Part row does.
 vi.mock("../../views/Home/Journal", async () => {
   const { useNavigate } = await import("react-router-dom");
+  const { useContext } = await import("react");
+  const { HomeShownContext } = await import("../../views/Home/Journal/homeShown");
   return {
     HomeJournal: ({ garden }: { garden: Garden }) => {
       const navigate = useNavigate();
+      // Whether Home tells its sections that it shows: they close their own sheets when not.
+      const shown = useContext(HomeShownContext);
       return createElement(
         "section",
-        { "data-testid": "home-journal" },
+        { "data-testid": "home-journal", "data-shown": String(shown) },
         garden.name,
         createElement(
           "button",
@@ -521,6 +525,30 @@ describe("Home under its child routes", () => {
       if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
       else Reflect.deleteProperty(Element.prototype, "scrollTop");
     }
+  });
+
+  // A failed upload's toast floats over any sheet, and its Review opens Your Work over Home: the
+  // sheet under it closes, as when Home opens a page (Codex on #1339).
+  it("closes its other sheets as Your Work opens over Home, and tells the journal it is covered", async () => {
+    renderHome();
+    passIdle();
+    const launcher = await screen.findByTestId("notifications-launcher");
+    fireEvent.click(within(launcher).getByRole("button", { name: "Notifications" }));
+    act(() => {
+      useUIStore.getState().openWalletSheet();
+      useUIStore.getState().openTakePartSheet();
+    });
+    expect(screen.getByTestId("notifications-sheet")).toBeInTheDocument();
+    expect(screen.getByTestId("home-journal")).toHaveAttribute("data-shown", "true");
+
+    act(() => useUIStore.getState().openWorkDashboard("pending", "all"));
+
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
+    expect(useUIStore.getState()).toMatchObject({ isWalletSheetOpen: false, takePartSheet: null });
+    expect(screen.getByTestId("home-journal")).toHaveAttribute("data-shown", "false");
+
+    act(() => useUIStore.getState().closeWorkDashboard());
+    expect(screen.getByTestId("home-journal")).toHaveAttribute("data-shown", "true");
   });
 
   // The header stays mounted under a child screen, so a sheet it opened would stay drawn over
