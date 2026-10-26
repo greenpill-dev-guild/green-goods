@@ -25,6 +25,18 @@ export type VoucherIssuerApproval =
   | { kind: "account"; evidence: "onchain" | "local-rehearsal" }
   | { kind: "unavailable"; reason: "unconfigured" | "read-failed" };
 
+/**
+ * An issuer Safe's signature rule (task 13), read from the Safe and never written into copy. The
+ * stewards' console and the promise page share it. `unavailable` means the read failed or the Safe
+ * could not be read; copy then says so instead of naming a number.
+ */
+export interface IssuerSafeThreshold {
+  safe: Address;
+  status: "observed" | "unavailable";
+  threshold: number | null;
+  owners: number | null;
+}
+
 /** Where a booking lives, so a wallet row can open it whatever garden is active. */
 export interface VoucherBookingRef {
   sourceChainId: number;
