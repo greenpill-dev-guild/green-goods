@@ -49,6 +49,8 @@ const mockWorkFlowState = {
 };
 
 const mockSetActiveTab = vi.fn();
+const mockExit = vi.fn();
+const mockToggleAudioRecording = vi.fn();
 const mockSetSelectedDomain = vi.fn();
 const mockSelectLinkIntent = vi.fn();
 const mockClearLinkIntent = vi.fn();
@@ -150,7 +152,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
       retry: mockDraftRetry,
     },
     ensureWorkSubmissionJourneyId: mockWorkFlowState.ensureWorkSubmissionJourneyId,
-    exit: vi.fn(),
+    exit: mockExit,
     isJoiningCommunityGarden: false,
     isRecording: false,
     isWalletRequestExpired: false,
@@ -187,7 +189,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     showSkeleton: false,
     submissionCompleted: false,
     submit: vi.fn(),
-    toggleAudioRecording: vi.fn(),
+    toggleAudioRecording: mockToggleAudioRecording,
     workSubmissionJourneyId: "journey-123",
   }),
 }));
@@ -248,8 +250,13 @@ vi.mock("@/components/Features/Work", async (importOriginal) => ({
 }));
 
 vi.mock("@/components/Navigation", () => ({
-  TopNav: ({ children }: { children?: React.ReactNode }) =>
-    createElement("nav", { "data-testid": "top-nav" }, children),
+  TopNav: ({ children, onBackClick }: { children?: React.ReactNode; onBackClick?: () => void }) =>
+    createElement(
+      "nav",
+      { "data-testid": "top-nav" },
+      createElement("button", { type: "button", onClick: onBackClick }, "Go back"),
+      children
+    ),
 }));
 
 // Import after mocks
@@ -287,6 +294,9 @@ const messages = {
   "app.garden.draft.failed": "Could not save or restore this work.",
   "app.garden.draft.retry": "Retry",
   "app.garden.submit.gardenLine": "Logging work in {garden}",
+  "app.proof.media.gallery": "Choose from Your Photos",
+  "app.proof.media.camera": "Take a Photo",
+  "app.proof.media.record": "Record a voice note",
 };
 
 const renderWithProviders = (initialRoute = "/home/garden") => {
@@ -407,6 +417,38 @@ describe("Garden (Work) View", () => {
 
     const button = screen.getByRole("button", { name: "Start Gardening" });
     expect(button).toBeDisabled();
+  });
+
+  it("walks Start to Media through the one flow, and Back on Start leaves the flow", () => {
+    mockSelection.actionUID = 1;
+    mockSelection.gardenAddress = "garden-1";
+    renderWithProviders();
+
+    fireEvent.click(screen.getByRole("button", { name: "Start Gardening" }));
+    expect(mockSetActiveTab).toHaveBeenCalledWith("Media");
+    expect(mockExit).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+    expect(mockExit).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers the media tools on Media only, and Back there returns to Start", () => {
+    mockActiveTab = "Media";
+    renderWithProviders();
+
+    for (const tool of ["Choose from Your Photos", "Take a Photo", "Record a voice note"]) {
+      expect(screen.getByRole("button", { name: tool })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Record a voice note" }));
+    expect(mockToggleAudioRecording).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+    expect(mockSetActiveTab).toHaveBeenCalledWith("Intro");
+    expect(mockExit).not.toHaveBeenCalled();
+    cleanup();
+
+    mockActiveTab = "Intro";
+    renderWithProviders();
+    expect(screen.queryByRole("button", { name: "Take a Photo" })).toBeNull();
   });
 
   it("keeps only a canonical eligible deep-link intent selected in the Work intro", () => {
