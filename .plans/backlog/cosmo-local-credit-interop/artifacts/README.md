@@ -191,7 +191,7 @@ Run on 25 October, between about 09:15 and 09:40 UTC, ahead of the 27 October su
 refresh the status facts the pitch carries. Repeat the check on 27 October (input 5 below).
 
 - **Voucher contracts: deployed and switched on, not yet used.** The
-  [live-pilot handoff](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.plans/backlog/cosmo-local-credit-interop/handoffs/codex-live-pilot-deployment.md), read at its latest commit
+  [live-pilot handoff](../handoffs/codex-live-pilot-deployment.md), read at its latest commit
   (`c2eafb2cc`, 24 October 15:34 Pacific), still ends with the operator prepared and signing
   pending. The deployment came after it. The public artifacts
   `packages/contracts/deployments/42161-pilot-downstream.json` and `100-pilot-downstream.json`
@@ -471,8 +471,7 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    The ledger's C91 (proposed in the evidence note) should record whichever is true on the day.
 1. **Claim sources.** The deck follows the claim ledger's 23 October addendum, the event research
    note and the live-pilot handoff. If one of them is missing from `../research/` or `../handoffs/`,
-   it has not landed from the Cosmo-Local contracts work yet; read the current copy on `develop`,
-   which the handoff links above point at. On
+   it has not landed from the Cosmo-Local contracts work yet; read the current copy on `develop`. On
    25 October the handoff ended before the 24 October deployment; the status refresh above holds
    the chain evidence until the handoff and the ledger record it.
 2. **Ledger owner's updates.** C01 should describe Tech and Sun as an initiative building
@@ -493,9 +492,9 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
 5. **Status refresh before submission.** Done on 25 October: the voucher contracts are deployed
    and switched on, not yet used; the slides keep "in pilot", and since 26 October slide 7 also says
    "deployed on public networks" and "rehearsed end to end with demo accounts". Re-check the
-   [live-pilot handoff](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.plans/backlog/cosmo-local-credit-interop/handoffs/codex-live-pilot-deployment.md) on 27 October, which lives on `develop` (this branch does not carry
-   it), and the [status refresh](#status-refresh--25-october-2026) above, which holds the chain
-   evidence the handoff still lacks. If either records
+   [live-pilot handoff](../handoffs/codex-live-pilot-deployment.md) on 27 October (in this tree since
+   the 26 October merge of `develop`) and the [status refresh](#status-refresh--25-october-2026)
+   above, which holds the chain evidence the handoff still lacks. If either records
    a real member's booking through the app, the notes' claims list, which says what to say on
    slide 7, and brief pages 1, 3, 4 and 6 may move from "deployed" to "live"; if not, leave them.
    Remittance Prices Worldwide had no quarter after Q3 2025 on 25 October. On 26 October the hub's
