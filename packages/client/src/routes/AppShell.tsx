@@ -68,8 +68,9 @@ export default function AppShell() {
   const { pathname } = useLocation();
   useEffect(() => configureConnectivityProbe("/connectivity-check.txt"), []);
   useDashboardRestoration();
-  // The queue's failure toast opens Home's switcher for an upload waiting in another garden.
-  const { openGardenSwitcher } = useDashboardNavigation();
+  // The queue's failure toast opens Your Work on Pending, where the active garden's uploads are
+  // listed, or Home's switcher for an upload waiting in another garden.
+  const { openYourWork, openGardenSwitcher } = useDashboardNavigation();
   const primaryAddress = usePrimaryAddress();
   useWalletNetworkAlignment();
 
@@ -90,7 +91,7 @@ export default function AppShell() {
   }, [pathname]);
 
   return (
-    <JobQueueProvider onOpenGardenSwitcher={openGardenSwitcher}>
+    <JobQueueProvider onOpenGardenSwitcher={openGardenSwitcher} onOpenYourWork={openYourWork}>
       <Suspense fallback={null}>
         <OfflineContentPreparation />
       </Suspense>

@@ -138,6 +138,7 @@ const Home: React.FC = () => {
 
   // UI state from store
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const isWalletSheetOpen = useUIStore((s) => s.isWalletSheetOpen);
   const openWalletSheet = useUIStore((s) => s.openWalletSheet);
   const closeWalletSheet = useUIStore((s) => s.closeWalletSheet);
@@ -240,10 +241,10 @@ const Home: React.FC = () => {
   const hasShownArrivalRef = useRef(false);
   const { set: scheduleArrival, clear: cancelArrival } = useTimeout();
 
-  // Close home drawers when navigating away. The journal's section sheet (DL-128) and its open
-  // promises close with them: a work or promise opened from a sheet returns to Home itself.
+  // Close home drawers when navigating away, or as Your Work opens over Home (a toast's Review
+  // can open it over one). The section sheet (DL-128) and the open promises close with them.
   useEffect(() => {
-    if (!isHomeRoute) {
+    if (!isHomeRoute || isWorkDashboardOpen) {
       closeWalletSheet();
       closeSwitcher();
       closeNotifications();
@@ -257,6 +258,7 @@ const Home: React.FC = () => {
     closeTakePartSheet,
     closeWalletSheet,
     isHomeRoute,
+    isWorkDashboardOpen,
   ]);
 
   // Home names itself as where the visit came from, so the garden's Back steps back here.
@@ -464,8 +466,8 @@ const Home: React.FC = () => {
             </>
           }
         />
-        {/* The journal's sections close the sheets they open themselves as Home stops showing. */}
-        <HomeShownContext value={isHomeRoute}>
+        {/* The journal's sections close their sheets as Home stops showing or Your Work opens. */}
+        <HomeShownContext value={isHomeRoute && !isWorkDashboardOpen}>
           <div className={status === "ready" ? "pt-2" : "padded pt-2"}>{body}</div>
         </HomeShownContext>
       </div>
