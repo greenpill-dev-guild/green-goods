@@ -4,9 +4,12 @@
 // letter that names a person. capture.mjs swaps these into the Work flow.
 // Usage, from the repository root (needs the repository's Playwright install and network access):
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/photos.mjs
+// The set is replaced whole: every photo downloads into a temporary folder first, and one failed
+// download leaves the existing set untouched and exits with status 1, so a stale record-NN.jpg
+// never survives a refresh unnoticed.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -30,15 +33,31 @@ const cards = await page.evaluate(() => {
     text: (img.closest("article, li") || img.parentElement.parentElement).innerText.replace(/\s+/g, " ").trim().slice(0, 120),
   }));
 });
-const rows = [];
-for (const [i, card] of cards.entries()) {
-  if (!card.src || card.src.startsWith("data:")) continue;
-  const res = await page.request.get(card.src);
-  if (!res.ok()) { console.log(`skipped ${card.src}: ${res.status()}`); continue; }
-  const file = `record-${String(i + 1).padStart(2, "0")}.jpg`;
-  writeFileSync(join(out, file), await res.body());
-  rows.push(`${file}\t${card.text}`);
+const wanted = cards.map((card, i) => ({ ...card, file: `record-${String(i + 1).padStart(2, "0")}.jpg` })).filter((card) => card.src && !card.src.startsWith("data:"));
+if (!wanted.length) {
+  await browser.close();
+  console.log(`no submission photos found on the page; the existing set in ${out} is untouched`);
+  process.exit(1);
 }
-writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
-console.log(`saved ${rows.length} photos into ${out}`);
+const temp = mkdtempSync(join(out, ".refresh-"));
+const rows = [];
+const failures = [];
+for (const card of wanted) {
+  const res = await page.request.get(card.src);
+  if (!res.ok()) { failures.push(`${card.file}: ${res.status()} for ${card.src}`); continue; }
+  writeFileSync(join(temp, card.file), await res.body());
+  rows.push(`${card.file}\t${card.text}`);
+}
 await browser.close();
+if (failures.length) {
+  rmSync(temp, { recursive: true, force: true });
+  for (const failure of failures) console.log(`  problem: ${failure}`);
+  console.log(`refresh failed: ${failures.length} of ${wanted.length} photos did not download; the existing set in ${out} is untouched and may be stale`);
+  process.exit(1);
+}
+// Replace the whole set at once, so an old record-NN.jpg never outlives the page's current list.
+for (const name of readdirSync(out)) if (/^record-\d+\.jpg$/.test(name) || name === "record-photos.tsv") unlinkSync(join(out, name));
+for (const name of readdirSync(temp)) renameSync(join(temp, name), join(out, name));
+writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
+rmSync(temp, { recursive: true, force: true });
+console.log(`saved ${rows.length} photos into ${out}`);

@@ -351,7 +351,9 @@ async function capture(browser, file, shot) {
     await page.waitForTimeout(shot.live ? 6000 : 3000);
     const banner = photo(BANNER);
     if (shot.banner || shot.gardenCard) {
-      if (!banner) console.log(`  ${file}: ${BANNER} is not present locally; the fixture banner stays`);
+      // A missing banner leaves the fixture image on a screen the demo presents as the hub's, and
+      // no later check can see it, so it fails the capture like a missing record photo.
+      if (!banner) note(`${file}: ${BANNER} is missing; place the approved Awka photo (README, Photos)`);
       else if (shot.banner && !(await swapBanner(page, banner))) note(`${file}: no banner image found to swap`);
       else if (shot.gardenCard && !(await swapGardenCard(page, banner))) note(`${file}: no garden card pattern found to swap`);
     }
@@ -407,7 +409,12 @@ const data = JSON.parse(block[1]);
 const screens = data.flows.flatMap((flow) => flow.screens);
 for (const s of screens) if (!SHOTS[s.file]) note(`index.html lists ${s.file}, which has no capture recipe`);
 for (const file of Object.keys(SHOTS)) if (!screens.some((s) => s.file === file)) note(`capture recipe ${file} is not in index.html`);
+// An `--only` id with no recipe would leave an empty queue and a clean exit, so it stops the run
+// before anything is captured or index.html is rewritten.
+const unknown = only.filter((id) => !SHOTS[id]);
+if (unknown.length) throw new Error(`--only names ${unknown.join(", ")}, which ${unknown.length === 1 ? "has" : "have"} no capture recipe; nothing was captured or rewritten`);
 const queue = screens.filter((s) => SHOTS[s.file] && (!only.length || only.includes(s.file)));
+if (only.length && !queue.length) throw new Error(`--only matched no screen listed in index.html; nothing was captured or rewritten`);
 const browser = await pw.chromium.launch();
 const results = new Map();
 const swapHits = new Map();
@@ -419,10 +426,12 @@ await Promise.all(Array.from({ length: 4 }, async () => {
   }
 }));
 await browser.close();
-// A rule that never matched on any screen it was listed for is stale (shared hub and people
-// rules excepted, since each screen shows only some of them). Recipes share swap lists across a
-// flow, so a partial `--only` capture can validate only the pairs no unselected screen lists; the
-// rest are reported as not validated, and a full capture is needed before a build.
+// A rule that never matched on any screen it was listed for is stale, the shared hub and people
+// rules included: each screen shows only some of them, but a full capture visits every screen,
+// so a shared rule that matched nowhere means Storybook's fixture copy moved and the demo may now
+// show it. Recipes share swap lists across a flow, so a partial `--only` capture can validate
+// only the pairs no unselected screen lists; the rest are reported as not validated, and a full
+// capture is needed before a build.
 const listedOn = new Map();
 for (const [file, shot] of Object.entries(SHOTS)) for (const [from, to] of shot.swaps || []) {
   const key = `${from} → ${to}`;
@@ -431,7 +440,7 @@ for (const [file, shot] of Object.entries(SHOTS)) for (const [from, to] of shot.
 }
 const unvalidated = [];
 for (const [pair, n] of swapHits) {
-  if (n || BASE.some(([f, t]) => `${f} → ${t}` === pair)) continue;
+  if (n) continue;
   const elsewhere = [...(listedOn.get(pair) || [])].filter((file) => !only.includes(file));
   if (only.length && elsewhere.length) unvalidated.push(pair); else note(`swap "${pair}" matched nothing`);
 }
