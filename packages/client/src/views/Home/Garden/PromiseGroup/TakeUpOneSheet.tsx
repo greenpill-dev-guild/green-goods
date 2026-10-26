@@ -1,6 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import type { GroupTakeUpState } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
+import { RiCoinsLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 import { AppSheet } from "@/components/Sheets/AppSheet";
@@ -16,6 +17,8 @@ export interface TakeUpOneSheetProps {
   title: string;
   /** What each one asks, in one line: its units and when it is due. */
   terms: string | null;
+  /** The reward that one carries, in words, or null when it carries none. */
+  reward: string | null;
   state: GroupTakeUpState;
   /** Take up the copy the app picks now. */
   onTakeUp: () => void;
@@ -28,11 +31,11 @@ export interface TakeUpOneSheetProps {
 
 /**
  * Taking up one promise from a group (PRD-1029 c3, c4): a half sheet that
- * repeats what that one promise asks and says plainly that the app picks
- * which. It can't close while the act is in flight. When somebody got to the
- * chosen one first it asks before choosing another, and when none is left it
- * says so without promising more; a send the chain refused reads as the
- * failed act does everywhere.
+ * repeats what that one promise asks and what keeping it earns, and says
+ * plainly that the app picks which. It can't close while the act is in
+ * flight. When somebody got to the chosen one first it asks before choosing
+ * another, and when none is left it says so without promising more; a send
+ * the chain refused reads as the failed act does everywhere.
  */
 export function TakeUpOneSheet({
   open,
@@ -41,6 +44,7 @@ export function TakeUpOneSheet({
   actLabelId,
   title,
   terms,
+  reward,
   state,
   onTakeUp,
   onTakeUpNext,
@@ -128,6 +132,20 @@ export function TakeUpOneSheet({
             {title}
           </p>
           {terms ? <p className="mt-0.5 text-xs text-text-sub-600">{terms}</p> : null}
+          {reward ? (
+            <p
+              className="mt-1 flex items-start gap-1.5 text-xs text-text-sub-600"
+              data-component="TakeUpOneReward"
+            >
+              <RiCoinsLine className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>
+                <span className="font-medium text-text-strong-950">
+                  {formatMessage({ id: "app.commitment.reward.label" })}
+                </span>{" "}
+                {reward}
+              </span>
+            </p>
+          ) : null}
         </div>
         {notice ? (
           <Alert variant={notice.variant} title={notice.title}>

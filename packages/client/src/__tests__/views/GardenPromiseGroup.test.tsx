@@ -153,6 +153,37 @@ describe("GardenPromiseGroup", () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
+  it("shows the reward each one carries on the page and again where it is taken up", async () => {
+    const wei = 160_000n * 10n ** 18n;
+    const { group, sample } = storyGroup({
+      available: 4,
+      inProgress: 3,
+      kept: 3,
+      overrides: { considerationRail: "CELO_SETTLEMENT", considerationAmount: wei },
+    });
+    mockController.mockReturnValue(
+      controller({
+        group,
+        sample,
+        counts: group.counts,
+        metadata: {
+          version: 1,
+          title: "Complete the climate course",
+          reward: { version: 1, usdCents: "2000", goodDollarWei: wei.toString() },
+        },
+      })
+    );
+    const user = userEvent.setup();
+    render();
+
+    // The payout words follow the app's settlement switch; the dollars do not.
+    const asks = screen.getByRole("region", { name: "What each one asks" });
+    expect(within(asks).getByText(/^\$20\.00/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Take Up One" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText(/^\$20\.00/)).toBeInTheDocument();
+  });
+
   it("passes the copy a link names, so a reload finds the same group", () => {
     mockController.mockReturnValue(controller());
     render("/home/0xgarden/commitments/group/set-1?copy=104");

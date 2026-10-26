@@ -32,6 +32,8 @@ export interface CommitmentIdentityProps {
   metadata: CommitmentMetadataV1 | null;
   /** The count and unit, already in words, or null when the record has none. */
   units: string | null;
+  /** The reward it carries, in words, or null when it carries none or the page doesn't say. */
+  reward?: string | null;
   /** Whether the reader could join the team; the section only hints at it. */
   joinable: boolean;
   viewer: Address | null;
@@ -54,6 +56,7 @@ export function CommitmentIdentity({
   band,
   metadata,
   units,
+  reward = null,
   joinable,
   viewer,
   stewards,
@@ -130,6 +133,7 @@ export function CommitmentIdentity({
           contributors={contributors}
           seat={seat}
           units={units}
+          reward={reward}
           viewer={viewer}
           stewards={stewards}
         />

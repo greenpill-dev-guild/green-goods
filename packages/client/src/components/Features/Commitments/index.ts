@@ -6,5 +6,6 @@ export * from "./PinnedPromiseCard";
 export * from "./presentation";
 export * from "./PromiseCard";
 export * from "./PromiseGroupRow";
+export * from "./PromiseReward";
 export * from "./PromiseRow";
 export * from "./proofContents";
