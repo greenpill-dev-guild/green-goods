@@ -4,11 +4,12 @@
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/submission/render.mjs
 // Checks, per page: exactly one A4 landscape page, nothing past its margins or into its footer,
 // every image loaded, no em dash, and, with pdftotext installed, every word of the PDF inside the
-// page. A failed check exits with status 1 after rendering.
+// page. Outputs render into a staging folder and replace the files in output/ only when every
+// check passes, so a failed render exits with status 1 and leaves the last good files in place.
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const PAGES = ["business-model-canvas", "logical-architecture"];
@@ -20,6 +21,7 @@ const require = createRequire(import.meta.url);
 let pw;
 try { pw = require("playwright"); } catch { pw = require("@playwright/test"); }
 mkdirSync(out, { recursive: true });
+const staging = mkdtempSync(join(out, ".render-"));
 const browser = await pw.chromium.launch({ args: ["--allow-file-access-from-files"] });
 
 for (const name of PAGES) {
@@ -40,6 +42,7 @@ for (const name of PAGES) {
       const cs = getComputedStyle(pg);
       const left = box.left + parseFloat(cs.paddingLeft) - 0.5;
       const right = box.right - parseFloat(cs.paddingRight) + 0.5;
+      const top = box.top + parseFloat(cs.paddingTop) - 0.5;
       const foot = pg.querySelector(".foot").getBoundingClientRect();
       for (const el of pg.querySelectorAll("h1, h2, h3, p, li, td, th, dt, dd, figure, img, table, svg, .block, .band, .box")) {
         if (el.closest(".foot, defs")) continue;
@@ -48,6 +51,7 @@ for (const name of PAGES) {
         const label = `${el.tagName.toLowerCase()} "${(el.textContent || el.getAttribute("alt") || "").trim().slice(0, 40)}"`;
         if (r.bottom > foot.top - 6) issues.push(`page ${i + 1}: runs into the footer (bottom ${Math.round(r.bottom - box.top)}px): ${label}`);
         if (r.left < left || r.right > right) issues.push(`page ${i + 1}: outside the side margins: ${label}`);
+        if (r.top < top) issues.push(`page ${i + 1}: above the top margin (top ${Math.round(r.top - box.top)}px): ${label}`);
         // A block whose content overflows its own box is clipped in print, and a band's overflow
         // spills into the band below it (the services band did, by 9px), so report both here.
         if (el.matches(".block, .box, .band") && el.scrollHeight > el.clientHeight + 1) issues.push(`page ${i + 1}: content overflows its box by ${el.scrollHeight - el.clientHeight}px: ${label}`);
@@ -59,12 +63,10 @@ for (const name of PAGES) {
   if (report.count !== 1) problems.push(`${name}: expected 1 page, found ${report.count}`);
   for (const issue of report.issues) problems.push(`${name}: ${issue}`);
 
-  const pdf = join(out, `${name}.pdf`);
+  const pdf = join(staging, `${name}.pdf`);
   await page.pdf({ path: pdf, width: "297mm", height: "210mm", printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
-  console.log(pdf);
-  const png = join(out, `${name}.png`);
+  const png = join(staging, `${name}.png`);
   await (await page.$(".page")).screenshot({ path: png });
-  console.log(png);
   await page.close();
 
   // Every word of the PDF must sit inside its page; a word past the page edge is a fragmented block.
@@ -89,8 +91,11 @@ for (const name of PAGES) {
 await browser.close();
 
 if (problems.length) {
-  console.log(`${problems.length} problem(s):`);
+  rmSync(staging, { recursive: true, force: true });
+  console.log(`${problems.length} problem(s); the files in output/ are untouched:`);
   for (const p of problems) console.log(`  ${p}`);
   process.exit(1);
 }
+for (const name of readdirSync(staging)) { renameSync(join(staging, name), join(out, name)); console.log(join(out, name)); }
+rmSync(staging, { recursive: true, force: true });
 console.log(`submission checks: ${PAGES.length} one-pagers, nothing past the margins, into a footer or out of a box, images loaded, PDF words in place`);

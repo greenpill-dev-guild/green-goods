@@ -3,10 +3,11 @@
 // photos and screens; see ../README.md):
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/brief/render.mjs
 // Checks: six A4 pages, nothing past a page's margins or into its footer, every image loaded,
-// and no em dash. A failed check exits with status 1 after rendering.
+// and no em dash. Outputs render into a staging folder and replace the files in output/ only when
+// every check passes, so a failed check exits with status 1 and leaves the last good files there.
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const EXPECTED_PAGES = 6;
@@ -21,6 +22,7 @@ const require = createRequire(import.meta.url);
 let pw;
 try { pw = require("playwright"); } catch { pw = require("@playwright/test"); }
 mkdirSync(out, { recursive: true });
+const staging = mkdtempSync(join(out, ".render-"));
 const browser = await pw.chromium.launch({ args: ["--allow-file-access-from-files"] });
 const page = await browser.newPage({ viewport: { width: 900, height: 1200 }, deviceScaleFactor: 2 });
 await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "load" });
@@ -35,6 +37,7 @@ const report = await page.evaluate(() => {
     const cs = getComputedStyle(pg);
     const left = box.left + parseFloat(cs.paddingLeft) - 0.5;
     const right = box.right - parseFloat(cs.paddingRight) + 0.5;
+    const top = box.top + parseFloat(cs.paddingTop) - 0.5;
     const foot = pg.querySelector(".foot").getBoundingClientRect();
     for (const el of pg.querySelectorAll("h1, h2, h3, p, li, td, th, dt, dd, figure, img, table, svg, .box, .chain")) {
       if (el.closest(".foot, defs")) continue;
@@ -44,6 +47,7 @@ const report = await page.evaluate(() => {
       const name = `${el.tagName.toLowerCase()} "${(el.textContent || el.getAttribute("alt") || "").trim().slice(0, 40)}"`;
       if (r.bottom > foot.top - 6) issues.push(`page ${i + 1}: runs into the footer (bottom ${Math.round(r.bottom - box.top)}px): ${name}`);
       if (r.left < left || r.right > right) issues.push(`page ${i + 1}: outside the side margins: ${name}`);
+      if (r.top < top) issues.push(`page ${i + 1}: above the top margin (top ${Math.round(r.top - box.top)}px): ${name}`);
     }
     for (const img of pg.querySelectorAll("img")) if (!(img.complete && img.naturalWidth > 0)) issues.push(`page ${i + 1}: image did not load: ${img.getAttribute("src")}`);
   });
@@ -52,19 +56,17 @@ const report = await page.evaluate(() => {
 if (report.count !== EXPECTED_PAGES) problems.push(`expected ${EXPECTED_PAGES} pages, found ${report.count}`);
 problems.push(...report.issues);
 
-const pdf = join(out, "brief.pdf");
+const pdf = join(staging, "brief.pdf");
 await page.pdf({ path: pdf, format: "A4", printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
-console.log(pdf);
 const handles = await page.$$(".page");
-for (let i = 0; i < handles.length; i += 1) {
-  const file = join(out, `page-${i + 1}.png`);
-  await handles[i].screenshot({ path: file });
-  console.log(file);
-}
+for (let i = 0; i < handles.length; i += 1) await handles[i].screenshot({ path: join(staging, `page-${i + 1}.png`) });
 await browser.close();
 if (problems.length) {
-  console.log(`${problems.length} problem(s):`);
+  rmSync(staging, { recursive: true, force: true });
+  console.log(`${problems.length} problem(s); the files in output/ are untouched:`);
   for (const p of problems) console.log(`  ${p}`);
   process.exit(1);
 }
+for (const name of readdirSync(staging)) { renameSync(join(staging, name), join(out, name)); console.log(join(out, name)); }
+rmSync(staging, { recursive: true, force: true });
 console.log(`brief checks: ${report.count} pages, nothing past the margins or into a footer, images loaded`);

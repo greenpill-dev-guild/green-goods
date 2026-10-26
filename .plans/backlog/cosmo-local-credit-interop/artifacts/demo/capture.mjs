@@ -621,6 +621,9 @@ async function shoot(page, session, step, width, height) {
     if (failed.length) note(`${step.shot}: ${failed.map((i) => step.photos[i]).join(", ")} did not decode; refresh it with photos.mjs`);
     const wanted = step.photos.filter(Boolean).length;
     if (swapped !== wanted) note(`${step.shot}: ${found} content photos on screen, ${swapped} swapped, ${wanted} listed`);
+    // Every content photo on the screen has to be accounted for, a null entry standing for one
+    // kept as is, or a fixture image the app or Storybook added would be baked in unnoticed.
+    if (found !== step.photos.length) note(`${step.shot}: ${found} content photos on screen but ${step.photos.length} listed; list each one, with null for a photo to keep`);
   }
   const swaps = [...(step.swaps || []), ...(session.swaps || [])];
   const hits = swaps.map(() => 0);

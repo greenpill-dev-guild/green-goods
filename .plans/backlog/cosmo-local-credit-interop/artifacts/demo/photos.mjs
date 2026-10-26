@@ -91,8 +91,19 @@ if (failures.length) {
   process.exit(1);
 }
 // Replace the whole set at once, so an old record-NN.jpg never outlives the page's current list.
-for (const name of readdirSync(out)) if (/^record-\d+\.jpg$/.test(name) || name === "record-photos.tsv" || name === "proof-course.jpg") unlinkSync(join(out, name));
-for (const name of readdirSync(temp)) renameSync(join(temp, name), join(out, name));
-writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
-rmSync(temp, { recursive: true, force: true });
+// The current set is backed up first and put back if any step of the replacement fails, so a
+// half-replaced set never results.
+const isRecord = (name) => /^record-\d+\.jpg$/.test(name) || name === "record-photos.tsv" || name === "proof-course.jpg";
+const backup = mkdtempSync(join(out, ".previous-"));
+try {
+  for (const name of readdirSync(out)) if (isRecord(name)) renameSync(join(out, name), join(backup, name));
+  for (const name of readdirSync(temp)) renameSync(join(temp, name), join(out, name));
+  writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
+} catch (error) {
+  for (const name of readdirSync(out)) if (isRecord(name)) rmSync(join(out, name), { force: true });
+  for (const name of readdirSync(backup)) renameSync(join(backup, name), join(out, name));
+  for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });
+  throw new Error(`${error.message}; the previous photo set was put back`);
+}
+for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });
 console.log(`saved ${rows.length} photos and proof-course.jpg into ${out}`);

@@ -69,7 +69,7 @@
   .link svg { width: 36px; height: 12px; }
 
   .side { display: grid; grid-template-rows: auto auto 1fr; row-gap: 7px; min-height: 0; }
-  .side .block { background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; padding: 7px 9px; overflow: hidden; }
+  .side .block { background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; padding: 6px 9px; overflow: hidden; }
   .side h3 { margin: 0 0 3px; font: 400 13px/1.15 var(--serif); letter-spacing: -0.005em; color: var(--ink); display: flex; align-items: center; gap: 6px; }
   .side h3 svg { width: 15px; height: 15px; fill: none; stroke: var(--green-action); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
   .side li { font-size: 9.5px; margin-bottom: 2.5px; }
@@ -191,7 +191,7 @@
           <li>Work, approvals and assessments are signed attestations anyone can check; other records are contract state.</li>
           <li>Messages between networks authorize actions; they never carry money or tokens.</li>
           <li>Payment commands between networks carry a stable identity, so a retry never repeats one; voucher recovery is still being built. Contracts can pause; upgrades need owner approval.</li>
-          <li>Members approve any delegated authority over their vouchers.</li>
+          <li>Delegated authority over a member's vouchers needs the member's approval, a step still being built.</li>
         </ul>
       </div>
     </div>
