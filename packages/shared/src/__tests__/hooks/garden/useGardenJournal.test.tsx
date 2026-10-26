@@ -308,7 +308,6 @@ describe("useGardenJournal", () => {
           account: READER,
           workGarden: GARDEN as Address,
           returnGarden: GARDEN as Address,
-          actionUID: 5,
         })
       );
 
@@ -335,6 +334,7 @@ describe("useGardenJournal", () => {
       await waitFor(() => expect(result.current.isLoading).toBe(false));
       // The registry would refuse the take-up, and the work composed for it would go nowhere.
       expect(result.current.choices).toEqual([]);
+      expect(result.current.asks).toEqual([]);
     });
 
     it("offers none while the take-ups on this phone cannot be read", async () => {
@@ -343,6 +343,7 @@ describe("useGardenJournal", () => {
 
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.choices).toEqual([]);
+      expect(result.current.asks).toEqual([]);
     });
   });
 });

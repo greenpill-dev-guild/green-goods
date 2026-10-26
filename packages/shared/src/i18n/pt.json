@@ -2328,6 +2328,8 @@
   "app.garden.start.promiseActions": "Ações para esta promessa",
   "app.garden.start.need.evidence": "Evidência",
   "app.garden.start.need.more": "e mais {count}",
+  "app.garden.start.asks.title": "Aceite um pedido",
+  "app.garden.start.asks.prompts": "{count, plural, one {Ao aceitar um, abre-se # janela da sua carteira ou passkey.} other {Ao aceitar um, abrem-se # janelas da sua carteira ou passkey: a aceitação, o trabalho e o vínculo.}}",
   "app.garden.whichGarden": "Para qual jardim você está enviando?",
   "app.garden.work": "Trabalho",
   "app.garden.work.count": "{count, plural, one {# envio} other {# envios}}",
