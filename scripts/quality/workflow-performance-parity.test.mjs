@@ -973,7 +973,9 @@ test("repository formatting runs once, early in the broad guardrail", () => {
 test("contract fork CI selects the same shards through the argument-based runner", () => {
   const source = read(".github/workflows/contracts.yml");
   const core = source.slice(source.indexOf("  fork-readiness-core:"), source.indexOf("  fork-readiness-arbitrum:"));
-  assert.deepEqual([...core.matchAll(/- shard: ([\w-]+)/g)].map((match) => match[1]), ["sepolia", "ethereum"]);
+  assert.deepEqual([...core.matchAll(/- shard: ([\w-]+)/g)].map((match) => match[1]), [
+    "sepolia", "ethereum", "garden-account-release", "garden-roles", "gnosis-vouchers",
+  ]);
   assert.match(core, /working-directory: packages\/contracts\s+run: bun run test:shard run \$\{\{ matrix\.shard \}\}/);
   const sequential = source.slice(source.indexOf("  fork-readiness-arbitrum:"));
   assert.deepEqual([...sequential.matchAll(/bun run test:shard run ([\w-]+)/g)].map((match) => match[1]), [

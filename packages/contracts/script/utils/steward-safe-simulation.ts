@@ -118,15 +118,16 @@ export async function simulateStewardNetwork(
         provider,
       );
       const bootstrap = manifest.bootstrapSigner ?? null;
-      equal(await gate.locked(), !bootstrap, "gate lock mode");
+      equal(await gate.locked(), true, "gate locked at deployment");
       equal(await gate.claimableFor(), true, "permissionless reconciliation");
       equal(await gate.safe(), safeAddress, "gate Safe");
       equal(await gate.ownerHat(), manifest.expectedTopHat, "gate owner Hat");
       equal(await gate.implementation(), "0x148057884AC910Bdd93693F230C5c35a8c47CA3b", "reviewed HSG");
       const config = await gate.thresholdConfig();
+      // One steward signs alone; a second owner always raises the requirement to two signatures.
       equal(config[0], 0, "absolute threshold");
-      equal(config[1], bootstrap ? 1 : 2, "minimum");
-      equal(config[2], bootstrap ? 1 : 2, "target");
+      equal(config[1], 1, "minimum");
+      equal(config[2], 2, "target");
       equal(await safe.VERSION(), "1.4.1", "HSG-created Safe version");
       equal(await safe.getThreshold(), 1, "bootstrap physical threshold");
       equal(await gate.validSignerCount(), bootstrap ? 1 : 0, "valid signers");
@@ -151,7 +152,7 @@ export async function simulateStewardNetwork(
       ])
         equal(
           await gate.enabledDelegatecallTargets(target),
-          Boolean(bootstrap) && target === "0x9641d764fc13c8B624c04430C7356C1C7C8102e2",
+          target === "0x9641d764fc13c8B624c04430C7356C1C7C8102e2",
           "pinned call-only batch permission",
         );
       const hats = new Contract(
@@ -166,6 +167,7 @@ export async function simulateStewardNetwork(
       equal(await hats.isWearerOfHat(tx.address, manifest.expectedTopHat), true, "receiver owns root Hat");
       equal(await hats.isAdminOfHat(safeAddress, signerHat), false, "Safe has no Hat admin authority");
       const hat = await hats.viewHat(signerHat);
+      equal(hat[0], `Arbitrum ${manifest.gardenName} stewards`, "signer Hat name");
       equal(hat[3], tx.address, "eligibility");
       equal(hat[4], tx.address, "toggle");
       equal(hat[7], false, "immutable signer Hat");
@@ -173,7 +175,7 @@ export async function simulateStewardNetwork(
         address: safeAddress,
         gate: gateAddress,
         signerHat: String(signerHat),
-        effectiveThreshold: bootstrap ? 1 : 2,
+        effectiveThreshold: 1,
         physicalThreshold: 1,
         validSigners: bootstrap ? 1 : 0,
         spendingEnabled: Boolean(bootstrap),
