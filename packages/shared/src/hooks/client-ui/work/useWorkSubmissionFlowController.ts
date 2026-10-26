@@ -124,6 +124,7 @@ export function useWorkSubmissionFlowController({
     linkIntent,
     linkIntentStatus,
     workablePromises,
+    openAsks,
     clearLinkIntent,
     selectLinkIntent,
     takeUpFirst,
@@ -261,12 +262,10 @@ export function useWorkSubmissionFlowController({
     try {
       await saveOnExit();
       workMutation.clearLastSubmissionOutcome();
-      // An Open ask is taken up once the work has passed its own checks, before it is admitted;
-      // a take-up that does not go admits none of the work.
+      // The work's checks, then an Open ask's take-up, then admission; a stop leaves no outcome.
       await form.uploadWork({ beforeAdmission: takeUpFirst });
       const outcome = workMutation.getLastSubmissionOutcome();
       if (!outcome) {
-        // uploadWork resolves without an outcome when its checks or the take-up stop it.
         setIsSchedulingDependentLink(false);
         return false;
       }
@@ -385,6 +384,7 @@ export function useWorkSubmissionFlowController({
       garden: linkIntent?.garden ?? null,
     },
     promises: workablePromises,
+    asks: { list: openAsks.asks, loading: openAsks.isLoading },
     setGardenAddress: selection.setGardenAddress,
     setActiveTab,
     changeTab,

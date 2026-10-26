@@ -49,8 +49,8 @@ interface WorkLinkIntentOptions {
  *   landed from this composer is not run again, though the indexer may still list its ask as open.
  *
  * The garden never changes for an ask: it is its own garden's, so choosing one keeps the work
- * there. It also reads the flow's garden's promises the member can work on, which the Start step
- * lists and a promise picked there is matched against (DL-131).
+ * there. It also reads the flow's garden's promises the member can work on and its Open asks,
+ * which the Start step lists and a promise picked there is matched against (DL-131).
  */
 export function useWorkLinkIntent({
   searchParams,
@@ -67,17 +67,20 @@ export function useWorkLinkIntent({
   // A promise link the page was opened with, as from a promise's page; one chosen at Start or
   // brought back with a draft arrives later. Taking it off or choosing another ends it.
   const [linkAtEntry, setLinkAtEntry] = useState(() => hasWorkLinkIntentParams(searchParams));
-  const choiceInput = {
+  // The link is checked in its own garden, which the flow takes up once it holds.
+  const linkGardens = {
     chainId: DEFAULT_CHAIN_ID,
     account,
     workGarden: (parsedLinkIntent?.garden ?? gardenAddress) as Address | null,
     returnGarden: (parsedLinkIntent
       ? workLinkReturnGarden(parsedLinkIntent)
       : gardenAddress) as Address | null,
-    actionUID: parsedLinkIntent?.actionUID ?? actionUID,
   };
-  const linkChoices = useWorkLinkChoices(choiceInput);
-  const takeUpChoices = useTakeUpChoices(choiceInput);
+  const linkChoices = useWorkLinkChoices({
+    ...linkGardens,
+    actionUID: parsedLinkIntent?.actionUID ?? actionUID,
+  });
+  const takeUpChoices = useTakeUpChoices(linkGardens);
   const [takenUpHere, setTakenUpHere] = useState<ReadonlySet<string>>(() => new Set());
   const { ownLink, takeUpLink } = useMemo(() => {
     if (!parsedLinkIntent) return { ownLink: null, takeUpLink: null };
@@ -87,14 +90,16 @@ export function useWorkLinkIntent({
   }, [linkChoices.choices, takeUpChoices.choices, parsedLinkIntent]);
   const linkIntent = ownLink ?? takeUpLink;
   const takesUp = Boolean(takeUpLink && !takenUpHere.has(takeUpLink.commitmentId.toString()));
-  // The flow's garden's promises the member can work on: the Start step's list, and the live
-  // choices a promise picked there is matched against.
-  const workablePromises = useWorkablePromises({
+  // The flow's garden's promises the member can work on, and its Open asks they could take up:
+  // the Start step's lists, and the live choices a promise picked there is matched against.
+  const flowGarden = {
     chainId: DEFAULT_CHAIN_ID,
     account,
     workGarden: gardenAddress,
     returnGarden: gardenAddress,
-  });
+  };
+  const workablePromises = useWorkablePromises(flowGarden);
+  const openAsks = useTakeUpChoices(flowGarden);
   // An ask the member can take up now is valid whatever the read of their own promises says.
   const linkIntentStatus: WorkLinkStatus = !hasLinkIntentParams
     ? "none"
@@ -124,6 +129,7 @@ export function useWorkLinkIntent({
     (intent: WorkLinkIntent | null): WorkLinkChoice | null => {
       const live = [
         ...(workablePromises.data ?? []).flatMap((promise) => promise.choices),
+        ...openAsks.choices,
         ...linkChoices.choices,
         ...takeUpChoices.choices,
       ];
@@ -143,6 +149,7 @@ export function useWorkLinkIntent({
       linkChoices.choices,
       takeUpChoices.choices,
       workablePromises.data,
+      openAsks.choices,
       searchParams,
       setGardenAddress,
       setSearchParams,
@@ -193,10 +200,10 @@ export function useWorkLinkIntent({
     hasLinkIntentParams,
     linkAtEntry,
     linkChoices,
-    takeUpChoices,
     linkIntent,
     linkIntentStatus,
     workablePromises,
+    openAsks,
     clearLinkIntent,
     selectLinkIntent,
     takeUpFirst,

@@ -4,15 +4,25 @@
  * Start, so every later step names the promise (D16, O9). Nothing here is a
  * real account, garden or record.
  */
-import { commitmentFixture } from "../src/__tests__/test-utils/commitment-pooling-fixtures";
+import {
+  claimFixture,
+  commitmentFixture,
+} from "../src/__tests__/test-utils/commitment-pooling-fixtures";
 import type { useWorkSubmissionFlowController } from "../src/hooks/client-ui/work/useWorkSubmissionFlowController";
+import { takeUpAsk } from "../src/hooks/commitment-pooling/useTakeUpChoices";
+import { oneTapAsks, viewerTakeUps } from "../src/modules/garden/journal";
 import type {
   WorkablePromise,
   WorkLinkIntent,
 } from "../src/modules/commitment-pooling/work-link-intent";
 import { WorkTab } from "../src/stores/workFlowTypes";
 import { type Action, Domain } from "../src/types/domain";
-import { JOURNEY_GARDEN, JOURNEY_GARDEN_RECORD } from "./clientJourneyFixtures";
+import {
+  JOURNEY_GARDEN,
+  JOURNEY_GARDEN_RECORD,
+  JOURNEY_NEIGHBOUR,
+  JOURNEY_VIEWER,
+} from "./clientJourneyFixtures";
 import DOCUMENTATION_SEEDLINGS_JPEG from "./fixture-art/documentation-seedlings.jpg?inline";
 import DOCUMENTATION_SEEDLINGS_URL from "./fixture-art/documentation-seedlings.jpg?url";
 import SEEDLINGS_JPEG from "./fixture-art/seedlings.jpg?inline";
@@ -215,6 +225,57 @@ export const START_PROMISE_THREE_ACTIONS: WorkablePromise = {
   takesEvidence: true,
 };
 
+/** One of the garden's asks as its pool lists it: Tomás asks for two reports of one action. */
+function poolAsk(commitmentId: bigint, claimMode: "OPEN" | "APPROVAL_GATED", actionUID: bigint) {
+  return commitmentFixture({
+    id: `42161-${commitmentId}`,
+    commitmentId,
+    poolId: 7n,
+    direction: "REQUEST",
+    onchainState: "REQUESTED",
+    derivedState: "REQUESTED",
+    claimMode,
+    claimType: "INDIVIDUAL",
+    creator: JOURNEY_NEIGHBOUR,
+    leadProvider: null,
+    counterparty: JOURNEY_NEIGHBOUR,
+    metadataCID: null,
+    requirements: [{ actionUID, requiredCount: 2 }],
+    dueDate: DUE_DEC_15,
+    targetUnits: 2n,
+    unitLabel: "reports",
+  });
+}
+
+export const START_ASK_TITLES = new Map([
+  [31n, "Node logs for the open day"],
+  [32n, "Hub keys handover"],
+  [33n, "Panel cleaning before the rains"],
+]);
+
+/**
+ * The garden's asks on Amara's Start step, run through the rule the step reads them with
+ * (`oneTapAsks`, `takeUpAsk`): an Open ask she can take up in one tap is listed, while an
+ * approval-gated ask and one she already asked for, which no steward has answered, are not.
+ */
+export const START_ASKS: WorkablePromise[] = oneTapAsks({
+  commitments: [poolAsk(31n, "OPEN", 2n), poolAsk(32n, "APPROVAL_GATED", 1n), poolAsk(33n, "APPROVAL_GATED", 4n)],
+  metadataByCID: new Map(),
+  viewer: JOURNEY_VIEWER,
+  poolOpen: true,
+  takeUps: viewerTakeUps({
+    viewer: JOURNEY_VIEWER,
+    pendingRequests: [claimFixture({ commitmentId: 33n, claimant: JOURNEY_VIEWER, state: "PENDING" })],
+    queued: new Set(),
+  }),
+}).map((commitment) =>
+  takeUpAsk(commitment, {
+    workGarden: JOURNEY_GARDEN,
+    returnGarden: JOURNEY_GARDEN,
+    title: START_ASK_TITLES.get(commitment.commitmentId) ?? "",
+  })
+);
+
 const START_DOMAINS = [Domain.SOLAR, Domain.EDU, Domain.WASTE];
 
 /** The Start step's model as the controller hands it to the view, here on its actions. */
@@ -225,6 +286,8 @@ export function startStepFixture(overrides: Partial<StartStep> = {}): StartStep 
     actions: START_ACTIONS,
     domains: START_DOMAINS,
     promises: [],
+    asks: [],
+    askPromptCount: 3,
     promisesFailed: false,
     retryPromises: noop,
     screen: { kind: "actions" },
