@@ -5,7 +5,7 @@
 // brief show them on the commitment pooling slide and page.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -24,24 +24,30 @@ const shots = [
   { file: "garden-promises.png", url: story("client-commitments-gardenpool--live"), w: 390, h: 1100, storybook: true, expect: ["3 of 7 kept", "Needs you"] },
   { file: "confirm.png", url: story("client-commitments-confirmsheet--ask-garden-work"), w: 390, h: 740, storybook: true, expect: ["Was the work you asked for done?"] },
 ];
+// Both screens are staged and replace the current pair together, only once every story has
+// passed its check, so a failure never leaves one new screen beside one old one.
+const staging = mkdtempSync(join(out, ".capture-"));
 const browser = await pw.chromium.launch();
-for (const s of shots) {
-  const context = await browser.newContext({ viewport: { width: s.w, height: s.h }, deviceScaleFactor: 2, colorScheme: "light" });
-  const page = await context.newPage();
-  await page.goto(s.url, { waitUntil: "networkidle", timeout: 90000 });
-  if (s.storybook) await page.waitForSelector("#storybook-root > *", { timeout: 60000 });
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(s.storybook ? 2500 : 6000);
-  const text = await page.evaluate(() => document.body.innerText);
-  const missing = s.expect.filter((t) => !text.includes(t));
-  if (/couldn't find story|story not found|no story matched/i.test(text) || missing.length) {
-    await browser.close();
-    throw new Error(`${s.file}: the story did not show ${missing.length ? `"${missing.join('", "')}"` : "its content"}; nothing was saved`);
+try {
+  for (const s of shots) {
+    const context = await browser.newContext({ viewport: { width: s.w, height: s.h }, deviceScaleFactor: 2, colorScheme: "light" });
+    const page = await context.newPage();
+    await page.goto(s.url, { waitUntil: "networkidle", timeout: 90000 });
+    if (s.storybook) await page.waitForSelector("#storybook-root > *", { timeout: 60000 });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(s.storybook ? 2500 : 6000);
+    const text = await page.evaluate(() => document.body.innerText);
+    const missing = s.expect.filter((t) => !text.includes(t));
+    if (/couldn't find story|story not found|no story matched/i.test(text) || missing.length) {
+      throw new Error(`${s.file}: the story did not show ${missing.length ? `"${missing.join('", "')}"` : "its content"}; neither screen was replaced`);
+    }
+    await page.evaluate(() => document.activeElement?.blur?.());
+    await page.mouse.move(1, 1);
+    await page.screenshot({ path: join(staging, s.file) });
+    await context.close();
   }
-  await page.evaluate(() => document.activeElement?.blur?.());
-  await page.mouse.move(1, 1);
-  await page.screenshot({ path: join(out, s.file) });
-  console.log(join(out, s.file));
-  await context.close();
+  for (const name of readdirSync(staging)) { renameSync(join(staging, name), join(out, name)); console.log(join(out, name)); }
+} finally {
+  rmSync(staging, { recursive: true, force: true });
+  await browser.close();
 }
-await browser.close();

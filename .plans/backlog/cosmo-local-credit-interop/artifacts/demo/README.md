@@ -28,7 +28,7 @@ does not advance.
 | [`index.html`](index.html) | The page: landing, flow view and the `#flows` block with every caption, source and hotspot. It shows the screens from `assets/screens/` when they are present |
 | [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, replacing the set whole; one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
 | [`capture.mjs`](capture.mjs) | Captures the 22 screens, swaps in the hub's content and writes each screen's source, size and measured hotspot into `#flows` |
-| [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper) |
+| [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper); writes neither when a screen is missing or the page passes 15 MB, so the last good build survives |
 | [`check.mjs`](check.mjs) | Checks the build and walks every flow headless; screenshots each step and a contact sheet into `output/` |
 | `assets/screens/`, `assets/photos/`, `output/` | Local files, not committed: the photos, the screens and the built page show identifiable people |
 
