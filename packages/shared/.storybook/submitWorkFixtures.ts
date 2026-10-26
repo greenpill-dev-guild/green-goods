@@ -311,11 +311,14 @@ export function submitWorkControllerFixture(
   step: "start" | "media" | "review",
   {
     linked = step !== "start",
+    takesUp = false,
     documentationPhoto = false,
     start = startStepFixture(),
     namedGarden = null,
   }: {
     linked?: boolean;
+    /** The promise is the hub's Open ask, which Submit takes up first (decision 18). */
+    takesUp?: boolean;
     documentationPhoto?: boolean;
     start?: StartStep;
     /** The submission garden, named under the steps while it is not the active one. */
@@ -370,8 +373,14 @@ export function submitWorkControllerFixture(
     isWalletRequestExpired: false,
     joinableCommunityGarden: null,
     joinCommunityGarden: noop,
-    linkIntent: linked ? SEEDLING_INTENT : null,
+    linkIntent: linked
+      ? takesUp
+        ? { ...SEEDLING_INTENT, direction: "REQUEST", takesUp: true }
+        : SEEDLING_INTENT
+      : null,
     linkIntentStatus: linked ? "valid" : "none",
+    takesUp: linked && takesUp,
+    promptCount: linked ? (takesUp ? 3 : 2) : 1,
     namedSubmissionGarden: namedGarden,
     submissionGardenSettled: true,
     refetchCommitmentLinkChoices: async () => undefined,

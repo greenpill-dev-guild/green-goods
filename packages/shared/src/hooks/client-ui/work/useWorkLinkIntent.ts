@@ -9,6 +9,7 @@ import {
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
   sameWorkLinkIdentity,
+  toDraftWorkLink,
   type WorkLinkChoice,
   type WorkLinkIntent,
   workLinkReturnGarden,
@@ -118,6 +119,14 @@ export function useWorkLinkIntent({
                 : takeUpChoices.isError
                   ? "unavailable"
                   : "invalid";
+  // The link as a draft keeps it: an ask's take-up as the live asks say once the link holds, and
+  // as the page says until then, so a resumed draft keeps saying so while they are read.
+  const draftLink = parsedLinkIntent
+    ? toDraftWorkLink({
+        ...parsedLinkIntent,
+        takesUp: (linkIntentStatus === "valid" ? takesUp : parsedLinkIntent.takesUp) || undefined,
+      })
+    : null;
   // Taking the promise off is saved with the draft; see draftLinkCleared.
   const clearLinkIntent = useCallback(() => {
     setLinkAtEntry(false);
@@ -202,11 +211,15 @@ export function useWorkLinkIntent({
     linkChoices,
     linkIntent,
     linkIntentStatus,
+    /** What a draft keeps of the link; null when the page has none. */
+    draftLink,
     workablePromises,
     openAsks,
     clearLinkIntent,
     selectLinkIntent,
     takeUpFirst,
+    /** Submit takes the link's Open ask up first, as the live asks say. */
+    takesUp,
     /** Prompts this submission asks for, to say before the first: take-up, work, link. */
     promptCount: submissionPromptCount({ linksPromise: Boolean(linkIntent), takesUp }),
   };

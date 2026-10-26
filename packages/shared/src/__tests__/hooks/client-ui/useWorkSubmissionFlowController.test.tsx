@@ -298,6 +298,7 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
 
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { TakeUpNotSent } from "../../../modules/commitment-pooling/take-up";
+import { writeWorkLinkIntent } from "../../../modules/commitment-pooling/work-link-intent";
 import { useSubmissionFlowController } from "../../../hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
 import { useUIStore } from "../../../stores/useUIStore";
@@ -309,6 +310,17 @@ function Wrapper({ children }: { children: ReactNode }) {
     null,
     createElement(IntlProvider, { locale: "en", messages: {} }, children)
   );
+}
+
+/** Submit Work opened with `search`, as a resumed draft or a promise's page opens it. */
+function pageAt(search: URLSearchParams) {
+  return function PageWrapper({ children }: { children: ReactNode }) {
+    return createElement(
+      MemoryRouter,
+      { initialEntries: [`/home/garden?${search}`] },
+      createElement(IntlProvider, { locale: "en", messages: {} }, children)
+    );
+  };
 }
 
 function StrictShareWrapper({ children }: { children: ReactNode }) {
@@ -857,7 +869,7 @@ describe("useWorkSubmissionFlowController", () => {
     else expect(firstPayload).not.toHaveProperty("sourceWorkJobId");
   });
 
-  const renderThroughFlow = () =>
+  const renderThroughFlow = (wrapper = Wrapper) =>
     renderHook(
       () => {
         const controller = useWorkSubmissionFlowController({
@@ -868,7 +880,7 @@ describe("useWorkSubmissionFlowController", () => {
         const flow = useSubmissionFlowController({ kind: "work", controller });
         return { controller, flow };
       },
-      { wrapper: Wrapper }
+      { wrapper }
     );
 
   it("keeps the flow on the step the work store restored, saved with the draft as before", () => {
@@ -920,6 +932,37 @@ describe("useWorkSubmissionFlowController", () => {
       },
     });
     expect(view.result.current.controller.linkSchedulingSucceeded).toBe(true);
+  });
+
+  it("says on a resumed draft's Review, before the first prompt, that it takes its ask up and how many prompts come", async () => {
+    // Resumed past Start, the draft's link comes back to the page with its take-up.
+    const ask = { ...commitmentLinkIntent, takesUp: true as const };
+    mocks.actionUID = ask.actionUID;
+    mocks.gardenAddress = ask.garden;
+    mocks.activeTab = "Review";
+    mocks.takeUpChoices = [ask];
+    const view = renderThroughFlow(pageAt(writeWorkLinkIntent(new URLSearchParams(), ask)));
+    await waitFor(() => expect(view.result.current.controller.linkIntentStatus).toBe("valid"));
+    // The take-up, the work and its link.
+    expect(view.result.current.flow.forward).toMatchObject({
+      labelId: "app.garden.submit.tab.review.label",
+      takeUpPrompts: 3,
+    });
+    // Only Review's act sends, so only Review says it.
+    mocks.activeTab = "Details";
+    view.rerender();
+    expect(view.result.current.flow.forward?.takeUpPrompts).toBeNull();
+    view.unmount();
+
+    // A draft for a promise of the member's own says nothing more on Review.
+    mocks.activeTab = "Review";
+    mocks.takeUpChoices = [];
+    mocks.choices = [commitmentLinkIntent];
+    const own = renderThroughFlow(
+      pageAt(writeWorkLinkIntent(new URLSearchParams(), commitmentLinkIntent))
+    );
+    await waitFor(() => expect(own.result.current.controller.linkIntentStatus).toBe("valid"));
+    expect(own.result.current.flow.forward?.takeUpPrompts).toBeNull();
   });
 
   const communityGarden = "0x3333333333333333333333333333333333333333";
@@ -1201,6 +1244,30 @@ describe("useWorkSubmissionFlowController", () => {
 
       expect(mocks.takeUp).toHaveBeenCalledOnce();
       expect(mocks.uploadWork).toHaveBeenCalledTimes(2);
+    });
+
+    it("keeps the take-up with the draft: the page's word until the asks are read, then theirs", async () => {
+      // A resumed draft brings its link back to the page with its take-up.
+      mocks.actionUID = ask.actionUID;
+      mocks.gardenAddress = ask.garden;
+      mocks.takeUpLoading = true;
+      const view = renderFlow(pageAt(writeWorkLinkIntent(new URLSearchParams(), ask)));
+      expect(view.result.current.linkIntentStatus).toBe("validating");
+      expect(mocks.autoSaveFields?.linkIntent).toMatchObject({ commitmentId: "9", takesUp: true });
+
+      mocks.takeUpLoading = false;
+      mocks.takeUpChoices = [ask];
+      view.rerender();
+      await waitFor(() => expect(view.result.current.takesUp).toBe(true));
+      expect(mocks.autoSaveFields?.linkIntent).toMatchObject({ takesUp: true });
+
+      // Taken up since on another phone, it is their own promise, and the draft stops saying so.
+      mocks.takeUpChoices = [];
+      mocks.choices = [commitmentLinkIntent];
+      view.rerender();
+      await waitFor(() => expect(view.result.current.takesUp).toBe(false));
+      expect(view.result.current.linkIntentStatus).toBe("valid");
+      expect(mocks.autoSaveFields?.linkIntent).not.toHaveProperty("takesUp");
     });
   });
 

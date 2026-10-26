@@ -177,6 +177,32 @@ export const ReviewForAPromise: Story = {
   beforeEach: onStep("review"),
 };
 
+/**
+ * A resumed draft for the hub's Open ask at Review (Rule 20). It skipped Start, whose asks say
+ * what taking one up asks for, so the bar says it above Upload Work, before the first prompt.
+ */
+export const ReviewForAnOpenAsk: Story = {
+  beforeEach: onStep("review", { takesUp: true }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const note = canvas.getByText(/^Uploading takes up the ask first\./);
+    await expect(note).toHaveTextContent("It opens 3 wallet or passkey prompts");
+    await expect(canvas.getByRole("button", { name: "Upload Work" })).toHaveAccessibleDescription(
+      note.textContent ?? ""
+    );
+  },
+};
+
+export const ReviewForAnOpenAskSpanish: Story = {
+  beforeEach: onStep("review", { takesUp: true }),
+  globals: { locale: "es", viewport: { value: "mobileSmall" } },
+};
+
+export const ReviewForAnOpenAskPortuguese: Story = {
+  beforeEach: onStep("review", { takesUp: true }),
+  globals: { locale: "pt", viewport: { value: "mobileSmall" } },
+};
+
 /** Frame `submit-for-sheet`: the promise in a half sheet, with Not for This Promise. */
 export const PromiseSheet: Story = {
   beforeEach: onStep("review"),
