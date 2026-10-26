@@ -118,18 +118,6 @@ export interface VoucherIssuerReserve {
   waitingReward: { recipient: Address; units: bigint; title: string } | null;
 }
 
-/**
- * An issuer Safe's signature rule, read from the Safe and never written into
- * copy (PRD-1297 task 13). The shared read owns this shape; the console reads
- * it through `useIssuerSafeThreshold`.
- */
-export interface IssuerSafeThreshold {
-  safe: Address;
-  status: "observed" | "unavailable";
-  threshold: number | null;
-  owners: number | null;
-}
-
 export interface VoucherConsoleSnapshot {
   /** Unavailable until the voucher pilot deployment is adopted and its reads are wired. */
   status: "observed" | "unavailable";

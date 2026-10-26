@@ -1,8 +1,8 @@
+import type { IssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { TxActPhase } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
-  type IssuerSafeThreshold,
   selectVoucherAcceptanceChecks,
   type VoucherAsk,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";

@@ -1,7 +1,7 @@
+import type { IssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
-  type IssuerSafeThreshold,
   parseVoucherAmount,
   selectReturnProposal,
   type VoucherBooking,

@@ -1,10 +1,10 @@
+import type { IssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import type {
   ItemRowDetail,
   ItemRowTone,
 } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { VoucherConsoleView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
-  type IssuerSafeThreshold,
   selectVoucherAskStage,
   type VoucherAsk,
   type VoucherAskStage,

@@ -6,7 +6,7 @@ import type {
   PoolConsoleController,
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import type { IssuerSafeThreshold } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type { IssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiCalendarCloseLine, RiFilterOffLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";

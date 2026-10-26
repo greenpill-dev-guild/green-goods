@@ -1,10 +1,8 @@
+import type { IssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { VoucherConsoleView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import type {
-  IssuerSafeThreshold,
-  VoucherBooking,
-} from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type { VoucherBooking } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import { useIntl } from "react-intl";
 import type { AdminDialogProps } from "@/components/AdminDialog";
 import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
