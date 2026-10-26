@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Green Goods Clickable Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<meta name="description" content="Four short flows through Green Goods at Tech and Sun's hub in Awka, Nigeria, for SustainableFinance.Live 2026: real app screens with sample data. Captions, story ids and hotspots are in the #flows block; the screens are captured by capture.mjs and inlined by build.mjs." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" />
+<style>
+  /* One screen at a time: a landing of the loop's four flows, then one real app screen in a device
+     frame with a single hotspot, one caption line and quiet controls. The deck's Warm Earth tokens,
+     Fraunces headlines with the green italic accent, Inter for everything else, solid lines only. */
+  :root {
+    --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
+    --rule: #E7E1D9; --rule-2: #D9D1C5;
+    --accent: #1A7544; --action: #1A7544; --action-hover: #155F37; --on-action: #FFFFFF;
+    --ring: #1FC16B; --ring-soft: rgba(31, 193, 107, 0.2); --ring-ping: rgba(31, 193, 107, 0.55);
+    --bezel: #1C1917; --bezel-edge: #3A3531; --screen: #FFFFFF; --shadow: rgba(41, 37, 36, 0.28);
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --gutter-l: max(16px, env(safe-area-inset-left, 0px)); --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --linen: #171412; --paper: #221E1B; --ink: #F5F1EA; --ink-2: #E7E1D9; --sub: #C8BFB3; --stone: #A39A90;
+      --rule: #34302B; --rule-2: #46403A;
+      --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF;
+      --ring: #3BD483; --ring-soft: rgba(59, 212, 131, 0.22); --ring-ping: rgba(59, 212, 131, 0.6);
+      --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --linen: #171412; --paper: #221E1B; --ink: #F5F1EA; --ink-2: #E7E1D9; --sub: #C8BFB3; --stone: #A39A90;
+    --rule: #34302B; --rule-2: #46403A;
+    --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF;
+    --ring: #3BD483; --ring-soft: rgba(59, 212, 131, 0.22); --ring-ping: rgba(59, 212, 131, 0.6);
+    --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--linen); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
+
+  .view { min-height: 100%; display: flex; flex-direction: column; padding-left: var(--gutter-l); padding-right: var(--gutter-r); padding-block: 20px 24px; }
+  .view[hidden] { display: none; }
+  .bar { display: flex; align-items: center; gap: 20px; min-height: 52px; }
+  .home { display: block; flex: none; width: 64px; padding: 4px; margin: -4px; border: 0; background: none; border-radius: 10px; cursor: pointer; }
+  .home img { display: block; width: 100%; height: auto; }
+
+  /* Landing */
+  .landing-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: clamp(28px, 5vh, 56px); width: 100%; max-width: 1180px; margin: 0 auto; padding-block: 24px 8px; }
+  h1 { margin: 0; font: 400 clamp(40px, 3.6vw + 16px, 76px)/1.04 var(--serif); letter-spacing: -0.02em; text-wrap: balance; }
+  em.accent { font-style: italic; color: var(--accent); }
+  .lede { margin: 18px 0 0; font: 400 clamp(19px, 0.6vw + 14px, 24px)/1.4 var(--sans); color: var(--sub); }
+  .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+  .tile { width: 100%; height: 100%; display: grid; grid-template-rows: auto auto 1fr; text-align: left; padding: 0; border: 1px solid var(--rule); border-radius: 20px; background: var(--paper); cursor: pointer; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  .tile:hover { border-color: var(--rule-2); box-shadow: 0 18px 36px -24px var(--shadow); }
+  .thumb { height: 210px; display: grid; place-items: center; padding: 18px 16px 0; background: var(--linen); border-bottom: 1px solid var(--rule); overflow: hidden; }
+  .thumb .device { --bezel-w: 5px; box-shadow: 0 12px 24px -16px var(--shadow); }
+  .thumb .device.phone { width: 96px; margin-bottom: -40px; }
+  .thumb .device.desktop { width: min(100%, 236px); align-self: center; margin-bottom: 18px; }
+  .tile-text { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: baseline; padding: 18px 20px 22px; }
+  .num { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--action); color: var(--on-action); font: 600 15px/1 var(--sans); transform: translateY(-3px); }
+  .name { font: 400 32px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
+  .line { grid-column: 1 / -1; margin-top: 8px; font: 400 18px/1.4 var(--sans); color: var(--sub); text-wrap: balance; }
+
+  /* Devices: the capture fills the screen; the bezel is the only frame. */
+  .device { --bezel-w: 10px; position: relative; padding: var(--bezel-w); background: var(--bezel); border: 1px solid var(--bezel-edge); margin: 0; }
+  .device.phone { --ratio: 0.4621; border-radius: calc(var(--bezel-w) * 4.6); }
+  .device.desktop { --ratio: 1.6; border-radius: calc(var(--bezel-w) * 1.8); }
+  .screen { position: relative; overflow: hidden; background: var(--screen); }
+  .phone .screen { aspect-ratio: 390 / 844; border-radius: calc(var(--bezel-w) * 3.6); }
+  .desktop .screen { aspect-ratio: 1440 / 900; border-radius: calc(var(--bezel-w) * 0.8); }
+  .screen img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
+
+  /* Flow: a definite full-height grid, so the stage's container query units resolve. */
+  #flow { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; }
+  #flow[hidden] { display: none; }
+  .flow-name { margin: 0; font: 400 clamp(24px, 1vw + 16px, 32px)/1.1 var(--serif); letter-spacing: -0.012em; }
+  .dots { list-style: none; margin: 0 0 0 auto; padding: 0; display: flex; gap: 8px; }
+  .dots li { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--rule-2); }
+  .dots li.done { background: var(--rule-2); }
+  .dots li.now { background: var(--action); border-color: var(--action); }
+  .stage { min-height: 0; container-type: size; display: grid; place-items: center; padding-block: 14px; }
+  .stage .device { width: min(100cqw, calc((100cqh - 2 * var(--bezel-w)) * var(--ratio) + 2 * var(--bezel-w))); box-shadow: 0 30px 60px -30px var(--shadow); }
+  .stage .device.desktop { --bezel-w: 12px; }
+  .hotspot { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--r, 18px); box-shadow: 0 0 0 3px var(--ring), 0 0 0 10px var(--ring-soft); }
+  .hotspot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; animation: ping 1.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite; }
+  .hotspot.nudge { animation: nudge 0.5s ease-out; }
+  @keyframes ping { from { box-shadow: 0 0 0 3px var(--ring-ping); } to { box-shadow: 0 0 0 22px transparent; } }
+  @keyframes nudge { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.08); } }
+  .caption { margin: 6px auto 0; max-width: 34ch; min-height: 1.3em; text-align: center; font: 500 clamp(20px, 1vw + 12px, 28px)/1.3 var(--sans); color: var(--ink); text-wrap: balance; }
+  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 18px; }
+  .btn { min-height: 48px; padding: 0 24px; border-radius: 999px; border: 1px solid var(--rule-2); background: var(--paper); color: var(--ink); font: 600 17px/1 var(--sans); cursor: pointer; }
+  .btn:hover:not(:disabled) { border-color: var(--stone); }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn.primary { background: var(--action); border-color: var(--action); color: var(--on-action); }
+  .btn.primary:hover { background: var(--action-hover); border-color: var(--action-hover); }
+  .btn[hidden] { display: none; }
+
+  @media (max-width: 1040px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) {
+    .tiles { grid-template-columns: minmax(0, 1fr); }
+    .thumb { height: 180px; }
+    .home { width: 52px; }
+    .dots { gap: 6px; }
+    .dots li { width: 10px; height: 10px; }
+    .stage .device.desktop { --bezel-w: 6px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hotspot::after { animation: none; }
+    .hotspot.nudge { animation: none; box-shadow: 0 0 0 4px var(--ring), 0 0 0 14px var(--ring-soft); }
+    .tile { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main class="view" id="landing">
+  <div class="bar"><button class="home" type="button" id="home-landing" aria-label="Green Goods"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="" /></button></div>
+  <div class="landing-body">
+    <header>
+      <h1>Click through a season <em class="accent">at the hub</em></h1>
+      <p class="lede">Real app screens, sample data.</p>
+    </header>
+    <ol class="tiles" id="tiles"></ol>
+  </div>
+</main>
+
+<section class="view" id="flow" hidden aria-labelledby="flow-name">
+  <div class="bar">
+    <button class="home" type="button" id="home-flow" aria-label="All flows"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="" /></button>
+    <h2 class="flow-name" id="flow-name"></h2>
+    <ol class="dots" id="dots" aria-label="Progress"></ol>
+  </div>
+  <div class="stage">
+    <figure class="device phone" id="device">
+      <div class="screen" id="screen">
+        <img id="shot" alt="" draggable="false" />
+        <button class="hotspot" type="button" id="hotspot"></button>
+      </div>
+    </figure>
+  </div>
+  <p class="caption" id="caption" aria-live="polite"></p>
+  <nav class="controls" aria-label="Flow">
+    <button class="btn" type="button" id="back">Back</button>
+    <button class="btn" type="button" id="restart">Restart</button>
+    <button class="btn primary" type="button" id="another" hidden>Try another flow</button>
+  </nav>
+</section>
+
+<script type="application/json" id="flows">
+{
+  "flows": [
+    {
+      "id": "needs",
+      "label": "Needs",
+      "line": "Record what the hub needs",
+      "screens": [
+        {
+          "file": "needs-1",
+          "device": "desktop",
+          "caption": "Start an assessment of the hub",
+          "story": "admin-workspaces-hub--assessments-tab",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.5826,
+            0.1267,
+            0.1321,
+            0.0356
+          ]
+        },
+        {
+          "file": "needs-2",
+          "device": "desktop",
+          "caption": "Name the need and the place",
+          "story": "admin-workspaces-hub--create-assessment-route",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.7992,
+            0.8694,
+            0.0452,
+            0.0356
+          ]
+        },
+        {
+          "file": "needs-3",
+          "device": "desktop",
+          "caption": "Review the baseline, then submit it",
+          "story": "admin-workflows-assessment-reviewstep--in-flow-ready",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.73,
+            0.8694,
+            0.1144,
+            0.0356
+          ]
+        },
+        {
+          "file": "needs-4",
+          "device": "desktop",
+          "caption": "Close the finished assessment",
+          "story": "admin-workflows-assessment-reviewstep--in-flow-sent",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.7959,
+            0.8694,
+            0.0486,
+            0.0356
+          ]
+        },
+        {
+          "file": "needs-5",
+          "device": "phone",
+          "caption": "Members see what the hub needs",
+          "story": "client-garden-assessments--solar",
+          "size": [
+            390,
+            844
+          ]
+        }
+      ]
+    },
+    {
+      "id": "promise",
+      "label": "Promise",
+      "line": "Members promise work to neighbors",
+      "screens": [
+        {
+          "file": "promise-1",
+          "device": "phone",
+          "caption": "Open a request from the hub",
+          "story": "client-commitments-gardenpool--live",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.7441,
+            0.9179,
+            0.1043
+          ]
+        },
+        {
+          "file": "promise-2",
+          "device": "phone",
+          "caption": "Read what it asks, then take it",
+          "story": "client-commitments-promisegrouppage--open",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9242,
+            0.9179,
+            0.0569
+          ]
+        },
+        {
+          "file": "promise-3",
+          "device": "phone",
+          "caption": "Promise to do it",
+          "story": "client-commitments-takeuponesheet--ready",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0436,
+            0.8673,
+            0.9128,
+            0.0521
+          ]
+        },
+        {
+          "file": "promise-4",
+          "device": "phone",
+          "caption": "Add proof when the work is done",
+          "story": "client-commitments-proofcomposer--details",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9289,
+            0.9179,
+            0.0569
+          ]
+        },
+        {
+          "file": "promise-5",
+          "device": "phone",
+          "caption": "Now confirm it as the person served",
+          "story": "client-commitments-confirmsheet--ask-garden-work",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0436,
+            0.8673,
+            0.9128,
+            0.0521
+          ]
+        },
+        {
+          "file": "promise-6",
+          "device": "phone",
+          "caption": "The promise is kept and recorded",
+          "story": "client-commitments-gardencommitment--kept",
+          "size": [
+            390,
+            844
+          ]
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "label": "Work",
+      "line": "Document work, stewards approve it",
+      "screens": [
+        {
+          "file": "work-1",
+          "device": "phone",
+          "caption": "Add a photo of the work",
+          "story": "client-work-submitwork--media-with-example-photo",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.5333,
+            0.9289,
+            0.4256,
+            0.0569
+          ]
+        },
+        {
+          "file": "work-2",
+          "device": "phone",
+          "caption": "Check the details, then upload",
+          "story": "client-work-submitwork--review-with-example-photo",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9289,
+            0.9179,
+            0.0569
+          ]
+        },
+        {
+          "file": "work-3",
+          "device": "phone",
+          "caption": "As steward, open the new work",
+          "story": "client-garden-gardenwork--all-work",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.0711,
+            0.9179,
+            0.1043
+          ]
+        },
+        {
+          "file": "work-4",
+          "device": "phone",
+          "caption": "Approve what the photo shows",
+          "story": "client-work-reviewwork--evaluate-example",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.5154,
+            0.9147,
+            0.4436,
+            0.0569
+          ]
+        },
+        {
+          "file": "work-5",
+          "device": "phone",
+          "caption": "Add a note and submit",
+          "story": "client-work-reviewwork--feedback-example",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.5154,
+            0.9147,
+            0.4436,
+            0.0569
+          ]
+        },
+        {
+          "file": "work-6",
+          "device": "phone",
+          "caption": "The gardener sees it approved",
+          "story": "client-work-workdashboard--completed-with-example-photo",
+          "size": [
+            390,
+            844
+          ]
+        }
+      ]
+    },
+    {
+      "id": "funding",
+      "label": "Funding",
+      "line": "Fund what the record shows",
+      "screens": [
+        {
+          "file": "funding-1",
+          "device": "desktop",
+          "caption": "Open Fund to support the hub",
+          "story": "https://greengoods.app/gardens/tas-hub",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.4913,
+            0.0111,
+            0.049,
+            0.0489
+          ]
+        },
+        {
+          "file": "funding-2",
+          "device": "desktop",
+          "caption": "Choose an endowment for TAS Hub",
+          "story": "https://greengoods.app/fund",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.89,
+            0.4759,
+            0.0544,
+            0.0444
+          ]
+        },
+        {
+          "file": "funding-3",
+          "device": "desktop",
+          "caption": "Enter an amount and continue",
+          "story": "https://greengoods.app/fund",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.3667,
+            0.7091,
+            0.2667,
+            0.0489
+          ]
+        },
+        {
+          "file": "funding-4",
+          "device": "desktop",
+          "caption": "Check your endowment any time",
+          "story": "client-public-vault-vaultmanagepositionspanel--positions",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.941,
+            0.0411,
+            0.0306,
+            0.0489
+          ]
+        },
+        {
+          "file": "funding-5",
+          "device": "desktop",
+          "caption": "Follow the work it supports",
+          "story": "https://greengoods.app/gardens/tas-hub",
+          "size": [
+            1440,
+            900
+          ]
+        }
+      ]
+    }
+  ]
+}
+</script>
+<script>
+  (() => {
+    const { flows } = JSON.parse(document.getElementById("flows").textContent);
+    const inlined = document.getElementById("images");
+    const images = inlined ? JSON.parse(inlined.textContent) : {};
+    const src = (file) => images[file] || `assets/screens/${file}.jpg`;
+    const $ = (id) => document.getElementById(id);
+    const landing = $("landing"), view = $("flow"), shot = $("shot"), hotspot = $("hotspot"), screen = $("screen");
+    let flow = null;
+    let step = 0;
+
+    function device(kind, file) {
+      const figure = document.createElement("span");
+      figure.className = `device ${kind}`;
+      figure.innerHTML = `<span class="screen" style="display:block"><img alt="" draggable="false" loading="eager" /></span>`;
+      figure.querySelector("img").src = src(file);
+      return figure;
+    }
+
+    flows.forEach((f, i) => {
+      const li = document.createElement("li");
+      const tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "tile";
+      tile.id = `tile-${f.id}`;
+      tile.dataset.flow = f.id;
+      const thumb = document.createElement("span");
+      thumb.className = "thumb";
+      thumb.append(device(f.screens[0].device, f.screens[0].file));
+      const text = document.createElement("span");
+      text.className = "tile-text";
+      text.innerHTML = `<span class="num">${i + 1}</span><span class="name"></span><span class="line"></span>`;
+      text.querySelector(".name").textContent = f.label;
+      text.querySelector(".line").textContent = f.line;
+      tile.append(thumb, text);
+      tile.addEventListener("click", () => open(f.id, 0));
+      li.append(tile);
+      $("tiles").append(li);
+    });
+
+    function setHash(value) {
+      try { history.replaceState(null, "", value ? `#${value}` : location.pathname + location.search); } catch { /* a sandboxed frame may refuse; the page works without it */ }
+    }
+
+    function open(id, at) {
+      flow = flows.find((f) => f.id === id) || flows[0];
+      step = Math.min(Math.max(at, 0), flow.screens.length - 1);
+      landing.hidden = true;
+      view.hidden = false;
+      document.body.dataset.view = "flow";
+      $("flow-name").textContent = flow.label;
+      $("dots").replaceChildren(...flow.screens.map(() => document.createElement("li")));
+      render();
+      hotspot.hidden ? $("another").focus() : hotspot.focus({ preventScroll: true });
+    }
+
+    function home() {
+      flow = null;
+      view.hidden = true;
+      landing.hidden = false;
+      document.body.dataset.view = "landing";
+      setHash("");
+      $("tiles").querySelector(".tile")?.focus({ preventScroll: true });
+    }
+
+    function render() {
+      const s = flow.screens[step];
+      const last = step === flow.screens.length - 1;
+      const dev = $("device");
+      dev.className = `device ${s.device}`;
+      shot.src = src(s.file);
+      shot.alt = `${flow.label}, screen ${step + 1} of ${flow.screens.length}`;
+      $("caption").textContent = s.caption;
+      [...$("dots").children].forEach((dot, i) => { dot.className = i < step ? "done" : i === step ? "now" : ""; });
+      $("dots").setAttribute("aria-label", `Screen ${step + 1} of ${flow.screens.length}`);
+      hotspot.hidden = last || !s.hotspot;
+      if (!hotspot.hidden) {
+        const [x, y, w, h] = s.hotspot;
+        hotspot.style.left = `calc(${x * 100}% - 6px)`;
+        hotspot.style.top = `calc(${y * 100}% - 6px)`;
+        hotspot.style.width = `calc(${w * 100}% + 12px)`;
+        hotspot.style.height = `calc(${h * 100}% + 12px)`;
+        hotspot.setAttribute("aria-label", s.caption);
+        requestAnimationFrame(round);
+      }
+      $("back").disabled = step === 0;
+      $("restart").disabled = step === 0;
+      $("another").hidden = !last;
+      document.body.dataset.flow = flow.id;
+      document.body.dataset.step = String(step + 1);
+      setHash(`${flow.id}-${step + 1}`);
+      const upcoming = flow.screens[step + 1];
+      if (upcoming) new Image().src = src(upcoming.file);
+    }
+
+    function round() {
+      if (!hotspot.hidden) hotspot.style.setProperty("--r", `${Math.min(hotspot.getBoundingClientRect().height / 2, 20)}px`);
+    }
+
+    function advance() {
+      if (!flow) return;
+      if (step < flow.screens.length - 1) { step += 1; render(); } else home();
+    }
+    function retreat() { if (flow && step > 0) { step -= 1; render(); } }
+
+    hotspot.addEventListener("click", (event) => { event.stopPropagation(); advance(); });
+    // A tap anywhere else on the screen never advances; it only points at the hotspot again.
+    screen.addEventListener("click", () => {
+      if (hotspot.hidden) return;
+      hotspot.classList.remove("nudge");
+      void hotspot.offsetWidth;
+      hotspot.classList.add("nudge");
+    });
+    hotspot.addEventListener("animationend", (event) => { if (event.animationName === "nudge") hotspot.classList.remove("nudge"); });
+    $("back").addEventListener("click", retreat);
+    $("restart").addEventListener("click", () => { step = 0; render(); });
+    $("another").addEventListener("click", home);
+    $("home-flow").addEventListener("click", home);
+    $("home-landing").addEventListener("click", home);
+    window.addEventListener("resize", round);
+    document.addEventListener("keydown", (event) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === "Escape" && flow) { event.preventDefault(); home(); }
+      else if (event.key === "ArrowRight" && flow) { event.preventDefault(); advance(); }
+      else if (event.key === "ArrowLeft" && flow) { event.preventDefault(); retreat(); }
+    });
+
+    // #needs opens a flow; #promise-3 opens its third screen.
+    function route() {
+      const match = /^#([a-z]+)(?:-(\d+))?$/.exec(location.hash);
+      if (match && flows.some((f) => f.id === match[1])) open(match[1], Number(match[2] || 1) - 1);
+      else if (flow) home();
+      else document.body.dataset.view = "landing";
+    }
+    window.addEventListener("hashchange", route);
+    route();
+  })();
+</script>
+</body>
+</html>
