@@ -22,6 +22,7 @@ import {
 } from "./src/config/pwaManifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
 import { createChainImportsPlugin } from "./vite/chain-imports";
+import { createIconLeaves } from "./vite/icon-leaves";
 import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 import { createPublicLocalesPlugin } from "./vite/public-locales";
@@ -37,6 +38,18 @@ const CLIENT_WALLET_MODULES =
 const CLIENT_VITE_RUNTIME_MODULES = /\0vite\/(?:preload-helper|modulepreload-polyfill)\.js/;
 const CLIENT_POSTHOG_MODULES = /[\\/]node_modules[\\/]posthog-js[\\/]/;
 const CLIENT_SENTRY_MODULES = /[\\/]node_modules[\\/]@sentry[\\/]/;
+// The installed app's startup, as scripts/check-pwa-precache-budget.mjs measures it, plus the
+// session gate it passes on the way in. The icons their modules draw share one chunk.
+const CLIENT_STARTUP_ROOTS = [
+  "src/main.tsx",
+  "src/bootstrapPwa.tsx",
+  "src/routes/PwaRuntime.tsx",
+  "src/routes/WalletRuntimeProviders.tsx",
+  "src/routes/SessionGate.tsx",
+  "src/routes/AppShell.tsx",
+  "src/views/Home/index.tsx",
+  "src/views/Login/index.tsx",
+];
 
 function envValue(key: string): string | undefined {
   const value = process.env[key]?.trim();
@@ -266,6 +279,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   }
 
   const tunnelHmr = resolveTunnelHmrConfig(rootDir);
+  const iconLeaves = createIconLeaves(CLIENT_STARTUP_ROOTS.map((path) => resolve(__dirname, path)));
 
   const plugins = [
     devTunnelPlugin(),
@@ -282,6 +296,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     createPublicLocalesPlugin(),
     createPwaShellAssetsPlugin(),
     createChainImportsPlugin(),
+    iconLeaves.plugin,
     VitePWA({
       includeAssets: [
         ...pwaBranding.includeAssets,
@@ -445,12 +460,23 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               test: /[\\/]@reown[\\/]appkit[\\/]dist[\\/]esm[\\/]src[\\/]library[\\/]react[\\/]components\.js$/,
               sideEffects: false,
             },
-            // The commitment-pooling barrels only re-export. Startup reads a few pooling
-            // helpers through them; without this, every module behind them joined the
-            // installed startup budget, so code only the promise page uses loaded at
-            // startup. Keep these barrels free of side effects.
+            // The commitment-pooling barrels and the client's promise-row and card barrels
+            // only re-export. Startup reads a few pooling helpers and rows through them;
+            // without this, every module behind them joined the installed startup budget,
+            // so code only the promise page uses loaded at startup. Keep these barrels free
+            // of side effects.
             {
-              test: /[\\/]packages[\\/]shared[\\/]src[\\/](?:hooks[\\/]|modules[\\/])?commitment-pooling[\\/]index\.ts$/,
+              test: /[\\/]packages[\\/](?:shared[\\/]src[\\/](?:hooks[\\/]|modules[\\/])?commitment-pooling|client[\\/]src[\\/]components[\\/](?:Cards|Features[\\/]Commitments))[\\/]index\.ts$/,
+              sideEffects: false,
+            },
+            // The pooling read modules declare GraphQL documents, ABI fragments and mappers,
+            // and run nothing at import time. One hook module on the startup path imports a
+            // reader for every pooling screen through `modules/commitment-pooling/data`, and
+            // Rolldown cannot tell a document declaration from an effect, so without this the
+            // settlement, funding, credit and voucher readers stayed in the installed startup
+            // budget for screens that never read them.
+            {
+              test: /[\\/]packages[\\/]shared[\\/]src[\\/]modules[\\/]commitment-pooling[\\/](?:data-[^\\/]+|service-access-[^\\/]+|settlement)\.ts$/,
               sideEffects: false,
             },
           ],
@@ -504,6 +530,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
                 priority: 20,
                 entriesAware: true,
               },
+              // One module per icon (vite/icon-leaves.ts); the startup screens' icons share a chunk.
+              iconLeaves.startupChunkGroup,
               { name: "vendor-posthog", test: CLIENT_POSTHOG_MODULES, priority: 10 },
               { name: "vendor-sentry", test: CLIENT_SENTRY_MODULES, priority: 10 },
             ],
