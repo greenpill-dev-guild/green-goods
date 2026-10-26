@@ -1,7 +1,8 @@
 // Saves the photos of Tech and Sun's approved submissions from its public garden page into
-// ./assets/photos as record-NN.jpg (not committed), with record-photos.tsv listing each title.
+// ./assets/photos as record-NN.jpg (not committed), with record-photos.tsv listing each title, and
+// the course proof on the hub's one waiting promise as proof-course.jpg, cropped to the result.
 // Afo cleared the hub's public photos for the demo on 26 October 2026; never use record-15, a
-// letter that names a person. capture.mjs swaps these into the Work flow.
+// letter that names a person. capture.mjs swaps these into the Work and Promise flows.
 // Usage, from the repository root (needs the repository's Playwright install and network access):
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/photos.mjs
 // The set is replaced whole: every photo downloads into a temporary folder first, and one failed
@@ -56,16 +57,42 @@ for (const card of wanted) {
   writeFileSync(join(temp, card.file), body);
   rows.push(`${card.file}\t${card.text}`);
 }
+
+// The proof on the hub's one course promise that is waiting to be confirmed: a photo of the
+// course's final assessment. The photo also shows the member's browser profile menu with their
+// name and email, so only the assessment panel is kept.
+const PROOF = "https://greengoods.mypinata.cloud/ipfs/bafkreie3p3ji5l7lufiocgkdswktr2rj7tiptklzd3cdnkx6ifvk4bjzvi";
+const proof = await page.request.get(PROOF);
+const proofBody = proof.ok() ? await proof.body() : null;
+if (!proofBody) failures.push(`proof-course.jpg: ${proof.status()} for ${PROOF}`);
+else if (proofBody.length < 1024 || !looksLikeImage(proofBody)) failures.push(`proof-course.jpg: not an image (${proofBody.length} bytes) for ${PROOF}`);
+else {
+  const cropped = await page.evaluate(async (src) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    if (img.naturalWidth !== 1280 || img.naturalHeight !== 720) return null;
+    // The 1280x720 photo: the assessment panel sits left of the profile menu (x 882 and right)
+    // and below the tab and address bars (y 140 and up).
+    const [sx, sy, sw, sh] = [140, 140, 735, 500];
+    const canvas = Object.assign(document.createElement("canvas"), { width: sw, height: sh });
+    canvas.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    return canvas.toDataURL("image/jpeg", 0.9);
+  }, `data:image/jpeg;base64,${proofBody.toString("base64")}`).catch(() => null);
+  // The crop is measured on this one photo; any other size would keep the name and email in view.
+  if (!cropped) failures.push("proof-course.jpg: the proof is no longer the 1280x720 photo the crop was measured on");
+  else writeFileSync(join(temp, "proof-course.jpg"), Buffer.from(cropped.split(",")[1], "base64"));
+}
 await browser.close();
 if (failures.length) {
   rmSync(temp, { recursive: true, force: true });
   for (const failure of failures) console.log(`  problem: ${failure}`);
-  console.log(`refresh failed: ${failures.length} of ${wanted.length} photos did not download; the existing set in ${out} is untouched and may be stale`);
+  console.log(`refresh failed: ${failures.length} of ${wanted.length + 1} photos did not download; the existing set in ${out} is untouched and may be stale`);
   process.exit(1);
 }
 // Replace the whole set at once, so an old record-NN.jpg never outlives the page's current list.
-for (const name of readdirSync(out)) if (/^record-\d+\.jpg$/.test(name) || name === "record-photos.tsv") unlinkSync(join(out, name));
+for (const name of readdirSync(out)) if (/^record-\d+\.jpg$/.test(name) || name === "record-photos.tsv" || name === "proof-course.jpg") unlinkSync(join(out, name));
 for (const name of readdirSync(temp)) renameSync(join(temp, name), join(out, name));
 writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
 rmSync(temp, { recursive: true, force: true });
-console.log(`saved ${rows.length} photos into ${out}`);
+console.log(`saved ${rows.length} photos and proof-course.jpg into ${out}`);

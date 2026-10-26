@@ -5,18 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Green Goods Clickable Demo</title>
 <meta name="claude:viewport-fit-sides" content="cover" />
-<meta name="description" content="Four short flows through Green Goods at Tech and Sun's hub in Awka, Nigeria, for SustainableFinance.Live 2026: real app screens with sample data. Captions, story ids and hotspots are in the #flows block; the screens are captured by capture.mjs and inlined by build.mjs." />
+<meta name="description" content="One season at Tech and Sun's hub in Awka, Nigeria, in four clickable flows for SustainableFinance.Live 2026: the steward names a need, a member keeps a promise, the hub logs a bootcamp, and a supporter endows the hub. Real app screens with names changed. Captions, sources and hotspots are in the #flows block; capture.mjs captures the screens and build.mjs inlines them." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" />
 <style>
-  /* One screen at a time: a landing of the loop's four flows, then one real app screen in a device
-     frame with a single hotspot, one caption line and quiet controls. The deck's Warm Earth tokens,
-     Fraunces headlines with the green italic accent, Inter for everything else, solid lines only. */
+  /* A landing of the season's four flows, then one app screen at a time in a device frame with a
+     single hotspot, one caption line, who you are, and a way back to the flows that never hides.
+     The deck's Warm Earth tokens, Fraunces headlines with the green italic accent, Inter for
+     everything else, solid lines only. */
   :root {
     --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
     --rule: #E7E1D9; --rule-2: #D9D1C5;
-    --accent: #1A7544; --action: #1A7544; --action-hover: #155F37; --on-action: #FFFFFF;
+    --accent: #1A7544; --action: #1A7544; --action-hover: #155F37; --on-action: #FFFFFF; --tint: #E8F3EC;
     --ring: #1FC16B; --ring-soft: rgba(31, 193, 107, 0.2); --ring-ping: rgba(31, 193, 107, 0.55);
     --bezel: #1C1917; --bezel-edge: #3A3531; --screen: #FFFFFF; --shadow: rgba(41, 37, 36, 0.28);
     --serif: "Fraunces", Georgia, "Times New Roman", serif;
@@ -27,7 +28,7 @@
     :root:not([data-theme="light"]) {
       --linen: #171412; --paper: #221E1B; --ink: #F5F1EA; --ink-2: #E7E1D9; --sub: #C8BFB3; --stone: #A39A90;
       --rule: #34302B; --rule-2: #46403A;
-      --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF;
+      --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF; --tint: #1E2B23;
       --ring: #3BD483; --ring-soft: rgba(59, 212, 131, 0.22); --ring-ping: rgba(59, 212, 131, 0.6);
       --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
       color-scheme: dark;
@@ -36,7 +37,7 @@
   :root[data-theme="dark"] {
     --linen: #171412; --paper: #221E1B; --ink: #F5F1EA; --ink-2: #E7E1D9; --sub: #C8BFB3; --stone: #A39A90;
     --rule: #34302B; --rule-2: #46403A;
-    --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF;
+    --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF; --tint: #1E2B23;
     --ring: #3BD483; --ring-soft: rgba(59, 212, 131, 0.22); --ring-ping: rgba(59, 212, 131, 0.6);
     --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
     color-scheme: dark;
@@ -49,15 +50,15 @@
 
   .view { min-height: 100%; display: flex; flex-direction: column; padding-left: var(--gutter-l); padding-right: var(--gutter-r); padding-block: 20px 24px; }
   .view[hidden] { display: none; }
-  .bar { display: flex; align-items: center; gap: 20px; min-height: 52px; }
-  .home { display: block; flex: none; width: 64px; padding: 4px; margin: -4px; border: 0; background: none; border-radius: 10px; cursor: pointer; }
-  .home img { display: block; width: 100%; height: auto; }
+  .bar { display: flex; align-items: center; gap: 16px; min-height: 52px; }
+  .mark { display: block; flex: none; width: 60px; height: auto; }
 
   /* Landing */
-  .landing-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: clamp(28px, 5vh, 56px); width: 100%; max-width: 1180px; margin: 0 auto; padding-block: 24px 8px; }
+  .landing-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: clamp(28px, 5vh, 52px); width: 100%; max-width: 1180px; margin: 0 auto; padding-block: 20px 8px; }
   h1 { margin: 0; font: 400 clamp(40px, 3.6vw + 16px, 76px)/1.04 var(--serif); letter-spacing: -0.02em; text-wrap: balance; }
   em.accent { font-style: italic; color: var(--accent); }
-  .lede { margin: 18px 0 0; font: 400 clamp(19px, 0.6vw + 14px, 24px)/1.4 var(--sans); color: var(--sub); }
+  .lede { margin: 18px 0 0; max-width: 46ch; font: 400 clamp(19px, 0.6vw + 14px, 24px)/1.4 var(--sans); color: var(--sub); text-wrap: pretty; }
+  .start { margin-top: 26px; }
   .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
   .tile { width: 100%; height: 100%; display: grid; grid-template-rows: auto auto 1fr; text-align: left; padding: 0; border: 1px solid var(--rule); border-radius: 20px; background: var(--paper); cursor: pointer; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
   .tile:hover { border-color: var(--rule-2); box-shadow: 0 18px 36px -24px var(--shadow); }
@@ -66,9 +67,10 @@
   .thumb .device.phone { width: 96px; margin-bottom: -40px; }
   .thumb .device.desktop { width: min(100%, 236px); align-self: center; margin-bottom: 18px; }
   .tile-text { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: baseline; padding: 18px 20px 22px; }
-  .num { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--action); color: var(--on-action); font: 600 15px/1 var(--sans); transform: translateY(-3px); }
+  .num { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--action); color: var(--on-action); font: 600 15px/1 var(--sans); transform: translateY(-3px); }
   .name { font: 400 32px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
   .line { grid-column: 1 / -1; margin-top: 8px; font: 400 18px/1.4 var(--sans); color: var(--sub); text-wrap: balance; }
+  .steps { grid-column: 1 / -1; margin-top: 10px; font: 500 15px/1.3 var(--sans); color: var(--stone); }
 
   /* Devices: the capture fills the screen; the bezel is the only frame. */
   .device { --bezel-w: 10px; position: relative; padding: var(--bezel-w); background: var(--bezel); border: 1px solid var(--bezel-edge); margin: 0; }
@@ -82,9 +84,22 @@
   /* Flow: a definite full-height grid, so the stage's container query units resolve. */
   #flow { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; }
   #flow[hidden] { display: none; }
-  .flow-name { margin: 0; font: 400 clamp(24px, 1vw + 16px, 32px)/1.1 var(--serif); letter-spacing: -0.012em; }
-  .dots { list-style: none; margin: 0 0 0 auto; padding: 0; display: flex; gap: 8px; }
-  .dots li { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--rule-2); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 24px; border-radius: 999px; border: 1px solid var(--rule-2); background: var(--paper); color: var(--ink); font: 600 17px/1 var(--sans); cursor: pointer; white-space: nowrap; }
+  .btn:hover:not(:disabled) { border-color: var(--stone); }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn.primary { background: var(--action); border-color: var(--action); color: var(--on-action); }
+  .btn.primary:hover { background: var(--action-hover); border-color: var(--action-hover); }
+  .btn[hidden] { display: none; }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+  .all { min-height: 44px; padding: 0 18px 0 14px; font-size: 16px; }
+  .flow-head { min-width: 0; display: grid; gap: 4px; }
+  .flow-name { display: flex; align-items: center; gap: 10px; margin: 0; font: 400 clamp(24px, 1vw + 16px, 32px)/1.1 var(--serif); letter-spacing: -0.012em; }
+  .flow-name .num { transform: none; width: 28px; height: 28px; font-size: 14px; }
+  .who { margin: 0; font: 500 16px/1.3 var(--sans); color: var(--sub); }
+  .progress { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .count { margin: 0; font: 600 15px/1 var(--sans); color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .dots { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; }
+  .dots li { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--rule-2); }
   .dots li.done { background: var(--rule-2); }
   .dots li.now { background: var(--action); border-color: var(--action); }
   .stage { min-height: 0; container-type: size; display: grid; place-items: center; padding-block: 14px; }
@@ -96,21 +111,25 @@
   @keyframes ping { from { box-shadow: 0 0 0 3px var(--ring-ping); } to { box-shadow: 0 0 0 22px transparent; } }
   @keyframes nudge { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.08); } }
   .caption { margin: 6px auto 0; max-width: 34ch; min-height: 1.3em; text-align: center; font: 500 clamp(20px, 1vw + 12px, 28px)/1.3 var(--sans); color: var(--ink); text-wrap: balance; }
-  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 18px; }
-  .btn { min-height: 48px; padding: 0 24px; border-radius: 999px; border: 1px solid var(--rule-2); background: var(--paper); color: var(--ink); font: 600 17px/1 var(--sans); cursor: pointer; }
-  .btn:hover:not(:disabled) { border-color: var(--stone); }
-  .btn:disabled { opacity: 0.4; cursor: default; }
-  .btn.primary { background: var(--action); border-color: var(--action); color: var(--on-action); }
-  .btn.primary:hover { background: var(--action-hover); border-color: var(--action-hover); }
-  .btn[hidden] { display: none; }
+  .hint { margin: 6px 0 0; text-align: center; font: 400 15px/1.4 var(--sans); color: var(--stone); }
+  .hint[hidden] { display: none; }
+  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 16px; }
 
   @media (max-width: 1040px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 760px) {
+    .dots { display: none; }
+    .bar { gap: 12px; }
+    .who { font-size: 14px; }
+  }
   @media (max-width: 560px) {
     .tiles { grid-template-columns: minmax(0, 1fr); }
     .thumb { height: 180px; }
-    .home { width: 52px; }
-    .dots { gap: 6px; }
-    .dots li { width: 10px; height: 10px; }
+    .mark { width: 48px; }
+    .all { padding: 0 14px 0 10px; font-size: 15px; }
+    .flow-name { font-size: 22px; gap: 8px; }
+    .flow-name .num { width: 24px; height: 24px; font-size: 13px; }
+    .count .long { display: none; }
+    .controls .btn { padding: 0 18px; }
     .stage .device.desktop { --bezel-w: 6px; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -122,11 +141,12 @@
 </head>
 <body>
 <main class="view" id="landing">
-  <div class="bar"><button class="home" type="button" id="home-landing" aria-label="Green Goods"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="" /></button></div>
+  <div class="bar"><img class="mark" src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /></div>
   <div class="landing-body">
     <header>
       <h1>Click through a season <em class="accent">at the hub</em></h1>
-      <p class="lede">Real app screens, real hub photos, sample data.</p>
+      <p class="lede">Follow one season at Tech and Sun's hub in Awka, Nigeria, from need to funding. Real app screens and hub photos; names are changed.</p>
+      <button class="btn primary start" type="button" id="start">Start from the beginning</button>
     </header>
     <ol class="tiles" id="tiles"></ol>
   </div>
@@ -134,9 +154,15 @@
 
 <section class="view" id="flow" hidden aria-labelledby="flow-name">
   <div class="bar">
-    <button class="home" type="button" id="home-flow" aria-label="All flows"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="" /></button>
-    <h2 class="flow-name" id="flow-name"></h2>
-    <ol class="dots" id="dots" aria-label="Progress"></ol>
+    <button class="btn all" type="button" id="home-flow"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>All flows</button>
+    <div class="flow-head">
+      <h2 class="flow-name"><span class="num" id="flow-num"></span><span id="flow-name"></span></h2>
+      <p class="who" id="who"></p>
+    </div>
+    <div class="progress">
+      <p class="count" id="count"></p>
+      <ol class="dots" id="dots" aria-hidden="true"></ol>
+    </div>
   </div>
   <div class="stage">
     <figure class="device phone" id="device">
@@ -147,10 +173,12 @@
     </figure>
   </div>
   <p class="caption" id="caption" aria-live="polite"></p>
+  <p class="hint" id="hint">Tap the green ring to go on. Arrow keys work too.</p>
   <nav class="controls" aria-label="Flow">
     <button class="btn" type="button" id="back">Back</button>
     <button class="btn" type="button" id="restart">Restart</button>
-    <button class="btn primary" type="button" id="another" hidden>Try another flow</button>
+    <button class="btn" type="button" id="all-end" hidden>All flows</button>
+    <button class="btn primary" type="button" id="next-flow" hidden></button>
   </nav>
 </section>
 
@@ -161,19 +189,21 @@
       "id": "needs",
       "label": "Needs",
       "line": "The hub names its need",
+      "who": "You are Obinna, the hub's steward",
+      "thumb": "needs-3",
       "screens": [
         {
           "file": "needs-1",
           "device": "desktop",
           "caption": "Start the season's assessment",
-          "story": "admin-workspaces-hub--assessments-tab",
+          "story": "dashboard/hub/assess",
           "size": [
             1440,
             900
           ],
           "hotspot": [
-            0.5826,
-            0.1267,
+            0.5843,
+            0.1089,
             0.1321,
             0.0356
           ]
@@ -182,7 +212,7 @@
           "file": "needs-2",
           "device": "desktop",
           "caption": "Name the need: climate and tech skills",
-          "story": "admin-workspaces-hub--create-assessment-route",
+          "story": "dashboard/hub/assess",
           "size": [
             1440,
             900
@@ -197,8 +227,40 @@
         {
           "file": "needs-3",
           "device": "desktop",
-          "caption": "Check the targets, then submit",
-          "story": "admin-workflows-assessment-reviewstep--in-flow-ready",
+          "caption": "Set the targets the season should reach",
+          "story": "dashboard/hub/assess",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.7992,
+            0.8694,
+            0.0452,
+            0.0356
+          ]
+        },
+        {
+          "file": "needs-4",
+          "device": "desktop",
+          "caption": "Choose the work that counts toward them",
+          "story": "dashboard/hub/assess",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.7992,
+            0.8694,
+            0.0452,
+            0.0356
+          ]
+        },
+        {
+          "file": "needs-5",
+          "device": "desktop",
+          "caption": "Check everything, then submit",
+          "story": "dashboard/hub/assess",
           "size": [
             1440,
             900
@@ -211,9 +273,9 @@
           ]
         },
         {
-          "file": "needs-4",
+          "file": "needs-6",
           "device": "desktop",
-          "caption": "Close the finished assessment",
+          "caption": "Close the saved assessment",
           "story": "admin-workflows-assessment-reviewstep--in-flow-sent",
           "size": [
             1440,
@@ -227,10 +289,11 @@
           ]
         },
         {
-          "file": "needs-5",
+          "file": "needs-7",
           "device": "phone",
           "caption": "Members see what the hub needs",
-          "story": "client-garden-assessments--education",
+          "who": "You are Chiamaka, a member of the hub",
+          "story": "client-home-gardensheets--insights-with-banner-at-390",
           "size": [
             390,
             844
@@ -242,25 +305,59 @@
       "id": "promise",
       "label": "Promise",
       "line": "Members promise a climate course",
+      "who": "You are Chiamaka, a member of the hub",
+      "thumb": "promise-4",
       "screens": [
         {
           "file": "promise-1",
           "device": "phone",
-          "caption": "Open the climate course request",
-          "story": "client-commitments-gardenpool--live",
+          "caption": "Open this season at the hub",
+          "story": "app/home",
           "size": [
             390,
             844
           ],
           "hotspot": [
             0.041,
-            0.7441,
-            0.9179,
-            0.1043
+            0.1528,
+            0.7179,
+            0.1327
           ]
         },
         {
           "file": "promise-2",
+          "device": "phone",
+          "caption": "See what the season asks members",
+          "story": "app/home",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0436,
+            0.9289,
+            0.9128,
+            0.0521
+          ]
+        },
+        {
+          "file": "promise-3",
+          "device": "phone",
+          "caption": "Open the climate course request",
+          "story": "app/home",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0436,
+            0.5197,
+            0.9128,
+            0.1043
+          ]
+        },
+        {
+          "file": "promise-4",
           "device": "phone",
           "caption": "Read what it asks, then take one",
           "story": "client-commitments-promisegrouppage--open",
@@ -276,7 +373,7 @@
           ]
         },
         {
-          "file": "promise-3",
+          "file": "promise-5",
           "device": "phone",
           "caption": "Promise to finish the course",
           "story": "client-commitments-takeuponesheet--ready",
@@ -292,9 +389,41 @@
           ]
         },
         {
-          "file": "promise-4",
+          "file": "promise-6",
           "device": "phone",
-          "caption": "Add your certificate as proof",
+          "caption": "Finished? Add your proof",
+          "story": "client-commitments-gardencommitment--in-progress",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9242,
+            0.9179,
+            0.0569
+          ]
+        },
+        {
+          "file": "promise-7",
+          "device": "phone",
+          "caption": "Add a photo of your result",
+          "story": "client-commitments-proofcomposer--media-added",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.5333,
+            0.9289,
+            0.4256,
+            0.0569
+          ]
+        },
+        {
+          "file": "promise-8",
+          "device": "phone",
+          "caption": "Say what you did",
           "story": "client-commitments-proofcomposer--details",
           "size": [
             390,
@@ -308,10 +437,44 @@
           ]
         },
         {
-          "file": "promise-5",
+          "file": "promise-9",
           "device": "phone",
-          "caption": "As the hub, confirm the certificate",
-          "story": "client-commitments-confirmsheet--ask-garden-work",
+          "caption": "Check it, then send it to the hub",
+          "story": "client-commitments-proofcomposer--review-send",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9289,
+            0.9179,
+            0.0569
+          ]
+        },
+        {
+          "file": "promise-10",
+          "device": "phone",
+          "caption": "As steward, open the finished promise",
+          "who": "You are Obinna, the hub's steward",
+          "story": "app/home/0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3/commitments/19",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9242,
+            0.9179,
+            0.0569
+          ]
+        },
+        {
+          "file": "promise-11",
+          "device": "phone",
+          "caption": "Confirm she finished the course",
+          "who": "You are Obinna, the hub's steward",
+          "story": "app/home/0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3/commitments/19",
           "size": [
             390,
             844
@@ -324,9 +487,9 @@
           ]
         },
         {
-          "file": "promise-6",
+          "file": "promise-12",
           "device": "phone",
-          "caption": "The promise is kept and recorded",
+          "caption": "The promise is kept",
           "story": "client-commitments-gardencommitment--kept",
           "size": [
             390,
@@ -338,13 +501,95 @@
     {
       "id": "work",
       "label": "Work",
-      "line": "The hub delivers the bootcamp",
+      "line": "The hub runs the bootcamp",
+      "who": "You are Ifeoma, who ran the bootcamp",
+      "thumb": "work-6",
       "screens": [
         {
           "file": "work-1",
           "device": "phone",
-          "caption": "Add a photo of the bootcamp",
-          "story": "client-work-submitwork--media-with-example-photo",
+          "caption": "Tap Garden to log the bootcamp",
+          "story": "app/home",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.4282,
+            0.9289,
+            0.1436,
+            0.0616
+          ]
+        },
+        {
+          "file": "work-2",
+          "device": "phone",
+          "caption": "Switch to Education",
+          "story": "app/home",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.6749,
+            0.1019,
+            0.1502,
+            0.019
+          ]
+        },
+        {
+          "file": "work-3",
+          "device": "phone",
+          "caption": "Pick Workshop Delivered",
+          "story": "app/home",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0399,
+            0.2808,
+            0.8261,
+            0.2062
+          ]
+        },
+        {
+          "file": "work-4",
+          "device": "phone",
+          "caption": "Start logging the workshop",
+          "story": "app/home",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9289,
+            0.9179,
+            0.0569
+          ]
+        },
+        {
+          "file": "work-5",
+          "device": "phone",
+          "caption": "Add photos from the bootcamp",
+          "story": "app/home",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9289,
+            0.1231,
+            0.0569
+          ]
+        },
+        {
+          "file": "work-6",
+          "device": "phone",
+          "caption": "Three photos in, now the details",
+          "story": "app/home",
           "size": [
             390,
             844
@@ -357,10 +602,10 @@
           ]
         },
         {
-          "file": "work-2",
+          "file": "work-7",
           "device": "phone",
-          "caption": "Check the details, then upload",
-          "story": "client-work-submitwork--review-with-example-photo",
+          "caption": "Add hours, facilitators and topics",
+          "story": "app/home",
           "size": [
             390,
             844
@@ -373,25 +618,43 @@
           ]
         },
         {
-          "file": "work-3",
+          "file": "work-8",
           "device": "phone",
-          "caption": "As steward, open the new workshop",
-          "story": "client-garden-gardenwork--all-work",
+          "caption": "Check it all, then upload",
+          "story": "app/home",
           "size": [
             390,
             844
           ],
           "hotspot": [
             0.041,
-            0.0711,
+            0.9289,
+            0.9179,
+            0.0569
+          ]
+        },
+        {
+          "file": "work-9",
+          "device": "phone",
+          "caption": "Open the new workshop to review it",
+          "who": "You are Obinna, the hub's steward",
+          "story": "app/home",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.3472,
             0.9179,
             0.1043
           ]
         },
         {
-          "file": "work-4",
+          "file": "work-10",
           "device": "phone",
           "caption": "Approve what the photos show",
+          "who": "You are Obinna, the hub's steward",
           "story": "client-work-reviewwork--evaluate-example",
           "size": [
             390,
@@ -405,9 +668,10 @@
           ]
         },
         {
-          "file": "work-5",
+          "file": "work-11",
           "device": "phone",
           "caption": "Add a note and submit",
+          "who": "You are Obinna, the hub's steward",
           "story": "client-work-reviewwork--feedback-example",
           "size": [
             390,
@@ -421,13 +685,14 @@
           ]
         },
         {
-          "file": "work-6",
-          "device": "phone",
-          "caption": "The facilitator sees it approved",
-          "story": "client-work-workdashboard--completed-with-example-photo",
+          "file": "work-12",
+          "device": "desktop",
+          "caption": "The bootcamp joins the hub's public record",
+          "who": "Anyone can open the hub's page",
+          "story": "app/gardens/tas-hub",
           "size": [
-            390,
-            844
+            1440,
+            900
           ]
         }
       ]
@@ -436,35 +701,37 @@
       "id": "funding",
       "label": "Funding",
       "line": "Supporters fund the next cohort",
+      "who": "You are Funmi, a supporter of the hub",
+      "thumb": "funding-2",
       "screens": [
         {
           "file": "funding-1",
           "device": "desktop",
-          "caption": "Open Fund to back the next cohort",
-          "story": "https://greengoods.app/gardens/tas-hub",
+          "caption": "Back the hub from its own page",
+          "story": "app/gardens/tas-hub",
           "size": [
             1440,
             900
           ],
           "hotspot": [
-            0.4913,
-            0.0111,
-            0.049,
+            0.0556,
+            0.3325,
+            0.134,
             0.0489
           ]
         },
         {
           "file": "funding-2",
           "device": "desktop",
-          "caption": "Choose an endowment for TAS Hub",
-          "story": "https://greengoods.app/fund",
+          "caption": "Endow the hub for the long run",
+          "story": "app/gardens/tas-hub",
           "size": [
             1440,
             900
           ],
           "hotspot": [
-            0.89,
-            0.4759,
+            0.4373,
+            0.0758,
             0.0544,
             0.0444
           ]
@@ -472,8 +739,8 @@
         {
           "file": "funding-3",
           "device": "desktop",
-          "caption": "Enter an amount and continue",
-          "story": "https://greengoods.app/fund",
+          "caption": "Enter an amount and connect",
+          "story": "app/gardens/tas-hub",
           "size": [
             1440,
             900
@@ -488,24 +755,40 @@
         {
           "file": "funding-4",
           "device": "desktop",
-          "caption": "Check your endowment any time",
-          "story": "client-public-vault-vaultmanagepositionspanel--positions",
+          "caption": "Confirm the endowment in DAI",
+          "story": "public-documentation-funding--endow",
           "size": [
             1440,
             900
           ],
           "hotspot": [
-            0.941,
-            0.0411,
-            0.0306,
+            0.3667,
+            0.6888,
+            0.2667,
             0.0489
           ]
         },
         {
           "file": "funding-5",
           "device": "desktop",
+          "caption": "Close and see where it goes",
+          "story": "public-documentation-funding--endowed",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "file": "funding-6",
+          "device": "desktop",
           "caption": "Follow the work it supports",
-          "story": "https://greengoods.app/gardens/tas-hub",
+          "story": "app/gardens/tas-hub",
           "size": [
             1440,
             900
@@ -542,14 +825,16 @@
       tile.className = "tile";
       tile.id = `tile-${f.id}`;
       tile.dataset.flow = f.id;
+      const pick = f.screens.find((s) => s.file === f.thumb) || f.screens[0];
       const thumb = document.createElement("span");
       thumb.className = "thumb";
-      thumb.append(device(f.screens[0].device, f.screens[0].file));
+      thumb.append(device(pick.device, pick.file));
       const text = document.createElement("span");
       text.className = "tile-text";
-      text.innerHTML = `<span class="num">${i + 1}</span><span class="name"></span><span class="line"></span>`;
+      text.innerHTML = `<span class="num">${i + 1}</span><span class="name"></span><span class="line"></span><span class="steps"></span>`;
       text.querySelector(".name").textContent = f.label;
       text.querySelector(".line").textContent = f.line;
+      text.querySelector(".steps").textContent = `${f.screens.length} screens`;
       tile.append(thumb, text);
       tile.addEventListener("click", () => open(f.id, 0));
       li.append(tile);
@@ -566,31 +851,36 @@
       landing.hidden = true;
       view.hidden = false;
       document.body.dataset.view = "flow";
+      $("flow-num").textContent = String(flows.indexOf(flow) + 1);
       $("flow-name").textContent = flow.label;
       $("dots").replaceChildren(...flow.screens.map(() => document.createElement("li")));
       render();
-      hotspot.hidden ? $("another").focus() : hotspot.focus({ preventScroll: true });
+      hotspot.hidden ? $("next-flow").focus() : hotspot.focus({ preventScroll: true });
     }
 
     function home() {
+      const from = flow;
       flow = null;
       view.hidden = true;
       landing.hidden = false;
       document.body.dataset.view = "landing";
       setHash("");
-      $("tiles").querySelector(".tile")?.focus({ preventScroll: true });
+      ($(`tile-${from?.id}`) || $("start")).focus({ preventScroll: true });
     }
+
+    function nextFlow() { return flows[flows.indexOf(flow) + 1]; }
 
     function render() {
       const s = flow.screens[step];
       const last = step === flow.screens.length - 1;
-      const dev = $("device");
-      dev.className = `device ${s.device}`;
+      const next = nextFlow();
+      $("device").className = `device ${s.device}`;
       shot.src = src(s.file);
       shot.alt = `${flow.label}, screen ${step + 1} of ${flow.screens.length}`;
       $("caption").textContent = s.caption;
+      $("who").textContent = s.who || flow.who;
+      $("count").innerHTML = `<span class="long">Screen </span>${step + 1} of ${flow.screens.length}`;
       [...$("dots").children].forEach((dot, i) => { dot.className = i < step ? "done" : i === step ? "now" : ""; });
-      $("dots").setAttribute("aria-label", `Screen ${step + 1} of ${flow.screens.length}`);
       hotspot.hidden = last || !s.hotspot;
       if (!hotspot.hidden) {
         const [x, y, w, h] = s.hotspot;
@@ -601,13 +891,17 @@
         hotspot.setAttribute("aria-label", s.caption);
         requestAnimationFrame(round);
       }
+      $("hint").hidden = step !== 0;
       $("back").disabled = step === 0;
       $("restart").disabled = step === 0;
-      $("another").hidden = !last;
+      // The last screen continues the story in the next flow; the last flow ends at the landing.
+      $("next-flow").hidden = !last;
+      $("next-flow").textContent = next ? `Next: ${next.label}` : "All flows";
+      $("all-end").hidden = !last || !next;
       document.body.dataset.flow = flow.id;
       document.body.dataset.step = String(step + 1);
       setHash(`${flow.id}-${step + 1}`);
-      const upcoming = flow.screens[step + 1];
+      const upcoming = flow.screens[step + 1] || next?.screens[0];
       if (upcoming) new Image().src = src(upcoming.file);
     }
 
@@ -615,15 +909,16 @@
       if (!hotspot.hidden) hotspot.style.setProperty("--r", `${Math.min(hotspot.getBoundingClientRect().height / 2, 20)}px`);
     }
 
-    // A render hides the hotspot on the last screen, hides "Try another flow" everywhere else and
+    // A render hides the hotspot on the last screen, shows the closing buttons only there and
     // disables Back and Restart on the first screen, so a keyboard user who held a control that
     // just went away lands on the one now in play instead of on a hidden or disabled one.
     function keepFocus(before) {
-      if (![hotspot, $("another"), $("back"), $("restart")].includes(before)) return;
+      if (![hotspot, $("next-flow"), $("all-end"), $("back"), $("restart")].includes(before)) return;
       if (!before.hidden && !before.disabled) return;
       if (!hotspot.hidden) hotspot.focus({ preventScroll: true });
-      else if (!$("another").hidden) $("another").focus({ preventScroll: true });
+      else $("next-flow").focus({ preventScroll: true });
     }
+
     function advance() {
       if (!flow) return;
       if (step < flow.screens.length - 1) {
@@ -631,7 +926,10 @@
         step += 1;
         render();
         keepFocus(before);
-      } else home();
+        return;
+      }
+      const next = nextFlow();
+      if (next) open(next.id, 0); else home();
     }
     function retreat() {
       if (!flow || step === 0) return;
@@ -652,9 +950,10 @@
     hotspot.addEventListener("animationend", (event) => { if (event.animationName === "nudge") hotspot.classList.remove("nudge"); });
     $("back").addEventListener("click", retreat);
     $("restart").addEventListener("click", () => { const before = document.activeElement; step = 0; render(); keepFocus(before); });
-    $("another").addEventListener("click", home);
+    $("next-flow").addEventListener("click", advance);
+    $("all-end").addEventListener("click", home);
     $("home-flow").addEventListener("click", home);
-    $("home-landing").addEventListener("click", home);
+    $("start").addEventListener("click", () => open(flows[0].id, 0));
     window.addEventListener("resize", round);
     document.addEventListener("keydown", (event) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;

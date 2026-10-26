@@ -6,12 +6,14 @@
 // line five words; a hotspot on every screen except each flow's last; a build newer than index.html
 // and every screen; under 15 MB.
 // Rendered checks (Chromium, light, 1440x900): four tiles with loaded thumbnails; each flow walked by
-// clicking its hotspots, with each step's image loaded and its caption changed; a tap beside the
-// hotspot does not advance; Right, Left and Escape, Back and Restart, and a #work-3 deep link work;
-// focus held on the hotspot survives the last screen and Left from it, and Back or Restart by keyboard;
-// "Try another flow" returns to the landing; no request leaves the page except Google Fonts; no
-// console errors. Then 390x844 without sideways scroll, and dark mode. Every step is screenshot to
-// ./output/ with a contact sheet. A failed check exits with status 1 after reporting.
+// clicking its hotspots, with each step's image loaded, its caption changed, who you are shown,
+// and the "All flows" button visible; a tap beside the hotspot does not advance; each last screen
+// offers the next flow (the last one, the landing) and "All flows"; "Start from the beginning"
+// opens the first flow; Right, Left and Escape, Back and Restart, "All flows" mid-flow, and a
+// #work-3 deep link work; focus held on the hotspot survives a flow's last screen and Left from
+// it, and Back or Restart by keyboard; no request leaves the page except Google Fonts; no console errors. Then
+// 390x844 without sideways scroll, and dark mode. Every step is screenshot to ./output/ with a
+// contact sheet. A failed check exits with status 1 after reporting.
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
@@ -41,6 +43,8 @@ for (const file of prose) if (/—/.test(readFileSync(file, "utf8"))) note(`an e
 if (flows.length !== 4) note(`expected four flows, found ${flows.length}`);
 for (const flow of flows) {
   if (flow.line.split(/\s+/).length !== 5) note(`${flow.id}: the tile line "${flow.line}" is not five words`);
+  for (const text of [flow.line, flow.who, ...flow.screens.map((s) => s.who).filter(Boolean)]) if (!text || BANNED.test(text)) note(`${flow.id}: "${text}" is empty or uses a banned word`);
+  if (flow.thumb && !flow.screens.some((s) => s.file === flow.thumb)) note(`${flow.id}: its thumbnail ${flow.thumb} is not one of its screens`);
   flow.screens.forEach((s, i) => {
     const last = i === flow.screens.length - 1;
     if (s.caption.split(/\s+/).length > 8) note(`${s.file}: the caption "${s.caption}" is over eight words`);
@@ -65,7 +69,7 @@ async function openPage(options) {
   return { context, page };
 }
 const shotLoaded = (page) => page.waitForFunction(() => { const img = document.getElementById("shot"); return img.complete && img.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false);
-const state = (page) => page.evaluate(() => ({ view: document.body.dataset.view, flow: document.body.dataset.flow, step: Number(document.body.dataset.step), caption: document.getElementById("caption").textContent }));
+const state = (page) => page.evaluate(() => ({ view: document.body.dataset.view, flow: document.body.dataset.flow, step: Number(document.body.dataset.step), caption: document.getElementById("caption").textContent, who: document.getElementById("who").textContent }));
 
 const { context, page } = await openPage();
 await page.goto(url, { waitUntil: "load" });
@@ -75,7 +79,8 @@ if (tiles.length !== 4) note(`the landing shows ${tiles.length} tiles, expected 
 for (const t of tiles) if (!t.loaded) note(`${t.id}: its thumbnail did not load`);
 await page.screenshot({ path: join(out, "landing.png") });
 const steps = [];
-for (const flow of flows) {
+for (const [index, flow] of flows.entries()) {
+  const next = flows[index + 1];
   await page.click(`#tile-${flow.id}`);
   let previous = "";
   for (let i = 0; i < flow.screens.length; i += 1) {
@@ -86,6 +91,8 @@ for (const flow of flows) {
     if (now.view !== "flow" || now.flow !== flow.id || now.step !== i + 1) note(`${s.file}: expected ${flow.id} step ${i + 1}, found ${JSON.stringify(now)}`);
     if (now.caption !== s.caption) note(`${s.file}: caption "${now.caption}" differs from "${s.caption}"`);
     if (now.caption === previous) note(`${s.file}: the caption did not change`);
+    if (now.who !== (s.who || flow.who)) note(`${s.file}: shows "${now.who}" for who you are`);
+    if (!(await page.locator("#home-flow").isVisible())) note(`${s.file}: the "All flows" button is not visible`);
     previous = now.caption;
     const file = join(out, `${s.file}.png`);
     await page.screenshot({ path: file });
@@ -93,9 +100,16 @@ for (const flow of flows) {
     const hot = await page.locator("#hotspot").boundingBox();
     if (last) {
       if (hot) note(`${s.file}: a hotspot shows on the last screen`);
-      if (await page.locator("#another").isVisible()) await page.click("#another");
-      else { note(`${s.file}: "Try another flow" is not visible`); await page.keyboard.press("Escape"); }
-      if ((await state(page)).view !== "landing") note(`${flow.id}: "Try another flow" did not return to the landing`);
+      const label = (await page.locator("#next-flow").textContent()).trim();
+      if (label !== (next ? `Next: ${next.label}` : "All flows")) note(`${s.file}: the closing button says "${label}"`);
+      if (next) {
+        if (!(await page.locator("#all-end").isVisible())) note(`${s.file}: "All flows" is not offered at the end`);
+        await page.click("#next-flow");
+        const after = await state(page);
+        if (after.flow !== next.id || after.step !== 1) note(`${s.file}: "${label}" opened ${JSON.stringify(after)}`);
+        await page.click("#home-flow");
+      } else await page.click("#next-flow");
+      if ((await state(page)).view !== "landing") note(`${flow.id}: the end of the flow did not return to the landing`);
       continue;
     }
     if (!hot || hot.width < 24 || hot.height < 24) { note(`${s.file}: the hotspot is missing or too small`); await page.keyboard.press("Escape"); break; }
@@ -111,7 +125,15 @@ for (const flow of flows) {
     await page.click("#hotspot");
   }
 }
-// Keys, Back, Restart and a deep link.
+// The start button, keys, Back, Restart, "All flows" mid-flow and a deep link.
+await page.click("#start");
+{
+  const started = await state(page);
+  if (started.flow !== flows[0].id || started.step !== 1) note(`"Start from the beginning" opened ${JSON.stringify(started)}`);
+  await page.keyboard.press("ArrowRight");
+  await page.click("#home-flow");
+  if ((await state(page)).view !== "landing") note('"All flows" did not return to the landing mid-flow');
+}
 await page.click("#tile-promise");
 await page.keyboard.press("ArrowRight");
 if ((await state(page)).step !== 2) note("Right arrow did not advance");
@@ -126,7 +148,7 @@ if ((await state(page)).step !== 1) note("Restart did not return to the first sc
 await page.keyboard.press("Escape");
 if ((await state(page)).view !== "landing") note("Escape did not return to the landing");
 // A keyboard user who holds the hotspot keeps a visible control focused across the last screen
-// and back from it: Enter walks the flow, the last screen hands focus to "Try another flow", and
+// and back from it: Enter walks the flow, the last screen hands focus to the next-flow button, and
 // Left from there hands it back to the hotspot.
 await page.click("#tile-promise");
 await page.focus("#hotspot");
@@ -134,7 +156,7 @@ const promiseScreens = flows.find((f) => f.id === "promise").screens.length;
 for (let i = 1; i < promiseScreens; i += 1) await page.keyboard.press("Enter");
 const active = () => page.evaluate(() => ({ id: document.activeElement?.id || document.activeElement?.tagName, hidden: document.activeElement?.hidden ?? true }));
 if ((await state(page)).step !== promiseScreens) note("Enter on the hotspot did not reach the last screen");
-if ((await active()).id !== "another") note(`focus on the last screen sits on "${(await active()).id}", not on "Try another flow"`);
+if ((await active()).id !== "next-flow") note(`focus on the last screen sits on "${(await active()).id}", not on the next-flow button`);
 await page.keyboard.press("ArrowLeft");
 const after = await active();
 if (after.id !== "hotspot" || after.hidden) note(`focus after Left from the last screen sits on "${after.id}"${after.hidden ? " (hidden)" : ""}, not on the hotspot`);
@@ -162,13 +184,15 @@ if (deep.flow !== "work" || deep.step !== 3) note(`the #work-3 link opened ${JSO
 await context.close();
 
 // Phone width and dark mode.
-for (const [name, options, hash] of [["phone-landing", { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }, ""], ["phone-promise", { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }, "#promise-1"], ["phone-funding", { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }, "#funding-2"], ["dark-landing", { colorScheme: "dark" }, ""], ["dark-needs", { colorScheme: "dark" }, "#needs-3"]]) {
+const PHONE = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true };
+for (const [name, options, hash] of [["phone-landing", PHONE, ""], ["phone-promise", PHONE, "#promise-1"], ["phone-funding", PHONE, "#funding-2"], ["phone-work-end", PHONE, "#work-12"], ["dark-landing", { colorScheme: "dark" }, ""], ["dark-needs", { colorScheme: "dark" }, "#needs-3"]]) {
   const { context: c, page: p } = await openPage(options);
   await p.goto(`${url}${hash}`, { waitUntil: "load" });
   await p.evaluate(() => document.fonts.ready);
   if (hash && !(await shotLoaded(p))) note(`${name}: the screen image did not load`);
   const wide = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   if (wide > 0) note(`${name}: the page scrolls sideways by ${wide}px`);
+  if (hash && !(await p.locator("#home-flow").isVisible())) note(`${name}: the "All flows" button is not visible`);
   if (name.startsWith("dark")) {
     const bg = await p.evaluate(() => getComputedStyle(document.body).backgroundColor.match(/\d+/g).slice(0, 3).map(Number));
     if (bg.reduce((a, b) => a + b, 0) / 3 > 80) note(`${name}: the background is not dark (${bg})`);
