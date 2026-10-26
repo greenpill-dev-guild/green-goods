@@ -10,7 +10,8 @@
 // and the "All flows" button visible; a tap beside the hotspot does not advance; each last screen
 // offers the next flow (the last one, the landing) and "All flows"; "Start from the beginning"
 // opens the first flow; Right, Left and Escape, Back and Restart, "All flows" mid-flow, and a
-// #work-3 deep link work; no request leaves the page except Google Fonts; no console errors. Then
+// #work-3 deep link work; focus held on the hotspot survives a flow's last screen and Left from
+// it, and Back or Restart by keyboard; no request leaves the page except Google Fonts; no console errors. Then
 // 390x844 without sideways scroll, and dark mode. Every step is screenshot to ./output/ with a
 // contact sheet. A failed check exits with status 1 after reporting.
 import { createRequire } from "node:module";
@@ -146,6 +147,37 @@ await page.click("#restart");
 if ((await state(page)).step !== 1) note("Restart did not return to the first screen");
 await page.keyboard.press("Escape");
 if ((await state(page)).view !== "landing") note("Escape did not return to the landing");
+// A keyboard user who holds the hotspot keeps a visible control focused across the last screen
+// and back from it: Enter walks the flow, the last screen hands focus to the next-flow button, and
+// Left from there hands it back to the hotspot.
+await page.click("#tile-promise");
+await page.focus("#hotspot");
+const promiseScreens = flows.find((f) => f.id === "promise").screens.length;
+for (let i = 1; i < promiseScreens; i += 1) await page.keyboard.press("Enter");
+const active = () => page.evaluate(() => ({ id: document.activeElement?.id || document.activeElement?.tagName, hidden: document.activeElement?.hidden ?? true }));
+if ((await state(page)).step !== promiseScreens) note("Enter on the hotspot did not reach the last screen");
+if ((await active()).id !== "next-flow") note(`focus on the last screen sits on "${(await active()).id}", not on the next-flow button`);
+await page.keyboard.press("ArrowLeft");
+const after = await active();
+if (after.id !== "hotspot" || after.hidden) note(`focus after Left from the last screen sits on "${after.id}"${after.hidden ? " (hidden)" : ""}, not on the hotspot`);
+await page.keyboard.press("Escape");
+// Back from the second screen and Restart from a later one disable the button that was pressed,
+// so focus has to move to the hotspot, or Enter would stop working.
+await page.click("#tile-promise");
+await page.keyboard.press("ArrowRight");
+await page.focus("#back");
+await page.keyboard.press("Enter");
+const afterBack = await active();
+if ((await state(page)).step !== 1) note("Enter on Back did not go back");
+if (afterBack.id !== "hotspot" || afterBack.hidden) note(`focus after Back from the second screen sits on "${afterBack.id}", not on the hotspot`);
+await page.keyboard.press("ArrowRight");
+await page.keyboard.press("ArrowRight");
+await page.focus("#restart");
+await page.keyboard.press("Enter");
+const afterRestart = await active();
+if ((await state(page)).step !== 1) note("Enter on Restart did not return to the first screen");
+if (afterRestart.id !== "hotspot" || afterRestart.hidden) note(`focus after Restart sits on "${afterRestart.id}", not on the hotspot`);
+await page.keyboard.press("Escape");
 await page.goto(`${url}#work-3`, { waitUntil: "load" });
 const deep = await state(page);
 if (deep.flow !== "work" || deep.step !== 3) note(`the #work-3 link opened ${JSON.stringify(deep)}`);

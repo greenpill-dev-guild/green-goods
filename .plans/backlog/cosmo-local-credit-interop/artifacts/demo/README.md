@@ -21,7 +21,7 @@ else does not advance. "All flows" stays at the top left of every screen, and ea
 screen continues to the next flow, so "Start from the beginning" plays the whole season.
 
 - Drive: `Shared drives/Greenpill Dev Guild/Product/Green Goods/Growth/SF.Live 2026/Green Goods SF.Live 2026 clickable demo.html`
-- Private artifact: <https://claude.ai/artifact/9ThhqDPZTEggFZuKnvS2wa>
+- Artifact (shared by link): <https://claude.ai/artifact/9ThhqDPZTEggFZuKnvS2wa>
 - UI review of every screen: [`ui-review-2026-10-26.md`](ui-review-2026-10-26.md)
 
 ## Where the screens come from
@@ -44,9 +44,9 @@ screen continues to the next flow, so "Start from the beginning" plays the whole
 | Path | What it is |
 |---|---|
 | [`index.html`](index.html) | The page: landing, flow view and the `#flows` block with every caption, who you are, source and hotspot. It shows the screens from `assets/screens/` when they are present |
-| [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, and the course proof as `proof-course.jpg`, cropped to the result |
+| [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, and the course proof as `proof-course.jpg`, cropped to the result. It replaces the set whole: one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
 | [`capture.mjs`](capture.mjs) | Walks each flow's session in the app and Storybook, captures the 37 screens, swaps in names and the hub's content, and writes each screen's source, size and measured hotspot into `#flows` |
-| [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper) |
+| [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper). A missing screen or a page over 15 MB fails the build before it writes, so the last good build survives |
 | [`check.mjs`](check.mjs) | Checks the build and walks every flow headless; screenshots each step and a contact sheet into `output/` |
 | `assets/screens/`, `assets/photos/`, `output/` | Local files, not committed: the photos, the screens and the built page show identifiable people |
 
@@ -71,18 +71,29 @@ node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/build.mjs
 node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/check.mjs
 ```
 
-`capture.mjs --only=work-app,promise-4` re-runs single sessions (session ids are in `SESSIONS`), and
-`--debug` prints each screen's text. A composite needs the App screen under it captured first.
-Capture fails when a step fails, a swap rule matches nothing, a fixture name survives, a name ending
-in `.eth` that is not one of the demo's appears, a listed photo is missing, or a hotspot target is
-missing or off screen. Check fails on an em dash in the demo's HTML or Markdown, a caption over
-eight words or a caption, tile line or "who you are" line using "commitment", "chain",
-"blockchain", "Arbitrum", "Celo", "Gnosis" or "live", a tile line that is not five words, a missing
-or extra hotspot, a stale build, a file over 15 MB, an image that does not load, a caption that does
-not change, a tap beside the hotspot that advances, a missing "All flows" button, a flow's end that
-does not continue to the next flow, broken keys (Right, Left, Escape), Back, Restart or deep links
-(`#work-3`), any request beyond Google Fonts, console errors, sideways scroll at 390 wide, or a
-light background in dark mode.
+`capture.mjs --only=work-app,promise-4` re-runs single sessions (session ids are in `SESSIONS`); an
+unknown id stops the run before anything is captured, and swap rules shared with sessions outside
+`--only` are reported as not validated rather than passed. `--debug` prints each screen's text. A
+composite needs the App screen under it captured first. Screens are staged and replace the current
+set only when the run has no problem, so a failed capture leaves the existing screens and
+`index.html` untouched. A capture fails when a step fails; when any swap rule, shared ones
+included, matches nothing on a full capture; when a fixture name survives, or a name ending in
+`.eth` that is not one of the demo's appears; when the Awka banner or a listed photo is missing or
+does not decode; when a record photo's title in `record-photos.tsv` no longer matches the
+submission `RECORDS` binds it to (the hub's page lists newest first, so a new approved submission
+renumbers the files); when Storybook shows its not-found view; when a screen without a hotspot
+shows neither its `expect` copy nor any of its own swaps; or when a hotspot target is missing or
+off screen.
+
+Check fails on an em dash in the demo's HTML or Markdown; a caption over eight words; a caption,
+tile line or "who you are" line using "commitment", "chain", "blockchain", "Arbitrum", "Celo",
+"Gnosis" or "live"; a tile line that is not five words; a missing or extra hotspot; a stale build; a
+file over 15 MB; an image that does not load; a caption that does not change; a tap beside the
+hotspot that advances; a missing "All flows" button; a flow's end that does not continue to the
+next flow; broken keys (Right, Left, Escape), Back, Restart or deep links (`#work-3`); keyboard
+focus left on a hidden or disabled control (Enter through a flow, Left from its last screen, Back
+or Restart by keyboard); any request beyond Google Fonts; console errors; sideways scroll at 390
+wide; or a light background in dark mode.
 
 To change a caption, a "who you are" line or a tile line, edit `#flows` in `index.html`, then build
 and check. To present, open the built file; `#promise` opens a flow and `#promise-3` its third
@@ -195,7 +206,7 @@ including the public pages; nothing else on those pages changes.
 | The member who took the course up (a shortened address); the fixture member `amara` | chiamaka |
 | The two named confirmers and stewards (their ENS names) | adaeze.eth; ikenna.eth |
 | The fixture team member `dele` | removed (the promise is kept alone) |
-| `vault-owner.eth`; the fixture wallet `0x5eed...00a1` | funmi.eth |
+| The fixture wallet `0x5eed...00a1` | funmi.eth |
 
 ## Demo copy
 
@@ -205,7 +216,7 @@ as rendered.
 
 | Fixture or record text | Demo copy | Screens |
 |---|---|---|
-| Riverside Commons Garden; Rio Rainforest Lab; Botanic Commons | TAS HUB | needs-6, needs-7, promise-6, promise-12, work-10, work-11, funding-4, funding-5 |
+| Riverside Commons Garden | TAS HUB | needs-7, promise-6, promise-12, work-10, work-11, funding-4, funding-5 |
 | Riverside District; 3 members | Awka, Nigeria; 14 members | work-10, work-11 |
 | Autumn Planting 2026 | Climate and Tech Education | promise-6, promise-12 |
 | The steward's own pending Node Operation Log | Energy & Uptime Check (promise-1, work-1); Workshop Delivered by ifeoma, 4 min. ago, 3 photos (work-9) | promise-1, work-1, work-9 |
@@ -285,5 +296,7 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `c0fc53
 | investigate | 06:40 → 07:20 | A develop worktree served locally on the hub's chain and indexer; Home, the garden picker, the submission flow, the season, the Promises sheet, the waiting promise and the dashboard's assessment wizard walked headless; Storybook stories for each signature boundary chosen |
 | implement | 07:20 → 08:08 | Session-based `capture.mjs` (clicks, typing, date picks, file uploads, name guard, dialog compositing); the page's "All flows" bar, "who you are" line, screen count and next-flow ending; 37 screens across four flows, each re-captured until its screen matched the record |
 | verify | 08:08 → 08:13 | `check.mjs` exit 0; every step screenshot, the phone and dark views and the contact sheet inspected |
+| publish | 08:13 → 08:20 | Commits `d6f949ced` and `198243995` pushed (gate passed); the live artifact's newer focus fix merged first; Drive copy and artifact replaced |
+| harden | 08:20 → 08:29 | The PR branch's review fixes ported (staged captures, title-bound photos, decode and content checks, atomic photo refresh, keyboard walk, its `build.mjs`); one full staged capture with 0 problems; `check.mjs` exit 0, and exit 1 with the focus handling removed |
 
 Human corrections: 1 observed in this segment (the demo should start each flow at its beginning, use the current app, show every step and always offer a way back); attention unknown.

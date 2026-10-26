@@ -21,11 +21,15 @@
 // After a screen settles, names and fixture copy are swapped in its text (see the tables below):
 // every person's name is invented, addresses become invented handles, and fixture places, dates
 // and photos become the hub's. Components, layout, controls and state stay as rendered.
-// Exits with status 1 when a swap matched nothing, a fixture name survives, a listed photo is
-// missing, a step fails, or a hotspot target is missing or off screen.
+// Screens land in a staging folder and replace the current set only when the run has no problem,
+// so a failed capture leaves the existing screens and index.html untouched. It fails when a step
+// fails, a swap rule matches nothing, a fixture name or a real ENS name survives, a photo is missing
+// or does not decode, a record photo's title no longer matches RECORDS, Storybook shows its
+// not-found view, a screen without a hotspot shows neither its `expect` copy nor one of its own
+// swaps, or a hotspot target is missing or off screen.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -54,6 +58,22 @@ const photo = (name) => {
   return existsSync(path) ? `data:image/jpeg;base64,${readFileSync(path).toString("base64")}` : null;
 };
 const BANNER = "awka-hub.jpg";
+// The record photos the sessions use, by the titles the hub's page gave them on 26 October 2026.
+// photos.mjs numbers files by page position, and the page lists newest first, so a new approved
+// submission would renumber every later photo; a file whose title no longer matches fails the
+// capture instead of putting an unrelated photo on a screen.
+const RECORDS = {
+  "record-03.jpg": "Hub usage May 2026",
+  "record-04.jpg": "Hub usage June 2026",
+  "record-06.jpg": "A one week content creation bootcamp with AI",
+  "record-07.jpg": "Workshop Delivered Garden participant",
+};
+const tsvPath = join(PHOTOS, "record-photos.tsv");
+const recordTitles = existsSync(tsvPath) ? Object.fromEntries(readFileSync(tsvPath, "utf8").split("\n").filter(Boolean).map((line) => line.split("\t"))) : {};
+for (const [name, fragment] of Object.entries(RECORDS)) {
+  if (!recordTitles[name]) note(`${name} is not listed in record-photos.tsv; run photos.mjs`);
+  else if (!recordTitles[name].includes(fragment)) note(`${name} is now "${recordTitles[name].slice(0, 70)}", expected the record "${fragment}"; the hub's list changed, so re-map RECORDS in capture.mjs`);
+}
 
 // The season, its request and the one promise kept so far, from Tech and Sun's record (pool 3 and
 // its commitment 19, read 26 October 2026).
@@ -84,7 +104,6 @@ const PEOPLE = [
   // The hub's two other stewards, named as confirmers and on its public page.
   ["nansel.eth", "adaeze.eth"],
   ["amioantho.eth", "ikenna.eth"],
-  ["vault-owner.eth", "funmi.eth"],
 ];
 // The only names a screen may show; any other name ending in .eth is a real one left over.
 const INVENTED = new Set([...ADDRESS_NAMES, "adaeze.eth", "ikenna.eth", "funmi.eth"]);
@@ -92,8 +111,6 @@ const INVENTED = new Set([...ADDRESS_NAMES, "adaeze.eth", "ikenna.eth", "funmi.e
 const HUB = [
   ["Riverside Commons Garden", "TAS HUB"],
   ["Riverside District", "Awka, Nigeria"],
-  ["Rio Rainforest Lab", "TAS HUB"],
-  ["Botanic Commons", "TAS HUB"],
   ["3 members", "14 members", undefined, true],
   ["Autumn Planting 2026", SEASON],
 ];
@@ -101,7 +118,7 @@ const BASE = [...HUB, ...PEOPLE];
 // Home's recent activity: the steward's own pending entry is a node log, which the pitch leaves out.
 const HOME_ACTIVITY = [["Node Operation Log", "Energy & Uptime Check"]];
 // The steward's Home a few minutes after Ifeoma uploads: her bootcamp waits at the top.
-const HOME_REVIEW = [["Node Operation Log", "Workshop Delivered"], ["afo", "ifeoma", undefined, true], ["3 wk. ago", "4 min. ago"]];
+const HOME_REVIEW = [["Node Operation Log", "Workshop Delivered"], ["afo", "ifeoma", undefined, true], ["wk. ago", "min. ago"]];
 
 // Chiamaka's promise in the Storybook screens: the season's real request, its real dates, and
 // the real proof (one photo and a note).
@@ -164,7 +181,7 @@ const INSIGHTS = [
 const ENDOW = [["$50.00", "$500.00"], ["50.00", "500.00", undefined, true], ["0x5eed...00a1", "funmi.eth"]];
 
 // Fixture text that must not survive in a Storybook screen.
-const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Botanic/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /\btomas\b/, /\bamara\b/, /\bdele\b/i, /Greenpill NYC/, /vault-owner/, /[Ss]eedling/, /lettuce/, /Mulch/, /Pond/, /canopy/i, /\bafo\b/, /Node Operation/, /Muizenberg/];
+const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /\btomas\b/, /\bamara\b/, /\bdele\b/i, /Greenpill NYC/, /vault-owner/, /[Ss]eedling/, /lettuce/, /Mulch/, /Pond/, /canopy/i, /\bafo\b/, /Node Operation/, /Muizenberg/];
 
 // Sessions. Each opens one browser context at `url` and runs `steps` in order. A step is an
 // action ({ click }, { fill, value }, { select, value }, { pickDate }, { files }, { reveal },
@@ -355,7 +372,7 @@ const SESSIONS = [
   { id: "work-11", device: PHONE, url: story("client-work-reviewwork--feedback-example"), steps: [{ shot: "work-11", swaps: [...WORK, ...BASE], photos: ["record-06.jpg"], gardenCard: true, tap: { role: "button", name: "Submit" } }] },
   {
     id: "work-12", device: DESKTOP, url: `${APP}/gardens/tas-hub`, app: true, live: true, swaps: PEOPLE,
-    steps: [{ scrollTo: { text: "A one week content creation bootcamp with AI", align: "start", card: "img", top: 28 } }, { shot: "work-12" }],
+    steps: [{ scrollTo: { text: "A one week content creation bootcamp with AI", align: "start", card: "img", top: 28 } }, { shot: "work-12", expect: ["Workshop Delivered", "A one week content creation bootcamp with AI"] }],
   },
 
   // Funding: Funmi finds the hub's public page and endows it.
@@ -390,7 +407,7 @@ const SESSIONS = [
   { id: "funding-5", device: DESKTOP, url: story("public-documentation-funding--endowed"), steps: [{ shot: "funding-5", swaps: [...ENDOW, ...BASE], over: { screen: "funding-3", text: "Endow to", minHeight: 150 }, tap: { role: "button", name: "Close" } }] },
   {
     id: "funding-6", device: DESKTOP, url: `${APP}/gardens/tas-hub`, app: true, live: true, swaps: PEOPLE,
-    steps: [{ scrollTo: { text: "Recent approved submissions", align: "start", top: 48 } }, { shot: "funding-6" }],
+    steps: [{ scrollTo: { text: "Recent approved submissions", align: "start", top: 48 } }, { shot: "funding-6", expect: ["Recent approved submissions", "Hub Service Session"] }],
   },
 ];
 
@@ -400,7 +417,8 @@ function locate(page, spec) {
   if (spec.css) return scope.locator(spec.css).nth(spec.nth ?? 0);
   if (spec.label) return scope.getByLabel(spec.label).first();
   if (spec.role) return scope.getByRole(spec.role, { name: spec.name, exact: true }).first();
-  const text = scope.getByText(spec.text, { exact: true }).nth(spec.nth ?? 0);
+  // Only text a person can see: a hidden fixture row keeps its text in the page.
+  const text = scope.getByText(spec.text, { exact: true }).filter({ visible: true }).nth(spec.nth ?? 0);
   // A row or card that opens something: the nearest pressable ancestor of its text.
   return spec.card ? text.locator("xpath=ancestor-or-self::*[self::button or self::a or @role='button' or @role='link' or @role='radio' or @data-pressable][1]") : text;
 }
@@ -466,15 +484,17 @@ async function swapBanner(page, src) {
       const r = img.getBoundingClientRect();
       return r.top < 120 && r.width > 300 && r.height > 100;
     });
+    let swapped = 0;
     for (const img of imgs) {
       img.closest("picture")?.querySelectorAll("source").forEach((s) => s.remove());
       img.removeAttribute("srcset");
       img.removeAttribute("sizes");
       img.src = src;
       img.alt = "TAS HUB in Awka";
-      await img.decode().catch(() => {});
+      // A banner that does not decode would be baked into the screen, so it never counts as swapped.
+      if (await img.decode().then(() => img.naturalWidth > 0 && img.naturalHeight > 0, () => false)) swapped += 1;
     }
-    return imgs.length;
+    return { swapped, found: imgs.length };
   }, src);
 }
 
@@ -487,15 +507,18 @@ async function swapPhotos(page, sources) {
       return r.width >= 60 && r.height >= 40 && !(r.top < 120 && r.width > 300);
     });
     let swapped = 0;
+    const failed = [];
     for (const [i, img] of imgs.entries()) {
       if (!sources[i]) continue;
       img.closest("picture")?.querySelectorAll("source").forEach((s) => s.remove());
       img.removeAttribute("srcset");
       img.src = sources[i];
-      await img.decode().catch(() => {});
-      swapped += 1;
+      // A photo that does not decode (an HTML error body saved as a .jpg, truncated bytes) would
+      // bake a broken image into the screen, so it counts as a failure, never as a swap.
+      const decoded = await img.decode().then(() => img.naturalWidth > 0 && img.naturalHeight > 0, () => false);
+      if (decoded) swapped += 1; else failed.push(i);
     }
-    return { swapped, found: imgs.length };
+    return { swapped, found: imgs.length, failed };
   }, sources);
 }
 
@@ -576,13 +599,17 @@ async function shoot(page, session, step, width, height) {
   const banner = photo(BANNER);
   if (step.banner || step.gardenCard) {
     if (!banner) note(`${step.shot}: ${BANNER} is missing; place it per README`);
-    else if (step.banner && !(await swapBanner(page, banner))) note(`${step.shot}: no banner image found to swap`);
-    else if (step.gardenCard && !(await swapGardenCard(page, banner))) note(`${step.shot}: no garden card pattern found to swap`);
+    else if (step.banner) {
+      const { swapped, found } = await swapBanner(page, banner);
+      if (!found) note(`${step.shot}: no banner image found to swap`);
+      else if (swapped !== found) note(`${step.shot}: ${BANNER} did not decode; replace it with the approved Awka photo`);
+    } else if (step.gardenCard && !(await swapGardenCard(page, banner))) note(`${step.shot}: no garden card pattern found to swap`);
   }
   if (step.photos) {
     const sources = step.photos.map((name) => (name ? photo(name) : null));
     step.photos.forEach((name, i) => { if (name && !sources[i]) note(`${step.shot}: ${name} is missing; run photos.mjs`); });
-    const { swapped, found } = await swapPhotos(page, sources);
+    const { swapped, found, failed } = await swapPhotos(page, sources);
+    if (failed.length) note(`${step.shot}: ${failed.map((i) => step.photos[i]).join(", ")} did not decode; refresh it with photos.mjs`);
     const wanted = step.photos.filter(Boolean).length;
     if (swapped !== wanted) note(`${step.shot}: ${found} content photos on screen, ${swapped} swapped, ${wanted} listed`);
   }
@@ -598,6 +625,12 @@ async function shoot(page, session, step, width, height) {
   swaps.forEach(([from, to], i) => { swapHits.set(`${from} → ${to}`, (swapHits.get(`${from} → ${to}`) || 0) + hits[i]); });
   const text = await page.evaluate(() => document.body.innerText);
   if (!session.live) for (const word of LEFTOVERS) if (word.test(text)) note(`${step.shot}: fixture text ${word} is still visible`);
+  // Every screen has to show what the demo says it shows: Storybook's not-found view also fills
+  // #storybook-root, a hotspot target proves its screen rendered, and a screen without one needs
+  // its own `expect` copy or at least one of its own swap rules to have matched here.
+  if (/couldn't find story|story not found|no story matched/i.test(text)) note(`${step.shot}: Storybook shows its not-found view instead of the story`);
+  for (const expected of step.expect || []) if (!text.includes(expected)) note(`${step.shot}: expected "${expected}" on the screen`);
+  if (!step.tap && !step.expect && !hits.some((n) => n > 0)) note(`${step.shot}: no hotspot target, no expected copy and no swap matched; it did not render what the demo shows`);
   for (const name of new Set(text.match(/\b[\w-]+\.eth\b/g) || [])) if (!INVENTED.has(name)) note(`${step.shot}: the name ${name} is on screen`);
   if (debug) console.log(`--- ${step.shot}\n${(await page.evaluate(() => document.body.innerText)).slice(0, 2500)}`);
   let hotspot = null;
@@ -607,7 +640,7 @@ async function shoot(page, session, step, width, height) {
     else if (box.x < 0 || box.y < 0 || box.x + box.width > width + 1 || box.y + box.height > height + 1) note(`${step.shot}: hotspot target is outside the screen (${JSON.stringify(box)})`);
     else hotspot = [box.x / width, box.y / height, box.width / width, box.height / height].map((v) => Math.round(v * 10000) / 10000);
   }
-  const file = join(out, `${step.shot}.jpg`);
+  const file = join(staging, `${step.shot}.jpg`);
   if (step.over) hotspot = await composeOver(page, session, step, file, hotspot);
   else await page.screenshot({ path: file, type: "jpeg", quality: 82 });
   // A screen a Storybook dialog will be drawn over: where its dialog sits, and the same screen
@@ -619,7 +652,7 @@ async function shoot(page, session, step, width, height) {
       saveBox(step.shot, box);
       const hide = await page.addStyleTag({ content: "[data-demo-panel], [data-demo-panel] * { visibility: hidden !important; }" });
       await page.waitForTimeout(300);
-      await page.screenshot({ path: join(out, `${step.shot}-bare.jpg`), type: "jpeg", quality: 82 });
+      await page.screenshot({ path: join(staging, `${step.shot}-bare.jpg`), type: "jpeg", quality: 82 });
       await hide.evaluate((el) => el.remove());
     }
   }
@@ -628,9 +661,10 @@ async function shoot(page, session, step, width, height) {
   results.set(step.shot, { story: source, width, height, hotspot });
 }
 
-const boxesPath = join(out, "boxes.json");
-const readBoxes = () => (existsSync(boxesPath) ? JSON.parse(readFileSync(boxesPath, "utf8")) : {});
-function saveBox(shot, box) { writeFileSync(boxesPath, JSON.stringify({ ...readBoxes(), [shot]: box }, null, 2)); }
+// This run's file when it made one, else the last clean run's.
+const latest = (name) => (existsSync(join(staging, name)) ? join(staging, name) : join(out, name));
+const readBoxes = () => (existsSync(latest("boxes.json")) ? JSON.parse(readFileSync(latest("boxes.json"), "utf8")) : {});
+function saveBox(shot, box) { writeFileSync(join(staging, "boxes.json"), JSON.stringify({ ...readBoxes(), [shot]: box }, null, 2)); }
 
 // The visible panel of a dialog or sheet: the nearest opaque ancestor, at least `minHeight` tall
 // and smaller than the whole screen, of the last element whose own text is `text`. It is marked
@@ -661,7 +695,7 @@ async function markPanel(page, { text, minHeight = 120 }) {
 async function composeOver(page, session, step, file, hotspot) {
   const { width, height, scale } = session.device;
   if (step.over.scrim) return composeSheet(page, session, step, file, hotspot);
-  const under = join(out, `${step.over.screen}-bare.jpg`);
+  const under = latest(`${step.over.screen}-bare.jpg`);
   const ubox = readBoxes()[step.over.screen];
   const sbox = await markPanel(page, step.over);
   if (!existsSync(under) || !ubox || !sbox) { note(`${step.shot}: cannot draw over ${step.over.screen}; capture it first`); return hotspot; }
@@ -684,7 +718,7 @@ async function composeOver(page, session, step, file, hotspot) {
 // place, drawn over that whole screen.
 async function composeSheet(page, session, step, file, hotspot) {
   const { width, height, scale } = session.device;
-  const under = join(out, `${step.over.screen}.jpg`);
+  const under = latest(`${step.over.screen}.jpg`);
   if (!existsSync(under) || !(await markPanel(page, step.over))) { note(`${step.shot}: cannot draw over ${step.over.screen}; capture it first`); return hotspot; }
   await page.addStyleTag({ content: `html, body { background: transparent !important; } body * { visibility: hidden !important; } ${step.over.scrim} { visibility: visible !important; } [data-demo-panel], [data-demo-panel] * { visibility: visible !important; }` });
   await page.waitForTimeout(300);
@@ -740,7 +774,17 @@ const screens = data.flows.flatMap((flow) => flow.screens);
 const shots = SESSIONS.flatMap((s) => s.steps.filter((st) => st.shot).map((st) => st.shot));
 for (const s of screens) if (!shots.includes(s.file)) note(`index.html lists ${s.file}, which no session captures`);
 for (const file of shots) if (!screens.some((s) => s.file === file)) note(`a session captures ${file}, which index.html does not list`);
+for (const session of SESSIONS) {
+  for (const step of session.steps) for (const name of [...(step.photos || [])]) if (/^record-/.test(name) && !RECORDS[name]) note(`${session.id} uses ${name}, which RECORDS does not bind to a submission title`);
+}
+// An `--only` id with no session would leave an empty queue and a clean exit, so it stops the run
+// before anything is captured or index.html is rewritten.
+const unknown = only.filter((id) => !SESSIONS.some((s) => s.id === id));
+if (unknown.length) throw new Error(`--only names ${unknown.join(", ")}, which ${unknown.length === 1 ? "is not a session" : "are not sessions"}; nothing was captured or rewritten`);
 const selected = SESSIONS.filter((s) => !only.length || only.includes(s.id));
+// A run that was stopped leaves its staging folder behind; only one run may write at a time.
+for (const name of readdirSync(out)) if (name.startsWith(".capture-")) rmSync(join(out, name), { recursive: true, force: true });
+const staging = mkdtempSync(join(out, ".capture-"));
 const results = new Map();
 const swapHits = new Map();
 const browser = await pw.chromium.launch();
@@ -753,10 +797,24 @@ await Promise.all([
 ]);
 for (const s of selected.filter(drawnOver)) await runSession(browser, s);
 await browser.close();
-// A rule that never matched on any screen it was listed for is stale (shared rules excepted,
-// since each screen shows only some of them).
-const shared = [...BASE, ...PEOPLE, ...PROMISE].map(([f, t]) => `${f} → ${t}`);
-if (!only.length) for (const [pair, n] of swapHits) if (!n && !shared.includes(pair)) note(`swap "${pair}" matched nothing`);
+// A rule that never matched on any screen it was listed for is stale, the shared rules included:
+// each screen shows only some of them, but a full capture visits every screen, so a rule that
+// matched nowhere means a fixture or the app moved and the demo may now show it. A partial
+// `--only` capture can validate only the rules no unselected session lists; the rest are reported
+// as not validated, and a full capture is needed before a build.
+const listedOn = new Map();
+for (const session of SESSIONS) for (const step of session.steps.filter((st) => st.shot)) for (const [from, to] of [...(step.swaps || []), ...(session.swaps || [])]) {
+  const key = `${from} → ${to}`;
+  if (!listedOn.has(key)) listedOn.set(key, new Set());
+  listedOn.get(key).add(session.id);
+}
+const unvalidated = [];
+for (const [pair, n] of swapHits) {
+  if (n) continue;
+  const elsewhere = [...(listedOn.get(pair) || [])].filter((id) => !only.includes(id));
+  if (only.length && elsewhere.length) unvalidated.push(pair); else note(`swap "${pair}" matched nothing`);
+}
+if (unvalidated.length) console.log(`partial capture: ${unvalidated.length} swap(s) shared with sessions outside --only were not validated; run a full capture before building`);
 for (const s of screens) {
   const r = results.get(s.file);
   if (!r) continue;
@@ -764,8 +822,14 @@ for (const s of screens) {
   s.size = [r.width, r.height];
   if (r.hotspot) s.hotspot = r.hotspot; else delete s.hotspot;
 }
+if (problems.length) {
+  rmSync(staging, { recursive: true, force: true });
+  console.log(`capture failed with ${problems.length} problem(s); the existing screens and index.html are untouched`);
+  process.exit(1);
+}
+for (const name of readdirSync(staging)) renameSync(join(staging, name), join(out, name));
+rmSync(staging, { recursive: true, force: true });
 const json = JSON.stringify(data, null, 2).replace(/<\//g, "<\\/");
 html = html.replace(block[0], `<script type="application/json" id="flows">\n${json}\n</script>`);
 writeFileSync(htmlPath, html);
-console.log(`captured ${results.size} screens into ${out}; ${problems.length} problem(s)`);
-process.exit(problems.length ? 1 : 0);
+console.log(`captured ${results.size} screens into ${out}; 0 problems`);

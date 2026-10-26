@@ -5,9 +5,10 @@
 // Writes ./output/green-goods-sf-live-demo.html (the Drive copy, a complete document) and
 // ./output/artifact.html (the same page without the document wrapper, which the Artifact tool adds).
 // Both stay out of git: the screens show identifiable people on the hub's public pages.
-// Exits with status 1 when a screen is missing or the page passes 15 MB.
+// Exits with status 1 when a screen is missing or the page passes 15 MB, and then writes nothing,
+// so the last good build in output/ survives a failed one.
 import { fileURLToPath } from "node:url";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const MAX_BYTES = 15 * 1024 * 1024;
@@ -31,6 +32,13 @@ html = html.replaceAll('src="../deck/assets/brand/green-goods-symbol.svg"', `src
 html = html.replace(block[0], `<script type="application/json" id="images">${JSON.stringify(images)}</script>\n${block[0]}`);
 
 const standalone = join(out, "green-goods-sf-live-demo.html");
+const size = Buffer.byteLength(html);
+if (size > MAX_BYTES) problems.push(`the demo is ${(size / 1048576).toFixed(1)} MB, over 15 MB`);
+if (problems.length) {
+  for (const p of problems) console.log(`  problem: ${p}`);
+  console.log(`build failed with ${problems.length} problem(s); the files in output/ are untouched`);
+  process.exit(1);
+}
 writeFileSync(standalone, html);
 // The Artifact tool wraps a page in its own document with a charset and a viewport meta.
 const artifact = html
@@ -44,9 +52,4 @@ const artifact = html
   .replace(/<meta charset="UTF-8" \/>\s*/i, "")
   .replace(/<meta name="viewport"[^>]*>\s*/i, "");
 writeFileSync(join(out, "artifact.html"), artifact);
-
-const size = statSync(standalone).size;
-if (size > MAX_BYTES) problems.push(`the demo is ${(size / 1048576).toFixed(1)} MB, over 15 MB`);
 console.log(`built ${standalone} (${(size / 1048576).toFixed(2)} MB, ${Object.keys(images).length} screens) and output/artifact.html`);
-for (const p of problems) console.log(`  problem: ${p}`);
-process.exit(problems.length ? 1 : 0);
