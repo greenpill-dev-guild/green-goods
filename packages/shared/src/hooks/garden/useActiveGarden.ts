@@ -15,7 +15,7 @@ export interface ActiveGarden {
   status: ActiveGardenStatus;
   /**
    * The garden Home opens in: the resolved garden when `ready`, the remembered one while the
-   * account's gardens are unknown (`loading`), otherwise null.
+   * account's gardens are unknown (`loading`) or their read failed (`error`), otherwise null.
    */
   gardenId: string | null;
   /** The active garden's record from the account's gardens, once `ready`. */
