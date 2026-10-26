@@ -5,45 +5,21 @@ import { JOURNEY_GARDEN } from "../../../../shared/.storybook/clientJourneyFixtu
 import { withAppPage } from "../../../../shared/.storybook/decorators";
 import {
   START_ACTIONS,
+  START_ASK_TITLES,
+  START_ASKS,
   START_PROMISE_ONE_ACTION,
   START_PROMISE_THREE_ACTIONS,
   startStepFixture,
 } from "../../../../shared/.storybook/submitWorkFixtures";
 import { Domain } from "@green-goods/shared/types/domain";
-import { useIntl } from "react-intl";
-import { presentState, promiseDueDetail } from "@/components/Features/Commitments";
-import { type StartAsk, WorkStart, type WorkStartProps } from "./Start";
-
-const pickHubKeys = fn();
-const DUE_NOV_30 = 1_796_040_000n; // 30 November 2026, midday UTC
-
-/** An Open ask of the garden's that takes evidence only, as step 17's listing will hand it in. */
-function useHubKeysAsk(): StartAsk {
-  const intl = useIntl();
-  const state = presentState("REQUESTED");
-  return {
-    key: "ask-31",
-    card: {
-      title: "Hub keys handover",
-      direction: "REQUEST",
-      status: { label: intl.formatMessage({ id: state.labelId }), tone: state.tone },
-      progress: null,
-      units: null,
-      due: promiseDueDetail(intl, DUE_NOV_30),
-      needs: [intl.formatMessage({ id: "app.garden.start.need.evidence" })],
-    },
-    onPick: pickHubKeys,
-  };
-}
+import { WorkStart, type WorkStartProps } from "./Start";
 
 /** The step as the flow mounts it; the domain chip is kept here the way the work store keeps it. */
-function StartStep({ withAsk = false, ...props }: WorkStartProps & { withAsk?: boolean }) {
+function StartStep(props: WorkStartProps) {
   const [domain, setDomain] = useState(props.selectedDomain);
-  const ask = useHubKeysAsk();
   return (
     <WorkStart
       {...props}
-      asks={withAsk ? [ask] : props.asks}
       selectedDomain={domain}
       setSelectedDomain={(next) => {
         setDomain(next);
@@ -56,8 +32,9 @@ function StartStep({ withAsk = false, ...props }: WorkStartProps & { withAsk?: b
 /**
  * Logging work's Start step (DL-131), in the shell's page padding. No Start button: a promise or
  * an action moves on, and the domain chips only filter. The member's promises lead as 132px
- * cards with Log Work on Its Own last; a promise with actions opens its own screen; otherwise the
- * garden's actions are two-up tiles of one height under capsule chips with All.
+ * cards, then the garden's Open asks they could take up, with Log Work on Its Own last; a promise
+ * or an ask with actions opens its own screen; otherwise the garden's actions are two-up tiles of
+ * one height under capsule chips with All.
  */
 const meta: Meta<typeof WorkStart> = {
   title: "Client/Work/Start",
@@ -178,24 +155,55 @@ export const PromiseWithThreeActionsAndEvidence: Story = {
 };
 
 /**
- * A garden with one action and nothing owed, with an Open ask listed that takes evidence only:
- * the step stays, since there is a choice to make, and lists the ask with Log Work on Its Own.
+ * The garden's Open asks after Amara's promise (decision 18), read through the rule the step
+ * reads them with: the ask she can take up in one tap is listed, while an approval-gated ask and
+ * one she already asked for are not. The step says how many prompts taking one up brings.
  */
-export const OpenEvidenceOnlyAsk: Story = {
+export const OpenAsk: Story = {
   args: {
     start: startStepFixture({
       screen: { kind: "promises" },
-      actions: START_ACTIONS.slice(0, 1),
-      domains: [Domain.EDU],
+      promises: [START_PROMISE_ONE_ACTION],
+      asks: START_ASKS,
+      pickPromise: fn(),
     }),
   },
-  render: (args) => <StartStep {...args} withAsk />,
-  play: async ({ canvasElement }) => {
-    pickHubKeys.mockClear();
-    const card = canvasElement.querySelector('[data-component="PromiseCard"]') as HTMLElement;
-    await expect(box(card).height).toBe(132);
-    await userEvent.click(card);
-    await expect(pickHubKeys).toHaveBeenCalledTimes(1);
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const [listed, gated, requested] = [...START_ASK_TITLES.values()];
+    await expect(canvas.getByRole("heading", { name: "Take Up an Ask" })).toBeVisible();
+    await expect(
+      canvas.getByText(
+        "Taking one up opens 3 wallet or passkey prompts: the take-up, the work and its link."
+      )
+    ).toBeVisible();
+    await expect(canvas.getByText(listed)).toBeVisible();
+    await expect(canvas.queryByText(gated)).toBeNull();
+    await expect(canvas.queryByText(requested)).toBeNull();
+    const cards = Array.from(canvasElement.querySelectorAll('[data-component="PromiseCard"]'));
+    for (const card of cards) await expect(box(card).height).toBe(132);
+    await userEvent.click(canvas.getByText(listed));
+    await expect(args.start.pickPromise).toHaveBeenCalledWith(START_ASKS[0]);
+  },
+};
+
+export const OpenAskSpanish: Story = {
+  args: OpenAsk.args,
+  globals: { locale: "es", viewport: { value: "mobileSmall" } },
+};
+
+export const OpenAskPortuguese: Story = {
+  args: OpenAsk.args,
+  globals: { locale: "pt", viewport: { value: "mobileSmall" } },
+};
+
+/** An Open ask on its own screen: its action as a row, which takes the ask up as the work goes. */
+export const OpenAskOwnScreen: Story = {
+  args: {
+    start: startStepFixture({
+      screen: { kind: "promise", promise: START_ASKS[0] },
+      asks: START_ASKS,
+    }),
   },
 };
 

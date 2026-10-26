@@ -12,6 +12,7 @@ import {
   listStartPromises,
   type StartPromisesRead,
   startPromiseKind,
+  submissionPromptCount,
   type WorkLinkStatus,
 } from "../../../modules/work/submission-flow";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
@@ -60,8 +61,11 @@ interface StartStepOptions {
     fetchStatus: "fetching" | "paused" | "idle";
     refetch: () => unknown;
   };
-  /** The garden's Open asks the step lists beside the member's promises (step 17). */
-  openAsks?: number;
+  /**
+   * The garden's Open asks the member could take up in the tap that logs this work (decision
+   * 18), which the step lists after their promises; `loading` while they are read.
+   */
+  asks?: { list: readonly WorkablePromise[]; loading: boolean };
   setGardenAddress: (garden: Address | null) => void;
   setActiveTab: (tab: WorkTab) => void;
   changeTab: (tab: WorkTab) => Promise<void>;
@@ -73,12 +77,15 @@ interface StartStepOptions {
 /** How far the one automatic skip has got: Start opens once per visit, then it is the member's. */
 type AutoSkip = "unknown" | "allowed" | "spent";
 
+const NO_ASKS: NonNullable<StartStepOptions["asks"]> = { list: [], loading: false };
+
 /**
  * The Start step of logging work (DL-131): what it offers, which of its screens shows, and its
- * one automatic move. With promises the member could work on, the step lists them; a promise with
- * actions opens its own screen, an evidence-only one opens the evidence flow at once, and Log Work
- * on Its Own leads to the garden's actions. Choosing an action moves on, and the domain chips only
- * filter, so the step has no forward act. When its answer is known (`answerStartStep`) the flow
+ * one automatic move. With promises the member could work on, or Open asks they could take up,
+ * the step lists them, asks last; a promise or an ask with actions opens its own screen, an
+ * evidence-only promise opens the evidence flow at once, and Log Work on Its Own leads to the
+ * garden's actions. Choosing an action moves on, and the domain chips only filter, so the step
+ * has no forward act. When its answer is known (`answerStartStep`) the flow
  * opens on Media instead, once, as the step is first shown in a visit: the garden's only action is
  * the flow's own pick (`startSkipAction`), and a promise link names its action itself.
  */
@@ -95,7 +102,7 @@ export function useStartStep({
   hasDraft,
   link,
   promises,
-  openAsks = 0,
+  asks = NO_ASKS,
   setGardenAddress,
   setActiveTab,
   changeTab,
@@ -106,22 +113,23 @@ export function useStartStep({
   const queue = useCommitmentQueueState(account);
   const pick = useWorkFlowStore((state) => state.startSkipAction);
   const garden = gardens.find((each) => compareAddresses(each.id, gardenAddress)) ?? null;
-  const { offered, domains, listed } = useMemo(() => {
+  const { offered, domains, listed, listedAsks } = useMemo(() => {
     const offeredActions = listGardenActions(actions, garden, Date.now());
     const uids = new Set(offeredActions.map((action) => parseActionUID(action.id) as number));
     return {
       offered: offeredActions,
       domains: gardenActionDomains(garden, offeredActions),
       // A proof already waiting to send, or a queue that cannot be read, holds the evidence act,
-      // as on the promise's own page.
+      // as on the promise's own page. An ask takes no evidence until it is the member's own.
       listed: listStartPromises(
         promises.data ?? [],
         uids,
         (commitmentId) =>
           queue.isUnavailable || queue.pendingCommitmentIds.has(commitmentId.toString())
       ),
+      listedAsks: listStartPromises(asks.list, uids, () => false),
     };
-  }, [actions, garden, promises.data, queue.isUnavailable, queue.pendingCommitmentIds]);
+  }, [actions, garden, promises.data, asks.list, queue.isUnavailable, queue.pendingCommitmentIds]);
 
   // A read paused by the connection or one that failed says nothing about what is owed.
   const read: StartPromisesRead = promises.data
@@ -135,7 +143,7 @@ export function useStartStep({
     link,
     gardenSettled,
     promises: read,
-    openAsks,
+    openAsks: asks.loading ? null : listedAsks.length,
     heldActionUID: flowPicked ? null : actionUID,
     actionUIDs:
       actionsLoading && actions.length === 0
@@ -210,11 +218,11 @@ export function useStartStep({
   const [screen, setScreen] = useState<
     { kind: "promises" } | { kind: "promise"; commitmentId: bigint } | { kind: "actions" }
   >({ kind: "promises" });
-  const hasPromises = listed.length > 0 || openAsks > 0;
+  const hasPromises = listed.length > 0 || listedAsks.length > 0;
   const root: StartScreen = hasPromises ? { kind: "promises" } : { kind: "actions" };
   const open =
     screen.kind === "promise"
-      ? listed.find((each) => each.commitmentId === screen.commitmentId)
+      ? [...listed, ...listedAsks].find((each) => each.commitmentId === screen.commitmentId)
       : null;
   // A screen that no longer has anything to show gives way to the step's first one.
   const shown: StartScreen = open
@@ -239,8 +247,15 @@ export function useStartStep({
     domains,
     /** The member's promises the step lists, each with what they can do on it here. */
     promises: listed,
-    /** The member's promises could not be read: the step offers the actions and a retry. */
-    promisesFailed: promises.isError && !promises.data,
+    /** The garden's Open asks it lists after them; picking one opens it like a promise. */
+    asks: listedAsks,
+    /** The prompts taking an ask up brings, said before the first: take-up, work, link. */
+    askPromptCount: submissionPromptCount({ linksPromise: true, takesUp: true }),
+    /**
+     * The member's promises could not be read, or their first read waits for a connection: the
+     * step offers the actions with a warning and a retry, never as all there is.
+     */
+    promisesFailed: (promises.isError || promises.fetchStatus === "paused") && !promises.data,
     retryPromises: () => void promises.refetch(),
     screen: shown,
     /** Opens a listed promise: its own screen, or the evidence flow when that is all it takes. */

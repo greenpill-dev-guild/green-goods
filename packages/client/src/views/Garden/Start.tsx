@@ -10,7 +10,7 @@ import { RiCloseLine, RiHammerLine, RiHandHeartFill, RiRefreshLine } from "@remi
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards/Form/FormInfo";
-import { PromiseCard, type PromiseCardProps } from "@/components/Features/Commitments";
+import { PromiseCard } from "@/components/Features/Commitments";
 import { StartActions } from "./StartActions";
 import { StartGardenQuestion, type StartGardenQuestionProps } from "./StartGardenQuestion";
 import { StartPromise, startPromiseCard } from "./StartPromise";
@@ -18,16 +18,6 @@ import { StartPromise, startPromiseCard } from "./StartPromise";
 type Controller = ReturnType<typeof useWorkSubmissionFlowController>;
 /** The Start step's model, from the work kind's controller. */
 type StartStep = Controller["start"];
-
-/**
- * One of the garden's Open asks, listed beside the member's promises (step 17): the card it
- * shows, and the flow's own handler for taking it up.
- */
-export interface StartAsk {
-  key: string;
-  card: Omit<PromiseCardProps, "onOpen">;
-  onPick: () => void;
-}
 
 export interface WorkStartProps {
   start: StartStep;
@@ -42,16 +32,16 @@ export interface WorkStartProps {
   gardenQuestion: StartGardenQuestionProps | null;
   /** The page's promise link, when it no longer holds or could not be checked. */
   link: { status: Controller["linkIntentStatus"]; onRetry: () => void; onLetGo: () => void };
-  asks?: readonly StartAsk[];
 }
 
 /**
  * Logging work's Start step (DL-131). It has no Start button: choosing a promise or an action
  * moves on, and the domain chips only filter. With promises the member could work on, it lists
- * them as compact cards with Log Work on Its Own last; a promise with actions opens its own
- * screen, Add Evidence first when it takes evidence, then its actions; otherwise it is the
- * garden's actions as two-up tiles under the chips. The garden comes from Home's chip, so the
- * step asks for one only when the flow has none it can use.
+ * them as compact cards, then the garden's Open asks they could take up in the same tap, saying
+ * how many prompts that brings (decision 18), with Log Work on Its Own last; a promise or an ask
+ * with actions opens its own screen, Add Evidence first when it takes evidence, then its
+ * actions; otherwise it is the garden's actions as two-up tiles under the chips. The garden
+ * comes from Home's chip, so the step asks for one only when the flow has none it can use.
  */
 export function WorkStart({
   start,
@@ -62,7 +52,6 @@ export function WorkStart({
   setSelectedDomain,
   gardenQuestion,
   link,
-  asks = [],
 }: WorkStartProps) {
   const intl = useIntl();
   // Every card and tile reads its action in the reader's language.
@@ -142,9 +131,28 @@ export function WorkStart({
                 onOpen={() => start.pickPromise(promise)}
               />
             ))}
-            {asks.map((ask) => (
-              <PromiseCard key={ask.key} {...ask.card} onOpen={ask.onPick} />
-            ))}
+            {start.asks.length > 0 ? (
+              <div className="flex flex-col gap-(--gg-list-gap)" data-component="StartAsks">
+                <div className="flex flex-col gap-1">
+                  <h3 className="type-title-md text-text-strong-950">
+                    {intl.formatMessage({ id: "app.garden.start.asks.title" })}
+                  </h3>
+                  <p className="type-meta text-text-sub-600">
+                    {intl.formatMessage(
+                      { id: "app.garden.start.asks.prompts" },
+                      { count: start.askPromptCount }
+                    )}
+                  </p>
+                </div>
+                {start.asks.map((ask) => (
+                  <PromiseCard
+                    key={ask.commitmentId.toString()}
+                    {...startPromiseCard(intl, ask, titleOf)}
+                    onOpen={() => start.pickPromise(ask)}
+                  />
+                ))}
+              </div>
+            ) : null}
             <ItemRow
               data-component="LogWorkOnItsOwn"
               lead={{ kind: "icon", icon: <RiHammerLine /> }}

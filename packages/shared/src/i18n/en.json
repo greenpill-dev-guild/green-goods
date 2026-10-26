@@ -2328,6 +2328,8 @@
   "app.garden.start.promiseActions": "Actions for This Promise",
   "app.garden.start.need.evidence": "Evidence",
   "app.garden.start.need.more": "and {count} more",
+  "app.garden.start.asks.title": "Take Up an Ask",
+  "app.garden.start.asks.prompts": "{count, plural, one {Taking one up opens # wallet or passkey prompt.} other {Taking one up opens # wallet or passkey prompts: the take-up, the work and its link.}}",
   "app.garden.whichGarden": "Which garden are you submitting for?",
   "app.garden.work": "Work",
   "app.garden.work.count": "{count, plural, one {# submission} other {# submissions}}",
