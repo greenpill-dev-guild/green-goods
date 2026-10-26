@@ -1,18 +1,17 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { createQueueToasts } from "../components/toast";
-import type { FailedInAnotherGarden } from "../components/Toast/presets/queue";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
-import { useActiveGarden } from "../hooks/garden/useActiveGarden";
 import { queryInvalidation } from "../config/query-keys/invalidation";
 import { draftsKeys, queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
 import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
+import { useUploadFailureToast } from "../hooks/work/useUploadFailureToast";
 import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
 import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
 import { jobQueue } from "../modules/job-queue/default-instance";
@@ -21,7 +20,6 @@ import { JOB_DISCARDED } from "../modules/job-queue/queue-policy";
 import { logger } from "../modules/app/logger";
 import { deleteDraftOfQueuedWork } from "../modules/work/draft-lifecycle";
 import { scheduleUploadPreparation } from "../modules/work/upload-preparation";
-import { orientUploads, uploadGarden } from "../modules/work/your-work-on-phone";
 import { connectivityStore } from "../stores/connectivity";
 import type {
   ApprovalJobPayload,
@@ -30,7 +28,6 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../types/job-queue";
-import { compareAddresses } from "../utils/blockchain/address";
 import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
 
 interface JobQueueContextValue {
@@ -77,13 +74,6 @@ interface JobQueueProviderProps {
 
 const EMPTY_QUEUE_STATS: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
 
-/** A work or review upload the queue gave up on, and the error it reported. */
-interface FailedUpload {
-  kind: "work" | "approval";
-  detail?: string;
-  job: Job;
-}
-
 const areQueueStatsEqual = (left: QueueStats, right: QueueStats) =>
   left.total === right.total &&
   left.pending === right.pending &&
@@ -112,44 +102,13 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
   // Use single source of truth for primary address
   const currentUserAddress = usePrimaryAddress();
 
-  // A failed upload's toast points where the upload is listed, read as it is raised: the event
-  // handlers below subscribe once, so they reach the latest active garden through this ref. One
-  // outside the active garden waits while the member's gardens load, then names its garden; if
-  // they can't load, today's toast stands.
-  const { inScope, myGardens } = useActiveGarden();
-  const heldFailuresRef = useRef(new Map<FailedUpload["kind"], FailedUpload>());
-  const toastFailureRef = useRef<(failure: FailedUpload) => void>(() => undefined);
-  toastFailureRef.current = (failure) => {
-    const orientation = onOpenGardenSwitcher
-      ? orientUploads(
-          inScope,
-          myGardens.isLoaded ? myGardens.gardens.map(({ garden }) => garden) : null,
-          [uploadGarden(failure.job)]
-        )
-      : undefined;
-    if (orientation === null && !myGardens.isError) {
-      // A later failure of the same kind takes its toast's place, so one of each waits.
-      heldFailuresRef.current.set(failure.kind, failure);
-      return;
-    }
-    const elsewhere: FailedInAnotherGarden | undefined =
-      orientation?.target === "switcher" && onOpenGardenSwitcher
-        ? { gardenName: orientation.gardenName, openSwitcher: onOpenGardenSwitcher }
-        : undefined;
-    queueToasts.jobFailed(failure.kind, failure.detail, elsewhere);
-  };
-  const gardensSettled = myGardens.isLoaded || myGardens.isError;
-  useEffect(() => {
-    if (!gardensSettled) return;
-    const held = [...heldFailuresRef.current.values()];
-    heldFailuresRef.current.clear();
-    // A failure held for an account that has since signed out is not this account's to show.
-    for (const failure of held) {
-      if (compareAddresses(failure.job.userAddress, currentUserAddress)) {
-        toastFailureRef.current(failure);
-      }
-    }
-  }, [currentUserAddress, gardensSettled]);
+  // A failed upload's toast points where the upload is listed. The event handlers below subscribe
+  // once, so they take this stable function, which reads the latest active garden.
+  const toastFailure = useUploadFailureToast(
+    currentUserAddress,
+    queueToasts.jobFailed,
+    onOpenGardenSwitcher
+  );
 
   const [stats, setStats] = useState<QueueStats>(EMPTY_QUEUE_STATS);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -296,14 +255,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
         // A discard is the person's own act, which its screen confirms: not a failed sync.
         // The discard removed the work's draft before the work, so the drafts are read again.
         if (event.error === JOB_DISCARDED) void rereadDrafts();
-        else toastFailureRef.current({ kind: "work", detail: event.error, job: event.job });
+        else toastFailure({ kind: "work", detail: event.error, job: event.job });
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
         queryClient.invalidateQueries({ queryKey: worksKeys.offline(gardenId) });
         queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
       } else if (event.job.kind === "approval") {
-        toastFailureRef.current({ kind: "approval", detail: event.error, job: event.job });
+        toastFailure({ kind: "approval", detail: event.error, job: event.job });
       }
     };
 
@@ -363,7 +322,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, queue, queueToasts, refreshStats]);
+  }, [currentUserAddress, queue, queueToasts, refreshStats, toastFailure]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
