@@ -59,6 +59,21 @@ const FORBIDDEN_REPORTING_MODULES = [
   "/components/Cards/MediaCard",
 ];
 
+// The voucher screens (PRD-1297) load with the promise page and the wallet's Vouchers tab. Their
+// reads once rode in the installed startup bundle through the pooling read repository every
+// startup hook builds, so a startup module that reaches them again fails the build, signed in or
+// signed out.
+const FORBIDDEN_INSTALLED_STARTUP_MODULES = [
+  "/modules/commitment-pooling/service-access",
+  "/modules/commitment-pooling/service-issuer",
+  "/modules/commitment-pooling/data-voucher-service",
+  "/modules/commitment-pooling/data-earned-voucher",
+  "/views/Home/Garden/Commitment/Service",
+  "/views/Home/Garden/Commitment/Voucher",
+  "/views/Home/WalletSheet/VouchersTab",
+  "/views/Home/WalletSheet/voucherWallet",
+];
+
 // The shape of every lazy chunk's file name, set by `chunkFileNames` in
 // vite.config.ts. Privacy filters match a site's own files by name (Brave's
 // Aggressive blocking, uBlock Origin): EasyPrivacy's `/analytics-events-` rule
@@ -354,6 +369,15 @@ try {
   if (forbiddenUnderShell.length) {
     failures.push(
       `forbidden public dependencies under the website frame (${PUBLIC_SHELL_SOURCE}):\n  ${forbiddenUnderShell.join("\n  ")}`
+    );
+  }
+  const voucherCodeAtStartup = forbiddenUnder(
+    [...signedIn.files, ...signedOut.files],
+    FORBIDDEN_INSTALLED_STARTUP_MODULES
+  );
+  if (voucherCodeAtStartup.length) {
+    failures.push(
+      `voucher code in the installed startup bundle:\n  ${voucherCodeAtStartup.join("\n  ")}`
     );
   }
   for (const { source, key } of reportingPageKeys) {

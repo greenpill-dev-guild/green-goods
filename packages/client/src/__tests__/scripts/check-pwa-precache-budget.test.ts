@@ -8,6 +8,8 @@ interface FixtureOptions {
   html?: string;
   precache?: string[];
   publicModules?: string[];
+  /** Modules in the installed app's entry chunk, which every startup closure holds. */
+  pwaModules?: string[];
   /** Modules in a chunk the website's frame imports, as a barrel under it would pull them in. */
   publicShellImports?: string[];
   /** Leave the website's frame out of the build, as a moved or renamed file would. */
@@ -84,7 +86,7 @@ function createFixture(options: FixtureOptions = {}) {
       [PWA_CHUNK]: {
         imports: [],
         dynamicImports: [],
-        modules: ["packages/client/src/bootstrapPwa.tsx"],
+        modules: options.pwaModules ?? ["packages/client/src/bootstrapPwa.tsx"],
       },
     };
 
@@ -281,6 +283,22 @@ describe("PWA build budgets", () => {
     expect(output).toContain("packages/client/src/components/Cards/Work/DraftCard.tsx");
     expect(output).not.toContain("useAuth.ts");
     expect(output).not.toContain("AppKitProvider.tsx");
+  });
+
+  it("fails a build whose installed startup reaches voucher code", () => {
+    const output = runFailure(
+      createFixture({
+        pwaModules: [
+          "packages/client/src/bootstrapPwa.tsx",
+          "packages/shared/src/modules/commitment-pooling/service-access-chain.ts",
+          "packages/shared/src/modules/commitment-pooling/display-groups.ts",
+        ],
+      }),
+      {}
+    );
+    expect(output).toContain("voucher code in the installed startup bundle");
+    expect(output).toContain("service-access-chain.ts");
+    expect(output).not.toContain("display-groups.ts");
   });
 
   it("fails a build that has no reporting page left to check", () => {
