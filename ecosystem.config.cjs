@@ -42,7 +42,6 @@ const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
 const localAgentApiBaseUrl = "http://127.0.0.1:3005";
 const localIndexerUrl = "http://localhost:3006/v1/graphql";
 const hostedAgentApiBaseUrl = "https://agent.greengoods.app";
-const hostedIndexerUrl = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 
 const viteDisableLocalChain = envFlag("VITE_DISABLE_LOCAL_CHAIN");
 const viteDisableLocalIndexer = envFlag("VITE_DISABLE_LOCAL_INDEXER");
@@ -75,7 +74,12 @@ const externalAgentApiBaseUrl = isExternalHttpUrl(rootEnv.VITE_API_BASE_URL)
   : hostedAgentApiBaseUrl;
 const externalIndexerUrl = isExternalHttpUrl(rootEnv.VITE_ENVIO_INDEXER_URL)
   ? rootEnv.VITE_ENVIO_INDEXER_URL
-  : hostedIndexerUrl;
+  : null;
+if (viteDisableLocalIndexer && !externalIndexerUrl) {
+  throw new Error(
+    "VITE_DISABLE_LOCAL_INDEXER=true needs VITE_ENVIO_INDEXER_URL in the root .env set to the hosted indexer URL."
+  );
+}
 const localViteChainEnv = viteDisableLocalChain
   ? {
       VITE_DEV_CHAIN_MODE: "",

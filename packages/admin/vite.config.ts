@@ -14,7 +14,6 @@ import {
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
-const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 const ADMIN_VERCEL_PROJECT_ID = "prj_t2gwwFBMLKM22eYKxtA0yGRBfigg";
 
 function envValue(key: string): string | undefined {
@@ -131,7 +130,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const isDevContainer = process.env.DEVCONTAINER === "true";
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
-  const indexerProxyTarget = process.env.VITE_ENVIO_INDEXER_URL ?? DEFAULT_INDEXER_URL;
+  const indexerProxyTarget =
+    process.env.VITE_ENVIO_INDEXER_URL || "http://localhost:3006/v1/graphql";
   const appVersion =
     process.env.VITE_APP_VERSION ||
     process.env.VERCEL_GIT_COMMIT_SHA ||

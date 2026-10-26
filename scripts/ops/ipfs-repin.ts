@@ -10,8 +10,12 @@ import {
 } from "../lib/ipfs-hybrid";
 
 const DEFAULT_GATEWAYS = ["https://greengoods.mypinata.cloud", "https://gateway.pinata.cloud", "https://ipfs.io"];
-const DEFAULT_INDEXER_URL =
-  process.env.VITE_ENVIO_INDEXER_URL?.trim() || "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+/** The indexer to read assets from: the environment's, never a built-in deployment. */
+function indexerUrl(): string {
+  const url = process.env.VITE_ENVIO_INDEXER_URL?.trim();
+  if (!url) throw new Error("Set VITE_ENVIO_INDEXER_URL to the hosted indexer URL.");
+  return url;
+}
 const TEXT_DECODER = new TextDecoder();
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const pinataConfig = loadPinataConfigFromEnv();
@@ -540,7 +544,7 @@ async function collectActionReferences(
   const data = await graphqlPost<{
     Action?: Array<{ id: string; title?: string; media?: string[] | null; instructions?: string | null }>;
   }>(
-    DEFAULT_INDEXER_URL,
+    indexerUrl(),
     `
       query ActionAssets($chainId: Int!) {
         Action(where: { chainId: { _eq: $chainId } }) {
@@ -595,7 +599,7 @@ async function collectGardenReferences(
   const data = await graphqlPost<{
     Garden?: Array<{ id: string; name?: string | null; bannerImage?: string | null }>;
   }>(
-    DEFAULT_INDEXER_URL,
+    indexerUrl(),
     `
       query GardenAssets($chainId: Int!) {
         Garden(where: { chainId: { _eq: $chainId } }) {
@@ -766,7 +770,7 @@ async function collectHypercertReferences(
   const data = await graphqlPost<{
     Hypercert?: Array<{ id: string; metadataUri?: string | null }>;
   }>(
-    DEFAULT_INDEXER_URL,
+    indexerUrl(),
     `
       query HypercertAssets($chainId: Int!) {
         Hypercert(where: { chainId: { _eq: $chainId } }) {
@@ -960,7 +964,7 @@ async function main() {
     auditOnly,
     inputPath,
     endpoints: {
-      indexer: DEFAULT_INDEXER_URL,
+      indexer: indexerUrl(),
       eas: CHAIN_CONFIGS[chainId].easGraphqlUrl,
       gardensSubgraph: getGardensSubgraphUrl(chainId),
       pinataGateway: pinataConfig?.gatewayBaseUrl ?? null,

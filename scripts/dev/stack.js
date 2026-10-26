@@ -36,7 +36,14 @@ const pm2 = require("pm2");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-const PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+/** The prod profile reads the hosted indexer from the environment; there is no built-in deployment. */
+function hostedIndexerUrl() {
+  const url = process.env.VITE_ENVIO_INDEXER_URL?.trim() ?? "";
+  if (!/^https?:\/\//.test(url) || /\/\/(localhost|127\.0\.0\.1)[:/]/.test(url)) {
+    throw new Error("[stack] The prod profile needs VITE_ENVIO_INDEXER_URL set to the hosted indexer URL.");
+  }
+  return url;
+}
 const PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
 const ARBITRUM_PUBLIC_RPC_URL = "https://arb1.arbitrum.io/rpc";
@@ -517,7 +524,7 @@ function productionProfileEnv(group) {
     VITE_LOCAL_FORK_RPC_URL: fork ? "http://127.0.0.1:3009" : "",
     ARBITRUM_RPC_URL: fork ? "http://127.0.0.1:3009" : ARBITRUM_PUBLIC_RPC_URL,
     VITE_ENABLE_ANVIL_WALLETS: String(fork),
-    VITE_ENVIO_INDEXER_URL: group === "prod" ? PRODUCTION_INDEXER_URL : LOCAL_INDEXER_URL,
+    VITE_ENVIO_INDEXER_URL: group === "prod" ? hostedIndexerUrl() : LOCAL_INDEXER_URL,
     VITE_API_BASE_URL: hostedAgent ? PRODUCTION_AGENT_URL : "http://127.0.0.1:3005",
   };
 }
@@ -595,7 +602,7 @@ export function productionModeNotice(group, connections = launchConnections([], 
   const { VITE_CHAIN_ID: chainId, VITE_ENVIO_INDEXER_URL: indexerUrl } = connections.env;
   const arbitrum = chainId === "42161";
   const indexerMode =
-    indexerUrl === PRODUCTION_INDEXER_URL
+    group === "prod"
       ? "hosted production indexer"
       : indexerUrl === LOCAL_INDEXER_URL
         ? "local live-indexer mirror on localhost:3006"
