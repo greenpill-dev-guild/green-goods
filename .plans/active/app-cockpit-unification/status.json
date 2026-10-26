@@ -33,9 +33,10 @@
     "tracks": ["client-pwa", "admin", "shared"],
     "work_types": ["research", "implementation", "qa"],
     "surfaces": ["packages/client", "packages/admin", "packages/shared"],
-    "depends_on_features": ["pwa-interface-simplification"]
+    "depends_on_features": []
   },
   "notes": [
+    "2026-10-26: the garden-scoped PWA Home hub (pwa-interface-simplification) closed and was archived; it is no longer listed as a dependency here. Its record is in .plans/ARCHIVE.md and Git history.",
     "The maintainer asked for design research, a switchable mock, and this hub on a branch, then chose an option for every fork. Implementation runs one slice at a time on its approved pair; the three token slices were approved on 2026-10-21. No deployment or transaction work is in scope.",
     "Stated direction: unify look and feel and shared elements across the installed app and the steward cockpit with some variance per surface; no layout or structure change. Tracking moved from the Cosmo-Local project to the active release project on 2026-10-17, because the 15 October four-goal plan gave PWA and admin delivery to the release project.",
     "Direction accepted in principle on 2026-10-10 and revised on 2026-10-17: the maintainer's pick for each of the thirteen forks and the workspace tone is recorded in spec.md. A pick locks only when a before and after pair of the real components is approved. Two picks differ from the recommendation: F7 puts the app's cards everywhere, and F9 keeps each surface's filter control. The 17 October revision set F6 to the pill on both, F7 to the app's cards and F11 to a 12px gap.",
