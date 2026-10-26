@@ -1,10 +1,11 @@
 /**
- * Client-Only Passkey Utilities
+ * Passkey Credential and Server Utilities
  *
- * Simple WebAuthn credential creation without server-side storage.
- * Credentials are stored in localStorage for session persistence.
+ * Deployed sites use the Green Goods passkey directory, with the hosted Pimlico
+ * server retained for legacy accounts. Local-only development can create credentials
+ * without a server. Browser session helpers persist credential metadata locally.
  *
- * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
+ * Reference: https://docs.pimlico.io/guides/how-to/signers/passkey
  */
 
 import { createPasskeyServerClient as createPermissionlessPasskeyServerClient } from "permissionless/clients/passkeyServer";

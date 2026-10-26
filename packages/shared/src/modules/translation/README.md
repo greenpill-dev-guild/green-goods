@@ -329,8 +329,5 @@ When adding new content types:
 
 - [Chrome Translation API Documentation](https://developer.chrome.com/docs/ai/translator-api)
 - [IndexedDB API](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
-- [Green Goods Translation Architecture](../../../docs/developer/translation.md)
-
-
-
-
+- [Browser translation adapter and cache](./browser-translator.ts)
+- [Shared translation hook](../../hooks/translation/useTranslation.ts)
