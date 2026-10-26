@@ -33,12 +33,16 @@ account (or use `--ledger` or `--interactive`) that signs for each address.
 
 ```bash
 ARB=https://arb1.arbitrum.io/rpc; GNO=https://rpc.gnosischain.com
+cast call 0x5b943088ecdDBF8E4ae387348A88A654aC5F7266 "isStewardOf(address,address)(bool)" 0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3 0x2aa64E6d80390F5C017F0313cB908051BE2FD35e --rpc-url $ARB
 cast call 0x5b943088ecdDBF8E4ae387348A88A654aC5F7266 "isStewardOf(address,address)(bool)" 0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3 <S> --rpc-url $ARB
 cast call 0x115819bCcaab03Be49107c69c00Bc4c21009839C "bootstrapFinalized()(bool)" --rpc-url $GNO
 cast call 0x3Cc943796ccb2fC122b6a61978474Def8fA318c6 "validSignerCount()(uint256)" --rpc-url $GNO
 ```
 
-Expect `true`, `false` and `1`.
+Expect `true`, `true`, `false` and `1`. Stop if either `isStewardOf` call returns `false`.
+Mirroring an account that is not a steward sends `eligible=false`. For the bootstrap signer, that
+ends its exception and removes it from the Safe before a second verified steward exists, and
+`finalizeBootstrap()` then reverts until one does.
 
 **1. Mirror both accounts (Arbitrum).** The publisher's own fuel pays the CCIP fee; the caller
 pays only gas.
@@ -49,7 +53,10 @@ cast send 0xdc53b8EAe588a923D13650339De0c99D29968804 "syncSteward(address)" <S> 
 cast call 0xdc53b8EAe588a923D13650339De0c99D29968804 "dispatchedRevision(address)(uint64)" <each account> --rpc-url $ARB
 ```
 
-Expect `1` for both. If one stays at `0` (the dispatch was deferred), pay for it directly:
+Expect `1` for both. A `0` means either the dispatch was deferred or the account is not a steward:
+the publisher never pays to send a first `eligible=false`. Repeat that account's `isStewardOf`
+check from step 0 and stop if it returns `false`. If it returns `true`, pay for the dispatch
+directly:
 
 ```bash
 FEE=$(cast call 0xdc53b8EAe588a923D13650339De0c99D29968804 "quoteSteward(address)(uint256)" <account address> --rpc-url $ARB | cut -d' ' -f1)
@@ -70,6 +77,13 @@ signer claim ran out of gas; anyone can repair it:
 ```bash
 cast send 0x115819bCcaab03Be49107c69c00Bc4c21009839C "reconcile(address)" <account address> --account <account> --rpc-url $GNO
 ```
+
+If a state still reads `(0, false)` after 90 minutes, the message did not arrive. Look up the
+message ID from that account's `StewardDispatched` event in the [CCIP Explorer](https://ccip.chain.link).
+Repeat the account's `isStewardOf` check and stop if it returns `false`. Otherwise resend the
+current revision at the caller's cost with the `quoteSteward` and `dispatchSteward` commands from
+step 1. `dispatchSteward` resends the queued revision even when `dispatchedRevision` already
+records it, and the receiver ignores a second copy of a revision it has already applied.
 
 Do not finalize before your own mirror arrives. `finalizeBootstrap()` removes the bootstrap
 exception before counting, so it reverts with `InsufficientVerifiedStewards` until both mirrored
