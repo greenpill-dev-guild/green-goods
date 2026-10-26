@@ -83,12 +83,23 @@ describe("resolveActiveGarden", () => {
     expect(resolveActiveGarden(inputs("loading"))).toEqual({ status: "loading", gardenId: null });
   });
 
-  it("reports a failed read with nothing remembered as an error, not as no gardens", () => {
+  it("reports a failed read as an error, never as no gardens, keeping a remembered garden", () => {
     expect(resolveActiveGarden(inputs("failed"))).toEqual({ status: "error", gardenId: null });
-    // With a remembered garden an offline or failed open still goes straight in.
+    // A remembered garden does not hide the failure behind a loading state that never ends
+    // (QA finding 2); it stays as the context the scoped lists read.
     expect(resolveActiveGarden(inputs("failed", { [ALICE_SCOPE]: GARDEN_A }))).toEqual({
-      status: "loading",
+      status: "error",
       gardenId: GARDEN_A,
+    });
+  });
+
+  it("keeps the last good list through a failed refresh: nothing is lost", () => {
+    const refreshFailed = inputs([GARDEN_A, GARDEN_B], { [ALICE_SCOPE]: GARDEN_B });
+    refreshFailed.myGardens = { ...refreshFailed.myGardens, isError: true };
+    expect(resolveActiveGarden(refreshFailed)).toEqual({
+      status: "ready",
+      gardenId: GARDEN_B,
+      remember: false,
     });
   });
 

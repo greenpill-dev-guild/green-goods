@@ -12,12 +12,13 @@ import {
   RiGroupLine,
   RiShareLine,
 } from "@remixicon/react";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useContext, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import { shareGarden } from "../Garden/shareGarden";
 import { focusOnPress } from "./focusOnPress";
+import { HomeShownContext } from "./homeShown";
 import { JournalSection } from "./JournalSection";
 
 // The sheets carry the garden page's sections, its Endowment and its governance, so they load
@@ -53,6 +54,9 @@ export function AboutGarden({ garden }: AboutGardenProps) {
   const openGardenSheet = useUIStore((state) => state.openGardenSheet);
   const [ownSheet, setOwnSheet] = useState<"endowment" | "governance" | null>(null);
   const closeOwnSheet = () => setOwnSheet(null);
+  // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
+  const homeShown = useContext(HomeShownContext);
+  if (!homeShown && ownSheet !== null) setOwnSheet(null);
   // The sheets stay mounted until the closing one's exit has played.
   const sheetsPresent = useExitPresence(
     gardenSheet !== null || ownSheet !== null,
