@@ -13,6 +13,7 @@ import {
   createInMemoryJobQueueStore,
   createJobQueueDependencies,
 } from "../test-utils/job-queue-fakes";
+import { queuedTakeUpChain } from "../test-utils/queued-jobs";
 
 const USER = "0x1111111111111111111111111111111111111111";
 
@@ -301,6 +302,151 @@ describe("createJobQueue", () => {
         "job:failed",
         expect.objectContaining({ jobId: "send", error: "discarded" })
       );
+    });
+  });
+});
+
+describe("a work for a promise taken up in the same tap (decision 18)", () => {
+  const explicit = { transactionSender: {} as never, explicit: true };
+
+  it("sends the take-up, then the work, then its link, each retried where it failed and none twice", async () => {
+    const chain = queuedTakeUpChain();
+    // The store keeps no order: the link and the work come back first.
+    const store = createInMemoryJobQueueStore([chain.link, chain.work, chain.claim]);
+    const failedOnce = new Set<string>();
+    const sent: Array<{ jobId: string; payload: unknown }> = [];
+    const executors = {
+      execute: vi.fn(async (jobId: string, job: Job) => {
+        sent.push({ jobId, payload: structuredClone(job.payload) });
+        if (failedOnce.has(jobId)) return { status: "complete", txHash: "0x1" } as const;
+        failedOnce.add(jobId);
+        throw new Error(`${jobId} failed`);
+      }),
+    };
+    const { queue } = setup({ store, executors });
+
+    // Held while the take-up is on this phone: the work is not tried and spends nothing.
+    await expect(queue.processJob("work-for-it", explicit)).resolves.toEqual({
+      success: false,
+      error: "take-up-pending",
+      skipped: true,
+    });
+    await expect(queue.processJob("take-up", explicit)).resolves.toMatchObject({
+      success: false,
+      error: "take-up failed",
+    });
+    await expect(queue.processJob("work-for-it", explicit)).resolves.toMatchObject({
+      error: "take-up-pending",
+    });
+    await queue.retryJob("take-up");
+    await expect(queue.processJob("take-up", explicit)).resolves.toMatchObject({ success: true });
+    // A failed work keeps the take-up, which has landed, and is tried again alone.
+    await expect(queue.processJob("work-for-it", explicit)).resolves.toMatchObject({
+      success: false,
+    });
+    await queue.retryJob("work-for-it");
+    await expect(queue.processJob("work-for-it", explicit)).resolves.toMatchObject({
+      success: true,
+    });
+    // A failed link is tried again alone.
+    await expect(queue.processJob("its-link", explicit)).resolves.toMatchObject({
+      success: false,
+    });
+    await queue.retryJob("its-link");
+    await expect(queue.processJob("its-link", explicit)).resolves.toMatchObject({
+      success: true,
+    });
+
+    expect(sent.map(({ jobId }) => jobId)).toEqual([
+      "take-up",
+      "take-up",
+      "work-for-it",
+      "work-for-it",
+      "its-link",
+      "its-link",
+    ]);
+    // Nothing reassigned: every act went with the payload it was queued with.
+    expect(sent.map(({ payload }) => payload)).toEqual(
+      [chain.claim, chain.claim, chain.work, chain.work, chain.link, chain.link].map(
+        (job) => job.payload
+      )
+    );
+    expect(await queue.getPendingCount(USER)).toBe(0);
+  });
+
+  it("holds the work behind a take-up that gave up, in a background pass and a tap alike", async () => {
+    const chain = queuedTakeUpChain();
+    const store = createInMemoryJobQueueStore([
+      { ...chain.claim, attempts: 5, lastError: "Max retries (5) exceeded" },
+      chain.work,
+    ]);
+    const executors = createFakeJobExecutorRegistry();
+    const { queue } = setup({ store, executors });
+
+    await expect(
+      queue.flush({ transactionSender: {} as never, userAddress: USER, kinds: ["work"] })
+    ).resolves.toEqual({ processed: 0, failed: 0, skipped: 1 });
+    await expect(queue.processJob("work-for-it", explicit)).resolves.toMatchObject({
+      error: "take-up-pending",
+    });
+    expect(executors.execute).not.toHaveBeenCalled();
+    expect(await store.getJob("work-for-it")).toMatchObject({ attempts: 0 });
+  });
+
+  it.each<[string, Partial<Job>]>([
+    ["of another promise", { payload: { ...queuedTakeUpChain(8n).claim.payload } }],
+    ["by another account", { userAddress: "0x3333333333333333333333333333333333333333" }],
+    ["on another chain", { chainId: 11155111 }],
+    ["that has landed", { synced: true }],
+  ])("sends a work whatever a take-up %s is doing", async (_case, change) => {
+    const chain = queuedTakeUpChain();
+    const store = createInMemoryJobQueueStore([{ ...chain.claim, ...change } as Job, chain.work]);
+    const executors = createFakeJobExecutorRegistry();
+    const { queue } = setup({ store, executors });
+
+    await expect(queue.processJob("work-for-it", explicit)).resolves.toMatchObject({
+      success: true,
+    });
+  });
+
+  it("discards a held work with its unsent take-up and link, which the same tap queued for it", async () => {
+    const chain = queuedTakeUpChain();
+    const store = createInMemoryJobQueueStore([chain.claim, chain.work, chain.link]);
+    const { deps, queue } = setup({ store });
+
+    await expect(queue.discardJob("work-for-it")).resolves.toBe(true);
+    expect(await store.getJob("take-up")).toBeUndefined();
+    expect(deps.events.emit).toHaveBeenCalledWith(
+      "job:failed",
+      expect.objectContaining({ jobId: "take-up", error: "discarded" })
+    );
+    // Nothing of what the tap queued is left behind, the link included.
+    expect(await store.getJob("its-link")).toBeUndefined();
+    expect(await store.getJob("work-for-it")).toBeUndefined();
+  });
+
+  it("keeps a take-up a send is holding when its work is discarded", async () => {
+    const chain = queuedTakeUpChain();
+    const store = createInMemoryJobQueueStore([chain.claim, chain.work]);
+    const release = vi.fn().mockResolvedValue(undefined);
+    const acquire = vi.fn(async (jobId: string) => (jobId === "take-up" ? null : { release }));
+    const { queue } = setup({ store, executionClaims: { acquire } });
+
+    await expect(queue.discardJob("work-for-it")).resolves.toBe(true);
+    expect(await store.getJob("take-up")).toBeDefined();
+  });
+
+  it("discards a take-up with the links that waited on it, and keeps the work as work on its own", async () => {
+    const chain = queuedTakeUpChain();
+    const store = createInMemoryJobQueueStore([chain.claim, chain.work, chain.link]);
+    const executors = createFakeJobExecutorRegistry();
+    const { queue } = setup({ store, executors });
+
+    await expect(queue.discardJob("take-up")).resolves.toBe(true);
+    expect(await store.getJob("its-link")).toBeUndefined();
+    expect(await store.getJob("work-for-it")).toMatchObject({ payload: chain.work.payload });
+    await expect(queue.processJob("work-for-it", explicit)).resolves.toMatchObject({
+      success: true,
     });
   });
 });

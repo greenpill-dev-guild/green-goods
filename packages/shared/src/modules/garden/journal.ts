@@ -11,8 +11,9 @@
  * - The carousel leads with the pool's open season and campaigns, then the newest work with a
  *   photo, then the newest ask open to take up.
  * - Take Part lists the promises open to take up that the reader did not make: their own
- *   offers and asks are theirs to withdraw, not to join. Copies of one set fold into one row,
- *   as on the Pool tab.
+ *   offers and asks are theirs to withdraw, not to join. Nor does it list one they already
+ *   asked for or are taking up from this phone (`ViewerTakeUps`). Copies of one set fold into
+ *   one row, as on the Pool tab.
  *
  * A section reads in one state, so loading, a failure and "nothing saved offline" are never
  * mistaken for "nothing here".
@@ -31,9 +32,14 @@ import type { CommitmentMetadataV1 } from "../commitment-pooling/metadata";
 import {
   type CommitmentSeat,
   isCommitmentCreator,
+  isSameAccount,
   selectCommitmentSeat,
 } from "../commitment-pooling/selectors";
-import type { CommitmentCycleRecord, CommitmentReadModel } from "../commitment-pooling/types-core";
+import type {
+  CommitmentClaimRequestRecord,
+  CommitmentCycleRecord,
+  CommitmentReadModel,
+} from "../commitment-pooling/types-core";
 import type { Address, Work, WorkDisplayStatus } from "../../types/domain";
 
 /** How many items a journal section previews (decision 27: three activity rows). */
@@ -183,16 +189,89 @@ export type TakePartEntry = PoolListEntry<TakePartRow> & {
   copy: CommitmentReadModel;
 };
 
-/** The promises open to take up that the reader did not make, in the read's order. */
+/**
+ * What the reader has already done toward taking promises up, by decimal promise id. A promise
+ * they asked for, or are still taking up from this phone, is theirs to follow on its own page,
+ * where the request or the queued take-up shows, so it is not offered to them again.
+ */
+export interface ViewerTakeUps {
+  /** Asked to take up an approval-gated promise, and no steward has answered yet. */
+  requested: ReadonlySet<string>;
+  /** A take-up still on this phone: queued, sending, or failed and not yet discarded. */
+  queued: ReadonlySet<string>;
+}
+
+export const NO_TAKE_UPS: ViewerTakeUps = { requested: new Set(), queued: new Set() };
+
+/**
+ * The reader's take-ups, from the pool's pending requests and the claims on this phone. A
+ * request counts whether the reader is its claimant or made it for a garden they steward. A
+ * declined request is no longer pending, so its promise is open to ask again.
+ */
+export function viewerTakeUps(input: {
+  viewer: Address | null | undefined;
+  /** The pool's PENDING claim requests (`usePoolClaimRequests`). */
+  pendingRequests: readonly Pick<
+    CommitmentClaimRequestRecord,
+    "commitmentId" | "claimant" | "requestedBy" | "state"
+  >[];
+  /** Promises with a claim on this phone (`useCommitmentQueueState().takeUpIds`). */
+  queued: ReadonlySet<string>;
+}): ViewerTakeUps {
+  const { viewer } = input;
+  const requested = new Set(
+    viewer
+      ? input.pendingRequests
+          .filter(
+            (request) =>
+              request.state === "PENDING" &&
+              (isSameAccount(request.claimant, viewer) ||
+                isSameAccount(request.requestedBy, viewer))
+          )
+          .map((request) => request.commitmentId.toString())
+      : []
+  );
+  return { requested, queued: input.queued };
+}
+
+/** Whether the reader could take this promise up now: open, not theirs, not already asked for. */
+export function isTakeableBy(
+  commitment: CommitmentReadModel,
+  viewer: Address | null | undefined,
+  takeUps: ViewerTakeUps
+): boolean {
+  if (!isOpenToTakeUp(commitment)) return false;
+  if (isCommitmentCreator({ commitment, viewer: viewer ?? undefined })) return false;
+  const id = commitment.commitmentId.toString();
+  return !takeUps.requested.has(id) && !takeUps.queued.has(id);
+}
+
+/**
+ * Whether the reader can take this promise up in the tap that logs work for it (decision 18):
+ * an ask they would take up as themselves, whose take-up the chain accepts at once. An
+ * approval-gated ask never qualifies: a steward of the pool's garden accepts or declines that
+ * take-up, and once accepted the promise is the reader's own and lists as theirs.
+ */
+export function isOneTapTakeUp(
+  commitment: CommitmentReadModel,
+  viewer: Address | null | undefined,
+  takeUps: ViewerTakeUps
+): boolean {
+  return (
+    commitment.direction === "REQUEST" &&
+    commitment.claimMode === "OPEN" &&
+    commitment.claimType === "INDIVIDUAL" &&
+    isTakeableBy(commitment, viewer, takeUps)
+  );
+}
+
+/** The promises the reader could take up, in the read's order. */
 export function takePartPromises(
   commitments: readonly CommitmentReadModel[],
-  viewer: Address | null | undefined
+  viewer: Address | null | undefined,
+  takeUps: ViewerTakeUps
 ): CommitmentReadModel[] {
-  return commitments.filter(
-    (commitment) =>
-      isOpenToTakeUp(commitment) &&
-      !isCommitmentCreator({ commitment, viewer: viewer ?? undefined })
-  );
+  return commitments.filter((commitment) => isTakeableBy(commitment, viewer, takeUps));
 }
 
 /**
@@ -206,10 +285,11 @@ export function takePartEntries(input: {
   viewer: Address | null | undefined;
   /** The pool's state is OPEN. */
   poolOpen: boolean;
+  takeUps: ViewerTakeUps;
 }): TakePartEntry[] {
   if (!input.poolOpen) return [];
   const viewer = input.viewer ?? undefined;
-  const open = takePartPromises(input.commitments, viewer);
+  const open = takePartPromises(input.commitments, viewer, input.takeUps);
   const openIds = new Set(open.map((commitment) => commitment.id));
   const rows = open.map((commitment) => {
     const seat = selectCommitmentSeat({ commitment, contributors: [], viewer });

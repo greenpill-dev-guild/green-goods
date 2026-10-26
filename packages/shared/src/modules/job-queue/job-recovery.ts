@@ -13,6 +13,7 @@ import { commitmentJobPrerequisite, type WorkLinkJobPayload } from "../commitmen
 import { forgetWorkBroadcast, retainedWorkBroadcast } from "../work/work-confirmation";
 import type { JobQueueEvents, JobQueueExecutionClaims, JobQueueStore } from "./ports";
 import { hasRecordedSend, JOB_DISCARDED } from "./queue-policy";
+import { isTakeUpOf, takeUpOf } from "./take-up-hold";
 
 /**
  * Whether a job may be thrown away.
@@ -53,7 +54,34 @@ export function createJobRecovery(
   events: Pick<JobQueueEvents, "emit">,
   claims?: JobQueueExecutionClaims
 ) {
-  return {
+  /**
+   * The chain one tap queued to take a promise up while logging work for it (decision 18).
+   * Discarding its work takes its take-up too, while nothing of that was sent and no other
+   * work waits on it. Discarding the take-up takes the links that waited on it, which could
+   * never land without it; each work stays, as work on its own.
+   */
+  async function discardTakeUpChain(job: Job, discard: (jobId: string) => Promise<boolean>) {
+    if (!store.getJobs || (job.kind !== "work" && job.kind !== "claim")) return;
+    const queued = await store.getJobs({ userAddress: job.userAddress, synced: false });
+    if (job.kind === "work") {
+      const takeUp = takeUpOf(job, queued);
+      const othersWait = queued.some(
+        (other) => other.id !== job.id && takeUp !== null && isTakeUpOf(takeUp, other)
+      );
+      if (takeUp && !othersWait) await discard(takeUp.id);
+      return;
+    }
+    const held = new Set(queued.filter((work) => isTakeUpOf(job, work)).map((work) => work.id));
+    for (const link of queued) {
+      const source = (link.payload as { sourceWorkJobId?: string } | undefined)?.sourceWorkJobId;
+      if (link.kind !== "workLink" || !source || !held.has(source) || !isDiscardableJob(link))
+        continue;
+      await store.deleteJob(link.id);
+      events.emit("job:failed", { jobId: link.id, job: link, error: JOB_DISCARDED });
+    }
+  }
+
+  const recovery = {
     async retryJob(jobId: string): Promise<void> {
       let retried: Job | undefined;
       // Read and written as one step. A retry takes no claim, so a plain read
@@ -103,6 +131,7 @@ export function createJobRecovery(
         // hold. The job is what the person sees, so it goes last: a discard
         // that stops here leaves that one record to discard again.
         await beforeDelete?.(job);
+        await discardTakeUpChain(job, (id) => recovery.discardJob(id));
         if (job.kind === "work" && store.getJobs && store.markJobTerminalFailed) {
           const dependents = await store.getJobs({
             userAddress: job.userAddress,
@@ -144,4 +173,5 @@ export function createJobRecovery(
       }
     },
   };
+  return recovery;
 }

@@ -121,11 +121,14 @@ export function useWorkSubmissionFlowController({
     hasLinkIntentParams,
     linkAtEntry,
     linkChoices,
+    takeUpChoices,
     linkIntent,
     linkIntentStatus,
     workablePromises,
     clearLinkIntent,
     selectLinkIntent,
+    takeUpFirst,
+    promptCount,
   } = useWorkLinkIntent({
     searchParams,
     setSearchParams,
@@ -133,6 +136,7 @@ export function useWorkSubmissionFlowController({
     gardenAddress,
     actionUID,
     setGardenAddress: setGardenAddressStable,
+    takeUp: commitmentJobs.takeUp,
   });
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
   // Hold submission and draft retirement until the dependent link settles. Queueing starts
@@ -257,6 +261,11 @@ export function useWorkSubmissionFlowController({
     if (linkIntent) setIsSchedulingDependentLink(true);
     try {
       await saveOnExit();
+      // An Open ask is taken up first; declined or refused, nothing of the work is queued.
+      if (!(await takeUpFirst())) {
+        setIsSchedulingDependentLink(false);
+        return false;
+      }
       workMutation.clearLastSubmissionOutcome();
       await form.uploadWork();
       const outcome = workMutation.getLastSubmissionOutcome();
@@ -446,6 +455,10 @@ export function useWorkSubmissionFlowController({
     linkIntent,
     linkGardenAddress: linkIntent?.garden ?? null,
     linkIntentStatus,
+    /** The garden's Open asks the member could take up while logging this work. */
+    takeUpChoices: takeUpChoices.choices,
+    takeUpChoicesLoading: takeUpChoices.isLoading,
+    promptCount,
     refetchCommitmentLinkChoices: linkChoices.refetch,
     clearLinkIntent,
     selectLinkIntent,
