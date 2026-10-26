@@ -18,6 +18,17 @@ export function isTerminallyFailedJob(job: Job): boolean {
   return !job.synced && job.attempts >= MAX_RETRIES;
 }
 
+/** Whether a failed attempt was the last: the job will not be tried again on its own. */
+export function gaveUpAfter(error: string | undefined, job: Job | undefined): boolean {
+  const reason = error ?? "";
+  return (
+    reason.startsWith("Max retries") ||
+    reason.startsWith("identity_conflict:") ||
+    reason.startsWith("unavailable:") ||
+    (job ? isTerminallyFailedJob(job) : false)
+  );
+}
+
 export function isWaitingReprobeThrottled(job: Job, now: number = Date.now()): boolean {
   return Boolean(
     job.meta?.waitingForDependency === true &&

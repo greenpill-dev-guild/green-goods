@@ -16,7 +16,7 @@ import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation
 import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
-import { isTerminallyFailedJob, JOB_DISCARDED } from "../modules/job-queue/queue-policy";
+import { gaveUpAfter, JOB_DISCARDED } from "../modules/job-queue/queue-policy";
 import { isTakeUpOf } from "../modules/job-queue/take-up-hold";
 import { logger } from "../modules/app/logger";
 import { deleteDraftOfQueuedWork } from "../modules/work/draft-lifecycle";
@@ -89,17 +89,6 @@ interface Work {
 }
 
 const SOURCE_WORK_TERMINAL = "identity_conflict:source-work-terminal";
-
-/** Whether a failed attempt was the last: the job will not be tried again on its own. */
-function gaveUp(event: QueueEvent): boolean {
-  const error = event.error ?? "";
-  return (
-    error.startsWith("Max retries") ||
-    error.startsWith("identity_conflict:") ||
-    error.startsWith("unavailable:") ||
-    (event.job ? isTerminallyFailedJob(event.job) : false)
-  );
-}
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
   children,
@@ -277,7 +266,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
         queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
       } else if (event.job.kind === "approval") {
         toastFailure({ kind: "approval", detail: event.error, job: event.job });
-      } else if (event.error !== JOB_DISCARDED && gaveUp(event)) {
+      } else if (event.error !== JOB_DISCARDED && gaveUpAfter(event.error, event.job)) {
         void nameFailedChainStage(event.job, event.error);
       }
     };
