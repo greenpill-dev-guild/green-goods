@@ -5,7 +5,7 @@
 // brief show them on the commitment pooling slide and page.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -71,30 +71,52 @@ try {
     await page.screenshot({ path: join(staging, s.file) });
     await context.close();
   }
-  // The current pair is backed up first, so a rename that fails halfway puts the old pair back
-  // rather than leaving one new screen beside one old one.
-  const backup = mkdtempSync(join(out, ".previous-"));
-  // The backup completes before either screen is touched, and only the screens that were
-  // promoted are rolled back, each on its own.
+  // Backup, promotion and rollback run as one owned transaction under a lock, so two runs in the
+  // same checkout can never interleave their pairs. The lock names its owner; a lock left by a run
+  // that died or was stopped (its process gone, or older than ten minutes) is taken over, a live
+  // owner is respected, and the lock is released on every path out.
+  const lock = join(out, ".publish-lock");
+  const takeLock = () => {
+    try { mkdirSync(lock); } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      let owner = null;
+      try { owner = JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")); } catch {}
+      const alive = owner?.pid ? (() => { try { process.kill(owner.pid, 0); return true; } catch (e) { return e.code === "EPERM"; } })() : false;
+      if (owner && alive && Date.now() - owner.at < 10 * 60 * 1000) throw new Error(`another capture is publishing (${lock}, process ${owner.pid} since ${new Date(owner.at).toISOString()}); neither screen was replaced`);
+      console.log(`taking over a stale publication lock${owner ? ` left by process ${owner.pid}` : ""}`);
+      rmSync(lock, { recursive: true, force: true });
+      mkdirSync(lock);
+    }
+    writeFileSync(join(lock, "owner.json"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+  };
+  takeLock();
   try {
-    for (const s of shots) if (existsSync(join(out, s.file))) copyFileSync(join(out, s.file), join(backup, s.file));
-  } catch (error) {
+    // The current pair is backed up first, so a rename that fails halfway puts the old pair back
+    // rather than leaving one new screen beside one old one. The backup completes before either
+    // screen is touched, and only the screens that were promoted are rolled back, each on its own.
+    const backup = mkdtempSync(join(out, ".previous-"));
+    try {
+      for (const s of shots) if (existsSync(join(out, s.file))) copyFileSync(join(out, s.file), join(backup, s.file));
+    } catch (error) {
+      rmSync(backup, { recursive: true, force: true });
+      throw new Error(`${error.message}; neither screen was replaced`);
+    }
+    const promoted = [];
+    try {
+      for (const s of shots) { renameSync(join(staging, s.file), join(out, s.file)); promoted.push(s.file); console.log(join(out, s.file)); }
+    } catch (error) {
+      // A restore that fails keeps the backup folder and names it, so the last good pair is never lost.
+      const unrestored = [];
+      for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch { unrestored.push(name); } }
+      for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch { unrestored.push(name); } }
+      if (unrestored.length) throw new Error(`${error.message}; the rollback could not restore ${[...new Set(unrestored)].join(", ")}, so the backup is kept at ${backup}`);
+      rmSync(backup, { recursive: true, force: true });
+      throw new Error(`${error.message}; the previous pair was put back`);
+    }
     rmSync(backup, { recursive: true, force: true });
-    throw new Error(`${error.message}; neither screen was replaced`);
+  } finally {
+    rmSync(lock, { recursive: true, force: true });
   }
-  const promoted = [];
-  try {
-    for (const s of shots) { renameSync(join(staging, s.file), join(out, s.file)); promoted.push(s.file); console.log(join(out, s.file)); }
-  } catch (error) {
-    // A restore that fails keeps the backup folder and names it, so the last good pair is never lost.
-    const unrestored = [];
-    for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch { unrestored.push(name); } }
-    for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch { unrestored.push(name); } }
-    if (unrestored.length) throw new Error(`${error.message}; the rollback could not restore ${[...new Set(unrestored)].join(", ")}, so the backup is kept at ${backup}`);
-    rmSync(backup, { recursive: true, force: true });
-    throw new Error(`${error.message}; the previous pair was put back`);
-  }
-  rmSync(backup, { recursive: true, force: true });
 } finally {
   rmSync(staging, { recursive: true, force: true });
   await browser.close();

@@ -919,9 +919,17 @@ try { takeLock(); } catch (error) {
   throw error;
 }
 // A partial run that could not validate shared swap rules leaves a marker beside the screens;
-// build.mjs and check.mjs refuse it, and only a full capture that finishes clean removes it.
+// build.mjs and check.mjs refuse it, and only a full capture that finishes clean removes it. The
+// marker is written before anything is replaced, so screens never change without it; a marker
+// left by a promotion that then failed is only conservative, since a full capture clears it.
 const partialMarker = join(out, ".partial-capture.json");
 try {
+  if (unvalidated.length) {
+    try { writeFileSync(partialMarker, JSON.stringify({ at: new Date().toISOString(), sessions: only, unvalidated }, null, 2)); } catch (error) {
+      rmSync(staging, { recursive: true, force: true });
+      throw new Error(`${error.message}; the partial-capture marker could not be written, so nothing was replaced and index.html is untouched`);
+    }
+  }
   const current = readFileSync(htmlPath, "utf8");
   const currentBlock = current.match(/<script type="application\/json" id="flows">([\s\S]*?)<\/script>/);
   const currentData = JSON.parse(currentBlock[1]);
@@ -963,7 +971,6 @@ try {
   }
   for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
   if (unvalidated.length) {
-    writeFileSync(partialMarker, JSON.stringify({ at: new Date().toISOString(), sessions: only, unvalidated }, null, 2));
     console.log(`captured ${results.size} screens into ${out}; ${partialMarker} blocks build.mjs until a full capture finishes clean`);
   } else if (!only.length) {
     rmSync(partialMarker, { force: true });
