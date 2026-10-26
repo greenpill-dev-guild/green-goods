@@ -20,7 +20,7 @@ import {
   getCommitmentClaimRequests,
   getCommitmentDetail,
 } from "../../../modules/commitment-pooling/data";
-import type { CycleEndTimes } from "../../../modules/commitment-pooling/due-dates";
+import type { DueClock } from "../../../modules/commitment-pooling/due-dates";
 import {
   canChooseCopy,
   type GroupCopy,
@@ -71,12 +71,17 @@ export interface GroupTakeUpSource {
   queued: ReadonlySet<string>;
   /** Reads the group's copies and its pending asks again, fresh; null when it can't. */
   reread: () => Promise<{ copies: readonly GroupCopy[]; askedFor: ReadonlySet<string> } | null>;
-  /** The cycle ends the page read, which undated copies fall due at. */
-  cycleEndTimes: CycleEndTimes;
+  /**
+   * The page's due clock (`useDueClock`): the chain's time, ticking when a copy falls due, and the
+   * cycle ends undated copies fall due at. The press judges its copy on the clock the page shows,
+   * so a device clock that runs fast never refuses a copy the page offers, and one that runs slow
+   * never takes a copy the page has ended.
+   */
+  clock: DueClock;
 }
 
 export function useGroupTakeUp(source: GroupTakeUpSource) {
-  const { chainId, viewer, queued, reread, cycleEndTimes } = source;
+  const { chainId, viewer, queued, reread, clock } = source;
   const queryClient = useQueryClient();
   const jobs = useCommitmentJobs({ chainId });
   const [state, setState] = useState<GroupTakeUpState>({ step: "idle" });
@@ -119,8 +124,8 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
           setState({ step: "unknown" });
           return;
         }
-        // The chain's clock at the press: a copy that lapsed while the page was open is not taken.
-        const clock = { now: BigInt(Math.floor(Date.now() / 1000)), cycleEndTimes };
+        // On the page's clock, which ticks as a copy falls due: one that lapsed while the page was
+        // open is not taken.
         if (
           !fresh.copy ||
           !canChooseCopy(fresh.copy, { viewer, askedFor: fresh.askedFor, clock })
@@ -172,7 +177,7 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
         inFlight.current = false;
       }
     },
-    [cycleEndTimes, jobs, queued, readCopy, reread, viewer]
+    [clock, jobs, queued, readCopy, reread, viewer]
   );
 
   const reset = useCallback(() => setState({ step: "idle" }), []);

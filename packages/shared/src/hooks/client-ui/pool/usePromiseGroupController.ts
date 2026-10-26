@@ -272,7 +272,7 @@ export function usePromiseGroupController(input: {
     viewer,
     queued,
     reread,
-    cycleEndTimes: due.clock.cycleEndTimes,
+    clock: due.clock,
   });
   const { takeUp: send, settle } = takeUp;
   const takeUpState = takeUp.state;

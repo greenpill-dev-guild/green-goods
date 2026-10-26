@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 // TEST-QUALITY: allow-small-test-file - These real-hook DOM timer cases cover exact and consecutive deadlines and the chain's clock against a skewed device; the console tests cover rerenders and long waits.
 
-import { QueryClientProvider } from "@tanstack/react-query";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,8 +30,13 @@ const dueAt = (commitments: ReturnType<typeof live>[], now: bigint) =>
   selectDueLiveCommitments({ commitments, cycleEndTimes, now });
 
 /** The app's providers: a query client, and, where the wallet runtime mounts, its wagmi client. */
-function providers({ wallet }: { wallet: boolean }) {
-  const client = createTestQueryClient();
+function providers({
+  wallet,
+  client = createTestQueryClient(),
+}: {
+  wallet: boolean;
+  client?: QueryClient;
+}) {
   return ({ children }: { children: ReactNode }) =>
     createElement(
       QueryClientProvider,
@@ -126,6 +131,31 @@ describe("useExpiryClock", () => {
     await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(2));
     await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow + 60)));
     expect(dueAt(commitments, result.current)).toHaveLength(0);
+  });
+
+  // A clock surface closed while the device's clock was corrected heard no return, so the next one
+  // to open reads the chain's time again rather than reuse the cached offset (Codex on #1341).
+  it("reads the chain's time again when a clock surface opens on a cached offset", async () => {
+    vi.useFakeTimers();
+    const chainNow = 1_800_000_000;
+    vi.setSystemTime((chainNow + 3_600) * 1000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow) });
+    const commitments = [live(BigInt(chainNow + 1_800))];
+    // The app keeps an unobserved read for minutes; the test client would drop it at once.
+    const client = createTestQueryClient();
+    client.setDefaultOptions({ queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } });
+    const wrapper = providers({ wallet: true, client });
+    const clock = () => useExpiryClock({ chainId: CHAIN_ID, commitments, cycleEndTimes });
+    const first = renderHook(clock, { wrapper });
+    await vi.waitFor(() => expect(first.result.current).toBe(BigInt(chainNow)));
+    first.unmount();
+
+    // Corrected while no clock surface is open, well inside the offset's 30 minutes.
+    vi.setSystemTime(chainNow * 1000 + 60_000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow + 60) });
+    const second = renderHook(clock, { wrapper });
+    await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(second.result.current).toBe(BigInt(chainNow + 60)));
   });
 
   // A failed read keeps TanStack's last answer, and that offset would carry the old skew onto a

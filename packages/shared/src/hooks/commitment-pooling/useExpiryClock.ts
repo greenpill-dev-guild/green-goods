@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { WagmiContext } from "wagmi";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
+import { logger } from "../../modules/app/logger";
 import { selectNextDueBoundary } from "../../modules/commitment-pooling/steward-selectors";
 import type { CommitmentReadModel } from "../../modules/commitment-pooling/types-core";
 import { useTimeout } from "../utils/useTimeout";
@@ -22,11 +23,13 @@ const chainSecondsNow = (offsetMs: number) => BigInt(Math.floor((Date.now() + of
  * trails the chain's head by up to a block, which keeps the clock that little behind, never
  * ahead. The calibration is read again whenever the app comes back (`useExpiryClock`) and never
  * persisted, since a device clock corrected meanwhile would carry an old offset with it. For the
- * same reason a failed read drops an earlier answer, which TanStack would otherwise keep.
+ * same reason each clock surface reads it again as it opens, since no surface was open to hear a
+ * return in between, and a failed read drops an earlier answer, which TanStack would otherwise
+ * keep.
  */
 function useChainClockOffsetMs(chainId: number): number {
   const config = useContext(WagmiContext);
-  const { data, isError } = useQuery({
+  const { data, isError, error } = useQuery({
     queryKey: commitmentPoolingKeys.chainClock(chainId),
     queryFn: async () => {
       if (!config) throw new Error("No wagmi client to read the chain's time");
@@ -35,8 +38,13 @@ function useChainClockOffsetMs(chainId: number): number {
     },
     enabled: config !== undefined,
     staleTime: CHAIN_CLOCK_STALE_MS,
+    refetchOnMount: "always",
     retry: 1,
   });
+  useEffect(() => {
+    if (isError)
+      logger.warn("[useExpiryClock] the chain's time could not be read", { chainId, error });
+  }, [chainId, error, isError]);
   return isError ? 0 : (data ?? 0);
 }
 
