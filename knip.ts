@@ -46,8 +46,8 @@ const config: KnipConfig = {
       ignore: [
         // Passed to vitest as `--config` by scripts/dev/run-storybook-vitest-ci.mjs
         "vitest.storybook.config.ts",
-        // Manually-invoked Storybook screenshot pipeline for design exports.
-        // No durable caller by design — see .plans/archive/admin-claude-design-export/.
+        // Manually invoked by the active Commitment Pooling walk's capture instructions:
+        // .plans/active/commitment-pooling/commitment-walk-artifact.build.ts.
         ".storybook/capture-admin-stories.mjs",
       ],
       entry: [

@@ -192,4 +192,4 @@ eth_rpc_url = "${CELO_RPC_URL}"
 # Celo L2 (migrated March 26, 2025) enables Shanghai + Cancun hardforks,
 # so PUSH0 (EIP-3855) is fully supported. No paris fallback needed.
 
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+# See more config options https://www.getfoundry.sh/config

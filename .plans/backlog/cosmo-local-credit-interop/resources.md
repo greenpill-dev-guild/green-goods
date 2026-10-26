@@ -74,8 +74,9 @@ state. The dated 20 October Arbitrum/Celo inventory is retained in the corrected
 ## Cosmo-Local Credit (Grassroots Economics, Will Ruddick)
 
 - Site: <https://cosmolocal.credit>
-- Whitepaper as machine-readable text: <https://cosmolocal.credit/llms-full.txt>
-  (the richest single source — carries CPP interfaces, the MCC, fee waterfall, KPIs, governance)
+- Documentation as machine-readable text: <https://docs.cosmolocal.credit/llms-full.txt>
+  (covers the current app, protocol reference, governance, and the broader white paper; proposed
+  white-paper mechanisms are separate from implemented protocol behavior)
 - Simulator: <https://sim.cosmolocal.credit> (Streamlit; not text-readable)
 - GitHub org: <https://github.com/cosmo-local-credit>
 

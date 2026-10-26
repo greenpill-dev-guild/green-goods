@@ -154,7 +154,7 @@ const config: Config = {
             from: ['/welcome/quickstart-operator', '/operators/managing-gardens'],
             to: '/community/steward-guide/creating-a-garden',
           },
-          {from: ['/operators/managing-actions'], to: '/community/steward-guide/creating-a-garden'},
+          {from: ['/operators/managing-actions'], to: '/community/steward-guide/managing-actions'},
           {from: ['/operators/reviewing-work'], to: '/community/steward-guide/reviewing-work'},
           {from: ['/operators/reporting-impact'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/welcome/quickstart-evaluator'], to: '/community/evaluator-guide'},
@@ -208,14 +208,14 @@ const config: Config = {
           },
           {
             from: [
-              '/developer/testing',
-              '/developer/docs-contributing',
               '/developer/docs-deployment',
               '/developer/monitoring',
               '/developer/contracts-handbook',
             ],
             to: '/builders/reference/deployments',
           },
+          {from: ['/developer/testing'], to: '/builders/testing'},
+          {from: ['/developer/docs-contributing'], to: '/builders/how-to-contribute'},
           {from: ['/developer/api-reference'], to: '/builders/packages/api-index'},
           {
             from: ['/developer/claude-mcp-workflows', '/developer/agent'],
