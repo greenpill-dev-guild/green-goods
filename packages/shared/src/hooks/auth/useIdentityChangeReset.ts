@@ -24,6 +24,8 @@
  * last garden and the app's active garden (`useActiveGardenStore`; each keyed
  * by chain and address), the garden events this device has shown
  * (`useGardenNotificationsSeenStore`, keyed by chain, address and garden),
+ * the join requests this device sent that still wait for a steward
+ * (`useAwaitingJoinRequestsStore`, keyed by chain and address),
  * drafts and queued work, and a
  * username change in flight (`useUsernameChangeStore`). That change is keyed by
  * its owner on the default chain, where names live: its release is already on

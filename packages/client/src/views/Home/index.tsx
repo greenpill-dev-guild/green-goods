@@ -36,8 +36,9 @@ import {
   hasArrivalPassed,
   markArrivalPassed,
 } from "./arrivalToast";
-import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
 import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
+import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
+import type { GardenVisitState } from "./Garden";
 import { GardenSwitcherSheet } from "./GardenSwitcher";
 import { HomeHeader } from "./HomeHeader";
 import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./HomeStates";
@@ -97,7 +98,8 @@ type SwitcherMode = "switch" | "choose";
 const Home: React.FC = () => {
   const routerNavigate = useNavigate();
   const navigate = useCallback(
-    (path: string) => routerNavigate(path, { viewTransition: true }),
+    (path: string, state?: GardenVisitState) =>
+      routerNavigate(path, { viewTransition: true, state }),
     [routerNavigate]
   );
   const location = useLocation();
@@ -141,6 +143,7 @@ const Home: React.FC = () => {
   const isCommitmentsSheetOpen = useUIStore((s) => s.isCommitmentsSheetOpen);
   const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
   const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
+  const closeGardenSheet = useUIStore((s) => s.closeGardenSheet);
 
   // The switcher keeps its mode while it slides out, so its title never flips mid-exit.
   const [switcher, setSwitcher] = useState<{ open: boolean; mode: SwitcherMode }>({
@@ -175,18 +178,21 @@ const Home: React.FC = () => {
   const hasShownArrivalRef = useRef(false);
   const { set: scheduleArrival, clear: cancelArrival } = useTimeout();
 
-  // Close home drawers when navigating away
+  // Close home drawers when navigating away. The journal's section sheet (DL-128) closes with
+  // them: a work opened from the Work sheet returns to Home itself, not to the sheet.
   useEffect(() => {
     if (!isHomeRoute) {
       closeWalletSheet();
       closeSwitcher();
+      closeGardenSheet();
     }
-  }, [closeSwitcher, closeWalletSheet, isHomeRoute]);
+  }, [closeGardenSheet, closeSwitcher, closeWalletSheet, isHomeRoute]);
 
+  // Home names itself as where the visit came from, so the garden's Back steps back here.
   const visitGarden = useCallback(
     (id: string) => {
       closeSwitcher();
-      navigate(`${APP_ROUTES.home}/${id}`);
+      navigate(`${APP_ROUTES.home}/${id}`, { returnTo: APP_ROUTES.home });
     },
     [closeSwitcher, navigate]
   );
@@ -217,7 +223,7 @@ const Home: React.FC = () => {
           return;
         case "startWork":
           // One garden → jump straight in; several → the switcher, so they pick.
-          if (myGardenIds.length === 1) navigate(`${APP_ROUTES.home}/${myGardenIds[0]}`);
+          if (myGardenIds.length === 1) visitGarden(myGardenIds[0]);
           else openSwitcher();
           return;
         case "openHelp":
@@ -225,7 +231,7 @@ const Home: React.FC = () => {
           return;
       }
     },
-    [myGardenIds, navigate, openSwitcher, openWorkDashboard]
+    [myGardenIds, navigate, openSwitcher, openWorkDashboard, visitGarden]
   );
 
   // A child screen (Explore, a garden) opens under Home, so Home stays mounted and a toast

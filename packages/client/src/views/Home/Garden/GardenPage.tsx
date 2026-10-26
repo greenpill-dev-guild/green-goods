@@ -2,20 +2,19 @@ import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
-import { GardenTab, useGardenTabs } from "@green-goods/shared/hooks/garden/useGardenTabs";
+import {
+  GardenTab,
+  useGardenAccess,
+  useGardenTabs,
+} from "@green-goods/shared/hooks/garden/useGardenTabs";
 import {
   isGardenMember,
   usePendingJoinsVersion,
 } from "@green-goods/shared/hooks/garden/useJoinGarden";
-import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
 import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
-import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
-import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
 import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Address, Garden } from "@green-goods/shared/types/domain";
@@ -32,35 +31,22 @@ import { shareGarden } from "./shareGarden";
 
 export interface GardenPageProps {
   garden: Garden;
-  /**
-   * `route`: the garden's own page, as a visit by link, from Explore or from a row opens it: a
-   * fixed banner header with Back over the tabs, with the garden's child pages (a work, a
-   * promise) in `children`. `home`: the same banner, tabs and actions in Home's flow under
-   * Home's header, without Back, until the journal replaces it.
-   */
-  layout: "route" | "home";
   /** Back, on the garden's own page. */
   onBack?: () => void;
-  /** On the garden's own page, false while a child page covers the header and tabs. */
+  /** False while a child page covers the header and tabs. */
   showHeader?: boolean;
-  /** The garden's child pages, on its own page. */
+  /** The garden's child pages (a work, a promise). */
   children?: ReactNode;
 }
 
 /**
- * A garden's page: its banner with the page actions (notifications for reviewers, governance,
- * Endowment for stewards and depositors, Share), its title and join action, the Work, Pool,
- * Insights and Gardeners tabs, and the Endowment and governance sheets. The review, request,
- * governance and Endowment predicates live here, so the garden's own page and Home's body
- * read the same ones.
+ * A garden's own page, as a visit by link, from Explore or from a row opens it (DL-123,
+ * DL-128): a fixed banner header with Back and the page actions (notifications for reviewers,
+ * governance, Endowment for stewards and depositors, Share), its title and join action, the
+ * Work, Pool, Insights and Gardeners tabs, and the Endowment and governance sheets. Who sees
+ * which action comes from `useGardenAccess`, which Home's About rows read too.
  */
-export function GardenPage({
-  garden,
-  layout,
-  onBack,
-  showHeader = true,
-  children,
-}: GardenPageProps) {
+export function GardenPage({ garden, onBack, showHeader = true, children }: GardenPageProps) {
   const intl = useIntl();
   const { primaryAddress } = useUser();
   const isEndowmentOpen = useUIStore((s) => s.isEndowmentSheetOpen);
@@ -79,17 +65,8 @@ export function GardenPage({
   // One read of the garden's work serves the Work tab, the rail and the reviewers' notifications.
   const workRead = useWorks(garden.id, { offline: true });
   const { works: mergedWorks, isFetching: worksFetching } = workRead;
-  const { vaults: gardenVaults = [] } = useGardenVaults(garden.id as Address, {
-    enabled: Boolean(garden.id),
-  });
-  const { deposits: myVaultDeposits = [] } = useVaultDeposits(garden.id as Address, {
-    userAddress: primaryAddress ?? undefined,
-    enabled: Boolean(garden.id && primaryAddress),
-  });
-  const hasEndowmentDeposits = useMemo(
-    () => myVaultDeposits.some((deposit) => deposit.shares > 0n),
-    [myVaultDeposits]
-  );
+  const { canReview, canManageRequests, hasEndowmentDeposits, showEndowment, showGovernance } =
+    useGardenAccess(garden);
 
   const validGardenAddress = isAddress(garden.id) ? garden.id : undefined;
 
@@ -98,39 +75,6 @@ export function GardenPage({
     garden: validGardenAddress as Address | undefined,
   });
   const commitmentPool = commitmentPools[0];
-  const { strategies: convictionStrategies } = useConvictionStrategies(validGardenAddress, {
-    enabled: GOVERNANCE_ENABLED && Boolean(validGardenAddress),
-  });
-  const hasGovernanceConfigured = convictionStrategies.length > 0;
-
-  // Check if current user is a steward (can approve/reject work)
-  const isSteward = useMemo(() => {
-    if (!primaryAddress || !garden.stewards) return false;
-    const normalizedUserAddress = primaryAddress.toLowerCase();
-    return garden.stewards.some((addr) => addr.toLowerCase() === normalizedUserAddress);
-  }, [primaryAddress, garden.stewards]);
-
-  const { hasRole: canReviewOnChain } = useHasRole(
-    garden.id as Address,
-    primaryAddress as Address | undefined,
-    "evaluator"
-  );
-  const canReview = isSteward || canReviewOnChain;
-  const canManageRequests = useMemo(() => {
-    if (!primaryAddress) return false;
-    const account = primaryAddress.toLowerCase();
-    return [...(garden.stewards ?? []), ...(garden.owners ?? [])].some(
-      (address) => address.toLowerCase() === account
-    );
-  }, [garden, primaryAddress]);
-
-  // Gate header drawers behind steward/funder roles. Default gardeners should not see
-  // governance or endowment chrome — those drawers expose protocol-shaped surfaces (signal pool,
-  // hypercert, vault, treasury) that don't belong on the gardener-default path.
-  const hasOwnEndowmentDeposit = hasEndowmentDeposits;
-  const showGovernanceButton = GOVERNANCE_ENABLED && hasGovernanceConfigured && canReview;
-  const showEndowmentButton = gardenVaults.length > 0 && (canReview || hasOwnEndowmentDeposit);
-  const hasGovernance = showGovernanceButton;
 
   // The version counter refreshes membership as in-tab joins confirm or expire,
   // so the header does not keep showing stale join controls.
@@ -161,122 +105,6 @@ export function GardenPage({
 
   const tabs = buildGardenTabs(intl, { hasPool: Boolean(commitmentPool) });
 
-  const isHome = layout === "home";
-  // The page actions, without Back on Home, where the chip carries the garden.
-  const pageActions = (
-    <TopNav
-      className={
-        isHome
-          ? "flex w-full justify-between items-start p-3"
-          : "flex w-full justify-between items-start p-4 pt-[var(--app-top-offset)]"
-      }
-      onBackClick={isHome ? undefined : onBack}
-      works={mergedWorks}
-      garden={garden}
-      isSteward={canReview}
-      showGovernanceButton={showGovernanceButton}
-      onGovernanceClick={() => setIsGovernanceOpen(true)}
-      showEndowmentButton={showEndowmentButton}
-      hasEndowmentDeposits={hasEndowmentDeposits}
-      onEndowmentClick={openEndowmentSheet}
-      onShareClick={handleShareGarden}
-    />
-  );
-
-  const titleBlock = (
-    <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3">
-      <h1 className="line-clamp-2 text-2xl font-bold" title={name}>
-        {name}
-      </h1>
-      <div className="flex items-center gap-2">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
-            <RiMapPin2Fill className="h-4 w-4 text-primary-on-surface flex-shrink-0" />
-            <span className="truncate" title={location}>
-              {location}
-            </span>
-          </div>
-          <span className="hidden sm:inline text-text-soft-400">•</span>
-          <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
-            <RiCalendarEventFill className="h-4 w-4 text-primary-on-surface flex-shrink-0" />
-            <span className="truncate" title={foundedLabel}>
-              {foundedLabel}
-            </span>
-          </div>
-        </div>
-        {/* One compact action at most; Share lives in the banner actions (DL-020). */}
-        {showJoinButton && <JoinGardenButton gardenId={garden.id} gardenName={name} />}
-        {showJoinRequestButton ? (
-          <GardenJoinRequestDialog gardenAddress={garden.id as Address} />
-        ) : null}
-      </div>
-    </div>
-  );
-
-  const tabRail = (
-    <StandardTabs
-      tabs={tabs}
-      activeTab={activeTab}
-      onTabChange={(tabId) => setActiveTab(tabId as GardenTab)}
-      ariaLabel={intl.formatMessage({
-        id: "app.garden.tabs.label",
-        defaultMessage: "Garden sections",
-      })}
-      variant="compact"
-      isLoading={gardensLoading || worksFetching}
-    />
-  );
-
-  const sheets = (
-    <>
-      <EndowmentSheet
-        isOpen={isEndowmentOpen}
-        onClose={closeEndowmentSheet}
-        gardenAddress={garden.id as Address}
-        gardenName={garden.name}
-      />
-      {hasGovernance && (
-        <ConvictionSheet
-          isOpen={isGovernanceOpen}
-          onClose={() => setIsGovernanceOpen(false)}
-          gardenAddress={garden.id as Address}
-          gardenName={garden.name}
-        />
-      )}
-    </>
-  );
-
-  if (isHome) {
-    return (
-      <div className="flex w-full flex-col" data-testid="home-garden-page">
-        {/* The banner keeps the page's actions and grows to fit their stack; Home's header
-            above it carries the garden. */}
-        <div className="padded relative min-h-36 overflow-hidden rounded-2xl md:min-h-44">
-          <ImageWithFallback
-            src={bannerImage || ""}
-            alt={`${name} banner`}
-            loading="eager"
-            className="absolute inset-0 w-full h-full object-cover object-center"
-            backgroundFallback={<GardenBannerFallback name={name} className="rounded-2xl" />}
-          />
-          <div className="relative z-10">{pageActions}</div>
-        </div>
-        {titleBlock}
-        <div className="w-full bg-bg-canvas">{tabRail}</div>
-        <div className="px-4 sm:px-5 md:px-6 pt-3 sm:pt-4 pb-6" aria-busy={worksFetching}>
-          <GardenSection
-            garden={garden}
-            tab={activeTab}
-            workRead={workRead}
-            pool={commitmentPool}
-            canManageRequests={canManageRequests}
-          />
-        </div>
-        {sheets}
-      </div>
-    );
-  }
-
   return (
     <div className="h-full min-h-0 w-full flex flex-col relative overflow-hidden">
       {showHeader ? (
@@ -297,15 +125,65 @@ export function GardenPage({
                 className="absolute inset-0 w-full h-full object-cover object-center"
                 backgroundFallback={<GardenBannerFallback name={name} className="rounded-b-2xl" />}
               />
-              <div className="absolute top-0 left-0 right-0 z-20">{pageActions}</div>
+              <div className="absolute top-0 left-0 right-0 z-20">
+                <TopNav
+                  className="flex w-full justify-between items-start p-4 pt-[var(--app-top-offset)]"
+                  onBackClick={onBack}
+                  works={mergedWorks}
+                  garden={garden}
+                  isSteward={canReview}
+                  showGovernanceButton={showGovernance}
+                  onGovernanceClick={() => setIsGovernanceOpen(true)}
+                  showEndowmentButton={showEndowment}
+                  hasEndowmentDeposits={hasEndowmentDeposits}
+                  onEndowmentClick={openEndowmentSheet}
+                  onShareClick={handleShareGarden}
+                />
+              </div>
             </div>
 
             {/* Title and meta below banner */}
-            {titleBlock}
+            <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3">
+              <h1 className="line-clamp-2 text-2xl font-bold" title={name}>
+                {name}
+              </h1>
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
+                    <RiMapPin2Fill className="h-4 w-4 text-primary-on-surface flex-shrink-0" />
+                    <span className="truncate" title={location}>
+                      {location}
+                    </span>
+                  </div>
+                  <span className="hidden sm:inline text-text-soft-400">•</span>
+                  <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
+                    <RiCalendarEventFill className="h-4 w-4 text-primary-on-surface flex-shrink-0" />
+                    <span className="truncate" title={foundedLabel}>
+                      {foundedLabel}
+                    </span>
+                  </div>
+                </div>
+                {/* One compact action at most; Share lives in the banner actions (DL-020). */}
+                {showJoinButton && <JoinGardenButton gardenId={garden.id} gardenName={name} />}
+                {showJoinRequestButton ? (
+                  <GardenJoinRequestDialog gardenAddress={garden.id as Address} />
+                ) : null}
+              </div>
+            </div>
 
             {/* Tabs sticky under header */}
             <div className="sticky top-0 left-0 right-0 w-full bg-bg-canvas z-10 shadow-sm">
-              {tabRail}
+              <StandardTabs
+                tabs={tabs}
+                activeTab={activeTab}
+                onTabChange={(tabId) => setActiveTab(tabId as GardenTab)}
+                ariaLabel={intl.formatMessage({
+                  id: "app.garden.tabs.label",
+                  defaultMessage: "Garden sections",
+                })}
+                variant="compact"
+                isLoading={gardensLoading || worksFetching}
+              />
             </div>
           </div>
 
@@ -343,7 +221,20 @@ export function GardenPage({
           </div>
         </>
       ) : null}
-      {sheets}
+      <EndowmentSheet
+        isOpen={isEndowmentOpen}
+        onClose={closeEndowmentSheet}
+        gardenAddress={garden.id as Address}
+        gardenName={garden.name}
+      />
+      {showGovernance && (
+        <ConvictionSheet
+          isOpen={isGovernanceOpen}
+          onClose={() => setIsGovernanceOpen(false)}
+          gardenAddress={garden.id as Address}
+          gardenName={garden.name}
+        />
+      )}
       {children}
     </div>
   );

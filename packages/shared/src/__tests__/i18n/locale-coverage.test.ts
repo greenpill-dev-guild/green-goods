@@ -531,7 +531,10 @@ describe("i18n locale coverage", () => {
       );
 
       expect(missing, `Missing source message ids:\n${missing.join("\n")}`).toHaveLength(0);
-    }, 30_000);
+      // The first caller parses every Client, Admin and Shared source file for message ids (the
+      // result is cached for the rest), which takes 10 s on a quiet machine and 50 to 140 s while
+      // parallel sessions' gates share the CPU; the limit allows for that and still stops a hang.
+    }, 180_000);
 
     it("pairs each literal id with its literal defaultMessage in every message form", () => {
       const fixture = `
@@ -589,7 +592,7 @@ describe("i18n locale coverage", () => {
         );
 
       expect(drift, `defaultMessage drifted from en.json:\n${drift.join("\n")}`).toHaveLength(0);
-    }, 30_000);
+    }, 180_000);
 
     it("should include known dynamic message id families in all locales", () => {
       const catalogs: Record<string, LocaleCatalog> = { en, es, pt };

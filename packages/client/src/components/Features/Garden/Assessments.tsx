@@ -1,8 +1,8 @@
 import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
-import type { Domain } from "@green-goods/shared/types/domain";
 import type { GardenAssessmentRecord } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
+import type { Domain } from "@green-goods/shared/types/domain";
 import { formatReportingPeriod } from "@green-goods/shared/utils/time";
 import { RiErrorWarningLine, RiFileList3Line, RiFileTextLine } from "@remixicon/react";
 import { forwardRef, memo } from "react";
@@ -10,12 +10,19 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 interface GardenAssessmentsProps {
+  /**
+   * The garden's id as its route names it. A row opens the assessment's page under the garden's
+   * own path, so it lands there from the garden's page and from the Insights sheet over Home,
+   * which is not a garden route (DL-128).
+   */
+  gardenId: string;
   records: GardenAssessmentRecord[];
   assessmentFetchStatus: "pending" | "success" | "error";
   description?: string | null;
 }
 
 interface AssessmentListProps {
+  gardenId: string;
   records: GardenAssessmentRecord[];
   assessmentFetchStatus: "pending" | "success" | "error";
 }
@@ -25,7 +32,13 @@ interface AssessmentListProps {
  * reporting period, then its domain (an unknown one stays unlabelled). The row opens the
  * assessment's page, which holds the outcomes and the rest.
  */
-const AssessmentRow = memo(function AssessmentRow({ record }: { record: GardenAssessmentRecord }) {
+const AssessmentRow = memo(function AssessmentRow({
+  gardenId,
+  record,
+}: {
+  gardenId: string;
+  record: GardenAssessmentRecord;
+}) {
   const intl = useIntl();
   const navigate = useNavigate();
   const { summary } = record;
@@ -41,12 +54,14 @@ const AssessmentRow = memo(function AssessmentRow({ record }: { record: GardenAs
       details={
         domain ? [reportingPeriod, intl.formatMessage({ id: domain.labelId })] : [reportingPeriod]
       }
-      onOpen={() => navigate(`assessments/${summary.id}`, { viewTransition: true })}
+      onOpen={() =>
+        navigate(`/home/${gardenId}/assessments/${summary.id}`, { viewTransition: true })
+      }
     />
   );
 });
 
-const AssessmentList = ({ records, assessmentFetchStatus }: AssessmentListProps) => {
+const AssessmentList = ({ gardenId, records, assessmentFetchStatus }: AssessmentListProps) => {
   const intl = useIntl();
   switch (assessmentFetchStatus) {
     case "pending":
@@ -62,7 +77,7 @@ const AssessmentList = ({ records, assessmentFetchStatus }: AssessmentListProps)
         <ul className="flex flex-col gap-(--gg-list-gap)">
           {records.map((record) => (
             <li key={record.summary.id}>
-              <AssessmentRow record={record} />
+              <AssessmentRow gardenId={gardenId} record={record} />
             </li>
           ))}
         </ul>
@@ -85,7 +100,7 @@ const AssessmentList = ({ records, assessmentFetchStatus }: AssessmentListProps)
 };
 
 export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsProps>(
-  ({ records, assessmentFetchStatus, description }, ref) => {
+  ({ gardenId, records, assessmentFetchStatus, description }, ref) => {
     const intl = useIntl();
     const hasDescription = Boolean(description && description.trim().length > 0);
 
@@ -106,7 +121,11 @@ export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsPro
           <h2 className="text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.listTitle" })}
           </h2>
-          <AssessmentList records={records} assessmentFetchStatus={assessmentFetchStatus} />
+          <AssessmentList
+            gardenId={gardenId}
+            records={records}
+            assessmentFetchStatus={assessmentFetchStatus}
+          />
         </section>
       </div>
     );

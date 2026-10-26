@@ -1,6 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { WorkCardSkeleton } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useOfflineGardenInView } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import {
@@ -12,7 +13,6 @@ import { RiErrorWarningLine, RiInboxLine, RiRefreshLine } from "@remixicon/react
 import React, { forwardRef, memo, type UIEvent, useCallback, useEffect } from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
-import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { GardenListHeader, GardenListHeaderLoading } from "./GardenListHeader";
@@ -40,6 +40,11 @@ interface GardenWorkProps {
 
   onRefresh?: () => void;
   handleScroll?: (event: UIEvent<HTMLUListElement>) => void;
+  /**
+   * Where a work's page returns on its Back: the garden's own page by default, or Home when
+   * this list is the Work sheet over it (DL-128).
+   */
+  returnTo?: string;
 }
 
 /** A phone shows about five cards; loading shows as many placeholders. */
@@ -57,6 +62,7 @@ const SORT_ORDER: GardenWorkSort[] = ["pending", "newest", "oldest"];
 interface WorkListProps {
   sorted: Work[];
   actionById: Map<string, Action>;
+  returnTo?: string;
 }
 
 interface WorkListItemProps {
@@ -65,6 +71,7 @@ interface WorkListItemProps {
   sorted: Work[];
   actionById: Map<string, Action>;
   navigate: (path: string, options?: { state?: unknown }) => void;
+  returnTo?: string;
 }
 
 const WorkListItem = memo(function WorkListItem({
@@ -73,18 +80,18 @@ const WorkListItem = memo(function WorkListItem({
   sorted,
   actionById,
   navigate,
+  returnTo,
 }: WorkListItemProps) {
   const work = sorted[index];
   const action = actionById.get(String(work.actionUID));
   const onOpen = useCallback(
     () =>
       navigate(`/home/${work.gardenAddress}/work/${work.id}`, {
-        state: {
-          from: "garden",
-          returnTo: `/home/${work.gardenAddress}`,
-        },
+        state: returnTo
+          ? { from: "home", returnTo }
+          : { from: "garden", returnTo: `/home/${work.gardenAddress}` },
       }),
-    [navigate, work.gardenAddress, work.id]
+    [navigate, returnTo, work.gardenAddress, work.id]
   );
   return (
     <li style={style} className="cv-work-card">
@@ -98,7 +105,7 @@ const WorkListItem = memo(function WorkListItem({
   );
 });
 
-const WorkList = ({ sorted, actionById }: WorkListProps) => {
+const WorkList = ({ sorted, actionById, returnTo }: WorkListProps) => {
   const navigate = useNavigateToTop();
   return sorted.map((_, index) => (
     <WorkListItem
@@ -107,6 +114,7 @@ const WorkList = ({ sorted, actionById }: WorkListProps) => {
       sorted={sorted}
       actionById={actionById}
       navigate={navigate}
+      returnTo={returnTo}
     />
   ));
 };
@@ -125,6 +133,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       readState,
       onRefresh,
       handleScroll,
+      returnTo,
     },
     ref
   ) => {
@@ -341,7 +350,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
               </li>
             ))
           ) : hasRows ? (
-            <WorkList sorted={view.works} actionById={view.actionById} />
+            <WorkList sorted={view.works} actionById={view.actionById} returnTo={returnTo} />
           ) : null}
           {hasRows && !readsHistory && readState?.hasOlderWork && !isOffline && loadOlderWork && (
             <li className="col-span-full flex justify-center">
