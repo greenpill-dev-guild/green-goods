@@ -12,8 +12,9 @@ exactly one place.
 3. Run the Repo Quick Gate after a coherent cross-package batch or shared public-interface change.
 4. Before an ordinary push, run the targeted ready-for-CI gate. Let GitHub CI own broad regression
    coverage and merge readiness.
-5. Run the full local Ship Gate only for an explicit offline/full-readiness request or when a
-   critical/release override requires it.
+5. Run the full local Ship Gate only for an explicit offline/full-readiness request or a release.
+   A critical surface runs the selector's mandatory override instead (see the Ready-for-CI Push
+   Gate below).
 
 Coverage stays an outer-loop regression floor. It does not replace direct behavior, consumer
 wiring, production composition, or a fresh readiness gate.
@@ -196,6 +197,18 @@ CI rejects any edit, deletion or rename of a dated report. Ordinary Shared
 implementation changes do not run complete Client, Admin, or Agent suites locally; those remain CI
 responsibilities.
 
+A critical Shared push (`AGENTS.md § Change Criticality`) keeps that shape. Its mandatory, uncapped
+override is the owner's typecheck and focused suite plus every consumer's source and test typecheck;
+a consumer suite runs only when `--test-path` names one of its tests, and the consumer suites and
+production builds stay with CI's Shared, Client, Admin and Agent workflows, which must be green on
+the current head. The critical owner names a test even for a barrel change, since its mandatory
+suite runs focused rather than whole, and format and lint stay scoped to the changed paths as in
+every push. A critical qa run keeps the same consumer rule. An explicit `--risk critical` with no
+matched override makes every changed owner critical. The contracts override keeps its
+complete local gate (`abi-artifacts`,
+`contracts-build`, `contracts-test`, `contracts-verify-fast`) because its verify step has no
+pull-request CI equivalent.
+
 Comparison scope comes from the live PR base when available, otherwise `origin/develop`. A
 release promotion (a `release/*` head into `main`) compares against `origin/develop`, in CI and
 locally, because its history was already judged as it entered develop. A successful exact
@@ -221,7 +234,7 @@ blocks every check. Only the release gate requires the manual proof, through
 
 ## Ship Gate (explicit full local pipeline)
 
-The uncached full local gate for an explicit offline/full-readiness request, critical surface, or
+The uncached full local gate for an explicit offline/full-readiness request or
 release:
 
 ```bash
@@ -232,7 +245,8 @@ Ship uses the same conditional additions listed in the Production Review Readine
 review, ship may run mutating format and branch/commit safety steps because the user explicitly
 requested the full local gate. Ordinary commit, push, and PR creation use targeted proof plus the
 Ready-for-CI Push Gate, then rely on current-head GitHub CI for merge approval. Critical surfaces
-still require their selector-mandated complete local override before push and CI afterward.
+still require their selector-mandated override before push and CI afterward: owner typecheck and
+focused suite plus consumer typechecks for Shared, the complete contracts gate for contracts.
 
 Release runs `node scripts/dev/ci-local.js --intent release`. When the change touches the
 authenticated surface class, that gate requires `--attest browser-proof="<engine, session, date,

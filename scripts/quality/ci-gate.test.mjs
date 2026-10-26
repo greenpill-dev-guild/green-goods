@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 
 import { expectedWorkflowNames, latestRunsByName, runGate } from "./ci-gate.mjs";
+import { loadPolicy, SHARED_CRITICAL_RULE_ID } from "./select-validation.mjs";
 
 const silentLogger = {
   log() {},
@@ -440,4 +441,24 @@ test("the newest workflow run wins regardless of API ordering", () => {
 
   assert.equal(latestRunsByName([newerFailure, olderSuccess]).get("Alpha"), newerFailure);
   assert.equal(latestRunsByName([olderSuccess, newerFailure]).get("Alpha"), newerFailure);
+});
+
+test("every Shared critical override path fans out to the consumer workflows CI owns", () => {
+  // The local critical push proves owner typecheck and focused suite plus consumer typechecks;
+  // CI must therefore run the whole consumer suites and builds for every such path (D15).
+  const policy = loadPolicy();
+  const rules = policy.criticalOverrides.filter(
+    (rule) => rule.id === SHARED_CRITICAL_RULE_ID || rule.id === "reporting-permission-payloads",
+  );
+  const samples = rules.flatMap((rule) => [
+    ...(rule.exact ?? []),
+    ...(rule.prefixes ?? []).map((prefix) => (prefix.endsWith("/") ? `${prefix}index.ts` : prefix)),
+  ]);
+  assert.ok(samples.length > 100, "the Shared critical override lists its paths");
+  for (const path of samples) {
+    const workflows = expectedWorkflowNames([path]);
+    for (const name of ["Shared", "Client", "Admin", "Agent"]) {
+      assert.ok(workflows.includes(name), `${path} must trigger ${name}`);
+    }
+  }
 });
