@@ -14,6 +14,12 @@ const queueDefaults = {
     title: "Sync failed",
     workMessage: "Your work is still saved on this device. Open Your Work to try again.",
     approvalMessage: "Your decision is still saved on this device. Open Your Work to try again.",
+    workMessageInGarden:
+      "Your work in {garden} is still saved on this device. Switch to that garden to try again.",
+    approvalMessageInGarden:
+      "Your decision in {garden} is still saved on this device. Switch to that garden to try again.",
+    seeGardens: "See Your Gardens",
+    review: "Review",
   },
   retryFailed: {
     title: "Couldn't send it",
@@ -26,7 +32,26 @@ const queueDefaults = {
     retrying: "We'll retry shortly.",
   },
   queueClear: { title: "Queue is clear", message: "No pending jobs to sync." },
+  takeUpFailed: {
+    title: "Couldn't take up the promise",
+    message:
+      "Your work is still saved on this device and goes after the promise. Open Your Work to try again.",
+  },
+  linkFailed: {
+    title: "Couldn't link your work",
+    message: "Your work was sent. Open the promise to link it again.",
+  },
 };
+
+/**
+ * A failed upload that waits in another of the member's gardens. Your Work lists the active
+ * garden only (DL-129), so its toast names that garden and opens Home's switcher instead.
+ */
+export interface FailedInAnotherGarden {
+  gardenName: string;
+  /** Opens the switcher; the member picks there, and nothing switches before (decision 6). */
+  openSwitcher: () => void;
+}
 
 /**
  * Create i18n-aware queue toasts
@@ -96,7 +121,17 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
         context: "job queue",
       }),
 
-    jobFailed: (kind: "work" | "approval", detail?: string) =>
+    /**
+     * An upload the queue gave up on. The member is told where it waits and how to try again,
+     * never the job's own error, which goes to the diagnostics: Your Work, with Review opening
+     * it on Pending as the arrival toast does, or another garden's switcher.
+     */
+    jobFailed: (
+      kind: "work" | "approval",
+      detail?: string,
+      elsewhere?: FailedInAnotherGarden,
+      openYourWork?: () => void
+    ) =>
       toastService.error({
         // Share the id with the owning mutation's loading toast so the inline-process
         // path collapses to a single slot. In the background-flush path no mutation
@@ -106,18 +141,58 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
           id: toastMessageIds.queue.jobFailed.title,
           defaultMessage: queueDefaults.jobFailed.title,
         }),
-        message:
-          detail ??
-          formatMessage({
-            id:
-              kind === "work"
-                ? toastMessageIds.queue.jobFailed.workMessage
-                : toastMessageIds.queue.jobFailed.approvalMessage,
-            defaultMessage:
-              kind === "work"
-                ? queueDefaults.jobFailed.workMessage
-                : queueDefaults.jobFailed.approvalMessage,
-          }),
+        devMessage: detail,
+        ...(elsewhere
+          ? {
+              message: formatMessage(
+                {
+                  id:
+                    kind === "work"
+                      ? toastMessageIds.queue.jobFailed.workMessageInGarden
+                      : toastMessageIds.queue.jobFailed.approvalMessageInGarden,
+                  defaultMessage:
+                    kind === "work"
+                      ? queueDefaults.jobFailed.workMessageInGarden
+                      : queueDefaults.jobFailed.approvalMessageInGarden,
+                },
+                { garden: elsewhere.gardenName }
+              ),
+              // As long as the arrival toast's, which also carries an action.
+              duration: 6000,
+              action: {
+                label: formatMessage({
+                  id: toastMessageIds.queue.jobFailed.seeGardens,
+                  defaultMessage: queueDefaults.jobFailed.seeGardens,
+                }),
+                onClick: elsewhere.openSwitcher,
+                dismissOnClick: true,
+              },
+            }
+          : {
+              message: formatMessage({
+                id:
+                  kind === "work"
+                    ? toastMessageIds.queue.jobFailed.workMessage
+                    : toastMessageIds.queue.jobFailed.approvalMessage,
+                defaultMessage:
+                  kind === "work"
+                    ? queueDefaults.jobFailed.workMessage
+                    : queueDefaults.jobFailed.approvalMessage,
+              }),
+              ...(openYourWork
+                ? {
+                    duration: 6000,
+                    action: {
+                      label: formatMessage({
+                        id: toastMessageIds.queue.jobFailed.review,
+                        defaultMessage: queueDefaults.jobFailed.review,
+                      }),
+                      onClick: openYourWork,
+                      dismissOnClick: true,
+                    },
+                  }
+                : {}),
+            }),
         context: "job queue",
       }),
 
@@ -165,6 +240,36 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
         }),
         context: "job queue",
         suppressLogging: true,
+      }),
+
+    /** The take-up a queued work waits on gave up (decision 18): the work is still here. */
+    takeUpFailed: () =>
+      toastService.error({
+        id: "take-up",
+        title: formatMessage({
+          id: toastMessageIds.queue.takeUpFailed.title,
+          defaultMessage: queueDefaults.takeUpFailed.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIds.queue.takeUpFailed.message,
+          defaultMessage: queueDefaults.takeUpFailed.message,
+        }),
+        context: "job queue",
+      }),
+
+    /** A sent work's link to its promise gave up; the work itself is on the record. */
+    linkFailed: () =>
+      toastService.error({
+        id: "work-link",
+        title: formatMessage({
+          id: toastMessageIds.queue.linkFailed.title,
+          defaultMessage: queueDefaults.linkFailed.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIds.queue.linkFailed.message,
+          defaultMessage: queueDefaults.linkFailed.message,
+        }),
+        context: "job queue",
       }),
   };
 }

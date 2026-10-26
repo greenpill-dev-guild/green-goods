@@ -98,12 +98,11 @@ const allowedIdenticalLocalizedKeys = new Set([
   // Token symbol and network proper name have no words to translate.
   "app.celoWallet.asset",
   "app.community.weightScheme.linear",
-  // The compact Agro tab label is intentionally the same abbreviation in all locales;
-  // its accessible name uses the translated full domain name.
-  "app.gardenIntro.domain.agroShort",
   "cockpit.community.stats.pools",
-  // An amount beside the G$ symbol has no words to translate.
+  // The G$ symbol, alone or beside an amount, has no words to translate.
   "cockpit.garden.pool.reward.inGoodDollars",
+  "app.voucher.rw.gd",
+  "app.voucher.rw.sh.gd",
   "public.fund.vaults.vaultCount",
   // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
   // and the compact line Your Work and a garden's Promises share drops "Saved" in every

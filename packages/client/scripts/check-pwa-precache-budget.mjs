@@ -20,8 +20,10 @@ const LIMITS = {
   // The offline shell installs in three tiers: critical, the offline-ready set
   // an installed app fetches straight away, and a send-time tail. Keep the
   // combined ceiling close to the full signed-in app so moving an asset between
-  // tiers cannot hide growth.
-  shellRaw: Number(process.env.PWA_SHELL_RAW_MAX ?? 11 * MiB),
+  // tiers cannot hide growth. Raised from 11 MiB in October 2026, when the
+  // garden-scoped Home (bell, Start step, take-up) and the voucher screens
+  // brought the signed-in app to that line; the gzip ceilings are unchanged.
+  shellRaw: Number(process.env.PWA_SHELL_RAW_MAX ?? 11.5 * MiB),
   shellGzip: Number(process.env.PWA_SHELL_GZIP_MAX ?? 3.25 * MiB),
   shellPriorityGzip: Number(process.env.PWA_SHELL_PRIORITY_GZIP_MAX ?? 1.1 * MiB),
 };

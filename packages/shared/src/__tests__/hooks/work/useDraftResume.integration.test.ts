@@ -4,24 +4,36 @@
  *
  * The resume prompt, autosave and the IndexedDB store run together here, because what Start Fresh
  * promises is only visible across them: the saved draft's record and media stay as they were from
- * the moment the prompt opens, and the next save gets a record of its own.
+ * the moment the prompt opens, and the next save gets a record of its own. What a Submit leaves to
+ * resume is visible the same way, with the work mutation, the upload queue and the draft's
+ * retirement composed as Submit Work composes them.
  */
-import { act, cleanup, waitFor } from "@testing-library/react";
-import { useEffect, useState } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode, useEffect, useState } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getAddress } from "viem";
 import { useDraftAutoSave } from "../../../hooks/work/useDraftAutoSave";
 import { useDraftResume } from "../../../hooks/work/useDraftResume";
+import { useWorkDraftRetirement } from "../../../hooks/work/useWorkDraftRetirement";
+import { useWorkMutation } from "../../../hooks/work/useWorkMutation";
 import {
   parseWorkLinkIntent,
   toDraftWorkLink,
   writeWorkLinkIntent,
   type WorkLinkIntent,
 } from "../../../modules/commitment-pooling/work-link-intent";
+import { jobQueueDB } from "../../../modules/job-queue/db";
+import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { draftDB } from "../../../modules/job-queue/draft-db";
 import { queueDraftWrite } from "../../../modules/work/draft-lifecycle";
+import { WorkSubmissionError } from "../../../modules/work/wallet-submission/types";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { WorkTab } from "../../../stores/workFlowTypes";
+import type { WorkJobPayload } from "../../../types/job-queue";
+import { createMockAction, createMockWorkDraft } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
@@ -48,6 +60,27 @@ vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: ACCOUNT }),
 }));
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => CHAIN }));
+// Submit's queue and drafts share one chain, as they do in the app.
+vi.mock("../../../config/default-chain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/default-chain")>()),
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+// A wallet account; what the wallet does with a send is each Submit test's call.
+const wallet = vi.hoisted(() => ({
+  send: vi.fn(),
+  sender: {
+    authMode: "wallet" as const,
+    supportsBatching: false,
+    supportsSponsorship: false,
+    sendContractCall: async () => ({ hash: "0x" as const, sponsored: false }),
+  },
+}));
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => wallet.sender,
+}));
+vi.mock("../../../modules/work/wallet-submission", () => ({
+  submitWorkDirectly: wallet.send,
+}));
 
 /**
  * The wizard's draft wiring, as the Submit Work controller composes it: the address is live, so
@@ -144,11 +177,14 @@ beforeEach(() => {
 });
 afterEach(async () => {
   cleanup();
+  vi.restoreAllMocks();
   // An unmounting wizard flushes its draft; let that land before the records go.
   await queueDraftWrite(async () => undefined);
   for (const draft of await draftDB.getDraftsForUser(ACCOUNT, CHAIN))
     await draftDB.deleteDraft(draft.id);
   await draftDB.setActiveDraft(ACCOUNT, CHAIN, null);
+  for (const job of await jobQueueDB.getJobs({ userAddress: ACCOUNT }))
+    await jobQueueDB.deleteJob(job.id);
 });
 
 describe("Start Fresh on a saved work draft", () => {
@@ -498,5 +534,157 @@ describe("entering work from a promise", () => {
     await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
     expect(useWorkFlowStore.getState().feedback).toBe("");
     expect(await draftDB.getImagesForDraft("old")).toHaveLength(1);
+  });
+});
+
+const ACTION = createMockAction({ id: `${CHAIN}-5`, title: "Mulch the east beds" });
+/** Navigation runs at once; stable, as the controller's managed timer is. */
+const scheduleNow = (callback: () => void) => callback();
+
+/** A saved draft with a photo, left as the wizard's active draft, for work that is not for a promise. */
+async function saveDraftForSubmit() {
+  const photo = new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" });
+  const record = await draftDB.saveSnapshot(
+    ACCOUNT,
+    CHAIN,
+    "submitted",
+    { gardenAddress: GARDEN, actionUID: 5, feedback: "mulched the east beds" },
+    [photo],
+    []
+  );
+  return { record, photo };
+}
+
+/**
+ * Submit Work's Review as its controller composes it: the wizard's draft wiring, the work
+ * mutation, and the retirement that lets the draft go once the composer's part is done. The
+ * person continues the saved draft from the Garden tab's prompt first, as in the app.
+ */
+async function continueToReview() {
+  const navigate = vi.fn();
+  const queryClient = createTestQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(
+      IntlProvider,
+      { locale: "en", messages: {}, onError: () => undefined },
+      createElement(QueryClientProvider, { client: queryClient }, children)
+    );
+  const review = renderHook(
+    () => {
+      const [searchParams, setSearchParams] = useState(() => new URLSearchParams());
+      const wizard = useWizard({
+        searchParams,
+        setSearchParams,
+        restoreForm: () => undefined,
+        linkIntent: undefined,
+      });
+      const mutation = useWorkMutation({
+        authMode: "wallet",
+        gardenAddress: GARDEN,
+        actionUID: 5,
+        actions: [ACTION],
+        userAddress: ACCOUNT,
+      });
+      useWorkDraftRetirement({
+        completed: useWorkFlowStore((state) => state.submissionCompleted),
+        paused: false,
+        attempt: 0,
+        clearActiveDraft: wizard.clearActiveDraft,
+        schedule: scheduleNow,
+        navigate,
+      });
+      return { ...wizard, mutation };
+    },
+    { wrapper }
+  );
+  await waitFor(() => expect(review.result.current.showDraftSheet).toBe(true));
+  await act(async () => {
+    await review.result.current.handleContinueDraft();
+  });
+  return { ...review, navigate };
+}
+
+/** Upload Work on Review, which rejects when the send does. */
+async function uploadWork(review: Awaited<ReturnType<typeof continueToReview>>, photo: File) {
+  await act(async () => {
+    await expect(
+      review.result.current.mutation.mutateAsync({
+        draft: createMockWorkDraft({ actionUID: 5, feedback: "mulched the east beds" }),
+        images: [photo],
+      })
+    ).rejects.toThrow();
+  });
+}
+
+/** Back on the Garden tab later: a new visit asks to continue only a draft it can resume. */
+async function offeredLater() {
+  cleanup();
+  useWorkFlowStore.getState().reset();
+  useWorkFlowStore.setState({ draftScope: null, draftHydrated: false });
+  const { result } = openWizard();
+  await waitFor(() => expect(useWorkFlowStore.getState().draftHydrated).toBe(true));
+  await act(async () => {
+    await queueDraftWrite(async () => undefined);
+  });
+  return result.current.showDraftSheet;
+}
+
+const queuedWork = async (clientWorkId: string | undefined) =>
+  (await jobQueueDB.getJobs({ userAddress: ACCOUNT, kind: "work", synced: false })).filter(
+    (job) => (job.payload as WorkJobPayload).clientWorkId === clientWorkId
+  );
+
+describe("what a Submit leaves to resume", () => {
+  it.each([
+    [
+      "a send that failed with nothing sent",
+      new WorkSubmissionError("The garden refused this work", "transaction", "batch"),
+    ],
+    [
+      "a declined wallet prompt",
+      new WorkSubmissionError(
+        "User rejected the request.",
+        "transaction",
+        "batch",
+        Object.assign(new Error("User rejected the request."), { code: 4001 })
+      ),
+    ],
+  ])("leaves no resumable draft once the queue admitted the work, after %s", async (_case, failure) => {
+    const { record, photo } = await saveDraftForSubmit();
+    const review = await continueToReview();
+    wallet.send.mockRejectedValueOnce(failure);
+
+    await uploadWork(review, photo);
+
+    // The queue holds the work now, so the draft goes as it would after a send, and the composer
+    // leaves for Your Work.
+    await waitFor(() => expect(review.navigate).toHaveBeenCalledOnce());
+    expect(await draftDB.getDraft(record.id)).toBeUndefined();
+    expect(await draftDB.getActiveDraft(ACCOUNT, CHAIN)).toBeNull();
+    // Your Work's Pending has the work and its photo to send again.
+    const [work] = await queuedWork(record.clientWorkId);
+    expect(work).toBeDefined();
+    expect(await jobQueueDB.getImagesForJob(work.id)).toHaveLength(1);
+    expect(wallet.send).toHaveBeenCalledOnce();
+    // The Garden tab has nothing to continue.
+    expect(await offeredLater()).toBe(false);
+  });
+
+  it("keeps the draft resumable when the queue never admitted the work", async () => {
+    const { record, photo } = await saveDraftForSubmit();
+    const review = await continueToReview();
+    vi.spyOn(jobQueue, "addJob").mockRejectedValueOnce(new Error("QuotaExceededError"));
+
+    await uploadWork(review, photo);
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    expect(review.navigate).not.toHaveBeenCalled();
+    expect(await draftDB.getDraft(record.id)).toMatchObject({ feedback: "mulched the east beds" });
+    expect(await draftDB.getImagesForDraft(record.id)).toHaveLength(1);
+    expect(await queuedWork(record.clientWorkId)).toEqual([]);
+    expect(wallet.send).not.toHaveBeenCalled();
+    expect(await offeredLater()).toBe(true);
   });
 });

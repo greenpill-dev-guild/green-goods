@@ -1,5 +1,6 @@
 // Command Surface: what the member can take part in, on Home (DL-127, decision 32).
 import type { CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
+import type { CommitmentRowProps } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import {
   type GardenOpenPromises,
@@ -9,7 +10,7 @@ import {
 } from "@green-goods/shared/hooks/garden/useGardenJournal";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { RiInboxLine, RiPlantLine } from "@remixicon/react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useContext, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
@@ -20,6 +21,7 @@ import {
   PromiseRow,
   PromiseRowSkeleton,
 } from "@/components/Features/Commitments";
+import { HomeShownContext } from "./homeShown";
 import { JournalCycleDetails } from "./JournalCycleDetails";
 import { JournalSection } from "./JournalSection";
 import { JournalLoadingRows, JournalStateRow } from "./JournalStateRow";
@@ -45,14 +47,15 @@ export function takePartPath(gardenId: string, entry: TakePartEntry): string {
 
 /**
  * Take Part: the garden's open and asked-for promises as the Pool tab's commitment rows, each
- * opening its own page, and See All opening the Promises sheet. There is no second promise
- * workflow here: taking one up happens on its page, as everywhere else.
+ * opening its own page, and See All opening every one of them in a sheet over Home
+ * (`TakePartSheet`). There is no second promise workflow here: taking one up happens on its
+ * page, as everywhere else.
  */
 export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const navigate = useNavigateToTop();
-  const openCommitmentsSheet = useUIStore((state) => state.openCommitmentsSheet);
+  const openTakePartSheet = useUIStore((state) => state.openTakePartSheet);
   const promises = useGardenOpenPromises(gardenId);
   const { state } = promises;
 
@@ -62,7 +65,7 @@ export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
       title={formatMessage({ id: "app.home.journal.takePart" })}
       action={{
         label: formatMessage({ id: "app.home.journal.seeAll" }),
-        onClick: () => openCommitmentsSheet(),
+        onClick: () => openTakePartSheet(),
       }}
       note={
         state.status === "ready" && state.savedAt
@@ -76,19 +79,33 @@ export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
     >
       {withCycleLines ? <CycleLines gardenId={gardenId} /> : null}
       <TakePartRows
-        promises={promises}
+        state={state}
+        titleOf={promises.titleOf}
+        onRetry={promises.refetch}
         onOpen={(entry) => navigate(takePartPath(gardenId, entry))}
       />
     </JournalSection>
   );
 }
 
-function TakePartRows({
-  promises: { state, titleOf, refetch },
+/**
+ * Take Part's rows for one of its reads: the Pool tab's commitment rows, or the one row that
+ * stands for them while there are none, they load, or the read failed. The section shows the
+ * first entries and the sheet every one.
+ */
+export function TakePartRows({
+  state,
+  titleOf,
+  onRetry,
   onOpen,
+  serviceOf,
 }: {
-  promises: GardenOpenPromises;
+  state: GardenOpenPromises["state"];
+  titleOf: GardenOpenPromises["titleOf"];
+  onRetry: () => void;
   onOpen: (entry: TakePartEntry) => void;
+  /** A service offer's line, where the list reads services; Home's own section reads none. */
+  serviceOf?: (commitmentId: bigint) => CommitmentRowProps["service"];
 }): ReactNode {
   const { formatMessage } = useIntl();
   switch (state.status) {
@@ -114,7 +131,7 @@ function TakePartRows({
         <JournalStateRow
           kind="error"
           title={formatMessage({ id: "app.home.journal.takePart.errorTitle" })}
-          onRetry={refetch}
+          onRetry={onRetry}
         />
       );
     case "offline":
@@ -140,6 +157,7 @@ function TakePartRows({
             <PromiseRow
               row={entry.row}
               title={titleOf(entry.row.commitment.metadataCID)}
+              service={serviceOf?.(entry.row.commitment.commitmentId)}
               onOpen={() => onOpen(entry)}
             />
           </li>
@@ -163,12 +181,16 @@ function TakePartRows({
 function CycleLines({ gardenId }: { gardenId: string }) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const { state } = useGardenOpenCycles(gardenId);
+  // Home shown again reads the cycles' clock afresh, so days left never stand stale under a page.
+  const homeShown = useContext(HomeShownContext);
+  const { state } = useGardenOpenCycles(gardenId, { shown: homeShown });
   // The last cycle stays drawn while its sheet closes.
   const [details, setDetails] = useState<{ cycle: CommitmentCycleRecord | null; open: boolean }>({
     cycle: null,
     open: false,
   });
+  // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
+  if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
   if (state.status !== "ready") return null;
 
   return (

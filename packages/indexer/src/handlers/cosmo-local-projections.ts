@@ -40,7 +40,17 @@ type ParametersForEntity =
   | "VoucherServiceAcknowledgment"
   | "VoucherIssuerAuthority"
   | "VoucherReserveAsset"
-  | "VoucherPoolExchange";
+  | "VoucherPoolExchange"
+  | "EarnedVoucherTerms"
+  | "EarnedVoucherConsent"
+  | "EarnedVoucherDistribution"
+  | "EarnedVoucherDispatch"
+  | "VoucherDistributionCommand"
+  | "VoucherDistributionAttempt"
+  | "VoucherDistributionAcknowledgment"
+  | "StewardRoleSource"
+  | "StewardRoleMirror"
+  | "StewardSafeReceiverState";
 export type CosmoContext = { readonly [Name in ParametersForEntity]: Store<Name> };
 
 /** The emitting module is part of every new projection identity. */

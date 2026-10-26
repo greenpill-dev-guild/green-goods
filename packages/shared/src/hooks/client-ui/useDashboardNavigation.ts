@@ -67,6 +67,24 @@ export function useDashboardNavigation() {
           ...(origin ? { dashboardOrigin: origin } : {}),
         },
       });
+    const openWork = (
+      tab: WorkDashboardTab = "pending",
+      pendingFilter: WorkDashboardPendingFilter = "all",
+      options: NavigateOptions = {}
+    ) => {
+      const snapshot: DashboardSnapshot = {
+        kind: "work",
+        tab,
+        pendingFilter,
+        completedFilter: "all",
+        timeFilter: "month",
+        scrollTop: 0,
+      };
+      navigate("/home", {
+        ...options,
+        state: { ...(scope ? { dashboardEntry: { scope, path: "/home", snapshot } } : {}) },
+      });
+    };
     return {
       isDashboardCovered: location.pathname.replace(/\/$/, "") !== "/home",
       leave: (snapshot: DashboardSnapshot, to: To, rowState?: Record<string, unknown>) => {
@@ -115,6 +133,12 @@ export function useDashboardNavigation() {
         }
       },
       forward,
+      /** Opens `to` as the next page, recording this one, so that page's Back returns here. */
+      open: (to: To, options: NavigateOptions = {}) =>
+        navigate(to, {
+          ...options,
+          state: { ...options.state, ...(scope ? { dashboardBack: { scope, path } } : {}) },
+        }),
       /** True only when this session recorded the immediately preceding page. */
       back: () => {
         if (!previous) return false;
@@ -132,23 +156,29 @@ export function useDashboardNavigation() {
             state: { ...state, dashboardEntry: undefined },
           });
       },
-      openWork: (
-        tab: WorkDashboardTab = "pending",
-        pendingFilter: WorkDashboardPendingFilter = "all",
-        options: NavigateOptions = {}
-      ) => {
-        const snapshot: DashboardSnapshot = {
-          kind: "work",
-          tab,
-          pendingFilter,
-          completedFilter: "all",
-          timeFilter: "month",
-          scrollTop: 0,
-        };
-        navigate("/home", {
-          ...options,
-          state: { ...(scope ? { dashboardEntry: { scope, path: "/home", snapshot } } : {}) },
-        });
+      openWork,
+      /**
+       * Open Your Work on Pending from any screen, as a failed upload's toast does. On Home it
+       * opens over Home as Home's own launcher opens it, with no second Home to go Back through,
+       * and in place of the Promises sheet; elsewhere Home opens with it. A toast can call this
+       * after the member has moved on, so it reads where the app is now.
+       */
+      openYourWork: () => {
+        const [now] = current.current.path.split(/[?#]/);
+        if (now.replace(/\/$/, "") !== "/home") return openWork("pending", "all");
+        const store = useUIStore.getState();
+        store.closeCommitmentsSheet();
+        store.openWorkDashboard("pending", "all");
+      },
+      /**
+       * Open Home's garden switcher from any screen, as a toast about another garden's upload
+       * does: Home opens it once it shows. The member picks there; this switches nothing. A toast
+       * can call this after the member has moved on, so it reads where the app is now.
+       */
+      openGardenSwitcher: () => {
+        useUIStore.getState().requestGardenSwitcher();
+        const [now] = current.current.path.split(/[?#]/);
+        if (now.replace(/\/$/, "") !== "/home") navigate("/home");
       },
     };
   }, [location, navigate, scope]);

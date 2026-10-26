@@ -8,12 +8,18 @@ import { IHats } from "../interfaces/IHats.sol";
 import { IHatsSignerGateV2, IModuleProxyFactory, IStewardSafe } from "../interfaces/IHatsSignerGateV2.sol";
 import { StewardRoleCodec as Codec } from "../libraries/StewardRoleCodec.sol";
 
-/// @notice Authenticated steward Safe with an optional single-signer bootstrap and irreversible fixed-two finalization.
-/// @dev No operator, platform admin, upgrade or arbitrary execution path. This contract alone holds the top Hat.
+/// @notice Authenticated steward Safe that mirrors one garden's Hats steward roster.
+/// @dev One valid steward signs alone; two or more always need two signatures. The locked gate
+///      enforces this however an owner joined (absolute minimum one, target two). An optional
+///      starting signer can act before the first mirror arrives; its exception ends once its own
+///      Hats status is mirrored. No operator, platform admin, upgrade or arbitrary execution path.
+///      This contract alone holds the top Hat.
 contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
     address public constant HATS = 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137;
     address public constant HSG_IMPLEMENTATION = 0x148057884AC910Bdd93693F230C5c35a8c47CA3b;
     address public constant MODULE_FACTORY = 0x000000000000aDdB49795b0f9bA5BC298cDda236;
+    /// @dev Pinned v1.4.1 MultiSendCallOnly; the only delegatecall target left enabled for batches.
+    address public constant CALL_ONLY_MULTISEND = 0x9641d764fc13c8B624c04430C7356C1C7C8102e2;
     uint64 public constant SOURCE_SELECTOR = Codec.SOURCE_SELECTOR;
     bytes32 public constant DOMAIN = Codec.DOMAIN;
     address public immutable publisher;
@@ -23,7 +29,6 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
     IHatsSignerGateV2 public immutable gate;
     IStewardSafe public immutable safe;
     address public immutable bootstrapSigner;
-    bool public bootstrapFinalized;
 
     struct State {
         uint64 revision;
@@ -36,18 +41,15 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
     error InvalidMessage();
     error ConflictingRevision();
     error OnlySelf();
-    error BootstrapNotActive();
-    error OnlyBootstrapSigner();
-    error InsufficientVerifiedStewards();
     event StewardMirrored(address indexed account, uint64 revision, bool eligible);
     event StewardReconciled(address indexed account, bool eligible);
     event ReconciliationDeferred(address indexed account);
-    event BootstrapFinalized();
 
     constructor(
         address router_,
         address publisher_,
         address garden_,
+        string memory gardenName,
         uint256 expectedTopHat,
         uint256 salt,
         address bootstrapSigner_
@@ -56,19 +58,24 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
     {
         if (
             block.chainid != Codec.DESTINATION_CHAIN || router_.code.length == 0 || uint160(publisher_) <= 1
-                || garden_ == address(0) || expectedTopHat == 0
+                || garden_ == address(0) || bytes(gardenName).length == 0 || expectedTopHat == 0
+                || bootstrapSigner_ == address(1) || bootstrapSigner_ == address(this)
         ) revert InvalidConfiguration();
         _checkDependencies();
-        if (bootstrapSigner_ == address(1) || bootstrapSigner_ == address(this)) revert InvalidConfiguration();
         bootstrapSigner = bootstrapSigner_;
-        bootstrapFinalized = bootstrapSigner_ == address(0);
         publisher = publisher_;
         garden = garden_;
-        ownerHat = IHats(HATS).mintTopHat(address(this), "Tech and Sun cross-chain steward authority", "");
+        ownerHat = IHats(HATS).mintTopHat(address(this), string.concat(gardenName, " cross-chain steward authority"), "");
         if (ownerHat != expectedTopHat) revert InvalidConfiguration();
         signerHat = IHats(HATS)
             .createHat(
-                ownerHat, "Arbitrum Tech and Sun stewards", type(uint32).max, address(this), address(this), false, ""
+                ownerHat,
+                string.concat("Arbitrum ", gardenName, " stewards"),
+                type(uint32).max,
+                address(this),
+                address(this),
+                false,
+                ""
             );
         uint256[] memory hats = new uint256[](1);
         hats[0] = signerHat;
@@ -76,7 +83,7 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
             ownerHat: ownerHat,
             signerHats: hats,
             safe: address(0),
-            thresholdConfig: IHatsSignerGateV2.ThresholdConfig(0, bootstrapFinalized ? 2 : 1, bootstrapFinalized ? 2 : 1),
+            thresholdConfig: IHatsSignerGateV2.ThresholdConfig(0, 1, 2),
             locked: false,
             claimableFor: true,
             implementation: HSG_IMPLEMENTATION,
@@ -87,38 +94,23 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
             IModuleProxyFactory(MODULE_FACTORY)
                 .deployModule(HSG_IMPLEMENTATION, abi.encodeWithSignature("setUp(bytes)", abi.encode(params)), salt)
         );
-        // Keep only the pinned call-only multisend for bootstrap Safe batches.
-        // HSG checks owners, threshold, guard, modules and fallback after delegatecalls.
+        // HSG checks owners, threshold, guard, modules and fallback after any delegatecall.
         gate.disableDelegatecallTarget(0x40A2aCCbd92BCA938b02010E17A5b8929b49130D);
         gate.disableDelegatecallTarget(0xA1dabEF33b3B82c7814B6D82A79e50F4AC44102B);
-        if (bootstrapFinalized) gate.disableDelegatecallTarget(0x9641d764fc13c8B624c04430C7356C1C7C8102e2);
         safe = IStewardSafe(gate.safe());
-        if (bootstrapFinalized) {
-            gate.lock();
-        } else {
+        if (bootstrapSigner_ != address(0)) {
             if (bootstrapSigner_ == address(gate) || bootstrapSigner_ == address(safe)) revert InvalidConfiguration();
             IHats(HATS).mintHat(signerHat, bootstrapSigner_);
             gate.claimSignerFor(signerHat, bootstrapSigner_);
         }
+        gate.lock();
     }
 
     /// @dev Hats falls back to stored standing on a reverting eligibility call. Always explicitly return false.
     function getWearerStatus(address account, uint256 hat) external view returns (bool eligible, bool standing) {
         State memory state = states[account];
-        bool initialSigner = !bootstrapFinalized && account == bootstrapSigner && state.revision == 0;
-        return (hat == signerHat && (state.eligible || initialSigner), true);
-    }
-
-    /// @notice The approved bootstrap signer may permanently tighten the Safe after two source-verified owners join.
-    /// @dev Removing the bootstrap exception before counting prevents an unverified bootstrap owner from satisfying two.
-    function finalizeBootstrap() external nonReentrant {
-        if (bootstrapFinalized) revert BootstrapNotActive();
-        if (msg.sender != bootstrapSigner) revert OnlyBootstrapSigner();
-        bootstrapFinalized = true;
-        if (gate.validSignerCount() < 2) revert InsufficientVerifiedStewards();
-        gate.setThresholdConfig(IHatsSignerGateV2.ThresholdConfig(0, 2, 2));
-        gate.lock();
-        emit BootstrapFinalized();
+        bool startingSigner = account == bootstrapSigner && account != address(0) && state.revision == 0;
+        return (hat == signerHat && (state.eligible || startingSigner), true);
     }
 
     function getHatStatus(uint256 hat) external view returns (bool) {
@@ -187,9 +179,7 @@ contract StewardSafeReceiver is CCIPReceiver, ReentrancyGuard {
         _code(
             0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99, 0x7c6007a5d711cea8dfd5d91f5940ec29c7f200fe511eb1fc1397b367af3c42f9
         );
-        _code(
-            0x9641d764fc13c8B624c04430C7356C1C7C8102e2, 0xecd5bd14a08c5d2122379900b2f272bdf107a7e92423c10dd5fe3254386c9939
-        );
+        _code(CALL_ONLY_MULTISEND, 0xecd5bd14a08c5d2122379900b2f272bdf107a7e92423c10dd5fe3254386c9939);
         _code(
             0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67, 0x50c3cdc4074750a7a974204a716c999edd37482f907608d960b2b025ee0b3317
         );

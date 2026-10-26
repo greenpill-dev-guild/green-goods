@@ -19,6 +19,7 @@ export interface StewardManifest {
   bootstrapSigner?: string | null;
   greenGoodsSafe: string;
   garden: string | null;
+  gardenName: string | null;
   hatsModule: string | null;
   stewardHat: string | null;
   expectedTopHat: string | null;
@@ -29,7 +30,8 @@ export interface StewardManifest {
 export type StewardArtifacts = Record<(typeof STEWARD_CONTRACTS)[number], VoucherArtifact>;
 export interface StewardPlan {
   schemaVersion: 1;
-  kind: "FIXED_TWO_STEWARD_SAFE" | "BOOTSTRAP_STEWARD_SAFE";
+  /** The Safe mirrors the steward roster: one steward signs alone, two or more need two signatures. */
+  kind: "ROSTER_STEWARD_SAFE";
   releaseId: string;
   sourceCommit: string;
   manifestHash: string;
@@ -70,6 +72,7 @@ export function inspectStewardManifest(value: unknown): {
       ...(Object.hasOwn(value as object, "bootstrapSigner") ? ["bootstrapSigner"] : []),
       "greenGoodsSafe",
       "garden",
+      "gardenName",
       "hatsModule",
       "stewardHat",
       "expectedTopHat",
@@ -85,7 +88,7 @@ export function inspectStewardManifest(value: unknown): {
     typeof root.releaseId !== "string" ||
     !/^[a-z0-9][a-z0-9-]{0,79}$/.test(root.releaseId)
   )
-    throw new Error("Invalid fixed-two release identity");
+    throw new Error("Invalid steward Safe release identity");
   if (root.greenGoodsSafe !== "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19")
     throw new Error("Preserve existing Green Goods pool and reserve Safe");
   const missing: string[] = [];
@@ -112,6 +115,10 @@ export function inspectStewardManifest(value: unknown): {
   if (root.bootstrapSigner !== undefined && root.bootstrapSigner !== null)
     address(root.bootstrapSigner, "bootstrapSigner");
   address(root.garden, "garden");
+  // The receiver names the garden's Hats tree with it; Hats details accept any non-empty label.
+  if (root.gardenName === null) missing.push("gardenName");
+  else if (typeof root.gardenName !== "string" || !/^\S(?:.{0,62}\S)?$/.test(root.gardenName))
+    throw new Error("Invalid gardenName");
   address(root.hatsModule, "hatsModule");
   uint(root.stewardHat, "stewardHat");
   uint(root.expectedTopHat, "expectedTopHat");
@@ -206,6 +213,7 @@ export function buildStewardPlan(value: unknown, artifacts: StewardArtifacts, so
             c.router,
             addresses.arbitrum,
             m.garden,
+            m.gardenName,
             m.expectedTopHat,
             m.salt,
             m.bootstrapSigner ?? "0x0000000000000000000000000000000000000000",
@@ -227,7 +235,7 @@ export function buildStewardPlan(value: unknown, artifacts: StewardArtifacts, so
   });
   return {
     schemaVersion: 1,
-    kind: m.bootstrapSigner ? "BOOTSTRAP_STEWARD_SAFE" : "FIXED_TWO_STEWARD_SAFE",
+    kind: "ROSTER_STEWARD_SAFE",
     releaseId: m.releaseId,
     sourceCommit,
     manifestHash: digest(m),

@@ -2,7 +2,7 @@
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
@@ -22,8 +22,25 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => identity.address,
 }));
 
+// The queue's failure toast opens Home's switcher through what the shell hands the provider.
+const queueProvider = vi.hoisted(() => ({
+  onOpenGardenSwitcher: undefined as (() => void) | undefined,
+  onOpenYourWork: undefined as (() => void) | undefined,
+}));
 vi.mock("@green-goods/shared/providers/JobQueue", () => ({
-  JobQueueProvider: ({ children }: { children: ReactNode }) => children,
+  JobQueueProvider: ({
+    children,
+    onOpenGardenSwitcher,
+    onOpenYourWork,
+  }: {
+    children: ReactNode;
+    onOpenGardenSwitcher?: () => void;
+    onOpenYourWork?: () => void;
+  }) => {
+    queueProvider.onOpenGardenSwitcher = onOpenGardenSwitcher;
+    queueProvider.onOpenYourWork = onOpenYourWork;
+    return children;
+  },
 }));
 
 vi.mock("@green-goods/shared/providers/Work", () => ({
@@ -281,6 +298,36 @@ describe("AppShell", () => {
     );
 
     expect(hasArrivalPassed(ADDRESS)).toBe(passed);
+  });
+
+  it("lets the queue's failure toast open Home's switcher from another screen, and Your Work", () => {
+    let location = "";
+    function Where() {
+      location = useLocation().pathname;
+      return null;
+    }
+    render(
+      <MemoryRouter initialEntries={["/home/profile"]}>
+        <Where />
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="*" element={<div>Screen</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    act(() => queueProvider.onOpenGardenSwitcher?.());
+
+    expect(location).toBe("/home");
+    expect(useUIStore.getState().gardenSwitcherRequested).toBe(true);
+
+    // Its Review, for an upload the active garden lists, opens Your Work on Pending over Home.
+    act(() => queueProvider.onOpenYourWork?.());
+    expect(useUIStore.getState()).toMatchObject({
+      isWorkDashboardOpen: true,
+      workDashboardInitialTab: "pending",
+    });
   });
 
   it("scrolls content inside #app-scroll so the app bar stays outside any overscroll stretch", () => {

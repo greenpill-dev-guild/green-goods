@@ -4,6 +4,7 @@ import { toastService } from "@green-goods/shared/components/Toast/toast.service
 import { useJoinGarden } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiRefreshLine, RiSearchLine, RiUserAddLine } from "@remixicon/react";
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
@@ -71,6 +72,43 @@ export function JoinToActCard({
       >
         {formatMessage({ id: LABEL_IDS[mode] })}
       </Button>
+    </section>
+  );
+}
+
+/**
+ * The same card for a reason other than membership: a voucher offer the reader holds too few
+ * vouchers for, or a reward agreement this app can't sign yet. A short title, its one line,
+ * and one door when there is somewhere to go.
+ */
+export function JoinToActDoor({
+  title,
+  line,
+  door,
+}: {
+  title: string;
+  line: string;
+  door: { label: string; icon?: ReactNode; onAct: () => void } | null;
+}) {
+  return (
+    <section
+      className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-4"
+      data-component="JoinToAct"
+      data-mode="door"
+    >
+      <p className="text-sm font-medium text-text-strong-950">{title}</p>
+      <p className="mt-1 text-sm text-text-sub-600">{line}</p>
+      {door ? (
+        <Button
+          type="button"
+          size="sm"
+          className="mt-3"
+          onClick={door.onAct}
+          leadingIcon={door.icon}
+        >
+          {door.label}
+        </Button>
+      ) : null}
     </section>
   );
 }

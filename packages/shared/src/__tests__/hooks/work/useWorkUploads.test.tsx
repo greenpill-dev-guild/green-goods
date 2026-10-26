@@ -6,6 +6,9 @@ import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const mocks = vi.hoisted(() => ({
   jobs: [] as unknown[],
+  /** How the queue answers a subscription: with its jobs, not yet, or with a failed read. */
+  queueAnswer: "jobs" as "jobs" | "pending" | "error",
+  subscriptions: 0,
   sender: { authMode: "passkey" } as unknown,
   uploadQueuedWork: vi.fn(),
   createPorts: vi.fn(async () => ({ ports: true })),
@@ -30,8 +33,13 @@ vi.mock("../../../components/toast", () => ({ toastService: mocks.toast }));
 vi.mock("../../../modules/job-queue/db", () => ({
   jobQueueDB: {
     observeJobs: () => ({
-      subscribe: (observer: { next?: (jobs: unknown[]) => void }) => {
-        observer.next?.(mocks.jobs);
+      subscribe: (observer: {
+        next?: (jobs: unknown[]) => void;
+        error?: (reason: unknown) => void;
+      }) => {
+        mocks.subscriptions += 1;
+        if (mocks.queueAnswer === "jobs") observer.next?.(mocks.jobs);
+        if (mocks.queueAnswer === "error") observer.error?.(new Error("The queue is blocked"));
         return { unsubscribe: () => undefined };
       },
     }),
@@ -79,6 +87,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.sender = { authMode: "passkey" };
   mocks.jobs = [];
+  mocks.queueAnswer = "jobs";
+  mocks.subscriptions = 0;
   mocks.preparation = { activeJobId: null, paused: null, dataSaverOverride: false };
 });
 
@@ -112,6 +122,12 @@ describe("useWorkUploads", () => {
         { preparation: { status: "ready", checkedAt: CHECKED } },
         { workUID: WORK_UID }
       ),
+      // A review for another garden: its work is read in that garden's list.
+      queued(
+        "approval",
+        { preparation: { status: "blocked", reason: "NotGardenOperator", checkedAt: CHECKED } },
+        { workUID: `0x${"CD".repeat(32)}`, gardenAddress: "0xLeftGarden" }
+      ),
       queued("work", {}),
       queued("work", { preparation: { status: "photo-pending", checkedAt: CHECKED } }),
       queued("work", {
@@ -129,11 +145,31 @@ describe("useWorkUploads", () => {
 
     const { result } = renderHookWithProviders(() => useWorkUploads());
 
-    await waitFor(() => expect(result.current.queuedCount).toBe(5));
+    await waitFor(() => expect(result.current.queuedCount).toBe(6));
     expect(result.current.readyCount).toBe(2);
     expect(result.current.preparingCount).toBe(2);
-    expect(result.current.attentionCount).toBe(1);
+    expect(result.current.attentionCount).toBe(2);
     expect(result.current.waitingDecisionWorkIds.has(WORK_UID.toLowerCase())).toBe(true);
+    expect(result.current.waitingDecisionGardenIds).toEqual(["0xgarden", "0xleftgarden"]);
+  });
+
+  it("says while the queue is first read and when it cannot be read, and reads it again on refetch", async () => {
+    mocks.queueAnswer = "pending";
+    const { result } = renderHookWithProviders(() => useWorkUploads());
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isError).toBe(false);
+
+    mocks.queueAnswer = "error";
+    act(() => result.current.refetch());
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.isLoading).toBe(false);
+
+    mocks.queueAnswer = "jobs";
+    mocks.jobs = [queued("work", {})];
+    act(() => result.current.refetch());
+    await waitFor(() => expect(result.current.queuedCount).toBe(1));
+    expect(result.current.isError).toBe(false);
+    expect(mocks.subscriptions).toBe(3);
   });
 
   it("says preparation runs only when it is not waiting for the connection or Data Saver", async () => {

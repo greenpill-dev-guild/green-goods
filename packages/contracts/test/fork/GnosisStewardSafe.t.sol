@@ -66,6 +66,7 @@ contract GnosisStewardSafeForkTest is Test {
     uint256 private constant A = 0xA11CE;
     uint256 private constant B = 0xB0B;
     uint256 private constant C = 0xCA11;
+    uint256 private constant D = 0xD0D;
 
     function setUp() public {
         string memory rpc = "https://rpc.gnosischain.com";
@@ -79,13 +80,13 @@ contract GnosisStewardSafeForkTest is Test {
             address(0x3bc1A0Ad72417f2d411118085256fC53CBdDd137).staticcall(abi.encodeWithSignature("lastTopHatId()"));
         require(ok, "top Hat counter");
         uint256 nextTopHat = (abi.decode(result, (uint256)) + 1) << 224;
-        receiver = new StewardSafeReceiver(ROUTER, PUBLISHER, GARDEN, nextTopHat, 19, address(0));
+        receiver = new StewardSafeReceiver(ROUTER, PUBLISHER, GARDEN, "Fixture Garden", nextTopHat, 19, address(0));
         gate = receiver.gate();
         safe = receiver.safe();
         vm.deal(address(safe), 10 ether);
     }
 
-    function testGnosisStewardSafe_fixedTwoWorksWithTwoThreeAndFiveStewards() public {
+    function testGnosisStewardSafe_twoSignaturesWorkWithTwoThreeAndFiveStewards() public {
         _update(vm.addr(A), 1, true);
         _update(vm.addr(B), 1, true);
         assertEq(safe.getThreshold(), 2);
@@ -100,10 +101,10 @@ contract GnosisStewardSafeForkTest is Test {
         assertEq(address(0x44444).balance, 2);
     }
 
-    function testGnosisStewardSafe_oneSignerCannotSpendAndZeroRosterRecoversThroughSourceGrants() public {
+    function testGnosisStewardSafe_loneStewardSignsAloneAndZeroRosterRecoversThroughSourceGrants() public {
         _update(vm.addr(A), 1, true);
         assertEq(safe.getThreshold(), 1);
-        _spendReverts(A, 0, address(0x44444), "", bytes4(keccak256("ThresholdTooLow()")));
+        assertTrue(_spend(A, 0, address(0x44444), ""));
         _update(vm.addr(A), 2, false);
         assertEq(gate.validSignerCount(), 0);
         assertEq(safe.getOwners()[0], address(gate));
@@ -111,6 +112,52 @@ contract GnosisStewardSafeForkTest is Test {
         _update(vm.addr(C), 1, true);
         assertEq(safe.getThreshold(), 2);
         assertTrue(_spend(B, C, address(0x44444), ""));
+    }
+
+    function testGnosisStewardSafe_secondStewardRequiresTwoSignaturesAndShrinkRestoresSoloSigning() public {
+        _update(vm.addr(A), 1, true);
+        assertTrue(_spend(A, 0, address(0x44444), ""));
+        _update(vm.addr(B), 1, true);
+        assertEq(safe.getThreshold(), 2);
+        _soloSpendReverts(A);
+        _soloSpendReverts(B);
+        assertTrue(_spend(A, B, address(0x44444), ""));
+        _update(vm.addr(B), 2, false);
+        assertFalse(safe.isOwner(vm.addr(B)));
+        assertEq(safe.getThreshold(), 1);
+        assertTrue(_spend(A, 0, address(0x44444), ""));
+        assertEq(address(0x44444).balance, 3);
+    }
+
+    /// @dev The 26 October review: a mirrored steward must never sign alone beside the starting signer.
+    function testGnosisStewardSafe_startingSignerExceptionEndsAtItsOwnMirrorAndNeverActsBesideAnotherSigner() public {
+        _redeploy(vm.addr(D));
+        assertTrue(gate.locked());
+        assertTrue(_spend(D, 0, address(0x44444), ""));
+        _update(vm.addr(A), 1, true);
+        _soloSpendReverts(A);
+        _soloSpendReverts(D);
+        assertTrue(_spend(A, D, address(0x44444), ""));
+        _update(vm.addr(D), 1, true);
+        assertTrue(gate.isValidSigner(vm.addr(D)), "a starting signer who is a steward keeps signing");
+        _soloSpendReverts(D);
+        _update(vm.addr(D), 2, false);
+        assertFalse(gate.isValidSigner(vm.addr(D)));
+        assertFalse(safe.isOwner(vm.addr(D)));
+        assertTrue(_spend(A, 0, address(0x44444), ""));
+        assertEq(address(0x44444).balance, 3);
+    }
+
+    function testGnosisStewardSafe_gardenNameLabelsTheTreeAndAnEmptyNameIsRejected() public {
+        (string memory details,,,,,,,,) = IHats(receiver.HATS()).viewHat(receiver.signerHat());
+        assertEq(details, "Arbitrum Fixture Garden stewards");
+        (details,,,,,,,,) = IHats(receiver.HATS()).viewHat(receiver.ownerHat());
+        assertEq(details, "Fixture Garden cross-chain steward authority");
+        (bool ok, bytes memory counter) = receiver.HATS().staticcall(abi.encodeWithSignature("lastTopHatId()"));
+        require(ok, "top Hat counter");
+        uint256 nextTopHat = (abi.decode(counter, (uint256)) + 1) << 224;
+        vm.expectRevert(StewardSafeReceiver.InvalidConfiguration.selector);
+        new StewardSafeReceiver(ROUTER, PUBLISHER, GARDEN, "", nextTopHat, 22, address(0));
     }
 
     function testGnosisStewardSafe_revocationSurvivesFailedOwnerCleanupAndImmediatelyInvalidatesOldSignatures() public {
@@ -171,8 +218,11 @@ contract GnosisStewardSafeForkTest is Test {
         assertTrue(gate.locked());
         IHatsSignerGateV2.ThresholdConfig memory config = gate.thresholdConfig();
         assertEq(config.thresholdType, 0);
-        assertEq(config.min, 2);
+        assertEq(config.min, 1);
         assertEq(config.target, 2);
+        assertTrue(_delegatecallEnabled(receiver.CALL_ONLY_MULTISEND()));
+        assertFalse(_delegatecallEnabled(0x40A2aCCbd92BCA938b02010E17A5b8929b49130D));
+        assertFalse(_delegatecallEnabled(0xA1dabEF33b3B82c7814B6D82A79e50F4AC44102B));
         (address[] memory modules, address next) = safe.getModulesPaginated(address(1), 2);
         assertEq(modules.length, 1);
         assertEq(modules[0], address(gate));
@@ -243,7 +293,7 @@ contract GnosisStewardSafeForkTest is Test {
         (bool ok, bytes memory counter) = receiver.HATS().staticcall(abi.encodeWithSignature("lastTopHatId()"));
         require(ok, "top Hat counter");
         receiver = new StewardSafeReceiver(
-            ROUTER, address(source), GARDEN, (abi.decode(counter, (uint256)) + 1) << 224, 20, address(0)
+            ROUTER, address(source), GARDEN, "Fixture Garden", (abi.decode(counter, (uint256)) + 1) << 224, 20, address(0)
         );
         assertEq(address(receiver), predictedReceiver);
         gate = receiver.gate();
@@ -292,6 +342,33 @@ contract GnosisStewardSafeForkTest is Test {
     function _update(address account, uint64 revision, bool eligible) private {
         vm.prank(ROUTER);
         receiver.ccipReceive(_message(account, revision, eligible));
+    }
+
+    function _redeploy(address startingSigner) private {
+        (bool ok, bytes memory counter) = receiver.HATS().staticcall(abi.encodeWithSignature("lastTopHatId()"));
+        require(ok, "top Hat counter");
+        receiver = new StewardSafeReceiver(
+            ROUTER, PUBLISHER, GARDEN, "Fixture Garden", (abi.decode(counter, (uint256)) + 1) << 224, 21, startingSigner
+        );
+        gate = receiver.gate();
+        safe = receiver.safe();
+        vm.deal(address(safe), 10 ether);
+    }
+
+    function _soloSpendReverts(uint256 key) private {
+        IStewardSafeTransactions txSafe = IStewardSafeTransactions(address(safe));
+        bytes32 hash =
+            txSafe.getTransactionHash(address(0x44444), 1, "", 0, 0, 0, 0, address(0), address(0), txSafe.nonce());
+        // With two owners the Safe's own threshold is two, so one signature fails its length check.
+        vm.expectRevert(bytes("GS020"));
+        txSafe.execTransaction(address(0x44444), 1, "", 0, 0, 0, 0, address(0), address(0), _signature(key, hash));
+    }
+
+    function _delegatecallEnabled(address target) private view returns (bool) {
+        (bool ok, bytes memory result) =
+            address(gate).staticcall(abi.encodeWithSignature("enabledDelegatecallTargets(address)", target));
+        require(ok, "delegatecall target view");
+        return abi.decode(result, (bool));
     }
 
     function _reject(Client.Any2EVMMessage memory message) private {

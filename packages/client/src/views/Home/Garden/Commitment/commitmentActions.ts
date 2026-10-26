@@ -1,4 +1,5 @@
 import {
+  type CommitmentActInput,
   type CommitmentActKind,
   type CommitmentReadModel,
   type CommitmentSeat,
@@ -17,10 +18,17 @@ export { canJoinTeam } from "@green-goods/shared/commitment-pooling";
  * work link above optional proof when required work remains.
  */
 export interface CommitmentAct {
-  kind: CommitmentActKind | "linkWork";
+  /** `service` is a voucher booking's act; its words come with values, already formatted. */
+  kind: CommitmentActKind | "linkWork" | "service";
   labelId: string;
+  /** The label already in words, where the act's copy takes values ("Deposit 10 Vouchers"). */
+  label?: string;
   /** Destructive acts read as such and confirm before they run. */
   destructive?: boolean;
+  /** An act that writes straight to the chain, so it waits for a connection. */
+  needsNetwork?: boolean;
+  /** A booking whose only act is a step back ("Cancel Booking") draws it outlined. */
+  emphasis?: "secondary";
 }
 
 const LABELS: Record<CommitmentActKind, { labelId: string; destructive?: boolean }> = {
@@ -46,6 +54,8 @@ export function selectCommitmentAct(input: {
   hasPendingJob?: boolean;
   isCreator?: boolean;
   isMember?: boolean;
+  /** The chain's clock and cycle ends: take-up is offered only until the promise is past due. */
+  clock?: CommitmentActInput["clock"];
 }): CommitmentAct | null {
   const kind = selectCommitmentActKind(input);
   return commitmentActForKind(kind);

@@ -140,6 +140,7 @@ vi.mock("../hooks/blockchain/useTransactionSender", () => ({
 
 vi.mock("../utils/blockchain/contracts", () => ({
   CommitmentPoolingModuleABI: [],
+  CommitmentServiceOffersABI: [{ type: "function", name: "acceptServiceClaim" }],
   getNetworkContracts: () => ({ commitmentPoolingModule: mocks.moduleAddress }),
 }));
 
@@ -549,6 +550,34 @@ describe("useCommitmentMutation", () => {
         chainId: 42161,
       });
     }
+  });
+
+  // A voucher service offer refuses the generic acceptClaim on chain
+  // (ServiceClaimPathRequired), and the service path is on the offers interface,
+  // not the core module's: the steward's acceptance names the member's exact consent.
+  it("accepts a voucher booking through acceptServiceClaim on the service offers interface", async () => {
+    const queryClient = createTestQueryClient();
+    vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const { result } = renderHookWithProviders(() => useCommitmentMutation({ chainId: 42161 }), {
+      queryClient,
+    });
+    const claimHash = `0x${"c1".repeat(32)}` as const;
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        action: "acceptServiceClaim",
+        commitmentId: 41n,
+        buyer: ACCOUNT,
+        expectedClaimHash: claimHash,
+      });
+    });
+    expect(mocks.sender.sendContractCall).toHaveBeenLastCalledWith({
+      address: MODULE,
+      abi: [{ type: "function", name: "acceptServiceClaim" }],
+      functionName: "acceptServiceClaim",
+      args: [41n, ACCOUNT, claimHash],
+      chainId: 42161,
+    });
   });
 
   it("invalidates the chain prefix plus the directly changed entity", async () => {

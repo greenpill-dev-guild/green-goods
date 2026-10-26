@@ -86,6 +86,7 @@ const multicallAbi = parseAbi([
   "function aggregate3((address target, bool allowFailure, bytes callData)[] calls) payable returns ((bool success, bytes returnData)[] returnData)",
 ]);
 const evaluatorAbi = parseAbi(["function isEvaluator(address) view returns (bool)"]);
+const operatorAbi = parseAbi(["function isOperator(address) view returns (bool)"]);
 
 export interface MockRpcRead {
   name: string;
@@ -93,6 +94,33 @@ export interface MockRpcRead {
   from: string;
   data: `0x${string}`;
   result: `0x${string}`;
+}
+
+/** The latest block as a node returns it without transactions, timed now. */
+function latestBlock(): Record<string, unknown> {
+  const zero = `0x${"0".repeat(64)}`;
+  return {
+    number: "0x1",
+    hash: `0x${"1".repeat(64)}`,
+    parentHash: zero,
+    timestamp: `0x${Math.floor(Date.now() / 1000).toString(16)}`,
+    nonce: "0x0000000000000000",
+    difficulty: "0x0",
+    totalDifficulty: "0x0",
+    gasLimit: "0x1c9c380",
+    gasUsed: "0x0",
+    baseFeePerGas: "0x1",
+    miner: "0x0000000000000000000000000000000000000000",
+    extraData: "0x",
+    logsBloom: `0x${"0".repeat(512)}`,
+    sha3Uncles: zero,
+    stateRoot: zero,
+    receiptsRoot: zero,
+    transactionsRoot: zero,
+    size: "0x0",
+    transactions: [],
+    uncles: [],
+  };
 }
 
 function buildRpcResponse(
@@ -104,9 +132,17 @@ function buildRpcResponse(
 ) {
   const addresses = [...roles, garden.id, garden.tokenAddress];
   const { method, params = [] } = payload;
-  let result: string;
+  let result: string | Record<string, unknown>;
   if ((method === "eth_chainId" || method === "eth_blockNumber") && params.length === 0) {
     result = method === "eth_chainId" ? "0xaa36a7" : "0x1";
+  } else if (
+    method === "eth_getBlockByNumber" &&
+    params.length === 2 &&
+    params[0] === "latest" &&
+    params[1] === false
+  ) {
+    // The due clock sets itself to the chain's time from the latest block (useExpiryClock).
+    result = latestBlock();
   } else if (method === "eth_call") {
     const call = params[0] as { to?: string; data?: string; from?: string } | undefined;
     const data = call?.data?.toLowerCase();
@@ -143,6 +179,19 @@ function buildRpcResponse(
         functionName: "aggregate3",
         result: results,
       });
+    } else if (target === garden.id.toLowerCase() && data.startsWith("0x6d70f7ae")) {
+      const {
+        args: [address],
+      } = decodeFunctionData({ abi: operatorAbi, data: data as `0x${string}` });
+      check(
+        roles.some((role) => role.toLowerCase() === address.toLowerCase()),
+        "RPC operator identity"
+      );
+      // The contract answers for operators and owners (`_isOperatorOrOwner`).
+      const isSteward = [...garden.operators, ...garden.owners].some(
+        (role) => role.toLowerCase() === address.toLowerCase()
+      );
+      result = encodeAbiParameters([{ type: "bool" }], [isSteward]);
     } else if (target === garden.id.toLowerCase() && data.startsWith("0x1b561cf9")) {
       const {
         args: [address],
@@ -331,6 +380,14 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
           check(filter.equals === false, "revoked filter");
           return true;
         }
+        if (field === "timeCreated") {
+          check(
+            filter && typeof filter === "object" && Object.keys(filter).length === 1,
+            "timeCreated filter"
+          );
+          check(typeof filter.gt === "number", "timeCreated operator");
+          return row.timeCreated > filter.gt;
+        }
         if (field === "OR") {
           check(Array.isArray(filter), "OR filter");
           return filter.map((part: Record<string, any>) => matches(row, part)).some(Boolean);
@@ -513,6 +570,30 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
             );
             data = { Action: !v.where.id || v.where.id._in.includes(action.id) ? [action] : [] };
         }
+      } else if (name === "GardenActivity") {
+        // Two aliased `attestations` reads, works and decisions, over one time window.
+        check(
+          fields.length === 2 && fields.every((field) => field === "attestations"),
+          `${name} fields`
+        );
+        check(Number.isInteger(v.take) && v.take > 0, `${name} take`);
+        const control: MockAttestation = {
+          id: "",
+          schemaId: deployment.schemas.workSchemaUID,
+          attester: roles[0],
+          recipient: garden.id,
+          timeCreated: 0,
+          decodedDataJson: "",
+        };
+        const window = (where: Record<string, any> | undefined, label: string) => {
+          check(where && typeof where === "object" && where.schemaId, `${name} ${label}/schemaId`);
+          // Validate even when the selected scenario is empty.
+          matches(control, where as Record<string, any>);
+          return (options.attestations ?? [])
+            .filter((row) => matches(row, where as Record<string, any>))
+            .slice(0, v.take);
+        };
+        data = { works: window(v.works, "works"), decisions: window(v.decisions, "decisions") };
       } else {
         check(
           [

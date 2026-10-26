@@ -159,6 +159,7 @@ export function openPromisesFixture(
 ): GardenOpenPromises {
   return {
     state,
+    all: state,
     ask:
       state.status === "ready"
         ? (JOURNAL_ENTRIES.find((entry) => entry.copy.direction === "REQUEST") ?? null)

@@ -1,8 +1,4 @@
-import {
-  useServiceAccess,
-  useServiceAccessMutation,
-  writeWorkLinkIntent,
-} from "@green-goods/shared/commitment-pooling";
+import { useServiceAccess, writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
@@ -31,8 +27,10 @@ import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
+import { proofOnPhoneLine } from "./proofOnPhone";
 import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
-import { ServiceAccessPanel } from "./ServiceAccessPanel";
+import { isServiceAccessPromise } from "./serviceBooking";
+import { ServicePromise, type ServicePromiseParts } from "./ServicePromise";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
 
@@ -80,13 +78,10 @@ export function GardenCommitment() {
     [controller.viewer, controller.chainId, commitmentId]
   );
   const serviceAccess = useServiceAccess(serviceKey);
-  const serviceMutation = useServiceAccessMutation(serviceKey);
-  const serviceBranch =
-    serviceAccess.data?.knownService === true ||
-    serviceAccess.data?.acceptancePolicy.blockGenericMemberAcceptance === true;
-  const showServicePanel = serviceBranch || (serviceAccess.data?.voucherSetups.length ?? 0) > 0;
+  const serviceBranch = isServiceAccessPromise(serviceAccess.data);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  // Report a Problem opens the same sheet on its Not yet form.
+  const [confirmOpen, setConfirmOpen] = useState<"kept" | "report" | null>(null);
   const [contextOpen, setContextOpen] = useState(false);
   const [notYetFailed, setNotYetFailed] = useState(false);
   const [linkOpen, setLinkOpen] = useState<
@@ -116,7 +111,9 @@ export function GardenCommitment() {
     return <CommitmentDetailState kind="error" onBack={back} />;
   }
 
-  const { commitment, contributors, requirements } = controller.detail;
+  // The page draws inside the service's render prop, so it keeps the narrowed read.
+  const detail = controller.detail;
+  const { commitment, contributors, requirements } = detail;
   const requiredWorkApproved =
     requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
   const genericAct = commitmentActForKind(controller.actKind);
@@ -152,33 +149,11 @@ export function GardenCommitment() {
     commitment,
     seat: controller.seat,
     actKind: controller.actKind,
-    hasLinkedWork: controller.detail.workAttributions.some((row) => row.linked),
+    hasLinkedWork: detail.workAttributions.some((row) => row.linked),
     requiredWorkApproved,
   });
   const isPending = controller.isQueueing || controller.isSending;
-  // Proof still on this phone and not being sent: the notice above says what
-  // it waits for; the progress and the history say it is not on the promise yet.
-  const proofJob =
-    controller.queue.pendingAct?.kind === "evidence" ? controller.queue.pendingAct : null;
-  const failedProof =
-    controller.queue.failedJob?.kind === "evidence" ? controller.queue.failedJob : null;
-  const proofOnPhone = controller.queue.proofSending
-    ? null
-    : failedProof
-      ? { text: formatMessage({ id: "app.commitment.history.local.failed" }), at: failedProof.at }
-      : proofJob
-        ? {
-            text: formatMessage({
-              id:
-                proofJob.waitingReason === "send-intent-expired"
-                  ? "app.commitment.history.local.cancelled"
-                  : proofJob.waitingReason === "awaiting-confirmation"
-                    ? "app.commitment.history.local.checking"
-                    : "app.commitment.history.local.saved",
-            }),
-            at: proofJob.createdAt,
-          }
-        : null;
+  const proofOnPhone = proofOnPhoneLine(controller.queue, formatMessage);
   const units = commitment.unitLabel
     ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
     : null;
@@ -232,7 +207,7 @@ export function GardenCommitment() {
         keepSurfaceOnFailure(controller.acts.sendForConfirmation());
         return;
       case "confirm":
-        setConfirmOpen(true);
+        setConfirmOpen("kept");
         return;
       case "linkWork":
         setLinkOpen(true);
@@ -259,7 +234,7 @@ export function GardenCommitment() {
     }
   };
 
-  return (
+  const page = (service: ServicePromiseParts) => (
     <>
       <CommitmentDetailShell
         onBack={back}
@@ -272,7 +247,8 @@ export function GardenCommitment() {
           />
         }
         bar={
-          act ? (
+          service.bar ??
+          (act ? (
             <CommitmentActionBar
               act={act}
               isPending={isPending}
@@ -301,7 +277,7 @@ export function GardenCommitment() {
             >
               {formatMessage({ id: "app.commitment.queue.waiting" })}
             </p>
-          ) : null
+          ) : null)
         }
       >
         {controller.queue.proofSending ? null : controller.queue.sendFailed ? (
@@ -328,16 +304,9 @@ export function GardenCommitment() {
           joinable={controller.joinable}
           viewer={controller.viewer}
           stewards={stewards}
+          serviceBand={service.band}
         />
-        {serviceAccess.data && showServicePanel ? (
-          <ServiceAccessPanel
-            key={`${serviceKey?.sourceChainId}:${serviceKey?.coreModule}:${serviceKey?.commitmentId}:${serviceKey?.buyer}`}
-            snapshot={serviceAccess.data}
-            isPending={serviceMutation.isPending}
-            onAction={serviceMutation.mutateAsync}
-            onRefresh={() => void serviceAccess.refetch()}
-          />
-        ) : null}
+        {service.body}
         <PromiseGroupNote
           chainId={controller.chainId}
           commitment={commitment}
@@ -392,6 +361,7 @@ export function GardenCommitment() {
           chainId={controller.chainId}
           commitment={commitment}
           requirements={requirements}
+          delivery={service.delivery}
           onPhone={
             controller.queue.proofOnItsWay
               ? {
@@ -407,14 +377,14 @@ export function GardenCommitment() {
           }
         >
           <CommitmentEvidence
-            attributions={controller.detail.evidenceAttributions}
+            attributions={detail.evidenceAttributions}
             recordedCount={commitment.evidenceCount}
           />
         </CommitmentProgress>
         <CommitmentWork
           commitment={commitment}
           requirements={requirements}
-          attributions={controller.detail.workAttributions}
+          attributions={detail.workAttributions}
           workDecisions={controller.workDecisions}
           works={controller.works}
           actions={controller.actions}
@@ -435,16 +405,19 @@ export function GardenCommitment() {
           commitment={commitment}
           viewer={controller.viewer}
           localLine={proofOnPhone}
+          bookingLines={service.bookingLines}
         />
       </CommitmentDetailShell>
 
       <ConfirmSheet
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
+        open={confirmOpen !== null}
+        onOpenChange={(open) => !open && setConfirmOpen(null)}
+        startInNotYet={confirmOpen === "report"}
+        service={service.confirm}
         commitment={commitment}
         requirements={requirements}
         contributors={contributors}
-        evidenceAttributions={controller.detail.evidenceAttributions}
+        evidenceAttributions={detail.evidenceAttributions}
         viewer={controller.viewer}
         isOnline={controller.isOnline}
         phase={controller.confirmation.phase}
@@ -456,10 +429,10 @@ export function GardenCommitment() {
           setNotYetFailed(false);
           void controller.acts
             .notYet(reason)
-            .then(() => setConfirmOpen(false))
+            .then(() => setConfirmOpen(null))
             .catch(() => setNotYetFailed(true));
         }}
-        onDone={() => setConfirmOpen(false)}
+        onDone={() => setConfirmOpen(null)}
       />
       <LinkWorkSheet
         open={linkOpen !== null}
@@ -480,6 +453,7 @@ export function GardenCommitment() {
             .catch(() => undefined);
         }}
       />
+      {service.sheets}
       <WithdrawSheet
         open={withdrawOpen}
         onOpenChange={setWithdrawOpen}
@@ -494,6 +468,21 @@ export function GardenCommitment() {
         }}
       />
     </>
+  );
+
+  return (
+    <ServicePromise
+      serviceKey={serviceKey}
+      access={serviceAccess}
+      coreState={commitment.derivedState}
+      gardenName={controller.roles.garden?.name ?? ""}
+      heading={heading}
+      hasCoreAct={Boolean(act)}
+      isOnline={controller.isOnline}
+      onReport={controller.confirmation.canNotYet ? () => setConfirmOpen("report") : null}
+    >
+      {page}
+    </ServicePromise>
   );
 }
 

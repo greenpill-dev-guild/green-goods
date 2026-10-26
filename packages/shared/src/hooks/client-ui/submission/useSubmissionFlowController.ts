@@ -13,6 +13,10 @@
  * it, so the work module owns the stage. Evidence saves no step, so the flow holds it, and starts
  * over whenever the composer is opened for another promise or by another account.
  *
+ * Start has no forward act: choosing a promise or an action moves on. When its answer is known
+ * the step is skipped, so the work's path opens on Media while the markers stay four, and Back
+ * follows the path taken: through Start's own screens, then out of the flow.
+ *
  * @module hooks/client-ui/submission/useSubmissionFlowController
  */
 
@@ -56,6 +60,11 @@ export interface SubmissionForwardAct {
   loading: boolean;
   /** Why the act waits, said above it; null when nothing is said. */
   blockedReasonId: string | null;
+  /**
+   * The prompts Review's act opens when it takes an Open ask up first (decision 18), said above it
+   * before the first: the take-up, the work and its link. Null when it takes nothing up.
+   */
+  takeUpPrompts: number | null;
 }
 
 /** The Media stage's tools: the kind's own photo and camera inputs, and the voice note. */
@@ -91,9 +100,10 @@ export interface SubmissionFlowController {
   progress: number;
   stageLabelIds: readonly string[];
   goToStage: (stage: SubmissionStage) => void | Promise<void>;
-  /** The previous stage, or out of the flow from its first stage. */
+  /** The previous stage on the path taken, or out of the flow from its first stage. */
   back: () => void;
-  forward: SubmissionForwardAct & { run: () => void };
+  /** None on Start, where choosing a promise or an action moves on (DL-131). */
+  forward: (SubmissionForwardAct & { run: () => void }) | null;
   /** On the Media stage only. */
   mediaTools: SubmissionMediaTools | null;
   promise: {
@@ -109,9 +119,11 @@ export interface SubmissionFlowController {
 interface SubmissionKindModule {
   stage: SubmissionStage | null;
   goToStage: ((stage: SubmissionStage) => void | Promise<void>) | null;
+  /** Start's answer is known, so the path skips it (decision 17). */
+  skipsStart: boolean;
   leave: () => void;
   submit: () => unknown;
-  forward: (stage: SubmissionStage) => SubmissionForwardAct;
+  forward: (stage: ForwardStage) => SubmissionForwardAct;
   mediaTools: SubmissionMediaTools;
   completed: boolean;
   promise: SubmissionPromise | null;
@@ -131,8 +143,10 @@ const STAGE_WORK_TAB: Record<SubmissionStage, WorkTab> = {
   details: WorkTab.Details,
   review: WorkTab.Review,
 };
-const WORK_FORWARD_LABEL_IDS: Record<SubmissionStage, string> = {
-  start: "app.garden.submit.tab.intro.label",
+/** The stages with a forward act: every one but Start. */
+type ForwardStage = Exclude<SubmissionStage, "start">;
+
+const WORK_FORWARD_LABEL_IDS: Record<ForwardStage, string> = {
   media: "app.garden.submit.tab.media.label",
   details: "app.garden.submit.tab.details.label",
   review: "app.garden.submit.tab.review.label",
@@ -142,22 +156,29 @@ const clickInput = (id: string) => document.getElementById(id)?.click();
 
 /** Logging work: the step lives in the work flow store, saved and restored with the draft. */
 function workKind(controller: WorkSubmissionFlowController): SubmissionKindModule {
+  const stage = WORK_TAB_STAGE[controller.activeTab] ?? null;
   return {
-    stage: WORK_TAB_STAGE[controller.activeTab] ?? null,
-    goToStage: (stage) => controller.changeTab(STAGE_WORK_TAB[stage]),
-    leave: controller.exit,
+    stage,
+    goToStage: (next) => controller.changeTab(STAGE_WORK_TAB[next]),
+    skipsStart: controller.start.skipped,
+    // On Start, Back first returns through the step's own screens (a promise's, the actions).
+    leave: () => {
+      if (stage !== "start" || !controller.start.back()) controller.exit();
+    },
     submit: controller.submit,
-    forward: (stage) => ({
+    forward: (current) => ({
       labelId:
-        stage === "review" && controller.isWalletRequestExpired
+        current === "review" && controller.isWalletRequestExpired
           ? "app.garden.submit.tab.review.retryLabel"
-          : WORK_FORWARD_LABEL_IDS[stage],
+          : WORK_FORWARD_LABEL_IDS[current],
       disabled:
         !controller.canProceed ||
         controller.isSchedulingDependentLink ||
         controller.hasPendingLinkRecovery,
       loading: false,
       blockedReasonId: null,
+      // Start's asks say it as one is picked; a resumed draft skips Start, so Review says it too.
+      takeUpPrompts: current === "review" ? controller.takeUpPrompts : null,
     }),
     mediaTools: {
       // The media step registers its own openers once mounted; its hidden inputs are the fallback.
@@ -173,9 +194,12 @@ function workKind(controller: WorkSubmissionFlowController): SubmissionKindModul
       isRecording: controller.isRecording,
       disabled: false,
     },
+    // A send that failed after the queue took the work retires the draft with no outcome; its
+    // markers stay on Review while the composer leaves for Your Work.
     completed:
       controller.submissionCompleted &&
-      controller.submissionOutcome?.kind !== "awaiting-confirmation",
+      controller.submissionOutcome !== null &&
+      controller.submissionOutcome.kind !== "awaiting-confirmation",
     promise: controller.linkIntent
       ? {
           title: controller.linkIntent.commitmentTitle,
@@ -206,17 +230,10 @@ function evidenceKind(
   return {
     stage: null,
     goToStage: null,
+    skipsStart: false,
     leave: input.leave,
     submit: controller.submit,
     forward: (stage) => {
-      // Evidence has no Start; a stage it never shows waits on nothing.
-      if (stage === "start")
-        return {
-          labelId: EVIDENCE_FORWARD_LABEL_IDS.media,
-          disabled: true,
-          loading: false,
-          blockedReasonId: null,
-        };
       const ready = controller.readiness(stage);
       // Both the latest attachments and the words have to be durable before moving on.
       const canAdvance = ready.canAdvance && controller.draftPersistence === "saved";
@@ -236,6 +253,7 @@ function evidenceKind(
               ? "app.proof.draft.saveRequired"
               : "app.proof.draft.saving"
             : ((ready.reason && EVIDENCE_BLOCKED_REASON_IDS[ready.reason]) ?? null),
+        takeUpPrompts: null,
       };
     },
     mediaTools: {
@@ -269,27 +287,31 @@ export function useSubmissionFlowController(input: SubmissionKindInput): Submiss
 
   const stage = module.stage ?? ownStage;
   const goToStage = module.goToStage ?? setOwnStage;
-  const index = stages.indexOf(stage);
-  const act = module.forward(stage);
+  // The markers keep every stage; the path is the stages the member passes through.
+  const path = module.skipsStart ? stages.filter((each) => each !== "start") : stages;
+  const step = path.indexOf(stage);
 
   return {
     kind: input.kind,
     stages,
     stage,
-    progress: module.completed ? stages.length + 1 : index + 1,
+    progress: module.completed ? stages.length + 1 : stages.indexOf(stage) + 1,
     stageLabelIds: stages.map((each) => STAGE_LABEL_IDS[each]),
     goToStage,
     back: () => {
-      if (index > 0) void goToStage(stages[index - 1]);
+      if (step > 0) void goToStage(path[step - 1]);
       else module.leave();
     },
-    forward: {
-      ...act,
-      run: () => {
-        if (stage === "review") void module.submit();
-        else void goToStage(stages[index + 1]);
-      },
-    },
+    forward:
+      stage === "start"
+        ? null
+        : {
+            ...module.forward(stage),
+            run: () => {
+              if (stage === "review") void module.submit();
+              else void goToStage(path[step + 1]);
+            },
+          },
     mediaTools: stage === "media" ? module.mediaTools : null,
     promise: {
       pinned: module.promise,

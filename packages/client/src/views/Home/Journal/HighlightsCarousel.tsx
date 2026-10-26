@@ -14,7 +14,7 @@ import {
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import type { Work } from "@green-goods/shared/types/domain";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useContext, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 
 import { getWorkCardLabels } from "@/components/Cards/Work/MinimalWorkCard";
@@ -25,6 +25,7 @@ import {
   promiseDueDetail,
 } from "@/components/Features/Commitments";
 import { HighlightCard, HighlightPhoto } from "./HighlightCard";
+import { HomeShownContext } from "./homeShown";
 import { JournalCycleDetails } from "./JournalCycleDetails";
 import { JournalSection } from "./JournalSection";
 import { takePartPath } from "./TakePart";
@@ -47,7 +48,9 @@ export interface HighlightsCarouselProps {
 export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigateToTop();
-  const cycles = useGardenOpenCycles(gardenId);
+  // Home shown again reads the cycles' clock afresh, so days left never stand stale under a page.
+  const homeShown = useContext(HomeShownContext);
+  const cycles = useGardenOpenCycles(gardenId, { shown: homeShown });
   const activity = useGardenRecentActivity(gardenId);
   const promises = useGardenOpenPromises(gardenId);
   // The last cycle stays drawn while its sheet closes.
@@ -55,6 +58,8 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
     cycle: null,
     open: false,
   });
+  // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
+  if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
 
   const settled = [cycles, activity, promises].every(({ state }) => state.status !== "loading");
   const cards = [

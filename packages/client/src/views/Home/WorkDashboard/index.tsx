@@ -17,6 +17,7 @@ import { useReviewerGardenIds } from "@green-goods/shared/hooks/work/useReviewer
 import { useWorkApprovals } from "@green-goods/shared/hooks/work/useWorkApprovals";
 import { useWorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCount";
+import { useQueuedDecisions } from "@green-goods/shared/hooks/work/useYourWorkOnPhone";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import {
   useUIStore,
@@ -166,9 +167,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const reviewWorksById = useMemo(() => buildWorkMap(needsReview.allWorks), [needsReview.allWorks]);
 
   const pendingNeedsReview = needsReview.works.filter(inGarden);
-  const queuedDecisions = needsReview.decidedHere.filter(
-    (work) => inGarden(work) && uploads.waitingDecisionWorkIds.has(work.id.toLowerCase())
-  );
+  // Reviews made here and still waiting to upload: read in each garden they name, a garden the
+  // reader has left included, as Continue reads them and the badge counts them.
+  const queuedDecisions = useQueuedDecisions({ uploads, inScope, reviewer: activeAddress });
 
   // Reviewed by you: the history, plus decisions made here until the history has them.
   const completedReviewedByYou: Work[] = useMemo(() => {
@@ -328,6 +329,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     const succeeded = (result: { status: string }) => result.status !== "error";
     const outcomes = await Promise.all([
       needsReview.refetch().catch(() => false),
+      queuedDecisions.refetch().catch(() => false),
       refetchMyWorks()
         .then(succeeded)
         .catch(() => false),
@@ -361,7 +363,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Loading and errors follow the source the active filter shows, and an error
   // takes over a tab only when there is nothing to show.
-  const needsReviewState = {
+  const toReviewState = {
     isLoading: isLoadingReviewerGardens || needsReview.isLoading,
     isError: needsReview.isError,
   };
@@ -442,11 +444,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             submissions={pendingMySubmissions}
             isOnThisDevice={isOnThisDevice}
             toReview={pendingNeedsReview}
-            decisions={queuedDecisions}
+            decisions={queuedDecisions.works}
             uploads={uploads}
             viewer={viewer}
             // Pending weighs each read against the filter in use and the rows it shows.
-            reads={{ needsReview: needsReviewState, myWork: myWorkState }}
+            reads={{ needsReview: toReviewState, decisions: queuedDecisions, myWork: myWorkState }}
             isFetching={isRefreshing}
             isOffline={isOffline}
             savedAt={pendingSavedAt}

@@ -38,6 +38,8 @@ import {
   useCommitmentPools,
   useCommitments,
 } from "../commitment-pooling/useCommitmentPooling";
+import { useDueClock } from "../commitment-pooling/useDueClock";
+import { useViewerTakeUps } from "../commitment-pooling/useViewerTakeUps";
 import { useDocumentEvent } from "../utils/useEventListener";
 import { useWorks } from "../work/useWorks";
 
@@ -89,16 +91,29 @@ export interface GardenOpenCycles {
   state: JournalSectionState<JournalCycle>;
 }
 
-/** The pool's open season and campaigns, read the way the Pool tab reads its rail. */
-export function useGardenOpenCycles(gardenId: string): GardenOpenCycles {
+/**
+ * The pool's open season and campaigns, read the way the Pool tab reads its rail. Days left
+ * count from when the section was last brought into view: the tab shown again, or, for a
+ * section Home keeps mounted under the pages it opens, `shown` turning true again, so a count
+ * read before a day boundary never stands after it.
+ */
+export function useGardenOpenCycles(
+  gardenId: string,
+  { shown = true }: { shown?: boolean } = {}
+): GardenOpenCycles {
   const isOnline = useOnlineStatus();
   const { chainId, pools, pool } = useGardenPool(gardenId);
   const cycles = useCommitmentCycles(
     { chainId, poolId: pool?.poolId ?? 0n },
     { enabled: pool !== null }
   );
-  // Days left count from when Home was last brought back into view.
   const [nowMs, setNowMs] = useState(Date.now);
+  // Read in the render that shows the section again, so the count it paints is already current.
+  const [wasShown, setWasShown] = useState(shown);
+  if (shown !== wasShown) {
+    setWasShown(shown);
+    if (shown) setNowMs(Date.now());
+  }
   useDocumentEvent("visibilitychange", () => {
     if (document.visibilityState === "visible") setNowMs(Date.now());
   });
@@ -133,6 +148,8 @@ export function useGardenOpenCycles(gardenId: string): GardenOpenCycles {
 export interface GardenOpenPromises {
   /** Take Part's first entries: the open promises, copies of one set as one row. */
   state: JournalSectionState<TakePartEntry>;
+  /** Every entry, from the same read, for the sheet of open promises See All opens. */
+  all: JournalSectionState<TakePartEntry>;
   /** The newest ask open to take up, from every entry, for the carousel. */
   ask: TakePartEntry | null;
   /** A promise's own name, once its metadata has resolved. */
@@ -142,7 +159,10 @@ export interface GardenOpenPromises {
 
 const NO_COMMITMENTS: CommitmentReadModel[] = [];
 
-/** The promises in the garden's pool that the reader could take part in. */
+/**
+ * The promises in the garden's pool that the reader could take part in: none they already
+ * asked for or are taking up from this phone.
+ */
 export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   const isOnline = useOnlineStatus();
   const viewer = usePrimaryAddress();
@@ -151,15 +171,36 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
     { chainId, poolId: pool?.poolId ?? 0n },
     { enabled: pool !== null }
   );
+  const {
+    takeUps,
+    settled,
+    unavailable,
+    retry: retryTakeUps,
+  } = useViewerTakeUps({
+    chainId,
+    poolId: pool?.poolId ?? 0n,
+    viewer,
+    enabled: pool !== null,
+  });
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
   const poolOpen = pool?.state === "OPEN";
+  // Ticks when a listed promise falls due, so a lapsed one leaves the list.
+  const due = useDueClock({ chainId, poolId: pool?.poolId ?? null, commitments: listed });
   const entries = useMemo(
-    () => takePartEntries({ commitments: listed, metadataByCID: byCID, viewer, poolOpen }),
-    [listed, byCID, viewer, poolOpen]
+    () =>
+      takePartEntries({
+        commitments: listed,
+        metadataByCID: byCID,
+        viewer,
+        poolOpen,
+        takeUps,
+        clock: due.clock,
+      }),
+    [listed, byCID, viewer, poolOpen, takeUps, due.clock]
   );
 
-  const state = poolSectionState({
+  const read = {
     available: commitments.availability.status === "available",
     isOnline,
     pools: {
@@ -169,20 +210,27 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
       dataUpdatedAt: pools.dataUpdatedAt,
     },
     list: {
-      hasData: commitments.data !== undefined,
-      isError: commitments.isError,
+      // A request in flight would show an ask the reader asked for, then take it away, a queue
+      // that cannot be read could offer again a take-up already on this phone, and an ask whose
+      // cycle's end is unread may already be past due.
+      hasData: commitments.data !== undefined && settled && !unavailable && due.known,
+      isError: commitments.isError || unavailable || due.isError,
       dataUpdatedAt: commitments.dataUpdatedAt,
     },
-    items: entries.slice(0, JOURNAL_PREVIEW_COUNT),
-  });
+  };
+  const state = poolSectionState({ ...read, items: entries.slice(0, JOURNAL_PREVIEW_COUNT) });
+  const all = poolSectionState({ ...read, items: entries });
 
   return {
     state,
+    all,
     ask: state.status === "ready" ? openAsk(entries) : null,
     titleOf: (metadataCID) => (metadataCID ? (byCID.get(metadataCID.trim())?.title ?? null) : null),
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();
+      if (unavailable) retryTakeUps();
+      if (due.isError) due.retry();
     },
   };
 }

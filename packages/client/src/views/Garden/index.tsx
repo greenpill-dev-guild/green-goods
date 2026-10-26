@@ -1,26 +1,23 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { MediaCardSkeleton } from "@green-goods/shared/components/Cards/MediaCard";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
   type SubmissionStage,
   useSubmissionFlowController,
 } from "@green-goods/shared/hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
 import type { Address } from "@green-goods/shared/types/domain";
-import { RiErrorWarningLine, RiHammerFill, RiRefreshLine } from "@remixicon/react";
+import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import type React from "react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { FormInfo } from "@/components/Cards";
 import { FlowBarNote, SubmissionFlow, WorkViewSkeleton } from "@/components/Features/Work";
 import { DraftSheet } from "@/components/Sheets";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { WorkDetails } from "./Details";
 import { DraftStatus } from "./DraftStatus";
-import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
+import { StartSkeleton, WorkStart } from "./Start";
 import { SubmissionGardenLine } from "./SubmissionGardenLine";
 import { WorkForSheet } from "./WorkForSheet";
 
@@ -29,44 +26,6 @@ const trackControllerMediaEvent = (
   properties: Record<string, unknown>
 ) =>
   trackWorkMediaJourneyEvent(event, properties as Parameters<typeof trackWorkMediaJourneyEvent>[1]);
-
-/** A picker's row before its cards arrive, laid out as the picker lays them. */
-const PickerRowSkeleton: React.FC = () => (
-  <div className="-mx-4 flex gap-(--gg-list-gap) overflow-hidden px-4 pb-1">
-    {[0, 1, 2, 3].map((index) => (
-      <MediaCardSkeleton
-        key={`picker-skeleton-${index}`}
-        mediaShape="banner"
-        className="w-[90%] shrink-0"
-      />
-    ))}
-  </div>
-);
-
-/**
- * Start before its lists arrive. The garden question is left out: the flow
- * usually has its garden already (decision 28), and asking for one that a
- * moment later disappears would move the step under the member's thumb.
- */
-const IntroSkeleton: React.FC = () => {
-  const intl = useIntl();
-  return (
-    <div className="flex flex-col gap-6">
-      <FormInfo
-        title={intl.formatMessage({
-          id: "app.garden.selectYourAction",
-          defaultMessage: "Select Your Action",
-        })}
-        info={intl.formatMessage({
-          id: "app.garden.whatTypeOfWork",
-          defaultMessage: "What type of work are you submitting?",
-        })}
-        Icon={RiHammerFill}
-      />
-      <PickerRowSkeleton />
-    </div>
-  );
-};
 
 /**
  * Logging work: the one submission flow's work kind (DL-131). Start, Media, Details and Review
@@ -106,9 +65,6 @@ const Work: React.FC = () => {
     joinCommunityGarden,
     linkIntent,
     linkIntentStatus,
-    commitmentLinkChoices,
-    commitmentLinkChoicesLoading,
-    commitmentLinkChoicesError,
     refetchCommitmentLinkChoices,
     isSchedulingDependentLink,
     isQueueingDependentLink,
@@ -118,7 +74,6 @@ const Work: React.FC = () => {
     hasPendingLinkRecovery,
     retryLinkOnly,
     clearLinkIntent,
-    selectLinkIntent,
     markMediaPreviewFailed,
     mediaClickRef,
     mediaConfig,
@@ -133,13 +88,12 @@ const Work: React.FC = () => {
     reviewConfig,
     reviewData,
     selectedDomain,
-    setActionUID,
     setAudioNotes,
-    setGardenAddress,
     setImages,
     setSelectedDomain,
     setValue,
     showSkeleton,
+    start,
     submissionCompleted,
     submissionGardenSettled,
     timeSpentMinutes,
@@ -147,73 +101,40 @@ const Work: React.FC = () => {
     workSubmissionJourneyId,
   } = controller;
 
-  const linkChoiceKey = (choice: { commitmentId: bigint; requirementIndex: number }) =>
-    `${choice.commitmentId.toString()}:${choice.requirementIndex}`;
-  // Shared returns a link intent only after matching it to this live, eligible
-  // choice set. Never reconstruct a choice from URL copy in the view.
-  const availableLinkChoices = commitmentLinkChoices;
-  const selectedCommitmentKey = linkIntent ? linkChoiceKey(linkIntent) : null;
-  const commitmentChoices = availableLinkChoices.map((choice) => ({
-    key: linkChoiceKey(choice),
-    commitmentId: choice.commitmentId,
-    requirementIndex: choice.requirementIndex,
-    title: choice.commitmentTitle,
-    approvedCount: choice.approvedCount,
-    requiredCount: choice.requiredCount,
-    dueDate: choice.dueDate,
-    actionTitle: actions.find((action) => action.id === `${DEFAULT_CHAIN_ID}-${choice.actionUID}`)
-      ?.title,
-  }));
-
   // The work kind's piece at each stage. Once a promise is chosen at Start, every later step
   // names it after its heading (D16, O9): the shell hands the pinned card in, and its sheet
-  // can unlink the work.
+  // can unlink the work. Start's own pieces come from the controller's Start model (DL-131).
   const renderStage = (stage: SubmissionStage, pinned: ReactNode) => {
     switch (stage) {
       case "start":
         return showSkeleton ? (
-          <IntroSkeleton />
+          <StartSkeleton />
         ) : (
-          <WorkIntro
-            actions={actions}
-            gardens={gardens}
-            hasJoinedGardens={hasJoinedGardens}
-            isLoading={isLoading}
-            joinableCommunityGarden={joinableCommunityGarden}
-            isJoiningCommunityGarden={isJoiningCommunityGarden}
-            onJoinCommunityGarden={joinCommunityGarden}
+          <WorkStart
+            start={start}
+            actionsLoading={isLoading && actions.length === 0}
+            hasActions={actions.length > 0}
             selectedActionUID={actionUID}
-            selectedGardenAddress={gardenAddress}
-            gardenSettled={submissionGardenSettled}
             selectedDomain={selectedDomain}
-            setActionUID={(value) => {
-              setActionUID(value);
-              if (linkIntent && value !== linkIntent.actionUID) clearLinkIntent();
-            }}
-            setGardenAddress={(value) => {
-              setGardenAddress(value as Address | null);
-              if (linkIntent && value?.toLowerCase() !== linkIntent.garden.toLowerCase()) {
-                clearLinkIntent();
-              }
-            }}
             setSelectedDomain={setSelectedDomain}
-            commitmentChoices={commitmentChoices}
-            commitmentChoicesLoading={commitmentLinkChoicesLoading}
-            commitmentChoicesError={commitmentLinkChoicesError}
-            commitmentIntentStatus={linkIntentStatus}
-            showCommitmentChoices={
-              linkIntentStatus !== "none" || Boolean(gardenAddress && actionUID !== null)
+            gardenQuestion={
+              submissionGardenSettled
+                ? null
+                : {
+                    gardens,
+                    selected: gardenAddress,
+                    onSelect: (value) => start.chooseGarden(value as Address | null),
+                    hasJoined: hasJoinedGardens,
+                    loading: isLoading,
+                    joinable: joinableCommunityGarden,
+                    joining: isJoiningCommunityGarden,
+                    onJoin: joinCommunityGarden,
+                  }
             }
-            onRetryCommitmentChoices={() => void refetchCommitmentLinkChoices()}
-            selectedCommitmentKey={selectedCommitmentKey}
-            setSelectedCommitmentKey={(key) => {
-              if (!key) {
-                clearLinkIntent();
-                return;
-              }
-              selectLinkIntent(
-                availableLinkChoices.find((choice) => linkChoiceKey(choice) === key) ?? null
-              );
+            link={{
+              status: linkIntentStatus,
+              onRetry: () => void refetchCommitmentLinkChoices(),
+              onLetGo: clearLinkIntent,
             }}
           />
         );

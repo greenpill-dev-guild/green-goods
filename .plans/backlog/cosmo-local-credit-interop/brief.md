@@ -70,7 +70,7 @@ to communities, the Nigerian diaspora and institutions without requiring them to
 - A passport joining actual funding, issuance and delivery receipts with capacity and obligations.
 - Pilot terms and consent, a local fork rehearsal, and a separate human decision on any live use.
 - Research, pitch and Q4 strategy content explaining hub, community, diaspora and institutional participation.
-- Coordinated [PWA simplification](../../active/pwa-interface-simplification/brief.md) and admin/PWA cohesion,
+- Coordinated PWA simplification (the PWA Home hub closed on 26 October 2026; its row is in `.plans/ARCHIVE.md` and its files are in Git history) and admin/PWA cohesion,
   delivered in Green Goods 2.1.0 with their own design and acceptance gates.
 
 The [four-goal delivery alignment](delivery-alignment.md) owns current priorities, issue homes and

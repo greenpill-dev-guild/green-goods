@@ -12,7 +12,7 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
@@ -20,6 +20,7 @@ import {
   getCommitmentClaimRequests,
   getCommitmentDetail,
 } from "../../../modules/commitment-pooling/data";
+import type { DueClock } from "../../../modules/commitment-pooling/due-dates";
 import {
   canChooseCopy,
   type GroupCopy,
@@ -70,16 +71,29 @@ export interface GroupTakeUpSource {
   queued: ReadonlySet<string>;
   /** Reads the group's copies and its pending asks again, fresh; null when it can't. */
   reread: () => Promise<{ copies: readonly GroupCopy[]; askedFor: ReadonlySet<string> } | null>;
+  /**
+   * The page's due clock (`useDueClock`): the chain's time, ticking when a copy falls due, and the
+   * cycle ends undated copies fall due at. The press judges its copy on the clock the page shows,
+   * so a device clock that runs fast never refuses a copy the page offers, and one that runs slow
+   * never takes a copy the page has ended.
+   */
+  clock: DueClock;
 }
 
 export function useGroupTakeUp(source: GroupTakeUpSource) {
-  const { chainId, viewer, queued, reread } = source;
+  const { chainId, viewer, queued, reread, clock } = source;
   const queryClient = useQueryClient();
   const jobs = useCommitmentJobs({ chainId });
   const [state, setState] = useState<GroupTakeUpState>({ step: "idle" });
   // One press at a time: a second tap while one is reading or sending must not
   // sign another copy beside it.
   const inFlight = useRef(false);
+  // The page's clock as it stands when a read answers: it can tick while the copy is read again,
+  // and a copy that falls due meanwhile is judged on the newer clock, as the page then shows it.
+  const pageClock = useRef(clock);
+  useEffect(() => {
+    pageClock.current = clock;
+  }, [clock]);
 
   // The copy as the chain has it now, and whether anyone has asked for it.
   const readCopy = useCallback(
@@ -116,7 +130,12 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
           setState({ step: "unknown" });
           return;
         }
-        if (!fresh.copy || !canChooseCopy(fresh.copy, { viewer, askedFor: fresh.askedFor })) {
+        // On the page's clock, which ticks as a copy falls due: one that lapsed while the page was
+        // open, or while it was read again, is not taken.
+        if (
+          !fresh.copy ||
+          !canChooseCopy(fresh.copy, { viewer, askedFor: fresh.askedFor, clock: pageClock.current })
+        ) {
           // Somebody got there first. Read the group again and ask before choosing another.
           const group = await reread().catch((error: unknown) => {
             logger.warn("[useGroupTakeUp] the group could not be read again", { error });
@@ -130,6 +149,7 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
             viewer,
             askedFor: group.askedFor,
             skip: new Set([...queued, copyId.toString()]),
+            clock: pageClock.current,
           });
           setState(next ? { step: "taken", next: next.commitmentId, context } : { step: "none" });
           return;

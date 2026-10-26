@@ -12,17 +12,24 @@ import {
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useAwaitingJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
+import { useGardenNotifications } from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
 import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
 import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
 import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCount";
+import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewport";
+import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import type { Garden } from "@green-goods/shared/types/domain";
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, mocked, screen, userEvent, within } from "storybook/test";
+import type { Decorator, Meta, StoryObj } from "@storybook/react";
+import { IntlProvider } from "react-intl";
+import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
 import {
   withClientAppRuntime,
   withInstalledPwa,
+  withQueueFailureToast,
   withRouter,
 } from "../../../../shared/.storybook/decorators";
 import {
@@ -36,6 +43,7 @@ import {
   VIDA_VERDE,
 } from "../../../../shared/.storybook/homeFixtures";
 import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
+import { notificationEvents } from "../../../../shared/.storybook/notificationFixtures";
 import { chooserScope, markChooserOffered } from "./chooserOffer";
 import Home from "./index";
 
@@ -66,11 +74,7 @@ function homeState(
     mocked(useUser).mockReturnValue({ primaryAddress: STORY_ACCOUNT } as ReturnType<
       typeof useUser
     >);
-    mocked(useArrivalState).mockReturnValue({
-      kind: "none",
-      myGardenIds: [],
-      needsReviewCount: 0,
-    } as ReturnType<typeof useArrivalState>);
+    mocked(useArrivalState).mockReturnValue({ kind: "none" });
     mocked(useGardens).mockReturnValue({
       data: LISTED,
       isPending: false,
@@ -109,6 +113,16 @@ function homeState(
       typeof useVaultDeposits
     >);
     mocked(useHasRole).mockReturnValue({ hasRole: false } as ReturnType<typeof useHasRole>);
+    // The bell's read model: three of the garden's events not shown on this device yet.
+    const events = notificationEvents().slice(0, 3);
+    mocked(useGardenNotifications).mockReturnValue({
+      notifications: events.map((event) => ({ ...event, isNew: true })),
+      newCount: events.length,
+      isLoading: false,
+      isError: false,
+      isIncomplete: false,
+      markAllSeen: fn(),
+    });
     return resetHookMocks(
       useActiveGarden,
       usePrimaryAddress,
@@ -124,17 +138,18 @@ function homeState(
       useConvictionStrategies,
       useGardenVaults,
       useVaultDeposits,
-      useHasRole
+      useHasRole,
+      useGardenNotifications
     );
   };
 }
 
 /**
- * Home in the member's active garden (DL-123, DL-124): the shared garden chip in the title's
- * place, then Wallet, Promises and Your Work, in a header that stays at the top. The body
- * follows the active garden's five states: a remembered garden goes straight in while the
- * account's gardens load, a failed read says nothing was lost, no garden finds one, several
- * with none remembered offer the chooser once, and a chosen garden opens its journal.
+ * Home in the member's active garden (DL-123, DL-124, DL-130): the shared garden chip in the
+ * title's place, then Wallet, Promises, Your Work and the bell, in a header that stays at the
+ * top. The body follows the active garden's five states: a remembered garden goes straight in
+ * while the account's gardens load, a failed read says nothing was lost, no garden finds one,
+ * several with none remembered offer the chooser once, and a chosen garden opens its journal.
  */
 const meta: Meta<typeof Home> = {
   title: "Client/PWA/Home",
@@ -148,7 +163,10 @@ const meta: Meta<typeof Home> = {
 export default meta;
 type Story = StoryObj<typeof Home>;
 
-/** A chosen garden: the chip names it, and the journal shows the garden's page until it lands. */
+/**
+ * A chosen garden: the chip names it, the bell ends the header with its badge counting what is
+ * new, and the journal shows the garden's page until it lands.
+ */
 export const Ready: Story = {
   beforeEach: homeState(activeGarden("ready", SEVERAL, TAS_HUB.id), { awaiting: [VIDA_VERDE] }),
   play: async ({ canvasElement }) => {
@@ -159,6 +177,11 @@ export const Ready: Story = {
     await expect(getComputedStyle(header as HTMLElement).position).toBe("sticky");
     await expect(chip.getBoundingClientRect().height).toBeCloseTo(32, 0);
     await expect(canvas.queryByRole("button", { name: "Filters" })).toBeNull();
+    // The bell is the last launcher; its count lands once the header's reads mount at idle.
+    const badge = await within(header as HTMLElement).findByTestId("notifications-badge");
+    await expect(badge).toHaveTextContent("3");
+    const launchers = within(header as HTMLElement).getAllByRole("button");
+    await expect(launchers.at(-1)).toHaveAttribute("data-testid", "notifications-button");
     await userEvent.click(chip);
     const switcher = within(await screen.findByRole("dialog", { name: "Your Gardens" }));
     await expect(switcher.getByRole("button", { name: /Vida Verde/ })).toHaveTextContent(
@@ -226,3 +249,121 @@ export const ChoosePrompt: Story = {
     await expect(screen.queryByRole("dialog")).toBeNull();
   },
 };
+
+const MESSAGES = { en, es, pt } as const;
+const PHONE_VIEWPORTS = {
+  homePhone360: {
+    name: "Phone 360 x 800",
+    styles: { width: "360px", height: "800px" },
+    type: "mobile",
+  },
+  homePhone390: {
+    name: "Phone 390 x 844",
+    styles: { width: "390px", height: "844px" },
+    type: "mobile",
+  },
+} as const;
+
+/** The toast stories pick a language through `parameters.locale`; the global decorator stays English. */
+const withLocale: Decorator = (Story, context) => {
+  const locale = (context.parameters.locale as keyof typeof MESSAGES | undefined) ?? "en";
+  return (
+    <IntlProvider locale={locale} messages={MESSAGES[locale]}>
+      <Story />
+    </IntlProvider>
+  );
+};
+
+/** The app's toast viewport over Home, where the arrival toast lands. */
+const withToastViewport: Decorator = (Story) => (
+  <>
+    <Story />
+    <ToastViewport />
+  </>
+);
+
+/**
+ * Work queued in Vida Verde while the chip shows TAS HUB: the arrival toast names the garden it
+ * waits in, and See Your Gardens opens the switcher there without switching (PWA Home step 12).
+ */
+function arrivalInAnotherGarden() {
+  const reset = homeState(
+    activeGarden(
+      "ready",
+      [memberGarden(TAS_HUB, ["steward"]), memberGarden(VIDA_VERDE, ["gardener"])],
+      TAS_HUB.id
+    )
+  )();
+  for (const key of Object.keys(sessionStorage)) {
+    if (key.startsWith("greengoods:arrival-shown:")) sessionStorage.removeItem(key);
+  }
+  mocked(useArrivalState).mockReturnValue({
+    kind: "queue",
+    orientation: { target: "switcher", gardenId: VIDA_VERDE.id, gardenName: VIDA_VERDE.name },
+  });
+  return reset;
+}
+
+const arrivalStory = (locale: keyof typeof MESSAGES): Story => ({
+  beforeEach: arrivalInAnotherGarden,
+  decorators: [withToastViewport, withLocale],
+  parameters: { locale, viewport: { options: PHONE_VIEWPORTS } },
+  globals: { viewport: { value: "homePhone360" } },
+});
+
+/** Home raises the arrival toast 700 ms after the page renders. */
+const findArrivalToast = () =>
+  screen.findByText("Some of your work in Vida Verde hasn't uploaded yet.", {}, { timeout: 3000 });
+
+export const ArrivalUploadsInAnotherGarden: Story = {
+  ...arrivalStory("en"),
+  play: async () => {
+    await expect(await findArrivalToast()).toBeVisible();
+    await expect(screen.getByRole("button", { name: "See Your Gardens" })).toBeVisible();
+  },
+};
+
+/** See Your Gardens opens the switcher over Home; TAS HUB stays the active garden. */
+export const ArrivalSeeYourGardens: Story = {
+  ...arrivalStory("en"),
+  play: async () => {
+    await findArrivalToast();
+    await userEvent.click(screen.getByRole("button", { name: "See Your Gardens" }));
+    const switcher = within(await screen.findByRole("dialog", { name: "Your Gardens" }));
+    await expect(switcher.getByRole("button", { name: /Vida Verde/ })).toBeVisible();
+  },
+};
+
+export const ArrivalUploadsInAnotherGardenSpanish: Story = arrivalStory("es");
+
+export const ArrivalUploadsInAnotherGardenPortuguese: Story = arrivalStory("pt");
+
+/** A queued upload failed in Vida Verde while the chip shows TAS HUB: the queue's toast names it. */
+const failedStory = (locale: keyof typeof MESSAGES): Story => ({
+  beforeEach: homeState(
+    activeGarden(
+      "ready",
+      [memberGarden(TAS_HUB, ["steward"]), memberGarden(VIDA_VERDE, ["gardener"])],
+      TAS_HUB.id
+    )
+  ),
+  decorators: [withQueueFailureToast("work", VIDA_VERDE.name), withLocale],
+  parameters: { locale, viewport: { options: PHONE_VIEWPORTS } },
+  globals: { viewport: { value: "homePhone360" } },
+});
+
+export const UploadFailedInAnotherGarden: Story = {
+  ...failedStory("en"),
+  play: async () => {
+    await expect(
+      await screen.findByText(
+        "Your work in Vida Verde is still saved on this device. Switch to that garden to try again."
+      )
+    ).toBeVisible();
+    await expect(screen.getByRole("button", { name: "See Your Gardens" })).toBeVisible();
+  },
+};
+
+export const UploadFailedInAnotherGardenSpanish: Story = failedStory("es");
+
+export const UploadFailedInAnotherGardenPortuguese: Story = failedStory("pt");

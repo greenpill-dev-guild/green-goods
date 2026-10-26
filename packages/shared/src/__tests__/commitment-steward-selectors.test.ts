@@ -205,6 +205,8 @@ describe("selectDueLiveCommitments", () => {
         { ...base, id: "42161-2", commitmentId: 2n, cycleId: 13n },
         // Cycle-less and undated: never due.
         { ...base, id: "42161-3", commitmentId: 3n },
+        // Its own due date governs, though its cycle has ended.
+        { ...base, id: "42161-4", commitmentId: 4n, cycleId: 12n, dueDate: now + 10n },
       ],
       cycleEndTimes: new Map([
         ["12", now - 10n],
