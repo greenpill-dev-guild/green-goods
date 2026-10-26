@@ -909,13 +909,35 @@
       if (!hotspot.hidden) hotspot.style.setProperty("--r", `${Math.min(hotspot.getBoundingClientRect().height / 2, 20)}px`);
     }
 
+    // A render hides the hotspot on the last screen, shows the closing buttons only there and
+    // disables Back and Restart on the first screen, so a keyboard user who held a control that
+    // just went away lands on the one now in play instead of on a hidden or disabled one.
+    function keepFocus(before) {
+      if (![hotspot, $("next-flow"), $("all-end"), $("back"), $("restart")].includes(before)) return;
+      if (!before.hidden && !before.disabled) return;
+      if (!hotspot.hidden) hotspot.focus({ preventScroll: true });
+      else $("next-flow").focus({ preventScroll: true });
+    }
+
     function advance() {
       if (!flow) return;
-      if (step < flow.screens.length - 1) { step += 1; render(); return; }
+      if (step < flow.screens.length - 1) {
+        const before = document.activeElement;
+        step += 1;
+        render();
+        keepFocus(before);
+        return;
+      }
       const next = nextFlow();
       if (next) open(next.id, 0); else home();
     }
-    function retreat() { if (flow && step > 0) { step -= 1; render(); } }
+    function retreat() {
+      if (!flow || step === 0) return;
+      const before = document.activeElement;
+      step -= 1;
+      render();
+      keepFocus(before);
+    }
 
     hotspot.addEventListener("click", (event) => { event.stopPropagation(); advance(); });
     // A tap anywhere else on the screen never advances; it only points at the hotspot again.
@@ -927,7 +949,7 @@
     });
     hotspot.addEventListener("animationend", (event) => { if (event.animationName === "nudge") hotspot.classList.remove("nudge"); });
     $("back").addEventListener("click", retreat);
-    $("restart").addEventListener("click", () => { step = 0; render(); });
+    $("restart").addEventListener("click", () => { const before = document.activeElement; step = 0; render(); keepFocus(before); });
     $("next-flow").addEventListener("click", advance);
     $("all-end").addEventListener("click", home);
     $("home-flow").addEventListener("click", home);
