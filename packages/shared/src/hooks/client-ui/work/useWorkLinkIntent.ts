@@ -122,24 +122,28 @@ export function useWorkLinkIntent({
                 : takeUpChoices.isError || takeUpChoices.isPaused
                   ? "unavailable"
                   : "invalid";
-  // What a draft keeps and Review says of a take-up: the page's word while the live reads answer
-  // nothing yet, so a resumed draft keeps saying so meanwhile (offline too), and theirs once they
-  // answer. Only `takesUp`, the live answer, decides that Submit takes the ask up.
+  // What Review says of a take-up: the page's word while the live reads answer nothing yet, so a
+  // resumed draft keeps saying so meanwhile (offline too), and theirs once they answer, since
+  // Upload goes on their answer. Only `takesUp`, the live answer, decides that Submit takes the
+  // ask up.
   const unanswered = linkIntentStatus === "validating" || linkIntentStatus === "unavailable";
   const saysTakeUp = unanswered ? parsedLinkIntent?.takesUp === true : takesUp;
-  const draftLink = parsedLinkIntent
-    ? toDraftWorkLink({ ...parsedLinkIntent, takesUp: saysTakeUp || undefined })
-    : null;
-  // Once fresh live reads answer that the link is no Open ask to take up (the member's own promise
-  // now, or neither), its take-up leaves the page's address as it leaves the draft, so a reload
-  // or a later failed read never brings it back. A cached answer still being read again waits,
-  // offline too (TanStack reports that read paused, not fetching): the fresh one may yet find
-  // the ask.
-  const takeUpDisproved =
+  // The live reads may answer that the link is no Open ask to take up (the member's own promise
+  // now, or neither). A cached answer still being read again waits, offline too (TanStack reports
+  // that read paused, not fetching): the fresh one may yet find the ask, so the page's take-up
+  // stays in its address and in the draft meanwhile. Once fresh reads disprove it, it leaves both,
+  // so a reload, a resumed draft or a later failed read never brings it back.
+  const answersNoTakeUp =
     parsedLinkIntent?.takesUp === true &&
-    linkChoices.fetchStatus === "idle" &&
-    !takeUpChoices.isFetching &&
     (linkIntentStatus === "invalid" || (linkIntentStatus === "valid" && !takeUpLink));
+  const rereading = linkChoices.fetchStatus !== "idle" || takeUpChoices.isFetching;
+  const takeUpDisproved = answersNoTakeUp && !rereading;
+  const draftLink = parsedLinkIntent
+    ? toDraftWorkLink({
+        ...parsedLinkIntent,
+        takesUp: saysTakeUp || (answersNoTakeUp && rereading) || undefined,
+      })
+    : null;
   useEffect(() => {
     if (!takeUpDisproved || !parsedLinkIntent) return;
     const { takesUp: _disproved, ...link } = parsedLinkIntent;

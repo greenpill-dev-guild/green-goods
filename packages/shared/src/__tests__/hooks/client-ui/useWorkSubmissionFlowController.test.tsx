@@ -1351,13 +1351,16 @@ describe("useWorkSubmissionFlowController", () => {
       expect(pageParams().get("linkTakesUp")).toBe("1");
 
       // A cached answer that no longer finds the ask, read again: the fresh read may yet find it,
-      // so the address keeps the take-up meanwhile (Codex on #1340).
+      // so the address and the draft keep the take-up meanwhile (Codex on #1340, CodeRabbit on
+      // #1343). Review says what Upload will do on the answer it has.
       mocks.takeUpChoices = [];
       mocks.choices = [...own];
       mocks.takeUpFetching = true;
       view.rerender();
       await waitFor(() => expect(view.result.current.linkIntentStatus).toBe(status));
       expect(pageParams().get("linkTakesUp")).toBe("1");
+      expect(mocks.autoSaveFields?.linkIntent).toMatchObject({ takesUp: true });
+      expect(view.result.current.takeUpPrompts).toBeNull();
 
       // The member's promises are read again offline over their cached answer: the read waits
       // for a connection, neither fetching nor failed, and may yet change that answer.
@@ -1367,6 +1370,7 @@ describe("useWorkSubmissionFlowController", () => {
       view.rerender();
       expect(view.result.current.linkIntentStatus).toBe(status);
       expect(pageParams().get("linkTakesUp")).toBe("1");
+      expect(mocks.autoSaveFields?.linkIntent).toMatchObject({ takesUp: true });
 
       mocks.linkFetchStatus = "idle";
       view.rerender();
