@@ -63,9 +63,14 @@ interface StartStepOptions {
   };
   /**
    * The garden's Open asks the member could take up in the tap that logs this work (decision
-   * 18), which the step lists after their promises; `loading` while they are read.
+   * 18), which the step lists after their promises (`useTakeUpChoices`).
    */
-  asks?: { list: readonly WorkablePromise[]; loading: boolean };
+  openAsks?: {
+    asks: readonly WorkablePromise[];
+    isLoading: boolean;
+    isError: boolean;
+    refetch: () => unknown;
+  };
   setGardenAddress: (garden: Address | null) => void;
   setActiveTab: (tab: WorkTab) => void;
   changeTab: (tab: WorkTab) => Promise<void>;
@@ -77,7 +82,12 @@ interface StartStepOptions {
 /** How far the one automatic skip has got: Start opens once per visit, then it is the member's. */
 type AutoSkip = "unknown" | "allowed" | "spent";
 
-const NO_ASKS: NonNullable<StartStepOptions["asks"]> = { list: [], loading: false };
+const NO_ASKS: NonNullable<StartStepOptions["openAsks"]> = {
+  asks: [],
+  isLoading: false,
+  isError: false,
+  refetch: () => undefined,
+};
 
 /**
  * The Start step of logging work (DL-131): what it offers, which of its screens shows, and its
@@ -102,7 +112,7 @@ export function useStartStep({
   hasDraft,
   link,
   promises,
-  asks = NO_ASKS,
+  openAsks = NO_ASKS,
   setGardenAddress,
   setActiveTab,
   changeTab,
@@ -127,9 +137,16 @@ export function useStartStep({
         (commitmentId) =>
           queue.isUnavailable || queue.pendingCommitmentIds.has(commitmentId.toString())
       ),
-      listedAsks: listStartPromises(asks.list, uids, () => false),
+      listedAsks: listStartPromises(openAsks.asks, uids, () => false),
     };
-  }, [actions, garden, promises.data, asks.list, queue.isUnavailable, queue.pendingCommitmentIds]);
+  }, [
+    actions,
+    garden,
+    promises.data,
+    openAsks.asks,
+    queue.isUnavailable,
+    queue.pendingCommitmentIds,
+  ]);
 
   // A read paused by the connection or one that failed says nothing about what is owed.
   const read: StartPromisesRead = promises.data
@@ -143,7 +160,12 @@ export function useStartStep({
     link,
     gardenSettled,
     promises: read,
-    openAsks: asks.loading ? null : listedAsks.length,
+    // Asks that could not be read say nothing about what is on offer, as with promises.
+    openAsks: openAsks.isError
+      ? { status: "unknown" }
+      : openAsks.isLoading
+        ? { status: "loading" }
+        : { status: "ready", count: listedAsks.length },
     heldActionUID: flowPicked ? null : actionUID,
     actionUIDs:
       actionsLoading && actions.length === 0
@@ -252,11 +274,17 @@ export function useStartStep({
     /** The prompts taking an ask up brings, said before the first: take-up, work, link. */
     askPromptCount: submissionPromptCount({ linksPromise: true, takesUp: true }),
     /**
-     * The member's promises could not be read, or their first read waits for a connection: the
-     * step offers the actions with a warning and a retry, never as all there is.
+     * The member's promises or the garden's Open asks could not be read, or the promises' first
+     * read waits for a connection: the step offers the actions with a warning and a retry, never
+     * as all there is.
      */
-    promisesFailed: (promises.isError || promises.fetchStatus === "paused") && !promises.data,
-    retryPromises: () => void promises.refetch(),
+    promisesFailed:
+      ((promises.isError || promises.fetchStatus === "paused") && !promises.data) ||
+      openAsks.isError,
+    retryPromises: () => {
+      void promises.refetch();
+      openAsks.refetch();
+    },
     screen: shown,
     /** Opens a listed promise: its own screen, or the evidence flow when that is all it takes. */
     pickPromise: (promise: WorkablePromise) => {
