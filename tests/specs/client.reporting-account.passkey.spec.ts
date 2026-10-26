@@ -60,9 +60,13 @@ async function connectedAccount(page: Page) {
   return account as string;
 }
 
-/** Account and Help, opened from the top bar's profile button by its name in the page's language. */
+/**
+ * Account and Help, opened from the top bar's profile button by its name in the page's language.
+ * Each opening follows a load of the dev client, and the name waits for that language's catalogue,
+ * so it waits as a first paint does.
+ */
 async function openAccount(page: Page, name = "Account and Help") {
-  await page.getByRole("button", { name, exact: true }).click();
+  await page.getByRole("button", { name, exact: true }).click({ timeout: FIRST_PAINT });
   const sheet = page.getByRole("dialog", { name });
   await expect(sheet).toBeVisible();
   return sheet;
