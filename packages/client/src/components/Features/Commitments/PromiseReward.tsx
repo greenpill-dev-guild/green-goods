@@ -1,5 +1,4 @@
 import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
-import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { displayBucketOf } from "@green-goods/shared/modules/commitment-pooling/display-groups";
 import {
   type CommitmentMetadataV1,
@@ -89,8 +88,7 @@ function amountText(intl: RewardIntl, reward: PromiseReward, price: GoodDollarPr
 
 /**
  * The reward as a member reads it before taking a promise up: its amount, and
- * that it is paid in G$ once the promise is kept. While payouts are switched
- * off in this app, it says so instead of promising a payment.
+ * that it is paid in G$ once the promise is kept, or that it has been paid.
  */
 export function promiseRewardText(input: {
   intl: RewardIntl;
@@ -98,9 +96,8 @@ export function promiseRewardText(input: {
   price: GoodDollarPriceState;
   /** The reward on this promise has been paid. */
   paid?: boolean;
-  payoutsOn?: boolean;
 }): string | null {
-  const { intl, rewards, price, paid = false, payoutsOn = SETTLEMENT_ENABLED } = input;
+  const { intl, rewards, price, paid = false } = input;
   const low = rewards[0];
   const high = rewards[rewards.length - 1];
   if (!low || !high) return null;
@@ -112,13 +109,7 @@ export function promiseRewardText(input: {
           { low: amountText(intl, low, price), high: amountText(intl, high, price) }
         );
   return intl.formatMessage(
-    {
-      id: paid
-        ? "app.commitment.reward.paid"
-        : payoutsOn
-          ? "app.commitment.reward.afterKept"
-          : "app.commitment.reward.payoutsOff",
-    },
+    { id: paid ? "app.commitment.reward.paid" : "app.commitment.reward.afterKept" },
     { amount }
   );
 }

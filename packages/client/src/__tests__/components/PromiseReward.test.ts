@@ -1,7 +1,7 @@
 /**
  * A promise's reward as a member reads it before taking one up: the dollars it
  * was set in while the chain still holds that G$ amount, about today's rate
- * after an edit, else G$; and how it is paid, or that payouts are switched off.
+ * after an edit, else G$; and that it is paid in G$ once the promise is kept.
  */
 
 import type { CommitmentMetadataV1 } from "@green-goods/shared/commitment-pooling";
@@ -47,21 +47,18 @@ describe("promise rewards", () => {
     ).toBeNull();
   });
 
-  it("says it is paid in G$ once kept, and says payouts are off while this app has them off", () => {
+  it("says it is paid in G$ once kept, or that it was paid", () => {
     const rewards = [promiseRewardOf(onRail(SET_WEI), METADATA)].filter(
       (reward) => reward !== null
     );
 
-    expect(promiseRewardText({ intl, rewards, price: NO_PRICE, payoutsOn: true })).toBe(
+    expect(promiseRewardText({ intl, rewards, price: NO_PRICE })).toBe(
       "$20.00, paid in G$ after it's kept"
     );
-    expect(promiseRewardText({ intl, rewards, price: NO_PRICE, payoutsOn: false })).toBe(
-      "$20.00 in G$. Payouts aren't switched on in this app yet."
+    expect(promiseRewardText({ intl, rewards, price: NO_PRICE, paid: true })).toBe(
+      "$20.00, paid in G$"
     );
-    expect(
-      promiseRewardText({ intl, rewards, price: NO_PRICE, paid: true, payoutsOn: false })
-    ).toBe("$20.00, paid in G$");
-    expect(promiseRewardText({ intl, rewards: [], price: PRICE, payoutsOn: true })).toBeNull();
+    expect(promiseRewardText({ intl, rewards: [], price: PRICE })).toBeNull();
   });
 
   it("reads an edited reward at about today's rate, or in G$ when there is no rate", () => {
@@ -71,10 +68,10 @@ describe("promise rewards", () => {
     );
 
     expect(edited[0]?.centsAsSet).toBeNull();
-    expect(promiseRewardText({ intl, rewards: edited, price: PRICE, payoutsOn: true })).toBe(
+    expect(promiseRewardText({ intl, rewards: edited, price: PRICE })).toBe(
       "about $25.00, paid in G$ after it's kept"
     );
-    expect(promiseRewardText({ intl, rewards: edited, price: NO_PRICE, payoutsOn: true })).toBe(
+    expect(promiseRewardText({ intl, rewards: edited, price: NO_PRICE })).toBe(
       "200,000 G$, paid in G$ after it's kept"
     );
   });
@@ -96,7 +93,7 @@ describe("promise rewards", () => {
     );
 
     expect(partial.map((reward) => reward.wei)).toEqual([SET_WEI, 200_000n * G]);
-    expect(promiseRewardText({ intl, rewards: partial, price: PRICE, payoutsOn: true })).toBe(
+    expect(promiseRewardText({ intl, rewards: partial, price: PRICE })).toBe(
       "$20.00 to about $25.00, paid in G$ after it's kept"
     );
     // Nothing left to take up: the page still says what each one carried.

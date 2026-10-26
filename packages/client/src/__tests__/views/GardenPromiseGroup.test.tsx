@@ -176,12 +176,12 @@ describe("GardenPromiseGroup", () => {
     const user = userEvent.setup();
     render();
 
-    // The payout words follow the app's settlement switch; the dollars do not.
+    const reward = "$20.00, paid in G$ after it's kept";
     const asks = screen.getByRole("region", { name: "What each one asks" });
-    expect(within(asks).getByText(/^\$20\.00/)).toBeInTheDocument();
+    expect(within(asks).getByText(reward)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Take Up One" }));
     const sheet = await screen.findByRole("dialog");
-    expect(within(sheet).getByText(/^\$20\.00/)).toBeInTheDocument();
+    expect(within(sheet).getByText(reward)).toBeInTheDocument();
   });
 
   it("passes the copy a link names, so a reload finds the same group", () => {

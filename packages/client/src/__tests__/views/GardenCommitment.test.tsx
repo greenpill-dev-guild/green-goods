@@ -505,7 +505,7 @@ describe("GardenCommitment", () => {
 
     const promised = screen.getByRole("region", { name: "What was promised" });
     expect(within(promised).getByText("Reward")).toBeInTheDocument();
-    expect(within(promised).getByText(/^\$20\.00/)).toBeInTheDocument();
+    expect(within(promised).getByText("$20.00, paid in G$ after it's kept")).toBeInTheDocument();
   });
 
   it("makes required work the primary action while keeping optional proof available", () => {

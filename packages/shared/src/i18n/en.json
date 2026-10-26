@@ -1166,7 +1166,6 @@
   "app.commitment.reward.range": "{low} to {high}",
   "app.commitment.reward.afterKept": "{amount}, paid in G$ after it's kept",
   "app.commitment.reward.paid": "{amount}, paid in G$",
-  "app.commitment.reward.payoutsOff": "{amount} in G$. Payouts aren't switched on in this app yet.",
   "app.commitment.people.team": "Team",
   "app.commitment.people.you": "You",
   "app.commitment.progress.count": "{done} of {of}",
