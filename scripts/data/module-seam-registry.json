@@ -43,7 +43,7 @@
         ]
       },
       "reviewedAt": "2026-10-25",
-      "evidenceFingerprint": "sha256:a776d6f5ae596d57a81f6941e39493ea131a22a54e1d9a9fb4d7cdb353a656a2"
+      "evidenceFingerprint": "sha256:c1580afd82fbebc581db7215d4acd16dbb59a33e0cab688c12a0f25ac8353f3b"
     },
     {
       "id": "shared-work-provider-command",
@@ -83,7 +83,7 @@
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
       "reviewedAt": "2026-10-25",
-      "evidenceFingerprint": "sha256:cfb823c74578f3b7b67fcaedfa3be49955a89bff0640b36431cc44497f72aaef"
+      "evidenceFingerprint": "sha256:d917caa5db6c5ee1105eb4a82c7d290654a8a2920538126a866069816c0b431f"
     }
   ]
 }

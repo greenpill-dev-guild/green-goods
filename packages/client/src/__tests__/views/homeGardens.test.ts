@@ -67,6 +67,20 @@ describe("awaitingGardens", () => {
 
     expect(awaiting.map(({ id }) => id)).toEqual([a.id]);
   });
+
+  // A family garden kept for its members stays off Home and the switcher for everyone else, a
+  // request there included (DL-126).
+  it("never lists a family garden kept for its members, whatever request waits there", () => {
+    const family = garden("01", {
+      id: "0xF7b892886998DAe960D64a9db488336684F137A0",
+      name: "Aiyeloja Family Garden",
+    });
+    const open = garden("02");
+
+    const awaiting = awaitingGardens([family, open], ids([family.id, open.id]), ids([]));
+
+    expect(awaiting.map(({ id }) => id)).toEqual([open.id]);
+  });
 });
 
 describe("switcherRows", () => {

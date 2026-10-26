@@ -26,7 +26,8 @@
  *     says it is not in the lists, and asks crawlers not to index it.
  *     Entries marked `membersOnly` also stay out of PWA garden discovery
  *     unless the garden is one of the signed-in account's own
- *     (`modules/garden/membership`).
+ *     (`isGardenListedFor` in `modules/garden/filters`, over
+ *     `modules/garden/membership`).
  *
  * To change a garden's visibility, edit the relevant list. Every entry carries
  * the reason it is there.

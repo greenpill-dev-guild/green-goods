@@ -5,6 +5,7 @@ import {
   type GardenRecentActivity,
   useGardenRecentActivity,
 } from "@green-goods/shared/hooks/garden/useGardenJournal";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { RiInboxLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -21,12 +22,14 @@ export interface RecentActivityProps {
 /**
  * Recent Activity: the garden's three newest works as the Work tab's rows, with the Work tab's
  * status pills, the same for every role. A pending row opens the work, where a steward
- * approves it; no row carries a Review control (decision 23). See All opens the garden's work.
+ * approves it; no row carries a Review control (decision 23). See All opens the garden's Work
+ * as a sheet over Home (DL-128), so Home keeps its place.
  */
 export function RecentActivity({ gardenId }: RecentActivityProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const navigate = useNavigateToTop();
+  const openGardenSheet = useUIStore((state) => state.openGardenSheet);
   const activity = useGardenRecentActivity(gardenId);
   const { state } = activity;
 
@@ -34,10 +37,9 @@ export function RecentActivity({ gardenId }: RecentActivityProps) {
     <JournalSection
       data-component="RecentActivity"
       title={formatMessage({ id: "app.home.journal.recentActivity" })}
-      // Until the Work sheet over Home lands (step 10), See All opens the garden's Work tab.
       action={{
         label: formatMessage({ id: "app.home.journal.seeAll" }),
-        onClick: () => navigate(`/home/${gardenId}`),
+        onClick: () => openGardenSheet("work"),
       }}
       note={
         state.status === "ready" && state.savedAt

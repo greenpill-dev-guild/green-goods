@@ -23,6 +23,7 @@ import {
 import { useMemo } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { formatAgo } from "@/components/Cards/Work/pendingCopy";
+import { focusOnPress } from "./focusOnPress";
 import { JournalSection } from "./JournalSection";
 
 type StewardDuty = StewardDuties["duties"][number];
@@ -134,6 +135,7 @@ export function NeedsYourAttention({ garden, duties: stewardDuties }: NeedsYourA
         return (
           <li key={duty.kind === "takeUp" ? `takeUp:${duty.commitment.commitmentId}` : duty.kind}>
             <ItemRow
+              {...focusOnPress}
               lead={{ kind: "icon", icon: <Icon aria-hidden="true" /> }}
               title={title}
               status={{ label: pill, tone: "warning" }}

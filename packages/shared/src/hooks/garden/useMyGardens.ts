@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { listMyGardens, type MyGarden } from "../../modules/garden/membership";
+import {
+  awaitingJoinRequestScope,
+  useAwaitingJoinRequestsStore,
+} from "../../stores/useAwaitingJoinRequestsStore";
 import type { Garden } from "../../types/domain";
 import { useGardens } from "../blockchain/useBaseLists";
 import {
@@ -46,14 +50,18 @@ export function useMyGardens(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [list, account, pendingJoinsVersion]);
 
-  // Once the roster lists the account, its open join has done its job.
+  // Once the roster lists the account, its open join has done its job, and a request to join
+  // there has been answered.
   useEffect(() => {
     if (!account) return;
     const listed = gardens
       .filter(({ membership }) => membership.roles.length > 0)
       .map(({ garden }) => garden.id);
-    if (listed.length > 0) forgetListedPendingJoins(account, listed);
-  }, [account, gardens]);
+    if (listed.length === 0) return;
+    forgetListedPendingJoins(account, listed);
+    const scope = awaitingJoinRequestScope(chainId, account);
+    if (scope) useAwaitingJoinRequestsStore.getState().forgetRequests(scope, listed);
+  }, [account, chainId, gardens]);
 
   const { refetch: refetchGardens } = query;
   const refetch = useCallback(() => {
