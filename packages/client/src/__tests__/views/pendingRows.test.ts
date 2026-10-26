@@ -216,16 +216,14 @@ describe("a work for a promise taken up in the same tap (decision 18)", () => {
     expect(row.type === "work" && row.card).toMatchObject({
       kind: "upload",
       pill: "To upload",
-      status: "Waits for the promise to be taken up",
+      status: "Takes up the promise first",
     });
 
     const wallet = submissionRow(queuedWork("ready"), true, {
       ...held("pending"),
       sendsFromTap: true,
     });
-    expect(wallet.type === "work" && wallet.card.status).toBe(
-      "Not sent. Open it to take up the promise first"
-    );
+    expect(wallet.type === "work" && wallet.card.status).toBe("Open it to take up the promise");
   });
 
   it("names the take-up as the stage that failed, and keeps the work discardable", () => {
@@ -234,7 +232,7 @@ describe("a work for a promise taken up in the same tap (decision 18)", () => {
     expect(row).toMatchObject({ kind: "needs", discardable: true });
     expect(row.type === "work" && row.card).toMatchObject({
       pill: "Can't upload",
-      status: "Taking up the promise didn't go",
+      status: "Couldn't take up the promise",
       statusTone: "error",
     });
   });
@@ -246,7 +244,7 @@ describe("a work for a promise taken up in the same tap (decision 18)", () => {
     expect(row.type === "work" && row.card).toMatchObject({
       kind: "review",
       pill: "In review",
-      status: "Linking it to the promise didn't go",
+      status: "Couldn't link it to the promise",
       statusTone: "error",
     });
   });

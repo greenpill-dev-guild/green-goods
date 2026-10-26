@@ -497,9 +497,9 @@ export const PendingTakeUpChain: Story = {
   play: async ({ canvasElement }) => {
     // The sheet draws in a portal, so its rows are found from the page body.
     const body = within(canvasElement.ownerDocument.body);
-    await expect(await body.findByText("Waits for the promise to be taken up")).toBeVisible();
-    await expect(body.getByText("Taking up the promise didn't go")).toBeVisible();
-    await expect(body.getByText("Linking it to the promise didn't go")).toBeVisible();
+    await expect(await body.findByText("Takes up the promise first")).toBeVisible();
+    await expect(body.getByText("Couldn't take up the promise")).toBeVisible();
+    await expect(body.getByText("Couldn't link it to the promise")).toBeVisible();
   },
 };
 
