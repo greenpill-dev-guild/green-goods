@@ -31,6 +31,7 @@ const evidenceOnMedia: SubmissionFlowController = {
     disabled: false,
     loading: false,
     blockedReasonId: null,
+    takeUpPrompts: null,
     run: noop,
   },
   mediaTools: null,

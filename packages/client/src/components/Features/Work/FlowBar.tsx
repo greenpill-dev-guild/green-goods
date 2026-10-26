@@ -93,7 +93,7 @@ export function FlowForward({
   label: string;
   disabled?: boolean;
   loading?: boolean;
-  /** The note that says why it waits. */
+  /** The notes above it: why it waits, and the prompts it opens. */
   describedBy?: string;
 } & ({ onClick: () => void; form?: never } | { form: string; onClick?: never })) {
   return (

@@ -220,7 +220,7 @@ const quietStep = {
   link: { status: "none", atEntry: false },
   gardenSettled: true,
   promises: { status: "ready", count: 0 },
-  openAsks: 0,
+  openAsks: { status: "ready", count: 0 },
   actionUIDs: [7, 8],
   heldActionUID: null,
 } as const;
@@ -283,13 +283,18 @@ describe("the Start step (DL-131)", () => {
     ],
     [
       "the same garden with an Open ask listed stays, since there is a choice to make",
-      { actionUIDs: [7], openAsks: 1 },
+      { actionUIDs: [7], openAsks: { status: "ready", count: 1 } },
       { kind: "stay" },
     ],
     [
       "while the garden's Open asks are read the step waits rather than jump past one",
-      { actionUIDs: [7], openAsks: null },
+      { actionUIDs: [7], openAsks: { status: "loading" } },
       { kind: "wait" },
+    ],
+    [
+      "Open asks that could not be read keep the step, never assumed none",
+      { actionUIDs: [7], openAsks: { status: "unknown" } },
+      { kind: "stay" },
     ],
     [
       "a promise the member owes keeps the step",

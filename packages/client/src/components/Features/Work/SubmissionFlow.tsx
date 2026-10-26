@@ -12,6 +12,7 @@ import { TopNav } from "@/components/Navigation";
 import { FlowBar, FlowBarNote, FlowForward, MediaTools } from "./FlowBar";
 
 const BLOCKED_ID = "submission-blocked";
+const TAKE_UP_ID = "submission-take-up";
 const preventSubmit = (event: FormEvent<HTMLFormElement>) => event.preventDefault();
 
 export interface SubmissionFlowProps {
@@ -32,7 +33,8 @@ export interface SubmissionFlowProps {
 /**
  * The one submission flow's page (DL-131): the top bar with the step markers spread beside Back,
  * the stage the kind renders under the body's lead, and the fixed bar with why the step waits,
- * the media tools on Media, and the one forward act. Start has no forward act, so it has no bar:
+ * the prompts an Open ask's take-up opens (Review), the media tools on Media, and the one forward
+ * act. Start has no forward act, so it has no bar:
  * choosing moves on. Once a promise is chosen, the kind places the pinned promise after its
  * heading, so the heading scrolls away and the promise stays in view (DL-058).
  */
@@ -58,6 +60,12 @@ export function SubmissionFlow({
   const blockedReason = forward?.blockedReasonId
     ? formatMessage({ id: forward.blockedReasonId })
     : null;
+  const takeUp = forward?.takeUpPrompts
+    ? formatMessage({ id: "app.garden.submit.takeUpPrompts" }, { count: forward.takeUpPrompts })
+    : null;
+  const describedBy = [blockedReason && BLOCKED_ID, takeUp && TAKE_UP_ID].filter(Boolean).join(" ");
+  // A take-up's note makes the bar taller too: three lines in Spanish and Portuguese.
+  const tall = tallBar || takeUp !== null;
 
   return (
     <>
@@ -82,7 +90,7 @@ export function SubmissionFlow({
             "padded relative flex flex-col gap-4 flex-1",
             !forward
               ? "pb-[calc(1.5rem+var(--safe-area-bottom))]"
-              : tallBar
+              : tall
                 ? "pb-[calc(14rem+var(--safe-area-bottom))]"
                 : "pb-[calc(7rem+var(--safe-area-bottom))]"
           )}
@@ -96,6 +104,7 @@ export function SubmissionFlow({
           status={
             <>
               {blockedReason ? <FlowBarNote id={BLOCKED_ID}>{blockedReason}</FlowBarNote> : null}
+              {takeUp ? <FlowBarNote id={TAKE_UP_ID}>{takeUp}</FlowBarNote> : null}
               {barStatus}
             </>
           }
@@ -116,7 +125,7 @@ export function SubmissionFlow({
             onClick={forward.run}
             disabled={forward.disabled}
             loading={forward.loading}
-            describedBy={blockedReason ? BLOCKED_ID : undefined}
+            describedBy={describedBy || undefined}
           />
         </FlowBar>
       ) : null}
