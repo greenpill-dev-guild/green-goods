@@ -33,12 +33,12 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useActions } from "../blockchain/useBaseLists";
 import { useCommitmentCycleNames } from "../commitment-pooling/useCommitmentCycleNames";
 import { useCommitmentMetadata } from "../commitment-pooling/useCommitmentMetadata";
-import { useExpiryClock } from "../commitment-pooling/useExpiryClock";
 import {
   useCommitmentCycles,
   useCommitmentPools,
   useCommitments,
 } from "../commitment-pooling/useCommitmentPooling";
+import { useDueClock } from "../commitment-pooling/useDueClock";
 import { useViewerTakeUps } from "../commitment-pooling/useViewerTakeUps";
 import { useDocumentEvent } from "../utils/useEventListener";
 import { useWorks } from "../work/useWorks";
@@ -172,8 +172,8 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
   const poolOpen = pool?.state === "OPEN";
-  // Ticks when a listed promise passes its due second, so a lapsed one leaves the list.
-  const now = useExpiryClock({ commitments: listed });
+  // Ticks when a listed promise falls due, so a lapsed one leaves the list.
+  const due = useDueClock({ chainId, poolId: pool?.poolId ?? null, commitments: listed });
   const entries = useMemo(
     () =>
       takePartEntries({
@@ -182,9 +182,9 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
         viewer,
         poolOpen,
         takeUps,
-        now,
+        clock: due.clock,
       }),
-    [listed, byCID, viewer, poolOpen, takeUps, now]
+    [listed, byCID, viewer, poolOpen, takeUps, due.clock]
   );
 
   const read = {
@@ -197,10 +197,11 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
       dataUpdatedAt: pools.dataUpdatedAt,
     },
     list: {
-      // A request in flight would show an ask the reader asked for, then take it away, and a
-      // queue that cannot be read could offer again a take-up already on this phone.
-      hasData: commitments.data !== undefined && settled && !unavailable,
-      isError: commitments.isError || unavailable,
+      // A request in flight would show an ask the reader asked for, then take it away, a queue
+      // that cannot be read could offer again a take-up already on this phone, and an ask whose
+      // cycle's end is unread may already be past due.
+      hasData: commitments.data !== undefined && settled && !unavailable && due.known,
+      isError: commitments.isError || unavailable || due.isError,
       dataUpdatedAt: commitments.dataUpdatedAt,
     },
   };
@@ -216,6 +217,7 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();
       if (unavailable) retryTakeUps();
+      if (due.isError) due.retry();
     },
   };
 }

@@ -16,6 +16,7 @@ import {
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type {
   CommitmentClaimRequestRecord,
+  CommitmentCycleRecord,
   CommitmentDetail,
   CommitmentPoolRecord,
 } from "../../../modules/commitment-pooling/types";
@@ -25,6 +26,7 @@ import {
   claimFixture,
   commitmentDetailFixture,
   commitmentFixture,
+  cycleFixture,
   poolFixture,
 } from "../../test-utils/commitment-pooling-fixtures";
 
@@ -93,6 +95,8 @@ const mocks = vi.hoisted(() => ({
   mutationError: null as unknown,
   works: [] as Work[],
   pool: null as CommitmentPoolRecord | null,
+  /** The pool's cycles; undefined while unread. */
+  cycles: [] as CommitmentCycleRecord[] | undefined,
   roleAnswers: new Map<string, boolean>(),
   gardens: [] as Array<{
     id: string;
@@ -163,6 +167,7 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitment: () => mocks.commitmentQuery,
   useCommitmentPool: () => ({ pool: mocks.pool, isError: false, refetch: vi.fn() }),
+  useCommitmentCycles: () => ({ data: mocks.cycles, isError: false, refetch: vi.fn() }),
   useCommitmentClaimRequests: () => ({ claimRequests: mocks.claimRequests }),
   useLinkedWorkUIDs: () => ({ linked: mocks.linked }),
 }));
@@ -225,6 +230,7 @@ beforeEach(() => {
   mocks.works = [work(), work({ id: "0xbbbb", status: "rejected" })];
   mocks.linked = new Set();
   mocks.pool = poolFixture({ poolType: "PROTOCOL" });
+  mocks.cycles = [];
   mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:steward`, true]]);
   mocks.gardens = [
     {
@@ -632,6 +638,41 @@ describe("useGardenCommitmentController", () => {
     );
     expect(result.current.actKind).toBeNull();
     expect(result.current.membership).toMatchObject({ isMember: null, garden: null });
+  });
+
+  it("offers no take-up on an undated promise once its cycle has ended, or while that end is unread", () => {
+    // Without a due date of its own it falls due when its season ends (`_effectiveDueDate`).
+    mocks.commitmentQuery.detail = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "OPEN",
+      }),
+      contributors: [],
+    });
+    mocks.pool = poolFixture({ poolType: "GARDEN", garden: DEMO_GARDEN });
+    mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:gardener`, true]]);
+    mocks.gardens = [{ id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] }];
+    mocks.cycles = undefined;
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    const { result, rerender } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    expect(result.current.actKind).toBeNull();
+
+    mocks.cycles = [cycleFixture({ endTime: now + 3_600n })];
+    rerender();
+    expect(result.current.actKind).toBe("takeUp");
+
+    mocks.cycles = [cycleFixture({ endTime: now - 60n })];
+    rerender();
+    expect(result.current.actKind).toBeNull();
   });
 
   it("offers Ask Again only while the reader may still take the commitment up", () => {

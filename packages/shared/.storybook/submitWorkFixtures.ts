@@ -265,7 +265,7 @@ export const START_ASKS: WorkablePromise[] = oneTapAsks({
   metadataByCID: new Map(),
   viewer: JOURNEY_VIEWER,
   poolOpen: true,
-  now: STORY_NOW,
+  clock: { now: STORY_NOW, cycleEndTimes: new Map() },
   takeUps: viewerTakeUps({
     viewer: JOURNEY_VIEWER,
     pendingRequests: [claimFixture({ commitmentId: 33n, claimant: JOURNEY_VIEWER, state: "PENDING" })],

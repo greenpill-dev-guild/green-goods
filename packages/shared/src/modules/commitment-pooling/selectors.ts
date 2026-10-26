@@ -179,17 +179,6 @@ export function isCommitmentCreator(input: {
   return input.viewer !== undefined && isSameAccount(input.commitment.creator, input.viewer);
 }
 
-/**
- * Whether a promise's due date has passed on the chain's clock (`now`, Unix seconds, as
- * `useExpiryClock` keeps it): strictly after the due second, when the contract lets anyone expire
- * it. An undated promise never passes here; the chain would read its cycle's end instead, which
- * the app always replaces with a due date when it creates one.
- */
-export function isPastDue(promise: Pick<CommitmentReadModel, "dueDate">, now: bigint): boolean {
-  const due = promise.dueDate;
-  return due !== null && due !== undefined && due !== 0n && now > due;
-}
-
 export function deriveCommitmentState(
   commitment: CommitmentReadModel,
   cycleState?: string | null

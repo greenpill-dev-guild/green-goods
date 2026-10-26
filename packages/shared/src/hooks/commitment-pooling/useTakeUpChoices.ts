@@ -29,8 +29,8 @@ import type {
 import { isOneTapTakeUp, oneTapAsks } from "../../modules/garden/journal";
 import type { Address } from "../../types/domain";
 import { useCommitmentMetadata } from "./useCommitmentMetadata";
-import { useExpiryClock } from "./useExpiryClock";
 import { useCommitmentPool, useCommitmentPools, useCommitments } from "./useCommitmentPooling";
+import { useDueClock } from "./useDueClock";
 import { useViewerTakeUps } from "./useViewerTakeUps";
 import { workLinkReturnTo } from "./useWorkLinkChoices";
 
@@ -109,8 +109,8 @@ export function useTakeUpChoices(input: {
   });
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
-  // Ticks when a listed ask passes its due second, so a lapsed one leaves Start's list.
-  const now = useExpiryClock({ commitments: listed });
+  // Ticks when a listed ask falls due, so a lapsed one leaves Start's list.
+  const due = useDueClock({ chainId, poolId: pool?.poolId ?? null, commitments: listed });
   const untitled = formatMessage({ id: "app.commitments.row.untitled" });
   const atLimit = isAtTakeUpLimit({
     direction: "REQUEST",
@@ -128,9 +128,11 @@ export function useTakeUpChoices(input: {
         returnGarden,
         title: byCID.get(commitment.metadataCID?.trim() ?? "")?.title?.trim() || untitled,
       });
-    // A pool that is not open takes nothing up, and neither does a reader at its limit or a
-    // phone whose queue cannot be read.
-    if (pool?.state !== "OPEN" || unavailable || atLimit) return { asks: [], choices: [] };
+    // A pool that is not open takes nothing up, and neither does a reader at its limit, a
+    // phone whose queue cannot be read, or an ask whose cycle's end is unread.
+    if (pool?.state !== "OPEN" || unavailable || atLimit || !due.known) {
+      return { asks: [], choices: [] };
+    }
     return {
       asks: oneTapAsks({
         commitments: listed,
@@ -138,11 +140,11 @@ export function useTakeUpChoices(input: {
         viewer: account,
         poolOpen: true,
         takeUps,
-        now,
+        clock: due.clock,
       }).map(shape),
       // Every copy of a set, so a link to any of them holds, whichever one Start lists.
       choices: listed
-        .filter((commitment) => isOneTapTakeUp(commitment, account, takeUps, now))
+        .filter((commitment) => isOneTapTakeUp(commitment, account, takeUps, due.clock))
         .flatMap((commitment) => shape(commitment).choices),
     };
   }, [
@@ -155,7 +157,8 @@ export function useTakeUpChoices(input: {
     listed,
     account,
     takeUps,
-    now,
+    due.known,
+    due.clock,
     byCID,
     untitled,
   ]);
@@ -166,12 +169,18 @@ export function useTakeUpChoices(input: {
     // The pool's limit is held for while it is read; one that cannot be read reads as room.
     isLoading:
       enabled &&
-      (pools.isLoading || (ownPool && (commitments.isLoading || poolDetail.isLoading || !settled))),
-    isError: pools.isError || commitments.isError || unavailable,
+      (pools.isLoading ||
+        (ownPool &&
+          (commitments.isLoading ||
+            poolDetail.isLoading ||
+            !settled ||
+            (!due.known && !due.isError)))),
+    isError: pools.isError || commitments.isError || unavailable || due.isError,
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();
       if (unavailable) retryTakeUps();
+      if (due.isError) due.retry();
     },
   };
 }

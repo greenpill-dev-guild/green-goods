@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePromiseGroupController } from "../../../hooks/client-ui/pool/usePromiseGroupController";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type {
+  CommitmentCycleRecord,
   CommitmentPoolRecord,
   CommitmentReadModel,
 } from "../../../modules/commitment-pooling/types-core";
@@ -20,6 +21,7 @@ import type { Address } from "../../../types/domain";
 import {
   commitmentDetailFixture,
   commitmentFixture,
+  cycleFixture,
   poolFixture,
 } from "../../test-utils/commitment-pooling-fixtures";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
@@ -51,6 +53,8 @@ const mocks = vi.hoisted(() => ({
   },
   commitments: [] as CommitmentReadModel[],
   refetchCommitments: vi.fn(),
+  /** The pool's cycles; undefined while unread. */
+  cycles: [] as CommitmentCycleRecord[] | undefined,
   memberHere: true,
   claimGardens: {
     member: [] as Array<{ address: Address; name: string }>,
@@ -87,6 +91,7 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
     refetch: mocks.refetchCommitments,
     availability: { status: "available" },
   }),
+  useCommitmentCycles: () => ({ data: mocks.cycles, isError: false, refetch: vi.fn() }),
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadata: () => ({
@@ -139,6 +144,7 @@ describe("usePromiseGroupController", () => {
     mocks.pools.pools = [poolFixture({ garden: ROUTE })];
     mocks.pools.isError = false;
     mocks.commitments = [copy(11), copy(12)];
+    mocks.cycles = [];
     mocks.memberHere = true;
     mocks.claimGardens = { member: [], stewarded: [] };
     mocks.limit = null;
@@ -177,6 +183,19 @@ describe("usePromiseGroupController", () => {
       gardenContext: ROUTE,
       gardenAddress: ROUTE,
     });
+  });
+
+  it("offers no copy of an undated set once its cycle has ended, or while that end is unread", async () => {
+    // Without due dates of their own, the copies fall due when their season ends.
+    mocks.cycles = undefined;
+    const { result, rerender } = render();
+    expect(result.current.bar?.hold).toBe("unknown");
+
+    mocks.cycles = [cycleFixture({ endTime: BigInt(Math.floor(Date.now() / 1000)) - 60n })];
+    rerender();
+    expect(result.current.bar?.hold).toBe("none");
+    await act(async () => result.current.takeUp.start());
+    expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 
   it("on the protocol pool, sends nothing until the person chooses who takes it up", async () => {

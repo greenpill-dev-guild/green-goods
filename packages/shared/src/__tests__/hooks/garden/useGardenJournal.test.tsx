@@ -11,7 +11,10 @@ import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTakeUpChoices } from "../../../hooks/commitment-pooling/useTakeUpChoices";
 import { useGardenOpenCycles, useGardenOpenPromises } from "../../../hooks/garden/useGardenJournal";
-import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types-core";
+import type {
+  CommitmentCycleRecord,
+  CommitmentReadModel,
+} from "../../../modules/commitment-pooling/types-core";
 import type { CommitmentPoolDetail } from "../../../modules/commitment-pooling/types-relations";
 import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
 import type { Address } from "../../../types/domain";
@@ -263,6 +266,33 @@ describe("useGardenJournal", () => {
       await waitFor(() => expect(ids(result)).toEqual({ takePart: [12n], highlights: 12n }));
     });
 
+    it("waits for the end of an undated ask's cycle, and leaves the ask out once it has passed", async () => {
+      const now = BigInt(Math.floor(Date.now() / 1000));
+      mocks.getCommitments.mockResolvedValue([
+        { ...ask(12, "OPEN"), cycleId: 5n },
+        { ...ask(11, "OPEN"), cycleId: 6n },
+      ]);
+      let readCycles: (cycles: CommitmentCycleRecord[]) => void = () => undefined;
+      mocks.getCommitmentCycles.mockReturnValue(
+        new Promise((resolve) => {
+          readCycles = resolve;
+        })
+      );
+
+      const { result } = renderHookWithProviders(() => useGardenOpenPromises(GARDEN));
+
+      await waitFor(() => expect(mocks.getCommitmentCycles).toHaveBeenCalled());
+      // Without due dates of their own they fall due when their cycles end, not yet read.
+      expect(result.current.state.status).toBe("loading");
+      act(() =>
+        readCycles([
+          cycleFixture({ cycleId: 5n, poolId: 7n, endTime: now - 60n }),
+          cycleFixture({ cycleId: 6n, poolId: 7n, endTime: now + 86_400n }),
+        ])
+      );
+      await waitFor(() => expect(ids(result)).toEqual({ takePart: [11n], highlights: 11n }));
+    });
+
     it("waits for the take-ups on this phone, and lists nothing it cannot check against them", async () => {
       mocks.getCommitments.mockResolvedValue([ask(11, "OPEN")]);
       let failQueue: (error: Error) => void = () => undefined;
@@ -333,6 +363,19 @@ describe("useGardenJournal", () => {
       await waitFor(() => expect(mocks.getCommitmentPoolDetail).toHaveBeenCalled());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
       // The registry would refuse the take-up, and the work composed for it would go nowhere.
+      expect(result.current.choices).toEqual([]);
+      expect(result.current.asks).toEqual([]);
+    });
+
+    it("offers none once the season of an ask without a due date has ended", async () => {
+      // The ask carries no due date of its own, so it falls due when its season ends.
+      mocks.getCommitmentCycles.mockResolvedValue([
+        cycleFixture({ poolId: 7n, endTime: BigInt(Math.floor(Date.now() / 1000)) - 60n }),
+      ]);
+      const { result } = choices();
+
+      await waitFor(() => expect(mocks.getCommitmentCycles).toHaveBeenCalled());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
       expect(result.current.choices).toEqual([]);
       expect(result.current.asks).toEqual([]);
     });

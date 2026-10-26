@@ -25,8 +25,9 @@
 
 import type { Address } from "../../types/domain";
 import type { DisplayEntry, DisplayGroupEntry } from "./display-groups";
+import { type DueClock, isPastDue } from "./due-dates";
 import { selectSeedTrayRoom } from "./seed-tray";
-import { isCommitmentCreator, isPastDue, isSameAccount } from "./selectors";
+import { isCommitmentCreator, isSameAccount } from "./selectors";
 import type { CommitmentProviderExposureRecord, CommitmentReadModel } from "./types-core";
 
 /** What choosing a copy reads from each one. */
@@ -36,6 +37,7 @@ export type GroupCopy = Pick<
   | "onchainState"
   | "derivedState"
   | "dueDate"
+  | "cycleId"
   | "creator"
   | "leadProvider"
   | "counterparty"
@@ -46,14 +48,14 @@ export type GroupCopy = Pick<
 const OPEN = new Set<string>(["OFFERED", "REQUESTED"]);
 
 /**
- * Whether anyone could take this copy up now: published, untaken, not ended, and not past its
- * due date, so a promise the chain would let anyone expire is offered for take-up nowhere.
+ * Whether anyone could take this copy up now: published, untaken, not ended, and not past due
+ * (`isPastDue`), so a promise the chain would let anyone expire is offered for take-up nowhere.
  */
 export function isOpenToTakeUp(
-  copy: Pick<GroupCopy, "onchainState" | "derivedState" | "dueDate">,
-  now: bigint
+  copy: Pick<GroupCopy, "onchainState" | "derivedState" | "dueDate" | "cycleId">,
+  clock: DueClock
 ): boolean {
-  return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState) && !isPastDue(copy, now);
+  return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState) && !isPastDue(copy, clock);
 }
 
 /**
@@ -75,14 +77,14 @@ export interface CopyChoiceInput {
   askedFor: ReadonlySet<string>;
   /** Copies to pass over: one just found taken, or one already on its way from this phone. */
   skip?: ReadonlySet<string>;
-  /** The chain's clock, in Unix seconds: a copy past its due date is never chosen. */
-  now: bigint;
+  /** The chain's clock and the pool's cycle ends: a copy past due is never chosen. */
+  clock: DueClock;
 }
 
 /** Whether one press may choose this copy, read against the latest facts about it. */
 export function canChooseCopy(copy: GroupCopy, input: CopyChoiceInput): boolean {
   const id = copy.commitmentId.toString();
-  if (!isOpenToTakeUp(copy, input.now) || input.skip?.has(id)) return false;
+  if (!isOpenToTakeUp(copy, input.clock) || input.skip?.has(id)) return false;
   if (input.viewer && isCommitmentCreator({ commitment: copy, viewer: input.viewer })) return false;
   return copy.claimMode !== "APPROVAL_GATED" || !input.askedFor.has(id);
 }
