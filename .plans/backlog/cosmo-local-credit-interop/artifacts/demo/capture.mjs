@@ -897,49 +897,80 @@ if (problems.length) {
 // instead of reverting it. The staged index.html lives in this run's own staging folder, and the
 // backup of the screens being replaced lives until the staged file has taken the old one's place,
 // so a failure at any point puts the old screens back and leaves the old index.html.
+// The lock names its owner, so a lock left by a run that died or was stopped is recognized (its
+// process is gone, or it is older than ten minutes) and taken over, while a live publisher is
+// respected; the lock is released on every path out of the publication.
 const lock = join(out, ".publish-lock");
-try { mkdirSync(lock); } catch (error) {
+const takeLock = () => {
+  try { mkdirSync(lock); } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+    let owner = null;
+    try { owner = JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")); } catch {}
+    const alive = owner?.pid ? (() => { try { process.kill(owner.pid, 0); return true; } catch (e) { return e.code === "EPERM"; } })() : false;
+    if (owner && alive && Date.now() - owner.at < 10 * 60 * 1000) throw new Error(`another capture is publishing (${lock}, process ${owner.pid} since ${new Date(owner.at).toISOString()}); nothing was replaced and index.html is untouched`);
+    console.log(`taking over a stale publication lock${owner ? ` left by process ${owner.pid}` : ""}`);
+    rmSync(lock, { recursive: true, force: true });
+    mkdirSync(lock);
+  }
+  writeFileSync(join(lock, "owner.json"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+};
+try { takeLock(); } catch (error) {
   rmSync(staging, { recursive: true, force: true });
-  throw new Error(`${error.code === "EEXIST" ? "another capture is publishing (" + lock + " exists)" : error.message}; nothing was replaced and index.html is untouched`);
+  throw error;
 }
-const current = readFileSync(htmlPath, "utf8");
-const currentBlock = current.match(/<script type="application\/json" id="flows">([\s\S]*?)<\/script>/);
-const currentData = JSON.parse(currentBlock[1]);
-for (const s of currentData.flows.flatMap((flow) => flow.screens)) {
-  const r = results.get(s.file);
-  if (!r) continue;
-  s.story = r.story;
-  s.size = [r.width, r.height];
-  if (r.hotspot) s.hotspot = r.hotspot; else delete s.hotspot;
-}
-const json = JSON.stringify(currentData, null, 2).replace(/<\//g, "<\\/");
-const stagedHtml = join(staging, "index.html.staged");
-writeFileSync(stagedHtml, current.replace(currentBlock[0], `<script type="application/json" id="flows">\n${json}\n</script>`));
-const backup = mkdtempSync(join(out, ".previous-"));
-const names = readdirSync(staging).filter((name) => name !== "index.html.staged");
-// The backup completes before any screen is touched: a copy that fails leaves the set as it was.
+// A partial run that could not validate shared swap rules leaves a marker beside the screens;
+// build.mjs and check.mjs refuse it, and only a full capture that finishes clean removes it.
+const partialMarker = join(out, ".partial-capture.json");
 try {
-  for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
-} catch (error) {
-  for (const dir of [staging, backup, lock]) rmSync(dir, { recursive: true, force: true });
-  throw new Error(`${error.message}; nothing was replaced and index.html is untouched`);
+  const current = readFileSync(htmlPath, "utf8");
+  const currentBlock = current.match(/<script type="application\/json" id="flows">([\s\S]*?)<\/script>/);
+  const currentData = JSON.parse(currentBlock[1]);
+  for (const s of currentData.flows.flatMap((flow) => flow.screens)) {
+    const r = results.get(s.file);
+    if (!r) continue;
+    s.story = r.story;
+    s.size = [r.width, r.height];
+    if (r.hotspot) s.hotspot = r.hotspot; else delete s.hotspot;
+  }
+  const json = JSON.stringify(currentData, null, 2).replace(/<\//g, "<\\/");
+  const stagedHtml = join(staging, "index.html.staged");
+  writeFileSync(stagedHtml, current.replace(currentBlock[0], `<script type="application/json" id="flows">\n${json}\n</script>`));
+  const backup = mkdtempSync(join(out, ".previous-"));
+  const names = readdirSync(staging).filter((name) => name !== "index.html.staged");
+  // The backup completes before any screen is touched: a copy that fails leaves the set as it was.
+  try {
+    for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+  } catch (error) {
+    for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+    throw new Error(`${error.message}; nothing was replaced and index.html is untouched`);
+  }
+  // Only the names that were promoted are rolled back, each on its own, so one that cannot be
+  // removed never stops the rest from being restored; a screen captured for the first time has no
+  // backup, so every promoted name goes first, or a new screen could outlive the rollback.
+  const promoted = [];
+  try {
+    for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); }
+    renameSync(stagedHtml, htmlPath);
+  } catch (error) {
+    // A restore that fails keeps the backup folder and names it, so the last good screens are never lost.
+    const unrestored = [];
+    for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch { unrestored.push(name); } }
+    for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch { unrestored.push(name); } }
+    rmSync(staging, { recursive: true, force: true });
+    if (unrestored.length) throw new Error(`${error.message}; the rollback could not restore ${[...new Set(unrestored)].join(", ")}, so the backup is kept at ${backup}; index.html is untouched`);
+    rmSync(backup, { recursive: true, force: true });
+    throw new Error(`${error.message}; the previous screens were put back and index.html is untouched`);
+  }
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  if (unvalidated.length) {
+    writeFileSync(partialMarker, JSON.stringify({ at: new Date().toISOString(), sessions: only, unvalidated }, null, 2));
+    console.log(`captured ${results.size} screens into ${out}; ${partialMarker} blocks build.mjs until a full capture finishes clean`);
+  } else if (!only.length) {
+    rmSync(partialMarker, { force: true });
+    console.log(`captured ${results.size} screens into ${out}; 0 problems`);
+  } else {
+    console.log(`captured ${results.size} screens into ${out}; 0 problems${existsSync(partialMarker) ? ` (an earlier partial capture's marker still blocks build.mjs until a full capture finishes clean)` : ""}`);
+  }
+} finally {
+  rmSync(lock, { recursive: true, force: true });
 }
-// Only the names that were promoted are rolled back, each on its own, so one that cannot be
-// removed never stops the rest from being restored; a screen captured for the first time has no
-// backup, so every promoted name goes first, or a new screen could outlive the rollback.
-const promoted = [];
-try {
-  for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); }
-  renameSync(stagedHtml, htmlPath);
-} catch (error) {
-  // A restore that fails keeps the backup folder and names it, so the last good screens are never lost.
-  const unrestored = [];
-  for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch { unrestored.push(name); } }
-  for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch { unrestored.push(name); } }
-  for (const dir of [staging, lock]) rmSync(dir, { recursive: true, force: true });
-  if (unrestored.length) throw new Error(`${error.message}; the rollback could not restore ${[...new Set(unrestored)].join(", ")}, so the backup is kept at ${backup}; index.html is untouched`);
-  rmSync(backup, { recursive: true, force: true });
-  throw new Error(`${error.message}; the previous screens were put back and index.html is untouched`);
-}
-for (const dir of [staging, backup, lock]) rmSync(dir, { recursive: true, force: true });
-console.log(`captured ${results.size} screens into ${out}; 0 problems`);

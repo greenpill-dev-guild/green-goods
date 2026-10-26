@@ -37,6 +37,9 @@ const screens = flows.flatMap((f) => f.screens);
 // Source checks.
 const newest = Math.max(statSync(join(here, "index.html")).mtimeMs, ...screens.map((s) => statSync(join(here, "assets", "screens", `${s.file}.jpg`)).mtimeMs));
 if (statSync(built).mtimeMs < newest) note("the build is older than index.html or a screen; run build.mjs");
+// A partial capture that could not validate shared swap rules leaves this marker until a full
+// capture finishes clean; a build made in between may show fixture copy.
+if (existsSync(join(here, "assets", "screens", ".partial-capture.json"))) note("the last capture was partial and left shared swap rules unvalidated; run a full capture.mjs, then build.mjs");
 if (statSync(built).size > 15 * 1024 * 1024) note(`the build is ${(statSync(built).size / 1048576).toFixed(1)} MB, over 15 MB`);
 const prose = [built, join(here, "index.html"), ...readdirSync(here).filter((f) => f.endsWith(".md")).map((f) => join(here, f))];
 for (const file of prose) if (/—/.test(readFileSync(file, "utf8"))) note(`an em dash (U+2014) is in ${file.replace(`${here}/`, "")}`);

@@ -74,8 +74,11 @@ node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/check.mjs
 
 `capture.mjs --only=work-app,promise-4` re-runs single sessions (session ids are in `SESSIONS`); an
 unknown id stops the run before anything is captured, and swap rules shared with sessions outside
-`--only` are reported as not validated rather than passed; a session drawn over a selected session's
-screen is recaptured with it, so a composite never outlives its base. `--debug` prints each screen's
+`--only` are reported as not validated rather than passed, and the run then leaves
+`assets/screens/.partial-capture.json`, which makes `build.mjs` and `check.mjs` refuse until a full
+capture finishes clean; a session drawn over a selected session's screen is recaptured with it, so a
+composite never outlives its base. The publication lock names its owning process, and a lock left by
+a run that died is taken over. `--debug` prints each screen's
 text. A composite needs the App screen under it captured first. Screens are staged and replace the current
 set only when the run has no problem, so a failed capture leaves the existing screens and
 `index.html` untouched. A capture fails when a step fails; when any swap rule, shared ones

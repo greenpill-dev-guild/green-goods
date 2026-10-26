@@ -26,6 +26,14 @@ for (const screen of flows.flatMap((f) => f.screens)) {
   if (!existsSync(path)) { problems.push(`missing ${path}; run capture.mjs`); continue; }
   images[screen.file] = `data:image/jpeg;base64,${readFileSync(path).toString("base64")}`;
 }
+// A partial capture that could not validate shared swap rules leaves this marker; only a full
+// capture that finishes clean removes it, and until then the screens may show fixture copy.
+const partialMarker = join(here, "assets", "screens", ".partial-capture.json");
+if (existsSync(partialMarker)) {
+  let marker = null;
+  try { marker = JSON.parse(readFileSync(partialMarker, "utf8")); } catch {}
+  problems.push(`the last capture was partial (${marker?.sessions?.join(", ") || "unknown sessions"}, ${marker?.at || "unknown time"}) and left ${marker?.unvalidated?.length ?? "some"} shared swap rule(s) unvalidated; run a full capture.mjs before building`);
+}
 const symbolPath = join(here, "..", "deck", "assets", "brand", "green-goods-symbol.svg");
 const symbol = `data:image/svg+xml;base64,${readFileSync(symbolPath).toString("base64")}`;
 html = html.replaceAll('src="../deck/assets/brand/green-goods-symbol.svg"', `src="${symbol}"`);
