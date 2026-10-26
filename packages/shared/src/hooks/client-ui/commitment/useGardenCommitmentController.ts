@@ -15,6 +15,7 @@ import {
   canLinkWork,
   selectCommitmentActKind,
 } from "../../../modules/commitment-pooling/acts";
+import { isPastDue } from "../../../modules/commitment-pooling/due-dates";
 import { isCommitmentReasonPinError } from "../../../modules/commitment-pooling/reasons";
 import {
   isCommitmentCreator,
@@ -343,7 +344,10 @@ export function useGardenCommitmentController(input: {
         !pending &&
         !queueState.isUnavailable &&
         // Every take-up entry point honours the members-only rule, asking again included.
-        canClaimHere === true
+        canClaimHere === true &&
+        // Asking again is a take-up: never past due, and not before the due date is known.
+        due.known &&
+        !isPastDue(commitment, due.clock)
     ),
     claimNeedsContext: isProtocolPool,
     membership,
