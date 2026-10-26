@@ -115,6 +115,7 @@ export function storyPoolConsole(
     compostCycle: noop,
     expire: noop,
     acceptClaim: noop,
+    acceptServiceClaim: noop,
     declineClaim: noop,
     retryQueued: async () => undefined,
     discardQueued: async () => undefined,
