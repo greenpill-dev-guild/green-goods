@@ -46,6 +46,8 @@ const mockDiscardJob = vi.fn();
 const mockJoinGarden = vi.fn();
 const mockUseServiceAccess = vi.fn();
 const mockServiceMutation = vi.fn();
+const mockVoucherWallet = vi.fn();
+const mockIssuerApproval = vi.fn();
 const mockActs = {
   claim: vi.fn(),
   claimPersonal: vi.fn(),
@@ -126,11 +128,19 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentReason: (...args: unknown[]) => mockReason(...args),
   useServiceAccess: (...args: unknown[]) => mockUseServiceAccess(...args),
   useServiceAccessMutation: () => ({ mutateAsync: mockServiceMutation, isPending: false }),
+  useVoucherWallet: (...args: unknown[]) => mockVoucherWallet(...args),
+  useVoucherIssuerApproval: (...args: unknown[]) => mockIssuerApproval(...args),
 }));
 
 const { GardenCommitment } = await import("../../views/Home/Garden/Commitment");
 const { serviceAccessStorySnapshot } = await import(
   "../../views/Home/Garden/Commitment/serviceAccessStoryFixtures"
+);
+const { bookingStorySnapshot, bookingStoryWallet } = await import(
+  "../../../../shared/.storybook/voucherBookingFixtures"
+);
+const { VOUCHER_STORY_APPROVALS } = await import(
+  "../../../../shared/.storybook/voucherPilotFixtures"
 );
 
 function commitment(overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel {
@@ -332,6 +342,8 @@ beforeEach(() => {
     error: null,
     refetch: vi.fn(),
   });
+  mockVoucherWallet.mockReturnValue({ data: undefined });
+  mockIssuerApproval.mockReturnValue({ data: undefined });
   window.localStorage.clear();
   for (const operation of Object.values(mockActs)) operation.mockResolvedValue("0x123");
   mockReason.mockReturnValue({ reason: null, isLoading: false, isUnavailable: false });
@@ -386,6 +398,46 @@ describe("GardenCommitment", () => {
       expect(screen.queryByRole("button", { name: "Ask to take this up" })).not.toBeInTheDocument();
       expect(screen.getByText("Earned voucher consent")).toBeInTheDocument();
     }
+  });
+
+  it("draws a voucher booking as a section card whose acts sit only in the action bar", async () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        seat: "bystander",
+        detail: detail({
+          commitment: { onchainState: "OFFERED", derivedState: "OFFERED", creator: OTHER },
+        }),
+      })
+    );
+    const snapshot = bookingStorySnapshot("hubDay", "readyToDeposit");
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    mockServiceMutation.mockResolvedValue({
+      kind: "local-rehearsal",
+      observationId: "x",
+      snapshot,
+    });
+    mockVoucherWallet.mockReturnValue({
+      data: bookingStoryWallet(snapshot, { techAndSun: 9, greenGoods: 0 }),
+    });
+    mockIssuerApproval.mockReturnValue({ data: VOUCHER_STORY_APPROVALS.techAndSunBootstrap });
+    render();
+    const section = screen.getByRole("region", { name: "Service Access" });
+    expect(within(section).queryAllByRole("button")).toEqual([]);
+    expect(
+      within(section).getByText("1 Tech and Sun voucher, still in your account")
+    ).toBeVisible();
+    expect(screen.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
+      "Tech and Sun approved. Deposit your voucher into the escrow for this booking."
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancel Booking" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "abortVoucherSetup",
+        setupId: snapshot.currentVoucherSetupId,
+      })
+    );
+    expect(screen.getByRole("button", { name: "Deposit 1 Voucher" })).toBeInTheDocument();
   });
 
   it("uses the service boundary for known incomplete opt-in instead of generic claim and acceptance", () => {
