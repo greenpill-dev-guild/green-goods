@@ -1090,6 +1090,12 @@ function printPlan(plan, host = liveHost()) {
   for (const skipped of plan.skipped ?? []) {
     console.log(`  - ${skipped.id} (skipped by compatibility filter)`);
   }
+  // A push leaves builds, the Storybook build, the browser presets and whole suites to PR CI.
+  for (const owned of plan.ciOwned ?? []) {
+    console.log(
+      `  - ${owned.id} (${owned.workflow ? `left to the ${owned.workflow} workflow` : "not run: the Shared build is a no-op"})`,
+    );
+  }
 }
 
 function reportGitFixtureLeak({ problems, repairs }, consequence) {

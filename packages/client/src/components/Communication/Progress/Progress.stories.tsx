@@ -4,8 +4,8 @@ import pt from "@green-goods/shared/i18n/pt";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider, useIntl } from "react-intl";
 import { expect, fn, within } from "storybook/test";
-import { withAppPage } from "../../../../../shared/.storybook/decorators";
 import { TopNav } from "@/components/Navigation";
+import { withAppPage } from "../../../../../shared/.storybook/decorators";
 import { OfflineIndicator } from "../Offline/OfflineIndicator";
 import { FormProgress } from "./Progress";
 
@@ -55,7 +55,7 @@ const FLOW_STEPS = {
     "app.work.step.details",
     "app.work.step.review",
   ],
-  proof: ["app.proof.beat.media", "app.proof.beat.details", "app.compose.beat.review"],
+  proof: ["app.work.step.media", "app.work.step.details", "app.work.step.review"],
   compose: [
     "app.compose.beat.what",
     "app.compose.beat.howMuch",

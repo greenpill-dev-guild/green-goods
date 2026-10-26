@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-19T22:46:56.155Z",
-    "updated_at": "2026-10-25T11:20:00Z"
+    "updated_at": "2026-10-26T01:10:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -35,6 +35,8 @@
     "depends_on_features": []
   },
   "notes": [
+    "2026-10-26 #1308 (D15) merged at 02:22Z as 6be990807. Codex's review of its final head raised three findings (Indexer consumer and manual-owner typecheck, review-intent guidance); all are fixed in the thin-gate PR.",
+    "2026-10-26 D16: a push is a thin pre-check. Builds, the Storybook build, the browser presets and whole package suites leave the push for the PR workflow that runs them, only where that workflow is expected; a check without a PR CI lane stays local. A cheap whole suite no longer counts as proof on push; react-patterns runs on push. Checkpoint and the strict intents are unchanged (all 60 compared plans match develop); policy version 4. Implemented after #1308; see reports/2026-10-26-thin-push-gate.md.",
     "2026-10-25 D15: a Shared critical push or qa run keeps the owner typecheck and focused suite plus every consumer source and test typecheck; CI owns the consumer suites and builds. Measured from 6,085 passing receipts: the critical tier was 25% of push runs and 81% of local gate time (median 12 min, 31 checks). Checkpoint, ship, readiness, merge and release unchanged; contracts override and browser presets unchanged; critical stays uncapped; policy version 3. Implemented uncommitted in a worktree; publication pending Afo's call. See reports/2026-10-25-critical-push-override.md.",
     "2026-10-15 PRD-1158 all R01-R62 implemented, including bounded final R60 closure. Against integrated develop 98e4eb7: test/support 372,982 to 360,665 lines (net -12,317; expanded phase -12,052), 21 test and 12 support files removed, zero new executable files; binary removal separately 1,044,480 bytes. Comparable cleanup coverage passes all four packages without aggregate drops; old-emulator COUNT fallback is qualified. All 31 runtime faults detected/restored; source/test typechecks and independent reviews pass. Four contract gates and fresh merged-state 13-file seam proof pass; strict browser matrix passes 36 executed cases plus two unchanged conditional Client skips, with zero retries/flaky results. The final committed 37-check critical Push Gate, normal push and exact-head CI remain pending at this checkpoint; live PR1102/final handoff own subsequent publication state. Preserve all other hub lanes/history/receipts; no merge to develop, deployment or Linear write.",
     "2026-10-15 PRD-1158 expanded implementation authorized on existing draft PR1102: all R01-R62 selected including qualified SQL/reentrancy repairs; before inventory372400 test/support lines. Batches in progress; unchanged Shared control exposed a timer-drain timeout (13 owning tests pass after narrow deterministic repair), Agent control exposed missing installed dependencies (user approved frozen-lockfile restore; no manifest/lockfile change). Pinned contract submodules initialized. Coverage retries, final proof, reduction accounting, push and exact-head CI pending. Preserve all canonical lanes/history/receipts; no merge, deploy or Linear write.",

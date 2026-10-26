@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "toolchain": {
     "bun": "1.4.2",
     "node": "22.22.1",
@@ -850,6 +850,32 @@
         "packages/client/src/views/Home/Garden/Work",
         "packages/shared/src/hooks/client-ui/work/"
       ]
+    },
+    {
+      "check": "react-patterns",
+      "intents": ["push"],
+      "note": "CI Gate runs these package-boundary and source-pattern rules on every pull request; a push runs them first, over the source and manifests they read (D16, 2026-10-26). The walk skips test directories.",
+      "excludeTests": true,
+      "exact": [
+        "packages/shared/package.json",
+        "packages/client/package.json",
+        "packages/admin/package.json",
+        "packages/agent/package.json",
+        "packages/indexer/package.json",
+        "packages/contracts/package.json",
+        "packages/extension/package.json",
+        "packages/qa/package.json",
+        "scripts/quality/check-react-patterns.js",
+        "scripts/quality/data/lint-rules-baseline.json"
+      ],
+      "prefixes": [
+        "packages/shared/src/",
+        "packages/client/src/",
+        "packages/admin/src/",
+        "packages/agent/src/",
+        "packages/indexer/src/",
+        "packages/extension/src/"
+      ]
     }
   ],
   "checks": [
@@ -1588,7 +1614,7 @@
       "risk": "Independently selectable repository verification must retain its behavior.",
       "expectedSignal": "react-patterns completes successfully",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 60,
+      "budgetSeconds": 10,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -1661,6 +1687,7 @@
         "packages/shared/src/modules/work/",
         "packages/shared/src/workflows/",
         "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/client-ui/submission/",
         "packages/shared/src/hooks/work/",
         "packages/shared/src/hooks/vault/"
       ],
