@@ -268,6 +268,8 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     isLoading: isOnline && online.isLoading && !hasRows,
     /** This phone's queue has not been read yet; only with `includeOffline`. */
     isLoadingQueued: includeOffline && local.isLoading,
+    /** This phone's queue could not be read, so queued work may be missing; only with `includeOffline`. */
+    isErrorQueued: includeOffline && local.isError,
     isFetching: isOnline && online.isFetching,
     isPaused: !isOnline || online.isPaused,
     availability:

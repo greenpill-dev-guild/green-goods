@@ -96,6 +96,53 @@ vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+// The active garden's own rule over the member's gardens: garden A is active, B is another of
+// theirs, which its Your Work lists once the chip switches there.
+const activeGarden = vi.hoisted(() => ({
+  selectGarden: vi.fn(),
+  /** Where the read of the member's gardens stands. */
+  gardens: "loaded" as "loading" | "loaded" | "failed",
+}));
+vi.mock("../../hooks/garden/useActiveGarden", async () => {
+  const { isInGardenListScope } = await vi.importActual<
+    typeof import("../../modules/garden/active-garden")
+  >("../../modules/garden/active-garden");
+  const gardens = [
+    { id: "0xgardena", name: "TAS HUB" },
+    { id: "0xgardenb", name: "Vida Verde" },
+  ];
+  return {
+    useActiveGarden: () => {
+      const isLoaded = activeGarden.gardens === "loaded";
+      return {
+        status: "ready",
+        gardenId: "0xgardena",
+        inScope: (named: readonly (string | null | undefined)[]) =>
+          isInGardenListScope(
+            {
+              activeGardenId: "0xgardena",
+              memberGardenIds: isLoaded ? new Set(gardens.map(({ id }) => id)) : null,
+            },
+            named
+          ),
+        myGardens: {
+          gardens: isLoaded
+            ? gardens.map((garden) => ({
+                garden,
+                membership: { roles: ["gardener"], pendingJoin: false },
+              }))
+            : [],
+          isLoaded,
+          isError: activeGarden.gardens === "failed",
+          isStale: false,
+          refetch: vi.fn(),
+        },
+        selectGarden: activeGarden.selectGarden,
+      };
+    },
+  };
+});
+
 import { useQueueConfirmationSync } from "../../hooks/work/useQueueConfirmationSync";
 import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/job-types";
 import { queryKeys } from "../../config/query-keys";
@@ -106,7 +153,6 @@ import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUser } from "../../hooks/auth/useUser";
 import { useTransactionSender } from "../../hooks/blockchain/useTransactionSender";
 import { connectivityStore } from "../../stores/connectivity";
-import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
 import { createFakeJobQueueHandle } from "../test-utils/job-queue-fakes";
 import { queuedTakeUpChain } from "../test-utils/queued-jobs";
 import type { JobQueueHandle } from "../../modules/job-queue";
@@ -123,7 +169,11 @@ const mockUseTransactionSender = useTransactionSender as ReturnType<typeof vi.fn
 describe("providers/JobQueueProvider", () => {
   let queryClient: QueryClient;
 
-  const createWrapper = (queue: JobQueueHandle = mockJobQueue) => {
+  // TEST-QUALITY: allow-local-query-setup - the provider under test takes its own queue and switcher props, which the shared render helpers cannot pass.
+  const createWrapper = (
+    queue: JobQueueHandle = mockJobQueue,
+    onOpenGardenSwitcher?: () => void
+  ) => {
     return ({ children }: { children: ReactNode }) =>
       createElement(
         IntlProvider,
@@ -131,7 +181,7 @@ describe("providers/JobQueueProvider", () => {
         createElement(
           QueryClientProvider,
           { client: queryClient },
-          createElement(JobQueueProvider, { queue, children })
+          createElement(JobQueueProvider, { queue, onOpenGardenSwitcher, children })
         )
       );
   };
@@ -141,6 +191,7 @@ describe("providers/JobQueueProvider", () => {
       defaultOptions: { queries: { retry: false } },
     });
     vi.clearAllMocks();
+    activeGarden.gardens = "loaded";
 
     // Reset mock implementations
     mockUseAuth.mockReturnValue({ authMode: "passkey", walletAddress: null });
@@ -384,35 +435,83 @@ describe("providers/JobQueueProvider", () => {
       );
     });
 
-    it("reports a failed upload in any garden, not only the one the chip has chosen", async () => {
+    // An upload that failed in a garden, as the queue reports it.
+    const failed = (kind: "work" | "approval", gardenAddress: string): QueueEvent => ({
+      type: "job_failed",
+      jobId: `${kind}-in-${gardenAddress}`,
+      job: {
+        id: `${kind}-in-${gardenAddress}`,
+        kind,
+        chainId: 11155111,
+        payload: { actionUID: 1, gardenAddress, feedback: "" },
+        createdAt: Date.now(),
+        attempts: 3,
+        synced: false,
+        userAddress: "0xSmartAccount",
+      } as Job,
+      error: "network",
+    });
+    /** Listens to the provider's queue subscription; the result raises an event to it. */
+    const listen = () => {
       const subscribedHandlers = new Set<(event: QueueEvent) => void>();
       mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
         subscribedHandlers.add(handler);
         return () => subscribedHandlers.delete(handler);
       });
-      // The sheets and badges show garden A (DL-129); the upload that failed was for garden B.
-      useActiveGardenStore.getState().rememberGarden("11155111:0xsmartaccount", "0xgardena");
-      const work = {
-        id: "work-in-b",
-        kind: "work",
-        chainId: 11155111,
-        payload: { actionUID: 1, gardenAddress: "0xgardenb", feedback: "" },
-        createdAt: Date.now(),
-        attempts: 3,
-        synced: false,
-        userAddress: "0xSmartAccount",
-      } as Job;
-      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+      return (event: QueueEvent) =>
+        act(async () => {
+          subscribedHandlers.forEach((handler) => handler(event));
+          await Promise.resolve();
+        });
+    };
 
-      await act(async () => {
-        subscribedHandlers.forEach((handler) =>
-          handler({ type: "job_failed", jobId: work.id, job: work, error: "network" })
-        );
-        await Promise.resolve();
+    it("names the other garden a failed upload waits in, and its action opens the switcher without switching", async () => {
+      const emit = listen();
+      const onOpenGardenSwitcher = vi.fn();
+      renderHook(() => useJobQueue(), {
+        wrapper: createWrapper(mockJobQueue, onOpenGardenSwitcher),
       });
 
-      expect(queueToasts.jobFailed).toHaveBeenCalledWith("work", "network");
-      useActiveGardenStore.setState({ gardenIdsByScope: {} });
+      // Garden B's Your Work lists it, which the chip shows only once it switches there.
+      await emit(failed("work", "0xgardenb"));
+      expect(queueToasts.jobFailed).toHaveBeenLastCalledWith("work", "network", {
+        gardenName: "Vida Verde",
+        openSwitcher: expect.any(Function),
+      });
+      queueToasts.jobFailed.mock.lastCall?.[2]?.openSwitcher();
+      expect(onOpenGardenSwitcher).toHaveBeenCalledOnce();
+      expect(activeGarden.selectGarden).not.toHaveBeenCalled();
+
+      await emit(failed("approval", "0xgardenb"));
+      expect(queueToasts.jobFailed.mock.lastCall?.slice(0, 2)).toEqual(["approval", "network"]);
+      expect(queueToasts.jobFailed.mock.lastCall?.[2]?.gardenName).toBe("Vida Verde");
+
+      // The active garden's Your Work lists it already: today's toast stands.
+      await emit(failed("work", "0xgardena"));
+      expect(queueToasts.jobFailed.mock.lastCall).toEqual(["work", "network", undefined]);
+    });
+
+    it.each([
+      [
+        "load, naming its garden",
+        "loaded",
+        { gardenName: "Vida Verde", openSwitcher: expect.any(Function) },
+      ],
+      ["fail to load, as today's toast", "failed", undefined],
+    ] as const)("holds a failure outside the active garden until the member's gardens %s", async (_, gardens, elsewhere) => {
+      const emit = listen();
+      activeGarden.gardens = "loading";
+      const { rerender } = renderHook(() => useJobQueue(), {
+        wrapper: createWrapper(mockJobQueue, vi.fn()),
+      });
+
+      await emit(failed("work", "0xgardenb"));
+      expect(queueToasts.jobFailed).not.toHaveBeenCalled();
+
+      activeGarden.gardens = gardens;
+      rerender();
+      expect(queueToasts.jobFailed).toHaveBeenCalledOnce();
+      expect(queueToasts.jobFailed).toHaveBeenLastCalledWith("work", "network", elsewhere);
     });
 
     it("names the take-up or the link when either stage of a chain gives up (decision 18)", async () => {

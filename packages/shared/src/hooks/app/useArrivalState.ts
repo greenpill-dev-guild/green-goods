@@ -1,169 +1,52 @@
 import { useMemo } from "react";
+import { jobQueueDB } from "../../modules/job-queue/db";
+import {
+  isUploadOnPhone,
+  orientUploads,
+  type UploadOrientation,
+  uploadGarden,
+} from "../../modules/work/your-work-on-phone";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
-import { useMyGardens } from "../garden/useMyGardens";
-import { useDrafts } from "../work/useDrafts";
-import { usePendingReviewCount } from "../work/usePendingReviewCount";
-import { useQueueStatistics } from "../work/useWorks";
+import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useActiveGarden } from "../garden/useActiveGarden";
+import { useLiveQuery } from "../utils/useLiveQuery";
 
 /**
- * The single orientation the arrival system surfaces after the user lands on Home.
- * `none` means we are not yet confident enough to assert anything — show nothing.
- *
- * Note: there is intentionally no "in review" kind for the user's OWN work. It is computable
- * (useMyWorks + per-garden approvals), but the toast's one action would point at things the
- * user cannot act on — the Work Dashboard's Pending · My Submissions already carries it.
- * (The older reason — the job queue's `synced` count being transient — still holds for
- * queue-based detection; see modules/job-queue/index.ts.)
- *
- * Tenure (first-time vs returning) is deliberately NOT an axis: no global signal exists
- * (a localStorage marker only proves "first time on this device"), and every cell where
- * tenure would change the message resolves to the same best action. Copy stays tenure-neutral.
- *
- * Reviewer scope: `review`/`stewardClear` sense steward gardens only. Evaluator gardens
- * would need the on-chain isEvaluator multicall, whose failure mode is a silent empty
- * array — indistinguishable from "not an evaluator" — so it cannot honestly gate a claim.
- * `stewardClear` copy must therefore scope its claim to "your gardens".
+ * The orientation the arrival toast gives a session that opens on Home: uploads still on this
+ * phone, work, reviews or proof that are queued or failed, and where they are listed. Home's chip
+ * and Continue show the member's garden and drafts, so the toast says nothing else (PWA Home step
+ * 12). `pending` means it can't say yet: the queue has not answered, or an upload outside the
+ * active garden can't be placed until the member's gardens are known. `none` means nothing waits,
+ * so the arrival passes without a toast.
  */
-export type ArrivalKind =
-  | "queue"
-  | "draft"
-  | "review"
-  | "stewardClear"
-  | "gardener"
-  | "signedIn"
-  | "none";
+export type ArrivalState =
+  | { kind: "pending" }
+  | { kind: "none" }
+  | { kind: "queue"; orientation: UploadOrientation };
 
-/**
- * Per-source readiness + signal. `ready` is the source's confidence (settled / success), kept
- * separate from the signal so the resolver can demand different confidence per priority.
- *
- * `queue` is derived from the local job queue (offline-safe IndexedDB): unsynced or failed work
- * waiting to reach the chain. `review` is network-backed (EAS works + approvals) and its
- * readiness gates ONLY the steward branch — gardeners and roleless users never wait on it.
- */
-export interface ArrivalInputs {
-  queue: { ready: boolean; hasPendingOrFailed: boolean };
-  drafts: { ready: boolean; hasDraft: boolean };
-  gardens: { ready: boolean; isSteward: boolean; isGardener: boolean };
-  review: { ready: boolean; needsReviewCount: number };
-}
+const PENDING: ArrivalState = { kind: "pending" };
+const NOTHING_WAITS: ArrivalState = { kind: "none" };
 
-/**
- * Resolve the single most useful arrival orientation from per-source readiness + signals.
- *
- * Priorities are processed TOP-DOWN, and an unready source short-circuits to `none` rather than
- * falling through. We cannot truthfully assert a lower-priority orientation while a higher-priority
- * source is still loading or errored — that lower toast might have been preempted once the higher
- * source resolves (e.g. show "draft" then discover failed-sync work). Staying silent until each
- * higher source is ready removes that priority inversion.
- *
- * Ordering is local truth above network truth: the offline-safe IndexedDB sources (queue, drafts)
- * must stay above anything network-backed, or offline users would lose those toasts to the
- * silence discipline. That is also why `review` sits below `draft` — a steward with both an
- * unfinished draft and submissions to review hears about their own device-local work first
- * (this session may be the only chance to recover it; review work is durable on-chain and
- * remains reachable via the Work Dashboard).
- */
-export function resolveArrivalKind(inputs: ArrivalInputs): ArrivalKind {
-  const { queue, drafts, gardens, review } = inputs;
-
-  if (!queue.ready) return "none";
-  if (queue.hasPendingOrFailed) return "queue";
-
-  if (!drafts.ready) return "none";
-  if (drafts.hasDraft) return "draft";
-
-  if (!gardens.ready) return "none";
-  if (gardens.isSteward) {
-    // Review truth gates only stewards: a steward claim ("N need review" / "all clear")
-    // must be backed by settled works + approvals data, never asserted around an outage.
-    if (!review.ready) return "none";
-    if (review.needsReviewCount > 0) return "review";
-    return "stewardClear";
-  }
-  if (gardens.isGardener) return "gardener";
-
-  return "signedIn";
-}
-
-export interface ArrivalState {
-  kind: ArrivalKind;
-  /**
-   * The account's gardens (`useMyGardens`: owner, steward, evaluator, gardener, or an open join
-   * this device sent). Lets the client route a one-garden member straight into their garden
-   * instead of the filtered list.
-   */
-  myGardenIds: string[];
-  /** Backing value for the review toast's "{count}" copy. 0 unless kind === "review". */
-  needsReviewCount: number;
-}
-
-/**
- * Sense the logged-in user's current state and resolve a single orientation kind for the
- * post-login arrival toast. The pure decision lives in {@link resolveArrivalKind}; this hook only
- * wires the existing data sources to {@link ArrivalInputs}.
- */
 export function useArrivalState(): ArrivalState {
-  const primaryAddress = usePrimaryAddress();
-  const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
+  const account = usePrimaryAddress();
+  const chainId = useCurrentChain();
+  const { inScope, myGardens } = useActiveGarden(chainId);
+  const queued = useLiveQuery(account?.toLowerCase() ?? null, () =>
+    jobQueueDB.observeJobs({ userAddress: account ?? "", synced: false })
+  );
 
-  const myGardens = useMyGardens(normalizedAddress);
-  const { draftCount, isLoading: draftsLoading } = useDrafts();
-  const queueQuery = useQueueStatistics();
-  const review = usePendingReviewCount(primaryAddress ?? undefined);
-
-  // One pass over the account's gardens for role flags and routing ids. The gardener
-  // orientation comes from the gardener role or an open join this device sent; the steward
-  // one from the steward role alone (no optimistic-join path exists for stewards).
-  const membership = useMemo(() => {
-    let isSteward = false;
-    let isGardener = false;
-    for (const { membership } of myGardens.gardens) {
-      if (membership.roles.includes("steward")) isSteward = true;
-      if (membership.pendingJoin || membership.roles.includes("gardener")) isGardener = true;
-    }
-    return { myGardenIds: myGardens.gardens.map(({ garden }) => garden.id), isSteward, isGardener };
-  }, [myGardens.gardens]);
-
-  const kind = useMemo<ArrivalKind>(() => {
-    if (!normalizedAddress) return "none";
-
-    const queueStats = queueQuery.data;
-    return resolveArrivalKind({
-      queue: {
-        ready: queueQuery.isSuccess,
-        hasPendingOrFailed: (queueStats?.pending ?? 0) > 0 || (queueStats?.failed ?? 0) > 0,
-      },
-      drafts: {
-        ready: !draftsLoading,
-        hasDraft: draftCount > 0,
-      },
-      gardens: {
-        ready: myGardens.isLoaded && !myGardens.isError,
-        isSteward: membership.isSteward,
-        isGardener: membership.isGardener,
-      },
-      review: {
-        ready: review.ready,
-        needsReviewCount: review.count,
-      },
-    });
-  }, [
-    normalizedAddress,
-    queueQuery.isSuccess,
-    queueQuery.data,
-    draftsLoading,
-    draftCount,
-    myGardens.isLoaded,
-    myGardens.isError,
-    membership,
-    review.ready,
-    review.count,
-  ]);
-
-  return {
-    kind,
-    myGardenIds: membership.myGardenIds,
-    needsReviewCount: kind === "review" ? review.count : 0,
-  };
+  const { gardens, isLoaded } = myGardens;
+  return useMemo<ArrivalState>(() => {
+    if (!account || !queued.isSuccess) return PENDING;
+    const uploads = (queued.data ?? [])
+      .filter((job) => isUploadOnPhone(job, chainId))
+      .sort((newer, older) => older.createdAt - newer.createdAt);
+    if (uploads.length === 0) return NOTHING_WAITS;
+    const orientation = orientUploads(
+      inScope,
+      isLoaded ? gardens.map(({ garden }) => garden) : null,
+      uploads.map(uploadGarden)
+    );
+    return orientation ? { kind: "queue", orientation } : PENDING;
+  }, [account, queued.isSuccess, queued.data, chainId, inScope, isLoaded, gardens]);
 }

@@ -68,12 +68,14 @@ export interface PendingRead {
 }
 
 /**
- * The kinds of row each read can list: the work waiting for your review with
- * the reviews you made here, your own work, and the proof this phone's queue
- * holds. Drafts are on this phone and never wait.
+ * The kinds of row each read can list: the work waiting for your review, the
+ * reviews you made here that wait to upload (read in the gardens they name),
+ * your own work, and the proof this phone's queue holds. Drafts are on this
+ * phone and never wait.
  */
 const KINDS_BY_READ = {
-  needsReview: ["needsReview", "needs", "upload", "checking"],
+  needsReview: ["needsReview"],
+  decisions: ["needs", "upload", "checking"],
   myWork: ["needs", "upload", "checking", "review"],
   queue: ["needs", "upload", "checking"],
 } as const satisfies Record<string, readonly PendingKind[]>;

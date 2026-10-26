@@ -84,6 +84,15 @@ export type UIState = {
   restoreWorkDashboard: () => void;
   closeWorkDashboard: () => void;
 
+  /**
+   * A screen outside Home asked for Home's garden switcher (client), as the queue's failure
+   * toast does for an upload waiting in another garden. Home opens it once it shows and clears
+   * the request; nothing here switches the garden (PWA Home decision 6).
+   */
+  gardenSwitcherRequested: boolean;
+  requestGardenSwitcher: () => void;
+  clearGardenSwitcherRequest: () => void;
+
   // Garden filter sheet controls (client)
   isGardenFilterOpen: boolean;
   openGardenFilter: () => void;
@@ -177,6 +186,10 @@ export const useUIStore = create<UIState>()(
         })),
       closeWorkDashboard: () => set({ isWorkDashboardOpen: false }),
 
+      gardenSwitcherRequested: false,
+      requestGardenSwitcher: () => set({ gardenSwitcherRequested: true }),
+      clearGardenSwitcherRequest: () => set({ gardenSwitcherRequested: false }),
+
       isGardenFilterOpen: false,
       openGardenFilter: () => set({ isGardenFilterOpen: true }),
       closeGardenFilter: () => set({ isGardenFilterOpen: false }),
@@ -190,6 +203,7 @@ export const useUIStore = create<UIState>()(
           dashboardNavigationId: crypto.randomUUID(),
           commitmentsSheetReturnState: undefined,
           gardenFilters: DEFAULT_GARDEN_FILTERS,
+          gardenSwitcherRequested: false,
           isGardenFilterOpen: false,
           isEndowmentSheetOpen: false,
           gardenSheet: null,

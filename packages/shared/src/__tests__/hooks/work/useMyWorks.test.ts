@@ -474,6 +474,19 @@ describe("useMyWorks", () => {
   // ------------------------------------------
 
   describe("error handling", () => {
+    it("says when this phone's queue could not be read, apart from the record's read", async () => {
+      mockGetWorksByGardener.mockResolvedValue([]);
+      mockFetchOfflineWorks.mockRejectedValue(new Error("The queue is blocked"));
+
+      const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+        queryClient,
+      });
+
+      await waitFor(() => expect(result.current.isErrorQueued).toBe(true));
+      expect(result.current.isLoadingQueued).toBe(false);
+      expect(result.current.isError).toBe(false);
+    });
+
     it("propagates query errors when offline works are not included", async () => {
       mockGetWorksByGardener.mockRejectedValue(new Error("Network error"));
 
