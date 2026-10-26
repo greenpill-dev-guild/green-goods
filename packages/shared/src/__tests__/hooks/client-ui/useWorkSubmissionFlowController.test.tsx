@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
   takeUpChoices: [] as Array<Record<string, unknown>>,
   takeUpAsks: [] as Array<Record<string, unknown>>,
   takeUpLoading: false,
+  takeUpError: false,
+  takeUpRefetch: vi.fn(),
   uploadWork: vi.fn(),
   consumeShareTarget: vi.fn(),
   loadShareTarget: vi.fn(),
@@ -127,8 +129,8 @@ vi.mock("../../../hooks/commitment-pooling/useTakeUpChoices", () => ({
     asks: mocks.takeUpAsks,
     choices: mocks.takeUpChoices,
     isLoading: mocks.takeUpLoading,
-    isError: false,
-    refetch: vi.fn(),
+    isError: mocks.takeUpError,
+    refetch: mocks.takeUpRefetch,
   }),
 }));
 
@@ -397,6 +399,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.takeUpChoices = [];
     mocks.takeUpAsks = [];
     mocks.takeUpLoading = false;
+    mocks.takeUpError = false;
     mocks.communityGarden = null;
     mocks.joinState = { isJoining: false, joiningGardenId: null };
     mocks.enqueue.mockResolvedValue("link-job");
@@ -1246,6 +1249,17 @@ describe("useWorkSubmissionFlowController", () => {
       expect(mocks.uploadWork).toHaveBeenCalledTimes(2);
     });
 
+    it("reads a link's Open asks again on Retry when they could not be read", () => {
+      mocks.actionUID = ask.actionUID;
+      mocks.gardenAddress = ask.garden;
+      mocks.takeUpError = true;
+      const view = renderFlow(pageAt(writeWorkLinkIntent(new URLSearchParams(), ask)));
+      expect(view.result.current.linkIntentStatus).toBe("unavailable");
+
+      act(() => void view.result.current.refetchCommitmentLinkChoices());
+      expect(mocks.takeUpRefetch).toHaveBeenCalled();
+    });
+
     it("keeps the take-up with the draft: the page's word until the asks are read, then theirs", async () => {
       // A resumed draft brings its link back to the page with its take-up.
       mocks.actionUID = ask.actionUID;
@@ -1756,6 +1770,20 @@ describe("useWorkSubmissionFlowController", () => {
     // Offline with nothing saved, the actions come with the warning and a retry, not as all there is.
     expect(result.current.start.screen).toEqual({ kind: "actions" });
     expect(result.current.start.promisesFailed).toBe(true);
+  });
+
+  it("keeps Start when the garden's Open asks cannot be read, with the warning and a retry", () => {
+    solarGarden();
+    mocks.actions = [liveAction(7, Domain.SOLAR)];
+    mocks.takeUpError = true;
+    const { result } = enterFlow();
+
+    // One action and nothing owed would skip Start, but asks that could not be read are not none.
+    expect(mocks.setActiveTab).not.toHaveBeenCalled();
+    expect(result.current.start.skipped).toBe(false);
+    expect(result.current.start.promisesFailed).toBe(true);
+    act(() => result.current.start.retryPromises());
+    expect(mocks.takeUpRefetch).toHaveBeenCalled();
   });
 
   it("keeps Start while the garden's Open asks are read, even with one action", () => {

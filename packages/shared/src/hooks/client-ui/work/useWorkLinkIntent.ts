@@ -127,6 +127,11 @@ export function useWorkLinkIntent({
         takesUp: (linkIntentStatus === "valid" ? takesUp : parsedLinkIntent.takesUp) || undefined,
       })
     : null;
+  /** Reads the link's standing again: the member's promises, and the Open asks it may be one of. */
+  const retryLink = () => {
+    void linkChoices.refetch();
+    takeUpChoices.refetch();
+  };
   // Taking the promise off is saved with the draft; see draftLinkCleared.
   const clearLinkIntent = useCallback(() => {
     setLinkAtEntry(false);
@@ -211,6 +216,7 @@ export function useWorkLinkIntent({
     linkChoices,
     linkIntent,
     linkIntentStatus,
+    retryLink,
     /** What a draft keeps of the link; null when the page has none. */
     draftLink,
     workablePromises,
