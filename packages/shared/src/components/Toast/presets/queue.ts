@@ -14,6 +14,11 @@ const queueDefaults = {
     title: "Sync failed",
     workMessage: "Your work is still saved on this device. Open Your Work to try again.",
     approvalMessage: "Your decision is still saved on this device. Open Your Work to try again.",
+    workMessageInGarden:
+      "Your work in {garden} is still saved on this device. Switch to that garden to try again.",
+    approvalMessageInGarden:
+      "Your decision in {garden} is still saved on this device. Switch to that garden to try again.",
+    seeGardens: "See Your Gardens",
   },
   retryFailed: {
     title: "Couldn't send it",
@@ -36,6 +41,16 @@ const queueDefaults = {
     message: "Your work was sent. Open the promise to link it again.",
   },
 };
+
+/**
+ * A failed upload that waits in another of the member's gardens. Your Work lists the active
+ * garden only (DL-129), so its toast names that garden and opens Home's switcher instead.
+ */
+export interface FailedInAnotherGarden {
+  gardenName: string;
+  /** Opens the switcher; the member picks there, and nothing switches before (decision 6). */
+  openSwitcher: () => void;
+}
 
 /**
  * Create i18n-aware queue toasts
@@ -105,7 +120,7 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
         context: "job queue",
       }),
 
-    jobFailed: (kind: "work" | "approval", detail?: string) =>
+    jobFailed: (kind: "work" | "approval", detail?: string, elsewhere?: FailedInAnotherGarden) =>
       toastService.error({
         // Share the id with the owning mutation's loading toast so the inline-process
         // path collapses to a single slot. In the background-flush path no mutation
@@ -115,18 +130,47 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
           id: toastMessageIds.queue.jobFailed.title,
           defaultMessage: queueDefaults.jobFailed.title,
         }),
-        message:
-          detail ??
-          formatMessage({
-            id:
-              kind === "work"
-                ? toastMessageIds.queue.jobFailed.workMessage
-                : toastMessageIds.queue.jobFailed.approvalMessage,
-            defaultMessage:
-              kind === "work"
-                ? queueDefaults.jobFailed.workMessage
-                : queueDefaults.jobFailed.approvalMessage,
-          }),
+        ...(elsewhere
+          ? {
+              message: formatMessage(
+                {
+                  id:
+                    kind === "work"
+                      ? toastMessageIds.queue.jobFailed.workMessageInGarden
+                      : toastMessageIds.queue.jobFailed.approvalMessageInGarden,
+                  defaultMessage:
+                    kind === "work"
+                      ? queueDefaults.jobFailed.workMessageInGarden
+                      : queueDefaults.jobFailed.approvalMessageInGarden,
+                },
+                { garden: elsewhere.gardenName }
+              ),
+              devMessage: detail,
+              // As long as the arrival toast's, which also carries an action.
+              duration: 6000,
+              action: {
+                label: formatMessage({
+                  id: toastMessageIds.queue.jobFailed.seeGardens,
+                  defaultMessage: queueDefaults.jobFailed.seeGardens,
+                }),
+                onClick: elsewhere.openSwitcher,
+                dismissOnClick: true,
+              },
+            }
+          : {
+              message:
+                detail ??
+                formatMessage({
+                  id:
+                    kind === "work"
+                      ? toastMessageIds.queue.jobFailed.workMessage
+                      : toastMessageIds.queue.jobFailed.approvalMessage,
+                  defaultMessage:
+                    kind === "work"
+                      ? queueDefaults.jobFailed.workMessage
+                      : queueDefaults.jobFailed.approvalMessage,
+                }),
+            }),
         context: "job queue",
       }),
 

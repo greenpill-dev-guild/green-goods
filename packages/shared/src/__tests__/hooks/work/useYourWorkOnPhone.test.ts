@@ -1,5 +1,5 @@
 /**
- * Your Work on this phone, in the active garden's scope (PWA Home step 8): the reads behind
+ * Your Work on this phone, in the active garden's scope (PWA Home steps 8 and 12): the reads behind
  * Home's Continue, and what they say about loading and failure. Which items belong is the
  * selector's, tested in modules/work/your-work-on-phone.test.ts.
  *
@@ -16,12 +16,14 @@ import { createMockWork } from "../../test-utils/mock-factories";
 const ME = "0xa11ce00000000000000000000000000000000001";
 const GARDEN = "0x6a7de00000000000000000000000000000000aaa";
 const OTHER_GARDEN = "0x0757e00000000000000000000000000000000bbb";
+const LEFT_GARDEN = "0x1ef70000000000000000000000000000000000dd";
 
 const mocks = vi.hoisted(() => ({
   activeGardenId: null as string | null,
   works: [] as Work[],
   myWorksLoading: false,
   queuedLoading: false,
+  queuedError: false,
   myWorksError: false,
   myWorksRefetch: vi.fn(async () => ({ status: "success" })),
   drafts: [] as Array<{ id: string; gardenAddress: string | null }>,
@@ -29,8 +31,13 @@ const mocks = vi.hoisted(() => ({
   draftsError: false,
   refetchDrafts: vi.fn(async () => undefined),
   proofs: [] as Array<{ id: string; garden: string | null; savedGarden: string | null }>,
+  queueLoading: false,
   queueUnavailable: false,
+  uploadsLoading: false,
+  uploadsError: false,
+  uploadsRefetch: vi.fn(),
   waitingDecisionWorkIds: new Set<string>() as ReadonlySet<string>,
+  waitingDecisionGardenIds: [] as string[],
   decisionFor: vi.fn(() => undefined),
   needsReviewGardens: [] as string[][],
   decidedHere: [] as Work[],
@@ -42,16 +49,26 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => ({ user: { id: ME } }) }));
-// The active garden's scope shows its own garden and what names none, as its rule does.
-vi.mock("../../../hooks/garden/useActiveGarden", () => ({
-  useActiveGarden: () => ({
-    gardenId: mocks.activeGardenId,
-    inScope: (gardens: readonly (string | null | undefined)[]) =>
-      gardens.every(
-        (garden) => !garden || garden.toLowerCase() === mocks.activeGardenId?.toLowerCase()
-      ),
-  }),
-}));
+// The active garden's own rule: its garden, a garden the member left and what names none show;
+// OTHER_GARDEN is another of the member's gardens, which waits until the chip switches to it.
+vi.mock("../../../hooks/garden/useActiveGarden", async () => {
+  const { isInGardenListScope } = await vi.importActual<
+    typeof import("../../../modules/garden/active-garden")
+  >("../../../modules/garden/active-garden");
+  return {
+    useActiveGarden: () => ({
+      gardenId: mocks.activeGardenId,
+      inScope: (gardens: readonly (string | null | undefined)[]) =>
+        isInGardenListScope(
+          {
+            activeGardenId: mocks.activeGardenId,
+            memberGardenIds: new Set([GARDEN, OTHER_GARDEN]),
+          },
+          gardens
+        ),
+    }),
+  };
+});
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => ME }));
 // The reads are the edges: the indexer and the queue behind them are not this hook's.
 vi.mock("../../../hooks/work/useMyWorks", () => ({
@@ -59,6 +76,7 @@ vi.mock("../../../hooks/work/useMyWorks", () => ({
     data: mocks.works,
     isLoading: mocks.myWorksLoading,
     isLoadingQueued: mocks.queuedLoading,
+    isErrorQueued: mocks.queuedError,
     isError: mocks.myWorksError,
     refetch: mocks.myWorksRefetch,
   }),
@@ -77,16 +95,23 @@ vi.mock("../../../hooks/client-ui/commitment/usePendingProof", () => ({
 vi.mock("../../../hooks/work/useWorkUploads", () => ({
   useWorkUploads: () => ({
     waitingDecisionWorkIds: mocks.waitingDecisionWorkIds,
+    waitingDecisionGardenIds: mocks.waitingDecisionGardenIds,
     decisionFor: mocks.decisionFor,
+    isLoading: mocks.uploadsLoading,
+    isError: mocks.uploadsError,
+    refetch: mocks.uploadsRefetch,
   }),
 }));
+// Each garden's list holds its own works: a garden that is not read lists nothing.
 vi.mock("../../../hooks/work/useNeedsReview", () => ({
   useNeedsReview: (gardenIds: string[]) => {
     mocks.needsReviewGardens.push(gardenIds);
+    const read = new Set(gardenIds.map((garden) => garden.toLowerCase()));
     return {
-      decidedHere: gardenIds.length > 0 ? mocks.decidedHere : [],
+      decidedHere: mocks.decidedHere.filter((work) => read.has(work.gardenAddress.toLowerCase())),
       isLoading: gardenIds.length > 0 && mocks.needsReviewLoading,
       isError: gardenIds.length > 0 && mocks.needsReviewError,
+      savedAt: undefined,
       refetch: mocks.needsReviewRefetch,
     };
   },
@@ -94,6 +119,8 @@ vi.mock("../../../hooks/work/useNeedsReview", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => ({
     linkedWorkIds: mocks.linkedWorkIds,
+    isLoading: mocks.queueLoading,
+    isUnavailable: mocks.queueUnavailable,
     refresh: mocks.queueRefresh,
   }),
 }));
@@ -110,19 +137,34 @@ function queuedWork(id: string, overrides: Partial<Work> = {}): Work {
   });
 }
 
+/** A review this phone made, queued: its work, and the garden its job writes to. */
+function queueReview(id: string, gardenAddress: string) {
+  mocks.waitingDecisionWorkIds = new Set([...mocks.waitingDecisionWorkIds, id.toLowerCase()]);
+  mocks.waitingDecisionGardenIds = [...new Set([...mocks.waitingDecisionGardenIds, gardenAddress])];
+  mocks.decidedHere = [
+    ...mocks.decidedHere,
+    createMockWork({ id, status: "approved", gardenAddress }),
+  ];
+}
+
 describe("useYourWorkOnPhone", () => {
   beforeEach(() => {
     mocks.activeGardenId = GARDEN;
     mocks.works = [];
     mocks.myWorksLoading = false;
     mocks.queuedLoading = false;
+    mocks.queuedError = false;
     mocks.myWorksError = false;
     mocks.drafts = [];
     mocks.draftsLoading = false;
     mocks.draftsError = false;
     mocks.proofs = [];
+    mocks.queueLoading = false;
     mocks.queueUnavailable = false;
+    mocks.uploadsLoading = false;
+    mocks.uploadsError = false;
     mocks.waitingDecisionWorkIds = new Set();
+    mocks.waitingDecisionGardenIds = [];
     mocks.needsReviewGardens = [];
     mocks.decidedHere = [];
     mocks.needsReviewLoading = false;
@@ -153,29 +195,35 @@ describe("useYourWorkOnPhone", () => {
     expect(onPhone.count).toBe(3);
   });
 
-  it("reads the active garden's work for reviews only while a review from this phone waits", () => {
+  it("lists a review queued for a garden the member left, as the badge counts it, and reads only the gardens waiting reviews name", () => {
     render();
     expect(mocks.needsReviewGardens.at(-1)).toEqual([]);
 
-    mocks.waitingDecisionWorkIds = new Set(["0xdec1"]);
-    mocks.activeGardenId = null;
-    render();
-    expect(mocks.needsReviewGardens.at(-1)).toEqual([]);
-    mocks.activeGardenId = GARDEN;
-
-    mocks.waitingDecisionWorkIds = new Set(["0xdec1"]);
-    mocks.decidedHere = [
-      createMockWork({ id: "0xDEC1", status: "approved", gardenAddress: GARDEN }),
-    ];
+    queueReview("0xDEC1", GARDEN);
+    queueReview("0xDEC2", LEFT_GARDEN);
+    // Another of the member's gardens: it is listed once the chip switches there.
+    queueReview("0xDEC3", OTHER_GARDEN);
     const onPhone = render();
 
-    expect(mocks.needsReviewGardens.at(-1)).toEqual([GARDEN]);
-    expect(onPhone.decisions.map((work) => work.id)).toEqual(["0xDEC1"]);
+    expect(mocks.needsReviewGardens.at(-1)).toEqual([GARDEN, LEFT_GARDEN]);
+    expect(onPhone.decisions.map((work) => work.id)).toEqual(["0xDEC1", "0xDEC2"]);
+    expect(onPhone.count).toBe(2);
   });
 
-  it("is loading while the queue, the drafts or a waiting review's garden is first read, not the record's read of the reader's work", () => {
+  it("waits on a cold mount until the queue's uploads and promise acts are read, so a phone holding only a queued review or proof never reads as empty", () => {
     expect(render().isLoading).toBe(false);
 
+    mocks.uploadsLoading = true;
+    const uploadsUnread = render();
+    expect(uploadsUnread.isLoading).toBe(true);
+    expect(uploadsUnread.count).toBe(0);
+
+    mocks.uploadsLoading = false;
+    mocks.queueLoading = true;
+    expect(render().isLoading).toBe(true);
+  });
+
+  it("is loading while the drafts, the queued work or a waiting review's garden is first read, not the record's read of the reader's work", () => {
     mocks.draftsLoading = true;
     expect(render().isLoading).toBe(true);
 
@@ -190,28 +238,33 @@ describe("useYourWorkOnPhone", () => {
     mocks.queuedLoading = false;
     mocks.needsReviewLoading = true;
     expect(render().isLoading).toBe(false);
-    mocks.waitingDecisionWorkIds = new Set(["0xdec1"]);
+    queueReview("0xdec1", GARDEN);
     expect(render().isLoading).toBe(true);
   });
 
-  it("fails when the queue, the drafts or a waiting review's garden cannot be read, not when only the record's read of the reader's work does", () => {
+  it("fails when this phone's queue, uploads, queued work or drafts cannot be read, and says the retry needs no connection", () => {
     mocks.myWorksError = true;
     expect(render().isError).toBe(false);
 
-    mocks.queueUnavailable = true;
-    const queueFailed = render();
-    expect(queueFailed.isError).toBe(true);
-    expect(queueFailed.queueUnreadable).toBe(true);
+    for (const unreadable of [
+      "queueUnavailable",
+      "uploadsError",
+      "queuedError",
+      "draftsError",
+    ] as const) {
+      mocks[unreadable] = true;
+      const failed = render();
+      expect(failed.isError).toBe(true);
+      expect(failed.queueUnreadable).toBe(true);
+      mocks[unreadable] = false;
+    }
+  });
 
-    mocks.queueUnavailable = false;
-    mocks.draftsError = true;
-    const draftsFailed = render();
-    expect(draftsFailed.isError).toBe(true);
-    expect(draftsFailed.queueUnreadable).toBe(true);
-
-    mocks.draftsError = false;
+  it("fails without blaming the queue when a waiting review's garden cannot be read", () => {
     mocks.needsReviewError = true;
-    mocks.waitingDecisionWorkIds = new Set(["0xdec1"]);
+    expect(render().isError).toBe(false);
+
+    queueReview("0xdec1", LEFT_GARDEN);
     const gardenFailed = render();
     expect(gardenFailed.isError).toBe(true);
     expect(gardenFailed.queueUnreadable).toBe(false);
@@ -230,11 +283,12 @@ describe("useYourWorkOnPhone", () => {
     expect(onPhone.isLinked(queuedWork("0xoffline_0003"))).toBe(false);
   });
 
-  it("reads everything again on refetch, the queue included", () => {
-    mocks.waitingDecisionWorkIds = new Set(["0xdec1"]);
+  it("reads everything again on refetch, the queue and its uploads included", () => {
+    queueReview("0xdec1", GARDEN);
     render().refetch();
 
     expect(mocks.queueRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.uploadsRefetch).toHaveBeenCalledTimes(1);
     expect(mocks.myWorksRefetch).toHaveBeenCalledTimes(1);
     expect(mocks.refetchDrafts).toHaveBeenCalledTimes(1);
     expect(mocks.needsReviewRefetch).toHaveBeenCalledTimes(1);
