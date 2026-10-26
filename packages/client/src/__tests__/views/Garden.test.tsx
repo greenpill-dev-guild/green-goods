@@ -80,6 +80,7 @@ let mockIsQueueingDependentLink = false;
 let mockDraftSaveState: "saving" | "saved" | "failed" | undefined;
 let mockNamedGarden: { id: string; name: string; bannerImage: string } | null = null;
 let mockGardenSettled = false;
+let mockTakeUpPrompts: number | null = null;
 const mockDraftRetry = vi.fn().mockResolvedValue(undefined);
 const mockActions = [
   {
@@ -158,6 +159,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     joinCommunityGarden: vi.fn(),
     linkIntent: mockLinkIntent,
     linkIntentStatus: mockLinkIntentStatus,
+    takeUpPrompts: mockTakeUpPrompts,
     namedSubmissionGarden: mockNamedGarden,
     submissionGardenSettled: mockGardenSettled,
     refetchCommitmentLinkChoices: mockRefetchCommitmentLinkChoices,
@@ -275,6 +277,8 @@ const messages = {
   "app.garden.submit.tab.media.label": "Details",
   "app.garden.submit.tab.details.label": "Review Work",
   "app.garden.submit.tab.review.label": "Upload Work",
+  "app.garden.submit.takeUpPrompts":
+    "{count, plural, one {Uploading takes up the ask first. It opens # wallet or passkey prompt.} other {Uploading takes up the ask first. It opens # wallet or passkey prompts: the take-up, the work and its link.}}",
   "app.garden.unknown": "Unknown Garden",
   "app.action.selected": "Selected Action",
   "app.commitment.pinned.workFor": "Work for",
@@ -336,6 +340,7 @@ describe("Garden (Work) View", () => {
     mockDraftSaveState = undefined;
     mockNamedGarden = null;
     mockGardenSettled = false;
+    mockTakeUpPrompts = null;
   });
 
   afterEach(() => {
@@ -478,6 +483,37 @@ describe("Garden (Work) View", () => {
     const sheet = mockWorkForSheetProps.mock.lastCall?.[0] as { onUnlink: () => void };
     sheet.onUnlink();
     expect(mockClearLinkIntent).toHaveBeenCalledTimes(1);
+  });
+
+  it("says above Upload Work, before the first prompt, that a draft for an Open ask takes it up first", () => {
+    mockActiveTab = "Review";
+    mockSelection.actionUID = 1;
+    mockSelection.gardenAddress = "garden-1";
+    mockLinkIntentStatus = "valid";
+    mockLinkIntent = {
+      commitmentId: 9n,
+      requirementIndex: 0,
+      actionUID: 1,
+      garden: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      commitmentTitle: "Weeding",
+      requirementLabel: "1",
+      returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9",
+      direction: "REQUEST",
+    };
+    mockTakeUpPrompts = 3;
+    renderWithProviders();
+
+    const note =
+      "Uploading takes up the ask first. It opens 3 wallet or passkey prompts: the take-up, the work and its link.";
+    expect(screen.getByText(note)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload Work" })).toHaveAccessibleDescription(note);
+    cleanup();
+
+    // A draft for a promise of the member's own: Review says nothing more.
+    mockTakeUpPrompts = null;
+    renderWithProviders();
+    expect(screen.queryByText(/takes up the ask/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Upload Work" })).not.toHaveAccessibleDescription();
   });
 
   it("pins no promise when the work isn't for one", () => {

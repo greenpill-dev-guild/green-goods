@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
   takeUpChoices: [] as Array<Record<string, unknown>>,
   takeUpAsks: [] as Array<Record<string, unknown>>,
   takeUpLoading: false,
+  takeUpError: false,
+  takeUpRefetch: vi.fn(),
   uploadWork: vi.fn(),
   consumeShareTarget: vi.fn(),
   loadShareTarget: vi.fn(),
@@ -127,8 +129,8 @@ vi.mock("../../../hooks/commitment-pooling/useTakeUpChoices", () => ({
     asks: mocks.takeUpAsks,
     choices: mocks.takeUpChoices,
     isLoading: mocks.takeUpLoading,
-    isError: false,
-    refetch: vi.fn(),
+    isError: mocks.takeUpError,
+    refetch: mocks.takeUpRefetch,
   }),
 }));
 
@@ -298,6 +300,7 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
 
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { TakeUpNotSent } from "../../../modules/commitment-pooling/take-up";
+import { writeWorkLinkIntent } from "../../../modules/commitment-pooling/work-link-intent";
 import { useSubmissionFlowController } from "../../../hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
 import { useUIStore } from "../../../stores/useUIStore";
@@ -309,6 +312,17 @@ function Wrapper({ children }: { children: ReactNode }) {
     null,
     createElement(IntlProvider, { locale: "en", messages: {} }, children)
   );
+}
+
+/** Submit Work opened with `search`, as a resumed draft or a promise's page opens it. */
+function pageAt(search: URLSearchParams) {
+  return function PageWrapper({ children }: { children: ReactNode }) {
+    return createElement(
+      MemoryRouter,
+      { initialEntries: [`/home/garden?${search}`] },
+      createElement(IntlProvider, { locale: "en", messages: {} }, children)
+    );
+  };
 }
 
 function StrictShareWrapper({ children }: { children: ReactNode }) {
@@ -385,6 +399,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.takeUpChoices = [];
     mocks.takeUpAsks = [];
     mocks.takeUpLoading = false;
+    mocks.takeUpError = false;
     mocks.communityGarden = null;
     mocks.joinState = { isJoining: false, joiningGardenId: null };
     mocks.enqueue.mockResolvedValue("link-job");
@@ -857,7 +872,7 @@ describe("useWorkSubmissionFlowController", () => {
     else expect(firstPayload).not.toHaveProperty("sourceWorkJobId");
   });
 
-  const renderThroughFlow = () =>
+  const renderThroughFlow = (wrapper = Wrapper) =>
     renderHook(
       () => {
         const controller = useWorkSubmissionFlowController({
@@ -868,7 +883,7 @@ describe("useWorkSubmissionFlowController", () => {
         const flow = useSubmissionFlowController({ kind: "work", controller });
         return { controller, flow };
       },
-      { wrapper: Wrapper }
+      { wrapper }
     );
 
   it("keeps the flow on the step the work store restored, saved with the draft as before", () => {
@@ -920,6 +935,59 @@ describe("useWorkSubmissionFlowController", () => {
       },
     });
     expect(view.result.current.controller.linkSchedulingSucceeded).toBe(true);
+  });
+
+  it("says on a resumed draft's Review, before the first prompt, that it takes its ask up and how many prompts come", async () => {
+    // Resumed past Start, the draft's link comes back to the page with its take-up.
+    const ask = { ...commitmentLinkIntent, takesUp: true as const };
+    mocks.actionUID = ask.actionUID;
+    mocks.gardenAddress = ask.garden;
+    mocks.activeTab = "Review";
+    mocks.takeUpChoices = [ask];
+    const view = renderThroughFlow(pageAt(writeWorkLinkIntent(new URLSearchParams(), ask)));
+    await waitFor(() => expect(view.result.current.controller.linkIntentStatus).toBe("valid"));
+    // The take-up, the work and its link.
+    expect(view.result.current.flow.forward).toMatchObject({
+      labelId: "app.garden.submit.tab.review.label",
+      takeUpPrompts: 3,
+    });
+    // Only Review's act sends, so only Review says it.
+    mocks.activeTab = "Details";
+    view.rerender();
+    expect(view.result.current.flow.forward?.takeUpPrompts).toBeNull();
+    view.unmount();
+
+    // A draft for a promise of the member's own says nothing more on Review.
+    mocks.activeTab = "Review";
+    mocks.takeUpChoices = [];
+    mocks.choices = [commitmentLinkIntent];
+    const own = renderThroughFlow(
+      pageAt(writeWorkLinkIntent(new URLSearchParams(), commitmentLinkIntent))
+    );
+    await waitFor(() => expect(own.result.current.controller.linkIntentStatus).toBe("valid"));
+    expect(own.result.current.flow.forward?.takeUpPrompts).toBeNull();
+  });
+
+  it("says a resumed draft's take-up on Review while its asks are read, and takes nothing up once the ask has closed", async () => {
+    // Resumed while its asks are still read (or paused offline): the page's word is all there is.
+    const ask = { ...commitmentLinkIntent, takesUp: true as const };
+    mocks.actionUID = ask.actionUID;
+    mocks.gardenAddress = ask.garden;
+    mocks.activeTab = "Review";
+    mocks.takeUpLoading = true;
+    const view = renderThroughFlow(pageAt(writeWorkLinkIntent(new URLSearchParams(), ask)));
+    expect(view.result.current.controller.linkIntentStatus).toBe("validating");
+    expect(view.result.current.flow.forward?.takeUpPrompts).toBe(3);
+
+    // Read, the ask has closed: neither an Open ask nor a promise of theirs.
+    mocks.takeUpLoading = false;
+    view.rerender();
+    await waitFor(() => expect(view.result.current.controller.linkIntentStatus).toBe("invalid"));
+    expect(view.result.current.flow.forward?.takeUpPrompts).toBeNull();
+    await act(async () => {
+      await expect(view.result.current.controller.submit()).resolves.toBe(false);
+    });
+    expect(mocks.takeUp).not.toHaveBeenCalled();
   });
 
   const communityGarden = "0x3333333333333333333333333333333333333333";
@@ -1201,6 +1269,44 @@ describe("useWorkSubmissionFlowController", () => {
 
       expect(mocks.takeUp).toHaveBeenCalledOnce();
       expect(mocks.uploadWork).toHaveBeenCalledTimes(2);
+    });
+
+    it("reads a link's Open asks again on Retry when they could not be read", () => {
+      mocks.actionUID = ask.actionUID;
+      mocks.gardenAddress = ask.garden;
+      mocks.takeUpError = true;
+      const view = renderFlow(pageAt(writeWorkLinkIntent(new URLSearchParams(), ask)));
+      expect(view.result.current.linkIntentStatus).toBe("unavailable");
+
+      act(() => void view.result.current.refetchCommitmentLinkChoices());
+      expect(mocks.takeUpRefetch).toHaveBeenCalled();
+    });
+
+    it.each([
+      ["their own promise, taken up on another phone", [commitmentLinkIntent], "valid"],
+      ["no promise of theirs, taken by another member", [], "invalid"],
+    ] as const)("keeps the take-up with the draft while the asks are read, and drops it once the link is %s", async (_case, own, status) => {
+      // A resumed draft brings its link back to the page with its take-up.
+      mocks.actionUID = ask.actionUID;
+      mocks.gardenAddress = ask.garden;
+      mocks.takeUpLoading = true;
+      const view = renderFlow(pageAt(writeWorkLinkIntent(new URLSearchParams(), ask)));
+      expect(view.result.current.linkIntentStatus).toBe("validating");
+      expect(mocks.autoSaveFields?.linkIntent).toMatchObject({ commitmentId: "9", takesUp: true });
+
+      mocks.takeUpLoading = false;
+      mocks.takeUpChoices = [ask];
+      view.rerender();
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+      expect(view.result.current.promptCount).toBe(3);
+      expect(mocks.autoSaveFields?.linkIntent).toMatchObject({ takesUp: true });
+
+      mocks.takeUpChoices = [];
+      mocks.choices = [...own];
+      view.rerender();
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe(status));
+      expect(view.result.current.takeUpPrompts).toBeNull();
+      expect(mocks.autoSaveFields?.linkIntent).not.toHaveProperty("takesUp");
     });
   });
 
@@ -1689,6 +1795,20 @@ describe("useWorkSubmissionFlowController", () => {
     // Offline with nothing saved, the actions come with the warning and a retry, not as all there is.
     expect(result.current.start.screen).toEqual({ kind: "actions" });
     expect(result.current.start.promisesFailed).toBe(true);
+  });
+
+  it("keeps Start when the garden's Open asks cannot be read, with the warning and a retry", () => {
+    solarGarden();
+    mocks.actions = [liveAction(7, Domain.SOLAR)];
+    mocks.takeUpError = true;
+    const { result } = enterFlow();
+
+    // One action and nothing owed would skip Start, but asks that could not be read are not none.
+    expect(mocks.setActiveTab).not.toHaveBeenCalled();
+    expect(result.current.start.skipped).toBe(false);
+    expect(result.current.start.promisesFailed).toBe(true);
+    act(() => result.current.start.retryPromises());
+    expect(mocks.takeUpRefetch).toHaveBeenCalled();
   });
 
   it("keeps Start while the garden's Open asks are read, even with one action", () => {

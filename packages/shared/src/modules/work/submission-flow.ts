@@ -191,7 +191,7 @@ export function listStartPromises(
 /** Where a work's promise link stands: the controller's reading of the page's link. */
 export type WorkLinkStatus = "none" | "validating" | "valid" | "invalid" | "unavailable";
 
-/** The member's promises in the flow's garden, as far as the read can say. */
+/** What the Start step lists, the member's promises or the garden's Open asks, as read so far. */
 export type StartPromisesRead =
   | { status: "loading" }
   | { status: "unknown" }
@@ -208,23 +208,23 @@ export type StartStepAnswer =
  * is known: a promise link the page was opened with, once confirmed (the link names the action),
  * or a garden with one action, nothing owed and no Open ask listed (the flow picks that action).
  * An Open ask listed is a choice to make, so the step stays, and it waits while the asks are
- * read. A link chosen at Start, or one that no longer holds, never skips it, and promises that
- * could not be read are never taken as none. Work that already holds another action stays too:
- * the flow never replaces the member's choice.
+ * read. A link chosen at Start, or one that no longer holds, never skips it, and promises or asks
+ * that could not be read are never taken as none. Work that already holds another action stays
+ * too: the flow never replaces the member's choice.
  */
 export function answerStartStep(input: {
   link: { status: WorkLinkStatus; atEntry: boolean };
   /** The flow's garden is one the member can submit work to (`isSubmissionGardenSettled`). */
   gardenSettled: boolean;
   promises: StartPromisesRead;
-  /** The garden's Open asks the step lists beside the member's promises; null while read. */
-  openAsks: number | null;
+  /** The garden's Open asks the step lists beside the member's promises. */
+  openAsks: StartPromisesRead;
   /** The actions the garden offers (`listGardenActions`), by UID; null while they are read. */
   actionUIDs: readonly number[] | null;
   /** The action the work already holds, chosen or from a draft; the flow's own pick is none. */
   heldActionUID: number | null;
 }): StartStepAnswer {
-  const { link, promises } = input;
+  const { link, promises, openAsks } = input;
   if (!input.gardenSettled) return { kind: "stay" };
   if (link.status !== "none") {
     if (link.status === "validating") return link.atEntry ? { kind: "wait" } : { kind: "stay" };
@@ -232,10 +232,10 @@ export function answerStartStep(input: {
       ? { kind: "skip", actionUID: null }
       : { kind: "stay" };
   }
-  if (promises.status === "loading" || input.openAsks === null || input.actionUIDs === null)
+  if (promises.status === "loading" || openAsks.status === "loading" || input.actionUIDs === null)
     return { kind: "wait" };
-  if (promises.status === "unknown" || promises.count > 0 || input.openAsks > 0)
-    return { kind: "stay" };
+  if (promises.status === "unknown" || openAsks.status === "unknown") return { kind: "stay" };
+  if (promises.count > 0 || openAsks.count > 0) return { kind: "stay" };
   const [only] = input.actionUIDs;
   return input.actionUIDs.length === 1 &&
     (input.heldActionUID === null || input.heldActionUID === only)

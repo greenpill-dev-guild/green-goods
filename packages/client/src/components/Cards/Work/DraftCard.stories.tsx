@@ -198,6 +198,63 @@ export const Interactive: Story = {
   },
 };
 
+/** The promise a draft keeps (DL-062): the hub's Weeding promise, for Planting Event work. */
+const weedingLink = {
+  commitmentId: "7",
+  requirementIndex: 0,
+  actionUID: 1,
+  garden: "0x1234567890abcdef1234567890abcdef12345678" as Address,
+  commitmentTitle: "Weeding",
+  requirementLabel: "1",
+  returnTo: "/home/0x1234567890abcdef1234567890abcdef12345678/commitments/7",
+};
+const promiseDraft = (id: string, takesUp: boolean) =>
+  makeDraft({
+    id,
+    firstIncompleteStep: "details",
+    currentStep: "details",
+    images: [{ id: `${id}-photo`, file: new File([""], "weeds.jpg"), url: FIXTURE_WORK_MEDIA[0] }],
+    thumbnailUrl: FIXTURE_WORK_MEDIA[0],
+    updatedAt: now - 120000,
+    linkIntent: takesUp ? { ...weedingLink, takesUp: true } : weedingLink,
+  });
+
+/**
+ * Drafts for a promise as Home's Continue lists them (Your Work › Pending adds Delete): one for a
+ * promise of the member's own, and one for an Open ask, whose line says it takes the ask up first.
+ */
+export const ForAPromiseOrAnAsk: Story = {
+  render: () => (
+    <div className="flex flex-col gap-3">
+      <DraftCard
+        draft={promiseDraft("draft-own", false)}
+        actionTitle="Planting Event"
+        onResume={() => {}}
+      />
+      <DraftCard
+        draft={promiseDraft("draft-ask", true)}
+        actionTitle="Planting Event"
+        onResume={() => {}}
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Step 3 of 4 · 1 photo")).toBeVisible();
+    await expect(canvas.getByText("Takes up an ask · Step 3 of 4 · 1 photo")).toBeVisible();
+  },
+};
+
+export const ForAPromiseOrAnAskSpanish: Story = {
+  render: ForAPromiseOrAnAsk.render,
+  globals: { locale: "es", viewport: { value: "mobileSmall" } },
+};
+
+export const ForAPromiseOrAnAskPortuguese: Story = {
+  render: ForAPromiseOrAnAsk.render,
+  globals: { locale: "pt", viewport: { value: "mobileSmall" } },
+};
+
 export const Mobile: Story = {
   args: {
     draft: draftWithImages,
