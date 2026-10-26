@@ -305,7 +305,22 @@ await Promise.all(Array.from({ length: 4 }, async () => {
 }));
 await browser.close();
 // A demo pair that never matched on any screen it was listed for is stale (base copy excepted).
-if (!only.length) for (const [pair, n] of swapHits) if (!n && !STORY_COPY.some(([f, t]) => `${f} → ${t}` === pair)) note(`swap "${pair}" matched nothing`);
+// Recipes share swap lists across a flow, so a partial `--only` capture can validate only the pairs
+// no unselected screen lists; the rest are reported as not validated, and a full capture is needed
+// before a build.
+const listedOn = new Map();
+for (const [file, shot] of Object.entries(SHOTS)) for (const [from, to] of shot.swaps || []) {
+  const key = `${from} → ${to}`;
+  if (!listedOn.has(key)) listedOn.set(key, new Set());
+  listedOn.get(key).add(file);
+}
+const unvalidated = [];
+for (const [pair, n] of swapHits) {
+  if (n || STORY_COPY.some(([f, t]) => `${f} → ${t}` === pair)) continue;
+  const elsewhere = [...(listedOn.get(pair) || [])].filter((file) => !only.includes(file));
+  if (only.length && elsewhere.length) unvalidated.push(pair); else note(`swap "${pair}" matched nothing`);
+}
+if (unvalidated.length) console.log(`partial capture: ${unvalidated.length} swap(s) shared with screens outside --only were not validated; run a full capture before building`);
 for (const s of screens) {
   const r = results.get(s.file);
   if (!r) continue;

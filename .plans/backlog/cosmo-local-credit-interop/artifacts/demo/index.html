@@ -617,7 +617,13 @@
 
     function advance() {
       if (!flow) return;
-      if (step < flow.screens.length - 1) { step += 1; render(); } else home();
+      if (step < flow.screens.length - 1) {
+        // The last screen hides the hotspot; a keyboard user who held it lands on "Try another flow".
+        const hadFocus = document.activeElement === hotspot;
+        step += 1;
+        render();
+        if (hadFocus && hotspot.hidden) $("another").focus({ preventScroll: true });
+      } else home();
     }
     function retreat() { if (flow && step > 0) { step -= 1; render(); } }
 

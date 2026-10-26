@@ -38,7 +38,7 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | [`review-2026-10-25.md`](review-2026-10-25.md) | Afo's 25 October slide and brief review, with the Tech and Sun research; implemented in [the revision](#the-revision--25-october-2026) |
 | [`../research/diaspora-evidence-pass-2026-10-25.md`](../research/diaspora-evidence-pass-2026-10-25.md) | The RESR-94 evidence pass: every diaspora, remittance, hub and funding claim checked against primary sources, with proposed ledger rows and open questions; applied in [the evidence pass](#the-evidence-pass--25-october-2026) |
 
-Rendered files go to `deck/output/` and `brief/output/`, which the repository ignores: run the
+Rendered files go to `deck/output/`, `brief/output/` and `submission/output/`, which the repository ignores: run the
 commands below to produce them.
 
 ## Present
@@ -61,7 +61,10 @@ node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/capture-screens.mj
 node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --sync
 node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs
 node .plans/backlog/cosmo-local-credit-interop/artifacts/brief/render.mjs
+node .plans/backlog/cosmo-local-credit-interop/artifacts/submission/render.mjs
 ```
+
+The clickable demo has its own capture, build and check commands in `demo/README.md`.
 
 The deck script checks 18 slides, the corner symbol on each, the slide number on each except the
 title and the closing slide, notes identical in the HTML and the Markdown, each slide's timing
@@ -322,7 +325,7 @@ fourth mechanism, "cockpit" becomes "steward dashboard" in the brief, and the br
   rewards in G$. The G$ path is live and paid its first reward in August (claim C08), but creating
   new G$ reward promises in the app sits behind `SETTLEMENT_ENABLED = false` in
   `packages/shared/src/config/app.ts`, and the app tells members that sending them "is
-  unavailable in this release". That switch must be on and deployed before the pitch; the notes'
+  unavailable in this release". That switch must be on and deployed before the submission on 27 October; the notes'
   claims list says what to say until it is.
 - **Facts checked.** Odunde Festival 2026, Leimert Park, 6 June, with masquerade performances and a
   language tent (LA event listings; the ledger's C50 spells it "Odun De"). Greenpill Kenya,
@@ -390,7 +393,9 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
 
 0. **The G$ switch.** The deck and brief say kept promises earn agreed rewards in G$. New G$ reward
    promises are gated by `SETTLEMENT_ENABLED = false` in `packages/shared/src/config/app.ts`; it
-   must be on and deployed before the pitch, or the presenter follows the claims list's fallback.
+   must be on and deployed before the materials are submitted on Tuesday 27 October, not only
+   before the pitch: a submitted PDF has no presenter to add the fallback. Until then the claims
+   list's fallback wording covers anything spoken.
    The ledger's C91 (proposed in the evidence note) should record whichever is true on the day.
 1. **Claim sources.** The deck follows the claim ledger's 23 October addendum, the event research
    note and the live-pilot handoff. If one of them is missing from `../research/` or `../handoffs/`,

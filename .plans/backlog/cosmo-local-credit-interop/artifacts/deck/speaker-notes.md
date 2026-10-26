@@ -69,7 +69,7 @@ Four mechanisms turn support into lasting capacity. The endowment: supporters de
 
 ## 14. Business model · 0:30
 
-This is our revenue model. Funders pay us to help their money reach more local initiatives: a separate fee for setup, support and reporting, priced by projects and workload. Green Goods also takes a share of what each garden's endowment earns, 2.7% by default and set per garden. Never a supporter's deposit, never a garden's shared fund. Today our income is grants; the fee and the share are the path. A worked example is in our brief.
+This is our revenue model. Funders pay us a separate fee for setup, support and reporting, priced by projects and workload. Green Goods' share of what each garden's endowment earns is 2.7% by default, set per garden, and routing it to us is being switched on. Never a supporter's deposit, never a garden's shared fund. Today our income is grants; the fee and the share are the path. A worked example is in our brief.
 
 ## 15. Where we are and where next · 0:30
 
