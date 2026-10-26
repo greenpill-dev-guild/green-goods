@@ -3,6 +3,7 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useDueClock } from "../../../hooks/commitment-pooling/useDueClock";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 type CycleRow = { cycleId: bigint; endTime: bigint | null };
 
@@ -38,7 +39,9 @@ const promise = (over: Partial<Clocked> = {}): Clocked => ({
 });
 
 const render = (commitments: readonly Clocked[]) =>
-  renderHook(() => useDueClock({ chainId: 11155111, poolId: 3n, commitments }));
+  renderHook(() => useDueClock({ chainId: 11155111, poolId: 3n, commitments }), {
+    wrapper: createTestWrapper(),
+  });
 
 beforeEach(() => {
   mocks.cycles = undefined;

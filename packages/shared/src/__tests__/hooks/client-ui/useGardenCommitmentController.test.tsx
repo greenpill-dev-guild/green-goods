@@ -1,12 +1,13 @@
 /** @vitest-environment happy-dom */
 
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook as renderBareHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useGardenCommitmentController } from "../../../hooks/client-ui/commitment/useGardenCommitmentController";
 import type { CommitmentJobInput } from "../../../hooks/commitment-pooling/useCommitmentJobs";
 import type { CommitmentMutationInput } from "../../../hooks/commitment-pooling/useCommitmentMutations";
 import { CommitmentReasonPinError } from "../../../modules/commitment-pooling/reasons";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 import {
   DEMO_CHAIN_ID,
   DEMO_GARDEN,
@@ -32,6 +33,10 @@ import {
 
 type Enqueue = (input: CommitmentJobInput) => Promise<string>;
 type Mutate = (input: CommitmentMutationInput) => Promise<`0x${string}`>;
+
+// The due clock reads the chain's time through the query cache, as every screen provides it.
+const renderHook: typeof renderBareHook = (callback, options) =>
+  renderBareHook(callback, { wrapper: createTestWrapper(), ...options });
 
 const work = (overrides: Partial<Work> = {}): Work => ({
   id: "0xaaaa",

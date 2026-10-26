@@ -48,14 +48,17 @@ const taken = (id: number) =>
 
 const PERSONAL = { kind: "personal", garden: GARDEN } as const;
 
-function renderTakeUp(reread: () => Promise<unknown>) {
+function renderTakeUp(
+  reread: () => Promise<unknown>,
+  clock = { now: BigInt(Math.floor(Date.now() / 1000)), cycleEndTimes: new Map() }
+) {
   return renderHookWithProviders(() =>
     useGroupTakeUp({
       chainId: 42161,
       viewer: LINA,
       queued: new Set(),
       reread: reread as never,
-      cycleEndTimes: new Map(),
+      clock,
     })
   );
 }
@@ -99,6 +102,68 @@ describe("useGroupTakeUp", () => {
       kind: 0,
       gardenContext: GARDEN,
     });
+  });
+
+  // The page offers copies on the chain's clock (`useDueClock`), and the press judges its copy on
+  // the same clock, so a device an hour fast takes up the copy the page offered (Codex on #1341).
+  it("judges the chosen copy on the page's clock, not on a device clock that runs fast", async () => {
+    const chainNow = 1_800_000_000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime((chainNow + 3_600) * 1000);
+    try {
+      mocks.detail.mockResolvedValue(
+        commitmentDetailFixture({ commitment: open(11, { dueDate: BigInt(chainNow + 1_800) }) })
+      );
+      const reread = vi.fn().mockResolvedValue({ copies: [], askedFor: new Set() });
+      const { result } = renderTakeUp(reread, { now: BigInt(chainNow), cycleEndTimes: new Map() });
+
+      await act(() => result.current.takeUp(11n, PERSONAL));
+
+      expect(reread).not.toHaveBeenCalled();
+      expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+      expect(result.current.state).toEqual({ step: "done", copyId: 11n });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // The press reads its copy again before sending, and the page's clock can tick meanwhile: a copy
+  // that falls due during that read is judged on the newer clock (Codex on #1341).
+  it("refuses a copy that falls due while it is read again", async () => {
+    const chainNow = 1_800_000_000n;
+    let finishRead: () => void = () => {};
+    mocks.detail.mockReturnValue(
+      new Promise((resolve) => {
+        finishRead = () =>
+          resolve(commitmentDetailFixture({ commitment: open(11, { dueDate: chainNow + 1n }) }));
+      })
+    );
+    const reread = vi.fn().mockResolvedValue({ copies: [], askedFor: new Set() });
+    const { result, rerender } = renderHookWithProviders(
+      ({ now }: { now: bigint }) =>
+        useGroupTakeUp({
+          chainId: 42161,
+          viewer: LINA,
+          queued: new Set(),
+          reread: reread as never,
+          clock: { now, cycleEndTimes: new Map() },
+        }),
+      { initialProps: { now: chainNow } }
+    );
+
+    let press: Promise<void> = Promise.resolve();
+    act(() => {
+      press = result.current.takeUp(11n, PERSONAL);
+    });
+    // The copy's due second passes, and the page's clock ticks, before the read answers.
+    rerender({ now: chainNow + 2n });
+    await act(async () => {
+      finishRead();
+      await press;
+    });
+
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(result.current.state).toEqual({ step: "none" });
   });
 
   it("ignores a second press while the first is still reading, so only one copy is sent", async () => {
