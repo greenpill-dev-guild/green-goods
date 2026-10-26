@@ -91,16 +91,29 @@ export interface GardenOpenCycles {
   state: JournalSectionState<JournalCycle>;
 }
 
-/** The pool's open season and campaigns, read the way the Pool tab reads its rail. */
-export function useGardenOpenCycles(gardenId: string): GardenOpenCycles {
+/**
+ * The pool's open season and campaigns, read the way the Pool tab reads its rail. Days left
+ * count from when the section was last brought into view: the tab shown again, or, for a
+ * section Home keeps mounted under the pages it opens, `shown` turning true again, so a count
+ * read before a day boundary never stands after it.
+ */
+export function useGardenOpenCycles(
+  gardenId: string,
+  { shown = true }: { shown?: boolean } = {}
+): GardenOpenCycles {
   const isOnline = useOnlineStatus();
   const { chainId, pools, pool } = useGardenPool(gardenId);
   const cycles = useCommitmentCycles(
     { chainId, poolId: pool?.poolId ?? 0n },
     { enabled: pool !== null }
   );
-  // Days left count from when Home was last brought back into view.
   const [nowMs, setNowMs] = useState(Date.now);
+  // Read in the render that shows the section again, so the count it paints is already current.
+  const [wasShown, setWasShown] = useState(shown);
+  if (shown !== wasShown) {
+    setWasShown(shown);
+    if (shown) setNowMs(Date.now());
+  }
   useDocumentEvent("visibilitychange", () => {
     if (document.visibilityState === "visible") setNowMs(Date.now());
   });

@@ -27,6 +27,8 @@ export interface DueClockRead {
    * of them, so that promise's due date cannot be known yet.
    */
   isError: boolean;
+  /** Their first read waits for a connection (offline, nothing cached): unknown, not loading. */
+  isPaused: boolean;
   retry: () => void;
 }
 
@@ -68,6 +70,7 @@ export function useDueClock(input: {
     clock,
     known: !unread && !missing,
     isError: (unread && cycles.isError) || missing,
+    isPaused: unread && cycles.fetchStatus === "paused",
     retry: () => void cycles.refetch(),
   };
 }

@@ -1,4 +1,6 @@
 // Command Surface: the garden's open promises as a sheet over Home (DL-127).
+import type { CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
+import { Button } from "@green-goods/shared/components/Button";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import {
   useGardenOpenCycles,
@@ -20,6 +22,12 @@ export interface TakePartSheetProps {
   garden: Pick<Garden, "id" | "name">;
 }
 
+/** The season or campaign the list is narrowed to, with its kind, which outlives its rail card. */
+interface Narrowed {
+  cycleId: bigint;
+  cycleType?: CommitmentCycleRecord["cycleType"];
+}
+
 /**
  * Every promise in the garden the reader could take up, in one tall sheet over Home: Take Part's
  * whole list, of which the section shows the first rows, as the Pool tab's commitment rows, each
@@ -37,19 +45,28 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
 
   // The cycle the list is narrowed to, taken afresh each time the sheet opens.
   const [opened, setOpened] = useState(opening);
-  const [cycleId, setCycleId] = useState(() => openingCycleId(opening));
+  const [narrowed, setNarrowed] = useState(() => openingNarrowed(opening));
   if (opening !== opened) {
     setOpened(opening);
-    if (opening) setCycleId(openingCycleId(opening));
+    if (opening) setNarrowed(openingNarrowed(opening));
   }
 
   const cycles = cycleRead.status === "ready" ? cycleRead.items.map(({ cycle }) => cycle) : [];
-  // Only a cycle the rail shows narrows the list, so a narrowed list can always be widened.
-  const chosen = cycles.find((cycle) => cycle.cycleId === cycleId) ?? null;
+  const choose = (cycleId: bigint | null) =>
+    setNarrowed(
+      cycleId === null
+        ? null
+        : { cycleId, cycleType: cycles.find((cycle) => cycle.cycleId === cycleId)?.cycleType }
+    );
+  // The cycle narrows the list whether or not the rail lists it: the rail may still be unread,
+  // or the cycle may have closed on a refetch since it was chosen. Either way the list stays the
+  // cycle's, never widened to the garden's unasked, and See All widens it when the rail cannot.
+  const listed = cycles.find((cycle) => cycle.cycleId === narrowed?.cycleId) ?? null;
+  const kind = listed?.cycleType ?? narrowed?.cycleType;
   const { all } = promises;
   const inCycle =
-    all.status === "ready" && chosen
-      ? all.items.filter((entry) => entry.copy.cycleId === chosen.cycleId)
+    all.status === "ready" && narrowed
+      ? all.items.filter((entry) => entry.copy.cycleId === narrowed.cycleId)
       : null;
 
   return (
@@ -63,11 +80,14 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
       }}
     >
       {cycles.length > 0 ? (
-        <CycleRail
-          cycles={cycles}
-          selectedCycleId={chosen?.cycleId ?? null}
-          onSelect={setCycleId}
-        />
+        <CycleRail cycles={cycles} selectedCycleId={listed?.cycleId ?? null} onSelect={choose} />
+      ) : null}
+      {narrowed && !listed ? (
+        <div className="flex justify-end">
+          <Button type="button" emphasis="tertiary" size="compact" onClick={() => choose(null)}>
+            {formatMessage({ id: "app.home.journal.seeAll" })}
+          </Button>
+        </div>
       ) : null}
       <ul className="flex flex-col gap-(--gg-list-gap)">
         {inCycle && inCycle.length === 0 ? (
@@ -76,9 +96,14 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
             icon={<RiFilterOffLine />}
             title={formatMessage(
               { id: "app.home.journal.takePart.cycleEmptyTitle" },
-              { kind: chosen?.cycleType === "CAMPAIGN" ? "campaign" : "season" }
+              { kind: kind === "CAMPAIGN" ? "campaign" : "season" }
             )}
-            detail={formatMessage({ id: "app.home.journal.takePart.cycleEmptyDetail" })}
+            // The card to tap again is on the rail only while it lists the cycle.
+            detail={
+              listed
+                ? formatMessage({ id: "app.home.journal.takePart.cycleEmptyDetail" })
+                : undefined
+            }
           />
         ) : (
           <TakePartRows
@@ -97,8 +122,8 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
   );
 }
 
-/** The cycle an opening names, as the rail's id, or null for the whole list. */
-function openingCycleId(opening: TakePartSheetOpening | null): bigint | null {
+/** The cycle an opening names, with its kind, or null for the whole list. */
+function openingNarrowed(opening: TakePartSheetOpening | null): Narrowed | null {
   const id = opening?.cycleId;
-  return id && /^\d+$/.test(id) ? BigInt(id) : null;
+  return id && /^\d+$/.test(id) ? { cycleId: BigInt(id), cycleType: opening?.cycleType } : null;
 }

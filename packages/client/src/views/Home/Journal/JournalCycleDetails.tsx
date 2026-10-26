@@ -11,6 +11,9 @@ export interface JournalCycleDetailsProps {
   onClose: () => void;
 }
 
+/** The cycle Show Its Promises opens the garden's open promises at: its id, and its kind. */
+type PromisesFor = { cycleId: string; cycleType: CommitmentCycleRecord["cycleType"] };
+
 /**
  * A season's or campaign's details sheet, opened from a Highlights card or a cycle line. Its Show
  * Its Promises opens the garden's open promises at the cycle (`TakePartSheet`) only once the
@@ -20,13 +23,13 @@ export interface JournalCycleDetailsProps {
  */
 export function JournalCycleDetails({ cycle, isOpen, onClose }: JournalCycleDetailsProps) {
   const openTakePartSheet = useUIStore((state) => state.openTakePartSheet);
-  const [promisesFor, setPromisesFor] = useState<string | null>(null);
+  const [promisesFor, setPromisesFor] = useState<PromisesFor | null>(null);
 
   // Runs after the commit that closed the details, whose opener focus was restored before it.
   useEffect(() => {
     if (isOpen || promisesFor === null) return;
     setPromisesFor(null);
-    openTakePartSheet({ cycleId: promisesFor });
+    openTakePartSheet(promisesFor);
   }, [isOpen, promisesFor, openTakePartSheet]);
 
   return (
@@ -35,7 +38,7 @@ export function JournalCycleDetails({ cycle, isOpen, onClose }: JournalCycleDeta
       isOpen={isOpen}
       onClose={onClose}
       onShowPromises={(cycleId) => {
-        setPromisesFor(cycleId.toString());
+        setPromisesFor({ cycleId: cycleId.toString(), cycleType: cycle?.cycleType ?? null });
         onClose();
       }}
     />

@@ -172,6 +172,8 @@ export interface CommitmentQueueState {
    * or not yet. A surface that offers an act waits rather than read it as empty.
    */
   isLoading: boolean;
+  /** The queue is being read again, a cached answer's included: what it says may still change. */
+  isFetching: boolean;
   refresh: () => void;
 }
 
@@ -417,7 +419,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       isUnavailable: Boolean(viewer) && query.isError,
       // Pending covers a first read that is running or paused; without a reader nothing runs.
       isLoading: Boolean(viewer) && query.isPending,
+      isFetching: Boolean(viewer) && query.isFetching,
       refresh,
     };
-  }, [query.data, query.isError, query.isPending, viewer, refresh]);
+  }, [query.data, query.isError, query.isPending, query.isFetching, viewer, refresh]);
 }

@@ -7,6 +7,7 @@
  * @vitest-environment happy-dom
  */
 
+import { focusManager, onlineManager } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTakeUpChoices } from "../../../hooks/commitment-pooling/useTakeUpChoices";
@@ -132,6 +133,44 @@ describe("useGardenJournal", () => {
     const { result } = renderHookWithProviders(() => useGardenOpenCycles(GARDEN));
 
     await waitFor(() => expect(result.current.state.status).toBe("error"));
+  });
+
+  // Home keeps the journal mounted under the pages it opens, so a count read before a day
+  // boundary would stand after it (Codex on #1333).
+  it("reads the clock again when the section is shown again, so days left pass a day boundary", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-26T12:00:00Z"));
+      const endsAt = new Date("2026-10-28T06:00:00Z");
+      mocks.getCommitmentCycles.mockResolvedValue([
+        cycleFixture({
+          id: "c-7",
+          cycleId: 7n,
+          cycleType: "SEASON",
+          poolId: 7n,
+          state: "OPEN",
+          endTime: BigInt(Math.floor(endsAt.getTime() / 1000)),
+        }),
+      ]);
+      const { result, rerender } = renderHookWithProviders(
+        ({ shown }: { shown: boolean }) => useGardenOpenCycles(GARDEN, { shown }),
+        { initialProps: { shown: true } }
+      );
+      const daysLeft = () =>
+        result.current.state.status === "ready" ? result.current.state.items[0]?.daysLeft : null;
+      await waitFor(() => expect(result.current.state.status).toBe("ready"));
+      expect(daysLeft()).toBe(2);
+
+      // A page opened under Home, held through the day boundary, then Home shown again.
+      rerender({ shown: false });
+      vi.setSystemTime(new Date("2026-10-27T12:00:00Z"));
+      rerender({ shown: false });
+      expect(daysLeft()).toBe(2);
+      rerender({ shown: true });
+      expect(daysLeft()).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("previews three open promises and keeps the newest ask for the carousel past them", async () => {
@@ -395,6 +434,42 @@ describe("useGardenJournal", () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.choices).toEqual([]);
       expect(result.current.asks).toEqual([]);
+    });
+
+    // The link check drops a take-up only once fresh reads disprove it; this phone's queue is
+    // read again whenever the app returns, over what it last said (Codex on #1340).
+    it("says the asks are still being read while this phone's queue is read again", async () => {
+      const { result } = choices();
+      await waitFor(() => expect(result.current.choices).toHaveLength(1));
+      expect(result.current.isFetching).toBe(false);
+
+      mocks.getJobs.mockImplementation(() => new Promise(() => undefined));
+      try {
+        act(() => {
+          focusManager.setFocused(false);
+          focusManager.setFocused(true);
+        });
+        await waitFor(() => expect(result.current.isFetching).toBe(true));
+        // The cached answer stands meanwhile.
+        expect(result.current.choices).toHaveLength(1);
+      } finally {
+        focusManager.setFocused(undefined);
+      }
+    });
+
+    // TanStack reports a first read that waits for a connection neither loading nor failed, so
+    // without its own word Start read it as no asks at all (Codex on #1334).
+    it("says the asks are unknown, not none, while their first read waits for a connection", async () => {
+      onlineManager.setOnline(false);
+      try {
+        const { result } = choices();
+
+        await waitFor(() => expect(result.current.isPaused).toBe(true));
+        expect(result.current).toMatchObject({ isLoading: false, isError: false, asks: [] });
+        expect(mocks.getCommitmentPools).not.toHaveBeenCalled();
+      } finally {
+        onlineManager.setOnline(true);
+      }
     });
   });
 });
