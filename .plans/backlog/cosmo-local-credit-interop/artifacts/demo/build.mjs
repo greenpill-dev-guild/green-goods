@@ -8,31 +8,71 @@
 // Exits with status 1 when a screen is missing or the page passes 15 MB, and then writes nothing,
 // so the last good build in output/ survives a failed one.
 import { fileURLToPath } from "node:url";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, "output");
 mkdirSync(out, { recursive: true });
-let html = readFileSync(join(here, "index.html"), "utf8");
 const problems = [];
-
-const block = html.match(/<script type="application\/json" id="flows">([\s\S]*?)<\/script>/);
-const { flows } = JSON.parse(block[1]);
+// The page, the partial-capture marker and the screens are read under the capture's publication
+// lock, so a capture publishing at the same moment can never hand the build a page with old
+// metadata beside some new screens. The lock names its owner; a stale one (its process gone, or
+// older than ten minutes) is moved aside with one rename, so only one waiting run takes it over,
+// and a lock without owner.json younger than five seconds is one being taken, not a stale one.
+const screensDir = join(here, "assets", "screens");
+const lock = join(screensDir, ".publish-lock");
+const lockOwner = () => { try { return JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")); } catch { return null; } };
+const lockAgeMs = () => { try { return Date.now() - statSync(lock).mtimeMs; } catch { return Infinity; } };
+const ownsLock = () => lockOwner()?.pid === process.pid;
+const takeLock = () => {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      mkdirSync(lock);
+      writeFileSync(join(lock, "owner.json"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+      if (ownsLock()) return;
+      continue;
+    } catch (error) { if (error.code !== "EEXIST") throw error; }
+    const owner = lockOwner();
+    if (!owner && lockAgeMs() < 5000) throw new Error(`a capture is taking the publication lock (${lock}); build again when it has finished`);
+    const alive = owner?.pid ? (() => { try { process.kill(owner.pid, 0); return true; } catch (e) { return e.code === "EPERM"; } })() : false;
+    if (owner && alive && Date.now() - owner.at < 10 * 60 * 1000) throw new Error(`a capture is publishing (${lock}, process ${owner.pid} since ${new Date(owner.at).toISOString()}); build again when it has finished`);
+    const aside = `${lock}.stale-${process.pid}-${Date.now()}`;
+    try {
+      renameSync(lock, aside);
+      rmSync(aside, { recursive: true, force: true });
+      console.log(`took over a stale publication lock${owner ? ` left by process ${owner.pid}` : ""}`);
+    } catch (error) { if (error.code !== "ENOENT") throw error; }
+  }
+  throw new Error(`could not take the publication lock at ${lock} after three attempts`);
+};
+const releaseLock = () => { if (ownsLock()) rmSync(lock, { recursive: true, force: true }); };
+let html;
+let block;
+let flows;
 const images = {};
-for (const screen of flows.flatMap((f) => f.screens)) {
-  const path = join(here, "assets", "screens", `${screen.file}.jpg`);
-  if (!existsSync(path)) { problems.push(`missing ${path}; run capture.mjs`); continue; }
-  images[screen.file] = `data:image/jpeg;base64,${readFileSync(path).toString("base64")}`;
-}
-// A partial capture that could not validate shared swap rules leaves this marker; only a full
-// capture that finishes clean removes it, and until then the screens may show fixture copy.
-const partialMarker = join(here, "assets", "screens", ".partial-capture.json");
-if (existsSync(partialMarker)) {
-  let marker = null;
-  try { marker = JSON.parse(readFileSync(partialMarker, "utf8")); } catch {}
-  problems.push(`the last capture was partial (${marker?.sessions?.join(", ") || "unknown sessions"}, ${marker?.at || "unknown time"}) and left ${marker?.unvalidated?.length ?? "some"} shared swap rule(s) unvalidated; run a full capture.mjs before building`);
+takeLock();
+try {
+  if (!ownsLock()) throw new Error(`lost the publication lock at ${lock} to another run; build again`);
+  html = readFileSync(join(here, "index.html"), "utf8");
+  block = html.match(/<script type="application\/json" id="flows">([\s\S]*?)<\/script>/);
+  ({ flows } = JSON.parse(block[1]));
+  for (const screen of flows.flatMap((f) => f.screens)) {
+    const path = join(screensDir, `${screen.file}.jpg`);
+    if (!existsSync(path)) { problems.push(`missing ${path}; run capture.mjs`); continue; }
+    images[screen.file] = `data:image/jpeg;base64,${readFileSync(path).toString("base64")}`;
+  }
+  // A partial capture that could not validate shared swap rules leaves this marker; only a full
+  // capture that finishes clean removes it, and until then the screens may show fixture copy.
+  const partialMarker = join(screensDir, ".partial-capture.json");
+  if (existsSync(partialMarker)) {
+    let marker = null;
+    try { marker = JSON.parse(readFileSync(partialMarker, "utf8")); } catch {}
+    problems.push(`the last capture was partial (${marker?.sessions?.join(", ") || "unknown sessions"}, ${marker?.at || "unknown time"}) and left ${marker?.unvalidated?.length ?? "some"} shared swap rule(s) unvalidated; run a full capture.mjs before building`);
+  }
+} finally {
+  releaseLock();
 }
 const symbolPath = join(here, "..", "deck", "assets", "brand", "green-goods-symbol.svg");
 const symbol = `data:image/svg+xml;base64,${readFileSync(symbolPath).toString("base64")}`;

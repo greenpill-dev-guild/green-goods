@@ -5,7 +5,7 @@
 // brief show them on the commitment pooling slide and page.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -66,6 +66,15 @@ try {
     if (/couldn't find story|story not found|no story matched/i.test(text) || missing.length) {
       throw new Error(`${s.file}: the story did not show ${missing.length ? `"${missing.join('", "')}"` : "its content"}; neither screen was replaced`);
     }
+    // Every image a person can see on the screen must have decoded pixels (the garden story's
+    // banner, for one), or a failed or undecodable image request would be rasterized into the
+    // screen and no later check could see it.
+    const blank = await page.evaluate(() => [...document.querySelectorAll("img")].filter((img) => {
+      const r = img.getBoundingClientRect();
+      const visible = r.width >= 24 && r.height >= 24 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth && getComputedStyle(img).visibility !== "hidden";
+      return visible && !(img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
+    }).map((img) => (img.currentSrc || img.getAttribute("src") || "(no src)").replace(/^data:[^,]*,.*/, "(data URI)").slice(0, 90)));
+    if (blank.length) throw new Error(`${s.file}: ${blank.length} visible image(s) did not load or decode (${blank.join(" | ")}); neither screen was replaced`);
     await page.evaluate(() => document.activeElement?.blur?.());
     await page.mouse.move(1, 1);
     await page.screenshot({ path: join(staging, s.file) });
@@ -76,21 +85,39 @@ try {
   // that died or was stopped (its process gone, or older than ten minutes) is taken over, a live
   // owner is respected, and the lock is released on every path out.
   const lock = join(out, ".publish-lock");
+  const lockOwner = () => { try { return JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")); } catch { return null; } };
+  const lockAgeMs = () => { try { return Date.now() - statSync(lock).mtimeMs; } catch { return Infinity; } };
+  const ownsLock = () => lockOwner()?.pid === process.pid;
+  // A stale lock is moved aside with one rename, which only one of two runs that saw it can win;
+  // the other then finds no lock, or the winner's, and acts on that. A lock without owner.json that
+  // is younger than five seconds belongs to a run that has created it and not yet named itself, so
+  // it is live. Ownership is read back after writing and checked again before anything is replaced
+  // or released.
   const takeLock = () => {
-    try { mkdirSync(lock); } catch (error) {
-      if (error.code !== "EEXIST") throw error;
-      let owner = null;
-      try { owner = JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")); } catch {}
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        mkdirSync(lock);
+        writeFileSync(join(lock, "owner.json"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+        if (ownsLock()) return;
+        continue;
+      } catch (error) { if (error.code !== "EEXIST") throw error; }
+      const owner = lockOwner();
+      if (!owner && lockAgeMs() < 5000) throw new Error(`another capture is taking the publication lock (${lock}); neither screen was replaced`);
       const alive = owner?.pid ? (() => { try { process.kill(owner.pid, 0); return true; } catch (e) { return e.code === "EPERM"; } })() : false;
       if (owner && alive && Date.now() - owner.at < 10 * 60 * 1000) throw new Error(`another capture is publishing (${lock}, process ${owner.pid} since ${new Date(owner.at).toISOString()}); neither screen was replaced`);
-      console.log(`taking over a stale publication lock${owner ? ` left by process ${owner.pid}` : ""}`);
-      rmSync(lock, { recursive: true, force: true });
-      mkdirSync(lock);
+      const aside = `${lock}.stale-${process.pid}-${Date.now()}`;
+      try {
+        renameSync(lock, aside);
+        rmSync(aside, { recursive: true, force: true });
+        console.log(`took over a stale publication lock${owner ? ` left by process ${owner.pid}` : ""}`);
+      } catch (error) { if (error.code !== "ENOENT") throw error; }
     }
-    writeFileSync(join(lock, "owner.json"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+    throw new Error(`could not take the publication lock at ${lock} after three attempts; neither screen was replaced`);
   };
+  const releaseLock = () => { if (ownsLock()) rmSync(lock, { recursive: true, force: true }); };
   takeLock();
   try {
+    if (!ownsLock()) throw new Error(`lost the publication lock at ${lock} to another run; neither screen was replaced`);
     // The current pair is backed up first, so a rename that fails halfway puts the old pair back
     // rather than leaving one new screen beside one old one. The backup completes before either
     // screen is touched, and only the screens that were promoted are rolled back, each on its own.
@@ -115,7 +142,7 @@ try {
     }
     rmSync(backup, { recursive: true, force: true });
   } finally {
-    rmSync(lock, { recursive: true, force: true });
+    releaseLock();
   }
 } finally {
   rmSync(staging, { recursive: true, force: true });

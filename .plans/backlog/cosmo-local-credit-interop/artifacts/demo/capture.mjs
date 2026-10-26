@@ -23,7 +23,8 @@
 // and photos become the hub's. Components, layout, controls and state stay as rendered.
 // Screens land in a staging folder and replace the current set only when the run has no problem,
 // so a failed capture leaves the existing screens and index.html untouched. It fails when a step
-// fails, a swap rule matches nothing, a fixture name or a real ENS name survives, a photo is missing
+// fails, a swap rule matches nothing a person can see (a match in hidden text, an alt, a title or
+// an aria-label is replaced but does not count), a fixture name or a real ENS name survives, a photo is missing
 // or does not decode, a record photo's title no longer matches RECORDS, Storybook shows its
 // not-found view, a screen without a hotspot shows neither its `expect` copy nor one of its own
 // swaps, or a hotspot target is missing or off screen.
@@ -431,6 +432,9 @@ async function hotspotBox(page, spec) {
 
 async function applySwaps(page, swaps, withNth) {
   return page.evaluate(({ rules, withNth, names }) => {
+    // Every match is replaced, but only a match a person can see counts as a hit for validation:
+    // fixture text that survives in a hidden element, a closed option or an alt text would
+    // otherwise keep a rule "matched" after it vanished from the screen.
     const hits = rules.map(() => 0);
     const seen = rules.map(() => 0);
     // A rule with `nth` counts only text a person can see (not, say, a closed select's options),
@@ -446,7 +450,7 @@ async function applySwaps(page, swaps, withNth) {
           if (index !== nth) return;
         }
         v = whole ? v.replace(from, to) : v.split(from).join(to);
-        hits[i] += 1;
+        if (counted) hits[i] += 1;
       });
       // A shortened address becomes the same invented handle wherever it appears.
       return v.replace(/0x[0-9a-fA-F]{2,8}\.{2,3}[0-9a-fA-F]{2,8}/g, (address) => {
@@ -463,13 +467,15 @@ async function applySwaps(page, swaps, withNth) {
       const next = replace(node.nodeValue, shown);
       if (next !== node.nodeValue) node.nodeValue = next;
     }
+    // A placeholder or a field's value is text a person sees; alt, aria-label and title are not.
     for (const el of document.querySelectorAll("*")) {
+      const shown = Boolean(el.getClientRects().length);
       for (const name of ["alt", "aria-label", "title", "placeholder"]) {
         const value = el.getAttribute(name);
-        if (value) { const next = replace(value, false); if (next !== value) el.setAttribute(name, next); }
+        if (value) { const next = replace(value, shown && name === "placeholder" && !el.value); if (next !== value) el.setAttribute(name, next); }
       }
       if ((el.tagName === "INPUT" || el.tagName === "TEXTAREA") && el.value) {
-        const next = replace(el.value, false);
+        const next = replace(el.value, shown);
         if (next !== el.value) el.value = next;
       }
     }
@@ -901,19 +907,36 @@ if (problems.length) {
 // process is gone, or it is older than ten minutes) and taken over, while a live publisher is
 // respected; the lock is released on every path out of the publication.
 const lock = join(out, ".publish-lock");
+const lockOwner = () => { try { return JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")); } catch { return null; } };
+const lockAgeMs = () => { try { return Date.now() - statSync(lock).mtimeMs; } catch { return Infinity; } };
+const ownsLock = () => lockOwner()?.pid === process.pid;
+// A stale lock is moved aside with one rename, which only one of two runs that saw it can win; the
+// other then finds no lock, or the winner's, and acts on that. A lock without owner.json that is
+// younger than five seconds belongs to a run that has created it and not yet named itself, so it
+// is live. Ownership is read back after writing and checked again before anything is replaced or
+// released.
 const takeLock = () => {
-  try { mkdirSync(lock); } catch (error) {
-    if (error.code !== "EEXIST") throw error;
-    let owner = null;
-    try { owner = JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")); } catch {}
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      mkdirSync(lock);
+      writeFileSync(join(lock, "owner.json"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+      if (ownsLock()) return;
+      continue;
+    } catch (error) { if (error.code !== "EEXIST") throw error; }
+    const owner = lockOwner();
+    if (!owner && lockAgeMs() < 5000) throw new Error(`another capture is taking the publication lock (${lock}); nothing was replaced and index.html is untouched`);
     const alive = owner?.pid ? (() => { try { process.kill(owner.pid, 0); return true; } catch (e) { return e.code === "EPERM"; } })() : false;
     if (owner && alive && Date.now() - owner.at < 10 * 60 * 1000) throw new Error(`another capture is publishing (${lock}, process ${owner.pid} since ${new Date(owner.at).toISOString()}); nothing was replaced and index.html is untouched`);
-    console.log(`taking over a stale publication lock${owner ? ` left by process ${owner.pid}` : ""}`);
-    rmSync(lock, { recursive: true, force: true });
-    mkdirSync(lock);
+    const aside = `${lock}.stale-${process.pid}-${Date.now()}`;
+    try {
+      renameSync(lock, aside);
+      rmSync(aside, { recursive: true, force: true });
+      console.log(`took over a stale publication lock${owner ? ` left by process ${owner.pid}` : ""}`);
+    } catch (error) { if (error.code !== "ENOENT") throw error; }
   }
-  writeFileSync(join(lock, "owner.json"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+  throw new Error(`could not take the publication lock at ${lock} after three attempts; nothing was replaced and index.html is untouched`);
 };
+const releaseLock = () => { if (ownsLock()) rmSync(lock, { recursive: true, force: true }); };
 try { takeLock(); } catch (error) {
   rmSync(staging, { recursive: true, force: true });
   throw error;
@@ -943,6 +966,7 @@ try {
   const json = JSON.stringify(currentData, null, 2).replace(/<\//g, "<\\/");
   const stagedHtml = join(staging, "index.html.staged");
   writeFileSync(stagedHtml, current.replace(currentBlock[0], `<script type="application/json" id="flows">\n${json}\n</script>`));
+  if (!ownsLock()) { rmSync(staging, { recursive: true, force: true }); throw new Error(`lost the publication lock at ${lock} to another run; nothing was replaced and index.html is untouched`); }
   const backup = mkdtempSync(join(out, ".previous-"));
   const names = readdirSync(staging).filter((name) => name !== "index.html.staged");
   // The backup completes before any screen is touched: a copy that fails leaves the set as it was.
@@ -979,5 +1003,5 @@ try {
     console.log(`captured ${results.size} screens into ${out}; 0 problems${existsSync(partialMarker) ? ` (an earlier partial capture's marker still blocks build.mjs until a full capture finishes clean)` : ""}`);
   }
 } finally {
-  rmSync(lock, { recursive: true, force: true });
+  releaseLock();
 }

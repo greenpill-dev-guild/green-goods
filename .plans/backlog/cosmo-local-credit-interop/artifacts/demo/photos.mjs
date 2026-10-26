@@ -24,11 +24,19 @@ const browser = await pw.chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 await page.goto("https://greengoods.app/gardens/tas-hub", { waitUntil: "networkidle", timeout: 90000 });
 await page.waitForTimeout(3000);
-// Only a button that is genuinely absent is skipped; a click that fails on a present button would
-// truncate the list and the whole-set replacement would then delete the photos behind it.
+// The list shows twelve records and adds twelve per press (NOTES_PAGE_SIZE in the client's
+// GardenDetailFieldNotes), so the button is pressed until it is gone, with a cap so a button that
+// never goes away cannot loop forever. A press that fails is not caught: a truncated list would
+// make the whole-set replacement delete the photos behind it.
 const more = page.getByRole("button", { name: /Show more submissions/i });
-if (await more.count()) await more.first().click({ timeout: 15000 });
-else console.log("no Show more button; saving what the page shows");
+let presses = 0;
+while (await more.count()) {
+  if (presses >= 50) throw new Error("the Show more submissions button is still there after 50 presses; the list did not end");
+  await more.first().click({ timeout: 15000 });
+  presses += 1;
+  await page.waitForTimeout(1500);
+}
+if (!presses) console.log("no Show more button; saving what the page shows");
 await page.waitForTimeout(2500);
 // The section's images load as they scroll into view.
 for (let y = 0; y < 9000; y += 600) { await page.evaluate((top) => window.scrollTo(0, top), y); await page.waitForTimeout(400); }
