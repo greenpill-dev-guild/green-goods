@@ -29,6 +29,7 @@ import {
 import { logger } from "../app/logger";
 import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
 import { sendCheckpointOf, writeSendCheckpoint } from "../job-queue/queue-policy";
+import { takeUpOf } from "../job-queue/take-up-hold";
 import { holdingSends } from "../job-queue/send-guards";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
 import type { ContractCall, TransactionSender } from "../transactions/types";
@@ -313,12 +314,14 @@ export async function uploadQueuedWork(
 
   try {
     const selected = input.jobIds ? new Set(input.jobIds) : undefined;
-    const ready = (await ports.listJobs(input.userAddress)).filter(
+    const listed = await ports.listJobs(input.userAddress);
+    // A work whose promise this account is still taking up waits for that take-up.
+    const ready = listed.filter(
       (job) =>
         (!selected || selected.has(job.id)) &&
         isUploadJob(job) &&
         (job.chainId ?? chainId) === chainId &&
-        queuedUploadStatus(job).state === "ready"
+        queuedUploadStatus(job, { takeUp: takeUpOf(job, listed) }).state === "ready"
     );
     if (ready.length === 0) return { status: "nothing-ready" };
 

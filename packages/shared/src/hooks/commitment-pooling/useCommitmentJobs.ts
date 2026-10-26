@@ -15,7 +15,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import type { Hex } from "viem";
 
@@ -29,6 +29,11 @@ import type {
   WorkLinkJobPayload,
 } from "../../modules/commitment-pooling/jobs";
 import type { JobSendPhase, ProcessJobResult } from "../../modules/job-queue/ports";
+import {
+  TakeUpNotSent,
+  takeUpBeforeWork,
+  type TakeUpOutcome,
+} from "../../modules/commitment-pooling/take-up";
 import type { ActPhaseReport } from "../../modules/transactions/act-phase";
 import type { TransactionSender } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
@@ -335,12 +340,16 @@ export function useCommitmentJobs(
   const sender = useTransactionSender();
   const queryClient = useQueryClient();
   const { formatMessage } = useIntl();
-  const handleError = createMutationErrorHandler({
-    source: "useCommitmentJobs",
-    toastContext: "commitment",
-    // A wrong network and an earlier version still queued read in the person's language.
-    formatMessage,
-  });
+  const handleError = useMemo(
+    () =>
+      createMutationErrorHandler({
+        source: "useCommitmentJobs",
+        toastContext: "commitment",
+        // A wrong network and an earlier version still queued read in the person's language.
+        formatMessage,
+      }),
+    [formatMessage]
+  );
 
   const mutation = useMutation({
     mutationFn: async ({ report, ...input }: CommitmentJobVariables) => {
@@ -398,10 +407,36 @@ export function useCommitmentJobs(
     [chainId, queryClient, sender, foreground]
   );
 
+  /**
+   * The first act of the tap that logs work for an Open ask (decision 18): the claim, sent as
+   * the person's own tap whatever their sign-in, so the work can follow it once it lands.
+   * Rejects with `TakeUpNotSent` when it was declined or refused, having queued nothing, which
+   * Submit says in its own words; any other failure is said here, as for any act.
+   */
+  const takeUp = useCallback(
+    async (payload: ClaimJobPayload): Promise<TakeUpOutcome> => {
+      if (!viewer) throw new Error("Sign in before making a commitment");
+      try {
+        return await takeUpBeforeWork({ payload, owner: viewer, chainId, sender }, jobQueue);
+      } catch (error) {
+        if (!(error instanceof TakeUpNotSent))
+          handleError(error, { metadata: { act: "claim", chainId } });
+        throw error;
+      } finally {
+        await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
+        await queryClient.invalidateQueries({
+          queryKey: commitmentPoolingKeys.commitment(chainId, payload.commitmentId),
+        });
+      }
+    },
+    [chainId, handleError, queryClient, sender, viewer]
+  );
+
   return {
     // `mutateAsync` is already a stable reference, so wrapping it would add a
     // memo that guards nothing.
     enqueue: mutation.mutateAsync,
+    takeUp,
     sendQueued,
     isPending: mutation.isPending,
     error: mutation.error,

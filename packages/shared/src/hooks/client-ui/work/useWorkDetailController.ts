@@ -6,6 +6,7 @@ import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
+import { takeUpOf } from "../../../modules/job-queue/take-up-hold";
 import { readWorkByUID } from "../../../modules/work/work-list";
 import { resolveGardenWorkRows } from "../../../modules/work/local-status-overlay";
 import { connectivityStore } from "../../../stores/connectivity";
@@ -28,6 +29,7 @@ import { useWorkApprovalActions } from "../../work/useWorkApprovalActions";
 import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
 import { queuedUploadStatus } from "../../../modules/work/upload-state";
+import { isCancelledTxError } from "../../../utils/errors/tx-error-classifier";
 import type { Work, WorkDisplayStatus } from "../../../types/domain";
 
 export type WorkViewingMode = "steward" | "gardener" | "viewer";
@@ -163,6 +165,35 @@ export function useWorkDetailController() {
       const job = queued.find((candidate) => candidate.id === work.id);
       if (job && ["failed", "reverted"].includes(queuedUploadStatus(job).state))
         await jobQueue.retryJob(work.id);
+      // Work for a promise taken up in the same tap goes after that take-up (decision 18), so
+      // Upload now sends the take-up first, on a fresh run of tries, and the work once it lands.
+      const takeUp = job ? takeUpOf(job, queued) : null;
+      if (takeUp) {
+        await jobQueue.retryJob(takeUp.id);
+        const taken = await jobQueue.processJob(takeUp.id, { transactionSender, explicit: true });
+        if (!taken.success) {
+          if (isCancelledTxError(taken.error) || taken.error === "send-cancelled") return;
+          if (taken.error === "offline" || taken.error === "connection-unconfirmed") {
+            reportNotSent();
+            return;
+          }
+          // Still on its way (membership being read, a send awaiting its receipt) or refused.
+          toastService[taken.skipped ? "info" : "error"]({
+            title: intl.formatMessage({
+              id: taken.skipped
+                ? "app.home.work.takeUpQueued.title"
+                : "app.garden.takeUp.failed.title",
+            }),
+            message: intl.formatMessage({
+              id: taken.skipped
+                ? "app.home.work.takeUpQueued.message"
+                : "app.home.work.takeUpFailed.message",
+            }),
+            context: "work upload",
+          });
+          return;
+        }
+      }
       const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
       // Declining the prompt is not a failure; the work stays ready to send.
       if (result.error === "send-cancelled") return;

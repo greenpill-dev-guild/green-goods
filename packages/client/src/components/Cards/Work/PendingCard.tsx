@@ -29,7 +29,10 @@ const EDGE: Record<PendingCardKind, ItemRowTone | undefined> = {
   review: "neutral",
 };
 
-/** Work waiting on a review says so in its pill; a status line would only repeat it. */
+/**
+ * Work waiting on a review says so in its pill; a status line would only repeat it, unless it
+ * says what stopped (a sent work's link to its promise).
+ */
 const STATUS_REPEATS_PILL: ReadonlySet<PendingCardKind> = new Set(["review", "needsReview"]);
 
 export interface PendingCardProps {
@@ -85,7 +88,8 @@ export const PendingCard: React.FC<PendingCardProps> = ({
     icon: locked ? <RiLockLine className="text-text-soft-400" aria-hidden="true" /> : undefined,
   };
   // Where it stands, then when: what the reader acts on comes first.
-  const details: ItemRowProps["details"] = STATUS_REPEATS_PILL.has(kind) ? [meta] : [where, meta];
+  const details: ItemRowProps["details"] =
+    STATUS_REPEATS_PILL.has(kind) && statusTone !== "error" ? [meta] : [where, meta];
 
   return (
     <ItemRow
