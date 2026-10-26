@@ -10,7 +10,7 @@ import {
   readIndexedEarnedOptIn,
   retainIndexedEarnedOptIn,
 } from "../modules/commitment-pooling/data-earned-voucher";
-import { createCommitmentPoolingReadRepository } from "../modules/commitment-pooling/read-repository";
+import { createServiceAccessReadRepository } from "../modules/commitment-pooling/service-access-read-repository";
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import type { ServiceAccessKey } from "../modules/commitment-pooling/service-access-types";
 import type { NetworkContracts } from "../types/contracts";
@@ -247,7 +247,7 @@ describe("positive indexed earned binding", () => {
       if (operation === "readIndexedEarnedOptIn") return { data: { EarnedVoucherRevision: [row] } };
       return { data: { ServiceOfferRevision: [], ServiceClaimConsent: [] } };
     });
-    const repository = createCommitmentPoolingReadRepository({ query } as GraphQLReader, {
+    const repository = createServiceAccessReadRepository({ query } as GraphQLReader, {
       read: async () => {
         throw new Error("RPC timeout");
       },
