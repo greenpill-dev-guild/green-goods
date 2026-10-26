@@ -132,11 +132,18 @@ export function useSubmissionPromiseLink(input: {
       return true;
     } catch (error) {
       if (!(error instanceof TakeUpNotSent)) throw error;
-      const ending = error.declined ? "declined" : "failed";
       toastService.error({
         id: "take-up",
-        title: intl.formatMessage({ id: `app.garden.takeUp.${ending}.title` }),
-        message: intl.formatMessage({ id: `app.garden.takeUp.${ending}.message` }),
+        title: intl.formatMessage({
+          id: error.declined
+            ? "app.garden.takeUp.declined.title"
+            : "app.garden.takeUp.failed.title",
+        }),
+        message: intl.formatMessage({
+          id: error.declined
+            ? "app.garden.takeUp.declined.message"
+            : "app.garden.takeUp.failed.message",
+        }),
         error: error.declined ? undefined : error,
         context: "promise take-up",
       });

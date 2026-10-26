@@ -971,11 +971,10 @@ describe("useWorkSubmissionFlowController", () => {
       gardenContext: ask.garden,
       gardenAddress: ask.garden,
     };
-    const atReview = () => {
+    const withAskChosen = () => {
       mocks.actionUID = ask.actionUID;
       mocks.gardenAddress = ask.garden;
       mocks.takeUpChoices = [ask];
-      mocks.activeTab = "Review";
       mocks.outcome = { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false };
       const view = renderFlow();
       act(() => view.result.current.selectLinkIntent(ask));
@@ -984,7 +983,7 @@ describe("useWorkSubmissionFlowController", () => {
 
     it("takes the ask up before it queues the work, and counts each prompt up front", async () => {
       mocks.takeUp.mockResolvedValue({ status: "landed" });
-      const view = atReview();
+      const view = withAskChosen();
       await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
       // The take-up, the work and its link: three prompts, said before the first.
       expect(view.result.current.promptCount).toBe(3);
@@ -1012,7 +1011,7 @@ describe("useWorkSubmissionFlowController", () => {
       ["refused", false, "app.garden.takeUp.failed.title"],
     ] as const)("queues none of the work when the take-up is %s", async (_case, declined, title) => {
       mocks.takeUp.mockRejectedValue(new TakeUpNotSent("not sent", declined));
-      const view = atReview();
+      const view = withAskChosen();
       await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
 
       await act(async () => {
@@ -1026,7 +1025,7 @@ describe("useWorkSubmissionFlowController", () => {
 
     it("queues the work behind a take-up the queue holds for later", async () => {
       mocks.takeUp.mockResolvedValue({ status: "queued", reason: "offline" });
-      const view = atReview();
+      const view = withAskChosen();
       mocks.outcome = {
         kind: "queued",
         clientWorkId: "client-1",
@@ -1053,7 +1052,7 @@ describe("useWorkSubmissionFlowController", () => {
     it("takes the promise up once from one composer, whatever happens to the work after", async () => {
       mocks.takeUp.mockResolvedValue({ status: "landed" });
       mocks.uploadWork.mockRejectedValueOnce(new Error("upload failed"));
-      const view = atReview();
+      const view = withAskChosen();
       await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
 
       await act(async () => {
