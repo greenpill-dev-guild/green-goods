@@ -2879,12 +2879,19 @@ test("every component file the story coverage check scans runs it locally and in
     trees.map((tree) => `${tree}/**/*.tsx`).sort(),
     "Mirror the trees check-story-coverage.ts scans in the story-quality rule",
   );
-  // A new component with no story yet: no changed story selects the check for it.
+  const selectsStoryChecks = (path) =>
+    selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] })
+      .checks.find((check) => check.id === "story-quality")
+      ?.selectedBy.includes("conditional:story-quality") ?? false;
   for (const tree of trees) {
+    // A new component with no story yet: no changed story selects the check for it.
     const component = `${tree}/Example/NewComponent.tsx`;
-    const plan = selectValidation({ intent: "push", changedPaths: [component], mutationPaths: [] });
-    assert.ok(plan.checks.find((check) => check.id === "story-quality")?.selectedBy.includes("conditional:story-quality"), component);
+    assert.ok(selectsStoryChecks(component), component);
     assert.ok(selectExpectedWorkflows({ changedPaths: [component], intent: "merge", ci: true }).includes("Design"), component);
+    // The checker skips only test and service files by name, so a helper in a test folder still
+    // needs a story, and Design CI's path filter never starts for it.
+    assert.ok(selectsStoryChecks(`${tree}/Example/__tests__/Fixture.tsx`), `${tree} test-folder helper`);
+    assert.ok(!selectsStoryChecks(`${tree}/Example/__tests__/Example.test.tsx`), `${tree} test file`);
   }
 });
 
