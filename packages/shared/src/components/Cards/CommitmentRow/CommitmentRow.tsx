@@ -8,7 +8,8 @@
  * while an act is on its way, "Not sent" while it waits on this device, "Didn't send" once its
  * send gave up. The 2px edge follows the pill. The detail line gives the due date, then the
  * other person, named as the shared address display names them; a queue or act state's own
- * words lead the line instead, and a group gives its counts in the person's place. A promise
+ * words lead the line instead, and a group gives its counts in the person's place. A service
+ * offer says what booking takes first, then who promises delivery (PRD-1299). A promise
  * still on the device has no page yet to show its units, so they lead its line, unless
  * something stops its send: then what stops it leads and the units follow.
  *
@@ -84,6 +85,12 @@ export interface CommitmentRowProps
   blocked?: boolean;
   /** Copies made together: how many, marked on the tile, and their counts in the person's place. */
   group?: { size: number; counts: ItemRowDetail } | null;
+  /**
+   * A service offer (PRD-1299, surface 5): what booking it takes first ("You hold 9", "Exchange
+   * first") leads the line in the due date's place, as what kind of ask a row is does, and who
+   * promises delivery follows in the person's place. A queue or act state's note still leads.
+   */
+  service?: { booking: ItemRowDetail; promisedBy: string } | null;
 }
 
 type Detail = ItemRowDetail | null | undefined;
@@ -100,8 +107,9 @@ function lineNamesPerson({
   note,
   units,
   group,
-}: Pick<CommitmentRowProps, "note" | "units" | "group">): boolean {
-  return !note && !units && !group;
+  service,
+}: Pick<CommitmentRowProps, "note" | "units" | "group" | "service">): boolean {
+  return !note && !units && !group && !service;
 }
 
 type RowViewProps = Omit<CommitmentRowProps, "party"> & {
@@ -110,7 +118,7 @@ type RowViewProps = Omit<CommitmentRowProps, "party"> & {
 };
 
 const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
-  { direction, status, pending, due, personName, note, units, blocked, group, ...rest },
+  { direction, status, pending, due, personName, note, units, blocked, group, service, ...rest },
   ref
 ) {
   const { formatMessage } = useIntl();
@@ -121,10 +129,12 @@ const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
   const count = group ? Math.max(group.size, 0) : 0;
   const noteLeads = Boolean(note) && (blocked || !units);
   const details = noteLeads
-    ? detailLine(note, units ?? due)
+    ? detailLine(note, units ?? service?.booking ?? due)
     : units
       ? detailLine(units, note ?? due)
-      : detailLine(due, group ? group.counts : personName);
+      : service
+        ? detailLine(service.booking, service.promisedBy)
+        : detailLine(due, group ? group.counts : personName);
 
   return (
     <ItemRow
@@ -132,6 +142,7 @@ const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
       data-component="CommitmentRow"
       data-direction={direction ?? undefined}
       data-pending={pending ?? undefined}
+      data-service={service ? "offer" : undefined}
       {...rest}
       lead={{
         kind: "icon",

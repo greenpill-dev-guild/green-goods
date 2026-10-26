@@ -1,7 +1,7 @@
 import { RiDeleteBinLine, RiSendPlaneLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import { IntlProvider, useIntl } from "react-intl";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { expectItemRowsFit } from "../../../../.storybook/itemRowFit";
 import enMessages from "../../../i18n/en.json";
@@ -202,5 +202,80 @@ export const FitsEveryLanguage: Story = {
   ),
   play: async ({ canvasElement }) => {
     await expectItemRowsFit(canvasElement);
+  },
+};
+
+/**
+ * Services on a garden's list of promises (PRD-1299, surface 5): an offer says what booking takes
+ * first, then who promises delivery, in the due date's and the person's places. One pill, one
+ * height, and the right slot as on any row; no amount or voucher badge. The lab's services, in
+ * each language at the list's width on a 320px and a 390px phone.
+ */
+function ServiceRows() {
+  const { formatMessage } = useIntl();
+  const hold = formatMessage({ id: "app.commitments.row.service.hold" }, { count: "9" });
+  const exchange = formatMessage({ id: "app.commitments.row.service.exchange" });
+  const offered = { label: "Offered", tone: "info" as const };
+  return (
+    <>
+      <CommitmentRow
+        direction="OFFER"
+        title="Hub day at Tech and Sun"
+        status={offered}
+        service={{ booking: hold, promisedBy: "Tech and Sun" }}
+        onOpen={fn()}
+      />
+      <CommitmentRow
+        direction="OFFER"
+        title="Claude access, one month"
+        status={offered}
+        service={{ booking: exchange, promisedBy: "Green Goods" }}
+        onOpen={fn()}
+      />
+      <CommitmentRow {...offer} direction="REQUEST" title="Help build the seed library shelves" />
+    </>
+  );
+}
+
+export const ServiceOffers: Story = {
+  globals: { viewport: { value: "desktop" } },
+  render: () => (
+    <div className="flex flex-col gap-8">
+      {(Object.keys(catalogs) as (keyof typeof catalogs)[]).map((locale) => (
+        <IntlProvider key={locale} locale={locale} messages={catalogs[locale]}>
+          <section className="flex flex-wrap items-start gap-4" data-locale={locale}>
+            {[288, 358].map((width) => (
+              <Column key={width} width={width}>
+                <ServiceRows />
+              </Column>
+            ))}
+          </section>
+        </IntlProvider>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
+    const words = {
+      en: ["You hold 9", "Exchange first"],
+      es: ["Tienes 9", "Cambia primero"],
+      pt: ["Você tem 9", "Troque primeiro"],
+    } as const;
+    for (const section of canvasElement.querySelectorAll<HTMLElement>("[data-locale]")) {
+      const [hold, exchange] = words[section.dataset.locale as keyof typeof words];
+      const services = [...section.querySelectorAll<HTMLElement>('[data-service="offer"]')];
+      await expect(services).toHaveLength(4);
+      for (const row of services) {
+        const line = row.querySelector<HTMLElement>(".gg-item-row-details");
+        const lineBox = line?.getBoundingClientRect();
+        // Both details sit whole on the line at either width: booking first, then the issuer.
+        const shown = [...row.querySelectorAll<HTMLElement>(".gg-item-row-detail")].filter(
+          (detail) => lineBox && detail.getBoundingClientRect().top < lineBox.bottom - 1
+        );
+        await expect(shown.map((detail) => detail.textContent)).toEqual(
+          row.textContent?.includes("Hub day") ? [hold, "Tech and Sun"] : [exchange, "Green Goods"]
+        );
+      }
+    }
   },
 };

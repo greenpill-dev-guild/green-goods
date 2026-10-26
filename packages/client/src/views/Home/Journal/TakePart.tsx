@@ -1,5 +1,6 @@
 // Command Surface: what the member can take part in, on Home (DL-127, decision 32).
 import type { CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
+import type { CommitmentRowProps } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import {
   type GardenOpenPromises,
@@ -97,11 +98,14 @@ export function TakePartRows({
   titleOf,
   onRetry,
   onOpen,
+  serviceOf,
 }: {
   state: GardenOpenPromises["state"];
   titleOf: GardenOpenPromises["titleOf"];
   onRetry: () => void;
   onOpen: (entry: TakePartEntry) => void;
+  /** A service offer's line, where the list reads services; Home's own section reads none. */
+  serviceOf?: (commitmentId: bigint) => CommitmentRowProps["service"];
 }): ReactNode {
   const { formatMessage } = useIntl();
   switch (state.status) {
@@ -153,6 +157,7 @@ export function TakePartRows({
             <PromiseRow
               row={entry.row}
               title={titleOf(entry.row.commitment.metadataCID)}
+              service={serviceOf?.(entry.row.commitment.commitmentId)}
               onOpen={() => onOpen(entry)}
             />
           </li>

@@ -50,6 +50,7 @@ const mockUseGardenPoolController = vi.fn();
 /** Whether the reader sends queued creations themselves, as a wallet sign-in does. */
 const mockSendsFromTap = vi.fn(() => false);
 const mockUsePoolCharter = vi.fn();
+const mockUseServiceOfferLines = vi.fn();
 
 const AVAILABLE = { status: "available", capability: {} } as const;
 const UNAVAILABLE = { status: "unavailable", reason: "not-integrated", capability: {} } as const;
@@ -269,6 +270,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentQueueState: () => mockUseQueueState(),
   useCommitmentReason: (cid: string | null) => mockUseReason(cid),
   usePoolCharter: (cid: string | null) => mockUsePoolCharter(cid),
+  useServiceOfferLines: (input: unknown) => mockUseServiceOfferLines(input),
 }));
 
 const { GardenPool } = await import("../../views/Home/Garden/Pool");
@@ -297,6 +299,7 @@ describe("GardenPool", () => {
     mockUseCommitments.mockReturnValue(commitmentsResult());
     mockSendsFromTap.mockReturnValue(false);
     mockUseGardenPoolController.mockImplementation(useGardenPoolControllerMock);
+    mockUseServiceOfferLines.mockReturnValue(new Map());
     mockUsePoolPromiseEntries.mockImplementation(({ rows }: { rows: unknown[] }) =>
       rows.map((row) => ({ kind: "single", row }))
     );
@@ -357,6 +360,47 @@ describe("GardenPool", () => {
     discardable: true,
     createdAt: 1_700_000_000_000,
     ...overrides,
+  });
+
+  // A service offer reads as on the garden's list over Home: what booking takes first, then who
+  // promises it (PRD-1299, decision 12). Any other offer keeps its due date and person.
+  it("draws a service offer's line: what booking takes first, then who promises it", () => {
+    const hubDay = commitment({
+      commitmentId: 31n,
+      onchainState: "OFFERED",
+      derivedState: "OFFERED",
+      state: "OFFERED",
+      claimMode: "APPROVAL_GATED",
+    });
+    const claude = commitment({ ...hubDay, commitmentId: 32n });
+    mockUseCommitments.mockReturnValue(
+      commitmentsResult({ commitments: [hubDay, claude, commitment()] })
+    );
+    mockUseServiceOfferLines.mockReturnValue(
+      new Map([
+        [
+          "31",
+          { promisedBy: "Tech and Sun", booking: { kind: "hold", held: 9_000_000n, decimals: 6 } },
+        ],
+        ["32", { promisedBy: "Green Goods", booking: { kind: "exchange" } }],
+      ])
+    );
+
+    render(<GardenPool pool={pool()} />);
+
+    const rows = screen
+      .getAllByRole("button")
+      .filter((row) => row.getAttribute("data-component") === "CommitmentRow");
+    const [first, second, other] = rows;
+    expect(first).toHaveAttribute("data-service", "offer");
+    expect(first).toHaveTextContent(/You hold 9.*Tech and Sun/);
+    expect(second).toHaveTextContent(/Exchange first.*Green Goods/);
+    expect(other).not.toHaveAttribute("data-service");
+    // The tab hands the hook its listed promises; the hook keeps only possible services.
+    expect(mockUseServiceOfferLines).toHaveBeenLastCalledWith({
+      chainId: 42161,
+      offers: [hubDay, claude, commitment()],
+    });
   });
 
   it("draws a commitment still on this phone at the top of the pool, as waiting to send", () => {

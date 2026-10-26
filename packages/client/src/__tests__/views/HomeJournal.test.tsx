@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   cycles: vi.fn(),
   promises: vi.fn(),
   cycleNames: vi.fn(),
+  serviceLines: vi.fn(),
   shareLink: vi.fn(),
   // The edges of the About section's access predicate (`useGardenAccess`): who is signed in,
   // the garden's vaults, the account's deposits, and the chain's answer on the evaluator role.
@@ -50,10 +51,12 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJournal", () => ({
   useGardenOpenPromises: (gardenId: string) => mocks.promises(gardenId),
 }));
 
-// The details sheet names its cycle itself, from the cycle's metadata.
+// The details sheet names its cycle itself, from the cycle's metadata. A service offer's line
+// is read by the lists that show one (PRD-1299, decision 12).
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitmentCycleNames: () => mocks.cycleNames(),
+  useServiceOfferLines: (input: unknown) => mocks.serviceLines(input),
 }));
 
 // Needs Your Attention (step 19) and Continue (step 8), each with its own tests, stand in as
@@ -327,6 +330,7 @@ describe("Home journal", () => {
     mocks.cycles.mockReturnValue(cycles());
     mocks.promises.mockReturnValue(promises());
     mocks.cycleNames.mockReturnValue({ byCycleId: new Map(), isLoading: false });
+    mocks.serviceLines.mockReturnValue(new Map());
   });
 
   describe("Recent Activity", () => {
@@ -468,6 +472,45 @@ describe("Home journal", () => {
       await user.click(within(sheet).getByRole("button", { name: /Water the new beds/ }));
       expect(mocks.navigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/19`);
       expect(useUIStore.getState().takePartSheet).toBeNull();
+    });
+
+    // The garden's list over Home says what booking a service takes first, then who promises it
+    // (PRD-1299, decision 12); Take Part on Home itself gains nothing voucher-specific.
+    it("draws a service offer's line in the open promises over Home, never on Home itself", async () => {
+      const user = userEvent.setup();
+      mocks.serviceLines.mockReturnValue(
+        new Map([
+          [
+            "21",
+            {
+              promisedBy: "Tech and Sun",
+              booking: { kind: "hold", held: 9_000_000n, decimals: 6 },
+            },
+          ],
+        ])
+      );
+      render(
+        <>
+          <TakePart gardenId={GARDEN} />
+          <TakePartSheet garden={GARDEN_RECORD} />
+        </>
+      );
+      const onHome = screen.getByRole("button", { name: /Teach the composting basics workshop/ });
+      expect(onHome).not.toHaveAttribute("data-service");
+      expect(onHome).not.toHaveTextContent("You hold");
+
+      await user.click(screen.getByRole("button", { name: "See All" }));
+      const sheet = await screen.findByRole("dialog");
+      const inSheet = within(sheet).getByRole("button", {
+        name: /Teach the composting basics workshop/,
+      });
+      expect(inSheet).toHaveAttribute("data-service", "offer");
+      expect(inSheet).toHaveTextContent(/You hold 9.*Tech and Sun/);
+      // Only the sheet asks for lines, with the garden's whole list.
+      expect(mocks.serviceLines).toHaveBeenCalledWith({
+        chainId: expect.any(Number),
+        offers: [OFFER.copy, ASK.copy],
+      });
     });
 
     it("closes the open promises when the journal turns to another garden or goes away", () => {

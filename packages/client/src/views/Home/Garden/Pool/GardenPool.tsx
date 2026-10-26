@@ -11,9 +11,10 @@ import {
   type CommitmentCycleRecord,
   type CommitmentPoolRecord,
   usePoolCharter,
+  useServiceOfferLines,
 } from "@green-goods/shared/commitment-pooling";
 import { RiFilterOffLine, RiInformationLine } from "@remixicon/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
@@ -31,6 +32,7 @@ import {
   GardenListHeaderLoading,
   GardenListHeaderSpace,
 } from "@/components/Features/Garden";
+import { serviceOfferDetail } from "@/components/Features/Commitments/serviceOfferDetail";
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { type CommitmentDoor, PoolCreateEntry } from "./PoolCreateEntry";
 import { PoolLifecycleNotice } from "./PoolLifecycleNotice";
@@ -79,6 +81,13 @@ export function GardenPool({ pool }: GardenPoolProps) {
     commitments: controller.commitments.commitments,
     viewer: controller.viewer,
   });
+  // A service offer says what booking takes first and who promises it, as on the garden's list
+  // over Home (PRD-1299, decision 12): the same row for a visitor.
+  const serviceOffers = useMemo(
+    () => controller.rows.map(({ commitment }) => commitment),
+    [controller.rows]
+  );
+  const serviceLines = useServiceOfferLines({ chainId: controller.chainId, offers: serviceOffers });
   const [charterOpen, setCharterOpen] = useState(false);
   // The last cycle stays drawn while its sheet closes.
   const [details, setDetails] = useState<{ cycle: CommitmentCycleRecord | null; open: boolean }>({
@@ -261,6 +270,10 @@ export function GardenPool({ pool }: GardenPoolProps) {
                     key={entry.row.commitment.id}
                     row={entry.row}
                     title={controller.titleOf(entry.row.commitment.metadataCID)}
+                    service={serviceOfferDetail(
+                      intl,
+                      serviceLines.get(entry.row.commitment.commitmentId.toString())
+                    )}
                     onOpen={(id) => navigate(`commitments/${id.toString()}`)}
                   />
                 ) : (
