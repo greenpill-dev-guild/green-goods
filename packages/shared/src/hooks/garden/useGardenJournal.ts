@@ -33,6 +33,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useActions } from "../blockchain/useBaseLists";
 import { useCommitmentCycleNames } from "../commitment-pooling/useCommitmentCycleNames";
 import { useCommitmentMetadata } from "../commitment-pooling/useCommitmentMetadata";
+import { useExpiryClock } from "../commitment-pooling/useExpiryClock";
 import {
   useCommitmentCycles,
   useCommitmentPools,
@@ -169,9 +170,19 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
   const poolOpen = pool?.state === "OPEN";
+  // Ticks when a listed promise passes its due second, so a lapsed one leaves the list.
+  const now = useExpiryClock({ commitments: listed });
   const entries = useMemo(
-    () => takePartEntries({ commitments: listed, metadataByCID: byCID, viewer, poolOpen, takeUps }),
-    [listed, byCID, viewer, poolOpen, takeUps]
+    () =>
+      takePartEntries({
+        commitments: listed,
+        metadataByCID: byCID,
+        viewer,
+        poolOpen,
+        takeUps,
+        now,
+      }),
+    [listed, byCID, viewer, poolOpen, takeUps, now]
   );
 
   const state = poolSectionState({

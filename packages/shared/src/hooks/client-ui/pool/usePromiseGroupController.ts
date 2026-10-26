@@ -35,6 +35,7 @@ import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
+import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import {
   useCommitmentPool,
   useCommitmentPools,
@@ -97,6 +98,8 @@ export interface PromiseGroupController {
   };
   refresh: () => void;
 }
+
+const NO_COPIES: CommitmentReadModel[] = [];
 
 export function usePromiseGroupController(input: {
   chainId: number;
@@ -210,11 +213,13 @@ export function usePromiseGroupController(input: {
     [group, viewer]
   );
 
+  // Ticks when a copy passes its due second, so a lapsed copy is never the one offered.
+  const now = useExpiryClock({ commitments: group?.children ?? NO_COPIES });
   const availabilityKnown =
     !commitments.isError && !(approvalGated && (asks.isError || asks.isLoading));
   const choice =
     group && availabilityKnown
-      ? pickCopyToTakeUp(group.children, { viewer, askedFor, skip: queued })
+      ? pickCopyToTakeUp(group.children, { viewer, askedFor, skip: queued, now })
       : null;
   const cap = poolDetail.pool?.providerOpenCommitmentCap ?? null;
   const madeIt = Boolean(

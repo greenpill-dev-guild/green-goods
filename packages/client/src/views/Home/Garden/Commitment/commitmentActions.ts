@@ -46,6 +46,8 @@ export function selectCommitmentAct(input: {
   hasPendingJob?: boolean;
   isCreator?: boolean;
   isMember?: boolean;
+  /** The chain's clock, in Unix seconds: take-up is offered only before the due date. */
+  now?: bigint;
 }): CommitmentAct | null {
   const kind = selectCommitmentActKind(input);
   return commitmentActForKind(kind);

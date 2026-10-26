@@ -235,13 +235,17 @@ export function viewerTakeUps(input: {
   return { requested, queued: input.queued };
 }
 
-/** Whether the reader could take this promise up now: open, not theirs, not already asked for. */
+/**
+ * Whether the reader could take this promise up now: open and not past its due date on the
+ * chain's clock (`now`, Unix seconds), not theirs, and not already asked for.
+ */
 export function isTakeableBy(
   commitment: CommitmentReadModel,
   viewer: Address | null | undefined,
-  takeUps: ViewerTakeUps
+  takeUps: ViewerTakeUps,
+  now: bigint
 ): boolean {
-  if (!isOpenToTakeUp(commitment)) return false;
+  if (!isOpenToTakeUp(commitment, now)) return false;
   if (isCommitmentCreator({ commitment, viewer: viewer ?? undefined })) return false;
   const id = commitment.commitmentId.toString();
   return !takeUps.requested.has(id) && !takeUps.queued.has(id);
@@ -256,13 +260,14 @@ export function isTakeableBy(
 export function isOneTapTakeUp(
   commitment: CommitmentReadModel,
   viewer: Address | null | undefined,
-  takeUps: ViewerTakeUps
+  takeUps: ViewerTakeUps,
+  now: bigint
 ): boolean {
   return (
     commitment.direction === "REQUEST" &&
     commitment.claimMode === "OPEN" &&
     commitment.claimType === "INDIVIDUAL" &&
-    isTakeableBy(commitment, viewer, takeUps)
+    isTakeableBy(commitment, viewer, takeUps, now)
   );
 }
 
@@ -270,9 +275,10 @@ export function isOneTapTakeUp(
 export function takePartPromises(
   commitments: readonly CommitmentReadModel[],
   viewer: Address | null | undefined,
-  takeUps: ViewerTakeUps
+  takeUps: ViewerTakeUps,
+  now: bigint
 ): CommitmentReadModel[] {
-  return commitments.filter((commitment) => isTakeableBy(commitment, viewer, takeUps));
+  return commitments.filter((commitment) => isTakeableBy(commitment, viewer, takeUps, now));
 }
 
 /** What Take Part reads: the pool's promises and their metadata, the reader and their take-ups. */
@@ -283,6 +289,8 @@ export interface TakePartInput {
   /** The pool's state is OPEN. */
   poolOpen: boolean;
   takeUps: ViewerTakeUps;
+  /** The chain's clock, in Unix seconds (`useExpiryClock`): nothing past its due date is listed. */
+  now: bigint;
 }
 
 /**
@@ -293,7 +301,7 @@ export interface TakePartInput {
 export function takePartEntries(input: TakePartInput): TakePartEntry[] {
   if (!input.poolOpen) return [];
   const viewer = input.viewer ?? undefined;
-  const open = takePartPromises(input.commitments, viewer, input.takeUps);
+  const open = takePartPromises(input.commitments, viewer, input.takeUps, input.now);
   const openIds = new Set(open.map((commitment) => commitment.id));
   const rows = open.map((commitment) => {
     const seat = selectCommitmentSeat({ commitment, contributors: [], viewer });
@@ -323,7 +331,7 @@ export function takePartEntries(input: TakePartInput): TakePartEntry[] {
 export function oneTapAsks(input: TakePartInput): CommitmentReadModel[] {
   return takePartEntries(input)
     .map((entry) => entry.copy)
-    .filter((copy) => isOneTapTakeUp(copy, input.viewer, input.takeUps));
+    .filter((copy) => isOneTapTakeUp(copy, input.viewer, input.takeUps, input.now));
 }
 
 /** The newest ask among Take Part's entries, for the carousel's last card. */

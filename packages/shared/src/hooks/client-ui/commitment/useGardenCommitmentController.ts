@@ -7,6 +7,7 @@
  * @module hooks/client-ui/commitment/useGardenCommitmentController
  */
 
+import { useMemo } from "react";
 import type { Hex } from "viem";
 
 import {
@@ -33,6 +34,7 @@ import {
   useLinkedWorkUIDs,
 } from "../../commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQueueState";
+import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import { useCommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
 import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
 import { useWorks } from "../../work/useWorks";
@@ -88,6 +90,9 @@ export function useGardenCommitmentController(input: {
 
   const detail = commitmentQuery.detail;
   const commitment = detail?.commitment;
+  // The chain's clock, ticking at the promise's due second: past it, nothing offers a take-up.
+  const clocked = useMemo(() => (commitment ? [commitment] : []), [commitment]);
+  const now = useExpiryClock({ commitments: clocked });
   const workDecisions = useCommitmentWorkDecisions({
     chainId,
     garden: commitment?.providerGarden ?? routeGarden,
@@ -171,6 +176,7 @@ export function useGardenCommitmentController(input: {
         hasPendingJob: pending || hasPendingClaimRequest || queueState.isUnavailable,
         isCreator: isCommitmentCreator({ commitment, viewer: viewer ?? undefined }),
         isMember: canClaimHere === null ? undefined : canClaimHere,
+        now,
       })
     : null;
   const actGarden = commitment ? (commitment.providerGarden as Address | null) : null;

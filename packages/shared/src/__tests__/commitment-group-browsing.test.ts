@@ -10,6 +10,7 @@ import { groupCommitmentsForDisplay } from "../modules/commitment-pooling/displa
 import {
   findDisplayGroup,
   isAtTakeUpLimit,
+  isOpenToTakeUp,
   pickCopyToTakeUp,
   selectGroupTakeUpBar,
   selectPoolListEntries,
@@ -41,6 +42,8 @@ const metadata = new Map<string, CommitmentMetadataV1>([
 ]);
 
 const NOBODY_ASKED = new Set<string>();
+/** The chain's clock the copy choice reads, in Unix seconds. */
+const NOW = 1_800_000_000n;
 
 describe("group browsing", () => {
   it("takes the oldest copy nobody holds, passing over taken, ended, skipped and own copies", () => {
@@ -54,15 +57,20 @@ describe("group browsing", () => {
       copy(9, { derivedState: "EXPIRED" }),
     ];
 
-    expect(pickCopyToTakeUp(copies, { viewer: LINA, askedFor: NOBODY_ASKED })?.commitmentId).toBe(
-      13n
-    );
     expect(
-      pickCopyToTakeUp(copies, { viewer: LINA, askedFor: NOBODY_ASKED, skip: new Set(["13"]) })
-        ?.commitmentId
+      pickCopyToTakeUp(copies, { now: NOW, viewer: LINA, askedFor: NOBODY_ASKED })?.commitmentId
+    ).toBe(13n);
+    expect(
+      pickCopyToTakeUp(copies, {
+        now: NOW,
+        viewer: LINA,
+        askedFor: NOBODY_ASKED,
+        skip: new Set(["13"]),
+      })?.commitmentId
     ).toBe(14n);
     expect(
       pickCopyToTakeUp(copies, {
+        now: NOW,
         viewer: LINA,
         askedFor: NOBODY_ASKED,
         skip: new Set(["13", "14"]),
@@ -70,17 +78,44 @@ describe("group browsing", () => {
     ).toBeNull();
   });
 
+  it("passes over a copy past its due date on the chain's clock, keeping one due later today", () => {
+    const lapsed = copy(11, { dueDate: NOW - 1n });
+    const dueNow = copy(12, { dueDate: NOW });
+    const dueTonight = copy(13, { dueDate: NOW + 6n * 3_600n });
+
+    // The chain lets anyone expire a copy only after its due second.
+    expect([lapsed, dueNow, dueTonight].map((each) => isOpenToTakeUp(each, NOW))).toEqual([
+      false,
+      true,
+      true,
+    ]);
+    expect(
+      pickCopyToTakeUp([lapsed, dueNow, dueTonight], {
+        viewer: LINA,
+        askedFor: NOBODY_ASKED,
+        now: NOW,
+      })?.commitmentId
+    ).toBe(12n);
+    expect(
+      pickCopyToTakeUp([lapsed], { viewer: LINA, askedFor: NOBODY_ASKED, now: NOW })
+    ).toBeNull();
+  });
+
   it("asks for a copy nobody has asked for yet in a reviewed group (D5), and never an open one's", () => {
     const reviewed = [11, 12, 13].map((id) => copy(id, { claimMode: "APPROVAL_GATED" }));
     const asked = new Set(["11", "12"]);
 
-    expect(pickCopyToTakeUp(reviewed, { viewer: LINA, askedFor: asked })?.commitmentId).toBe(13n);
     expect(
-      pickCopyToTakeUp(reviewed, { viewer: LINA, askedFor: new Set(["11", "12", "13"]) })
+      pickCopyToTakeUp(reviewed, { now: NOW, viewer: LINA, askedFor: asked })?.commitmentId
+    ).toBe(13n);
+    expect(
+      pickCopyToTakeUp(reviewed, { now: NOW, viewer: LINA, askedFor: new Set(["11", "12", "13"]) })
     ).toBeNull();
     // An ask means nothing on an open copy: nobody reviews it, so it stays choosable.
     const open = [11, 12].map((id) => copy(id));
-    expect(pickCopyToTakeUp(open, { viewer: LINA, askedFor: asked })?.commitmentId).toBe(11n);
+    expect(pickCopyToTakeUp(open, { now: NOW, viewer: LINA, askedFor: asked })?.commitmentId).toBe(
+      11n
+    );
   });
 
   it.each([

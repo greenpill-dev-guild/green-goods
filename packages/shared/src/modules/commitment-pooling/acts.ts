@@ -13,6 +13,7 @@
  * @module modules/commitment-pooling/acts
  */
 
+import { isPastDue } from "./group-browsing";
 import type { CommitmentDerivedState, CommitmentReadModel } from "./types";
 import type { CommitmentSeat } from "./selectors";
 
@@ -82,7 +83,7 @@ const IN_PROGRESS = new Set<CommitmentDerivedState>(["ACCEPTED", "ACTIVE", "PART
 
 export interface CommitmentActInput {
   commitment: Pick<CommitmentReadModel, "derivedState" | "claimMode"> &
-    Partial<Pick<CommitmentReadModel, "commitmentType" | "direction">>;
+    Partial<Pick<CommitmentReadModel, "commitmentType" | "direction" | "dueDate">>;
   seat: CommitmentSeat | null;
   /** True while an act for this commitment is still waiting to send. */
   hasPendingJob?: boolean;
@@ -102,6 +103,13 @@ export interface CommitmentActInput {
    * offer an act it cannot back.
    */
   isMember?: boolean;
+  /**
+   * The chain's clock, in Unix seconds (`useExpiryClock`). Take This Up is offered only before
+   * the due date has passed, since after it the chain lets anyone expire the promise, so a
+   * surface that offers taking up passes it. Undefined reads no clock and offers no take-up,
+   * like an unread membership; a caller asking only about other acts may leave it out.
+   */
+  now?: bigint;
 }
 
 /**
@@ -140,6 +148,8 @@ export function selectCommitmentActKind(input: CommitmentActInput): CommitmentAc
     // Taking up is for the garden's own people. A visitor reads the record and
     // is offered nothing, rather than an act the chain will refuse.
     if (input.isMember !== true) return null;
+    // Past its due date it is offered for take-up nowhere.
+    if (input.now === undefined || isPastDue(commitment, input.now)) return null;
     return commitment.claimMode === "APPROVAL_GATED" ? "askToTakeUp" : "takeUp";
   }
 

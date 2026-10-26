@@ -116,7 +116,9 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
           setState({ step: "unknown" });
           return;
         }
-        if (!fresh.copy || !canChooseCopy(fresh.copy, { viewer, askedFor: fresh.askedFor })) {
+        // The chain's clock at the press: a copy that lapsed while the page was open is not taken.
+        const now = BigInt(Math.floor(Date.now() / 1000));
+        if (!fresh.copy || !canChooseCopy(fresh.copy, { viewer, askedFor: fresh.askedFor, now })) {
           // Somebody got there first. Read the group again and ask before choosing another.
           const group = await reread().catch((error: unknown) => {
             logger.warn("[useGroupTakeUp] the group could not be read again", { error });
@@ -130,6 +132,7 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
             viewer,
             askedFor: group.askedFor,
             skip: new Set([...queued, copyId.toString()]),
+            now,
           });
           setState(next ? { step: "taken", next: next.commitmentId, context } : { step: "none" });
           return;

@@ -113,11 +113,11 @@ describe("one act table for every surface", () => {
       claimMode: "APPROVAL_GATED" as const,
     };
     expect(
-      selectCommitmentActKind({ commitment: offered, seat: "bystander", isMember: true })
+      selectCommitmentActKind({ commitment: offered, seat: "bystander", isMember: true, now: 0n })
     ).toBe("takeUp");
-    expect(selectCommitmentActKind({ commitment: gated, seat: "bystander", isMember: true })).toBe(
-      "askToTakeUp"
-    );
+    expect(
+      selectCommitmentActKind({ commitment: gated, seat: "bystander", isMember: true, now: 0n })
+    ).toBe("askToTakeUp");
     for (const isMember of [false, undefined]) {
       expect(
         selectCommitmentActKind({ commitment: offered, seat: "bystander", isMember })
@@ -135,6 +135,25 @@ describe("one act table for every surface", () => {
         isCreator: true,
       })
     ).toBe("withdraw");
+  });
+
+  it("offers no take-up past the due date on the chain's clock, and still offers withdrawal", () => {
+    const now = 1_800_000_000n;
+    const asked = { ...base, derivedState: "REQUESTED" as CommitmentDerivedState };
+    const act = (dueDate: bigint, seat: "bystander" | "confirmer" = "bystander") =>
+      selectCommitmentActKind({
+        commitment: { ...asked, dueDate },
+        seat,
+        isMember: true,
+        isCreator: seat === "confirmer",
+        now,
+      });
+
+    expect(act(now - 1n)).toBeNull();
+    // The chain lets anyone expire it only after its due second.
+    expect(act(now)).toBe("takeUp");
+    expect(act(now + 6n * 3_600n)).toBe("takeUp");
+    expect(act(now - 1n, "confirmer")).toBe("withdraw");
   });
 });
 describe("composing a settled commitment again", () => {

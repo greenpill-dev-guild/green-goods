@@ -35,6 +35,7 @@ export type GroupCopy = Pick<
   | "commitmentId"
   | "onchainState"
   | "derivedState"
+  | "dueDate"
   | "creator"
   | "leadProvider"
   | "counterparty"
@@ -44,9 +45,26 @@ export type GroupCopy = Pick<
 
 const OPEN = new Set<string>(["OFFERED", "REQUESTED"]);
 
-/** Whether anyone could take this copy up now: published, untaken, and not ended. */
-export function isOpenToTakeUp(copy: Pick<GroupCopy, "onchainState" | "derivedState">): boolean {
-  return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState);
+/**
+ * Whether a promise's due date has passed on the chain's clock (`now`, Unix seconds, as
+ * `useExpiryClock` keeps it): strictly after the due second, when the contract lets anyone expire
+ * it. An undated promise never passes here; the chain would read its cycle's end instead, which
+ * the app always replaces with a due date when it creates one.
+ */
+export function isPastDue(promise: Pick<CommitmentReadModel, "dueDate">, now: bigint): boolean {
+  const due = promise.dueDate;
+  return due !== null && due !== undefined && due !== 0n && now > due;
+}
+
+/**
+ * Whether anyone could take this copy up now: published, untaken, not ended, and not past its
+ * due date, so a promise the chain would let anyone expire is offered for take-up nowhere.
+ */
+export function isOpenToTakeUp(
+  copy: Pick<GroupCopy, "onchainState" | "derivedState" | "dueDate">,
+  now: bigint
+): boolean {
+  return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState) && !isPastDue(copy, now);
 }
 
 /**
@@ -68,12 +86,14 @@ export interface CopyChoiceInput {
   askedFor: ReadonlySet<string>;
   /** Copies to pass over: one just found taken, or one already on its way from this phone. */
   skip?: ReadonlySet<string>;
+  /** The chain's clock, in Unix seconds: a copy past its due date is never chosen. */
+  now: bigint;
 }
 
 /** Whether one press may choose this copy, read against the latest facts about it. */
 export function canChooseCopy(copy: GroupCopy, input: CopyChoiceInput): boolean {
   const id = copy.commitmentId.toString();
-  if (!isOpenToTakeUp(copy) || input.skip?.has(id)) return false;
+  if (!isOpenToTakeUp(copy, input.now) || input.skip?.has(id)) return false;
   if (input.viewer && isCommitmentCreator({ commitment: copy, viewer: input.viewer })) return false;
   return copy.claimMode !== "APPROVAL_GATED" || !input.askedFor.has(id);
 }

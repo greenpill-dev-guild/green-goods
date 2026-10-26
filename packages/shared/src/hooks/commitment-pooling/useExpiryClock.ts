@@ -4,13 +4,18 @@ import type { CommitmentReadModel } from "../../modules/commitment-pooling/types
 import { useTimeout } from "../utils/useTimeout";
 
 const MAX_TIMEOUT_MS = 2_147_483_647;
+const NO_CYCLE_END_TIMES: ReadonlyMap<string, bigint | null> = new Map();
 
-/** Keep expiry eligibility current in an open review, including after sleep. */
+/**
+ * The chain's clock, in Unix seconds, kept current while a surface is open and after sleep: it
+ * ticks when one of the commitments passes its due second, and on focus or return. Expiry and
+ * take-up read it; a surface that only times due dates leaves out the cycles' end times.
+ */
 export function useExpiryClock(input: {
   commitments: readonly Pick<CommitmentReadModel, "onchainState" | "cycleId" | "dueDate">[];
-  cycleEndTimes: ReadonlyMap<string, bigint | null>;
+  cycleEndTimes?: ReadonlyMap<string, bigint | null>;
 }): bigint {
-  const { commitments, cycleEndTimes } = input;
+  const { commitments, cycleEndTimes = NO_CYCLE_END_TIMES } = input;
   const [now, setNow] = useState(() => BigInt(Math.floor(Date.now() / 1000)));
   const { set: setTimer, clear: clearTimer } = useTimeout();
   const nextDue = useMemo(

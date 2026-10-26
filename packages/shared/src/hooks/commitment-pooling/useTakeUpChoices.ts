@@ -29,6 +29,7 @@ import type {
 import { isOneTapTakeUp, oneTapAsks } from "../../modules/garden/journal";
 import type { Address } from "../../types/domain";
 import { useCommitmentMetadata } from "./useCommitmentMetadata";
+import { useExpiryClock } from "./useExpiryClock";
 import { useCommitmentPool, useCommitmentPools, useCommitments } from "./useCommitmentPooling";
 import { useViewerTakeUps } from "./useViewerTakeUps";
 import { workLinkReturnTo } from "./useWorkLinkChoices";
@@ -108,6 +109,8 @@ export function useTakeUpChoices(input: {
   });
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
+  // Ticks when a listed ask passes its due second, so a lapsed one leaves Start's list.
+  const now = useExpiryClock({ commitments: listed });
   const untitled = formatMessage({ id: "app.commitments.row.untitled" });
   const atLimit = isAtTakeUpLimit({
     direction: "REQUEST",
@@ -135,10 +138,11 @@ export function useTakeUpChoices(input: {
         viewer: account,
         poolOpen: true,
         takeUps,
+        now,
       }).map(shape),
       // Every copy of a set, so a link to any of them holds, whichever one Start lists.
       choices: listed
-        .filter((commitment) => isOneTapTakeUp(commitment, account, takeUps))
+        .filter((commitment) => isOneTapTakeUp(commitment, account, takeUps, now))
         .flatMap((commitment) => shape(commitment).choices),
     };
   }, [
@@ -151,6 +155,7 @@ export function useTakeUpChoices(input: {
     listed,
     account,
     takeUps,
+    now,
     byCID,
     untitled,
   ]);
