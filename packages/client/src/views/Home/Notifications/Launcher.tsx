@@ -1,5 +1,6 @@
 import { useGardenNotifications } from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
+import { useState } from "react";
 import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import { NotificationsIcon } from "./Icon";
 import { NotificationsSheet } from "./Sheet";
@@ -30,10 +31,14 @@ export function NotificationsLauncher({
   // The sheet stays mounted until its exit has played; unmounting it on close would remove it
   // before the slide-out could run.
   const isPresent = useExitPresence(open, getPwaSheetExitMs);
+  // Mounted already open, the launcher took the place of Home's placeholder bell, the one that
+  // was tapped, so focus went with it. Its own bell takes focus first, and the sheet hands focus
+  // back to it on close.
+  const [mountedOpen] = useState(open);
 
   return (
     <>
-      <NotificationsIcon onClick={onOpen} newCount={bell.newCount} />
+      <NotificationsIcon onClick={onOpen} newCount={bell.newCount} focusOnMount={mountedOpen} />
       {isPresent ? (
         <NotificationsSheet
           open={open}
