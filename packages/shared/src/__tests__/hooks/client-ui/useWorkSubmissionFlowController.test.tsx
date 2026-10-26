@@ -1260,7 +1260,10 @@ describe("useWorkSubmissionFlowController", () => {
       expect(mocks.takeUpRefetch).toHaveBeenCalled();
     });
 
-    it("keeps the take-up with the draft: the page's word until the asks are read, then theirs", async () => {
+    it.each([
+      ["their own promise, taken up on another phone", [commitmentLinkIntent], "valid"],
+      ["no promise of theirs, taken by another member", [], "invalid"],
+    ] as const)("keeps the take-up with the draft while the asks are read, and drops it once the link is %s", async (_case, own, status) => {
       // A resumed draft brings its link back to the page with its take-up.
       mocks.actionUID = ask.actionUID;
       mocks.gardenAddress = ask.garden;
@@ -1275,12 +1278,11 @@ describe("useWorkSubmissionFlowController", () => {
       await waitFor(() => expect(view.result.current.takesUp).toBe(true));
       expect(mocks.autoSaveFields?.linkIntent).toMatchObject({ takesUp: true });
 
-      // Taken up since on another phone, it is their own promise, and the draft stops saying so.
       mocks.takeUpChoices = [];
-      mocks.choices = [commitmentLinkIntent];
+      mocks.choices = [...own];
       view.rerender();
-      await waitFor(() => expect(view.result.current.takesUp).toBe(false));
-      expect(view.result.current.linkIntentStatus).toBe("valid");
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe(status));
+      expect(view.result.current.takesUp).toBe(false);
       expect(mocks.autoSaveFields?.linkIntent).not.toHaveProperty("takesUp");
     });
   });

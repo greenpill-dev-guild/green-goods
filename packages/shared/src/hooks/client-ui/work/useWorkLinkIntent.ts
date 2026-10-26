@@ -119,12 +119,13 @@ export function useWorkLinkIntent({
                 : takeUpChoices.isError
                   ? "unavailable"
                   : "invalid";
-  // The link as a draft keeps it: an ask's take-up as the live asks say once the link holds, and
-  // as the page says until then, so a resumed draft keeps saying so while they are read.
+  // The link as a draft keeps it: an ask's take-up as the page says while the live reads answer
+  // nothing yet, so a resumed draft keeps saying so meanwhile, and as they say once they answer.
+  const unanswered = linkIntentStatus === "validating" || linkIntentStatus === "unavailable";
   const draftLink = parsedLinkIntent
     ? toDraftWorkLink({
         ...parsedLinkIntent,
-        takesUp: (linkIntentStatus === "valid" ? takesUp : parsedLinkIntent.takesUp) || undefined,
+        takesUp: (unanswered ? parsedLinkIntent.takesUp : takesUp) || undefined,
       })
     : null;
   /** Reads the link's standing again: the member's promises, and the Open asks it may be one of. */

@@ -103,6 +103,26 @@ export function WorkStart({
       </Alert>
     ) : null;
 
+  // Promises or Open asks that could not be read, said on either list with a retry, never as none.
+  const readNotice = start.promisesFailed ? (
+    <Alert
+      variant="warning"
+      action={
+        <Button
+          type="button"
+          emphasis="secondary"
+          size="compact"
+          onClick={start.retryPromises}
+          leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+        >
+          {intl.formatMessage({ id: "app.garden.commitment.retry" })}
+        </Button>
+      }
+    >
+      {intl.formatMessage({ id: "app.garden.commitment.error" })}
+    </Alert>
+  ) : null;
+
   const { screen } = start;
   return (
     <div className="flex flex-col gap-4" data-component="WorkStart" data-screen={screen.kind}>
@@ -122,7 +142,7 @@ export function WorkStart({
             info={intl.formatMessage({ id: "app.garden.start.promises.info" })}
             Icon={RiHandHeartFill}
           />
-          {linkNotice}
+          {linkNotice ?? readNotice}
           <div className="flex flex-col gap-(--gg-list-gap)">
             {start.promises.map((promise) => (
               <PromiseCard
@@ -172,27 +192,7 @@ export function WorkStart({
           selectedDomain={selectedDomain}
           setSelectedDomain={setSelectedDomain}
           onChoose={(uid) => void start.chooseAction(uid)}
-          notice={
-            linkNotice ??
-            (start.promisesFailed ? (
-              <Alert
-                variant="warning"
-                action={
-                  <Button
-                    type="button"
-                    emphasis="secondary"
-                    size="compact"
-                    onClick={start.retryPromises}
-                    leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-                  >
-                    {intl.formatMessage({ id: "app.garden.commitment.retry" })}
-                  </Button>
-                }
-              >
-                {intl.formatMessage({ id: "app.garden.commitment.error" })}
-              </Alert>
-            ) : null)
-          }
+          notice={linkNotice ?? readNotice}
         />
       )}
     </div>
