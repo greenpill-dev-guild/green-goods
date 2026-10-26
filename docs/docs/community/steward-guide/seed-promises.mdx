@@ -5,7 +5,7 @@ slug: /community/steward-guide/seed-promises
 description: "Create clear offers or requests, individually or in a checked batch."
 audience: steward
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-10-25
 feature_status: Live
 goal: "Create clear offers or requests, individually or in a checked batch."
 difficulty: "standard"
@@ -15,6 +15,8 @@ next_steps: "/community/steward-guide/review-promises"
 persona_context: "Stewards setting shared rules, preparing promises, and keeping reviews moving."
 source_of_truth:
   - packages/admin/src/views/Garden/Pool
+  - packages/admin/src/views/Garden/Pool/Seed/SeedStepProof.tsx
+  - packages/admin/src/views/Garden/Pool/Seed/seedReward.ts
   - packages/admin/src/components/Layout/AccountSettingsPanel.tsx
   - packages/admin/src/components/Layout/AccountSurface.tsx
   - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentRecovery.tsx
@@ -67,8 +69,8 @@ Choose **Seed Promises**. As an illustrative example, your garden can request se
 
 1. In **What**, choose whether the pool offers help or requests it, the kind of promise, its title, and its season or campaign.
 2. In **How Much**, set how many promises to create and what each asks for. For garden work, choose the required action rows and counts. Check the team policy and deadline.
-3. In **Proof & Confirmation**, choose who can confirm, how many confirmations are needed, and whether taking it up needs steward approval. The provider and contributing team cannot confirm their own promise. A named group must have enough independent people to meet its threshold.
-4. Leave **Does this come with a reward?** at **No** for this release. A displayed old reward or active contract is not permission to create a new money reward.
+3. In **Proof & Confirmation**, choose who can confirm, how many confirmations are needed, and whether taking it up needs steward approval. The provider and contributing team cannot confirm their own promise. A named group must have enough independent people to meet its threshold. **Let the Green Goods team confirm if nobody local is eligible** starts on when the Green Goods team's pool is registered. The team can use it only while nobody local can confirm, always with a recorded reason. If the dashboard says it is unavailable, the promise is created with it off.
+4. Expect no reward question. Money rewards are switched off in this release, so the form creates promises without one and **Review** shows the reward as **None**. Seeding from an older promise that carried a reward leaves the reward out; the original promise is unchanged.
 5. In **Review**, check each answer. Use **Add Another** if preparing different promises together, then choose **Create Promise** or **Create … Promises**, as shown.
 
 <figure className="gg-figure" style={{maxWidth: '672px'}}>
@@ -102,7 +104,7 @@ After an interrupted seed batch, return to **Promises** on the same device and c
 - **n didn’t send** counts copies still waiting in your queue. Choose **Finish Creating (n)** on that group to send those copies. They appear within the group rather than as separate queued rows.
 - An individual queued promise has its own **Send Now** or **Try Again** control. Read its status and any recorded transaction before retrying.
 
-For example, if a group shows **3 created** and **2 didn’t send**, choose **Finish Creating (2)**. Do not seed five new copies or recreate the three successful ones. Leave the reward choice at **No** for this release.
+For example, if a group shows **3 created** and **2 didn’t send**, choose **Finish Creating (2)**. Do not seed five new copies or recreate the three successful ones.
 
 For an app problem, open **Settings → Support** in the dashboard. On a phone, find **Settings** under **Profile**. Share the affected record's link.
 

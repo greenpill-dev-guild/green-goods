@@ -105,6 +105,9 @@ export function ConnectActions({
  * The page's account, said in the top bar's sheet and not on the page: which account the page is
  * signed in as, or only connected to so far, where it was opened from, and what can be done about
  * it. With no account it says no one is signed in, or connected, yet.
+ *
+ * Signing out reads differently for the browser and for the page, and neither borrows the chat's
+ * Disconnect or the permissions page's Remove: each of those is its own act, somewhere else.
  */
 export function PageAccount({
   account,
@@ -112,6 +115,7 @@ export function PageAccount({
   signsIn = true,
   channel = null,
   permissionsLink = true,
+  onSignOut,
   onChangeAccount,
   onLeave,
 }: {
@@ -124,6 +128,8 @@ export function PageAccount({
   channel?: string | null;
   /** Off on the permissions page itself. */
   permissionsLink?: boolean;
+  /** Signs this browser out of the account, before the page has asked it to sign anything. */
+  onSignOut?: () => void;
   /** Lets go of the connected account so another can be used, when nothing is being signed. */
   onChangeAccount?: () => void;
   /** Ends the session, when the page can end it now. */
@@ -165,6 +171,19 @@ export function PageAccount({
             ) : null}
           </AccountRow>
           {permissionsLink ? <ManagePermissionsLink /> : null}
+          {onSignOut ? (
+            <Button
+              emphasis="secondary"
+              className="w-full"
+              leadingIcon={<RiLogoutBoxRLine className="h-5 w-5" aria-hidden="true" />}
+              onClick={onSignOut}
+            >
+              {intl.formatMessage({
+                id: "public.reporting.account.signOut",
+                defaultMessage: "Sign Out of This Browser",
+              })}
+            </Button>
+          ) : null}
           {onChangeAccount ? (
             <Button
               emphasis="secondary"

@@ -492,6 +492,8 @@ Garden gets 104px at 390px and 74px at 360px; at 32px it shares the icons' line 
 
 Correction (25 October): decisions 18 and 19 say an approval-gated ask's asker accepts or chooses who takes it up. The contract lets only the pool's stewards (the garden's stewards and owners) accept or decline a take-up request (`ClaimsLib.acceptClaim` and `declineClaim` require a pool steward), and the app shows the decision panel only to them, so DL-131 and the copy say a steward accepts.
 
+Correction (25 October, later): decisions 11, 22 and 24 count join requests on Home. A garden's join requests can be read only through a signed proof that claims a nonce at the agent (`GardenJoinRequestsQueue` and `loadQueue`), so no signature-free count exists for a passive surface. Until one does, the duties section (step 19) lists three queues (work to review, take-up requests, promises to confirm), the bell (step 15) carries no join-request row, and Gardeners keeps join requests behind a Check Requests row for stewards (step 10) that opens the existing signed queue; the count returns to the duties section and the bell when a signature-free source lands (a follow-up outside this plan). Awaiting review for the member's own request stays as decision 2 says, served by the device record (step 21).
+
 The same day #1162 merged a members-only check for Aiyeloja Family Garden and Mama Gardens in the
 Home filter (`modules/garden/filters.ts`, `config/garden-visibility.ts`). It counts gardeners and
 stewards as members; step 1 moves it onto the membership owner, which adds owners and evaluators

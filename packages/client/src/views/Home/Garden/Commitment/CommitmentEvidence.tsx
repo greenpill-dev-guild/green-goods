@@ -1,5 +1,4 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type EvidenceAttributionRow,
   type ResolvedEvidence,
@@ -10,6 +9,7 @@ import { useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 
 import { ImagePreviewDialog } from "@/components/Display";
+import { EvidenceLinks, EvidenceNote } from "./EvidencePreview";
 
 export interface CommitmentEvidenceProps {
   attributions: readonly EvidenceAttributionRow[];
@@ -24,11 +24,14 @@ function clock(seconds: number): string {
   return `${Math.floor(whole / 60)}:${(whole % 60).toString().padStart(2, "0")}`;
 }
 
-/** "Added today, 10:24 AM, by Amara · 1 link" */
+/**
+ * "Added today, 10:24 AM, by Amara". The links are listed above it, one row
+ * each, so the caption does not count them as well.
+ */
 function caption(intl: IntlShape, item: ResolvedEvidence) {
   const at = new Date(item.createdAt * 1000);
   const who = item.attacher ?? item.contributor;
-  const added = intl.formatMessage(
+  return intl.formatMessage(
     { id: "app.commitment.evidence.added" },
     {
       day: at.toDateString() === new Date().toDateString() ? "today" : "other",
@@ -39,16 +42,6 @@ function caption(intl: IntlShape, item: ResolvedEvidence) {
         <AddressDisplay address={who} interactive={false} className="inline text-[1em]" />
       ) : null,
     }
-  );
-  const links = item.document?.links?.length ?? 0;
-  return links > 0 ? (
-    <>
-      {added}
-      {" · "}
-      {intl.formatMessage({ id: "app.proof.contents.links" }, { count: links })}
-    </>
-  ) : (
-    added
   );
 }
 
@@ -107,14 +100,16 @@ function VoiceTile({ url, index, seconds }: { url: string; index: number; second
 
 /**
  * The proof on the promise, under its progress: for each proof, its photos,
- * videos and voice notes as squares, then who added it and when. A photo opens
- * large; a voice note plays where it is. Absent proof renders nothing, since
- * the progress line above already says none was added.
+ * videos and voice notes as squares, its note and its links as the
+ * confirmation sheet draws them, then who added it and when. A photo opens
+ * large; a voice note plays where it is; a link opens in a new tab. Absent
+ * proof renders nothing, since the progress line above already says none was
+ * added.
  */
 export function CommitmentEvidence({ attributions, recordedCount }: CommitmentEvidenceProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const { evidence, isLoading } = useCommitmentEvidence(attributions);
+  const { evidence } = useCommitmentEvidence(attributions);
   const [preview, setPreview] = useState<{ images: string[]; index: number } | null>(null);
 
   if (recordedCount === 0 && attributions.length === 0) return null;
@@ -126,11 +121,13 @@ export function CommitmentEvidence({ attributions, recordedCount }: CommitmentEv
         const photos = item.mediaUrls.filter(
           (_, index) => item.document?.media?.[index]?.kind !== "video"
         );
-        const loading = item.isLoading || isLoading;
-        const showTiles =
-          !loading && item.document && item.mediaUrls.length + item.audioUrls.length > 0;
+        // What a proof holds shows once its own document is read; a proof still
+        // loading beside it does not hide it.
+        const loading = item.isLoading;
+        const contents = loading ? null : item.document;
+        const showTiles = contents && item.mediaUrls.length + item.audioUrls.length > 0;
         return (
-          <div key={item.cid} data-component="EvidenceStrip">
+          <div key={item.cid} className="space-y-2" data-component="EvidenceStrip">
             {showTiles ? (
               <ul
                 className="grid grid-cols-3 gap-2"
@@ -179,18 +176,20 @@ export function CommitmentEvidence({ attributions, recordedCount }: CommitmentEv
                 ))}
               </ul>
             ) : null}
-            <p className={cn("text-xs text-text-sub-600", showTiles && "mt-2")}>
-              {caption(intl, item)}
-            </p>
-            {loading ? (
-              <p className="mt-1 text-xs text-text-soft-400" role="status">
-                {formatMessage({ id: "app.confirm.evidence.loading" })}
-              </p>
-            ) : !item.document ? (
-              <p className="mt-1 text-xs text-text-sub-600">
-                {formatMessage({ id: "app.confirm.evidence.unreadable" })}
-              </p>
-            ) : null}
+            {contents?.note ? <EvidenceNote note={contents.note} /> : null}
+            {contents?.links?.length ? <EvidenceLinks links={contents.links} /> : null}
+            <div>
+              <p className="text-xs text-text-sub-600">{caption(intl, item)}</p>
+              {loading ? (
+                <p className="mt-1 text-xs text-text-soft-400" role="status">
+                  {formatMessage({ id: "app.confirm.evidence.loading" })}
+                </p>
+              ) : !item.document ? (
+                <p className="mt-1 text-xs text-text-sub-600">
+                  {formatMessage({ id: "app.confirm.evidence.unreadable" })}
+                </p>
+              ) : null}
+            </div>
           </div>
         );
       })}

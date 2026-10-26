@@ -5,7 +5,7 @@ slug: /community/steward-guide/review-promises
 description: "Review participation, count approved linked work, and check independent confirmation."
 audience: steward
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-10-25
 feature_status: Live
 goal: "Review participation, count approved linked work, and check independent confirmation."
 difficulty: "standard"
@@ -19,6 +19,10 @@ source_of_truth:
   - packages/admin/src/components/Layout/AccountSurface.tsx
   - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentRecovery.tsx
   - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentAssessmentDialog.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentActions.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentResolveDialog.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentExpireDialog.tsx
+  - packages/shared/src/modules/commitment-pooling/commitment-act-permissions.ts
   - packages/admin/src/views/Hub/components/HubConfirmQueue.tsx
   - packages/admin/src/views/Community/components/CommunityCoordinationTab.tsx
   - packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts
@@ -99,9 +103,9 @@ Counted work that meets all required rows, together with any required assessment
 
 For confirmation:
 
-1. Open **Hub → Confirm** and check the selected garden in the header. It scopes your authority; a row can concern another garden's pool if this garden has permission to confirm it.
+1. Open **Hub → Confirm** and check the selected garden in the header. It scopes your authority; a row can concern another garden's pool if this garden has permission to confirm it. Each row says **Ready to confirm**, **Needs a steward step-in** or **Needs the Green Goods team**.
 2. Open **Confirm Kept…** and read the target, provider, evidence, and confirmation count.
-3. Confirm only if the promise was kept and you are eligible. Your confirmation cannot be undone. It may be one of several required; watch the count after it arrives.
+3. Confirm only if the promise was kept and you are eligible. Your confirmation cannot be undone. It may be one of several required; watch the count after it arrives. An ordinary confirmation can wait on this device until you are online; a dispute or a fallback needs a connection.
 
 
 <figure className="gg-figure" style={{maxWidth: '480px'}}>
@@ -109,7 +113,21 @@ For confirmation:
   <figcaption>Check the pool and provider before making the final confirmation.</figcaption>
 </figure>
 
-Fallback and disputed decisions have separate reviews and record their reason. Do not use fallback to approve your own contribution. Protocol-wide coordination lives in **Community → Coordination** and is outside this garden runbook.
+### When a promise stalls or is contested
+
+Open the promise in **Garden → Promises**. The controls below appear only when the promise's state and your role allow them, and each one needs a connection. All except **Expire Now…** ask for a reason. The member's timeline shows it, except for a dispute: members see only that the promise is under review.
+
+| Situation | Use | What happens |
+|---|---|---|
+| Nobody on the ordinary path can still confirm it | **Confirm as Garden Fallback…** | You confirm it as a steward who is not on the team. The member sees that a garden steward confirmed it as a fallback, with your reason |
+| Nobody local can confirm it, and the promise lets the Green Goods team step in | **Confirm for Green Goods Team…** | Only stewards of the Green Goods team's garden see this. It is recorded as the team's fallback, with a reason |
+| The recipient cannot send it for confirmation, or required work has stalled | **Mark Ready…** | **Mark Ready with Override** makes it ready for confirmation. Work already counted still counts. It needs at least one counted contribution, an open season if it belongs to one, and someone who can still confirm. Readiness fixes the team |
+| It was called off after someone took it up, before it was ready for confirmation | **Cancel Promise…** | **Cancel This Promise** records why and releases what the promise held. The member sees the reason |
+| It is past its due date | **Expire Now…** | **Expire This Promise** is final. Waiting requests close and what the pool held for it is released. A due date alone does not expire a promise |
+| Delivery is contested or something looks wrong | **Raise Dispute…**, or **Not yet…** in **Hub → Confirm** | Confirmation stops while stewards review it. Members see **Under review by stewards** |
+| A review needs a decision | **Resolve…** | Choose **Restore Previous State**, **Kept**, **Canceled** or **Expired**. **Kept** counts as confirmed and fixes the team; a steward on the team cannot choose it, and neither can anyone for a promise that had expired |
+
+A fallback or an override is never a way to confirm your own contribution. While a pool is paused, take-up and confirmation wait, but cancel, expire, dispute and resolve still work. Protocol-wide coordination lives in **Community → Coordination** and is outside this garden runbook.
 
 ## How you know it worked
 
@@ -125,7 +143,7 @@ After an uncertain review transaction, reopen that promise and read its current 
 
 If work is approved but the promise is waiting, inspect the exact requirement, counting status, other required work and assessment. An assessment from another garden does not fill the requirement.
 
-If confirmation is unavailable, check the selected garden, threshold and your eligibility. Fallback does not override self-confirmation exclusions. Detailed dispute and protocol coordination operations remain outside this guide.
+If confirmation is unavailable, check the selected garden, threshold and your eligibility. Fallback does not override self-confirmation exclusions, and it appears only once nobody on the ordinary path can confirm. If a dispute, cancellation or expiry has an uncertain result, reload the promise and read its state and timeline before acting again.
 
 For an app problem, open **Settings → Support** in the dashboard. On a phone, find **Settings** under **Profile**. Share the affected record's link.
 
