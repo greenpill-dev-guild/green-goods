@@ -62,7 +62,7 @@ export function useVoucherIssuerApproval(
       const { rehearsalIssuerApproval } = await import(
         "../../modules/commitment-pooling/demo/demo-service-wallet"
       );
-      return rehearsalIssuerApproval(issuer.account);
+      return rehearsalIssuerApproval(issuer);
     },
   });
 }
