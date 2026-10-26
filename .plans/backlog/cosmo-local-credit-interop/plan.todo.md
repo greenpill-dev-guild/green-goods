@@ -392,6 +392,22 @@ mirrors this correction. Review instructions are in
 corrections on 20 October and the Linear texts were applied the same day
 ([record](handoffs/claude-linear-correction-drafts-2026-10-20.md)).
 
+## Review follow-ups — 26 October
+
+The 26 October contracts and indexer review accepted a general steward Safe model: the Safe
+mirrors the garden's Hats steward roster (one steward signs alone, two or more need two
+signatures), an optional starting signer's exception ends when its own role is mirrored, and the
+receiver takes the garden's name. The live Tech and Sun Safe is finalized through the
+[one-off runbook](handoffs/tas-steward-safe-finalize-runbook.md).
+
+- [ ] Finalize the live Tech and Sun bootstrap with Afo and one trusted steward; record the hashes.
+- [ ] Later: the escrow's 0.25 xDAI and the redemption module's 0.001 ETH transport fuel can never
+  be spent or withdrawn, because both endpoints only send caller-paid messages. Stop funding them,
+  or add a withdrawal path in a future endpoint upgrade.
+- [ ] Later: any pool steward can repeat the earned-voucher `dispatch()` while an entitlement is
+  undelivered, paying from the module's shared fuel each time. Make resends caller-funded or
+  bounded, as the Gnosis adapter already does for duplicate transport.
+
 ## Sequence and completion evidence
 
 - [x] Review the supplied v0.8 whitepaper against checkout `06a31dbf5`; retain the dated foundation

@@ -125,11 +125,15 @@ composite ID — that is a breaking change to the public query surface.
 ENS profile text fields on `Gardener` remain schema fields for client consumption; handlers do not
 populate them. The client resolves those values from ENS text records.
 
-### Service-access projections (dormant endpoints)
+### Service-access projections
 
 `VoucherIssuerAuthority` records the latest source issuer/token authority binding, including
-revocation. On Arbitrum, the configured core's `EarnedVoucherModulePinned` event discovers that
-local source module. It does not register an address on another chain or change previously
+revocation. On Arbitrum, the earned-voucher and redemption source proxies are registered
+statically from `42161-pilot-downstream.json`. Each initializer emits `VoucherEndpointPinned` and
+the first `VoucherPauseChanged` before the core pins the module, and Envio drops a dynamic
+contract's events from before its registration block. The core's `EarnedVoucherModulePinned` and
+`VoucherServiceSetupModulePinned` events still register the modules, which Envio skips as
+duplicates. Discovery registers nothing on another chain and never changes previously
 snapshotted terms approvals.
 
 `VoucherReserveAsset` records issuer-owned adapter configuration. `VoucherPoolExchange` preserves
@@ -139,9 +143,10 @@ Neither record establishes issuance, service delivery or renewed capacity. Indiv
 identity, service units and approval provenance remain explicit reviewed metadata in Shared;
 these facts are not emitted by the configuration events.
 
-The Gnosis adapter, escrow and pool definitions are codegen-only until verified deployment
-receipts supply the chain, addresses and replay boundaries. No Gnosis ingestion or hosted
-deployment is claimed by the local projection tests.
+Gnosis (chain 100) indexing starts at block 48,925,690, the first deployment receipt in
+`packages/contracts/deployments/100-pilot-downstream.json`. It pins the adapter, escrow, shared
+pool and steward Safe receiver addresses from that record; the boundary check requires all four.
+Local projection tests claim no hosted deployment.
 
 The additive service data contract contains `ServiceOfferRevision`, `ServiceClaimConsent`,
 `PersonalServicePurchase`, `PersonalServiceDepositReceipt`, `VoucherEndpointConfiguration`,
@@ -177,13 +182,28 @@ stays pending until its authenticated result event arrives. `Active` does not pr
 or external access; `Closed` describes financial resolution. Existing core `confirmationPath`,
 confirmer and dispute facts remain independent from explicit holder approval.
 
-`VoucherRedemptionModule` and `GnosisVoucherEscrow` appear only as global event definitions in
-`config.yaml`; they have no chain registration or address. The boundary check rejects their
-activation on any currently configured chain. Existing live addresses, start blocks and chains
-are unchanged. The registered-event test uses a temporary configuration with explicitly fictional
-local Arbitrum/Gnosis accounts and removes it afterward. No deployment, live CCIP transport,
-member signing or external membership activation is proved. Full earned distribution history and direct
-pool-swap receipts remain separate later projection work.
+The registered-event tests use a temporary configuration with explicitly fictional local
+Arbitrum/Gnosis accounts and remove it afterward. They prove no deployment, live CCIP transport,
+member signing or external membership activation.
+
+### Earned-voucher delivery and steward Safe mirroring
+
+On Arbitrum, `EarnedVoucherTerms` and `EarnedVoucherConsent` mirror the earned-voucher module's
+terms, issuer approval and first consent per participant and exact revision. The core's binding
+still decides acceptance. `EarnedVoucherDistribution` records preparation, the latest dispatch
+and the newest authenticated result. `EarnedVoucherDispatch` keeps one row per CCIP send, because
+retries resend the same authorized bytes under a new message.
+
+On Gnosis, `VoucherDistributionCommand`, `VoucherDistributionAttempt` and
+`VoucherDistributionAcknowledgment` record the adapter's intake, each execution attempt and each
+acknowledgment send or failure. A successful attempt is terminal on the adapter, but the source
+learns it only from an authenticated acknowledgment, so the two sides stay separate rows.
+
+`StewardRoleSource` records what the Arbitrum publisher queued, sent or deferred for each account;
+a deferred revision above the dispatched one still awaits a send. `StewardRoleMirror` records the
+revision the Gnosis receiver applied and its latest signer reconciliation, and
+`StewardSafeReceiverState` records a one-way bootstrap finalization. None of these rows proves
+current Safe ownership; read the Safe and its signer gate for that.
 
 
 ### Voucher acceptance and service v2
@@ -215,8 +235,8 @@ authorization promotes that observation. V2 custody uses its typed full setup re
 shared issuer, presentment and return events never classify a record as v2. Partial placeholders
 must not be aggregated as authorized legacy custody.
 
-The 21 new event routes are dormant definitions. They add no deployment address, chain or start
-block. Tests exercise actual registered Envio v3 routes under a disposable fictional configuration,
-plus duplicate/reordered facts, incompatible same-sequence results and late authorization checks.
+These routes run against the pilot addresses above. Tests exercise actual registered Envio v3
+routes under a disposable fictional configuration, plus duplicate/reordered facts, incompatible
+same-sequence results and late authorization checks.
 These projections provide observations for review. Mutations still require supported canonical
 contract views and separately approved deployment/account configuration.

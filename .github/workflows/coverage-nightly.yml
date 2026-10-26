@@ -46,3 +46,49 @@ jobs:
         run: bun run test ${{ matrix.args }}
         env:
           CI: true
+
+  contracts:
+    name: Contracts Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
+        with:
+          version: v1.7.1
+          cache: false
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      # One LCOV run compiles every source with --ir-minimum before any test runs, so the
+      # audit's 15-minute local default is too short for a cold runner.
+      - name: Run contract coverage gates
+        working-directory: packages/contracts
+        run: bun run test:audit coverage
+        env:
+          CI: true
+          COVERAGE_TIMEOUT_SECONDS: "5100"
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [[ -f output/contracts-test-audit/coverage-summary.md ]]; then
+            cat output/contracts-test-audit/coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: contracts-coverage
+          path: |
+            output/contracts-test-audit/coverage-summary.md
+            output/contracts-test-audit/coverage-summary.json
+            output/contracts-test-audit/lcov-local.info
+          if-no-files-found: warn

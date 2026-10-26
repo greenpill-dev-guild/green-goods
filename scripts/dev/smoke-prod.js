@@ -24,7 +24,6 @@ reexecUnderSystemNodeIfNeeded({
 });
 
 const ARBITRUM_CHAIN_ID = 42161;
-const DEFAULT_PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/de3e5df/v1/graphql";
 const DEFAULT_PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 // Browser surfaces that must reach the production agent. AGENT_ALLOWED_ORIGINS
 // lives only in Fly secrets, so this live preflight is what guards the list.
@@ -209,7 +208,8 @@ function getArbitrumRpcUrl() {
 function getIndexerUrl() {
   if (options.mode === "mirror") return LOCAL_INDEXER_URL;
   const explicit = process.env.VITE_ENVIO_INDEXER_URL;
-  return hasUsableValue(explicit || "") ? explicit.trim() : DEFAULT_PRODUCTION_INDEXER_URL;
+  if (hasUsableValue(explicit || "")) return explicit.trim();
+  throw new Error("[smoke-prod] Set VITE_ENVIO_INDEXER_URL to the hosted indexer URL.");
 }
 
 function getAgentBaseUrl() {

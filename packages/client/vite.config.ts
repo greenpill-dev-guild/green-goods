@@ -27,7 +27,6 @@ import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 import { createPublicLocalesPlugin } from "./vite/public-locales";
 import { resolveViteWatchOptions } from "./vite/watch";
 
-const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/de3e5df/v1/graphql";
 const CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
 const CLIENT_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
 const CLIENT_QUERY_MODULES =
@@ -233,8 +232,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   }
   const sentryRelease = `green-goods-client@${shortAppVersion}`;
   const indexerProxyTarget =
-    process.env.VITE_ENVIO_INDEXER_URL?.trim() ||
-    (nodeEnv === "development" ? "http://localhost:3006/v1/graphql" : DEFAULT_INDEXER_URL);
+    process.env.VITE_ENVIO_INDEXER_URL?.trim() || "http://localhost:3006/v1/graphql";
   if (command === "build") {
     process.env.NODE_ENV = "production";
   }

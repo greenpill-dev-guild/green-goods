@@ -98,6 +98,12 @@ indexer.contractRegister(
     context.chain.VoucherEntitlementModule.add(event.params.module);
   }
 );
+indexer.contractRegister(
+  { contract: "CommitmentPoolingModule", event: "VoucherServiceSetupModulePinned" },
+  async ({ event, context }) => {
+    context.chain.VoucherRedemptionModule.add(event.params.module);
+  }
+);
 indexer.onEvent(
   { contract: "VoucherEntitlementModule", event: "IssuerAuthorityConfigured" },
   async ({ event, context }) => {

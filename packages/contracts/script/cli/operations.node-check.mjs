@@ -278,8 +278,10 @@ test('voucher release preparation separates offline planning from isolated simul
   }
 });
 
-test('steward Safe release prepares fixed-two custody without a broadcast path', () => {
-  assert.deepEqual(resolve('release steward-safe --mode preflight').args, ['script/deploy/steward-safe-release.ts', '--preflight']);
+test('steward Safe release prepares roster-driven custody without a broadcast path', () => {
+  const preflight = resolve('release steward-safe --mode preflight');
+  assert.deepEqual(preflight.args, ['script/deploy/steward-safe-release.ts', '--preflight']);
+  assert.match(preflight.safeguards[0], /^roster-driven threshold: one valid steward signs alone, two or more need two signatures;/);
   assert.ok(resolve('release steward-safe --mode plan').args.includes('--plan-only'));
   assert.ok(resolve('release steward-safe --mode simulate --plan .generated/steward-safe/pilot.plan.json').args.includes('--simulate'));
   for (const suffix of ['--mode broadcast', '--mode preflight --private-key secret', '--mode plan --network gnosis', '--mode preflight --rpc-url https://rpc.invalid']) {
