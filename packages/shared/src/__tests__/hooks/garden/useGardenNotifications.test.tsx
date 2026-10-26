@@ -11,6 +11,7 @@ import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { useGardenNotifications } from "../../../hooks/garden/useGardenNotifications";
+import { NEW_NOTIFICATION_WINDOW_SECONDS } from "../../../modules/garden/notifications";
 import type {
   CommitmentPoolRecord,
   CommitmentReadModel,
@@ -217,8 +218,10 @@ describe("useGardenNotifications", () => {
       { kind: "takeUpRequested", isNew: true },
     ]);
     expect(result.current.newCount).toBe(4);
+    // The promise read is the account's own, the Promises launcher's read, so it never grows
+    // with the pool's history and Home pays for it once.
     expect(latest(reads.commitmentReads)).toEqual({
-      input: { chainId: DEFAULT_CHAIN_ID, poolId: 101n },
+      input: { chainId: DEFAULT_CHAIN_ID, account: ALICE },
       options: { enabled: true },
     });
     expect(latest(reads.takeUpReads)).toEqual({
@@ -413,5 +416,86 @@ describe("useGardenNotifications", () => {
     reads.activity = { rows: [], complete: false };
     await act(() => client.invalidateQueries());
     await waitFor(() => expect(result.current.isIncomplete).toBe(true));
+  });
+
+  it("marks the week incomplete when an off-page work's decisions disagree, and lists no submission for it", async () => {
+    seedGarden({ stewards: [ALICE] });
+    // Two decisions in one timestamp bucket disagree, so the week's read lists the work with no
+    // decision at all: it is not known to be pending.
+    const { status: _status, ...split } = createMockWork({
+      id: "0xsplit",
+      gardenerAddress: BOB,
+      gardenAddress: GARDEN,
+      createdAt: now - 40 * HOUR,
+    });
+    reads.activity = { complete: true, rows: [split] };
+
+    const { result } = renderNotifications();
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isIncomplete).toBe(true));
+    expect(result.current.notifications.map(({ id }) => id)).not.toContain("submission:0xsplit");
+    // The page's own submission still counts.
+    expect(result.current.notifications.map(({ id }) => id)).toContain("submission:0xw2");
+  });
+
+  describe("newness while the app stays mounted", () => {
+    const WEEK = NEW_NOTIFICATION_WINDOW_SECONDS;
+
+    /** Alice's only event: her work, approved at `reviewedAt`. */
+    function seedOneApproval(reviewedAt: number) {
+      seedGarden({ gardeners: [ALICE, BOB] });
+      reads.takeUps = [];
+      reads.commitments = [];
+      reads.works = [
+        createMockWork({
+          id: "0xold",
+          gardenerAddress: ALICE,
+          gardenAddress: GARDEN,
+          status: "approved",
+          createdAt: now - 10 * 24 * HOUR,
+          reviewedAt,
+        }),
+      ];
+    }
+
+    it("recomputes what is new when the sheet opens, so a badge never outlives its event's week", async () => {
+      // Approved a week ago less a minute: new for one more minute.
+      seedOneApproval(now - WEEK + 60);
+      const { result } = renderNotifications();
+      await waitFor(() => expect(result.current.newCount).toBe(1));
+
+      // Two minutes pass with the app open; nothing re-renders the hook.
+      vi.spyOn(Date, "now").mockReturnValue((now + 120) * 1000);
+      act(() => result.current.markAllSeen());
+
+      expect(result.current.newCount).toBe(0);
+      expect(result.current.notifications.map(({ isNew }) => isNew)).toEqual([false]);
+      // The week, not a mark, retired it: nothing listed was new to record.
+      expect(useGardenNotificationsSeenStore.getState().seenByScope).toEqual({});
+    });
+
+    it("recomputes what is new when the page becomes visible again", async () => {
+      seedOneApproval(now - WEEK + 60);
+      const { result } = renderNotifications();
+      await waitFor(() => expect(result.current.newCount).toBe(1));
+
+      vi.spyOn(Date, "now").mockReturnValue((now + 120) * 1000);
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+
+      expect(result.current.newCount).toBe(0);
+    });
+
+    it("retires a badge by itself at the week's end", async () => {
+      // Leaves the week one second from now.
+      seedOneApproval(now - WEEK + 1);
+      const { result } = renderNotifications();
+      await waitFor(() => expect(result.current.newCount).toBe(1));
+
+      await waitFor(() => expect(result.current.newCount).toBe(0), { timeout: 6_000 });
+      expect(result.current.notifications).toHaveLength(1);
+    });
   });
 });
