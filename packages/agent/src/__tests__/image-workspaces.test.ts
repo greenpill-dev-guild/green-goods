@@ -1,3 +1,5 @@
+// TEST-QUALITY: allow-small-test-file - no other suite covers the Agent image's build context;
+// these two cases read the Dockerfile and .dockerignore, not runtime code, so they join no runtime suite.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
