@@ -44,7 +44,7 @@ type Story = StoryObj<typeof VoucherRaiseAllowanceDialog>;
 export const RaiseAllowance: Story = {
   play: async () => {
     const dialog = within(await screen.findByRole("dialog"));
-    await expect(dialog.getByText("Raise Riverside Commons’ Allowance")).toBeVisible();
+    await expect(dialog.getByText("Raise the Allowance for Riverside Commons")).toBeVisible();
     await expect(dialog.getByLabelText("New allowance")).toHaveValue("6");
     await expect(dialog.getByRole("button", { name: "Raise Allowance" })).toBeEnabled();
   },

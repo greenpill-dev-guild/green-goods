@@ -1,8 +1,11 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
 import type { ComponentType } from "react";
+import { IntlProvider } from "react-intl";
 import { expect, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
 import {
@@ -202,4 +205,43 @@ export const GreenGoodsTransferFailed: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("button", { name: "Retry Transfer" })).toBeVisible();
   },
+};
+
+/** Tech and Sun's console in Spanish, the drafts awaiting a native reviewer. */
+export const TechAndSunVouchersEs: Story = {
+  ...TechAndSunVouchers,
+  decorators: [
+    (Story: ComponentType) => (
+      <IntlProvider locale="es" messages={esMessages}>
+        <Story />
+      </IntlProvider>
+    ),
+    ...decorators(
+      voucherSeeds(
+        STORY_TECH_AND_SUN_COMMITMENTS,
+        STORY_TECH_AND_SUN_CLAIMS,
+        STORY_TECH_AND_SUN_VOUCHERS
+      )
+    ),
+  ],
+  play: undefined,
+};
+
+/** Tech and Sun's console in Portuguese, the drafts awaiting a native reviewer (PRD-1312). */
+export const TechAndSunVouchersPt: Story = {
+  ...TechAndSunVouchersEs,
+  decorators: [
+    (Story: ComponentType) => (
+      <IntlProvider locale="pt" messages={ptMessages}>
+        <Story />
+      </IntlProvider>
+    ),
+    ...decorators(
+      voucherSeeds(
+        STORY_TECH_AND_SUN_COMMITMENTS,
+        STORY_TECH_AND_SUN_CLAIMS,
+        STORY_TECH_AND_SUN_VOUCHERS
+      )
+    ),
+  ],
 };

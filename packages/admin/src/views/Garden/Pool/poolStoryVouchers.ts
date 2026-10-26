@@ -35,9 +35,11 @@ import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { STORY_GARDEN, STORY_STEWARD } from "./poolStoryActors";
 import { storyCommitment } from "./poolStoryCommitments";
 
-const HOUR = 3_600;
 /** A voucher on the pilot's six-decimal tokens. */
 const VOUCHER = 1_000_000n;
+/** Four days out, 10:00 in the viewer's own zone, as a hub day's hours read. */
+const VISIT_START =
+  new Date((STORYBOOK_NOW_SECONDS + 4 * 86_400) * 1000).setHours(10, 0, 0, 0) / 1000;
 
 const STORY_LINA = "0x52a0000000000000000000000000000000009a1a" as Address;
 const STORY_KWESI = "0x6b30000000000000000000000000000000004b2c" as Address;
@@ -52,16 +54,9 @@ const STORY_VOUCHER_NAMES: Record<string, string> = {
   [STORY_RAFA.toLowerCase()]: "Rafa",
 };
 
-const TECH_AND_SUN = {
-  name: "Tech and Sun",
-  safe: "0x5afe00000000000000000000000000000000a1b2" as Address,
-  decimals: 6,
-};
-const GREEN_GOODS = {
-  name: "Green Goods",
-  safe: "0x5afe00000000000000000000000000000000c3d4" as Address,
-  decimals: 6,
-};
+const issuer = (name: string, safe: Address) => ({ name, safe, decimals: 6 });
+const TECH_AND_SUN = issuer("Tech and Sun", "0x5afe00000000000000000000000000000000a1b2");
+const GREEN_GOODS = issuer("Green Goods", "0x5afe00000000000000000000000000000000c3d4");
 
 /** The offers' titles, as their issuers wrote them. */
 export const STORY_VOUCHER_TITLES = new Map([
@@ -187,8 +182,8 @@ export const STORY_MARA_VISIT: VoucherBooking = {
   voucherUnits: VOUCHER,
   service: {
     kind: "visit",
-    startsAt: STORYBOOK_NOW_SECONDS + 4 * 86_400 + 10 * HOUR,
-    endsAt: STORYBOOK_NOW_SECONDS + 4 * 86_400 + 14 * HOUR,
+    startsAt: VISIT_START,
+    endsAt: VISIT_START + 4 * 3_600,
     report: { checkedIn: true, usableHours: 4, ofHours: 4, photos: 2 },
   },
   stage: { kind: "in-progress" },

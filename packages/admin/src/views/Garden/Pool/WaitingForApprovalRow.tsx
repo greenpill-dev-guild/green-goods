@@ -260,18 +260,19 @@ export function WaitingForApprovalRow({
         <span className="mt-0.5 block truncate type-meta text-text-sub" title={line}>
           {line}
         </span>
-        {voucher && !decided ? (
-          <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-            <StatusBadge variant={voucher.tag.tone} size="sm" showIcon={false}>
-              {voucher.tag.label}
-            </StatusBadge>
-            <span className="min-w-0 truncate type-meta text-text-soft" title={voucher.detail}>
-              {voucher.detail}
-            </span>
-          </span>
-        ) : null}
       </AdminListRow>
       <div className="flex min-h-7 items-center justify-end gap-1">{action}</div>
+      {/* A booking's pill and its line take the row's whole width, under the acts. */}
+      {voucher && !decided ? (
+        <p className="col-span-2 mt-1 flex min-w-0 items-center gap-2 px-1">
+          <StatusBadge variant={voucher.tag.tone} size="sm" showIcon={false}>
+            {voucher.tag.label}
+          </StatusBadge>
+          <span className="min-w-0 truncate type-meta text-text-soft" title={voucher.detail}>
+            {voucher.detail}
+          </span>
+        </p>
+      ) : null}
     </li>
   );
 }

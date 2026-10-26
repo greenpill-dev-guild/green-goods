@@ -103,7 +103,7 @@ export function VoucherReserveCard({
           label={formatMessage(
             {
               id: "cockpit.garden.pool.voucher.reserve.allowance",
-              defaultMessage: "{garden}’s allowance",
+              defaultMessage: "Allowance for {garden}",
             },
             { garden: allowance.garden }
           )}
@@ -253,7 +253,7 @@ export function VoucherReserveCard({
                 {
                   id: "cockpit.garden.pool.voucher.reserve.shortBody",
                   defaultMessage:
-                    "{garden}’s allowance is used up. Raise it so the reward can be sent. Promised rewards don’t set vouchers aside.",
+                    "The allowance for {garden} is used up. Raise it so the reward can be sent. Promised rewards don’t set vouchers aside.",
                 },
                 { garden: allowance.garden }
               )}

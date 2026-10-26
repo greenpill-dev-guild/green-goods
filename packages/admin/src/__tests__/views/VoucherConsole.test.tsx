@@ -127,7 +127,8 @@ describe("the issuer's acts in the Promises console", () => {
     const reportVisit = vi.fn().mockResolvedValue(undefined);
     offers([visit], { reportVisit });
 
-    fireEvent.click(screen.getByRole("button", { name: "Report Visit…" }));
+    // The act and its narrow-row icon carry one name, as Expire Now… does.
+    fireEvent.click(screen.getAllByRole("button", { name: "Report Visit…" })[0]!);
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Mara checked in")).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Report Visit" }));
@@ -138,7 +139,7 @@ describe("the issuer's acts in the Promises console", () => {
     const proposeReturn = vi.fn().mockResolvedValue(undefined);
     offers([endedEarly], { proposeReturn });
 
-    fireEvent.click(screen.getByRole("button", { name: "Propose Return…" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Propose Return…" })[0]!);
     const dialog = await screen.findByRole("dialog");
     const field = within(dialog).getByLabelText(/Back to Lina/);
     expect(field).toHaveValue("6");
@@ -163,7 +164,7 @@ describe("the issuer's acts in the Promises console", () => {
 
     expect(screen.getByRole("button", { name: "Needs recovery (1)" })).toBeInTheDocument();
     expect(screen.getByText("Return didn’t go through")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Retry Transfer" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Retry Transfer" })[0]!);
     await waitFor(() => expect(retryTransfer).toHaveBeenCalledWith(failed));
   });
 

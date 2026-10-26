@@ -62,7 +62,7 @@ export function VoucherRaiseAllowanceDialog({
           title={formatMessage(
             {
               id: "cockpit.garden.pool.voucher.raise.title",
-              defaultMessage: "Raise {garden}’s Allowance",
+              defaultMessage: "Raise the Allowance for {garden}",
             },
             { garden: reserve?.allowance.garden ?? "" }
           )}

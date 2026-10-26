@@ -22,6 +22,14 @@ const meta: Meta<typeof VoucherRowAct> = {
     onOpen: () => undefined,
     onRetry: async () => undefined,
   },
+  decorators: [
+    // The act reads its row's width, as it does in Offers and Requests.
+    (Story) => (
+      <div className="@container w-[560px] max-w-full p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 export default meta;
@@ -46,8 +54,20 @@ export const Retrying: Story = {
   play: async ({ canvasElement }) => {
     const button = within(canvasElement).getByRole("button", { name: /Retry Transfer/ });
     await userEvent.click(button);
-    await expect(button).toBeDisabled();
+    // A loading button stays focusable: busy, and refusing a second tap.
+    await expect(button).toHaveAttribute("aria-busy", "true");
   },
+};
+
+/** Below 480px of row the act is its icon, named for screen readers and on hover. */
+export const NarrowRow: Story = {
+  decorators: [
+    (Story) => (
+      <div className="@container w-[320px]">
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 /** Offline, or another act is with the wallet: the act waits. */
