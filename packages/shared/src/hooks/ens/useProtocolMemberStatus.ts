@@ -12,11 +12,11 @@ import { useQuery } from "@tanstack/react-query";
 import { type Address, zeroAddress } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { HatsABI } from "../../utils/blockchain/contract-abis/hats";
 import {
   createClients,
   GreenGoodsENSABI,
   getNetworkContracts,
-  HatsABI,
 } from "../../utils/blockchain/contracts";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { ensKeys } from "../../config/query-keys/identity";
