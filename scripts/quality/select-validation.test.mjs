@@ -3253,3 +3253,48 @@ test("an explicit critical risk on a contracts path brings the complete contract
     assert.deepEqual(suite.focusedPaths, [], intent);
   }
 });
+
+test("the policy names each Shared override completely; checkpoint and the strict intents apply it as written", () => {
+  const policy = loadPolicy();
+  for (const id of [SHARED_CRITICAL_RULE_ID, "reporting-permission-payloads"]) {
+    const rule = policy.criticalOverrides.find((entry) => entry.id === id);
+    assert.deepEqual(rule.checks, ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"], id);
+  }
+  const changedPaths = ["packages/shared/src/providers/Auth.tsx"];
+  const checkpoint = selectValidation({ intent: "checkpoint", changedPaths, mutationPaths: [] });
+  assert.deepEqual(
+    checkpoint.checks.map((check) => `${check.id}${check.mandatory ? "*" : ""}`),
+    ["format", "lint", "shared-typecheck*", "shared-test*", "client-test*", "admin-test*", "agent-typecheck", "agent-test*", "source-structure", "browser-proof", "browser-passkey"],
+  );
+  for (const intent of ["readiness", "ship", "merge", "release"]) {
+    const plan = selectValidation({ intent, changedPaths, mutationPaths: [] });
+    for (const id of ["client-typecheck", "admin-typecheck"]) {
+      assert.ok(!ids(plan).includes(id), `${intent} must not gain ${id} from the critical override`);
+    }
+  }
+});
+
+test("a critical checkpoint keeps an unrelated surface's suite focusable", () => {
+  const plan = selectValidation({
+    intent: "checkpoint",
+    changedPaths: ["packages/contracts/src/modules/HatsModule.sol", "packages/indexer/src/EventHandlers.ts"],
+    testPaths: { indexer: ["test/handlers.test.ts"] },
+  });
+  assert.equal(plan.risk, "critical");
+  const indexer = plan.checks.find((check) => check.id === "indexer-test");
+  assert.equal(indexer.mandatory, false);
+  assert.deepEqual(indexer.focusedPaths, ["test/handlers.test.ts"]);
+  assert.equal(indexer.command, "bun run test --scope handlers test/handlers.test.ts");
+});
+
+test("needs-focus remediation offers --check only when no critical owner needs focus", () => {
+  const critical = selectValidation({ intent: "push", changedPaths: ["packages/shared/src/providers/Auth.tsx"] });
+  assert.equal(critical.status, "needs-focus");
+  assert.match(critical.remediation, /--test-path shared:<package-relative-test>/);
+  assert.doesNotMatch(critical.remediation, /select an existing acceptance check with --check/);
+  assert.match(critical.remediation, /--check cannot stand in/);
+
+  const sensitive = selectValidation({ intent: "push", changedPaths: ["packages/shared/src/hooks/garden/useFilteredGardens.ts"] });
+  assert.equal(sensitive.status, "needs-focus");
+  assert.match(sensitive.remediation, /select an existing acceptance check with --check/);
+});

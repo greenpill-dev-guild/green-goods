@@ -113,3 +113,18 @@ the complete contracts gate stated where contracts apply.
 After a week of merges, re-run the receipt analysis and compare the critical push span against the
 731 s median above; the target is under 180 s on a quiet machine. Count `--no-verify` mentions in
 pull request bodies against the 15 of 150 seen before the change.
+
+## Review round six (Codex, 2026-10-25)
+
+Three findings on the fifth head, all accepted. Two shared a cause: round one had rewritten the
+policy's Shared override lists to the push shape, so checkpoint and every strict intent inherited
+consumer typechecks they never ran before, and a checkpoint block added later to restore the
+consumer suites also forced unrelated suites (an Indexer handler beside a contracts change) to run
+whole. The policy's lists are now develop's again, applied as written by checkpoint and the strict
+intents, and a critical push or qa run translates them at selection time: the critical owner's suite
+stays, focused, with its typechecks, and every other surface's suite becomes that surface's source
+and test typecheck. A comparison harness ran develop's selector beside the branch's over twelve
+change shapes: all sixty checkpoint, readiness, ship, merge and release plans now match develop
+exactly, where twenty-nine had differed. The third finding: the needs-focus remediation still
+offered `--check`, which cannot satisfy a critical owner; it now omits it when a critical owner
+needs focus.

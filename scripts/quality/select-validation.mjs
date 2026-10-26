@@ -818,15 +818,28 @@ export function selectValidation(input = {}, options = {}) {
     select(rule.check, `conditional:${rule.check}`);
   }
 
+  // The policy names each override's complete checks, which checkpoint and the strict intents
+  // apply as written. A critical push or qa run keeps the critical owner's suite (focused) with its
+  // typechecks and turns every other surface's suite into that surface's source and test
+  // typecheck: CI's consumer workflows own the whole consumer suites (D15, 2026-10-25).
+  const overrideChecks = (checks) =>
+    criticalPush || criticalQa
+      ? checks.flatMap((id) => {
+          const surface = id.endsWith("-test") ? id.slice(0, -5) : null;
+          if (!surface || !SURFACE_TYPECHECKS[surface]) return [id];
+          const typechecks = [SURFACE_TYPECHECKS[surface], SURFACE_TEST_TYPECHECKS[surface]];
+          return criticalOwners.has(surface) ? [id, ...typechecks] : typechecks;
+        })
+      : checks;
   const mandatory = new Set();
   for (const rule of evidenceOnly ? [] : hardRules) {
-    for (const id of rule.checks) {
+    for (const id of overrideChecks(rule.checks)) {
       select(id, "critical-override");
       mandatory.add(id);
     }
   }
   if (!evidenceOnly && contentCriticalPaths.length > 0) {
-    for (const id of sharedCriticalRule.checks) {
+    for (const id of overrideChecks(sharedCriticalRule.checks)) {
       select(id, "critical-content");
       mandatory.add(id);
     }
@@ -837,15 +850,6 @@ export function selectValidation(input = {}, options = {}) {
     for (const id of contractsGateChecks) {
       select(id, "critical-contracts");
       mandatory.add(id);
-    }
-  }
-  // D15 moved the consumer suites out of the override's checks for push and qa. The cross-package
-  // checkpoint keeps the complete override, so the consumer suites a Shared critical change fans
-  // out to stay mandatory there, as they did when the override named them.
-  if (!evidenceOnly && risk === "critical" && !["push", "qa"].includes(intent)) {
-    for (const surface of surfaces) {
-      const id = `${surface}-test`;
-      if (selected.has(id)) mandatory.add(id);
     }
   }
   if (["readiness", "push", "ship", "merge", "release"].includes(intent)) {
@@ -923,10 +927,18 @@ export function selectValidation(input = {}, options = {}) {
       : plannedOverBudget
         ? "local-budget-exceeded"
         : null;
+  // An explicit --check cannot stand in for a critical owner's focused suite, so the remediation
+  // offers it only when no critical owner is missing focus.
+  const criticalFocusMissing = missingFocus.some((surface) => ownersRequiringFocus.has(surface));
+  const focusPaths = missingFocus
+    .map((surface) => `--test-path ${surface}:<package-relative-test>`)
+    .join(", ");
   const remediation =
     status === "needs-focus"
       ? missingFocus.length > 0
-        ? `Add focused proof with ${missingFocus.map((surface) => `--test-path ${surface}:<package-relative-test>`).join(", ")}, select an existing acceptance check with --check, or narrow the change.`
+        ? criticalFocusMissing
+          ? `Add focused proof with ${focusPaths}, or narrow the change. A critical owner's suite runs focused on the tests you name, so --check cannot stand in for it.`
+          : `Add focused proof with ${focusPaths}, select an existing acceptance check with --check, or narrow the change.`
         : "Narrow the changed scope, provide a more focused test path, or select a smaller existing acceptance check."
       : null;
 
