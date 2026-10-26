@@ -1687,6 +1687,7 @@
         "packages/shared/src/modules/work/",
         "packages/shared/src/workflows/",
         "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/client-ui/submission/",
         "packages/shared/src/hooks/work/",
         "packages/shared/src/hooks/vault/"
       ],

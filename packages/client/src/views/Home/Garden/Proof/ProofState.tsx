@@ -1,64 +1,10 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { ProofComposerStatus } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
-import {
-  RiErrorWarningLine,
-  RiLoader4Line,
-  RiSearchLine,
-  RiWifiOffLine,
-  type RemixiconComponentType,
-} from "@remixicon/react";
-import type { ReactNode } from "react";
+import { RiErrorWarningLine, RiLoader4Line, RiSearchLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-import { FormInfo } from "@/components/Cards";
-import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import { FormProgress } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
-
-export interface ProofShellProps {
-  onBack: () => void;
-  /** Which step is showing, 1-based. */
-  progress: number;
-  /** The step's heading card, which leads the page. */
-  heading: { title: string; info: ReactNode; Icon: RemixiconComponentType };
-  /** The promise this proof is for, pinned under the top bar once the heading scrolls away. */
-  pinned: ReactNode;
-  bar: ReactNode;
-  children: ReactNode;
-}
-
-/**
- * The proof flow's page, drawn as Submit Work's is (D16): the top bar with the
- * named steps, the step's heading card, the promise pinned after it (O9), the
- * step, and the fixed bar.
- */
-export function ProofShell({ onBack, progress, heading, pinned, bar, children }: ProofShellProps) {
-  const { formatMessage } = useIntl();
-  const steps = [
-    formatMessage({ id: "app.proof.beat.media" }),
-    formatMessage({ id: "app.proof.beat.details" }),
-    formatMessage({ id: "app.compose.beat.review" }),
-  ];
-
-  return (
-    <>
-      <TopNav onBackClick={onBack} overlay>
-        <FormProgress currentStep={progress} steps={steps} />
-      </TopNav>
-      <form
-        className="relative py-6 pt-[var(--app-top-bar-height)] flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
-        onSubmit={(event) => event.preventDefault()}
-      >
-        <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+var(--safe-area-bottom))]">
-          <FormInfo title={heading.title} info={heading.info} Icon={heading.Icon} />
-          {pinned}
-          {children}
-        </div>
-      </form>
-      {bar}
-    </>
-  );
-}
 
 export type ProofStateKind = Exclude<ProofComposerStatus, "ready">;
 
