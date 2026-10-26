@@ -12,7 +12,7 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
@@ -88,6 +88,12 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
   // One press at a time: a second tap while one is reading or sending must not
   // sign another copy beside it.
   const inFlight = useRef(false);
+  // The page's clock as it stands when a read answers: it can tick while the copy is read again,
+  // and a copy that falls due meanwhile is judged on the newer clock, as the page then shows it.
+  const pageClock = useRef(clock);
+  useEffect(() => {
+    pageClock.current = clock;
+  }, [clock]);
 
   // The copy as the chain has it now, and whether anyone has asked for it.
   const readCopy = useCallback(
@@ -125,10 +131,10 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
           return;
         }
         // On the page's clock, which ticks as a copy falls due: one that lapsed while the page was
-        // open is not taken.
+        // open, or while it was read again, is not taken.
         if (
           !fresh.copy ||
-          !canChooseCopy(fresh.copy, { viewer, askedFor: fresh.askedFor, clock })
+          !canChooseCopy(fresh.copy, { viewer, askedFor: fresh.askedFor, clock: pageClock.current })
         ) {
           // Somebody got there first. Read the group again and ask before choosing another.
           const group = await reread().catch((error: unknown) => {
@@ -143,7 +149,7 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
             viewer,
             askedFor: group.askedFor,
             skip: new Set([...queued, copyId.toString()]),
-            clock,
+            clock: pageClock.current,
           });
           setState(next ? { step: "taken", next: next.commitmentId, context } : { step: "none" });
           return;
@@ -177,7 +183,7 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
         inFlight.current = false;
       }
     },
-    [clock, jobs, queued, readCopy, reread, viewer]
+    [jobs, queued, readCopy, reread, viewer]
   );
 
   const reset = useCallback(() => setState({ step: "idle" }), []);

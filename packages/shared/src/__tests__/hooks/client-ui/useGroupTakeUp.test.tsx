@@ -127,6 +127,45 @@ describe("useGroupTakeUp", () => {
     }
   });
 
+  // The press reads its copy again before sending, and the page's clock can tick meanwhile: a copy
+  // that falls due during that read is judged on the newer clock (Codex on #1341).
+  it("refuses a copy that falls due while it is read again", async () => {
+    const chainNow = 1_800_000_000n;
+    let finishRead: () => void = () => {};
+    mocks.detail.mockReturnValue(
+      new Promise((resolve) => {
+        finishRead = () =>
+          resolve(commitmentDetailFixture({ commitment: open(11, { dueDate: chainNow + 1n }) }));
+      })
+    );
+    const reread = vi.fn().mockResolvedValue({ copies: [], askedFor: new Set() });
+    const { result, rerender } = renderHookWithProviders(
+      ({ now }: { now: bigint }) =>
+        useGroupTakeUp({
+          chainId: 42161,
+          viewer: LINA,
+          queued: new Set(),
+          reread: reread as never,
+          clock: { now, cycleEndTimes: new Map() },
+        }),
+      { initialProps: { now: chainNow } }
+    );
+
+    let press: Promise<void> = Promise.resolve();
+    act(() => {
+      press = result.current.takeUp(11n, PERSONAL);
+    });
+    // The copy's due second passes, and the page's clock ticks, before the read answers.
+    rerender({ now: chainNow + 2n });
+    await act(async () => {
+      finishRead();
+      await press;
+    });
+
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(result.current.state).toEqual({ step: "none" });
+  });
+
   it("ignores a second press while the first is still reading, so only one copy is sent", async () => {
     let finishRead: () => void = () => {};
     mocks.detail.mockReturnValue(
