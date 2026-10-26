@@ -4,7 +4,6 @@ import {
   writeWorkLinkIntent,
 } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
@@ -14,12 +13,7 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import {
-  describeProofContents,
-  promiseRewardOf,
-  promiseRewardText,
-  rewardsNeedPrice,
-} from "@/components/Features/Commitments";
+import { describeProofContents } from "@/components/Features/Commitments";
 import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import { CommitmentClaims } from "./CommitmentClaims";
@@ -87,12 +81,6 @@ export function GardenCommitment() {
   );
   const serviceAccess = useServiceAccess(serviceKey);
   const serviceMutation = useServiceAccessMutation(serviceKey);
-  const rewardTerms = controller.detail
-    ? promiseRewardOf(controller.detail.commitment, controller.metadata)
-    : null;
-  const rewards = rewardTerms ? [rewardTerms] : [];
-  // Today's G$ price is read only for a reward whose dollars can't be read from its record.
-  const goodDollarPrice = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
   const serviceBranch =
     serviceAccess.data?.knownService === true ||
     serviceAccess.data?.acceptancePolicy.blockGenericMemberAcceptance === true;
@@ -196,12 +184,6 @@ export function GardenCommitment() {
     : null;
   const heading =
     controller.metadata?.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
-  const reward = promiseRewardText({
-    intl,
-    rewards,
-    price: goodDollarPrice.state,
-    paid: commitment.considerationPaid === true,
-  });
   // The stewards of the promise's own garden, so whoever confirms it carries the
   // role. The page holds the route garden's record, which is the pool's garden
   // unless the promise sits in another garden's pool.
@@ -343,7 +325,6 @@ export function GardenCommitment() {
           band={band}
           metadata={controller.metadata}
           units={units}
-          reward={reward}
           joinable={controller.joinable}
           viewer={controller.viewer}
           stewards={stewards}

@@ -7,12 +7,18 @@ import {
   type CommitmentSeat,
   commitmentNeedsSeat,
 } from "@green-goods/shared/commitment-pooling";
+import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiGroupLine } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
 
-import { presentState } from "@/components/Features/Commitments";
+import {
+  presentState,
+  promiseRewardOf,
+  promiseRewardText,
+  rewardsNeedPrice,
+} from "@/components/Features/Commitments";
 import { CommitmentPeople, confirmerOf } from "./CommitmentPeople";
 import { Provenance } from "./ConfirmOutcome";
 import type { StatusBand } from "./statusBand";
@@ -32,8 +38,6 @@ export interface CommitmentIdentityProps {
   metadata: CommitmentMetadataV1 | null;
   /** The count and unit, already in words, or null when the record has none. */
   units: string | null;
-  /** The reward it carries, in words, or null when it carries none or the page doesn't say. */
-  reward?: string | null;
   /** Whether the reader could join the team; the section only hints at it. */
   joinable: boolean;
   viewer: Address | null;
@@ -47,7 +51,8 @@ export interface CommitmentIdentityProps {
  * A status read after the people and the progress is a status nobody reads, so
  * the block leads: the state's pill, a marker when it needs the reader, and one
  * sentence, written from the reader's seat, about who acts next. The pill is
- * said once; the facts below carry no second copy of it.
+ * said once; the facts below carry no second copy of it, and they include the
+ * reward its record carries, so it stays in sight after the promise is taken up.
  */
 export function CommitmentIdentity({
   commitment,
@@ -56,13 +61,22 @@ export function CommitmentIdentity({
   band,
   metadata,
   units,
-  reward = null,
   joinable,
   viewer,
   stewards,
 }: CommitmentIdentityProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const headingId = useId();
+  const rewards = [promiseRewardOf(commitment, metadata)].filter((reward) => reward !== null);
+  // Today's G$ price is read only for a reward whose dollars can't be read from its record.
+  const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
+  const reward = promiseRewardText({
+    intl,
+    rewards,
+    price: price.state,
+    paid: commitment.considerationPaid === true,
+  });
   const state = presentState(commitment.derivedState);
   const needsYou = commitmentNeedsSeat({ commitment, seat });
   const kept = commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED";
