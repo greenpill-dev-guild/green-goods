@@ -78,6 +78,8 @@ function startStep(overrides: Partial<StartStep> = {}): StartStep {
     actions: ACTIONS,
     domains: [Domain.SOLAR, Domain.EDU, Domain.WASTE],
     promises: [],
+    asks: [],
+    askPromptCount: 3,
     promisesFailed: false,
     retryPromises: vi.fn(),
     screen: { kind: "actions" },
@@ -190,6 +192,38 @@ describe("WorkStart", () => {
     // A row with nothing else to press is itself the button.
     fireEvent.click(screen.getByRole("button", { name: /Log Work on Its Own/ }));
     expect(start.logWorkOnItsOwn).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists the garden's Open asks after the member's promises, saying how many prompts one takes", () => {
+    const owed = promise([1], false);
+    const ask: StartPromise = {
+      ...promise([2], false),
+      commitmentId: 31n,
+      title: "Hub keys handover",
+      state: "REQUESTED",
+    };
+    const start = startStep({ screen: { kind: "promises" }, promises: [owed], asks: [ask] });
+    const { container } = renderStart({ start });
+
+    const section = container.querySelector('[data-component="StartAsks"]') as HTMLElement;
+    expect(within(section).getByRole("heading", { name: "Take Up an Ask" })).toBeVisible();
+    expect(
+      within(section).getByText(
+        "Taking one up opens 3 wallet or passkey prompts: the take-up, the work and its link."
+      )
+    ).toBeVisible();
+    const cards = container.querySelectorAll<HTMLElement>('[data-component="PromiseCard"]');
+    expect(cards).toHaveLength(2);
+    expect(within(cards[0]).getByText("Node uptime log")).toBeVisible();
+    expect(within(cards[1]).getByText("Hub keys handover")).toBeVisible();
+    expect(within(cards[1]).getByText("Asked for")).toBeVisible();
+    expect(
+      container.querySelector('[data-component="WorkStart"] [data-component="LogWorkOnItsOwn"]')
+        ?.previousElementSibling
+    ).toBe(section);
+
+    fireEvent.click(cards[1]);
+    expect(start.pickPromise).toHaveBeenCalledWith(ask);
   });
 
   it.each([

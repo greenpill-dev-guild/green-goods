@@ -13,7 +13,8 @@
  * - Take Part lists the promises open to take up that the reader did not make: their own
  *   offers and asks are theirs to withdraw, not to join. Nor does it list one they already
  *   asked for or are taking up from this phone (`ViewerTakeUps`). Copies of one set fold into
- *   one row, as on the Pool tab.
+ *   one row, as on the Pool tab. Submit Work's Start step lists the asks among them that the
+ *   reader takes up in one tap.
  *
  * A section reads in one state, so loading, a failure and "nothing saved offline" are never
  * mistaken for "nothing here".
@@ -274,19 +275,22 @@ export function takePartPromises(
   return commitments.filter((commitment) => isTakeableBy(commitment, viewer, takeUps));
 }
 
-/**
- * Take Part's entries: the open promises as the Pool tab's rows, copies of one set folded
- * into one group, counted across every copy in the pool. A pool that is not open takes nothing
- * up, as the promise page's take-up gate reads it, so then there are none.
- */
-export function takePartEntries(input: {
+/** What Take Part reads: the pool's promises and their metadata, the reader and their take-ups. */
+export interface TakePartInput {
   commitments: readonly CommitmentReadModel[];
   metadataByCID: ReadonlyMap<string, CommitmentMetadataV1>;
   viewer: Address | null | undefined;
   /** The pool's state is OPEN. */
   poolOpen: boolean;
   takeUps: ViewerTakeUps;
-}): TakePartEntry[] {
+}
+
+/**
+ * Take Part's entries: the open promises as the Pool tab's rows, copies of one set folded
+ * into one group, counted across every copy in the pool. A pool that is not open takes nothing
+ * up, as the promise page's take-up gate reads it, so then there are none.
+ */
+export function takePartEntries(input: TakePartInput): TakePartEntry[] {
   if (!input.poolOpen) return [];
   const viewer = input.viewer ?? undefined;
   const open = takePartPromises(input.commitments, viewer, input.takeUps);
@@ -309,6 +313,17 @@ export function takePartEntries(input: {
     const copy = entry.group.children.find((child) => openIds.has(child.id));
     return copy ? [{ ...entry, copy }] : [];
   });
+}
+
+/**
+ * The asks Submit Work's Start step lists beside the reader's own promises (decision 18): Take
+ * Part's entries, each standing for its set's first copy the reader could take up, narrowed to
+ * the asks the chain hands them in one tap.
+ */
+export function oneTapAsks(input: TakePartInput): CommitmentReadModel[] {
+  return takePartEntries(input)
+    .map((entry) => entry.copy)
+    .filter((copy) => isOneTapTakeUp(copy, input.viewer, input.takeUps));
 }
 
 /** The newest ask among Take Part's entries, for the carousel's last card. */
