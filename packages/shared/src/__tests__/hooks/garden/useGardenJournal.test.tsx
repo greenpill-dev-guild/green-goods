@@ -71,6 +71,9 @@ function promise(id: number, overrides: Partial<CommitmentReadModel> = {}): Comm
     id: `42161-${id}`,
     commitmentId: BigInt(id),
     poolId: 7n,
+    // Outside any season: a promise that falls due with its cycle sets cycleId itself, with
+    // that cycle read.
+    cycleId: null,
     direction: "OFFER",
     onchainState: "OFFERED",
     derivedState: "OFFERED",
@@ -369,8 +372,13 @@ describe("useGardenJournal", () => {
 
     it("offers none once the season of an ask without a due date has ended", async () => {
       // The ask carries no due date of its own, so it falls due when its season ends.
+      mocks.getCommitments.mockResolvedValue([{ ...openAsk, cycleId: 7n }]);
       mocks.getCommitmentCycles.mockResolvedValue([
-        cycleFixture({ poolId: 7n, endTime: BigInt(Math.floor(Date.now() / 1000)) - 60n }),
+        cycleFixture({
+          cycleId: 7n,
+          poolId: 7n,
+          endTime: BigInt(Math.floor(Date.now() / 1000)) - 60n,
+        }),
       ]);
       const { result } = choices();
 

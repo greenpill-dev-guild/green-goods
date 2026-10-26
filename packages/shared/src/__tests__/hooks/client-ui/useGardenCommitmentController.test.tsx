@@ -230,7 +230,8 @@ beforeEach(() => {
   mocks.works = [work(), work({ id: "0xbbbb", status: "rejected" })];
   mocks.linked = new Set();
   mocks.pool = poolFixture({ poolType: "PROTOCOL" });
-  mocks.cycles = [];
+  // The fixture promise carries no due date, so it falls due with its season: read, and open.
+  mocks.cycles = [cycleFixture({ endTime: BigInt(Math.floor(Date.now() / 1000)) + 86_400n })];
   mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:steward`, true]]);
   mocks.gardens = [
     {
@@ -665,14 +666,18 @@ describe("useGardenCommitmentController", () => {
       })
     );
     expect(result.current.actKind).toBeNull();
+    // Asking again is a take-up too, so it waits for the due date and stops at it.
+    expect(result.current.canAskAgain).toBe(false);
 
     mocks.cycles = [cycleFixture({ endTime: now + 3_600n })];
     rerender();
     expect(result.current.actKind).toBe("takeUp");
+    expect(result.current.canAskAgain).toBe(true);
 
     mocks.cycles = [cycleFixture({ endTime: now - 60n })];
     rerender();
     expect(result.current.actKind).toBeNull();
+    expect(result.current.canAskAgain).toBe(false);
   });
 
   it("offers Ask Again only while the reader may still take the commitment up", () => {

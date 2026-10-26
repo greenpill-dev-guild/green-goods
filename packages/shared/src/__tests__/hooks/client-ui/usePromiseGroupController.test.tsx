@@ -144,7 +144,8 @@ describe("usePromiseGroupController", () => {
     mocks.pools.pools = [poolFixture({ garden: ROUTE })];
     mocks.pools.isError = false;
     mocks.commitments = [copy(11), copy(12)];
-    mocks.cycles = [];
+    // The fixture copies carry no due date, so they fall due with their season: read, and open.
+    mocks.cycles = [cycleFixture({ endTime: BigInt(Math.floor(Date.now() / 1000)) + 86_400n })];
     mocks.memberHere = true;
     mocks.claimGardens = { member: [], stewarded: [] };
     mocks.limit = null;
