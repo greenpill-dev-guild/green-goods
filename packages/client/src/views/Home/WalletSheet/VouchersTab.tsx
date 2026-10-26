@@ -184,9 +184,10 @@ function VoucherReturnRow({
         tone: failed ? "error" : "info",
       }}
       edge={failed ? "error" : "info"}
+      // What it comes back from leads, as the lab writes it; a narrow row shows only the first.
       details={
         title
-          ? [issuer, intl.formatMessage({ id: "app.voucher.wl.backFrom" }, { title })]
+          ? [intl.formatMessage({ id: "app.voucher.wl.backFrom" }, { title }), issuer]
           : [issuer]
       }
       amount={{ value: amount, caption: intl.formatMessage({ id: "app.voucher.wl.coming" }) }}
