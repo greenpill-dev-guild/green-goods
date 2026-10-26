@@ -3194,3 +3194,62 @@ test("a critical scripts/contracts change keeps the whole contracts suite despit
   assert.equal(suite.command, "bun run test");
   assert.deepEqual(suite.focusedPaths, []);
 });
+
+test("a critical scripts/contracts path does not make an ordinary owner beside it critical", () => {
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: ["scripts/contracts/deploy.mjs", "packages/client/src/main.tsx"],
+  });
+  assert.equal(plan.risk, "critical");
+  assert.equal(plan.status, "ready");
+  // The client entry point keeps its ordinary compile proof; only contracts is the critical owner.
+  assert.ok(plan.checks.find((check) => check.id === "client-build")?.selectedBy.includes("push-owner-compile:client"));
+  for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]) {
+    assert.ok(plan.checks.find((check) => check.id === id)?.mandatory, id);
+  }
+  assert.equal(plan.checks.find((check) => check.id === "contracts-test").command, "bun run test");
+});
+
+test("an explicit critical risk keeps the critical Shared shape in qa, test typechecks included", () => {
+  const sharedTest = "src/__tests__/utils/calendar-date.test.ts";
+  const plan = selectValidation({
+    intent: "qa",
+    risk: "critical",
+    changedPaths: ["packages/shared/src/utils/calendar-date.ts"],
+    testPaths: { shared: [sharedTest] },
+    mutationPaths: [],
+  });
+  assert.equal(plan.risk, "critical");
+  assert.equal(plan.status, "ready");
+  for (const id of [
+    "shared-typecheck",
+    "shared-test-typecheck",
+    "client-typecheck",
+    "client-test-typecheck",
+    "admin-typecheck",
+    "admin-test-typecheck",
+    "agent-typecheck",
+    "agent-test-typecheck",
+  ]) {
+    assert.ok(ids(plan).includes(id), id);
+  }
+  assert.deepEqual(plan.checks.find((check) => check.id === "shared-test").focusedPaths, [sharedTest]);
+  for (const id of ["client-test", "admin-test", "agent-test"]) assert.ok(!ids(plan).includes(id), id);
+});
+
+test("an explicit critical risk on a contracts path brings the complete contracts gate", () => {
+  const changedPaths = ["packages/contracts/test/modules/HatsModule.t.sol"];
+  const testPaths = { contracts: ["test/modules/HatsModule.t.sol"] };
+  for (const intent of ["push", "qa"]) {
+    const plan = selectValidation({ intent, risk: "critical", changedPaths, testPaths });
+    assert.equal(plan.risk, "critical", intent);
+    assert.equal(plan.status, "ready", intent);
+    for (const id of ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]) {
+      const check = plan.checks.find((candidate) => candidate.id === id);
+      assert.ok(check?.mandatory, `${intent} ${id}`);
+    }
+    const suite = plan.checks.find((check) => check.id === "contracts-test");
+    assert.equal(suite.command, "bun run test", intent);
+    assert.deepEqual(suite.focusedPaths, [], intent);
+  }
+});

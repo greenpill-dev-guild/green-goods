@@ -203,7 +203,8 @@ a consumer suite runs only when `--test-path` names one of its tests, and the co
 production builds stay with CI's Shared, Client, Admin and Agent workflows, which must be green on
 the current head. The critical owner names a test even for a barrel change, since its mandatory
 suite runs focused rather than whole, and format and lint stay scoped to the changed paths as in
-every push. A critical qa run keeps the same consumer rule. The contracts override keeps its
+every push. A critical qa run keeps the same consumer rule. An explicit `--risk critical` with no
+matched override makes every changed owner critical. The contracts override keeps its
 complete local gate (`abi-artifacts`,
 `contracts-build`, `contracts-test`, `contracts-verify-fast`) because its verify step has no
 pull-request CI equivalent.

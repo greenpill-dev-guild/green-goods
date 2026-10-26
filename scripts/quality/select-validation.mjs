@@ -407,6 +407,12 @@ const SURFACE_TYPECHECKS = {
   admin: "admin-typecheck",
   agent: "agent-typecheck",
 };
+const SURFACE_TEST_TYPECHECKS = {
+  shared: "shared-test-typecheck",
+  client: "client-test-typecheck",
+  admin: "admin-test-typecheck",
+  agent: "agent-test-typecheck",
+};
 
 // The gates that certify readiness, a full local ship, a merge or a release run every check fresh,
 // whatever the plan's risk: they reuse no receipt, and their package suites skip Turbo's cache.
@@ -574,13 +580,6 @@ export function selectValidation(input = {}, options = {}) {
     ((intent === "ship" || localMerge) && changedPaths.length === 0);
   const strictScope = strictIntent || fullRepository;
   const surfaces = impactedSurfaces(policy, changedPaths, fullRepository);
-  const owners = new Set(changedPaths.map(owningSurface).filter(Boolean));
-  // A critical push or qa run keeps the fast-push shape: the owner's typecheck and focused suite
-  // are mandatory and every consumer adds its typechecks; CI's consumer workflows own the whole
-  // suites and production builds (D15, 2026-10-25). The contracts override keeps its complete
-  // local gate on top of that, because its verify step has no pull-request CI equivalent yet. It
-  // is active only when a contract override rule matched a contracts-owned path, so a README or an
-  // ordinary test under packages/contracts/ beside a critical Shared change does not count.
   // The policy's surface rules own contracts paths, including scripts/contracts/, which
   // owningSurface does not map to a package.
   const contractsSurfaceRules = (policy.surfaceRules ?? []).filter(
@@ -589,28 +588,40 @@ export function selectValidation(input = {}, options = {}) {
   const contractsOwned = (path) =>
     owningSurface(path) === "contracts" ||
     contractsSurfaceRules.some((rule) => groupMatches(path, rule));
-  const contractsCritical = hardRules.some((rule) =>
-    changedPaths.some((path) => contractsOwned(path) && groupMatches(path, rule)),
-  );
+  const ownerOf = (path) => (contractsOwned(path) ? "contracts" : owningSurface(path));
+  const owners = new Set(changedPaths.map(ownerOf).filter(Boolean));
+  // A critical push or qa run keeps the fast-push shape: the critical owner's typecheck and
+  // focused suite are mandatory and every consumer adds its typechecks; CI's consumer workflows
+  // own the whole suites and production builds (D15, 2026-10-25). The paths that make a plan
+  // critical are the ones an override or content escalation matched; an explicit --risk critical
+  // with nothing matched makes every changed path critical. A contracts-owned critical path brings
+  // the complete contracts gate on top, because its verify step has no pull-request CI equivalent
+  // yet; a README or ordinary test under packages/contracts/ beside a critical Shared change does
+  // not. Critical owners prove themselves with a focused suite even when a barrel change would
+  // otherwise count compile proof, and CI owns their builds; contracts runs its whole suite.
+  const ruleCriticalPaths = [
+    ...changedPaths.filter((path) => hardRules.some((rule) => groupMatches(path, rule))),
+    ...contentCriticalPaths,
+  ];
+  const criticalPaths =
+    baseRisk === "critical" && ruleCriticalPaths.length === 0 ? changedPaths : ruleCriticalPaths;
+  const contractsCritical = risk === "critical" && criticalPaths.some(contractsOwned);
   const criticalPush = intent === "push" && risk === "critical";
   const criticalQa = intent === "qa" && risk === "critical";
-  // The surfaces whose own files put the plan in the critical tier; a manual --risk critical with
-  // no matched rule makes every owner critical. In a critical push or qa run they prove themselves
-  // with a focused suite even when a barrel change would otherwise count compile proof, and CI owns
-  // their builds. Contracts is the exception: its gate runs its whole suite.
-  const matchedCriticalOwners = new Set(
-    [
-      ...changedPaths.filter((path) => hardRules.some((rule) => groupMatches(path, rule))),
-      ...contentCriticalPaths,
-    ]
-      .map(owningSurface)
-      .filter(Boolean),
+  const criticalOwners = new Set(
+    risk === "critical" ? criticalPaths.map(ownerOf).filter(Boolean) : [],
   );
-  const criticalOwners =
-    risk === "critical" && matchedCriticalOwners.size === 0 ? new Set(owners) : matchedCriticalOwners;
   const ownersRequiringFocus = new Set(
     [...criticalOwners].filter((surface) => surface !== "contracts"),
   );
+  // The complete contracts gate, as the policy's contract overrides name it.
+  const contractsGateChecks = [
+    ...new Set(
+      (policy.criticalOverrides ?? [])
+        .filter((rule) => rule.checks?.includes("contracts-test"))
+        .flatMap((rule) => rule.checks),
+    ),
+  ];
   const selected = new Set();
   const selectionReasons = new Map();
   const select = (id, reason) => {
@@ -702,13 +713,16 @@ export function selectValidation(input = {}, options = {}) {
       // A critical qa run proves its consumers by typecheck and runs a consumer suite only when
       // the author names one of its tests; CI owns the whole consumer suites (D15).
       if (criticalQa && !owners.has(surface)) {
-        const typecheck = SURFACE_TYPECHECKS[surface];
-        if (typecheck) select(typecheck, `critical-consumer-types:${surface}`);
+        for (const typecheck of [SURFACE_TYPECHECKS[surface], SURFACE_TEST_TYPECHECKS[surface]]) {
+          if (typecheck) select(typecheck, `critical-consumer-types:${surface}`);
+        }
         if (testPaths[surface]?.length > 0) select(`${surface}-test`, `focused-test:${surface}`);
         continue;
       }
-      if (criticalQa && criticalOwners.has(surface) && SURFACE_TYPECHECKS[surface]) {
-        select(SURFACE_TYPECHECKS[surface], `critical-owner-types:${surface}`);
+      if (criticalQa && criticalOwners.has(surface)) {
+        for (const typecheck of [SURFACE_TYPECHECKS[surface], SURFACE_TEST_TYPECHECKS[surface]]) {
+          if (typecheck) select(typecheck, `critical-owner-types:${surface}`);
+        }
       }
       // Shared test support a consumer's tests import counts as that consumer's own test files.
       const surfacePaths = changedPaths.filter(
@@ -814,6 +828,14 @@ export function selectValidation(input = {}, options = {}) {
   if (!evidenceOnly && contentCriticalPaths.length > 0) {
     for (const id of sharedCriticalRule.checks) {
       select(id, "critical-content");
+      mandatory.add(id);
+    }
+  }
+  // A critical contracts path brings the complete contracts gate in push and qa, whether an
+  // override matched it or an explicit --risk critical did; the strict intents select it already.
+  if (contractsCritical && (criticalPush || criticalQa)) {
+    for (const id of contractsGateChecks) {
+      select(id, "critical-contracts");
       mandatory.add(id);
     }
   }

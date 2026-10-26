@@ -87,6 +87,18 @@ ordinary owners. And `scripts/contracts/` paths are contract-owned by the policy
 not by `owningSurface`, so a critical script change with a contracts test path focused the
 whole-suite gate; the contracts flag now reads ownership from the surface rules.
 
+## Review round four (Codex, 2026-10-25)
+
+Three findings on the fourth head, all accepted and fixed at one root: critical owners and the
+contracts flag were still derived from `owningSurface`, and the all-owner fallback fired whenever
+no owner mapped rather than only on an explicit `--risk critical`. The selector now derives one
+list of critical paths (override and content matches, or every changed path when only an explicit
+`--risk critical` applies) with ownership read from the policy's surface rules. So a critical
+`scripts/contracts/` change no longer makes a client entry point beside it critical and drops its
+build; an explicit critical qa run selects every consumer's test typecheck; and an explicit
+`--risk critical` on a contracts-owned path brings the complete contracts gate, whose check list is
+now read from the policy's contract overrides.
+
 ## What to measure next
 
 After a week of merges, re-run the receipt analysis and compare the critical push span against the
