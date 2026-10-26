@@ -10,9 +10,7 @@ const LIMITS = {
   precacheRaw: Number(process.env.PWA_PRECACHE_MAX_BYTES ?? 5 * MiB),
   precacheEntries: Number(process.env.PWA_PRECACHE_MAX_ENTRIES ?? 40),
   publicStartupGzip: Number(process.env.PWA_PUBLIC_STARTUP_GZIP_MAX ?? 450 * KiB),
-  // Raised from 1.25 MiB in October 2026 when the voucher screens (PRD-1297) put their reads and
-  // strings on the installed app's startup path; moving them behind their routes would win it back.
-  pwaStartupGzip: Number(process.env.PWA_INSTALLED_STARTUP_GZIP_MAX ?? 1.3 * MiB),
+  pwaStartupGzip: Number(process.env.PWA_INSTALLED_STARTUP_GZIP_MAX ?? 1.25 * MiB),
   // The installed entry alone, before any route. It holds the app's recovery screens, which are
   // what is shown when a route's code will not load, so it must not lean on the routes' code.
   pwaEntryGzip: Number(process.env.PWA_INSTALLED_ENTRY_GZIP_MAX ?? 450 * KiB),

@@ -99,8 +99,10 @@ const allowedIdenticalLocalizedKeys = new Set([
   "app.celoWallet.asset",
   "app.community.weightScheme.linear",
   "cockpit.community.stats.pools",
-  // An amount beside the G$ symbol has no words to translate.
+  // The G$ symbol, alone or beside an amount, has no words to translate.
   "cockpit.garden.pool.reward.inGoodDollars",
+  "app.voucher.rw.gd",
+  "app.voucher.rw.sh.gd",
   "public.fund.vaults.vaultCount",
   // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
   // and the compact line Your Work and a garden's Promises share drops "Saved" in every
