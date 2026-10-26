@@ -17,8 +17,12 @@ import { Card, FlexCard } from "@/components/Cards/Card";
 import { Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/Display/Accordion/Faq";
 import { Avatar } from "@/components/Display/Avatar/Avatar";
 
-/** The questions someone has on a reporting page, in the order they tend to come up. */
-const TOPICS = ["page", "public", "cost", "change", "permission", "chat"] as const;
+/**
+ * The questions someone has on a reporting page, in the order they tend to come up. Signing out
+ * has its own: the browser's sign-out, the chat's Disconnect and removing a permission are three
+ * acts, and the answer says where each one is.
+ */
+const TOPICS = ["page", "public", "cost", "change", "permission", "signOut", "chat"] as const;
 
 /** A section's heading inside the sheet, as the app's Profile labels its sections. */
 function SectionHeading({ children }: { children: ReactNode }) {
@@ -129,7 +133,7 @@ export function FocusedAccountSheet({
       open={open}
       onOpenChange={onOpenChange}
       placement="right"
-      // The app's tallest sheet: an account, its acts and six questions want the room.
+      // The app's tallest sheet: an account, its acts and seven questions want the room.
       sheetSize="full"
       // From 640px, clear of the 5rem top bar, so the bar and its steps stay in view above the
       // sheet. Below that it is the bottom sheet, which this does not touch.
