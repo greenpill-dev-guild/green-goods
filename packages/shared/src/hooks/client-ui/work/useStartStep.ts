@@ -251,8 +251,11 @@ export function useStartStep({
     asks: listedAsks,
     /** The prompts taking an ask up brings, said before the first: take-up, work, link. */
     askPromptCount: submissionPromptCount({ linksPromise: true, takesUp: true }),
-    /** The member's promises could not be read: the step offers the actions and a retry. */
-    promisesFailed: promises.isError && !promises.data,
+    /**
+     * The member's promises could not be read, or their first read waits for a connection: the
+     * step offers the actions with a warning and a retry, never as all there is.
+     */
+    promisesFailed: (promises.isError || promises.fetchStatus === "paused") && !promises.data,
     retryPromises: () => void promises.refetch(),
     screen: shown,
     /** Opens a listed promise: its own screen, or the evidence flow when that is all it takes. */

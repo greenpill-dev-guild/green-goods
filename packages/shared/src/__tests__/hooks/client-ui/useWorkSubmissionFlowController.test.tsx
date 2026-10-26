@@ -1680,6 +1680,17 @@ describe("useWorkSubmissionFlowController", () => {
     expect(result.current.start.skipped).toBe(false);
   });
 
+  it("says the member's promises could not be read while their first read waits for a connection", () => {
+    solarGarden();
+    mocks.actions = [liveAction(7, Domain.SOLAR), liveAction(8, Domain.SOLAR)];
+    mocks.workable = { data: undefined, isPending: true, isError: false, fetchStatus: "paused" };
+    const { result } = enterFlow();
+
+    // Offline with nothing saved, the actions come with the warning and a retry, not as all there is.
+    expect(result.current.start.screen).toEqual({ kind: "actions" });
+    expect(result.current.start.promisesFailed).toBe(true);
+  });
+
   it("keeps Start while the garden's Open asks are read, even with one action", () => {
     solarGarden();
     mocks.actions = [liveAction(7, Domain.SOLAR)];
