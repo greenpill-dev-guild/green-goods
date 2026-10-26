@@ -92,7 +92,9 @@ export function useWorkDetailController() {
     const saved = routeStatus ? [{ ...row, status: routeStatus }] : undefined;
     return resolveGardenWorkRows({ remote: [row], saved, overlay: undefined }).rows[0];
   }, [workByUID.data, gardenId, routeStatus]);
-  const work = listedWork ?? fetchedWork ?? routeWork;
+  // Online, the direct read decides: a carried row may be stale (another steward decided the work),
+  // so it never stands in, and never offers a decision, before that read answers.
+  const work = listedWork ?? fetchedWork ?? (isOnline ? undefined : routeWork);
   const metadata = useWorkMetadata(work?.metadata);
   const matchedAction = useMemo(() => {
     if (!work) return null;

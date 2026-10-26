@@ -287,6 +287,25 @@ describe("useWorkDetailController", () => {
     expect(result.current.work?.title).toBe(expected);
   });
 
+  // Online, a carried row may be stale, so only the direct read can open the work.
+  it("opens nothing from a carried record online while the direct read has none", () => {
+    mocks.online = true;
+    mocks.lookupResult = null;
+    const carried = {
+      ...OLDER_ROW,
+      approval: undefined,
+      title: "Cached work",
+      gardenAddress: "garden-1",
+      status: "pending",
+    };
+
+    const { result } = renderHook(() => useWorkDetailController(), {
+      wrapper: carriedWorkWrapper(carried),
+    });
+
+    expect(result.current.work).toBeUndefined();
+  });
+
   it("keeps the detail loading while its queued work is still reading from this device", () => {
     mocks.queuedLoading = true;
     const { result } = renderHook(() => useWorkDetailController(), {
