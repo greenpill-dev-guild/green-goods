@@ -82,8 +82,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:520d9934b1ad8b56d9533649afad25fb82f27c5a923cada60284c3a73bcff9f3"
+      "reviewedAt": "2026-10-25",
+      "evidenceFingerprint": "sha256:d917caa5db6c5ee1105eb4a82c7d290654a8a2920538126a866069816c0b431f"
     }
   ]
 }

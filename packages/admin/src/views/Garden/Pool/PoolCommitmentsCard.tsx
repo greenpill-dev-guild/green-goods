@@ -2,38 +2,45 @@ import { Button } from "@green-goods/shared/components/Button";
 import { CommitmentRow } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type {
+  PoolConsoleController,
+  VoucherConsoleView,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { IssuerSafeThreshold } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
-import {
-  RiCalendarCloseLine,
-  RiDeleteBinLine,
-  RiFilterOffLine,
-  RiRefreshLine,
-  RiSeedlingLine,
-  RiSendPlaneLine,
-} from "@remixicon/react";
+import { RiCalendarCloseLine, RiFilterOffLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { ActPhaseLine, actPhaseText } from "@/components/ActPhaseLine";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
 import { PoolGroupRow } from "./PoolGroupRow";
-import { GardenPoolTarget } from "./PoolTarget";
+import { GardenPoolTarget, type PoolWriteTarget } from "./PoolTarget";
+import { PoolQueuedRows, isPastDeadline } from "./PoolQueuedRows";
+import { type VoucherBookingAct, VoucherBookingDialogs } from "./VoucherBookingDialogs";
+import { VoucherRowAct } from "./VoucherRowAct";
 import {
   type PoolCommitmentFocus,
   type PoolCommitmentGroup,
   type PoolCommitmentScope,
   selectPoolCommitmentRows,
+  withVoucherRecovery,
 } from "./poolCommitmentRows";
-import { commitmentStateChip, queuedCreationPill } from "./poolPresentation";
+import { commitmentStateChip } from "./poolPresentation";
 import { rowDueDetail } from "./poolTime";
+import { voucherOfferRow } from "./voucherPresentation";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
 export interface PoolCommitmentsCardProps {
   console: PoolConsoleController;
+  /** The voucher bookings under way on the pool's offers, and the issuer's acts on them. */
+  vouchers: VoucherConsoleView;
+  /** The pool a visit report is recorded in, named in its dialog. */
+  target: PoolWriteTarget;
+  /** The issuer Safe's signature rule, read from the Safe, for a proposed return's dialog. */
+  safe?: IssuerSafeThreshold;
   scope: PoolCommitmentScope;
   onScopeChange: (scope: PoolCommitmentScope) => void;
   focus: PoolCommitmentFocus;
@@ -59,13 +66,11 @@ export interface PoolCommitmentsCardProps {
  * and a group's copies still queued fold into it as "didn't send" with Finish
  * Creating, rather than as queued rows of their own.
  */
-/** A group past its deadline can't be finished; one with none never lapses. */
-function isPastDeadline(dueDate: bigint | null | undefined, now: number): boolean {
-  return Boolean(dueDate) && Number(dueDate) * 1000 <= now;
-}
-
 export function PoolCommitmentsCard({
   console: pool,
+  vouchers,
+  target,
+  safe,
   scope,
   onScopeChange,
   focus,
@@ -79,29 +84,16 @@ export function PoolCommitmentsCard({
   const intl = useIntl();
   const { formatMessage } = intl;
   const now = Date.now();
-  const { model, titles, isOnline, isActing, acts } = pool;
+  const { titles, isOnline, isActing, acts } = pool;
+  const model = withVoucherRecovery(pool.model, pool.commitments, vouchers);
   const expireLabel = formatMessage({
     id: "cockpit.garden.pool.row.act.expire",
     defaultMessage: "Expire Now…",
   });
-  const discardLabel = formatMessage({
-    id: "cockpit.garden.pool.queued.discard",
-    defaultMessage: "Discard",
-  });
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
-  const [busyJobId, setBusyJobId] = useState<string | null>(null);
+  const [bookingAct, setBookingAct] = useState<VoucherBookingAct>(null);
 
-  // Nothing in the admin sends a queued creation on its own, so each row that is
-  // still here offers the send and, where the queue allows it, the way out.
-  const runQueued = async (jobId: string, act: (jobId: string) => Promise<void>) => {
-    setBusyJobId(jobId);
-    try {
-      await act(jobId);
-    } finally {
-      setBusyJobId(null);
-    }
-  };
   const dueIds = useMemo(() => new Set(model.dueLive.map((row) => row.id)), [model.dueLive]);
 
   const titleOf = (commitment: CommitmentReadModel) =>
@@ -110,6 +102,11 @@ export function PoolCommitmentsCard({
       { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
+
+  const titleFor = (commitmentId: bigint) => {
+    const commitment = pool.commitments.find((row) => row.commitmentId === commitmentId);
+    return commitment ? titleOf(commitment) : "";
+  };
 
   const rows = selectPoolCommitmentRows({
     model,
@@ -250,105 +247,7 @@ export function PoolCommitmentsCard({
         </AdminSearchToolbar>
 
         {pendingCreates.length > 0 && scope === "open" && focus === null ? (
-          <ul className="@container flex flex-col gap-(--gg-list-gap)" data-testid="pool-queued">
-            {pendingCreates.map((row) => {
-              const phase = pool.queuedPhase(row.jobId);
-              const pill = queuedCreationPill(row, phase.status, formatMessage);
-              const expired =
-                !row.hasRecordedSend &&
-                isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now);
-              const sentLine = formatMessage({
-                id: "cockpit.garden.pool.queued.sent",
-                defaultMessage: "Sent. This row leaves once the index shows the promise.",
-              });
-              // What the row says first: the act in flight, then why it cannot go, else how
-              // much it promises, since a promise not created yet has no dialog to tell it.
-              const said =
-                actPhaseText(intl, { phase, chainId: pool.chainId, confirmed: sentLine }) ??
-                (expired
-                  ? formatMessage({
-                      id: "cockpit.garden.pool.add.expired",
-                      defaultMessage:
-                        "This group's deadline has passed, so nothing can join it. Start a new group instead.",
-                    })
-                  : row.settlementDeferred
-                    ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
-                    : null);
-              // A failed act says so in the error color, as its phase line did.
-              const note =
-                said && phase.status === "failed" ? { text: said, tone: "error" as const } : said;
-              const units = note ? null : `${row.targetUnits} ${row.unitLabel}`.trim() || null;
-              const sendLabel = row.failed
-                ? formatMessage({
-                    id: "cockpit.garden.pool.queued.retry",
-                    defaultMessage: "Try Again",
-                  })
-                : formatMessage({
-                    id: "cockpit.garden.pool.queued.sendNow",
-                    defaultMessage: "Send Now",
-                  });
-              const SendGlyph = row.failed ? RiRefreshLine : RiSendPlaneLine;
-              return (
-                <li key={row.jobId}>
-                  <CommitmentRow
-                    data-component="PoolQueuedRow"
-                    direction={row.direction}
-                    title={
-                      row.title ??
-                      formatMessage({
-                        id: "cockpit.garden.pool.queued.untitled",
-                        defaultMessage: "New promise",
-                      })
-                    }
-                    status={pill.status}
-                    pending={pill.pending}
-                    note={note}
-                    units={units}
-                    due={
-                      row.groupDueDate ? rowDueDetail(intl, BigInt(row.groupDueDate), now) : null
-                    }
-                    action={
-                      // Stacked below 480px of row, so two acts take one button's width; with
-                      // no gap their 44px finger boxes fill the 88px row exactly.
-                      <span className="flex flex-col items-center @[480px]:flex-row @[480px]:gap-1">
-                        {row.discardable ? (
-                          <IconButton
-                            size="sm"
-                            aria-label={discardLabel}
-                            title={discardLabel}
-                            disabled={busyJobId !== null}
-                            onClick={() => void runQueued(row.jobId, acts.discardQueued)}
-                            icon={<RiDeleteBinLine aria-hidden="true" />}
-                          />
-                        ) : null}
-                        {/* A row that never tried has nothing to try again (A24). */}
-                        <IconButton
-                          emphasis="secondary"
-                          size="sm"
-                          aria-label={sendLabel}
-                          title={sendLabel}
-                          disabled={
-                            row.settlementDeferred || !isOnline || busyJobId !== null || expired
-                          }
-                          loading={busyJobId === row.jobId}
-                          onClick={() => void runQueued(row.jobId, acts.retryQueued)}
-                          icon={<SendGlyph aria-hidden="true" />}
-                        />
-                      </span>
-                    }
-                  />
-                  {/* The row leads with the phase's words; the line stays for screen
-                      readers, so each change is still announced. */}
-                  <ActPhaseLine
-                    className="sr-only"
-                    phase={phase}
-                    chainId={pool.chainId}
-                    confirmed={sentLine}
-                  />
-                </li>
-              );
-            })}
-          </ul>
+          <PoolQueuedRows console={pool} rows={pendingCreates} now={now} />
         ) : null}
 
         {total === 0 && pendingCreates.length === 0 ? (
@@ -404,6 +303,7 @@ export function PoolCommitmentsCard({
               const commitment = entry.record;
               const chip = commitmentStateChip(commitment, formatMessage);
               const isDue = dueIds.has(commitment.id);
+              const voucher = voucherOfferRow(commitment.commitmentId, vouchers, intl, now);
               return (
                 <li
                   key={commitment.id}
@@ -412,7 +312,8 @@ export function PoolCommitmentsCard({
                   <CommitmentRow
                     direction={commitment.direction}
                     title={titleOf(commitment)}
-                    // Past due replaces the state: it is what the steward can act on.
+                    // Past due replaces the state: it is what the steward can act on. A
+                    // booking that needs someone says so in the state's place too.
                     status={
                       isDue
                         ? {
@@ -422,8 +323,9 @@ export function PoolCommitmentsCard({
                             }),
                             tone: "error",
                           }
-                        : { label: chip.label, tone: chip.variant }
+                        : (voucher?.status ?? { label: chip.label, tone: chip.variant })
                     }
+                    note={voucher?.note}
                     due={rowDueDetail(intl, commitment.dueDate, now)}
                     party={{ commitment }}
                     onOpen={() => onOpenCommitment(commitment)}
@@ -453,6 +355,14 @@ export function PoolCommitmentsCard({
                             {expireLabel}
                           </Button>
                         </>
+                      ) : voucher?.booking && voucher.act ? (
+                        <VoucherRowAct
+                          booking={voucher.booking}
+                          act={voucher.act}
+                          disabled={actDisabled}
+                          onOpen={(kind) => setBookingAct({ kind, booking: voucher.booking! })}
+                          onRetry={vouchers.acts.retryTransfer}
+                        />
                       ) : undefined
                     }
                   />
@@ -472,6 +382,17 @@ export function PoolCommitmentsCard({
           </p>
         ) : null}
       </AdminCard>
+
+      <VoucherBookingDialogs
+        open={bookingAct}
+        title={bookingAct ? titleFor(bookingAct.booking.commitmentId) : ""}
+        vouchers={vouchers}
+        safe={safe}
+        target={target}
+        nowMs={now}
+        tone={tone}
+        onClose={() => setBookingAct(null)}
+      />
 
       <CommitmentExpireDialog
         isOpen={expireTarget !== null}
