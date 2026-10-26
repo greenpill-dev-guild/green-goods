@@ -13,9 +13,8 @@
  * @module modules/commitment-pooling/acts
  */
 
-import { isPastDue } from "./group-browsing";
 import type { CommitmentDerivedState, CommitmentReadModel } from "./types";
-import type { CommitmentSeat } from "./selectors";
+import { type CommitmentSeat, isPastDue } from "./selectors";
 
 /** Mirrors CommitmentPoolingCommonLib: a roster the contract will not grow past. */
 const MAX_CONTRIBUTORS_PER_COMMITMENT = 40;

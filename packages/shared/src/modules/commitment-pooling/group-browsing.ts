@@ -26,7 +26,7 @@
 import type { Address } from "../../types/domain";
 import type { DisplayEntry, DisplayGroupEntry } from "./display-groups";
 import { selectSeedTrayRoom } from "./seed-tray";
-import { isCommitmentCreator, isSameAccount } from "./selectors";
+import { isCommitmentCreator, isPastDue, isSameAccount } from "./selectors";
 import type { CommitmentProviderExposureRecord, CommitmentReadModel } from "./types-core";
 
 /** What choosing a copy reads from each one. */
@@ -44,17 +44,6 @@ export type GroupCopy = Pick<
 >;
 
 const OPEN = new Set<string>(["OFFERED", "REQUESTED"]);
-
-/**
- * Whether a promise's due date has passed on the chain's clock (`now`, Unix seconds, as
- * `useExpiryClock` keeps it): strictly after the due second, when the contract lets anyone expire
- * it. An undated promise never passes here; the chain would read its cycle's end instead, which
- * the app always replaces with a due date when it creates one.
- */
-export function isPastDue(promise: Pick<CommitmentReadModel, "dueDate">, now: bigint): boolean {
-  const due = promise.dueDate;
-  return due !== null && due !== undefined && due !== 0n && now > due;
-}
 
 /**
  * Whether anyone could take this copy up now: published, untaken, not ended, and not past its
