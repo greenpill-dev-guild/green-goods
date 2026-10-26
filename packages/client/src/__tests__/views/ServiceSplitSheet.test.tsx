@@ -1,6 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
+// TEST-QUALITY: allow-small-test-file - the split sheet is a dialog that needs the DOM, which ServiceBooking.test.ts (node) doesn't load, and GardenCommitment.test.tsx stubs the service reads a full return would need.
 import en from "@green-goods/shared/i18n/en";
 import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
@@ -34,6 +35,7 @@ function openSheet(stage: "readyToClose" | "returnProposed") {
   return renderWithProviders(
     <ServiceSplitSheet
       open
+      onOpenChange={() => undefined}
       view={view}
       title="Hub day, up to 4 hours"
       isPending={false}
