@@ -165,7 +165,7 @@ Let's grow together. Thank you. Scan the code to see commitment pooling live on 
 - **Never say:** guaranteed principal or returns, cash-out of vouchers, carbon credits, "proven
   demand", a named individual sponsor, fee savings on transfers, or a hand-typed garden count.
 - Refresh this list against the [live-pilot handoff](../../handoffs/codex-live-pilot-deployment.md)
-  on Monday 27 October before submission. On 25 October the handoff still ended before the
+  on Tuesday 27 October before submission. On 25 October the handoff still ended before the
   deployment; the chain and the deployment artifacts carry it, as the
   [README's status refresh](../README.md#status-refresh--25-october-2026) records.
 

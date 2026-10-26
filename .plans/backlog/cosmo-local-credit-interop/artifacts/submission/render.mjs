@@ -68,7 +68,11 @@ for (const name of PAGES) {
 
   // Every word of the PDF must sit inside its page; a word past the page edge is a fragmented block.
   let bbox = null;
-  try { bbox = execFileSync("pdftotext", ["-bbox", pdf, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }); } catch { console.log(`${name}: pdftotext not installed, word positions not checked`); }
+  try { bbox = execFileSync("pdftotext", ["-bbox", pdf, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }); } catch (error) {
+    // Only a missing binary is optional; any other failure must fail the check, or an unreadable PDF would pass.
+    if (error.code === "ENOENT") console.log(`${name}: pdftotext not installed, word positions not checked`);
+    else problems.push(`${name}: pdftotext failed: ${String(error.message).split("\n")[0]}`);
+  }
   if (bbox) {
     const pdfPages = [...bbox.matchAll(/<page width="([\d.]+)" height="([\d.]+)">([\s\S]*?)<\/page>/g)];
     if (pdfPages.length !== 1) problems.push(`${name}: the PDF has ${pdfPages.length} pages, expected 1`);

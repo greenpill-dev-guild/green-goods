@@ -229,7 +229,7 @@ refresh the status facts the pitch carries. Repeat the check on 27 October (inpu
 The event's submission brief (read 25 October) asks for four items: a solution presentation, a
 Business Model Canvas, a logical architecture and a demonstrator such as a clickable demo, judged
 on business idea, technical implementation, use of data sets, presentation, feasibility,
-scalability and impact potential. Materials go to the team's Microsoft Teams room by Monday
+scalability and impact potential. Materials go to the team's Microsoft Teams room by Tuesday
 27 October, 2 to 3 PM UK time, and the brief says to plan for eight minutes a team, which the
 notes already run. The deck is the presentation; the canvas and the architecture are the two
 one-pagers in `submission/`, in the brief's style and checked by `submission/render.mjs`; the

@@ -64,10 +64,10 @@
   .link svg { width: 36px; height: 12px; }
 
   .side { display: grid; grid-template-rows: auto auto 1fr; row-gap: 7px; min-height: 0; }
-  .side .block { background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; padding: 8px 10px; overflow: hidden; }
-  .side h3 { margin: 0 0 4px; font: 400 13px/1.15 var(--serif); letter-spacing: -0.005em; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .side .block { background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; padding: 7px 9px; overflow: hidden; }
+  .side h3 { margin: 0 0 3px; font: 400 13px/1.15 var(--serif); letter-spacing: -0.005em; color: var(--ink); display: flex; align-items: center; gap: 6px; }
   .side h3 svg { width: 15px; height: 15px; fill: none; stroke: var(--green-action); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-  .side li { font-size: 9.6px; }
+  .side li { font-size: 9.5px; margin-bottom: 2.5px; }
   .sources { margin-top: 7px; font-size: 9.5px; line-height: 1.4; color: var(--stone); }
 
   @page { size: A4 landscape; margin: 0; }
@@ -166,7 +166,7 @@
           <li><b>Evidence from the field:</b> photos, notes, audio and links, by app or by chat, captured offline and synced later.</li>
           <li><b>Confirmations</b> by the people served, and steward review of work.</li>
           <li><b>Baselines and assessments</b> from evaluators.</li>
-          <li><b>Context we cite:</b> World Bank World Development Indicators (remittances), Remittance Prices Worldwide (transfer costs), the US American Community Survey and the UK Census (diaspora counts).</li>
+          <li><b>Context we cite:</b> World Bank WDI (remittances), Remittance Prices Worldwide (transfer costs), the US ACS and the UK Census (diaspora counts).</li>
         </ul>
       </div>
       <div class="block">
@@ -175,17 +175,17 @@
           <li><b>Public garden pages</b> and the indexer's data, readable by anyone.</li>
           <li><b>Reports</b> funders can act on and renew from.</li>
           <li><b>Records published</b> to partner networks: Ma Earth through Certified first; Bloom and Regen in conversation.</li>
-          <li><b>Certificates</b> of a season's impact, and the rewards and vouchers a kept promise earns.</li>
+          <li><b>Certificates</b> of a season's impact; the rewards and vouchers a kept promise earns.</li>
         </ul>
       </div>
       <div class="block">
         <h3><svg><use href="#i-rules"/></svg>Rules that hold everywhere</h3>
         <ul>
-          <li>The person served confirms a promise, never the person who did the work; a steward can confirm only as a labeled fallback.</li>
-          <li>Every record is a signed attestation anyone can check.</li>
+          <li>The person served confirms a promise, never the person who did it; a steward can confirm only as a labeled fallback.</li>
+          <li>Work, approvals and assessments are signed attestations anyone can check; other records are contract state.</li>
           <li>Messages between networks authorize actions; they never carry money or tokens.</li>
-          <li>Each action runs once and retries safely; contracts can pause; upgrades need owner approval.</li>
-          <li>Members approve any delegated or recovery authority over their vouchers.</li>
+          <li>Payment commands between networks carry a stable identity, so a retry never repeats one; voucher recovery is still being built. Contracts can pause; upgrades need owner approval.</li>
+          <li>Members approve any delegated authority over their vouchers.</li>
         </ul>
       </div>
     </div>
