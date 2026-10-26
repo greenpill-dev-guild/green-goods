@@ -155,7 +155,12 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
     { chainId, poolId: pool?.poolId ?? 0n },
     { enabled: pool !== null }
   );
-  const { takeUps, settled } = useViewerTakeUps({
+  const {
+    takeUps,
+    settled,
+    unavailable,
+    retry: retryTakeUps,
+  } = useViewerTakeUps({
     chainId,
     poolId: pool?.poolId ?? 0n,
     viewer,
@@ -179,9 +184,10 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
       dataUpdatedAt: pools.dataUpdatedAt,
     },
     list: {
-      // A request in flight would show an ask the reader asked for, then take it away.
-      hasData: commitments.data !== undefined && settled,
-      isError: commitments.isError,
+      // A request in flight would show an ask the reader asked for, then take it away, and a
+      // queue that cannot be read could offer again a take-up already on this phone.
+      hasData: commitments.data !== undefined && settled && !unavailable,
+      isError: commitments.isError || unavailable,
       dataUpdatedAt: commitments.dataUpdatedAt,
     },
     items: entries.slice(0, JOURNAL_PREVIEW_COUNT),
@@ -194,6 +200,7 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();
+      if (unavailable) retryTakeUps();
     },
   };
 }

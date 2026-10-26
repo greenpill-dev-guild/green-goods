@@ -18,11 +18,19 @@ import { usePoolClaimRequests } from "./usePoolClaimRequests";
 export interface ViewerTakeUpsRead {
   takeUps: ViewerTakeUps;
   /**
-   * The requests read has answered, failed, or is waiting for the network. Only a read in
-   * flight holds a list back: a failed one leaves the listing rule standing, since the
-   * promise's own page still shows a pending request.
+   * This phone's queue has answered, and the requests read has answered, failed, or is
+   * waiting for the network. Only a read in flight holds a list back: a failed requests read
+   * leaves the listing rule standing, since the promise's own page still shows a pending
+   * request.
    */
   settled: boolean;
+  /**
+   * This phone's queue could not be read, so a take-up already on it cannot be ruled out. A
+   * surface that offers taking promises up offers none rather than offer one again.
+   */
+  unavailable: boolean;
+  /** Reads this phone's queue again. */
+  retry: () => void;
 }
 
 export function useViewerTakeUps(input: {
@@ -48,11 +56,15 @@ export function useViewerTakeUps(input: {
       }),
     [viewer, requests.rows, queue.takeUpIds]
   );
-  const settled =
-    !reading ||
+  const requestsAnswered =
     requests.availability.status !== "available" ||
     requests.data !== undefined ||
     requests.isError ||
     requests.isPaused;
-  return { takeUps, settled };
+  return {
+    takeUps,
+    settled: !reading || (requestsAnswered && !queue.isLoading),
+    unavailable: reading && queue.isUnavailable,
+    retry: queue.refresh,
+  };
 }

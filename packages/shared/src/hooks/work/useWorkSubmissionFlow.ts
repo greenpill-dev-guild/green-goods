@@ -10,7 +10,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  type BaseSyntheticEvent,
   type Dispatch,
   type SetStateAction,
 } from "react";
@@ -56,6 +55,15 @@ export interface WorkSelectionValue {
   setSelectedDomain: (domain: Domain | null) => void;
 }
 
+export interface UploadWorkOptions {
+  /**
+   * Runs once the work has passed every check and before it is admitted to the queue; false
+   * keeps it out. Submit takes an Open ask up here (decision 18), so the take-up, which cannot
+   * be taken back, never goes for work its own checks would stop.
+   */
+  beforeAdmission?: () => Promise<boolean>;
+}
+
 export interface WorkFormValue {
   state: FormState<WorkFormData>;
   control: Control<WorkFormData>;
@@ -67,7 +75,7 @@ export interface WorkFormValue {
   timeSpentMinutes: number | undefined;
   values: Record<string, unknown>;
   reset: UseFormReset<WorkFormData>;
-  uploadWork: (event?: BaseSyntheticEvent) => Promise<void>;
+  uploadWork: (options?: UploadWorkOptions) => Promise<void>;
   workMutation: ReturnType<typeof useWorkMutation>;
   validationErrors: string[];
 }
@@ -88,7 +96,7 @@ export interface WorkDataProps {
     register: UseFormRegister<WorkFormData>;
     setValue: UseFormSetValue<WorkFormData>;
     control: Control<WorkFormData>;
-    uploadWork: (event?: BaseSyntheticEvent) => Promise<void>;
+    uploadWork: (options?: UploadWorkOptions) => Promise<void>;
     gardenAddress: Address | null;
     setGardenAddress: (value: Address | null) => void;
     feedback: string;
@@ -175,7 +183,7 @@ export function useWorkSubmissionFlow(): {
     ? (selectedAction.mediaInfo.minImageCount ?? 1)
     : 0;
   const handleUploadWork = useCallback(
-    async (data: WorkFormData) => {
+    async (data: WorkFormData, options: UploadWorkOptions = {}) => {
       const { feedback: _feedback, timeSpentMinutes: _time, location, ...dynamicFields } = data;
       const audioNotes = useWorkFlowStore.getState().audioNotes.slice();
       const draft = {
@@ -214,6 +222,7 @@ export function useWorkSubmissionFlow(): {
         return;
       }
       setValidationErrors([]);
+      if (options.beforeAdmission && !(await options.beforeAdmission())) return;
       const imagesSnapshot = images.slice();
       if (DEBUG_ENABLED) {
         debugLog("[WorkProvider] Submitting work with validated draft", {
@@ -233,7 +242,8 @@ export function useWorkSubmissionFlow(): {
     },
     [gardenAddress, actionUID, images, workMutation, minRequiredImages, userAddress, intl]
   );
-  const uploadWork = workForm.handleSubmit(handleUploadWork);
+  const uploadWork = (options?: UploadWorkOptions) =>
+    workForm.handleSubmit((data) => handleUploadWork(data, options))();
   const isLoading = actionsLoading || gardensLoading;
   const hasJoinedGardens = userGardens.length > 0;
 

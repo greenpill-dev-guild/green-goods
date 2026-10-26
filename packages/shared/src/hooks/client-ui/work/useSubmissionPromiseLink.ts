@@ -115,8 +115,9 @@ export function useSubmissionPromiseLink(input: {
   );
 
   /**
-   * Submit's first act: the take-up, when the promise is an Open ask. False when it was declined
-   * or refused, having queued nothing, and the toast has said which; true otherwise.
+   * The take-up, when the promise is an Open ask: Submit runs it once the work has passed its
+   * own checks and before the work is admitted. False when it did not go, having queued nothing,
+   * and a toast has said why; true otherwise.
    */
   const takeUpFirst = async (): Promise<boolean> => {
     if (!takesUp || !takeUpLink) return true;
@@ -131,7 +132,8 @@ export function useSubmissionPromiseLink(input: {
         setTakenUpHere((taken) => new Set(taken).add(takeUpLink.commitmentId.toString()));
       return true;
     } catch (error) {
-      if (!(error instanceof TakeUpNotSent)) throw error;
+      // Any other failure was said where it happened (`useCommitmentJobs`).
+      if (!(error instanceof TakeUpNotSent)) return false;
       toastService.error({
         id: "take-up",
         title: intl.formatMessage({

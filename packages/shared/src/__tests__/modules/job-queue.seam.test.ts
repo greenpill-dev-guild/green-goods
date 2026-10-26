@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FlushResult, JobQueueDependencies } from "../../modules/job-queue/ports";
 import { createJobQueue } from "../../modules/job-queue/queue";
-import type { Job, JobKindMap, QueueEvent } from "../../types/job-queue";
+import type { Job, JobKindMap, QueueEvent, WorkJobPayload } from "../../types/job-queue";
 import {
   createFakeJobExecutorRegistry,
   createFakeJobQueueClock,
@@ -444,7 +444,16 @@ describe("a work for a promise taken up in the same tap (decision 18)", () => {
 
     await expect(queue.discardJob("take-up")).resolves.toBe(true);
     expect(await store.getJob("its-link")).toBeUndefined();
-    expect(await store.getJob("work-for-it")).toMatchObject({ payload: chain.work.payload });
+    // Its link gone, the work names no promise: taking that promise up again later, from its
+    // own page, holds none of this work.
+    const { dependentWorkLink: _gone, ...onItsOwn } = chain.work.payload as WorkJobPayload;
+    expect((await store.getJob("work-for-it"))?.payload).toEqual(onItsOwn);
+    await store.addJob({
+      kind: "claim",
+      payload: chain.claim.payload,
+      userAddress: chain.claim.userAddress,
+      chainId: chain.claim.chainId,
+    });
     await expect(queue.processJob("work-for-it", explicit)).resolves.toMatchObject({
       success: true,
     });

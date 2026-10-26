@@ -254,16 +254,13 @@ export function useWorkSubmissionFlowController({
     if (linkIntent) setIsSchedulingDependentLink(true);
     try {
       await saveOnExit();
-      // An Open ask is taken up first; declined or refused, nothing of the work is queued.
-      if (!(await promiseLink.takeUpFirst())) {
-        setIsSchedulingDependentLink(false);
-        return false;
-      }
       workMutation.clearLastSubmissionOutcome();
-      await form.uploadWork();
+      // An Open ask is taken up once the work has passed its own checks, before it is admitted;
+      // a take-up that does not go admits none of the work.
+      await form.uploadWork({ beforeAdmission: promiseLink.takeUpFirst });
       const outcome = workMutation.getLastSubmissionOutcome();
       if (!outcome) {
-        // uploadWork resolves without an outcome when validation stops it: no link to schedule.
+        // uploadWork resolves without an outcome when its checks or the take-up stop it.
         setIsSchedulingDependentLink(false);
         return false;
       }
