@@ -18,14 +18,15 @@ const chainSecondsNow = (offsetMs: number) => BigInt(Math.floor((Date.now() + of
  * How far the chain's clock runs ahead of this device's, in milliseconds: the latest block's
  * timestamp against the device's time as it arrived, read once per chain through the app's wagmi
  * client. Zero where there is no wallet runtime (a public page, a test), until the read answers,
- * and when it fails, so the device's clock stands in. A block's timestamp trails the chain's head
- * by up to a block, which keeps the clock that little behind, never ahead. The calibration is
- * read again whenever the app comes back (`useExpiryClock`) and never persisted, since a device
- * clock corrected meanwhile would carry an old offset with it.
+ * and while the latest read has failed, so the device's clock stands in. A block's timestamp
+ * trails the chain's head by up to a block, which keeps the clock that little behind, never
+ * ahead. The calibration is read again whenever the app comes back (`useExpiryClock`) and never
+ * persisted, since a device clock corrected meanwhile would carry an old offset with it. For the
+ * same reason a failed read drops an earlier answer, which TanStack would otherwise keep.
  */
 function useChainClockOffsetMs(chainId: number): number {
   const config = useContext(WagmiContext);
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: commitmentPoolingKeys.chainClock(chainId),
     queryFn: async () => {
       const { getBlock } = await import("@wagmi/core");
@@ -37,7 +38,7 @@ function useChainClockOffsetMs(chainId: number): number {
     staleTime: CHAIN_CLOCK_STALE_MS,
     retry: 1,
   });
-  return data ?? 0;
+  return isError ? 0 : (data ?? 0);
 }
 
 /**

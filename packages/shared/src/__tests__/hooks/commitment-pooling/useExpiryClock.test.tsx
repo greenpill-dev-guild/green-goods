@@ -40,7 +40,11 @@ function providers({ wallet }: { wallet: boolean }) {
     );
 }
 
-beforeEach(() => mocks.getBlock.mockReset());
+// A block body: a function returned from `beforeEach` runs as its teardown, and `mockReset`
+// returns the mock itself.
+beforeEach(() => {
+  mocks.getBlock.mockReset();
+});
 afterEach(() => vi.useRealTimers());
 
 describe("useExpiryClock", () => {
@@ -121,6 +125,33 @@ describe("useExpiryClock", () => {
     act(() => window.dispatchEvent(new Event("focus")));
     await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(2));
     await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow + 60)));
+    expect(dueAt(commitments, result.current)).toHaveLength(0);
+  });
+
+  // A failed read keeps TanStack's last answer, and that offset would carry the old skew onto a
+  // corrected device clock (Codex on #1341): while the chain's time can't be read, the device's
+  // clock stands in.
+  it("drops an earlier offset when the chain's time can't be read again", async () => {
+    vi.useFakeTimers();
+    const chainNow = 1_800_000_000;
+    vi.setSystemTime((chainNow + 3_600) * 1000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow) });
+    const commitments = [live(BigInt(chainNow + 1_800))];
+    const { result } = renderHook(
+      () => useExpiryClock({ chainId: CHAIN_ID, commitments, cycleEndTimes }),
+      { wrapper: providers({ wallet: true }) }
+    );
+    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow)));
+
+    // The device's clock is corrected while the app is away, and the RPC fails on return.
+    vi.setSystemTime(chainNow * 1000 + 60_000);
+    mocks.getBlock.mockRejectedValue(new Error("RPC unavailable"));
+    act(() => window.dispatchEvent(new Event("focus")));
+    // The read and its one retry, a second apart.
+    await act(async () => vi.advanceTimersByTimeAsync(1_000));
+    await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(3));
+    await vi.waitFor(() => expect(result.current).toBeGreaterThanOrEqual(BigInt(chainNow + 60)));
+    expect(result.current).toBeLessThan(BigInt(chainNow + 70));
     expect(dueAt(commitments, result.current)).toHaveLength(0);
   });
 });
