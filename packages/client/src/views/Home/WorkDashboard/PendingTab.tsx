@@ -51,7 +51,7 @@ interface PendingTabProps {
   toReview: Work[];
   /** Work you reviewed on this phone whose review is still on its way. */
   decisions: Work[];
-  uploads: Pick<WorkUploads, "decisionFor" | "pausedForDataSaver">;
+  uploads: Pick<WorkUploads, "decisionFor" | "pausedForDataSaver" | "statusOf">;
   viewer: Address | null;
   /** The record's reads; the queue's own read is taken here. */
   reads: Record<Exclude<PendingReadName, "queue">, PendingRead>;
@@ -147,6 +147,17 @@ export const PendingTab: React.FC<PendingTabProps> = ({
         linked.has(work.id.toLowerCase()) ||
         queue.linkedWorkIds.has(work.id) ||
         (clientWorkId !== null && queue.linkedWorkIds.has(clientWorkId))
+      );
+    },
+    takeUpStage: (work) => {
+      const state = uploads.statusOf(work.id)?.state;
+      return state === "take-up-failed" ? "failed" : state === "take-up-pending" ? "pending" : null;
+    },
+    linkFailed: (work) => {
+      const clientWorkId = clientWorkIdOf(work);
+      return (
+        queue.failedLinkWorkIds.has(work.id.toLowerCase()) ||
+        (clientWorkId !== null && queue.failedLinkWorkIds.has(clientWorkId))
       );
     },
   };

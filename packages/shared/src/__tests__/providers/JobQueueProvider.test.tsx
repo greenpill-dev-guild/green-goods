@@ -58,6 +58,8 @@ const queueToasts = vi.hoisted(() => ({
   retryFailed: vi.fn(),
   stillQueued: vi.fn(),
   queueClear: vi.fn(),
+  takeUpFailed: vi.fn(),
+  linkFailed: vi.fn(),
 }));
 vi.mock("../../components/toast", () => ({
   toastService: {
@@ -152,6 +154,7 @@ import { useUser } from "../../hooks/auth/useUser";
 import { useTransactionSender } from "../../hooks/blockchain/useTransactionSender";
 import { connectivityStore } from "../../stores/connectivity";
 import { createFakeJobQueueHandle } from "../test-utils/job-queue-fakes";
+import { queuedTakeUpChain } from "../test-utils/queued-jobs";
 import type { JobQueueHandle } from "../../modules/job-queue";
 import type { Job, QueueEvent } from "@green-goods/shared/types";
 import { JobQueueProvider, useJobQueue, useQueueStats } from "../../providers/JobQueue";
@@ -509,6 +512,66 @@ describe("providers/JobQueueProvider", () => {
       rerender();
       expect(queueToasts.jobFailed).toHaveBeenCalledOnce();
       expect(queueToasts.jobFailed).toHaveBeenLastCalledWith("work", "network", elsewhere);
+    });
+
+    it("names the take-up or the link when either stage of a chain gives up (decision 18)", async () => {
+      const subscribedHandlers = new Set<(event: QueueEvent) => void>();
+      mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
+        subscribedHandlers.add(handler);
+        return () => subscribedHandlers.delete(handler);
+      });
+      const chain = queuedTakeUpChain();
+      const mine = <T extends Job>(job: T) => ({ ...job, userAddress: "0xSmartAccount" }) as T;
+      mockJobQueue.getJobs.mockResolvedValue([mine(chain.work)]);
+      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+      const fail = async (job: Job, error: string) => {
+        await act(async () => {
+          subscribedHandlers.forEach((handler) =>
+            handler({ type: "job_failed", jobId: job.id, job, error })
+          );
+          await Promise.resolve();
+        });
+      };
+
+      // Each attempt that will be tried again says nothing; one that gave up says which stage.
+      await fail(mine({ ...chain.claim, attempts: 1 }), "network");
+      expect(queueToasts.takeUpFailed).not.toHaveBeenCalled();
+      await fail(mine(chain.claim), "Max retries (5) exceeded");
+      await waitFor(() => expect(queueToasts.takeUpFailed).toHaveBeenCalledOnce());
+
+      await fail(mine(chain.link), "identity_conflict:commitment-frozen");
+      expect(queueToasts.linkFailed).toHaveBeenCalledOnce();
+      // A link stopped because its work was discarded, and a discard, are not failures to name.
+      await fail(mine(chain.link), "identity_conflict:source-work-terminal");
+      await fail(mine(chain.claim), "discarded");
+      expect(queueToasts.linkFailed).toHaveBeenCalledOnce();
+      expect(queueToasts.takeUpFailed).toHaveBeenCalledOnce();
+    });
+
+    it("names no take-up stage for a take-up that no work waits on", async () => {
+      const subscribedHandlers = new Set<(event: QueueEvent) => void>();
+      mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
+        subscribedHandlers.add(handler);
+        return () => subscribedHandlers.delete(handler);
+      });
+      mockJobQueue.getJobs.mockResolvedValue([]);
+      const { claim } = queuedTakeUpChain();
+      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        subscribedHandlers.forEach((handler) =>
+          handler({
+            type: "job_failed",
+            jobId: claim.id,
+            job: { ...claim, userAddress: "0xSmartAccount" },
+            error: "Max retries (5) exceeded",
+          })
+        );
+        await Promise.resolve();
+      });
+
+      expect(mockJobQueue.getJobs).toHaveBeenCalled();
+      expect(queueToasts.takeUpFailed).not.toHaveBeenCalled();
     });
 
     it("invalidates recipient-scoped approval reads when an approval job completes", async () => {

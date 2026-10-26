@@ -25,6 +25,7 @@ import {
   isWaitingReprobeThrottled,
   sendsOnReopen,
 } from "./queue-policy";
+import { findTakeUpOf, TAKE_UP_PENDING } from "./take-up-hold";
 import { holdWorkClaims } from "./work-claims";
 
 interface ProcessJobDependencies {
@@ -145,6 +146,11 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     const alreadySent = hasRecordedSend(job) || Boolean(retainedWorkBroadcast(jobId));
     if (job.meta?.requiresExplicitSend && !context.explicit && !alreadySent) {
       return { success: false, error: "send-requires-explicit", skipped: true };
+    }
+    // A work for a promise this account is still taking up goes after the take-up, and spends
+    // nothing while it waits. One whose send is on record is only confirmed from here.
+    if (job.kind === "work" && !alreadySent && (await findTakeUpOf(job, deps.store))) {
+      return { success: false, error: TAKE_UP_PENDING, skipped: true };
     }
 
     const now = deps.clock.now();

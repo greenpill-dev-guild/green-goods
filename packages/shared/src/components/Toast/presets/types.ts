@@ -132,6 +132,14 @@ export const toastMessageIds = {
       title: "app.toast.queue.queueClear.title",
       message: "app.toast.queue.queueClear.message",
     },
+    takeUpFailed: {
+      title: "app.garden.takeUp.failed.title",
+      message: "app.toast.queue.takeUpFailed.message",
+    },
+    linkFailed: {
+      title: "app.toast.queue.linkFailed.title",
+      message: "app.toast.queue.linkFailed.message",
+    },
   },
   // Validation
   validation: {

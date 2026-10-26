@@ -17,6 +17,8 @@ import {
   retryQueuedCommitmentJob,
   useCommitmentJobs,
 } from "../hooks/commitment-pooling/useCommitmentJobs";
+import { toastService } from "../components/Toast/toast.service";
+import { TakeUpNotSent } from "../modules/commitment-pooling/take-up";
 import type { Address } from "../types/domain";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
 
@@ -26,6 +28,7 @@ const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;
 // Hoisted factories run before the consts above them, so the address is inline.
 const mocks = vi.hoisted(() => ({
   addJob: vi.fn(),
+  getJobs: vi.fn(),
   processJob: vi.fn(),
   retryJob: vi.fn(),
   discardJob: vi.fn(),
@@ -36,6 +39,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../modules/job-queue/default-instance", () => ({
   jobQueue: {
     addJob: mocks.addJob,
+    getJobs: mocks.getJobs,
     processJob: mocks.processJob,
     retryJob: mocks.retryJob,
     discardJob: mocks.discardJob,
@@ -363,6 +367,95 @@ describe("useCommitmentJobs", () => {
 
       await expect(jobs().current.enqueue({ ...confirm, report })).resolves.toBe("job-1");
       expect(report).toHaveBeenCalledWith({ stage: "landed", txHash: "0xabc" });
+    });
+  });
+
+  describe("taking a promise up before the work for it (decision 18)", () => {
+    const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN };
+    // The queue answers with the job it holds; a take-up this tap queued carries its token.
+    const admitted = (byThisTap: boolean) => {
+      mocks.addJob.mockImplementation(async (_kind, _payload, _owner, meta) => {
+        mocks.getJobs.mockResolvedValue([
+          { id: "job-1", meta: { admissionToken: byThisTap ? meta.admissionToken : "earlier" } },
+        ]);
+        return "job-1";
+      });
+    };
+
+    beforeEach(() => admitted(true));
+
+    it.each([
+      "wallet",
+      "passkey",
+      "embedded",
+    ] as const)("sends a %s reader's take-up from the tap, so the work can follow it", async (authMode) => {
+      mocks.sender = { authMode };
+
+      await expect(jobs().current.takeUp(payload)).resolves.toEqual({ status: "landed" });
+
+      expect(mocks.addJob).toHaveBeenCalledWith(
+        "claim",
+        payload,
+        VIEWER,
+        expect.objectContaining({ chainId: 42161 })
+      );
+      expect(mocks.retryJob).toHaveBeenCalledWith("job-1");
+      expect(mocks.processJob).toHaveBeenCalledWith("job-1", {
+        transactionSender: mocks.sender,
+        explicit: true,
+      });
+    });
+
+    it("leaves a take-up the queue holds for later, for the work to wait behind", async () => {
+      mocks.sender = { authMode: "passkey" };
+      mocks.processJob.mockResolvedValue({
+        success: false,
+        skipped: true,
+        error: "membership-unavailable",
+      });
+
+      await expect(jobs().current.takeUp(payload)).resolves.toEqual({
+        status: "queued",
+        reason: "membership-unavailable",
+      });
+      expect(mocks.discardJob).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["declined", "User rejected the request.", true],
+      ["refused", "execution reverted: InvalidCommitmentState", false],
+    ] as const)("takes a %s take-up back out, so nothing of the tap stays queued", async (_case, error, declined) => {
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockResolvedValue({ success: false, error });
+
+      const taking = jobs().current.takeUp(payload);
+
+      await expect(taking).rejects.toBeInstanceOf(TakeUpNotSent);
+      await expect(taking).rejects.toMatchObject({ declined });
+      expect(mocks.discardJob).toHaveBeenCalledWith("job-1");
+    });
+
+    it("says an unexpected take-up failure as any act's, and leaves a decline to Submit's own copy", async () => {
+      const toastError = vi.spyOn(toastService, "error").mockImplementation(() => "toast");
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockResolvedValue({ success: false, error: "User rejected the request." });
+      await expect(jobs().current.takeUp(payload)).rejects.toBeInstanceOf(TakeUpNotSent);
+      expect(toastError).not.toHaveBeenCalled();
+
+      // The queue could not admit it: nothing else would say why Submit did nothing.
+      mocks.addJob.mockRejectedValue(new Error("QuotaExceededError"));
+      await expect(jobs().current.takeUp(payload)).rejects.toThrow("QuotaExceededError");
+      expect(toastError).toHaveBeenCalledOnce();
+      toastError.mockRestore();
+    });
+
+    it("leaves a take-up queued before this tap as it was when it is refused again", async () => {
+      admitted(false);
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockResolvedValue({ success: false, error: "execution reverted" });
+
+      await expect(jobs().current.takeUp(payload)).rejects.toBeInstanceOf(TakeUpNotSent);
+      expect(mocks.discardJob).not.toHaveBeenCalled();
     });
   });
 });

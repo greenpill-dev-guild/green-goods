@@ -31,6 +31,15 @@ const queueDefaults = {
     retrying: "We'll retry shortly.",
   },
   queueClear: { title: "Queue is clear", message: "No pending jobs to sync." },
+  takeUpFailed: {
+    title: "Couldn't take up the promise",
+    message:
+      "Your work is still saved on this device and goes after the promise. Open Your Work to try again.",
+  },
+  linkFailed: {
+    title: "Couldn't link your work",
+    message: "Your work was sent. Open the promise to link it again.",
+  },
 };
 
 /**
@@ -209,6 +218,36 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
         }),
         context: "job queue",
         suppressLogging: true,
+      }),
+
+    /** The take-up a queued work waits on gave up (decision 18): the work is still here. */
+    takeUpFailed: () =>
+      toastService.error({
+        id: "take-up",
+        title: formatMessage({
+          id: toastMessageIds.queue.takeUpFailed.title,
+          defaultMessage: queueDefaults.takeUpFailed.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIds.queue.takeUpFailed.message,
+          defaultMessage: queueDefaults.takeUpFailed.message,
+        }),
+        context: "job queue",
+      }),
+
+    /** A sent work's link to its promise gave up; the work itself is on the record. */
+    linkFailed: () =>
+      toastService.error({
+        id: "work-link",
+        title: formatMessage({
+          id: toastMessageIds.queue.linkFailed.title,
+          defaultMessage: queueDefaults.linkFailed.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIds.queue.linkFailed.message,
+          defaultMessage: queueDefaults.linkFailed.message,
+        }),
+        context: "job queue",
       }),
   };
 }

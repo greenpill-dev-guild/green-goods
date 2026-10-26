@@ -7,6 +7,7 @@ import { logger } from "../../modules/app/logger";
 import { appCodeRecovery } from "../../modules/app/cache-recovery";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
+import { takeUpOf } from "../../modules/job-queue/take-up-hold";
 import { uploadOutcomeToast } from "../../modules/work/upload-outcome-toast";
 import {
   prepareUploadsNow,
@@ -78,7 +79,7 @@ function summarize(jobs: Job[], chainId: number, inScope?: GardenScopeFilter) {
   let attentionCount = 0;
   for (const job of jobs) {
     if (!isUploadJob(job) || (job.chainId ?? chainId) !== chainId) continue;
-    const status = queuedUploadStatus(job);
+    const status = queuedUploadStatus(job, { takeUp: takeUpOf(job, jobs) });
     statuses.set(job.id, status);
     if (job.kind === "approval") {
       const { workUID, gardenAddress } = job.payload as ApprovalJobPayload;
@@ -93,7 +94,12 @@ function summarize(jobs: Job[], chainId: number, inScope?: GardenScopeFilter) {
     // A sent item is still visible until the queue confirms it, but cannot be sent twice.
     if (status.state === "sent") continue;
     if (status.state === "ready") readyCount += 1;
-    else if (status.state === "preparing" || status.state === "photo-pending") preparingCount += 1;
+    else if (
+      status.state === "preparing" ||
+      status.state === "photo-pending" ||
+      status.state === "take-up-pending"
+    )
+      preparingCount += 1;
     else attentionCount += 1;
   }
   return {

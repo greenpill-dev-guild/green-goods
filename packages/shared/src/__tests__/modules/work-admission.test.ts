@@ -371,6 +371,39 @@ describe("PWA durable submission boundary", () => {
     await jobQueueDB.deleteJob((await links())[0].id);
   });
 
+  it("queues wallet work for a promise this account is still taking up, and sends none of it", async () => {
+    const { command, ports, send } = fixture();
+    command.chainId = 42161;
+    command.linkIntent = LINK;
+    // The take-up queued in the same tap, not landed yet (decision 18).
+    const takeUpId = await jobQueueDB.addJob({
+      kind: "claim",
+      payload: {
+        commitmentId: 14n,
+        kind: 1,
+        gardenContext: LINK.garden,
+        gardenAddress: LINK.garden,
+      },
+      userAddress: command.userAddress!,
+      chainId: 42161,
+      meta: { chainId: 42161 },
+    });
+    try {
+      await expect(submitWork(command, ports)).resolves.toMatchObject({ kind: "queued" });
+
+      expect(send).not.toHaveBeenCalled();
+      const queued = (
+        await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "work", synced: false })
+      ).filter((job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId);
+      expect(queued).toHaveLength(1);
+      expect(queued[0].payload).toMatchObject({
+        dependentWorkLink: { commitmentId: 14n, requirementIndex: 0 },
+      });
+    } finally {
+      await jobQueueDB.deleteJob(takeUpId);
+    }
+  });
+
   it("rolls back the Work and dependent link when photo storage fails, before signing", async () => {
     const { command, ports, send } = fixture();
     command.chainId = 42161;

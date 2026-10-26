@@ -16,7 +16,8 @@ import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation
 import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
-import { JOB_DISCARDED } from "../modules/job-queue/queue-policy";
+import { isTerminallyFailedJob, JOB_DISCARDED } from "../modules/job-queue/queue-policy";
+import { isTakeUpOf } from "../modules/job-queue/take-up-hold";
 import { logger } from "../modules/app/logger";
 import { deleteDraftOfQueuedWork } from "../modules/work/draft-lifecycle";
 import { scheduleUploadPreparation } from "../modules/work/upload-preparation";
@@ -85,6 +86,19 @@ interface Work {
   id: string;
   status: string;
   [key: string]: unknown;
+}
+
+const SOURCE_WORK_TERMINAL = "identity_conflict:source-work-terminal";
+
+/** Whether a failed attempt was the last: the job will not be tried again on its own. */
+function gaveUp(event: QueueEvent): boolean {
+  const error = event.error ?? "";
+  return (
+    error.startsWith("Max retries") ||
+    error.startsWith("identity_conflict:") ||
+    error.startsWith("unavailable:") ||
+    (event.job ? isTerminallyFailedJob(event.job) : false)
+  );
 }
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
@@ -263,6 +277,23 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
         queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
       } else if (event.job.kind === "approval") {
         toastFailure({ kind: "approval", detail: event.error, job: event.job });
+      } else if (event.error !== JOB_DISCARDED && gaveUp(event)) {
+        void nameFailedChainStage(event.job, event.error);
+      }
+    };
+
+    // A take-up or a link that gave up names its stage (decision 18). A take-up says so only
+    // while a work waits on it; a link stopped because its work went away is no failure of its own.
+    const nameFailedChainStage = async (job: Job, error: string | undefined) => {
+      if (job.kind === "workLink" && error !== SOURCE_WORK_TERMINAL) queueToasts.linkFailed();
+      if (job.kind !== "claim" || !currentUserAddress) return;
+      try {
+        const works = await queue.getJobs(currentUserAddress, { kind: "work", synced: false });
+        if (works.some((work) => isTakeUpOf(job, work))) queueToasts.takeUpFailed();
+      } catch (readError) {
+        logger.warn("[JobQueueProvider] Could not read the work behind a failed take-up", {
+          error: readError,
+        });
       }
     };
 
