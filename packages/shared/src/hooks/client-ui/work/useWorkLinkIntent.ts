@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import type { useSearchParams } from "react-router-dom";
 import { toastService } from "../../../components/Toast/toast.service";
@@ -101,6 +101,9 @@ export function useWorkLinkIntent({
   };
   const workablePromises = useWorkablePromises(flowGarden);
   const openAsks = useTakeUpChoices(flowGarden);
+  // A first read of the member's promises that waits for a connection (offline, nothing cached)
+  // has answered nothing, as one that failed: TanStack reports it neither loading nor failed.
+  const linkChoicesPaused = linkChoices.data === undefined && linkChoices.fetchStatus === "paused";
   // An ask the member can take up now is valid whatever the read of their own promises says.
   const linkIntentStatus: WorkLinkStatus = !hasLinkIntentParams
     ? "none"
@@ -110,13 +113,13 @@ export function useWorkLinkIntent({
         ? "validating"
         : takeUpLink
           ? "valid"
-          : linkChoices.isError
+          : linkChoices.isError || linkChoicesPaused
             ? "unavailable"
             : ownLink
               ? "valid"
               : takeUpChoices.isLoading
                 ? "validating"
-                : takeUpChoices.isError
+                : takeUpChoices.isError || takeUpChoices.isPaused
                   ? "unavailable"
                   : "invalid";
   // What a draft keeps and Review says of a take-up: the page's word while the live reads answer
@@ -127,6 +130,20 @@ export function useWorkLinkIntent({
   const draftLink = parsedLinkIntent
     ? toDraftWorkLink({ ...parsedLinkIntent, takesUp: saysTakeUp || undefined })
     : null;
+  // Once fresh live reads answer that the link is no Open ask to take up (the member's own promise
+  // now, or neither), its take-up leaves the page's address as it leaves the draft, so a reload
+  // or a later failed read never brings it back. A cached answer still being read again waits:
+  // the fresh one may yet find the ask.
+  const takeUpDisproved =
+    parsedLinkIntent?.takesUp === true &&
+    !linkChoices.isFetching &&
+    !takeUpChoices.isFetching &&
+    (linkIntentStatus === "invalid" || (linkIntentStatus === "valid" && !takeUpLink));
+  useEffect(() => {
+    if (!takeUpDisproved || !parsedLinkIntent) return;
+    const { takesUp: _disproved, ...link } = parsedLinkIntent;
+    setSearchParams(writeWorkLinkIntent(searchParams, link), { replace: true });
+  }, [takeUpDisproved, parsedLinkIntent, searchParams, setSearchParams]);
   /** Reads the link's standing again: the member's promises, and the Open asks it may be one of. */
   const retryLink = () => {
     void linkChoices.refetch();

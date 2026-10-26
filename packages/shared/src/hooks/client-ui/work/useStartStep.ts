@@ -69,6 +69,8 @@ interface StartStepOptions {
     asks: readonly WorkablePromise[];
     isLoading: boolean;
     isError: boolean;
+    /** A first read waits for a connection: the asks are unknown, as when the read failed. */
+    isPaused: boolean;
     refetch: () => unknown;
   };
   setGardenAddress: (garden: Address | null) => void;
@@ -86,6 +88,7 @@ const NO_ASKS: NonNullable<StartStepOptions["openAsks"]> = {
   asks: [],
   isLoading: false,
   isError: false,
+  isPaused: false,
   refetch: () => undefined,
 };
 
@@ -154,14 +157,16 @@ export function useStartStep({
     : promises.isError || promises.fetchStatus === "paused"
       ? { status: "unknown" }
       : { status: "loading" };
+  // Asks that could not be read, or whose first read waits for a connection, say nothing about
+  // what is on offer, as with promises: never none, so Start is never skipped past them.
+  const asksUnread = openAsks.isError || openAsks.isPaused;
   const flowPicked =
     !!pick && pick.actionUID === actionUID && compareAddresses(pick.garden, gardenAddress);
   const answer = answerStartStep({
     link,
     gardenSettled,
     promises: read,
-    // Asks that could not be read say nothing about what is on offer, as with promises.
-    openAsks: openAsks.isError
+    openAsks: asksUnread
       ? { status: "unknown" }
       : openAsks.isLoading
         ? { status: "loading" }
@@ -274,13 +279,11 @@ export function useStartStep({
     /** The prompts taking an ask up brings, said before the first: take-up, work, link. */
     askPromptCount: submissionPromptCount({ linksPromise: true, takesUp: true }),
     /**
-     * The member's promises or the garden's Open asks could not be read, or the promises' first
-     * read waits for a connection: the step offers the actions with a warning and a retry, never
-     * as all there is.
+     * The member's promises or the garden's Open asks could not be read, or a first read of
+     * either waits for a connection: either screen says so with a retry, never as all there is.
      */
     promisesFailed:
-      ((promises.isError || promises.fetchStatus === "paused") && !promises.data) ||
-      openAsks.isError,
+      ((promises.isError || promises.fetchStatus === "paused") && !promises.data) || asksUnread,
     retryPromises: () => {
       void promises.refetch();
       openAsks.refetch();

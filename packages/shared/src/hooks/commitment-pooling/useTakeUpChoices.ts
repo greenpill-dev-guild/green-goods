@@ -37,6 +37,14 @@ import { workLinkReturnTo } from "./useWorkLinkChoices";
 const NO_COMMITMENTS: CommitmentReadModel[] = [];
 
 /**
+ * A read whose first fetch waits for a connection: nothing is cached, and TanStack has paused it.
+ * It is neither loading nor failed (`isLoading` and `isError` are both false), and it has
+ * answered nothing.
+ */
+const firstReadPaused = (read: { data: unknown; fetchStatus: string }) =>
+  read.data === undefined && read.fetchStatus === "paused";
+
+/**
  * An Open ask as Submit Work offers it: a promise the reader does not hold yet, so it takes no
  * evidence, with each requirement a choice the work takes up first.
  */
@@ -100,6 +108,7 @@ export function useTakeUpChoices(input: {
     takeUps,
     settled,
     unavailable,
+    refreshing,
     retry: retryTakeUps,
   } = useViewerTakeUps({
     chainId,
@@ -174,8 +183,24 @@ export function useTakeUpChoices(input: {
           (commitments.isLoading ||
             poolDetail.isLoading ||
             !settled ||
-            (!due.known && !due.isError)))),
+            (!due.known && !due.isError && !due.isPaused)))),
     isError: pools.isError || commitments.isError || unavailable || due.isError,
+    /**
+     * A first read waits for a connection, so the asks are unknown: not none, and not loading.
+     * Start says so with a retry, and a link to an ask keeps its take-up until they answer.
+     */
+    isPaused:
+      enabled &&
+      (firstReadPaused(pools) ||
+        (ownPool && (firstReadPaused(commitments) || firstReadPaused(poolDetail) || due.isPaused))),
+    /**
+     * A read is in flight, a cached answer's included: what it says may still change. That covers
+     * the reader's own take-ups too, the requests and this phone's queue, which leave asks out.
+     */
+    isFetching:
+      enabled &&
+      (pools.isFetching ||
+        (ownPool && (commitments.isFetching || poolDetail.isFetching || refreshing))),
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();

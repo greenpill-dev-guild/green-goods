@@ -29,6 +29,8 @@ export interface ViewerTakeUpsRead {
    * surface that offers taking promises up offers none rather than offer one again.
    */
   unavailable: boolean;
+  /** The requests or this phone's queue are being read again, over what they last said. */
+  refreshing: boolean;
   /** Reads this phone's queue again. */
   retry: () => void;
 }
@@ -65,6 +67,7 @@ export function useViewerTakeUps(input: {
     takeUps,
     settled: !reading || (requestsAnswered && !queue.isLoading),
     unavailable: reading && queue.isUnavailable,
+    refreshing: reading && (requests.isFetching || queue.isFetching),
     retry: queue.refresh,
   };
 }
