@@ -30,7 +30,7 @@ export interface GardenSheetsProps {
   garden: Garden;
   /** Who may do what in it, as the garden page answers it (`useGardenAccess`). */
   access: GardenAccess;
-  /** The Endowment sheet, opened from the About row for stewards and depositors. */
+  /** The Endowment sheet, opened from the About row for reviewers and depositors. */
   endowment: { isOpen: boolean; onClose: () => void };
   /** The governance sheet, opened from the About row while its flag is on. */
   governance: { isOpen: boolean; onClose: () => void };

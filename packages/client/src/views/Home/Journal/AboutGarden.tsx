@@ -43,9 +43,9 @@ const focusOnPress = {
  * About This Garden (PWA Home step 10, DL-128): the journal's last section, one item row per
  * entry point the garden page kept for members. Insights, Gardeners and the garden's Work open
  * as `tall` sheets over Home, so a member reading Home keeps their place; Share shares the
- * garden's link; Endowment shows for stewards and depositors, and Governance only while its
- * flag is on and the garden is configured, each under the garden page's own predicate
- * (`useGardenAccess`). The garden's name is not repeated here: the chip in Home's header
+ * garden's link; Endowment shows for reviewers (stewards and evaluators the chain confirms) and
+ * depositors of a garden with a vault, and Governance only while its flag is on and the garden
+ * is configured, each under the garden page's own predicate (`useGardenAccess`). The garden's name is not repeated here: the chip in Home's header
  * declares it. Where this section sits is reviewed with the first rendered slice.
  *
  * The sheets mount here, because About is always on Home: Recent Activity's See All and a
