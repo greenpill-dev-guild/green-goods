@@ -19,6 +19,7 @@ const queueDefaults = {
     approvalMessageInGarden:
       "Your decision in {garden} is still saved on this device. Switch to that garden to try again.",
     seeGardens: "See Your Gardens",
+    review: "Review",
   },
   retryFailed: {
     title: "Couldn't send it",
@@ -120,7 +121,17 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
         context: "job queue",
       }),
 
-    jobFailed: (kind: "work" | "approval", detail?: string, elsewhere?: FailedInAnotherGarden) =>
+    /**
+     * An upload the queue gave up on. The member is told where it waits and how to try again,
+     * never the job's own error, which goes to the diagnostics: Your Work, with Review opening
+     * it on Pending as the arrival toast does, or another garden's switcher.
+     */
+    jobFailed: (
+      kind: "work" | "approval",
+      detail?: string,
+      elsewhere?: FailedInAnotherGarden,
+      openYourWork?: () => void
+    ) =>
       toastService.error({
         // Share the id with the owning mutation's loading toast so the inline-process
         // path collapses to a single slot. In the background-flush path no mutation
@@ -130,6 +141,7 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
           id: toastMessageIds.queue.jobFailed.title,
           defaultMessage: queueDefaults.jobFailed.title,
         }),
+        devMessage: detail,
         ...(elsewhere
           ? {
               message: formatMessage(
@@ -145,7 +157,6 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
                 },
                 { garden: elsewhere.gardenName }
               ),
-              devMessage: detail,
               // As long as the arrival toast's, which also carries an action.
               duration: 6000,
               action: {
@@ -158,18 +169,29 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
               },
             }
           : {
-              message:
-                detail ??
-                formatMessage({
-                  id:
-                    kind === "work"
-                      ? toastMessageIds.queue.jobFailed.workMessage
-                      : toastMessageIds.queue.jobFailed.approvalMessage,
-                  defaultMessage:
-                    kind === "work"
-                      ? queueDefaults.jobFailed.workMessage
-                      : queueDefaults.jobFailed.approvalMessage,
-                }),
+              message: formatMessage({
+                id:
+                  kind === "work"
+                    ? toastMessageIds.queue.jobFailed.workMessage
+                    : toastMessageIds.queue.jobFailed.approvalMessage,
+                defaultMessage:
+                  kind === "work"
+                    ? queueDefaults.jobFailed.workMessage
+                    : queueDefaults.jobFailed.approvalMessage,
+              }),
+              ...(openYourWork
+                ? {
+                    duration: 6000,
+                    action: {
+                      label: formatMessage({
+                        id: toastMessageIds.queue.jobFailed.review,
+                        defaultMessage: queueDefaults.jobFailed.review,
+                      }),
+                      onClick: openYourWork,
+                      dismissOnClick: true,
+                    },
+                  }
+                : {}),
             }),
         context: "job queue",
       }),

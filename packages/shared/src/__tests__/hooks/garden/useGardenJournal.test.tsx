@@ -134,6 +134,44 @@ describe("useGardenJournal", () => {
     await waitFor(() => expect(result.current.state.status).toBe("error"));
   });
 
+  // Home keeps the journal mounted under the pages it opens, so a count read before a day
+  // boundary would stand after it (Codex on #1333).
+  it("reads the clock again when the section is shown again, so days left pass a day boundary", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-26T12:00:00Z"));
+      const endsAt = new Date("2026-10-28T06:00:00Z");
+      mocks.getCommitmentCycles.mockResolvedValue([
+        cycleFixture({
+          id: "c-7",
+          cycleId: 7n,
+          cycleType: "SEASON",
+          poolId: 7n,
+          state: "OPEN",
+          endTime: BigInt(Math.floor(endsAt.getTime() / 1000)),
+        }),
+      ]);
+      const { result, rerender } = renderHookWithProviders(
+        ({ shown }: { shown: boolean }) => useGardenOpenCycles(GARDEN, { shown }),
+        { initialProps: { shown: true } }
+      );
+      const daysLeft = () =>
+        result.current.state.status === "ready" ? result.current.state.items[0]?.daysLeft : null;
+      await waitFor(() => expect(result.current.state.status).toBe("ready"));
+      expect(daysLeft()).toBe(2);
+
+      // A page opened under Home, held through the day boundary, then Home shown again.
+      rerender({ shown: false });
+      vi.setSystemTime(new Date("2026-10-27T12:00:00Z"));
+      rerender({ shown: false });
+      expect(daysLeft()).toBe(2);
+      rerender({ shown: true });
+      expect(daysLeft()).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("previews three open promises and keeps the newest ask for the carousel past them", async () => {
     mocks.getCommitments.mockResolvedValue([
       promise(14),

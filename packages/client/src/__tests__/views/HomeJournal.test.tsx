@@ -46,7 +46,8 @@ vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenJournal", () => ({
   useGardenRecentActivity: (gardenId: string) => mocks.recent(gardenId),
-  useGardenOpenCycles: (gardenId: string) => mocks.cycles(gardenId),
+  useGardenOpenCycles: (gardenId: string, options?: { shown?: boolean }) =>
+    mocks.cycles(gardenId, options),
   useGardenOpenPromises: (gardenId: string) => mocks.promises(gardenId),
 }));
 
@@ -522,6 +523,37 @@ describe("Home journal", () => {
       ]);
     });
 
+    // A cycle that closed on a refetch between the details and the sheet is no longer on the
+    // rail; Show Its Promises must not widen to the garden's whole list (Codex on #1331).
+    it("keeps a cycle the rail no longer lists as the filter, with See All to widen the list", async () => {
+      const user = userEvent.setup();
+      const inClosed = openAsk(19, { cycleId: 99n });
+      mocks.promises.mockReturnValue(
+        promises({ all: { status: "ready", items: [OFFER, inClosed], savedAt: null } })
+      );
+      useUIStore.setState({ takePartSheet: { cycleId: "99", cycleType: "CAMPAIGN" } });
+      const { rerender } = render(<TakePartSheet garden={GARDEN_RECORD} />);
+
+      const sheet = await screen.findByRole("dialog");
+      expect(sheetRows(sheet)).toEqual(["Water the new beds"]);
+      expect(within(sheet).queryByRole("button", { pressed: true })).toBeNull();
+
+      // Its last promise taken, the list says so for the campaign, and See All widens it: the
+      // card to tap again is not on the rail.
+      mocks.promises.mockReturnValue(
+        promises({ all: { status: "ready", items: [OFFER], savedAt: null } })
+      );
+      rerender(
+        <MemoryRouter>
+          <TakePartSheet garden={GARDEN_RECORD} />
+        </MemoryRouter>
+      );
+      expect(within(sheet).getByText("Nothing open in this campaign")).toBeVisible();
+      expect(within(sheet).queryByText("Tap it again to see them all")).toBeNull();
+      await user.click(within(sheet).getByRole("button", { name: "See All" }));
+      expect(sheetRows(sheet)).toEqual(["Teach the composting basics workshop"]);
+    });
+
     it("tells a chain without promises, a failure, a wait and nothing open apart", async () => {
       const user = userEvent.setup();
       const refetch = vi.fn();
@@ -572,6 +604,7 @@ describe("Home journal", () => {
       await waitFor(() =>
         expect(useUIStore.getState().takePartSheet).toEqual({
           cycleId: SEASON.cycle.cycleId.toString(),
+          cycleType: "SEASON",
         })
       );
       expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
@@ -625,6 +658,7 @@ describe("Home journal", () => {
       await waitFor(() =>
         expect(useUIStore.getState().takePartSheet).toEqual({
           cycleId: SEASON.cycle.cycleId.toString(),
+          cycleType: "SEASON",
         })
       );
       expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
@@ -736,9 +770,10 @@ describe("Home journal", () => {
     ]);
     // The interim garden page that stood in About's slot (steps 8 and 19) is gone.
     expect(screen.queryByTestId("home-garden-page")).toBeNull();
-    for (const read of [mocks.cycles, mocks.recent, mocks.promises]) {
+    for (const read of [mocks.recent, mocks.promises]) {
       expect(read).toHaveBeenCalledWith(GARDEN);
     }
+    expect(mocks.cycles).toHaveBeenCalledWith(GARDEN, { shown: true });
   });
 
   describe("About This Garden", () => {
@@ -904,17 +939,20 @@ describe("Home journal", () => {
     });
   });
 
-  // The cycle details portal past Home's hidden wrapper too (Codex P2 on #1333).
+  // The cycle details portal past Home's hidden wrapper too (Codex P2 on #1333), and the cycles'
+  // clock is read again as Home shows, so days left never stand stale under a page.
   it.each([
     ["the carousel's", <HighlightsCarousel key="carousel" gardenId={GARDEN} />],
     ["Take Part's", <TakePart key="take-part" gardenId={GARDEN} withCycleLines />],
-  ])("closes %s cycle details when Home opens a page", async (_host, host) => {
+  ])("closes %s cycle details when Home opens a page, and tells its cycles whether Home shows", async (_host, host) => {
     const user = userEvent.setup();
     const { rerender } = renderWithProviders(asHomeHolds(host, true));
+    expect(mocks.cycles).toHaveBeenLastCalledWith(GARDEN, { shown: true });
     await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
 
     rerender(asHomeHolds(host, false));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(mocks.cycles).toHaveBeenLastCalledWith(GARDEN, { shown: false });
   });
 });

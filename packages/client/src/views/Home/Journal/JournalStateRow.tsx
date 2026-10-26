@@ -14,15 +14,24 @@ export interface JournalStateRowProps {
   /** One short line: what to do, or that nothing was lost. */
   detail?: string;
   onRetry?: () => void;
+  /** An empty state's one way on, in the row's right slot, such as See All on a narrowed list. */
+  action?: ReactNode;
 }
 
 /**
  * The one row that stands for a Home section's list while it is empty, offline with nothing
  * saved, or could not be read: a content item row in the list's own frame, so the section
  * keeps its place (DL-056). A failed read says nothing was lost and takes Try Again in the
- * row's right slot.
+ * row's right slot; an empty state may take its one way on there.
  */
-export function JournalStateRow({ kind, icon, title, detail, onRetry }: JournalStateRowProps) {
+export function JournalStateRow({
+  kind,
+  icon,
+  title,
+  detail,
+  onRetry,
+  action,
+}: JournalStateRowProps) {
   const { formatMessage } = useIntl();
   const tryAgain = formatMessage({ id: "app.common.tryAgain" });
   const line =
@@ -59,6 +68,8 @@ export function JournalStateRow({ kind, icon, title, detail, onRetry }: JournalS
               title={tryAgain}
               icon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
             />
+          ) : kind === "empty" ? (
+            action
           ) : undefined
         }
       />

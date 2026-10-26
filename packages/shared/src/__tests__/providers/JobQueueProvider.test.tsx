@@ -172,7 +172,8 @@ describe("providers/JobQueueProvider", () => {
   // TEST-QUALITY: allow-local-query-setup - the provider under test takes its own queue and switcher props, which the shared render helpers cannot pass.
   const createWrapper = (
     queue: JobQueueHandle = mockJobQueue,
-    onOpenGardenSwitcher?: () => void
+    onOpenGardenSwitcher?: () => void,
+    onOpenYourWork?: () => void
   ) => {
     return ({ children }: { children: ReactNode }) =>
       createElement(
@@ -181,7 +182,12 @@ describe("providers/JobQueueProvider", () => {
         createElement(
           QueryClientProvider,
           { client: queryClient },
-          createElement(JobQueueProvider, { queue, onOpenGardenSwitcher, children })
+          createElement(JobQueueProvider, {
+            queue,
+            onOpenGardenSwitcher,
+            onOpenYourWork,
+            children,
+          })
         )
       );
   };
@@ -468,16 +474,19 @@ describe("providers/JobQueueProvider", () => {
     it("names the other garden a failed upload waits in, and its action opens the switcher without switching", async () => {
       const emit = listen();
       const onOpenGardenSwitcher = vi.fn();
+      const onOpenYourWork = vi.fn();
       renderHook(() => useJobQueue(), {
-        wrapper: createWrapper(mockJobQueue, onOpenGardenSwitcher),
+        wrapper: createWrapper(mockJobQueue, onOpenGardenSwitcher, onOpenYourWork),
       });
 
       // Garden B's Your Work lists it, which the chip shows only once it switches there.
       await emit(failed("work", "0xgardenb"));
-      expect(queueToasts.jobFailed).toHaveBeenLastCalledWith("work", "network", {
-        gardenName: "Vida Verde",
-        openSwitcher: expect.any(Function),
-      });
+      expect(queueToasts.jobFailed).toHaveBeenLastCalledWith(
+        "work",
+        "network",
+        { gardenName: "Vida Verde", openSwitcher: expect.any(Function) },
+        onOpenYourWork
+      );
       queueToasts.jobFailed.mock.lastCall?.[2]?.openSwitcher();
       expect(onOpenGardenSwitcher).toHaveBeenCalledOnce();
       expect(activeGarden.selectGarden).not.toHaveBeenCalled();
@@ -486,9 +495,15 @@ describe("providers/JobQueueProvider", () => {
       expect(queueToasts.jobFailed.mock.lastCall?.slice(0, 2)).toEqual(["approval", "network"]);
       expect(queueToasts.jobFailed.mock.lastCall?.[2]?.gardenName).toBe("Vida Verde");
 
-      // The active garden's Your Work lists it already: today's toast stands.
+      // The active garden's Your Work lists it already: the toast says to open Your Work, and
+      // its Review does.
       await emit(failed("work", "0xgardena"));
-      expect(queueToasts.jobFailed.mock.lastCall).toEqual(["work", "network", undefined]);
+      expect(queueToasts.jobFailed).toHaveBeenLastCalledWith(
+        "work",
+        "network",
+        undefined,
+        onOpenYourWork
+      );
     });
 
     it.each([
@@ -511,7 +526,12 @@ describe("providers/JobQueueProvider", () => {
       activeGarden.gardens = gardens;
       rerender();
       expect(queueToasts.jobFailed).toHaveBeenCalledOnce();
-      expect(queueToasts.jobFailed).toHaveBeenLastCalledWith("work", "network", elsewhere);
+      expect(queueToasts.jobFailed).toHaveBeenLastCalledWith(
+        "work",
+        "network",
+        elsewhere,
+        undefined
+      );
     });
 
     it("names the take-up or the link when either stage of a chain gives up (decision 18)", async () => {

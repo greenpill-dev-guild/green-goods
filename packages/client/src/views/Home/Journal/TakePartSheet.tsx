@@ -1,4 +1,5 @@
 // Command Surface: the garden's open promises as a sheet over Home (DL-127).
+import { Button } from "@green-goods/shared/components/Button";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import {
   useGardenOpenCycles,
@@ -44,12 +45,17 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
   }
 
   const cycles = cycleRead.status === "ready" ? cycleRead.items.map(({ cycle }) => cycle) : [];
-  // Only a cycle the rail shows narrows the list, so a narrowed list can always be widened.
-  const chosen = cycles.find((cycle) => cycle.cycleId === cycleId) ?? null;
+  // The cycle narrows the list whether or not the rail lists it: the rail may still be unread,
+  // or the cycle may have closed on a refetch since Show Its Promises was pressed. Either way the
+  // list stays the cycle's, never widened to the garden's unasked; See All widens it.
+  const listed = cycles.find((cycle) => cycle.cycleId === cycleId) ?? null;
+  const kind =
+    listed?.cycleType ??
+    (opening && cycleId === openingCycleId(opening) ? opening.cycleType : undefined);
   const { all } = promises;
   const inCycle =
-    all.status === "ready" && chosen
-      ? all.items.filter((entry) => entry.copy.cycleId === chosen.cycleId)
+    all.status === "ready" && cycleId !== null
+      ? all.items.filter((entry) => entry.copy.cycleId === cycleId)
       : null;
 
   return (
@@ -65,7 +71,7 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
       {cycles.length > 0 ? (
         <CycleRail
           cycles={cycles}
-          selectedCycleId={chosen?.cycleId ?? null}
+          selectedCycleId={listed?.cycleId ?? null}
           onSelect={setCycleId}
         />
       ) : null}
@@ -76,9 +82,26 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
             icon={<RiFilterOffLine />}
             title={formatMessage(
               { id: "app.home.journal.takePart.cycleEmptyTitle" },
-              { kind: chosen?.cycleType === "CAMPAIGN" ? "campaign" : "season" }
+              { kind: kind === "CAMPAIGN" ? "campaign" : "season" }
             )}
-            detail={formatMessage({ id: "app.home.journal.takePart.cycleEmptyDetail" })}
+            // The card to tap again is on the rail only while it lists the cycle.
+            detail={
+              listed
+                ? formatMessage({ id: "app.home.journal.takePart.cycleEmptyDetail" })
+                : undefined
+            }
+            action={
+              listed ? undefined : (
+                <Button
+                  type="button"
+                  emphasis="tertiary"
+                  size="compact"
+                  onClick={() => setCycleId(null)}
+                >
+                  {formatMessage({ id: "app.home.journal.seeAll" })}
+                </Button>
+              )
+            }
           />
         ) : (
           <TakePartRows
