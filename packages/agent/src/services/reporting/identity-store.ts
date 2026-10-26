@@ -119,6 +119,15 @@ function resolveOrCreate(
   throw new Error("Identity alias conflict did not resolve to an existing record");
 }
 
+/** The channel subject this sender already has, or null; unlike resolving, it creates nothing. */
+export function findChannelSubject(
+  core: ReportingCore,
+  realm: string,
+  externalSubjectId: string
+): string | null {
+  return findByAlias(core, SUBJECT_ALIASES, realm, normalizeExternalId(externalSubjectId));
+}
+
 export function resolveChannelSubject(
   core: ReportingCore,
   realm: string,

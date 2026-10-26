@@ -69,7 +69,7 @@ Write tracking Issues and Customer Needs on the **Linear Product team**. Mirror 
 
 ### Customer Needs
 
-A Customer Need records customer or telemetry signal: something a gardener, steward, funder, operator or other user reported, or that telemetry shows. Pre-stage one only for such an item: the notes attribute it to someone outside the team, or a Phase 3 PostHog query matches it. Everything else gets its Backlog tracking Issue alone, including the team's own work, such as an engineering chore, a tooling or process change, or a bug or idea the team raised itself. Most Engineering Sync items are the team's own work; most Build Sync items relay what users hit. When unsure, file the Issue alone.
+A Customer Need records customer or telemetry signal: something a gardener, steward, funder, operator or other user reported, or that telemetry shows. Pre-stage one only for such an item: the notes attribute it to someone outside the team, or a Phase 3 PostHog query matches it. Everything else gets its Backlog tracking Issue alone, including the team's own work, such as an engineering chore, a tooling or process change, or a bug or idea the team raised itself. Most Engineering Sync items are the team's own work; most Build Sync items relay what users hit. When unsure, file the Issue alone. Resolve the speaker per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules): a matching speaker external ID puts that customer into `customer` (a slug matching more than one record stays unresolved), a workspace member with no alias gets the Issue alone unless a Phase 3 PostHog match supplies independent telemetry signal, in which case the need quotes the telemetry summary rather than the teammate and carries no `customer`, and any other outside speaker gets the need with a `Customer: unresolved` line.
 
 Linear's `save_customer_need` API surface accepts `body`, `customer`, `issue`, `project`, `priority`, `source` — **no `labels` field**. Labels live exclusively on the linked Issue. Each Customer Need this routine creates carries the terse verbatim quote + speaker context in its body and links to its tracking Issue via the `issue` parameter.
 
@@ -152,7 +152,7 @@ For each extracted item:
    - PostHog error hash (if matched)
 
    If duplicate:
-   - **Existing Customer Need**: when the item relays customer or telemetry signal (§ Customer Needs), append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. Grep the drafted comment with the Phase 5 string list **before** posting — a comment is public the moment it lands, and a post-hoc edit does not unpublish it. Otherwise leave the Need alone, so the team's own words never read as another customer occurrence: match the item against the Issue that Need links to, under the Existing Issue rule below.
+   - **Existing Customer Need**: when the item relays customer or telemetry signal (§ Customer Needs) and the speaker resolves to the same customer as that Need, or is the same unresolved speaker, append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. When the speaker resolves to a different customer, or is a different unresolved speaker, create a new Customer Need linked to the same Issue instead, so each demand stays attachable on its own. Grep the drafted comment with the Phase 5 string list **before** posting: a comment is public the moment it lands, and a post-hoc edit does not unpublish it. Otherwise leave the Need alone, so the team's own words never read as another customer occurrence: match the item against the Issue that Need links to, under the Existing Issue rule below.
    - **Existing Issue** that already covers the same behavior: create no new tracking Issue. When the item relays customer or telemetry signal, link a new Customer Need to that Issue so the new quote and occurrence still count toward its priority. Otherwise, add one comment only if the call adds new detail, grepped like any comment. An Issue that is related but distinct gets a `relates to` link from the new tracking Issue instead. When an Issue matched here has no project, or its project is Completed or Canceled, set it per [Project routing](README.md#project-routing) in the same pass.
 
 ## Phase 4: Pre-stage Backlog tracking Issues, with Customer Needs for customer signal
@@ -165,11 +165,12 @@ Linear requires every Customer Need to link to an Issue, so the Issue always com
    - Project: per [Project routing](README.md#project-routing), a bounded active project that clearly owns the item, otherwise the active release project (resolve both by name this run), or none when no release project is started.
    - Priority: P3 (Low) by default. P2 (Medium) when PostHog confirms ≥50 sessions in 30d. The routine never sets P0/P1 — humans decide release-blocker status.
 
-2. **Then, only when the item relays customer or telemetry signal (§ Customer Needs), create the Customer Need** linked to that Issue via the `issue` parameter; the team's own work stops at step 1. Use the terse raw-signal body shape from [`linear-templates.md`](../../.claude/skills/qa-triage/linear-templates.md):
+2. **Then, only when the item relays customer or telemetry signal (§ Customer Needs), create the Customer Need** linked to that Issue via the `issue` parameter, with `customer` set from the matching speaker external ID; the team's own work, including any workspace member with no alias, stops at step 1. Use the terse raw-signal body shape from [`linear-templates.md`](../../.claude/skills/qa-triage/linear-templates.md):
 
 ```markdown
 ## Source
 QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name | "anonymous">. [Notes](<drive-url>)
+Customer: <customer with the matching speaker external ID | unresolved>
 Routine pre-stage by sync-triage-pulse · auto-extracted.
 
 > <verbatim excerpt — scrubbed of any name not on the attendee list>
@@ -255,7 +256,7 @@ This collaboration pattern mirrors how `bug-intake` works today: routine creates
 | Paste Vercel runtime logs into Customer Need bodies | Deploy metadata is public, log content is not — that's `health-watch` territory |
 | Skip the Phase 5 privacy grep | The verbatim-quote field can leak reporter handles if the notes captured them |
 | Try to create a Customer Need without an `issue` parameter | Linear's API rejects with `Exactly one of projectId or issueId must be defined`. This routine ALWAYS creates the Backlog tracking Issue first, then the Customer Need linked to it. There is no standalone Need path. |
-| Pre-stage a Customer Need for the team's own work, or add its quote to an existing Need | A Customer Need records customer or telemetry signal; an engineering chore, a tooling change or an internal idea is tracked by its Backlog Issue alone (§ Customer Needs) |
+| Pre-stage a Customer Need for the team's own work, or add its quote to an existing Need | A Customer Need records customer or telemetry signal; an engineering chore, a tooling change or an internal idea is tracked by its Backlog Issue alone (§ Customer Needs); a workspace member with no speaker alias counts as the team |
 | Apply multiple `ai:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families. The routine uses `ai:routine` (single value) and one `package:*` (primary surface; secondary noted in body). |
 | Push commits | Linear-only — this routine never touches code |
 | Process a doc whose title date is not today | An edit can bring an earlier call's doc inside the 8-hour window; that call was triaged on its own day |

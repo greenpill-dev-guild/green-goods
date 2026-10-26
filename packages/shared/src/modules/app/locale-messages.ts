@@ -18,6 +18,26 @@ export interface LocaleCatalogue {
   messages: Record<string, string>;
 }
 
+/**
+ * The language a reader asks for: the one they stored, else the first of their browser's
+ * languages with a catalogue, else English. A stored language without a catalogue reads English
+ * rather than the browser's. The loading screen in the client's index.html makes the same choice
+ * before the app loads, and the app must not contradict it.
+ */
+export function resolveRequestedLocale(
+  stored: string | null,
+  browserLanguages: readonly string[]
+): Locale {
+  for (const candidate of stored ? [stored] : browserLanguages) {
+    const tag = String(candidate ?? "")
+      .toLowerCase()
+      .split("-")[0];
+    const locale = supportedLanguages.find((supported) => supported === tag);
+    if (locale) return locale;
+  }
+  return "en";
+}
+
 async function importLocaleCatalogue(locale: Locale): Promise<LocaleCatalogue> {
   switch (locale) {
     case "es":

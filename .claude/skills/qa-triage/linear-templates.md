@@ -45,6 +45,7 @@ The Customer Need is the durable record of what the reporter said. Keep it minim
 ```markdown
 ## Source
 QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name | "anonymous">. [Notes](<drive-url>)
+Customer: <customer with the matching speaker external ID | unresolved>
 
 > <verbatim excerpt — scrubbed of any name not on the call's attendee list>
 
@@ -57,6 +58,8 @@ That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS th
 **Labels (Customer Need)**: the Linear API surface for `save_customer_need` accepts `body`, `customer`, `issue`, `project`, `priority` — **no `labels` field**. Labels live exclusively on the linked Issue. The fields `protocol:green-goods`, `source:drive` (formerly listed here) belong on the linked Issue's label set.
 
 **Required link**: every Customer Need must carry an `issue` (or `project`) parameter. Linear's API rejects with `Exactly one of projectId or issueId must be defined` otherwise. There is no standalone Need path — use the track-only pattern below for items that should be recorded without claiming committed fix work.
+
+**Customer**: resolve `customer` from the speaker external IDs on the customer record per [routing rule 2](../../context/linear-routing-rules.md#invariant-rules), which also says when a speaker is internal, when telemetry keeps a need for one, and when a match stays unresolved. An unresolved speaker keeps `Customer: unresolved` in the body and a need of their own.
 
 **Workflow state**: Customer Needs have no workflow state — they're raw-signal records that live alongside the Issue they're linked to.
 

@@ -334,6 +334,34 @@
   --sky-500: 96 165 250;       /* #60A5FA */
 }
 
+/* The status aliases in a dark scope inside a dark cockpit document: Storybook's
+   theme frame, a story's own dark section, and <body> when a palette assertion
+   marks it dark. The cockpit's one dark scope is <html>, above <body>'s ramp
+   remap, so its error, warning and verified aliases keep the shared ramp and
+   --information-* takes the remap on <body>. Below <body>, theme.css's and
+   admin-m3-tokens.css's dark blocks would resolve them again against the remapped
+   ramps (--error-base 248 113 113 for the cockpit's 255 104 117), so a nested
+   scope inherits them; the container inks read --error-dark and --warning-dark and
+   follow. On <body> the remap above outranks this rule and keeps --information-*.
+   It must stay after admin-m3-tokens.css, which sets three of these at the same
+   specificity. A dark section inside a light story still resolves them against
+   the remap; the cockpit never draws one. */
+:where(:root[data-surface="admin"][data-theme="dark"]) [data-theme="dark"] {
+  --error-base: inherit;
+  --error-dark: inherit;
+  --error-action: inherit;
+  --error-action-hover: inherit;
+  --m3-error: inherit;
+  --warning-base: inherit;
+  --warning-dark: inherit;
+  --verified-base: inherit;
+  --verified-dark: inherit;
+  --information-dark: inherit;
+  --information-base: inherit;
+  --information-light: inherit;
+  --information-lighter: inherit;
+}
+
 /* ── Installed app and public website ──────────────────────────────────── */
 /* The client sets Inter on :root and, in the installed app's presentation,
    Plus Jakarta Sans, the cockpit's face (index.css). The app frame and <body>

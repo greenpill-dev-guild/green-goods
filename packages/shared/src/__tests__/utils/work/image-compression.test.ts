@@ -83,4 +83,28 @@ describe("work image compression", () => {
     expect(results[1].compressionRatio).toBe(0);
     expect(onProgress).toHaveBeenLastCalledWith(100, "Compression complete");
   });
+
+  it("redraws a photo at its own size, type and name, and has nothing when it cannot be decoded", async () => {
+    const odd = new File(["odd"], "beds.png", { type: "image/png", lastModified: 7 });
+    mocks.compress.mockResolvedValueOnce(new Blob(["redrawn"], { type: "image/png" }));
+
+    const redrawn = await imageCompressor.redraw(odd);
+
+    expect([redrawn?.name, redrawn?.type, redrawn?.lastModified]).toEqual([
+      "beds.png",
+      "image/png",
+      7,
+    ]);
+    expect(await redrawn?.text()).toBe("redrawn");
+    // Full size, on the main thread: the library's worker would fetch its code from a CDN.
+    expect(mocks.compress.mock.calls[0][1]).toMatchObject({
+      maxSizeMB: Number.POSITIVE_INFINITY,
+      maxWidthOrHeight: undefined,
+      alwaysKeepResolution: true,
+      useWebWorker: false,
+    });
+
+    mocks.compress.mockRejectedValueOnce(new Error("The source image cannot be decoded"));
+    await expect(imageCompressor.redraw(odd)).resolves.toBeNull();
+  });
 });

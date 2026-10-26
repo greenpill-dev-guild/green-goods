@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:c58515352c78a4343ecf557c62639723caa9a2db113679c2fe4737573290f2ff"
+source_digest: "sha256:0604f57d6d71ec1f3ff274856a53416afb7c7b5998b9cd3b26fa380f5fcb8ecc"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -936,7 +936,7 @@ Direction-aware fulfillment: the party receiving the team's work confirms by def
 
 ### `commitment-loan`
 
-Records-only pool credit (CreditRegistry). Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.
+Records-only pool credit (CreditRegistry) for the separate Commitment Credit companion. No client or admin screen offers it yet, so no garden can borrow or repay through Green Goods. Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.
 
 _Implementation evidence: `packages/contracts/src/registries/Credit.sol#requestLoan`, `packages/contracts/test/unit/CreditRegistry.t.sol#testCreditRegistry_requestApproveDisburseAndRepayInInstallments`, `packages/indexer/test/credit-registry.test.ts#CreditRegistry`._
 
