@@ -447,6 +447,14 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               test: /[\\/]@reown[\\/]appkit[\\/]dist[\\/]esm[\\/]src[\\/]library[\\/]react[\\/]components\.js$/,
               sideEffects: false,
             },
+            // The commitment-pooling barrels only re-export. Startup reads a few pooling
+            // helpers through them; without this, every module behind them joined the
+            // installed startup budget, so code only the promise page uses loaded at
+            // startup. Keep these barrels free of side effects.
+            {
+              test: /[\\/]packages[\\/]shared[\\/]src[\\/](?:hooks[\\/]|modules[\\/])?commitment-pooling[\\/]index\.ts$/,
+              sideEffects: false,
+            },
           ],
         },
         output: {
