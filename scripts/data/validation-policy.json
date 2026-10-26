@@ -1616,7 +1616,7 @@
       "id": "browser-passkey",
       "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-passkey/results.json bun run browser e2e --preset passkey -- --workers=1 --reporter=line,json --output=.cache/validation/browser-passkey/artifacts",
       "risk": "Browser wiring can pass shallow assertions while the user journey is broken.",
-      "expectedSignal": "A real virtual-authenticator credential reaches verification; server rejection remains signed out and retryable. On the chat link's Account step a newcomer and a returning account each reach Sign to Continue, and a refused name or a closed prompt leaves no passkey and no account.",
+      "expectedSignal": "A real virtual-authenticator credential reaches verification; server rejection remains signed out and retryable. On the chat link's Account step a newcomer and a returning account each reach Sign to Continue, and a refused name or a closed prompt leaves no passkey and no account. A link opened on the wrong account signs the browser out from its profile before Continue, with no signature, in English, Spanish and Portuguese, and another account then reaches Sign to Continue.",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 130,
       "stopRule": "stop-dependent-checks",

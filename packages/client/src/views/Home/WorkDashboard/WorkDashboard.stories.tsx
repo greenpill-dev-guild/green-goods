@@ -25,7 +25,12 @@ import {
   todayAt,
 } from "../../../../../shared/.storybook/clientJourneyFixtures";
 import { withHeldToast } from "../../../../../shared/.storybook/decorators";
-import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../../shared/.storybook/fixtures";
+import {
+  FIXTURE_IMAGE_BANNER,
+  FIXTURE_IMAGE_WASTE,
+  FIXTURE_WORK_MEDIA,
+  hoursAgo,
+} from "../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { DOCUMENTATION_SUBMISSION } from "../../../../../shared/.storybook/submitWorkFixtures";
 import {
@@ -327,12 +332,14 @@ export const CompletedWithExamplePhoto: Story = {
         status: "approved",
         gardenerAddress: JOURNEY_VIEWER,
         actionUID: 2,
+        media: [FIXTURE_IMAGE_WASTE],
       }),
       gardenWork("0x5eed06", "Path Edging", {
         status: "rejected",
         gardenerAddress: JOURNEY_VIEWER,
         actionUID: 6,
         feedback: "Add a photo showing the full repaired edge.",
+        media: [FIXTURE_IMAGE_BANNER],
       }),
     ],
   },

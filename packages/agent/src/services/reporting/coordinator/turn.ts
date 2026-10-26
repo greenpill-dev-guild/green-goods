@@ -4,10 +4,13 @@ import type { CatalogResult, ReportingCatalog } from "../catalog";
 import { accountAwaitingPair } from "../channel-pairing";
 import { inTransaction } from "../database";
 import {
+  consumeAlbumItems,
   consumeInboxEvent,
   deferInboxEvent,
   type InboxEventRow,
   nextConversationEvent,
+  quarantineInboxEvents,
+  waitInboxEvents,
 } from "../inbox";
 import {
   findGarden,
@@ -47,7 +50,7 @@ import {
   sendConsentNotice,
   withdrawProcessing,
 } from "./consent-step";
-import { loadTurnContext, planTurn, type TurnContext, type TurnPlan } from "./context";
+import { loadTurnContext, planEventTurn, type TurnContext, type TurnPlan } from "./context";
 import { StaleDraftError } from "./draft-commit";
 import { answeredGarden, readGardensForTurn } from "./garden-step";
 import { handleReportAnswer } from "./report-answer";
@@ -67,10 +70,11 @@ import { TurnWriter } from "./writer";
 
 /**
  * The durable coordinator every transport feeds. One leased worker handles a conversation's
- * events in arrival order. Each turn reads state, makes bounded external calls outside any
- * transaction, then commits the transition, the consumed event and its reply intents together,
- * but only while its lease fence and the draft revision it read are still current. A stale result
- * is discarded and the event replanned against the newer revision; it is never marked consumed.
+ * events in arrival order; an album's files, one event each, are one turn once the album has gone
+ * quiet. Each turn reads state, makes bounded external calls outside any transaction, then
+ * commits the transition, the consumed event and its reply intents together, but only while its
+ * lease fence and the draft revision it read are still current. A stale result is discarded and
+ * the event replanned against the newer revision; it is never marked consumed.
  */
 export interface CoordinatorDeps {
   core: ReportingCore;
@@ -383,23 +387,17 @@ function reviewOwnsCommand(writer: TurnWriter): boolean {
   return Boolean(review && (isReviewPrompt(prompt?.kind) || !draft));
 }
 
-function finalizeEvent(core: ReportingCore, event: InboxEventRow, outcome: TurnOutcome): void {
-  if (outcome === "consume") consumeInboxEvent(core, event.id);
-  else if (outcome === "pause") {
-    core.db
-      .query("UPDATE inbox_events SET next_attempt_at = $next WHERE id = $id")
-      .run({ id: event.id, next: core.clock.now() + PAUSE_RETRY_MS });
-  } else {
-    // Quarantined until consent releases it or the pre-consent window expires.
-    core.db
-      .query(
-        "UPDATE inbox_events SET state = 'quarantined', next_attempt_at = COALESCE(expires_at, $far) WHERE id = $id"
-      )
-      .run({ id: event.id, far: core.clock.now() + core.settings.preConsentRetentionMs });
-  }
+/** Settles the turn's event, and the rest of its album with it. */
+function finalizeEvent(core: ReportingCore, ctx: TurnContext, outcome: TurnOutcome): void {
+  const ids = [ctx.event.id, ...ctx.album.map((item) => item.id)];
+  if (outcome === "consume") {
+    consumeInboxEvent(core, ctx.event.id);
+    consumeAlbumItems(core, ids.slice(1));
+  } else if (outcome === "pause") waitInboxEvents(core, ids, core.clock.now() + PAUSE_RETRY_MS);
+  else quarantineInboxEvents(core, ids);
 }
 
-type CommitResult = "committed" | "stale" | "fenced" | "gone";
+type CommitResult = "committed" | "stale" | "fenced" | "gone" | "waiting";
 
 async function runTurn(
   deps: CoordinatorDeps,
@@ -407,29 +405,39 @@ async function runTurn(
   event: InboxEventRow
 ): Promise<CommitResult> {
   const { core } = deps;
-  const ctx = loadTurnContext(core, event);
-  if (!ctx) {
+  const loaded = loadTurnContext(core, event);
+  if (!loaded) {
     inTransaction(core.db, () => consumeInboxEvent(core, event.id));
     return "gone";
   }
-  const plan = planTurn(ctx);
+  // An album still arriving waits whole; the messages after it wait behind its first file.
+  if (loaded.albumReadyAt > core.clock.now()) {
+    return inTransaction(core.db, () => {
+      if (!holdsLease(core, lease)) return "fenced" as const;
+      waitInboxEvents(core, [event.id, ...loaded.album.map(({ id }) => id)], loaded.albumReadyAt);
+      return "waiting" as const;
+    });
+  }
+  const { ctx, plan, wholeAlbum } = planEventTurn(core, loaded);
   const external = await gatherExternal(deps, ctx, plan);
   try {
     return inTransaction(core.db, () => {
       if (!holdsLease(core, lease)) return "fenced" as const;
-      const now = loadTurnContext(core, event);
+      const now = loadTurnContext(core, ctx.event, { wholeAlbum });
       if (
         !now ||
         now.draft?.id !== ctx.draft?.id ||
         now.draft?.revision !== ctx.draft?.revision ||
         now.review?.id !== ctx.review?.id ||
         now.review?.revision !== ctx.review?.revision ||
-        now.prompt?.id !== ctx.prompt?.id
+        now.prompt?.id !== ctx.prompt?.id ||
+        // A file that joined the album meanwhile is read with it, so the turn is planned again.
+        now.album.length !== ctx.album.length
       ) {
         throw new StaleDraftError();
       }
       const writer = new TurnWriter(core, ctx);
-      finalizeEvent(core, event, applyTurn(deps, writer, plan, external));
+      finalizeEvent(core, ctx, applyTurn(deps, writer, plan, external));
       return "committed" as const;
     });
   } catch (error) {
@@ -472,7 +480,7 @@ export async function processConversation(
           return committed;
         }
       }
-      if (result === "fenced") return committed;
+      if (result === "fenced" || result === "waiting") return committed;
       if (result === "stale") {
         inTransaction(core.db, () => deferInboxEvent(core, event.id, "stale_revision", 1_000));
         return committed;

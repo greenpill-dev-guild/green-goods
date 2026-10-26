@@ -4,7 +4,7 @@
 
 - Owner: Claude (sessions the orchestrator starts; questions go to the orchestrator)
 - Branch: set when work begins using `<type>/<work-description>`
-- Status: in progress. Merged: step 3 (#1289, `feature/pwa-home-shell`), step 6 (#1280), step 11 (#1290), step 16 (#1279); in review: steps 7 and 9 (#1292), step 8 (#1295), step 19 (#1296). Each PR body holds that step's RED/GREEN record, validation receipt and labeled rendered proof; the lane's machine-readable TDD record below is the shell's.
+- Status: in progress. Merged: step 3 (#1289, `feature/pwa-home-shell`), step 6 (#1280), steps 7 and 9 (#1292), step 8 (#1295), step 11 (#1290), step 16 (#1279); in review: step 15 (#1307), step 19 (#1296); in progress in their sessions: steps 10 and 12; to come: 13 and 17. Each PR body holds that step's RED/GREEN record, validation receipt and labeled rendered proof; the lane's machine-readable TDD record below is the shell's. Follow-ups recorded from review: a promise the viewer has already requested still lists in Take Part and Highlights until step 17 adds the shared eligibility input (#1292); the bell has no join-request row until a signature-free source exists, and the interim garden page keeps its own steward bell until step 10 removes it (#1307).
 
 ## Scope (first slice)
 

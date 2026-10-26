@@ -242,11 +242,14 @@ export const ProofAdded: Story = {
     await expect(canvas.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
       "Send it to tomas when the team is done"
     );
-    // Two photos and the voice note as squares, then who added it and when.
+    // Two photos and the voice note as squares, the link as a row, then who added it and when.
     await expect(
       await canvas.findByRole("button", { name: "Play voice note 1" })
     ).toHaveTextContent("0:24");
-    await expect(canvas.getByText(/Added today, 10:24/)).toHaveTextContent("1 link");
+    await expect(canvas.getByRole("link", { name: "Repair notes" })).toHaveAttribute(
+      "href",
+      "https://example.org/riverside/fence-repair"
+    );
     await expect(canvas.getByRole("button", { name: "Send for Confirmation" })).toBeVisible();
   },
 };
