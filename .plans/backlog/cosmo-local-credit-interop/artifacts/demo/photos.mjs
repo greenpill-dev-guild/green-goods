@@ -95,12 +95,22 @@ if (failures.length) {
 // half-replaced set never results.
 const isRecord = (name) => /^record-\d+\.jpg$/.test(name) || name === "record-photos.tsv" || name === "proof-course.jpg";
 const backup = mkdtempSync(join(out, ".previous-"));
+const previous = readdirSync(out).filter(isRecord);
+// The current set moves aside whole before anything is installed; a move that fails halfway moves
+// back what had gone and installs nothing.
 try {
-  for (const name of readdirSync(out)) if (isRecord(name)) renameSync(join(out, name), join(backup, name));
-  for (const name of readdirSync(temp)) renameSync(join(temp, name), join(out, name));
+  for (const name of previous) renameSync(join(out, name), join(backup, name));
+} catch (error) {
+  for (const name of readdirSync(backup)) renameSync(join(backup, name), join(out, name));
+  for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });
+  throw new Error(`${error.message}; the photo set is as it was`);
+}
+const installed = readdirSync(temp);
+try {
+  for (const name of installed) renameSync(join(temp, name), join(out, name));
   writeFileSync(join(out, "record-photos.tsv"), `${rows.join("\n")}\n`);
 } catch (error) {
-  for (const name of readdirSync(out)) if (isRecord(name)) rmSync(join(out, name), { force: true });
+  for (const name of [...installed, "record-photos.tsv"]) rmSync(join(out, name), { force: true });
   for (const name of readdirSync(backup)) renameSync(join(backup, name), join(out, name));
   for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; the previous photo set was put back`);

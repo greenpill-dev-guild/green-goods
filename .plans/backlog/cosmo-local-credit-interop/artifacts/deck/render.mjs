@@ -16,7 +16,7 @@
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const EXPECTED_SLIDES = 18;
@@ -112,6 +112,9 @@ let pw;
 try { pw = require("playwright"); } catch { pw = require("@playwright/test"); }
 const { chromium } = pw;
 mkdirSync(out, { recursive: true });
+// Outputs render into a staging folder and replace the files in output/ only when every check
+// passes, so a failed render leaves the last good slides, contact sheet and PDF in place.
+const staging = mkdtempSync(join(out, ".render-"));
 const url = pathToFileURL(htmlPath).href;
 
 const browser = await chromium.launch({ args: ["--allow-file-access-from-files"] });
@@ -124,9 +127,18 @@ for (const i of targets) {
   await page.evaluate(() => document.fonts.ready);
   // fonts.ready also resolves when the Google Fonts stylesheet failed, and the slides would then
   // render in Georgia and the system sans with different line breaks, so both faces must be loaded.
+  // Each face the slides use is loaded on purpose and must come back loaded: one face of a family
+  // loading says nothing about its italic or its other weights.
   if (i === targets[0]) {
-    const missingFonts = await page.evaluate(() => ["Fraunces", "Inter"].filter((family) => ![...document.fonts].some((f) => f.family.replace(/["']/g, "") === family && f.status === "loaded")));
-    if (missingFonts.length) note(`font(s) not loaded, so the slides fell back: ${missingFonts.join(", ")}`);
+    const missingFonts = await page.evaluate(async () => {
+      const missing = [];
+      for (const spec of ["400 16px Fraunces", "italic 400 16px Fraunces", "500 16px Fraunces", "400 16px Inter", "500 16px Inter", "600 16px Inter"]) {
+        const faces = await document.fonts.load(spec, "Aa").catch(() => []);
+        if (!faces.length || faces.some((f) => f.status !== "loaded")) missing.push(spec);
+      }
+      return missing;
+    });
+    if (missingFonts.length) note(`font face(s) not loaded, so the slides fell back: ${missingFonts.join(", ")}`);
   }
   await page.waitForTimeout(150);
   const report = await page.evaluate((isTitle) => {
@@ -170,31 +182,33 @@ for (const i of targets) {
     return { issues: [...new Set(issues)], lines };
   }, i === 1);
   for (const issue of report.issues) note(`slide ${i} (${slides[i - 1].label}): ${issue}`);
-  const file = join(out, `slide-${String(i).padStart(2, "0")}.png`);
+  const name = `slide-${String(i).padStart(2, "0")}.png`;
+  const file = join(staging, name);
   await page.screenshot({ path: file, type: "png", clip: { x: 0, y: 0, width: 1920, height: 1080 } });
-  files.push({ i, file, lines: report.lines });
-  console.log(`${file} (headline ${report.lines} line${report.lines === 1 ? "" : "s"})`);
+  files.push({ i, file, name, lines: report.lines });
+  console.log(`${join(out, name)} (headline ${report.lines} line${report.lines === 1 ? "" : "s"})`);
 }
 
 if (!only.length) {
-  // Contact sheet: every slide at 480 x 270, four per row. Loaded from a file so local images resolve.
-  const sheetHtml = join(out, "contact-sheet.html");
+  // Contact sheet: every slide at 480 x 270, four per row. Loaded from a file beside the slides, with
+  // relative sources, so it resolves in staging and after promotion alike.
+  const sheetHtml = join(staging, "contact-sheet.html");
   writeFileSync(sheetHtml, `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#1C1917;padding:24px;width:2064px;font:500 14px Inter,system-ui,sans-serif;color:#A8A29E">
-<div style="display:grid;grid-template-columns:repeat(4,480px);gap:24px">${files.map(({ i, file }) => `<figure style="margin:0"><img src="${pathToFileURL(file).href}" width="480" height="270" style="display:block;outline:1px solid #44403C"><figcaption style="margin-top:6px">${i} · ${slides[i - 1].label.replace(/&/g, "&amp;")}</figcaption></figure>`).join("")}</div></body></html>`);
+<div style="display:grid;grid-template-columns:repeat(4,480px);gap:24px">${files.map(({ i, name }) => `<figure style="margin:0"><img src="${name}" width="480" height="270" style="display:block;outline:1px solid #44403C"><figcaption style="margin-top:6px">${i} · ${slides[i - 1].label.replace(/&/g, "&amp;")}</figcaption></figure>`).join("")}</div></body></html>`);
   await page.setViewportSize({ width: 2112, height: 1200 });
   await page.goto(pathToFileURL(sheetHtml).href, { waitUntil: "load" });
   await page.waitForTimeout(300);
-  const sheetFile = join(out, "contact-sheet.png");
+  const sheetFile = join(staging, "contact-sheet.png");
   await page.screenshot({ path: sheetFile, type: "png", fullPage: true });
-  console.log(sheetFile);
+  console.log(join(out, "contact-sheet.png"));
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(`${url}?static=1&slide=1`, { waitUntil: "load" });
   await page.evaluate(() => document.fonts.ready);
   await page.emulateMedia({ media: "print" });
-  const pdf = join(out, "deck.pdf");
+  const pdf = join(staging, "deck.pdf");
   await page.pdf({ path: pdf, width: "1920px", height: "1080px", printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
-  console.log(pdf);
+  console.log(join(out, "deck.pdf"));
 
   // Every word of the PDF must sit inside its page; a word past the page edge is a fragmented block.
   let bbox = null;
@@ -219,8 +233,28 @@ if (!only.length) {
 await browser.close();
 
 if (problems.length) {
-  console.log(`${problems.length} problem(s):`);
+  rmSync(staging, { recursive: true, force: true });
+  console.log(`${problems.length} problem(s); the files in output/ are untouched:`);
   for (const p of problems) console.log(`  ${p}`);
   process.exit(1);
 }
+// The outputs are replaced as a set: the backup completes before any output is touched, and a
+// rename that fails halfway removes every promoted name and puts the backup back.
+const backup = mkdtempSync(join(out, ".previous-"));
+const names = readdirSync(staging);
+try {
+  for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+} catch (error) {
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  throw new Error(`${error.message}; nothing in output/ was replaced`);
+}
+try {
+  for (const name of names) renameSync(join(staging, name), join(out, name));
+} catch (error) {
+  for (const name of names) rmSync(join(out, name), { force: true });
+  for (const name of readdirSync(backup)) copyFileSync(join(backup, name), join(out, name));
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  throw new Error(`${error.message}; the previous outputs were put back`);
+}
+for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
 console.log("render checks: margins, corner band, headline clearance, headline length, images, layout boxes and PDF word positions all clean");

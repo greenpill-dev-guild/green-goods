@@ -123,8 +123,10 @@ Let's grow together. Thank you. Scan the code to see commitment pooling live on 
   25 October). The G$ path is live and paid its first reward in August (C08), but creating new G$
   reward promises in the app sits behind `SETTLEMENT_ENABLED = false` in
   `packages/shared/src/config/app.ts`, and the app tells members that sending them "is unavailable
-  in this release". That switch must be on and deployed before the pitch; until it is, say "earn
-  agreed rewards" and, if asked, that G$ rewards are being switched on for this season.
+  in this release". That switch must be on and deployed before the materials are submitted on
+  Tuesday 27 October, not only before the pitch: the submitted deck and brief say G$ rewards are
+  live, and a PDF has no presenter to add a caveat. Until it is, say "earn agreed rewards" and, if
+  asked, that G$ rewards are being switched on for this season.
 - **Revenue.** Say fees for service (setup, support, reporting) and a share of endowment earnings.
   The share is the yield split's third leg, 2.7% by default (`DEFAULT_JUICEBOX_BPS` in
   `packages/contracts/src/resolvers/Yield.sol`), set per garden by its steward or the protocol

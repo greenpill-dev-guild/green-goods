@@ -16,7 +16,7 @@
 // contact sheet. A failed check exits with status 1 after reporting.
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -184,6 +184,40 @@ await page.goto(`${url}#work-3`, { waitUntil: "load" });
 const deep = await state(page);
 if (deep.flow !== "work" || deep.step !== 3) note(`the #work-3 link opened ${JSON.stringify(deep)}`);
 await context.close();
+
+// The artifact copy is the same page without its document wrapper. It has to exist, be as new as
+// the build, equal what build.mjs derives from this build, and work inside the wrapper the Artifact
+// tool adds: a deep link opens its screen and the landing's four tiles load.
+const artifact = join(out, "artifact.html");
+if (!existsSync(artifact)) note("no output/artifact.html; run build.mjs");
+else {
+  if (statSync(artifact).mtimeMs < newest) note("output/artifact.html is older than index.html or a screen; run build.mjs");
+  const derived = html
+    .replace(/<!DOCTYPE html>\s*/i, "")
+    .replace(/<html[^>]*>\s*/i, "")
+    .replace(/<\/html>\s*$/i, "")
+    .replace(/<head>\s*/i, "")
+    .replace(/\s*<\/head>/i, "")
+    .replace(/<body>\s*/i, "")
+    .replace(/\s*<\/body>/i, "")
+    .replace(/<meta charset="UTF-8" \/>\s*/i, "")
+    .replace(/<meta name="viewport"[^>]*>\s*/i, "");
+  const artifactHtml = readFileSync(artifact, "utf8");
+  if (artifactHtml !== derived) note("output/artifact.html does not match this build; run build.mjs");
+  const wrapped = join(out, ".artifact-wrapped.html");
+  writeFileSync(wrapped, `<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>\n${artifactHtml}\n</body></html>`);
+  const { context: ac, page: ap } = await openPage();
+  await ap.goto(`${pathToFileURL(wrapped).href}#work-3`, { waitUntil: "load" });
+  await ap.evaluate(() => document.fonts.ready);
+  if (!(await shotLoaded(ap))) note("artifact: the #work-3 screen did not load inside the wrapper");
+  const wrappedState = await state(ap);
+  if (wrappedState.flow !== "work" || wrappedState.step !== 3) note(`artifact: the #work-3 link opened ${JSON.stringify(wrappedState)} inside the wrapper`);
+  await ap.goto(pathToFileURL(wrapped).href, { waitUntil: "load" });
+  const wrappedTiles = await ap.$$eval(".tile", (els) => els.filter((el) => [...el.querySelectorAll("img")].every((img) => img.complete && img.naturalWidth > 0)).length);
+  if (wrappedTiles !== 4) note(`artifact: ${wrappedTiles} of four tiles loaded inside the wrapper`);
+  await ac.close();
+  rmSync(wrapped, { force: true });
+}
 
 // Phone width and dark mode.
 const PHONE = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true };

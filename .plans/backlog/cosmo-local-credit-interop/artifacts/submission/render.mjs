@@ -34,8 +34,17 @@ for (const name of PAGES) {
   await page.evaluate(() => document.fonts.ready);
   // fonts.ready also resolves when the Google Fonts stylesheet failed, and the page would then
   // render in Georgia and the system sans with different line breaks, so both faces must be loaded.
-  const missingFonts = await page.evaluate(() => ["Fraunces", "Inter"].filter((family) => ![...document.fonts].some((f) => f.family.replace(/["']/g, "") === family && f.status === "loaded")));
-  if (missingFonts.length) problems.push(`${name}: font(s) not loaded, so the page fell back: ${missingFonts.join(", ")}`);
+  // Each face the page uses is loaded on purpose and must come back loaded: one face of a family
+  // loading says nothing about its italic or its other weights.
+  const missingFonts = await page.evaluate(async () => {
+    const missing = [];
+    for (const spec of ["400 16px Fraunces", "italic 400 16px Fraunces", "500 16px Fraunces", "400 16px Inter", "500 16px Inter", "600 16px Inter"]) {
+      const faces = await document.fonts.load(spec, "Aa").catch(() => []);
+      if (!faces.length || faces.some((f) => f.status !== "loaded")) missing.push(spec);
+    }
+    return missing;
+  });
+  if (missingFonts.length) problems.push(`${name}: font face(s) not loaded, so the page fell back: ${missingFonts.join(", ")}`);
   await page.emulateMedia({ media: "print" });
   await page.waitForTimeout(300);
   const report = await page.evaluate(() => {
@@ -104,8 +113,14 @@ if (problems.length) {
 // halfway removes every promoted name and puts the backup back.
 const backup = mkdtempSync(join(out, ".previous-"));
 const names = readdirSync(staging);
+// The backup completes before any output is touched: a copy that fails leaves output/ as it was.
 try {
   for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+} catch (error) {
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  throw new Error(`${error.message}; nothing in output/ was replaced`);
+}
+try {
   for (const name of names) { renameSync(join(staging, name), join(out, name)); console.log(join(out, name)); }
 } catch (error) {
   for (const name of names) rmSync(join(out, name), { force: true });

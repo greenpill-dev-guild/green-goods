@@ -73,8 +73,9 @@ node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/check.mjs
 
 `capture.mjs --only=work-app,promise-4` re-runs single sessions (session ids are in `SESSIONS`); an
 unknown id stops the run before anything is captured, and swap rules shared with sessions outside
-`--only` are reported as not validated rather than passed. `--debug` prints each screen's text. A
-composite needs the App screen under it captured first. Screens are staged and replace the current
+`--only` are reported as not validated rather than passed; a session drawn over a selected session's
+screen is recaptured with it, so a composite never outlives its base. `--debug` prints each screen's
+text. A composite needs the App screen under it captured first. Screens are staged and replace the current
 set only when the run has no problem, so a failed capture leaves the existing screens and
 `index.html` untouched. A capture fails when a step fails; when any swap rule, shared ones
 included, matches nothing on a full capture; when a fixture name survives, or a name ending in

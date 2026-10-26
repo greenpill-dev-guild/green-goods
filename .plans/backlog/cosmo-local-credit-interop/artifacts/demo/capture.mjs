@@ -805,6 +805,19 @@ for (const session of SESSIONS) {
 // before anything is captured or index.html is rewritten.
 const unknown = only.filter((id) => !SESSIONS.some((s) => s.id === id));
 if (unknown.length) throw new Error(`--only names ${unknown.join(", ")}, which ${unknown.length === 1 ? "is not a session" : "are not sessions"}; nothing was captured or rewritten`);
+// A session drawn over another session's screen is recaptured with it, or a partial run would
+// publish a new base under composites built from the old one.
+const owner = new Map();
+for (const s of SESSIONS) for (const step of s.steps) if (step.shot) owner.set(step.shot, s.id);
+if (only.length) {
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const s of SESSIONS) if (!only.includes(s.id) && s.steps.some((step) => step.over && only.includes(owner.get(step.over.screen)))) { only.push(s.id); grew = true; }
+  }
+  const added = only.filter((id) => !process.argv.join(",").includes(`${id}`));
+  if (added.length) console.log(`--only also recaptures ${added.join(", ")}: drawn over a selected session's screen`);
+}
 const selected = SESSIONS.filter((s) => !only.length || only.includes(s.id));
 // A run that was stopped leaves its staging folder behind; only one run may write at a time.
 for (const name of readdirSync(out)) if (name.startsWith(".capture-")) rmSync(join(out, name), { recursive: true, force: true });
@@ -861,8 +874,15 @@ const stagedHtml = join(here, ".index.html.staged");
 writeFileSync(stagedHtml, html);
 const backup = mkdtempSync(join(out, ".previous-"));
 const names = readdirSync(staging);
+// The backup completes before any screen is touched: a copy that fails leaves the set as it was.
 try {
   for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+} catch (error) {
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  rmSync(stagedHtml, { force: true });
+  throw new Error(`${error.message}; nothing was replaced and index.html is untouched`);
+}
+try {
   for (const name of names) renameSync(join(staging, name), join(out, name));
   renameSync(stagedHtml, htmlPath);
 } catch (error) {
