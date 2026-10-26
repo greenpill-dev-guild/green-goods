@@ -95,6 +95,16 @@ const config: KnipConfig = {
         "storybook",
       ],
     },
+    "packages/extension": {
+      // WXT discovers entrypoints by convention; the g0 rig is run by hand from the package
+      // (`bun run --cwd packages/extension g0`), never imported.
+      entry: ["entrypoints/**/*.{ts,tsx}", "wxt.config.ts", "g0/*.mjs"],
+      ignoreDependencies: [
+        // Transitive companions Pi Durable requires at matching versions (prototype decision 17).
+        "@earendil-works/chord",
+        "@earendil-works/pi-ai",
+      ],
+    },
     "packages/qa": {
       // The build script and the Vercel function are both entry points reached
       // by platform convention (vercel.json buildCommand, the api/ directory),

@@ -786,7 +786,7 @@ function versionedSalt(manifest: ReleaseManifest, label: string, baseSalt?: stri
   return keccak256(toUtf8Bytes(`${baseSalt ?? `${manifest.create2.domain}:${manifest.create2.version}`}:${label}`));
 }
 
-function linkBytecode(
+export function linkBytecode(
   object: string,
   references: LinkReferences | undefined,
   addresses: Record<string, string>,

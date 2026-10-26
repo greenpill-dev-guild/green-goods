@@ -10,7 +10,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  type BaseSyntheticEvent,
   type Dispatch,
   type SetStateAction,
 } from "react";
@@ -25,20 +24,17 @@ import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../../components/toast";
 import { getDefaultChain } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { canSubmitWork } from "../../modules/garden/membership";
 import { validateWorkSubmissionContext } from "../../modules/work/work-submission";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
 import type { Action, Address, Domain, Garden, WorkDraft } from "../../types/domain";
 import { findActionByUID } from "../../utils/action/parsers";
-import {
-  compareAddresses,
-  isAddressInList,
-  normalizeAddress,
-} from "../../utils/blockchain/address";
+import { compareAddresses, normalizeAddress } from "../../utils/blockchain/address";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../../utils/debug";
 import { useUser } from "../auth/useUser";
 import { useActions, useGardens } from "../blockchain/useBaseLists";
-import { isGardenMember, usePendingJoinsVersion } from "../garden/useJoinGarden";
+import { useMyGardens } from "../garden/useMyGardens";
 import { useWorkForm, type WorkFormData } from "./useWorkForm";
 import { useWorkImages } from "./useWorkImages";
 import { useWorkMutation } from "./useWorkMutation";
@@ -59,6 +55,15 @@ export interface WorkSelectionValue {
   setSelectedDomain: (domain: Domain | null) => void;
 }
 
+export interface UploadWorkOptions {
+  /**
+   * Runs once the work has passed every check and before it is admitted to the queue; false
+   * keeps it out. Submit takes an Open ask up here (decision 18), so the take-up, which cannot
+   * be taken back, never goes for work its own checks would stop.
+   */
+  beforeAdmission?: () => Promise<boolean>;
+}
+
 export interface WorkFormValue {
   state: FormState<WorkFormData>;
   control: Control<WorkFormData>;
@@ -70,7 +75,7 @@ export interface WorkFormValue {
   timeSpentMinutes: number | undefined;
   values: Record<string, unknown>;
   reset: UseFormReset<WorkFormData>;
-  uploadWork: (event?: BaseSyntheticEvent) => Promise<void>;
+  uploadWork: (options?: UploadWorkOptions) => Promise<void>;
   workMutation: ReturnType<typeof useWorkMutation>;
   validationErrors: string[];
 }
@@ -91,7 +96,7 @@ export interface WorkDataProps {
     register: UseFormRegister<WorkFormData>;
     setValue: UseFormSetValue<WorkFormData>;
     control: Control<WorkFormData>;
-    uploadWork: (event?: BaseSyntheticEvent) => Promise<void>;
+    uploadWork: (options?: UploadWorkOptions) => Promise<void>;
     gardenAddress: Address | null;
     setGardenAddress: (value: Address | null) => void;
     feedback: string;
@@ -116,16 +121,12 @@ export function useWorkSubmissionFlow(): {
   const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
   const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
   const userAddress = primaryAddress ? normalizeAddress(primaryAddress) : null;
-  const pendingJoinsVersion = usePendingJoinsVersion();
+  const { gardens: myGardens } = useMyGardens(userAddress, chainId);
+  // The account's gardens it can submit work to: an evaluator alone cannot.
   const userGardens = useMemo(
     () =>
-      userAddress
-        ? gardensData.filter((garden) =>
-            isGardenMember(userAddress, garden.gardeners, garden.stewards, garden.id)
-          )
-        : [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster
-    [userAddress, gardensData, pendingJoinsVersion]
+      myGardens.filter(({ membership }) => canSubmitWork(membership)).map(({ garden }) => garden),
+    [myGardens]
   );
   const joinableCommunityGarden = useMemo(() => {
     if (!userAddress || !rootGardenAddress) return null;
@@ -133,11 +134,13 @@ export function useWorkSubmissionFlow(): {
       compareAddresses(garden.id, rootGardenAddress)
     );
     if (!communityGarden?.openJoining) return null;
-    const member =
-      isAddressInList(userAddress, communityGarden.gardeners) ||
-      isAddressInList(userAddress, communityGarden.stewards);
-    return member ? null : communityGarden;
-  }, [gardensData, rootGardenAddress, userAddress]);
+    // The same membership as the list above, so an open join just sent is not offered again.
+    const alreadyIn = myGardens.some(
+      ({ garden, membership }) =>
+        compareAddresses(garden.id, communityGarden.id) && canSubmitWork(membership)
+    );
+    return alreadyIn ? null : communityGarden;
+  }, [gardensData, myGardens, rootGardenAddress, userAddress]);
 
   const {
     actionUID,
@@ -180,7 +183,7 @@ export function useWorkSubmissionFlow(): {
     ? (selectedAction.mediaInfo.minImageCount ?? 1)
     : 0;
   const handleUploadWork = useCallback(
-    async (data: WorkFormData) => {
+    async (data: WorkFormData, options: UploadWorkOptions = {}) => {
       const { feedback: _feedback, timeSpentMinutes: _time, location, ...dynamicFields } = data;
       const audioNotes = useWorkFlowStore.getState().audioNotes.slice();
       const draft = {
@@ -219,6 +222,7 @@ export function useWorkSubmissionFlow(): {
         return;
       }
       setValidationErrors([]);
+      if (options.beforeAdmission && !(await options.beforeAdmission())) return;
       const imagesSnapshot = images.slice();
       if (DEBUG_ENABLED) {
         debugLog("[WorkProvider] Submitting work with validated draft", {
@@ -238,7 +242,11 @@ export function useWorkSubmissionFlow(): {
     },
     [gardenAddress, actionUID, images, workMutation, minRequiredImages, userAddress, intl]
   );
-  const uploadWork = workForm.handleSubmit(handleUploadWork);
+  const { handleSubmit } = workForm;
+  const uploadWork = useCallback(
+    (options?: UploadWorkOptions) => handleSubmit((data) => handleUploadWork(data, options))(),
+    [handleSubmit, handleUploadWork]
+  );
   const isLoading = actionsLoading || gardensLoading;
   const hasJoinedGardens = userGardens.length > 0;
 

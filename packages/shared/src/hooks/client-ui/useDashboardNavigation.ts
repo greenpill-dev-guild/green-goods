@@ -115,6 +115,12 @@ export function useDashboardNavigation() {
         }
       },
       forward,
+      /** Opens `to` as the next page, recording this one, so that page's Back returns here. */
+      open: (to: To, options: NavigateOptions = {}) =>
+        navigate(to, {
+          ...options,
+          state: { ...options.state, ...(scope ? { dashboardBack: { scope, path } } : {}) },
+        }),
       /** True only when this session recorded the immediately preceding page. */
       back: () => {
         if (!previous) return false;
@@ -149,6 +155,16 @@ export function useDashboardNavigation() {
           ...options,
           state: { ...(scope ? { dashboardEntry: { scope, path: "/home", snapshot } } : {}) },
         });
+      },
+      /**
+       * Open Home's garden switcher from any screen, as a toast about another garden's upload
+       * does: Home opens it once it shows. The member picks there; this switches nothing. A toast
+       * can call this after the member has moved on, so it reads where the app is now.
+       */
+      openGardenSwitcher: () => {
+        useUIStore.getState().requestGardenSwitcher();
+        const [now] = current.current.path.split(/[?#]/);
+        if (now.replace(/\/$/, "") !== "/home") navigate("/home");
       },
     };
   }, [location, navigate, scope]);

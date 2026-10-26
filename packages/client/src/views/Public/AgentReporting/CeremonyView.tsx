@@ -3,7 +3,7 @@ import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { RiPlantLine } from "@remixicon/react";
 import { type ReactNode, useId } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
-import { FlowForward } from "@/components/Features/Work";
+import { FlowForward } from "@/components/Features/Work/FlowBar";
 import { AccountEntry, type EntryScreen } from "./AccountEntry";
 import { AccountActions, PageAccount } from "./CeremonyActs";
 import { BLOCKED_ID, CeremonyFrame } from "./CeremonyFrame";
@@ -79,6 +79,9 @@ const SESSION = new Set<AgentReportingCeremony["stage"]>([
   "grant_active",
 ]);
 
+/** Stages before the page has asked this browser's account to sign anything. */
+const UNSIGNED = new Set<AgentReportingCeremony["stage"]>(["intro", "opening", "connect"]);
+
 /** What the link flow's own screens say in the heading card's two lines. */
 const NOTES = {
   inApp: {
@@ -107,8 +110,9 @@ const NOTES = {
  * has one more screen here, the invitation to the Community Garden, which opens the link step
  * for an account in no garden.
  *
- * The account step starts on whichever account this browser last used with Green Goods, which
- * need not be the one meant for the chat. So with one connected it always offers to let it go.
+ * The page opens on whichever account this browser last used with Green Goods, which need not be
+ * the one meant for the chat. So with one connected, the profile offers to sign the browser out
+ * of it from the first screen, before Continue, and the account step offers to let it go.
  */
 export function CeremonyView(props: CeremonyViewProps) {
   const intl = useIntl();
@@ -135,14 +139,15 @@ export function CeremonyView(props: CeremonyViewProps) {
     signer !== null &&
     props.account?.toLowerCase() !== signer.toLowerCase();
 
-  // Letting go of the connected account is offered where the page is about to ask it for a
-  // signature and it may be the wrong one: on the account step, and where the page says another
+  // Until the page asks the connected account for a signature, the profile can sign this browser
+  // out of it at once: no Continue and no signature, so another account can connect. On the
+  // account step this is the same release as the link under its rows.
+  const canSignOut = props.account !== null && UNSIGNED.has(stage);
+  // Past that, letting go of the connected account is offered only where the page says another
   // account must sign. Never while something is being signed or sent, and never once a code is
   // on screen, which stays the code of the account that proved it.
   const canChangeAccount =
-    props.account !== null &&
-    !props.joinSending &&
-    (stage === "connect" || joinWrongAccount || wrongAccount);
+    props.account !== null && !props.joinSending && (joinWrongAccount || wrongAccount);
   // Why the act is switched off, if it is: the wrong account, a publication this page refuses to
   // sign, or one that is still being prepared.
   const block: CeremonyProblem | null =
@@ -395,6 +400,7 @@ export function CeremonyView(props: CeremonyViewProps) {
         account={props.sessionAccount ?? props.account}
         signedIn={props.sessionAccount !== null}
         channel={props.channelLabel}
+        onSignOut={canSignOut ? () => void props.changeAccount() : undefined}
         onChangeAccount={canChangeAccount ? () => void props.changeAccount() : undefined}
         onLeave={SESSION.has(stage) ? () => void props.leave() : undefined}
       />

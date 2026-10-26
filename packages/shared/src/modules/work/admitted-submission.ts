@@ -8,6 +8,7 @@ import { holdingSend } from "../job-queue/send-guards";
 import { MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
+import { findTakeUpOf } from "../job-queue/take-up-hold";
 import { isHeicFile, PendingHeicConversionError } from "./work-attachments";
 import {
   type QueuedWorkSubmission,
@@ -72,8 +73,8 @@ function heldElsewhere(queued: QueuedWorkSubmission, ports: SubmitWorkPorts): Su
  * wakes background preparation, which would otherwise claim the work first and
  * leave it for Upload all, so preparation is held back until this Submit has
  * sent the work or left it queued; it then prepares whatever is left. The
- * draft is held the same way: a send that completes here leaves it to the
- * composer, which retires it once it has the outcome.
+ * draft is held the same way: whatever the send does here, it is left to the
+ * composer, which retires it once the queue holds the work.
  */
 export async function submitAdmittedWork(
   input: ResolvedSubmitWorkCommand,
@@ -97,6 +98,7 @@ async function admitAndSend(
   // so a draft the person changes afterwards is never mistaken for what was sent.
   const drafted = await draftContentOf(input);
   const queued = await ports.queue.admit!(input);
+  input.onAdmitted?.();
   if (queued.newlyAdmitted && drafted !== undefined)
     await noteQueuedDraftContent(queued.jobId, drafted);
   const completed = await jobQueueDB.getWorkCompletion(
@@ -208,6 +210,9 @@ async function admitAndSend(
         ...queuedOutcome(queued, ports.sender),
         kind: "awaiting-confirmation",
       } as SubmitWorkOutcome;
+    // Work for a promise this account is still taking up waits, queued, for the take-up.
+    if (!checkpoint?.transactionHash && (await findTakeUpOf(job, jobQueueDB)))
+      return queuedOutcome(queued, ports.sender);
     // A photo picked before the decoder could load converts in storage first, and
     // the send reads the stored JPEG. Until it can convert, the work waits queued.
     let images = input.images;

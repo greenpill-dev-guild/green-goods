@@ -25,24 +25,14 @@ test.describe("Work Submission CI Tests", () => {
       await page.goto("/home/garden?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      // Each picker is a listbox of cards; a press chooses one.
-      const actionCard = page
-        .getByRole("listbox", { name: "Select Your Action" })
-        .getByRole("option")
-        .first();
-      const gardenCard = page
-        .getByRole("listbox", { name: "Select Your Garden" })
-        .getByRole("option")
-        .first();
-      await expect(actionCard).toBeVisible();
-      await expect(gardenCard).toBeVisible();
-
-      await actionCard.click();
-      await gardenCard.click();
-
-      const startButton = page.getByRole("button", { name: "Start Gardening" });
-      await expect(startButton).toBeEnabled();
-      await startButton.click();
+      // The account's one garden is its active garden, with one action and nothing owed, so
+      // Start's answer is known and the flow opens on Media with that action (DL-131). Start
+      // has no button to press, and the step markers still count four.
+      const steps = page.getByRole("list", { name: "Steps" }).getByRole("listitem");
+      await expect(steps.nth(1)).toHaveAttribute("aria-current", "step", { timeout: 15000 });
+      await expect(steps).toHaveCount(4);
+      await expect(page.getByRole("listbox", { name: "Select Your Action" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Start Gardening" })).toHaveCount(0);
 
       await page.locator("#work-media-upload").setInputFiles({
         name: "planting-proof.png",

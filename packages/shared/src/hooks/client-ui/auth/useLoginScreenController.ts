@@ -8,7 +8,14 @@ import {
   normalizePasskeyAccountIdentifier,
 } from "../../../config/passkeyServer";
 import { trackAuthError } from "../../../modules/app/error-categories";
-import { getStoredUsername } from "../../../modules/auth/session";
+import { getStoredOriginalAccountAddress, getStoredUsername } from "../../../modules/auth/session";
+import { PILOT_PASSKEY_PROFILE } from "../../../modules/auth/account-profile";
+import {
+  PilotAccountProofError,
+  type PilotAccountPreview,
+  type PilotAccountQuote,
+} from "../../../modules/auth/pilot-account-enrollment";
+import { logger } from "../../../modules/app/logger";
 import { useApp } from "../../../providers/App";
 import { copyToClipboard } from "../../../utils/app/clipboard";
 import { debugError } from "../../../utils/debug";
@@ -38,6 +45,89 @@ export function useLoginScreenController(routes: { login: string; home: string }
   const [username, setUsername] = useState("");
   const [recoveryUsername, setRecoveryUsername] = useState("");
   const [screen, setScreen] = useState<LoginScreen>("entry");
+  const pilotInvitation = new URLSearchParams(location.search).get("pilot") === "1";
+  let originalAccountAddress: string | null = null;
+  try {
+    if (!auth.isAuthenticated && auth.loginWithOriginalPasskey)
+      originalAccountAddress = getStoredOriginalAccountAddress();
+  } catch {
+    /* Malformed profile metadata never selects a different account. */
+  }
+  const [pilotPreview, setPilotPreview] = useState<PilotAccountPreview | null>(null);
+  const [pilotQuote, setPilotQuote] = useState<PilotAccountQuote | null>(null);
+  const [pilotBusy, setPilotBusy] = useState(false);
+  const [pilotError, setPilotError] = useState<string | null>(null);
+  const [pilotSkipped, setPilotSkipped] = useState(false);
+  const pilotMounted = useRef(true);
+  const cancelPilotEnrollment = auth.cancelPilotAccountEnrollment;
+  useEffect(() => {
+    pilotMounted.current = true;
+    return () => {
+      pilotMounted.current = false;
+      cancelPilotEnrollment?.();
+    };
+  }, [cancelPilotEnrollment]);
+  const canDiscoverPilot =
+    pilotInvitation &&
+    auth.isAuthenticated &&
+    auth.authMode === "passkey" &&
+    auth.passkeyAccountProfile !== PILOT_PASSKEY_PROFILE &&
+    Boolean(auth.preparePilotAccount);
+
+  const runPilotAction = async (operation: () => Promise<void>) => {
+    setPilotBusy(true);
+    setPilotError(null);
+    try {
+      await operation();
+    } catch (error) {
+      if (!pilotMounted.current) return;
+      logger.warn("[Auth] Pilot account review failed", { error });
+      const message = error instanceof Error ? error.message.toLowerCase() : "";
+      const errorKey =
+        error instanceof PilotAccountProofError && error.pending
+          ? "pending"
+          : message.includes("sponsor") || message.includes("fee ceiling")
+            ? "sponsorshipUnavailable"
+            : message.includes("quote")
+              ? "quoteChanged"
+              : "operationFailed";
+      setPilotError(intl.formatMessage({ id: `app.login.pilot.${errorKey}` }));
+      setPilotQuote(null);
+      if (error instanceof PilotAccountProofError)
+        setPilotPreview((previous) =>
+          previous ? { ...previous, pending: error.pending } : previous
+        );
+    } finally {
+      if (pilotMounted.current) setPilotBusy(false);
+    }
+  };
+  const reviewPilotAccount = () =>
+    runPilotAction(async () => {
+      if (!auth.preparePilotAccount) throw new Error("Pilot account preparation is unavailable");
+      setPilotPreview(await auth.preparePilotAccount());
+      setPilotQuote(null);
+    });
+  const quotePilotProof = () =>
+    runPilotAction(async () => {
+      if (!auth.quotePilotAccount) throw new Error("Pilot proof quotation is unavailable");
+      setPilotQuote(await auth.quotePilotAccount());
+    });
+  const confirmPilotAccount = () =>
+    runPilotAction(async () => {
+      if (!auth.confirmPilotAccount) throw new Error("Pilot account selection is unavailable");
+      await auth.confirmPilotAccount(pilotQuote?.operationHash);
+    });
+  const reconcilePilotProof = () =>
+    runPilotAction(async () => {
+      if (!auth.reconcilePilotAccount) throw new Error("Pilot proof reconciliation is unavailable");
+      await auth.reconcilePilotAccount();
+    });
+  const keepOriginalAccount = () => {
+    auth.cancelPilotAccountEnrollment?.();
+    setPilotSkipped(true);
+    setPilotPreview(null);
+    setPilotQuote(null);
+  };
   const recoveryAttemptNameRef = useRef<string | null>(null);
   // Whether the attempt in flight creates an account: a prompt that closes then made none.
   const creatingRef = useRef(false);
@@ -170,6 +260,21 @@ export function useLoginScreenController(routes: { login: string; home: string }
       handleAuthError(error, "recover");
     }
   };
+  const loginWithOriginalAccount = async () => {
+    if (!originalAccountAddress || blockUnsupportedPasskeyCeremony()) return;
+    recoveryAttemptNameRef.current = null;
+    begin(
+      intl.formatMessage({
+        id: "app.login.loading.authenticating",
+        defaultMessage: "Signing you in...",
+      })
+    );
+    try {
+      await auth.loginWithOriginalPasskey?.();
+    } catch (error) {
+      handleAuthError(error, "login");
+    }
+  };
   const createAccount = async () => {
     if (blockUnsupportedPasskeyCeremony()) return;
     const name = username.trim();
@@ -242,6 +347,19 @@ export function useLoginScreenController(routes: { login: string; home: string }
   const storedName = auth.hasStoredCredential ? getStoredUsername()?.trim() : undefined;
   return {
     auth,
+    pilotInvitation,
+    originalAccountAddress,
+    loginWithOriginalAccount,
+    pilotPreview,
+    pilotQuote,
+    pilotBusy,
+    pilotError,
+    showPilotEnrollment: canDiscoverPilot && !pilotSkipped,
+    reviewPilotAccount,
+    quotePilotProof,
+    confirmPilotAccount,
+    reconcilePilotProof,
+    keepOriginalAccount,
     browserGuidanceAction: unsupportedPasskeyContext
       ? { label: getBrowserGuidanceLabel(guidance, platform, intl), onClick: switchBrowser }
       : undefined,

@@ -5,7 +5,7 @@ slug: /community/steward-guide/open-a-pool
 description: "Set your garden's promise rules and open its first season or campaign."
 audience: steward
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-10-25
 feature_status: Live
 goal: "Set your garden's promise rules and open its first season or campaign."
 difficulty: "standard"
@@ -15,6 +15,9 @@ next_steps: "/community/steward-guide/seed-promises"
 persona_context: "Stewards setting shared rules, preparing promises, and keeping reviews moving."
 source_of_truth:
   - packages/admin/src/views/Garden/Pool
+  - packages/admin/src/views/Garden/Pool/PoolNotReadyCard.tsx
+  - packages/admin/src/views/Garden/Pool/PoolStatusCard.tsx
+  - packages/shared/src/modules/commitment-pooling/pool-lifecycle.ts
   - packages/admin/src/components/Layout/AccountSettingsPanel.tsx
   - packages/admin/src/components/Layout/AccountSurface.tsx
   - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentRecovery.tsx
@@ -63,7 +66,7 @@ Open a shared place for your garden's promises. Agree the participation rules an
 
 ## Steps
 
-If the pool is **Not Ready**, choose **Set Up Promises**. If it is already taking commitments, read its existing rules and continue to [Seed Promises](/community/steward-guide/seed-promises).
+If the tab says **This garden isn’t taking promises yet**, choose **Set Up Promises**. If its status already reads **Taking promises**, read its existing rules and continue to [Seed Promises](/community/steward-guide/seed-promises).
 
 :::warning Opening fixes the split
 A season or campaign's split becomes fixed when it opens. Read it before signing. A prepared season is only written down; people cannot make promises in it until it opens.
@@ -71,7 +74,7 @@ A season or campaign's split becomes fixed when it opens. Read it before signing
 
 1. In **How It Works**, write what the pool is for and how many open commitments one person may hold.
 2. In **The Season**, enter its name and dates. A season is the main period of work, with only one running at a time. A campaign is a focused effort that can run beside it, or on its own.
-3. In **The Split**, review how recognition is shared. Make each allocation add up to 100%. This records terms; it does not distribute money.
+3. In **The Split**, review how recognition is shared. The six shares must total 100%, and so must the **Gardeners' part**: a part shared equally for **Taking part** and the rest by **Proven contribution**, which starts at 20% and 80%. The split sets the terms for sharing an impact certificate built from the season's kept promises; the dashboard cannot create that certificate yet. It does not distribute money.
 4. In **Open**, check the target, the changes, and the wallet-prompt count. Choose **Set Up and Open**. For a later season or campaign, use the opening action shown for that case.
 
 <figure className="gg-figure" style={{maxWidth: '672px'}}>
@@ -81,7 +84,7 @@ A season or campaign's split becomes fixed when it opens. Read it before signing
 
 5. Keep the flow open and follow its progress until the season is shown as open. Several changes may share one wallet prompt, or need separate prompts.
 
-Use **Pool Settings** to change the agreement or commitment limit later. A save can contain more than one change. If it stops partway, the successful changes remain recorded; inspect the progress and current pool before retrying what remains.
+Use **Edit Pool** to open **Pool Settings** and change the agreement or the promise limit later. A save can contain more than one change. If it stops partway, the successful changes remain recorded; inspect the progress and current pool before retrying what remains.
 
 
 <figure className="gg-figure" style={{maxWidth: '672px'}}>

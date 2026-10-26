@@ -50,7 +50,13 @@ const PERSONAL = { kind: "personal", garden: GARDEN } as const;
 
 function renderTakeUp(reread: () => Promise<unknown>) {
   return renderHookWithProviders(() =>
-    useGroupTakeUp({ chainId: 42161, viewer: LINA, queued: new Set(), reread: reread as never })
+    useGroupTakeUp({
+      chainId: 42161,
+      viewer: LINA,
+      queued: new Set(),
+      reread: reread as never,
+      cycleEndTimes: new Map(),
+    })
   );
 }
 

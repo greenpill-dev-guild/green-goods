@@ -14,7 +14,7 @@ import {
   JOURNEY_VIEWER,
   todayAt,
 } from "./clientJourneyFixtures";
-import { FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_SOLAR, FIXTURE_WORK_MEDIA } from "./fixtures";
+import { FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_BANNER, FIXTURE_IMAGE_WASTE } from "./fixtures";
 import { DOCUMENTATION_SUBMISSION } from "./submitWorkFixtures";
 
 const HOUR = 3_600_000;
@@ -68,7 +68,7 @@ function submitted(id: string, actionUID: number, title: string, submittedAt: nu
     gardenAddress: JOURNEY_GARDEN,
     feedback: "",
     metadata: "",
-    media: [FIXTURE_WORK_MEDIA[2]],
+    media: [FIXTURE_IMAGE_WASTE],
     createdAt: Math.floor(submittedAt / 1000),
     status: "pending",
   };
@@ -80,7 +80,7 @@ const SEEDS = queued("job-seeds", 1, "Seed Library Count", new Date(2026, 9, 4, 
 });
 const COMPOST = queued("job-compost", 2, "Compost Turn", todayAt(9, 40), {
   submissionState: "ready",
-}, [FIXTURE_IMAGE_SOLAR]);
+}, [FIXTURE_IMAGE_WASTE]);
 const HERBS = queued("job-herbs", 3, "Herb Spiral Weeding", todayAt(8, 5), {
   submissionState: "photo-pending",
 });
@@ -89,7 +89,7 @@ const SEEDLING_QUEUED = queued("job-seedling", 5, "Seedling Transplant", todayAt
 });
 const EDGING = queued("job-edging", 6, "Path Edging", todayAt(7, 58), {
   submissionState: "checking-submission",
-}, [FIXTURE_WORK_MEDIA[3]]);
+}, [FIXTURE_IMAGE_BANNER]);
 const MULCH_LOG = submitted(
   "0x5eed00000000000000000000000000000000000000000000000000000000c0de",
   7,
@@ -117,7 +117,7 @@ function draft(id: string, actionUID: number, step: DraftWithImages["firstIncomp
     updatedAt,
     images: [],
     attachmentCount: photos,
-    thumbnailUrl: FIXTURE_WORK_MEDIA[1],
+    thumbnailUrl: FIXTURE_IMAGE_BANNER,
   } as DraftWithImages;
 }
 
@@ -142,6 +142,7 @@ function proof(overrides: Partial<PendingProof>): PendingProof {
     source: "queued",
     commitmentId: 7n,
     garden: JOURNEY_GARDEN,
+    savedGarden: JOURNEY_GARDEN,
     commitment: null,
     title: FENCE_TITLE,
     savedAt: todayAt(10, 24),

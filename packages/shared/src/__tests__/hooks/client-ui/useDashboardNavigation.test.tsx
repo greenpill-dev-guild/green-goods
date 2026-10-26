@@ -232,3 +232,39 @@ describe("dashboard returns through the PWA data router", () => {
     }
   });
 });
+
+describe("opening Home's garden switcher from anywhere", () => {
+  function SwitcherOpener() {
+    const dashboard = useDashboardNavigation();
+    return <button onClick={() => dashboard.openGardenSwitcher()}>See Your Gardens</button>;
+  }
+
+  beforeEach(() => useUIStore.getState().resetForAccountChange());
+  afterEach(() => useUIStore.getState().resetForAccountChange());
+
+  it.each([
+    ["/home/profile", "PUSH"],
+    // Already on Home, it adds no second Home to go Back through.
+    ["/home", "POP"],
+  ])("asks Home for the switcher and goes Home from %s", async (from, historyAction) => {
+    const router = createMemoryRouter(
+      ["/home", "/home/profile"].map((path) => ({
+        path,
+        element: path === from ? <SwitcherOpener /> : <p>Home</p>,
+      })),
+      { initialEntries: [from] }
+    );
+    const view = render(<RouterProvider router={router} />);
+    try {
+      await act(async () => {
+        fireEvent.click(await screen.findByRole("button", { name: "See Your Gardens" }));
+      });
+      expect(router.state.location.pathname).toBe("/home");
+      expect(router.state.historyAction).toBe(historyAction);
+      expect(useUIStore.getState().gardenSwitcherRequested).toBe(true);
+    } finally {
+      view.unmount();
+      router.dispose();
+    }
+  });
+});

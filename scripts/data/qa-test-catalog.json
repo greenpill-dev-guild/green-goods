@@ -1880,18 +1880,18 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Home",
-      "scenario": "Arrival toast names the signed-in state and its action lands",
+      "scenario": "Arrival toast names the uploads still on this phone and its action lands",
       "preconditions": [
         "Authenticated session in a fresh browser tab (the toast fires once per tab session per address)",
         "An address that already has a Green Goods name, or that dismissed the ENS reminder before, so only the arrival toast fires (PWA-095 covers the reminder)",
-        "A known state to arrive in: queued work, a saved draft, pending reviews as a steward, or none of these"
+        "A known state to arrive in: work, a review or proof queued in the active garden, the same queued only in another of your gardens, or nothing queued"
       ],
       "steps": [
         "Sign in and land on Home",
-        "Read the toast title and press its action",
+        "Read the toast and press its action",
         "Reload Home in the same tab"
       ],
-      "expected": "One toast fires and matches the state: 'Work is waiting to sync', 'You have a draft saved', 'Gardeners are waiting on you', 'All caught up', 'Welcome back', or 'You're signed in'; its action opens the matching work dashboard tab, narrows Home to your gardens or opens your only garden, or opens Help; a reload in the same tab shows no second toast",
+      "expected": "With something queued, one toast fires: 'Work is waiting to sync'. Queued in the active garden, Review opens Your Work on Pending; queued only in another of your gardens, the toast names that garden and See Your Gardens opens the switcher without switching. With nothing queued, even with a draft saved or work waiting for your review, no toast fires; a reload in the same tab shows no second toast",
       "evidence": "Screenshot of the toast and where its action landed",
       "role": "gardener",
       "tags": ["home"],

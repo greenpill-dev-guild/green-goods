@@ -50,11 +50,7 @@ export {
 // ============================================================================
 export { copyToClipboard } from "./app/clipboard";
 export type { GardenMemberLike } from "./app/garden";
-export {
-  buildGardenMemberSets,
-  gardenHasMember,
-  resolveGardenMemberKey,
-} from "./app/garden";
+export { buildGardenMemberSets, resolveGardenMemberKey } from "./app/garden";
 // ============================================================================
 // HAPTIC FEEDBACK (Vibration API)
 // ============================================================================

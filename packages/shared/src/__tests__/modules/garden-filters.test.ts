@@ -6,7 +6,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { type GardenFiltersState, filterGardens } from "../../modules/garden/filters";
+import {
+  type GardenFiltersState,
+  filterGardens,
+  isGardenListedFor,
+} from "../../modules/garden/filters";
 import { Domain, type Garden } from "../../types";
 
 // ============================================
@@ -15,6 +19,7 @@ import { Domain, type Garden } from "../../types";
 
 const USER_ADDRESS = "0x1111111111111111111111111111111111111111";
 const OTHER_ADDRESS = "0x2222222222222222222222222222222222222222";
+const STRANGER_ADDRESS = "0x3333333333333333333333333333333333333333";
 
 function createGarden(overrides: Partial<Garden> = {}): Garden {
   return {
@@ -49,6 +54,97 @@ function defaultFilters(overrides: Partial<GardenFiltersState> = {}): GardenFilt
 // ============================================
 
 describe("filterGardens", () => {
+  describe("member-only test gardens", () => {
+    const gardens = [
+      createGarden({
+        id: "0xf7b892886998dae960d64a9db488336684f137a0",
+        name: "Renamed Family Garden",
+        openJoining: true,
+        gardeners: [USER_ADDRESS],
+      }),
+      createGarden({
+        id: "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+        name: "Mama Gardens",
+        openJoining: true,
+        stewards: [USER_ADDRESS],
+      }),
+      createGarden({
+        id: "0xf401f34378384713222d1d21f63359cc4E8a858a",
+        name: "Green Goods Community Garden",
+        openJoining: true,
+      }),
+      createGarden({ id: "ordinary", name: "Ordinary Garden", openJoining: true }),
+    ];
+
+    it.each([
+      null,
+      OTHER_ADDRESS,
+    ])("hides test gardens and their open counts for non-member %s", (viewer) => {
+      for (const scope of ["all", "open", "mine"] as const) {
+        const result = filterGardens(gardens, defaultFilters({ scope }), viewer);
+        expect(result.filteredGardens.map((garden) => garden.id)).toEqual(
+          scope === "mine" ? [] : [gardens[2].id, "ordinary"]
+        );
+        expect(result.openGardensCount).toBe(2);
+        expect(result.myGardensCount).toBe(0);
+      }
+    });
+
+    it.each([
+      "all",
+      "open",
+      "mine",
+    ] as const)("keeps gardener and steward memberships in scope %s", (scope) => {
+      const result = filterGardens(gardens, defaultFilters({ scope }), USER_ADDRESS);
+      expect(result.filteredGardens).toEqual(scope === "mine" ? gardens.slice(0, 2) : gardens);
+      expect(result.openGardensCount).toBe(4);
+      expect(result.myGardensCount).toBe(2);
+    });
+
+    it.each([
+      ["owner", "owners"],
+      ["evaluator", "evaluators"],
+    ] as const)("shows a test garden to its %s and counts it as theirs", (_role, list) => {
+      const familyGarden = createGarden({
+        id: gardens[0].id,
+        name: "Aiyeloja Family Garden",
+        gardeners: [OTHER_ADDRESS],
+        [list]: [USER_ADDRESS],
+      });
+
+      const mine = filterGardens([familyGarden], defaultFilters({ scope: "mine" }), USER_ADDRESS);
+      const stranger = filterGardens([familyGarden], defaultFilters(), STRANGER_ADDRESS);
+
+      expect(mine.filteredGardens).toEqual([familyGarden]);
+      expect(mine.myGardensCount).toBe(1);
+      expect(stranger.filteredGardens).toEqual([]);
+    });
+
+    it("recomputes visibility when the signed-in account changes with the same cached gardens", () => {
+      expect(filterGardens(gardens, defaultFilters(), USER_ADDRESS).filteredGardens).toHaveLength(
+        4
+      );
+      expect(filterGardens(gardens, defaultFilters(), OTHER_ADDRESS).filteredGardens).toHaveLength(
+        2
+      );
+      expect(filterGardens(gardens, defaultFilters(), null).filteredGardens).toHaveLength(2);
+    });
+
+    // Home's awaiting list and the switcher read the same rule (DL-126), whatever the id's case.
+    it.each([
+      ["a family garden to its member", "0xf7b892886998dae960d64a9db488336684f137a0", true, true],
+      [
+        "a family garden to anyone else",
+        "0xF7b892886998DAe960D64a9db488336684F137A0",
+        false,
+        false,
+      ],
+      ["any other garden to anyone", "0xaaaa000000000000000000000000000000000001", false, true],
+    ])("lists %s: %s", (_case, id, isMember, listed) => {
+      expect(isGardenListedFor({ id }, isMember)).toBe(listed);
+    });
+  });
+
   // ------------------------------------------
   // Scope: all
   // ------------------------------------------

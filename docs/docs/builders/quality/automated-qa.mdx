@@ -1,0 +1,198 @@
+---
+title: Automated QA
+sidebar_label: Automated QA
+slug: /builders/quality/automated-qa
+audience: developer
+owner: product
+last_verified: 2026-10-22
+feature_status: In progress
+source_of_truth:
+  - .claude/context/qa.md
+  - scripts/data/qa-test-catalog.json
+  - scripts/data/qa-test-id-ledger.json
+  - packages/qa/README.md
+  - packages/qa/auth.ts
+  - packages/qa/runs.ts
+  - packages/qa/api/runs.ts
+  - docs/docs/builders/quality/product-experience-qa.mdx
+keywords: [QA, automated QA, dry run, qualification, PWA, admin]
+---
+
+# Automated QA
+
+Use this workflow to repeat a bounded product dry run and record what it actually proves.
+It covers a dedicated test garden in the PWA and admin dashboard, stopping before any product
+write. It complements [Product QA](./product-experience-qa) and the automated runners in the
+[Testing Guide](/builders/testing).
+
+This workflow is **in progress**. An assisted walkthrough does not qualify unattended execution.
+Keep recurring execution read-only until profile persistence, authentication, production analytics
+controls or recurring permission, and recorder rollover have passed the gates below. This page defines the procedure;
+private operational records own qualification evidence, actual runs, and schedule configuration.
+
+## Scope and environments
+
+Agree on one dedicated test garden and a case list before starting. Use dedicated cloud Brave
+profiles with separate Rabby gardener and steward identities. Never use personal wallets or the
+user's computer. Keep garden identity, account addresses, credentials, and membership evidence
+in the restricted operational record.
+
+| Surface | Target and interpretation |
+|---|---|
+| Production client and PWA | [www.greengoods.app](https://www.greengoods.app). Record whether this is a desktop tab or an installed app on actual hardware. |
+| Production admin | [admin.greengoods.app](https://admin.greengoods.app). Verify the selected garden and steward access before opening review views. |
+| QA recorder | [qa.greengoods.app](https://qa.greengoods.app). This records findings; its hostname does not make a product run a beta run. |
+| Beta, staging, or local product | Use only the explicitly selected deployment and record its origin and environment separately. Results do not establish production coverage. |
+
+Resolve the deployed client, admin, and recorder revisions each time. Keep the observation date,
+origin, build SHA, and deployed catalog revision in the private receipt. A previously verified SHA
+is a dated observation, never a permanent target or proof of the current deployment. Record unknown
+revisions as unknown. Prefix any case observed outside the run's environment with `[prod]`,
+`[beta]`, or `[local]` as appropriate.
+
+## Qualify before recurring browser work
+
+The operating cadence is Monday at 09:00 in `America/Los_Angeles`, beginning October 26, 2026.
+Preserve that timezone through daylight saving changes. Scheduling a task does not qualify its
+browser work or authorize product writes.
+
+Before enabling recurring browser coverage, retain private evidence for every gate:
+
+1. **Scope and roles.** Confirm the dedicated garden, gardener membership, steward membership
+   and badge, accessible surfaces, and exact active catalog cases. Missing roles or fixtures
+   cannot be replaced by a different garden or an elevated identity.
+2. **Cloud browser continuity.** Demonstrate that the scheduled execution context can reach the
+   intended Brave profiles and preserve their separate wallet identities after a restart and
+   between scheduled invocations. A manual login or walkthrough is insufficient.
+3. **Authentication renewal.** The recorder requires allowlisted Sign-In With Ethereum (SIWE)
+   and has 12-hour sessions. Prove authorized renewal in the scheduled context, including expiry
+   and rejection handling, without exporting credentials or weakening the allowlist. Product
+   sessions need their own continuity check. A weekly run cannot rely on last week's cookie.
+4. **Analytics isolation or permission.** Verify production analytics suppression for both product
+   surfaces, or retain explicit recurring permission covering the bounded synthetic traffic,
+   hosts, and identities. One-off approval for manual test analytics alone is not recurring
+   permission. If neither route is qualified, keep production browser coverage blocked.
+5. **Safe interactions.** Verify the last non-mutating step for each selected flow against the
+   current build. Stop earlier whenever upload, remote save, or queue behavior is uncertain.
+6. **Recorder coordination.** Prove access, own-wallet saves, durable history reads, and the
+   rollover reconciliation procedure below. Record permission to write QA results separately
+   from permission to interact with the product.
+
+When a gate fails, continue only authorized read-only connector and HTTP checks. Record browser
+coverage as blocked with the missing prerequisite. HTTP success is availability evidence, not
+rendered or authenticated proof. Do not repair access by changing credentials, permissions,
+allowlists, dependencies, CI, or deployments within this workflow.
+
+## Select canonical cases and roles
+
+Use active IDs from `scripts/data/qa-test-catalog.json` and the generated [Test Cases](./test-cases)
+page. The append-only `scripts/data/qa-test-id-ledger.json` preserves issued IDs. Resolve the
+catalog pinned by the recorder deployment before recording; do not invent IDs, reuse retired IDs,
+or edit the generated page. If there is no exact case, retain the observation privately for catalog
+review without assigning a guessed ID.
+
+These examples identify relevant catalog cases, not a fixed weekly inventory or permission to
+complete every step in a case. Read each case's current steps, expected result, priority,
+`requiresProduction`, `requiresDevice`, and transaction tags before selecting it.
+
+| Role and surface | Canonical examples | Dry-run coverage boundary |
+|---|---|---|
+| Gardener, PWA | `PWA-097`, `PWA-098`, `PWA-099` | Read garden context, assessments, and membership with the intended identity. |
+| Gardener, PWA work | `PWA-077`, `PWA-137` | Use synthetic local draft content; inspect validation and review only where proven non-mutating. Do not submit. |
+| Gardener, PWA offers and requests | `PWA-081`, `PWA-108`, `PWA-109` | Inspect composition and final review; leave placement buttons untouched. |
+| Gardener, commitment detail | `PWA-101`, `PWA-084`, `PWA-088`, `PWA-091` | Read detail; stop before Take Up, Send for Confirmation, or Link Work. |
+| Steward, admin | `ADM-004`, `ADM-107` | Inspect pending work and the review dialog without approving or rejecting. |
+| Steward, admin assessment | `ADM-005`, `ADM-046` | Inspect input validation and safe review states; stop before submission or upload. |
+| Steward, admin certificates | `ADM-106`, `ADM-194` | Read existing records or a safe form state; do not mint or upload. |
+| Device and additional roles | `PWA-IOS-001`, `PWA-AND-001`, `ADM-196` | Require actual devices or the evaluator role. A desktop viewport or steward session is not a substitute. |
+
+Keep missing fixture, device, passkey, evaluator, deployer, and other-garden cases Blocked when
+required by the agreed scope, or explicitly N/A when excluded at scope-setting. Leave unwalked
+cases without an entry; N/A must not hide a skipped case. Desktop Brave does not establish mobile
+hardware acceptance. Do not inherit completion of a multi-role journey from one role's review.
+
+## Stop before product writes
+
+The stop point is the **last verified non-mutating form or review state**, not the wallet prompt.
+Final Work, Assessment, Hypercert, avatar, and banner actions may upload or mutate before signing.
+**Take Up**, **Send for Confirmation**, and **Link Work** enqueue immediately. Do not click them
+as a way to inspect the next step. An absent transaction tag does not prove an action is read-only.
+
+Local synthetic drafts are permitted only where they remain local and do not enter a submission
+queue. No production upload, remote save, queue admission, transaction, attestation, confirmation,
+payment, role change, or deployment is allowed. Do not test rejection by initiating a prohibited
+action and then declining the wallet prompt. Stop if existing queued work could be sent; do not
+flush, replay, or discard someone else's work to make the test possible.
+
+Walk the gardener and steward surfaces independently, retaining the same identity per role.
+Capture each reached stage before moving on. A final-review observation is a stage note, never a
+full end-to-end Pass for a case that also requires submission, review decisions, or settlement.
+Use Blocked for the required remainder when the write boundary prevents completion, and explain
+which stages were observed. Only record Pass when the whole selected catalog case was proved.
+
+## Coordinate the shared recorder
+
+Recorder writes are separate from prohibited product writes. Allowlisted testers write their own
+wallet result shards, which contribute to the shared team result. Never overwrite another tester's
+findings or treat a team verdict as proof of your own walk.
+
+The recorder has exactly one shared open run. **Start new run** closes it and opens a successor;
+closed runs remain readable. Rollover is **non-idempotent**: repeating it can close a newly opened
+run even though the intended weekly interval already exists.
+
+For each qualified interval:
+
+1. Read the current run and durable run history. Check the environment, catalog revision, build
+   references, active human work, and unsent recorder notes before proposing a rollover.
+2. Use one unique interval label, for example `weekly-production-YYYY-MM-DD`, in the private
+   operational record. Search history for that interval before creating anything. A label is a
+   reconciliation key, not a server-side idempotency guarantee.
+3. Reuse the intended open run if it already exists. If the interval is already closed, preserve
+   it and report the state instead of creating a duplicate. If other work is active, defer
+   rollover and request coordination; never close a human session just to satisfy the schedule.
+4. Only after reconciliation, create the successor once, targeting the current run you inspected.
+   Confirm the returned run identity, environment, and retained predecessor in durable history.
+5. On a timeout, conflict, or uncertain response, reread the run index and history before any
+   further action. Reconcile a successful creation rather than retrying blindly. If the outcome
+   cannot be established, stop recorder writes and report uncertainty.
+6. Save stage notes and verdicts only to your authenticated shard in the intended open run.
+   Verify durable readback and the receiving run. If rollover races with saving, reconcile where
+   the note landed; do not move old findings into a new interval or overwrite others' results.
+
+An expired session or allowlist rejection blocks recording; it does not justify bypassing auth.
+Keep sanitized pending observations in restricted storage and report the needed action. Do not
+claim a successful QA-app run until both creation or reuse and result persistence are confirmed.
+
+## Evidence and closeout
+
+For each case, keep a private receipt with the interval and run identity, timestamp and timezone,
+environment and origins, observed build and catalog revisions, role, browser engine and session,
+device or viewport, steps reached, expected and observed behavior, verdict, safe stop point, and
+remaining gate. Label evidence as authenticated Brave only when authentication was actually
+verified in that session. Label public Brave navigation, blocked login attempts, and HTTP-only
+checks according to what was observed; a dedicated cloud profile alone proves no authentication.
+Distinguish desktop, real installed mobile hardware, and mock or clean-room browser evidence.
+
+Keep screenshots, recordings, garden contents, account addresses, tester attribution, actual run
+labels and results, historical telemetry, and private evidence links out of repository docs.
+Use synthetic examples here. Never log credentials, signatures, session cookies, sensitive raw
+errors, or private replays. Store inspected evidence only in the restricted QA locations defined
+by the QA contract; sanitize summaries before sharing.
+
+Close each interval with covered IDs and stages, blocked and excluded cases, recorder persistence
+status, and needed action. Preserve historical runs. Report missed intervals without catch-up
+browser work or retroactive runs. Notify only for a new failure, recovery, missed run, changed
+access, or needed action; do not send repeated unchanged-status messages. A partial dry run must
+not be described as comprehensive QA or successful unattended execution.
+
+## Ownership and maintenance
+
+Product owns scope and qualification. The operator maintains private schedule and qualification
+records; this page does not enable a schedule. Requalify affected gates when origins, builds,
+authentication, profiles, analytics controls, catalog expectations, or write boundaries change.
+
+The catalog owns case definitions; `.claude/context/qa.md` owns privacy, attribution, verdicts,
+and artifact locations. `packages/qa/README.md` and its implementation own authentication and run
+storage behavior. Keep this page aligned with those authorities without copying private results.
+See [Product QA](./product-experience-qa) for human sessions and [QA package](../packages/qa) for
+the recorder's implementation boundaries.

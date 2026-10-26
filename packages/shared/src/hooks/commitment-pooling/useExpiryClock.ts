@@ -5,7 +5,11 @@ import { useTimeout } from "../utils/useTimeout";
 
 const MAX_TIMEOUT_MS = 2_147_483_647;
 
-/** Keep expiry eligibility current in an open review, including after sleep. */
+/**
+ * The chain's clock, in Unix seconds, kept current while a surface is open and after sleep: it
+ * ticks when one of the commitments falls due, and on focus or return. Expiry reads it, and
+ * take-up through `useDueClock`.
+ */
 export function useExpiryClock(input: {
   commitments: readonly Pick<CommitmentReadModel, "onchainState" | "cycleId" | "dueDate">[];
   cycleEndTimes: ReadonlyMap<string, bigint | null>;

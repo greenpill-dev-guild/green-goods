@@ -24,6 +24,7 @@ source_of_truth:
   - packages/shared/src/modules/data/ipfs/pinata.ts
   - packages/shared/src/modules/work/prepare-queued-work.ts
   - packages/shared/src/modules/work/work-attachments.ts
+  - packages/shared/src/modules/work/image-metadata.ts
   - packages/shared/src/hooks/analytics/useAnalyticsIdentity.ts
   - packages/shared/src/modules/app/posthog-browser.ts
   - packages/shared/src/workflows/auth-passkey-adapters.ts
@@ -212,7 +213,7 @@ Only add what you are comfortable making public.
 
 Green Goods does not add your location unless you turn on **Share Location** when you submit. If you do, an approximate location, to about 100 meters, is published with the work.
 
-Separately, your phone's camera may save details inside a photo, such as the time and sometimes the place. The app does not reliably remove these. If that matters to you, turn off location tagging in your camera before you take photos for Green Goods.
+Separately, your phone's camera may save details inside a photo, such as the time and sometimes the place. Green Goods removes these from your work photos before it publishes them, though photos published before it started doing so keep them. It does not remove them from videos yet. If that matters to you, turn off location tagging in your camera before you record video for Green Goods.
 
 </FaqQuestion>
 

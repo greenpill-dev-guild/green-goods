@@ -37,6 +37,11 @@ export interface MediaCardProps
   mediaCount?: string;
   /** One line; a long title ends in an ellipsis and shows in full on hover. */
   title: string;
+  /**
+   * `2` wraps the title onto two lines and keeps both, so cards side by side, such as the Start
+   * step's two-up tiles, keep one height; a longer title clips at the second line.
+   */
+  titleLines?: 1 | 2;
   /** The card's one pill, its status, under the title. */
   status?: ReactNode;
   /**
@@ -110,6 +115,7 @@ export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function 
     mediaLabel,
     mediaCount,
     title,
+    titleLines = 1,
     status,
     subtitle,
     details,
@@ -137,6 +143,7 @@ export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function 
           <span
             className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-[rgb(var(--gg-card-surface,var(--bg-white-0))/0.9)] px-2.5 py-0.75 type-meta-sm font-semibold text-text-sub"
             title={mediaLabel}
+            data-slot="media-label"
           >
             {mediaLabel}
           </span>
@@ -145,7 +152,13 @@ export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function 
       </div>
 
       <div className={slots.body()}>
-        <h3 className="truncate type-card-title text-text-strong" title={title}>
+        <h3
+          className={cn(
+            "type-card-title text-text-strong",
+            titleLines === 2 ? "line-clamp-2 min-h-[2lh] [overflow-wrap:anywhere]" : "truncate"
+          )}
+          title={title}
+        >
           {title}
         </h3>
         {status ? <div className="flex min-w-0">{status}</div> : null}
@@ -209,10 +222,12 @@ MediaCard.displayName = "MediaCard";
 export function MediaCardSkeleton({
   mediaShape = "photo",
   layout = "stacked",
+  titleLines = 1,
   className,
 }: {
   mediaShape?: MediaCardShape;
   layout?: MediaCardLayout;
+  titleLines?: 1 | 2;
   className?: string;
 }) {
   const slots = mediaCardVariants({ layout, mediaShape });
@@ -227,6 +242,11 @@ export function MediaCardSkeleton({
         <span className="flex h-5 w-full items-center">
           <span className="h-3.5 w-2/3 rounded bg-bg-soft-200" />
         </span>
+        {titleLines === 2 ? (
+          <span className="flex h-5 w-full items-center">
+            <span className="h-3.5 w-1/2 rounded bg-bg-soft-200" />
+          </span>
+        ) : null}
         <span className="flex h-4 w-full items-center">
           <span className="h-2.5 w-1/2 rounded bg-bg-soft-200" />
         </span>

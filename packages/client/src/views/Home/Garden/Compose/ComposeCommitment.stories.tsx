@@ -55,7 +55,12 @@ function withSavedDraft(title: string) {
       isPending: false,
       enqueue: fn(),
     } as unknown as ReturnType<typeof useCommitmentJobs>);
-    mocked(useHasRole).mockReturnValue({ hasRole: true, isLoading: false, error: null });
+    mocked(useHasRole).mockReturnValue({
+      hasRole: true,
+      isLoading: false,
+      error: null,
+      refetch: fn(),
+    });
     useCommitmentComposerDraftStore.setState({
       drafts: {
         [DRAFT_KEY]: {

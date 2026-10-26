@@ -78,7 +78,9 @@ export function resetRetiredWorkDraft(scope: string | null, epoch: number) {
  * The drafts Your Work lists and counts.
  *
  * Submit admits work to the upload queue before it asks for a signature, and
- * the composer keeps its draft so a declined prompt can be answered again.
+ * the composer retires its draft once the queue holds the work, whatever the
+ * send does. A draft can still outlive the Submit that queued its work: its
+ * retirement failed, or it was left before Submit retired drafts that way.
  * While that work waits in the queue it is listed there, so its draft is not a
  * second item. Only then: sending or discarding the queued work removes the
  * draft, and a draft with nothing queued stays where the person can remove it,

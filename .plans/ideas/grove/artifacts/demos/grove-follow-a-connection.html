@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grove · Follow a connection</title>
+<style>
+:root{color-scheme:light;--background:#faf8f1;--foreground:#23372b;--muted-foreground:#657163;--viz-series-1:#32734c;--viz-series-2:#b16a35;--viz-series-3:#6b7299}body{margin:0;padding:20px;background:var(--background);color:var(--foreground);font:15px/1.5 system-ui,sans-serif}a{color:inherit}.prototype-note{max-width:1200px;margin:0 auto 16px;padding:12px 16px;border:1px solid #cbd3c4;border-radius:12px;background:#f0f2e8}.prototype-note a{font-weight:600}.prototype-note p{margin:4px 0}button,input,select{font:inherit}:focus-visible{outline:3px solid #28784f;outline-offset:4px}
+</style>
+</head>
+<body>
+<aside class="prototype-note" aria-label="Prototype context"><a href="index.html">← All Grove demos</a><p><strong>Design prototype.</strong> Synthetic design prototype. No live garden data.</p></aside>
+<div id="grove-follow-a-connection" aria-label="Grove garden exploration">
+  <div class="gv-shell">
+    <header class="gv-header">
+      <div class="gv-brand">grove<span aria-hidden="true">✳</span></div>
+      <div class="gv-garden">Cedar Grove<small>Garden knowledge</small></div>
+      <span class="gv-demo">Demo garden</span>
+    </header>
+    <nav class="gv-nav" aria-label="Garden navigation"></nav>
+    <main class="gv-main"></main>
+    <footer class="gv-footer"><span>Fictional garden · Interactive design study</span><span class="gv-footer-note">Knowledge grows through connection.</span></footer>
+    <p class="gv-announcement" role="status" aria-live="polite"></p>
+  </div>
+</div>
+<style>
+#grove-follow-a-connection{
+ --gv-paper:light-dark(#FAF8F5,#1C1917);--gv-surface:light-dark(#FFFFFF,#25231F);--gv-ink:light-dark(#292524,#F5F5F4);--gv-muted:light-dark(#68615C,#BDB5AD);--gv-rule:light-dark(#DFD8CF,#49453D);--gv-green:light-dark(#1A7544,#C2F5DA);--gv-on-green:light-dark(#FFFFFF,#122A1D);--gv-soft:light-dark(#EDF3E7,#29352A);--gv-earth:light-dark(#AF9B7C,#8D816F);--gv-thread:light-dark(#9B947F,#8F9181);--gv-wash:light-dark(#F1EFE4,#252920);--gv-amber:light-dark(#85581E,#E1BD87);--gv-shadow:light-dark(#3025150D,#00000020);
+ color:var(--gv-ink);font:400 14px/1.5 Inter,ui-sans-serif,system-ui,sans-serif;container-type:inline-size;
+}
+#grove-follow-a-connection *{box-sizing:border-box}
+#grove-follow-a-connection .gv-shell{background:var(--gv-paper);border-radius:20px;isolation:isolate;overflow:hidden;min-width:0}
+#grove-follow-a-connection button{font:inherit;color:inherit}
+#grove-follow-a-connection button:disabled{opacity:.6}
+#grove-follow-a-connection .gv-header{display:flex;align-items:center;gap:22px;padding:22px 30px;border-bottom:1px solid var(--gv-rule);min-height:87px}
+#grove-follow-a-connection .gv-brand{font:400 32px/1 Georgia,serif;letter-spacing:-1.7px;display:flex;align-items:center;gap:9px}
+#grove-follow-a-connection .gv-brand span{font:400 19px/1 system-ui;color:var(--gv-green);letter-spacing:0}
+#grove-follow-a-connection .gv-garden{border-left:1px solid var(--gv-rule);padding-left:22px;font-size:13px;font-weight:500}
+#grove-follow-a-connection .gv-garden small{display:block;font-size:11px;font-weight:400;color:var(--gv-muted);margin-top:3px}
+#grove-follow-a-connection .gv-demo{margin-left:auto;margin-right:70px;font-size:11px;color:var(--gv-muted)}
+#grove-follow-a-connection .gv-nav{display:flex;align-items:center;gap:16px;padding:12px 30px;min-height:65px;border-bottom:1px solid var(--gv-rule);flex-wrap:wrap}
+#grove-follow-a-connection .gv-back{border:1px solid var(--gv-rule);border-radius:999px;background:var(--gv-surface);padding:9px 14px;min-height:42px;display:inline-flex;gap:8px;align-items:center;font-size:12px;white-space:nowrap}
+#grove-follow-a-connection .gv-breadcrumb{display:flex;align-items:center;gap:8px;color:var(--gv-muted);font-size:12px;flex-wrap:wrap}
+#grove-follow-a-connection .gv-breadcrumb button{background:transparent;border:0;padding:6px 0;color:var(--gv-muted);text-decoration:underline;text-underline-offset:4px}
+#grove-follow-a-connection .gv-breadcrumb strong{color:var(--gv-ink);font-weight:500}
+#grove-follow-a-connection .gv-heading{padding:26px 30px 8px;display:flex;justify-content:space-between;align-items:flex-start;gap:22px}
+#grove-follow-a-connection h1{font:400 32px/1.17 Georgia,serif;letter-spacing:-.6px;margin:0}
+#grove-follow-a-connection .gv-subtitle{color:var(--gv-muted);font-size:13px;margin:9px 0 0;max-width:560px}
+#grove-follow-a-connection .gv-overview-note{align-self:center;font-size:12px;color:var(--gv-green);padding:7px 11px;background:var(--gv-soft);border-radius:999px;white-space:nowrap}
+#grove-follow-a-connection .gv-map{position:relative;height:445px;margin:0 18px;background:radial-gradient(ellipse at 48% 48%,var(--gv-wash),var(--gv-paper) 68%)}
+#grove-follow-a-connection .gv-map svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+#grove-follow-a-connection .gv-thread{stroke:var(--gv-thread);fill:none;stroke-width:1.5;stroke-linecap:round}
+#grove-follow-a-connection .gv-thread.new{stroke:var(--gv-green);stroke-width:2;stroke-dasharray:5 7}
+#grove-follow-a-connection .gv-filament{fill:var(--gv-thread);opacity:.32}
+#grove-follow-a-connection .gv-node{position:absolute;transform:translate(-50%,-50%);z-index:2;display:flex;align-items:center;gap:12px;min-height:62px;padding:12px 18px;border:1px solid var(--gv-rule);border-radius:38% 48% 43% 36% / 45% 47% 42% 44%;background:var(--gv-surface);text-align:left;box-shadow:0 4px 14px var(--gv-shadow);white-space:nowrap}
+#grove-follow-a-connection button.gv-node:hover{border-color:var(--gv-green);background:var(--gv-soft)}
+#grove-follow-a-connection .gv-node strong{display:block;font-size:15px;font-weight:500;line-height:1.35}
+#grove-follow-a-connection .gv-node small{display:block;font-size:11px;color:var(--gv-muted);margin-top:4px;line-height:1.3}
+#grove-follow-a-connection .gv-node .gv-node-status{color:var(--gv-green);font-weight:500}
+#grove-follow-a-connection .gv-node .gv-open{font-size:16px;color:var(--gv-muted);margin-left:4px}
+#grove-follow-a-connection .gv-pin{width:11px;height:11px;border:1.5px solid var(--gv-earth);border-radius:50%;flex-shrink:0;background:var(--gv-paper)}
+#grove-follow-a-connection .gv-node.is-fresh{border-color:var(--gv-green);background:var(--gv-soft)}
+#grove-follow-a-connection .gv-node.is-fresh .gv-pin{background:var(--gv-green);border-color:var(--gv-green);box-shadow:0 0 0 4px var(--gv-soft),0 0 0 5px var(--gv-green)}
+#grove-follow-a-connection .gv-node.source .gv-pin{border-radius:2px;transform:rotate(45deg)}
+#grove-follow-a-connection .gv-node.root{min-height:98px;min-width:132px;justify-content:center;flex-direction:column;gap:8px;border:0;background:var(--gv-soft);text-align:center;box-shadow:0 0 0 8px var(--gv-paper),0 0 0 9px var(--gv-rule)}
+#grove-follow-a-connection .gv-node.root .gv-pin{width:17px;height:17px;border:0;background:var(--gv-green)}
+#grove-follow-a-connection .gv-node.root strong{font:400 19px/1.2 Georgia,serif}
+#grove-follow-a-connection .gv-node.root small{margin-top:0}
+#grove-follow-a-connection .gv-connection{position:absolute;z-index:3;transform:translate(-50%,-50%);border:1px solid var(--gv-green);border-radius:999px;padding:10px 15px;min-height:44px;background:var(--gv-green);color:var(--gv-on-green);font-size:12px;box-shadow:0 0 0 7px var(--gv-paper);white-space:nowrap}
+#grove-follow-a-connection .gv-map-note{position:absolute;bottom:4px;left:12px;right:12px;text-align:center;color:var(--gv-muted);font-size:11px;margin:0}
+#grove-follow-a-connection .gv-footer{border-top:1px solid var(--gv-rule);display:flex;justify-content:space-between;gap:15px;padding:14px 30px;font-size:11px;color:var(--gv-muted);flex-wrap:wrap}
+#grove-follow-a-connection .gv-story{display:grid;grid-template-columns:minmax(260px,.92fr) minmax(0,1.08fr);padding:22px 30px 30px;gap:28px;align-items:start}
+#grove-follow-a-connection .gv-story-map{height:355px;margin:0;border-radius:18px;background:radial-gradient(ellipse at 48% 50%,var(--gv-wash),var(--gv-paper) 75%)}
+#grove-follow-a-connection .gv-story-map .gv-node{padding:12px 15px}
+#grove-follow-a-connection .gv-predicate{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);color:var(--gv-green);padding:4px 10px;font-size:12px;background:var(--gv-paper);border-radius:999px;white-space:nowrap}
+#grove-follow-a-connection .gv-story-map .gv-map-note{bottom:12px}
+#grove-follow-a-connection .gv-detail{background:var(--gv-surface);border:1px solid var(--gv-rule);border-radius:18px;padding:25px;min-width:0}
+#grove-follow-a-connection .gv-eyebrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:17px;color:var(--gv-muted);font-size:11px}
+#grove-follow-a-connection .gv-badge{border-radius:999px;background:var(--gv-soft);color:var(--gv-green);padding:4px 9px;font-size:11px;font-weight:500}
+#grove-follow-a-connection h2{font:400 25px/1.25 Georgia,serif;margin:0 0 14px;letter-spacing:-.3px}
+#grove-follow-a-connection .gv-detail p{font-size:14px;line-height:1.65;margin:12px 0;color:var(--gv-muted)}
+#grove-follow-a-connection .gv-detail .gv-explanation{color:var(--gv-ink)}
+#grove-follow-a-connection .gv-primary{border:1px solid var(--gv-green);border-radius:999px;background:var(--gv-green);color:var(--gv-on-green);padding:12px 19px;min-height:46px;margin-top:15px;display:inline-flex;gap:12px;align-items:center;font-size:13px}
+#grove-follow-a-connection .gv-detail .gv-context{font-size:12px;margin:20px 0 0;border-top:1px solid var(--gv-rule);padding-top:15px}
+#grove-follow-a-connection .gv-source-body{font:400 17px/1.7 Georgia,serif;color:var(--gv-ink)}
+#grove-follow-a-connection .gv-detail .gv-source-body p{font:inherit;color:inherit;margin:17px 0}
+#grove-follow-a-connection .gv-source-body mark{background:var(--gv-soft);color:var(--gv-ink);box-decoration-break:clone;-webkit-box-decoration-break:clone;padding:2px 3px}
+#grove-follow-a-connection .gv-detail .gv-source-meta{font-size:12px;line-height:1.7;color:var(--gv-muted);margin:0 0 22px}
+#grove-follow-a-connection .gv-source-why{font-size:12px;color:var(--gv-muted);margin:20px 8px;line-height:1.6;text-align:center}
+#grove-follow-a-connection .gv-source-why strong{color:var(--gv-ink);font-weight:500}
+#grove-follow-a-connection .gv-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#grove-follow-a-connection .gv-enter .gv-thread.new{stroke-dasharray:5 7;animation:gv-thread-reveal 500ms ease-out both}
+#grove-follow-a-connection .gv-enter .gv-node{animation:gv-arrive 280ms ease-out both}
+@keyframes gv-arrive{from{transform:translate(-50%,calc(-50% + 9px))}to{transform:translate(-50%,-50%)}}
+@keyframes gv-thread-reveal{from{stroke-dashoffset:25}to{stroke-dashoffset:0}}
+@container(max-width:700px){
+ #grove-follow-a-connection .gv-story{grid-template-columns:1fr;gap:16px;padding-top:8px}
+ #grove-follow-a-connection .gv-story-map{height:220px}
+ #grove-follow-a-connection .gv-source-why{display:none}
+ #grove-follow-a-connection .gv-node{padding:11px 13px;gap:9px}
+ #grove-follow-a-connection .gv-node strong{font-size:14px}
+ #grove-follow-a-connection .gv-node.root{min-width:112px;min-height:88px}
+ #grove-follow-a-connection .gv-heading{flex-wrap:wrap;gap:12px}
+}
+@container(max-width:520px){
+ #grove-follow-a-connection .gv-header{padding:18px;gap:16px}
+ #grove-follow-a-connection .gv-garden{padding-left:16px}
+ #grove-follow-a-connection .gv-demo{display:none}
+ #grove-follow-a-connection .gv-nav{padding:10px 18px;gap:10px}
+ #grove-follow-a-connection .gv-heading{padding:20px 18px 8px}
+ #grove-follow-a-connection h1{font-size:28px}
+ #grove-follow-a-connection .gv-map{height:575px;margin:0 6px}
+ #grove-follow-a-connection .gv-node{min-height:60px;padding:11px 14px}
+ #grove-follow-a-connection .gv-node strong{font-size:14px}
+ #grove-follow-a-connection .gv-node.root{min-height:80px;min-width:110px}
+ #grove-follow-a-connection .gv-map-note{font-size:11px;bottom:10px}
+ #grove-follow-a-connection .gv-story{padding:6px 18px 22px}
+ #grove-follow-a-connection .gv-story-map{height:255px;margin:0}
+ #grove-follow-a-connection .gv-detail{padding:21px}
+ #grove-follow-a-connection .gv-story-map .gv-node{padding:11px 13px}
+ #grove-follow-a-connection .gv-footer{padding:13px 18px}
+ #grove-follow-a-connection .gv-footer-note{display:none}
+ #grove-follow-a-connection .gv-overview-note{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){#grove-follow-a-connection *,#grove-follow-a-connection *:before,#grove-follow-a-connection *:after{animation:none!important;transition:none!important}}
+</style>
+<script>
+(()=>{
+ const root=document.getElementById('grove-follow-a-connection');
+ const main=root.querySelector('.gv-main'),nav=root.querySelector('.gv-nav'),announcement=root.querySelector('.gv-announcement');
+ const areas={soil:{name:'Soil care',sub:'Work, observations and ideas for healthier soil.',items:['trial','notes','compost','guide','question']},water:{name:'Water',sub:'The garden’s water observations and maintenance knowledge.',items:['water-notes','rain']},community:{name:'Community',sub:'The people and work that bring the garden together.',items:['circle','workday']},resources:{name:'Resources',sub:'Tools and local partners supporting garden work.',items:['tools','library']}};
+ const records={
+  trial:{name:'Mulch trial',kind:'Garden work',area:'soil',body:'A small trial comparing mulched and uncovered beds. The team is gathering observations before deciding what to try next.'},
+  notes:{name:'Bed observations',kind:'Field notes',area:'soil',body:'Notes and photographs from the trial beds, recorded during the last workday.'},
+  compost:{name:'Compost practice',kind:'Garden practice',area:'soil',body:'The garden’s shared notes on preparing and using compost.'},
+  guide:{name:'Mulching guide',kind:'Saved source',area:'soil',body:'An example reference saved while researching the mulch trial.'},
+  question:{name:'How much mulch?',kind:'Open question',area:'soil',body:'Which depth should we try next, and what observations would help us compare the beds?'},
+  'water-notes':{name:'Water observations',kind:'Field notes',area:'water',body:'The team’s notes about watering and the condition of the beds.'},
+  rain:{name:'Rainwater guide',kind:'Saved reference',area:'water',body:'A reference saved by the garden for planning collection-system maintenance.'},
+  circle:{name:'Volunteer circle',kind:'Garden group',area:'community',body:'The people coordinating regular garden workdays.'},
+  workday:{name:'October workday',kind:'Garden work',area:'community',body:'A planned workday for bed observations, maintenance and shared tool care.'},
+  tools:{name:'Shared tools',kind:'Garden resource',area:'resources',body:'The garden’s inventory of tools available for community work.'},
+  library:{name:'Tool library',kind:'Local partner',area:'resources',body:'An example partner connected to the garden’s shared tool collection.'}
+ };
+ const initial={screen:'overview',area:'soil',record:null};
+ let current={...initial},trail=[],sourceRead=false;
+ const design={curvature:.8};
+ const names={overview:'Garden overview',area:'',connection:'New connection',source:'Source',record:''};
+ function valid(v){return v&&['overview','area','connection','source','record'].includes(v.screen)&&areas[v.area]&&(v.screen!=='record'||records[v.record]);}
+ function restore(input){const s=input?.modelContent?.journey||input?.journey;if(!s||s.version!==1||!valid(s.current))return;current={...s.current};trail=Array.isArray(s.trail)?s.trail.filter(v=>valid(v.state)).slice(-12):[];sourceRead=s.sourceRead===true;}
+ restore(window.openai?.widgetState);
+ function save(){const api=window.openai;if(api?.setWidgetState)Promise.resolve(api.setWidgetState({modelContent:{journey:{version:1,current,trail,sourceRead}},privateContent:null})).catch(()=>{});}
+ function title(s){return s.screen==='area'?areas[s.area].name:s.screen==='record'?records[s.record].name:names[s.screen];}
+ function go(next,key){trail.push({state:{...current},focus:key});current={...current,...next};if(current.screen==='source')sourceRead=true;render(true,'back');save();}
+ function back(){const prev=trail.pop();current=prev?.state||{...initial};render(true,prev?.focus);save();}
+ function home(){current={...initial};trail=[];render(true,'area-soil');save();}
+ const button=(key,content,cls='')=>`<button type="button" class="cursor-interaction ${cls}" data-key="${key}">${content}</button>`;
+ function crumb(){let c=current.screen==='overview'?'<strong aria-current="page">Garden overview</strong>':button('home','Garden overview');if(current.screen!=='overview'){c+=' <span aria-hidden="true">/</span> ';c+=current.screen==='area'?`<strong aria-current="page">${areas[current.area].name}</strong>`:button('area-crumb',areas[current.area].name);if(current.screen!=='area')c+=` <span aria-hidden="true">/</span> <strong aria-current="page">${title(current)}</strong>`;}return c;}
+ function heading(name,sub,badge=''){return `<div class="gv-heading"><div><h1>${name}</h1><p class="gv-subtitle">${sub}</p></div>${badge?`<span class="gv-overview-note">${badge}</span>`:''}</div>`;}
+ function node(id,name,sub,kind='normal',key='',fresh=false){const inner=`<span class="gv-pin" aria-hidden="true"></span><span><strong>${name}</strong>${sub?`<small${fresh?' class="gv-node-status"':''}>${sub}</small>`:''}</span>${key?'<span class="gv-open" aria-hidden="true">→</span>':''}`;return key?`<button type="button" data-node="${id}" data-key="${key}" class="gv-node ${kind} ${fresh?'is-fresh':''} cursor-interaction">${inner}</button>`:`<div data-node="${id}" class="gv-node ${kind}">${inner}</div>`;}
+ function svg(){return '<svg aria-hidden="true" class="gv-lines"></svg>';}
+ function overview(){return heading('Your garden, connected.','Follow an area to explore its work, knowledge and resources.')+`<section class="gv-map" data-map="overview" aria-label="Garden overview map">${svg()}${node('garden','Cedar Grove','Your garden','root')}${Object.entries(areas).map(([id,a])=>node(id,a.name,id==='soil'?'1 new connection':`${a.items.length} records`,'normal',`area-${id}`,id==='soil')).join('')}<p class="gv-map-note">Each branch brings related garden knowledge together.</p></section>`;}
+ function area(){const a=areas[current.area];return heading(a.name,a.sub,current.area==='soil'?'1 new connection':'')+`<section class="gv-map" data-map="area" aria-label="${a.name} knowledge map">${svg()}${node('center',a.name,'Garden area','root')}${a.items.map(id=>node(id,records[id].name,records[id].kind,id==='guide'?'source':'normal',id==='guide'?'direct-source':`record-${id}`)).join('')}${current.area==='soil'?button('connection','New connection <span aria-hidden="true">→</span>','gv-connection'):''}<p class="gv-map-note">${current.area==='soil'?'Dashed thread · suggested connection':'Select a record to read its details.'}</p></section>`;}
+ function storyMap(){return `<div><section class="gv-map gv-story-map" data-map="story" aria-label="The mulching guide may inform the mulch trial">${svg()}${node('guide','Mulching guide','Saved source','source')}${node('trial','Mulch trial','Your garden work')}<span class="gv-predicate">may inform ↓</span><p class="gv-map-note">Suggested by Grove · not yet reviewed</p></section>${current.screen==='source'?'<p class="gv-source-why">Reading in the context of<br><strong>Soil care / Mulch trial</strong></p>':''}</div>`;}
+ function connection(){return heading('New connection','A saved guide may help with your garden’s mulch trial.')+`<div class="gv-story">${storyMap()}<section class="gv-detail" aria-label="Connection detail"><div class="gv-eyebrow"><span class="gv-badge">New connection</span><span>Found 8 Oct</span></div><h2>A guide for your mulch trial.</h2><p class="gv-explanation">You saved a guide about comparing mulched beds. Grove connected it to your <strong>Mulch trial</strong> and its question: <strong>How much mulch?</strong></p><p>The guide suggests a way to record observations that could help the team compare its trial beds.</p>${button('source','Read saved source <span aria-hidden="true">→</span>','gv-primary')}<p class="gv-context">${sourceRead?'Source opened. ':''}This is an AI suggestion. It does not establish that the practice works in your garden.</p></section></div>`;}
+ function source(){return heading('Mulching guide','The saved passage behind this connection.')+`<div class="gv-story">${storyMap()}<article class="gv-detail" aria-label="Saved source"><div class="gv-eyebrow"><span class="gv-badge">Saved source</span><span>Example reference</span></div><h2>Comparing mulch in garden beds</h2><p class="gv-source-meta">Saved 7 Oct 2026 · Connected 8 Oct 2026<br>Illustrative source for this demo</p><div class="gv-source-body"><p>Start with a small comparison that the garden team can observe together.</p><p><mark>Record the mulch depth, recent rainfall and the condition of the soil beneath it. Revisit the same beds over time.</mark></p><p>Keep photographs and notes beside the trial record, so the next workday can build on what the team observed.</p></div><p class="gv-context">Highlighted passage · why Grove suggested this connection</p>${button('back','← Back to '+(trail.length?title(trail[trail.length-1].state):'garden'),'gv-primary')}</article></div>`;}
+ function record(){const r=records[current.record];return heading(r.name,r.kind)+`<div class="gv-story"><section class="gv-map gv-story-map" data-map="record" aria-label="Record in its garden area">${svg()}${node('guide',areas[r.area].name,'Garden area')}${node('trial',r.name,r.kind)}<span class="gv-predicate">includes ↓</span></section><section class="gv-detail" aria-label="Record detail"><div class="gv-eyebrow">Garden record · example</div><h2>${r.name}</h2><p class="gv-explanation">${r.body}</p>${r.area==='soil'&&r===records.trial?button('connection','Explore new connection →','gv-primary'):''}</section></div>`;}
+ function render(animate=false,focusKey=null){nav.innerHTML=`${current.screen==='overview'?'':button('back','← Back to '+(trail.length?title(trail[trail.length-1].state):'garden'),'gv-back')}<div class="gv-breadcrumb">${crumb()}</div>`;main.innerHTML=({overview,area,connection,source,record}[current.screen])();main.classList.toggle('gv-enter',animate);draw();if(animate){announcement.textContent=title(current);if(focusKey){const target=[...root.querySelectorAll('button[data-key]')].find(b=>b.dataset.key===focusKey);target?.focus();}}}
+ function curve(a,b,mode){const k=design.curvature;if(mode==='arch')return [a,[a[0]+(b[0]-a[0])*.18,a[1]-70*k],[b[0]-(b[0]-a[0])*.18,b[1]-75*k],b];if(mode==='vertical')return [a,[a[0]+45*k,a[1]+(b[1]-a[1])*.3],[b[0]-45*k,b[1]-(b[1]-a[1])*.3],b];return [a,[a[0]+(b[0]-a[0])*.17,a[1]+(b[1]-a[1])*.72],[a[0]+(b[0]-a[0])*.72,a[1]+(b[1]-a[1])*.16],b];}
+ function path(p){return `M${p[0].join(',')} C${p[1].join(',')} ${p[2].join(',')} ${p[3].join(',')}`;}
+ function filament(p){const left=[],right=[];for(let i=0;i<=24;i++){const t=i/24,u=1-t;const x=u*u*u*p[0][0]+3*u*u*t*p[1][0]+3*u*t*t*p[2][0]+t*t*t*p[3][0],y=u*u*u*p[0][1]+3*u*u*t*p[1][1]+3*u*t*t*p[2][1]+t*t*t*p[3][1];const dx=3*u*u*(p[1][0]-p[0][0])+6*u*t*(p[2][0]-p[1][0])+3*t*t*(p[3][0]-p[2][0]),dy=3*u*u*(p[1][1]-p[0][1])+6*u*t*(p[2][1]-p[1][1])+3*t*t*(p[3][1]-p[2][1]);const l=Math.hypot(dx,dy)||1,w=3.4*(1-t)+.35;left.push([x-dy/l*w,y+dx/l*w]);right.push([x+dy/l*w,y-dx/l*w]);}return 'M'+left.map(v=>v.join(',')).join(' L')+' L'+right.reverse().map(v=>v.join(',')).join(' L')+' Z';}
+ function draw(){const map=main.querySelector('[data-map]');if(!map)return;const w=map.clientWidth,h=map.clientHeight,narrow=w<480,type=map.dataset.map;let pos={},links=[];
+  if(type==='overview'){pos=narrow?{garden:[.5,.51],soil:[.37,.14],water:[.64,.33],community:[.30,.72],resources:[.65,.87]}:{garden:[.49,.5],soil:[.25,.23],water:[.77,.25],community:[.22,.76],resources:[.79,.75]};links=[['garden','soil'],['garden','water'],['garden','community'],['garden','resources']];}
+  else if(type==='area'&&current.area==='soil'){pos=narrow?{center:[.65,.61],trial:[.31,.225],guide:[.64,.45],notes:[.31,.775],compost:[.66,.91],question:[.4,.07]}:{center:[.49,.60],trial:[.25,.33],guide:[.77,.30],notes:[.20,.80],compost:[.72,.83],question:[.82,.59]};links=[['center','trial'],['trial','notes'],['center','compost'],['guide','question'],['question','center'],['guide','trial','new',narrow?'vertical':'arch']];const b=map.querySelector('.gv-connection');b.style.left=(narrow?.45:.50)*w+'px';b.style.top=(narrow?.3375:.13)*h+'px';}
+  else if(type==='area'){const items=areas[current.area].items;pos={center:[.5,narrow?.52:.55],[items[0]]:[narrow?.39:.25,narrow?.20:.27],[items[1]]:[narrow?.61:.78,narrow?.80:.70]};links=items.map(id=>['center',id]);}
+  else {pos=w>480?{guide:[.26,.34],trial:[.76,.64]}:{guide:[.43,.22],trial:[.57,.75]};links=[['guide','trial',type==='story'?'new':'','vertical']];}
+  const points={};for(const [id,[x,y]]of Object.entries(pos)){const n=map.querySelector(`[data-node="${id}"]`),px=n?Math.max(n.offsetWidth/2+9,Math.min(w-n.offsetWidth/2-9,x*w)):x*w;points[id]=[px,y*h];if(n){n.style.left=px+'px';n.style.top=y*h+'px';}}
+  const svgEl=map.querySelector('svg');svgEl.setAttribute('viewBox',`0 0 ${w} ${h}`);svgEl.innerHTML=links.map(([a,b,state,mode])=>{const p=curve(points[a],points[b],mode);return `${state?'':`<path class="gv-filament" d="${filament(p)}"/>`}<path class="gv-thread ${state||''}" d="${path(p)}"/>`;}).join('');
+ }
+ root.addEventListener('click',e=>{const b=e.target.closest('button[data-key]');if(!b)return;const key=b.dataset.key;if(key==='back')back();else if(key==='home')home();else if(key==='area-crumb'){current={screen:'area',area:current.area,record:null};trail=[{state:{...initial},focus:'area-'+current.area}];render(true,'connection');save();}else if(key.startsWith('area-'))go({screen:'area',area:key.slice(5),record:null},key);else if(key==='connection')go({screen:'connection',area:'soil',record:null},key);else if(key==='source'||key==='direct-source')go({screen:'source',area:'soil',record:null},key);else if(key.startsWith('record-'))go({screen:'record',record:key.slice(7)},key);});
+ root.addEventListener('keydown',e=>{if(e.key==='Escape'&&current.screen!=='overview'){e.preventDefault();back();}});
+ window.addEventListener('openai:set_globals',e=>{const s=e.detail?.globals?.widgetState;if(s){const before=JSON.stringify({current,trail,sourceRead});restore(s);if(before!==JSON.stringify({current,trail,sourceRead}))render();}});
+ render();new ResizeObserver(draw).observe(main);
+ if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:draw});tweak.addSlider(design,'curvature',{label:'Thread curvature',min:.25,max:1.25,step:.05});}
+})();
+</script>
+
+</body>
+</html>

@@ -27,8 +27,27 @@
     "commitment_upgrade_plan": "commitment-upgrade-plan.md",
     "architecture_alignment": "architecture-alignment.md",
     "architecture_review_handoff": "handoffs/claude-architecture-review.md",
+    "contracts_handoff": "handoffs/codex-contracts.md",
     "architecture_review_results": "handoffs/claude-architecture-review-results.md",
     "conformance_evidence": "handoffs/claude-conformance-evidence-2026-10-20.md",
+    "service_access_prompt": "handoffs/codex-service-access.md",
+    "contracts_purchases_handoff": "handoffs/codex-contracts-purchases.md",
+    "service_access_execution": "handoffs/codex-service-access-execution.md",
+    "service_access_api": "handoffs/codex-service-access-api.md",
+    "service_access_integration": "handoffs/codex-service-access-integration.md",
+    "voucher_reconciliation": "handoffs/codex-voucher-reconciliation.md",
+    "member_issuer_readiness": "handoffs/codex-member-issuer-readiness.md",
+    "local_voucher_pilot": "handoffs/codex-local-voucher-pilot.md",
+    "local_voucher_pilot_validation": "handoffs/codex-local-voucher-pilot-validation.json",
+    "local_blocker_readiness_handoff": "handoffs/codex-local-blockers-and-readiness.md",
+    "local_blocker_validation": "handoffs/codex-blocker-repair-validation.json",
+    "gnosis_account_provider_proof": "handoffs/codex-gnosis-account-provider-proof.md",
+    "gnosis_account_provider_evidence": "artifacts/member-gnosis-account-provider-proof-2026-10-22.json",
+    "live_pilot_deployment": "handoffs/codex-live-pilot-deployment.md",
+    "pilot_issuer_terms": "pilot-issuer-terms.md",
+    "native_batch_execution": "artifacts/member-native-batch-execution-2026-10-22.json",
+    "green_goods_safe_gnosis": "artifacts/green-goods-safe-gnosis-2026-10-22.json",
+    "live_pilot_tooling_evidence": "artifacts/live-pilot-tooling-evidence-2026-10-23.json",
     "linear_correction_drafts": "handoffs/claude-linear-correction-drafts-2026-10-20.md",
     "prd_1096_dispatch_draft": "handoffs/prd-1096-rehearsal-dispatch-draft.md",
     "linear_voucher_direction_drafts": "handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md"
@@ -79,6 +98,36 @@
     "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
+    "23 October Pacific / 24 October UTC: User dispatched the TAS impact-website pilot: three distinct designer, analyst and engineer accounts, three separate commitments under one shared brief, and an exchange of two member-owned voucher assets in the same curated Gnosis pool alongside collective assets. Finish and sign the independent source-execution tooling checkpoint first, then implement M1-M8 in bounded dependency order. Peer-help work and capacity stay separate from rewarded project deliverables. Fixture terms are explicitly fictional; actual participants, issuer approvals, capacities, rates, funded rewards and member upgrade/recovery controls remain open before live configuration. No project token, aggregate project state, arbitrary payout split, atomic bundle, automatic dependency scheduler, extra pool or new member Safe is implied. Linear parent_only/preserve_existing manifest verified live: RESR-73 remains Done, no external fields changed; local sync metadata recorded. Existing lane objects, history and backlog state preserved.",
+    "23 October Pacific / 24 October UTC: User accepted member-owned service vouchers alongside garden/collective vouchers in one shared Gnosis pool, with steward-assisted onboarding and exact member ownership/approval retained. spec.md, plan.todo.md M1-M8, eval.md and pilot-issuer-terms.md own the amendment. Extend the fixed two-issuer deployment configuration, prove actual member authority and the full member redemption path, and reconcile affected candidate inputs before deployment. Selected-profile passkey proof and signed checkpoint d7d4869b9 are recorded by the implementation handoff; they do not certify new issuer operations. Preserve the accepted zero-delay policy, independent Celo G$, existing collective Safe controls and voucher safeguards. Group-project examples are discussion only. This planning update leaves all lane objects, history, stage and unrelated work unchanged; no runtime implementation, broadcast, publication or Linear write.",
+    "23 October UTC: Live pilot preparation tooling and operator runbook are implemented locally: source-upgrades, CLC and combined pilot inventory/package validation. All eight selected critical/docs checks pass fresh after the user approved ten starting units and twenty-unit pool holding caps per asset, within unchanged twenty-unit issuer supply ceilings; 2,209 Solidity, 433 script, 37 CLI and three production gas-boundary cases pass. Real owned Gnosis and Arbitrum proofs cover ten empty CLC deployments, source 23 deployments/four paused owner upgrades with 17/12 checked rows retained, source-readback/replan then six Arbitrum voucher initializers, and fixed-two HSG authority through zero/one/two/three/back-to-zero stewards. Every assembled stage is review-only with executionReady false. Actual deployment senders/nonces/garden-Hats/guardians, member/native-gas/signing, issuer capacity/acceptance, transport and live execution remain unconfirmed; Tech and Sun signer names/addresses are intentionally deferred for preparation. Existing GG Safe stays 2-of-5 for both reserve and network pool. Accepted Friday/Saturday checkpoints are in the live deployment handoff; preparation chat owns Linear writes. Preserve all lane objects/backlog/manual/live gates and 114 unrelated paths. No broadcast, dependency, branch or publication change.",
+    "23 October UTC: Dynamic Tech and Sun steward-to-Safe implementation is complete locally with fixed two valid signatures at every roster size. Funded Arbitrum role hooks dispatch ordered CCIP updates to a dedicated Gnosis Hat and locked deployed HSG v2 Safe. Existing GG Safe stays 2-of-5 for both network pool administration and GG reserve. All nine selected check IDs pass across the source run, docs-only refresh and ontology proof; 2,209 Solidity, 361 script and 33 CLI cases pass, as do nine production Gnosis cases (1,000 eligibility fuzz runs), the Arbitrum upgrade preserving all 18 gardens, storage and size checks. Source roster permissions are unchanged; two signatures govern spending, not roster changes. Actual signer accounts, live inputs, source upgrade/observer registration, transport fuel, real CCIP delivery and activation remain pending. No live broadcast, extra GG Safe, dependency or publication change. All 114 unrelated hashes and existing lane objects/backlog/manual blockers are preserved; the deployment handoff owns detail.",
+    "22 October Pacific / 23 October UTC: User selected the same existing Green Goods Gnosis Safe, preserving 2-of-5, for both network exchange-pool administration and GG issuer reserve; separate 3-of-4 pool Safe and garden delegate representation are superseded. Tech and Sun should derive signer eligibility from active garden stewards, initially 2-of-3. The user selected strict-majority active-steward signing with a minimum of two signatures; fewer than two eligible signers blocks spending. Recovery, roster synchronization and authenticated Arbitrum-to-Gnosis role updates remain unresolved and unimplemented. No Safe configuration, module, allowance, custody or live transaction changed. Preserve all lane objects and overall backlog.",
+    "22 October Pacific: User accepted Tech and Sun 2-of-3 and shared-pool 3-of-4, with signer names/addresses to be confirmed later; existing GG Safe reuse remains accepted. Continue deployment tooling. One curated Gnosis exchange pool starts with Tech and Sun and GG and can admit more issuers explicitly; gardens need not issue a voucher to participate. This is distinct from Arbitrum garden commitment pools, and is not a universal compulsory pool. Paused voucher preflight/planning/isolated simulation tooling is implemented; actual inputs, published CLC pool release and live execution/activation remain incomplete. Preserve lane objects and backlog; no live broadcast or external tracker write.",
+    "22 October Pacific: User selected reuse of the existing Green Goods Safe on Gnosis, 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19, preserving its observed 2-of-5 configuration. Proposed new Tech and Sun reserve ownership is service lead, operations/finance steward and a Tech and Sun chosen backup at 2-of-3. Proposed shared-pool ownership is two independent delegates per organization at 3-of-4, requiring both organizations while tolerating one unavailable signer. These new owner sets/thresholds are recommendations only; actual delegates/addresses and pause/recovery roles remain open. No new Safe, module, authority, allowance or asset movement. Existing lane objects, overall backlog and release controls preserved.",
+    "22 October Pacific / 23 October UTC: Selected hub access, assisted sessions and Claude access under a Green Goods team are drafted in pilot-issuer-terms.md. The human release owner accepted one Tech and Sun voucher per four-hour visit, two GG vouchers per thirty-minute assisted session, ten GG vouchers per thirty-day Claude Team Standard seat, a twenty-voucher ceiling per issuer, ten participants and initial 1:1 gross exchange. Other operating terms remain draft; actual issuer capacity, funded permitted seats and control addresses are unconfirmed. Nine isolated pinned-Gnosis native batch cases pass for root change, explicit legacy credential cleanup, then module removal; forced failure rolls back migration, next-nonce retry and patched-root signing recover at the same fictional address. This establishes no actual-member control, hosted provider acceptance or live deployment. Preserve every lane object and overall backlog state. The user says assume Safes need creation and discuss possible current GG Safe reuse. Read-only Gnosis block 48,895,536 finds the repository-named GG Safe deployed, reporting 2-of-5 and no enabled modules; reuse remains unselected, with no Safe or authority mutation.",
+    "22 October Pacific / 23 October UTC: Human selected a controlled LIVE hackathon pilot and deployed contracts by Saturday 24 October, deck Saturday and participant testing Sunday/Monday. External audit/audit intake is outside hackathon prerequisites; the two-week testnet wait is replaced by focused pre-deployment tests, deployment simulation and post-deployment smoke. No renewed approval for those substitutions is needed. Existing Safe controls, implemented delays, same member address on Arbitrum/Gnosis/Celo, separate optional Celo G$, one shared Gnosis exchange pool, consent/escrow/activation/final-allocation rules remain intact. Prepare the exact candidate and runnable deployment package for execution review; signer/provider/issuer terms-caps and technical proof are not solved by the policy decision. a6461989e and f1ae06046 are signed local reconciliation checkpoints; all 31 selected automated checks plus Storybook pass; 114 unrelated paths preserved. Current spec/plan/eval and handoffs/codex-live-pilot-deployment.md own the live target; older local-only/audit/soak notes are historical. The preparation chat owns Linear writes. Preserve unrelated lane states/owners/manual flags and overall backlog; no broadcast or current-head remote CI claimed.",
+    "22 October local / 23 October UTC: eleven fictional Gnosis root-signing cases and 45 Shared boundary tests pass. Call traces distinguish active-root dispatch from explicit legacy selection and prove signature binding, replay rejection and repair at the original address. Signed local proof checkpoint: b569e613e. Fresh Alchemy block 48,892,415 still has no selected legacy validator/account; both factory simulations revert. Published EntryPoint support does not certify Kernel 0.3.1, hosted acceptance or sponsorship. No provider selected or production config changed. Keep overall backlog and every lane, manual, member, helper, issuer and live gate unchanged; see the account/provider handoff.",
+    "22 October pilot local implementation is committed in 92e861f11, 8b1a32a4c, 731fe8945 and 66a3844be, all signatures G. Real pinned CLC composition 16/16, earned 8/8, Shared 55/55 and Client 48/48 focused pass. Full critical runtime suites and contracts verifier pass; the selected origin/develop checkpoint remains failed for unchanged 387/389-line service modules and compound story checks lack three unrelated concurrent Admin stories. Pilot-delta structure and standalone story quality/build/render pass. No guard/baseline waiver. Same-member DEV ledger only; actual member/helper/provider/sponsorship/recovery and COM-46/private issuer/live gates remain open. All lane statuses, owners, manual blockers and overall backlog are preserved. Exact working-tree/commit attribution and proof limits are in the pilot validation record.",
+    "22 October: user explicitly dispatched local voucher pilot implementation in the existing feature/cosmo-local-contracts checkout, with signed local commits and no live authority. Voucher-led individual Request rewards, optional independently tracked G$, direct redemption and one shared Gnosis pool voucher-to-voucher exchange are selected. Existing source/quote interfaces and escrow are reused; local connected proof/member state are missing. Focused gap map is handoffs/codex-local-voucher-pilot.md. Preserve unrelated Auth/public-site/Shared manifest/Portuguese edits, same member address and all manual/live/issuer/release blockers. No general multi-currency/fiat, mixed checkout or G$-to-voucher work is dispatched.",
+    "22 October UTC: user dispatched member-signing and issuer-readiness proof and requests local signed commits, superseding the prior uncommitted-only preference. Fresh Gnosis100 block48879904 has no selected WebAuthn validator; both factory simulation paths revert. Exact fictional initializer derives the same address on Arbitrum/Gnosis/Celo; control deployments simulate successfully on Arbitrum/Celo. This proves no actual member control/signing/sponsorship/recovery. Six focused files pass42tests; selected routine QA passes4/4 fresh with no mandatory critical override for test-only additions. COM-46 remains Todo; real terms/capacity/identity/approval references unavailable for each issuer. Signing/keyring policy retained for user terminal; previous safeguards source hashes unchanged. Contracts in_progress, overall backlog and every unrelated/manual/live/release blocker preserved. See handoffs/codex-member-issuer-readiness.md. User confirmed no approved issuer evidence yet; record the gaps.",
+    "2026-10-22 04:22 UTC: Bounded voucher safeguards reconciliation is implemented and verified locally after signed checkpoint e7cd49d6. Final selector passes 6/6 fresh, zero reused/unrun/changed inputs, retaining all four mandatory contract overrides. Package and verifier each pass 2191 Solidity, 3 production G$ gas, 31 CLI and 331 script tests. Fresh Gnosis41/Celo12, all sizes, 16 layouts/eight namespaces, full consumers and eight global components pass; failed runs and exact commands remain recorded. Final claim gas134797<135000, unchanged ceiling/profile; combined opt-in and all140 focused cases pass. Brave mock-auth and final Storybook proof are labeled separately from unproved member signing. Every new change stays local and uncommitted; contracts in_progress, overall backlog and all unrelated/manual/COM-46/live/release blockers stay unchanged. Next bounded work is member signing and issuer readiness, with broader issuer governance undecided. See handoffs/codex-voucher-reconciliation.md.",
+    "2026-10-21 local evening: Human signed exact71-path checkpoint e7cd49d6 (cached patch SHA-256 caefae72ffe67de5efe186ce18512aa257bc9a4c91bcb2f8fe72aba0f3814154); empty index and clean contracts verified. Human explicitly dispatched the selected voucher safeguards reconciliation; all new changes stay local and uncommitted. Core/earned guard, source v2 setup/codec and destination custody/final legs are disjoint implementation lanes, with serialized meaningful RED/GREEN and API proof before affected Indexer/Shared/member migration. Preparation chat confirms no newer human conflict. Signing barrier resolved; every unrelated lane/manual/live blocker preserved. See handoffs/codex-voucher-reconciliation.md.",
+    "2026-10-22 00:12 UTC: Corrected scoped checkpoint passes12/12 fresh, zero reused/unrun/source mismatches, including all four mandatory contract overrides and Storybook. Full package and production verifier each pass2119 Solidity,3 production G$ gas,31 CLI and322 script tests. Earlier seven-check checkpoint passes include7466 Shared tests/16 existing skips; fixture repair closes Client test typecheck; Client source typecheck,67 focused Client,1307 Admin,218 Agent and full Indexer350/one optional pending pass. Initial harness drift, Client fixture and diagnostic missing-RPC failures remain recorded; no aggregate24-check pass claimed. Exact71-path index is unchanged for human signing at validator HEAD a19a0b0d. New voucher safeguards are selected design only; runtime/downstream reconciliation awaits that checkpoint commit. All unrelated lane/manual/live blockers remain unchanged. See handoffs/codex-voucher-reconciliation.md.",
+    "2026-10-21 23:42 UTC: User adopted newer develop safeguards: escrow before accepted voucher promise activation, exact earned/payment voucher consent enforced at both core acceptance paths, and one immutable final delivered/refundable split. Existing local code/tests and incremental browser walk are historical checkpoint evidence, not compliance proof. Keep the exact 71-path staged checkpoint frozen for human signing; read-only reconciliation design and unaffected personal G$ proof continue. Narrow core integration is authorized; issuer identity/cap/suspension mechanisms, unrelated lane/manual blockers and all live gates remain unresolved. See handoffs/codex-voucher-reconciliation.md. No tracker write, merge, rebase or live action.",
+    "2026-10-21 23:10 UTC: User authorized local Indexer -> Shared -> member integration and cohesive local commits, superseding uncommitted-only instructions. Live deployment/activation, COM-46, signing and release gates remain blocked; existing unrelated lane/manual blockers are preserved. Selected ten-entity service projection subset and strict Shared controller use explicit incomplete evidence and separate source/destination observations. DEV member rehearsal is labeled simulation, not signed transaction/passkey proof. Validator precommit selector passes3/3 including399 harness tests; identity/format hook passes but configured GPG signing fails under forbidden keyring access. No commit created. User chose to keep signing required and commit from their terminal; integration continues. Exact scope and subsequent proof: handoffs/codex-service-access-integration.md.",
+    "2026-10-21 22:48 UTC: Local service-access contracts and all selected component/conditional proofs are complete. Working-tree evidence only: keep contracts in_progress, overall backlog, every UI/state_api/QA/manual/COM-46/live/release blocker unchanged. Next separately dispatched slice: Indexer then Shared then member journeys/external activation. Earlier historical planning-only notes are superseded only within the explicit earned, direct-swap and service-access dispatches. All selected checks are covered across fresh commands: final8/9 selector passes plus repaired supply-chain2/2; no aggregate9/15 pass invented. Both package phases2119/3gas/31CLI/322script; Gnosis39/39 and Celo12/12; size/storage/ABI/lint pass. Historical lock/config/deployments and all10 frozen inputs unchanged. Only one earned allocation extraction; twelve earlier voucher files byte-identical. No commit, stage, live action, dependency change or external tracker write. Prompt-preparation alignment confirmed.",
+    "2026-10-21 20:54 UTC: Closed proof gates remain recorded separately from new service work. Core consent passes40focused cases; two upgrade and three Celo cases are prepared/unrun. Personal G$ funding RED proves an unfunded legacy payout-plan bypass; voucher redemption RED proves missing canonical identity and custody. Disjoint funding/escrow implementation follows the pre-recorded typed API; no new full-slice GREEN or live authority is claimed. Prompt-preparation chat confirms no newer conflicting human decision and leaves checkout untouched.",
+    "2026-10-21 20:36 UTC: Exact service API/storage/events recorded before code; internal-only core service implementation has meaningful RED1pass/2fail followed by initial GREEN3/3 on real core, expanded matrix running. Current contracts TDD phase is required/pending until full service proof; old earned/purchase receipts remain in their handoffs. Funding and escrow are still read-only preparation. Separate delivered-service/voucher quantities, cumulative service approval and explicit issuer/token-owner consent were refined before escrow code. No release/gate/commit/external tracker change.",
+    "2026-10-21 20:21 UTC: Remaining purchase proof gaps closed. Full contract selector passed all five checks fresh (ABI/build/full package/production verifier plus format), zero reused/unrun. Each package pass includes 2003 Solidity, three production G$ gas, 31 CLI and 319 script tests. Full validation-system suite passed 399/399 and runner unit suite 59/59 after approved lazy fingerprint and test-only doctor isolation; no gate or permission changes. Fresh Gnosis passed 31/31 at block 48848261; prior failed relay/doctor commands are preserved. Service-access exact ABI/storage/event design is underway before source edits, with read-only core/funding/redemption lanes and prompt-preparation alignment. Contract lane remains in_progress; no unrelated blocker, release or lifecycle completion claim.",
+    "2026-10-21: User enabled Gnosis on the selected Green Goods Alchemy app and approved a bounded validator repair. Fresh chain 100/block 48,848,261 runtime hashes match all eight CLC implementations plus WXDAI; 22 purchase and nine reserve fork cases pass (31/31, 32 fuzz runs). Fresh execution now avoids cache-only secret fingerprints while opt-in reuse remains fail-closed. All 59 runner tests and the full 399-test validation-system suite pass after isolating a Node-version doctor fixture from developer secrets; production doctor and release gates unchanged. Full contracts critical selector is running. No service-access runtime edit yet; exact additive deltas are being designed in read-only lanes before implementation. All thirteen voucher source/test files, branch and empty index are preserved; no commit, live action, provider configuration or external tracker write.",
+    "2026-10-21: User dispatched the prepared service-access slice after remaining proof closure. Four formatting failures are now closed with exact backups and JSON-value equality; full format and 256 selected guardrail tests passed. Thirteen voucher source/test hashes and HEAD/index remain unchanged. Connected GitHub says develop is identical to the baseline; command-line fetch failed through SOCKS. Green Goods Alchemy still lacks Gnosis and no process RPC is supplied; the default validation runner still fingerprints denied root secrets. A sequencing question is pending before runtime edits; architecture scope is accepted, not reopened. Source compatibility review is recorded in handoffs/codex-service-access-execution.md. No service runtime, commit, deployment, provider configuration, external tracker write or unrelated lane change.",
+    "2026-10-21: Final local handoff: default source build, full compilation, lint and ABI checks passed; 22/22 synthetic purchase cases, 2003 Solidity tests, 3 production G$ gas fixtures and 31 CLI tests passed. Initial package run retained one script timeout; unchanged isolated 33/33 and complete 319/319 script recheck passed. Four purchase, nine earned and 14 public configuration files match their manifests; HEAD/index unchanged. Pinned Gnosis and complete default-runner receipts remain unavailable, four unrelated format failures remain untouched, and contracts stays in_progress. No commit, deployment or future service-access dispatch. See handoffs/codex-contracts-purchases.md.",
+    "2026-10-21: Direct purchase integration is implemented locally. Published-bytecode replay passed 22/22 with 32 fuzz runs; default source build is being checked, full compilation/lint and ABI check passed. Package phases passed 2003 Solidity, 3 production G$ gas and 31 CLI tests. The full package command exited 1 on one unchanged release-CLI timeout; its 33-test file passed isolated and the complete script recheck passed 319/319 plus 31 CLI without code/settings changes. Fresh pinned Gnosis proof remains unavailable (public RPC blocked; user-selected Green Goods Alchemy Gnosis network disabled); the default critical runner remains unavailable because it fingerprints denied root secrets; four unrelated formatting failures remain untouched. Nine earned files retain their earlier digest. No commit receipt, deployment, G$/core change, broader lifecycle completion or lane unblock. Details: handoffs/codex-contracts-purchases.md.",
+    "2026-10-21: Direct Gnosis voucher-purchase binding and 22 financial-boundary cases implemented locally, preserving all nine earned files byte for byte. Published CLC and creation-initialized WXDAI bytecode replay passed 22/22 with 32 fuzz runs; this is synthetic state, not a pinned fork. Fresh Gnosis proof is blocked by public-RPC network policy and HTTP 403 from the user-selected Green Goods Alchemy app (Gnosis not enabled). Full QA automation is unrun because it fingerprints denied root secrets; repository format also fails on four preserved unrelated files. Available package gates are running or recorded in handoffs/codex-contracts-purchases.md. No core/G$/earned runtime, live configuration, commit, lane completion or release-gate change. Prompt-preparation alignment confirmed the personal G$ and service-access amendment remains future work.",
+    "2026-10-21: Planning-only user amendment: personal G$ purchases of opted-in offers across gardens and the Green Goods pool, alongside voucher redemption. G$ stays on Celo; planned defaults reuse the buyer garden Safe and settlement rail, with narrow future core eligibility/terms and SettlementModule funding changes. Prepared handoffs/codex-service-access.md for later explicit dispatch on the existing local branch, no worktree. Separately dispatched direct Gnosis purchase swaps keep their independent scope. No runtime changes, new slice dispatch, lane-state change, evidence recertification, Linear write or release waiver in this planning task.",
+    "2026-10-21: First dispatched earned-voucher slice implemented locally on feature/cosmo-local-contracts, safely reconciled to origin/develop 4a6b2f2e51 with all existing changes preserved. Exact-revision consent through existing accounts, canonical recognition, finite-reserve allowance distribution, authenticated v1 acknowledgments and recovery, and mandatory 48-hour upgrades are covered. Five critical QA checks passed fresh; 2003 Solidity tests plus CLI/script and production G$ gas proof passed; final Gnosis block 48848261 fork passed 9/9. Working-tree evidence only; no implementation commit or commit-attributed validation receipt. Keep contracts in_progress and the overall hub/backlog and unrelated lane blockers unchanged. Purchases, service redemption, live account/COM-46 and release gates remain open. Details: handoffs/codex-contracts.md.",
+    "2026-10-21: user dispatched only earned-voucher distribution, authenticated acknowledgments and recovery. No core/registry/Hats/G$ changes; reserve transferFrom with finite issuer allowance, exact revision consent/freeze, canonical recognition, durable results and mandatory 48-hour upgrade delay. Purchases/redemption remain later slices. Existing checkout reconciled with full original backup; branch feature/cosmo-local-contracts at 2bc66c12a. No worktree/stash/reset/commit or external writes. Full lifecycle, COM-46/live gates and unrelated lanes remain incomplete.",
     "2026-10-20: Afo approved the review's section 8 corrections and authorized the Linear texts. Applied as anchored patches between 06:35 and 06:37 UTC: PRD-1316 retitled; descriptions of PRD-1315 to PRD-1322, PRD-1325 to PRD-1327, PRD-857 and PRD-1096 edited; comments on RESR-73, PRD-651 and PRD-796. Every state, assignee, cycle, due date and milestone was preserved and read back. The optional passkey-validator issue was not filed. lastSyncedAt covers this bounded planning sync only.",
     "2026-10-20: Claude's second-pass review recommended no CommitmentPooling upgrade for the voucher-plus-G$ slice (the existing views expose the pre-acceptance timing window and Fulfilled eligibility; exact-revision counterparty consent remains PRD-1317 work), an allowance-bounded issuer budget and no limiter writes; Afo accepted the no-core-upgrade boundary the same day as the PRD-1315 candidate. Read-only follow-ups established that the four first-slice Gnosis implementations match the published v1.0.0 artifacts and that both CCIP routers quote the codec's extra-args form. Plan corrections were drafted for approval; no Linear writes, no runtime changes, no implementation dispatched. Current remaining decisions are listed in plan.todo.md, including the later review blockers.",
     "2026-10-20: bounded Linear readback verified the roadmap and 13 child tasks, four existing issue corrections, five renamed milestones and project overview. Thirty-one roadmap dependency edges and their inspected prerequisites have no cycles. Existing issue states, assignees, cycles/dates and the four original milestones were preserved; PWA/admin tasks remain in 2.1.0. This certifies planning sync only, not implementation or deployment.",
@@ -107,16 +156,16 @@
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/client test -- src/__tests__/views/VoucherPilotJourney.test.tsx",
+          "evidence": "Initial new-component collection failed for missing VoucherPilotJourney module (client-red.log); this is not four executed failing behavior cases. Executed five-case behavior RED is recorded in state_api."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/client test -- src/__tests__/views/VoucherPilotJourney.test.tsx src/__tests__/views/ServiceAccess.test.tsx",
+          "evidence": "48/48 focused cases, runtime and test typechecks pass. Full Client1783pass. Actual DEV adapter interactive Storybook walk plus repaired docs render, labeled Brave/Storybook; source66a3844be. No actual member signing proof."
         },
-        "note": "No implementation authorized. RED/GREEN is recorded when a slice is dispatched."
+        "note": "Bounded local rendering/integration proof only; initial collection failure is labeled honestly. Keep broader UI lane/manual block and all global/live gates."
       },
       "skill_tags": ["ui", "frontend-design", "react"],
       "manual_blocked": true
@@ -129,41 +178,41 @@
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/service-access-pilot.test.ts",
+          "evidence": "Five executed cases failed because requests1025/1026 were not service rehearsal fixtures; /private/tmp/green-goods-local-pilot-20261022/member/shared-red.log. This is behavior RED, not fixture compile failure."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/service-access-pilot.test.ts src/__tests__/service-access.test.ts src/__tests__/service-access-voucher.test.ts src/__tests__/service-access-voucher-recovery.test.ts src/__tests__/useServiceAccess.test.tsx src/__tests__/commitment-demo-mode.test.ts",
+          "evidence": "55/55 focused cases pass; full Shared7563pass16skip. Signed owned source66a3844be; working-tree proof and unrelated PT difference explicitly recorded. See codex-local-voucher-pilot.md and validation JSON."
         },
-        "note": "No implementation authorized. RED/GREEN is recorded when a slice is dispatched."
+        "note": "Bounded DEV pilot only. Preserve broader lane status, owner, manual blocker and all actual-member/issuer/live/release gates. Global source/story guard failures remain open."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"],
       "manual_blocked": true
     },
     "contracts": {
       "owner": "codex",
-      "status": "blocked",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "feature/cosmo-local-contracts",
       "depends_on": [],
-      "handoff": "handoffs/codex-contracts.md",
+      "handoff": "handoffs/codex-voucher-reconciliation.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "PATH=/private/tmp/green-goods-purchases-20261021/bin:$PATH FOUNDRY_PROFILE=test FOUNDRY_OFFLINE=true bun --no-env-file run --cwd packages/contracts test --suite solidity --profile match test/unit/VoucherEntitlement.t.sol --match-test testVoucherEntitlement_directCoreAcceptanceRejectsMissingCounterpartyConsent",
+          "evidence": "Compiled old-runtime RED before safeguards implementation: direct core acceptance without counterparty consent0pass/1fail (core/red-consent.log); source preacceptance setup0/1; destination legacy/incremental bypass0/2. Compiler/setup failures are separate. Later full run2189pass/one claim gas failure140329>135000 is retained, not relabeled. New working tree after e7cd49d6, not commit-attributed."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run test",
+          "evidence": "Final 2026-10-22 critical checkpoint04:03:56-04:22:34 UTC passes6/6 fresh with all4mandatory contract overrides, zero reused/unrun/changed inputs. bun run test with cwd=packages/contracts passes2191 Solidity,3 production G$ gas,31 CLI,331 scripts; nested verify-production --skip-e2e --skip-dry-run repeats those counts. Exact argv/config/hashes: /private/tmp/green-goods-voucher-safeguards-20261021/critical-recheck.{json,log}. PATH no-env shim, FOUNDRY_OFFLINE=true, TURBO_FORCE=true, VITEST_MAX_WORKERS=1, FOUNDRY_EXTRA_OUTPUT storageLayout; no global profile change. Final140focused+lint pass; claim134797<135000. Fresh sizes/16layouts/8namespaces/Gnosis41 at100/48848261/Celo12 at42220/75178393 pass without source mismatch. Full consumer and eight global components plus labeled Brave mock-auth/Storybook proof pass across distinct fresh runs; no aggregate24 pass invented. Details and failed commands: handoffs/codex-voucher-reconciliation.md. Local uncommitted evidence, no live/member-signing/full-lifecycle certification."
         },
-        "note": "No implementation authorized. RED/GREEN is recorded when a slice is dispatched."
+        "note": "Bounded local safeguards reconciliation complete; keep contracts in_progress, overall backlog, every unrelated/manual/COM-46/live/release blocker unchanged. All new changes local and uncommitted; next is member-signing and issuer-readiness proof. The22October local pilot adds proof of existing runtime, not a manufactured runtime RED; exact signed source and open branch/live gates are in codex-local-voucher-pilot.md."
       },
       "skill_tags": ["contracts"],
-      "manual_blocked": true
+      "manual_blocked": false
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -364,12 +413,52 @@
       "note": "PRD-857 wording corrected in Linear after Afo's approval: vouchers are now usable, not redeemable, for their issuers' services. Read back: state, assignee, cycle, due date, estimate and milestone unchanged. Lanes unchanged."
     },
     {
+      "timestamp": "2026-10-21T09:15:54Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "2026-10-21: user dispatched only earned-voucher distribution, authenticated acknowledgments and recovery. No core/registry/Hats/G$ changes; reserve transferFrom with finite issuer allowance, exact revision consent/freeze, canonical recognition, durable results and mandatory 48-hour upgrade delay. Purchases/redemption remain later slices. Existing checkout reconciled with full original backup; branch feature/cosmo-local-contracts at 2bc66c12a. No worktree/stash/reset/commit or external writes. Full lifecycle, COM-46/live gates and unrelated lanes remain incomplete."
+    },
+    {
+      "timestamp": "2026-10-21T16:38:38.093Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-21T16:41:25Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "First dispatched earned-voucher slice implemented locally on feature/cosmo-local-contracts, safely reconciled to origin/develop 4a6b2f2e51 with all existing changes preserved. Exact-revision consent through existing accounts, canonical recognition, finite-reserve allowance distribution, authenticated v1 acknowledgments and recovery, and mandatory 48-hour upgrades are covered. Five critical QA checks passed fresh; 2003 Solidity tests plus CLI/script and production G$ gas proof passed; final Gnosis block 48848261 fork passed 9/9. Working-tree evidence only; no implementation commit or commit-attributed validation receipt. Keep contracts in_progress and the overall hub/backlog and unrelated lane blockers unchanged. Purchases, service redemption, live account/COM-46 and release gates remain open. Details: handoffs/codex-contracts.md."
+    },
+    {
+      "timestamp": "2026-10-21T17:06:21Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Planning-only user amendment: personal G$ purchases of opted-in offers across gardens and the Green Goods pool, alongside voucher redemption. G$ stays on Celo; planned defaults reuse the buyer garden Safe and settlement rail, with narrow future core eligibility/terms and SettlementModule funding changes. Prepared handoffs/codex-service-access.md for later explicit dispatch on the existing local branch, no worktree. Separately dispatched direct Gnosis purchase swaps keep their independent scope. No runtime changes, new slice dispatch, lane-state change, evidence recertification, Linear write or release waiver in this planning task."
+    },
+    {
       "timestamp": "2026-10-21T17:43:59Z",
       "actor": "codex",
       "lane": "system",
       "status": "planning_reconciled",
       "branch": "research/cosmo-local-voucher-direction",
       "note": "After Afo's explicit approval in PR #1170 follow-up, added the PRD-1315 Done-when bullet for issuer-cap enforcement, the authenticated presentment handshake and exact approved-revision/counterparty-consent binding. Applied at 17:43:58 UTC and read back at 17:43:59 UTC: description includes the approved bullet; state, assignee, cycle, due date, estimate and milestone unchanged. Lane states and manual blocks unchanged; no implementation or dispatch authority added."
+    },
+    {
+      "timestamp": "2026-10-21T17:49:22Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Direct Gnosis voucher-purchase binding and 22 financial-boundary cases implemented locally, preserving all nine earned files byte for byte. Published CLC and creation-initialized WXDAI bytecode replay passed 22/22 with 32 fuzz runs; this is synthetic state, not a pinned fork. Fresh Gnosis proof is blocked by public-RPC network policy and HTTP 403 from the user-selected Green Goods Alchemy app (Gnosis not enabled). Full QA automation is unrun because it fingerprints denied root secrets; repository format also fails on four preserved unrelated files. Available package gates are running or recorded in handoffs/codex-contracts-purchases.md. No core/G$/earned runtime, live configuration, commit, lane completion or release-gate change. Prompt-preparation alignment confirmed the personal G$ and service-access amendment remains future work."
     },
     {
       "timestamp": "2026-10-21T18:13:18Z",
@@ -380,12 +469,36 @@
       "note": "PR #1170 follow-up: after Afo's explicit approval, added one corrective comment to completed PRD-796 at 18:12:59 UTC and read it back at 18:13:18 UTC (comment 13c5454a-85e9-42ac-a613-d5afaf38a3b9). Only the fulfilled-first issuance order is superseded; point 6's one-pool issuance/seed/exchange/service/liquidity/repair proof and the release gates remain active. PRD-796 stays Done with description and state history unchanged. This is a bounded comment sync, not a workspace-wide readback. Current policy notes reconciled; historical entries, lane states and manual blocks preserved."
     },
     {
+      "timestamp": "2026-10-21T18:16:11Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Direct purchase integration is implemented locally. Published-bytecode replay passed 22/22 with 32 fuzz runs; default source build is being checked, full compilation/lint and ABI check passed. Package phases passed 2003 Solidity, 3 production G$ gas and 31 CLI tests. The full package command exited 1 on one unchanged release-CLI timeout; its 33-test file passed isolated and the complete script recheck passed 319/319 plus 31 CLI without code/settings changes. Fresh pinned Gnosis proof remains unavailable (public RPC blocked; user-selected Green Goods Alchemy Gnosis network disabled); the default critical runner remains unavailable because it fingerprints denied root secrets; four unrelated formatting failures remain untouched. Nine earned files retain their earlier digest. No commit receipt, deployment, G$/core change, broader lifecycle completion or lane unblock. Details: handoffs/codex-contracts-purchases.md."
+    },
+    {
+      "timestamp": "2026-10-21T18:18:24Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Final local handoff: default source build, full compilation, lint and ABI checks passed; 22/22 synthetic purchase cases, 2003 Solidity tests, 3 production G$ gas fixtures and 31 CLI tests passed. Initial package run retained one script timeout; unchanged isolated 33/33 and complete 319/319 script recheck passed. Four purchase, nine earned and 14 public configuration files match their manifests; HEAD/index unchanged. Pinned Gnosis and complete default-runner receipts remain unavailable, four unrelated format failures remain untouched, and contracts stays in_progress. No commit, deployment or future service-access dispatch. See handoffs/codex-contracts-purchases.md."
+    },
+    {
       "timestamp": "2026-10-21T19:22:57Z",
       "actor": "codex",
       "lane": "system",
       "status": "planning_reconciled",
       "branch": "research/cosmo-local-voucher-direction",
       "note": "PR #1170 later review: Afo separately approved description additions on PRD-1315, PRD-1317 and PRD-1318. Applied and read back 19:22:06-19:22:57 UTC: exact-revision consent, authenticated escrow-to-promise handshake, post-claim Offer payer funding and distinct gardener issuer identity/cap isolation are explicit acceptance requirements. Parent remains In Progress; both children remain Backlog; assignee, cycle, dates, estimate, milestone and state history unchanged. This bounded sync settles no open design choice, changes no dependencies and authorizes no implementation. Current core-view summary corrected; lane objects and manual blocks unchanged."
+    },
+    {
+      "timestamp": "2026-10-21T19:33:43Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "User dispatched the prepared service-access slice after remaining proof closure. Four formatting failures are now closed with exact backups and JSON-value equality; full format and 256 selected guardrail tests passed. Thirteen voucher source/test hashes and HEAD/index remain unchanged. Connected GitHub says develop is identical to the baseline; command-line fetch failed through SOCKS. Green Goods Alchemy still lacks Gnosis and no process RPC is supplied; the default validation runner still fingerprints denied root secrets. A sequencing question is pending before runtime edits; architecture scope is accepted, not reopened. Source compatibility review is recorded in handoffs/codex-service-access-execution.md. No service runtime, commit, deployment, provider configuration, external tracker write or unrelated lane change."
     },
     {
       "timestamp": "2026-10-21T19:58:07Z",
@@ -412,12 +525,123 @@
       "note": "PR #1170 steward-pause review: after Afo explicitly approved both exact additions, appended PRD-1315 and PRD-1318 Done-when requirements for independent steward-controlled per-issuer suspension, cross-chain authority/order, issuance and purchase route coverage, issuer-Safe bypasses, outstanding-obligation servicing and authorized recovery. Applied and read back 21:56:55-21:57:00 UTC. PRD-1315 remains In Progress and PRD-1318 remains Backlog; state history, assignee, cycle, due date, estimate and milestone unchanged. This bounded description sync leaves the mechanism open until PRD-1315 records it and preserves required but unenforceable stops as release blockers. Lane objects, manual blocks and dispatch authority unchanged; no runtime change."
     },
     {
+      "timestamp": "2026-10-21T22:27:00.062Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Service-access local implementation has meaningful core, personal-funding and voucher-escrow RED/GREEN. Final verifier and remaining selected checks are still running; this records TDD only. Keep contracts in_progress, overall backlog, UI/state_api/QA manual blockers and all live/COM-46/release gates unchanged. Existing earned/purchase receipts retain historical scope."
+    },
+    {
+      "timestamp": "2026-10-21T22:48:36.930Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Local service-access contracts and all selected component/conditional proofs are complete. Working-tree evidence only: keep contracts in_progress, overall backlog, every UI/state_api/QA/manual/COM-46/live/release blocker unchanged. Next separately dispatched slice: Indexer then Shared then member journeys/external activation. Earlier historical planning-only notes are superseded only within the explicit earned, direct-swap and service-access dispatches."
+    },
+    {
+      "at": "2026-10-21T23:10:31Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "local_integration_dispatched",
+      "note": "Explicit user continuation authorizes Indexer projections, Shared state/actions, member journeys and cohesive local commits. Keep live gates and unrelated blockers. GPG signing currently prevents the first local commit; no signing-policy change made."
+    },
+    {
       "timestamp": "2026-10-21T23:00:35.393Z",
       "actor": "codex",
       "lane": "system",
       "status": "planning_reconciled",
       "branch": "research/cosmo-local-voucher-direction",
       "note": "PR #1170 setup/consent review: after Afo separately approved all three exact description patches, updated PRD-1315/1317/1318 and read them back at 23:00:22-23:00:35 UTC. Criteria require presentment setup retry/abort/refund convergence, exact-revision consent before every core acceptance path with direct-entrypoint bypass proof or an explicit returned boundary decision, and route-neutral Offer funding wording. PRD-1315 remains In Progress and both children remain Backlog; state history, assignee, cycle, due date, estimate and milestone unchanged. Historical quotations retained with superseding patch receipts. No lane, manual block, runtime or dispatch authority changed."
+    },
+    {
+      "timestamp": "2026-10-22T04:25:18.578Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Bounded local safeguards reconciliation complete; keep contracts in_progress, overall backlog, every unrelated/manual/COM-46/live/release blocker unchanged. All new changes local and uncommitted; next is member-signing and issuer-readiness proof."
+    },
+    {
+      "timestamp": "2026-10-22T06:34:21.780458Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "proof_recorded_with_open_gates",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "22 October UTC: user dispatched member-signing and issuer-readiness proof and requests local signed commits, superseding the prior uncommitted-only preference. Fresh Gnosis100 block48879904 has no selected WebAuthn validator; both factory simulation paths revert. Exact fictional initializer derives the same address on Arbitrum/Gnosis/Celo; control deployments simulate successfully on Arbitrum/Celo. This proves no actual member control/signing/sponsorship/recovery. Six focused files pass42tests; selected routine QA passes4/4 fresh with no mandatory critical override for test-only additions. COM-46 remains Todo; real terms/capacity/identity/approval references unavailable for each issuer. Signing/keyring policy retained for user terminal; previous safeguards source hashes unchanged. Contracts in_progress, overall backlog and every unrelated/manual/live/release blocker preserved. See handoffs/codex-member-issuer-readiness.md. User confirmed no approved issuer evidence yet; record the gaps."
+    },
+    {
+      "timestamp": "2026-10-22T22:41:14.565Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Bounded DEV pilot only. Preserve broader lane status, owner, manual blocker and all actual-member/issuer/live/release gates. Global source/story guard failures remain open."
+    },
+    {
+      "timestamp": "2026-10-22T22:41:15.225Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Bounded local rendering/integration proof only; initial collection failure is labeled honestly. Keep broader UI lane/manual block and all global/live gates."
+    },
+    {
+      "timestamp": "2026-10-22T23:36:02.249572+00:00",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "local_branch_gates_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "User-authorized source-size and Admin story blockers repaired. Internal extraction preserves full ABI/method identifiers,24-entry recursive layouts and existing namespaces; no new deployed library link or authority. Source341/342lines; production24202/24000bytes. Selector13/13fresh, protected storage/size pass;57pinned Gnosis cases and45member-boundary tests pass. Admin312/312stories with labeled Brave Storybook proof; pre-existing untracked implementation dependencies remain excluded. COM-46 now In Progress but no approval evidence; fresh Gnosis validator remains absent. Preserve overall backlog, all lane owners/status/manual blockers and all member/helper/issuer/live/release gates. Signed local source attribution:6168fca1d contracts,38d93d03a stories, both verifiedG; no push/deploy/tracker write."
+    },
+    {
+      "timestamp": "2026-10-23T00:06:44.499274Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "account_provider_proof_recorded_with_open_gates",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "22 October local / 23 October UTC: eleven fictional Gnosis root-signing cases and 45 Shared boundary tests pass. Call traces distinguish active-root dispatch from explicit legacy selection and prove signature binding, replay rejection and repair at the original address. Signed local proof checkpoint: b569e613e. Fresh Alchemy block 48,892,415 still has no selected legacy validator/account; both factory simulations revert. Published EntryPoint support does not certify Kernel 0.3.1, hosted acceptance or sponsorship. No provider selected or production config changed. Keep overall backlog and every lane, manual, member, helper, issuer and live gate unchanged; see the account/provider handoff."
+    },
+    {
+      "timestamp": "2026-10-23T03:56:53Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "hackathon_live_release_disposition_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "22 October Pacific / 23 October UTC: Human selected a controlled LIVE hackathon pilot and deployed contracts by Saturday 24 October, deck Saturday and participant testing Sunday/Monday. External audit/audit intake is outside hackathon prerequisites; the two-week testnet wait is replaced by focused pre-deployment tests, deployment simulation and post-deployment smoke. No renewed approval for those substitutions is needed. Existing Safe controls, implemented delays, same member address on Arbitrum/Gnosis/Celo, separate optional Celo G$, one shared Gnosis exchange pool, consent/escrow/activation/final-allocation rules remain intact. Prepare the exact candidate and runnable deployment package for execution review; signer/provider/issuer terms-caps and technical proof are not solved by the policy decision. a6461989e and f1ae06046 are signed local reconciliation checkpoints; all 31 selected automated checks plus Storybook pass; 114 unrelated paths preserved. Current spec/plan/eval and handoffs/codex-live-pilot-deployment.md own the live target; older local-only/audit/soak notes are historical. The preparation chat owns Linear writes. Preserve unrelated lane states/owners/manual flags and overall backlog; no broadcast or current-head remote CI claimed."
+    },
+    {
+      "timestamp": "2026-10-23T09:29:32Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "live_package_tooling_prepared",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Bounded local preparation and approved 10-stock/20-cap proof recorded; detailed working-copy hashes and exact commands are in the linked evidence. Existing execution lane objects, backlog, manual blocks, actual member/issuer/transport and live activation gates stay unchanged. Canonical same-address bootstrap source/build and provider/native-gas investigation continues; no actual member signature or live transaction."
+    },
+    {
+      "timestamp": "2026-10-24T00:13:14Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "member_issuer_pilot_planning_reconciled",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Accepted member and collective voucher ownership with steward-assisted onboarding in one shared pool. Added dependency-ordered M1-M8 implementation and deployment proof; individual issuer roster, capacity, rates and controls remain unconfirmed. Existing lanes and evidence are preserved. Collaboration/group project options remain discussion scope, without a team token, automatic split or atomic bundle commitment. No runtime, deployment, commit or external tracker changes by this planning pass."
+    },
+    {
+      "timestamp": "2026-10-24T00:31:04.748Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-24T00:33:40Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "member_project_pilot_dispatched",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Selected bounded TAS three-person shared-brief journey and two-member-asset exchange for local implementation after the independent executor checkpoint. Canonical six-file amendment reconciled. Real issuer choices remain gates for live configuration; no runtime completion or live activation claimed. Parent-only preserve sync verified against live Linear without mutation."
     },
     {
       "timestamp": "2026-10-26T10:53:25.428Z",
@@ -427,5 +651,6 @@
       "branch": "research/sf-live-pitch-final-polish",
       "note": "SF.Live 2026 submission items complete in artifacts/ (deck, brief, Business Model Canvas, logical architecture, clickable demo), in review as PR #1317 (MAR-32 In Review; RESR-94 evidence pass applied). The event brief, read 25 October, confirms the four deliverables, the 27 October 2 to 3 PM UK submission and eight minutes a team; plan.todo.md ticks RESR-94 + MAR-32 and records the confirmed format. Open before submission: the G$ settlement switch (artifacts/README.md input 0) and the status re-check (input 5). No lane object, manual block, dispatch authority or runtime changed."
     }
-  ]
+  ],
+  "updatedAt": "2026-10-26T10:53:25.428Z"
 }

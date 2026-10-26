@@ -142,12 +142,14 @@ export function createFakeSmartAccountClient(
       userOpHash: hash,
       sender: accountAddress,
       success: true,
+      logs: [],
       receipt: { status: "success", transactionHash: hash },
     })),
     getUserOperationReceipt: vi.fn(async ({ hash }: { hash: Hex }) => ({
       userOpHash: hash,
       sender: accountAddress,
       success: true,
+      logs: [],
       receipt: { status: "success", transactionHash: hash },
     })),
   };

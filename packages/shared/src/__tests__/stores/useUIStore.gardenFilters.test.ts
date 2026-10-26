@@ -57,6 +57,7 @@ describe("Home garden filters in the UI store", () => {
     store.openGardenFilter();
     store.openWalletSheet();
     store.openWorkDashboard("completed");
+    store.requestGardenSwitcher();
     store.rememberWorkDashboard({
       tab: "completed",
       pendingFilter: "all",
@@ -74,7 +75,28 @@ describe("Home garden filters in the UI store", () => {
     expect(after.isWorkDashboardOpen).toBe(false);
     expect(after.workDashboardInitialTab).toBeUndefined();
     expect(after.workDashboardReturnState).toBeUndefined();
+    expect(after.gardenSwitcherRequested).toBe(false);
     expect(after.debugMode).toBe(true);
     after.setDebugMode(false);
+  });
+});
+
+describe("A garden section open as a sheet over Home (DL-128)", () => {
+  it("holds one open section at a time, closes it, and forgets it when another account signs in", () => {
+    const store = useUIStore.getState();
+    expect(store.gardenSheet).toBeNull();
+
+    store.openGardenSheet("work");
+    expect(useUIStore.getState().gardenSheet).toBe("work");
+    // Opening another section replaces the open one: the sheets never stack.
+    store.openGardenSheet("insights");
+    expect(useUIStore.getState().gardenSheet).toBe("insights");
+
+    store.closeGardenSheet();
+    expect(useUIStore.getState().gardenSheet).toBeNull();
+
+    store.openGardenSheet("gardeners");
+    store.resetForAccountChange();
+    expect(useUIStore.getState().gardenSheet).toBeNull();
   });
 });

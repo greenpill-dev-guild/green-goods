@@ -18,6 +18,7 @@ import { WagmiProvider, createConfig, mock } from "wagmi";
 import { arbitrum, arbitrumSepolia, mainnet, sepolia } from "wagmi/chains";
 import toast from "react-hot-toast";
 import { createProofToasts } from "../src/components/Toast/presets/proof";
+import { createQueueToasts } from "../src/components/Toast/presets/queue";
 import { ToastViewport } from "../src/components/Toast/ToastViewport";
 import { JobQueueProvider } from "../src/providers/JobQueue";
 import { WorkProvider } from "../src/providers/Work";
@@ -32,6 +33,8 @@ import { type ListingSubmission, listingSubmissionKey, useListingSubmissionStore
 import { resetAdminStoryState } from "./adminStoryIsolation";
 import { STORYBOOK_NOW_SECONDS } from "./fixtures";
 import messages from "../src/i18n/en.json";
+import es from "../src/i18n/es.json";
+import pt from "../src/i18n/pt.json";
 
 export { DEV_MOCK_AUTH_ADDRESSES };
 
@@ -104,11 +107,19 @@ function createStorybookQueryClient() {
   });
 }
 
-export const withI18n: Decorator = (Story) => (
-  <IntlProvider locale="en" messages={messages}>
-    <Story />
-  </IntlProvider>
-);
+const MESSAGES = { en: messages, es, pt } as const;
+type StorybookLocale = keyof typeof MESSAGES;
+
+/** Every story reads in the toolbar's language (`globals.locale`); English until one is picked. */
+export const withI18n: Decorator = (Story, context) => {
+  const picked = context.globals.locale as string | undefined;
+  const locale: StorybookLocale = picked && picked in MESSAGES ? (picked as StorybookLocale) : "en";
+  return (
+    <IntlProvider locale={locale} messages={MESSAGES[locale]}>
+      <Story />
+    </IntlProvider>
+  );
+};
 
 export const withQueryClient: Decorator = (Story, context) => {
   const queryClient = useMemo(() => createStorybookQueryClient(), [context.id]);
@@ -608,4 +619,17 @@ function showProofToast(moment: ProofToastMoment, formatMessage: IntlShape["form
 /** A client page with one proof toast over it, where the app's viewport draws it. */
 export function withProofToast(moment: ProofToastMoment): Decorator {
   return withHeldToast((formatMessage) => showProofToast(moment, formatMessage));
+}
+
+/**
+ * A client page with the queue's failure toast over it, for an upload that waits in another of
+ * the member's gardens: it names the garden and offers the switcher (PWA Home step 12).
+ */
+export function withQueueFailureToast(kind: "work" | "approval", gardenName: string): Decorator {
+  return withHeldToast((formatMessage) =>
+    createQueueToasts(formatMessage).jobFailed(kind, undefined, {
+      gardenName,
+      openSwitcher: () => undefined,
+    })
+  );
 }

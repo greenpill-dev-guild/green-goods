@@ -133,10 +133,16 @@
       "type": "t_uint256"
     },
     {
-      "label": "__gap",
+      "label": "stewardObserver",
       "offset": 0,
       "slot": "166",
-      "type": "t_array(t_uint256)35_storage"
+      "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "167",
+      "type": "t_array(t_uint256)34_storage"
     }
   ],
   "types": {
@@ -151,11 +157,11 @@
       "label": "address[]",
       "numberOfBytes": "32"
     },
-    "t_array(t_uint256)35_storage": {
+    "t_array(t_uint256)34_storage": {
       "base": "t_uint256",
       "encoding": "inplace",
-      "label": "uint256[35]",
-      "numberOfBytes": "1120"
+      "label": "uint256[34]",
+      "numberOfBytes": "1088"
     },
     "t_array(t_uint256)49_storage": {
       "base": "t_uint256",
@@ -188,6 +194,13 @@
       "encoding": "inplace",
       "label": "contract IKarmaGAPModule",
       "numberOfBytes": "20"
+    },
+    "t_mapping(t_address,t_address)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
     },
     "t_mapping(t_address,t_array(t_address)dyn_storage)": {
       "encoding": "mapping",

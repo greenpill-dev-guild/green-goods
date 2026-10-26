@@ -14,7 +14,7 @@ import {
 } from "@remixicon/react";
 import { useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
-import { FlowForward } from "@/components/Features/Work";
+import { FlowForward } from "@/components/Features/Work/FlowBar";
 import { AccountEntry, type EntryScreen } from "./AccountEntry";
 import { AccountActions, PageAccount } from "./CeremonyActs";
 import { BarStatus } from "./CeremonyBar";

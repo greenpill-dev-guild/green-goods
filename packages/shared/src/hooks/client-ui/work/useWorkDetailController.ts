@@ -6,6 +6,7 @@ import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
+import { takeUpOf } from "../../../modules/job-queue/take-up-hold";
 import { readWorkByUID } from "../../../modules/work/work-list";
 import { resolveGardenWorkRows } from "../../../modules/work/local-status-overlay";
 import { connectivityStore } from "../../../stores/connectivity";
@@ -28,9 +29,28 @@ import { useWorkApprovalActions } from "../../work/useWorkApprovalActions";
 import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
 import { queuedUploadStatus } from "../../../modules/work/upload-state";
-import type { WorkDisplayStatus } from "../../../types/domain";
+import { isCancelledTxError } from "../../../utils/errors/tx-error-classifier";
+import type { Work, WorkDisplayStatus } from "../../../types/domain";
 
 export type WorkViewingMode = "steward" | "gardener" | "viewer";
+
+/**
+ * The work a notification row carried in the route's state, when it is this route's work in
+ * this route's garden. History state outlives the screen that wrote it, so it is read as
+ * untrusted input.
+ */
+function carriedRouteWork(
+  candidate: unknown,
+  workId: string | undefined,
+  gardenId: string | undefined
+): Work | undefined {
+  if (!candidate || typeof candidate !== "object" || !workId || !gardenId) return undefined;
+  const { id, gardenAddress, status, media } = candidate as Partial<Work>;
+  if (typeof id !== "string" || typeof gardenAddress !== "string") return undefined;
+  if (typeof status !== "string" || !Array.isArray(media)) return undefined;
+  if (id.toLowerCase() !== workId.toLowerCase()) return undefined;
+  return gardenAddress.toLowerCase() === gardenId.toLowerCase() ? (candidate as Work) : undefined;
+}
 
 export function useWorkDetailController() {
   const intl = useIntl();
@@ -55,8 +75,14 @@ export function useWorkDetailController() {
     offline: true,
   });
   const listedWork = works.find((candidate) => candidate.id === (workId || ""));
-  const routeStatus = (location.state as { workStatus?: WorkDisplayStatus } | null | undefined)
-    ?.workStatus;
+  const routeState = location.state as
+    | { workStatus?: WorkDisplayStatus; work?: unknown }
+    | null
+    | undefined;
+  const routeStatus = routeState?.workStatus;
+  // A notification row can open a work outside the garden's loaded page, and offline the direct
+  // read below is paused, so the record the row carried opens it when nothing fresher has.
+  const routeWork = carriedRouteWork(routeState?.work, workId, gardenId);
   const workByUID = useQuery({
     queryKey: worksKeys.byUID(workId ?? "", chainId),
     queryFn: () => readWorkByUID(workId!, chainId),
@@ -68,7 +94,9 @@ export function useWorkDetailController() {
     const saved = routeStatus ? [{ ...row, status: routeStatus }] : undefined;
     return resolveGardenWorkRows({ remote: [row], saved, overlay: undefined }).rows[0];
   }, [workByUID.data, gardenId, routeStatus]);
-  const work = listedWork ?? fetchedWork;
+  // Online, the direct read decides: a carried row may be stale (another steward decided the work),
+  // so it never stands in, and never offers a decision, before that read answers.
+  const work = listedWork ?? fetchedWork ?? (isOnline ? undefined : routeWork);
   const metadata = useWorkMetadata(work?.metadata);
   const matchedAction = useMemo(() => {
     if (!work) return null;
@@ -137,6 +165,35 @@ export function useWorkDetailController() {
       const job = queued.find((candidate) => candidate.id === work.id);
       if (job && ["failed", "reverted"].includes(queuedUploadStatus(job).state))
         await jobQueue.retryJob(work.id);
+      // Work for a promise taken up in the same tap goes after that take-up (decision 18), so
+      // Upload now sends the take-up first, on a fresh run of tries, and the work once it lands.
+      const takeUp = job ? takeUpOf(job, queued) : null;
+      if (takeUp) {
+        await jobQueue.retryJob(takeUp.id);
+        const taken = await jobQueue.processJob(takeUp.id, { transactionSender, explicit: true });
+        if (!taken.success) {
+          if (isCancelledTxError(taken.error) || taken.error === "send-cancelled") return;
+          if (taken.error === "offline" || taken.error === "connection-unconfirmed") {
+            reportNotSent();
+            return;
+          }
+          // Still on its way (membership being read, a send awaiting its receipt) or refused.
+          toastService[taken.skipped ? "info" : "error"]({
+            title: intl.formatMessage({
+              id: taken.skipped
+                ? "app.home.work.takeUpQueued.title"
+                : "app.garden.takeUp.failed.title",
+            }),
+            message: intl.formatMessage({
+              id: taken.skipped
+                ? "app.home.work.takeUpQueued.message"
+                : "app.home.work.takeUpFailed.message",
+            }),
+            context: "work upload",
+          });
+          return;
+        }
+      }
       const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
       // Declining the prompt is not a failure; the work stays ready to send.
       if (result.error === "send-cancelled") return;

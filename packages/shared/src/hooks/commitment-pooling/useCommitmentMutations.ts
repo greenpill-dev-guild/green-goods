@@ -12,7 +12,11 @@ import { selectCommitmentPoolingAvailability } from "../../modules/commitment-po
 import type { TransactionSendOptions } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
-import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import {
+  CommitmentPoolingModuleABI,
+  CommitmentServiceOffersABI,
+  getNetworkContracts,
+} from "../../utils/blockchain/contracts";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -20,6 +24,7 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 
 export type CommitmentOnlineAction =
   | "acceptClaim"
+  | "acceptServiceClaim"
   | "declineClaim"
   | "acceptExchange"
   | "joinCommitment"
@@ -48,6 +53,8 @@ export type CommitmentOnlineAction =
  */
 export type CommitmentMutationCall =
   | { action: "acceptClaim"; commitmentId: bigint; claimant: Address }
+  /** A service offer's booking: the core refuses `acceptClaim` for it and needs the member's exact consent. */
+  | { action: "acceptServiceClaim"; commitmentId: bigint; buyer: Address; expectedClaimHash: Hex }
   | { action: "declineClaim"; commitmentId: bigint; claimant: Address; reasonCID: string }
   | { action: "acceptExchange"; commitmentId: bigint }
   | { action: "joinCommitment" | "leaveCommitment" | "expireCommitment"; commitmentId: bigint }
@@ -169,6 +176,8 @@ function argsFor(input: CommitmentMutationCall): readonly unknown[] {
   switch (input.action) {
     case "acceptClaim":
       return [input.commitmentId, input.claimant];
+    case "acceptServiceClaim":
+      return [input.commitmentId, input.buyer, input.expectedClaimHash];
     case "declineClaim":
       return [input.commitmentId, input.claimant, input.reasonCID];
     case "acceptExchange":
@@ -245,7 +254,11 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
       const call = await resolveCall(input as CommitmentMutationInput);
       const contractCall = {
         address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
+        // The same module, through the interface that declares the function.
+        abi:
+          call.action === "acceptServiceClaim"
+            ? CommitmentServiceOffersABI
+            : CommitmentPoolingModuleABI,
         functionName: call.action,
         args: argsFor(call),
         chainId,

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Visiting another garden</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: 32px">
+    <div class="banner">
+      <div class="over">
+        <a class="rb" href="Main.dc.html" aria-label="Back"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+        <button type="button" class="rb" aria-label="Share"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-share-line"/></svg></button>
+      </div>
+    </div>
+    <div class="gtitle">
+      <h1>Green Goods Community Garden</h1>
+      <span class="meta"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-map-pin-2-fill"/></svg>Online, open to every garden</span>
+      <span class="meta"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-calendar-event-fill"/></svg>Founded 2023</span>
+      <span class="visit"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-global-line"/></svg>Visiting. Your garden stays Riverside Commons.</span>
+    </div>
+    <div class="gtabs" role="tablist">
+      <span role="tab" aria-selected="false">Work</span>
+      <span role="tab" aria-selected="true" class="on">Promises</span>
+      <span role="tab" aria-selected="false">Insights</span>
+      <span role="tab" aria-selected="false">Gardeners</span>
+    </div>
+
+    <div class="sec"><h2>Open to You</h2></div>
+    <div class="list">
+      <a class="row offer" href="Offer.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><span class="rbody"><span class="rtitle">AI assistant membership, 1 month</span><span class="pill ok">Offered</span><span class="detail">450.00 G$ · gardeners of any garden</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      <a class="row offer" href="VOffer.dc.html"><span class="tile sun"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><span class="rbody"><span class="rtitle">Solar basics course, 10 lessons</span><span class="pill ok">Offered</span><span class="detail">Sunroot Skills Hub · 100 Sunroot vouchers</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+    </div>
+
+    <div class="sec"><h2>For Gardens Only</h2></div>
+    <div class="list">
+      <a class="row offer" href="#"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><span class="rbody"><span class="rtitle">Website care, 3 months</span><span class="pill neu">Gardens only</span><span class="detail">Your stewards can ask · paid from a garden's pool</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+    </div>
+
+    <div class="sec"><h2>Requests</h2></div>
+    <div class="list">
+      <a class="row req" href="#"><span class="tile req"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg></span><span class="rbody"><span class="rtitle">Translate the onboarding guide</span><span class="pill info">Asked for</span><span class="detail">Pays 80 G$ · Portuguese</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+    </div>
+    <p class="small mx16" style="margin-top: 16px">Taking something up here uses your own G$ or vouchers. It never spends Riverside Commons' funds.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.dark ?? false;
+    return { themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524' };
+  }
+}
+</script>
+</body>
+</html>

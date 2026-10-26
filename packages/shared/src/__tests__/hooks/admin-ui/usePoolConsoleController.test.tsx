@@ -23,6 +23,8 @@ import {
   TUNDE,
 } from "../../../modules/commitment-pooling/demo/demo-builders";
 import type { HexString } from "../../../modules/commitment-pooling/types";
+import type { VoucherAsk } from "../../../modules/commitment-pooling/voucher-console";
+import { claimActKey } from "../../../modules/transactions/act-phase";
 import {
   availableCapability,
   commitmentFixture,
@@ -196,7 +198,10 @@ function queueState(overrides: Partial<CommitmentQueueState> = {}): CommitmentQu
     pendingCreates: [],
     proofJobs: [],
     linkedWorkIds: new Set<string>(),
+    takeUpIds: new Set<string>(),
+    failedLinkWorkIds: new Set<string>(),
     isUnavailable: false,
+    isLoading: false,
     refresh: vi.fn(),
     ...overrides,
   };
@@ -587,6 +592,53 @@ describe("usePoolConsoleController", () => {
         gardenAddress: GARDEN,
       },
     ]);
+  });
+
+  it("accepts a voucher booking through acceptServiceClaim, refusing before the wallet while a check fails", async () => {
+    const queryClient = testQueryClient();
+    seedControllerQueries(queryClient);
+    const { result } = renderController(queryClient);
+    const at = 1_761_600_000;
+    const booking: VoucherAsk = {
+      commitmentId: COMMITMENT.commitmentId,
+      buyer: CLAIMANT,
+      claimHash: `0x${"c1".repeat(32)}`,
+      agreed: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
+      current: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
+      agreedAt: at - 172_800,
+      issuer: { name: "Tech and Sun", chainId: 100, safe: GARDEN, decimals: 6 },
+      setup: {
+        voucherUnits: 1_000_000n,
+        approvedAt: at - 86_400,
+        depositedUnits: 1_000_000n,
+        depositConfirmed: false,
+        acceptBy: at + 432_000,
+      },
+    };
+
+    // The deposit hasn't reached Green Goods: the contract would refuse, so the wallet never asks.
+    await expect(result.current.acts.acceptServiceClaim(booking, at)).rejects.toThrow(
+      "This booking isn't ready to accept"
+    );
+    expect(mocks.commitmentMutate).not.toHaveBeenCalled();
+
+    const ready = { ...booking, setup: { ...booking.setup!, depositConfirmed: true } };
+    await act(async () => {
+      await result.current.acts.acceptServiceClaim(ready, at);
+    });
+    expect(mocks.commitmentMutate.mock.calls.map(([input]) => input)).toEqual([
+      {
+        action: "acceptServiceClaim",
+        commitmentId: COMMITMENT.commitmentId,
+        buyer: CLAIMANT,
+        expectedClaimHash: ready.claimHash,
+        send: { onBroadcast: expect.any(Function) },
+      },
+    ]);
+    // It is the ask's decision, on the same line Approve uses, so its row keeps the outcome.
+    expect(
+      result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
+    ).toMatchObject({ kind: "approved", commitmentId: COMMITMENT.commitmentId.toString() });
   });
 
   it("sends or drops a queued creation and re-reads the row either way", async () => {

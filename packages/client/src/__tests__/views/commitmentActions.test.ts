@@ -111,6 +111,7 @@ describe("selectCommitmentAct", () => {
         commitment: { ...base, derivedState: "OFFERED", claimMode: "APPROVAL_GATED" },
         seat: "bystander",
         isMember: true,
+        clock: { now: 1_800_000_000n, cycleEndTimes: new Map() },
       })?.kind
     ).toBe("askToTakeUp");
     expect(
@@ -118,6 +119,7 @@ describe("selectCommitmentAct", () => {
         commitment: { ...base, derivedState: "OFFERED" },
         seat: "bystander",
         isMember: true,
+        clock: { now: 1_800_000_000n, cycleEndTimes: new Map() },
       })?.kind
     ).toBe("takeUp");
   });

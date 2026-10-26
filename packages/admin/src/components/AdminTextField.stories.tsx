@@ -1,6 +1,6 @@
 import { RiMailLine, RiSearchLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminSelect, AdminTextArea, AdminTextField } from "./AdminTextField";
 
@@ -372,5 +372,100 @@ export const StatesShowOnTheBox: Story = {
     );
     await expect(disabledSelect.backgroundImage).not.toBe("none");
     await expect(disabledSelect.backgroundRepeat).toBe("no-repeat");
+  },
+};
+
+/**
+ * In dark each box draws the cockpit's control outline, --m3-outline (#a8a29e,
+ * DL-098), as the running cockpit does. The story sits in Storybook's dark theme
+ * frame, a dark scope the cockpit never has, where shared theme.css re-declares
+ * the outline as its dark hairline (about 1.9:1); surfaces.css gives the cockpit's
+ * back to every dark scope below an admin root. Checked in browser mode, where the
+ * cascade layers apply.
+ */
+export const CockpitOutlineInDark: Story = {
+  tags: ["storybook-ci"],
+  globals: { theme: "dark" },
+  render: () => (
+    <div className="grid max-w-3xl items-start gap-5 sm:grid-cols-3">
+      <AdminTextField label="Name" defaultValue="North Meadow" />
+      <AdminTextArea label="Reason" />
+      <AdminSelect label="Role" defaultValue="gardener">
+        {ROLE_OPTIONS}
+      </AdminSelect>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const token = (element: Element, name: string) =>
+      getComputedStyle(element).getPropertyValue(name).trim();
+    for (const control of [
+      canvas.getByRole("textbox", { name: "Name" }),
+      canvas.getByRole("textbox", { name: "Reason" }),
+      canvas.getByRole("combobox", { name: "Role" }),
+    ]) {
+      await expect(control.closest("[data-theme]")).toHaveAttribute("data-theme", "dark");
+      const outline = token(control, "--m3-outline");
+      await expect(token(control, "--gg-control-outline")).toBe(outline);
+      // The box's color transition covers its border, so wait for it to land.
+      await waitFor(() =>
+        expect(getComputedStyle(control).borderTopColor).toBe(
+          `rgb(${outline.split(" ").join(", ")})`
+        )
+      );
+    }
+  },
+};
+
+/** The status aliases the cockpit resolves above <body>'s ramp remap, or on <body> itself. */
+const STATUS_ALIASES = [
+  "--error-base",
+  "--error-dark",
+  "--error-action",
+  "--error-action-hover",
+  "--m3-error",
+  "--warning-base",
+  "--warning-dark",
+  "--verified-base",
+  "--verified-dark",
+  "--information-dark",
+  "--information-base",
+  "--information-light",
+  "--information-lighter",
+] as const;
+
+/**
+ * In dark an error draws the cockpit's red, and every status alias in the story
+ * reads what the cockpit resolves: the value on <body>, where the dialogs a story
+ * portals read it too. The theme frame sits below <body>, so theme.css's and
+ * admin-m3-tokens.css's dark blocks would resolve the aliases again against the
+ * cockpit's remapped ramps; surfaces.css hands the frame the document's values
+ * instead. Checked in browser mode, where the cascade layers apply.
+ */
+export const CockpitStatusInDark: Story = {
+  tags: ["storybook-ci"],
+  globals: { theme: "dark" },
+  render: () => (
+    <div className="max-w-sm">
+      <AdminTextField
+        label="Email address"
+        defaultValue="not-an-email"
+        error="Enter a valid email address."
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const token = (element: Element, name: string) =>
+      getComputedStyle(element).getPropertyValue(name).trim();
+    const message = canvas.getByText("Enter a valid email address.");
+    await expect(message.closest("[data-theme]")).toHaveAttribute("data-theme", "dark");
+    for (const alias of STATUS_ALIASES) {
+      await expect(token(message, alias), alias).toBe(token(document.body, alias));
+    }
+    const red = `rgb(${token(document.body, "--m3-error").split(" ").join(", ")})`;
+    await expect(getComputedStyle(message).color).toBe(red);
+    const box = canvas.getByRole("textbox", { name: "Email address" });
+    await waitFor(() => expect(getComputedStyle(box).borderTopColor).toBe(red));
   },
 };

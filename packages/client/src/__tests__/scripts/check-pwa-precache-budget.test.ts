@@ -12,6 +12,10 @@ interface FixtureOptions {
   publicShellImports?: string[];
   /** Leave the website's frame out of the build, as a moved or renamed file would. */
   withoutPublicShell?: boolean;
+  /** Modules in a chunk both reporting pages import. */
+  reportingImports?: string[];
+  /** Leave the reporting pages out of the build, as a moved or renamed file would. */
+  withoutReportingPages?: boolean;
   route?: { source: string; contents: string };
   shellAssets?: string[];
   files?: Record<string, string>;
@@ -25,6 +29,11 @@ const PWA_CHUNK = "assets/chunk-Hn2Rw7Kd.js";
 const ROUTE_CHUNK = "assets/chunk-bV6sE1yZ.js";
 const PUBLIC_SHELL_CHUNK = "assets/chunk-pS7hLw2N.js";
 const PUBLIC_SHELL_IMPORT = "assets/chunk-c4Rd8BqM.js";
+const REPORTING_PAGE_CHUNKS = {
+  "src/views/Public/AgentReporting/index.tsx": "assets/chunk-rP3kTq8W.js",
+  "src/views/Public/AgentReporting/PermissionsPage.tsx": "assets/chunk-mW5nJx2C.js",
+};
+const REPORTING_PAGE_IMPORT = "assets/chunk-Lq9vZ4Hd.js";
 
 const fixtureDirectories: string[] = [];
 const checkerPath = resolve(process.cwd(), "scripts/check-pwa-precache-budget.mjs");
@@ -98,6 +107,26 @@ function createFixture(options: FixtureOptions = {}) {
         modules: options.publicShellImports,
       };
       writeFileSync(resolve(directory, PUBLIC_SHELL_IMPORT), "export const cards = true");
+    }
+  }
+
+  if (!options.withoutReportingPages) {
+    for (const [source, file] of Object.entries(REPORTING_PAGE_CHUNKS)) {
+      manifest[source] = { file, isDynamicEntry: true, src: source };
+      chunks[file] = {
+        imports: options.reportingImports ? [REPORTING_PAGE_IMPORT] : [],
+        dynamicImports: [],
+        modules: [`packages/client/${source}`],
+      };
+      writeFileSync(resolve(directory, file), "export const page = true");
+    }
+    if (options.reportingImports) {
+      chunks[REPORTING_PAGE_IMPORT] = {
+        imports: [],
+        dynamicImports: [],
+        modules: options.reportingImports,
+      };
+      writeFileSync(resolve(directory, REPORTING_PAGE_IMPORT), "export const shared = true");
     }
   }
 
@@ -230,6 +259,35 @@ describe("PWA build budgets", () => {
   it("fails a build that has no website frame left to check", () => {
     const output = runFailure(createFixture({ withoutPublicShell: true }), {});
     expect(output).toContain("The website frame (src/routes/PublicShell.tsx) is missing");
+  });
+
+  // A reporting page needs sign-in and the wallet kit, so it answers to a shorter list.
+  it("fails a reporting page that reaches the work queue or a work card, not sign-in", () => {
+    const output = runFailure(
+      createFixture({
+        reportingImports: [
+          "packages/shared/src/hooks/auth/useAuth.ts",
+          "packages/shared/src/providers/AppKitProvider.tsx",
+          "packages/shared/src/providers/JobQueue.tsx",
+          "packages/client/src/components/Cards/Work/DraftCard.tsx",
+        ],
+      }),
+      {}
+    );
+    expect(output).toContain(
+      "forbidden dependencies under the reporting page (src/views/Public/AgentReporting/index.tsx)"
+    );
+    expect(output).toContain("packages/shared/src/providers/JobQueue.tsx");
+    expect(output).toContain("packages/client/src/components/Cards/Work/DraftCard.tsx");
+    expect(output).not.toContain("useAuth.ts");
+    expect(output).not.toContain("AppKitProvider.tsx");
+  });
+
+  it("fails a build that has no reporting page left to check", () => {
+    const output = runFailure(createFixture({ withoutReportingPages: true }), {});
+    expect(output).toContain(
+      "The reporting page (src/views/Public/AgentReporting/index.tsx) is missing"
+    );
   });
 
   it("passes a build whose lazy chunks carry opaque names", () => {

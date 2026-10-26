@@ -4,9 +4,9 @@
  *
  * The banner is the garden's own picture, or its name's gradient when it has none; then the
  * garden's name on one line and one detail line: how many members, then where (the place
- * shortens first). Stewards, the description and how to join live on the garden's page. Home's
- * garden list opens a garden from it, and Submit Work chooses one with `GardenPicker`, the same
- * listbox as the action picker.
+ * shortens first). Stewards, the description and how to join live on the garden's page. Explore
+ * opens a garden from it with one tag on the photo (Member, Awaiting review or Open, DL-125),
+ * and Submit Work chooses one with `GardenPicker`, the same listbox as the action picker.
  *
  * @module components/Cards/GardenCard
  */
@@ -48,6 +48,8 @@ export interface GardenCardProps
     | "layout"
   > {
   garden: GardenCardData;
+  /** The card's one tag on its photo, such as how the reader stands with the garden. */
+  tag?: string;
 }
 
 /** The card's picture, title and detail line, shared by the card and the picker. */
@@ -81,13 +83,20 @@ function gardenCardContent(
 }
 
 export const GardenCard = React.forwardRef<HTMLElement, GardenCardProps>(function GardenCard(
-  { garden, ...props },
+  { garden, tag, ...props },
   ref
 ) {
   const { formatMessage } = useIntl();
   const content = gardenCardContent(garden, formatMessage);
   return (
-    <MediaCard ref={ref} data-testid="garden-card" {...props} {...content} mediaShape="banner" />
+    <MediaCard
+      ref={ref}
+      data-testid="garden-card"
+      {...props}
+      {...content}
+      mediaLabel={tag}
+      mediaShape="banner"
+    />
   );
 });
 

@@ -1,4 +1,7 @@
-import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type {
+  PoolConsoleController,
+  VoucherConsoleView,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   type DisplayEntry,
   type DisplayGroupEntry,
@@ -14,6 +17,32 @@ export type PoolCommitmentFocus = "pastDue" | "recovery" | null;
 /** One row of Offers and Requests: a promise, or a group of copies made together. */
 export type PoolCommitmentEntry = DisplayEntry<CommitmentReadModel>;
 export type PoolCommitmentGroup = DisplayGroupEntry<CommitmentReadModel>;
+
+/**
+ * The pool's recovery list with the voucher bookings whose return didn't go
+ * through added (PRD-1297): anyone can retry the same transfer, so they need
+ * recovery like a past-due or disputed promise, and the count follows.
+ */
+export function withVoucherRecovery<
+  M extends Pick<PoolConsoleController["model"], "needsRecovery" | "counts">,
+>(
+  model: M,
+  commitments: readonly CommitmentReadModel[],
+  vouchers: Pick<VoucherConsoleView, "bookingFor">
+): M {
+  const listed = new Set(model.needsRecovery.map((row) => row.id));
+  const failed = commitments.filter(
+    (row) =>
+      !listed.has(row.id) && vouchers.bookingFor(row.commitmentId)?.stage.kind === "return-failed"
+  );
+  if (failed.length === 0) return model;
+  const needsRecovery = [...model.needsRecovery, ...failed];
+  return {
+    ...model,
+    needsRecovery,
+    counts: { ...model.counts, needsRecovery: needsRecovery.length },
+  };
+}
 
 /** A group as the pool reads it now, so an open inspector follows its counts. */
 export function currentGroup(

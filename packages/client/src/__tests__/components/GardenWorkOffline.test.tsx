@@ -2,14 +2,17 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { afterEach, expect, it, vi } from "vitest";
 
-const offline = vi.hoisted(() => ({ useActiveOfflineGarden: vi.fn() }));
+const offline = vi.hoisted(() => ({ useOfflineGardenInView: vi.fn() }));
+const navigate = vi.hoisted(() => vi.fn());
 vi.mock("@green-goods/shared/hooks/offline/useOfflineContent", () => offline);
 vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
-  useNavigateToTop: () => vi.fn(),
+  useNavigateToTop: () => navigate,
 }));
 vi.mock("@/components/Cards", () => ({
-  MinimalWorkCard: ({ work }: { work: { title: string } }) => (
-    <div data-testid="cached-work">{work.title}</div>
+  MinimalWorkCard: ({ work, onClick }: { work: { title: string }; onClick?: () => void }) => (
+    <button type="button" data-testid="cached-work" onClick={onClick}>
+      {work.title}
+    </button>
   ),
 }));
 
@@ -55,7 +58,7 @@ it("says nothing about offline content while online", () => {
   // Online, the header's status line is the count, never a saved-copy line.
   expect(screen.getByRole("status")).toHaveTextContent("1 submission");
   expect(screen.queryByText(/Offline/)).toBeNull();
-  expect(offline.useActiveOfflineGarden).toHaveBeenCalledWith("0xgarden");
+  expect(offline.useOfflineGardenInView).toHaveBeenCalledWith("0xgarden");
 });
 
 it("keeps saved work visible without an online refresh-failure accent", () => {
@@ -183,6 +186,35 @@ it("reads the rest of the garden's history before listing it oldest first", () =
   );
   expect(screen.getAllByTestId("cached-work")[0]).toHaveTextContent("work 1");
   expect(loadOlderWork).toHaveBeenCalledTimes(1);
+});
+
+it("sends a work's page back to the garden's page, or to Home when the list is a sheet over it", () => {
+  const view = renderList({
+    works: [savedWork(1)],
+    workFetchStatus: "success",
+    gardenId: "0xgarden",
+  });
+  fireEvent.click(screen.getByTestId("cached-work"));
+  expect(navigate).toHaveBeenLastCalledWith("/home/0xgarden/work/cached-1", {
+    state: { from: "garden", returnTo: "/home/0xgarden" },
+  });
+
+  // The same list as the Work sheet over Home (DL-128): the work's Back returns to Home.
+  view.rerender(
+    <IntlProvider locale="en" messages={enMessages}>
+      <GardenWork
+        works={[savedWork(1)]}
+        actions={[]}
+        gardenId="0xgarden"
+        workFetchStatus="success"
+        returnTo="/home"
+      />
+    </IntlProvider>
+  );
+  fireEvent.click(screen.getByTestId("cached-work"));
+  expect(navigate).toHaveBeenLastCalledWith("/home/0xgarden/work/cached-1", {
+    state: { from: "home", returnTo: "/home" },
+  });
 });
 
 it("hides older work offline, where a wider window cannot be read", () => {
