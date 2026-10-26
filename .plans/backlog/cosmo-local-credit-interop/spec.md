@@ -192,8 +192,12 @@ Fewer than two valid stewards blocks spending. An immutable Arbitrum publisher r
 roles and automatically dispatches changes using native CCIP fee fuel; failures leave a
 permissionless refresh/caller-funded dispatch retry. Delivery feeds an authenticated,
 revision-ordered Gnosis mirror. The receiver owns a dedicated Hats tree and creates a locked
-Hats Signer Gate v2 Safe with fixed ABSOLUTE min=2,target=2. Revocation is committed before
-best-effort owner cleanup. Source grants recover a zero/one-steward Safe; loss of source garden
+Hats Signer Gate v2 Safe with fixed ABSOLUTE min=2,target=2. **Superseded for new gardens,
+26 October:** the Safe mirrors the steward roster (ABSOLUTE min=1,target=2, locked at
+deployment): one steward signs alone, two or more need two signatures, and an optional starting
+signer's exception ends when its own Hats status is mirrored. The live Tech and Sun Safe keeps
+fixed-two after its [finalization](handoffs/tas-steward-safe-finalize-runbook.md). Revocation is
+committed before best-effort owner cleanup. Source grants recover a zero/one-steward Safe; loss of source garden
 admin authority remains a separate recovery problem. This is local implementation pending live
 inputs, source upgrade/observer registration, dispatch operation and activation. Each
 issuer retains its own service obligations. Other communities can operate separate exchange pools; federation and
