@@ -117,6 +117,8 @@ export const toastMessageIds = {
       approvalMessageInGarden: "app.toast.queue.jobFailed.approvalMessageInGarden",
       /** The switcher's own words, as Home's chooser prompt opens it. */
       seeGardens: "app.home.chooser.action",
+      /** The arrival toast's own Review, which opens Your Work on Pending as it does. */
+      review: "app.home.arrival.queue.action",
     },
     retryFailed: {
       title: "app.toast.queue.retryFailed.title",

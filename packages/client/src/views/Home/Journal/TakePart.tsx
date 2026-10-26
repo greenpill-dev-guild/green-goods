@@ -181,14 +181,15 @@ export function TakePartRows({
 function CycleLines({ gardenId }: { gardenId: string }) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const { state } = useGardenOpenCycles(gardenId);
+  // Home shown again reads the cycles' clock afresh, so days left never stand stale under a page.
+  const homeShown = useContext(HomeShownContext);
+  const { state } = useGardenOpenCycles(gardenId, { shown: homeShown });
   // The last cycle stays drawn while its sheet closes.
   const [details, setDetails] = useState<{ cycle: CommitmentCycleRecord | null; open: boolean }>({
     cycle: null,
     open: false,
   });
   // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
-  const homeShown = useContext(HomeShownContext);
   if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
   if (state.status !== "ready") return null;
 

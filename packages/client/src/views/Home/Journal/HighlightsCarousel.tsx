@@ -48,7 +48,9 @@ export interface HighlightsCarouselProps {
 export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigateToTop();
-  const cycles = useGardenOpenCycles(gardenId);
+  // Home shown again reads the cycles' clock afresh, so days left never stand stale under a page.
+  const homeShown = useContext(HomeShownContext);
+  const cycles = useGardenOpenCycles(gardenId, { shown: homeShown });
   const activity = useGardenRecentActivity(gardenId);
   const promises = useGardenOpenPromises(gardenId);
   // The last cycle stays drawn while its sheet closes.
@@ -57,7 +59,6 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
     open: false,
   });
   // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
-  const homeShown = useContext(HomeShownContext);
   if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
 
   const settled = [cycles, activity, promises].every(({ state }) => state.status !== "loading");
