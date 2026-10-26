@@ -13,7 +13,10 @@ import { TopNav } from "@/components/Navigation";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { GardenPage } from "./GardenPage";
 
-/** Where a visit returns to: the list it came from (Explore), else Home. */
+/**
+ * What a page that opens a garden says about itself: Explore and Home name themselves, so the
+ * garden's Back steps back to them. A visit that names neither returns Home.
+ */
 export interface GardenVisitState {
   returnTo?: string;
 }
@@ -22,14 +25,14 @@ const RETURN_ROUTES: ReadonlySet<string> = new Set([APP_ROUTES.home, APP_ROUTES.
 
 /**
  * What this visit remembers from the entry that opened it: which garden, where Back returns
- * to, the entry's key, and whether the entry before it is where the visit came from (it was
- * pushed, so Back can step back to it).
+ * to, the entry's key, and whether the entry before it is where Back returns to (that page
+ * named itself and pushed this entry, so Back can step back to it).
  */
 interface Visit {
   gardenId: string | undefined;
   returnTo: string;
   key: string;
-  cameFromPrevious: boolean;
+  cameFromReturnTarget: boolean;
 }
 
 export const Garden: FC = () => {
@@ -46,26 +49,27 @@ export const Garden: FC = () => {
   const { id: gardenIdParam } = useParams<{ id: string }>();
   const { pathname, state, key } = useLocation();
 
-  // A visit from Explore goes back there; any other visit, a link included, goes Home. The
-  // target is kept from the entry that opened the garden: its child pages (a work, a promise)
-  // push `/home/:id` again on their own Back, without Explore's state, and a garden that stays
-  // mounted while its id changes is a new visit.
+  // A visit from Explore goes back there; any other visit, a link or Profile's list included,
+  // goes Home. The target is kept from the entry that opened the garden: its child pages (a
+  // work, a promise) push `/home/:id` again on their own Back, without Explore's state, and a
+  // garden that stays mounted while its id changes is a new visit.
   const capture = (): Visit => {
-    const returnTo = (state as GardenVisitState | null)?.returnTo;
+    const named = (state as GardenVisitState | null)?.returnTo;
+    const origin = named && RETURN_ROUTES.has(named) ? named : undefined;
     return {
       gardenId: gardenIdParam,
-      returnTo: returnTo && RETURN_ROUTES.has(returnTo) ? returnTo : APP_ROUTES.home,
+      returnTo: origin ?? APP_ROUTES.home,
       key,
-      cameFromPrevious: navigationType === "PUSH",
+      cameFromReturnTarget: navigationType === "PUSH" && origin !== undefined,
     };
   };
   const [visit, setVisit] = useState(capture);
   if (visit.gardenId !== gardenIdParam) setVisit(capture());
 
-  // Back steps back to where the visit came from when that is the entry before this one, and
-  // otherwise replaces this entry with it, so pressing Back never grows the history.
+  // Back steps back to its target when that is the entry before this one, and otherwise
+  // replaces this entry with it, so pressing Back never grows the history.
   const back = () => {
-    if (visit.key === key && visit.cameFromPrevious) {
+    if (visit.key === key && visit.cameFromReturnTarget) {
       void navigate(-1);
       return;
     }

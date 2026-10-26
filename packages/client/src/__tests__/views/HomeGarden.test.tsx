@@ -548,12 +548,15 @@ describe("Home garden visit", () => {
     return null;
   }
 
-  /** Explore, then the garden's page with its child work page, as the app routes them. */
-  const renderVisit = () =>
+  /**
+   * The pages around a garden visit as the app routes them, starting at `entry`: Home, Explore,
+   * Profile, and the garden's page with its child work page.
+   */
+  const renderVisit = (entry = "/home/explore") =>
     render(
       createElement(
         MemoryRouter,
-        { initialEntries: ["/home/explore"] },
+        { initialEntries: [entry] },
         createElement(
           IntlProvider,
           { locale: "en", messages },
@@ -561,9 +564,14 @@ describe("Home garden visit", () => {
           createElement(
             Routes,
             null,
+            createElement(Route, { path: "/home", element: createElement("p", null, "Home") }),
             createElement(Route, {
               path: "/home/explore",
               element: createElement("p", null, "Explore gardens"),
+            }),
+            createElement(Route, {
+              path: "/profile",
+              element: createElement("p", null, "Profile"),
             }),
             createElement(
               Route,
@@ -632,23 +640,7 @@ describe("Home garden visit", () => {
   });
 
   it("goes Home from a garden opened by link, replacing the entry rather than stacking on it", () => {
-    render(
-      createElement(
-        MemoryRouter,
-        { initialEntries: ["/home/garden-1"] },
-        createElement(
-          IntlProvider,
-          { locale: "en", messages },
-          createElement(Probe),
-          createElement(
-            Routes,
-            null,
-            createElement(Route, { path: "/home", element: createElement("p", null, "Home") }),
-            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
-          )
-        )
-      )
-    );
+    renderVisit("/home/garden-1");
 
     back();
     expect(location).toBe("/home");
@@ -657,6 +649,22 @@ describe("Home garden visit", () => {
     });
     // Nothing before the link to go back to: the entry was replaced, so Back stays put.
     expect(location).toBe("/home");
+  });
+
+  it("goes Home from a garden a page opened without naming itself, in place of stepping back to it", () => {
+    // Profile's garden list opens a garden this way; only Explore and Home name themselves.
+    renderVisit("/profile");
+    act(() => {
+      void navigate("/home/garden-1");
+    });
+
+    back();
+    expect(location).toBe("/home");
+    // Home took the visit's entry, so the page that opened the garden is still behind it.
+    act(() => {
+      void navigate(-1);
+    });
+    expect(location).toBe("/profile");
   });
 
   it("starts the garden's page afresh when the garden changes, so its open tab resets", () => {

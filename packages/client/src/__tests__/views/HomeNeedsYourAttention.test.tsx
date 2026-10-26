@@ -156,6 +156,27 @@ describe("Home Needs Your Attention", () => {
     expect(openCommitmentsSheet).toHaveBeenCalledWith({ tab: "to-confirm" });
   });
 
+  it("hands the Work sheet the row that opened it: a duty row takes focus as it is pressed", () => {
+    renderSection(
+      duties({
+        duties: [{ kind: "review", count: 1, works: [work("0x01", "Workshop Delivered", NOW)] }],
+      })
+    );
+    const row = within(rows()[0]).getByRole("button");
+    let focusedAtOpen: Element | null = null;
+    openGardenSheet.mockImplementationOnce(() => {
+      focusedAtOpen = document.activeElement;
+    });
+
+    // A tap presses and clicks a button, and in Safari it focuses nothing; the sheet hands
+    // focus back to whatever held it as it opened.
+    fireEvent.pointerDown(row);
+    fireEvent.click(row);
+
+    expect(openGardenSheet).toHaveBeenCalledWith("work");
+    expect(focusedAtOpen).toBe(row);
+  });
+
   it("reads the titles it names and no more, and names an incomplete review queue without a count", () => {
     renderSection(
       duties({

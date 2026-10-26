@@ -12,11 +12,12 @@ import {
   RiGroupLine,
   RiShareLine,
 } from "@remixicon/react";
-import { lazy, type PointerEvent, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import { shareGarden } from "../Garden/shareGarden";
+import { focusOnPress } from "./focusOnPress";
 import { JournalSection } from "./JournalSection";
 
 // The sheets carry the garden page's sections, its Endowment and its governance, so they load
@@ -29,15 +30,6 @@ export interface AboutGardenProps {
   /** The active garden's record. */
   garden: Garden;
 }
-
-/**
- * Safari does not focus a button on a tap, so a row takes focus as it is pressed: the sheet it
- * opens records it as the opener and hands focus back to it on close (DL-128).
- */
-const focusOnPress = {
-  onPointerDown: (event: PointerEvent<HTMLElement>) =>
-    event.currentTarget.focus({ preventScroll: true }),
-};
 
 /**
  * About This Garden (PWA Home step 10, DL-128): the journal's last section, one item row per

@@ -130,8 +130,11 @@ function setActive(
 }
 
 let location = "";
+let locationState: unknown;
 function LocationProbe() {
-  location = useLocation().pathname;
+  const current = useLocation();
+  location = current.pathname;
+  locationState = current.state;
   return null;
 }
 function VisitedGarden() {
@@ -355,6 +358,8 @@ describe("the switcher", () => {
     fireEvent.click(within(openSwitcher()).getByRole("button", { name: /Vida Verde/ }));
 
     expect(location).toBe(`/home/${VIDA.id}`);
+    // Home names itself as where the visit came from, so the garden's Back steps back here.
+    expect(locationState).toEqual({ returnTo: "/home" });
     expect(selectGarden).not.toHaveBeenCalled();
   });
 

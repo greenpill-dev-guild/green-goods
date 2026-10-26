@@ -20,7 +20,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, waitFor, within } from "../test-utils";
+import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN = "0x5000000000000000000000000000000000000001";
 const NEIGHBOUR = "0xb0b0000000000000000000000000000000000002" as Address;
@@ -329,6 +329,22 @@ describe("Home journal", () => {
       await user.click(screen.getByRole("button", { name: "See All" }));
       expect(useUIStore.getState().gardenSheet).toBe("work");
       expect(mocks.navigate).toHaveBeenCalledTimes(1);
+    });
+
+    it("takes focus as See All is pressed, before the Work sheet opens, so the sheet hands it back", () => {
+      render(<RecentActivity gardenId={GARDEN} />);
+      const seeAll = screen.getByRole("button", { name: "See All" });
+      let focusedAtOpen: Element | null = null;
+      const stop = useUIStore.subscribe((state, previous) => {
+        if (state.gardenSheet && !previous.gardenSheet) focusedAtOpen = document.activeElement;
+      });
+
+      // A tap presses and clicks a button, and in Safari it focuses nothing.
+      fireEvent.pointerDown(seeAll);
+      fireEvent.click(seeAll);
+      stop();
+
+      expect(focusedAtOpen).toBe(seeAll);
     });
 
     it("keeps its place while loading, and tells a failure, a wait and an empty garden apart", async () => {

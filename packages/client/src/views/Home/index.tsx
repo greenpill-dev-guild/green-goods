@@ -38,6 +38,7 @@ import {
 } from "./arrivalToast";
 import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
 import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
+import type { GardenVisitState } from "./Garden";
 import { GardenSwitcherSheet } from "./GardenSwitcher";
 import { HomeHeader } from "./HomeHeader";
 import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./HomeStates";
@@ -97,7 +98,8 @@ type SwitcherMode = "switch" | "choose";
 const Home: React.FC = () => {
   const routerNavigate = useNavigate();
   const navigate = useCallback(
-    (path: string) => routerNavigate(path, { viewTransition: true }),
+    (path: string, state?: GardenVisitState) =>
+      routerNavigate(path, { viewTransition: true, state }),
     [routerNavigate]
   );
   const location = useLocation();
@@ -186,10 +188,11 @@ const Home: React.FC = () => {
     }
   }, [closeGardenSheet, closeSwitcher, closeWalletSheet, isHomeRoute]);
 
+  // Home names itself as where the visit came from, so the garden's Back steps back here.
   const visitGarden = useCallback(
     (id: string) => {
       closeSwitcher();
-      navigate(`${APP_ROUTES.home}/${id}`);
+      navigate(`${APP_ROUTES.home}/${id}`, { returnTo: APP_ROUTES.home });
     },
     [closeSwitcher, navigate]
   );
@@ -220,7 +223,7 @@ const Home: React.FC = () => {
           return;
         case "startWork":
           // One garden → jump straight in; several → the switcher, so they pick.
-          if (myGardenIds.length === 1) navigate(`${APP_ROUTES.home}/${myGardenIds[0]}`);
+          if (myGardenIds.length === 1) visitGarden(myGardenIds[0]);
           else openSwitcher();
           return;
         case "openHelp":
@@ -228,7 +231,7 @@ const Home: React.FC = () => {
           return;
       }
     },
-    [myGardenIds, navigate, openSwitcher, openWorkDashboard]
+    [myGardenIds, navigate, openSwitcher, openWorkDashboard, visitGarden]
   );
 
   // A child screen (Explore, a garden) opens under Home, so Home stays mounted and a toast

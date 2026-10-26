@@ -112,7 +112,7 @@ describe("useGardenAccess", () => {
       { owners: [ME] },
       { canReview: false, canManageRequests: true, showEndowment: false },
     ],
-  ] as const)("answers for %s from the garden's record", (_who, roles, expected) => {
+  ])("answers for %s from the garden's record", (_who, roles, expected) => {
     expect(access(garden(roles))).toMatchObject({
       ...expected,
       hasEndowmentDeposits: false,
