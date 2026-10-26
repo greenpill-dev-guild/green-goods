@@ -66,12 +66,12 @@ let html = readFileSync(htmlPath, "utf8");
 const markdown = readFileSync(notesPath, "utf8");
 const mdNotes = markdownNotes(markdown);
 
+// --sync builds the synced source in memory; it is written only after the checks below pass, so a
+// malformed or mis-timed notes file never lands in the tracked deck.
 if (args.has("--sync")) {
   const { raw } = htmlNotes(html);
   const json = JSON.stringify(mdNotes.map((n) => n.text), null, 2).replace(/<\//g, "<\\/");
   html = html.replace(raw, `<script type="application/json" id="speaker-notes">\n${json}\n</script>`);
-  writeFileSync(htmlPath, html);
-  console.log(`synced ${mdNotes.length} notes into index.html`);
 }
 
 // Structural checks on the source.
@@ -104,6 +104,10 @@ if (/\u2014/.test(html) || /\u2014/.test(markdown)) note("an em dash (U+2014) is
 
 console.log(`source checks: ${slides.length} slides, ${mdNotes.length} notes, timings ${clock(total)}${problems.length ? "" : ", all good"}`);
 for (const p of problems) console.log(`  problem: ${p}`);
+if (args.has("--sync")) {
+  if (problems.length) console.log("index.html is untouched: fix speaker-notes.md and sync again");
+  else { writeFileSync(htmlPath, html); console.log(`synced ${mdNotes.length} notes into index.html`); }
+}
 if (args.has("--check") || args.has("--sync")) process.exit(problems.length ? 1 : 0);
 
 // Render.

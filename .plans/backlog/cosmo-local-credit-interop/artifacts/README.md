@@ -491,7 +491,8 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    gift method and board approval for any role are unconfirmed; the slides say only "a Yoruba
    community nonprofit in Los Angeles".
 5. **Status refresh before submission.** Done on 25 October: the voucher contracts are deployed
-   and switched on, not yet used, and the slides keep "in pilot". Re-check the
+   and switched on, not yet used; the slides keep "in pilot", and since 26 October slide 7 also says
+   "deployed on public networks" and "rehearsed end to end with demo accounts". Re-check the
    [live-pilot handoff](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.plans/backlog/cosmo-local-credit-interop/handoffs/codex-live-pilot-deployment.md) on 27 October, which lives on `develop` (this branch does not carry
    it), and the [status refresh](#status-refresh--25-october-2026) above, which holds the chain
    evidence the handoff still lacks. If either records

@@ -8,7 +8,7 @@
 // Exits with status 1 when a screen is missing or the page passes 15 MB, and then writes nothing,
 // so the last good build in output/ survives a failed one.
 import { fileURLToPath } from "node:url";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const MAX_BYTES = 15 * 1024 * 1024;
@@ -39,7 +39,6 @@ if (problems.length) {
   console.log(`build failed with ${problems.length} problem(s); the files in output/ are untouched`);
   process.exit(1);
 }
-writeFileSync(standalone, html);
 // The Artifact tool wraps a page in its own document with a charset and a viewport meta.
 const artifact = html
   .replace(/<!DOCTYPE html>\s*/i, "")
@@ -51,5 +50,26 @@ const artifact = html
   .replace(/\s*<\/body>/i, "")
   .replace(/<meta charset="UTF-8" \/>\s*/i, "")
   .replace(/<meta name="viewport"[^>]*>\s*/i, "");
-writeFileSync(join(out, "artifact.html"), artifact);
+// Both files are written to a staging folder and promoted together: the backup of the current pair
+// completes before either is touched, and a rename that fails halfway puts the pair back.
+const names = ["green-goods-sf-live-demo.html", "artifact.html"];
+const staging = mkdtempSync(join(out, ".build-"));
+writeFileSync(join(staging, names[0]), html);
+writeFileSync(join(staging, names[1]), artifact);
+const backup = mkdtempSync(join(out, ".previous-"));
+try {
+  for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+} catch (error) {
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  throw new Error(`${error.message}; nothing in output/ was replaced`);
+}
+try {
+  for (const name of names) renameSync(join(staging, name), join(out, name));
+} catch (error) {
+  for (const name of names) rmSync(join(out, name), { force: true });
+  for (const name of readdirSync(backup)) copyFileSync(join(backup, name), join(out, name));
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  throw new Error(`${error.message}; the previous build was put back`);
+}
+for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
 console.log(`built ${standalone} (${(size / 1048576).toFixed(2)} MB, ${Object.keys(images).length} screens) and output/artifact.html`);

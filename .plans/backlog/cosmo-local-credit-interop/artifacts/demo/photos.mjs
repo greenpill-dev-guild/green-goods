@@ -1,6 +1,8 @@
 // Saves the photos of Tech and Sun's approved submissions from its public garden page into
 // ./assets/photos as record-NN.jpg (not committed), with record-photos.tsv listing each title, and
-// the course proof on the hub's one waiting promise as proof-course.jpg, cropped to the result.
+// crops the course proof on the hub's one waiting promise to proof-course.jpg from a raw copy
+// placed by hand (assets/photos/proof-raw.jpg, from the same private handoff as the Awka photo;
+// this file names no address for it, since the raw photo shows a member's name and email).
 // Afo cleared the hub's public photos for the demo on 26 October 2026; never use record-15, a
 // letter that names a person. capture.mjs swaps these into the Work and Promise flows.
 // Usage, from the repository root (needs the repository's Playwright install and network access):
@@ -10,7 +12,7 @@
 // never survives a refresh unnoticed.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -59,13 +61,14 @@ for (const card of wanted) {
 }
 
 // The proof on the hub's one course promise that is waiting to be confirmed: a photo of the
-// course's final assessment. The photo also shows the member's browser profile menu with their
-// name and email, so only the assessment panel is kept.
-const PROOF = "https://greengoods.mypinata.cloud/ipfs/bafkreie3p3ji5l7lufiocgkdswktr2rj7tiptklzd3cdnkx6ifvk4bjzvi";
-const proof = await page.request.get(PROOF);
-const proofBody = proof.ok() ? await proof.body() : null;
-if (!proofBody) failures.push(`proof-course.jpg: ${proof.status()} for ${PROOF}`);
-else if (proofBody.length < 1024 || !looksLikeImage(proofBody)) failures.push(`proof-course.jpg: not an image (${proofBody.length} bytes) for ${PROOF}`);
+// course's final assessment, which also shows the member's browser profile menu with their name
+// and email. The raw photo arrives by hand as proof-raw.jpg, never enters git and is never fetched
+// from here; only the assessment panel is kept, as proof-course.jpg. A cropped file placed by
+// hand is kept as it is when no raw photo is present.
+const rawProof = join(out, "proof-raw.jpg");
+const proofBody = existsSync(rawProof) ? readFileSync(rawProof) : null;
+if (!proofBody) { if (!existsSync(join(out, "proof-course.jpg"))) failures.push("proof-course.jpg: neither it nor proof-raw.jpg is in assets/photos; place one from the private handoff"); }
+else if (proofBody.length < 1024 || !looksLikeImage(proofBody)) failures.push(`proof-course.jpg: proof-raw.jpg is not an image (${proofBody.length} bytes)`);
 else {
   const cropped = await page.evaluate(async (src) => {
     const img = new Image();
@@ -80,20 +83,21 @@ else {
     return canvas.toDataURL("image/jpeg", 0.9);
   }, `data:image/jpeg;base64,${proofBody.toString("base64")}`).catch(() => null);
   // The crop is measured on this one photo; any other size would keep the name and email in view.
-  if (!cropped) failures.push("proof-course.jpg: the proof is no longer the 1280x720 photo the crop was measured on");
+  if (!cropped) failures.push("proof-course.jpg: proof-raw.jpg is not the 1280x720 photo the crop was measured on");
   else writeFileSync(join(temp, "proof-course.jpg"), Buffer.from(cropped.split(",")[1], "base64"));
 }
 await browser.close();
 if (failures.length) {
   rmSync(temp, { recursive: true, force: true });
   for (const failure of failures) console.log(`  problem: ${failure}`);
-  console.log(`refresh failed: ${failures.length} of ${wanted.length + 1} photos did not download; the existing set in ${out} is untouched and may be stale`);
+  console.log(`refresh failed: ${failures.length} problem(s) across ${wanted.length} photos and the proof; the existing set in ${out} is untouched and may be stale`);
   process.exit(1);
 }
 // Replace the whole set at once, so an old record-NN.jpg never outlives the page's current list.
 // The current set is backed up first and put back if any step of the replacement fails, so a
 // half-replaced set never results.
-const isRecord = (name) => /^record-\d+\.jpg$/.test(name) || name === "record-photos.tsv" || name === "proof-course.jpg";
+// A cropped proof placed by hand stays unless this run cropped a new one; proof-raw.jpg never moves.
+const isRecord = (name) => /^record-\d+\.jpg$/.test(name) || name === "record-photos.tsv" || (name === "proof-course.jpg" && existsSync(join(temp, "proof-course.jpg")));
 const backup = mkdtempSync(join(out, ".previous-"));
 const previous = readdirSync(out).filter(isRecord);
 // The current set moves aside whole before anything is installed; a move that fails halfway moves
@@ -116,4 +120,4 @@ try {
   throw new Error(`${error.message}; the previous photo set was put back`);
 }
 for (const dir of [temp, backup]) rmSync(dir, { recursive: true, force: true });
-console.log(`saved ${rows.length} photos and proof-course.jpg into ${out}`);
+console.log(`saved ${rows.length} photos into ${out}; proof-course.jpg ${proofBody ? "cropped from proof-raw.jpg" : "kept as placed"}`);

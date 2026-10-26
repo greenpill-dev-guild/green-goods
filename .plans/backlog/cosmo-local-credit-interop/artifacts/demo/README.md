@@ -44,7 +44,7 @@ screen continues to the next flow, so "Start from the beginning" plays the whole
 | Path | What it is |
 |---|---|
 | [`index.html`](index.html) | The page: landing, flow view and the `#flows` block with every caption, who you are, source and hotspot. It shows the screens from `assets/screens/` when they are present |
-| [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, and the course proof as `proof-course.jpg`, cropped to the result. It replaces the set whole: one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
+| [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, and crops the course proof to `proof-course.jpg` from `proof-raw.jpg`, a raw copy placed by hand from the private handoff (it shows a member's name and email, so no address for it appears in this repository). It replaces the set whole: one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
 | [`capture.mjs`](capture.mjs) | Walks each flow's session in the app and Storybook, captures the 37 screens, swaps in names and the hub's content, and writes each screen's source, size and measured hotspot into `#flows` |
 | [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper). A missing screen or a page over 15 MB fails the build before it writes, so the last good build survives |
 | [`check.mjs`](check.mjs) | Checks the build and walks every flow headless; screenshots each step and a contact sheet into `output/` |
@@ -65,6 +65,7 @@ the record's photos, and capture, build and check. A missing photo fails the cap
 
 ```bash
 cp /Users/afo/Code/greenpill/artifacts/octant-e12-deck/assets/photos/awka-hub.jpg .plans/backlog/cosmo-local-credit-interop/artifacts/demo/assets/photos/
+# and the member's raw course result, from the same private handoff, as assets/photos/proof-raw.jpg
 node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/photos.mjs
 node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/capture.mjs
 node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/build.mjs

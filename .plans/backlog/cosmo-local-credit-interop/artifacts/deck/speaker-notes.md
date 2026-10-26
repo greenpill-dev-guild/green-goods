@@ -143,9 +143,10 @@ Let's grow together. Thank you. Scan the code to see commitment pooling live on 
 - **Remittances.** Say 22.1 billion dollars in 2024, from the World Bank's personal remittances
   series, and that Nigeria is where Tech and Sun builds. Never mix it with central bank or African
   Development Bank figures, and never call it our pipeline or share.
-- **Voucher status on the day.** The slides state no deployment status beyond "in pilot". On
-  slide 7 say the contracts are deployed on public networks and the flow is rehearsed end to end
-  with demo accounts. Say vouchers are live only if the live-pilot handoff records a real
+- **Voucher status on the day.** The slides say "in pilot", and slide 7 adds "deployed on public
+  networks" and "rehearsed end to end with demo accounts" (26 October), so the submitted PDF carries
+  the status without a presenter. On slide 7 say the contracts are deployed on public networks and
+  the flow is rehearsed end to end with demo accounts. Say vouchers are live only if the live-pilot handoff records a real
   member's booking before the pitch. Never call the flow live before it is.
 - **Confirmation.** The person who did the work never confirms it, and the person served does. A
   steward can confirm only as a fallback, and the record labels it one, so never say every kept
