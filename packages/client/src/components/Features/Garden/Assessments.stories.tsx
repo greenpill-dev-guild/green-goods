@@ -53,7 +53,7 @@ const meta = {
       </div>
     ),
   ],
-  args: { records: [record(Domain.AGRO)], assessmentFetchStatus: "success" },
+  args: { gardenId: "garden-id", records: [record(Domain.AGRO)], assessmentFetchStatus: "success" },
 } satisfies Meta<typeof GardenAssessments>;
 export default meta;
 type Story = StoryObj<typeof meta>;
