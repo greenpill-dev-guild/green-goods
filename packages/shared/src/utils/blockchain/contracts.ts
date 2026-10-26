@@ -27,6 +27,7 @@ import GreenWillABIJson from "@green-goods/contracts/abis/GreenWill.json";
 import IHatsABIJson from "@green-goods/contracts/abis/IHats.json";
 import ICommitmentPoolingModuleABIJson from "@green-goods/contracts/abis/ICommitmentPoolingModule.json";
 import ICommitmentRegistryABIJson from "@green-goods/contracts/abis/ICommitmentRegistry.json";
+import ICommitmentServiceOffersABIJson from "@green-goods/contracts/abis/ICommitmentServiceOffers.json";
 import ISettlementModuleABIJson from "@green-goods/contracts/abis/ISettlementModule.json";
 import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
 // Import deployment configurations
@@ -44,6 +45,8 @@ export const GreenGoodsENSABI = GreenGoodsENSABIJson as Abi;
 export const HatsABI = IHatsABIJson as Abi;
 export const GreenWillABI = GreenWillABIJson as Abi;
 export const CommitmentPoolingModuleABI = ICommitmentPoolingModuleABIJson as Abi;
+/** The core module's service-offer interface, where a voucher booking is accepted. */
+export const CommitmentServiceOffersABI = ICommitmentServiceOffersABIJson as Abi;
 export const CommitmentRegistryABI = ICommitmentRegistryABIJson as Abi;
 export const SettlementModuleABI = ISettlementModuleABIJson as Abi;
 
