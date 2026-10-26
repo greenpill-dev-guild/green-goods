@@ -70,15 +70,15 @@ function serviceBookingStage(
   const voucher = s.offer?.route === "voucher" ? s.offer.voucher : null;
   const setup = currentVoucherSetup(s);
   if (!voucher && !setup) return null;
+  const d = setup?.destination;
+  const final = d?.finalAllocation ?? null;
+  // A failed transfer keeps its Retry Transfer, even after the member reported a problem.
+  if (final && (final.release.state === "failed" || final.refund.state === "failed"))
+    return "returnFailed";
   if (coreState === "DISPUTED") return "problemReported";
   if (!setup)
     return input.held !== null && voucher && input.held < voucher.units ? "notEnough" : "open";
-  const d = setup.destination;
-  const final = d?.finalAllocation ?? null;
-  if (final) {
-    if (final.release.state === "failed" || final.refund.state === "failed") return "returnFailed";
-    return final.financiallyClosed ? "closed" : "transfersPending";
-  }
+  if (final) return final.financiallyClosed ? "closed" : "transfersPending";
   if (setup.source.decision === "abort" || d?.result.decision === "abort")
     return d?.result.phase === "aborted" || !d ? "canceled" : "canceling";
   const a = setup.authorization;
@@ -96,7 +96,9 @@ function serviceBookingStage(
       return "readyToClose";
     return d.holderAbortRequested ? "acceptedFirst" : "inProgress";
   }
-  if (accepted) return d?.holderAbortRequested ? "acceptedFirst" : "starting";
+  // Accepted but not started: Start the Booking records the activation and sends it. A
+  // cancellation that lost the race says so once the booking has started.
+  if (accepted) return "starting";
   if (!d || d.result.phase === "none" || d.result.phase === "authorized")
     return d?.result.issuerApproved ? "readyToDeposit" : "waitingApproval";
   return setup.source.setupResult?.depositedUnits === a.voucherUnits
@@ -127,6 +129,7 @@ const ACTS: Partial<Record<ServiceBookingStage, [ServiceActKind | null, ServiceA
   readyToDeposit: ["deposit", "cancel"],
   confirmingDeposit: [null, "cancel"],
   waitingAcceptance: [null, "cancel"],
+  starting: ["activate", null],
   inProgress: [null, "report"],
   readyToClose: ["close", "report"],
   returnProposed: ["review", "report"],

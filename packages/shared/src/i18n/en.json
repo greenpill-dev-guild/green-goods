@@ -7741,6 +7741,7 @@
   "app.voucher.rd.a.retry": "Retry Transfer",
   "app.voucher.rd.a.cancelChanged": "Cancel and Get Vouchers Back",
   "app.voucher.rd.a.addDetails": "Add Details",
+  "app.voucher.rd.a.activate": "Start the Booking",
   "app.voucher.rd.sh.split": "Approve split",
   "app.voucher.rd.sh.kept": "Confirm",
   "app.voucher.rd.sh.splitTitle": "Approve the Final Split",

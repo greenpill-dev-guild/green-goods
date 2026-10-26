@@ -21,6 +21,7 @@ import {
   vouchers,
 } from "../../../../shared/.storybook/voucherPilotFixtures";
 import {
+  activateStep,
   agreeStep,
   runServiceAct,
   serviceActOffered,
@@ -76,7 +77,7 @@ describe("voucher booking on the promise page", () => {
     ],
     ["hubDay", "confirmingDeposit", "Green Goods confirms the deposit", null, "Cancel Booking"],
     ["hubDay", "waitingAcceptance", "Tech and Sun accepts by", null, "Cancel Booking"],
-    ["hubDay", "starting", "Starting fixes the terms", null, null],
+    ["hubDay", "starting", "Starting fixes the terms", "Start the Booking", null],
     ["hubDay", "inProgress", "You're booked", null, "Report a Problem"],
     [
       "hubDay",
@@ -197,6 +198,16 @@ describe("voucher booking on the promise page", () => {
     });
   });
 
+  it("keeps Retry Transfer for a failed transfer after the member reported a problem", () => {
+    const failed = view("hubDay", "returnFailed", { coreState: "DISPUTED" });
+    expect(failed.stage).toBe("returnFailed");
+    expect(failed.primary?.label).toBe("Retry Transfer");
+    // Only a transfer to recover comes before the report; one on its way waits under it.
+    expect(view("hubDay", "transfersPending", { coreState: "DISPUTED" }).stage).toBe(
+      "problemReported"
+    );
+  });
+
   it("gives a reader with too few vouchers one sentence and one door, not a dead act", () => {
     const short = view("access", "notEnough", { held: vouchers(2) });
     expect(short.primary).toBeNull();
@@ -314,6 +325,45 @@ describe("a member's act on a voucher booking", () => {
       return { snapshot: legs([["0xnow", "pending", "pending"]]) };
     };
     expect(await runServiceAct(first, step, send, offered)).toBe(end);
+  });
+
+  it("starts an accepted booking: records its activation, then sends it to the escrow", async () => {
+    const accepted = bookingStorySnapshot("hubDay", "starting", { activationRecorded: false });
+    const raced = {
+      ...accepted,
+      voucherSetups: accepted.voucherSetups.map((row) => ({
+        ...row,
+        destination: row.destination && { ...row.destination, holderAbortRequested: true },
+      })),
+    };
+    // A cancellation that lost the race needs the same start; it says so once the booking runs.
+    for (const snapshot of [accepted, raced]) {
+      const booking = serviceBookingView(
+        {
+          snapshot,
+          coreState: bookingStoryCoreState("hubDay", "starting"),
+          issuer: ISSUER.hubDay,
+          approval: APPROVAL.hubDay,
+          held: vouchers(10),
+        },
+        intl
+      );
+      expect(booking?.stage).toBe("starting");
+      expect(booking?.primary?.label).toBe("Start the Booking");
+    }
+    expect(serviceActOffered("activate", accepted, null)).toBe(true);
+    const recorded = bookingStorySnapshot("hubDay", "starting");
+    const started = bookingStorySnapshot("hubDay", "inProgress");
+    const sent: ServiceAccessAction[] = [];
+    const send = async (action: ServiceAccessAction) => {
+      sent.push(action);
+      return { snapshot: sent.length === 1 ? recorded : started };
+    };
+    expect(await runServiceAct(accepted, activateStep, send)).toBe("done");
+    expect(sent.map((action) => ("kind" in action ? action.kind : action.action))).toEqual([
+      "finalizeVoucherActivation",
+      "decision",
+    ]);
   });
 
   it("sends nothing for an act the shared selector doesn't offer", async () => {

@@ -40,6 +40,7 @@ export type ServiceStepState = "done" | "now" | "todo" | "warn" | "fail";
 export type ServiceActKind =
   | "redeem"
   | "deposit"
+  | "activate"
   | "cancel"
   | "close"
   | "review"

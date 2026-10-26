@@ -76,6 +76,38 @@ export const depositStep: ServiceActStep = (s) => {
   return null;
 };
 
+/** Send the source's recorded decision to the escrow, once, for its reviewed fee. */
+function decisionDispatch(row: ServiceVoucherSetup): ServiceAccessAction | null {
+  if (
+    row.source.decisionDispatched ||
+    row.fees.decision === null ||
+    !setupOffers(row, "dispatchVoucherSetupCommand")
+  )
+    return null;
+  return {
+    ...boundVoucherSetup(row),
+    action: "dispatchVoucherSetupCommand",
+    kind: "decision",
+    expectedDecisionId: row.source.decisionId,
+    reviewedNativeFee: row.fees.decision,
+  };
+}
+
+/** Start an accepted booking: record its activation on the source, then send that decision. */
+export const activateStep: ServiceActStep = (s) => {
+  const row = currentVoucherSetup(s);
+  if (!row) return null;
+  if (row.source.decision === "activate") return decisionDispatch(row);
+  const receipt = row.source.acceptedReceiptHash;
+  return row.source.decision === "none" && receipt && setupOffers(row, "finalizeVoucherActivation")
+    ? {
+        ...boundVoucherSetup(row),
+        action: "finalizeVoucherActivation",
+        expectedAcceptedReceiptHash: receipt,
+      }
+    : null;
+};
+
 /** Cancel before acceptance: the source abort when the reader may decide it, then its send. */
 export const cancelStep: ServiceActStep = (s) => {
   const row = currentVoucherSetup(s);
@@ -95,20 +127,7 @@ export const cancelStep: ServiceActStep = (s) => {
       };
     return null;
   }
-  if (
-    row.source.decision === "abort" &&
-    !row.source.decisionDispatched &&
-    row.fees.decision !== null &&
-    setupOffers(row, "dispatchVoucherSetupCommand")
-  )
-    return {
-      ...boundVoucherSetup(row),
-      action: "dispatchVoucherSetupCommand",
-      kind: "decision",
-      expectedDecisionId: row.source.decisionId,
-      reviewedNativeFee: row.fees.decision,
-    };
-  return null;
+  return row.source.decision === "abort" ? decisionDispatch(row) : null;
 };
 
 /** Approve the final split, then run each transfer it fixed: the return first. */
@@ -218,13 +237,15 @@ export function serviceActOffered(
       ? agreeStep
       : kind === "deposit"
         ? depositStep
-        : kind === "cancel" || kind === "cancelChanged"
-          ? cancelStep
-          : kind === "retry"
-            ? legStep
-            : split
-              ? splitStep(split)
-              : null;
+        : kind === "activate"
+          ? activateStep
+          : kind === "cancel" || kind === "cancelChanged"
+            ? cancelStep
+            : kind === "retry"
+              ? legStep
+              : split
+                ? splitStep(split)
+                : null;
   const action = step?.(snapshot) ?? null;
   return action !== null && selectServiceAccessAction(snapshot, action).allowed;
 }

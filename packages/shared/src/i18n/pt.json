@@ -7741,6 +7741,7 @@
   "app.voucher.rd.a.retry": "Tentar transferência de novo",
   "app.voucher.rd.a.cancelChanged": "Cancelar e recuperar os vales",
   "app.voucher.rd.a.addDetails": "Adicionar detalhes",
+  "app.voucher.rd.a.activate": "Iniciar a reserva",
   "app.voucher.rd.sh.split": "Aprovar divisão",
   "app.voucher.rd.sh.kept": "Confirmar",
   "app.voucher.rd.sh.splitTitle": "Aprovar a divisão final",

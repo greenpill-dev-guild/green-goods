@@ -154,6 +154,8 @@ export function bookingStorySnapshot(
     held?: bigint;
     /** The shared pool's exchange, for an offer the reader holds too few vouchers for. */
     exchange?: "none" | "quoted" | "unknown" | "confirmed";
+    /** False is the moment an acceptance lands, before the source records the activation. */
+    activationRecorded?: boolean;
   } = {}
 ): ServiceAccessSnapshot {
   const k = SERVICES[service];
@@ -242,7 +244,12 @@ export function bookingStorySnapshot(
       state: accepted ? "accepted" : "pending",
     };
     s.nextRequestNonce = 2n;
-    const setup = bookingStorySetup(service, stage, { termsHash, claimHash, held });
+    const setup = bookingStorySetup(service, stage, {
+      termsHash,
+      claimHash,
+      held,
+      activationRecorded: options.activationRecorded ?? true,
+    });
     s.voucherSetups = [setup];
     s.currentVoucherSetupId = setup.setupId;
     setup.availableActions = voucherSetupAvailableActions(s, setup);
@@ -312,7 +319,7 @@ function exchangeStoryPilot(status: "none" | "quoted" | "unknown" | "confirmed")
 function bookingStorySetup(
   service: BookingStoryService,
   stage: BookingStoryStage,
-  ids: { termsHash: Hex; claimHash: Hex; held: bigint }
+  ids: { termsHash: Hex; claimHash: Hex; held: bigint; activationRecorded: boolean }
 ): ServiceVoucherSetup {
   const k = SERVICES[service];
   const units = k.units;
@@ -325,6 +332,7 @@ function bookingStorySetup(
   const observed = reached(stage, "waitingAcceptance") && stage !== "canceling" && stage !== "canceled";
   const accepted = reached(stage, "starting") && !["canceling", "canceled", "termsChanged"].includes(stage);
   const active = reached(stage, "inProgress") && accepted;
+  const recorded = accepted && (active || ids.activationRecorded);
   const final = reached(stage, "transfersPending") && accepted;
   const aborting = stage === "canceling" || stage === "canceled";
   const split = SPLIT[service];
@@ -393,8 +401,8 @@ function bookingStorySetup(
     },
     source: {
       timestamp: VOUCHER_STORY_AGREED_AT,
-      decision: aborting ? "abort" : accepted ? "activate" : "none",
-      decisionId: aborting || accepted ? decisionId : null,
+      decision: aborting ? "abort" : recorded ? "activate" : "none",
+      decisionId: aborting || recorded ? decisionId : null,
       acceptedEver: accepted
         ? {
             setupModule: SOURCE_MODULE,

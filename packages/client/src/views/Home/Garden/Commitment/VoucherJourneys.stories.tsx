@@ -103,10 +103,10 @@ const HUB_DAY: JourneyStep[] = [
     acts: { abortVoucherSetup: 11 },
   },
   {
-    caption: "Accepted. The booking starts on the voucher network; that fixes the terms.",
+    caption: "Accepted. Lina starts the booking on the voucher network; that fixes the terms.",
     booking: { service: "hubDay", stage: "starting" },
     holds: { techAndSun: 8, greenGoods: 0 },
-    next: "The booking starts",
+    acts: { dispatchVoucherSetupCommand: 6 },
   },
   {
     caption: "Lina is booked. After her visit, Tech and Sun reports it.",

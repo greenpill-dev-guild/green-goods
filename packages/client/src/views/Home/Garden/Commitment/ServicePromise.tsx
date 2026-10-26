@@ -17,6 +17,7 @@ import { JoinToActDoor } from "./JoinToAct";
 import { ServiceAccessPanel } from "./ServiceAccessPanel";
 import { ServiceAccessSection } from "./ServiceAccessSection";
 import {
+  activateStep,
   agreeStep,
   cancelStep,
   depositStep,
@@ -183,6 +184,7 @@ export function ServicePromise({
     } else if (kind === "close" || kind === "review") setSheet("split");
     else if (kind === "report") report?.();
     else if (kind === "exchange") openExchange();
+    else if (kind === "activate") void act(activateStep);
     else if (kind === "cancel" || kind === "cancelChanged") void act(cancelStep);
     else if (kind === "retry") void act(legStep);
   };
