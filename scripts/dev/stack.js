@@ -36,13 +36,13 @@ const pm2 = require("pm2");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-/** The prod profile reads the hosted indexer from the environment; there is no built-in deployment. */
+/**
+ * The prod profile reads the hosted indexer from the environment; there is no built-in deployment.
+ * Empty when the environment names none, and `main` refuses to launch the profile then.
+ */
 function hostedIndexerUrl() {
   const url = process.env.VITE_ENVIO_INDEXER_URL?.trim() ?? "";
-  if (!/^https?:\/\//.test(url) || /\/\/(localhost|127\.0\.0\.1)[:/]/.test(url)) {
-    throw new Error("[stack] The prod profile needs VITE_ENVIO_INDEXER_URL set to the hosted indexer URL.");
-  }
-  return url;
+  return /^https?:\/\//.test(url) && !/\/\/(localhost|127\.0\.0\.1)[:/]/.test(url) ? url : "";
 }
 const PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
@@ -741,6 +741,10 @@ async function main() {
   }
 
   const group = parsed.mode === "group" ? parsed.group : "";
+  if (group === "prod" && !hostedIndexerUrl()) {
+    console.error("[stack] The prod profile needs VITE_ENVIO_INDEXER_URL set to the hosted indexer URL.");
+    process.exit(1);
+  }
   const apps = allApps
     .filter((app) => parsed.names.includes(app.name))
     .map((app) => applyGroupEnvironment(app, group));
