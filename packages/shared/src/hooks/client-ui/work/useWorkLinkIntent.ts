@@ -132,11 +132,12 @@ export function useWorkLinkIntent({
     : null;
   // Once fresh live reads answer that the link is no Open ask to take up (the member's own promise
   // now, or neither), its take-up leaves the page's address as it leaves the draft, so a reload
-  // or a later failed read never brings it back. A cached answer still being read again waits:
-  // the fresh one may yet find the ask.
+  // or a later failed read never brings it back. A cached answer still being read again waits,
+  // offline too (TanStack reports that read paused, not fetching): the fresh one may yet find
+  // the ask.
   const takeUpDisproved =
     parsedLinkIntent?.takesUp === true &&
-    !linkChoices.isFetching &&
+    linkChoices.fetchStatus === "idle" &&
     !takeUpChoices.isFetching &&
     (linkIntentStatus === "invalid" || (linkIntentStatus === "valid" && !takeUpLink));
   useEffect(() => {

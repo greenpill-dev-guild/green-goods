@@ -22,6 +22,8 @@ const mocks = vi.hoisted(() => ({
   takeUpPaused: false,
   /** The member's promises' read, as TanStack reports it; "paused" waits for a connection. */
   linkFetchStatus: "idle" as "idle" | "fetching" | "paused",
+  /** That read has an answer cached, so a paused read is a refresh rather than a first read. */
+  linkCached: false,
   /** The asks are read again over a cached answer. */
   takeUpFetching: false,
   takeUpRefetch: vi.fn(),
@@ -117,6 +119,7 @@ vi.mock("../../../hooks/commitment-pooling/useWorkLinkChoices", async (importOri
     await importOriginal<typeof import("../../../hooks/commitment-pooling/useWorkLinkChoices")>()
   ).workLinkReturnTo,
   useWorkLinkChoices: () => ({
+    data: mocks.linkCached ? mocks.choices : undefined,
     choices: mocks.choices,
     isLoading: false,
     isError: false,
@@ -424,6 +427,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.takeUpError = false;
     mocks.takeUpPaused = false;
     mocks.linkFetchStatus = "idle";
+    mocks.linkCached = false;
     mocks.takeUpFetching = false;
     pageSearch = "";
     mocks.communityGarden = null;
@@ -1355,7 +1359,16 @@ describe("useWorkSubmissionFlowController", () => {
       await waitFor(() => expect(view.result.current.linkIntentStatus).toBe(status));
       expect(pageParams().get("linkTakesUp")).toBe("1");
 
+      // The member's promises are read again offline over their cached answer: the read waits
+      // for a connection, neither fetching nor failed, and may yet change that answer.
       mocks.takeUpFetching = false;
+      mocks.linkCached = true;
+      mocks.linkFetchStatus = "paused";
+      view.rerender();
+      expect(view.result.current.linkIntentStatus).toBe(status);
+      expect(pageParams().get("linkTakesUp")).toBe("1");
+
+      mocks.linkFetchStatus = "idle";
       view.rerender();
       expect(view.result.current.takeUpPrompts).toBeNull();
       expect(mocks.autoSaveFields?.linkIntent).not.toHaveProperty("takesUp");

@@ -29,7 +29,10 @@ export interface ViewerTakeUpsRead {
    * surface that offers taking promises up offers none rather than offer one again.
    */
   unavailable: boolean;
-  /** The requests or this phone's queue are being read again, over what they last said. */
+  /**
+   * The requests or this phone's queue are being read again over what they last said, or wait to
+   * be: offline, the requests wait for a connection.
+   */
   refreshing: boolean;
   /** Reads this phone's queue again. */
   retry: () => void;
@@ -67,7 +70,8 @@ export function useViewerTakeUps(input: {
     takeUps,
     settled: !reading || (requestsAnswered && !queue.isLoading),
     unavailable: reading && queue.isUnavailable,
-    refreshing: reading && (requests.isFetching || queue.isFetching),
+    // TanStack reports a read that waits for a connection paused, not fetching.
+    refreshing: reading && (requests.fetchStatus !== "idle" || queue.isFetching),
     retry: queue.refresh,
   };
 }
