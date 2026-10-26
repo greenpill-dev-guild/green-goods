@@ -591,6 +591,48 @@ describe("hooks/work/useWorkApproval", () => {
       expect(result_data?.hash).toBe(MOCK_TX_HASH);
     });
 
+    it("refreshes the garden's week of activity after a decision and in each follow-up", async () => {
+      // Home's bell lists an off-page submission from the week's read, and Home stays mounted
+      // under the work page, so the decision must refresh that read or the row stays new.
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        mockUseUser.mockReturnValue({
+          authMode: "passkey",
+          primaryAddress: MOCK_ADDRESSES.smartAccount,
+        });
+        (submitApprovalToQueue as any).mockResolvedValue({
+          txHash: "0xoffline_approval",
+          jobId: "job-approval-activity",
+        });
+        queueProcessJob.mockResolvedValue({ success: true, txHash: MOCK_TX_HASH, skipped: false });
+        const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+        const work = createMockWork({ status: "pending" });
+        const activityKey = JSON.stringify(queryKeys.works.activity(work.gardenAddress, 11155111));
+        const activityRefreshes = () =>
+          invalidateSpy.mock.calls.filter(
+            ([filters]) => JSON.stringify(filters?.queryKey) === activityKey
+          ).length;
+
+        const { result } = renderHook(
+          () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+          { wrapper: createWrapper() }
+        );
+        await act(async () => {
+          await result.current.mutateAsync({
+            draft: createMockWorkApprovalDraft({ workUID: work.id, approved: true }),
+            work,
+          });
+        });
+        expect(activityRefreshes()).toBe(1);
+
+        // The indexer lags, so the follow-ups read the week again at 2, 5 and 15 seconds.
+        await act(() => vi.advanceTimersByTimeAsync(15_000));
+        expect(activityRefreshes()).toBe(4);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("holds an inline-processed decision with no deadline until the indexer reports it", async () => {
       // The bundler waits for inclusion, so a processed hash is a confirmed one.
       mockUseUser.mockReturnValue({

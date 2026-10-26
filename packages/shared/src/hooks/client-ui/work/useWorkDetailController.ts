@@ -28,9 +28,27 @@ import { useWorkApprovalActions } from "../../work/useWorkApprovalActions";
 import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
 import { queuedUploadStatus } from "../../../modules/work/upload-state";
-import type { WorkDisplayStatus } from "../../../types/domain";
+import type { Work, WorkDisplayStatus } from "../../../types/domain";
 
 export type WorkViewingMode = "steward" | "gardener" | "viewer";
+
+/**
+ * The work a notification row carried in the route's state, when it is this route's work in
+ * this route's garden. History state outlives the screen that wrote it, so it is read as
+ * untrusted input.
+ */
+function carriedRouteWork(
+  candidate: unknown,
+  workId: string | undefined,
+  gardenId: string | undefined
+): Work | undefined {
+  if (!candidate || typeof candidate !== "object" || !workId || !gardenId) return undefined;
+  const { id, gardenAddress, status, media } = candidate as Partial<Work>;
+  if (typeof id !== "string" || typeof gardenAddress !== "string") return undefined;
+  if (typeof status !== "string" || !Array.isArray(media)) return undefined;
+  if (id.toLowerCase() !== workId.toLowerCase()) return undefined;
+  return gardenAddress.toLowerCase() === gardenId.toLowerCase() ? (candidate as Work) : undefined;
+}
 
 export function useWorkDetailController() {
   const intl = useIntl();
@@ -55,8 +73,14 @@ export function useWorkDetailController() {
     offline: true,
   });
   const listedWork = works.find((candidate) => candidate.id === (workId || ""));
-  const routeStatus = (location.state as { workStatus?: WorkDisplayStatus } | null | undefined)
-    ?.workStatus;
+  const routeState = location.state as
+    | { workStatus?: WorkDisplayStatus; work?: unknown }
+    | null
+    | undefined;
+  const routeStatus = routeState?.workStatus;
+  // A notification row can open a work outside the garden's loaded page, and offline the direct
+  // read below is paused, so the record the row carried opens it when nothing fresher has.
+  const routeWork = carriedRouteWork(routeState?.work, workId, gardenId);
   const workByUID = useQuery({
     queryKey: worksKeys.byUID(workId ?? "", chainId),
     queryFn: () => readWorkByUID(workId!, chainId),
@@ -68,7 +92,7 @@ export function useWorkDetailController() {
     const saved = routeStatus ? [{ ...row, status: routeStatus }] : undefined;
     return resolveGardenWorkRows({ remote: [row], saved, overlay: undefined }).rows[0];
   }, [workByUID.data, gardenId, routeStatus]);
-  const work = listedWork ?? fetchedWork;
+  const work = listedWork ?? fetchedWork ?? routeWork;
   const metadata = useWorkMetadata(work?.metadata);
   const matchedAction = useMemo(() => {
     if (!work) return null;
