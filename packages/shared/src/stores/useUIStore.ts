@@ -60,6 +60,14 @@ export type DashboardSnapshot =
   | ({ kind: "work" } & WorkDashboardReturnState)
   | ({ kind: "commitments" } & CommitmentsDashboardReturnState);
 
+/**
+ * A garden section open as a `tall` sheet over Home (DL-128): the active garden's Work,
+ * Insights or Gardeners, under the one shared sheet header. Home's About rows, Recent Activity's
+ * See All and a steward's duty row open them; the Work sheet lists pending work first, as the
+ * Work tab does.
+ */
+export type GardenSheet = "work" | "insights" | "gardeners";
+
 export type UIState = {
   /** Invalidates history snapshots when the signed-in identity changes; never persisted. */
   dashboardNavigationId: string;
@@ -109,6 +117,12 @@ export type UIState = {
   isEndowmentSheetOpen: boolean;
   openEndowmentSheet: () => void;
   closeEndowmentSheet: () => void;
+
+  // The garden section open as a sheet over Home (client); null while none is.
+  gardenSheet: GardenSheet | null;
+  /** Opens one section over Home, in place of any other that was open: the sheets never stack. */
+  openGardenSheet: (sheet: GardenSheet) => void;
+  closeGardenSheet: () => void;
 
   // Wallet sheet controls (client)
   isWalletSheetOpen: boolean;
@@ -192,6 +206,7 @@ export const useUIStore = create<UIState>()(
           gardenSwitcherRequested: false,
           isGardenFilterOpen: false,
           isEndowmentSheetOpen: false,
+          gardenSheet: null,
           isWalletSheetOpen: false,
           isCommitmentsSheetOpen: false,
           commitmentsSheetOpening: undefined,
@@ -204,6 +219,10 @@ export const useUIStore = create<UIState>()(
       isEndowmentSheetOpen: false,
       openEndowmentSheet: () => set({ isEndowmentSheetOpen: true }),
       closeEndowmentSheet: () => set({ isEndowmentSheetOpen: false }),
+
+      gardenSheet: null,
+      openGardenSheet: (sheet) => set({ gardenSheet: sheet }),
+      closeGardenSheet: () => set({ gardenSheet: null }),
 
       isWalletSheetOpen: false,
       openWalletSheet: () => set({ isWalletSheetOpen: true }),

@@ -33,7 +33,7 @@ commit or push does not require the complete Ship Gate.
 |---|---|
 | “commit”, “push”, or “open a PR” | Targeted proof → commit → Push Gate → push/PR → current-head CI |
 | “ready to ship” or `--full-local` | Full local Ship Gate, then the publication flow |
-| Critical surface | Mandatory override (owner typecheck and focused suite plus consumer typechecks; the complete contracts gate for contracts), then the publication flow |
+| Critical surface | Mandatory override (owner typecheck and focused suite plus consumer typechecks; the full local gate for contracts, consumer suites and builds included), then the publication flow |
 | Release | Complete local Ship Gate, then the publication flow |
 | “dry-run ship check” | Selected validation only; no commit, push, or PR |
 
@@ -75,7 +75,7 @@ check.
 
 If the selector marks any surface critical, run its mandatory override: for Shared, the owner's
 typecheck and focused suite plus every consumer's typechecks, with CI owning the consumer suites and
-builds; for contracts, the complete contracts gate. For a release or explicit `--full-local`
+builds; for contracts, the full local gate, consumer suites and builds included. For a release or explicit `--full-local`
 request, run the complete Ship Gate. Do not use compatibility flags or receipts to suppress
 critical checks.
 
@@ -100,6 +100,11 @@ Run the exact ready-for-CI contract against the committed tree:
 node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
   --test-path <surface>:<focused-test-path>
 ```
+
+The push gate is a thin pre-check: format, lint, cheap repository checks, owner and consumer
+typechecks, docs drift and focused tests. The plan lists the builds, Storybook build, browser
+presets and whole suites it leaves to PR CI; current-head CI runs them (step 6). A critical
+contracts change keeps its full local gate, consumer suites and builds included.
 
 Routine work has a 90-second hard limit; sensitive work has 180 seconds; a saturated host (1-minute
 load above 1.5× the host CPU count) suspends the limit, so it stops no check. `needs-focus` and

@@ -17,6 +17,7 @@ import {
 // between stories, so a story that overrides hooks returns `resetHookMocks(...)` (./moduleMocks)
 // from `beforeEach`.
 sb.mock(import("../src/hooks/app/useArrivalState.ts"), { spy: true });
+sb.mock(import("../src/hooks/assessment/useGardenAssessmentRecords.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOffline.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOnlineStatus.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts"), { spy: true });

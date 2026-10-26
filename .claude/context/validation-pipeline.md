@@ -186,16 +186,26 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
 ```
 
 The focused path may be inferred when the changed file is itself a direct test (`*.test.*`,
-`*.spec.*` or a Solidity `*.t.sol`), never from a helper or note beside one. The push selector
-chooses changed-path format/lint, direct behavior proof, and owner-package typecheck/build only when
-an interface, route, generated artifact, or runtime composition moved. It also runs the repository
-checks CI applies to those paths: `test-quality` for tests, test helpers and files a certified seam
+`*.spec.*` or a Solidity `*.t.sol`), never from a helper or note beside one. The push is a thin
+pre-check (D16): the selector chooses changed-path format/lint, focused behavior proof, and the
+owner's typecheck when an interface, route, generated artifact, or runtime composition moved (the
+Indexer's build is its typecheck, so it stands in there). It also runs the cheap repository checks
+CI applies to those paths: `react-patterns` for package source and manifests; `test-quality` for tests, test helpers and files a certified seam
 fingerprints; `docs-generated` for every input of `scripts/docs/generate.mjs` and `docs/`;
 `docs-authority` for any script, configuration or guide outside Plan Hubs; and
 `immutable-plan-reports` for Plan Hub reports, over the plan's own commits and working tree, because
 CI rejects any edit, deletion or rename of a dated report. Ordinary Shared
 implementation changes do not run complete Client, Admin, or Agent suites locally; those remain CI
 responsibilities.
+
+Production builds, the Storybook build, the browser presets (`browser-passkey`,
+`browser-work-exploration`, `browser-pwa-preview`) and whole package suites belong to PR CI. A
+push leaves each to the workflow that runs it (Client, Admin, Agent, Design, Shared, Indexer or
+Docs) when that workflow is expected for the change, and the plan lists it as left to CI; where the
+workflow does not run for the path, the check stays local. A push runs no suite whole, so a changed
+test helper or a deleted test names the test that still proves it, however cheap its suite. An
+explicit `--check` always runs. A critical contracts change is the exception: it keeps its full
+local gate, builds and whole suites included.
 
 A critical Shared push (`AGENTS.md § Change Criticality`) keeps that shape. Its mandatory, uncapped
 override is the owner's typecheck and focused suite plus every consumer's source and test typecheck;
@@ -204,10 +214,10 @@ production builds stay with CI's Shared, Client, Admin and Agent workflows, whic
 the current head. The critical owner names a test even for a barrel change, since its mandatory
 suite runs focused rather than whole, and format and lint stay scoped to the changed paths as in
 every push. A critical qa run keeps the same consumer rule. An explicit `--risk critical` with no
-matched override makes every changed owner critical. The contracts override keeps its
-complete local gate (`abi-artifacts`,
-`contracts-build`, `contracts-test`, `contracts-verify-fast`) because its verify step has no
-pull-request CI equivalent.
+matched override makes every changed owner critical. A critical contracts change keeps the full
+local gate it had before D15, unchanged: the contracts gate (`abi-artifacts`, `contracts-build`,
+`contracts-test`, `contracts-verify-fast`) plus every consumer's whole suites and builds, because
+the contracts verify step has no pull-request CI equivalent.
 
 Comparison scope comes from the live PR base when available, otherwise `origin/develop`. A
 release promotion (a `release/*` head into `main`) compares against `origin/develop`, in CI and
@@ -246,7 +256,7 @@ review, ship may run mutating format and branch/commit safety steps because the 
 requested the full local gate. Ordinary commit, push, and PR creation use targeted proof plus the
 Ready-for-CI Push Gate, then rely on current-head GitHub CI for merge approval. Critical surfaces
 still require their selector-mandated override before push and CI afterward: owner typecheck and
-focused suite plus consumer typechecks for Shared, the complete contracts gate for contracts.
+focused suite plus consumer typechecks for Shared, the full local gate for contracts.
 
 Release runs `node scripts/dev/ci-local.js --intent release`. When the change touches the
 authenticated surface class, that gate requires `--attest browser-proof="<engine, session, date,

@@ -6,7 +6,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { type GardenFiltersState, filterGardens } from "../../modules/garden/filters";
+import {
+  type GardenFiltersState,
+  filterGardens,
+  isGardenListedFor,
+} from "../../modules/garden/filters";
 import { Domain, type Garden } from "../../types";
 
 // ============================================
@@ -124,6 +128,20 @@ describe("filterGardens", () => {
         2
       );
       expect(filterGardens(gardens, defaultFilters(), null).filteredGardens).toHaveLength(2);
+    });
+
+    // Home's awaiting list and the switcher read the same rule (DL-126), whatever the id's case.
+    it.each([
+      ["a family garden to its member", "0xf7b892886998dae960d64a9db488336684f137a0", true, true],
+      [
+        "a family garden to anyone else",
+        "0xF7b892886998DAe960D64a9db488336684F137A0",
+        false,
+        false,
+      ],
+      ["any other garden to anyone", "0xaaaa000000000000000000000000000000000001", false, true],
+    ])("lists %s: %s", (_case, id, isMember, listed) => {
+      expect(isGardenListedFor({ id }, isMember)).toBe(listed);
     });
   });
 
