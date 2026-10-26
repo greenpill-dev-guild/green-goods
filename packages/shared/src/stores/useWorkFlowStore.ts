@@ -48,6 +48,12 @@ export type WorkFlowState = WorkDraftState & {
    * that. Without it, a page without a promise leaves the draft's own alone.
    */
   draftLinkCleared: boolean;
+  /**
+   * The action the flow chose itself when it skipped Start (DL-131): the only one its garden
+   * offers. Like the garden, a choice the member did not make starts no draft, and it belongs to
+   * that garden, so a work with no draft gives it back when its garden changes.
+   */
+  startSkipAction: { garden: Address; actionUID: number } | null;
   location?: ApproximateWorkLocation;
   activeTab: WorkTab;
   submissionCompleted: boolean;
@@ -109,6 +115,7 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   draftSaveState: "loading",
   draftError: null,
   draftLinkCleared: false,
+  startSkipAction: null,
   location: undefined,
   activeTab: WorkTab.Intro,
   submissionCompleted: false,

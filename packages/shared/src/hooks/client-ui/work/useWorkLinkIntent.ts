@@ -1,25 +1,6 @@
-/**
- * The promise a work submission is for
- *
- * Submit Work carries the promise in its address: chosen on the Start step, passed from a
- * promise's page, or kept with a resumed draft. This reads it, checks it against what the member
- * may link work to, and says where that check stands. Two kinds of promise qualify:
- *
- * - one of the member's own, which the work links to as it is sent;
- * - one of the garden's Open asks the member could take up (decision 18), which Submit takes up
- *   first, in the same tap. Declined or refused, nothing of the work is queued; still waiting
- *   to go, the work is queued behind it. A take-up that landed from this composer is not run
- *   again, though the indexer may still list its ask as open.
- *
- * The garden never changes here: an ask is its own garden's, so choosing one keeps the work there.
- *
- * @module hooks/client-ui/work/useSubmissionPromiseLink
- */
-
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import type { SetURLSearchParams } from "react-router-dom";
-
+import type { useSearchParams } from "react-router-dom";
 import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import type { ClaimJobPayload } from "../../../modules/commitment-pooling/job-types";
@@ -28,40 +9,72 @@ import {
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
   sameWorkLinkIdentity,
+  type WorkLinkChoice,
   type WorkLinkIntent,
   workLinkReturnGarden,
   writeWorkLinkIntent,
 } from "../../../modules/commitment-pooling/work-link-intent";
-import { submissionPromptCount } from "../../../modules/work/submission-flow";
+import { submissionPromptCount, type WorkLinkStatus } from "../../../modules/work/submission-flow";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import type { Address } from "../../../types/domain";
 import { useTakeUpChoices } from "../../commitment-pooling/useTakeUpChoices";
-import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
-
-type LinkIntentStatus = "none" | "validating" | "valid" | "invalid" | "unavailable";
+import {
+  useWorkablePromises,
+  useWorkLinkChoices,
+} from "../../commitment-pooling/useWorkLinkChoices";
 
 /** A member takes an Open ask up as themselves (`ClaimType.INDIVIDUAL`). */
 const CLAIM_TYPE_INDIVIDUAL = 1;
 
-export function useSubmissionPromiseLink(input: {
+interface WorkLinkIntentOptions {
   searchParams: URLSearchParams;
-  setSearchParams: SetURLSearchParams;
+  /** Writes the page's search params, keeping its navigation state. */
+  setSearchParams: ReturnType<typeof useSearchParams>[1];
   account: Address | null;
   gardenAddress: Address | null;
   actionUID: number | null;
-  setGardenAddress: (garden: Address) => void;
+  setGardenAddress: (gardenAddress: Address) => void;
+  /** Queues and sends the take-up of an Open ask (`useCommitmentJobs().takeUp`). */
   takeUp: (payload: ClaimJobPayload) => Promise<TakeUpOutcome>;
-}) {
+}
+
+/**
+ * The promise a work is for: the page's link, held only once it matches a live, eligible choice,
+ * where that link stands, and the two ways to change it. Two kinds of promise qualify:
+ *
+ * - one of the member's own, which the work links to as it is sent;
+ * - one of the garden's Open asks the member could take up (decision 18), which Submit takes up
+ *   once the work has passed its own checks, before it is admitted. Declined or refused, nothing
+ *   of the work is queued; still waiting to go, the work is queued behind it. A take-up that
+ *   landed from this composer is not run again, though the indexer may still list its ask as open.
+ *
+ * The garden never changes for an ask: it is its own garden's, so choosing one keeps the work
+ * there. It also reads the flow's garden's promises the member can work on, which the Start step
+ * lists and a promise picked there is matched against (DL-131).
+ */
+export function useWorkLinkIntent({
+  searchParams,
+  setSearchParams,
+  account,
+  gardenAddress,
+  actionUID,
+  setGardenAddress,
+  takeUp,
+}: WorkLinkIntentOptions) {
   const intl = useIntl();
-  const { searchParams, setSearchParams, setGardenAddress } = input;
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
   const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
+  // A promise link the page was opened with, as from a promise's page; one chosen at Start or
+  // brought back with a draft arrives later. Taking it off or choosing another ends it.
+  const [linkAtEntry, setLinkAtEntry] = useState(() => hasWorkLinkIntentParams(searchParams));
   const choiceInput = {
     chainId: DEFAULT_CHAIN_ID,
-    account: input.account,
-    workGarden: parsedLinkIntent?.garden ?? input.gardenAddress,
-    returnGarden: parsedLinkIntent ? workLinkReturnGarden(parsedLinkIntent) : input.gardenAddress,
-    actionUID: parsedLinkIntent?.actionUID ?? input.actionUID,
+    account,
+    workGarden: (parsedLinkIntent?.garden ?? gardenAddress) as Address | null,
+    returnGarden: (parsedLinkIntent
+      ? workLinkReturnGarden(parsedLinkIntent)
+      : gardenAddress) as Address | null,
+    actionUID: parsedLinkIntent?.actionUID ?? actionUID,
   };
   const linkChoices = useWorkLinkChoices(choiceInput);
   const takeUpChoices = useTakeUpChoices(choiceInput);
@@ -74,12 +87,20 @@ export function useSubmissionPromiseLink(input: {
   }, [linkChoices.choices, takeUpChoices.choices, parsedLinkIntent]);
   const linkIntent = ownLink ?? takeUpLink;
   const takesUp = Boolean(takeUpLink && !takenUpHere.has(takeUpLink.commitmentId.toString()));
+  // The flow's garden's promises the member can work on: the Start step's list, and the live
+  // choices a promise picked there is matched against.
+  const workablePromises = useWorkablePromises({
+    chainId: DEFAULT_CHAIN_ID,
+    account,
+    workGarden: gardenAddress,
+    returnGarden: gardenAddress,
+  });
   // An ask the member can take up now is valid whatever the read of their own promises says.
-  const linkIntentStatus: LinkIntentStatus = !hasLinkIntentParams
+  const linkIntentStatus: WorkLinkStatus = !hasLinkIntentParams
     ? "none"
     : !parsedLinkIntent
       ? "invalid"
-      : !input.account || linkChoices.isLoading
+      : !account || linkChoices.isLoading
         ? "validating"
         : takeUpLink
           ? "valid"
@@ -94,24 +115,38 @@ export function useSubmissionPromiseLink(input: {
                   : "invalid";
   // Taking the promise off is saved with the draft; see draftLinkCleared.
   const clearLinkIntent = useCallback(() => {
+    setLinkAtEntry(false);
     useWorkFlowStore.setState({ draftLinkCleared: true });
     setSearchParams(writeWorkLinkIntent(searchParams, null), { replace: true });
   }, [searchParams, setSearchParams]);
+  /** Links the work to a live choice matching `intent`, and returns it; null takes the link off. */
   const selectLinkIntent = useCallback(
-    (intent: WorkLinkIntent | null) => {
+    (intent: WorkLinkIntent | null): WorkLinkChoice | null => {
+      const live = [
+        ...(workablePromises.data ?? []).flatMap((promise) => promise.choices),
+        ...linkChoices.choices,
+        ...takeUpChoices.choices,
+      ];
       const canonical = intent
-        ? ([...linkChoices.choices, ...takeUpChoices.choices].find((choice) =>
-            sameWorkLinkIdentity(choice, intent)
-          ) ?? null)
+        ? (live.find((choice) => sameWorkLinkIdentity(choice, intent)) ?? null)
         : null;
+      setLinkAtEntry(false);
       useWorkFlowStore.setState({ draftLinkCleared: !canonical });
       setSearchParams(writeWorkLinkIntent(searchParams, canonical), { replace: true });
       if (canonical) {
         setGardenAddress(canonical.garden);
         useWorkFlowStore.getState().setActionUID(canonical.actionUID);
       }
+      return canonical;
     },
-    [linkChoices.choices, takeUpChoices.choices, searchParams, setGardenAddress, setSearchParams]
+    [
+      linkChoices.choices,
+      takeUpChoices.choices,
+      workablePromises.data,
+      searchParams,
+      setGardenAddress,
+      setSearchParams,
+    ]
   );
 
   /**
@@ -122,7 +157,7 @@ export function useSubmissionPromiseLink(input: {
   const takeUpFirst = async (): Promise<boolean> => {
     if (!takesUp || !takeUpLink) return true;
     try {
-      const outcome = await input.takeUp({
+      const outcome = await takeUp({
         commitmentId: takeUpLink.commitmentId,
         kind: CLAIM_TYPE_INDIVIDUAL,
         gardenContext: takeUpLink.garden,
@@ -156,10 +191,12 @@ export function useSubmissionPromiseLink(input: {
   return {
     parsedLinkIntent,
     hasLinkIntentParams,
-    linkIntent,
-    linkIntentStatus,
+    linkAtEntry,
     linkChoices,
     takeUpChoices,
+    linkIntent,
+    linkIntentStatus,
+    workablePromises,
     clearLinkIntent,
     selectLinkIntent,
     takeUpFirst,

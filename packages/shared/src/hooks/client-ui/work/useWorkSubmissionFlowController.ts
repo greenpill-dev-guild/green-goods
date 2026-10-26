@@ -17,7 +17,9 @@ import {
 import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
 import { useWorkFormContext, useWorkSelection } from "../../../providers/Work";
 import { useShareTargetIntake } from "./useShareTargetIntake";
+import { useStartStep } from "./useStartStep";
 import { useSubmissionGarden } from "./useSubmissionGarden";
+import { useWorkLinkIntent } from "./useWorkLinkIntent";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { WorkTab } from "../../../stores/workFlowTypes";
 import { findActionByUID } from "../../../utils/action/parsers";
@@ -26,13 +28,13 @@ import { useOffline } from "../../app/useOffline";
 import { scrollAppToTop } from "../../app/useScrollToTop";
 import { useUser } from "../../auth/useUser";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
+import { workLinkReturnTo } from "../../commitment-pooling/useWorkLinkChoices";
 import { useWorkAudioRecording } from "../../work/useWorkAudioRecording";
 import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
 import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
 import { useCommunityGardenOnramp } from "./useCommunityGardenOnramp";
-import { useSubmissionPromiseLink } from "./useSubmissionPromiseLink";
 import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
 
@@ -93,6 +95,7 @@ export function useWorkSubmissionFlowController({
   const tags = useWorkFlowStore((state) => state.tags);
   const setAudioNotes = useWorkFlowStore((state) => state.setAudioNotes);
   const linkCleared = useWorkFlowStore((state) => state.draftLinkCleared);
+  const hasDraft = useWorkFlowStore((state) => state.activeDraftId !== null);
   const { isOnline, pendingCount, syncStatus } = useOffline();
   const { set: scheduleNavigation } = useTimeout();
   const {
@@ -113,6 +116,27 @@ export function useWorkSubmissionFlowController({
     ...details
   } = form.values;
   const commitmentJobs = useCommitmentJobs({ chainId: DEFAULT_CHAIN_ID });
+  const {
+    parsedLinkIntent,
+    hasLinkIntentParams,
+    linkAtEntry,
+    linkChoices,
+    linkIntent,
+    linkIntentStatus,
+    workablePromises,
+    clearLinkIntent,
+    selectLinkIntent,
+    takeUpFirst,
+    promptCount,
+  } = useWorkLinkIntent({
+    searchParams,
+    setSearchParams,
+    account: primaryAddress as Address | null,
+    gardenAddress,
+    actionUID,
+    setGardenAddress: setGardenAddressStable,
+    takeUp: commitmentJobs.takeUp,
+  });
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
   // Hold submission and draft retirement until the dependent link settles. Queueing starts
   // only after Work was sent; scheduling also covers Work saved on this device.
@@ -120,24 +144,6 @@ export function useWorkSubmissionFlowController({
   const [isQueueingDependentLink, setIsQueueingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
   const [linkSchedulingWorkSent, setLinkSchedulingWorkSent] = useState<boolean | null>(null);
-  const promiseLink = useSubmissionPromiseLink({
-    searchParams,
-    setSearchParams,
-    account: primaryAddress as Address | null,
-    gardenAddress: gardenAddress as Address | null,
-    actionUID,
-    setGardenAddress: setGardenAddressStable,
-    takeUp: commitmentJobs.takeUp,
-  });
-  const {
-    parsedLinkIntent,
-    hasLinkIntentParams,
-    linkIntent,
-    linkIntentStatus,
-    linkChoices,
-    clearLinkIntent,
-    selectLinkIntent,
-  } = promiseLink;
 
   const audio = useWorkAudioRecording();
   const { audioNotes } = audio;
@@ -257,7 +263,7 @@ export function useWorkSubmissionFlowController({
       workMutation.clearLastSubmissionOutcome();
       // An Open ask is taken up once the work has passed its own checks, before it is admitted;
       // a take-up that does not go admits none of the work.
-      await form.uploadWork({ beforeAdmission: promiseLink.takeUpFirst });
+      await form.uploadWork({ beforeAdmission: takeUpFirst });
       const outcome = workMutation.getLastSubmissionOutcome();
       if (!outcome) {
         // uploadWork resolves without an outcome when its checks or the take-up stop it.
@@ -360,6 +366,37 @@ export function useWorkSubmissionFlowController({
     };
     attempt();
   }, [intl, saveOnExit]);
+  const start = useStartStep({
+    account: primaryAddress as Address | null,
+    actions,
+    actionsLoading: selection.isLoading,
+    actionUID,
+    gardens,
+    gardenAddress,
+    gardenSettled: submissionGardenSettled,
+    activeTab,
+    holding: isResumingFromUrl || legacyRecovery || showDraftSheet,
+    hasDraft,
+    link: {
+      status: linkIntentStatus,
+      atEntry: linkAtEntry,
+      hasParams: hasLinkIntentParams,
+      intent: parsedLinkIntent,
+      garden: linkIntent?.garden ?? null,
+    },
+    promises: workablePromises,
+    setGardenAddress: selection.setGardenAddress,
+    setActiveTab,
+    changeTab,
+    selectLinkIntent,
+    clearLinkIntent,
+    // The evidence flow is the promise's own; its Back returns to this step.
+    openEvidence: (promise) => {
+      if (!gardenAddress) return;
+      dashboardNavigation.open(`${workLinkReturnTo(gardenAddress, promise.commitmentId)}/proof`);
+      saveDraftInBackground();
+    },
+  });
   const draftStatus = useDraftSaveStatus();
   const canProceed =
     !isResumingFromUrl &&
@@ -423,13 +460,7 @@ export function useWorkSubmissionFlowController({
     linkIntent,
     linkGardenAddress: linkIntent?.garden ?? null,
     linkIntentStatus,
-    commitmentLinkChoices: linkChoices.choices,
-    /** The garden's Open asks the member could take up while logging this work. */
-    takeUpChoices: promiseLink.takeUpChoices.choices,
-    takeUpChoicesLoading: promiseLink.takeUpChoices.isLoading,
-    promptCount: promiseLink.promptCount,
-    commitmentLinkChoicesLoading: linkChoices.isLoading,
-    commitmentLinkChoicesError: linkChoices.error,
+    promptCount,
     refetchCommitmentLinkChoices: linkChoices.refetch,
     clearLinkIntent,
     selectLinkIntent,
@@ -457,6 +488,7 @@ export function useWorkSubmissionFlowController({
     setAudioNotes,
     showSkeleton:
       isResumingFromUrl || (selection.isLoading && actions.length === 0 && gardens.length === 0),
+    start,
     submissionCompleted,
     submissionGardenSettled,
     submit,
