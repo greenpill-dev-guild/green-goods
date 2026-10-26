@@ -1,4 +1,7 @@
-import type { PendingCommitmentCreation } from "@green-goods/shared/commitment-pooling";
+import {
+  type PendingCommitmentCreation,
+  useCommitmentMetadata,
+} from "@green-goods/shared/commitment-pooling";
 import { GardenTab } from "@green-goods/shared/hooks/garden/useGardenTabs";
 import { useGardenPoolController } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
 import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
@@ -20,7 +23,13 @@ import {
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
 import FIXTURE_IMAGE_BANNER from "../../../../../../shared/.storybook/fixture-art/documentation-seedlings-generated.jpg?url";
+import { daysAgo } from "../../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
+import {
+  STORY_GROUP_METADATA,
+  STORY_GROUP_TITLE,
+  storyGroup,
+} from "@/components/Features/Commitments/promiseGroupStoryFixtures";
 import { StandardTabs } from "@/components/Navigation";
 import { buildGardenTabs } from "../gardenTabs";
 import { GardenPool } from "./GardenPool";
@@ -215,6 +224,45 @@ export const Settled: Story = {
   beforeEach: withController(
     gardenPoolControllerFixture(SETTLED_PROMISES, { liveness: "settled" })
   ),
+};
+
+/** Four copies of one set, three untaken and one in progress, all due by now. */
+const LAPSED_SET = storyGroup({
+  available: 3,
+  inProgress: 1,
+  // A week before Storybook's fixed now: past, so anyone may expire a copy nobody took up.
+  overrides: { dueDate: BigInt(daysAgo(7)) },
+});
+
+/**
+ * A set past its due date that nobody has expired yet. Its untaken copies are still requested on
+ * chain, but anyone may expire them, so the row counts them as ended and none as available, as
+ * the group's page does (PRD-1347).
+ */
+export const LapsedSet: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: () => {
+    mocked(useGardenPoolController).mockReturnValue(
+      gardenPoolControllerFixture(
+        LAPSED_SET.group.children.map((commitment) => ({
+          title: STORY_GROUP_TITLE,
+          row: { commitment, seat: null, needsYou: false },
+        }))
+      )
+    );
+    // The set's words name its group, so the tab folds its copies into one row.
+    mocked(useCommitmentMetadata).mockReturnValue({
+      byCID: STORY_GROUP_METADATA,
+      isLoading: false,
+    });
+    return resetHookMocks(useGardenPoolController, useCommitmentMetadata);
+  },
+  play: async ({ canvasElement }) => {
+    const row = within(canvasElement).getByRole("button", {
+      name: /A group of 4 separate promises/,
+    });
+    await expect(row).toHaveTextContent(/None available.*1 in progress, 3 ended/);
+  },
 };
 
 export const SeasonSelected: Story = {
