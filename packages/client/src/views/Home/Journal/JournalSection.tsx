@@ -1,10 +1,14 @@
 import { Button } from "@green-goods/shared/components/Button";
 import type { ReactNode } from "react";
+import { focusOnPress } from "./focusOnPress";
 
 export interface JournalSectionProps {
   /** Title Case in English, sentence case in Spanish and Portuguese (decision 25). */
   title: string;
-  /** The section's one link to its whole list, at the heading's end: See all, Open Your Work. */
+  /**
+   * The section's one link to its whole list, at the heading's end: See all, Open Your Work. It
+   * takes focus as it is pressed, so the sheet it opens hands focus back to it.
+   */
   action?: { label: string; onClick: () => void };
   /** A quiet line under the heading, such as when an offline copy of the list was saved. */
   note?: string;
@@ -59,6 +63,7 @@ export function JournalSection({
             emphasis="tertiary"
             size="compact"
             className="shrink-0"
+            {...focusOnPress}
             onClick={action.onClick}
           >
             {action.label}
