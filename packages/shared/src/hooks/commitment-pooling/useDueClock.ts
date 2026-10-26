@@ -57,7 +57,7 @@ export function useDueClock(input: {
     () => new Map((cycles.data ?? []).map((cycle) => [cycle.cycleId.toString(), cycle.endTime])),
     [cycles.data]
   );
-  const now = useExpiryClock({ commitments: open, cycleEndTimes });
+  const now = useExpiryClock({ chainId, commitments: open, cycleEndTimes });
   const clock = useMemo(() => ({ now, cycleEndTimes }), [now, cycleEndTimes]);
   const unread = needsCycleEnds && cycles.data === undefined;
   // A cycle the read did not return (not reconstructed yet, or another pool's) leaves the

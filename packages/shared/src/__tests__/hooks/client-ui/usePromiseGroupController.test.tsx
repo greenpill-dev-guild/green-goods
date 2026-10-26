@@ -195,6 +195,8 @@ describe("usePromiseGroupController", () => {
     mocks.cycles = [cycleFixture({ endTime: BigInt(Math.floor(Date.now() / 1000)) - 60n })];
     rerender();
     expect(result.current.bar?.hold).toBe("none");
+    // The counts agree with the held act: none available, the lapsed copies ended.
+    expect(result.current.counts).toMatchObject({ available: 0, ended: 2 });
     await act(async () => result.current.takeUp.start());
     expect(mocks.enqueue).not.toHaveBeenCalled();
   });

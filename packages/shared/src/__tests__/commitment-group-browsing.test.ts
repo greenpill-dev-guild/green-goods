@@ -10,6 +10,7 @@ import { groupCommitmentsForDisplay } from "../modules/commitment-pooling/displa
 import type { DueClock } from "../modules/commitment-pooling/due-dates";
 import {
   findDisplayGroup,
+  groupCountsOnClock,
   isAtTakeUpLimit,
   isOpenToTakeUp,
   pickCopyToTakeUp,
@@ -125,6 +126,36 @@ describe("group browsing", () => {
       pickCopyToTakeUp([lapsed, running], { viewer: LINA, askedFor: NOBODY_ASKED, clock })
         ?.commitmentId
     ).toBe(12n);
+  });
+
+  // The group page said "N available" beside a held Take Up One when every copy was past due
+  // (Codex on #1331): a copy anyone may expire is ended, as it will be.
+  it.each([
+    ["its own due date", { dueDate: NOW - 1n }, new Map<string, bigint | null>()],
+    ["its season's end", { cycleId: 5n }, new Map<string, bigint | null>([["5", NOW - 1n]])],
+  ])("counts the copies of a set past %s as ended, never available", (_case, terms, cycleEndTimes) => {
+    // Copies of a set share their due date and season, so they fall due together.
+    const [group] = groupCommitmentsForDisplay({
+      commitments: [
+        copy(11, terms),
+        copy(12, terms),
+        copy(13, { ...terms, onchainState: "ACCEPTED", derivedState: "ACCEPTED" }),
+      ],
+      metadataByCID: metadata,
+    });
+    if (group?.kind !== "group") throw new Error("expected the set to fold into one group");
+    const clock = { now: NOW, cycleEndTimes };
+
+    expect(group.counts).toMatchObject({ available: 2, inProgress: 1, ended: 0 });
+    // Anyone may expire an untaken copy now, so it is ended; one taken up keeps its count.
+    expect(groupCountsOnClock(group, clock)).toMatchObject({
+      published: 3,
+      available: 0,
+      inProgress: 1,
+      ended: 2,
+    });
+    // Until the due second passes, the counts stand as the chain has them.
+    expect(groupCountsOnClock(group, { ...clock, now: NOW - 1n })).toBe(group.counts);
   });
 
   it("asks for a copy nobody has asked for yet in a reviewed group (D5), and never an open one's", () => {

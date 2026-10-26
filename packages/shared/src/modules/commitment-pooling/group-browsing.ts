@@ -24,7 +24,12 @@
  */
 
 import type { Address } from "../../types/domain";
-import type { DisplayEntry, DisplayGroupEntry } from "./display-groups";
+import {
+  type DisplayEntry,
+  type DisplayGroupCounts,
+  type DisplayGroupEntry,
+  displayBucketOf,
+} from "./display-groups";
 import { type DueClock, isPastDue } from "./due-dates";
 import { selectSeedTrayRoom } from "./seed-tray";
 import { isCommitmentCreator, isSameAccount } from "./selectors";
@@ -56,6 +61,24 @@ export function isOpenToTakeUp(
   clock: DueClock
 ): boolean {
   return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState) && !isPastDue(copy, clock);
+}
+
+/**
+ * A group's counts on the chain's clock. A copy still offered or requested on chain but past due
+ * (`isPastDue`) is never available again, since anyone may expire it, so it counts as ended, as
+ * it will be. A surface that offers taking a copy up reads its counts this way, so it never says
+ * a copy is available that its act would not take.
+ */
+export function groupCountsOnClock(
+  group: Pick<DisplayGroupEntry<GroupCopy>, "children" | "counts">,
+  clock: DueClock
+): DisplayGroupCounts {
+  const lapsed = group.children.filter(
+    (copy) => displayBucketOf(copy.onchainState) === "available" && isPastDue(copy, clock)
+  ).length;
+  if (lapsed === 0) return group.counts;
+  const { counts } = group;
+  return { ...counts, available: counts.available - lapsed, ended: counts.ended + lapsed };
 }
 
 /**

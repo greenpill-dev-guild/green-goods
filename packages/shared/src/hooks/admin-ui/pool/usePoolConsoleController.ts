@@ -192,7 +192,11 @@ export function usePoolConsoleController(input: {
       ),
     [hasPool, cyclesQuery.cycles]
   );
-  const now = useExpiryClock({ commitments: commitmentsQuery.commitments, cycleEndTimes });
+  const now = useExpiryClock({
+    chainId,
+    commitments: commitmentsQuery.commitments,
+    cycleEndTimes,
+  });
   const model = useMemo(
     () =>
       selectPoolConsoleModel({

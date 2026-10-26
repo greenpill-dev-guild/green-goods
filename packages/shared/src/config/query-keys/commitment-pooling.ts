@@ -28,6 +28,8 @@ export const commitmentPoolingKeys = {
   all: (chainId: number) => ["greengoods", "commitment-pooling", chainId] as const,
   availability: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "availability"] as const,
+  /** How far the chain's clock runs from this device's, which due dates are read on. */
+  chainClock: (chainId: number) => [...commitmentPoolingKeys.all(chainId), "chain-clock"] as const,
   pools: (chainId: number, garden?: Address | string) =>
     [...commitmentPoolingKeys.all(chainId), "pools", normalizeAddress(garden)] as const,
   pool: (chainId: number, poolId: bigint | string | number) =>
