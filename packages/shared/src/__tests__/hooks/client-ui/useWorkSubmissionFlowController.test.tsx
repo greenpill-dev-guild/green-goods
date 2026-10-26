@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, StrictMode, type ReactNode } from "react";
+import { createElement, type ReactNode, StrictMode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -41,6 +41,7 @@ const mocks = vi.hoisted(() => ({
   joinState: { isJoining: false, joiningGardenId: null as string | null },
   askAgain: vi.fn(),
   activeDraftId: null as string | null,
+  activeTab: "Intro" as "Intro" | "Media" | "Details" | "Review",
   gardens: [] as Array<{ id: string; name: string; domainMask?: number }>,
   allGardens: [] as Array<{ id: string; name: string }>,
   gardenRecord: null as null | { id: string; name: string },
@@ -237,7 +238,7 @@ vi.mock("../../../providers/Work", () => ({
     hasJoinedGardens: false,
     joinableCommunityGarden: mocks.communityGarden,
     isLoading: false,
-    activeTab: "Intro",
+    activeTab: mocks.activeTab,
     setActiveTab: mocks.setActiveTab,
     selectedDomain: null,
     setSelectedDomain: vi.fn(),
@@ -271,10 +272,11 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
   }),
 }));
 
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { TakeUpNotSent } from "../../../modules/commitment-pooling/take-up";
+import { useSubmissionFlowController } from "../../../hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
 import { useUIStore } from "../../../stores/useUIStore";
-import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(
@@ -369,6 +371,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.isResumingFromUrl = false;
     mocks.linkCleared = false;
     mocks.activeDraftId = null;
+    mocks.activeTab = "Intro";
     mocks.gardens = [];
     mocks.allGardens = [];
     mocks.gardenRecord = null;
@@ -820,6 +823,71 @@ describe("useWorkSubmissionFlowController", () => {
     expect(firstPayload.clientOperationId).toBe("work-link:client-1:9:0");
     if (_kind === "queued") expect(firstPayload.sourceWorkJobId).toBe("work-job-1");
     else expect(firstPayload).not.toHaveProperty("sourceWorkJobId");
+  });
+
+  const renderThroughFlow = () =>
+    renderHook(
+      () => {
+        const controller = useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        });
+        const flow = useSubmissionFlowController({ kind: "work", controller });
+        return { controller, flow };
+      },
+      { wrapper: Wrapper }
+    );
+
+  it("keeps the flow on the step the work store restored, saved with the draft as before", () => {
+    mocks.actionUID = 1;
+    mocks.gardenAddress = "garden-1";
+    mocks.gardens = [{ id: "garden-1", name: "Riverside" }];
+    mocks.activeTab = "Details";
+    const view = renderThroughFlow();
+
+    expect(view.result.current.flow.stage).toBe("details");
+    expect(view.result.current.flow.progress).toBe(3);
+    expect(mocks.autoSaveFields).toMatchObject({
+      gardenAddress: "garden-1",
+      actionUID: 1,
+      currentStep: "details",
+    });
+    expect(mocks.setActiveTab).not.toHaveBeenCalled();
+  });
+
+  it("reaches the queue through the shared Review stage with the same Work send and link payload", async () => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = 1;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    mocks.activeTab = "Review";
+    mocks.outcome = { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false };
+    const view = renderThroughFlow();
+
+    act(() => view.result.current.controller.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.controller.linkIntentStatus).toBe("valid"));
+    expect(view.result.current.flow.stage).toBe("review");
+    expect(view.result.current.flow.forward.labelId).toBe("app.garden.submit.tab.review.label");
+    expect(mocks.autoSaveFields).toMatchObject({ currentStep: "review" });
+
+    await act(async () => {
+      view.result.current.flow.forward.run();
+    });
+
+    await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledOnce());
+    expect(mocks.uploadWork).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueue).toHaveBeenCalledWith({
+      act: "workLink",
+      payload: {
+        clientOperationId: "work-link:client-1:9:0",
+        commitmentId: 9n,
+        clientWorkId: "client-1",
+        requirementIndex: 0,
+        gardenAddress: intent.garden,
+      },
+    });
+    expect(view.result.current.controller.linkSchedulingSucceeded).toBe(true);
   });
 
   const communityGarden = "0x3333333333333333333333333333333333333333";

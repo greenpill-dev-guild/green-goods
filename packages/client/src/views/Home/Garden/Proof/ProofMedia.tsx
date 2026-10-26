@@ -1,17 +1,11 @@
-import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
-import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiLoader4Line } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
-import { Books } from "@/components/Features";
-import {
-  type PendingPhotoState,
-  WorkMediaPhotoCard,
-  WorkMediaVideoCard,
-} from "@/components/Features/Work";
+import { type PendingPhotoState, SubmissionMediaList } from "@/components/Features/Work";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export interface ProofMediaProps {
@@ -38,10 +32,10 @@ function formatTime(seconds: number): string {
 }
 
 /**
- * The proof's media step, Submit Work's Media step element for element (O1):
- * no tap box, since the bar's photo, camera and voice tools add media; the
- * rule's pill; the media cards with their remove buttons; the empty
- * illustration until something is added.
+ * The evidence kind's Media stage (DL-131), Submit Work's element for element (O1): no tap box,
+ * since the bar's photo, camera and voice tools add media through the hidden inputs here; the
+ * rule's pill; then the one media list both kinds draw, with the empty illustration until
+ * something is added.
  */
 export function ProofMedia({
   media,
@@ -58,7 +52,6 @@ export function ProofMedia({
   onRetryHeicConversion,
 }: ProofMediaProps) {
   const { formatMessage } = useIntl();
-  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   const [brokenIds, setBrokenIds] = useState<ReadonlySet<string>>(() => new Set());
 
   // The composer owns these URLs and revokes them when the proof leaves this
@@ -135,50 +128,18 @@ export function ProofMedia({
         </div>
       ) : null}
 
-      {media.length > 0 || audioNotes.length > 0 ? (
-        <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-2">
-          {media.map((file, index) => {
-            const mediaId = getWorkMediaId(file);
-            const isBroken = brokenIds.has(mediaId);
-            return isVideoFile(file) ? (
-              <WorkMediaVideoCard
-                key={mediaId}
-                index={index}
-                url={urls[index]}
-                isBroken={isBroken}
-                isPlaying={playingVideoId === mediaId}
-                onPlay={() => setPlayingVideoId(mediaId)}
-                onPreviewFailed={() => markBroken(file)}
-                onRemove={() => onRemoveMedia(index)}
-              />
-            ) : (
-              <WorkMediaPhotoCard
-                key={mediaId}
-                file={file}
-                index={index}
-                url={urls[index]}
-                isBroken={isBroken}
-                heicState={heicStateOf?.(file)}
-                onPreview={() => onPreview(index)}
-                onPreviewFailed={() => markBroken(file)}
-                onRemove={() => onRemoveMedia(index)}
-                onRetryConversion={
-                  onRetryHeicConversion ? () => onRetryHeicConversion(file) : undefined
-                }
-              />
-            );
-          })}
-          {audioNotes.map((file, index) => (
-            <div key={`audio-${file.name}-${index}`} className="md:col-span-2">
-              <AudioPlayer file={file} onDelete={() => onRemoveAudio(index)} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="pt-8 px-4 grid place-items-center">
-          <Books />
-        </div>
-      )}
+      <SubmissionMediaList
+        media={media}
+        urls={urls}
+        audioNotes={audioNotes}
+        isBroken={(file) => brokenIds.has(getWorkMediaId(file))}
+        heicStateOf={heicStateOf}
+        onPreview={(_, index) => onPreview(index)}
+        onPreviewFailed={markBroken}
+        onRemoveMedia={(_, index) => onRemoveMedia(index)}
+        onRemoveAudio={onRemoveAudio}
+        onRetryHeicConversion={onRetryHeicConversion}
+      />
     </>
   );
 }
