@@ -38,6 +38,7 @@ function workController(overrides: Record<string, unknown> = {}): WorkController
     cameraClickRef: { current: null },
     toggleAudioRecording: vi.fn(),
     isRecording: false,
+    start: { skipped: false, back: vi.fn(() => false) },
     ...overrides,
   } as unknown as WorkController;
 }
@@ -103,11 +104,11 @@ describe("useSubmissionFlowController", () => {
   });
 
   it("moves the work kind through the work store's step and submits from Review", () => {
-    const controller = workController();
+    const controller = workController({ activeTab: "Media" });
     const { result, rerender } = renderWork(controller);
 
-    act(() => result.current.forward.run());
-    expect(controller.changeTab).toHaveBeenCalledWith("Media");
+    act(() => result.current.forward?.run());
+    expect(controller.changeTab).toHaveBeenCalledWith("Details");
     expect(controller.submit).not.toHaveBeenCalled();
 
     // The store moved the step; the flow follows it rather than keeping one of its own.
@@ -117,30 +118,57 @@ describe("useSubmissionFlowController", () => {
 
     const atReview = workController({ activeTab: "Review" });
     rerender({ kind: "work", controller: atReview });
-    act(() => result.current.forward.run());
+    act(() => result.current.forward?.run());
     expect(atReview.submit).toHaveBeenCalledTimes(1);
     expect(atReview.changeTab).not.toHaveBeenCalled();
+  });
+
+  it("offers no forward act on Start, where choosing a promise or an action moves on (DL-131)", () => {
+    for (const overrides of [{}, { canProceed: false }]) {
+      const { result } = renderWork(workController(overrides));
+      expect(result.current.stage).toBe("start");
+      expect(result.current.forward).toBeNull();
+    }
+  });
+
+  it("opens on Media when Start is skipped, keeps the four markers, and leaves from Media", () => {
+    const skipped = workController({ activeTab: "Media", start: { skipped: true, back: vi.fn() } });
+    const { result } = renderWork(skipped);
+    expect(result.current.stages).toEqual(["start", "media", "details", "review"]);
+    expect(result.current.stage).toBe("media");
+    expect(result.current.progress).toBe(2);
+
+    // Back follows the path taken, which never went through Start.
+    act(() => result.current.back());
+    expect(skipped.exit).toHaveBeenCalledTimes(1);
+    expect(skipped.changeTab).not.toHaveBeenCalled();
+    expect(skipped.start.back).not.toHaveBeenCalled();
   });
 
   it("keeps the evidence kind's step itself and submits from Review", () => {
     const controller = evidenceController();
     const { result } = renderEvidence(controller);
 
-    act(() => result.current.forward.run());
+    act(() => result.current.forward?.run());
     expect(result.current.stage).toBe("details");
-    act(() => result.current.forward.run());
+    act(() => result.current.forward?.run());
     expect(result.current.stage).toBe("review");
     expect(result.current.progress).toBe(3);
     expect(controller.submit).not.toHaveBeenCalled();
 
-    act(() => result.current.forward.run());
+    act(() => result.current.forward?.run());
     expect(controller.submit).toHaveBeenCalledTimes(1);
     expect(result.current.stage).toBe("review");
   });
 
-  it("leaves from the first stage and otherwise goes back a stage", () => {
-    const atStart = workController();
+  it("goes back a stage, through Start's own screens, and leaves from the first", () => {
+    // On a promise's own screen, Back returns to the promises first (the path taken).
+    const back = vi.fn().mockReturnValueOnce(true).mockReturnValue(false);
+    const atStart = workController({ start: { skipped: false, back } });
     const work = renderWork(atStart);
+    act(() => work.result.current.back());
+    expect(back).toHaveBeenCalledTimes(1);
+    expect(atStart.exit).not.toHaveBeenCalled();
     act(() => work.result.current.back());
     expect(atStart.exit).toHaveBeenCalledTimes(1);
     expect(atStart.changeTab).not.toHaveBeenCalled();
@@ -153,7 +181,7 @@ describe("useSubmissionFlowController", () => {
 
     const leave = vi.fn();
     const evidence = renderEvidence(evidenceController(), { leave });
-    act(() => evidence.result.current.forward.run());
+    act(() => evidence.result.current.forward?.run());
     act(() => evidence.result.current.back());
     expect(evidence.result.current.stage).toBe("media");
     expect(leave).not.toHaveBeenCalled();
@@ -163,12 +191,11 @@ describe("useSubmissionFlowController", () => {
   });
 
   it.each([
-    ["Intro", {}, "app.garden.submit.tab.intro.label", false],
     ["Media", {}, "app.garden.submit.tab.media.label", false],
     ["Details", {}, "app.garden.submit.tab.details.label", false],
     ["Review", {}, "app.garden.submit.tab.review.label", false],
     ["Review", { isWalletRequestExpired: true }, "app.garden.submit.tab.review.retryLabel", false],
-    ["Intro", { canProceed: false }, "app.garden.submit.tab.intro.label", true],
+    ["Media", { canProceed: false }, "app.garden.submit.tab.media.label", true],
     ["Review", { isSchedulingDependentLink: true }, "app.garden.submit.tab.review.label", true],
     ["Review", { hasPendingLinkRecovery: true }, "app.garden.submit.tab.review.label", true],
   ] as const)("names the work kind's forward act on %s with %o and says whether it waits", (activeTab, overrides, labelId, disabled) => {
@@ -250,7 +277,7 @@ describe("useSubmissionFlowController", () => {
     // The table is `as const`, so its arrays are readonly; the controller takes plain ones.
     const { result } = renderEvidence(evidenceController(overrides as Partial<EvidenceController>));
     const hops = { media: 0, details: 1, review: 2 }[stage];
-    for (let hop = 0; hop < hops; hop += 1) act(() => result.current.forward.run());
+    for (let hop = 0; hop < hops; hop += 1) act(() => result.current.forward?.run());
     expect(result.current.stage).toBe(stage);
     expect(result.current.forward).toMatchObject(expected);
   });
@@ -344,7 +371,7 @@ describe("useSubmissionFlowController", () => {
       expect(cameraClick).toHaveBeenCalledTimes(1);
       proofTools?.toggleRecording();
       expect(toggleRecording).toHaveBeenCalledTimes(1);
-      act(() => evidence.result.current.forward.run());
+      act(() => evidence.result.current.forward?.run());
       expect(evidence.result.current.mediaTools).toBeNull();
     } finally {
       gallery.remove();
@@ -355,7 +382,7 @@ describe("useSubmissionFlowController", () => {
   it("starts the evidence kind over on another promise or account", () => {
     const controller = evidenceController();
     const { result, rerender } = renderEvidence(controller);
-    act(() => result.current.forward.run());
+    act(() => result.current.forward?.run());
     act(() => result.current.promise.show());
     expect(result.current.stage).toBe("details");
     expect(result.current.promise.open).toBe(true);

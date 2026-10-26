@@ -37,8 +37,9 @@ const LOADING_ROWS = 3;
  * work or the promise, closing the sheet first so the screen it opens is not under it. Opening
  * the sheet marks the listed events seen on this device. With nothing to list it shows the
  * shared state block, and a read that failed or answered only in part says so in one quiet line
- * while the rows it did find stay. Offline with nothing cached, the reads pause rather than fail,
- * so the block says the events cannot be checked instead of reporting an empty inbox.
+ * while the rows it did find stay. Offline the reads pause rather than fail: with nothing cached
+ * the block says the events cannot be checked instead of reporting an empty inbox, and the rows
+ * that were cached keep the partial-read line above them.
  */
 export function NotificationsSheet({
   open,
@@ -79,7 +80,9 @@ export function NotificationsSheet({
       case "workRejected":
       case "workSubmitted":
         navigate(`/home/${gardenId}/work/${notification.work.id}`, {
-          state: { from: "home", returnTo: APP_ROUTES.home },
+          // The row's record goes with it: a work outside the garden's loaded page has no other
+          // copy on the device, and offline the work page's own read of it is paused.
+          state: { from: "home", returnTo: APP_ROUTES.home, work: notification.work },
         });
         return;
       case "promiseTakenUp":
@@ -93,9 +96,11 @@ export function NotificationsSheet({
     }
   };
 
-  const partial = isError || isIncomplete;
-  const partialNotice = formatMessage({ id: "app.home.notifications.partial" });
   // Offline, React Query pauses the online reads: nothing loads, nothing errs, nothing is known.
+  // Rows that were cached may still show, but the reads with no cache never answered, so what is
+  // listed is only part of the garden's events.
+  const partial = isError || isIncomplete || !isOnline;
+  const partialNotice = formatMessage({ id: "app.home.notifications.partial" });
   const unavailableOffline = !isOnline && notifications.length === 0 && !isLoading && !isError;
   // A read still running speaks only while there is nothing to show.
   const holdsFrame = isLoading && notifications.length === 0;

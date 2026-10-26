@@ -11,6 +11,7 @@ import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarde
 import { useAwaitingJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import {
@@ -66,10 +67,16 @@ const NotificationsLauncher = lazy(
   (): Promise<{ default: ComponentType<NotificationsLauncherProps> }> =>
     import("./Notifications/Launcher")
       .then(({ NotificationsLauncher }) => ({ default: NotificationsLauncher }))
-      // Ambient adjunct: without its chunk the bell stays, with nothing counted.
-      .catch(() => ({
-        default: ({ onOpen }: NotificationsLauncherProps) => <NotificationsIcon onClick={onOpen} />,
-      }))
+      // Ambient adjunct: without its chunk the bell keeps its place, disabled. A browser keeps a
+      // failed dynamic import for the page's life, so a bell left enabled would do nothing on
+      // every tap until a reload.
+      .catch((error: unknown) => {
+        logger.warn("The notifications bell's code could not load", {
+          source: "Home",
+          error,
+        });
+        return { default: () => <NotificationsIcon disabled /> };
+      })
 );
 const WalletSheet = lazy(() =>
   import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
@@ -173,10 +180,25 @@ const Home: React.FC = () => {
   });
   const openSwitcher = useCallback(() => setSwitcher({ open: true, mode: "switch" }), []);
   const closeSwitcher = useCallback(() => setSwitcher((s) => ({ ...s, open: false })), []);
-  // The bell's sheet (DL-130) is Home's drawer like the others: it closes with them.
-  const [isNotificationsOpen, setNotificationsOpen] = useState(false);
-  const openNotifications = useCallback(() => setNotificationsOpen(true), []);
-  const closeNotifications = useCallback(() => setNotificationsOpen(false), []);
+  // The bell's sheet (DL-130) is Home's drawer like the others: it closes with them. It belongs to
+  // the account and garden it was opened for, and is open only while both still hold.
+  const notificationsScope = gardenId
+    ? `${normalizedAddress ?? ""}:${gardenId.toLowerCase()}`
+    : null;
+  const [notificationsOpenFor, setNotificationsOpenFor] = useState<string | null>(null);
+  // A changed account or garden closes the sheet in this render, so the new scope's launcher never
+  // mounts it open, and its sheet never marks that scope's events seen; an effect would run after
+  // the sheet's own. Dropping the old key keeps it closed if the first scope comes back.
+  if (notificationsOpenFor !== null && notificationsOpenFor !== notificationsScope) {
+    setNotificationsOpenFor(null);
+  }
+  const isNotificationsOpen =
+    notificationsOpenFor !== null && notificationsOpenFor === notificationsScope;
+  const openNotifications = useCallback(
+    () => setNotificationsOpenFor(notificationsScope),
+    [notificationsScope]
+  );
+  const closeNotifications = useCallback(() => setNotificationsOpenFor(null), []);
 
   // Each sheet stays mounted until its exit has played; unmounting it on close
   // removed it before the slide-out could run.
@@ -399,6 +421,9 @@ const Home: React.FC = () => {
                   requested={isNotificationsOpen}
                 >
                   <NotificationsLauncher
+                    // A new account or garden gets a launcher of its own, so a closing sheet
+                    // never slides out over the next scope's events.
+                    key={notificationsScope}
                     gardenId={gardenId}
                     gardenName={garden?.name}
                     open={isNotificationsOpen}

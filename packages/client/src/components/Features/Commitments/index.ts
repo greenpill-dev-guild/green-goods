@@ -4,6 +4,7 @@ export * from "./CycleRail";
 export * from "./PendingCreationRow";
 export * from "./PinnedPromiseCard";
 export * from "./presentation";
+export * from "./PromiseCard";
 export * from "./PromiseGroupRow";
 export * from "./PromiseRow";
 export * from "./proofContents";

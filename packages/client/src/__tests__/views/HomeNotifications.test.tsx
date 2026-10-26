@@ -229,9 +229,12 @@ function setBell(overrides: Partial<GardenNotifications> = {}) {
   };
 }
 
-/** Home's part: it owns whether the sheet is open and closes it when told to. */
-function Host() {
-  const [open, setOpen] = useState(false);
+/**
+ * Home's part: it owns whether the sheet is open and closes it when told to. A tap on Home's
+ * placeholder bell before the launcher loads mounts the launcher already open.
+ */
+function Host({ initialOpen = false }: { initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
   return createElement(NotificationsLauncher, {
     gardenId: GARDEN,
     gardenName: "TAS HUB",
@@ -244,12 +247,16 @@ function Host() {
   });
 }
 
-function renderBell() {
+function renderBell({ initialOpen = false }: { initialOpen?: boolean } = {}) {
   return render(
     createElement(
       MemoryRouter,
       { initialEntries: ["/home"] },
-      createElement(IntlProvider, { locale: "en", messages: en }, createElement(Host))
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: en },
+        createElement(Host, { initialOpen })
+      )
     )
   );
 }
@@ -260,6 +267,11 @@ const openSheet = () => {
   return screen.getByRole("dialog", { name: "Notifications" });
 };
 const rowsOf = (sheet: HTMLElement) => within(sheet).getAllByRole("listitem");
+/** The record a work event carries, which its row hands on to the work page. */
+const workOfEvent = (index: number) => {
+  const event = EVENTS[index];
+  return "work" in event ? event.work : undefined;
+};
 const titleOf = (row: HTMLElement) => row.querySelector(".gg-item-row-title")?.textContent;
 const detailsOf = (row: HTMLElement) =>
   [...row.querySelectorAll(".gg-item-row-detail-text")].map((detail) => detail.textContent);
@@ -333,8 +345,9 @@ describe("the sheet", () => {
 
     fireEvent.click(within(rows[1]).getByRole("button"));
     expect(onClose).toHaveBeenCalledTimes(1);
+    // The row's record goes with it, so a work outside the garden's loaded page opens offline.
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/work/0xw2`, {
-      state: { from: "home", returnTo: "/home" },
+      state: { from: "home", returnTo: "/home", work: workOfEvent(1) },
       viewTransition: true,
     });
 
@@ -352,7 +365,7 @@ describe("the sheet", () => {
     });
     fireEvent.click(within(rows[4]).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/work/0xw1`, {
-      state: { from: "home", returnTo: "/home" },
+      state: { from: "home", returnTo: "/home", work: workOfEvent(4) },
       viewTransition: true,
     });
   });
@@ -391,6 +404,21 @@ describe("the sheet", () => {
     }
   });
 
+  it("keeps the rows it has offline under the partial-read line, since the other reads are paused", () => {
+    online.value = false;
+    try {
+      renderBell();
+      const sheet = openSheet();
+
+      expect(
+        within(sheet).getByText("Some events couldn't be read. Nothing was lost.")
+      ).toBeInTheDocument();
+      expect(rowsOf(sheet)).toHaveLength(5);
+    } finally {
+      online.value = true;
+    }
+  });
+
   it("keeps the rows under a quiet notice when a read failed or answered only in part", () => {
     setBell({ isIncomplete: true });
     const view = renderBell();
@@ -424,5 +452,16 @@ describe("the sheet", () => {
     });
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("hands focus back to its own bell when it mounted with the sheet already open", () => {
+    // The tapped placeholder is gone by the time the sheet captures who opened it.
+    renderBell({ initialOpen: true });
+    expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(bellButton());
   });
 });
