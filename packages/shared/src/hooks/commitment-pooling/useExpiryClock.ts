@@ -29,10 +29,9 @@ function useChainClockOffsetMs(chainId: number): number {
   const { data, isError } = useQuery({
     queryKey: commitmentPoolingKeys.chainClock(chainId),
     queryFn: async () => {
-      const { getBlock } = await import("@wagmi/core");
       if (!config) throw new Error("No wagmi client to read the chain's time");
-      const block = await getBlock(config, { chainId });
-      return Number(block.timestamp) * 1000 - Date.now();
+      const { readChainClockOffsetMs } = await import("../../utils/blockchain/chain-clock");
+      return readChainClockOffsetMs(config, chainId);
     },
     enabled: config !== undefined,
     staleTime: CHAIN_CLOCK_STALE_MS,
