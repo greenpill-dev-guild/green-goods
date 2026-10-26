@@ -18,6 +18,10 @@ interface FixtureOptions {
   reportingImports?: string[];
   /** Leave the reporting pages out of the build, as a moved or renamed file would. */
   withoutReportingPages?: boolean;
+  /** Modules in a chunk the session gate imports, which every installed start loads. */
+  sessionGateImports?: string[];
+  /** Leave one installed startup module out of the build, as a moved or renamed file would. */
+  withoutStartupModule?: string;
   route?: { source: string; contents: string };
   shellAssets?: string[];
   files?: Record<string, string>;
@@ -36,6 +40,16 @@ const REPORTING_PAGE_CHUNKS = {
   "src/views/Public/AgentReporting/PermissionsPage.tsx": "assets/chunk-mW5nJx2C.js",
 };
 const REPORTING_PAGE_IMPORT = "assets/chunk-Lq9vZ4Hd.js";
+// The installed app's startup path, each module a lazy route of its own as in real builds.
+const STARTUP_MODULE_CHUNKS = {
+  "src/routes/PwaRuntime.tsx": "assets/chunk-Rt4mPw8Q.js",
+  "src/routes/WalletRuntimeProviders.tsx": "assets/chunk-Wv2kLp9S.js",
+  "src/routes/SessionGate.tsx": "assets/chunk-Gs6nTq3X.js",
+  "src/routes/AppShell.tsx": "assets/chunk-As8vKb1M.js",
+  "src/views/Home/index.tsx": "assets/chunk-Hm5cRz7D.js",
+  "src/views/Login/index.tsx": "assets/chunk-Lg3wNf6P.js",
+};
+const SESSION_GATE_IMPORT = "assets/chunk-Sg9xDt2V.js";
 
 const fixtureDirectories: string[] = [];
 const checkerPath = resolve(process.cwd(), "scripts/check-pwa-precache-budget.mjs");
@@ -129,6 +143,22 @@ function createFixture(options: FixtureOptions = {}) {
         modules: options.reportingImports,
       };
       writeFileSync(resolve(directory, REPORTING_PAGE_IMPORT), "export const shared = true");
+    }
+  }
+
+  for (const [source, file] of Object.entries(STARTUP_MODULE_CHUNKS)) {
+    if (source === options.withoutStartupModule) continue;
+    const gateImports = source === "src/routes/SessionGate.tsx" && options.sessionGateImports;
+    manifest[source] = { file, isDynamicEntry: true, src: source };
+    chunks[file] = {
+      imports: gateImports ? [SESSION_GATE_IMPORT] : [],
+      dynamicImports: [],
+      modules: [`packages/client/${source}`],
+    };
+    writeFileSync(resolve(directory, file), "export const startup = true");
+    if (gateImports) {
+      chunks[SESSION_GATE_IMPORT] = { imports: [], dynamicImports: [], modules: gateImports };
+      writeFileSync(resolve(directory, SESSION_GATE_IMPORT), "export const gate = true");
     }
   }
 
@@ -285,20 +315,32 @@ describe("PWA build budgets", () => {
     expect(output).not.toContain("AppKitProvider.tsx");
   });
 
-  it("fails a build whose installed startup reaches voucher code", () => {
-    const output = runFailure(
-      createFixture({
-        pwaModules: [
-          "packages/client/src/bootstrapPwa.tsx",
-          "packages/shared/src/modules/commitment-pooling/service-access-chain.ts",
-          "packages/shared/src/modules/commitment-pooling/display-groups.ts",
-        ],
-      }),
-      {}
-    );
+  const voucherAndPoolingModules = [
+    "packages/shared/src/modules/commitment-pooling/service-access-chain.ts",
+    "packages/shared/src/modules/commitment-pooling/display-groups.ts",
+  ];
+  it.each([
+    [
+      "its entry",
+      { pwaModules: ["packages/client/src/bootstrapPwa.tsx", ...voucherAndPoolingModules] },
+    ],
+    // The gate is a lazy route every installed start passes through, signed in or out.
+    ["the session gate", { sessionGateImports: voucherAndPoolingModules }],
+  ])("fails a build whose installed startup reaches voucher code through %s", (_, options) => {
+    const output = runFailure(createFixture(options), {});
     expect(output).toContain("voucher code in the installed startup bundle");
     expect(output).toContain("service-access-chain.ts");
     expect(output).not.toContain("display-groups.ts");
+  });
+
+  it("fails a build whose installed startup path has a module missing", () => {
+    const output = runFailure(
+      createFixture({ withoutStartupModule: "src/routes/SessionGate.tsx" }),
+      {}
+    );
+    expect(output).toContain(
+      "The installed app's startup module (src/routes/SessionGate.tsx) is missing"
+    );
   });
 
   it("fails a build that has no reporting page left to check", () => {
