@@ -17,6 +17,26 @@ import { selectPoolClosureEligibility } from "./selectors";
 import { selectDueLiveCommitments } from "./steward-selectors";
 import type { CommitmentCycleRecord, CommitmentPoolRecord, CommitmentReadModel } from "./types";
 
+// The voucher console is part of the steward's read of a pool (PRD-1297
+// surface 6): its model sits beside this one and is published through it.
+export {
+  parseVoucherAmount,
+  selectAllowanceRaise,
+  selectReturnProposal,
+  selectVoucherAcceptanceChecks,
+  selectVoucherAskStage,
+  UNAVAILABLE_VOUCHER_CONSOLE,
+} from "./voucher-console";
+export type {
+  VoucherAcceptanceChecks,
+  VoucherAsk,
+  VoucherAskStage,
+  VoucherBooking,
+  VoucherConsoleSnapshot,
+  VoucherIssuerReserve,
+  VoucherIssuerSafe,
+} from "./voucher-console";
+
 export type PoolConsoleStatus =
   | "unregistered"
   | "not-ready"

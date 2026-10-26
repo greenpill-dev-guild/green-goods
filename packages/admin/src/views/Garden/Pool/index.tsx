@@ -1,4 +1,7 @@
-import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
+import {
+  usePoolConsoleController,
+  useVoucherConsole,
+} from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
@@ -21,7 +24,8 @@ import { PoolNotReadyCard } from "./PoolNotReadyCard";
 import { PoolStatsCard } from "./PoolStatsCard";
 import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
-import { currentGroup } from "./poolCommitmentRows";
+import { VoucherReserveCard } from "./VoucherReserveCard";
+import { currentGroup, withVoucherRecovery } from "./poolCommitmentRows";
 import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 
 export interface GardenPoolTabProps {
@@ -49,6 +53,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const pool = usePoolConsoleController({ chainId, garden: garden.id });
+  // The voucher bookings in this garden's pool and its issuer's reserve (PRD-1297 surface 6).
+  const vouchers = useVoucherConsole({ chainId, garden: garden.id });
   const tone = "garden" as const;
   const isProtocolPool = pool.pool?.poolType === "PROTOCOL";
   const target = { gardenName: garden.name, isProtocol: isProtocolPool };
@@ -175,7 +181,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           },
           {
             id: "recovery",
-            count: model.counts.needsRecovery,
+            count: withVoucherRecovery(model, pool.commitments, vouchers).counts.needsRecovery,
             label: formatMessage({
               id: "cockpit.garden.pool.summary.recovery",
               defaultMessage: "Needs recovery",
@@ -221,6 +227,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         {!preOpen ? (
           <PoolCommitmentsCard
             console={pool}
+            vouchers={vouchers}
+            target={target}
             scope={scope}
             onScopeChange={setScope}
             focus={focus}
@@ -240,8 +248,20 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         {!preOpen && !finished ? (
           <PoolClaimsCard
             console={pool}
+            vouchers={vouchers}
+            target={target}
+            tone={tone}
             onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
             onOpen={(row) => openCommitment(row.commitment, "waiting")}
+          />
+        ) : null}
+        {vouchers.snapshot.reserve && !preOpen && !finished ? (
+          <VoucherReserveCard
+            reserve={vouchers.snapshot.reserve}
+            safe={vouchers.snapshot.safe}
+            disabled={!pool.isOnline || pool.isActing}
+            tone={tone}
+            onRaiseAllowance={vouchers.acts.raiseAllowance}
           />
         ) : null}
         {statusCard}

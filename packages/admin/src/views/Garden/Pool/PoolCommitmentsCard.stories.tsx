@@ -4,7 +4,7 @@ import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useState } from "react";
 import { IntlProvider } from "react-intl";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, screen, userEvent, within } from "storybook/test";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
 import {
@@ -19,6 +19,16 @@ import {
   STORY_GROUP_TITLES,
   storyPoolConsole,
 } from "./poolStoryFixtures";
+import {
+  nameVoucherMembers,
+  STORY_GREEN_GOODS_COMMITMENTS,
+  STORY_GREEN_GOODS_RETURN_FAILED,
+  STORY_GREEN_GOODS_VOUCHERS,
+  STORY_TECH_AND_SUN_COMMITMENTS,
+  STORY_TECH_AND_SUN_VOUCHERS,
+  STORY_VOUCHER_TITLES,
+  storyVoucherConsole,
+} from "./poolStoryVouchers";
 
 const GROUP_TITLES = new Map([...STORY_TITLES, ...STORY_GROUP_TITLES]);
 
@@ -58,6 +68,8 @@ const meta: Meta<typeof PoolCommitmentsCard> = {
     canSeed: true,
     scope: "open",
     focus: null,
+    vouchers: storyVoucherConsole(),
+    target: { gardenName: "Rio Rainforest Lab", isProtocol: false },
   },
   render: (args) => <PoolCommitmentsCardWithScope {...args} />,
 };
@@ -402,5 +414,63 @@ export const DocumentationPartial: Story = {
         },
       ],
     }),
+  },
+};
+
+/**
+ * Tech and Sun's hub days (PRD-1297 surface 6): Mara's visit is under way, so
+ * its row offers Report Visit…; the two offers still being booked say how far
+ * each booking has come.
+ */
+export const VoucherBookings: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: STORY_TECH_AND_SUN_COMMITMENTS,
+      claims: [],
+      titles: STORY_VOUCHER_TITLES,
+    }),
+    vouchers: storyVoucherConsole(STORY_TECH_AND_SUN_VOUCHERS),
+    target: { gardenName: "Tech and Sun", isProtocol: false },
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("button", { name: "Report Visit…" })).toBeVisible();
+    await expect(canvas.getByText("Booking: deposit confirmed")).toBeVisible();
+    await expect(canvas.getByText("Booking asked")).toBeVisible();
+  },
+};
+
+/** Green Goods' Claude access: Lina's stopped after 12 days, so her row needs a return proposed. */
+export const VoucherEndedEarly: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: STORY_GREEN_GOODS_COMMITMENTS,
+      claims: [],
+      titles: STORY_VOUCHER_TITLES,
+    }),
+    vouchers: storyVoucherConsole(STORY_GREEN_GOODS_VOUCHERS),
+    target: { gardenName: "Green Goods Community Garden", isProtocol: true },
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Ended early · 12 of 30 days")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Propose Return…" }));
+    await expect(await screen.findByText("Propose a Return to Lina")).toBeVisible();
+  },
+};
+
+/** The 6 back to Lina didn't arrive: the row needs recovery, and anyone can retry the same transfer. */
+export const VoucherTransferFailed: Story = {
+  args: {
+    ...VoucherEndedEarly.args,
+    vouchers: storyVoucherConsole(STORY_GREEN_GOODS_RETURN_FAILED),
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+    await expect(canvas.getByRole("button", { name: "Needs recovery (1)" })).toBeVisible();
   },
 };

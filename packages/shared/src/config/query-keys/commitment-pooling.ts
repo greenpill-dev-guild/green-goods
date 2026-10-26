@@ -60,6 +60,9 @@ export const commitmentPoolingKeys = {
       buyer.toLowerCase(),
       rehearsal ? "local-rehearsal" : "indexed",
     ] as const,
+  /** A garden pool's voucher bookings, the issuer's reserve and its Safe's signature rule. */
+  voucherConsole: (chainId: number, garden: Address | string) =>
+    [...commitmentPoolingKeys.all(chainId), "voucher-console", normalizeAddress(garden)] as const,
   issuerOperations: (account?: Address | null, routeId?: string, assetId?: string) =>
     [
       ...commitmentPoolingKeys.all(100),
