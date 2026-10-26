@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { WagmiContext } from "wagmi";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
@@ -19,7 +19,9 @@ const chainSecondsNow = (offsetMs: number) => BigInt(Math.floor((Date.now() + of
  * timestamp against the device's time as it arrived, read once per chain through the app's wagmi
  * client. Zero where there is no wallet runtime (a public page, a test), until the read answers,
  * and when it fails, so the device's clock stands in. A block's timestamp trails the chain's head
- * by up to a block, which keeps the clock that little behind, never ahead.
+ * by up to a block, which keeps the clock that little behind, never ahead. The calibration is
+ * read again whenever the app comes back (`useExpiryClock`) and never persisted, since a device
+ * clock corrected meanwhile would carry an old offset with it.
  */
 function useChainClockOffsetMs(chainId: number): number {
   const config = useContext(WagmiContext);
@@ -51,6 +53,7 @@ export function useExpiryClock(input: {
   cycleEndTimes: ReadonlyMap<string, bigint | null>;
 }): bigint {
   const { chainId, commitments, cycleEndTimes } = input;
+  const queryClient = useQueryClient();
   const offsetMs = useChainClockOffsetMs(chainId);
   const [now, setNow] = useState(() => chainSecondsNow(offsetMs));
   // The chain's time arrives after the first render, and is read again now and then: the clock
@@ -78,7 +81,12 @@ export function useExpiryClock(input: {
   }, [nextDue, now, offsetMs, setTimer, clearTimer]);
 
   useEffect(() => {
-    const updateClock = () => setNow(chainSecondsNow(offsetMs));
+    const updateClock = () => {
+      setNow(chainSecondsNow(offsetMs));
+      // The device's clock may have been corrected while the app was away: read the chain's
+      // time again, and the clock moves to it as the read answers.
+      void queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.chainClock(chainId) });
+    };
     const onVisible = () => {
       if (document.visibilityState === "visible") updateClock();
     };
@@ -90,7 +98,7 @@ export function useExpiryClock(input: {
       window.removeEventListener("online", updateClock);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [offsetMs]);
+  }, [chainId, offsetMs, queryClient]);
 
   return now;
 }

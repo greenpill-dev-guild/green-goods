@@ -100,4 +100,27 @@ describe("useExpiryClock", () => {
     await act(async () => vi.advanceTimersByTimeAsync(2_000));
     expect(dueAt(commitments, result.current)).toHaveLength(1);
   });
+
+  // An offset read against a device clock that is later corrected would carry the old error
+  // (Codex on #1341): the app reads the chain's time again as it comes back.
+  it("reads the chain's time again when the app comes back after the device clock was corrected", async () => {
+    vi.useFakeTimers();
+    const chainNow = 1_800_000_000;
+    vi.setSystemTime((chainNow + 3_600) * 1000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow) });
+    const commitments = [live(BigInt(chainNow + 1_800))];
+    const { result } = renderHook(
+      () => useExpiryClock({ chainId: CHAIN_ID, commitments, cycleEndTimes }),
+      { wrapper: providers({ wallet: true }) }
+    );
+    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow)));
+
+    // The device's clock is corrected to the chain's while the app is away.
+    vi.setSystemTime(chainNow * 1000 + 60_000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow + 60) });
+    act(() => window.dispatchEvent(new Event("focus")));
+    await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow + 60)));
+    expect(dueAt(commitments, result.current)).toHaveLength(0);
+  });
 });

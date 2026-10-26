@@ -96,6 +96,33 @@ export interface MockRpcRead {
   result: `0x${string}`;
 }
 
+/** The latest block as a node returns it without transactions, timed now. */
+function latestBlock(): Record<string, unknown> {
+  const zero = `0x${"0".repeat(64)}`;
+  return {
+    number: "0x1",
+    hash: `0x${"1".repeat(64)}`,
+    parentHash: zero,
+    timestamp: `0x${Math.floor(Date.now() / 1000).toString(16)}`,
+    nonce: "0x0000000000000000",
+    difficulty: "0x0",
+    totalDifficulty: "0x0",
+    gasLimit: "0x1c9c380",
+    gasUsed: "0x0",
+    baseFeePerGas: "0x1",
+    miner: "0x0000000000000000000000000000000000000000",
+    extraData: "0x",
+    logsBloom: `0x${"0".repeat(512)}`,
+    sha3Uncles: zero,
+    stateRoot: zero,
+    receiptsRoot: zero,
+    transactionsRoot: zero,
+    size: "0x0",
+    transactions: [],
+    uncles: [],
+  };
+}
+
 function buildRpcResponse(
   payload: JsonRpcPayload,
   garden: typeof MOCK_CLIENT_GARDEN,
@@ -105,9 +132,17 @@ function buildRpcResponse(
 ) {
   const addresses = [...roles, garden.id, garden.tokenAddress];
   const { method, params = [] } = payload;
-  let result: string;
+  let result: string | Record<string, unknown>;
   if ((method === "eth_chainId" || method === "eth_blockNumber") && params.length === 0) {
     result = method === "eth_chainId" ? "0xaa36a7" : "0x1";
+  } else if (
+    method === "eth_getBlockByNumber" &&
+    params.length === 2 &&
+    params[0] === "latest" &&
+    params[1] === false
+  ) {
+    // The due clock sets itself to the chain's time from the latest block (useExpiryClock).
+    result = latestBlock();
   } else if (method === "eth_call") {
     const call = params[0] as { to?: string; data?: string; from?: string } | undefined;
     const data = call?.data?.toLowerCase();
