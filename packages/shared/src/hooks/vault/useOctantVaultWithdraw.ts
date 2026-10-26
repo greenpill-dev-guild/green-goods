@@ -119,7 +119,7 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
       const maxLossBps = params.maxLossBps ?? DEFAULT_WITHDRAW_MAX_LOSS_BPS;
 
       if (params.shares <= 0n) {
-        throw new Error("Redeem shares must be greater than zero");
+        throw new Error("Withdrawal must be greater than zero");
       }
 
       // Pre-check redeemable shares at this slippage so we fail clearly before the
@@ -132,10 +132,10 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
       });
 
       if (maxRedeemable.shares <= 0n) {
-        throw new Error("Vault is not accepting redemptions right now");
+        throw new Error("Vault is not accepting withdrawals right now");
       }
       if (params.shares > maxRedeemable.shares) {
-        throw new Error("Redeem shares exceed the available share balance");
+        throw new Error("Withdrawal exceeds the available share balance");
       }
 
       const redeemShape = getOctantVaultRedeemCallShape(maxRedeemable.variant);

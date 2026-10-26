@@ -16,6 +16,8 @@ import type { Address } from "../../types/domain";
 
 const EMPTY_ADDRESS = `0x${"0".repeat(40)}` as Address;
 
+// Each DEV rehearsal import stays on one line: the critical-path scanner reads a dynamic import's
+// specifier only when the quoted path follows the opening parenthesis directly.
 function rehearsalActive(): boolean {
   return import.meta.env.DEV && isDemoPoolingActive();
 }
@@ -35,10 +37,8 @@ export function useVoucherWallet(scope: VoucherWalletScope | null) {
     queryFn: async () => {
       if (!scope) throw new Error("Voucher wallet scope required");
       if (!rehearsal) return readLiveVoucherWallet(scope);
-      const { serviceRehearsalAdapter } = await import(
-        "../../modules/commitment-pooling/demo/demo-service-access"
-      );
-      return serviceRehearsalAdapter.wallet(scope);
+      const demo = await import("../../modules/commitment-pooling/demo/demo-service-access");
+      return demo.serviceRehearsalAdapter.wallet(scope);
     },
   });
 }
@@ -59,10 +59,8 @@ export function useVoucherIssuerApproval(
     queryFn: async () => {
       if (!issuer) throw new Error("Voucher issuer required");
       if (!rehearsal) return readVoucherIssuerApproval(serviceLiveChain.read, issuer);
-      const { rehearsalIssuerApproval } = await import(
-        "../../modules/commitment-pooling/demo/demo-service-wallet"
-      );
-      return rehearsalIssuerApproval(issuer.account);
+      const demo = await import("../../modules/commitment-pooling/demo/demo-service-wallet");
+      return demo.rehearsalIssuerApproval(issuer);
     },
   });
 }
@@ -86,10 +84,8 @@ export function useIssuerSafeThreshold({
     queryFn: async (): Promise<IssuerSafeThreshold> => {
       if (!safe) throw new Error("Issuer Safe required");
       if (!rehearsal) return readIssuerSafeThreshold(serviceLiveChain.read, chainId, safe);
-      const { rehearsalIssuerSafeThreshold } = await import(
-        "../../modules/commitment-pooling/demo/demo-service-wallet"
-      );
-      return rehearsalIssuerSafeThreshold(safe);
+      const demo = await import("../../modules/commitment-pooling/demo/demo-service-wallet");
+      return demo.rehearsalIssuerSafeThreshold(safe);
     },
   });
 }

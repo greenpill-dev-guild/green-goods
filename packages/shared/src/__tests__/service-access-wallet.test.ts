@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createServiceRehearsalAdapter } from "../modules/commitment-pooling/demo/demo-service-access";
-import { REHEARSAL_VOUCHER_ISSUERS } from "../modules/commitment-pooling/demo/demo-service-wallet";
+import {
+  REHEARSAL_VOUCHER_ISSUERS,
+  rehearsalIssuerApproval,
+} from "../modules/commitment-pooling/demo/demo-service-wallet";
 import type { ServiceChainRead } from "../modules/commitment-pooling/service-access-chain";
 import type { ServiceAccessKey } from "../modules/commitment-pooling/service-access-types";
 import {
@@ -256,6 +259,11 @@ describe("voucher wallet reads", () => {
     expect(await readVoucherIssuerApproval(reverting, member)).toEqual({
       kind: "account",
       evidence: "onchain",
+    });
+    // The DEV rehearsal keeps the same rule: an individual approves from its own account.
+    expect(rehearsalIssuerApproval(member)).toEqual({
+      kind: "account",
+      evidence: "local-rehearsal",
     });
     expect(
       await readVoucherIssuerApproval(reverting, REHEARSAL_VOUCHER_ISSUERS.techAndSun)
