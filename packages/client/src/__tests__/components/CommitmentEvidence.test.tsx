@@ -26,6 +26,21 @@ function proof(cid: string, document: Record<string, unknown> | null): EvidenceA
   return { cid, contributor: AMARA, attacher: AMARA, createdAt: 1_700_000_000 };
 }
 
+/**
+ * A proof whose document is still being read. The cache already holds a read
+ * in flight that never settles, so the page joins it instead of fetching.
+ */
+function pendingProof(cid: string): EvidenceAttributionRow {
+  getTestQueryClient()
+    .fetchQuery({
+      queryKey: queryKeys.commitmentPooling.evidence(cid),
+      queryFn: () => new Promise<never>(() => undefined),
+    })
+    // Clearing the cache after the test cancels this read; nothing waits on it.
+    .catch(() => undefined);
+  return { cid, contributor: AMARA, attacher: AMARA, createdAt: 1_700_000_100 };
+}
+
 const NOTE = "Replaced the two split slats and rehung the gate.";
 const REPAIR_NOTES = { url: "https://example.org/riverside/fence-repair", label: "Repair notes" };
 
@@ -90,6 +105,26 @@ describe("CommitmentEvidence", () => {
       "href",
       REPAIR_NOTES.url
     );
+  });
+
+  it("keeps a read proof's note and links while another proof is still loading", () => {
+    renderWithProviders(
+      <CommitmentEvidence
+        attributions={[
+          proof("bafy-read", { note: NOTE, links: [REPAIR_NOTES] }),
+          pendingProof("bafy-slow"),
+        ]}
+        recordedCount={2}
+      />
+    );
+
+    expect(screen.getByText(NOTE)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Repair notes" })).toHaveAttribute(
+      "href",
+      REPAIR_NOTES.url
+    );
+    // Only the proof still loading says so.
+    expect(screen.getByRole("status")).toHaveTextContent("Reading the proof");
   });
 
   it("says when recorded proof cannot be shown", () => {

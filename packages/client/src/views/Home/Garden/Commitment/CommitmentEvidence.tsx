@@ -109,7 +109,7 @@ function VoiceTile({ url, index, seconds }: { url: string; index: number; second
 export function CommitmentEvidence({ attributions, recordedCount }: CommitmentEvidenceProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const { evidence, isLoading } = useCommitmentEvidence(attributions);
+  const { evidence } = useCommitmentEvidence(attributions);
   const [preview, setPreview] = useState<{ images: string[]; index: number } | null>(null);
 
   if (recordedCount === 0 && attributions.length === 0) return null;
@@ -121,8 +121,9 @@ export function CommitmentEvidence({ attributions, recordedCount }: CommitmentEv
         const photos = item.mediaUrls.filter(
           (_, index) => item.document?.media?.[index]?.kind !== "video"
         );
-        const loading = item.isLoading || isLoading;
-        // What a proof holds shows once its document is read.
+        // What a proof holds shows once its own document is read; a proof still
+        // loading beside it does not hide it.
+        const loading = item.isLoading;
         const contents = loading ? null : item.document;
         const showTiles = contents && item.mediaUrls.length + item.audioUrls.length > 0;
         return (
