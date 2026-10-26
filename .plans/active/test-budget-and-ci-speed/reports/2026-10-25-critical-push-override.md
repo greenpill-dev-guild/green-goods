@@ -47,9 +47,11 @@ consumer suites, the test and story typechecks and the production builds on the 
 | `hooks/garden/useGardenJoinRequests.ts` with a client view | 23 checks, 343 s | 17 checks, 178 s | the same, except client-build, which the owner compile rule keeps for the view |
 | `contracts/src/modules/HatsModule.sol` | 7 checks, 469 s | 7 checks, 469 s | nothing |
 
-Added everywhere: `client-typecheck` and `admin-typecheck` as consumer proof. The owner's suite now
-runs focused on the named tests and the plan returns `needs-focus` without one, as a sensitive push
-does. A critical qa run follows the same consumer rule: consumer typechecks, and a consumer suite
+For the three Shared critical rows, `client-typecheck` and `admin-typecheck` join as consumer
+proof, and the Shared owner's suite runs focused on the named tests, with the plan returning
+`needs-focus` without one, as a sensitive push does. The contracts row is unchanged: it adds no
+consumer typechecks, and its complete gate runs `contracts-test` whole. A critical qa run on a
+Shared critical path follows the same consumer rule: consumer typechecks, and a consumer suite
 only for a named test; qa's fan-out for sensitive Shared changes is unchanged. The cross-package
 checkpoint keeps the complete override: its consumer suites stay mandatory and its mandatory suites
 run whole.
