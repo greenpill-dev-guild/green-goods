@@ -635,7 +635,8 @@ export function selectValidation(input = {}, options = {}) {
     baseRisk === "critical" && ruleCriticalPaths.length === 0 ? changedPaths : ruleCriticalPaths;
   const contractsCritical = risk === "critical" && criticalPaths.some(contractsOwned);
   const criticalPush = intent === "push" && risk === "critical" && !contractsCritical;
-  const criticalQa = intent === "qa" && risk === "critical" && !contractsCritical;
+  // QA keeps D15's critical-qa shape for contracts paths too: only a push expands to the full gate.
+  const criticalQa = intent === "qa" && risk === "critical";
   const criticalOwners = new Set(
     risk === "critical" ? criticalPaths.map(ownerOf).filter(Boolean) : [],
   );
@@ -1046,11 +1047,13 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   const surface = check.id.endsWith("-test") ? check.id.slice(0, -5) : null;
   // A mandatory critical suite runs whole, except in a Shared critical push or qa run, where the
   // tests the author names are the local proof and CI runs the whole suites. A critical contracts
-  // change keeps its full local gate, so every mandatory suite in it runs whole.
+  // push keeps its full local gate, so every mandatory suite in it runs whole; a critical contracts
+  // qa run keeps D15's shape, where only the contracts suite runs whole.
   const wholeCriticalSuite =
     mandatory &&
     context.risk === "critical" &&
-    (context.contractsCritical === true || !["push", "qa"].includes(context.intent));
+    ((context.contractsCritical === true && (surface === "contracts" || context.intent === "push")) ||
+      !["push", "qa"].includes(context.intent));
   const focusedPaths =
     surface && !wholeCriticalSuite && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
       ? testPaths[surface] ?? []

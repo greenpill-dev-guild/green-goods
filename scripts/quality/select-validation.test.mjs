@@ -883,6 +883,19 @@ test("critical contract paths cannot be downgraded by QA intent", () => {
   assert.ok(plan.checks.filter((check) => check.mandatory).length >= 3);
 });
 
+test("a contract artifact keeps D15's critical-qa shape in QA; only a push expands to the full gate", () => {
+  const changedPaths = ["packages/contracts/deployments/11155111-latest.json"];
+  const qa = ids(selectValidation({ intent: "qa", changedPaths, mutationPaths: [] }));
+  // Consumers prove themselves with typechecks in QA, as on develop before D16; no whole suites.
+  for (const id of ["client-typecheck", "admin-typecheck", "client-test-typecheck", "admin-test-typecheck"]) {
+    assert.ok(qa.includes(id), id);
+  }
+  for (const id of ["client-test", "admin-test", "shared-test", "client-build"]) assert.ok(!qa.includes(id), id);
+  // The push keeps the whole pre-D15 gate: consumer suites and builds run locally.
+  const push = ids(selectValidation({ intent: "push", changedPaths, mutationPaths: [] }));
+  for (const id of ["client-test", "admin-test", "client-build"]) assert.ok(push.includes(id), id);
+});
+
 test("focused Solidity tests use the contracts match-path wrapper", () => {
   const plan = selectValidation({
     intent: "qa",
