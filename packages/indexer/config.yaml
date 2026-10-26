@@ -225,7 +225,7 @@ contracts:
       - event: DuplicateSettlementMessage(bytes32 indexed executionKey, bytes32 indexed commandMessageId)
       - event: AcknowledgmentSent(bytes32 indexed executionKey, bytes32 indexed commandMessageId, bytes32 indexed acknowledgmentMessageId, uint256 fee, bool reserveFunded)
       - event: AcknowledgmentDeferred(bytes32 indexed executionKey, bytes32 indexed commandMessageId, uint8 reasonCode)
-  # Dormant definitions only: no chain registrations, addresses or discovery source.
+  # Discovered on Arbitrum from the core's immutable VoucherServiceSetupModulePinned event.
   - name: VoucherRedemptionModule
     handler: src/EventHandlers.ts
     events:
@@ -244,11 +244,25 @@ contracts:
     handler: src/EventHandlers.ts
     events:
       - event: IssuerAuthorityConfigured(address indexed issuer, address indexed token, address indexed authority)
-  # Codegen definitions only: Gnosis addresses await verified deployment adoption.
+      - event: VoucherEndpointPinned(uint256 localChainId, address router, uint64 remoteChainSelector, uint256 remoteChainId, address remotePeer)
+      - event: VoucherPauseChanged(bool paused)
+      - event: VoucherTermsRegistered(uint256 indexed commitmentId, uint64 indexed revision, bytes32 termsHash)
+      - event: VoucherTermsApproved(uint256 indexed commitmentId, uint64 indexed revision, address indexed issuerAuthority)
+      - event: VoucherTermsConsented(uint256 indexed commitmentId, uint64 indexed revision, address indexed participant)
+      - event: VoucherDistributionPrepared(bytes32 indexed entitlementId, uint256 indexed commitmentId, bytes32 payloadHash)
+      - event: VoucherDistributionDispatched(bytes32 indexed entitlementId, bytes32 indexed messageId)
+      - event: VoucherResultRecorded(bytes32 indexed entitlementId, uint64 indexed resultSequence, bool success, bytes32 failureHash)
+  # Gnosis destination endpoints are pinned to the 24 October pilot deployment records.
   - name: GnosisVoucherAdapter
     handler: src/EventHandlers.ts
     events:
       - event: AssetConfigured(address indexed issuer, address indexed token, address indexed issuerAuthority, bool enabled)
+      - event: VoucherEndpointPinned(uint256 localChainId, address router, uint64 remoteChainSelector, uint256 remoteChainId, address remotePeer)
+      - event: VoucherPauseChanged(bool paused)
+      - event: CommandRecorded(bytes32 indexed entitlementId, bytes32 indexed payloadHash, bytes32 indexed messageId)
+      - event: DistributionResult(bytes32 indexed entitlementId, uint64 indexed sequence, bool indexed success, bytes32 failureHash, bytes reason)
+      - event: AcknowledgmentSent(bytes32 indexed entitlementId, uint64 indexed sequence, bytes32 indexed messageId)
+      - event: AcknowledgmentFailed(bytes32 indexed entitlementId, uint64 indexed sequence, bytes reason)
   - name: CLCSwapPool
     handler: src/EventHandlers.ts
     events:
@@ -277,6 +291,20 @@ contracts:
       - event: VoucherEscrowFinanciallyClosed(bytes32 indexed setupId, bytes32 indexed decisionId)
       - event: VoucherServiceAcknowledgmentSent(bytes32 indexed setupId, bool indexed finalResult, uint64 indexed sequence, bytes32 messageId)
       - event: VoucherServiceAcknowledgmentFailed(bytes32 indexed setupId, bool indexed finalResult, uint64 indexed sequence, bytes reason)
+  # Steward Safe roster mirroring: the Arbitrum publisher and its Gnosis receiver.
+  - name: StewardRolePublisher
+    handler: src/EventHandlers.ts
+    events:
+      - event: StewardQueued(address indexed account, uint64 revision, bool eligible)
+      - event: StewardDispatched(address indexed account, uint64 revision, bool eligible, bytes32 messageId)
+      - event: DispatchDeferred(address indexed account, uint64 revision)
+  - name: StewardSafeReceiver
+    handler: src/EventHandlers.ts
+    events:
+      - event: StewardMirrored(address indexed account, uint64 revision, bool eligible)
+      - event: StewardReconciled(address indexed account, bool eligible)
+      - event: ReconciliationDeferred(address indexed account)
+      - event: BootstrapFinalized()
 chains:
   - id: 42161
     start_block: 433713812
@@ -309,6 +337,11 @@ chains:
         address: "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a"
       # Discovered locally from the core's immutable EarnedVoucherModulePinned event.
       - name: VoucherEntitlementModule
+      # Discovered locally from the core's immutable VoucherServiceSetupModulePinned event.
+      - name: VoucherRedemptionModule
+      # Tech and Sun publisher from 42161-pilot-downstream.json (deployed at block 517974589).
+      - name: StewardRolePublisher
+        address: "0xdc53b8EAe588a923D13650339De0c99D29968804"
       - name: CommitmentRegistry
         address: "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959"
       - name: SettlementModule
@@ -346,3 +379,15 @@ chains:
     contracts:
       - name: CeloSettlementExecutor
         address: "0xB8a7F3c3DfA407c45e05b7B2381233101938a84F"
+  # Gnosis pilot from 100-pilot-downstream.json; its first deployment receipt is block 48925690.
+  - id: 100
+    start_block: 48925690
+    contracts:
+      - name: GnosisVoucherAdapter
+        address: "0x80a906C175ea875af8a2afcA8F91F60b201dc824"
+      - name: GnosisVoucherEscrow
+        address: "0x742c8935d314363e8c16df5b0791525109Fb9387"
+      - name: CLCSwapPool
+        address: "0x6AFc963B583fBB536F05B2D7ae832880662b98A4"
+      - name: StewardSafeReceiver
+        address: "0x115819bCcaab03Be49107c69c00Bc4c21009839C"

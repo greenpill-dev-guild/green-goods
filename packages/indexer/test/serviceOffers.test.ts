@@ -44,7 +44,7 @@ describe("opt-in service offer facts", () => {
       await readFile(new URL("../config.yaml", import.meta.url), "utf8")
     ) as {
       contracts: Array<{ name: string; events: Array<{ event: string }> }>;
-      chains: Array<{ id: number; contracts: Array<{ name: string }> }>;
+      chains: Array<{ id: number; contracts: Array<{ name: string; address?: string }> }>;
     };
     function parameterShape(parameter: AbiParameter): unknown {
       return {
@@ -61,6 +61,7 @@ describe("opt-in service offer facts", () => {
       ["SettlementModule", "ISettlementPersonalServicePurchases", 4],
       ["VoucherRedemptionModule", "VoucherRedemptionModule", 11],
       ["GnosisVoucherEscrow", "GnosisVoucherEscrow", 21],
+      ["VoucherEntitlementModule", "VoucherEntitlementModule", 9],
     ] as const;
     for (const [contract, abiName, count] of boundaries) {
       const abi = JSON.parse(
@@ -93,15 +94,20 @@ describe("opt-in service offer facts", () => {
     }
     assert.deepEqual(
       config.chains.map(({ id }) => id),
-      [42161, 11155111, 42220]
+      [42161, 11155111, 42220, 100]
     );
-    assert.ok(
-      config.chains.every(({ contracts }) =>
-        contracts.every(
-          ({ name }) => !["VoucherRedemptionModule", "GnosisVoucherEscrow"].includes(name)
-        )
-      )
-    );
+    // The redemption source is discovered on Arbitrum only; the escrow is pinned on Gnosis only.
+    const registered = (name: string) =>
+      config.chains
+        .filter(({ contracts }) => contracts.some((contract) => contract.name === name))
+        .map(({ id, contracts }) => ({
+          id,
+          address: contracts.find((contract) => contract.name === name)?.address,
+        }));
+    assert.deepEqual(registered("VoucherRedemptionModule"), [{ id: 42161, address: undefined }]);
+    assert.deepEqual(registered("GnosisVoucherEscrow"), [
+      { id: 100, address: "0x742c8935d314363e8c16df5b0791525109Fb9387" },
+    ]);
   });
 
   it("projects exact revision/price without inventing full terms or Legacy mode", async () => {
