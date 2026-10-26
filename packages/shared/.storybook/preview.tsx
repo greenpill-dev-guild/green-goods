@@ -17,6 +17,7 @@ import {
 // between stories, so a story that overrides hooks returns `resetHookMocks(...)` (./moduleMocks)
 // from `beforeEach`.
 sb.mock(import("../src/hooks/app/useArrivalState.ts"), { spy: true });
+sb.mock(import("../src/hooks/assessment/useGardenAssessmentRecords.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOffline.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOnlineStatus.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts"), { spy: true });
@@ -110,6 +111,19 @@ const preview: Preview = {
     } as unknown as ReturnType<typeof useServiceAccessMutation>);
   },
   globalTypes: {
+    locale: {
+      description: "The language every story reads in",
+      toolbar: {
+        title: "Language",
+        icon: "globe",
+        items: [
+          { value: "en", title: "English" },
+          { value: "es", title: "Español" },
+          { value: "pt", title: "Português" },
+        ],
+        dynamicTitle: true,
+      },
+    },
     theme: {
       description: "Global theme for components",
       toolbar: {
@@ -124,6 +138,7 @@ const preview: Preview = {
     },
   },
   initialGlobals: {
+    locale: "en",
     theme: "light",
   },
   parameters: {

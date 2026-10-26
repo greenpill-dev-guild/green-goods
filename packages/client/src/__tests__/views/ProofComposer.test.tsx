@@ -7,8 +7,8 @@
  * @vitest-environment happy-dom
  */
 
-import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import { proofComposerControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -346,6 +346,20 @@ describe("ProofComposer", () => {
 
     expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
     expect(screen.getByText("Its Back reopens Your Work")).toBeInTheDocument();
+  });
+
+  it("goes back a step with Back, and leaves for the promise from Media", async () => {
+    const user = userEvent.setup();
+    render("promise");
+    await user.click(forward("Details"));
+    expect(screen.getByText("Enter Details", { selector: "h6" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go back" }));
+    expect(screen.getByText("Show What Was Done", { selector: "h6" })).toBeInTheDocument();
+    expect(forward("Details")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go back" }));
+    expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
   });
 
   it("opens the promise from the pinned card and returns to the same step", async () => {
