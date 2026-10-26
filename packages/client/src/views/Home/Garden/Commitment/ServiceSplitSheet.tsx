@@ -21,8 +21,10 @@ export interface ServiceSplitSheetProps {
 
 /**
  * Approve the Final Split: the proportion as a bar with the exact figures under it, and one
- * checkbox saying what the reader received (V3). Approving freezes the split and moves nothing
- * by itself; each transfer runs after it with its own status. A hub day then asks Promise kept?.
+ * checkbox saying what the reader received (V3). A full return delivered nothing, so it asks for
+ * no such confirmation and never says the service happened. Approving freezes the split and moves
+ * nothing by itself; each transfer runs after it with its own status. A hub day then asks Promise
+ * kept?.
  */
 export function ServiceSplitSheet({
   open,
@@ -50,6 +52,8 @@ export function ServiceSplitSheet({
   const done = Number(split.delivered);
   const of = w.accessDays;
   const confirmsAfter = split.refund === 0n;
+  // Nothing was delivered when the whole booking comes back: no "I had it" box, no received line.
+  const delivered = split.delivered > 0n;
   const deliveredValue =
     view.profile === "access"
       ? t("rd.sh.deliveredC", { done, of })
@@ -76,7 +80,7 @@ export function ServiceSplitSheet({
         primary: {
           label: t("rd.sh.approve"),
           loading: isPending,
-          disabled: !received,
+          disabled: delivered && !received,
           onClick: onApprove,
         },
         secondary: onReport
@@ -118,19 +122,23 @@ export function ServiceSplitSheet({
           ) : null}
         </div>
         <FactList frame="inset">
-          <FactRow
-            label={t("rd.sh.delivered")}
-            value={detailed(deliveredValue, t("rd.sh.deliveredSub"))}
-          />
+          {delivered ? (
+            <FactRow
+              label={t("rd.sh.delivered")}
+              value={detailed(deliveredValue, t("rd.sh.deliveredSub"))}
+            />
+          ) : null}
           <FactRow
             label={t("rd.sh.toSun")}
             value={detailed(
               t("rd.sh.toSunV", { rel, unit: w.unit(split.release) }),
-              view.profile === "access"
-                ? t("rd.sh.toSunC", { done })
-                : view.profile === "hubDay"
-                  ? t("rd.sh.toSunS")
-                  : null
+              split.release === 0n
+                ? null
+                : view.profile === "access"
+                  ? t("rd.sh.toSunC", { done })
+                  : view.profile === "hubDay"
+                    ? t("rd.sh.toSunS")
+                    : null
             )}
           />
           <FactRow
@@ -145,20 +153,22 @@ export function ServiceSplitSheet({
             )}
           />
         </FactList>
-        <label
-          htmlFor={checkboxId}
-          className="flex min-h-11 cursor-pointer items-start gap-3 rounded-[var(--radius-lg)] bg-bg-weak-50 p-3 text-sm text-text-strong-950"
-        >
-          <input
-            id={checkboxId}
-            type="checkbox"
-            checked={received}
-            disabled={isPending}
-            onChange={(event) => setReceived(event.target.checked)}
-            className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-primary-on-surface)]"
-          />
-          <span>{check}</span>
-        </label>
+        {delivered ? (
+          <label
+            htmlFor={checkboxId}
+            className="flex min-h-11 cursor-pointer items-start gap-3 rounded-[var(--radius-lg)] bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+          >
+            <input
+              id={checkboxId}
+              type="checkbox"
+              checked={received}
+              disabled={isPending}
+              onChange={(event) => setReceived(event.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-primary-on-surface)]"
+            />
+            <span>{check}</span>
+          </label>
+        ) : null}
         <Alert variant="info" title={t("rd.sh.finalT")} className="p-3">
           {t("rd.sh.finalB")}
         </Alert>
