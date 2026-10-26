@@ -22,6 +22,7 @@ import {
   type PoolSectionRead,
   poolSectionState,
   isOneTapTakeUp,
+  oneTapAsks,
   isTakeableBy,
   NO_TAKE_UPS,
   recentActivityState,
@@ -460,5 +461,32 @@ describe("the reader's own take-ups (#1292's review, decision 18)", () => {
     expect(oneTap(ask(6, { claimType: "GARDEN" }))).toBe(false);
     expect(oneTap(ask(5, { creator: READER }))).toBe(false);
     expect(oneTap(ask(4), { ...none, queued: new Set(["4"]) })).toBe(false);
+  });
+
+  it("hands Submit Work's Start step the one-tap asks only, one per set", () => {
+    const metadata = new Map<string, CommitmentMetadataV1>([
+      ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
+    ]);
+    const asks = oneTapAsks({
+      commitments: [
+        ask(9),
+        gatedAsk(8),
+        // Asked for by the reader, and no steward has answered.
+        gatedAsk(7),
+        ask(6, { metadataCID: "cid-set" }),
+        ask(5, { metadataCID: "cid-set" }),
+        ask(4),
+      ],
+      metadataByCID: metadata,
+      viewer: READER,
+      poolOpen: true,
+      takeUps: viewerTakeUps({
+        viewer: READER,
+        pendingRequests: [request(7, "PENDING")],
+        queued: new Set(["4"]),
+      }),
+    });
+
+    expect(asks.map((each) => each.commitmentId)).toEqual([9n, 6n]);
   });
 });

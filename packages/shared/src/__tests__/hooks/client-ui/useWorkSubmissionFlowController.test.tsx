@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   enqueue: vi.fn(),
   takeUp: vi.fn(),
   takeUpChoices: [] as Array<Record<string, unknown>>,
+  takeUpAsks: [] as Array<Record<string, unknown>>,
+  takeUpLoading: false,
   uploadWork: vi.fn(),
   consumeShareTarget: vi.fn(),
   loadShareTarget: vi.fn(),
@@ -117,8 +119,9 @@ vi.mock("../../../hooks/commitment-pooling/useWorkLinkChoices", async (importOri
 
 vi.mock("../../../hooks/commitment-pooling/useTakeUpChoices", () => ({
   useTakeUpChoices: () => ({
+    asks: mocks.takeUpAsks,
     choices: mocks.takeUpChoices,
-    isLoading: false,
+    isLoading: mocks.takeUpLoading,
     isError: false,
     refetch: vi.fn(),
   }),
@@ -374,6 +377,8 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.outcome = null;
     mocks.choices = [];
     mocks.takeUpChoices = [];
+    mocks.takeUpAsks = [];
+    mocks.takeUpLoading = false;
     mocks.communityGarden = null;
     mocks.joinState = { isJoining: false, joiningGardenId: null };
     mocks.enqueue.mockResolvedValue("link-job");
@@ -1539,5 +1544,46 @@ describe("useWorkSubmissionFlowController", () => {
       view.result.current.start.addEvidence(view.result.current.start.promises[0])
     );
     expect(exitPath).toBe(`/home/${ACTIVE_GARDEN}/commitments/9/proof`);
+  });
+
+  it("keeps Start while the garden's Open asks are read, even with one action", () => {
+    solarGarden();
+    mocks.actions = [liveAction(7, Domain.SOLAR)];
+    mocks.takeUpLoading = true;
+    const { result } = enterFlow();
+
+    expect(mocks.setActiveTab).not.toHaveBeenCalled();
+    expect(result.current.start.skipped).toBe(false);
+  });
+
+  it("lists the garden's Open asks after the member's promises, and takes one up through its action", async () => {
+    solarGarden();
+    mocks.actions = [liveAction(7, Domain.SOLAR), liveAction(9, Domain.SOLAR)];
+    const choice = {
+      ...commitmentLinkIntent,
+      commitmentId: 31n,
+      garden: ACTIVE_GARDEN,
+      actionUID: 9,
+      takesUp: true as const,
+    };
+    const ask = { ...promiseOwed([choice], false), commitmentId: 31n, state: "REQUESTED" };
+    mocks.takeUpAsks = [ask];
+    mocks.takeUpChoices = [choice];
+    const view = renderFlow(ExitWrapper);
+    // Saying before the first prompt how many come: the take-up, the work, its link.
+    expect(view.result.current.start.asks.map((each) => each.commitmentId)).toEqual([31n]);
+    expect(view.result.current.start.askPromptCount).toBe(3);
+
+    act(() => view.result.current.start.pickPromise(view.result.current.start.asks[0]));
+    expect(view.result.current.start.screen).toMatchObject({
+      kind: "promise",
+      promise: { commitmentId: 31n },
+    });
+
+    await act(async () => view.result.current.start.choosePromiseAction(choice));
+    expect(mocks.setDraftAction).toHaveBeenLastCalledWith(9);
+    expect(mocks.setActiveTab).toHaveBeenLastCalledWith("Media");
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    expect(view.result.current.promptCount).toBe(3);
   });
 });

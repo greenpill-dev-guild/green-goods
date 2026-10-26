@@ -285,6 +285,11 @@ describe("the Start step (DL-131)", () => {
       { kind: "stay" },
     ],
     [
+      "while the garden's Open asks are read the step waits rather than jump past one",
+      { actionUIDs: [7], openAsks: null },
+      { kind: "wait" },
+    ],
+    [
       "a promise the member owes keeps the step",
       { actionUIDs: [7], promises: { status: "ready", count: 1 } },
       { kind: "stay" },
