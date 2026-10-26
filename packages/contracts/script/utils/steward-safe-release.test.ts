@@ -28,7 +28,7 @@ function artifacts(): StewardArtifacts {
     abi: [
       name === "StewardRolePublisher"
         ? "constructor(address,address,address,uint256,address)"
-        : "constructor(address,address,address,uint256,uint256,address)",
+        : "constructor(address,address,address,string,uint256,uint256,address)",
     ],
     bytecode: { object: "0x60006000f3" },
     deployedBytecode: { object: "0x6000" },
@@ -48,7 +48,7 @@ function artifacts(): StewardArtifacts {
   };
 }
 const commit = "a".repeat(40);
-describe("fixed-two steward Safe release", () => {
+describe("roster steward Safe release", () => {
   it("keeps missing deployment and real signer inputs explicit", () => {
     const incomplete = { ...fixture(), garden: null, confirmedStewards: [] };
     const report = inspectStewardManifest(incomplete);
@@ -87,6 +87,12 @@ describe("fixed-two steward Safe release", () => {
         m.garden = address(0);
       },
     ],
+    [
+      "blank garden name",
+      (m: ReturnType<typeof fixture>) => {
+        m.gardenName = " ";
+      },
+    ],
   ])("rejects %s drift", (_, mutate) => {
     const m = fixture();
     mutate(m);
@@ -102,12 +108,12 @@ describe("fixed-two steward Safe release", () => {
     plan.transactions[0].data += "00";
     expect(() => validateStewardPlan(plan, fixture(), artifacts(), commit)).toThrow("mismatch");
   });
-  it("binds the approved bootstrap signer and labels initial authority", () => {
+  it("binds the garden name and the approved starting signer into the receiver", () => {
     const m = fixture();
     m.bootstrapSigner = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
     const a = artifacts();
     const p = buildStewardPlan(m, a, commit);
-    expect(p.kind).toBe("BOOTSTRAP_STEWARD_SAFE");
+    expect(p.kind).toBe("ROSTER_STEWARD_SAFE");
     expect(p.activationIncluded).toBe(true);
     const abi = new Interface(a.StewardSafeReceiver.abi);
     expect(
@@ -117,6 +123,7 @@ describe("fixed-two steward Safe release", () => {
             m.networks.gnosis.router,
             p.transactions[0].address,
             m.garden,
+            "Tech and Sun",
             m.expectedTopHat,
             m.salt,
             m.bootstrapSigner,
@@ -125,6 +132,7 @@ describe("fixed-two steward Safe release", () => {
       ),
     ).toBe(true);
     expect(() => validateStewardPlan(p, { ...m, bootstrapSigner: null }, a, commit)).toThrow();
+    expect(() => buildStewardPlan({ ...m, gardenName: null }, a, commit)).toThrow("deployment inputs");
   });
   it("rejects stale revision, wrong build, and unreviewed runtime", () => {
     const m = fixture();

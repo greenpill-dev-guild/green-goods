@@ -28,7 +28,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:451abc976083cab619bc6376b1daae5eeba9ad9e6d22b9c69e39e596a6814a96"
+source_digest: "sha256:10e7d2a39a1a22e3662076973afa213c0342f5ecfea4f82bda30382a07a17a8b"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -169,7 +169,7 @@ Enforces the measured coverage floors across the packages. Pull requests run pla
 
 - **Use it when:** Nightly at 08:43 UTC and after every push to main.
 - **Runs on:** pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch.
-- **Jobs:** `coverage`.
+- **Jobs:** `contracts`, `coverage`.
 - **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
 - **File:** [.github/workflows/coverage-nightly.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/coverage-nightly.yml)
 
