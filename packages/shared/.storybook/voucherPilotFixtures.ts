@@ -19,7 +19,7 @@ export const VOUCHER_STORY_SCOPE: VoucherWalletScope = {
   coreModule: "0x000000000000000000000000000000000000f100",
   account: "0x000000000000000000000000000000000000f101",
 };
-const STORY_GARDEN = "0x000000000000000000000000000000000000f102";
+const STORY_GARDEN = "0x000000000000000000000000000000000000f102" as const;
 /** Pilot vouchers carry six decimals: one voucher is 1,000,000 base units. */
 export const vouchers = (whole: number) => BigInt(Math.round(whole * 1_000_000));
 
