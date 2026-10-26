@@ -844,7 +844,7 @@
           "term_refs": ["entity:commitment"],
           "code": [
             "packages/client/src/views/Home/CommitmentsSheet",
-            "packages/client/src/views/Garden/WorkCommitmentSelection.tsx"
+            "packages/client/src/views/Garden/Start.tsx"
           ]
         }
       ]

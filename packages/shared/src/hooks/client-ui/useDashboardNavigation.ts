@@ -115,6 +115,12 @@ export function useDashboardNavigation() {
         }
       },
       forward,
+      /** Opens `to` as the next page, recording this one, so that page's Back returns here. */
+      open: (to: To, options: NavigateOptions = {}) =>
+        navigate(to, {
+          ...options,
+          state: { ...options.state, ...(scope ? { dashboardBack: { scope, path } } : {}) },
+        }),
       /** True only when this session recorded the immediately preceding page. */
       back: () => {
         if (!previous) return false;
