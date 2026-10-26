@@ -524,7 +524,12 @@ async function swapPhotos(page, sources) {
 
 // The garden card draws a teal pattern when a garden has no banner; the hub has one.
 async function swapGardenCard(page, src) {
-  return page.evaluate((src) => {
+  return page.evaluate(async (src) => {
+    // A CSS background never reports a decode failure, so the photo is decoded first and a
+    // banner that does not decode is reported instead of leaving a blank card on the screen.
+    const probe = new Image();
+    probe.src = src;
+    if (!(await probe.decode().then(() => probe.naturalWidth > 0 && probe.naturalHeight > 0, () => false))) return { swapped: 0, decoded: false };
     let swapped = 0;
     for (const el of document.querySelectorAll("div")) {
       const bg = getComputedStyle(el).backgroundImage;
@@ -537,7 +542,7 @@ async function swapGardenCard(page, src) {
         el.style.backgroundImage = "none";
       }
     }
-    return swapped;
+    return { swapped, decoded: true };
   }, src);
 }
 
@@ -603,7 +608,11 @@ async function shoot(page, session, step, width, height) {
       const { swapped, found } = await swapBanner(page, banner);
       if (!found) note(`${step.shot}: no banner image found to swap`);
       else if (swapped !== found) note(`${step.shot}: ${BANNER} did not decode; replace it with the approved Awka photo`);
-    } else if (step.gardenCard && !(await swapGardenCard(page, banner))) note(`${step.shot}: no garden card pattern found to swap`);
+    } else if (step.gardenCard) {
+      const { swapped, decoded } = await swapGardenCard(page, banner);
+      if (!decoded) note(`${step.shot}: ${BANNER} did not decode; replace it with the approved Awka photo`);
+      else if (!swapped) note(`${step.shot}: no garden card pattern found to swap`);
+    }
   }
   if (step.photos) {
     const sources = step.photos.map((name) => (name ? photo(name) : null));

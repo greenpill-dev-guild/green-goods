@@ -36,7 +36,7 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | [`submission/business-model-canvas.html`](submission/business-model-canvas.html) | The Business Model Canvas the event asks for: one A4 landscape page, the nine standard blocks, figures from the brief and labeled illustrative |
 | [`submission/logical-architecture.html`](submission/logical-architecture.html) | The logical architecture the event asks for: one A4 landscape page from the five roles down to the three networks, with data in and out and the rules that hold everywhere |
 | [`submission/render.mjs`](submission/render.mjs) | Checks both one-pagers (margins, footers, box and band overflow, images, em dashes, PDF word positions) and renders their PDFs and PNGs |
-| `demo/` | The clickable demo the event asks for, with its own README: four flows (Needs, Promise, Work, Funding) from 22 captures of the real app, the capture, build and check scripts, and a UI review of every screen. The built page is never committed, since it embeds photos of identifiable people; it lives in Drive and as a private artifact |
+| `demo/` | The clickable demo the event asks for, with its own README: four full flows (Needs, Promise, Work, Funding), 37 screens captured from the current app and, for the states after a signature, the deployed Storybook, set at Tech and Sun's hub with invented names; the capture, build and check scripts, and a UI review of every screen. The built page is never committed, since it embeds photos of identifiable people; it lives in Drive and as a private artifact |
 | [`review-2026-10-25.md`](review-2026-10-25.md) | Afo's 25 October slide and brief review, with the Tech and Sun research; implemented in [the revision](#the-revision--25-october-2026) |
 | [`../research/diaspora-evidence-pass-2026-10-25.md`](../research/diaspora-evidence-pass-2026-10-25.md) | The RESR-94 evidence pass: every diaspora, remittance, hub and funding claim checked against primary sources, with proposed ledger rows and open questions; applied in [the evidence pass](#the-evidence-pass--25-october-2026) |
 
@@ -238,11 +238,11 @@ scalability and impact potential. Materials go to the team's Microsoft Teams roo
 27 October, 2 to 3 PM UK time, and the brief says to plan for eight minutes a team, which the
 notes already run. The deck is the presentation; the canvas and the architecture are the two
 one-pagers in `submission/`, in the brief's style and checked by `submission/render.mjs`; the
-clickable demo was built in a side session as `demo/` (four flows, Needs, Promise, Work and
-Funding, from 22 captures of the real app screens in the deployed Storybook and the live public
-pages, set at Tech and Sun's hub by swapping demo copy at capture time), with its own
-`demo/README.md` that lists every screen's story, every substitution where a story did not render
-a usable state, and every copy swap. The built page is `Green Goods SF.Live 2026 clickable
+clickable demo was built in a side session as `demo/` (four full flows, Needs, Promise, Work and
+Funding: 37 screens captured from the current app in a scratch worktree of `develop`, with the
+deployed Storybook for the states after a signature, set at Tech and Sun's hub with invented
+names), with its own `demo/README.md` that lists every screen's source, every substitution and
+every copy swap. The built page is `Green Goods SF.Live 2026 clickable
 demo.html` in Drive, in `Green Goods/Growth/SF.Live 2026` with the other submission files, and a private artifact; the orchestrator walked the Drive
 copy headless on 26 October: deep links, keys, the mis-tap guard, images and the Google Fonts-only
 requests all held.
@@ -393,6 +393,13 @@ material, and an accuracy pass over the four documents.
   network and brief page 4 said it reads "the chains", but `packages/indexer/config.yaml` lists
   Arbitrum One, Sepolia and Celo only, and no tracked file binds it to the Gnosis addresses (the
   status refresh above). Both now say Arbitrum One and Celo today, Gnosis next.
+- **The demo, rebuilt.** Later on 26 October the side session rebuilt the demo as four full flows
+  on the current app (37 screens, an "All flows" button on every screen, each flow ending in the
+  next), carried this branch's review hardening into the rebuild and replaced the Drive copy and
+  the artifact; merged here as `1ec8dd1af`, taking its side for `demo/**`. Its UI review lists four
+  app gaps (the reward never shows at take-up; a course promise is confirmed with "Did the help
+  arrive?" and "1 certificates"; "Delivered Duration (min) (min)"; a no-promise message that reads
+  like an error), which a separate session on `develop` is taking up.
 - **The demo.** The side session's `c0fc53dc5` grounds the four flows in the hub's real season,
   request, form and photos, with invented names; merged here as `b3197abfe`, keeping the
   `--only` validation and the last-screen focus restore, rebuilt from its 22 captures (the check
