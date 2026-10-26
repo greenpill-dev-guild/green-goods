@@ -16,4 +16,10 @@ describe("getIndexerUrl", () => {
   it("throws in production when the setting is missing", () => {
     expect(() => getIndexerUrl({}, false)).toThrow(/VITE_ENVIO_INDEXER_URL/);
   });
+
+  it("treats an empty setting as missing in production", () => {
+    expect(() => getIndexerUrl({ VITE_ENVIO_INDEXER_URL: "" }, false)).toThrow(
+      /VITE_ENVIO_INDEXER_URL/
+    );
+  });
 });
