@@ -52,6 +52,9 @@ for (const flow of flows) {
     if (!last && !s.hotspot) note(`${s.file}: no hotspot`);
     if (last && s.hotspot) note(`${s.file}: the last screen has a hotspot`);
     if (!s.story) note(`${s.file}: no source recorded`);
+    // A screen reader hears what the screen shows, not only the flow name and ordinal.
+    if (!s.alt || s.alt.trim().length < 8) note(`${s.file}: no description of what the screen shows (alt)`);
+    else if (BANNED.test(s.alt)) note(`${s.file}: the description "${s.alt}" uses "${s.alt.match(BANNED)[0]}"`);
   });
 }
 console.log(`source checks: ${flows.length} flows, ${screens.length} screens, ${(statSync(built).size / 1048576).toFixed(2)} MB`);

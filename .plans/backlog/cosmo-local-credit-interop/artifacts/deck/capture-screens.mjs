@@ -36,6 +36,21 @@ try {
     if (s.storybook) await page.waitForSelector("#storybook-root > *", { timeout: 60000 });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(s.storybook ? 2500 : 6000);
+    // The stories' own fonts: fonts.ready also resolves after a font request fails, and text set in
+    // a fallback face would be rasterized into the screen, so no face may be in error and every
+    // face used by visible text must be loaded.
+    const fontProblems = await page.evaluate(() => {
+      const errors = [...document.fonts].filter((f) => f.status === "error").map((f) => `${f.family.replace(/["']/g, "")} ${f.weight} ${f.style} failed to load`);
+      const fallback = new Set();
+      for (const el of document.querySelectorAll("body *")) {
+        if (![...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden" || cs.display === "none") continue;
+        if (!document.fonts.check(`${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`)) fallback.add(cs.fontFamily.split(",")[0].replace(/["']/g, ""));
+      }
+      return [...errors, ...[...fallback].map((family) => `${family} is not loaded for visible text`)];
+    });
+    if (fontProblems.length) throw new Error(`${s.file}: ${fontProblems.join("; ")}; neither screen was replaced`);
     const text = await page.evaluate(() => document.body.innerText);
     const missing = s.expect.filter((t) => !text.includes(t));
     if (/couldn't find story|story not found|no story matched/i.test(text) || missing.length) {

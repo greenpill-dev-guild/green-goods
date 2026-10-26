@@ -29,7 +29,7 @@
 // swaps, or a hotspot target is missing or off screen.
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -634,7 +634,11 @@ async function shoot(page, session, step, width, height) {
   await page.evaluate(() => document.activeElement?.blur?.());
   await page.mouse.move(1, 1);
   await page.waitForTimeout(400);
-  swaps.forEach(([from, to], i) => { swapHits.set(`${from} → ${to}`, (swapHits.get(`${from} → ${to}`) || 0) + hits[i]); });
+  // Hits are kept per rule object, never per replacement text: two rules with the same words on
+  // different screens are two rules, so one cannot hide the other going stale.
+  swaps.forEach((rule, i) => { swapHits.set(rule, (swapHits.get(rule) || 0) + hits[i]); });
+  // A rule written for this one screen has no other screen to match on, so it has to match here.
+  swaps.forEach((rule, i) => { if (!hits[i] && listedSteps.get(rule)?.size === 1 && !BASE.includes(rule)) note(`${step.shot}: swap "${rule[0]} → ${rule[1]}" matched nothing on this screen`); });
   const text = await page.evaluate(() => document.body.innerText);
   if (!session.live) for (const word of LEFTOVERS) if (word.test(text)) note(`${step.shot}: fixture text ${word} is still visible`);
   // Every screen has to show what the demo says it shows: Storybook's not-found view also fills
@@ -664,6 +668,21 @@ async function shoot(page, session, step, width, height) {
     return visible && !(img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
   }).map((img) => (img.currentSrc || img.getAttribute("src") || "(no src)").replace(/^data:[^,]*,.*/, "(data URI)").slice(0, 90)));
   if (blank.length) note(`${step.shot}: ${blank.length} visible image(s) did not load or decode: ${blank.join(" | ")}`);
+  // The page's own fonts: fonts.ready also resolves after a font request fails, and text set in a
+  // fallback face would be rasterized into the screen, so no face may be in error and every face
+  // used by visible text must be loaded.
+  const fontProblems = await page.evaluate(() => {
+    const errors = [...document.fonts].filter((f) => f.status === "error").map((f) => `${f.family.replace(/["']/g, "")} ${f.weight} ${f.style} failed to load`);
+    const fallback = new Set();
+    for (const el of document.querySelectorAll("body *")) {
+      if (![...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === "hidden" || cs.display === "none") continue;
+      if (!document.fonts.check(`${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`)) fallback.add(cs.fontFamily.split(",")[0].replace(/["']/g, ""));
+    }
+    return [...errors, ...[...fallback].map((family) => `${family} is not loaded for visible text`)];
+  });
+  if (fontProblems.length) note(`${step.shot}: ${fontProblems.join("; ")}`);
   const file = join(staging, `${step.shot}.jpg`);
   if (step.over) hotspot = await composeOver(page, session, step, file, hotspot);
   else await page.screenshot({ path: file, type: "jpeg", quality: 82 });
@@ -819,11 +838,21 @@ if (only.length) {
   if (added.length) console.log(`--only also recaptures ${added.join(", ")}: drawn over a selected session's screen`);
 }
 const selected = SESSIONS.filter((s) => !only.length || only.includes(s.id));
-// A run that was stopped leaves its staging folder behind; only one run may write at a time.
-for (const name of readdirSync(out)) if (name.startsWith(".capture-")) rmSync(join(out, name), { recursive: true, force: true });
+// A run that was stopped leaves its staging folder behind; one older than two hours is stale and
+// goes, while a younger one may belong to a run still going, which keeps its own folder.
+for (const name of readdirSync(out)) if (name.startsWith(".capture-") && Date.now() - statSync(join(out, name)).mtimeMs > 2 * 3600 * 1000) rmSync(join(out, name), { recursive: true, force: true });
 const staging = mkdtempSync(join(out, ".capture-"));
 const results = new Map();
 const swapHits = new Map();
+// Where each rule object is listed: the sessions, for a partial run's "not validated" report, and
+// the screens, so a rule written for one screen is held to that screen.
+const listedOn = new Map();
+const listedSteps = new Map();
+for (const session of SESSIONS) for (const step of session.steps.filter((st) => st.shot)) for (const rule of [...(step.swaps || []), ...(session.swaps || [])]) {
+  if (!listedOn.has(rule)) { listedOn.set(rule, new Set()); listedSteps.set(rule, new Set()); }
+  listedOn.get(rule).add(session.id);
+  listedSteps.get(rule).add(step.shot);
+}
 const browser = await pw.chromium.launch();
 const drawnOver = (s) => s.steps.some((st) => st.over);
 const stories = selected.filter((s) => !s.app && !drawnOver(s));
@@ -839,16 +868,12 @@ await browser.close();
 // matched nowhere means a fixture or the app moved and the demo may now show it. A partial
 // `--only` capture can validate only the rules no unselected session lists; the rest are reported
 // as not validated, and a full capture is needed before a build.
-const listedOn = new Map();
-for (const session of SESSIONS) for (const step of session.steps.filter((st) => st.shot)) for (const [from, to] of [...(step.swaps || []), ...(session.swaps || [])]) {
-  const key = `${from} → ${to}`;
-  if (!listedOn.has(key)) listedOn.set(key, new Set());
-  listedOn.get(key).add(session.id);
-}
 const unvalidated = [];
-for (const [pair, n] of swapHits) {
+for (const [rule, n] of swapHits) {
   if (n) continue;
-  const elsewhere = [...(listedOn.get(pair) || [])].filter((id) => !only.includes(id));
+  const pair = `${rule[0]} → ${rule[1]}`;
+  if (listedSteps.get(rule)?.size === 1 && !BASE.includes(rule)) continue; // already reported on its screen
+  const elsewhere = [...(listedOn.get(rule) || [])].filter((id) => !only.includes(id));
   if (only.length && elsewhere.length) unvalidated.push(pair); else note(`swap "${pair}" matched nothing`);
 }
 if (unvalidated.length) console.log(`partial capture: ${unvalidated.length} swap(s) shared with sessions outside --only were not validated; run a full capture before building`);
@@ -870,16 +895,22 @@ if (problems.length) {
 // and their metadata never disagree.
 const json = JSON.stringify(data, null, 2).replace(/<\//g, "<\\/");
 html = html.replace(block[0], `<script type="application/json" id="flows">\n${json}\n</script>`);
-const stagedHtml = join(here, ".index.html.staged");
+// The staged index.html lives in this run's own staging folder, and the swap of screens and
+// metadata happens under a lock, so two runs that overlap can never publish each other's files.
+const stagedHtml = join(staging, "index.html.staged");
 writeFileSync(stagedHtml, html);
+const lock = join(out, ".publish-lock");
+try { mkdirSync(lock); } catch (error) {
+  rmSync(staging, { recursive: true, force: true });
+  throw new Error(`${error.code === "EEXIST" ? "another capture is publishing (" + lock + " exists)" : error.message}; nothing was replaced and index.html is untouched`);
+}
 const backup = mkdtempSync(join(out, ".previous-"));
-const names = readdirSync(staging);
+const names = readdirSync(staging).filter((name) => name !== "index.html.staged");
 // The backup completes before any screen is touched: a copy that fails leaves the set as it was.
 try {
   for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
 } catch (error) {
-  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
-  rmSync(stagedHtml, { force: true });
+  for (const dir of [staging, backup, lock]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; nothing was replaced and index.html is untouched`);
 }
 try {
@@ -890,9 +921,8 @@ try {
   // new screen could outlive the rollback beside the old index.html.
   for (const name of names) rmSync(join(out, name), { force: true });
   for (const name of readdirSync(backup)) copyFileSync(join(backup, name), join(out, name));
-  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
-  rmSync(stagedHtml, { force: true });
+  for (const dir of [staging, backup, lock]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; the previous screens were put back and index.html is untouched`);
 }
-for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+for (const dir of [staging, backup, lock]) rmSync(dir, { recursive: true, force: true });
 console.log(`captured ${results.size} screens into ${out}; 0 problems`);

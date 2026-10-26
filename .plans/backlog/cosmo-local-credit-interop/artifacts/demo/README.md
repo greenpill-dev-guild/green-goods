@@ -43,7 +43,7 @@ screen continues to the next flow, so "Start from the beginning" plays the whole
 
 | Path | What it is |
 |---|---|
-| [`index.html`](index.html) | The page: landing, flow view and the `#flows` block with every caption, who you are, source and hotspot. It shows the screens from `assets/screens/` when they are present |
+| [`index.html`](index.html) | The page: landing, flow view and the `#flows` block with every caption, who you are, a description of what the screen shows (its `alt`, read by screen readers), source and hotspot. It shows the screens from `assets/screens/` when they are present |
 | [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, and crops the course proof to `proof-course.jpg` from `proof-raw.jpg`, a raw copy placed by hand from the private handoff (it shows a member's name and email, so no address for it appears in this repository). It replaces the set whole: one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
 | [`capture.mjs`](capture.mjs) | Walks each flow's session in the app and Storybook, captures the 37 screens, swaps in names and the hub's content, and writes each screen's source, size and measured hotspot into `#flows` |
 | [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper). A missing screen or a page over 15 MB fails the build before it writes, so the last good build survives |
@@ -86,7 +86,11 @@ submission `RECORDS` binds it to (the hub's page lists newest first, so a new ap
 renumbers the files); when Storybook shows its not-found view; when a screen without a hotspot
 shows neither its `expect` copy nor any of its own swaps; or when a hotspot target is missing, off
 screen, or the size of the screen (a scrim, not the control the caption names); or when a visible
-image did not load or decode, the live pages' own photos and banners included. The check then taps
+image did not load or decode, the live pages' own photos and banners included; when a font face on
+the page failed to load or visible text is set in a face that is not loaded; or when a rule written
+for one screen matched nothing there (rules shared through the named lists are checked across the
+screens that list them). Screens and metadata are swapped in under `assets/screens/.publish-lock`,
+so two runs can never publish each other's files. The check then taps
 beside the hotspot on every screen and expects not to advance.
 
 Check fails on an em dash in the demo's HTML or Markdown; a caption over eight words; a caption,
@@ -126,7 +130,7 @@ screen.
 | promise-10 | App: `/home/<TAS HUB>/commitments/19`, as the steward who asked | The record's waiting promise, its note and photo | As steward, open the finished promise |
 | promise-11 | App: the same page's "Confirm It Was Kept" | The confirm sheet with the proof | Confirm she finished the course |
 | promise-12 | Storybook: `client-commitments-gardencommitment--kept` | Kept, as she sees it | The promise is kept |
-| work-1 | App: `/home`, TAS HUB chosen | Home | Tap Garden to log the bootcamp |
+| work-1 | App: `/home`, TAS HUB chosen | Home at TAS HUB, with the Garden tab in the bottom bar | Tap Garden to log the bootcamp |
 | work-2 | App: the Garden tab's Start step | The Solar actions | Switch to Education |
 | work-3 | App: Education | The Education actions, Workshop Delivered in view | Pick Workshop Delivered |
 | work-4 | App: Workshop Delivered chosen | The Promise section and Start Gardening | Start logging the workshop |
