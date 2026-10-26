@@ -121,8 +121,8 @@ unresolved actionable feedback item.
 Interpret "fix all comments" as authorization to fix all `ACTIONABLE` feedback items and their
 approved in-scope sibling instances. On a safe existing PR branch, it also authorizes staging only
 the scoped files, creating a conventional commit, and pushing normally to that tracked branch after
-targeted proof and the ready-for-CI Push Gate pass. Critical surfaces retain their complete local
-override. It does not authorize:
+targeted proof and the ready-for-CI Push Gate pass. Critical surfaces also run the selector's
+mandatory override. It does not authorize:
 
 - ambiguous or conflicting changes;
 - unrelated repository cleanup;

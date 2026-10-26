@@ -99,6 +99,15 @@ build; an explicit critical qa run selects every consumer's test typecheck; and 
 `--risk critical` on a contracts-owned path brings the complete contracts gate, whose check list is
 now read from the policy's contract overrides.
 
+## Review round five (Codex, 2026-10-25)
+
+Two guidance findings on the merge head, both accepted: the review skill still routed critical work
+to the full readiness gate in its rung list and its verdict rule, and CONTRIBUTING's quick start
+named the Shared override but dropped the contracts gate. A sweep of every guide for critical
+wording found two more stale passages (the review skill's production-readiness bullet and the
+resolve-pr-comments authorization note); all five now name the selector's mandatory override, with
+the complete contracts gate stated where contracts apply.
+
 ## What to measure next
 
 After a week of merges, re-run the receipt analysis and compare the critical push span against the

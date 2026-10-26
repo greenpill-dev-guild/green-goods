@@ -48,7 +48,7 @@ Resolve intent separately from code scope:
 - **Production readiness** — explicit requests for production quality, approval, PR/merge readiness,
   or whether the branch is ready. For a live PR, combine direct local evidence with required GitHub
   CI on the current head SHA. Run the full local Production Review Readiness Gate only for explicit
-  offline/full-local readiness or a critical surface.
+  offline/full-local readiness; a critical surface runs the selector's mandatory override.
 
 Render the planned checks with `bun run check --plan -- --intent review`. For explicit
 offline/full-local production readiness, use `--intent readiness` so the plan remains non-mutating
@@ -163,7 +163,9 @@ For narrower explicit intents, pick the lightest honest rung per `.claude/contex
 - isolated fix → targeted package-local test/proof
 - cross-package or shared-surface impact → Repo Quick Gate
 - live PR approval → direct local evidence + required current-head CI
-- explicit offline/full-local readiness or critical work → full readiness gate + conditional gates
+- explicit offline/full-local readiness → full readiness gate + conditional gates
+- critical work → the selector's mandatory override: owner typecheck and focused suite plus
+  consumer typechecks for Shared, the complete contracts gate for contracts
 
 For every selected check, name its risk, expected signal, freshness rule, and stopping condition.
 State what ran with real output. Record the tested commit SHA, UTC timestamp, exact command, and
@@ -222,7 +224,7 @@ Lead with findings, keep the list actionable:
 3. **Remaining Gaps** — unfinished intent, each with the smallest completing step
 4. **Human Call-Outs** — dependencies, auth/permissions, migrations, contract deploys, trust-boundary changes (never auto-fix these)
 5. **Verification** — what ran, real results, what remains unverified
-6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`. Any `MISSING` requirement or failed required check → `REQUEST_CHANGES`. Any `BLOCKED` requirement/check → `COMMENT_ONLY`; so do missing authoritative requirements, evidence-review-only intent, or pending/unavailable current-head PR CI. `APPROVE` only for explicit production-readiness intent when every requirement is `SATISFIED`/`OUT_OF_SCOPE`, applicable local proof passed, and required GitHub CI is green for the current SHA. Explicit offline/full-local and critical reviews additionally require the complete readiness gate under the freshness contract.
+6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`. Any `MISSING` requirement or failed required check → `REQUEST_CHANGES`. Any `BLOCKED` requirement/check → `COMMENT_ONLY`; so do missing authoritative requirements, evidence-review-only intent, or pending/unavailable current-head PR CI. `APPROVE` only for explicit production-readiness intent when every requirement is `SATISFIED`/`OUT_OF_SCOPE`, applicable local proof passed, and required GitHub CI is green for the current SHA. Explicit offline/full-local reviews additionally require the complete readiness gate under the freshness contract; critical reviews require the selector's mandatory override.
 
 Finding format: `[Title] — severity · type · file:line · why it matters · next step`.
 
