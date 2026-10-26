@@ -3,7 +3,7 @@ import { setControl } from "../../services/reporting/controls";
 import { loadDraft } from "../../services/reporting/drafts";
 import { modelSpend } from "../../services/reporting/model-spend";
 import { ADA, Harness, spendDailyModelCap } from "./support/harness";
-import { scriptedOpenAI } from "./support/media";
+import { scriptedOpenAI, shadedPhoto } from "./support/media";
 
 /**
  * Voice notes through the real coordinator, consent store and media job. ffmpeg and OpenAI Audio
@@ -102,6 +102,37 @@ describe("voice notes", () => {
     expect(harness.core.db.query("SELECT state FROM media_assets").get()).toEqual({
       state: "unsupported",
     });
+  });
+
+  it("answers a photo that waited with a declined note, and never counts it again", async () => {
+    const empty = { observations: [], uncertain: [], facts: [] };
+    harness.openai = scriptedOpenAI([empty, empty]).config;
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "voice test" });
+    await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(ADA, "I agree");
+    await harness.say(ADA, "1");
+    await harness.press(ADA, "Tree planting");
+    // The photo is in while the note waits for its own consent, so the batch has not ended yet.
+    harness.mediaFiles.set("photo-1", await shadedPhoto(1));
+    await harness.post(
+      harness.message(ADA, { media: [{ providerMediaId: "photo-1", declaredMime: "image/jpeg" }] })
+    );
+    expect(await sendVoice("voice-1")).toEqual([
+      expect.stringContaining("Can I transcribe your voice notes?"),
+    ]);
+
+    const declined = await harness.press(ADA, "No, I'll type");
+    expect(declined.slice(0, 2)).toEqual([
+      "OK, I won't transcribe voice notes. Please type your update instead.",
+      "Photo added to your report.",
+    ]);
+    expect(declined.at(-1)).toContain("Seedlings planted?");
+    harness.mediaFiles.set("photo-2", await shadedPhoto(2));
+    const next = await harness.say(ADA, "", {
+      text: undefined,
+      media: [{ providerMediaId: "photo-2", declaredMime: "image/jpeg" }],
+    });
+    expect(next[0]).toBe("Photo added to your report.");
   });
 
   it("refuses a recording over two minutes without sending it anywhere", async () => {

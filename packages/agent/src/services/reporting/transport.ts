@@ -27,6 +27,12 @@ export interface InboundMessageEvent {
   replyId?: string;
   replyToProviderMessageId?: string;
   media?: InboundMediaReference[];
+  /**
+   * Shared by files the sender sent together as one album, which still arrive as one event each,
+   * in any order. The core puts an album's files in order by `sentAt`, then by
+   * `providerMessageId`, comparing digits as numbers.
+   */
+  mediaGroupId?: string;
   locale?: string;
 }
 

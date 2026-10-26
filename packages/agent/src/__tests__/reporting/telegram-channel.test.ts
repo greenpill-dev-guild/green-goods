@@ -54,6 +54,18 @@ describe("Telegram updates", () => {
       text: "The fence line",
       media: [{ providerMediaId: "large", declaredMime: "image/jpeg", declaredSize: 204_800 }],
     });
+    expect(toReportingEvent(photo, TEST_BOT_REALM, 5)).not.toHaveProperty("mediaGroupId");
+    // Each photo of an album is a message of its own that names the album.
+    const albumPhoto = privateMessage({
+      message_id: 12,
+      media_group_id: "13960531",
+      photo: [{ file_id: "second", file_unique_id: "2", width: 1280, height: 960 }],
+    });
+    expect(toReportingEvent(albumPhoto, TEST_BOT_REALM, 5)).toMatchObject({
+      eventId: "message:7001:12",
+      mediaGroupId: "13960531",
+      media: [{ providerMediaId: "second" }],
+    });
     const voice = privateMessage({
       voice: { file_id: "v1", file_unique_id: "v", duration: 4, mime_type: "audio/ogg" },
     });

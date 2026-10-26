@@ -106,6 +106,10 @@ export function toReportingEvent(
     sentAt: message.date * 1000,
     ...(text ? { text } : {}),
     ...(media ? { media: [media] } : {}),
+    // An album is one message per file sharing a media group ID; only one of them has a caption.
+    ...(media && "media_group_id" in message && message.media_group_id
+      ? { mediaGroupId: message.media_group_id }
+      : {}),
     ...("reply_to_message" in message && message.reply_to_message
       ? { replyToProviderMessageId: String(message.reply_to_message.message_id) }
       : {}),
