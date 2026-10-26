@@ -8,6 +8,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it } from "vitest";
+import { workInputLabel } from "../../components/Features/Work/workInputLabel";
 import { WorkDetails } from "../../views/Garden/Details";
 
 const messages = {
@@ -57,7 +58,8 @@ describe("WorkDetails Review gate", () => {
     const view = render(<GateHarness inputs={template.uiConfig.details.inputs} />);
 
     for (const input of template.uiConfig.details.inputs.filter((field) => field.required)) {
-      const label = input.unit ? `${input.title} (${input.unit})*` : `${input.title}*`;
+      // Nine templates write their unit into the title too ("Delivered Duration (min)"): it shows once.
+      const label = `${workInputLabel(input)}*`;
 
       if (input.type === "multi-select" || input.type === "repeater") {
         expect(view.getByRole("group", { name: label }), `${slug}: ${input.key}`).toBeVisible();
