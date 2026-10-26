@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueries, useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
 import type {
@@ -13,6 +13,10 @@ import {
 import { useAuth } from "../auth/useAuth";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useTimeout } from "../utils/useTimeout";
+
+/** The longest delay a browser timer holds; a longer one fires at once. */
+const MAX_TIMEOUT_MS = 2_147_483_647;
 
 type Status = {
   request: GardenJoinRequestSelfRecord | null;
@@ -156,17 +160,32 @@ export function useAwaitingJoinRequests(gardenIds: readonly string[]): ReadonlyS
   const kept = useAwaitingJoinRequestsStore((state) =>
     scope ? state.requestsByScope[scope] : undefined
   );
-  const now = Date.now();
+  // The clock moves when the soonest device record lapses, so a list on screen drops its mark.
+  const [now, setNow] = useState(Date.now);
+  const { set: setTimer, clear: clearTimer } = useTimeout();
+  const awaitingIds: string[] = [];
+  let nextLapse = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < gardenIds.length; index++) {
+    const id = gardenIds[index].toLowerCase();
+    const session = records[index]?.data;
+    if (session?.request?.state === "pending") {
+      awaitingIds.push(id);
+      continue;
+    }
+    const expiresAt = session?.hasCheckedStatus ? 0 : (kept?.[id]?.expiresAt ?? 0);
+    if (expiresAt > now) {
+      awaitingIds.push(id);
+      nextLapse = Math.min(nextLapse, expiresAt);
+    }
+  }
+  useEffect(() => {
+    if (!Number.isFinite(nextLapse)) return;
+    // A request lapses a month out, past the timer limit: wait in steps, then read the clock.
+    const delay = Math.min(Math.max(nextLapse - Date.now(), 0), MAX_TIMEOUT_MS);
+    setTimer(() => setNow(Date.now()), delay);
+    return clearTimer;
+  }, [nextLapse, now, setTimer, clearTimer]);
   // One string per answer, so the set keeps its identity until a request changes.
-  const awaiting = gardenIds
-    .flatMap((gardenId, index) => {
-      const id = gardenId.toLowerCase();
-      const session = records[index]?.data;
-      const pending =
-        session?.request?.state === "pending" ||
-        (!session?.hasCheckedStatus && (kept?.[id]?.expiresAt ?? 0) > now);
-      return pending ? [id] : [];
-    })
-    .join(",");
+  const awaiting = awaitingIds.join(",");
   return useMemo(() => new Set(awaiting ? awaiting.split(",") : []), [awaiting]);
 }

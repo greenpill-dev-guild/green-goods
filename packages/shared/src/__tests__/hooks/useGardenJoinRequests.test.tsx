@@ -1084,4 +1084,32 @@ describe("useAwaitingJoinRequests", () => {
 
     expect(result.current.size).toBe(0);
   });
+
+  // A request lapses a month after it is sent, past the 32-bit timer limit (about 24.8 days), so
+  // the list on screen must wait in steps and still drop the mark on the day it lapses.
+  it("drops the mark while the list is on screen, on the day the request lapses", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const day = 86_400_000;
+      useAwaitingJoinRequestsStore.setState({
+        requestsByScope: {
+          [scope()]: { [GARDEN_A.toLowerCase()]: { expiresAt: Date.now() + 30 * day } },
+        },
+      });
+      const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+      expect(result.current.has(GARDEN_A.toLowerCase())).toBe(true);
+
+      await act(async () => {
+        vi.advanceTimersByTime(25 * day);
+      });
+      expect(result.current.has(GARDEN_A.toLowerCase())).toBe(true);
+
+      await act(async () => {
+        vi.advanceTimersByTime(5 * day);
+      });
+      expect(result.current.size).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
