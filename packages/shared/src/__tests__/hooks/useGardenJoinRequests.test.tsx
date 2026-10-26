@@ -1112,4 +1112,26 @@ describe("useAwaitingJoinRequests", () => {
       vi.useRealTimers();
     }
   });
+
+  // The session's own answer lapses too: a list kept open past its expiry drops the mark.
+  it("drops a pending answer from this session once it lapses", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const lapsing = new Date(Date.now() + 60_000).toISOString();
+      mocks.create.mockResolvedValue({
+        ok: true,
+        request: { ...openResponse.request!, expiresAt: lapsing },
+      });
+      await sendRequest(GARDEN_A);
+      const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
+      expect(result.current.has(GARDEN_A.toLowerCase())).toBe(true);
+
+      await act(async () => {
+        vi.advanceTimersByTime(61_000);
+      });
+      expect(result.current.size).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
