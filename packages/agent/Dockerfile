@@ -76,8 +76,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       poppler-utils=25.03.0-5+deb13u4 \
       ffmpeg=7:7.1.5-0+deb13u1 \
-      libreoffice-writer=4:25.2.3-2+deb13u7 \
-      libreoffice-calc=4:25.2.3-2+deb13u7 \
+      libreoffice-writer=4:25.2.3-2+deb13u8 \
+      libreoffice-calc=4:25.2.3-2+deb13u8 \
       bubblewrap=0.12.0-1~deb13u1 \
       util-linux=2.41.5-0+deb13u1 \
     && rm -rf /var/lib/apt/lists/* \
