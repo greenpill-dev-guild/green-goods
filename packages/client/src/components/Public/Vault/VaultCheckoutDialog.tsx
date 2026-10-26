@@ -823,7 +823,7 @@ function VaultCheckoutDialogContent({
             <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
               {formatMessage({
                 id: "public.vaults.walletEndow.success",
-                defaultMessage: "You can review or redeem this endowment from Manage Endowments.",
+                defaultMessage: "You can review or withdraw this endowment from Manage Endowments.",
               })}
             </p>
             {explorerUrl ? (

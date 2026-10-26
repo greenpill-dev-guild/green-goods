@@ -21,6 +21,11 @@ export {
 export { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
 export { useServiceAccess, useServiceAccessMutation } from "./useServiceAccess";
 export { useServiceIssuerOperations } from "./useServiceIssuerOperations";
+export {
+  useIssuerSafeThreshold,
+  useVoucherIssuerApproval,
+  useVoucherWallet,
+} from "./useVoucherWallet";
 export { useCommitmentWorkDecisions } from "./useCommitmentWorkDecisions";
 export { useWorkLinkChoices } from "./useWorkLinkChoices";
 export type {
