@@ -12,7 +12,9 @@ the public networks, so the notes and brief say "deployed", never "live"; see
 on 25 October**, which fixed the title slide in print, put the five roles on the solution slide,
 the Awka photo on the Tech and Sun slide, four mechanisms, four places and a centered closing
 slide in the deck, and renamed, linked and re-fitted the brief; see
-[the final polish](#the-final-polish--25-october-2026). The pitch is scheduled for 28 October
+[the final polish](#the-final-polish--25-october-2026); and **re-checked on 26 October** for the
+brief's links, the architecture page's layout, the season's status and one Drive folder; see
+[links, layout and the season](#links-layout-and-the-season--26-october-2026). The pitch is scheduled for 28 October
 from 10 AM London; submission is due 27 October.
 
 The [claim ledger](../research/claim-ledger.md), current addendum first, owns wording boundaries.
@@ -33,7 +35,7 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | [`brief/render.mjs`](brief/render.mjs) | Checks the brief and renders its PDF and page PNGs |
 | [`submission/business-model-canvas.html`](submission/business-model-canvas.html) | The Business Model Canvas the event asks for: one A4 landscape page, the nine standard blocks, figures from the brief and labeled illustrative |
 | [`submission/logical-architecture.html`](submission/logical-architecture.html) | The logical architecture the event asks for: one A4 landscape page from the five roles down to the three networks, with data in and out and the rules that hold everywhere |
-| [`submission/render.mjs`](submission/render.mjs) | Checks both one-pagers (margins, footers, box overflow, images, em dashes, PDF word positions) and renders their PDFs and PNGs |
+| [`submission/render.mjs`](submission/render.mjs) | Checks both one-pagers (margins, footers, box and band overflow, images, em dashes, PDF word positions) and renders their PDFs and PNGs |
 | `demo/` | The clickable demo the event asks for, with its own README: four flows (Needs, Promise, Work, Funding) from 22 captures of the real app, the capture, build and check scripts, and a UI review of every screen. The built page is never committed, since it embeds photos of identifiable people; it lives in Drive and as a private artifact |
 | [`review-2026-10-25.md`](review-2026-10-25.md) | Afo's 25 October slide and brief review, with the Tech and Sun research; implemented in [the revision](#the-revision--25-october-2026) |
 | [`../research/diaspora-evidence-pass-2026-10-25.md`](../research/diaspora-evidence-pass-2026-10-25.md) | The RESR-94 evidence pass: every diaspora, remittance, hub and funding claim checked against primary sources, with proposed ledger rows and open questions; applied in [the evidence pass](#the-evidence-pass--25-october-2026) |
@@ -241,7 +243,7 @@ Funding, from 22 captures of the real app screens in the deployed Storybook and 
 pages, set at Tech and Sun's hub by swapping demo copy at capture time), with its own
 `demo/README.md` that lists every screen's story, every substitution where a story did not render
 a usable state, and every copy swap. The built page is `Green Goods SF.Live 2026 clickable
-demo.html` in the Drive Growth folder and a private artifact; the orchestrator walked the Drive
+demo.html` in Drive, in `Green Goods/Growth/SF.Live 2026` with the other submission files, and a private artifact; the orchestrator walked the Drive
 copy headless on 26 October: deep links, keys, the mis-tap guard, images and the Google Fonts-only
 requests all held.
 
@@ -334,6 +336,65 @@ fourth mechanism, "cockpit" becomes "steward dashboard" in the brief, and the br
   per Afo's 24 October call. "Nobody can buy a certificate through Green Goods" comes from the
   steward guide.
 
+## Links, layout and the season · 26 October 2026
+
+Applied from Afo's third review, given in chat on 26 October: a link check on the brief, a layout
+fault on the architecture page, minimal links on the one-pagers, one Drive folder for all the
+material, and an accuracy pass over the four documents.
+
+- **Links in the brief.** Afo asked for the list before the edit and got it after; the links stay
+  unless he strikes one. Tech and Sun was linked only in the Sources list, so its first mention
+  on page 1 now links to techandsun.com, and Cosmo-Local Credit's first mention on page 1 links to
+  its docs. Omo Yoruba of Southern California links to omoyorubaofsocal.org on page 5 and in the
+  Sources; the site's own title and the GuideStar record (EIN 33-0763431) confirm it is the Los
+  Angeles nonprofit, while omoyoruba.org is a different organization (Centro Cultural Omo Yoruba).
+  The four gardens on page 6 link to their public pages (TAS Hub, Greenpill Kenya, AgroforestDAO,
+  Growecosystems), and the Sources cite Tech and Sun's garden page for the season. Not linked, on
+  purpose: the three networks on page 4, Sarafu Network, Greenpill Network, the event's site and
+  Telegram. Of the 27 external targets across the brief and the one-pagers, 26 returned 200 on
+  26 October; octant.app answered a scripted fetch with 403 (it returned 200 on 25 October and
+  opens in a browser).
+- **Links on the one-pagers.** Kept to the Green Goods site and docs, the pilot partner and the
+  footer. The canvas links Tech and Sun, greengoods.app in Channels, docs.greengoods.app in the
+  sources line, and the footer's address and site; the architecture links greengoods.app in the
+  Public pages box, Tech and Sun and docs.greengoods.app in the status line, and the footer. Links
+  are underlined in the brief's light green.
+- **Architecture layout.** The services band's content (ten boxes, 178px) sat in a `1fr` grid row
+  with `min-height: 0`, which gave it 169px, so the boxes spilled 9px into the Protocols band. The
+  row is now `minmax(max-content, 1fr)`, the bands, boxes and row gap each lost a pixel, and the
+  Certified chip is shorter so the chips keep to three lines; every band fits its content and the
+  stack's foot aligns with the side column again. `submission/render.mjs` treats a band's
+  overflow like a box's, so the fault would now fail the check.
+- **The season.** Tech and Sun's public garden page (read 26 October) shows its first promise
+  season, "Climate and Tech Education", open now and running to 31 January 2027, with one promise
+  made and in progress. The brief called the season "planned" on pages 1 and 6 and note 15 said so
+  on slide 15; all three now say it is open, with the pilot's first voucher services as what comes
+  next. The notes' claims list carries the fact and the date.
+- **Accuracy pass.** Page 1 no longer says funders "pay ... plus a share": the fee is theirs to
+  pay and the share comes out of endowment earnings, so they are two sentences, in the notes'
+  words. Page 3 no longer says this season's promises carry both rewards: they carry G$ rewards
+  (Afo's call), and service vouchers join them as the pilot's first services are agreed, since no
+  member holds a voucher yet. The canvas and the architecture no longer credit "Hypercerts
+  Certified" with the certificates: certificates are Hypercerts, and Certified is the publishing
+  path to Ma Earth, as the brief already said. The canvas lede says communities and individual
+  supporters "never pay a fee" rather than "never do", since the endowment share is income without
+  being a fee. The architecture marks the partner surfaces "next" and opens "Five roles, five
+  surfaces, one set of Green Goods services" instead of saying the roles use the partner surfaces.
+  A read-through of the deck, the notes, the brief and the one-pagers against the claims list
+  found nothing else to change.
+- **One Drive folder.** `Green Goods/Growth/SF.Live 2026` (folder id
+  `1c3RmsLctTC3NI1G9dB3Ecq0SEtiwHmid`) holds all nine files: the deck, the brief, the canvas and
+  the architecture as HTML and PDF, and the clickable demo. The Drive connector's `update_file`
+  cannot change a parent inside the shared drive ("The caller does not have permission"), so the
+  files were moved through the desktop mount, which keeps their ids and links (checked on the first
+  file before the rest moved). The older Google Docs conversion of the deck stays loose in Growth;
+  it is not this work's file.
+- **The demo.** The side session's `c0fc53dc5` grounds the four flows in the hub's real season,
+  request, form and photos, with invented names; merged here as `b3197abfe`, keeping the
+  `--only` validation and the last-screen focus restore, rebuilt from its 22 captures (the check
+  exits 0) and copied to the Drive folder. Its UI review's new top finding is for Afo: the real
+  request pays $20, and neither the request page nor the take-up sheet shows a reward.
+
 ## The rebuild · 24 October 2026
 
 Superseded in part by the revision above. Applied from Afo's review and two rounds of questions;
@@ -422,7 +483,10 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    [live-pilot handoff](../handoffs/codex-live-pilot-deployment.md) on 27 October. If it records
    a real member's booking through the app, the notes' claims list, which says what to say on
    slide 7, and brief pages 1, 3, 4 and 6 may move from "deployed" to "live"; if not, leave them.
-   Remittance Prices Worldwide had no quarter after Q3 2025 on 25 October.
+   Remittance Prices Worldwide had no quarter after Q3 2025 on 25 October. On 26 October the hub's
+   garden page showed its first promise season, "Climate and Tech Education", open from 10 October
+   2026 to 31 January 2027 with one promise in progress; the brief (pages 1 and 6) and note 15 say
+   "open", never "planned".
 6. **Slot length.** Settled: the submission brief says to plan for eight minutes a team, which
    the notes run; the five-minute cut stays as a fallback.
 7. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
@@ -446,6 +510,22 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
     line is the ledger owner's to reconcile; the deck states no time of day.
 11. **Fonts offline.** Fraunces and Inter load from Google Fonts. Vendoring the OFL files would
     remove that dependency; it needs a download this task did not authorize. The PDFs embed both.
+
+## Task record · links and layout
+
+Task record: SF.Live links, architecture layout, season status and one Drive folder | Type:
+documentation/design | Outcome: complete locally; the brief's links stay unless Afo strikes one
+Agent/model: Claude Code / Claude Fable 5.1 | Coverage: brief, notes, both one-pagers, their render
+script, the demo merge and this README, from `dfc40cc56`
+
+| Phase | Start → end (UTC, 26 October 2026) | Result / evidence |
+|---|---|---|
+| investigate | ~06:30 → ~06:50 | Every link in the four documents listed; the Omo Yoruba site found and told apart from a namesake; the architecture bands measured (services band 9px over); the hub's garden page read for the season |
+| implement | ~06:50 → ~07:10 | Links added; band row, padding and chip fixed; season, revenue and reward sentences corrected; Hypercerts naming aligned; `.band` added to the overflow check; demo merge resolved by hand |
+| verify | ~07:00 → ~07:15 | Deck, brief and submission renders exit 0; bands re-measured (no overflow, bottoms aligned); 26 of 27 link targets return 200; demo build and check pass |
+| deliver | ~07:05 → ~07:20 | Nine Drive files moved into `SF.Live 2026` with their ids kept, then overwritten with the new builds |
+
+Human corrections: 1 (Afo asked for the link list before the edit; it was shown after, with the links left for him to strike).
 
 ## Task record · final polish
 

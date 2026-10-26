@@ -48,8 +48,9 @@ for (const name of PAGES) {
         const label = `${el.tagName.toLowerCase()} "${(el.textContent || el.getAttribute("alt") || "").trim().slice(0, 40)}"`;
         if (r.bottom > foot.top - 6) issues.push(`page ${i + 1}: runs into the footer (bottom ${Math.round(r.bottom - box.top)}px): ${label}`);
         if (r.left < left || r.right > right) issues.push(`page ${i + 1}: outside the side margins: ${label}`);
-        // A block whose content overflows its own box is clipped in print, so report it here.
-        if (el.matches(".block, .box") && el.scrollHeight > el.clientHeight + 1) issues.push(`page ${i + 1}: content overflows its box by ${el.scrollHeight - el.clientHeight}px: ${label}`);
+        // A block whose content overflows its own box is clipped in print, and a band's overflow
+        // spills into the band below it (the services band did, by 9px), so report both here.
+        if (el.matches(".block, .box, .band") && el.scrollHeight > el.clientHeight + 1) issues.push(`page ${i + 1}: content overflows its box by ${el.scrollHeight - el.clientHeight}px: ${label}`);
       }
       for (const img of pg.querySelectorAll("img")) if (!(img.complete && img.naturalWidth > 0)) issues.push(`page ${i + 1}: image did not load: ${img.getAttribute("src")}`);
     });

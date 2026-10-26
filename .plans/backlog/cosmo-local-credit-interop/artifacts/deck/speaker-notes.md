@@ -73,7 +73,7 @@ This is our revenue model. Funders pay us a separate fee for setup, support and 
 
 ## 15. Where we are and where next · 0:30
 
-Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is planned to run into January. Then more places on the same model: waste work in South Africa next, and agroforestry in Kenya and in Brazil, where Greenpill Kenya, AgroforestDAO and Growecosystems already keep gardens on Green Goods. We are exploring both with local groups.
+Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is open and runs to the end of January. Then more places on the same model: waste work in South Africa next, and agroforestry in Kenya and in Brazil, where Greenpill Kenya, AgroforestDAO and Growecosystems already keep gardens on Green Goods. We are exploring both with local groups.
 
 ## 16. Technical roadmap · 0:20
 
@@ -101,7 +101,9 @@ Let's grow together. Thank you. Scan the code to see commitment pooling live on 
 ## Claims to keep straight · as of 25 October 2026
 
 - **Live:** the Green Goods app, promises (since 14 October), chat reporting by Telegram, the
-  endowment and the garden's shared fund, and Tech and Sun's public garden page. Commitment
+  endowment and the garden's shared fund, and Tech and Sun's public garden page, where its first
+  promise season, "Climate and Tech Education", is open from 10 October 2026 to 31 January 2027
+  with one promise made and in progress (read 26 October). Say "open", never "planned". Commitment
   pooling is live on the beta at beta.greengoods.app, which the closing slide's code opens.
 - **Live account proof, not a live service:** a selected new pilot account completed a sponsored
   passkey operation on 23 October. A working signature does not prove a delivered service.

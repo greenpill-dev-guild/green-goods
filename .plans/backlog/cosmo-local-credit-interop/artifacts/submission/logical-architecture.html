@@ -33,12 +33,17 @@
   li { margin: 0 0 3px; text-wrap: pretty; color: var(--ink-2); }
   li::marker { color: var(--green-action); }
   b { font-weight: 600; color: var(--ink); }
+  /* A few links, underlined in the brief's light green, so a reader who wants more can go there. */
+  a { color: var(--green-action); text-decoration: underline; text-decoration-color: #BFE8D0; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .foot a { color: inherit; }
 
-  .body { display: grid; grid-template-columns: 1fr 250px; column-gap: 10px; margin-top: 9px; flex: 1; min-height: 0; }
-  .stack { position: relative; display: grid; grid-template-rows: auto auto 1fr auto auto; row-gap: 7px; min-height: 0; }
+  .body { display: grid; grid-template-columns: 1fr 250px; column-gap: 10px; margin-top: 7px; flex: 1; min-height: 0; }
+  /* The services row is never shorter than its content: as a plain 1fr track with min-height 0 it
+     shrank below its ten boxes, which then spilled into the Protocols band. */
+  .stack { position: relative; display: grid; grid-template-rows: auto auto minmax(max-content, 1fr) auto auto; row-gap: 6px; min-height: 0; }
   /* One line runs down behind the bands, so it reads as the connector in each gap. */
   .stack::before { content: ""; position: absolute; left: 13px; top: 20px; bottom: 20px; width: 2px; background: var(--green); opacity: .55; }
-  .band { position: relative; display: grid; grid-template-columns: 96px 1fr; column-gap: 10px; padding: 7px 9px 7px 8px; background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; min-height: 0; }
+  .band { position: relative; display: grid; grid-template-columns: 96px 1fr; column-gap: 10px; padding: 6px 9px 6px 8px; background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; min-height: 0; }
   .band.core { border-color: var(--green); background: #FBFEFC; }
   .band .label { position: relative; padding-left: 16px; }
   .band .label::before { content: ""; position: absolute; left: 1px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--green-action); }
@@ -46,7 +51,7 @@
   .band .label p { margin-top: 2px; font-size: 9px; line-height: 1.3; color: var(--stone); }
   .row { display: flex; gap: 6px; min-width: 0; }
   .row.wrap { flex-wrap: wrap; }
-  .box { flex: 1 1 0; min-width: 0; background: var(--sand); border-radius: 7px; padding: 6px 8px; }
+  .box { flex: 1 1 0; min-width: 0; background: var(--sand); border-radius: 7px; padding: 5px 8px; }
   .core .box { background: var(--green-wash); }
   .box b { display: block; font-size: 10.5px; line-height: 1.25; margin-bottom: 2px; }
   .box span { display: block; font-size: 9.2px; line-height: 1.32; color: var(--sub); }
@@ -55,7 +60,7 @@
   .chip { background: var(--sand); border-radius: 99px; padding: 4px 9px; font-size: 9.4px; line-height: 1.25; color: var(--sub); white-space: nowrap; }
   .chip b { font-size: 9.6px; }
   .nets { display: grid; grid-template-columns: 1fr 44px 1.25fr 44px 1fr; align-items: stretch; }
-  .net { background: var(--sand); border-radius: 7px; padding: 6px 8px; }
+  .net { background: var(--sand); border-radius: 7px; padding: 5px 8px; }
   .net.core { background: var(--green-wash); border: 1px solid #BFE8D0; }
   .net b { display: block; font-size: 11px; line-height: 1.2; }
   .net i { display: block; font: 500 9px/1.3 var(--sans); color: var(--stone); margin-bottom: 3px; }
@@ -88,7 +93,7 @@
 <section class="page">
   <p class="meta">Logical architecture · Green Goods · October 2026 · Written for SustainableFinance.Live 2026, Problem Statement 2</p>
   <h1>One record, from the field to the <em class="accent">networks</em> that fund and count it.</h1>
-  <p class="lede">Five roles use five surfaces. Three surfaces write to the same Green Goods services and two read them; the services rest on open protocols and three public networks, each doing one job. Evidence flows in from the field; records flow out to funders and partner networks.</p>
+  <p class="lede">Five roles, five surfaces, one set of Green Goods services. Three surfaces write to the services and two read them; the services rest on open protocols and three public networks, each doing one job. Evidence flows in from the field; records flow out to funders and partner networks.</p>
 
   <div class="body">
     <div class="stack">
@@ -109,8 +114,8 @@
           <div class="box"><b>Member app</b><span>Installable, offline-ready: promises, work, proof, rewards.</span></div>
           <div class="box"><b>Steward dashboard</b><span>Seasons, members, review, assessments, pools, funds.</span></div>
           <div class="box"><b>Chat reporting</b><span>A Telegram bot turns a message with photos into a record.</span></div>
-          <div class="box"><b>Public pages</b><span>greengoods.app: each garden's record and funding, open to all.</span></div>
-          <div class="box"><b>Partner surfaces</b><span>Ma Earth through Hypercerts Certified; Bloom and Regen in conversation.</span></div>
+          <div class="box"><b>Public pages</b><span><a href="https://greengoods.app">greengoods.app</a>: each garden's record and funding, open to all.</span></div>
+          <div class="box"><b>Partner surfaces</b><span>Ma Earth through Hypercerts Certified, next; Bloom and Regen in conversation.</span></div>
         </div>
       </div>
 
@@ -139,7 +144,8 @@
           <span class="chip"><b>GoodDollar</b> · G$ rewards and payments</span>
           <span class="chip"><b>Cosmo-Local Credit</b> · service vouchers</span>
           <span class="chip"><b>Octant</b> and <b>Aave v3</b> · endowments</span>
-          <span class="chip"><b>Hypercerts Certified</b> · certificates, publishing</span>
+          <span class="chip"><b>Hypercerts</b> · certificates</span>
+          <span class="chip"><b>Certified</b> · publishing</span>
           <span class="chip"><b>Chainlink CCIP</b> · cross-network messages</span>
           <span class="chip"><b>Envio</b> · indexing</span>
           <span class="chip"><b>IPFS</b> · media</span>
@@ -191,8 +197,8 @@
     </div>
   </div>
 
-  <p class="sources">Status on 25 October 2026: the app, promises, chat reporting and endowments are live; the voucher contracts are deployed on the public networks and in pilot with Tech and Sun; impact certificates are partly built (minting exists, buying in the app does not yet). Sources: docs.greengoods.app, the Green Goods brief (October 2026), and each protocol's own documentation.</p>
-  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Logical architecture · October 2026</span><span class="n">contact@greengoods.app · greengoods.app</span></footer>
+  <p class="sources">Status on 25 October 2026: the app, promises, chat reporting and endowments are live; the voucher contracts are deployed on the public networks and in pilot with <a href="https://techandsun.com">Tech and Sun</a>; impact certificates are partly built (minting exists, buying in the app does not yet). Sources: <a href="https://docs.greengoods.app">docs.greengoods.app</a>, the Green Goods brief (October 2026), and each protocol's own documentation.</p>
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Logical architecture · October 2026</span><span class="n"><a href="mailto:contact@greengoods.app">contact@greengoods.app</a> · <a href="https://greengoods.app">greengoods.app</a></span></footer>
 </section>
 </body>
 </html>
