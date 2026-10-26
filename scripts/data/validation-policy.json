@@ -1748,6 +1748,7 @@
         "packages/shared/src/hooks/commitment-pooling/useSettlement.ts",
         "packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts",
         "packages/shared/src/hooks/commitment-pooling/useServiceIssuerOperations.ts",
+        "packages/shared/src/hooks/commitment-pooling/useServiceOfferLines.ts",
         "packages/shared/src/hooks/conviction/useAllocateHypercertSupport.ts",
         "packages/shared/src/hooks/conviction/useConvictionWeightAllocator.ts",
         "packages/shared/src/hooks/conviction/useCreateGardenPools.ts",
