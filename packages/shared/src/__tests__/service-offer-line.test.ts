@@ -18,6 +18,7 @@ const TECH_AND_SUN = "0x5555555555555555555555555555555555555555" as Address;
 const TOKEN = "0x6666666666666666666666666666666666666666" as Address;
 const MAYA = "0x7777777777777777777777777777777777777777" as Address;
 const MAYA_TOKEN = "0x8888888888888888888888888888888888888888" as Address;
+const OTHER_TOKEN = "0x9999999999999999999999999999999999999999" as Address;
 const ONE = 1_000_000n;
 
 const issuer = (over: Partial<VoucherIssuer> = {}): VoucherIssuer => ({
@@ -69,6 +70,28 @@ describe("serviceOfferLine", () => {
       promisedBy: "Tech and Sun",
       booking: { kind: "exchange" },
     });
+  });
+
+  // One issuer account can issue several vouchers: holdings count only the offer's own token
+  // (Codex on #1342).
+  it("counts only the offer's own token when the issuer issues several", () => {
+    const other = issuer({
+      asset: { chainId: 100, token: OTHER_TOKEN, symbol: "TAS2", decimals: 6 },
+    });
+    const read = wallet(0n, {
+      holdings: [
+        { issuer: other, available: 9n * ONE },
+        { issuer: issuer(), available: 0n },
+      ],
+    });
+
+    expect(serviceOfferLine(hubDay(ONE), read)?.booking).toEqual({ kind: "exchange" });
+    expect(
+      serviceOfferLine(
+        hubDay(ONE),
+        wallet(0n, { holdings: [{ issuer: other, available: 9n * ONE }] })
+      )?.booking
+    ).toEqual({ kind: "exchange" });
   });
 
   // A member's own service is the pilot's second slice.

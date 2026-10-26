@@ -12,7 +12,7 @@
  */
 
 import type { ServiceAccessSnapshot } from "./service-access-types";
-import type { VoucherWalletSnapshot } from "./service-access-wallet-types";
+import type { VoucherIssuer, VoucherWalletSnapshot } from "./service-access-wallet-types";
 
 export interface ServiceOfferLine {
   /** The issuer's name from its reviewed metadata: who promises delivery. */
@@ -22,6 +22,11 @@ export interface ServiceOfferLine {
 }
 
 const same = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
+/** One account can issue several vouchers: an issuer's token is its account, chain and token. */
+const sameIssuerToken = (left: VoucherIssuer, right: VoucherIssuer) =>
+  same(left.account, right.account) &&
+  left.asset.chainId === right.asset.chainId &&
+  same(left.asset.token, right.asset.token);
 
 export function serviceOfferLine(
   snapshot: Pick<ServiceAccessSnapshot, "mode" | "offer"> | null | undefined,
@@ -38,8 +43,7 @@ export function serviceOfferLine(
   const decimals = voucher.asset.decimals ?? issuer?.asset.decimals ?? null;
   if (!issuer || decimals === null) return null;
   const held =
-    wallet.holdings.find((holding) => same(holding.issuer.account, issuer.account))?.available ??
-    0n;
+    wallet.holdings.find((holding) => sameIssuerToken(holding.issuer, issuer))?.available ?? 0n;
   return {
     promisedBy: issuer.name,
     booking:
