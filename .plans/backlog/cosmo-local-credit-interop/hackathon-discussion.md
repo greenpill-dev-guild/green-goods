@@ -37,7 +37,7 @@ issues remain Todo: [local rehearsal PRD-1096](https://linear.app/greenpill-dev-
 [passport PRD-1097](https://linear.app/greenpill-dev-guild/issue/PRD-1097), and
 [conditional deployment PRD-1100](https://linear.app/greenpill-dev-guild/issue/PRD-1100).
 
-The PWA hub (the PWA Home hub closed on 26 October 2026; its row is in `.plans/ARCHIVE.md` and its files are in Git history) already records accepted product direction,
+The PWA hub (the PWA Home hub closed on 26 October 2026; its row is in the [archive ledger](../../ARCHIVE.md) and its files are in Git history) already records accepted product direction,
 conditional implementation steps and proposed usability checks. Layout, scope and execution
 acceptance remain open; [RESR-93](https://linear.app/greenpill-dev-guild/issue/RESR-93) now mirrors
 the planning work. The Community PWA, Agent Messaging and Green Goods OS work retain their
@@ -151,7 +151,7 @@ an explicit human decision. This discussion grants none.
   owners: [GROW-43](https://linear.app/greenpill-dev-guild/issue/GROW-43),
   [MAR-32](https://linear.app/greenpill-dev-guild/issue/MAR-32),
   [COM-28](https://linear.app/greenpill-dev-guild/issue/COM-28).
-- PWA specification (the PWA Home hub closed on 26 October 2026; its row is in `.plans/ARCHIVE.md` and its files are in Git history),
+- PWA specification (the PWA Home hub closed on 26 October 2026; its row is in the [archive ledger](../../ARCHIVE.md) and its files are in Git history),
   [current Home](../../../packages/client/src/views/Home/index.tsx),
   [payment interface](../../../packages/contracts/src/interfaces/ICommitmentPoolingModule.sol).
 - Current public [CLC contract documentation](https://docs.cosmolocal.credit/protocol/smart-contracts/)

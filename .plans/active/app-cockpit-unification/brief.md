@@ -91,7 +91,7 @@ This hub owns the look and feel shared by the installed app and the steward cock
 tokens, shared chrome recipes, and the guides and gates that pin them. It does not authorize
 application edits beyond the approved slices, deployment, a layout or flow change, a merge of the two apps, or a change to the
 public website beyond what a shared piece forces. Its Linear records exist for tracking only. The garden-scoped Home and its
-switcher belong to PWA Interface Simplification (the PWA Home hub closed on 26 October 2026; its row is in `.plans/ARCHIVE.md` and its files are in Git history).
+switcher belong to PWA Interface Simplification (the PWA Home hub closed on 26 October 2026; its row is in the [archive ledger](../../ARCHIVE.md) and its files are in Git history).
 
 ## Success signal
 
