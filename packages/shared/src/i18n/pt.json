@@ -7122,7 +7122,7 @@
   "cockpit.garden.pool.voucher.check.deadline": "Antes do prazo",
   "cockpit.garden.pool.voucher.check.deadlinePassed": "Venceu em {date}",
   "cockpit.garden.pool.voucher.accept.noteTitle": "Aceitar inicia a reserva",
-  "cockpit.garden.pool.voucher.accept.noteBody": "O início acontece na rede dos vales. Não significa que a visita aconteceu.",
+  "cockpit.garden.pool.voucher.accept.noteBody": "O início acontece na rede dos vales. Não significa que o serviço foi entregue.",
   "cockpit.garden.pool.voucher.accept.noteBodyMember": "Você aceita como responsável do fundo comum. A aprovação de {issuer} era necessária antes; você não podia dá-la.",
   "cockpit.garden.pool.voucher.wallet": "Sua carteira vai pedir sua aprovação.",
   "cockpit.garden.pool.voucher.accept.confirm": "Aceitar {name}",

@@ -290,7 +290,7 @@ export function VoucherAcceptDialog({
               : formatMessage({
                   id: "cockpit.garden.pool.voucher.accept.noteBody",
                   defaultMessage:
-                    "Starting follows on the voucher network. It doesn’t mean the visit happened.",
+                    "Starting follows on the voucher network. It doesn’t mean the service was delivered.",
                 })}
           </Alert>
         </VoucherActDialog>
