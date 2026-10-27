@@ -73,8 +73,6 @@ export function serviceRewardsView(
   const voucher = deliveries.find((d) => d.kind === "voucher") ?? null;
   const gd = deliveries.find((d) => d.kind === "gd") ?? null;
   const oneVoucher = voucher?.amount === 10n ** BigInt(voucher?.asset.decimals ?? 0);
-  // A member sends rewards from their own reserve, under the allowance they approve for them.
-  const member = input.issuer?.kind === "individual";
   const vouchers = voucher
     ? t("rw.vou", {
         n: amount(voucher),
@@ -124,11 +122,13 @@ export function serviceRewardsView(
       return gd
         ? t("rw.n.done.b", values)
         : t(oneVoucher ? "rw.n.doneM.b" : "rw.n.doneV.b", values);
-    // An allowance used up waits for the issuer to approve more; a short reserve, for a top-up.
-    if (voucher?.status === "waiting")
-      return gd?.status === "received"
-        ? t("rw.n.short.b")
-        : t(voucher.shortOf === "allowance" ? "rw.n.shortM.b" : "rw.n.shortV.b");
+    // An allowance that doesn't cover the reward waits for the issuer to approve more; a short
+    // reserve, for a top-up. G$ that already arrived doesn't change which.
+    if (voucher?.status === "waiting") {
+      const allowance = voucher.shortOf === "allowance";
+      if (gd?.status === "received") return t(allowance ? "rw.n.shortMG.b" : "rw.n.short.b");
+      return t(allowance ? "rw.n.shortM.b" : "rw.n.shortV.b");
+    }
     // A voucher transfer that failed is never "on its way", with or without G$ beside it.
     if (voucher?.status === "delayed") return t("rw.n.delayedV.b");
     if (gd?.status === "delayed") return t("rw.n.delayed.b");
@@ -154,7 +154,8 @@ export function serviceRewardsView(
         id: "aside",
         label: t("rw.q.aside"),
         value: t("rw.asideV"),
-        detail: t(member ? "rw.m.asideS" : "rw.asideS"),
+        // A garden's line says "its"; anyone else's, or an issuer the wallet hasn't named yet, "their".
+        detail: t(input.issuer?.kind === "collective" ? "rw.asideS" : "rw.m.asideS"),
       },
     ],
     details: [

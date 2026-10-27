@@ -15,12 +15,16 @@ import { serviceRewardsView } from "../../views/Home/Garden/Commitment/serviceRe
 
 const intl = createIntl({ locale: "en", messages: en });
 
-function rewards(state: RewardStoryState, shortOf: "allowance" | "reserve" = "allowance") {
+function rewards(
+  state: RewardStoryState,
+  shortOf: "allowance" | "reserve" = "allowance",
+  options: { withGd?: boolean; issuer?: typeof LESSON_STORY_ISSUER | null } = {}
+) {
   const view = serviceRewardsView(
     {
-      snapshot: memberRewardStorySnapshot(state, shortOf),
+      snapshot: memberRewardStorySnapshot(state, shortOf, options.withGd),
       coreState: rewardStoryCoreState(state),
-      issuer: LESSON_STORY_ISSUER,
+      issuer: options.issuer === undefined ? LESSON_STORY_ISSUER : options.issuer,
       garden: "Tech and Sun",
     },
     intl
@@ -30,14 +34,22 @@ function rewards(state: RewardStoryState, shortOf: "allowance" | "reserve" = "al
 }
 
 describe("a request rewarded with a member's voucher", () => {
-  it("says a used-up allowance waits for the member to approve more", () => {
+  // "Short" means the allowance left doesn't cover the reward, not that none is left.
+  it("says an allowance that doesn't cover the reward waits for the member to approve more", () => {
     const short = rewards("reserveShort");
     expect(short.rows[0]).toMatchObject({
       title: "1 Teo Alves voucher",
-      detail: "Teo Alves' allowance is used up. Sent when Teo Alves approves more.",
+      detail: "Teo Alves' allowance doesn't cover it yet. Sent when Teo Alves approves more.",
     });
     expect(short.band.sentence).toBe(
-      "Teo Alves' allowance for Tech and Sun is used up, so the reward waits until Teo Alves approves more from their reserve. Your reward is unchanged."
+      "Teo Alves' allowance for Tech and Sun doesn't cover this reward, so it waits until Teo Alves approves more from their reserve. Your reward is unchanged."
+    );
+  });
+
+  // With G$ already in, the voucher still waits on the allowance, not on a reserve top-up.
+  it("keeps the allowance's reason once the G$ arrived", () => {
+    expect(rewards("reserveShort", "allowance", { withGd: true }).band.sentence).toBe(
+      "Teo Alves' allowance for Tech and Sun doesn't cover this reward, so it waits until Teo Alves approves more. Your reward is unchanged, and your G$ already arrived."
     );
   });
 
@@ -53,6 +65,13 @@ describe("a request rewarded with a member's voucher", () => {
   it("says the member sends vouchers from their reserve, under an allowance they approve", () => {
     expect(rewards("open").facts.find((fact) => fact.id === "aside")?.detail).toBe(
       "Teo Alves sends vouchers from their reserve when your work is confirmed. If their allowance runs short, they wait until Teo Alves approves more."
+    );
+  });
+
+  // Until the wallet names the issuer, no line calls a person "it".
+  it("words the set-aside fact for any issuer while the issuer is unknown", () => {
+    expect(rewards("open", "allowance", { issuer: null }).facts[1]?.detail).toBe(
+      "TEO sends vouchers from their reserve when your work is confirmed. If their allowance runs short, they wait until TEO approves more."
     );
   });
 

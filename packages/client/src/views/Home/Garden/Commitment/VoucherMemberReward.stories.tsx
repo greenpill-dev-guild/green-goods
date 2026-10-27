@@ -91,8 +91,8 @@ export const InProgress: Story = {
   play: shows("1 Teo Alves voucher"),
 };
 
-/** Teo's allowance for rewards is used up: the reward waits for him to approve more. */
-export const AllowanceUsedUp: Story = {
+/** Teo's allowance for rewards doesn't cover this one: it waits for him to approve more. */
+export const AllowanceShort: Story = {
   args: { state: "reserveShort" },
   play: shows("Sent when Teo Alves approves more."),
 };

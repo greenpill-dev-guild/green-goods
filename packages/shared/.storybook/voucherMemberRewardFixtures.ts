@@ -19,9 +19,10 @@ export const MEMBER_REWARD_TITLE = "Design the impact website";
 
 export function memberRewardStorySnapshot(
   state: RewardStoryState,
-  shortOf: "allowance" | "reserve" = "allowance"
+  shortOf: "allowance" | "reserve" = "allowance",
+  withGd = false
 ): ServiceAccessSnapshot {
-  const s = rewardStorySnapshot(state, false);
+  const s = rewardStorySnapshot(state, withGd);
   const pilot = s.pilot as ServiceAccessPilot;
   const teo = LESSON_STORY_ISSUER;
   const voucher = pilot.reward?.voucher ?? null;
