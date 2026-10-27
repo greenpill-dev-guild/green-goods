@@ -40,7 +40,12 @@ import {
 } from "./serviceBooking";
 import { ServiceBookingSheets, type ServiceSheet } from "./ServiceBookingSheets";
 import type { ServiceActKind, ServiceBookingView } from "./serviceBookingTypes";
-import { exchangeQuoteFromPilot, exchangeStep, smallerExchangeInput } from "./serviceExchange";
+import {
+  exchangeAvailable,
+  exchangeQuoteFromPilot,
+  exchangeStep,
+  smallerExchangeInput,
+} from "./serviceExchange";
 import type { ServiceRedeemOutcome } from "./ServiceRedeemSheet";
 import { ServiceRewardsSection } from "./ServiceRewardsSection";
 import { serviceRewardsView } from "./serviceRewards";
@@ -248,7 +253,7 @@ export function ServicePromise({
               title={booking.door.title}
               line={booking.door.body}
               door={
-                snapshot?.pilot
+                snapshot && exchangeAvailable(snapshot)
                   ? {
                       label: booking.door.act.label,
                       icon: <RiExchangeLine className="h-4 w-4" aria-hidden="true" />,

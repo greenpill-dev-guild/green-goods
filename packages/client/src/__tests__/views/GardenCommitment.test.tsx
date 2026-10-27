@@ -1580,6 +1580,32 @@ describe("a voucher booking on the promise page", () => {
     expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
   });
 
+  it("offers Exchange Vouchers only when the pool can quote for vouchers the reader holds", async () => {
+    // A pool is set up, but the reader holds none of the voucher it would take.
+    const unquotable = (snapshot: BookingSnapshot): BookingSnapshot => ({
+      ...snapshot,
+      pilot: snapshot.pilot && { ...snapshot.pilot, holdings: { a: 0n, b: 0n } },
+    });
+    show(
+      unquotable(bookingStorySnapshot("hubDay", "readyToDeposit", { held: 0n, exchange: "none" })),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Deposit 1 Voucher" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+    expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
+  });
+
+  it("gives the too-few-vouchers door no Exchange act when the pool can't quote", () => {
+    const short = bookingStorySnapshot("access", "notEnough", { exchange: "none" });
+    show(
+      { ...short, pilot: short.pilot && { ...short.pilot, holdings: { a: 0n, b: 0n } } },
+      bookingStoryController("access", "OFFERED")
+    );
+    expect(document.querySelector('[data-component="JoinToAct"][data-mode="door"]')).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+  });
+
   it("asks a short pool for a smaller exchange, not the same quote again", async () => {
     const quoted = bookingStorySnapshot("access", "notEnough", { exchange: "quoted" });
     const pilot = quoted.pilot!;

@@ -204,6 +204,7 @@ function recoveryAct(
   if (stage === "canceling" && setup && !setup.source.decisionDispatched) return "cancel";
   return null;
 }
+
 /** Where each stage sits on the booking's way, for the steps' done and now. */
 const POSITION: Record<ServiceBookingStage, number> = {
   open: -1,

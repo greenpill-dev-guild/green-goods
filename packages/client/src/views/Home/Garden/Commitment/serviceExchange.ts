@@ -1,8 +1,9 @@
-import type {
-  ServiceAccessAction,
-  ServiceAccessSnapshot,
-  ServiceAsset,
-  VoucherIssuer,
+import {
+  type ServiceAccessAction,
+  type ServiceAccessSnapshot,
+  type ServiceAsset,
+  selectServiceAccessAction,
+  type VoucherIssuer,
 } from "@green-goods/shared/commitment-pooling";
 import type { ServiceExchangeQuote, ServiceExchangeState } from "./ServiceExchangeSheet";
 
@@ -44,6 +45,14 @@ export function exchangeQuoteFromPilot(
       0n,
     available: pilot.exchange.inventory,
   };
+}
+
+/** Whether Exchange Vouchers leads anywhere: a quote to show, or one the pool can make now. */
+export function exchangeAvailable(snapshot: ServiceAccessSnapshot): boolean {
+  return (
+    Boolean(snapshot.pilot?.exchange.quote) ||
+    selectServiceAccessAction(snapshot, { action: "quotePilotExchange" }).allowed
+  );
 }
 
 /**

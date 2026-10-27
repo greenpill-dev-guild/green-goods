@@ -1,7 +1,7 @@
 import type { ServiceAccessSnapshot } from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 import { type ServiceExchangeQuote, ServiceExchangeSheet } from "./ServiceExchangeSheet";
-import { exchangeStateFromPilot } from "./serviceExchange";
+import { exchangeAvailable, exchangeStateFromPilot } from "./serviceExchange";
 import { type ServiceRedeemOutcome, ServiceRedeemSheet } from "./ServiceRedeemSheet";
 import { ServiceSplitSheet } from "./ServiceSplitSheet";
 import type { ServiceBookingView } from "./serviceBookingTypes";
@@ -80,8 +80,9 @@ export function ServiceBookingSheets({
         onDeposit={redeem.onDeposit}
         onCheck={redeem.onCheck}
         onExchange={exchange.onOpen}
-        // Only the rehearsal's pool quotes until the live one is configured.
-        canExchange={Boolean(snapshot.pilot)}
+        // Only the rehearsal's pool quotes until the live one is configured, and only for
+        // vouchers the reader can spend.
+        canExchange={exchangeAvailable(snapshot)}
       />
       <ServiceSplitSheet
         open={sheet === "split"}
