@@ -180,9 +180,28 @@ async function agentChecks() {
     headers: { "content-type": "application/json", origin: COCKPIT_ORIGIN },
     body: JSON.stringify({ filename: "metadata.json", mimeType: "application/json", size: 64, category: "json_upload", source: "commitment-creation" }),
   });
+  // A server-side fetch skips CORS, so ask the preflight question the cockpit's browser asks.
+  let cors;
+  try {
+    const response = await fetch(`${base}/api/uploads/sign`, {
+      method: "OPTIONS",
+      headers: { origin: COCKPIT_ORIGIN, "access-control-request-method": "POST", "access-control-request-headers": "content-type" },
+      signal: AbortSignal.timeout(30_000),
+    });
+    const list = (name) => (response.headers.get(name) ?? "").split(",").map((each) => each.trim().toLowerCase());
+    const allowed =
+      response.status === 204 &&
+      response.headers.get("access-control-allow-origin") === COCKPIT_ORIGIN &&
+      list("access-control-allow-methods").includes("post") &&
+      list("access-control-allow-headers").includes("content-type");
+    cors = [allowed, `HTTP ${response.status}, allow-origin ${response.headers.get("access-control-allow-origin") ?? "missing"}`];
+  } catch (error) {
+    cors = [false, error instanceof Error ? error.message : String(error)];
+  }
   return [
     ["Agent answers /health", health.body?.status === "ok", health.error ?? `HTTP ${health.status}`],
     ["Agent signs a metadata upload for the cockpit", sign.body?.ok === true && typeof sign.body?.url === "string", sign.error ?? `HTTP ${sign.status}`],
+    ["Agent lets the cockpit's browser ask for that signature", ...cors],
   ];
 }
 
@@ -330,7 +349,15 @@ async function writeStewardPage(calls) {
   const plan = {
     chainIdHex: "0xa4b1",
     steward: args.steward,
-    calls: calls.map((call) => ({ id: Number(call.id), name: OFFERS[call.kind].name, price: vouchers(OFFERS[call.kind].voucherUnits), to: CORE, data: call.data })),
+    calls: calls.map((call) => ({
+      id: Number(call.id),
+      name: OFFERS[call.kind].name,
+      price: vouchers(OFFERS[call.kind].voucherUnits),
+      to: CORE,
+      data: call.data,
+      // The returned struct is static, so its first word is the terms revision.
+      read: encodeFunctionData({ abi: offersAbi, functionName: "getServiceOfferTerms", args: [call.id] }),
+    })),
   };
   await writeFile(path.join(dir, "calls.json"), `${JSON.stringify(plan, null, 2)}\n`);
   await writeFile(path.join(dir, "index.html"), STEWARD_PAGE);
@@ -370,6 +397,14 @@ async function load() {
   plan = await (await fetch("calls.json", { cache: "no-store" })).json();
   $("rows").innerHTML = plan.calls.map((c) => '<tr data-id="' + c.id + '"><td>#' + c.id + '</td><td>' + c.name + '</td><td>' + c.price + ' GGV</td><td class="st wait">pending</td></tr>').join("");
 }
+const onArbitrum = async () => (await window.ethereum.request({ method: "eth_chainId" })) === plan.chainIdHex;
+async function revision(c) {
+  const word = await window.ethereum.request({ method: "eth_call", params: [{ to: c.to, data: c.read }, "latest"] });
+  return BigInt("0x" + (word.slice(2, 66) || "0"));
+}
+async function reconcile() {
+  for (const c of plan.calls) if ((await revision(c)) > 0n) set(c.id, "published earlier", "ok");
+}
 async function receipt(hash) {
   for (let i = 0; i < 120; i++) {
     const r = await window.ethereum.request({ method: "eth_getTransactionReceipt", params: [hash] });
@@ -385,13 +420,26 @@ $("connect").onclick = async () => {
   if (chain !== plan.chainIdHex) await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: plan.chainIdHex }] });
   account = a;
   const ok = a && a.toLowerCase() === plan.steward.toLowerCase();
-  $("status").textContent = ok ? "Connected as the steward on Arbitrum." : "This wallet account is not the steward the calls were tested for. Switch accounts, then connect again.";
-  $("send").disabled = !ok;
+  if (!ok) {
+    $("status").textContent = "This wallet account is not the steward the calls were tested for. Switch accounts, then connect again.";
+    $("send").disabled = true;
+    return;
+  }
+  await reconcile();
+  $("status").textContent = "Connected as the steward on Arbitrum.";
+  $("send").disabled = false;
+  if (window.ethereum.on) window.ethereum.on("chainChanged", () => { $("send").disabled = true; $("status").textContent = "The wallet changed networks. Connect again."; });
 };
 $("send").onclick = async () => {
   $("send").disabled = true;
   for (const c of plan.calls) {
     if (cell(c.id).classList.contains("ok")) continue;
+    if (!(await onArbitrum())) {
+      $("status").textContent = "The wallet is not on Arbitrum. Switch it back, connect again, then press Send All Pending.";
+      $("send").disabled = false;
+      return;
+    }
+    if ((await revision(c)) > 0n) { set(c.id, "published earlier", "ok"); continue; }
     set(c.id, "asking the wallet…", "wait");
     $("status").textContent = "Approve promise #" + c.id + " in your wallet.";
     let hash;
@@ -405,7 +453,7 @@ $("send").onclick = async () => {
     }
     set(c.id, "sent " + hash.slice(0, 10) + "… waiting", "wait");
     const r = await receipt(hash);
-    if (r && r.status === "0x1") { set(c.id, "published · " + hash.slice(0, 10) + "…", "ok"); continue; }
+    if (r && r.status === "0x1" && (await revision(c)) > 0n) { set(c.id, "published · " + hash.slice(0, 10) + "…", "ok"); continue; }
     set(c.id, (r ? "reverted · " : "no receipt yet · ") + hash.slice(0, 10) + "…", "bad");
     $("status").textContent = "Stopped at #" + c.id + ". Check it on chain before continuing.";
     $("send").disabled = false;
