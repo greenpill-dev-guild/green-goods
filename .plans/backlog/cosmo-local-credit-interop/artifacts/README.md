@@ -481,6 +481,16 @@ Given in chat on the evening of 26 October and applied as proposed, after the pr
   quarter-width roadmap cell fits only "Cape Town waste work for members over 35 a youth program
   can't take." Program names and personal names stay out.
 
+## Endowment yield context · 27 October 2026
+
+At Afo's request, each document now says where endowment earnings come from: DeFi strategies for
+ETH and stablecoins that typically earn 2 to 7% a year, never as a promise. Slide 13's endowment
+column and its note, the brief's endowment box on page 5, the canvas revenue line and the
+architecture's endowment box carry it. To keep page 5 inside its footer, the brief's fee paragraph
+now says "before central costs" and lists the fee as "$3,000 setup, $7,000 support and reporting".
+An earlier check of the Octant pilot vaults' underlying rate read about 1.4%, below this range, so
+every mention keeps "typically" and the risk line.
+
 ## The rebuild · 24 October 2026
 
 Superseded in part by the revision above. Applied from Afo's review and two rounds of questions;

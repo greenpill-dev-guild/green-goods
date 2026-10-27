@@ -65,7 +65,7 @@ In 2024, 22.1 billion dollars in remittances reached Nigeria, according to the W
 
 ## 13. Four mechanisms · 0:40
 
-Four mechanisms turn support into lasting capacity. The endowment: supporters deposit and the capital stays invested. By default its earnings, which vary, split 48.65% to the garden's shared fund, 48.65% to impact certificates and 2.7% to Green Goods, a route being switched on. Nothing is guaranteed. The commitment pool: members promise work, and kept promises earn agreed rewards in G$ and build the record. The exchange pool, in pilot: members swap service vouchers, like an hour of help for a career call. Later, supporters and endowment earnings could add funds; that's future work, not a cash-out promise. And impact certificates: a garden turns a season's impact into a certificate, and next, supporters can buy a share.
+Four mechanisms turn support into lasting capacity. The endowment: supporters deposit ETH or stablecoins, and the capital stays invested in DeFi strategies that typically earn about 2 to 7% a year. By default those earnings, which vary, split 48.65% to the garden's shared fund, 48.65% to impact certificates and 2.7% to Green Goods, a route being switched on. Nothing is guaranteed. The commitment pool: members promise work, and kept promises earn agreed rewards in G$ and build the record. The exchange pool, in pilot: members swap service vouchers, like an hour of help for a career call. Later, supporters and endowment earnings could add funds; that's future work, not a cash-out promise. And impact certificates: a garden turns a season's impact into a certificate, and next, supporters can buy a share.
 
 ## 14. Business model · 0:30
 
