@@ -3,7 +3,7 @@
 The demonstrator for the submission: one page a judge clicks through. It opens on a story of one
 promise at Tech and Sun's hub in Awka, Nigeria, in twelve screens and about two minutes, and keeps
 the whole season behind "See every step". Obinna is the hub's steward, Ifeoma a member, and Funmi a
-supporter.
+supporter; a Green Goods steward, unnamed, accepts Ifeoma's booking.
 
 ## The story
 
@@ -24,7 +24,7 @@ shows the public record and a donation.
 | 7 | Built for SF.Live | swap-1 | An AI tool seat takes Green Goods vouchers | Ifeoma |
 | 8 | Built for SF.Live | swap-2 | She swaps her vouchers in the shared pool | Ifeoma |
 | 9 | Built for SF.Live | swap-6 | Swapped, she books the seat | Ifeoma |
-| 10 | Built for SF.Live | swap-7 | Green Goods accepts once four checks pass | a Green Goods steward |
+| 10 | Built for SF.Live | swap-7 | Green Goods accepts once four checks pass | A Green Goods steward |
 | 11 | For supporters | impact-3 | Anyone can see the bootcamp on the record | Funmi |
 | 12 | For supporters | funding-5 | Funmi backs the hub with a donation | Funmi |
 
@@ -273,10 +273,9 @@ the hotspot.
 - **Swap.** Her screens are the exchange journey's Storybook story (#1356), walked by its own
   buttons. The service the fixtures call "Claude access" is shown as the deck names it, an AI tool
   seat. Green Goods accepts bookings in its own pool, the protocol pool (the root garden's), so its
-  Accept (swap-7) is the `AcceptGreenGoodsAccess` story of `VoucherAskDialogs`, which sets that
-  pool apart with its warning, drawn with its scrim over that pool's real Promises tab. That story
-  arrives with #1371; until it merges into develop, capturing swap-7 needs a Storybook built from
-  that branch. Her two scrolled pages (promise-5 and swap-8) take out Storybook's padding above the
+  Accept (swap-7) is the `AcceptGreenGoodsAccess` story of `VoucherAskDialogs` (#1371), which sets
+  that pool apart with its warning, drawn with its scrim over that pool's real Promises tab. Her two
+  scrolled pages (promise-5 and swap-8) take out Storybook's padding above the
   page, which would show content above the app's top bar.
 - **Impact.** The public site as it stands: the home page, the Impact page's evidence ledger
   filtered to Education, and the bootcamp's approved submission.
@@ -454,13 +453,13 @@ Human corrections: 1 observed in this segment (Afo's v4 review: no layout shift,
 
 ## Task record · Green Goods accepts the seat
 
-Task record: SF.Live clickable demo, Green Goods' Accept | Type: feature | Outcome: complete; the story's PR #1371 merges on green (Afo's choice)
+Task record: SF.Live clickable demo, Green Goods' Accept | Type: feature | Outcome: complete; the story's PR #1371 merged on green as `1675ce406`
 Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `1e346217c`, and the story in #1371 (`4971dbd74`, on develop `ab8e34dd9`)
 
 | Phase | Start → end (UTC, 27 October 2026, approximate) | Result / evidence |
 |---|---|---|
 | story | 06:40 → 06:58 | `AcceptGreenGoodsAccess` in `VoucherAskDialogs.stories.tsx`, with `STORY_MARA_ACCESS_ASK` in `poolStoryVouchers.ts`: Green Goods accepts 30 days of Claude access in the protocol pool. Biome format and oxlint clean; the admin typecheck reports nothing in the two files; in a local Storybook build the story renders and its play test finishes, with four checks holding and Accept enabled |
 | demo | 06:58 → 07:05 | The swap chapter recaptured with the Accept as swap-7, drawn over the root garden's real Promises tab (its voucher panel, which cannot read the pilot's bookings from the hosted indexer, hidden), and her active booking as swap-8; the story's voucher chapter ends on Green Goods accepting. `check.mjs` exit 0: 50 screens, 35 back regions |
-| publish | 07:05 → 07:10 | Afo chose own PR merged on green, republish now, the note's wording in a later PR and no Linear record. #1371 opened after the push gate passed (format, lint, docs-authority, source-structure, story-quality, react-patterns and the focused `VoucherMemberBooking` test); demo commit `760a00414` pushed; artifact version 13; Drive copy replaced |
+| publish | 07:05 → 07:21 | Afo chose own PR merged on green, republish now, the note's wording in a later PR and no Linear record. #1371 opened after the push gate passed (format, lint, docs-authority, source-structure, story-quality, react-patterns and the focused `VoucherMemberBooking` test); demo commit `760a00414` pushed; artifact version 13; Drive copy replaced. #1371 merged at 07:21 once a re-run of its Playwright job (whose browser setup had timed out before any test) and of CI Gate passed |
 
 Human corrections: 0 observed in this segment; attention unknown.
