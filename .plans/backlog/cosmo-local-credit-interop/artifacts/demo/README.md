@@ -432,7 +432,7 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `89b7fb
 | sync | 04:52 → 05:01 | The capture checkout moved to develop's `19d8ebf8e` (the swap, #1356; a member's own lesson, #1359; the steward's voucher outcomes, #1360); Storybook rebuilt from it |
 | implement | 05:01 → 05:51 | The swap chapter's seven screens from the exchange journey story; her promise in progress with both rewards; the page's new shell (intro, fixed-stage player with Next, close, chapter list); `check.mjs` rewritten around the fixed layout |
 | verify | 05:51 → 06:32 | A clean full capture on `19d8ebf8e`: 49 screens, 0 problems (the first full run failed only on a rename rule no screen needed any more, now removed); `build.mjs` 8.38 MB; `check.mjs` exit 0: the story and all 49 appendix screens walked, 33 back regions, and the bar, stage, who-you-are row, caption, controls and device held in place on every screen at 1440x900, 1280x720, 768x1024 and 390x844; every new screen and the story's contact sheet inspected |
-| publish | 06:32 → | Recorded in the next commit |
+| publish | 06:32 → 06:34 | Commit `066f23775` pushed (gate passed: format and lint); artifact version 12 at the same link; Drive copy replaced (8.8 MB) |
 
 One locked decision changed in the build: Green Goods' acceptance of the seat has no story on
 develop (its pool is the protocol pool, whose Accept dialog differs from the hub's), so the story's
