@@ -7122,7 +7122,7 @@
   "cockpit.garden.pool.voucher.check.deadline": "Before the deadline",
   "cockpit.garden.pool.voucher.check.deadlinePassed": "It passed {date}",
   "cockpit.garden.pool.voucher.accept.noteTitle": "Accepting starts the booking",
-  "cockpit.garden.pool.voucher.accept.noteBody": "Starting follows on the voucher network. It doesn’t mean the visit happened.",
+  "cockpit.garden.pool.voucher.accept.noteBody": "Starting follows on the voucher network. It doesn’t mean the service was delivered.",
   "cockpit.garden.pool.voucher.accept.noteBodyMember": "You accept as the pool’s steward. {issuer}’s approval was required first; you couldn’t give it for them.",
   "cockpit.garden.pool.voucher.wallet": "Your wallet will ask you to approve.",
   "cockpit.garden.pool.voucher.accept.confirm": "Accept {name}",

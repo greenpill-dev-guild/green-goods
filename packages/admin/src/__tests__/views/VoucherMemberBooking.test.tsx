@@ -120,7 +120,7 @@ describe("a member's booking in the Promises console", () => {
     expect(dialog.getByText("1 voucher deposited in escrow")).toBeInTheDocument();
     expect(
       dialog.getByText(
-        "Starting follows on the voucher network. It doesn’t mean the visit happened."
+        "Starting follows on the voucher network. It doesn’t mean the service was delivered."
       )
     ).toBeInTheDocument();
   });
