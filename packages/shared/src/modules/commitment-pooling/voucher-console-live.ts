@@ -30,8 +30,7 @@ const needsExecution = (leg: VoucherLegProgress | undefined) =>
 
 /**
  * Whether the index has every booking prepared on the source chain up to two minutes ago, read
- * from the time of the last block it processed there. Destination custody comes from the chain,
- * so a cross-chain message still in flight shows on its booking instead of hiding it.
+ * from the time of the last block it processed there.
  */
 async function discoveryCurrent(
   chainId: number,
@@ -107,6 +106,8 @@ export async function readLiveVoucherConsole(
     const asks: VoucherAsk[] = [];
     const bookings: VoucherBooking[] = [];
     const seen = new Set<Hex>();
+    // Accepted on the source but not yet activated on Gnosis: neither an ask nor a booking yet.
+    let awaitingActivation = false;
     for (const value of result.data.VoucherServiceSetup.slice(0, 100)) {
       const row = serviceTuple(value, [
         "id",
@@ -175,6 +176,8 @@ export async function readLiveVoucherConsole(
             : null,
         });
       }
+      if (source.consent?.state === "accepted" && (!d || d.result.decision === "none"))
+        awaitingActivation = true;
       if (
         source.consent?.state !== "accepted" ||
         d?.result.decision !== "activate" ||
@@ -217,8 +220,10 @@ export async function readLiveVoucherConsole(
     }
     snapshot.asks = asks;
     snapshot.bookings = bookings;
-    // A full bounded read or an index behind the source chain can still be missing bookings.
-    snapshot.incomplete = result.data.VoucherServiceSetup.length > 100 || !(await current);
+    // A full bounded read, an activation still crossing to Gnosis, or an index behind the
+    // source chain can each leave a booking out.
+    snapshot.incomplete =
+      result.data.VoucherServiceSetup.length > 100 || awaitingActivation || !(await current);
   } catch (error) {
     snapshot.status = "unavailable";
     logger.warn("Voucher console discovery is unavailable", { error, garden: input.garden });

@@ -503,7 +503,7 @@ describe("live voucher steward integration", () => {
       reserve: null,
     });
   });
-  it("warns of missing bookings only while the index trails Arbitrum or its progress is unknown", async () => {
+  it("warns of missing bookings while an activation crosses, the index trails or its progress is unknown", async () => {
     const f = fixture();
     const now = 1_800_000_000;
     let processedAt = now - 30;
@@ -524,6 +524,14 @@ describe("live voucher steward integration", () => {
       status: "observed",
       incomplete: false,
     });
+    // Accepted on Arbitrum but not yet activated on Gnosis: neither an ask nor a booking yet.
+    f.snapshot.consent!.state = "accepted";
+    expect(await readLiveVoucherConsole(f.input, deps)).toMatchObject({
+      asks: [],
+      bookings: [],
+      incomplete: true,
+    });
+    f.snapshot.consent!.state = "pending";
     processedAt = now - 600;
     expect((await readLiveVoucherConsole(f.input, deps)).incomplete).toBe(true);
     f.reader.query = vi.fn().mockResolvedValue(setups);
