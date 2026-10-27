@@ -2,7 +2,9 @@
  * @vitest-environment happy-dom
  */
 // TEST-QUALITY: allow-small-test-file - the split sheet is a dialog that needs the DOM, which ServiceBooking.test.ts (node) doesn't load, and GardenCommitment.test.tsx stubs the service reads a full return would need.
+import type { ServiceAccessSnapshot } from "@green-goods/shared/commitment-pooling";
 import en from "@green-goods/shared/i18n/en";
+import userEvent from "@testing-library/user-event";
 import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
 import {
@@ -19,6 +21,45 @@ import { ServiceSplitSheet } from "../../views/Home/Garden/Commitment/ServiceSpl
 import { renderWithProviders, screen } from "../test-utils";
 
 const intl = createIntl({ locale: "en", messages: en as Record<string, string> });
+
+/** Claude access as a service in general words: 30 sessions for 10 vouchers, its return proposed. */
+function genericView(ceiling: bigint) {
+  const proposed = bookingStorySnapshot("access", "returnProposed");
+  const snapshot: ServiceAccessSnapshot = {
+    ...proposed,
+    offer: proposed.offer && { ...proposed.offer, unitLabel: "sessions" },
+    voucherSetups: proposed.voucherSetups.map((row) => ({
+      ...row,
+      destination: row.destination && { ...row.destination, issuerReturnCeiling: ceiling },
+    })),
+  };
+  const view = serviceBookingView(
+    {
+      snapshot,
+      coreState: "ACCEPTED",
+      issuer: VOUCHER_STORY_ISSUERS.greenGoods,
+      approval: VOUCHER_STORY_APPROVALS.greenGoods,
+      held: vouchers(0),
+    },
+    intl
+  );
+  if (!view) throw new Error("No generic booking view");
+  return view;
+}
+
+function sheet(view: NonNullable<ReturnType<typeof serviceBookingView>>) {
+  return (
+    <ServiceSplitSheet
+      open
+      onOpenChange={() => undefined}
+      view={view}
+      title="Thirty sessions"
+      isPending={false}
+      onApprove={() => undefined}
+      onReport={null}
+    />
+  );
+}
 
 function openSheet(stage: "readyToClose" | "returnProposed") {
   const view = serviceBookingView(
@@ -58,5 +99,23 @@ describe("Approve the Final Split", () => {
     expect(screen.queryByText("The full hub day")).toBeNull();
     expect(screen.queryByText("For the hub day")).toBeNull();
     expect(screen.getByRole("button", { name: "Approve Split" })).toBeEnabled();
+  });
+
+  it("counts a partial delivery against the units the booking authorized", () => {
+    // 6 of 10 vouchers come back, so 12 of the 30 authorized sessions were delivered.
+    renderWithProviders(sheet(genericView(vouchers(6))));
+    expect(screen.getByRole("checkbox", { name: "You received: 12 of 30" })).toBeTruthy();
+    expect(screen.queryByText(/12 of 12/)).toBeNull();
+  });
+
+  it("asks again when the proposed split changes while the sheet is open", async () => {
+    const first = genericView(vouchers(6));
+    const { rerender } = renderWithProviders(sheet(first));
+    await userEvent.click(screen.getByRole("checkbox"));
+    expect(screen.getByRole("button", { name: "Approve Split" })).toBeEnabled();
+    // The issuer raises the return: fewer sessions delivered, so the box no longer holds.
+    rerender(sheet(genericView(vouchers(7))));
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Approve Split" })).toBeDisabled();
   });
 });

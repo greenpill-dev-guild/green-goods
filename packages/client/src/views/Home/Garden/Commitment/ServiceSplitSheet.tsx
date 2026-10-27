@@ -38,13 +38,16 @@ export function ServiceSplitSheet({
   const intl = useIntl();
   const { formatMessage } = intl;
   const checkboxId = useId();
-  const [received, setReceived] = useState(false);
-  useEffect(() => {
-    if (!open) setReceived(false);
-  }, [open]);
   const w = view.words;
   const split = view.split;
+  // The box affirms one split's figures: a new proposal or a reopened sheet asks again.
+  const figures = split ? `${split.delivered}:${split.release}:${split.refund}` : null;
+  const [receivedFor, setReceivedFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) setReceivedFor(null);
+  }, [open]);
   if (!split) return null;
+  const received = receivedFor === figures;
   const t = (id: string, values: Record<string, string | number> = {}) =>
     formatVoucherMessage(intl, id, { issuer: w.issuer, ...values });
   const rel = w.count(split.release);
@@ -59,7 +62,10 @@ export function ServiceSplitSheet({
       ? t("rd.sh.deliveredC", { done, of })
       : view.profile === "hubDay"
         ? t("rd.sh.deliveredS")
-        : formatMessage({ id: "app.commitment.progress.count" }, { done, of: done });
+        : formatMessage(
+            { id: "app.commitment.progress.count" },
+            { done, of: Number(w.serviceUnits) }
+          );
   const check =
     view.profile === "access"
       ? t("rd.sh.chkC", { done, of })
@@ -163,7 +169,7 @@ export function ServiceSplitSheet({
               type="checkbox"
               checked={received}
               disabled={isPending}
-              onChange={(event) => setReceived(event.target.checked)}
+              onChange={(event) => setReceivedFor(event.target.checked ? figures : null)}
               className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-primary-on-surface)]"
             />
             <span>{check}</span>

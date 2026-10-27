@@ -1,6 +1,7 @@
 import type {
   ServiceAccessSnapshot,
   ServiceVoucherSetup,
+  VoucherIssuer,
 } from "@green-goods/shared/commitment-pooling";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { IntlShape } from "react-intl";
@@ -57,6 +58,21 @@ export function currentVoucherSetup(s: ServiceAccessSnapshot): ServiceVoucherSet
   return s.voucherSetups.find((row) => row.setupId === s.currentVoucherSetupId) ?? null;
 }
 
+/**
+ * Whose vouchers the page speaks of: a booking's frozen asset, which a later offer revision
+ * can't change, else the offer's voucher or a request's reward.
+ */
+export function bookingVoucherIssuer(
+  s: ServiceAccessSnapshot | null,
+  issuers: readonly VoucherIssuer[] | undefined
+): VoucherIssuer | null {
+  const token =
+    (s && currentVoucherSetup(s)?.asset.token) ??
+    s?.offer?.voucher?.asset.token ??
+    s?.pilot?.reward?.voucher.asset.token;
+  return issuers?.find((entry) => same(entry.asset.token, token)) ?? null;
+}
+
 /** A promise its service's own acts govern: the generic take-up and claims step aside. */
 export function isServiceAccessPromise(s: ServiceAccessSnapshot | null | undefined): boolean {
   return s?.knownService === true || s?.acceptancePolicy.blockGenericMemberAcceptance === true;
@@ -79,8 +95,11 @@ function serviceBookingStage(
   if (!setup)
     return input.held !== null && voucher && input.held < voucher.units ? "notEnough" : "open";
   if (final) return final.financiallyClosed ? "closed" : "transfersPending";
+  // A recorded cancellation stays under way until it is sent to the escrow, which may hold vouchers.
   if (setup.source.decision === "abort" || d?.result.decision === "abort")
-    return d?.result.phase === "aborted" || !d ? "canceled" : "canceling";
+    return d?.result.phase === "aborted" || (!d && setup.source.decisionDispatched)
+      ? "canceled"
+      : "canceling";
   const a = setup.authorization;
   const accepted = setup.source.acceptedEver !== null;
   if (
@@ -137,6 +156,27 @@ const ACTS: Partial<Record<ServiceBookingStage, [ServiceActKind | null, ServiceA
   acceptedFirst: [null, "report"],
   termsChanged: ["cancelChanged", null],
 };
+
+/**
+ * A step only some bookings at a stage still need from the reader: a transfer the split fixed
+ * that nobody sent (its prompt was declined), a deposit's confirmation that didn't reach the
+ * source, or a recorded cancellation not yet sent to the escrow.
+ */
+function recoveryAct(
+  stage: ServiceBookingStage,
+  setup: ServiceVoucherSetup | null
+): ServiceActKind | null {
+  const final = setup?.destination?.finalAllocation;
+  if (
+    stage === "transfersPending" &&
+    final &&
+    [final.refund, final.release].some((leg) => leg.state === "pending" && leg.attempts === 0n)
+  )
+    return "send";
+  if (stage === "confirmingDeposit" && setup?.acknowledgments.setup.pending) return "retryConfirm";
+  if (stage === "canceling" && setup && !setup.source.decisionDispatched) return "cancel";
+  return null;
+}
 /** Where each stage sits on the booking's way, for the steps' done and now. */
 const POSITION: Record<ServiceBookingStage, number> = {
   open: -1,
@@ -173,6 +213,8 @@ export function serviceBookingView(
   const decimals = asset?.decimals ?? 0;
   const units = setup?.authorization.voucherUnits ?? offer?.voucher?.units ?? 0n;
   const serviceUnits = setup?.authorization.serviceUnits ?? offer?.serviceUnits ?? 1n;
+  // A booking keeps the terms it was set up on, even after the offer changes them.
+  const revision = setup?.authorization.termsRevision ?? offer?.revision ?? null;
   const profile = serviceProfile(offer?.unitLabel);
   const issuer = input.issuer?.name ?? asset?.symbol ?? "";
   const gender = input.issuer?.gender ?? "other";
@@ -196,11 +238,14 @@ export function serviceBookingView(
         : units
       : 0n;
   const release = final ? final.allocation.releaseVoucherUnits : units - refund;
+  // Whatever is released pays for some service, so a partial one-unit delivery counts as one,
+  // never zero: the final split refuses a release with no delivered unit.
+  const proportional = units > 0n ? (serviceUnits * release) / units : 0n;
   const delivered = final
     ? final.allocation.approvedDeliveredServiceUnits
-    : units > 0n
-      ? (serviceUnits * release) / units
-      : 0n;
+    : release > 0n && proportional === 0n
+      ? 1n
+      : proportional;
   const reported =
     final !== null || stage === "returnProposed" || stage === "readyToClose" || stage === "closed";
   const accessDays = profile === "access" ? Number(serviceUnits) : 0;
@@ -264,9 +309,11 @@ export function serviceBookingView(
             : t("rd.a.deposit", { n })
           : kind === "exchange"
             ? t("of.a.exchange")
-            : t(`rd.a.${kind}`),
+            : // Sending a transfer nobody sent finishes the act that closes the booking.
+              t(`rd.a.${kind === "send" ? "close" : kind}`),
   });
-  const [primaryKind, secondaryKind] = ACTS[stage] ?? [null, null];
+  const [stageKind, secondaryKind] = ACTS[stage] ?? [null, null];
+  const primaryKind = recoveryAct(stage, setup) ?? stageKind;
   const held = input.held ?? 0n;
   const phases = bookingPhases(ctx);
   return {
@@ -280,7 +327,7 @@ export function serviceBookingView(
       pillId: endedEarly ? "app.voucher.pp.st.endedEarly" : null,
     },
     facts: bookingFacts(ctx),
-    termsVersion: offer ? t("pp.version", { v: offer.revision.toString() }) : null,
+    termsVersion: revision !== null ? t("pp.version", { v: revision.toString() }) : null,
     phases,
     transfers: bookingTransfers(ctx),
     details: bookingDetails(ctx),
@@ -319,7 +366,8 @@ export function serviceBookingView(
           : profile === "access"
             ? t("pay.c.get")
             : `${serviceUnits.toString()} ${offer?.unitLabel ?? ""}`.trim(),
-      revision: offer?.revision ?? null,
+      revision,
+      serviceUnits,
       accessDays,
       deadline: deadline !== null ? date(deadline) : null,
       sigs: ctx.sigs,

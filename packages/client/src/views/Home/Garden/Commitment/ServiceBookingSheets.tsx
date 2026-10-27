@@ -33,6 +33,9 @@ export interface ServiceBookingSheetsProps {
     onExchange: () => void;
     onCheck: () => void;
     onRequote: () => void;
+    /** What a short pool can still exchange, and the act that quotes it. */
+    smaller: bigint | null;
+    onSmaller: (input: bigint) => void;
   };
   isPending: boolean;
 }
@@ -54,6 +57,7 @@ export function ServiceBookingSheets({
   const close = (open: boolean) => {
     if (!open) onClose();
   };
+  const smaller = exchange.smaller;
   const agreeDeadline =
     snapshot.sourceTimestamp !== null
       ? intl.formatDate(Number(snapshot.sourceTimestamp + 7n * 86_400n) * 1000, {
@@ -76,6 +80,8 @@ export function ServiceBookingSheets({
         onDeposit={redeem.onDeposit}
         onCheck={redeem.onCheck}
         onExchange={exchange.onOpen}
+        // Only the rehearsal's pool quotes until the live one is configured.
+        canExchange={Boolean(snapshot.pilot)}
       />
       <ServiceSplitSheet
         open={sheet === "split"}
@@ -97,6 +103,7 @@ export function ServiceBookingSheets({
           onExchange={exchange.onExchange}
           onCheck={exchange.onCheck}
           onRequote={exchange.onRequote}
+          onSmaller={smaller !== null ? () => exchange.onSmaller(smaller) : null}
           onBack={onClose}
         />
       ) : null}

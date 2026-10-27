@@ -34,6 +34,7 @@ export function exchangeQuoteFromPilot(
   return {
     input: side(quote.inputToken, quote.input),
     output: side(quote.outputToken, quote.netOutput),
+    gross: quote.grossOutput,
     poolFee: quote.poolFee,
     protocolFee: quote.protocolFee,
     minimum: quote.minimumOutput,
@@ -45,7 +46,10 @@ export function exchangeQuoteFromPilot(
   };
 }
 
-/** Where the rehearsal's exchange stands, read from its pool record rather than kept here. */
+/**
+ * Where the rehearsal's exchange stands, read from its pool record rather than kept here. A quote
+ * past its time or its minimum expired; an approval or a transfer that failed is its own answer.
+ */
 export function exchangeStateFromPilot(
   snapshot: ServiceAccessSnapshot,
   reviewing: boolean
@@ -61,8 +65,23 @@ export function exchangeStateFromPilot(
         ? "limit"
         : exchange.failure === "listing"
           ? "listed"
-          : "expired";
+          : exchange.failure === "deadline" || exchange.failure === "minimum"
+            ? "expired"
+            : "failed";
   return reviewing ? "review" : "quote";
+}
+
+/**
+ * What a short pool can still exchange: the input whose output before fees fits what the pool
+ * has left, at the failed quote's own rate. Null when there is nothing smaller to ask for.
+ */
+export function smallerExchangeInput(snapshot: ServiceAccessSnapshot | null): bigint | null {
+  const exchange = snapshot?.pilot?.exchange;
+  const quote = exchange?.quote;
+  if (exchange?.status !== "failed" || exchange.failure !== "inventory" || !quote) return null;
+  if (quote.grossOutput <= 0n) return null;
+  const input = (quote.input * exchange.inventory) / quote.grossOutput;
+  return input > 0n && input < quote.input ? input : null;
 }
 
 /** One exchange: allow exactly its input, then the pool's bounded swap; the quote is reviewed. */

@@ -37,6 +37,10 @@ export type ServiceBookingStage =
 
 export type ServiceBandTone = "neutral" | "waiting" | "attention" | "kept";
 export type ServiceStepState = "done" | "now" | "todo" | "warn" | "fail";
+/**
+ * `send` runs a transfer the split fixed that nobody sent yet; `retryConfirm` sends a deposit's
+ * confirmation to the source again when it didn't go.
+ */
 export type ServiceActKind =
   | "redeem"
   | "deposit"
@@ -47,7 +51,9 @@ export type ServiceActKind =
   | "retry"
   | "report"
   | "cancelChanged"
-  | "exchange";
+  | "exchange"
+  | "send"
+  | "retryConfirm";
 
 export interface ServiceAct {
   kind: ServiceActKind;
@@ -61,11 +67,20 @@ export interface ServiceFact {
   detail: string | null;
 }
 
+/** The promise's own event a booking step is the same act as, which dates it in History. */
+export type BookingHistoryAnchor =
+  | "CLAIM_REQUESTED"
+  | "ACCEPTED"
+  | "READY_FOR_CONFIRMATION"
+  | "FULFILLED"
+  | "CANCELLED";
+
 export interface ServiceStep {
   id: string;
   text: string;
   state: ServiceStepState;
   stateLabel: string;
+  anchor?: BookingHistoryAnchor;
 }
 
 export interface ServicePhase {
@@ -135,8 +150,10 @@ export interface ServiceBookingView {
     vouchers: string;
     /** "You get", for the review sheet. */
     get: string;
-    /** The terms revision the reader is looking at. */
+    /** The terms revision the reader is looking at: a booking's own, frozen when it was set up. */
     revision: bigint | null;
+    /** The service units the booking authorizes, the whole a partial delivery counts against. */
+    serviceUnits: bigint;
     accessDays: number;
     deadline: string | null;
     sigs: string | null;
