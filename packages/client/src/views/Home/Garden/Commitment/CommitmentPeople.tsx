@@ -18,12 +18,16 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
+import { PromiseRewardRow } from "@/components/Features/Commitments";
+
 export interface CommitmentPeopleProps {
   commitment: CommitmentReadModel;
   contributors: CommitmentContributorRecord[];
   seat: CommitmentSeat | null;
   /** The count and unit, already in words, or null when the record has none. */
   units: string | null;
+  /** The reward it carries, in words, or null when it carries none or the page doesn't say. */
+  reward?: string | null;
   /** Who is reading, so the team can say "You" rather than their name. */
   viewer: Address | null;
   /** The stewards of the promise's garden, so whoever confirms it carries the role. */
@@ -56,7 +60,7 @@ export function confirmerOf(
 
 /**
  * What was promised and who is on it, as labelled facts: what and how much, by
- * when, who is doing it, the team, and who confirms it.
+ * when, what keeping it earns, who is doing it, the team, and who confirms it.
  *
  * One accountable lead is named, then everyone else. Presence is never
  * presented as equal credit: a contributor's approved work and proof are what
@@ -67,6 +71,7 @@ export function CommitmentPeople({
   commitment,
   contributors,
   units,
+  reward = null,
   viewer,
   stewards,
 }: CommitmentPeopleProps) {
@@ -133,6 +138,8 @@ export function CommitmentPeople({
             })}
           />
         ) : null}
+
+        {reward ? <PromiseRewardRow text={reward} /> : null}
 
         {commitment.leadProvider ? (
           <FactRow

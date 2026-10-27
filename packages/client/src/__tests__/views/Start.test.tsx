@@ -140,6 +140,8 @@ describe("WorkStart", () => {
 
     const chips = within(screen.getByRole("group", { name: "Domains" }));
     expect(chips.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+    // Work done for no promise is the ordinary case: nothing here says a promise is missing.
+    expect(screen.queryByText(/promise/i)).toBeNull();
     expect(tiles()).toEqual([
       "Panel Cleaning",
       "Workshop Delivered",

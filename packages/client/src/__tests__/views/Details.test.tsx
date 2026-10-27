@@ -145,6 +145,26 @@ describe("WorkDetails", () => {
     expect(screen.getByText("Seed Count (seeds)")).toBeInTheDocument();
   });
 
+  it("names the unit once when the action's title already carries it", () => {
+    // Workshop Delivered's own words: the title ends in "(min)" and the input sets unit "min".
+    const inputs: WorkInput[] = [
+      {
+        key: "deliveredDurationMin",
+        title: "Delivered Duration (min)",
+        placeholder: "Enter actual session duration in minutes",
+        type: "number",
+        required: true,
+        options: [],
+        unit: "min",
+      },
+    ];
+
+    renderDetails({ inputs });
+
+    // An exact match: "Delivered Duration (min) (min)" would not satisfy it.
+    expect(screen.getByText("Delivered Duration (min)")).toBeInTheDocument();
+  });
+
   it("renders dynamic select inputs from action config", () => {
     const inputs: WorkInput[] = [
       {

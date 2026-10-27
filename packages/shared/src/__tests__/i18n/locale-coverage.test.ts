@@ -100,6 +100,7 @@ const allowedIdenticalLocalizedKeys = new Set([
   "app.community.weightScheme.linear",
   "cockpit.community.stats.pools",
   // The G$ symbol, alone or beside an amount, has no words to translate.
+  "app.commitment.reward.goodDollars",
   "cockpit.garden.pool.reward.inGoodDollars",
   "app.voucher.rw.gd",
   "app.voucher.rw.sh.gd",
