@@ -4,6 +4,7 @@ import {
   type ServiceAccessAction,
   type ServiceAccessKey,
   type ServiceAccessSnapshot,
+  serviceVoucherHolder,
   useServiceAccessMutation,
   useVoucherIssuerApproval,
   useVoucherWallet,
@@ -40,7 +41,12 @@ import {
 } from "./serviceBooking";
 import { ServiceBookingSheets, type ServiceSheet } from "./ServiceBookingSheets";
 import type { ServiceActKind, ServiceBookingView } from "./serviceBookingTypes";
-import { exchangeQuoteFromPilot, exchangeStep, smallerExchangeInput } from "./serviceExchange";
+import {
+  exchangeAvailable,
+  exchangeQuoteFromPilot,
+  exchangeStep,
+  smallerExchangeInput,
+} from "./serviceExchange";
 import type { ServiceRedeemOutcome } from "./ServiceRedeemSheet";
 import { ServiceRewardsSection } from "./ServiceRewardsSection";
 import { serviceRewardsView } from "./serviceRewards";
@@ -100,7 +106,8 @@ export function ServicePromise({
   const snapshot = access.data ?? null;
   const walletChain = snapshot?.key.sourceChainId;
   const walletModule = snapshot?.key.coreModule;
-  const walletAccount = snapshot?.key.buyer;
+  // The vouchers are the holder's, who need not be the member who agreed.
+  const walletAccount = snapshot ? serviceVoucherHolder(snapshot) : undefined;
   const walletScope = useMemo(
     () =>
       walletChain !== undefined && walletModule && walletAccount
@@ -258,7 +265,7 @@ export function ServicePromise({
               title={booking.door.title}
               line={booking.door.body}
               door={
-                snapshot?.pilot
+                snapshot && exchangeAvailable(snapshot)
                   ? {
                       label: booking.door.act.label,
                       icon: <RiExchangeLine className="h-4 w-4" aria-hidden="true" />,

@@ -52,6 +52,7 @@ export function useVoucherIssuerApproval(
     queryKey: commitmentPoolingKeys.issuerApproval(
       issuer?.asset.chainId ?? 0,
       issuer?.account ?? EMPTY_ADDRESS,
+      issuer?.kind ?? "collective",
       rehearsal
     ),
     enabled: issuer !== null,
