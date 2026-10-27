@@ -143,8 +143,8 @@ tracks those inputs separately from technical readiness.
 
 | Issuer / offer | Full service for the stated voucher price | Capacity |
 |---|---|---|
-| Tech and Sun — hub day | **1 Tech and Sun voucher:** one named person's reserved visit of up to four hours, including workspace, power and connectivity. Publish the location, opening hours and equipment restrictions before accepting a booking. | Twenty visits, at least eighty seat-hours in a published calendar. Approved on 27 October 2026 (UTC) as the proposed baseline; Tech and Sun has still to confirm it as observed capacity. |
-| Green Goods — assisted session | **2 Green Goods vouchers:** one forty-five-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, seven and a half facilitator-hours, from 20 of the 120 vouchers. Approved on 27 October 2026 (UTC); the facilitator, languages and appointment times are published before the first booking. |
+| Tech and Sun — hub day | **1 Tech and Sun voucher:** one named person's reserved visit of up to four hours, including workspace, power and connectivity. Publish the location, opening hours and equipment restrictions before accepting a booking. | Twenty visits, at least eighty seat-hours in a published calendar. Approved on 27 October 2026 (UTC) as the proposed baseline; Tech and Sun has still to confirm it as observed capacity. A placeholder on the TAS HUB pool's description names the hub in Awka and says the opening hours and equipment limits will be posted. |
+| Green Goods — assisted session | **2 Green Goods vouchers:** one forty-five-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, seven and a half facilitator-hours, from 20 of the 120 vouchers. Approved on 27 October 2026 (UTC). The facilitator, language (English) and a booking calendar were published on the Green Goods pool's description the same day. |
 | Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Ten funded seat-periods, all bookable at once: Green Goods' ceiling rises to 120 vouchers for it. On 27 October 2026 (UTC) Green Goods confirmed that participant seats are permitted under its supplier terms and that all ten are funded. Seats start on 8 November 2026, when Green Goods' Claude Team subscription begins; each seat's thirty days start when its participant can sign in. |
 
 These are full-access offers at their stated scope, rather than discounts requiring an unstated
@@ -167,6 +167,8 @@ existing paid seats and renewal terms before committing an operating budget.
 [Team plan details](https://support.claude.com/en/articles/9266767-what-is-the-team-plan).
 
 For a short pilot, propose monthly billing unless Green Goods already has funded annual seats.
+**Decided on 27 October 2026 (UTC): monthly billing**, listed that day at $25 per seat per month
+before tax, so seats are added and dropped as bookings arrive.
 Two new monthly Standard seats have a $50/month list-price floor before tax. Confirm whether an
 owner occupies one of those seats: two participant seats may require additional paid allocation.
 An annual price comparison does not authorize an annual purchase or promise a supplier refund.
