@@ -398,8 +398,8 @@ under vouchers-6 and swap-7); and the voucher stories' narration.
   switch is off.
 - The swap's rate and fees are the pilot fixture's. The brief says no member has used a voucher yet,
   which the "In pilot" marks keep true.
-- Both Accept dialogs (vouchers-7, swap-7) end on the app's note "It doesn't mean the visit
-  happened", written for hub days; on the seat it is the app's own wording, left as it is.
+- Both Accept dialogs (vouchers-7, swap-7) end on the app's note "It doesn't mean the service was
+  delivered", worded for any service since #1372.
 
 ## Task record · clickable demo
 
@@ -501,7 +501,8 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `d335b0
 | setup | 08:05 → 08:24 | The develop worktree's package `node_modules` still held 51 links into another checkout, so React Query loaded twice and every dashboard page and wallet-hook story failed with "No QueryClient set"; the links were removed and the frozen-lockfile install restored them locally. Storybook rebuilt; the app, dashboard and Storybook served from that worktree |
 | implement | 08:24 → 08:50 | Phone stories without Storybook's 16px frame (the wallet's lone panel keeps it); the season sheet's rows as requests with the request icon; story 1's Home scrolled so no card is cut under its top bar; story 3 unscrolled, with its title; story 11 is the ledger (impact-2); the record and Fund dated 26 October, the seat's deadline 8 November; develop's voucher warning hidden on the pools' Promises tabs; Green Goods' Accept at 1152x720; captions that carry the numbers; the intro's chapters top-aligned; every-step tiles that name each chapter's surfaces and both people; the close's chapter cards and its link to TAS HUB's live page; a lighter device edge in dark |
 | verify | 08:32 → 08:57 | The first full capture stopped on one problem: Green Goods' pool now lists its live offer, "30 days of Claude Team access", which `SEAT_OFFER` names as the journey does. The second: 50 screens, 0 problems. `build.mjs` 8.73 MB; `check.mjs` exit 0: 62 screens, 35 back regions, every part held at 1440x900, 1280x720, 768x1024 and 390x844; the story, close, chapter list, phone and dark views inspected |
-| publish | 08:57 → 09:02 | Commit `983ab2674` pushed (gate passed: format and lint); artifact version 14 at the same link, its signed-out view checked at the close and story 10; Drive copy replaced (9.2 MB). Story 10's note still reads "doesn't mean the visit happened" until #1372 merges |
+| publish | 08:57 → 09:02 | Commit `983ab2674` pushed (gate passed: format and lint); artifact version 14 at the same link, its signed-out view checked at the close and story 10; Drive copy replaced (9.2 MB). Story 10's note still read "doesn't mean the visit happened" until #1372 merged |
+| note | 09:05 → 09:15 | #1372 merged (`b10f2706f`); Storybook rebuilt on develop's tip `2d58fe43b`; swap-7 and vouchers-7 re-captured, both ending "It doesn't mean the service was delivered". The other 14 voucher and swap screens, re-captured on the tip in a scratch copy, came out byte-identical, so #1373 changes no demo screen. `check.mjs` exit 0 (62 screens, 35 back regions); committed and pushed with this record; artifact republished; Drive copy replaced |
 
 Two review items changed on inspection. The steward's review stays at 1440x900: its form needs more height than a 720-high screen gives the dialog. The ring on the Take Part sheet's close button (story 2) was the page's keyboard focus on a back region, which the checker's keyboard walk had left there; a pointer never shows it.
 
