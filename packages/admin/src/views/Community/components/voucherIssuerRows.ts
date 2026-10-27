@@ -43,8 +43,8 @@ function draftStatus(record: ServiceIssuerDraftRecord): VoucherIssuerStatus {
 
 /**
  * One row per issuer: the reviewed assets, each with its pool listing (admitted, a holding
- * limit, or a zero limit once delisted), then the drafts no reviewed asset carries yet. A draft
- * pairs with the asset its member owns under the same symbol.
+ * limit, or a zero limit: setup until the stewards record a delisting), then the drafts no
+ * reviewed asset carries yet. A draft pairs with the asset its member owns under the same symbol.
  */
 export function voucherIssuerRows(
   routes: readonly ServiceIssuerRoute[],
@@ -63,7 +63,7 @@ export function voucherIssuerRows(
       return {
         key: `${route.service.id}:${asset.id}`,
         kind: asset.kind,
-        status: listing ? issuerPoolStatus(listing) : "unread",
+        status: listing ? issuerPoolStatus(listing, asset) : "unread",
         route,
         asset,
         listing,

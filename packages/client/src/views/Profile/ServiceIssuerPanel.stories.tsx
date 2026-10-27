@@ -96,13 +96,24 @@ export const CapacityFull: Story = {
   args: { snapshot: issuerServiceStory("full") },
   play: open("issue"),
 };
+/** Capacity counts what the member confirmed (five), not the six the token may issue. */
+export const CapacityBelowIssuance: Story = {
+  args: { snapshot: issuerServiceStory("lowCapacity") },
+};
+/** A booking failed verification: what's booked and left stays unknown. */
+export const PartialBookings: Story = { args: { snapshot: issuerServiceStory("partial") } };
 export const PauseNewBookings: Story = { play: open("pause") };
+/** Paused with a booking asked: it waits for the member to resume, with nothing to approve. */
 export const Paused: Story = { args: { snapshot: issuerServiceStory("paused") } };
 export const Delisted: Story = { args: { snapshot: issuerServiceStory("delisted") } };
 export const PendingTransaction: Story = { args: { snapshot: issuerServiceStory("pending") } };
 export const ReserveShort: Story = { args: { snapshot: issuerServiceStory("short") } };
 export const YourSetup: Story = { args: { snapshot: issuerServiceStory("setup") } };
 export const AwaitingAdmission: Story = { args: { snapshot: issuerServiceStory("admitting") } };
+/** Registered before its cap lands: the pool's zero limit is setup, not a delisting. */
+export const RegisteredAwaitingCap: Story = {
+  args: { snapshot: issuerServiceStory("registered") },
+};
 /** Someone holding another member's vouchers: holdings and the exchange, no issuer acts. */
 export const Holder: Story = {
   args: {

@@ -24,6 +24,8 @@ interface Props {
   asset: ServiceIssuerAsset;
   /** The reviewed action still being checked, so its booking reads as confirming. */
   pending: ServiceIssuerAction | null;
+  /** New bookings are paused: an asked booking waits for the member to resume, with no Review. */
+  paused: boolean;
   disabled: boolean;
   onApprove: (booking: ServiceIssuerBooking) => void;
   onPropose: (booking: ServiceIssuerBooking) => void;
@@ -31,6 +33,7 @@ interface Props {
 
 const PILL: Record<IssuerBookingState, { id: string; tone: ItemRowTone }> = {
   approve: { id: "app.commitments.row.needsYou", tone: "warning" },
+  paused: { id: "app.voucher.ms.p.paused", tone: "neutral" },
   confirming: { id: "app.voucher.ms.t.confirming", tone: "info" },
   deposit: { id: "app.voucher.ms.t.booked", tone: "info" },
   accept: { id: "app.voucher.ms.t.booked", tone: "info" },
@@ -51,6 +54,7 @@ export function ServiceIssuerBookings({
   bookings,
   asset,
   pending,
+  paused,
   disabled,
   onApprove,
   onPropose,
@@ -66,6 +70,7 @@ export function ServiceIssuerBookings({
     const split = b.finalAllocation?.allocation;
     switch (state) {
       case "approve":
+      case "paused":
         return [
           t("d.asked"),
           t("d.acceptBy", {
@@ -113,7 +118,7 @@ export function ServiceIssuerBookings({
       {bookings.records.length > 0 ? (
         <ul className="flex flex-col gap-[var(--gg-list-gap,12px)]">
           {bookings.records.map((record) => {
-            const state = issuerBookingState(record, pending);
+            const state = issuerBookingState(record, pending, paused);
             const [first, second] = details(record, state);
             const act =
               state === "approve" ? (

@@ -32,9 +32,11 @@ function assertServiceIssuerAsset(asset: ServiceIssuerAsset, recovery = false) {
     !Number.isInteger(asset.decimals) ||
     asset.decimals < 0 ||
     asset.decimals > 255 ||
+    (asset.delisting !== null &&
+      (!asset.delisting.reference.trim() || !hash(asset.delisting.digest))) ||
     (!recovery &&
       (!asset.service.unit?.trim() ||
-        !asset.service.capacityConfirmed ||
+        !finite(asset.service.capacity) ||
         !asset.service.terms.reference?.trim() ||
         !hash(asset.service.terms.digest) ||
         !asset.service.approval.reference?.trim() ||
@@ -51,6 +53,18 @@ function assertServiceIssuerAsset(asset: ServiceIssuerAsset, recovery = false) {
     (control.kind === "member" && !issuerSame(control.admin, asset.ownerReserve))
   )
     throw new Error("Reviewed issuer terms, capacity, finite limits and explicit control required");
+}
+
+/**
+ * How many vouchers a member issuer may have issued in all: the lower of the capacity they
+ * confirmed and the reviewed issuance ceiling. Null until both are known.
+ */
+export function serviceIssuerIssuanceLimit(
+  asset: Pick<ServiceIssuerAsset, "service" | "initialSupply">
+): bigint | null {
+  const { capacity } = asset.service;
+  if (capacity === null || asset.initialSupply === null) return null;
+  return capacity < asset.initialSupply ? capacity : asset.initialSupply;
 }
 
 export function issuerAsset(route: ServiceIssuerRoute, id: string, recovery = false) {

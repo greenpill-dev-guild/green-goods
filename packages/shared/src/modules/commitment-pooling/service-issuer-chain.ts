@@ -245,8 +245,8 @@ export async function issuerAssetState(
 }
 /**
  * The token's place in the shared pool: admitted by the registry, the limiter's holding limit
- * (zero once delisted) and what the pool holds now. Read apart from any review's state, so a
- * trade in the pool never invalidates the member's own review.
+ * (zero before its cap lands, and once delisted) and what the pool holds now. Read apart from any
+ * review's state, so a trade in the pool never invalidates the member's own review.
  */
 export async function issuerPoolListing(
   chain: ServiceIssuerChain,

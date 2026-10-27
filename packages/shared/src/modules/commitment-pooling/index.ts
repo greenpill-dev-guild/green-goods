@@ -49,10 +49,11 @@ export {
   serviceIssuerDraftApproval,
   serviceIssuerTermsDigest,
 } from "./service-issuer-approval";
-export { SERVICE_ISSUER_ROUTES } from "./service-issuer-metadata";
+export { SERVICE_ISSUER_ROUTES, serviceIssuerIssuanceLimit } from "./service-issuer-metadata";
 export { issuerPoolStatus } from "./service-issuer-pool";
 export {
   serviceIssuerDelistingDraft,
+  serviceIssuerDelistingRecord,
   serviceIssuerGovernanceDrafts,
 } from "./service-issuer-governance";
 export * from "./settlement";

@@ -11,7 +11,12 @@ import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives
 import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { type ReactNode, useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { issuerAmount, issuerCount, parseIssuerAmount } from "./serviceIssuerPresentation";
+import {
+  issuerAmount,
+  issuerCount,
+  issuerIssueRoom,
+  parseIssuerAmount,
+} from "./serviceIssuerPresentation";
 
 type Onchain = Extract<ServiceIssuerSnapshot, { evidence: "onchain" }>;
 
@@ -51,8 +56,8 @@ export function ServiceIssuerActSheet({ entry, snapshot, busy, failed, onClose, 
   let reason: { title: string; body: string } | null = null;
   let action: ServiceIssuerAction | null = null;
   if (entry.kind === "issue") {
-    const promised = asset.initialSupply ?? 0n;
-    const room = promised > snapshot.totalMinted ? promised - snapshot.totalMinted : 0n;
+    const promised = asset.service.capacity ?? 0n;
+    const room = issuerIssueRoom(snapshot);
     title = t("sh.issue.t");
     facts = [
       {

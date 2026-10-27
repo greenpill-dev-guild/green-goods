@@ -1,7 +1,7 @@
 import { readIssuerBooking } from "./service-issuer-bookings";
 import { type Abi } from "viem";
 import type { ContractCall } from "../transactions/types";
-import { serviceAddress, serviceTuple } from "./service-access-chain-values";
+import { serviceAddress, serviceFlag, serviceTuple } from "./service-access-chain-values";
 import {
   AdapterABI,
   EscrowABI,
@@ -17,6 +17,7 @@ import {
   issuerDigest,
   issuerSame,
   ISSUER_REVIEW_SECONDS,
+  serviceIssuerIssuanceLimit,
 } from "./service-issuer-metadata";
 import type {
   ServiceIssuerAction,
@@ -73,8 +74,13 @@ export async function prepareIssuerCall(
   let extra: unknown = null;
   switch (action.kind) {
     case "issue":
-      if (!positive(action.amount) || state.minted + action.amount > asset.initialSupply!)
-        throw new Error("Issuance exceeds the member-reviewed finite supply");
+      if (
+        !positive(action.amount) ||
+        state.minted + action.amount > serviceIssuerIssuanceLimit(asset)!
+      )
+        throw new Error(
+          "Issuance exceeds the member's confirmed capacity or reviewed finite supply"
+        );
       expected.minted = state.minted + action.amount;
       expected.balance = state.balance + action.amount;
       command = call(asset.token.address, TokenABI as Abi, "mintTo", [
@@ -132,6 +138,9 @@ export async function prepareIssuerCall(
       if (b.frozen || b.result.decision === "abort")
         throw new Error("Booking no longer permits this issuer review");
       if (action.kind === "approveBooking") {
+        // Pausing new bookings disables the reserve; the member approves none until resuming.
+        if (!serviceFlag(serviceTuple(state.authorization, ["issuerAuthority", "enabled"]).enabled))
+          throw new Error("New bookings are paused; resume them before approving one");
         if (
           b.result.issuerApproved ||
           b.result.decision !== "none" ||

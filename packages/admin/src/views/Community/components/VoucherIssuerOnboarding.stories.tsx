@@ -9,7 +9,9 @@ import {
   voucherIssuerStoryRoute,
 } from "./voucherIssuerStoryFixtures";
 
-const ownerSafe = voucherIssuerStory("issuers").routes[0]!.pool.limiter.owner;
+const catalog = voucherIssuerStory("issuers").routes[0]!;
+const ownerSafe = catalog.pool.limiter.owner;
+const sourceSafe = catalog.adapterSource.owner;
 
 /**
  * The Voucher Issuers card in the protocol garden's Community, Coordination (PRD-1299
@@ -32,6 +34,10 @@ const meta: Meta<typeof VoucherIssuerCard> = {
       [
         queryKeys.commitmentPooling.issuerSafeThreshold(100, ownerSafe),
         { safe: ownerSafe, status: "observed", threshold: 2, owners: 5 },
+      ],
+      [
+        queryKeys.commitmentPooling.issuerSafeThreshold(42161, sourceSafe),
+        { safe: sourceSafe, status: "observed", threshold: 3, owners: 4 },
       ],
     ]),
   ],
@@ -59,11 +65,13 @@ export const OwnerSafeDrafts: Story = {
   args: state("ownerSafeDrafts"),
   play: open("drafts"),
 };
+/** Teo's token is registered and waits for its cap: setup still pending, not delisted. */
+export const RegisteredAwaitingCap: Story = { args: state("registered") };
 export const Listed: Story = { args: state("listed") };
 export const Delist: Story = { args: state("delist"), play: open("delist") };
 export const Delisted: Story = { args: state("delisted") };
 export const AwaitingLiveInputs: Story = { args: { rehearsal: false } };
 export const ReadOnly: Story = { args: { ...state("issuers"), canPrepare: false } };
 const incomplete = voucherIssuerStoryRoute();
-incomplete.assets[0]!.service.capacityConfirmed = false;
+incomplete.assets[0]!.service.capacity = null;
 export const UnconfirmedCapacity: Story = { args: { routes: [incomplete] } };

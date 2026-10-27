@@ -26,10 +26,15 @@ const meta: Meta<typeof VoucherIssuerDialog> = {
   tags: ["autodocs"],
   args: { canPrepare: true, rehearsal: false, onClose: fn(), onSend: fn(), onRemind: fn() },
   decorators: [
+    // One address, a different Safe on each chain: each group of calls names its own rule.
     withSeededQueryClient([
       [
         queryKeys.commitmentPooling.issuerSafeThreshold(100, route.pool.limiter.owner),
         { safe: route.pool.limiter.owner, status: "observed", threshold: 2, owners: 5 },
+      ],
+      [
+        queryKeys.commitmentPooling.issuerSafeThreshold(42161, route.adapterSource.owner),
+        { safe: route.adapterSource.owner, status: "observed", threshold: 3, owners: 4 },
       ],
     ]),
   ],

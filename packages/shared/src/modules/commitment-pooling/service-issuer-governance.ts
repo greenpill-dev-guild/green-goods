@@ -2,8 +2,8 @@ import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule
 import { type Abi, parseAbi } from "viem";
 import type { Address } from "../../types/domain";
 import type { ContractCall } from "../transactions/types";
-import { issuerAsset } from "./service-issuer-metadata";
-import type { ServiceIssuerRoute } from "./service-issuer-types";
+import { issuerAsset, issuerDigest } from "./service-issuer-metadata";
+import type { ServiceIssuerAsset, ServiceIssuerRoute } from "./service-issuer-types";
 
 const ADMISSION = parseAbi([
   "function register(address)",
@@ -14,7 +14,8 @@ interface ServiceIssuerGovernanceDraft {
   kind: "owner-safe-draft";
   purpose: "source-authority" | "pool-registration" | "pool-cap" | "pool-price" | "pool-delist";
   owner: Address;
-  call: ContractCall;
+  /** Always on a named chain: the same owner address can be a different Safe on each chain. */
+  call: ContractCall & { chainId: number };
 }
 const limitDraft = (
   route: ServiceIssuerRoute,
@@ -46,6 +47,34 @@ export function serviceIssuerDelistingDraft(
   assetId: string
 ): ServiceIssuerGovernanceDraft {
   return limitDraft(route, issuerAsset(route, assetId, true).token.address, 0n, "pool-delist");
+}
+/**
+ * The record that makes a delisting read as one (`ServiceIssuerAsset.delisting`): a reference to
+ * the token's delisting and the digest of the stewards' decision, its reason and the exact
+ * zero-limit call. The Delist dialog copies it with the Safe draft, for the reviewed issuer record.
+ */
+export function serviceIssuerDelistingRecord(
+  route: ServiceIssuerRoute,
+  assetId: string,
+  reason: string
+): NonNullable<ServiceIssuerAsset["delisting"]> {
+  const { call } = serviceIssuerDelistingDraft(route, assetId);
+  const token = issuerAsset(route, assetId, true).token.address;
+  return {
+    reference: `issuer-delisting:${call.chainId}:${token.toLowerCase()}`,
+    digest: issuerDigest({
+      version: 1,
+      route: route.service.id,
+      asset: assetId,
+      reason: reason.normalize("NFC").trim(),
+      call: {
+        chainId: call.chainId,
+        to: call.address,
+        function: call.functionName,
+        args: call.args,
+      },
+    }),
+  };
 }
 /** Preparation only. Steward assistance confers no authority; normal owner Safe review remains required. */
 export function serviceIssuerGovernanceDrafts(

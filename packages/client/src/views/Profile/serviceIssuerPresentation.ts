@@ -1,8 +1,10 @@
-import type {
-  ServiceIssuerAction,
-  ServiceIssuerAsset,
-  ServiceIssuerBooking,
-  ServiceIssuerSnapshot,
+import {
+  issuerPoolStatus,
+  serviceIssuerIssuanceLimit,
+  type ServiceIssuerAction,
+  type ServiceIssuerAsset,
+  type ServiceIssuerBooking,
+  type ServiceIssuerSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { formatUnits, parseUnits } from "viem";
@@ -42,16 +44,19 @@ export interface IssuerCapacity {
   left: bigint | null;
 }
 
+/** Only a booking read with no failed or missing record is counted; a partial one counts nothing. */
+const bookingsCounted = (snapshot: Onchain) => snapshot.bookings.status === "observed";
+
 /**
- * What the member can still deliver, from the reviewed terms and the verified bookings. One
- * voucher buys one unit of the service, so the numbers count vouchers' worth. Token balances
- * never stand in for them, returned vouchers restore nothing, and a booking read that failed
- * leaves them unknown rather than zero.
+ * What the member can still deliver, from the capacity they confirmed and the verified bookings.
+ * One voucher buys one unit of the service, so the numbers count vouchers' worth. Neither the
+ * issuance ceiling nor token balances stand in for them, returned vouchers restore nothing, and
+ * a booking read that failed or left records out leaves them unknown rather than counting the
+ * missing bookings as capacity left.
  */
 export function issuerCapacity(snapshot: Onchain): IssuerCapacity {
-  const promised = snapshot.asset.initialSupply;
-  if (snapshot.bookings.status === "unavailable")
-    return { promised, booked: null, delivered: null, left: null };
+  const promised = snapshot.asset.service.capacity;
+  if (!bookingsCounted(snapshot)) return { promised, booked: null, delivered: null, left: null };
   const records = snapshot.bookings.records;
   const booked = sum(records.filter(bookingOpen).map((b) => b.authorization.voucherUnits));
   const delivered = sum(
@@ -62,9 +67,18 @@ export function issuerCapacity(snapshot: Onchain): IssuerCapacity {
   return { promised, booked, delivered, left };
 }
 
+/**
+ * How many more vouchers the member can issue: within what they promised to deliver and the
+ * token's reviewed issuance ceiling, whichever is lower. Every voucher issued counts against both.
+ */
+export function issuerIssueRoom(snapshot: Onchain): bigint {
+  const limit = serviceIssuerIssuanceLimit(snapshot.asset);
+  return limit !== null && limit > snapshot.totalMinted ? limit - snapshot.totalMinted : 0n;
+}
+
 /** What the escrow still holds for the member's bookings: deposits and splits not yet moved. */
 export function issuerEscrowed(snapshot: Onchain): bigint | null {
-  if (snapshot.bookings.status === "unavailable") return null;
+  if (!bookingsCounted(snapshot)) return null;
   return sum(
     snapshot.bookings.records.map((b) => {
       const split = b.finalAllocation;
@@ -86,10 +100,17 @@ export function issuerEscrowed(snapshot: Onchain): bigint | null {
 
 export type IssuerListing = "setup" | "listed" | "paused" | "delisted";
 
+/**
+ * The pool takes the token in: admitted under a holding limit, so Green Goods' side of setup is
+ * done. A registered token whose cap hasn't landed is still being admitted, not delisted.
+ */
+export const issuerAdmitted = (snapshot: Onchain) =>
+  issuerPoolStatus(snapshot.pool, snapshot.asset) === "listed";
+
 /** The pill: where the token stands in the pool, and whether the member has paused it. */
 export function issuerListing(snapshot: Onchain): IssuerListing {
-  if (!snapshot.pool.admitted) return "setup";
-  if (snapshot.pool.limit === 0n) return "delisted";
+  const pool = issuerPoolStatus(snapshot.pool, snapshot.asset);
+  if (pool !== "listed") return pool;
   if (snapshot.reserveEnabled) return "listed";
   // Before the member's own setup nothing is in the pool and nobody has booked.
   return snapshot.pool.holding > 0n || snapshot.bookings.records.length > 0 ? "paused" : "setup";
@@ -111,16 +132,20 @@ export function issuerStage(
   pending: boolean
 ): { stage: IssuerStage; booking?: ServiceIssuerBooking } {
   if (pending) return { stage: "pending" };
-  const booking = snapshot.bookings.records.find((b) => b.approvalEligible);
+  // While new bookings are paused the member approves none, so none is asked of them.
+  const booking = snapshot.reserveEnabled
+    ? snapshot.bookings.records.find((b) => b.approvalEligible)
+    : undefined;
   if (booking) return { stage: "approve", booking };
   const listing = issuerListing(snapshot);
-  if (listing === "setup") return { stage: snapshot.pool.admitted ? "setup" : "admitting" };
+  if (listing === "setup") return { stage: issuerAdmitted(snapshot) ? "setup" : "admitting" };
   if (listing === "delisted" || listing === "paused") return { stage: listing };
   return { stage: snapshot.reserveAllowance === 0n ? "short" : "ok" };
 }
 
 export type IssuerBookingState =
   | "approve"
+  | "paused"
   | "confirming"
   | "deposit"
   | "accept"
@@ -131,10 +156,14 @@ export type IssuerBookingState =
   | "unapproved"
   | "canceled";
 
-/** One booking's state as its row tells it; a send still being checked comes first. */
+/**
+ * One booking's state as its row tells it; a send still being checked comes first. A booking
+ * asked while new bookings are paused waits for the member to resume, not for their approval.
+ */
 export function issuerBookingState(
   b: ServiceIssuerBooking,
-  pending: ServiceIssuerAction | null
+  pending: ServiceIssuerAction | null,
+  paused: boolean
 ): IssuerBookingState {
   if (
     pending &&
@@ -151,7 +180,7 @@ export function issuerBookingState(
       ? "delivered"
       : "settling";
   if (b.result.decision === "abort" || b.result.phase.startsWith("abort")) return "canceled";
-  if (b.approvalEligible) return "approve";
+  if (b.approvalEligible) return paused ? "paused" : "approve";
   if (!b.result.issuerApproved) return "unapproved";
   if (b.issuerReturnCeiling > 0n) return "proposed";
   if (b.result.phase === "active") return "active";

@@ -4,6 +4,7 @@ import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow"
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import {
+  issuerAdmitted,
   issuerCapacity,
   issuerCount,
   issuerEscrowed,
@@ -75,6 +76,7 @@ export function ServiceIssuerOverview({
   const delivered = capacity.delivered ?? 0n;
   const promised = capacity.promised ?? 0n;
   const reserveAllowance = snapshot.reserveAllowance ?? 0n;
+  const admitted = issuerAdmitted(snapshot);
   return (
     <div className="space-y-4" data-component="ServiceIssuerOverview" data-stage={stage}>
       <ServiceIssuerBand band={band} />
@@ -95,7 +97,7 @@ export function ServiceIssuerOverview({
                 {
                   id: "admitted",
                   text: t("ob.sub.admitted"),
-                  state: snapshot.pool.admitted ? "done" : "todo",
+                  state: admitted ? "done" : snapshot.pool.admitted ? "now" : "todo",
                 },
               ],
             },
@@ -107,7 +109,7 @@ export function ServiceIssuerOverview({
                 {
                   id: "allow",
                   text: t("ob.sub.allow", { count: allowance }),
-                  state: reserveAllowance > 0n ? "done" : snapshot.pool.admitted ? "now" : "todo",
+                  state: reserveAllowance > 0n ? "done" : admitted ? "now" : "todo",
                 },
                 {
                   id: "enable",
