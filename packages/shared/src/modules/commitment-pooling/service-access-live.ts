@@ -45,6 +45,7 @@ interface ServiceLiveDependencies {
 }
 const same = (a: string | null | undefined, b: string | null | undefined) =>
   !!a && !!b && a.toLowerCase() === b.toLowerCase();
+const ROUTE_PROOF_REUSE_MS = 60_000;
 /** Online member acts only. Persisted public references are partitioned by chain/address, never replayed automatically. */
 export function createLiveServiceAccessAdapter(
   deps: ServiceLiveDependencies
@@ -68,11 +69,34 @@ export function createLiveServiceAccessAdapter(
       expected
     );
   };
-  const read = async (key: ServiceAccessKey, reconcile = true): Promise<ServiceAccessSnapshot> => {
+  // A route's proof costs about forty reads. Reads share a recent one; the check right before a
+  // broadcast always proves the route again.
+  const proofs = new Map<string, { at: number; proof: Promise<void> }>();
+  const verifyRoute = (route: ServiceLiveRoute, fresh: boolean) => {
+    const id = configIdentity(route);
+    const cached = proofs.get(id);
+    if (!fresh && cached && Date.now() - cached.at < ROUTE_PROOF_REUSE_MS) return cached.proof;
+    const proof = verifyServiceLiveRoute(route, chain);
+    proofs.set(id, { at: Date.now(), proof });
+    proof.catch(() => {
+      if (proofs.get(id)?.proof === proof) proofs.delete(id);
+    });
+    return proof;
+  };
+  const read = async (
+    key: ServiceAccessKey,
+    reconcile = true,
+    voucherOnly = false,
+    fresh = false
+  ): Promise<ServiceAccessSnapshot> => {
     const route = routeFor(key);
     if (!route) return deps.readSnapshot(key);
-    await verifyServiceLiveRoute(route, chain);
     const s = await deps.readSnapshot(key);
+    // An unread promise may still be a voucher offer, so a failed read stays a failure.
+    if (s.evidence !== "onchain") throw new Error("Authoritative live service state unavailable");
+    // The route carries the core's voucher offers; its other promises read as they do unrouted.
+    if (s.mode !== "voucher" && !voucherOnly) return s;
+    await verifyRoute(route, fresh);
     if (
       s.evidence !== "onchain" ||
       s.mode !== "voucher" ||
@@ -95,13 +119,22 @@ export function createLiveServiceAccessAdapter(
       symbol: asset.symbol,
       decimals: asset.decimals,
     };
-    s.eligibleBuyerGardens = (
-      await Promise.all(
-        route.buyerGardens.map(async (garden) =>
-          (await membership(garden.address, key.buyer, key.sourceChainId)) === true ? garden : null
-        )
-      )
-    ).filter((garden) => garden !== null);
+    const memberships = await Promise.all(
+      route.buyerGardens.map(async (garden) => ({
+        garden,
+        member: await membership(garden.address, key.buyer, key.sourceChainId),
+      }))
+    );
+    // An unknown membership is not "no": with no garden confirmed, the member retries instead of
+    // reading as ineligible. A confirmed garden stays usable whatever the others answer.
+    if (
+      !memberships.some(({ member }) => member === true) &&
+      memberships.some(({ member }) => member === null)
+    )
+      throw new Error("Buyer garden membership unavailable");
+    s.eligibleBuyerGardens = memberships
+      .filter(({ member }) => member === true)
+      .map(({ garden }) => garden);
     await hydrateLiveVoucherSnapshot(s, route, chain);
     s.complete = true;
     s.capabilities = {
@@ -169,11 +202,11 @@ export function createLiveServiceAccessAdapter(
       session: () => deps.session(),
       storage: () => deps.storage ?? globalThis.localStorage,
       chain,
-      read,
+      read: (k, reconcile, fresh) => read(k, reconcile, true, fresh),
       assertSession,
     });
   return {
-    read,
+    read: (key) => read(key),
     execute: (key, action) => {
       if (!routeFor(key)) return execute(key, action);
       // The same member cannot approve two service calls concurrently in separate tabs.

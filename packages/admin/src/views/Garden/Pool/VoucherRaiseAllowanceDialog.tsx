@@ -19,6 +19,8 @@ export interface VoucherRaiseAllowanceDialogProps {
   reserve: VoucherIssuerReserve | null;
   /** The issuer Safe's signature rule, read from the Safe. */
   safe: IssuerSafeThreshold | undefined;
+  /** Offline, or another act is with the wallet or the chain: the card's state, live while open. */
+  disabled: boolean;
   tone?: AdminDialogProps["tone"];
   onClose: () => void;
   onRaise: (reserve: VoucherIssuerReserve, allowance: bigint) => Promise<void>;
@@ -26,13 +28,15 @@ export interface VoucherRaiseAllowanceDialogProps {
 
 /**
  * Raise an allowance (`SIssuer` · Raise allowance): lets the garden's promised
- * rewards draw more from the reserve. It creates no vouchers; the waiting
- * reward is then retried and sent once. It writes to the reserve's allowance,
- * so it carries a plain description and the Safe's signature count.
+ * rewards draw more from the reserve, at least enough for the waiting reward,
+ * or its retry fails again. It creates no vouchers; the waiting reward is then
+ * retried and sent once. It writes to the reserve's allowance, so it carries a
+ * plain description and the Safe's signature count.
  */
 export function VoucherRaiseAllowanceDialog({
   reserve,
   safe,
+  disabled,
   tone,
   onClose,
   onRaise,
@@ -47,8 +51,8 @@ export function VoucherRaiseAllowanceDialog({
   const suggested = reserve ? reserve.allowance.limit + (waiting?.units ?? 0n) : 0n;
   const text = entry ?? formatUnits(suggested, decimals);
   const allowance = parseVoucherAmount(text, decimals);
-  const valid =
-    reserve !== null && allowance !== null && selectAllowanceRaise(reserve, allowance).valid;
+  const raise = reserve && allowance !== null ? selectAllowanceRaise(reserve, allowance) : null;
+  const valid = raise?.valid === true;
 
   return (
     <WithPerson address={waiting?.recipient}>
@@ -83,7 +87,7 @@ export function VoucherRaiseAllowanceDialog({
             id: "cockpit.garden.pool.voucher.raise.confirm",
             defaultMessage: "Raise Allowance",
           })}
-          confirmDisabled={!valid}
+          confirmDisabled={disabled || !valid}
           act={async () => {
             if (reserve && allowance !== null && valid) await onRaise(reserve, allowance);
           }}
@@ -163,13 +167,21 @@ export function VoucherRaiseAllowanceDialog({
             error={
               valid
                 ? undefined
-                : formatMessage(
-                    {
-                      id: "cockpit.garden.pool.voucher.raise.tooLow",
-                      defaultMessage: "More than the {left} left now",
-                    },
-                    { left: count(reserve?.allowance.left ?? 0n) }
-                  )
+                : waiting && raise?.coversWaiting === false
+                  ? formatMessage(
+                      {
+                        id: "cockpit.garden.pool.voucher.raise.belowWaiting",
+                        defaultMessage: "At least {count}, so the waiting reward can be sent",
+                      },
+                      { count: count(waiting.units) }
+                    )
+                  : formatMessage(
+                      {
+                        id: "cockpit.garden.pool.voucher.raise.tooLow",
+                        defaultMessage: "More than the {left} left now",
+                      },
+                      { left: count(reserve?.allowance.left ?? 0n) }
+                    )
             }
             helperText={formatMessage({
               id: "cockpit.garden.pool.voucher.raise.hint",

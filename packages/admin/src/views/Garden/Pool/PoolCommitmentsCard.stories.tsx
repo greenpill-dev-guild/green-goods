@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import enMessages from "@green-goods/shared/i18n/en.json";
 import esMessages from "@green-goods/shared/i18n/es.json";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
@@ -5,7 +6,9 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useState } from "react";
 import { IntlProvider } from "react-intl";
 import { expect, screen, userEvent, within } from "storybook/test";
-import { daysAgo } from "../../../../../shared/.storybook/fixtures";
+import { buildCommitmentMetadata } from "@green-goods/shared/modules/commitment-pooling/metadata";
+import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
+import { daysAgo, daysFromNow } from "../../../../../shared/.storybook/fixtures";
 import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
 import {
   type PoolCommitmentFocus,
@@ -19,19 +22,73 @@ import {
   STORY_GROUP_TITLES,
   storyPoolConsole,
 } from "./poolStoryFixtures";
+import { STORY_STEWARD } from "./poolStoryActors";
 import {
   nameVoucherMembers,
   STORY_GREEN_GOODS_COMMITMENTS,
   STORY_GREEN_GOODS_RETURN_FAILED,
   STORY_GREEN_GOODS_SAFE,
   STORY_GREEN_GOODS_VOUCHERS,
+  STORY_MARA_VISIT,
+  STORY_MARA_VISIT_ENDED,
   STORY_TECH_AND_SUN_COMMITMENTS,
+  STORY_TECH_AND_SUN_SAFE,
   STORY_TECH_AND_SUN_VOUCHERS,
   STORY_VOUCHER_TITLES,
   storyVoucherConsole,
 } from "./poolStoryVouchers";
 
 const GROUP_TITLES = new Map([...STORY_TITLES, ...STORY_GROUP_TITLES]);
+
+/** Three hub days Tech and Sun made together; Mara booked the first, and her visit is under way. */
+const HUB_DAYS_CID = "bafy-hub-days";
+const HUB_DAY_TITLES = new Map([
+  ...STORY_VOUCHER_TITLES,
+  [
+    HUB_DAYS_CID,
+    buildCommitmentMetadata({
+      title: "Hub day, up to 4 hours",
+      displayGroup: { version: 1, id: "group-hubdays01" },
+    }),
+  ],
+]);
+const hubDay = (id: number, overrides: Partial<CommitmentReadModel> = {}) =>
+  storyCommitment({
+    id: `${DEFAULT_CHAIN_ID}-${id}`,
+    commitmentId: BigInt(id),
+    onchainState: "OFFERED",
+    derivedState: "OFFERED",
+    state: "OFFERED",
+    direction: "OFFER",
+    creator: STORY_STEWARD,
+    leadProvider: STORY_STEWARD,
+    counterparty: null,
+    unitLabel: "booking",
+    targetUnits: 1n,
+    dueDate: BigInt(daysFromNow(36)),
+    requirements: [],
+    poolId: 7n,
+    commitmentSeriesId: 0n,
+    claimType: "INDIVIDUAL",
+    contributorPolicy: "LEAD_MANAGED",
+    needUID: null,
+    counterCommitmentId: 0n,
+    considerationSource: null,
+    considerationToken: null,
+    claimMode: "APPROVAL_GATED",
+    metadataCID: HUB_DAYS_CID,
+    ...overrides,
+  });
+const HUB_DAY_COPIES = [
+  hubDay(61, {
+    onchainState: "ACCEPTED",
+    derivedState: "ACTIVE",
+    state: "ACCEPTED",
+    counterparty: STORY_MARA_VISIT.holder,
+  }),
+  hubDay(62),
+  hubDay(63),
+];
 
 /** The card owns no filter state; the story does, so the chips work. */
 function PoolCommitmentsCardWithScope(props: ComponentProps<typeof PoolCommitmentsCard>) {
@@ -474,5 +531,71 @@ export const VoucherTransferFailed: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("button", { name: "Retry Transfer" })).toBeEnabled();
     await expect(canvas.getByRole("button", { name: "Needs recovery (1)" })).toBeVisible();
+  },
+};
+
+/** Mara's hub day stopped after 2 of its 4 usable hours: the row counts hours and needs a return. */
+export const VoucherVisitEndedEarly: Story = {
+  args: {
+    ...VoucherBookings.args,
+    vouchers: storyVoucherConsole({
+      ...STORY_TECH_AND_SUN_VOUCHERS,
+      bookings: [STORY_MARA_VISIT_ENDED],
+    }),
+    safe: STORY_TECH_AND_SUN_SAFE,
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Ended early · 2 of 4 hours")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Propose Return…" }));
+    await expect(await screen.findByText("Propose a Return to Mara")).toBeVisible();
+  },
+};
+
+/**
+ * Lina's access is past its due date and the 6 back to her didn't arrive: the
+ * row keeps Retry Transfer, since expiring it would return nothing.
+ */
+export const VoucherTransferFailedPastDue: Story = {
+  args: {
+    ...VoucherTransferFailed.args,
+    console: storyPoolConsole({
+      commitments: STORY_GREEN_GOODS_COMMITMENTS.map((row) =>
+        row.commitmentId === 51n ? { ...row, dueDate: BigInt(daysAgo(2)) } : row
+      ),
+      claims: [],
+      titles: STORY_VOUCHER_TITLES,
+    }),
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+    await expect(canvas.queryByRole("button", { name: "Expire Now…" })).toBeNull();
+  },
+};
+
+/** Copies made together fold into one row, and Mara's visit on one of them keeps its own, with its act. */
+export const VoucherGroupedBooking: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: HUB_DAY_COPIES,
+      claims: [],
+      titles: HUB_DAY_TITLES,
+    }),
+    vouchers: storyVoucherConsole({
+      ...STORY_TECH_AND_SUN_VOUCHERS,
+      asks: [],
+      bookings: [{ ...STORY_MARA_VISIT, commitmentId: 61n }],
+    }),
+    target: { gardenName: "Tech and Sun", isProtocol: false },
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByTestId("pool-group-group-hubdays01")).toBeVisible();
+    await expect(canvas.getByTestId("pool-commitment-61")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Report Visit…" })).toBeVisible();
   },
 };

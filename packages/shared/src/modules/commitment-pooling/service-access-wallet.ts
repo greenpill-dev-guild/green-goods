@@ -175,15 +175,16 @@ export async function readLiveVoucherWallet(
 }
 
 /**
- * A Safe's threshold and owner count; null when the read fails or the answer is impossible. Both
- * ride one batched call, so they come from one block: two separate reads could straddle a change
- * of rule and pair the old threshold with the new owners, a rule the Safe never had.
+ * A Safe's threshold, its owners and their count; null when the read fails or the answer is
+ * impossible. Both ride one batched call, so they come from one block: two separate reads could
+ * straddle a change of rule and pair the old threshold with the new owners, a rule the Safe never
+ * had.
  */
 async function readSafeRule(
   read: ServiceChainRead,
   chainId: number,
   safe: Address
-): Promise<{ threshold: number; owners: number } | null> {
+): Promise<{ threshold: number; owners: number; signers: Address[] } | null> {
   try {
     const batch = getChain(chainId).contracts?.multicall3?.address;
     if (!batch) throw new Error("No batch reader on the Safe's chain");
@@ -217,17 +218,18 @@ async function readSafeRule(
     const threshold = serviceUint(rawThreshold);
     if (!Array.isArray(rawOwners) || rawOwners.length > MAX_SAFE_OWNERS)
       throw new Error("Malformed Safe owner list");
-    const owners = new Set(rawOwners.map(serviceAddress)).size;
+    const signers = [...new Set(rawOwners.map(serviceAddress))];
+    const owners = signers.length;
     if (owners !== rawOwners.length || threshold < 1n || threshold > BigInt(owners))
       throw new Error("Safe threshold outside its owners");
-    return { threshold: Number(threshold), owners };
+    return { threshold: Number(threshold), owners, signers };
   } catch (error) {
     logger.warn("Issuer Safe threshold read failed", { error, safe });
     return null;
   }
 }
 
-/** An issuer Safe's signature rule in the console's contract: a count only when observed. */
+/** An issuer Safe's signature rule in the console's contract: a count and owners only when observed. */
 export async function readIssuerSafeThreshold(
   read: ServiceChainRead,
   chainId: number,
@@ -236,7 +238,7 @@ export async function readIssuerSafeThreshold(
   const rule = await readSafeRule(read, chainId, safe);
   return rule
     ? { safe, status: "observed", ...rule }
-    : { safe, status: "unavailable", threshold: null, owners: null };
+    : { safe, status: "unavailable", threshold: null, owners: null, signers: null };
 }
 
 /** The signature count comes from the Safe itself; a member issuer approves from its own account. */
@@ -247,7 +249,7 @@ export async function readVoucherIssuerApproval(
   if (issuer.kind === "individual") return { kind: "account", evidence: "onchain" };
   const rule = await readSafeRule(read, issuer.asset.chainId, issuer.account);
   return rule
-    ? { kind: "safe", evidence: "onchain", ...rule }
+    ? { kind: "safe", evidence: "onchain", threshold: rule.threshold, owners: rule.owners }
     : { kind: "unavailable", reason: "read-failed" };
 }
 

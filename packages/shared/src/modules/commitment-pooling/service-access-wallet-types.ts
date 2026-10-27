@@ -35,6 +35,11 @@ export interface IssuerSafeThreshold {
   status: "observed" | "unavailable";
   threshold: number | null;
   owners: number | null;
+  /**
+   * The Safe's owners, read with the count, so the console offers the Safe's own acts only to
+   * someone who can sign them. Null when they aren't known: a failed read, or the DEV rehearsal.
+   */
+  signers: readonly Address[] | null;
 }
 
 /** Where a booking lives, so a wallet row can open it whatever garden is active. */
