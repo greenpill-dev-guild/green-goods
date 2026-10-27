@@ -122,8 +122,8 @@ export function initGlobalErrorHandlers(): () => void {
   };
 
   // Vite emits before SDKs such as AppKit catch and swallow import failures.
-  const handlePreloadError = (event: VitePreloadErrorEvent) => {
-    appCodeRecovery.report(event.payload);
+  const handlePreloadError = (event: Event) => {
+    if ("payload" in event) appCodeRecovery.report(event.payload);
   };
 
   window.addEventListener("vite:preloadError", handlePreloadError);

@@ -35,6 +35,7 @@ describe("global import-failure recovery", () => {
     initGlobalErrorHandlers();
     const before = appCodeRecovery.getSnapshot();
     window.dispatchEvent(importFailure(new Error("Wallet request rejected")));
+    window.dispatchEvent(new Event("vite:preloadError"));
     expect(appCodeRecovery.getSnapshot()).toBe(before);
   });
 
