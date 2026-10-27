@@ -68,10 +68,8 @@
   .screens { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; }
   .phone figcaption { font: 600 11px/1.3 var(--sans); margin-top: 6px; }
   .cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 12px; }
-  .phone .frame { height: 73mm; overflow: hidden; border-radius: 14px; border: 1px solid var(--rule); background: var(--paper); }
-  .phone img { width: 100%; display: block; }
-  .phone.a img { margin-top: -37.7%; }   /* starts at the garden's name, below the demo photo */
-  .phone.b img { margin-top: -28.5%; }   /* starts at the top edge of the sheet */
+  .phone .frame { height: 84mm; overflow: hidden; border-radius: 14px; border: 1px solid var(--rule); background: var(--paper); }
+  .phone img { width: 100%; display: block; margin-top: -32.1%; }   /* both demo screens start at the top edge of their sheet, y 250 of 780 wide */
 
   /* Page 3 */
   .flow { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 14px; margin: 12px 0 4px; }
@@ -142,19 +140,19 @@
 <section class="page p1">
   <p class="meta">Green Goods brief · October 2026 · Written for SustainableFinance.Live 2026, Problem Statement 2</p>
   <h1>Green Goods: From <em class="accent">Good</em> Intentions to <em class="accent">Green</em> Outcomes</h1>
-  <p class="lede" style="margin-top:12px">We built commitment pooling: communities promise useful work, prove it, and turn the record into support. We are starting with <a href="https://techandsun.com">Tech and Sun</a>, which builds solar-powered hubs in Nigeria; its first hub is live in Awka. We are also showing how diaspora and institutional capital can follow that record and sustain the work.</p>
+  <p class="lede" style="margin-top:12px">We built commitment pooling: communities promise useful work, prove it, and turn the record into support. The people a promise served confirm it was kept, never the people who did the work. We are starting with <a href="https://techandsun.com">Tech and Sun</a>, which builds solar-powered hubs in Nigeria; its first hub is live in Awka. We are also showing how diaspora and institutional capital can follow that record and sustain the work.</p>
   <figure class="hero" style="margin-left:0;margin-right:0"><img src="../deck/assets/photos/awka-hub.jpg" alt="Tech and Sun members standing together outside the solar-roofed hub in Awka" /></figure>
   <div class="cols-2">
     <div class="rule"><h3>The problem</h3><p>Communities create value every season, but the record of it stays trapped. Proving work costs more than doing it, reporting tools were built for offices, and the record sits on platforms communities don't own. Groups with a real delivery record still look risky and stay tied to single grants.</p></div>
-    <div class="rule"><h3>What we built</h3><p>Commitment pooling: members offer or request specific work, see what others can offer and need, take promises up and document them. The person served confirms a promise was kept, never the person who did the work. For this hackathon we connected promises to <a href="https://docs.cosmolocal.credit">Cosmo-Local Credit</a> service vouchers, so kept promises can earn services that members trade in one shared pool.</p></div>
+    <div class="rule"><h3>What we built</h3><p>Commitment pooling: members offer or request specific work, see what others can offer and need, take promises up and document them. For this hackathon we connected promises to <a href="https://docs.cosmolocal.credit">Cosmo-Local Credit</a> service vouchers, so kept promises can earn services that members trade in one shared pool.</p></div>
     <div class="rule"><h3>How it pays for itself</h3><p>Funders pay Green Goods a separate fee for setup, support and reporting, priced by projects and workload. Green Goods' share of what each garden's endowment earns is 2.7% by default, set per garden; routing it to Green Goods is being switched on. Never a supporter's deposit, never a garden's shared fund. Illustrative six-month program: $50,000, with $40,000 to the garden and a $10,000 fee against $6,500 of delivery cost.</p></div>
     <div class="rule"><h3>Where it stands</h3><p><b>Live:</b> the app, promises, chat reporting and endowments. <b>Deployed:</b> the voucher contracts, on public networks since 24 October. <b>In pilot:</b> service vouchers with Tech and Sun. <b>Open now:</b> the hub's first promise season, running to 31 January 2027. <b>Next:</b> the pilot's first voucher services, then more places on the same model.</p></div>
   </div>
   <div class="rule" style="margin-top:2px">
     <h3>What we need, beyond funding</h3>
     <ul class="needs">
-      <li><svg class="icon"><use href="#i-compass"/></svg><span>Business development mentorship.</span></li>
       <li><svg class="icon"><use href="#i-link"/></svg><span>Introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods.</span></li>
+      <li><svg class="icon"><use href="#i-compass"/></svg><span>Business development mentorship.</span></li>
       <li><svg class="icon"><use href="#i-megaphone"/></svg><span>Marketing support to help tell our story.</span></li>
     </ul>
     <p class="contact"><a href="mailto:contact@greengoods.app">contact@greengoods.app</a> · <a href="https://greengoods.app">greengoods.app</a> · <a href="https://beta.greengoods.app">beta.greengoods.app</a> · <a href="https://docs.greengoods.app">docs.greengoods.app</a></p>
@@ -214,8 +212,8 @@
       <p>Work, approvals and assessments are signed attestations, so anyone can check who recorded what and when. Each promise keeps a permanent identity that cannot be transferred.</p>
     </div>
     <div class="rule screens">
-      <figure class="phone a" style="margin:0"><div class="frame"><img src="../deck/assets/screens/garden-promises.png" alt="A garden's Promises tab with a season card and promises marked Needs you, In progress and Offered" /></div><figcaption>The garden's promises</figcaption></figure>
-      <figure class="phone b" style="margin:0"><div class="frame"><img src="../deck/assets/screens/confirm.png" alt="A sheet asking Was the work you asked for done?" /></div><figcaption>Confirm it was kept</figcaption></figure>
+      <figure class="phone a" style="margin:0"><div class="frame"><img src="../demo/assets/screens/promise-3.jpg" alt="Tech and Sun's Promises sheet: the open Climate and Tech Education season and its requests to complete the UN CC:Learn climate course" /></div><figcaption>The garden's promises</figcaption></figure>
+      <figure class="phone b" style="margin:0"><div class="frame"><img src="../demo/assets/screens/promise-11.jpg" alt="A sheet asking Did the help arrive?, with a member's course proof" /></div><figcaption>Confirm it was kept</figcaption></figure>
     </div>
   </div>
   <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods brief · October 2026</span><span class="n">2 / 6</span></footer>
@@ -224,11 +222,11 @@
 <!-- 3 · Service vouchers and the shared pool -->
 <section class="page">
   <h2>Service vouchers and the shared pool</h2>
-  <p class="lede"><a href="https://docs.cosmolocal.credit">Cosmo-Local Credit</a> is the open voucher protocol from <a href="https://grassrootseconomics.org">Grassroots Economics</a>, which grew from the Sarafu community pools in Kenya. A voucher represents its issuer's future service under published terms. We connected it to commitment pooling, so kept promises can earn services and members can offer their own.</p>
+  <p class="lede">Members trade services with vouchers, like an hour of help for a career call, and kept promises can earn them. A voucher represents its issuer's future service under published terms. It runs on <a href="https://docs.cosmolocal.credit">Cosmo-Local Credit</a>, the open voucher protocol from <a href="https://grassrootseconomics.org">Grassroots Economics</a>, which grew from the Sarafu community pools in Kenya.</p>
   <div class="flow">
     <div><div class="disc"><svg class="icon"><use href="#i-ticket"/></svg></div><h3>Issue</h3><p>A member or a garden offers a service as vouchers, like an hour of help or a hub visit.</p></div>
     <div><div class="disc"><svg class="icon"><use href="#i-swap"/></svg></div><h3>Earn or exchange</h3><p>Kept promises earn vouchers. Members can also swap them in one shared pool.</p></div>
-    <div><div class="disc"><svg class="icon"><use href="#i-lock"/></svg></div><h3>Book</h3><p>Both sides consent, and the vouchers are held in escrow until the service happens.</p></div>
+    <div><div class="disc"><svg class="icon"><use href="#i-lock"/></svg></div><h3>Book</h3><p>Both sides consent, and the vouchers are held until the service happens.</p></div>
     <div><div class="disc"><svg class="icon"><use href="#i-return"/></svg></div><h3>Confirm</h3><p>Delivered units go back to the issuer. Anything undelivered returns to the holder.</p></div>
   </div>
   <div class="section cols-2">
@@ -244,7 +242,7 @@
       <h3>How a booking stays fair</h3>
       <ul>
         <li>Exact consent from the holder and the issuer comes before acceptance.</li>
-        <li>Vouchers sit in escrow before the service is accepted.</li>
+        <li>Vouchers are held from booking until the service is accepted.</li>
         <li>One final split: delivered units to the issuer, undelivered units to the holder.</li>
         <li>A swap changes who holds a voucher, never the delivery record. Returned vouchers do not restore capacity already used.</li>
         <li>No cash-out, automatic burn or pooled guarantee is promised.</li>

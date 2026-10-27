@@ -63,6 +63,7 @@
   .s-title .sub { margin: 52px 0 0; max-width: 1160px; font: 400 32px/1.46 var(--sans); color: var(--sub); text-wrap: pretty; }
 
   /* 3 · The solution: three circles in the mechanism styles below, each with a caption */
+  .s-solution .rule-line { margin: 28px 0 0; font: italic 400 44px/1.2 var(--serif); letter-spacing: -0.01em; color: var(--green-action); } /* the confirmation rule, as the slide's second headline */
   .s-solution .cap { position: absolute; top: 704px; width: 460px; text-align: center; font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
 
   /* 6 · Commitment pooling */
@@ -75,9 +76,8 @@
   .phone { position: absolute; top: 300px; width: 340px; margin: 0; }
   .phone.p1 { left: 1050px; } .phone.p2 { left: 1452px; }
   .phone figcaption { margin: 16px 0 0 4px; font: 600 22px/1.2 var(--sans); color: var(--ink); }
-  .phone .frame { height: 540px; } /* ends between list cards; the sheet still shows both buttons */
-  .phone.p1 img { margin-top: -128px; } /* starts at the garden's name, below the demo photo */
-  .phone.p2 img { margin-top: -97px; }  /* starts at the top edge of the sheet */
+  .phone .frame { height: 624px; } /* down past the confirm sheet's two buttons */
+  .phone img { margin-top: -109px; } /* both demo screens start at the top edge of their sheet, y 250 of 1688 */
 
   /* 5 · The loop */
   .s-cycle .track { fill: none; stroke: var(--track); stroke-width: 44; }
@@ -210,7 +210,7 @@
 
   /* 17 · What we need */
   .s-ask .needs { position: absolute; left: var(--px); top: 340px; width: 900px; list-style: none; margin: 0; padding: 0; }
-  .s-ask .needs li { display: grid; grid-template-columns: 48px 1fr; column-gap: 26px; align-items: start; margin-bottom: 46px; font: 400 30px/1.4 var(--sans); color: var(--ink-2); }
+  .s-ask .needs li { display: grid; grid-template-columns: 48px 1fr; column-gap: 26px; align-items: start; font: 400 40px/1.35 var(--sans); color: var(--ink-2); } /* the one ask */
   .s-ask .contact { position: absolute; left: var(--px); top: 790px; font: 400 44px/1 var(--serif); color: var(--green-action); letter-spacing: -0.01em; } /* baseline level with the photo's foot */
   .ask-photo { position: absolute; left: 1140px; top: 340px; width: 652px; margin: 0; }
   .ask-photo img { display: block; width: 100%; height: 489px; object-fit: cover; }
@@ -297,6 +297,7 @@
 <!-- 3 · The solution -->
 <section class="slide s-solution" data-label="The solution" data-time="0:25">
   <h1>Green Goods gives a community one record of what it promised, did and proved.</h1>
+  <p class="rule-line">Confirmed by the people it served, never by the people who did the work.</p>
   <svg class="art" viewBox="0 0 1920 1080" aria-hidden="true">
     <line class="supportline" x1="526.0" y1="548.0" x2="832.0" y2="548.0" marker-end="url(#ah-deep)"/><line class="supportline" x1="1086.0" y1="548.0" x2="1392.0" y2="548.0" marker-end="url(#ah-deep)"/>
     <circle class="mech hubby" cx="400" cy="548" r="112"/><text class="mech-name" x="400" y="559" text-anchor="middle">Garden</text>
@@ -346,16 +347,16 @@
     <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><p>Only the person it was made for can confirm it was kept.</p></div>
     <p class="closing">Kept promises become a record that rewards and funding can follow.</p>
   </div>
-  <figure class="phone p1"><div class="frame"><img src="assets/screens/garden-promises.png" alt="A garden's Promises tab: a season card reading 3 of 7 kept, and promises marked Needs you, In progress and Offered" /></div><figcaption>See the garden's promises</figcaption></figure>
-  <figure class="phone p2"><div class="frame"><img src="assets/screens/confirm.png" alt="A sheet asking Was the work you asked for done?, which only the person who asked can confirm" /></div><figcaption>Confirm it was kept</figcaption></figure>
+  <figure class="phone p1"><div class="frame"><img src="../demo/assets/screens/promise-3.jpg" alt="Tech and Sun's Promises sheet: the open Climate and Tech Education season and its requests to complete the UN CC:Learn climate course" /></div><figcaption>See the garden's promises</figcaption></figure>
+  <figure class="phone p2"><div class="frame"><img src="../demo/assets/screens/promise-11.jpg" alt="A sheet asking Did the help arrive?, with a member's course proof, which only the person who asked can confirm" /></div><figcaption>Confirm it was kept</figcaption></figure>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">6 / 18</span>
 </section>
 
 <!-- 7 · Cosmo-Local vouchers -->
 <section class="slide s-vouchers" data-label="Cosmo-Local vouchers" data-time="0:30">
-  <h1>We connected promises to Cosmo-Local service vouchers.</h1>
-  <p class="lede">Cosmo-Local Credit is the open voucher protocol from Grassroots Economics. With it, members and gardens offer their own services and trade access in one shared pool. Deployed on public networks and in pilot with Tech and Sun; rehearsed end to end with demo accounts.</p>
-  <div class="flow"><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-ticket"/></svg></div><h3>Issue</h3><p>A member or a garden offers a service as vouchers, like an hour of help or a hub visit.</p></div><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-swap"/></svg></div><h3>Earn or exchange</h3><p>Kept promises earn vouchers. Members can also swap them in one shared pool.</p></div><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-lock"/></svg></div><h3>Book</h3><p>Booking holds the vouchers in escrow until the service happens.</p></div><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-return"/></svg></div><h3>Confirm</h3><p>Delivered units go back to the issuer. Anything undelivered returns to the holder.</p></div></div>
+  <h1>Members trade services with vouchers: an hour of help for a career call.</h1>
+  <p class="lede">Members and gardens offer their own services as vouchers, and kept promises earn them. It runs on Cosmo-Local Credit, the open voucher protocol from Grassroots Economics. Deployed on public networks and in pilot with Tech and Sun; rehearsed end to end with demo accounts.</p>
+  <div class="flow"><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-ticket"/></svg></div><h3>Issue</h3><p>A member or a garden offers a service as vouchers, like an hour of help or a hub visit.</p></div><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-swap"/></svg></div><h3>Earn or exchange</h3><p>Kept promises earn vouchers. Members can also swap them in one shared pool.</p></div><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-lock"/></svg></div><h3>Book</h3><p>Booking holds the vouchers until the service happens.</p></div><div class="stage-item"><div class="disc"><svg class="icon lg" aria-hidden="true"><use href="#i-return"/></svg></div><h3>Confirm</h3><p>Delivered units go back to the issuer. Anything undelivered returns to the holder.</p></div></div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">7 / 18</span>
 </section>
 
@@ -513,7 +514,7 @@
 <!-- 17 · What we need -->
 <section class="slide s-ask" data-label="What we need" data-time="0:25">
   <h1 class="md">Help us find the first supporter, and tell us what would make you the second.</h1>
-  <ul class="needs"><li><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg><span>Business development mentorship.</span></li><li><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg><span>Introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods.</span></li><li><svg class="icon" aria-hidden="true"><use href="#i-megaphone"/></svg><span>Marketing support to help tell our story.</span></li></ul>
+  <ul class="needs"><li><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg><span>Introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods.</span></li></ul>
   <p class="contact">greengoods.app</p>
   <figure class="ask-photo"><img src="assets/photos/tas-hub-build.jpg" alt="Members working at laptops inside the hub in Awka" /><figcaption>Inside the hub. Photo: Tech and Sun.</figcaption></figure>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">17 / 18</span>
@@ -540,11 +541,11 @@
 [
   "Green Goods helps communities turn good intentions into green outcomes. We built commitment pooling: members promise useful work, prove it, and turn the record into support. Today I'll show it at Tech and Sun's solar hub in Awka, Nigeria, and show how diaspora and institutional capital can follow that record and sustain the work.",
   "Communities create value every season: repairs, workshops, plantings, mentoring. But the record of that work stays trapped. Proving the work costs more than doing it. Reporting tools were built for offices, not the field. And the record sits on platforms the community doesn't own. Inside the community, contribution is thanked but not valued. Outside, supporters can't read it, so groups with a real delivery record still look risky and stay tied to single grants.",
-  "So we built Green Goods. It gives a community one record of what it promised, did and proved. We call each community a garden. Gardeners do the work and document it, and stewards run the garden. Evaluators set the baseline and what good evidence looks like. Funders and community members read the record: members confirm what was done for them, and funders fund what it shows.",
+  "So we built Green Goods. It gives a community one record of what it promised, did and proved, confirmed by the people it served, never by the people who did the work. We call each community a garden. Gardeners do the work and document it, stewards run the garden, and evaluators set the baseline and what good evidence looks like. Funders fund what the record shows.",
   "Five roles keep a garden going. Gardeners do and document the work. Stewards run the garden. Evaluators set the baseline. Funders see delivery before and after they give. And community members confirm what was done for them.",
   "A garden runs as a loop, season after season. Needs: stewards and evaluators record what the place needs and where things stand today. Promise: members promise work to each other and to the garden, and agree who does what by when. Work: it is documented with photos and notes, reviewed by stewards and confirmed by the people it served. Funding: supporters fund what the record shows. And what was learned shapes the next season's needs.",
-  "We built commitment pooling for that Promise step. Members offer or request specific work, like a workshop, a repair or a planting, and see what others offer and need, so skills and help move between them. Anyone in the garden can take a promise up. When the work is done, the person it was made for confirms it was kept. The person who did it never can, and if a steward has to step in, the record shows it. These are real app screens.",
-  "For this hackathon we connected promises to Cosmo-Local service vouchers, the open protocol from Grassroots Economics. A member or a garden offers a service as vouchers: an hour of help, a hub visit, a career call. Kept promises can earn vouchers, and members can swap them in one shared pool. Booking holds the vouchers in escrow until the service happens. Then delivered units go back to the issuer, and anything undelivered returns to the holder.",
+  "We built commitment pooling for that Promise step. Members offer or request specific work, like a workshop, a repair or a planting, and see what others offer and need, so skills and help move between them. Anyone in the garden can take a promise up. When the work is done, the person it was made for confirms it was kept. The person who did it never can, and if a steward has to step in, the record shows it. These screens are Tech and Sun's real season in the app, with invented member names.",
+  "Members trade services with vouchers. A member or a garden offers a service as vouchers: an hour of help, a hub visit, a career call. Kept promises can earn vouchers, and members can swap them in one shared pool, like an hour of help for a career call. Booking holds the vouchers until the service happens. Then delivered units go back to the issuer, and anything undelivered returns to the holder. For this hackathon we built it on Cosmo-Local Credit, the open voucher protocol from Grassroots Economics.",
   "We're starting with Tech and Sun, an initiative that builds solar-powered hubs in Nigeria. Its first hub is live in Awka, and its plan names Enugu and Abuja next. Members told us internet and power come first, then learning, engineering and AI. What they want most is opportunity: an October survey put introductions to work and career calls first, and the hub is where they find people to build with. This is the hub in Awka.",
   "So what do members get? Credibility they can carry. In the pilot we're setting up, a designer, an analyst and an engineer build a website together, and each confirmed part goes into their portfolio. Vouchers earned on projects can book career calls and one-to-one help, which is what members asked for. Vouchers can also open hub visits and AI tool seats members can't afford alone. Because the person who did the work never confirms it, the record carries weight with the next employer, mentor or funder.",
   "Hubs are rich in capital, but short of money. Around the hub, the community adds social, cultural, material and living capital. The diaspora brings money, culture, relationships and expertise, and institutions bring money, knowledge and equipment. Money flows in, and evidence of delivery radiates back out.",
@@ -554,7 +555,7 @@
   "This is our revenue model. Funders pay us a separate fee for setup, support and reporting, priced by projects and workload. Green Goods' share of what each garden's endowment earns is 2.7% by default, set per garden, and routing it to us is being switched on. Never a supporter's deposit, never a garden's shared fund. Today our income is grants; the fee and the share are the path. A worked example is in our brief.",
   "Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is open and runs to the end of January. Then more places on the same model: waste work in South Africa next, and agroforestry in Kenya and in Brazil, where Greenpill Kenya, AgroforestDAO and Growecosystems already keep gardens on Green Goods. We are exploring both with local groups.",
   "Our technical goal is simple: report once, and let the record count everywhere. Communities report by app or chat, and Green Goods carries the record to networks they already use: Cosmo-Local Credit now, then Ma Earth through Hypercerts Certified, and Bloom Network and Regen Network, both in conversation.",
-  "Beyond funding, here is what would help us most: business development mentorship; introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods; and marketing support to help us tell our story. So help us find the first supporter, and tell us what would make you the second.",
+  "Beyond funding, one thing would help us most: introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods. So help us find the first supporter, and tell us what would make you the second.",
   "Let's grow together. Thank you. Scan the code to see commitment pooling live on our beta, and we'd love your questions."
 ]
 </script>

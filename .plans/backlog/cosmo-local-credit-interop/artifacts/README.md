@@ -28,9 +28,8 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | [`deck/index.html`](deck/index.html) | The 18-slide deck: one HTML file with inline diagrams, map and QR code, the Warm Earth tokens and the speaker notes in its `#speaker-notes` block |
 | [`deck/speaker-notes.md`](deck/speaker-notes.md) | Eighteen notes of 10 to 35 seconds each, 8:00 in total, plus cuts for a shorter slot, claims to keep straight and the Q&A business-model and endowment references |
 | [`deck/render.mjs`](deck/render.mjs) | Checks the deck, syncs the notes, renders PNGs, a contact sheet and the PDF |
-| [`deck/capture-screens.mjs`](deck/capture-screens.mjs) | Captures the two product screens the deck and brief use, replacing the pair only when each story shows its expected copy |
 | [`deck/assets/brand/`](deck/assets/brand/) | The official logo and the symbol, cropped to its shapes for the corner mark |
-| `deck/assets/screens/`, `deck/assets/photos/` | Local images, not committed; see [Photos and screens](#photos-and-screens) |
+| `deck/assets/photos/`, `demo/assets/screens/` | Local images, not committed; see [Photos and screens](#photos-and-screens) |
 | [`brief/index.html`](brief/index.html) | The Green Goods brief: six A4 pages in the same style, made to stand on its own; page 1 doubles as the one-page summary; its links are clickable in the PDF |
 | [`brief/render.mjs`](brief/render.mjs) | Checks the brief and renders its PDF and page PNGs |
 | [`submission/business-model-canvas.html`](submission/business-model-canvas.html) | The Business Model Canvas the event asks for: one A4 landscape page, the nine standard blocks, figures from the brief and labeled illustrative |
@@ -59,7 +58,6 @@ From the repository root of an installed checkout. A checkout without `node_modu
 installing anything:
 
 ```bash
-node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/capture-screens.mjs
 node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --sync
 node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs
 node .plans/backlog/cosmo-local-credit-interop/artifacts/brief/render.mjs
@@ -104,11 +102,13 @@ June 2026 Octant demo-day deck's folder; place them with:
 cp /Users/afo/Code/greenpill/artifacts/octant-e12-deck/assets/photos/{awka-hub,tas-hub-build,odunde-masquerade,omo-yoruba-bridge}.jpg .plans/backlog/cosmo-local-credit-interop/artifacts/deck/assets/photos/
 ```
 
-`capture-screens.mjs` writes two screens, also kept out of git: `garden-promises.png` and
-`confirm.png`, from the deployed Storybook at design.greengoods.app, real components with demo
-data (Riverside Commons Garden; the fixture names and shortened addresses are synthetic). Since
-the final polish the slide and the brief no longer label them, so the notes' claims list reminds
-the presenter. The live garden page capture retired with the Tech and Sun slide's photo.
+Slide 6 and the brief's second page show two of the clickable demo's screens, also kept out of
+git: `demo/assets/screens/promise-3.jpg`, the hub's Promises sheet in its open season, and
+`promise-11.jpg`, the sheet that confirms a kept promise, with a member's course proof. They are
+Tech and Sun's real season and request in the current app, with invented member names; run the
+demo's capture (see `demo/README.md`) before the deck and brief renders on a fresh checkout. The
+notes' claims list tells the presenter what they show. The earlier Storybook pair and its capture
+script retired in the [critique pass](#the-critique-pass--26-october-2026).
 
 ## The revision · 25 October 2026
 
@@ -406,6 +406,43 @@ material, and an accuracy pass over the four documents.
   exits 0) and copied to the Drive folder. Its UI review's new top finding is for Afo: the real
   request pays $20, and neither the request page nor the take-up sheet shows a reward.
 
+## The critique pass · 26 October 2026
+
+Applied at Afo's request on 26 October from four AI-generated audio critiques, one each for the
+deck, the brief, the canvas and the architecture. The points that held went in; the ones built on
+misreadings, or that would add errors, did not.
+
+- **Real screens on slide 6.** The deck critic read the Storybook fixture garden as real ("a
+  fence repair at Riverside Commons"), and the pair also showed raw addresses and proof that
+  "cannot be shown right now". Slide 6 and the brief's second page now show the demo's hub
+  Promises sheet and its confirm sheet with the course proof; `deck/capture-screens.mjs` retired
+  with the Storybook pair, so the Storybook outage no longer blocks the deck.
+- **The confirmation rule as a headline.** Slide 3 carries it as a second headline under the
+  title, "Confirmed by the people it served, never by the people who did the work.", since a
+  title with the clause ran past the deck's two-line limit. The brief's opening now says the
+  people a promise served confirm it was kept, never the people who did the work, and the same
+  sentence left "What we built". The architecture's first rule is set in bold.
+- **Behavior before protocol.** Slide 7's title is "Members trade services with vouchers: an hour
+  of help for a career call", with Cosmo-Local Credit in its lede, and the brief's vouchers page
+  opens the same way. "Escrow" leaves the slide and that page and stays on the architecture page.
+- **One ask.** Slide 17 asks only for introductions to funders piloting allocation tools. The
+  brief keeps all three needs, introductions first.
+- **The architecture's reasons.** Its lede ties the record to Problem Statement 2's own words:
+  commitments and histories made visible for fair finance, mutual credit and better
+  coordination. Each network's label names why it is there: Celo is the home of G$ (canonical
+  G$, per the builders' architecture page), Arbitrum One the home of Green Goods, and Gnosis the
+  home of Cosmo-Local (its published deployment table). To fit, Arbitrum's job reads "Record
+  and capital", the lede's last sentence went (Data in and Data out say it), and the last rule
+  says "their approval".
+- **The canvas's bridge and scale.** "Usable offline" now says captured work waits on the phone
+  and uploads as a signed record once back online (the gardener sends it with Upload all, per the
+  builders' architecture page). The cost block says setup comes once per garden, so later seasons
+  cost less, and the endowment share grows with capital, not staff hours.
+- **Not applied.** "Tokenomics", "trustless" and a "time bank" analogy, which misdescribe vouchers
+  and confirmation; quantified savings, which the pilot has not measured; tier prices, which need
+  reviewed inputs; and the critics' generic network reasons. The notes' claims heading moved to 26
+  October, closing a review nit on two readings taken that day.
+
 ## The rebuild · 24 October 2026
 
 Superseded in part by the revision above. Applied from Afo's review and two rounds of questions;
@@ -524,6 +561,21 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
     line is the ledger owner's to reconcile; the deck states no time of day.
 11. **Fonts offline.** Fraunces and Inter load from Google Fonts. Vendoring the OFL files would
     remove that dependency; it needs a download this task did not authorize. The PDFs embed both.
+
+## Task record · critique pass
+
+Task record: SF.Live critique pass, six pre-submission updates | Type: documentation/design |
+Outcome: complete locally; the six updates Afo approved are in, and the critics' other points are
+recorded under "Not applied" | Agent/model: Claude Code / Claude Fable 5.1 and Claude Opus 5.5 |
+Coverage: deck, notes, brief, both one-pagers and this README, from `66d96adb3`
+
+| Phase | Start → end (UTC, 26 to 27 October 2026) | Result / evidence |
+|---|---|---|
+| investigate | ~23:55 → ~00:15 | Four audio critiques transcribed on-device; each claim checked against the four documents, the plan's spec, the brand voice page and the builders' architecture page |
+| implement | ~00:15 → ~00:30 | Slide 6 and brief page 2 screens, slide 3 rule line, slide 7 and brief page 3 openings, slide 17's one ask, the architecture's lede and network labels, the canvas's offline and scale lines; the Storybook capture script removed |
+| verify | ~00:25 → ~00:40 | Deck, brief and submission renders exit 0 after fixing a three-line headline and two small overflows; changed slides and pages inspected as PNGs |
+
+Human corrections: 0.
 
 ## Task record · links and layout
 

@@ -25,7 +25,7 @@ Communities create value every season: repairs, workshops, plantings, mentoring.
 
 ## 3. The solution · 0:25
 
-So we built Green Goods. It gives a community one record of what it promised, did and proved. We call each community a garden. Gardeners do the work and document it, and stewards run the garden. Evaluators set the baseline and what good evidence looks like. Funders and community members read the record: members confirm what was done for them, and funders fund what it shows.
+So we built Green Goods. It gives a community one record of what it promised, did and proved, confirmed by the people it served, never by the people who did the work. We call each community a garden. Gardeners do the work and document it, stewards run the garden, and evaluators set the baseline and what good evidence looks like. Funders fund what the record shows.
 
 ## 4. Five roles · 0:15
 
@@ -37,11 +37,11 @@ A garden runs as a loop, season after season. Needs: stewards and evaluators rec
 
 ## 6. Commitment pooling · 0:35
 
-We built commitment pooling for that Promise step. Members offer or request specific work, like a workshop, a repair or a planting, and see what others offer and need, so skills and help move between them. Anyone in the garden can take a promise up. When the work is done, the person it was made for confirms it was kept. The person who did it never can, and if a steward has to step in, the record shows it. These are real app screens.
+We built commitment pooling for that Promise step. Members offer or request specific work, like a workshop, a repair or a planting, and see what others offer and need, so skills and help move between them. Anyone in the garden can take a promise up. When the work is done, the person it was made for confirms it was kept. The person who did it never can, and if a steward has to step in, the record shows it. These screens are Tech and Sun's real season in the app, with invented member names.
 
 ## 7. Cosmo-Local vouchers · 0:30
 
-For this hackathon we connected promises to Cosmo-Local service vouchers, the open protocol from Grassroots Economics. A member or a garden offers a service as vouchers: an hour of help, a hub visit, a career call. Kept promises can earn vouchers, and members can swap them in one shared pool. Booking holds the vouchers in escrow until the service happens. Then delivered units go back to the issuer, and anything undelivered returns to the holder.
+Members trade services with vouchers. A member or a garden offers a service as vouchers: an hour of help, a hub visit, a career call. Kept promises can earn vouchers, and members can swap them in one shared pool, like an hour of help for a career call. Booking holds the vouchers until the service happens. Then delivered units go back to the issuer, and anything undelivered returns to the holder. For this hackathon we built it on Cosmo-Local Credit, the open voucher protocol from Grassroots Economics.
 
 ## 8. Tech and Sun · 0:30
 
@@ -81,7 +81,7 @@ Our technical goal is simple: report once, and let the record count everywhere. 
 
 ## 17. What we need · 0:25
 
-Beyond funding, here is what would help us most: business development mentorship; introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods; and marketing support to help us tell our story. So help us find the first supporter, and tell us what would make you the second.
+Beyond funding, one thing would help us most: introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods. So help us find the first supporter, and tell us what would make you the second.
 
 ## 18. Let's grow together · 0:10
 
@@ -98,7 +98,7 @@ Let's grow together. Thank you. Scan the code to see commitment pooling live on 
   $50,000 six-month program, $40,000 to the garden and a separate $10,000 fee. For transfer
   costs, diaspora size or the hub's context, use the [context reference](#context-reference-for-qa--read-25-october-2026).
 
-## Claims to keep straight · as of 25 October 2026
+## Claims to keep straight · as of 26 October 2026
 
 - **Live:** the Green Goods app, promises (since 14 October), chat reporting by Telegram, the
   endowment and the garden's shared fund, and Tech and Sun's public garden page, where its first
@@ -135,8 +135,8 @@ Let's grow together. Thank you. Scan the code to see commitment pooling live on 
   on", never that it pays us now. Today's income is grants and ecosystem funds. Report and
   certificate fees are planned; the docs' Protocol Economics Explorer presets are scenarios, never
   forecasts. Never a supporter's deposit, never a garden's shared fund.
-- **Screens.** The two phone screens on slide 6 show demo data (Riverside Commons Garden). The
-  slide no longer says so; say it if asked.
+- **Screens.** The two phone screens on slide 6 come from the clickable demo: Tech and Sun's real
+  season and course request, with invented member names. Say so if asked.
 - **Certificates.** A garden turns a season's impact into a certificate, and part of the
   endowment's earnings is set aside for them. Gardens can mint them today; nobody can buy a share
   through Green Goods yet ("next, supporters can buy a share"), and demand is unproven. Say "partly built". Never equity, land, a carbon offset or audited impact.
