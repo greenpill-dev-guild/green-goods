@@ -1,27 +1,7 @@
-import { useServiceAccess, useServiceAccessMutation } from "@green-goods/shared/commitment-pooling";
-import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
-import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
-import {
-  useCommitmentActivity,
-  useCommitmentCycle,
-} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
-import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import enMessages from "@green-goods/shared/i18n/en";
-import esMessages from "@green-goods/shared/i18n/es";
-import ptMessages from "@green-goods/shared/i18n/pt";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo } from "react";
-import { IntlProvider } from "react-intl";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { expect, fn, mocked, waitFor, within } from "storybook/test";
-import {
-  type BookingStoryStage,
-  VOUCHER_STORY_NAMES,
-  VOUCHER_STORY_WALLET_KEY,
-} from "../../../../../../shared/.storybook/voucherBookingFixtures";
+import { useMemo } from "react";
+import { expect, waitFor, within } from "storybook/test";
+import type { BookingStoryStage } from "../../../../../../shared/.storybook/voucherBookingFixtures";
 import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
 import {
   LESSON_STORY_ISSUER,
@@ -31,15 +11,14 @@ import {
   lessonStoryWallet,
 } from "../../../../../../shared/.storybook/voucherLessonFixtures";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
-import { VOUCHER_STORY_SCOPE } from "../../../../../../shared/.storybook/voucherPilotFixtures";
+import {
+  VOUCHER_STORY_PAGE_HOOKS,
+  type VoucherStoryLang,
+  VoucherStoryPage,
+} from "../../../../../../shared/.storybook/voucherStoryPage";
 import { GardenCommitment } from "./GardenCommitment";
 
-type Lang = "en" | "es" | "pt";
-const MESSAGES = { en: enMessages, es: esMessages, pt: ptMessages } as const;
-const NAMES: Readonly<Record<string, string>> = {
-  ...VOUCHER_STORY_NAMES,
-  [LESSON_STORY_ISSUER.account.toLowerCase()]: "Teo Alves",
-};
+const NAMES = { [LESSON_STORY_ISSUER.account.toLowerCase()]: "Teo Alves" };
 
 /** Teo vouchers in the reader's account: one before the deposit, half back after the split. */
 function heldAt(stage: BookingStoryStage): number {
@@ -55,62 +34,29 @@ function LessonPage({
   paused = false,
 }: {
   stage: BookingStoryStage;
-  lang: Lang;
+  lang: VoucherStoryLang;
   /** Teo paused new bookings. */
   paused?: boolean;
 }) {
   const snapshot = useMemo(() => lessonStorySnapshot(stage), [stage]);
-  const client = useQueryClient();
-  useLayoutEffect(() => {
-    const issuer = paused ? LESSON_STORY_PAUSED_ISSUER : LESSON_STORY_ISSUER;
-    client.setQueryData(
-      VOUCHER_STORY_WALLET_KEY,
-      lessonStoryWallet(snapshot, heldAt(stage), issuer)
-    );
-  }, [client, snapshot, stage, paused]);
-  mocked(useServiceAccess).mockReturnValue({
-    data: snapshot,
-    isLoading: false,
-    isError: false,
-    status: "success",
-    fetchStatus: "idle",
-    error: null,
-    refetch: fn(),
-  } as unknown as ReturnType<typeof useServiceAccess>);
-  mocked(useServiceAccessMutation).mockReturnValue({
-    isPending: false,
-    mutateAsync: async () => ({ kind: "local-rehearsal", observationId: "story", snapshot }),
-  } as unknown as ReturnType<typeof useServiceAccessMutation>);
-  mocked(useGardenCommitmentController).mockReturnValue(lessonStoryController(stage));
-  mocked(usePrimaryAddress).mockReturnValue(VOUCHER_STORY_SCOPE.account);
-  mocked(useCommitmentActivity).mockReturnValue({
-    events: [],
-    isError: false,
-  } as unknown as ReturnType<typeof useCommitmentActivity>);
-  mocked(useCommitmentCycle).mockReturnValue({
-    cycle: null,
-  } as unknown as ReturnType<typeof useCommitmentCycle>);
-  mocked(useGardens).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useGardens>);
-  mocked(useActions).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useActions>);
-  mocked(useGreenGoodsEnsName).mockImplementation(
-    (address) =>
-      ({
-        data: address ? (NAMES[address.toLowerCase()] ?? null) : null,
-      }) as ReturnType<typeof useGreenGoodsEnsName>
+  const wallet = useMemo(
+    () =>
+      lessonStoryWallet(
+        snapshot,
+        heldAt(stage),
+        paused ? LESSON_STORY_PAUSED_ISSUER : LESSON_STORY_ISSUER
+      ),
+    [snapshot, stage, paused]
   );
-  mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
-  const garden = snapshot.offer?.providerGarden;
   return (
-    <IntlProvider key={lang} locale={lang} messages={MESSAGES[lang]}>
-      <MemoryRouter
-        key={stage}
-        initialEntries={[`/home/${garden}/commitments/${snapshot.key.commitmentId.toString()}`]}
-      >
-        <Routes>
-          <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
-        </Routes>
-      </MemoryRouter>
-    </IntlProvider>
+    <VoucherStoryPage
+      snapshot={snapshot}
+      controller={lessonStoryController(stage)}
+      wallet={wallet}
+      names={NAMES}
+      lang={lang}
+      page={<GardenCommitment />}
+    />
   );
 }
 
@@ -127,19 +73,7 @@ const meta: Meta<typeof LessonPage> = {
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile" } },
   decorators: [withSeededQueryClient([])],
-  beforeEach: () =>
-    resetHookMocks(
-      useServiceAccess,
-      useServiceAccessMutation,
-      useGardenCommitmentController,
-      usePrimaryAddress,
-      useCommitmentActivity,
-      useCommitmentCycle,
-      useGardens,
-      useActions,
-      useGreenGoodsEnsName,
-      useEnsName
-    ),
+  beforeEach: () => resetHookMocks(...VOUCHER_STORY_PAGE_HOOKS),
   argTypes: {
     stage: { control: false },
     paused: { control: false },
