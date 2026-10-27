@@ -456,9 +456,13 @@ receiver takes the garden's name. The live Tech and Sun Safe is finalized throug
   version or the labeled local version; capture consented participant language and repair findings.
 - [ ] **RESR-93, in 2.1.0:** retain its accepted PWA design and independent execution evidence in its own hub. This can proceed
   independently of live CLC deployment and preserves the existing queue, draft and permission rules.
-- [ ] **RESR-94 + MAR-32:** research and draft the diaspora pitch in parallel, using the
+- [x] **RESR-94 + MAR-32:** research and draft the diaspora pitch in parallel, using the
   [Claude Fable handover](handoffs/claude-fable-research-pitch.md). Update claims as implementation
-  produces receipts; do not wait for a live launch to prepare the no-go story.
+  produces receipts; do not wait for a live launch to prepare the no-go story. Done by 26 October:
+  the RESR-94 evidence pass is applied, and the deck, the brief, the Business Model Canvas, the
+  logical architecture and the clickable demo are complete in
+  [`artifacts/`](artifacts/README.md), in review as PR #1317 (MAR-32); the materials say
+  "deployed" and "in pilot", never "live", for the vouchers.
 
 - [ ] **PRD-1260 + PRD-1261, in 2.1.0:** deliver the accepted garden-scoped Home/submission slice
   and a bounded paired member/steward design-cohesion slice after RESR-93. No live Gnosis dependency.
@@ -470,9 +474,12 @@ receiver takes the garden's name. The live Tech and Sun Safe is finalized throug
 ## Event and remaining operations
 
 GROW-43 owns event confirmation. Existing internal dates are the 16 October briefing, 20 October
-conference, 24 October dry run, 27 October submission and 28 October pitch. The conservative
-14:00 London submission target still needs official deadline/timezone confirmation. The deck aims
-for eight to ten minutes pending the event's confirmed format.
+conference, 24 October dry run, 27 October submission and 28 October pitch. The event's submission
+brief, read 25 October, confirms the four deliverables (presentation, Business Model Canvas,
+logical architecture, demo), the submission window of Tuesday 27 October, 2 to 3 PM UK, in the
+team's Teams room, and eight minutes a team; the deck's notes run 8:00. Open before submission:
+the G$ settlement switch ([`artifacts/README.md`](artifacts/README.md), input 0) and the status
+re-check against the live-pilot handoff (input 5).
 
 Live Linear on 15 October marks PRD-731 release operations, PRD-732 first cycle and COM-36 season
 setup Done; this is issue-state evidence, not a new deployment or CLC certification. PRD-732 and

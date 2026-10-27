@@ -8,12 +8,15 @@
 // the closing slide carry none), the HTML notes equal the Markdown notes, data-time equals each
 // notes heading, the spoken timings total 8:00, and no em dashes. While rendering it also reports
 // text outside the 128px side margins or in the corner band, text or artwork over the headline,
-// artwork over the corner symbol, any headline over two lines (three on the title), and any image
-// that did not load.
+// artwork over the corner symbol, any headline over two lines (three on the title), any image
+// that did not load, and any block whose layout box (before transforms) leaves the slide, because
+// print lays blocks out before transforms and fragments what overruns the page. After the PDF it
+// checks, with pdftotext where installed, that every word sits inside its page.
 // A failed check exits with status 1 after reporting.
 import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const EXPECTED_SLIDES = 18;
@@ -63,12 +66,12 @@ let html = readFileSync(htmlPath, "utf8");
 const markdown = readFileSync(notesPath, "utf8");
 const mdNotes = markdownNotes(markdown);
 
+// --sync builds the synced source in memory; it is written only after the checks below pass, so a
+// malformed or mis-timed notes file never lands in the tracked deck.
 if (args.has("--sync")) {
   const { raw } = htmlNotes(html);
   const json = JSON.stringify(mdNotes.map((n) => n.text), null, 2).replace(/<\//g, "<\\/");
   html = html.replace(raw, `<script type="application/json" id="speaker-notes">\n${json}\n</script>`);
-  writeFileSync(htmlPath, html);
-  console.log(`synced ${mdNotes.length} notes into index.html`);
 }
 
 // Structural checks on the source.
@@ -79,7 +82,7 @@ html.split(/<section class="slide/).slice(1).forEach((block, i) => {
   const body = block.split("</section>")[0];
   if (!/class="corner"/.test(body)) note(`slide ${i + 1} has no corner symbol`);
   if (i === 0) return; // the title carries the event line instead of a number
-  if (block.startsWith(" s-thanks")) return; // the closing slide keeps only the thank-you, the link, its code and the symbol
+  if (block.startsWith(" s-thanks")) return; // the closing slide keeps only its headline, the brand line, its code, the link and the symbol
   const m = body.match(/<span class="num">(\d+) \/ (\d+)<\/span>/);
   if (!m) note(`slide ${i + 1} has no slide number`);
   else if (Number(m[1]) !== i + 1 || Number(m[2]) !== EXPECTED_SLIDES) note(`slide ${i + 1} is numbered "${m[1]} / ${m[2]}"`);
@@ -101,6 +104,10 @@ if (/\u2014/.test(html) || /\u2014/.test(markdown)) note("an em dash (U+2014) is
 
 console.log(`source checks: ${slides.length} slides, ${mdNotes.length} notes, timings ${clock(total)}${problems.length ? "" : ", all good"}`);
 for (const p of problems) console.log(`  problem: ${p}`);
+if (args.has("--sync")) {
+  if (problems.length) console.log("index.html is untouched: fix speaker-notes.md and sync again");
+  else { writeFileSync(htmlPath, html); console.log(`synced ${mdNotes.length} notes into index.html`); }
+}
 if (args.has("--check") || args.has("--sync")) process.exit(problems.length ? 1 : 0);
 
 // Render.
@@ -109,6 +116,9 @@ let pw;
 try { pw = require("playwright"); } catch { pw = require("@playwright/test"); }
 const { chromium } = pw;
 mkdirSync(out, { recursive: true });
+// Outputs render into a staging folder and replace the files in output/ only when every check
+// passes, so a failed render leaves the last good slides, contact sheet and PDF in place.
+const staging = mkdtempSync(join(out, ".render-"));
 const url = pathToFileURL(htmlPath).href;
 
 const browser = await chromium.launch({ args: ["--allow-file-access-from-files"] });
@@ -119,6 +129,21 @@ const files = [];
 for (const i of targets) {
   await page.goto(`${url}?static=1&slide=${i}`, { waitUntil: "load" });
   await page.evaluate(() => document.fonts.ready);
+  // fonts.ready also resolves when the Google Fonts stylesheet failed, and the slides would then
+  // render in Georgia and the system sans with different line breaks, so both faces must be loaded.
+  // Each face the slides use is loaded on purpose and must come back loaded: one face of a family
+  // loading says nothing about its italic or its other weights.
+  if (i === targets[0]) {
+    const missingFonts = await page.evaluate(async () => {
+      const missing = [];
+      for (const spec of ["400 16px Fraunces", "italic 400 16px Fraunces", "500 16px Fraunces", "400 16px Inter", "500 16px Inter", "600 16px Inter"]) {
+        const faces = await document.fonts.load(spec, "Aa").catch(() => []);
+        if (!faces.length || faces.some((f) => f.status !== "loaded")) missing.push(spec);
+      }
+      return missing;
+    });
+    if (missingFonts.length) note(`font face(s) not loaded, so the slides fell back: ${missingFonts.join(", ")}`);
+  }
   await page.waitForTimeout(150);
   const report = await page.evaluate((isTitle) => {
     const slide = document.querySelector(".slide.active");
@@ -147,43 +172,100 @@ for (const i of targets) {
     }
     const lines = Math.round(h1r.height / parseFloat(getComputedStyle(h1).lineHeight));
     if (lines > (isTitle ? 3 : 2)) issues.push(`headline runs to ${lines} lines`);
+    // Layout boxes ignore transforms (offsetTop does, getBoundingClientRect does not), which is what print paginates by.
+    for (const el of slide.querySelectorAll("div, figure, h1, h2, h3, p, ul, li, img")) {
+      if (!el.offsetHeight || el.closest(".num, .event, .corner") || el.matches(".corner")) continue;
+      if (el.matches("img") && el.closest(".frame")) continue; // cropped by its frame on purpose
+      let top = 0;
+      for (let n = el; n && n !== slide; n = n.offsetParent) top += n.offsetTop;
+      if (top < -0.5 || top + el.offsetHeight > 1080.5) issues.push(`layout box leaves the page before transforms (${Math.round(top)}..${Math.round(top + el.offsetHeight)}): ${name(el)}`);
+    }
     for (const img of slide.querySelectorAll("img")) {
       if (!(img.complete && img.naturalWidth > 0)) issues.push(`image did not load: ${img.getAttribute("src")}`);
     }
     return { issues: [...new Set(issues)], lines };
   }, i === 1);
   for (const issue of report.issues) note(`slide ${i} (${slides[i - 1].label}): ${issue}`);
-  const file = join(out, `slide-${String(i).padStart(2, "0")}.png`);
+  const name = `slide-${String(i).padStart(2, "0")}.png`;
+  const file = join(staging, name);
   await page.screenshot({ path: file, type: "png", clip: { x: 0, y: 0, width: 1920, height: 1080 } });
-  files.push({ i, file, lines: report.lines });
-  console.log(`${file} (headline ${report.lines} line${report.lines === 1 ? "" : "s"})`);
+  files.push({ i, file, name, lines: report.lines });
+  console.log(`${join(out, name)} (headline ${report.lines} line${report.lines === 1 ? "" : "s"})`);
 }
 
 if (!only.length) {
-  // Contact sheet: every slide at 480 x 270, four per row. Loaded from a file so local images resolve.
-  const sheetHtml = join(out, "contact-sheet.html");
+  // Contact sheet: every slide at 480 x 270, four per row. Loaded from a file beside the slides, with
+  // relative sources, so it resolves in staging and after promotion alike.
+  const sheetHtml = join(staging, "contact-sheet.html");
   writeFileSync(sheetHtml, `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#1C1917;padding:24px;width:2064px;font:500 14px Inter,system-ui,sans-serif;color:#A8A29E">
-<div style="display:grid;grid-template-columns:repeat(4,480px);gap:24px">${files.map(({ i, file }) => `<figure style="margin:0"><img src="${pathToFileURL(file).href}" width="480" height="270" style="display:block;outline:1px solid #44403C"><figcaption style="margin-top:6px">${i} · ${slides[i - 1].label.replace(/&/g, "&amp;")}</figcaption></figure>`).join("")}</div></body></html>`);
+<div style="display:grid;grid-template-columns:repeat(4,480px);gap:24px">${files.map(({ i, name }) => `<figure style="margin:0"><img src="${name}" width="480" height="270" style="display:block;outline:1px solid #44403C"><figcaption style="margin-top:6px">${i} · ${slides[i - 1].label.replace(/&/g, "&amp;")}</figcaption></figure>`).join("")}</div></body></html>`);
   await page.setViewportSize({ width: 2112, height: 1200 });
   await page.goto(pathToFileURL(sheetHtml).href, { waitUntil: "load" });
   await page.waitForTimeout(300);
-  const sheetFile = join(out, "contact-sheet.png");
+  const sheetFile = join(staging, "contact-sheet.png");
   await page.screenshot({ path: sheetFile, type: "png", fullPage: true });
-  console.log(sheetFile);
+  console.log(join(out, "contact-sheet.png"));
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(`${url}?static=1&slide=1`, { waitUntil: "load" });
   await page.evaluate(() => document.fonts.ready);
   await page.emulateMedia({ media: "print" });
-  const pdf = join(out, "deck.pdf");
+  const pdf = join(staging, "deck.pdf");
   await page.pdf({ path: pdf, width: "1920px", height: "1080px", printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
-  console.log(pdf);
+  console.log(join(out, "deck.pdf"));
+
+  // Every word of the PDF must sit inside its page; a word past the page edge is a fragmented block.
+  let bbox = null;
+  try { bbox = execFileSync("pdftotext", ["-bbox", pdf, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }); } catch (error) {
+    // Only a missing binary is optional; any other failure must fail the check, or an unreadable PDF would pass.
+    if (error.code === "ENOENT") console.log("pdf check: pdftotext not installed, word positions not checked");
+    else note(`pdf check: pdftotext failed: ${String(error.message).split("\n")[0]}`);
+  }
+  if (bbox) {
+    const pages = [...bbox.matchAll(/<page width="([\d.]+)" height="([\d.]+)">([\s\S]*?)<\/page>/g)];
+    if (pages.length !== EXPECTED_SLIDES) note(`deck.pdf has ${pages.length} pages, expected ${EXPECTED_SLIDES}`);
+    pages.forEach(([, w, h, body], i) => {
+      // Coordinates can be negative for a word above or left of the page, which is exactly the
+      // overflow this check exists to catch, so the pattern accepts a sign.
+      for (const [, xMin, yMin, xMax, yMax, word] of body.matchAll(/<word xMin="(-?[\d.]+)" yMin="(-?[\d.]+)" xMax="(-?[\d.]+)" yMax="(-?[\d.]+)">([^<]*)<\/word>/g)) {
+        if (+yMin < -0.5 || +yMax > +h + 0.5 || +xMin < -0.5 || +xMax > +w + 0.5) note(`page ${i + 1}: word outside the page (${Math.round(+xMin)},${Math.round(+yMin)} to ${Math.round(+xMax)},${Math.round(+yMax)} of ${Math.round(+w)}x${Math.round(+h)}): "${word}"`);
+      }
+    });
+    console.log(`pdf check: ${pages.length} pages, word positions read`);
+  }
 }
 await browser.close();
 
 if (problems.length) {
-  console.log(`${problems.length} problem(s):`);
+  rmSync(staging, { recursive: true, force: true });
+  console.log(`${problems.length} problem(s); the files in output/ are untouched:`);
   for (const p of problems) console.log(`  ${p}`);
   process.exit(1);
 }
-console.log("render checks: margins, corner band, headline clearance, headline length and images all clean");
+// The outputs are replaced as a set: the backup completes before any output is touched, and a
+// rename that fails halfway removes every promoted name and puts the backup back.
+const backup = mkdtempSync(join(out, ".previous-"));
+const names = readdirSync(staging);
+try {
+  for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+} catch (error) {
+  for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+  throw new Error(`${error.message}; nothing in output/ was replaced`);
+}
+// Only the names that were promoted are rolled back, each on its own, so one that cannot be
+// removed never stops the rest from being restored.
+const promoted = [];
+try {
+  for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); }
+} catch (error) {
+  // A restore that fails keeps the backup folder and names it, so the last good output is never lost.
+  const unrestored = [];
+  for (const name of promoted) { try { rmSync(join(out, name), { force: true }); } catch { unrestored.push(name); } }
+  for (const name of readdirSync(backup)) { try { copyFileSync(join(backup, name), join(out, name)); } catch { unrestored.push(name); } }
+  rmSync(staging, { recursive: true, force: true });
+  if (unrestored.length) throw new Error(`${error.message}; the rollback could not restore ${[...new Set(unrestored)].join(", ")}, so the backup is kept at ${backup}`);
+  rmSync(backup, { recursive: true, force: true });
+  throw new Error(`${error.message}; the previous outputs were put back`);
+}
+for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
+console.log("render checks: margins, corner band, headline clearance, headline length, images, layout boxes and PDF word positions all clean");
