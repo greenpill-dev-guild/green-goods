@@ -52,6 +52,14 @@ vi.mock("../hooks/blockchain/useTransactionSender", () => ({ useTransactionSende
 vi.mock("../modules/commitment-pooling/service-access-read-repository", () => ({
   createServiceAccessReadRepository: () => ({ getServiceAccess: mocks.read }),
 }));
+// The mocked reads stand in for the chain's, so no pinned route proves them here: these tests
+// cover how the hooks compose reads, and service-access-live.test.ts proves the adopted route.
+vi.mock("../modules/commitment-pooling/service-access-live-config", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("../modules/commitment-pooling/service-access-live-config")
+  >()),
+  SERVICE_LIVE_ROUTES: [],
+}));
 vi.mock("../utils/errors/mutation-error-handler", () => ({
   createMutationErrorHandler: () => mocks.error,
 }));
