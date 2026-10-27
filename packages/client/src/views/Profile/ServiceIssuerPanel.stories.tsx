@@ -1,18 +1,43 @@
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, mocked, userEvent, within } from "storybook/test";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { ServiceIssuerPanel } from "./ServiceIssuerPanel";
 import {
   ISSUER_STORY_HASH,
+  ISSUER_STORY_NAMES,
+  issuerServiceStory,
   issuerStoryAssets,
   issuerStoryReview,
   issuerStorySnapshot,
 } from "./serviceIssuerStoryFixtures";
 
+/**
+ * A member's own service in Profile, Account, Service Assets (PRD-1299 `SMyService`): the
+ * status band, what they can still deliver, where their vouchers are, bookings as person rows
+ * and the member's named acts. Switch the toolbar's Language for Spanish and Portuguese.
+ */
 const meta: Meta<typeof ServiceIssuerPanel> = {
   title: "Client/Profile/ServiceIssuerPanel",
   component: ServiceIssuerPanel,
   tags: ["autodocs"],
   parameters: { layout: "padded" },
+  beforeEach: () => {
+    mocked(useGreenGoodsEnsName).mockImplementation(
+      (address) =>
+        ({
+          data: address ? (ISSUER_STORY_NAMES[address.toLowerCase()] ?? null) : null,
+        }) as ReturnType<typeof useGreenGoodsEnsName>
+    );
+    mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
+    mocked(useResolvedProfileAvatar).mockReturnValue({
+      avatarUri: null,
+      isLoading: false,
+    } as ReturnType<typeof useResolvedProfileAvatar>);
+    return resetHookMocks(useGreenGoodsEnsName, useEnsName, useResolvedProfileAvatar);
+  },
   decorators: [
     (Story) => (
       <div className="mx-auto max-w-lg space-y-4">
@@ -24,7 +49,7 @@ const meta: Meta<typeof ServiceIssuerPanel> = {
     ),
   ],
   args: {
-    snapshot: issuerStorySnapshot(),
+    snapshot: issuerServiceStory("overview"),
     assets: issuerStoryAssets,
     onRefresh: fn().mockResolvedValue(undefined),
     onReview: fn(async (action) => issuerStoryReview(action)),
@@ -47,7 +72,38 @@ const meta: Meta<typeof ServiceIssuerPanel> = {
 };
 export default meta;
 type Story = StoryObj<typeof ServiceIssuerPanel>;
-export const Issuer: Story = {};
+
+/** Plays click an act by its marker, so they run in every language. */
+const open =
+  (act: string): Story["play"] =>
+  async ({ canvasElement }) => {
+    await userEvent.click(canvasElement.querySelector<HTMLElement>(`[data-act="${act}"]`)!);
+    await expect(
+      await within(canvasElement.ownerDocument.body).findByRole("dialog")
+    ).toBeInTheDocument();
+  };
+
+/** Listed, nothing waiting: six promised, two booked, one delivered, three left. */
+export const Overview: Story = {};
+export const ApproveBooking: Story = {
+  args: { snapshot: issuerServiceStory("approve") },
+  play: open("approve"),
+};
+export const ProposeReturn: Story = { play: open("propose") };
+export const ReturnProposed: Story = { args: { snapshot: issuerServiceStory("proposed") } };
+export const IssueMore: Story = { play: open("issue") };
+export const CapacityFull: Story = {
+  args: { snapshot: issuerServiceStory("full") },
+  play: open("issue"),
+};
+export const PauseNewBookings: Story = { play: open("pause") };
+export const Paused: Story = { args: { snapshot: issuerServiceStory("paused") } };
+export const Delisted: Story = { args: { snapshot: issuerServiceStory("delisted") } };
+export const PendingTransaction: Story = { args: { snapshot: issuerServiceStory("pending") } };
+export const ReserveShort: Story = { args: { snapshot: issuerServiceStory("short") } };
+export const YourSetup: Story = { args: { snapshot: issuerServiceStory("setup") } };
+export const AwaitingAdmission: Story = { args: { snapshot: issuerServiceStory("admitting") } };
+/** Someone holding another member's vouchers: holdings and the exchange, no issuer acts. */
 export const Holder: Story = {
   args: {
     snapshot: {
@@ -65,39 +121,3 @@ export const Unconfigured: Story = {
 };
 export const Loading: Story = { args: { snapshot: undefined, isLoading: true } };
 export const ReadError: Story = { args: { snapshot: undefined, isError: true } };
-export const Pending: Story = {
-  args: {
-    snapshot: {
-      ...issuerStorySnapshot(),
-      pending: {
-        version: 1,
-        actor: issuerStorySnapshot().actor,
-        review: issuerStoryReview({ kind: "revokeReserve" }),
-      },
-    },
-  },
-};
-export const FrozenPartialDelivery: Story = {
-  args: {
-    snapshot: (() => {
-      const snapshot = issuerStorySnapshot();
-      snapshot.bookings.records[0].approvalEligible = false;
-      snapshot.bookings.records[0].result.phase = "active";
-      snapshot.bookings.records[0].result.issuerApproved = true;
-      snapshot.bookings.records[0].finalAllocation = {
-        decisionId: ISSUER_STORY_HASH,
-        activationDecisionId: ISSUER_STORY_HASH,
-        issuerReturnApprovalAtFreeze: 500_000n,
-        allocation: {
-          approvedDeliveredServiceUnits: 30n,
-          releaseVoucherUnits: 500_000n,
-          refundVoucherUnits: 500_000n,
-        },
-        release: { state: "failed", attempts: 1n, failureHash: ISSUER_STORY_HASH },
-        refund: { state: "succeeded", attempts: 1n, failureHash: null },
-        financiallyClosed: false,
-      };
-      return snapshot;
-    })(),
-  },
-};

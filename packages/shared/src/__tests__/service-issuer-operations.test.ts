@@ -42,7 +42,10 @@ import {
   type TransactionSender,
 } from "../modules/transactions/types";
 import type { Address } from "../types/domain";
-import { serviceIssuerGovernanceDrafts } from "../modules/commitment-pooling/service-issuer-governance";
+import {
+  serviceIssuerDelistingDraft,
+  serviceIssuerGovernanceDrafts,
+} from "../modules/commitment-pooling/service-issuer-governance";
 import { assertServiceActor } from "../modules/commitment-pooling/service-actor-session";
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import { discoverIssuerVoucherSetups } from "../modules/commitment-pooling/data-voucher-service";
@@ -1227,6 +1230,23 @@ describe("member-owned service operations", () => {
       reserveAllowance: null,
     });
   });
+  it("reads the token's pool listing apart from any review, including a delisted zero limit", async () => {
+    const f = fixture();
+    expect(await f.create().read(f.actor)).toMatchObject({
+      pool: { admitted: true, limit: f.assets[0]!.poolHoldingCap, holding: 100n },
+    });
+    const ops = f.create();
+    const review = await ops.review(f.actor, { kind: "issue", amount: 1n });
+    const original = f.chain.read;
+    vi.spyOn(f.chain, "read").mockImplementation(async (input) =>
+      input.functionName === "limitOf" ? 0n : original(input)
+    );
+    expect(await ops.read(f.actor)).toMatchObject({
+      pool: { admitted: true, limit: 0n, holding: 100n },
+    });
+    // A pool change alone leaves an open review on the member's own reserve intact.
+    await expect(ops.execute(review)).resolves.toMatchObject({ status: "confirmed" });
+  });
   it.each([
     "missing unit",
     "unconfirmed capacity",
@@ -1494,6 +1514,35 @@ describe("member-owned service operations", () => {
       ["owner-safe-draft", "setLimitFor", account(9)],
       ["owner-safe-draft", "setPriceIndexValue", account(9)],
     ]);
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+  });
+  it("prepares delisting as a zero pool holding limit that leaves balances, bookings and authority alone", () => {
+    const f = fixture();
+    // Delisting must stay possible when the reviewed terms no longer pass for new issuance.
+    f.route.assets[0]!.service.capacityConfirmed = false;
+    const draft = serviceIssuerDelistingDraft(f.route, f.actor.assetId);
+    expect(draft).toMatchObject({
+      kind: "owner-safe-draft",
+      purpose: "pool-delist",
+      owner: f.route.pool.limiter.owner,
+    });
+    expect(draft.call).toMatchObject({
+      address: f.route.pool.limiter.address,
+      account: f.route.pool.limiter.owner,
+      chainId: 100,
+      value: 0n,
+      functionName: "setLimitFor",
+      args: [f.route.assets[0]!.token.address, f.route.pool.deployment.address, 0n],
+    });
+    const untouched = [
+      f.route.assets[0]!.token.address,
+      f.route.pool.registry.address,
+      f.route.pool.deployment.address,
+      f.route.service.destination.address,
+      f.route.adapter.address,
+      f.route.adapterSource.address,
+    ];
+    expect(untouched).not.toContain(draft.call.address);
     expect(f.sender.sendContractCall).not.toHaveBeenCalled();
   });
 });

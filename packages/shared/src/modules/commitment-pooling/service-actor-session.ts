@@ -4,6 +4,13 @@ import type { ServiceLiveSession } from "./service-access-live";
 import type { ServiceLiveChain } from "./service-access-live-route";
 import { sessionIdentity } from "./service-access-live-submission";
 
+/** The pilot's member accounts: a member-owned wallet, or a passkey on the pilot's account profile. */
+export const serviceActorAccountSupported = (
+  session: Pick<ServiceLiveSession, "authMode" | "profile">
+) =>
+  session.authMode === "wallet" ||
+  (session.authMode === "passkey" && session.profile === "kernel-0.3.3-pilot");
+
 /** The same member/session rule protects buyer, issuer and holder operations. Roles stay domain-owned. */
 export async function assertServiceActor(
   actor: Address,
@@ -22,8 +29,7 @@ export async function assertServiceActor(
     !sender?.assertOwnership ||
     before.address?.toLowerCase() !== actor.toLowerCase() ||
     sender.authMode !== authMode ||
-    (authMode !== "wallet" &&
-      !(authMode === "passkey" && before.profile === "kernel-0.3.3-pilot")) ||
+    !serviceActorAccountSupported(before) ||
     (expected && identity !== expected)
   )
     throw new Error("Service account or session changed; review again");
