@@ -33,12 +33,13 @@ const meta: Meta = {
 export default meta;
 type Story = StoryObj;
 
-const report = () => (
+const report = ({ disabled = false }: { disabled?: boolean } = {}) => (
   <VoucherReportVisitDialog
     booking={STORY_MARA_VISIT}
     title="Hub day, up to 4 hours"
     target={{ gardenName: "Tech and Sun", isProtocol: false }}
     nowMs={STORYBOOK_NOW_SECONDS * 1000}
+    disabled={disabled}
     tone="garden"
     onClose={() => undefined}
     onReport={async () => undefined}

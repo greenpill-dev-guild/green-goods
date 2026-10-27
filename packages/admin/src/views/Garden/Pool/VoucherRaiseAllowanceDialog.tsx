@@ -19,6 +19,8 @@ export interface VoucherRaiseAllowanceDialogProps {
   reserve: VoucherIssuerReserve | null;
   /** The issuer Safe's signature rule, read from the Safe. */
   safe: IssuerSafeThreshold | undefined;
+  /** Offline, or another act is with the wallet or the chain: the card's state, live while open. */
+  disabled: boolean;
   tone?: AdminDialogProps["tone"];
   onClose: () => void;
   onRaise: (reserve: VoucherIssuerReserve, allowance: bigint) => Promise<void>;
@@ -34,6 +36,7 @@ export interface VoucherRaiseAllowanceDialogProps {
 export function VoucherRaiseAllowanceDialog({
   reserve,
   safe,
+  disabled,
   tone,
   onClose,
   onRaise,
@@ -84,7 +87,7 @@ export function VoucherRaiseAllowanceDialog({
             id: "cockpit.garden.pool.voucher.raise.confirm",
             defaultMessage: "Raise Allowance",
           })}
-          confirmDisabled={!valid}
+          confirmDisabled={disabled || !valid}
           act={async () => {
             if (reserve && allowance !== null && valid) await onRaise(reserve, allowance);
           }}

@@ -34,6 +34,7 @@ const meta: Meta<typeof VoucherRaiseAllowanceDialog> = {
   args: {
     reserve: STORY_TECH_AND_SUN_SHORT.reserve,
     safe: STORY_TECH_AND_SUN_SAFE,
+    disabled: false,
     tone: "garden",
     onClose: () => undefined,
     onRaise: async () => undefined,

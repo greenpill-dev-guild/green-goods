@@ -2,10 +2,11 @@
 
 /**
  * The issuer's acts in the Promises console (PRD-1297 surface 6): a booking
- * under way offers its act on its own row in Offers and Requests, each act's
- * dialog sends exactly what it reviewed, a return above the issuer's terms is
- * refused, a failed return needs recovery, and a used-up allowance is repaired
- * from the reserve card.
+ * under way offers its act on its own row in Offers and Requests, grouped or
+ * past due, each act's dialog sends exactly what it reviewed and waits while
+ * the console can't act, a return above the issuer's terms or below the
+ * escrow's ceiling is refused, a failed return needs recovery, and a short
+ * allowance is repaired from the reserve card with enough for what waits.
  */
 
 import { commitmentFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
@@ -172,6 +173,29 @@ const card = (left: bigint, disabled = false) => {
 };
 
 describe("the issuer's acts in the Promises console", () => {
+  // An open dialog kept its confirm while its row's act went quiet (Codex on #1320).
+  it("holds an open booking dialog's confirm while the console can't act", async () => {
+    const reportVisit = vi.fn().mockResolvedValue(undefined);
+    const view = offers([visit], { reportVisit });
+    fireEvent.click(screen.getAllByRole("button", { name: "Report Visit…" })[0]!);
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("button", { name: "Report Visit" })).toBeEnabled();
+
+    view.rerender({ isOnline: false });
+    expect(within(dialog).getByRole("button", { name: "Report Visit" })).toBeDisabled();
+    view.rerender({ isOnline: true, isActing: true });
+    expect(within(dialog).getByRole("button", { name: "Report Visit" })).toBeDisabled();
+  });
+
+  it("holds the open raise's confirm while the console can't act", async () => {
+    const { setDisabled } = card(0n);
+    fireEvent.click(screen.getByRole("button", { name: "Raise Allowance…" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("button", { name: "Raise Allowance" })).toBeEnabled();
+    setDisabled(true);
+    expect(within(dialog).getByRole("button", { name: "Raise Allowance" })).toBeDisabled();
+  });
+
   it("offers Report Visit on a visit under way, and reports that booking", async () => {
     const reportVisit = vi.fn().mockResolvedValue(undefined);
     offers([visit], { reportVisit });

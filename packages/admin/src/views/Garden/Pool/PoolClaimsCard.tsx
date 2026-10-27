@@ -208,6 +208,7 @@ export function PoolClaimsCard({
         title={titleFor(approving)}
         safe={safe}
         nowMs={nowMs}
+        disabled={disabled}
         tone={tone}
         onClose={() => setApproving(null)}
         onApprove={vouchers.acts.approveBooking}

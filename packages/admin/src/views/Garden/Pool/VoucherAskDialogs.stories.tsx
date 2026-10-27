@@ -48,6 +48,7 @@ const approve = (overrides: Partial<Parameters<typeof VoucherApproveDialog>[0]> 
     title="Hub day, up to 4 hours"
     safe={STORY_TECH_AND_SUN_SAFE}
     nowMs={NOW_MS}
+    disabled={false}
     tone="garden"
     onClose={() => undefined}
     onApprove={async () => undefined}

@@ -31,6 +31,7 @@ const meta: Meta<typeof VoucherProposeReturnDialog> = {
     booking: STORY_LINA_ENDED,
     title: "Claude access, 30 days",
     safe: STORY_GREEN_GOODS_SAFE,
+    disabled: false,
     tone: "garden",
     onClose: () => undefined,
     onPropose: async () => undefined,

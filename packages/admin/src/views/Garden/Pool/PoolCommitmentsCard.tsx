@@ -397,6 +397,7 @@ export function PoolCommitmentsCard({
         safe={safe}
         target={target}
         nowMs={now}
+        disabled={actDisabled}
         tone={tone}
         onClose={() => setBookingAct(null)}
       />

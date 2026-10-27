@@ -20,6 +20,8 @@ export interface VoucherReportVisitDialogProps {
   /** The pool the report is recorded in. */
   target: PoolWriteTarget;
   nowMs: number;
+  /** Offline, or another act is with the wallet or the chain: the row's state, live while open. */
+  disabled: boolean;
   tone?: AdminDialogProps["tone"];
   onClose: () => void;
   onReport: (booking: VoucherBooking) => Promise<void>;
@@ -35,6 +37,7 @@ export function VoucherReportVisitDialog({
   title,
   target,
   nowMs,
+  disabled,
   tone,
   onClose,
   onReport,
@@ -62,6 +65,7 @@ export function VoucherReportVisitDialog({
             id: "cockpit.garden.pool.voucher.report.confirm",
             defaultMessage: "Report Visit",
           })}
+          confirmDisabled={disabled}
           act={async () => {
             if (booking) await onReport(booking);
           }}
@@ -166,6 +170,7 @@ export function VoucherBookingDialogs({
   safe,
   target,
   nowMs,
+  disabled,
   tone,
   onClose,
 }: {
@@ -177,6 +182,8 @@ export function VoucherBookingDialogs({
   safe: IssuerSafeThreshold | undefined;
   target: PoolWriteTarget;
   nowMs: number;
+  /** Offline, or another act is with the wallet or the chain, as on the row that opened it. */
+  disabled: boolean;
   tone?: AdminDialogProps["tone"];
   onClose: () => void;
 }) {
@@ -187,6 +194,7 @@ export function VoucherBookingDialogs({
         title={title}
         target={target}
         nowMs={nowMs}
+        disabled={disabled}
         tone={tone}
         onClose={onClose}
         onReport={vouchers.acts.reportVisit}
@@ -195,6 +203,7 @@ export function VoucherBookingDialogs({
         booking={open?.kind === "propose" ? open.booking : null}
         title={title}
         safe={safe}
+        disabled={disabled}
         tone={tone}
         onClose={onClose}
         onPropose={vouchers.acts.proposeReturn}

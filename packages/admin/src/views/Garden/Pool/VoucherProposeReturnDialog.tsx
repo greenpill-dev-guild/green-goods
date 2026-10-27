@@ -21,6 +21,8 @@ export interface VoucherProposeReturnDialogProps {
   title: string;
   /** The issuer Safe's signature rule, read from the Safe. */
   safe: IssuerSafeThreshold | undefined;
+  /** Offline, or another act is with the wallet or the chain: the row's state, live while open. */
+  disabled: boolean;
   tone?: AdminDialogProps["tone"];
   onClose: () => void;
   onPropose: (booking: VoucherBooking, refund: bigint) => Promise<void>;
@@ -40,6 +42,7 @@ export function VoucherProposeReturnDialog({
   booking,
   title,
   safe,
+  disabled,
   tone,
   onClose,
   onPropose,
@@ -128,7 +131,7 @@ export function VoucherProposeReturnDialog({
               id: "cockpit.garden.pool.voucher.propose.confirm",
               defaultMessage: "Propose Return",
             })}
-            confirmDisabled={!proposal?.valid}
+            confirmDisabled={disabled || !proposal?.valid}
             act={async () => {
               if (booking && proposal?.valid) await onPropose(booking, proposal.refund);
             }}

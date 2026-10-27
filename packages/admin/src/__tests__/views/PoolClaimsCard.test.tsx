@@ -389,5 +389,19 @@ describe("PoolClaimsCard (Review Promises)", () => {
       expect(within(row).getByText("Accepted")).toBeInTheDocument();
       expect(within(row).queryByText("Approved")).not.toBeInTheDocument();
     });
+
+    // An open dialog kept its confirm after the row went quiet (Codex on #1320).
+    it("holds the open approval's confirm while the console can't act", async () => {
+      const view = card(
+        { claims: [linaRow], titles: bookingTitles },
+        vouchersFor([linaAsk]),
+        safeOwnedBy(VIEWER)
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Approve…" }));
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByRole("button", { name: "Approve Booking" })).toBeEnabled();
+      view.rerender({ isOnline: false });
+      expect(within(dialog).getByRole("button", { name: "Approve Booking" })).toBeDisabled();
+    });
   });
 });

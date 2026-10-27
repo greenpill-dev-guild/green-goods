@@ -275,6 +275,7 @@ export function VoucherReserveCard({
       <VoucherRaiseAllowanceDialog
         reserve={raising ? reserve : null}
         safe={safe}
+        disabled={disabled}
         tone={tone}
         onClose={() => {
           setRaising(false);
