@@ -24,7 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import {
   type BookingStoryService,
@@ -530,6 +530,16 @@ function controllerFor(step: JourneyStep, onConfirm: () => void) {
   };
 }
 
+/** Where See Your Vouchers leads: Home, with the wallet open on its Vouchers tab. */
+function WalletDestination() {
+  const { search } = useLocation();
+  return (
+    <p className="p-4 text-sm" data-component="VoucherJourneyDestination">
+      Home opens with the wallet on its Vouchers tab ({`/home${search}`}).
+    </p>
+  );
+}
+
 /**
  * The page as the reader sees it, driven by the journey: the reader's own acts on the page
  * move it on through the real sheets and the shared selectors, and the band's button plays the
@@ -646,6 +656,7 @@ function VoucherJourney({
         >
           <Routes>
             <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
+            <Route path="/home" element={<WalletDestination />} />
           </Routes>
         </MemoryRouter>
       </IntlProvider>

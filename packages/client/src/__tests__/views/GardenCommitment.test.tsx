@@ -319,9 +319,15 @@ function render(commitmentId = "9") {
         <Route path="/home/:id/work/:workId" element={<p>Work detail</p>} />
         <Route path="/home/garden" element={<WorkSubmissionRoute />} />
         <Route path="/home/profile" element={<HelpRoute />} />
+        <Route path="/home" element={<HomeRoute />} />
       </Routes>
     </MemoryRouter>
   );
+}
+
+function HomeRoute() {
+  const location = useLocation();
+  return <output data-testid="home-route">{`${location.pathname}${location.search}`}</output>;
 }
 
 function HelpRoute() {
@@ -1661,5 +1667,37 @@ describe("a promise whose service read hasn't answered", () => {
     expect(screen.getByText(/couldn't check how this promise is taken up/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a request that rewards vouchers", () => {
+  function showReward(state: "bothOnTheWay" | "vouchersIn" | "received") {
+    const snapshot = rewardStorySnapshot(state, true);
+    mockUseController.mockReturnValue(rewardStoryController(state, true));
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    mockVoucherWallet.mockReturnValue({
+      data: bookingStoryWallet(snapshot, { techAndSun: 9, greenGoods: 0 }),
+    });
+    render("4103");
+  }
+
+  it("takes arrived vouchers to the wallet's Vouchers tab", async () => {
+    showReward("vouchersIn");
+    await userEvent.click(screen.getByRole("button", { name: "See Your Vouchers" }));
+    expect(screen.getByTestId("home-route")).toHaveTextContent("/home?wallet=vouchers");
+  });
+
+  it("offers no way to the vouchers before they arrive", () => {
+    showReward("bothOnTheWay");
+    expect(screen.queryByRole("button", { name: "See Your Vouchers" })).toBeNull();
+  });
+
+  it("leads with the vouchers: the G$ shows once, on its own row in the rewards", () => {
+    showReward("received");
+    const promised = screen.getByRole("region", { name: "What was promised" });
+    expect(within(promised).queryByText("Reward")).toBeNull();
+    expect(document.querySelector('[data-component="PromiseReward"]')).toBeNull();
+    expect(screen.getByText("2 Tech and Sun vouchers")).toBeInTheDocument();
+    expect(screen.getByText("120 G$")).toBeInTheDocument();
   });
 });

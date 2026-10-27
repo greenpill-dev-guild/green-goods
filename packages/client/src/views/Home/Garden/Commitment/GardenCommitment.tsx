@@ -307,6 +307,7 @@ export function GardenCommitment() {
           viewer={controller.viewer}
           stewards={stewards}
           serviceBand={service.band}
+          rewardsBelow={service.rewards}
         />
         {service.body}
         <PromiseGroupNote

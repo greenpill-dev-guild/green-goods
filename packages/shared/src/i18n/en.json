@@ -7870,6 +7870,7 @@
   "app.voucher.rw.a.wallet": "See Your Vouchers",
   "app.voucher.rw.x.vou": "Vouchers: delivered from {issuer}'s reserve on Gnosis, within {garden}'s allowance",
   "app.voucher.rw.x.gd": "G$: paid on Celo by {garden}'s payout plan",
+  "app.voucher.rw.x.rec": "Record: request #{id}, reward terms version {v}, on Arbitrum",
   "app.voucher.ex.kind": "Shared exchange pool",
   "app.voucher.ex.title": "Exchange Vouchers",
   "app.voucher.ex.desc": "Swap one issuer's vouchers for another's in the shared pool. Exchanging doesn't book a service.",

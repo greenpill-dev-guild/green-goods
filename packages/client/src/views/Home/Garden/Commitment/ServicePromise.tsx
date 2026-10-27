@@ -57,6 +57,8 @@ export interface ServicePromiseParts {
   bookingLines: ServiceBookingView["events"];
   /** Promise kept? after a booking's split: the strip, the split and its note. */
   confirm: ServiceBookingView["confirm"];
+  /** A request's rewards draw in their own section, which leads with the vouchers. */
+  rewards: boolean;
   sheets: ReactNode;
 }
 
@@ -234,6 +236,14 @@ export function ServicePromise({
       isOnline={isOnline}
       onRun={() => run(secondary.kind)}
     />
+  ) : !hasCoreAct && rewards?.vouchersReceived ? (
+    // Arrived vouchers are the reader's to use: the wallet's Vouchers tab books or exchanges them.
+    <CommitmentActionBar
+      act={{ kind: "service", labelId: "", label: formatVoucherMessage(intl, "rw.a.wallet") }}
+      isPending={false}
+      isOnline={isOnline}
+      onRun={() => navigate(`${APP_ROUTES.home}?wallet=vouchers`)}
+    />
   ) : null;
   // A service promise with neither a voucher booking nor rewards keeps the service panel.
   const showPanel = isServiceAccessPromise(snapshot) || (snapshot?.voucherSetups.length ?? 0) > 0;
@@ -295,6 +305,7 @@ export function ServicePromise({
     delivery: booking?.delivery ?? null,
     bookingLines: booking?.events ?? [],
     confirm: booking?.confirm ?? null,
+    rewards: rewards !== null,
     sheets:
       booking && snapshot ? (
         <ServiceBookingSheets

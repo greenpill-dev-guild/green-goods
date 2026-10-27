@@ -126,7 +126,15 @@ vi.mock("../../views/Home/CommitmentsSheet", () => ({ CommitmentsSheet: () => nu
 vi.mock("../../views/Home/CommitmentsSheet/Launcher", () => ({
   CommitmentsSheetLauncher: () => createElement("button", { type: "button" }, "Promises"),
 }));
-vi.mock("../../views/Home/WalletSheet", () => ({ WalletSheet: () => null }));
+// The wallet sheet shows only what Home hands it: whether it's open and the tab it starts on.
+vi.mock("../../views/Home/WalletSheet", () => ({
+  WalletSheet: ({ isOpen, startTab }: { isOpen: boolean; startTab?: string }) =>
+    createElement("output", {
+      "data-testid": "wallet-sheet",
+      "data-open": String(isOpen),
+      "data-start": startTab ?? "",
+    }),
+}));
 // The journal is the seam the journal steps fill; Home only mounts it. Its row opens a page under
 // Home, as a Recent Activity or Take Part row does.
 vi.mock("../../views/Home/Journal", async () => {
@@ -183,10 +191,12 @@ function setActive(
 }
 
 let location = "";
+let locationSearch = "";
 let locationState: unknown;
 function LocationProbe() {
   const current = useLocation();
   location = current.pathname;
+  locationSearch = current.search;
   locationState = current.state;
   return null;
 }
@@ -783,5 +793,25 @@ describe("the switcher a toast asked for", () => {
     expect(await screen.findByRole("dialog", { name: "Your Gardens" })).toBeInTheDocument();
     expect(useUIStore.getState().gardenSwitcherRequested).toBe(false);
     expect(selectGarden).not.toHaveBeenCalled();
+  });
+});
+
+describe("a link to the wallet's Vouchers tab", () => {
+  it("opens the wallet on Vouchers and drops the link's ask from the address", async () => {
+    renderHome("/home?wallet=vouchers");
+    const sheet = await screen.findByTestId("wallet-sheet");
+    expect(sheet).toHaveAttribute("data-open", "true");
+    expect(sheet).toHaveAttribute("data-start", "vouchers");
+    expect(useUIStore.getState().isWalletSheetOpen).toBe(true);
+    expect(location).toBe("/home");
+    expect(locationSearch).toBe("");
+  });
+
+  it("opens the wallet where it was left otherwise, once the linked one closes", async () => {
+    renderHome("/home?wallet=vouchers");
+    await screen.findByTestId("wallet-sheet");
+    act(() => useUIStore.getState().closeWalletSheet());
+    act(() => useUIStore.getState().openWalletSheet());
+    expect(await screen.findByTestId("wallet-sheet")).toHaveAttribute("data-start", "");
   });
 });

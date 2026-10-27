@@ -328,6 +328,24 @@ describe("a request's rewards", () => {
   });
 });
 
+describe("a request's reward record", () => {
+  it("names the request and its reward terms' version under Transaction details", () => {
+    const rewards = serviceRewardsView(
+      {
+        snapshot: rewardStorySnapshot("received", true),
+        coreState: "FULFILLED",
+        issuer: VOUCHER_STORY_ISSUERS.techAndSun,
+        garden: "Riverside Commons Garden",
+      },
+      intl
+    )!;
+    expect(rewards.details.at(-1)).toBe(
+      "Record: request #4103, reward terms version 2, on Arbitrum"
+    );
+    expect(rewards.vouchersReceived).toBe(true);
+  });
+});
+
 describe("the shared pool's exchange", () => {
   it.each([
     ["deadline", "expired"],

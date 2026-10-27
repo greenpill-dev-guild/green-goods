@@ -4,6 +4,7 @@
  */
 
 import { within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import { renderWithProviders as render, screen } from "../test-utils";
@@ -170,5 +171,19 @@ describe("WalletSheet", () => {
     const tabs = screen.getAllByRole("tab").map((tab) => tab.getAttribute("data-testid"));
     expect(tabs).toEqual(["tab-cookie-jar", "tab-send", "tab-vouchers"]);
     expect(screen.getByTestId("tab-vouchers")).toHaveTextContent("Vouchers");
+  });
+
+  it("opens on Vouchers when a link asks, and on Cookies while the voucher wallet can't read", () => {
+    const sheet = () => (
+      <MemoryRouter>
+        <WalletSheet isOpen onClose={() => {}} startTab="vouchers" />
+      </MemoryRouter>
+    );
+    const view = render(sheet());
+    expect(screen.getByTestId("tab-cookie-jar")).toHaveAttribute("aria-selected", "true");
+
+    mockUseVoucherWallet.mockReturnValue(voucherWallet("onchain"));
+    view.rerender(sheet());
+    expect(screen.getByTestId("tab-vouchers")).toHaveAttribute("aria-selected", "true");
   });
 });
