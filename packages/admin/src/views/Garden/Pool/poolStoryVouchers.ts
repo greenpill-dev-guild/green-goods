@@ -342,6 +342,20 @@ export const STORY_GREEN_GOODS_VOUCHERS: VoucherConsoleSnapshot = {
   },
 };
 
+/**
+ * Mara booked 30 days of Claude access in Green Goods' pool yesterday: its Safe approved, and her
+ * 10 vouchers are confirmed in escrow, so the pool's steward can accept.
+ */
+export const STORY_MARA_ACCESS_ASK = ask(54n, STORY_MARA, {
+  issuer: GREEN_GOODS,
+  agreedAt: daysAgo(1),
+  setup: {
+    voucherUnits: 10n * VOUCHER,
+    approvedAt: daysAgo(1) + 3_600,
+    depositedUnits: 10n * VOUCHER,
+  },
+});
+
 /** Lina approved the split, and the 6 vouchers back to her didn't arrive: anyone can retry. */
 export const STORY_GREEN_GOODS_RETURN_FAILED: VoucherConsoleSnapshot = {
   ...STORY_GREEN_GOODS_VOUCHERS,
