@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { decodeFunctionData } from "viem";
 import {
   serviceIssuerApprovalProvenance,
+  serviceIssuerDelistingRecord,
   serviceIssuerGovernanceDrafts,
   serviceIssuerListingKey,
 } from "@green-goods/shared/commitment-pooling";
@@ -128,6 +129,10 @@ describe("voucher issuer onboarding", () => {
     await userEvent.click(copy);
     const copied = JSON.parse(writeText.mock.calls[0]![0] as string);
     expect(copied.reason).toBe("Can't deliver this month");
+    // The copy carries the record that makes the zero limit read as a delisting.
+    expect(copied.delisting).toEqual(
+      serviceIssuerDelistingRecord(story.routes[0]!, "maya", "Can't deliver this month")
+    );
     expect(copied.calls).toHaveLength(1);
     const [call] = copied.calls;
     const route = story.routes[0]!;

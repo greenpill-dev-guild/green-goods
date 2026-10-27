@@ -55,6 +55,18 @@ function assertServiceIssuerAsset(asset: ServiceIssuerAsset, recovery = false) {
     throw new Error("Reviewed issuer terms, capacity, finite limits and explicit control required");
 }
 
+/**
+ * How many vouchers a member issuer may have issued in all: the lower of the capacity they
+ * confirmed and the reviewed issuance ceiling. Null until both are known.
+ */
+export function serviceIssuerIssuanceLimit(
+  asset: Pick<ServiceIssuerAsset, "service" | "initialSupply">
+): bigint | null {
+  const { capacity } = asset.service;
+  if (capacity === null || asset.initialSupply === null) return null;
+  return capacity < asset.initialSupply ? capacity : asset.initialSupply;
+}
+
 export function issuerAsset(route: ServiceIssuerRoute, id: string, recovery = false) {
   const assets = route.assets.filter((a) => a.id === id);
   if (assets.length !== 1) throw new Error("Reviewed issuer asset configuration unavailable");

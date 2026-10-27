@@ -1,5 +1,6 @@
 import {
   issuerPoolStatus,
+  serviceIssuerIssuanceLimit,
   type ServiceIssuerAction,
   type ServiceIssuerAsset,
   type ServiceIssuerBooking,
@@ -71,10 +72,8 @@ export function issuerCapacity(snapshot: Onchain): IssuerCapacity {
  * token's reviewed issuance ceiling, whichever is lower. Every voucher issued counts against both.
  */
 export function issuerIssueRoom(snapshot: Onchain): bigint {
-  const { initialSupply: ceiling, service } = snapshot.asset;
-  if (service.capacity === null || ceiling === null) return 0n;
-  const limit = service.capacity < ceiling ? service.capacity : ceiling;
-  return limit > snapshot.totalMinted ? limit - snapshot.totalMinted : 0n;
+  const limit = serviceIssuerIssuanceLimit(snapshot.asset);
+  return limit !== null && limit > snapshot.totalMinted ? limit - snapshot.totalMinted : 0n;
 }
 
 /** What the escrow still holds for the member's bookings: deposits and splits not yet moved. */

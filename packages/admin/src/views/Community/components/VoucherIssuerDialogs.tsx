@@ -2,6 +2,7 @@ import {
   type ServiceIssuerDraft,
   serviceIssuerApprovalProvenance,
   serviceIssuerDelistingDraft,
+  serviceIssuerDelistingRecord,
   serviceIssuerGovernanceDrafts,
   serviceIssuerTermsDigest,
   useIssuerSafeThreshold,
@@ -316,7 +317,13 @@ export function VoucherIssuerDialog({
           kind: "owner-safe-drafts",
           routeId: route!.service.id,
           assetId: asset!.id,
-          ...(kind === "delist" ? { reason: reason.trim() } : {}),
+          // The delisting record goes into the reviewed issuer record with the decision.
+          ...(kind === "delist"
+            ? {
+                reason: reason.trim(),
+                delisting: serviceIssuerDelistingRecord(route!, asset!.id, reason),
+              }
+            : {}),
           calls: safeCalls(),
         }),
       !drafts || (kind === "delist" && !reason.trim()),

@@ -33,10 +33,10 @@ export interface ServiceIssuerAsset {
     approval: ServiceIssuerProvenance;
   };
   /**
-   * The stewards' recorded decision to delist the token. Delisting sets a zero pool holding limit,
-   * but setup passes through a zero limit too (the registry admits the token before its cap
-   * lands), so only this record makes a zero limit read as delisted. It is recorded with the
-   * decision, before the owner Safe sets the zero limit.
+   * The stewards' recorded decision to delist the token, as the Delist dialog copies it
+   * (`serviceIssuerDelistingRecord`). Delisting sets a zero pool holding limit, but setup passes
+   * through a zero limit too (the registry admits the token before its cap lands), so a zero limit
+   * the pool holds none under reads as delisted only with this record.
    */
   delisting: { reference: string; digest: Hex } | null;
   initialSupply: bigint | null;

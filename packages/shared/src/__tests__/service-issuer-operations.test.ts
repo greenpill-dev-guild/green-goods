@@ -44,6 +44,7 @@ import {
 import type { Address } from "../types/domain";
 import {
   serviceIssuerDelistingDraft,
+  serviceIssuerDelistingRecord,
   serviceIssuerGovernanceDrafts,
 } from "../modules/commitment-pooling/service-issuer-governance";
 import { assertServiceActor } from "../modules/commitment-pooling/service-actor-session";
@@ -1291,6 +1292,16 @@ describe("member-owned service operations", () => {
     expect(f.state.minted).toBe(200n);
     expect(ops.pending(f.actor)).toBeNull();
   });
+  it("issues within the member's confirmed capacity when it is below the reviewed supply", async () => {
+    const f = fixture();
+    f.assets[0]!.service.capacity = 150n;
+    const ops = f.create();
+    await expect(ops.review(f.actor, { kind: "issue", amount: 51n })).rejects.toThrow(
+      "confirmed capacity"
+    );
+    const review = await ops.review(f.actor, { kind: "issue", amount: 50n });
+    expect(review.call.args).toEqual([f.actor.address, 50n]);
+  });
   it.each([
     "wrongWallet",
     "wrongChain",
@@ -1558,5 +1569,15 @@ describe("member-owned service operations", () => {
     ];
     expect(untouched).not.toContain(draft.call.address);
     expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+    // The record that makes the zero limit read as a delisting binds its reason and exact call.
+    const reason = "Can't deliver this month";
+    const record = serviceIssuerDelistingRecord(f.route, f.actor.assetId, reason);
+    expect(record.reference).toBe(
+      `issuer-delisting:100:${f.route.assets[0]!.token.address.toLowerCase()}`
+    );
+    expect(serviceIssuerDelistingRecord(f.route, f.actor.assetId, ` ${reason} `)).toEqual(record);
+    expect(serviceIssuerDelistingRecord(f.route, f.actor.assetId, "Paused").digest).not.toBe(
+      record.digest
+    );
   });
 });

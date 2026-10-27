@@ -123,10 +123,14 @@ describe("a promise's voucher outcomes for its stewards", () => {
       limit: 6_000_000n,
       holding: 2_000_000n,
     });
-    // A zero holding limit is a delisting only with the stewards' record of it, and what the pool
-    // holds stays. Without the record it is setup: the registry admits a token before its cap.
+    // A zero holding limit is a delisting with the stewards' record of it, or while the pool still
+    // holds the token, and what the pool holds stays. With neither it is setup: the registry
+    // admits a token before its cap lands.
     const recorded = asset("individual", PILOT_ISSUERS.b, delisting);
-    expect(admission({ admitted: true, limit: 0n, holding: 2_000_000n }, recorded)).toMatchObject({
+    expect(admission({ admitted: true, limit: 0n, holding: 0n }, recorded)).toMatchObject({
+      status: "delisted",
+    });
+    expect(admission({ admitted: true, limit: 0n, holding: 2_000_000n })).toMatchObject({
       status: "delisted",
       holding: 2_000_000n,
     });
