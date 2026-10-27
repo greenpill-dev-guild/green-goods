@@ -8,7 +8,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode, useId } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { anchorTimes, orderHistory } from "./historyOrder";
+import { orderHistory } from "./historyOrder";
 import type { BookingHistoryAnchor } from "./serviceBookingTypes";
 
 /** How many lines the page reads: a promise's life is short, and older lines stay on the record. */
@@ -114,6 +114,9 @@ export function CommitmentHistory({
       .filter((event) => event.eventType === "CONFIRMATION_RECORDED")
       .map((event) => event.txHash)
   );
+  const keptTx = new Set(
+    events.filter((event) => event.eventType === "FULFILLED").map((event) => event.txHash)
+  );
   const lines = events.flatMap((event) => {
     if (event.eventType === "FULFILLED" && confirmationTx.has(event.txHash)) return [];
     const id = lineId(event, commitment.direction);
@@ -127,7 +130,11 @@ export function CommitmentHistory({
     return [
       {
         key: event.id,
-        at: event.timestamp,
+        // The confirmation that kept the promise is its kept line too, for a booking's steps.
+        eventTypes:
+          event.eventType === "CONFIRMATION_RECORDED" && keptTx.has(event.txHash)
+            ? [event.eventType, "FULFILLED"]
+            : [event.eventType],
         text: intl.formatMessage(
           { id },
           { who: you ? "you" : event.actor ? "other" : "someone", actor }
@@ -136,7 +143,7 @@ export function CommitmentHistory({
       },
     ];
   });
-  const ordered = orderHistory(lines, bookingLines, anchorTimes(events));
+  const ordered = orderHistory(lines, bookingLines);
 
   if (!localLine && lines.length === 0 && bookingLines.length === 0 && !isError) return null;
 

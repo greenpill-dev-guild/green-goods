@@ -59,18 +59,29 @@ export function currentVoucherSetup(s: ServiceAccessSnapshot): ServiceVoucherSet
 }
 
 /**
- * Whose vouchers the page speaks of: a booking's frozen asset, which a later offer revision
- * can't change, else the offer's voucher or a request's reward.
+ * Whose vouchers the page speaks of: the issuer and asset a booking froze, which a later offer
+ * revision can't change, else the offer's voucher or a request's reward. Issuer and token go
+ * together, since two issuers may share a token.
  */
 export function bookingVoucherIssuer(
   s: ServiceAccessSnapshot | null,
   issuers: readonly VoucherIssuer[] | undefined
 ): VoucherIssuer | null {
-  const token =
-    (s && currentVoucherSetup(s)?.asset.token) ??
-    s?.offer?.voucher?.asset.token ??
-    s?.pilot?.reward?.voucher.asset.token;
-  return issuers?.find((entry) => same(entry.asset.token, token)) ?? null;
+  const setup = s ? currentVoucherSetup(s) : null;
+  const voucher = s?.offer?.voucher;
+  const reward = s?.pilot?.reward?.voucher;
+  const pair = setup
+    ? { token: setup.asset.token, account: setup.authorization.issuer }
+    : voucher
+      ? { token: voucher.asset.token, account: voucher.issuer }
+      : reward
+        ? { token: reward.asset.token, account: reward.funder }
+        : null;
+  return (
+    issuers?.find(
+      (entry) => same(entry.asset.token, pair?.token) && same(entry.account, pair?.account)
+    ) ?? null
+  );
 }
 
 /** A promise its service's own acts govern: the generic take-up and claims step aside. */
@@ -306,7 +317,9 @@ export function serviceBookingView(
       of: accessDays,
     },
   };
-  const needsYou = NEEDS_YOU.has(stage);
+  // A stage that waits on others still needs the reader when an act of theirs stopped partway.
+  const recovery = recoveryAct(stage, setup);
+  const needsYou = NEEDS_YOU.has(stage) || recovery !== null;
   const tone: ServiceBandTone = needsYou
     ? "attention"
     : kept
@@ -329,7 +342,7 @@ export function serviceBookingView(
               t(`rd.a.${kind === "send" ? "close" : kind}`),
   });
   const [stageKind, secondaryKind] = ACTS[stage] ?? [null, null];
-  const primaryKind = recoveryAct(stage, setup) ?? stageKind;
+  const primaryKind = recovery ?? stageKind;
   const held = input.held ?? 0n;
   const phases = bookingPhases(ctx);
   return {

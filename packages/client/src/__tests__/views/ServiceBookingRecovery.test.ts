@@ -53,9 +53,15 @@ describe("a voucher booking's unfinished acts", () => {
       label: "Close the Booking",
     });
     expect(serviceActOffered("send", unsent, null)).toBe(true);
+    // It waits on the reader now, so the band says so.
+    expect(view(unsent, "transfersPending").band).toMatchObject({
+      needsYou: true,
+      tone: "attention",
+    });
     // Once sent, the transfer shows as pending until it arrives, with nothing left to do.
     const sent = bookingStorySnapshot("hubDay", "transfersPending");
     expect(view(sent, "transfersPending").primary).toBeNull();
+    expect(view(sent, "transfersPending").band.needsYou).toBe(false);
   });
 
   it("keeps a recorded cancellation resumable until it is sent to the escrow", () => {
@@ -63,6 +69,7 @@ describe("a voucher booking's unfinished acts", () => {
     const booking = view(recorded, "canceling");
     expect(booking.stage).toBe("canceling");
     expect(booking.primary?.label).toBe("Cancel Booking");
+    expect(booking.band.needsYou).toBe(true);
     expect(serviceActOffered("cancel", recorded, null)).toBe(true);
     expect(cancelStep(recorded)).toMatchObject({
       action: "dispatchVoucherSetupCommand",
@@ -92,6 +99,7 @@ describe("a voucher booking's unfinished acts", () => {
     const stuck = bookingStorySnapshot("hubDay", "confirmingDeposit", { ackStuck: true });
     const booking = view(stuck, "confirmingDeposit");
     expect(booking.primary).toEqual({ kind: "retryConfirm", label: "Retry Confirmation" });
+    expect(booking.band.needsYou).toBe(true);
     expect(booking.secondary?.label).toBe("Cancel Booking");
     expect(serviceActOffered("retryConfirm", stuck, null)).toBe(true);
     const confirming = bookingStorySnapshot("hubDay", "confirmingDeposit");

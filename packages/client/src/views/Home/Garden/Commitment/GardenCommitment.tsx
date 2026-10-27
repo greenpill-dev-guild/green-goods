@@ -321,7 +321,7 @@ export function GardenCommitment() {
         {showMembershipRetry ? (
           <MembershipCheckFailed onRetry={controller.membership.retry} />
         ) : null}
-        {serviceRead === "failed" && untaken ? (
+        {serviceRead === "failed" ? (
           <MembershipCheckFailed check="service" onRetry={() => void serviceAccess.refetch()} />
         ) : null}
         <CommitmentTeam

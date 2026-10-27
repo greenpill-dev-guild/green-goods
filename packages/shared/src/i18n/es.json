@@ -1210,7 +1210,7 @@
   "app.commitment.queue.notice.unsent.body": "Espera en este teléfono hasta que lo envíes y aparece abajo cuando llegue.",
   "app.commitment.queue.notice.membership.bodyUnsent": "Tu membresía del jardín aún no había llegado la última vez que se intentó. Envíalo cuando llegue.",
   "app.commitment.join.unavailable": "No pudimos comprobar si perteneces a este jardín, así que aceptar esto está en pausa.",
-  "app.commitment.join.serviceUnavailable": "No pudimos comprobar cómo se acepta esta promesa, así que aceptarla está en pausa.",
+  "app.commitment.join.serviceUnavailable": "No pudimos comprobar cómo se acepta esta promesa, así que sus solicitudes están en pausa.",
   "app.commitment.team.assigned": "Asignado: {rows}",
   "app.commitment.team.credits": "{work, plural, =0 {Todavía sin trabajo aprobado} one {# trabajo aprobado} other {# trabajos aprobados}} · {proof, plural, =0 {todavía sin pruebas} one {# prueba} other {# pruebas}}",
   "app.commitment.team.frozen": "Equipo fijado",
