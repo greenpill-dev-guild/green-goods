@@ -11,6 +11,7 @@ import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
 import {
   groupRewardsOf,
+  promisePayoutOf,
   promiseRewardOf,
   promiseRewardText,
 } from "../../components/Features/Commitments/PromiseReward";
@@ -51,17 +52,21 @@ describe("promise rewards", () => {
     const rewards = [promiseRewardOf(onRail(SET_WEI), METADATA)].filter(
       (reward) => reward !== null
     );
+    const line = (
+      derivedState: "ACCEPTED" | "FULFILLED" | "RECONCILED",
+      considerationPaid = false
+    ) =>
+      promiseRewardText({
+        intl,
+        rewards,
+        price: NO_PRICE,
+        payout: promisePayoutOf({ derivedState, considerationPaid }),
+      });
 
-    expect(promiseRewardText({ intl, rewards, price: NO_PRICE })).toBe(
-      "$20.00, paid in G$ after it's kept"
-    );
+    expect(line("ACCEPTED")).toBe("$20.00, paid in G$ after it's kept");
     // Kept, with the payout still to come: never "after it's kept" on a kept promise.
-    expect(promiseRewardText({ intl, rewards, price: NO_PRICE, kept: true })).toBe(
-      "$20.00, not yet paid in G$"
-    );
-    expect(promiseRewardText({ intl, rewards, price: NO_PRICE, kept: true, paid: true })).toBe(
-      "$20.00, paid in G$"
-    );
+    expect(line("FULFILLED")).toBe("$20.00, not yet paid in G$");
+    expect(line("RECONCILED", true)).toBe("$20.00, paid in G$");
     expect(promiseRewardText({ intl, rewards: [], price: PRICE })).toBeNull();
   });
 
@@ -79,9 +84,9 @@ describe("promise rewards", () => {
       "200,000 G$, paid in G$ after it's kept"
     );
     // A G$ amount is never followed by "in G$".
-    expect(promiseRewardText({ intl, rewards: edited, price: NO_PRICE, kept: true })).toBe(
-      "200,000 G$, not yet paid in G$"
-    );
+    expect(
+      promiseRewardText({ intl, rewards: edited, price: NO_PRICE, payout: "notPaidYet" })
+    ).toBe("200,000 G$, not yet paid in G$");
   });
 
   it("gives a group the rewards a member could still take up, as a range when they differ", () => {
@@ -100,21 +105,26 @@ describe("promise rewards", () => {
       METADATA
     );
 
-    expect(partial.map((reward) => reward.wei).sort()).toEqual([SET_WEI, 200_000n * G].sort());
-    expect(promiseRewardText({ intl, rewards: partial, price: PRICE })).toBe(
+    expect(partial.open).toBe(true);
+    expect(partial.rewards.map((reward) => reward.wei).sort()).toEqual(
+      [SET_WEI, 200_000n * G].sort()
+    );
+    expect(promiseRewardText({ intl, rewards: partial.rewards, price: PRICE })).toBe(
       "$20.00 to about $25.00, paid in G$ after it's kept"
     );
-    // Nothing left to take up: the page says what every copy carried, edited ones included.
+    // Nothing left to take up: the page says what every copy carried, edited ones included,
+    // and no payout, since each copy's stands apart.
     const taken = groupRewardsOf(
       [copy(SET_WEI, "ACCEPTED"), copy(200_000n * G, "FULFILLED"), copy(SET_WEI, "FULFILLED")],
       METADATA
     );
-    expect(promiseRewardText({ intl, rewards: taken, price: PRICE })).toBe(
-      "$20.00 to about $25.00, paid in G$ after it's kept"
-    );
+    expect(taken.open).toBe(false);
+    expect(
+      promiseRewardText({ intl, rewards: taken.rewards, price: PRICE, payout: "unstated" })
+    ).toBe("$20.00 to about $25.00");
   });
 
-  it("orders a range by the dollars it shows, not by its G$", () => {
+  it("orders a range by the dollars it shows, and keeps it in one currency", () => {
     // Edited down to 100,000 G$, worth about $30.00 after the rate rose; the 160,000 G$ set at
     // Create still reads its $20.00. By G$ alone the range would read backwards.
     const risen: GoodDollarPriceState = { status: "ready", price: 300_000_000_000_000n, readAt: 0 };
@@ -125,6 +135,10 @@ describe("promise rewards", () => {
 
     expect(promiseRewardText({ intl, rewards, price: risen })).toBe(
       "$20.00 to about $30.00, paid in G$ after it's kept"
+    );
+    // Without a rate the edited amount shows no dollars, so the whole range reads in G$.
+    expect(promiseRewardText({ intl, rewards, price: NO_PRICE })).toBe(
+      "100,000 G$ to 160,000 G$, paid in G$ after it's kept"
     );
   });
 });

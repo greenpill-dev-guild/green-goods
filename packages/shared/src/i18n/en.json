@@ -1570,7 +1570,7 @@
   "app.confirm.notYet.offline": "Telling the stewards needs a connection. Your note stays on this phone until you are back online.",
   "app.confirm.notYet.placeholder.captured": "The workshop has not happened yet…",
   "app.confirm.notYet.placeholder.offer": "The far bed is still overgrown…",
-  "app.confirm.notYet.placeholder.request": "The ride did not arrive…",
+  "app.confirm.notYet.placeholder.request": "The last part is still to come…",
   "app.confirm.notYet.placeholder.request-work": "The channel is still blocked…",
   "app.confirm.notYet.placeholder.support": "Two handles still need repair…",
   "app.confirm.notYet.retry": "Try Again",

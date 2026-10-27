@@ -45,37 +45,42 @@ function pluralCount(count: bigint | number | string): number {
 
 type SingularRule = readonly [plural: RegExp, singular: string | null];
 
-/** Plurals that read the same way in English, Spanish and Portuguese ("photos", "aulas"). */
+/** Spanish and Portuguese plural endings no English word shares, undone for any reader. */
 const SINGULAR_ANY_LANGUAGE: readonly SingularRule[] = [
   [/iones$/, "ión"],
   [/ões$/, "ão"],
-  [/(.{2}[ao])s$/i, "$1"],
 ];
 
+/** Spanish and Portuguese "-os" and "-as" plurals ("certificados", "aulas"). */
+const SINGULAR_SPANISH_PORTUGUESE: readonly SingularRule[] = [[/(.{2}[ao])s$/i, "$1"]];
+
 /**
- * English plurals, tried only for an English reader: in Spanish "árboles" is
- * "árbol", not "árbole". A rule with no singular leaves the word as written.
+ * English plurals. A rule with no singular leaves the word as written, as does
+ * a final "s" after a letter a singular unit can end on: "canvas", "chaos",
+ * "lens", "news", "bus", "basis".
  */
 const SINGULAR_ENGLISH: readonly SingularRule[] = [
   [/(ss|sh|ch|x)es$/i, "$1"],
   // Endings whose singular the word can't settle: "activities" or "movies", "buses" or
-  // "courses", "leaves" or "gloves", "potatoes" or "shoes"; "status" and "basis" are no plurals.
-  [/(ies|ses|ves|oes|ss|us|is)$/i, null],
-  [/(.{3})s$/i, "$1"],
+  // "courses", "leaves" or "gloves", "potatoes" or "shoes", "quizzes" or "prizes";
+  // "physics" is no plural.
+  [/(ies|ses|ves|oes|zes|ics)$/i, null],
+  [/(.{2}[^aiosuwn])s$/i, "$1"],
 ];
 
 /**
  * A garden's own unit, read for a count of one. Units are written as plurals
  * (the composer's chips are too), so the raw word would say "1 certificates".
- * Only a single word in a plural these rules can undo with confidence changes;
- * the reader's language stands in for the garden's, which isn't recorded.
+ * Only a single word whose ending proves it a plural changes; the reader's
+ * language stands in for the garden's, which isn't recorded.
  */
 function singularOf(unit: string, locale: string): string {
   if (/\s/.test(unit)) return unit;
-  const english = locale.toLowerCase().split("-")[0] === "en";
+  const language = locale.toLowerCase().split("-")[0];
   for (const [plural, singular] of [
     ...SINGULAR_ANY_LANGUAGE,
-    ...(english ? SINGULAR_ENGLISH : []),
+    ...(language === "en" ? SINGULAR_ENGLISH : []),
+    ...(language === "es" || language === "pt" ? SINGULAR_SPANISH_PORTUGUESE : []),
   ]) {
     if (plural.test(unit)) return singular === null ? unit : unit.replace(plural, singular);
   }

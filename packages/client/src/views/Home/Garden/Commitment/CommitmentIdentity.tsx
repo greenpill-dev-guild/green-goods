@@ -15,6 +15,7 @@ import { useIntl } from "react-intl";
 
 import {
   presentState,
+  promisePayoutOf,
   promiseRewardOf,
   promiseRewardText,
   rewardsNeedPrice,
@@ -87,8 +88,7 @@ export function CommitmentIdentity({
     intl,
     rewards,
     price: price.state,
-    kept: commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED",
-    paid: commitment.considerationPaid === true,
+    payout: promisePayoutOf(commitment),
   });
   const state = presentState(commitment.derivedState);
   const needsYou = serviceBand ? serviceBand.needsYou : commitmentNeedsSeat({ commitment, seat });

@@ -184,6 +184,32 @@ describe("GardenPromiseGroup", () => {
     expect(within(sheet).getByText(reward)).toBeInTheDocument();
   });
 
+  it("gives a group with no copy left its reward alone, since each copy's payout stands apart", () => {
+    const wei = 160_000n * 10n ** 18n;
+    const { group, sample } = storyGroup({
+      available: 0,
+      inProgress: 2,
+      kept: 3,
+      overrides: { considerationRail: "CELO_SETTLEMENT", considerationAmount: wei },
+    });
+    mockController.mockReturnValue(
+      controller({
+        group,
+        sample,
+        counts: group.counts,
+        metadata: {
+          version: 1,
+          title: "Complete the climate course",
+          reward: { version: 1, usdCents: "2000", goodDollarWei: wei.toString() },
+        },
+      })
+    );
+    render();
+
+    const asks = screen.getByRole("region", { name: "What each one asks" });
+    expect(within(asks).getByText("$20.00")).toBeInTheDocument();
+  });
+
   it("passes the copy a link names, so a reload finds the same group", () => {
     mockController.mockReturnValue(controller());
     render("/home/0xgarden/commitments/group/set-1?copy=104");

@@ -1570,7 +1570,7 @@
   "app.confirm.notYet.offline": "Avisar os responsáveis precisa de conexão. A sua nota fica neste telefone até você voltar a ficar online.",
   "app.confirm.notYet.placeholder.captured": "A oficina ainda não aconteceu…",
   "app.confirm.notYet.placeholder.offer": "O canteiro do fundo ainda está tomado pelo mato…",
-  "app.confirm.notYet.placeholder.request": "A carona não chegou…",
+  "app.confirm.notYet.placeholder.request": "Ainda falta a última parte…",
   "app.confirm.notYet.placeholder.request-work": "O canal continua bloqueado…",
   "app.confirm.notYet.placeholder.support": "Dois cabos ainda precisam de conserto…",
   "app.confirm.notYet.retry": "Tentar novamente",

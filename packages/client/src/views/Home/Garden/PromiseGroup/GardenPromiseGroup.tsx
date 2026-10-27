@@ -36,9 +36,9 @@ export function GardenPromiseGroup() {
   const [context, setContext] = useState<ClaimContext | null>(null);
   const { state: takeUpState, reset } = controller.takeUp;
   // Today's G$ price is read only for a reward whose dollars can't be read from its record.
-  const rewards = controller.group
+  const { rewards, open } = controller.group
     ? groupRewardsOf(controller.group.children, controller.metadata)
-    : [];
+    : { rewards: [], open: false };
   const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
   const back = () => navigate(-1);
   const openCopy = (commitmentId: bigint) =>
@@ -81,7 +81,13 @@ export function GardenPromiseGroup() {
         { month: "short", day: "numeric", year: "numeric" }
       )}`
     : null;
-  const reward = promiseRewardText({ intl, rewards, price: price.state });
+  // With no copy left to take up, each copy's payout stands apart, so the page gives amounts alone.
+  const reward = promiseRewardText({
+    intl,
+    rewards,
+    price: price.state,
+    payout: open ? "afterKept" : "unstated",
+  });
   const inFlight = takeUpState.step === "checking" || takeUpState.step === "sending";
   const closeSheet = () => {
     if (inFlight) return;

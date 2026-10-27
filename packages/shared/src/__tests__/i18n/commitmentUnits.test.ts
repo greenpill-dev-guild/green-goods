@@ -58,7 +58,7 @@ describe("formatCommitmentUnits", () => {
       // Tech and Sun's course request: "1 certificates" before.
       ["en", "certificates", "1 certificate"],
       ["en", "classes", "1 class"],
-      ["en", "photos", "1 photo"],
+      ["en", "workshops", "1 workshop"],
       ["en", "lecciones", "1 lección"],
       // "activities" could be "activity" or, like "movies", end in "ie": it stays as written.
       ["en", "activities", "1 activities"],
@@ -66,6 +66,10 @@ describe("formatCommitmentUnits", () => {
       ["en", "buses", "1 buses"],
       ["en", "analyses", "1 analyses"],
       ["en", "leaves", "1 leaves"],
+      // And units that may be singular already: "-as", "-os" and "-ns" prove no plural.
+      ["en", "canvas", "1 canvas"],
+      ["en", "lens", "1 lens"],
+      ["en", "photos", "1 photos"],
       ["en", "climate courses", "1 climate courses"],
       ["es", "certificados", "1 certificado"],
       ["es", "árboles", "1 árboles"],

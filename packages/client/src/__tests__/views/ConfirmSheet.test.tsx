@@ -129,6 +129,9 @@ describe("ConfirmSheet words for a request that is not garden work", () => {
       within(sheet).getByRole("button", { name: "It hasn't happened yet" })
     ).toBeInTheDocument();
     expect(within(sheet).getByRole("button", { name: "Not finished yet" })).toBeInTheDocument();
-    expect(within(sheet).queryByText(/arrive/i)).toBeNull();
+    expect(within(sheet).getByRole("textbox")).toHaveAttribute(
+      "placeholder",
+      "The last part is still to come…"
+    );
   });
 });
