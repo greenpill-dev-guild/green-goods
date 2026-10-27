@@ -23,13 +23,14 @@ export function hasVoucherWallet(
  * What the Vouchers tab draws, in the lab's order (`SWallet`): a voucher a booking holds, as its
  * own row (decision 11); a return on its way, pending until it arrives; then what the account
  * holds of each issuer. A booking that is settling or returning shows through its return
- * instead, so no voucher is counted twice.
+ * instead, so no voucher is counted twice. An issuer the account holds none of has no row, so
+ * an account with nothing yet reads "No vouchers yet".
  */
 export function selectVoucherWalletRows(wallet: VoucherWalletSnapshot) {
   return {
     bookings: wallet.bookings.filter((escrow) => escrow.stage === "held" && escrow.held > 0n),
     returns: wallet.returns,
-    holdings: wallet.holdings,
+    holdings: wallet.holdings.filter((holding) => holding.available > 0n),
   };
 }
 

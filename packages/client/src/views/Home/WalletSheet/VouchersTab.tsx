@@ -58,7 +58,6 @@ export function VouchersTab({ wallet, onClose }: VouchersTabProps) {
   const rows = selectVoucherWalletRows(wallet);
   const issuerName = (account: Address) =>
     voucherIssuerOf(wallet, account)?.name ?? shortAccount(account);
-  const decimalsOf = (account: Address) => voucherIssuerOf(wallet, account)?.asset.decimals ?? null;
   // The sheet sits over Home, so it closes before the screen it opens would show under it.
   const go = (path: string) => {
     onClose();
@@ -85,7 +84,6 @@ export function VouchersTab({ wallet, onClose }: VouchersTabProps) {
                 <VoucherBookingRow
                   escrow={escrow}
                   issuer={issuerName(escrow.issuer)}
-                  decimals={decimalsOf(escrow.issuer)}
                   onOpen={() => go(voucherBookingPath(escrow.booking))}
                 />
               </li>
@@ -95,7 +93,6 @@ export function VouchersTab({ wallet, onClose }: VouchersTabProps) {
                 <VoucherReturnRow
                   back={back}
                   issuer={issuerName(back.issuer)}
-                  decimals={decimalsOf(back.issuer)}
                   onOpen={() => go(voucherBookingPath(back.booking))}
                 />
               </li>
@@ -125,7 +122,6 @@ export function VouchersTab({ wallet, onClose }: VouchersTabProps) {
 
 interface BookingRowProps {
   issuer: string;
-  decimals: number | null;
   onOpen: () => void;
 }
 
@@ -133,7 +129,6 @@ interface BookingRowProps {
 function VoucherBookingRow({
   escrow,
   issuer,
-  decimals,
   onOpen,
 }: BookingRowProps & { escrow: VoucherBookingEscrow }) {
   const intl = useIntl();
@@ -149,8 +144,9 @@ function VoucherBookingRow({
       status={{ label: intl.formatMessage({ id: "app.voucher.wl.bk.booked" }), tone: "info" }}
       edge="info"
       details={[issuer]}
+      // In the asset the escrow recorded, which holds for an issuer the wallet no longer lists.
       amount={{
-        value: formatVouchers(escrow.held, decimals, intl.locale),
+        value: formatVouchers(escrow.held, escrow.asset.decimals, intl.locale),
         caption: intl.formatMessage({ id: "app.voucher.wl.bk.cap" }),
       }}
       onOpen={onOpen}
@@ -162,7 +158,6 @@ function VoucherBookingRow({
 function VoucherReturnRow({
   back,
   issuer,
-  decimals,
   onOpen,
 }: BookingRowProps & { back: VoucherPendingReturn }) {
   const intl = useIntl();
@@ -171,7 +166,7 @@ function VoucherReturnRow({
     commitmentId: back.booking.commitmentId,
   });
   const title = useCommitmentMetadataFor(commitment ?? undefined)?.title;
-  const amount = formatVouchers(back.amount, decimals, intl.locale);
+  const amount = formatVouchers(back.amount, back.asset.decimals, intl.locale);
   const failed = back.state === "failed";
   return (
     <ItemRow
