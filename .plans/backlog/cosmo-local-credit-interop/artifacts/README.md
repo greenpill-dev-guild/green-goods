@@ -29,7 +29,7 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | [`deck/speaker-notes.md`](deck/speaker-notes.md) | Eighteen notes of 10 to 35 seconds each, 8:00 in total, plus cuts for a shorter slot, claims to keep straight and the Q&A business-model and endowment references |
 | [`deck/render.mjs`](deck/render.mjs) | Checks the deck, syncs the notes, renders PNGs, a contact sheet and the PDF |
 | [`deck/assets/brand/`](deck/assets/brand/) | The official logo and the symbol, cropped to its shapes for the corner mark |
-| `deck/assets/photos/`, `demo/assets/screens/` | Local images, not committed; see [Photos and screens](#photos-and-screens) |
+| `deck/assets/screens/`, `deck/assets/photos/` | Local images, not committed; see [Photos and screens](#photos-and-screens) |
 | [`brief/index.html`](brief/index.html) | The Green Goods brief: six A4 pages in the same style, made to stand on its own; page 1 doubles as the one-page summary; its links are clickable in the PDF |
 | [`brief/render.mjs`](brief/render.mjs) | Checks the brief and renders its PDF and page PNGs |
 | [`submission/business-model-canvas.html`](submission/business-model-canvas.html) | The Business Model Canvas the event asks for: one A4 landscape page, the nine standard blocks, figures from the brief and labeled illustrative |
@@ -102,12 +102,15 @@ June 2026 Octant demo-day deck's folder; place them with:
 cp /Users/afo/Code/greenpill/artifacts/octant-e12-deck/assets/photos/{awka-hub,tas-hub-build,odunde-masquerade,omo-yoruba-bridge}.jpg .plans/backlog/cosmo-local-credit-interop/artifacts/deck/assets/photos/
 ```
 
-Slide 6 and the brief's second page show two of the clickable demo's screens, also kept out of
-git: `demo/assets/screens/promise-3.jpg`, the hub's Promises sheet in its open season, and
-`promise-11.jpg`, the sheet that confirms a kept promise, with a member's course proof. They are
-Tech and Sun's real season and request in the current app, with invented member names; run the
-demo's capture (see `demo/README.md`) before the deck and brief renders on a fresh checkout. The
-notes' claims list tells the presenter what they show. The earlier Storybook pair and its capture
+Slide 6 and the brief's second page show two screens the deck owns, also kept out of git:
+`deck/assets/screens/promises-sheet.jpg`, the hub's Promises sheet in its open season, and
+`confirm-sheet.jpg`, the sheet that confirms a kept promise, with a member's course proof. They
+are copies of the clickable demo's 26 October capture (its `promise-3.jpg` and `promise-11.jpg`,
+780 by 1688): Tech and Sun's real season and course request in the current app, with invented
+member names. The demo's later rebuild tells one chain and no longer captures them, so keep
+these copies; to replace them, capture the hub's Promises sheet and a course promise's confirm
+sheet from the app at 390 px wide and 2x, with both sheets' top edges at y 250. The notes'
+claims list tells the presenter what they show. The earlier Storybook pair and its capture
 script retired in the [critique pass](#the-critique-pass--26-october-2026).
 
 ## The revision · 25 October 2026
@@ -414,8 +417,9 @@ misreadings, or that would add errors, did not.
 
 - **Real screens on slide 6.** The deck critic read the Storybook fixture garden as real ("a
   fence repair at Riverside Commons"), and the pair also showed raw addresses and proof that
-  "cannot be shown right now". Slide 6 and the brief's second page now show the demo's hub
-  Promises sheet and its confirm sheet with the course proof; `deck/capture-screens.mjs` retired
+  "cannot be shown right now". Slide 6 and the brief's second page now show the hub's Promises
+  sheet and its confirm sheet with the course proof, copied from the demo's capture into the
+  deck's own screens so a demo rebuild cannot change them; `deck/capture-screens.mjs` retired
   with the Storybook pair, so the Storybook outage no longer blocks the deck.
 - **The confirmation rule as a headline.** Slide 3 carries it as a second headline under the
   title, "Confirmed by the people it served, never by the people who did the work.", since a
