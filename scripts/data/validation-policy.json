@@ -879,8 +879,8 @@
     },
     {
       "check": "story-quality",
-      "note": "check-story-coverage.ts asks every component file in the trees it scans for a sibling story, so a new component without one fails the Design workflow's Storybook job. A changed story selects the check already; these globs add the components. The checker skips only .test. and .service. files, so a helper inside a __tests__ folder still needs a story; Design CI's path filter skips that folder, which leaves this rule as the only check that sees it. select-validation.test.mjs fails when these globs and the trees the checker scans drift apart.",
-      "excludeContains": [".test.", ".service."],
+      "note": "check-story-coverage.ts asks every component file in the trees it scans for a sibling story, so a new component without one fails the Design workflow's Storybook job. A changed story selects the check already; these globs add the components. The checker skips only names ending in .test.tsx or .service.tsx, so a helper inside a __tests__ folder still needs a story, even one named like Widget.test.fixture.tsx; Design CI's path filter skips that folder, which leaves this rule as the only check that sees it. select-validation.test.mjs fails when these globs and the trees the checker scans drift apart.",
+      "excludeSuffixes": [".test.tsx", ".service.tsx"],
       "globs": [
         "packages/shared/src/components/**/*.tsx",
         "packages/admin/src/components/**/*.tsx",

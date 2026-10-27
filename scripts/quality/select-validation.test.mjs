@@ -2888,10 +2888,15 @@ test("every component file the story coverage check scans runs it locally and in
     const component = `${tree}/Example/NewComponent.tsx`;
     assert.ok(selectsStoryChecks(component), component);
     assert.ok(selectExpectedWorkflows({ changedPaths: [component], intent: "merge", ci: true }).includes("Design"), component);
-    // The checker skips only test and service files by name, so a helper in a test folder still
-    // needs a story, and Design CI's path filter never starts for it.
-    assert.ok(selectsStoryChecks(`${tree}/Example/__tests__/Fixture.tsx`), `${tree} test-folder helper`);
-    assert.ok(!selectsStoryChecks(`${tree}/Example/__tests__/Example.test.tsx`), `${tree} test file`);
+    // The checker skips only names ending in .test.tsx or .service.tsx, so a helper in a test
+    // folder still needs a story, even one whose name contains either, and Design CI's path filter
+    // never starts for it.
+    for (const helper of ["Fixture.tsx", "Widget.test.fixture.tsx", "Widget.test.tsx.fixture.tsx", "Widget.service.tsx.fixture.tsx"]) {
+      assert.ok(selectsStoryChecks(`${tree}/Example/__tests__/${helper}`), `${tree} ${helper}`);
+    }
+    for (const skipped of ["__tests__/Example.test.tsx", "Example.service.tsx"]) {
+      assert.ok(!selectsStoryChecks(`${tree}/Example/${skipped}`), `${tree} ${skipped}`);
+    }
   }
 });
 
