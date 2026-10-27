@@ -1,4 +1,6 @@
 import {
+  type CommitmentDerivedState,
+  type CommitmentEventRecord,
   type ServiceAccessAction,
   type ServiceAccessSnapshot,
   selectServiceAccessAction,
@@ -31,16 +33,20 @@ import {
   bookingStoryCoreState,
   bookingStorySnapshot,
   bookingStoryWallet,
+  type ExchangeStoryState,
   type RewardStoryState,
   rewardStoryController,
   rewardStorySnapshot,
+  VOUCHER_STORY_AGREED_AT,
   VOUCHER_STORY_NAMES,
   VOUCHER_STORY_WALLET_KEY,
 } from "../../../../../../shared/.storybook/voucherBookingFixtures";
 import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import {
+  VOUCHER_STORY_ISSUERS,
   VOUCHER_STORY_SCOPE,
+  vouchers,
   voucherStorySeeds,
   voucherWalletStory,
 } from "../../../../../../shared/.storybook/voucherPilotFixtures";
@@ -57,9 +63,21 @@ interface JourneyStep {
     service: BookingStoryService;
     stage: BookingStoryStage;
     confirmed?: boolean;
-    exchange?: "none" | "quoted" | "unknown" | "confirmed";
+    exchange?: ExchangeStoryState;
+    /** A booking that stopped partway, or a read the page can't use yet. */
+    options?: Omit<
+      NonNullable<Parameters<typeof bookingStorySnapshot>[2]>,
+      "confirmed" | "exchange"
+    >;
+    /** The promise's own state where it isn't the stage's usual one. */
+    core?: CommitmentDerivedState;
+    tweak?: (snapshot: ServiceAccessSnapshot) => ServiceAccessSnapshot;
+    /** The service read failed, so the page has no snapshot. */
+    readFailed?: boolean;
   };
   reward?: { state: RewardStoryState; withGd: boolean };
+  /** The promise's own History, newest first. */
+  events?: CommitmentEventRecord[];
   /** What the reader holds now, in whole vouchers. */
   holds: { techAndSun: number; greenGoods: number };
   /** The other person's act that moves the journey on, as the band's button. */
@@ -304,30 +322,197 @@ const EARN_VOUCHERS_ONLY: JourneyStep[] = [
   },
 ];
 
+/** One of the hub day's events on the promise itself, minutes after Lina agreed. */
+function hubDayEvent(eventType: string, minutes: number, byIssuer: boolean): CommitmentEventRecord {
+  return {
+    id: `story-hub-day-${eventType}`,
+    chainId: VOUCHER_STORY_SCOPE.sourceChainId,
+    poolId: null,
+    cycleId: null,
+    commitmentId: 4101n,
+    eventType,
+    actor: byIssuer ? VOUCHER_STORY_ISSUERS.techAndSun.account : VOUCHER_STORY_SCOPE.account,
+    configurationKey: null,
+    previousValue: null,
+    newValue: null,
+    units: null,
+    data: null,
+    txHash: `0x${minutes.toString(16).padStart(64, "0")}`,
+    timestamp: Number(VOUCHER_STORY_AGREED_AT) + minutes * 60,
+  };
+}
+
+/** A booking's setup with its destination changed, for the states a fixture stage doesn't draw. */
+const withDestination =
+  (change: Partial<NonNullable<ServiceAccessSnapshot["voucherSetups"][number]["destination"]>>) =>
+  (snapshot: ServiceAccessSnapshot): ServiceAccessSnapshot => ({
+    ...snapshot,
+    voucherSetups: snapshot.voucherSetups.map((row) => ({
+      ...row,
+      destination: row.destination && { ...row.destination, ...change },
+    })),
+  });
+
+/** The states a booking or a reward reaches when an act stops partway or a read can't be used. */
+const RECOVERY: JourneyStep[] = [
+  {
+    caption:
+      "The offer moved to version 3 and to Green Goods vouchers after Lina deposited: her booking keeps version 2 and Tech and Sun.",
+    booking: {
+      service: "hubDay",
+      stage: "termsChanged",
+      tweak: (snapshot) => ({
+        ...snapshot,
+        offer: snapshot.offer && {
+          ...snapshot.offer,
+          voucher: {
+            asset: VOUCHER_STORY_ISSUERS.greenGoods.asset,
+            issuer: VOUCHER_STORY_ISSUERS.greenGoods.account,
+            units: vouchers(1),
+          },
+        },
+      }),
+    },
+    holds: { techAndSun: 8, greenGoods: 2 },
+  },
+  {
+    caption:
+      "Lina approved the split, then declined the transfer's prompt. Close the Booking sends it.",
+    booking: { service: "hubDay", stage: "transfersPending", options: { legsSent: false } },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption:
+      "Lina confirmed while her voucher was still on its way: History shows the confirmation last, above the split.",
+    booking: { service: "hubDay", stage: "transfersPending", confirmed: true },
+    holds: { techAndSun: 8, greenGoods: 0 },
+    events: [
+      hubDayEvent("CONFIRMATION_RECORDED", 4 * 60, false),
+      hubDayEvent("READY_FOR_CONFIRMATION", 3 * 60, true),
+      hubDayEvent("ACCEPTED", 60, true),
+      hubDayEvent("CLAIM_REQUESTED", 0, false),
+      hubDayEvent("CREATED", -60, true),
+    ],
+  },
+  {
+    caption:
+      "The transfer arrived before Lina confirmed. The promise still needs her, and Promise kept? says the transfer arrived.",
+    booking: { service: "hubDay", stage: "closed", core: "READY_FOR_CONFIRMATION" },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption:
+      "Lina canceled, then declined sending it. Cancel Booking sends the recorded cancellation.",
+    booking: { service: "hubDay", stage: "canceling", options: { cancelSent: false } },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption:
+      "The deposit's confirmation didn't reach the source. Retry Confirmation sends it again.",
+    booking: { service: "hubDay", stage: "confirmingDeposit", options: { ackStuck: true } },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption: "The escrow took the deposit but couldn't finish it. Deposit runs its stored retry.",
+    booking: { service: "hubDay", stage: "readyToDeposit", options: { depositRetry: true } },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+  {
+    caption: "The escrow is paused. Deposit's sheet says so and can't send.",
+    booking: {
+      service: "hubDay",
+      stage: "readyToDeposit",
+      options: { pause: { destinationVoucher: true } },
+    },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+  {
+    caption: "Lina holds no Tech and Sun vouchers, and no pool can quote here: no Exchange act.",
+    booking: { service: "hubDay", stage: "readyToDeposit", options: { held: 0n } },
+    holds: { techAndSun: 0, greenGoods: 0 },
+  },
+  {
+    caption: "A hub day cut short: half the voucher back, and the hub day counted as delivered.",
+    booking: {
+      service: "hubDay",
+      stage: "returnProposed",
+      tweak: withDestination({ issuerReturnCeiling: vouchers(0.5) }),
+    },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
+    caption: "A service in general words: 12 of the 30 sessions it authorized were delivered.",
+    booking: {
+      service: "access",
+      stage: "returnProposed",
+      tweak: (snapshot) => ({
+        ...snapshot,
+        offer: snapshot.offer && { ...snapshot.offer, unitLabel: "sessions" },
+      }),
+    },
+    holds: { techAndSun: 0.99, greenGoods: 0 },
+  },
+  {
+    caption: "The shared pool has only 5 to give. Try a Smaller Amount asks for that.",
+    booking: { service: "access", stage: "notEnough", exchange: "short" },
+    holds: { techAndSun: 9, greenGoods: 2 },
+  },
+  {
+    caption:
+      "The exchange's transfer didn't go through: nothing moved, and the quote didn't expire.",
+    booking: { service: "access", stage: "notEnough", exchange: "failed" },
+    holds: { techAndSun: 9, greenGoods: 2 },
+  },
+  {
+    caption: "A vouchers-only reward on its way.",
+    reward: { state: "bothOnTheWay", withGd: false },
+    holds: { techAndSun: 7, greenGoods: 0 },
+  },
+  {
+    caption: "The voucher transfer failed with the reserve full enough: it waits for a retry.",
+    reward: { state: "voucherDelayed", withGd: false },
+    holds: { techAndSun: 7, greenGoods: 0 },
+  },
+  {
+    caption: "Agreeing isn't available in the app yet: Ask for Help opens the app's Help.",
+    reward: { state: "agreementUnavailable", withGd: true },
+    holds: { techAndSun: 7, greenGoods: 0 },
+  },
+  {
+    caption: "The service read failed: taking this up waits, and Try Again reads it again.",
+    booking: { service: "hubDay", stage: "open", readFailed: true },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+];
+
 const JOURNEYS = {
   hubDay: HUB_DAY,
   exchange: EXCHANGE_THEN_REDEEM,
   endsEarly: ENDS_EARLY,
   earn: EARN_WITH_GD,
   earnVouchersOnly: EARN_VOUCHERS_ONLY,
+  recovery: RECOVERY,
 } as const;
 type JourneyId = keyof typeof JOURNEYS;
 
 function snapshotFor(step: JourneyStep): ServiceAccessSnapshot {
   if (step.reward) return rewardStorySnapshot(step.reward.state, step.reward.withGd);
-  const { service, stage, confirmed, exchange } = step.booking!;
-  return bookingStorySnapshot(service, stage, { confirmed, exchange });
+  const { service, stage, confirmed, exchange, options, tweak } = step.booking!;
+  const snapshot = bookingStorySnapshot(service, stage, { ...options, confirmed, exchange });
+  return tweak ? tweak(snapshot) : snapshot;
 }
 
 function controllerFor(step: JourneyStep, onConfirm: () => void) {
   if (step.reward) return rewardStoryController(step.reward.state, step.reward.withGd);
   const { service, stage, confirmed } = step.booking!;
   const ended = stage === "closed" && service === "access" && step.next === undefined;
-  const core = ended
-    ? "CANCELLED"
-    : stage === "closed" && service === "access"
-      ? "ACCEPTED"
-      : bookingStoryCoreState(service, stage, confirmed);
+  const core =
+    step.booking!.core ??
+    (ended
+      ? "CANCELLED"
+      : stage === "closed" && service === "access"
+        ? "ACCEPTED"
+        : bookingStoryCoreState(service, stage, confirmed));
   const controller = bookingStoryController(service, core);
   return {
     ...controller,
@@ -389,11 +574,14 @@ function VoucherJourney({
       snapshot: snapshotFor(steps[target]!),
     };
   };
+  const readFailed = step.booking?.readFailed === true;
   mocked(useServiceAccess).mockReturnValue({
-    data: snapshot,
+    data: readFailed ? undefined : snapshot,
     isLoading: false,
-    isError: false,
-    error: null,
+    isError: readFailed,
+    status: readFailed ? "error" : "success",
+    fetchStatus: "idle",
+    error: readFailed ? new Error("Service read failed") : null,
     refetch: fn(),
   } as unknown as ReturnType<typeof useServiceAccess>);
   mocked(useServiceAccessMutation).mockReturnValue({
@@ -405,7 +593,7 @@ function VoucherJourney({
   );
   mocked(usePrimaryAddress).mockReturnValue(account);
   mocked(useCommitmentActivity).mockReturnValue({
-    events: [],
+    events: step.events ?? [],
     isError: false,
   } as unknown as ReturnType<typeof useCommitmentActivity>);
   mocked(useCommitmentCycle).mockReturnValue({
@@ -514,6 +702,9 @@ export const ExchangeThenRedeem: Story = { args: { journey: "exchange" } };
 
 /** Journey 4: Claude access stops after 12 of 30 days and ends early, never kept. */
 export const ClaudeAccessEndsEarly: Story = { args: { journey: "endsEarly" } };
+
+/** When an act stops partway or a read can't be used: each state and the page's way on. */
+export const RecoveryStates: Story = { args: { journey: "recovery" } };
 
 /** The hub day from the offer through the deposit, driven by the page's own acts. */
 export const HubDayAgreeAndDeposit: Story = {

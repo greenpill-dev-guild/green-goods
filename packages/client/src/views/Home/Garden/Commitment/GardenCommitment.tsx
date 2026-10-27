@@ -29,7 +29,7 @@ import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
 import { proofOnPhoneLine } from "./proofOnPhone";
 import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
-import { isServiceAccessPromise } from "./serviceBooking";
+import { serviceReadOutcome } from "./serviceBooking";
 import { ServicePromise, type ServicePromiseParts } from "./ServicePromise";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
@@ -78,7 +78,9 @@ export function GardenCommitment() {
     [controller.viewer, controller.chainId, commitmentId]
   );
   const serviceAccess = useServiceAccess(serviceKey);
-  const serviceBranch = isServiceAccessPromise(serviceAccess.data);
+  const serviceRead = serviceReadOutcome(serviceAccess);
+  // Generic take-up and claims wait until the page knows this isn't a service offer.
+  const ordinary = serviceRead === "ordinary";
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   // Report a Problem opens the same sheet on its Not yet form.
   const [confirmOpen, setConfirmOpen] = useState<"kept" | "report" | null>(null);
@@ -118,7 +120,7 @@ export function GardenCommitment() {
     requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
   const genericAct = commitmentActForKind(controller.actKind);
   const selectedAct =
-    serviceBranch && (genericAct?.kind === "takeUp" || genericAct?.kind === "askToTakeUp")
+    !ordinary && (genericAct?.kind === "takeUp" || genericAct?.kind === "askToTakeUp")
       ? null
       : genericAct;
   // Linking the required work advances Garden Work promises; proof stays available.
@@ -132,7 +134,7 @@ export function GardenCommitment() {
   // membership is still being read, or while an act is already on its way.
   const untaken = commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED";
   const showJoinToAct =
-    !serviceBranch &&
+    ordinary &&
     !act &&
     !controller.queue.hasPendingJob &&
     controller.membership.isMember === false &&
@@ -140,7 +142,7 @@ export function GardenCommitment() {
   // A read the answer depends on failed: say so and offer it again, rather than
   // an empty bar or a join card for someone who may already belong.
   const showMembershipRetry =
-    !serviceBranch &&
+    ordinary &&
     !act &&
     !controller.queue.hasPendingJob &&
     controller.membership.unavailable &&
@@ -319,6 +321,9 @@ export function GardenCommitment() {
         {showMembershipRetry ? (
           <MembershipCheckFailed onRetry={controller.membership.retry} />
         ) : null}
+        {serviceRead === "failed" ? (
+          <MembershipCheckFailed check="service" onRetry={() => void serviceAccess.refetch()} />
+        ) : null}
         <CommitmentTeam
           commitment={commitment}
           contributors={contributors}
@@ -332,7 +337,7 @@ export function GardenCommitment() {
           isJoining={controller.isSending}
           onJoin={() => keepSurfaceOnFailure(controller.acts.join())}
         />
-        {!serviceBranch ? (
+        {ordinary ? (
           <CommitmentClaims
             commitment={commitment}
             viewer={controller.viewer}

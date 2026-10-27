@@ -13,6 +13,8 @@ import { detailed } from "./ServiceRedeemSheet";
 export interface ServiceExchangeQuote {
   input: { amount: bigint; asset: ServiceAsset; issuer: Pick<VoucherIssuer, "name" | "gender"> };
   output: { amount: bigint; asset: ServiceAsset; issuer: Pick<VoucherIssuer, "name" | "gender"> };
+  /** The output before fees, so the rate is the one the quote prices at. */
+  gross: bigint;
   /** The pool's own fee and the protocol's, both taken from the output. */
   poolFee: bigint;
   protocolFee: bigint;
@@ -35,7 +37,8 @@ export type ServiceExchangeState =
   | "expired"
   | "short"
   | "limit"
-  | "listed";
+  | "listed"
+  | "failed";
 
 export interface ServiceExchangeSheetProps {
   open: boolean;
@@ -47,6 +50,8 @@ export interface ServiceExchangeSheetProps {
   onExchange: () => void;
   onCheck: () => void;
   onRequote: () => void;
+  /** A short pool's smaller exchange, quoted for what it can give; null when nothing fits. */
+  onSmaller: (() => void) | null;
   onBack: () => void;
 }
 
@@ -65,6 +70,7 @@ export function ServiceExchangeSheet({
   onExchange,
   onCheck,
   onRequote,
+  onSmaller,
   onBack,
 }: ServiceExchangeSheetProps) {
   const { formatMessage, formatTime, formatDate, locale } = useIntl();
@@ -96,8 +102,12 @@ export function ServiceExchangeSheet({
     outUnit,
   };
   const t = (id: string) => formatMessage({ id: `app.voucher.${id}` }, values);
+  const whole = (side: ServiceExchangeQuote["input"]) => 10n ** BigInt(side.asset.decimals ?? 0);
   const one = (side: ServiceExchangeQuote["input"]) =>
-    `${amount(side, 10n ** BigInt(side.asset.decimals ?? 0))} ${unitOf(side, 10n ** BigInt(side.asset.decimals ?? 0))}`;
+    `${amount(side, whole(side))} ${unitOf(side, whole(side))}`;
+  // One input voucher's worth at the quote's own rate, before fees.
+  const perOne =
+    quote.input.amount > 0n ? (quote.gross * whole(quote.input)) / quote.input.amount : 0n;
   const notice = (variant: "info" | "warning" | "success", key: string) => (
     <Alert variant={variant} title={t(`ex.n.${key}.t`)} className="p-3">
       {t(`ex.n.${key}.b`)}
@@ -110,7 +120,10 @@ export function ServiceExchangeSheet({
         value={detailed(
           formatMessage(
             { id: "app.voucher.ex.f.rateVH" },
-            { in: one(quote.input), out: one(quote.output) }
+            {
+              in: one(quote.input),
+              out: `${amount(quote.output, perOne)} ${unitOf(quote.output, perOne)}`,
+            }
           ),
           t("ex.f.rateSH")
         )}
@@ -205,7 +218,9 @@ export function ServiceExchangeSheet({
               ? notice("warning", "limit")
               : state === "listed"
                 ? notice("warning", "listed")
-                : null;
+                : state === "failed"
+                  ? notice("warning", "failed")
+                  : null;
     body = (
       <>
         <p className="text-sm text-text-sub-600">{t("ex.desc")}</p>
@@ -219,10 +234,12 @@ export function ServiceExchangeSheet({
     actions =
       state === "waiting"
         ? { primary: { label: t("ex.a.check"), loading: isPending, onClick: onCheck } }
-        : state === "expired"
+        : state === "expired" || state === "failed"
           ? { primary: { label: t("ex.a.requote"), loading: isPending, onClick: onRequote } }
           : state === "short"
-            ? { primary: { label: t("ex.a.smaller"), onClick: onRequote } }
+            ? onSmaller
+              ? { primary: { label: t("ex.a.smaller"), loading: isPending, onClick: onSmaller } }
+              : { secondary: { label: t("ex.a.back2"), onClick: onBack } }
             : state === "limit" || state === "listed"
               ? { secondary: { label: t("ex.a.back2"), onClick: onBack } }
               : { primary: { label: t("ex.a.review"), onClick: onReview } };

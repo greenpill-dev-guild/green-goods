@@ -16,6 +16,9 @@ export function isPilotAction(action: { action: string }): action is ServiceAcce
   ].includes(action.action);
 }
 
+/** What the rehearsal's exchange quotes unless a short pool asked for less. */
+export const PILOT_EXCHANGE_INPUT = 2_044_986n;
+
 /** The local role simulator cannot lift the production account or deployment gate. */
 export function selectPilotAction(
   s: ServiceAccessSnapshot,
@@ -85,7 +88,8 @@ export function selectPilotAction(
         : reject();
     }
     case "quotePilotExchange":
-      return p.holdings.a >= 2_044_986n &&
+      return (a.input ?? PILOT_EXCHANGE_INPUT) > 0n &&
+        p.holdings.a >= (a.input ?? PILOT_EXCHANGE_INPUT) &&
         p.holdings.b < p.service.voucherUnits &&
         p.exchange.status !== "unknown"
         ? { allowed: true, reason: null }

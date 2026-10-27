@@ -65,15 +65,35 @@ export const agreeStep: ServiceActStep = (s) => {
   return null;
 };
 
-/** Deposit: allow exactly the booking's vouchers if needed, then deposit them into its escrow. */
+/**
+ * Deposit: allow exactly the booking's vouchers if needed, then deposit them into its escrow. A
+ * deposit the escrow took but couldn't finish is retried as it was stored, never sent again.
+ */
 export const depositStep: ServiceActStep = (s) => {
   const row = currentVoucherSetup(s);
   if (!row) return null;
+  if (row.destination?.pendingAction === "deposit" && setupOffers(row, "retryVoucherSetupAction"))
+    return { ...boundVoucherSetup(row), action: "retryVoucherSetupAction" };
   if (setupOffers(row, "approveVoucherAllowance"))
     return { ...boundVoucherSetup(row), action: "approveVoucherAllowance" };
   if (setupOffers(row, "presentVoucherSetup"))
     return { ...boundVoucherSetup(row), action: "presentVoucherSetup" };
   return null;
+};
+
+/** Send a deposit's confirmation to the source again, for its reviewed fee, when it didn't go. */
+export const retryConfirmStep: ServiceActStep = (s) => {
+  const row = currentVoucherSetup(s);
+  const fee = row?.fees.setupAcknowledgment ?? null;
+  return row?.acknowledgments.setup.pending &&
+    fee !== null &&
+    setupOffers(row, "retryVoucherSetupAcknowledgment")
+    ? {
+        ...boundVoucherSetup(row),
+        action: "retryVoucherSetupAcknowledgment",
+        reviewedNativeFee: fee,
+      }
+    : null;
 };
 
 /** Send the source's recorded decision to the escrow, once, for its reviewed fee. */
@@ -158,23 +178,33 @@ export function splitStep(split: {
   };
 }
 
+/** The transfers the split fixed, the return first; `unsent` takes only those nobody sent yet. */
+function finalLegStep(unsent: boolean): ServiceActStep {
+  return (s) => {
+    const row = currentVoucherSetup(s);
+    const final = row?.destination?.finalAllocation;
+    if (!row || !final || !setupOffers(row, "executeVoucherFinalLeg")) return null;
+    const leg = (["refund", "release"] as const).find((name) =>
+      unsent
+        ? final[name].state === "pending" && final[name].attempts === 0n
+        : final[name].state === "pending" || final[name].state === "failed"
+    );
+    return leg
+      ? {
+          ...boundVoucherSetup(row),
+          action: "executeVoucherFinalLeg",
+          expectedDecisionId: final.decisionId,
+          leg,
+        }
+      : null;
+  };
+}
+
 /** Each transfer runs once, and a failed one is retried for the same amount only. */
-export const legStep: ServiceActStep = (s) => {
-  const row = currentVoucherSetup(s);
-  const final = row?.destination?.finalAllocation;
-  if (!row || !final || !setupOffers(row, "executeVoucherFinalLeg")) return null;
-  const leg = (["refund", "release"] as const).find(
-    (name) => final[name].state === "pending" || final[name].state === "failed"
-  );
-  return leg
-    ? {
-        ...boundVoucherSetup(row),
-        action: "executeVoucherFinalLeg",
-        expectedDecisionId: final.decisionId,
-        leg,
-      }
-    : null;
-};
+export const legStep: ServiceActStep = finalLegStep(false);
+
+/** The transfers an approved split still has to send, after their prompt was declined. */
+export const unsentLegStep: ServiceActStep = finalLegStep(true);
 
 /**
  * How a member act ended. `done`: nothing left to send, or a transfer is on its way. `stopped`:
@@ -243,9 +273,13 @@ export function serviceActOffered(
             ? cancelStep
             : kind === "retry"
               ? legStep
-              : split
-                ? splitStep(split)
-                : null;
+              : kind === "send"
+                ? unsentLegStep
+                : kind === "retryConfirm"
+                  ? retryConfirmStep
+                  : split
+                    ? splitStep(split)
+                    : null;
   const action = step?.(snapshot) ?? null;
   return action !== null && selectServiceAccessAction(snapshot, action).allowed;
 }
