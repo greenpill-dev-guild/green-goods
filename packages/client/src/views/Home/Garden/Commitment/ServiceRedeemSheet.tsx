@@ -155,7 +155,7 @@ export function ServiceRedeemSheet({
               value={detailed(
                 agreeDeadline,
                 w.member
-                  ? t("pay.m.deadlineS")
+                  ? t("pay.m.deadlineS", { count: w.one ? 1 : 2, n: w.n })
                   : w.one
                     ? t("pay.v.deadline1S")
                     : t("pay.v.deadlineS", { n: w.n })
@@ -179,6 +179,7 @@ export function ServiceRedeemSheet({
         </FactList>
         {nothingSent}
         {outcome === "offline" ? notice("info", t("pay.r.offline.t"), t("pay.r.offlineV.b")) : null}
+        {view.issuerPaused ? notice("warning", t("of.r.paused.t"), t("of.r.paused.b")) : null}
         <p className="text-sm text-text-sub-600">{t("pay.v.consent")}</p>
       </>
     );
@@ -186,7 +187,8 @@ export function ServiceRedeemSheet({
       primary: {
         label: outcome === "nothingSent" ? t("pay.cta.retry") : t("pay.cta.agree"),
         loading: isPending,
-        disabled: outcome === "offline",
+        // A pause read after the sheet opened still stops the request before anything is sent.
+        disabled: outcome === "offline" || view.issuerPaused,
         onClick: onAgree,
       },
     };

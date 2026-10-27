@@ -349,6 +349,9 @@ export function serviceBookingView(
   const primaryKind = recovery ?? stageKind;
   const held = input.held ?? 0n;
   const phases = bookingPhases(ctx);
+  // Before any booking, a paused issuer stops a new one whatever the reader holds.
+  const issuerPaused =
+    (stage === "open" || stage === "notEnough") && input.issuer?.standing.bookings === "paused";
   return {
     stage,
     profile,
@@ -368,21 +371,23 @@ export function serviceBookingView(
     primary: primaryKind ? act(primaryKind) : null,
     secondary: secondaryKind ? act(secondaryKind) : null,
     door:
-      stage === "notEnough"
-        ? {
-            title: t("of.r.shortV.t", { have: count(held), unit: unit(held) }),
-            body: t(
-              profile === "access"
-                ? "of.r.shortV.bc"
-                : profile === "hubDay"
-                  ? "of.r.shortV.bs"
-                  : "of.r.shortV.bm",
-              { n }
-            ),
-            act: act("exchange"),
-          }
-        : null,
-    issuerPaused: stage === "open" && input.issuer?.standing.bookings === "paused",
+      stage === "notEnough" && issuerPaused
+        ? { title: t("of.r.paused.t"), body: t("of.r.paused.b"), act: null }
+        : stage === "notEnough"
+          ? {
+              title: t("of.r.shortV.t", { have: count(held), unit: unit(held) }),
+              body: t(
+                profile === "access"
+                  ? "of.r.shortV.bc"
+                  : profile === "hubDay"
+                    ? "of.r.shortV.bs"
+                    : "of.r.shortV.bm",
+                { n }
+              ),
+              act: act("exchange"),
+            }
+          : null,
+    issuerPaused,
     // History keeps what happened; the step under way shows in the booking's steps.
     events: phases
       .flatMap((p) => p.steps)
