@@ -344,9 +344,7 @@ export function ServicePromise({
           }}
           onReport={report}
           exchange={{
-            quote: wallet
-              ? exchangeQuoteFromPilot(snapshot, wallet.issuers, wallet.holdings)
-              : null,
+            quote: wallet ? exchangeQuoteFromPilot(snapshot, wallet) : null,
             reviewing: reviewingExchange,
             onOpen: openExchange,
             onReview: () => setReviewingExchange(true),
