@@ -114,9 +114,28 @@ export const Partial: Story = {
   args: { wallet: { ...voucherWalletStory("booked"), complete: false } },
 };
 
-/** No issuer's vouchers yet. */
+/** No issuer's vouchers yet: both pilot issuers are listed, and the account holds none of either. */
 export const Empty: Story = {
-  args: { wallet: { ...voucherWalletStory("empty"), issuers: [], holdings: [] } },
+  args: { wallet: voucherWalletStory("empty") },
+  play: async () => {
+    await expect(await screen.findByText("No vouchers yet")).toBeVisible();
+  },
+};
+
+export const EmptyEs: Story = {
+  ...Empty,
+  decorators: [inLocale("es")],
+  play: async () => {
+    await expect(await screen.findByText(esMessages["app.voucher.wl.empty"])).toBeVisible();
+  },
+};
+
+export const EmptyPt: Story = {
+  ...Empty,
+  decorators: [inLocale("pt")],
+  play: async () => {
+    await expect(await screen.findByText(ptMessages["app.voucher.wl.empty"])).toBeVisible();
+  },
 };
 
 export const VoucherOpenEs: Story = {
