@@ -55,6 +55,11 @@ export interface CommitmentIdentityProps {
     needsYou: boolean;
     pillId?: string | null;
   } | null;
+  /**
+   * The request's rewards draw in their own section, each on its row with the vouchers first, so
+   * the facts here don't repeat the G$ ahead of them.
+   */
+  rewardsBelow?: boolean;
 }
 
 /**
@@ -77,11 +82,14 @@ export function CommitmentIdentity({
   viewer,
   stewards,
   serviceBand = null,
+  rewardsBelow = false,
 }: CommitmentIdentityProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const headingId = useId();
-  const rewards = [promiseRewardOf(commitment, metadata)].filter((reward) => reward !== null);
+  const rewards = rewardsBelow
+    ? []
+    : [promiseRewardOf(commitment, metadata)].filter((reward) => reward !== null);
   // Today's G$ price is read only for a reward whose dollars can't be read from its record.
   const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
   const reward = promiseRewardText({
