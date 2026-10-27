@@ -48,7 +48,7 @@ const report = ({ disabled = false }: { disabled?: boolean } = {}) => (
 
 /** Mara checked in for the whole hub day: the report is evidence, written to Tech and Sun's pool. */
 export const ReportVisit: Story = {
-  render: report,
+  render: () => report(),
   play: async () => {
     const dialog = within(await screen.findByRole("dialog"));
     await expect(dialog.getByText("Report Mara’s Visit")).toBeVisible();
@@ -57,5 +57,14 @@ export const ReportVisit: Story = {
   },
 };
 
-export const ReportVisitEs: Story = { render: report, decorators: [inLocale("es")] };
-export const ReportVisitPt: Story = { render: report, decorators: [inLocale("pt")] };
+export const ReportVisitEs: Story = { render: () => report(), decorators: [inLocale("es")] };
+export const ReportVisitPt: Story = { render: () => report(), decorators: [inLocale("pt")] };
+
+/** The console went offline with the dialog open: Report Visit waits, as the row's act does. */
+export const ReportVisitOffline: Story = {
+  render: () => report({ disabled: true }),
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog"));
+    await expect(dialog.getByRole("button", { name: "Report Visit" })).toBeDisabled();
+  },
+};

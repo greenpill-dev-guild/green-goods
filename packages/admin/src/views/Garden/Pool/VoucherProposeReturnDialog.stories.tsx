@@ -5,7 +5,13 @@ import type { ComponentType } from "react";
 import { IntlProvider } from "react-intl";
 import { expect, screen, userEvent, within } from "storybook/test";
 import { VoucherProposeReturnDialog } from "./VoucherProposeReturnDialog";
-import { STORY_GREEN_GOODS_SAFE, STORY_LINA_ENDED, nameVoucherMembers } from "./poolStoryVouchers";
+import {
+  STORY_GREEN_GOODS_SAFE,
+  STORY_LINA_ENDED,
+  STORY_MARA_VISIT_ENDED,
+  STORY_TECH_AND_SUN_SAFE,
+  nameVoucherMembers,
+} from "./poolStoryVouchers";
 
 function inLocale(locale: "es" | "pt") {
   return (Story: ComponentType) => (
@@ -23,7 +29,7 @@ const meta: Meta<typeof VoucherProposeReturnDialog> = {
     docs: {
       description: {
         component:
-          "Propose Return (PRD-1297 surface 6, `SIssuer`), opened from the row of Claude access that ended early: the issuer sets the most that can come back to the holder. It starts at what the issuer's terms allow, refuses more (Above terms), shows the split between the holder and the issuer's reserve, and says nothing moves until the holder approves a split. The Safe's signature count comes from the Safe. The people and moments are fictional.",
+          "Propose Return (PRD-1297 surface 6, `SIssuer`), opened from the row of Claude access that ended early: the issuer sets the most that can come back to the holder. It starts at what the issuer's terms allow, refuses more (Above terms) and anything that doesn't raise the ceiling the escrow already keeps, counts a hub day in usable hours and access in days, shows the split between the holder and the issuer's reserve, and says nothing moves until the holder approves a split. The Safe's signature count comes from the Safe. The people and moments are fictional.",
       },
     },
   },
@@ -70,3 +76,49 @@ export const AboveTerms: Story = {
 
 export const ProposeReturnEs: Story = { decorators: [inLocale("es")] };
 export const ProposeReturnPt: Story = { decorators: [inLocale("pt")] };
+
+/** Mara's hub day stopped after 2 of its 4 usable hours: the return counts hours, up to half a voucher. */
+export const VisitEndedEarly: Story = {
+  args: {
+    booking: STORY_MARA_VISIT_ENDED,
+    title: "Hub day, up to 4 hours",
+    safe: STORY_TECH_AND_SUN_SAFE,
+  },
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog"));
+    await expect(
+      dialog.getByText("Hub day, up to 4 hours · stopped after 2 of 4 hours")
+    ).toBeVisible();
+    await expect(dialog.getByText("Your terms allow up to 0.5 after 2 of 4 hours")).toBeVisible();
+    await expect(dialog.getByTestId("voucher-return-split")).toHaveAccessibleName(
+      "0.5 to your reserve, 0.5 back to Mara"
+    );
+  },
+};
+
+/** Four already came back under an earlier proposal: the escrow keeps that ceiling, so only more counts. */
+export const BelowCeiling: Story = {
+  args: {
+    booking: {
+      ...STORY_LINA_ENDED,
+      stage: { kind: "ended-early", returnLimit: 6_000_000n, returnCeiling: 4_000_000n },
+    },
+  },
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog"));
+    const field = dialog.getByLabelText("Back to Lina");
+    await userEvent.clear(field);
+    await userEvent.type(field, "4");
+    await expect(await dialog.findByText("More than the 4 already proposed")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Propose Return" })).toBeDisabled();
+  },
+};
+
+/** Another act went to the wallet with the dialog open: Propose Return waits, as the row's act does. */
+export const ProposeReturnBusy: Story = {
+  args: { disabled: true },
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog"));
+    await expect(dialog.getByRole("button", { name: "Propose Return" })).toBeDisabled();
+  },
+};
