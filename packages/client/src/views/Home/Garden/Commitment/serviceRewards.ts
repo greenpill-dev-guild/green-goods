@@ -31,6 +31,8 @@ export interface ServiceRewardsView {
    * says so with one door instead of an act that can't be signed here.
    */
   agreementUnavailable: { title: string; body: string; label: string } | null;
+  /** The vouchers arrived, so the reader can go to them: See Your Vouchers. */
+  vouchersReceived: boolean;
 }
 
 export interface ServiceRewardsInput {
@@ -123,6 +125,8 @@ export function serviceRewardsView(
     return gd ? t("rw.n.both.b") : t("rw.n.onWayV.b");
   })();
   const working = !due && !OPEN.includes(input.coreState);
+  // The request's record and its reward terms, under Transaction details (D2).
+  const terms = input.snapshot.acceptancePolicy.earned.revision;
   const tone: ServiceBandTone = working ? "attention" : all ? "kept" : due ? "waiting" : "neutral";
   const earned = input.snapshot.acceptancePolicy.earned;
 
@@ -142,11 +146,20 @@ export function serviceRewardsView(
       ...(voucher?.receipt ? [voucher.receipt] : []),
       ...(gd ? [t("rw.x.gd")] : []),
       ...(gd?.receipt ? [gd.receipt] : []),
+      ...(terms !== null
+        ? [
+            t("rw.x.rec", {
+              id: input.snapshot.key.commitmentId.toString(),
+              v: terms.toString(),
+            }),
+          ]
+        : []),
     ],
     band: { tone, sentence, needsYou: working },
     agreementUnavailable:
       earned.status === "bound" && OPEN.includes(input.coreState)
         ? { title: t("rw.n.consent.t"), body: t("rw.n.consent.b"), label: t("rw.a.help") }
         : null,
+    vouchersReceived: voucher?.status === "received",
   };
 }

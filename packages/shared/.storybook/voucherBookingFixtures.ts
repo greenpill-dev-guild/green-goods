@@ -687,6 +687,8 @@ export function rewardStorySnapshot(state: RewardStoryState, withGd: boolean): S
       earned: {
         ...base.acceptancePolicy.earned,
         status: state === "agreementUnavailable" ? "bound" : "unbound",
+        // The reward terms' version the record carries (the design's sample says 2).
+        revision: 2n,
       },
     },
     availableActions: [],
@@ -745,6 +747,14 @@ export function rewardStoryController(
     confirmationPath: coreState === "FULFILLED" ? "ORDINARY" : null,
     confirmers: [],
     dueDate: BigInt(Date.UTC(2026, 11, 15) / 1000),
+    // The optional G$ is the promise's own consideration, paid on Celo.
+    ...(withGd
+      ? {
+          considerationRail: "CELO_SETTLEMENT" as const,
+          considerationAmount: 120n * 10n ** 18n,
+          considerationPaid: state === "received",
+        }
+      : {}),
   });
   const controller = gardenCommitmentControllerFixture({
     chainId: VOUCHER_STORY_SCOPE.sourceChainId,

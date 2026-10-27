@@ -7872,6 +7872,7 @@
   "app.voucher.rw.a.wallet": "Ver seus vales",
   "app.voucher.rw.x.vou": "Vales: entregues da reserva de {issuer} na Gnosis, dentro da permissão de {garden}",
   "app.voucher.rw.x.gd": "G$: pagos na Celo conforme o plano de pagamentos de {garden}",
+  "app.voucher.rw.x.rec": "Registro: pedido #{id}, versão {v} das recompensas, na Arbitrum",
   "app.voucher.ex.kind": "Fundo de troca compartilhado",
   "app.voucher.ex.title": "Trocar vales",
   "app.voucher.ex.desc": "Troque vales de um emissor pelos de outro no fundo compartilhado. Trocar não reserva nenhum serviço.",
