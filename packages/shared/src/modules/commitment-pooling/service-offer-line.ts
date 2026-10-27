@@ -30,7 +30,8 @@ export interface ServiceOfferLine {
     | { kind: "hold"; held: bigint; decimals: number }
     | { kind: "exchange" }
     | { kind: "paused" }
-    | { kind: "delisted" };
+    | { kind: "delisted" }
+    | { kind: "setup" };
 }
 
 const same = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
@@ -48,7 +49,7 @@ function offerBooking(
 ): ServiceOfferLine["booking"] {
   if (standing.bookings === "paused") return { kind: "paused" };
   if (held > 0n && held >= units) return { kind: "hold", held, decimals };
-  return standing.exchange === "delisted" ? { kind: "delisted" } : { kind: "exchange" };
+  return standing.exchange === "listed" ? { kind: "exchange" } : { kind: standing.exchange };
 }
 
 export function serviceOfferLine(

@@ -1,17 +1,19 @@
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
+import type { IssuerPoolStatus } from "./service-issuer-pool";
 import type { ServiceAsset } from "./service-access-types";
 
 /**
  * Where an issuer stands for new business, read as the member's own Service Assets reads it: from
  * the issuer's reserve and its token's place in the shared pool. A paused issuer, its reserve
  * disabled after setup, takes no new bookings, while booked ones go ahead. A delisted token,
- * admitted with a zero pool holding limit, can't be exchanged for, while holders keep their
+ * with a recorded delisting or existing pool holdings and zero limit, cannot be exchanged for.
+ * An unadmitted token, or a zero-limit token without that evidence, is still in setup. Holders keep their
  * vouchers and terms. Neither moves a balance or a booking.
  */
 export interface VoucherIssuerStanding {
   bookings: "open" | "paused";
-  exchange: "listed" | "delisted";
+  exchange: IssuerPoolStatus;
 }
 
 /** A service voucher issuer: a collective's Safe or, from slice 2, a member's own account. */

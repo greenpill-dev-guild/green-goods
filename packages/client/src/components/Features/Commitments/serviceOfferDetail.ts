@@ -7,6 +7,7 @@ import type { IntlShape } from "react-intl";
 const REASON = {
   paused: "app.commitments.row.service.paused",
   delisted: "app.commitments.row.service.delisted",
+  setup: "app.commitments.row.service.setup",
 } as const;
 
 /**
@@ -30,7 +31,10 @@ export function serviceOfferDetail(
           )
         : booking.kind === "exchange"
           ? intl.formatMessage({ id: "app.commitments.row.service.exchange" })
-          : { text: intl.formatMessage({ id: REASON[booking.kind] }), tone: "error" },
+          : {
+              text: intl.formatMessage({ id: REASON[booking.kind] }),
+              tone: booking.kind === "setup" ? "soft" : "error",
+            },
     promisedBy: line.promisedBy,
   };
 }

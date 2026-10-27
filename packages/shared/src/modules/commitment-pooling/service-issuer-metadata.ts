@@ -1,8 +1,9 @@
 import { keccak256, stringToHex, type Hex } from "viem";
+import { GREEN_GOODS_ISSUER_ROUTE } from "./service-issuer-live-config";
 import type { ServiceIssuerAsset, ServiceIssuerRoute } from "./service-issuer-types";
 
 /** Only receipt-backed production configuration belongs here. Fictional fixtures stay in tests. */
-export const SERVICE_ISSUER_ROUTES: readonly ServiceIssuerRoute[] = [];
+export const SERVICE_ISSUER_ROUTES: readonly ServiceIssuerRoute[] = [GREEN_GOODS_ISSUER_ROUTE];
 export const ISSUER_REVIEW_SECONDS = 300n;
 export const issuerSame = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 export const issuerDigest = (value: unknown): Hex =>
@@ -17,7 +18,8 @@ export const issuerDeserialize = (value: string): unknown =>
   );
 const address = (v: unknown) => typeof v === "string" && /^0x(?!0{40}$)[a-f0-9]{40}$/i.test(v);
 const hash = (v: unknown) => typeof v === "string" && /^0x(?!0{64}$)[a-f0-9]{64}$/i.test(v);
-const finite = (v: unknown) => typeof v === "bigint" && v > 0n && v < (1n << 256n) - 1n;
+const finite = (v: unknown): v is bigint =>
+  typeof v === "bigint" && v > 0n && v < (1n << 256n) - 1n;
 
 function assertServiceIssuerAsset(asset: ServiceIssuerAsset, recovery = false) {
   const control = asset.upgradeControl;
@@ -36,7 +38,15 @@ function assertServiceIssuerAsset(asset: ServiceIssuerAsset, recovery = false) {
       (!asset.delisting.reference.trim() || !hash(asset.delisting.digest))) ||
     (!recovery &&
       (!asset.service.unit?.trim() ||
-        !finite(asset.service.capacity) ||
+        asset.service.offers?.some(
+          (offer) =>
+            !offer.unit.trim() ||
+            !finite(offer.serviceUnits) ||
+            !finite(offer.voucherUnits) ||
+            !hash(offer.serviceTermsRef) ||
+            !hash(offer.remedyTermsRef)
+        ) ||
+        !finite(serviceIssuerIssuanceLimit(asset)) ||
         !asset.service.terms.reference?.trim() ||
         !hash(asset.service.terms.digest) ||
         !asset.service.approval.reference?.trim() ||
@@ -63,7 +73,15 @@ export function serviceIssuerIssuanceLimit(
   asset: Pick<ServiceIssuerAsset, "service" | "initialSupply">
 ): bigint | null {
   const { capacity } = asset.service;
-  if (capacity === null || asset.initialSupply === null) return null;
+  if (!finite(capacity) || !finite(asset.initialSupply)) return null;
+  const offers = asset.service.offers;
+  if (
+    offers &&
+    (!offers.length ||
+      offers.some((offer) => !finite(offer.capacity)) ||
+      offers.reduce((sum, offer) => sum + offer.capacity!, 0n) !== capacity)
+  )
+    return null;
   return capacity < asset.initialSupply ? capacity : asset.initialSupply;
 }
 
@@ -79,7 +97,8 @@ export function issuerAsset(route: ServiceIssuerRoute, id: string, recovery = fa
     base.decimals !== asset.decimals ||
     base.symbol !== asset.symbol ||
     !issuerSame(base.runtimeCodeHash, asset.token.runtimeCodeHash) ||
-    issuerDigest(base.implementation) !== issuerDigest(asset.token.implementation)
+    !issuerSame(base.implementation.address, asset.token.implementation.address) ||
+    !issuerSame(base.implementation.runtimeCodeHash, asset.token.implementation.runtimeCodeHash)
   )
     throw new Error("Issuer metadata does not match the receipt-backed service asset");
   return asset;

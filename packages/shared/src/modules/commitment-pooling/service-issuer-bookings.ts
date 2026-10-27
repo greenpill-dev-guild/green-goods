@@ -110,10 +110,18 @@ export async function readIssuerBooking(
     ceiling,
     frozen,
     finalAllocation,
-    reviewedTermsMatch:
-      !!asset.service.unit &&
-      authorization.serviceTermsRef === asset.service.terms.digest &&
-      authorization.unitLabelHash === keccak256(stringToHex(asset.service.unit)),
+    reviewedTermsMatch: asset.service.offers
+      ? asset.service.offers.some(
+          (offer) =>
+            authorization.serviceTermsRef === offer.serviceTermsRef &&
+            authorization.remedyTermsRef === offer.remedyTermsRef &&
+            authorization.unitLabelHash === keccak256(stringToHex(offer.unit)) &&
+            authorization.serviceUnits === offer.serviceUnits &&
+            authorization.voucherUnits === offer.voucherUnits
+        )
+      : !!asset.service.unit &&
+        authorization.serviceTermsRef === asset.service.terms.digest &&
+        authorization.unitLabelHash === keccak256(stringToHex(asset.service.unit)),
     holderAbortRequested: serviceFlag(raw.holderAbortRequested),
   };
 }

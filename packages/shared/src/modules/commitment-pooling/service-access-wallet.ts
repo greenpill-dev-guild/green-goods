@@ -7,6 +7,9 @@ import type { ServiceAccessSnapshot } from "./service-access-types";
 import type { ServiceVoucherSetup } from "./service-access-voucher-types";
 import { greenGoodsIndexer, type GraphQLReader } from "../data/graphql-client";
 import { discoverWalletVoucherSetups } from "./data-voucher-service";
+import { issuerPoolStatus } from "./service-issuer-pool";
+import { SERVICE_ISSUER_ROUTES } from "./service-issuer-metadata";
+import type { ServiceIssuerRoute } from "./service-issuer-types";
 import { SERVICE_LIVE_ROUTES, type ServiceLiveRoute } from "./service-access-live-config";
 import {
   serviceLiveChain,
@@ -171,6 +174,7 @@ export async function readLiveVoucherWallet(
   scope: VoucherWalletScope,
   dependencies: {
     routes?: readonly ServiceLiveRoute[];
+    issuerRoutes?: readonly ServiceIssuerRoute[];
     chain?: ServiceLiveChain;
     reader?: GraphQLReader;
     readSnapshot?: (key: ServiceAccessSnapshot["key"]) => Promise<ServiceAccessSnapshot>;
@@ -196,12 +200,31 @@ export async function readLiveVoucherWallet(
       route.assets.map(async (asset) => {
         const read = (address: Address, functionName: string, args: readonly unknown[]) =>
           chain.read({ chainId: 100, address, abi: stateAbi, functionName, args });
-        const [authorization, admitted, cap] = await Promise.all([
+        const [authorization, admitted, cap, poolHolding] = await Promise.all([
           read(state.adapter.address, "assetAuthorizations", [asset.issuer, asset.token]),
           read(state.registry.address, "have", [asset.token]),
           read(state.limiter.address, "limitOf", [asset.token, state.pool.address]),
+          chain.read({
+            chainId: 100,
+            address: asset.token,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [state.pool.address],
+          }),
         ]);
         const reserve = serviceTuple(authorization, ["issuerAuthority", "enabled"]);
+        const reviewedAsset = (dependencies.issuerRoutes ?? SERVICE_ISSUER_ROUTES)
+          .filter(
+            (issuerRoute) =>
+              issuerRoute.service.sourceChainId === scope.sourceChainId &&
+              issuerRoute.service.core.address.toLowerCase() === scope.coreModule.toLowerCase()
+          )
+          .flatMap((issuerRoute) => issuerRoute.assets)
+          .find(
+            (candidate) =>
+              candidate.token.address.toLowerCase() === asset.token.toLowerCase() &&
+              candidate.ownerReserve.toLowerCase() === asset.issuer.toLowerCase()
+          );
         return {
           account: asset.issuer,
           kind: "collective" as const,
@@ -217,10 +240,14 @@ export async function readLiveVoucherWallet(
           // The member-row PR consumes these canonical states; delisting does not remove holdings.
           standing: {
             bookings: serviceFlag(reserve.enabled) ? ("open" as const) : ("paused" as const),
-            exchange:
-              serviceFlag(admitted) && serviceUint(cap) > 0n
-                ? ("listed" as const)
-                : ("delisted" as const),
+            exchange: issuerPoolStatus(
+              {
+                admitted: serviceFlag(admitted),
+                limit: serviceUint(cap),
+                holding: serviceUint(poolHolding),
+              },
+              { delisting: reviewedAsset?.delisting ?? null }
+            ),
           },
         };
       })

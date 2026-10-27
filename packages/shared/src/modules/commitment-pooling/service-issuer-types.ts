@@ -30,6 +30,15 @@ export interface ServiceIssuerAsset {
      * `capacity.units`, recorded apart from what is issued. Null until confirmed.
      */
     capacity: bigint | null;
+    /** Reviewed offer bindings for a token redeemable against several services. Capacities are voucher base units. */
+    offers?: readonly {
+      unit: string;
+      serviceUnits: bigint;
+      voucherUnits: bigint;
+      serviceTermsRef: Hex;
+      remedyTermsRef: Hex;
+      capacity: bigint | null;
+    }[];
     approval: ServiceIssuerProvenance;
   };
   /**

@@ -184,3 +184,90 @@ revision 1, and a rerun found nothing new to publish. A Tech and Sun HUB member'
 seeding screen and Safe{Wallet}'s Transaction Builder themselves. The seeded fields match what the
 cockpit's creation payload builds, and the file has the same shape as the cockpit's voucher
 console Safe export.
+
+## Production issuer metadata
+
+The Shared registry now prepares a Green Goods-only issuer route in
+`packages/shared/src/modules/commitment-pooling/service-issuer-live-config.ts`, using existing
+public deployment pins from `service-issuer-live-pins.ts`. The historical transport route keeps
+its existing pilot ID; the issuer registry includes GGV only. It does not admit or activate
+Tech and Sun. Existing TSV holdings remain readable.
+
+The reviewed targets are 120 GGV total issuance, a 110 GGV adapter allowance, a 120 GGV pool
+holding limit and price index 1,000,000. These are configuration targets, not chain observations.
+Verify them with the preflight above only after the Gnosis mint/limit/approve batch executes.
+Deployment identity checks do not establish that this separate batch has executed.
+
+Green Goods' aggregate capacity remains null. The Claude entry records 100 GGV of confirmed
+capacity for ten permitted, funded seat-periods. The session entry remains null until the
+facilitator, language, appointment times and 7.5 facilitator-hours are confirmed. Setting only
+the aggregate capacity cannot bypass the missing session confirmation: the issuance bound
+requires every service's confirmed capacity and a matching aggregate, then applies the lower
+of that capacity and the issuance ceiling. The existing `prepareIssuerCall` guard owns this
+bound; no new collective mint or approval path is introduced.
+
+Claude seats open on 8 November 2026, as the current terms specify. The first Claude booking also
+needs the billing interval and participant-visible workspace/data rules recorded through the
+approved private path. Accountable identities and signers stay private.
+The new route supplies no substitute for those records.
+
+### Digests and offer bindings
+
+Terms revision: `pilot-2026-10-27-r2`. The catalog digest is
+`0x0796ab9551f0ee87573201def5a23110952779469a5f13ef428ec76c7dd90f25`:
+
+```text
+keccak256(abi.encode(
+  string "green-goods:pilot-issuer-terms:v1",
+  string "pilot-2026-10-27-r2",
+  bytes32 session-service,
+  bytes32 session-remedy,
+  bytes32 Claude-service,
+  bytes32 Claude-remedy
+))
+```
+
+The four bytes32 values are the exact statement hashes in the reference above, in that order.
+This catalog commitment is not an on-chain offer reference. Each offer retains its service and
+remedy hash pair, unit label and exact service/voucher quantities: 45 minutes for 2 GGV, or
+30 seat days for 10 GGV. Canonical bookings match that complete binding, not the catalog hash.
+
+Approval reference: COM-46. Its digest is
+`0xffbe49e30f5c90dc2dc5629129a34570d2fda082800237a9f7235a36875a4672`:
+
+```text
+keccak256(abi.encode(
+  string "green-goods:pilot-issuer-approval:v1",
+  string "pilot-2026-10-27-r2",
+  bytes32 catalog-digest,
+  string "https://linear.app/green-goods/issue/COM-46",
+  string[] [
+    "30e7e60d-133f-4f80-9f63-3aee6c15bdb2",
+    "9492b2aa-58b5-4132-b6ab-aa86d68be138",
+    "be58f395-2da8-44ab-92fa-3d136e64cc5b"
+  ]
+))
+```
+
+These public-safe comment IDs identify the operating terms, revised 120/110/120 budget and
+permitted/funded Claude-seat decisions. The digest binds references to this catalog; it is
+neither a signature nor an attestation that session capacity or the Gnosis batch is complete.
+
+### Setup, delisting and deferred decisions
+
+Wallet standing uses the same `issuerPoolStatus` rule as the issuer panel and admin card.
+An unadmitted token, or a zero-limit token without a delisting record or existing pool holdings,
+reads as setup. A listed token with a zero limit and that evidence reads as delisted. Holdings
+and recovery do not disappear when listing changes. Owner Safe drafts retain #1367's separate
+threshold read for each `(chainId, owner)` group.
+
+Afo still needs to choose the durable home and publication/review workflow for a delisting
+`{ reference, digest }`. The existing `serviceIssuerDelistingRecord` creates a proposed record;
+copying it does not persist it. This PR invents no storage or approval workflow, and GGV's
+record remains null. After that decision, publish the approved record into the reviewed issuer
+metadata. This remains necessary to recognize a zero-limit delisting after pool holdings reach
+zero.
+
+The separate #1367 P2 about showing an effective issuance ceiling in the Issue More sheet
+remains a UI follow-up; its transaction preparation already enforces that ceiling. Tech and
+Sun's acceptance/capacity, Safe finalization and bootstrap adapter authority remain separate.

@@ -1,3 +1,4 @@
+import { SERVICE_ISSUER_ROUTES } from "../modules/commitment-pooling/service-issuer-metadata";
 import { liveVoucherFixture } from "./fixtures/live-voucher";
 import { decodeFunctionData, encodeFunctionResult, type Hex, parseAbi } from "viem";
 import { describe, expect, it } from "vitest";
@@ -80,6 +81,44 @@ describe("receipt-backed live voucher wallet", () => {
         expect.objectContaining({ standing: { bookings: "paused", exchange: "delisted" } }),
       ])
     );
+    expect(result.holdings.map((row) => row.available)).toEqual([17n, 3n]);
+  });
+  it.each([
+    [false, 0n, false, "setup"],
+    [true, 0n, false, "setup"],
+    [true, 0n, true, "delisted"],
+    [true, 1n, false, "delisted"],
+  ] as const)("reads admission %s, pool holdings %s and recorded delisting %s as %s", async (admitted, poolHolding, delisted, expected) => {
+    const f = liveVoucherFixture();
+    const read = f.chain.read;
+    f.chain.read = async (input) =>
+      input.functionName === "have"
+        ? admitted
+        : input.functionName === "limitOf"
+          ? 0n
+          : input.functionName === "balanceOf" &&
+              input.args?.[0] === f.route.walletState!.pool.address
+            ? poolHolding
+            : read(input);
+    const configured = SERVICE_ISSUER_ROUTES[0]!;
+    const issuerRoutes = [
+      {
+        ...configured,
+        assets: configured.assets.map((asset) => ({
+          ...asset,
+          delisting: delisted
+            ? { reference: "approved-test-delisting", digest: `0x${"1".repeat(64)}` as Hex }
+            : null,
+        })),
+      },
+    ];
+    const result = await readLiveVoucherWallet(f.wallet, {
+      routes: [f.route],
+      issuerRoutes,
+      chain: f.chain,
+      reader: f.reader,
+    });
+    expect(result.issuers[0]!.standing.exchange).toBe(expected);
     expect(result.holdings.map((row) => row.available)).toEqual([17n, 3n]);
   });
   it("refuses an unknown issuer standing instead of reporting it open", async () => {

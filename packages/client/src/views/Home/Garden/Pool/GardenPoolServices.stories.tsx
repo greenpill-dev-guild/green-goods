@@ -26,7 +26,7 @@ import { GardenPool } from "./GardenPool";
 type Lang = "en" | "es" | "pt";
 const MESSAGES = { en: enMessages, es: esMessages, pt: ptMessages } as const;
 /** The lab's SServices states that slice 2 adds: members' services, then an issuer paused or delisted. */
-type ServicesState = "browse" | "issuerPaused" | "delisted";
+type ServicesState = "browse" | "issuerPaused" | "delisted" | "setup";
 
 const OFFERED = LIVE_PROMISES[2]!;
 const REQUESTED = LIVE_PROMISES[1]!;
@@ -77,7 +77,12 @@ function serviceLines(state: ServicesState): ReadonlyMap<string, ServiceOfferLin
       "62",
       {
         promisedBy: "Maya Ruiz",
-        booking: state === "delisted" ? { kind: "delisted" } : { kind: "exchange" },
+        booking:
+          state === "setup"
+            ? { kind: "setup" }
+            : state === "delisted"
+              ? { kind: "delisted" }
+              : { kind: "exchange" },
       },
     ],
     [
@@ -147,7 +152,10 @@ const playLines =
       words[`app.commitments.row.service.${kind}`]!.replace("{count}", count);
     await expect(shownLines(canvasElement)).toEqual([
       [state === "issuerPaused" ? say("paused") : say("hold", "1"), "Teo Alves"],
-      [state === "delisted" ? say("delisted") : say("exchange"), "Maya Ruiz"],
+      [
+        state === "setup" ? say("setup") : state === "delisted" ? say("delisted") : say("exchange"),
+        "Maya Ruiz",
+      ],
       [say("hold", "9"), "Tech and Sun"],
     ]);
     // A reason reads as one the reader acts on; a booking line stays plain.
@@ -155,7 +163,9 @@ const playLines =
       ...canvasElement.querySelectorAll('[data-service="offer"] [data-tone="error"]'),
     ].map((detail) => detail.textContent);
     await expect(reasons).toEqual(
-      state === "browse" ? [] : [say(state === "issuerPaused" ? "paused" : "delisted")]
+      state === "browse" || state === "setup"
+        ? []
+        : [say(state === "issuerPaused" ? "paused" : "delisted")]
     );
   };
 
@@ -170,3 +180,6 @@ export const IssuerPaused: Story = {
 
 /** Maya's vouchers left the exchange pool: there is nothing to exchange for first. */
 export const Delisted: Story = { args: { state: "delisted" }, play: playLines("delisted") };
+
+/** Registration can precede the first limit; setup is not a delisting decision. */
+export const SetupPending: Story = { args: { state: "setup" }, play: playLines("setup") };
