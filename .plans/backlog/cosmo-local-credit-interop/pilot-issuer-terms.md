@@ -141,11 +141,11 @@ tracks those inputs separately from technical readiness.
 
 ## Services and voucher prices
 
-| Issuer / offer | Full service for the stated voucher price | Capacity required by the baseline, still unconfirmed |
+| Issuer / offer | Full service for the stated voucher price | Capacity |
 |---|---|---|
-| Tech and Sun — hub day | **1 Tech and Sun voucher:** one named person's reserved visit of up to four hours, including workspace, power and connectivity. Publish the location, opening hours and equipment restrictions before accepting a booking. | Twenty visits, at least eighty seat-hours in a published calendar. These are proposed resources, not observed capacity. |
-| Green Goods — assisted session | **2 Green Goods vouchers:** one forty-five-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, seven and a half facilitator-hours, if every GG voucher is used for assistance. |
-| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Ten funded seat-periods, all bookable at once: Green Goods' ceiling rises to 120 vouchers for it. On 27 October 2026 (UTC) Green Goods confirmed that participant seats are permitted under its supplier terms and that all ten are funded. |
+| Tech and Sun — hub day | **1 Tech and Sun voucher:** one named person's reserved visit of up to four hours, including workspace, power and connectivity. Publish the location, opening hours and equipment restrictions before accepting a booking. | Twenty visits, at least eighty seat-hours in a published calendar. Approved on 27 October 2026 (UTC) as the proposed baseline; Tech and Sun has still to confirm it as observed capacity. |
+| Green Goods — assisted session | **2 Green Goods vouchers:** one forty-five-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, seven and a half facilitator-hours, from 20 of the 120 vouchers. Approved on 27 October 2026 (UTC); the facilitator, languages and appointment times are published before the first booking. |
+| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Ten funded seat-periods, all bookable at once: Green Goods' ceiling rises to 120 vouchers for it. On 27 October 2026 (UTC) Green Goods confirmed that participant seats are permitted under its supplier terms and that all ten are funded. Seats start on 8 November 2026, when Green Goods' Claude Team subscription begins; each seat's thirty days start when its participant can sign in. |
 
 These are full-access offers at their stated scope, rather than discounts requiring an unstated
 cash contribution. A four-hour hub visit is one booking; unused time does not create another
@@ -183,7 +183,9 @@ resell subscriptions. Before enabling this offer, Green Goods must confirm that 
 participant provisioning is permitted by its supplier agreement; Anthropic's
 [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) restrict resale without express
 approval. Green Goods confirmed on 27 October 2026 (UTC) that participant seats are permitted under
-its supplier terms. If provisioning becomes unavailable, leave this specific offer unavailable;
+its supplier terms. Its Claude Team subscription starts on 8 November 2026, so the first
+seats open that day. A booking made earlier waits for it, and its thirty days still start when the
+participant can sign in. If provisioning becomes unavailable, leave this specific offer unavailable;
 do not substitute shared logins, individual Pro or API credits.
 The other approved services may proceed independently.
 
