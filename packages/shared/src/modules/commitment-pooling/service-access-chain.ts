@@ -119,7 +119,7 @@ export async function readServiceAccess(
     );
     await readVoucherServiceSetups(snapshot, read, voucherReads);
     if (offer.route === "voucher") {
-      // No reviewed VoucherRedemptionModule/Gnosis endpoint mapping exists in the application yet.
+      // This read maps no Gnosis endpoint; a reviewed route (SERVICE_LIVE_ROUTES) replaces these.
       snapshot.capabilities.reasons = [
         ...snapshot.capabilities.reasons,
         "voucher-endpoint-unconfigured",
