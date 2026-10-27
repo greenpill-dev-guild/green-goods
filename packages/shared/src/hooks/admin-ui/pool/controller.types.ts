@@ -76,7 +76,8 @@ export interface PoolConsoleActs {
   /**
    * Accept a voucher booking through `acceptServiceClaim`, naming the member's
    * exact consent. `now` is the clock the steward's checks were read against;
-   * the act reads them again and refuses before the wallet while one fails.
+   * the act reads them again on the chain's time as it starts, never earlier
+   * than `now`, and refuses before the wallet while one fails.
    */
   acceptServiceClaim: (ask: VoucherAsk, now: number) => Promise<HexString>;
   declineClaim: (commitmentId: bigint, claimant: Address, reason: string) => Promise<HexString>;
@@ -152,7 +153,10 @@ export interface VoucherConsoleActs {
   reportVisit: (booking: VoucherBooking) => Promise<void>;
   /** `authorizeReturn`: the most that can come back; the holder still decides the split. */
   proposeReturn: (booking: VoucherBooking, refund: bigint) => Promise<void>;
-  /** The same transfer again; it can't be sent twice. */
+  /**
+   * The same transfer again; it can't be sent twice. One tap from its row, so a failure is
+   * reported through the shared toast rather than thrown, and the row stays to try again.
+   */
   retryTransfer: (booking: VoucherBooking) => Promise<void>;
   /** The reserve's allowance for promised rewards; it creates no vouchers. */
   raiseAllowance: (reserve: VoucherIssuerReserve, allowance: bigint) => Promise<void>;
@@ -161,7 +165,10 @@ export interface VoucherConsoleActs {
 /** What the voucher console reads for a garden's pool, and the issuer's acts on it. */
 export interface VoucherConsoleView {
   snapshot: VoucherConsoleSnapshot;
-  /** The clock acceptance checks read against, in seconds: the later of the read's and this device's. */
+  /**
+   * The clock acceptance checks read against, in seconds: the chain's time, never before the
+   * read's own, ticking past each ask's acceptance deadline while the console stays open.
+   */
   now: number;
   /** The booking a pending ask asked for, when the ask is a voucher booking. */
   askFor: (commitmentId: bigint, buyer: Address) => VoucherAsk | undefined;

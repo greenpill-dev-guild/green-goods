@@ -22,6 +22,7 @@ import type { CommitmentCycleRecord, CommitmentPoolRecord, CommitmentReadModel }
 export {
   parseVoucherAmount,
   selectAllowanceRaise,
+  selectCanApproveBooking,
   selectReturnProposal,
   selectVoucherAcceptanceChecks,
   selectVoucherAskStage,

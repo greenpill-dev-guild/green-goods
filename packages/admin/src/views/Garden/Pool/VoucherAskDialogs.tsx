@@ -26,6 +26,8 @@ export interface VoucherApproveDialogProps {
   /** The issuer Safe's signature rule, read from the Safe. */
   safe: IssuerSafeThreshold | undefined;
   nowMs: number;
+  /** Offline, or another act is with the wallet or the chain: the row's state, live while open. */
+  disabled: boolean;
   tone?: AdminDialogProps["tone"];
   onClose: () => void;
   onApprove: (ask: VoucherAsk) => Promise<void>;
@@ -43,6 +45,7 @@ export function VoucherApproveDialog({
   title,
   safe,
   nowMs,
+  disabled,
   tone,
   onClose,
   onApprove,
@@ -69,6 +72,7 @@ export function VoucherApproveDialog({
             id: "cockpit.garden.pool.voucher.approve.confirm",
             defaultMessage: "Approve Booking",
           })}
+          confirmDisabled={disabled}
           act={async () => {
             if (ask) await onApprove(ask);
           }}

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContext, useEffect, useMemo, useState } from "react";
-import { WagmiContext } from "wagmi";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { type Config, WagmiContext } from "wagmi";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { logger } from "../../modules/app/logger";
 import { selectNextDueBoundary } from "../../modules/commitment-pooling/steward-selectors";
@@ -8,12 +8,25 @@ import type { CommitmentReadModel } from "../../modules/commitment-pooling/types
 import { useTimeout } from "../utils/useTimeout";
 
 const MAX_TIMEOUT_MS = 2_147_483_647;
+const NO_DEADLINES: readonly bigint[] = [];
 
 /** How long one read of the chain's time stands: a device drifts from it slowly. */
 const CHAIN_CLOCK_STALE_MS = 30 * 60_000;
 
 /** The chain's time now, in Unix seconds: this device's clock, moved by how far it runs off. */
 const chainSecondsNow = (offsetMs: number) => BigInt(Math.floor((Date.now() + offsetMs) / 1000));
+
+/** The read of how far the chain's clock runs ahead of this device's, shared by every clock. */
+function chainClockQuery(config: Config | undefined, chainId: number) {
+  return {
+    queryKey: commitmentPoolingKeys.chainClock(chainId),
+    queryFn: async () => {
+      if (!config) throw new Error("No wagmi client to read the chain's time");
+      const { readChainClockOffsetMs } = await import("../../utils/blockchain/chain-clock");
+      return readChainClockOffsetMs(config, chainId);
+    },
+  };
+}
 
 /**
  * How far the chain's clock runs ahead of this device's, in milliseconds: the latest block's
@@ -30,12 +43,7 @@ const chainSecondsNow = (offsetMs: number) => BigInt(Math.floor((Date.now() + of
 function useChainClockOffsetMs(chainId: number): number {
   const config = useContext(WagmiContext);
   const { data, isError, error } = useQuery({
-    queryKey: commitmentPoolingKeys.chainClock(chainId),
-    queryFn: async () => {
-      if (!config) throw new Error("No wagmi client to read the chain's time");
-      const { readChainClockOffsetMs } = await import("../../utils/blockchain/chain-clock");
-      return readChainClockOffsetMs(config, chainId);
-    },
+    ...chainClockQuery(config, chainId),
     enabled: config !== undefined,
     staleTime: CHAIN_CLOCK_STALE_MS,
     refetchOnMount: "always",
@@ -48,19 +56,30 @@ function useChainClockOffsetMs(chainId: number): number {
   return isError ? 0 : (data ?? 0);
 }
 
+/** The earliest of these last seconds that hasn't passed, as `selectNextDueBoundary` reads one. */
+function nextDeadline(deadlines: readonly bigint[], now: bigint, after: bigint | null) {
+  return deadlines.reduce<bigint | null>(
+    (next, deadline) => (deadline >= now && (next === null || deadline < next) ? deadline : next),
+    after
+  );
+}
+
 /**
  * The chain's clock, in Unix seconds, kept current while a surface is open and after sleep: it
  * is the device's clock set to the chain's latest block (`useChainClockOffsetMs`), so a device
  * that runs fast or slow neither hides a promise early nor offers one past due, and it ticks
- * when one of the commitments falls due, and on focus or return. Expiry reads it, and take-up
- * through `useDueClock`.
+ * when one of the commitments falls due, after each of `deadlines` (a booking's last second to
+ * be accepted, say), and on focus or return. Expiry reads it, take-up through `useDueClock`, and
+ * the voucher console's acceptance checks.
  */
 export function useExpiryClock(input: {
   chainId: number;
   commitments: readonly Pick<CommitmentReadModel, "onchainState" | "cycleId" | "dueDate">[];
   cycleEndTimes: ReadonlyMap<string, bigint | null>;
+  /** Other last seconds, past which the clock ticks as it does past a due date. */
+  deadlines?: readonly bigint[];
 }): bigint {
-  const { chainId, commitments, cycleEndTimes } = input;
+  const { chainId, commitments, cycleEndTimes, deadlines = NO_DEADLINES } = input;
   const queryClient = useQueryClient();
   const offsetMs = useChainClockOffsetMs(chainId);
   const [now, setNow] = useState(() => chainSecondsNow(offsetMs));
@@ -73,8 +92,8 @@ export function useExpiryClock(input: {
   }
   const { set: setTimer, clear: clearTimer } = useTimeout();
   const nextDue = useMemo(
-    () => selectNextDueBoundary({ commitments, cycleEndTimes, now }),
-    [commitments, cycleEndTimes, now]
+    () => nextDeadline(deadlines, now, selectNextDueBoundary({ commitments, cycleEndTimes, now })),
+    [commitments, cycleEndTimes, deadlines, now]
   );
 
   useEffect(() => {
@@ -109,4 +128,24 @@ export function useExpiryClock(input: {
   }, [chainId, offsetMs, queryClient]);
 
   return now;
+}
+
+/**
+ * The chain's time read afresh as an act starts, in Unix seconds: the latest block read again,
+ * against this device's clock. An act that judges a deadline awaits it rather than the time a page
+ * last drew, and it rejects when the chain's time can't be read, so the act can refuse instead of
+ * trusting a device clock that runs slow. The read lands in the clocks' shared cache, so every
+ * open clock moves to it.
+ */
+export function useChainClockReader(chainId: number): () => Promise<bigint> {
+  const config = useContext(WagmiContext);
+  const queryClient = useQueryClient();
+  return useCallback(async () => {
+    const offsetMs = await queryClient.fetchQuery({
+      ...chainClockQuery(config, chainId),
+      staleTime: 0,
+      retry: 1,
+    });
+    return chainSecondsNow(offsetMs);
+  }, [config, chainId, queryClient]);
 }

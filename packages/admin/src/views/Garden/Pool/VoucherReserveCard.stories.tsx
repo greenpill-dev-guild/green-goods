@@ -92,10 +92,36 @@ export const RaiseAllowance: Story = {
   },
 };
 
+/** One voucher is left, short of Lina's 2: the card says how much is left, not that it's used up. */
+export const AllowanceShortOfReward: Story = {
+  args: {
+    reserve: {
+      ...STORY_TECH_AND_SUN_SHORT.reserve!,
+      allowance: { ...STORY_TECH_AND_SUN_SHORT.reserve!.allowance, left: 1_000_000n },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(
+      card.getByText(
+        "The allowance for Riverside Commons has 1 left, less than the reward needs.",
+        { exact: false }
+      )
+    ).toBeVisible();
+    await expect(card.queryByText("is used up", { exact: false })).toBeNull();
+  },
+};
+
 /** The Safe can't be read: the card says the Safe signs each booking, without a count. */
 export const SafeUnread: Story = {
   args: {
-    safe: { ...STORY_TECH_AND_SUN_SAFE, status: "unavailable", threshold: null, owners: null },
+    safe: {
+      ...STORY_TECH_AND_SUN_SAFE,
+      status: "unavailable",
+      threshold: null,
+      owners: null,
+      signers: null,
+    },
   },
 };
 

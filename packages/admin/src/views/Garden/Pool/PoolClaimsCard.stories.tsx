@@ -22,8 +22,11 @@ import {
   STORY_GREEN_GOODS_CLAIMS,
   STORY_GREEN_GOODS_SAFE,
   STORY_GREEN_GOODS_VOUCHERS,
+  STORY_KWESI_ASK,
+  STORY_LINA_ASK,
   STORY_TECH_AND_SUN_CLAIMS,
   STORY_TECH_AND_SUN_SAFE,
+  STORY_TECH_AND_SUN_SAFE_OTHERS,
   STORY_TECH_AND_SUN_VOUCHERS,
   STORY_VOUCHER_TITLES,
   storyVoucherConsole,
@@ -75,6 +78,24 @@ function ArrivalCard(props: PoolClaimsCardProps) {
   useEffect(() => setClaims(CLAIMS), []);
   return <PoolClaimsCard {...props} console={{ ...props.console, claims }} />;
 }
+
+/** A card whose next voucher read drops Kwesi's ask once he's accepted, the way a refresh does. */
+function RefreshedVoucherCard(props: PoolClaimsCardProps) {
+  const [vouchers, setVouchers] = useState(props.vouchers);
+  useEffect(
+    () =>
+      setVouchers(storyVoucherConsole({ ...STORY_TECH_AND_SUN_VOUCHERS, asks: [STORY_LINA_ASK] })),
+    []
+  );
+  return <PoolClaimsCard {...props} vouchers={vouchers} />;
+}
+
+/** Tech and Sun's asks with one changed, as the read would carry it. */
+const techAndSunAsks = (ask: typeof STORY_KWESI_ASK, changed: typeof STORY_KWESI_ASK) =>
+  storyVoucherConsole({
+    ...STORY_TECH_AND_SUN_VOUCHERS,
+    asks: STORY_TECH_AND_SUN_VOUCHERS.asks.map((entry) => (entry === ask ? changed : entry)),
+  });
 
 const meta: Meta<typeof PoolClaimsCard> = {
   title: "Admin/Pool/PoolClaimsCard",
@@ -251,4 +272,69 @@ export const VoucherAskGreenGoods: Story = {
     safe: STORY_GREEN_GOODS_SAFE,
   },
   beforeEach: nameVoucherMembers,
+};
+
+/**
+ * A steward who doesn't own Tech and Sun's Safe: Lina's booking waits for the
+ * issuer's approval, with no Approve…, while Kwesi's can still be accepted.
+ */
+export const VoucherAskWaitingForIssuer: Story = {
+  args: { ...VoucherAsks.args, safe: STORY_TECH_AND_SUN_SAFE_OTHERS },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(await card.findByText("Waiting for Tech and Sun")).toBeVisible();
+    await expect(card.queryByRole("button", { name: "Approve…" })).toBeNull();
+    await expect(card.getByRole("button", { name: "Accept…" })).toBeEnabled();
+  },
+};
+
+/** Kwesi's deposit landed, but his ask names no agreement the acceptance can name: no Accept…. */
+export const VoucherAgreementMissing: Story = {
+  args: {
+    ...VoucherAsks.args,
+    vouchers: techAndSunAsks(STORY_KWESI_ASK, {
+      ...STORY_KWESI_ASK,
+      claimHash: `0x${"00".repeat(32)}`,
+    }),
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(await card.findByText("Agreement missing")).toBeVisible();
+    await expect(card.getByText("No agreement to accept · they book again")).toBeVisible();
+    await expect(card.queryByRole("button", { name: "Accept…" })).toBeNull();
+  },
+};
+
+/** Lina's hub day wasn't accepted by its deadline: her deposit comes back once it's canceled. */
+export const VoucherPastDeadline: Story = {
+  args: {
+    ...VoucherAsks.args,
+    vouchers: techAndSunAsks(STORY_LINA_ASK, {
+      ...STORY_LINA_ASK,
+      setup: STORY_LINA_ASK.setup && { ...STORY_LINA_ASK.setup, acceptBy: daysAgo(1) },
+    }),
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(await card.findByText("Deadline passed")).toBeVisible();
+    await expect(
+      card.getByText("the deposit comes back once it’s canceled", { exact: false })
+    ).toBeVisible();
+  },
+};
+
+/** Kwesi was accepted and the next read dropped his ask: the row still reads Accepted, as a booking. */
+export const VoucherAcceptedAfterRefresh: Story = {
+  args: VoucherAccepted.args,
+  beforeEach: nameVoucherMembers,
+  render: (args) => <RefreshedVoucherCard {...args} />,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(await card.findByText("Accepted")).toBeVisible();
+    await expect(card.queryByText("Approved")).toBeNull();
+    await expect(card.getAllByText("Booking · Hub day, up to 4 hours")).toHaveLength(2);
+  },
 };
