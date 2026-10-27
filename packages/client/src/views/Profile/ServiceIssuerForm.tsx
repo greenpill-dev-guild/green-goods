@@ -12,7 +12,6 @@ import { issuerAmount, parseIssuerAmount } from "./serviceIssuerPresentation";
 interface Props {
   asset: ServiceIssuerAsset;
   assets: readonly ServiceIssuerAsset[];
-  ownsReserve: boolean;
   disabled: boolean;
   onReview: (action: ServiceIssuerAction) => void;
   onQuote: (input: {
@@ -21,15 +20,11 @@ interface Props {
   }) => Promise<ServiceIssuerExchangeQuote>;
 }
 
-/** Quantity entry is separate from the exact transaction review and signing step. */
-export function ServiceIssuerForm({
-  asset,
-  assets,
-  ownsReserve,
-  disabled,
-  onReview,
-  onQuote,
-}: Props) {
+/**
+ * A holder's exchange in the curated pool: quantity entry, separate from the exact review and
+ * signing step. An issuer's own acts are named on their service instead.
+ */
+export function ServiceIssuerForm({ asset, assets, disabled, onReview, onQuote }: Props) {
   const { formatMessage, locale } = useIntl();
   const text = (key: string) => formatMessage({ id: `app.profile.issuer.${key}` });
   const id = useId();
@@ -47,16 +42,9 @@ export function ServiceIssuerForm({
   const value = parseIssuerAmount(amount, asset.decimals);
   const output = assets.find((a) => a.id === outputAssetId && a.id !== asset.id);
   const reviewedQuote = quote?.key === inputKey ? quote.value : null;
-  const needsAmount = ["issue", "approveReserve", "approveExchange", "exchange"].includes(kind);
+  const needsAmount = kind === "approveExchange" || kind === "exchange";
   const locked = disabled || quoting;
-  const commands = [
-    ...(ownsReserve
-      ? ["issue", "approveReserve", "revokeReserve", "enableReserve", "disableReserve"]
-      : []),
-    "approveExchange",
-    "revokeExchange",
-    "exchange",
-  ];
+  const commands = ["approveExchange", "revokeExchange", "exchange"];
   const changed = () => {
     setQuote(null);
     setFailed(false);
@@ -65,16 +53,10 @@ export function ServiceIssuerForm({
     if (!commands.includes(kind)) return null;
     if (needsAmount && value === null) return null;
     switch (kind) {
-      case "issue":
-      case "approveReserve":
       case "approveExchange":
         return { kind, amount: value! };
-      case "revokeReserve":
       case "revokeExchange":
         return { kind };
-      case "enableReserve":
-      case "disableReserve":
-        return { kind: "configureReserve", enabled: kind === "enableReserve" };
       case "exchange":
         return reviewedQuote && output
           ? {
@@ -118,7 +100,7 @@ export function ServiceIssuerForm({
         </NativeSelect>
       </label>
       <p id={`${id}-help`} className="text-xs text-text-sub-600">
-        {text(kind === "issue" ? "issueHelp" : "finiteHelp")}
+        {text("finiteHelp")}
       </p>
       {needsAmount ? (
         <label htmlFor={`${id}-amount`} className="block space-y-1 text-sm">
