@@ -34,7 +34,7 @@ The page:
   screen continues to the next.
 - The page follows the viewer's light or dark setting, with a switch; the screens stay as captured.
 
-- Drive: `Shared drives/Greenpill Dev Guild/Product/Green Goods/Growth/SF.Live 2026/Green Goods SF.Live 2026 clickable demo.html`
+- Drive: `Shared drives/Greenpill Dev Guild/Product/Green Goods/Growth/SF Live 2026/Green Goods SF Live 2026 Demo.html`
 - Artifact (shared by link): <https://claude.ai/artifact/9ThhqDPZTEggFZuKnvS2wa>
 - UI review of every screen: [`ui-review-2026-10-27.md`](ui-review-2026-10-27.md)
 
@@ -341,14 +341,14 @@ Human corrections: 1 observed in this segment (the demo should start each flow a
 ## Task record · one season in eight chapters
 
 Task record: SF.Live clickable demo, v4 | Type: feature | Outcome: complete; delivery links above
-Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `b9d3ba279` (develop merged at `3d1327dc1`)
+Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `b9d3ba279` (develop merged at `3d1327dc1` and `0e769d374`)
 
 | Phase | Start → end (UTC, 26 and 27 October 2026, approximate) | Result / evidence |
 |---|---|---|
 | align | 22:20 → 23:10 (26th) | Afo's review of v3; develop's new surfaces mapped (season setup, seed flow, Hub work queue, public Impact and Fund, the merged voucher stories); seven decisions in two rounds of questions |
-| sync | 00:08 → 00:20 (27th) | Signed merge of develop into this branch; the capture checkout moved to develop's tip, then to `a4e083adc` once #1335 merged (01:27) |
-| implement | 00:20 → 02:50 | The page's new shell by a parallel agent (two-column landing, chapter strip and panel, in-screen and browser back, theme switch, check rework); `capture.mjs` v4 sessions for 42 screens; a local Storybook build, since the deployed one cannot render a story |
-| verify | 02:50 → 03:25 | A clean full capture: 42 screens, 0 problems; `build.mjs` 7.44 MB; `check.mjs` exit 0 (42 steps, 25 back regions walked); every screen and the contact sheet inspected, and the approval form re-fitted to its dialog |
+| sync | 00:08 → 00:20 (27th) | Signed merge of develop into this branch; the capture checkout moved to develop's tip, to `a4e083adc` once #1335 merged (01:27), and to `731ddba12` once the voucher fixes #1349 and #1351 merged (02:45) |
+| implement | 00:20 → 02:30 | The page's new shell by a parallel agent (two-column landing, chapter strip and panel, in-screen and browser back, theme switch, check rework); `capture.mjs` v4 sessions for 42 screens; a local Storybook build, since the deployed one cannot render a story |
+| verify | 02:30 → 03:10 | Clean full captures at `a4e083adc` and again at `731ddba12`: 42 screens, 0 problems each; `build.mjs` 7.4 MB; `check.mjs` exit 0 (42 steps, 25 back regions walked); every screen and the contact sheet inspected, and the approval form re-fitted to its dialog |
 | publish | {{PUBLISH}} | {{PUBLISH_RESULT}} |
 
 Human corrections: 1 observed in this segment (Afo's review: the flows felt disconnected, the app's own back controls did nothing, "names are changed" should read as demo data, the dashboard's approvals and the merged voucher work were missing, and garden cards should be text); attention unknown.
