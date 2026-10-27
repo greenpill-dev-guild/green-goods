@@ -93,10 +93,19 @@ describe("a promise's voucher outcomes for its stewards", () => {
   // PRD-1323: for a gardener issuer, the payment says where the token stands in the shared pool.
   it("places a gardener issuer's payment in the pool from that token's listing", async () => {
     const hubDay = await createServiceRehearsalAdapter().read(key(1023n));
-    const asset = (kind: "individual" | "collective", owner: Address = PILOT_ISSUERS.b) => ({
+    const delisting = {
+      reference: "fictional-delisting-record",
+      digest: `0x${"d".repeat(64)}` as `0x${string}`,
+    };
+    const asset = (
+      kind: "individual" | "collective",
+      owner: Address = PILOT_ISSUERS.b,
+      recorded: typeof delisting | null = null
+    ) => ({
       id: "lesson",
       kind,
       ownerReserve: owner,
+      delisting: recorded,
       token: { address: PILOT_ASSETS.b.token },
     });
     const admission = (
@@ -114,10 +123,15 @@ describe("a promise's voucher outcomes for its stewards", () => {
       limit: 6_000_000n,
       holding: 2_000_000n,
     });
-    // Admitted with a zero holding limit is delisted; what the pool holds stays.
-    expect(admission({ admitted: true, limit: 0n, holding: 2_000_000n })).toMatchObject({
+    // A zero holding limit is a delisting only with the stewards' record of it, and what the pool
+    // holds stays. Without the record it is setup: the registry admits a token before its cap.
+    const recorded = asset("individual", PILOT_ISSUERS.b, delisting);
+    expect(admission({ admitted: true, limit: 0n, holding: 2_000_000n }, recorded)).toMatchObject({
       status: "delisted",
       holding: 2_000_000n,
+    });
+    expect(admission({ admitted: true, limit: 0n, holding: 0n })).toMatchObject({
+      status: "setup",
     });
     expect(admission({ admitted: false, limit: 0n, holding: 0n })).toMatchObject({
       status: "setup",

@@ -32,9 +32,11 @@ function assertServiceIssuerAsset(asset: ServiceIssuerAsset, recovery = false) {
     !Number.isInteger(asset.decimals) ||
     asset.decimals < 0 ||
     asset.decimals > 255 ||
+    (asset.delisting !== null &&
+      (!asset.delisting.reference.trim() || !hash(asset.delisting.digest))) ||
     (!recovery &&
       (!asset.service.unit?.trim() ||
-        !asset.service.capacityConfirmed ||
+        !finite(asset.service.capacity) ||
         !asset.service.terms.reference?.trim() ||
         !hash(asset.service.terms.digest) ||
         !asset.service.approval.reference?.trim() ||

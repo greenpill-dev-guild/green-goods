@@ -53,13 +53,14 @@ function issuer(
     decimals: 6,
     service: {
       unit: input.unit,
-      capacityConfirmed: true,
+      capacity: input.kind === "collective" ? 20_000_000n : 6_000_000n,
       terms: { reference: `https://example.org/${input.id}-terms`, digest: digest(n + 20) },
       approval: {
         reference: `issuer-approval:100:${input.owner.toLowerCase()}:7:1`,
         digest: digest(n + 21),
       },
     },
+    delisting: null,
     initialSupply: input.kind === "collective" ? 20_000_000n : 6_000_000n,
     adapterAllowance: 1_000_000n,
     poolHoldingCap: 6_000_000n,
@@ -129,6 +130,7 @@ export type VoucherIssuerStory =
   | "awaitingTeo"
   | "approved"
   | "ownerSafeDrafts"
+  | "registered"
   | "listed"
   | "delist"
   | "delisted";
@@ -139,7 +141,7 @@ export function voucherIssuerStory(state: VoucherIssuerStory): {
   drafts: ServiceIssuerDraftRecord[];
   listings: ServiceIssuerListings;
 } {
-  const teoListed = state === "ownerSafeDrafts" || state === "listed";
+  const teoListed = state === "ownerSafeDrafts" || state === "registered" || state === "listed";
   const issuers = [
     issuer(40, {
       id: "tech-and-sun",
@@ -179,6 +181,12 @@ export function voucherIssuerStory(state: VoucherIssuerStory): {
     }),
   ];
   const catalog = route(issuers);
+  // A delisting reads as one only with the stewards' record of it.
+  if (state === "delisted")
+    catalog.assets.find((asset) => asset.id === "maya")!.delisting = {
+      reference: "https://example.org/maya-delisting",
+      digest: digest(98),
+    };
   const listing = (
     admitted: boolean,
     limit: bigint,
@@ -199,8 +207,9 @@ export function voucherIssuerStory(state: VoucherIssuerStory): {
     ],
     [
       serviceIssuerListingKey(catalog.service.id, "teo"),
+      // Registered, Teo's token waits for its cap: the limiter still reads zero.
       listing(
-        state === "listed",
+        state === "listed" || state === "registered",
         state === "listed" ? 6_000_000n : 0n,
         state === "listed" ? 2_000_000n : 0n
       ),

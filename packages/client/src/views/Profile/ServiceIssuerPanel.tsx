@@ -271,6 +271,7 @@ export function ServiceIssuerPanel({
           bookings={snapshot.bookings}
           asset={asset}
           pending={pending ? (pendingReview?.action ?? null) : null}
+          paused={!snapshot.reserveEnabled}
           disabled={busy || pending}
           onApprove={(booking) =>
             prepare(

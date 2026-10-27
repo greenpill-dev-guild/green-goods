@@ -109,9 +109,10 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
     service: {
       unit: "test hour",
       terms: { reference: "ipfs://test-terms", digest: H },
-      capacityConfirmed: true,
+      capacity: 1000n as bigint | null,
       approval: { reference: "ipfs://test-consent", digest: H },
     },
+    delisting: null,
     initialSupply: 1000n,
     adapterAllowance: 400n,
     poolHoldingCap: 2000n,
@@ -929,7 +930,7 @@ describe("member-owned service operations", () => {
     const f = fixture();
     f.hints.push(f.hint);
     f.state.issuerApproved = true;
-    f.assets[0]!.service.capacityConfirmed = false;
+    f.assets[0]!.service.capacity = null;
     expect(await f.create().read(f.actor)).toMatchObject({
       bookings: {
         status: "observed",
@@ -984,7 +985,7 @@ describe("member-owned service operations", () => {
     const ops = f.create();
     await ops.execute(await ops.review(f.actor, { kind: "configureReserve", enabled: true }));
     expect(f.state.enabled).toBe(true);
-    f.assets[0]!.service.capacityConfirmed = false;
+    f.assets[0]!.service.capacity = null;
     await ops.execute(await ops.review(f.actor, { kind: "configureReserve", enabled: false }));
     expect(f.state.enabled).toBe(false);
   });
@@ -1255,7 +1256,7 @@ describe("member-owned service operations", () => {
   ])("blocks %s without treating metadata as actual approval", async (kind) => {
     const f = fixture();
     if (kind === "missing unit") f.assets[0]!.service.unit = "";
-    if (kind === "unconfirmed capacity") f.assets[0]!.service.capacityConfirmed = false;
+    if (kind === "unconfirmed capacity") f.assets[0]!.service.capacity = null;
     if (kind === "missing consent") f.assets[0]!.service.approval.reference = "";
     if (kind === "unknown control")
       Object.assign(f.assets[0]!.upgradeControl, { kind: "administrator" });
@@ -1404,14 +1405,27 @@ describe("member-owned service operations", () => {
     const f = fixture();
     const ops = f.create();
     await ops.execute(await ops.review(f.actor, { kind: "approveReserve", amount: 40n }));
-    f.assets[0]!.service.capacityConfirmed = false;
+    f.assets[0]!.service.capacity = null;
     f.state.expired = true;
     f.state.paused = true;
     await ops.execute(await ops.review(f.actor, { kind: "revokeReserve" }));
     expect(f.state.reserve).toBe(0n);
   });
+  it("prepares no booking approval while new bookings are paused, and does once they resume", async () => {
+    const f = fixture();
+    const ops = f.create();
+    const bound = { setupId: f.identity.setupId, authorizationHash: f.identity.authorizationHash };
+    await expect(ops.review(f.actor, { kind: "approveBooking", ...bound })).rejects.toThrow(
+      "New bookings are paused"
+    );
+    expect(f.state.issuerApproved).toBe(false);
+    f.state.enabled = true;
+    await ops.execute(await ops.review(f.actor, { kind: "approveBooking", ...bound }));
+    expect(f.state.issuerApproved).toBe(true);
+  });
   it("binds exact booking consent and a monotone bounded return ceiling", async () => {
     const f = fixture();
+    f.state.enabled = true;
     const ops = f.create();
     const bound = { setupId: f.identity.setupId, authorizationHash: f.identity.authorizationHash };
     await expect(
@@ -1519,7 +1533,7 @@ describe("member-owned service operations", () => {
   it("prepares delisting as a zero pool holding limit that leaves balances, bookings and authority alone", () => {
     const f = fixture();
     // Delisting must stay possible when the reviewed terms no longer pass for new issuance.
-    f.route.assets[0]!.service.capacityConfirmed = false;
+    f.route.assets[0]!.service.capacity = null;
     const draft = serviceIssuerDelistingDraft(f.route, f.actor.assetId);
     expect(draft).toMatchObject({
       kind: "owner-safe-draft",

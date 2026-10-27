@@ -1,17 +1,23 @@
 /**
  * An issuer token's place in the shared pool, from the pool's own listing: not admitted yet while
- * its setup is pending, listed under a holding limit, or delisted. Admitted with a zero holding
- * limit is delisted: the pool takes in no more of the token, while holders keep their vouchers.
- * The Voucher Issuers card and a promise's inspector (PRD-1323) read it the same way.
+ * its setup is pending, listed under a holding limit, or delisted. Delisting is a zero holding
+ * limit the stewards recorded as a delisting: the pool takes in no more of the token, while holders
+ * keep their vouchers. A zero limit without that record is setup still pending, since the registry
+ * admits the token before its cap lands. The Voucher Issuers card, a member's own service and a
+ * promise's inspector (PRD-1323) read it the same way.
  *
  * @module modules/commitment-pooling/service-issuer-pool
  */
 
-import type { ServiceIssuerPoolListing } from "./service-issuer-types";
+import type { ServiceIssuerAsset, ServiceIssuerPoolListing } from "./service-issuer-types";
 
 export type IssuerPoolStatus = "setup" | "listed" | "delisted";
 
-export function issuerPoolStatus(listing: ServiceIssuerPoolListing): IssuerPoolStatus {
+export function issuerPoolStatus(
+  listing: ServiceIssuerPoolListing,
+  asset: Pick<ServiceIssuerAsset, "delisting">
+): IssuerPoolStatus {
   if (!listing.admitted) return "setup";
-  return listing.limit === 0n ? "delisted" : "listed";
+  if (listing.limit > 0n) return "listed";
+  return asset.delisting ? "delisted" : "setup";
 }

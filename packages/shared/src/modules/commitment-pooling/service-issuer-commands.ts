@@ -1,7 +1,7 @@
 import { readIssuerBooking } from "./service-issuer-bookings";
 import { type Abi } from "viem";
 import type { ContractCall } from "../transactions/types";
-import { serviceAddress, serviceTuple } from "./service-access-chain-values";
+import { serviceAddress, serviceFlag, serviceTuple } from "./service-access-chain-values";
 import {
   AdapterABI,
   EscrowABI,
@@ -132,6 +132,9 @@ export async function prepareIssuerCall(
       if (b.frozen || b.result.decision === "abort")
         throw new Error("Booking no longer permits this issuer review");
       if (action.kind === "approveBooking") {
+        // Pausing new bookings disables the reserve; the member approves none until resuming.
+        if (!serviceFlag(serviceTuple(state.authorization, ["issuerAuthority", "enabled"]).enabled))
+          throw new Error("New bookings are paused; resume them before approving one");
         if (
           b.result.issuerApproved ||
           b.result.decision !== "none" ||

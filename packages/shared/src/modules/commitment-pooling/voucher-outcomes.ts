@@ -41,7 +41,7 @@ type IssuerPoolAdmission =
 interface IssuerPoolRead {
   routes: readonly {
     service: { id: string };
-    assets: readonly (Pick<ServiceIssuerAsset, "id" | "kind" | "ownerReserve"> & {
+    assets: readonly (Pick<ServiceIssuerAsset, "id" | "kind" | "ownerReserve" | "delisting"> & {
       token: { address: Address };
     })[];
   }[];
@@ -70,7 +70,7 @@ function gardenerPoolAdmission(
     if (asset.kind !== "individual") return null;
     const listing = pool.listing(route.service.id, asset.id);
     return listing
-      ? { status: issuerPoolStatus(listing), limit: listing.limit, holding: listing.holding }
+      ? { status: issuerPoolStatus(listing, asset), limit: listing.limit, holding: listing.holding }
       : { status: "unread" };
   }
   return null;

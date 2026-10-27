@@ -9,6 +9,7 @@ import {
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import type { Address } from "@green-goods/shared/types/domain";
 import { RiCheckLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
@@ -37,6 +38,23 @@ interface Props {
 
 /** The pool's price index and fee policy both count in millionths. */
 const MILLIONTHS = 6;
+type GovernanceDraft = ReturnType<typeof serviceIssuerGovernanceDrafts>[number];
+
+/** One owner Safe's signature rule, read from that Safe on the chain its calls run on. */
+function OwnerSafeRule({ chainId, safe }: { chainId: number; safe: Address }) {
+  const intl = useIntl();
+  const rule = useIssuerSafeThreshold({ chainId, safe }).data;
+  return (
+    <p className="type-meta text-text-soft" data-component="OwnerSafeRule" data-chain={chainId}>
+      {rule?.status === "observed" && rule.threshold !== null && rule.owners !== null
+        ? intl.formatMessage(
+            { id: "cockpit.community.voucherIssuers.safe.needs" },
+            { threshold: rule.threshold, owners: rule.owners }
+          )
+        : intl.formatMessage({ id: "cockpit.community.voucherIssuers.safe.unread" })}
+    </p>
+  );
+}
 
 /**
  * Each issuer state's dialog. Everything a steward does here prepares or copies; copying sends
@@ -60,16 +78,11 @@ export function VoucherIssuerDialog({
   const { route, asset, record } = row;
   const draft = record?.draft;
   const name = draft?.memberName ?? asset?.name ?? "";
-  const safe = useIssuerSafeThreshold({ chainId: 100, safe: route?.pool.limiter.owner }).data;
-  const safeNote =
-    safe?.status === "observed" && safe.threshold !== null && safe.owners !== null
-      ? t("safe.needs", { threshold: safe.threshold, owners: safe.owners })
-      : t("safe.unread");
   const date = (seconds: bigint) =>
     intl.formatDate(Number(seconds) * 1000, { month: "short", day: "numeric", year: "numeric" });
   const units = (value: bigint | null, decimals: number, symbol: string) =>
     value === null ? t("unconfirmed") : `${formatUnits(value, decimals)} ${symbol}`;
-  let drafts: ReturnType<typeof serviceIssuerGovernanceDrafts> | null = null;
+  let drafts: GovernanceDraft[] | null = null;
   if (route && asset && (kind === "drafts" || kind === "delist")) {
     try {
       drafts =
@@ -79,6 +92,15 @@ export function VoucherIssuerDialog({
     } catch {
       /* Incomplete reviewed metadata must remain unavailable. */
     }
+  }
+  // Each owner Safe signs its own calls on its own chain, and one address can be a different
+  // Safe, with its own signature rule, on each chain.
+  const safes: { key: string; chainId: number; owner: Address; drafts: GovernanceDraft[] }[] = [];
+  for (const d of drafts ?? []) {
+    const key = `${d.call.chainId}:${d.owner.toLowerCase()}`;
+    const safe = safes.find((s) => s.key === key);
+    if (safe) safe.drafts.push(d);
+    else safes.push({ key, chainId: d.call.chainId, owner: d.owner, drafts: [d] });
   }
   const copy = async (value: unknown) => {
     if (!canPrepare || rehearsal) return;
@@ -248,21 +270,26 @@ export function VoucherIssuerDialog({
           </Alert>
         )}
         {drafts ? (
-          facts(
-            drafts.map((d) => [
-              t(d.purpose),
-              <>
-                <code className="type-label-sm">{`${d.call.functionName}(${d.call.args?.map(String).join(", ")})`}</code>
-                <span className="mt-0.5 block type-meta text-text-soft">
-                  {t("dr.where", {
-                    chain: d.call.chainId ?? t("unconfirmed"),
-                    safe: d.owner,
-                    target: d.call.address,
-                  })}
-                </span>
-              </>,
-            ])
-          )
+          safes.map((safe) => (
+            <div key={safe.key} className="space-y-1.5" data-component="VoucherIssuerSafeCalls">
+              {facts(
+                safe.drafts.map((d) => [
+                  t(d.purpose),
+                  <>
+                    <code className="type-label-sm">{`${d.call.functionName}(${d.call.args?.map(String).join(", ")})`}</code>
+                    <span className="mt-0.5 block type-meta text-text-soft">
+                      {t("dr.where", {
+                        chain: d.call.chainId,
+                        safe: d.owner,
+                        target: d.call.address,
+                      })}
+                    </span>
+                  </>,
+                ])
+              )}
+              <OwnerSafeRule chainId={safe.chainId} safe={safe.owner} />
+            </div>
+          ))
         ) : (
           <p role="status" className="type-meta">
             {t("incomplete")}
@@ -278,7 +305,7 @@ export function VoucherIssuerDialog({
           />
         ) : null}
         <Alert variant="info" title={t(kind === "delist" ? "f.delist.t" : "f.drafts.t")}>
-          {kind === "delist" ? t("f.delist.b") : t("f.drafts.b", { name })} {safeNote}
+          {kind === "delist" ? t("f.delist.b") : t("f.drafts.b", { name })}
         </Alert>
       </>
     );
@@ -307,7 +334,7 @@ export function VoucherIssuerDialog({
           [t("termsDigest"), asset.service.terms.digest ?? t("unconfirmed")],
           [t("approval"), asset.service.approval.reference ?? t("unconfirmed")],
           [t("approvalDigest"), asset.service.approval.digest ?? t("unconfirmed")],
-          [t("capacity"), t(asset.service.capacityConfirmed ? "confirmed" : "unconfirmed")],
+          [t("capacity"), t(asset.service.capacity !== null ? "confirmed" : "unconfirmed")],
           [t("supply"), units(asset.initialSupply, asset.decimals, asset.symbol)],
           [t("allowance"), units(asset.adapterAllowance, asset.decimals, asset.symbol)],
           [t("cap"), units(asset.poolHoldingCap, asset.decimals, asset.symbol)],

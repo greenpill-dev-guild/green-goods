@@ -12,11 +12,15 @@ import {
 } from "../../views/Community/components/voucherIssuerStoryFixtures";
 import { render, screen, userEvent, within } from "../test-utils";
 
-// The owner Safe's signature count is read from the Safe; these tests answer two of five.
+// Each owner Safe's signature count is read from that Safe on its own chain; these tests answer
+// two of five on Gnosis and three of four on Arbitrum, for the same address.
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
-  useIssuerSafeThreshold: ({ safe }: { safe?: string }) => ({
-    data: { safe, status: "observed", threshold: 2, owners: 5 },
+  useIssuerSafeThreshold: ({ chainId, safe }: { chainId: number; safe?: string }) => ({
+    data:
+      chainId === 42161
+        ? { safe, status: "observed", threshold: 3, owners: 4 }
+        : { safe, status: "observed", threshold: 2, owners: 5 },
   }),
 }));
 
@@ -149,13 +153,36 @@ describe("voucher issuer onboarding", () => {
     expect(dialog.getByText(/^Copied\. Nothing was sent/)).toBeInTheDocument();
   });
 
-  it("reads a zero holding limit as delisted while the pool keeps what it holds", () => {
+  it("reads a recorded delisting's zero limit as delisted while the pool keeps what it holds", () => {
     render(<VoucherIssuerCard canPrepare {...voucherIssuerStory("delisted")} />);
     expect(within(row("Maya vouchers")).getByText("Delisted")).toBeInTheDocument();
     expect(
       within(row("Maya vouchers")).getByText(/the pool takes in no more · 4 still there/)
     ).toBeInTheDocument();
     expect(within(row("Maya vouchers")).queryByRole("button", { name: "Delist…" })).toBeNull();
+  });
+
+  it("reads a registered token whose cap hasn't landed as setup pending, keeping its Safe drafts", () => {
+    render(<VoucherIssuerCard canPrepare {...voucherIssuerStory("registered")} />);
+    const teo = within(row("Teo vouchers"));
+    expect(teo.getByText("Approved · setup pending")).toBeInTheDocument();
+    expect(teo.getByRole("button", { name: "Owner Safe Drafts…" })).toBeEnabled();
+    expect(teo.queryByText("Delisted")).toBeNull();
+  });
+
+  it("names each owner Safe's own signature rule, per chain, beside the calls it signs", async () => {
+    render(<VoucherIssuerCard canPrepare {...voucherIssuerStory("ownerSafeDrafts")} />);
+    await userEvent.click(screen.getByRole("button", { name: "Owner Safe Drafts…" }));
+    const groups = [
+      ...document.querySelectorAll<HTMLElement>('[data-component="VoucherIssuerSafeCalls"]'),
+    ].map((group) => within(group));
+    expect(groups).toHaveLength(2);
+    const [source, pool] = groups;
+    expect(source!.getByText("Source authority binding")).toBeInTheDocument();
+    expect(source!.getByText("The Safe needs 3 of 4 signatures.")).toBeInTheDocument();
+    for (const call of ["Pool asset admission", "Pool holding cap", "Pool price index"])
+      expect(pool!.getByText(call)).toBeInTheDocument();
+    expect(pool!.getByText("The Safe needs 2 of 5 signatures.")).toBeInTheDocument();
   });
 
   it("keeps fictional export disabled and offers sending only through a draft desk", async () => {
@@ -178,7 +205,7 @@ describe("voucher issuer onboarding", () => {
 
   it("withholds incomplete drafts and closes a review when the catalog is replaced", async () => {
     const route = voucherIssuerStoryRoute();
-    route.assets[0]!.service.capacityConfirmed = false;
+    route.assets[0]!.service.capacity = null;
     const listings = new Map([
       [
         serviceIssuerListingKey(route.service.id, route.assets[0]!.id),

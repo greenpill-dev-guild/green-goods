@@ -44,9 +44,10 @@ export const issuerStoryAssets: readonly ServiceIssuerAsset[] = [
     service: {
       unit: "minutes",
       terms: { reference: "fictional-engineer-lesson", digest: ISSUER_STORY_HASH },
-      capacityConfirmed: true,
+      capacity: 6_000_000n,
       approval: { reference: "fictional-engineer-consent", digest: ISSUER_STORY_HASH },
     },
+    delisting: null,
     initialSupply: 6_000_000n,
     adapterAllowance: 1_000_000n,
     poolHoldingCap: 5_000_000n,
@@ -81,9 +82,10 @@ export const issuerStoryAssets: readonly ServiceIssuerAsset[] = [
     service: {
       unit: "minutes",
       terms: { reference: "fictional-coaching", digest: ISSUER_STORY_HASH },
-      capacityConfirmed: true,
+      capacity: 6_000_000n,
       approval: { reference: "fictional-analyst-consent", digest: ISSUER_STORY_HASH },
     },
+    delisting: null,
     initialSupply: 6_000_000n,
     adapterAllowance: 1_000_000n,
     poolHoldingCap: 5_000_000n,
@@ -262,7 +264,10 @@ export type IssuerServiceStory =
   | "short"
   | "setup"
   | "admitting"
-  | "full";
+  | "registered"
+  | "full"
+  | "lowCapacity"
+  | "partial";
 
 /**
  * The member's service in each state the design draws: six promised, one delivered, and the
@@ -270,8 +275,9 @@ export type IssuerServiceStory =
  */
 export function issuerServiceStory(state: IssuerServiceStory) {
   const snapshot = issuerStorySnapshot();
+  const asked = state === "approve" || state === "pending" || state === "paused";
   const records = [
-    booking(1, MAYA, state === "approve" || state === "pending" ? "asked" : "deposited"),
+    booking(1, MAYA, asked ? "asked" : "deposited"),
     booking(2, RAFA, state === "proposed" ? "proposed" : "active"),
     booking(3, KAI, "delivered"),
   ];
@@ -292,15 +298,28 @@ export function issuerServiceStory(state: IssuerServiceStory) {
       }),
     };
   if (state === "paused") snapshot.reserveEnabled = false;
-  if (state === "delisted") snapshot.pool = { ...snapshot.pool, limit: 0n };
-  if (state === "setup" || state === "admitting") {
+  if (state === "delisted") {
+    snapshot.pool = { ...snapshot.pool, limit: 0n };
+    const delisting = { reference: "fictional-delisting-record", digest: ISSUER_STORY_HASH };
+    snapshot.asset = { ...snapshot.asset, delisting };
+  }
+  // The member confirmed five vouchers' worth of service, below the six the token may issue.
+  if (state === "lowCapacity")
+    snapshot.asset = {
+      ...snapshot.asset,
+      service: { ...snapshot.asset.service, capacity: 5_000_000n },
+    };
+  if (state === "partial")
+    snapshot.bookings = { ...snapshot.bookings, status: "partial", reason: "canonical-mismatch" };
+  if (state === "setup" || state === "admitting" || state === "registered") {
     snapshot.reserveEnabled = false;
     snapshot.reserveAllowance = 0n;
     snapshot.issuerReserveBalance = 6_000_000n;
     snapshot.holdingBalance = 6_000_000n;
     snapshot.totalMinted = 6_000_000n;
+    // Registered, the token waits for its cap: the limiter still reads zero.
     snapshot.pool = {
-      admitted: state === "setup",
+      admitted: state !== "admitting",
       limit: state === "setup" ? 6_000_000n : 0n,
       holding: 0n,
     };

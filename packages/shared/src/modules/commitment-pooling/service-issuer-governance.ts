@@ -14,7 +14,8 @@ interface ServiceIssuerGovernanceDraft {
   kind: "owner-safe-draft";
   purpose: "source-authority" | "pool-registration" | "pool-cap" | "pool-price" | "pool-delist";
   owner: Address;
-  call: ContractCall;
+  /** Always on a named chain: the same owner address can be a different Safe on each chain. */
+  call: ContractCall & { chainId: number };
 }
 const limitDraft = (
   route: ServiceIssuerRoute,

@@ -25,9 +25,20 @@ export interface ServiceIssuerAsset {
   service: {
     unit: string | null;
     terms: ServiceIssuerProvenance;
-    capacityConfirmed: boolean;
+    /**
+     * Vouchers' worth of service the member confirmed they can deliver: the approved terms'
+     * `capacity.units`, recorded apart from what is issued. Null until confirmed.
+     */
+    capacity: bigint | null;
     approval: ServiceIssuerProvenance;
   };
+  /**
+   * The stewards' recorded decision to delist the token. Delisting sets a zero pool holding limit,
+   * but setup passes through a zero limit too (the registry admits the token before its cap
+   * lands), so only this record makes a zero limit read as delisted. It is recorded with the
+   * decision, before the owner Safe sets the zero limit.
+   */
+  delisting: { reference: string; digest: Hex } | null;
   initialSupply: bigint | null;
   adapterAllowance: bigint | null;
   poolHoldingCap: bigint | null;
@@ -161,7 +172,7 @@ export type ServiceIssuerSnapshot =
       pending: ServiceIssuerPending | null;
       bookings: ServiceIssuerBookings;
     };
-/** Admitted with a zero holding limit is delisted: the pool takes in no more of the token. */
+/** The pool's own listing of a token; `issuerPoolStatus` reads it with the asset's delisting. */
 export interface ServiceIssuerPoolListing {
   admitted: boolean;
   limit: bigint;

@@ -5,9 +5,9 @@ import type { ServiceAsset } from "./service-access-types";
 /**
  * Where an issuer stands for new business, read as the member's own Service Assets reads it: from
  * the issuer's reserve and its token's place in the shared pool. A paused issuer, its reserve
- * disabled after setup, takes no new bookings, while booked ones go ahead. A delisted token,
- * admitted with a zero pool holding limit, can't be exchanged for, while holders keep their
- * vouchers and terms. Neither moves a balance or a booking.
+ * disabled after setup, takes no new bookings, while booked ones go ahead. A delisted token, held
+ * to a zero pool holding limit the stewards recorded as a delisting, can't be exchanged for, while
+ * holders keep their vouchers and terms. Neither moves a balance or a booking.
  */
 export interface VoucherIssuerStanding {
   bookings: "open" | "paused";

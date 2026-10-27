@@ -131,6 +131,40 @@ describe("a member's own service", () => {
     expect(screen.queryByRole("button", { name: "Review" })).not.toBeInTheDocument();
   });
 
+  it("counts capacity from what the member confirmed, not the token's issuance ceiling", async () => {
+    renderWithProviders(<ServiceIssuerPanel {...harness(issuerServiceStory("lowCapacity"))} />);
+    expect(fact("Promised")).toHaveTextContent("5");
+    expect(fact("Left")).toHaveTextContent("2");
+    expect(screen.getByRole("progressbar")).toHaveAccessibleName(
+      "1 delivered, 2 booked, 2 left of 5"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Issue More" }));
+    expect(screen.getByText("Promised 5 · 5 issued · 0 more can be issued")).toBeInTheDocument();
+  });
+
+  it("keeps what's booked and left unknown when a booking couldn't be verified", () => {
+    renderWithProviders(<ServiceIssuerPanel {...harness(issuerServiceStory("partial"))} />);
+    for (const label of ["Booked", "Delivered", "Left", "In escrow for bookings"])
+      expect(fact(label)).toHaveTextContent("Unknown");
+    expect(screen.getByText(/Some bookings couldn't be verified/)).toBeInTheDocument();
+    expect(bookingRows()).toHaveLength(3);
+  });
+
+  it("asks for no booking approval while new bookings are paused", () => {
+    const h = harness(issuerServiceStory("paused"));
+    renderWithProviders(<ServiceIssuerPanel {...h} />);
+    expect(screen.getByText("New bookings are paused")).toBeInTheDocument();
+    expect(within(bookingRows()[0] as HTMLElement).getByText("Paused")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Review" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resume Bookings" })).toBeInTheDocument();
+  });
+
+  it("reads a registered token whose cap hasn't landed as setup, not delisted", () => {
+    renderWithProviders(<ServiceIssuerPanel {...harness(issuerServiceStory("registered"))} />);
+    expect(screen.getByText("Next: Green Goods admits your token")).toBeInTheDocument();
+    expect(screen.queryByText("Delisted from the pool")).not.toBeInTheDocument();
+  });
+
   it("reads a delisted service as delisted while every booking and balance stays", () => {
     renderWithProviders(<ServiceIssuerPanel {...harness(issuerServiceStory("delisted"))} />);
     expect(screen.getByText("Delisted from the pool")).toBeInTheDocument();
