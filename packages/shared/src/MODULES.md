@@ -1,7 +1,8 @@
 # @green-goods/shared -- Module Map
 
-> Canonical architecture contract for the shared package.
-> Last verified against the source tree: 2026-08-23
+> Navigation map for the shared package. [AGENTS.md](../AGENTS.md),
+> [declared exports](../package.json), and the
+> [source-structure checker](../../../scripts/quality/check-source-structure.js) own import rules.
 
 ## Package Contract
 
@@ -10,42 +11,36 @@ i18n catalogs, and Storybook-backed UI primitives.
 
 ### Import Policy
 
-1. Prefer the root barrel: `@green-goods/shared`
-2. Supported domain subpaths stay available for clear operational boundaries:
-   `components`, `config`, `hooks`, `i18n`, `mocks`, `modules`, `providers`, `stores`,
-   `styles`, `testing`, `types`, `utils`, `workflows`
-3. Leaf entrypoints `cards`, `display`, `badge`, and `toast` are legacy compatibility paths.
-   Do not add new usage there.
+1. Consume Shared through declared `package.json#exports`; never import `shared/src/**` from
+   another package.
+2. Client and admin use declared leaf entrypoints. The source-structure checker rejects the root
+   barrel and broad family barrels in their source, tests, and stories. Shared production code
+   also avoids its own high-fanout barrels.
+3. Choose the narrowest declared entrypoint that supplies the needed capability. A broad export
+   being present in the manifest does not make it an allowed import for every consumer.
 4. `lib/hypercerts` stays a pure-domain library. It is intentionally separate from `modules/`.
 5. Prefer selector-first auth/work consumption in new code:
-   `useAuthState` + `useAuthActions`, `useWorkSelection` + `useWorkFormContext`
+   `useAuthState` + `useAuthActions`, `useWorkSelection` + `useWorkFormContext`.
 
 ## Public Entrypoints
 
-| Entrypoint | Status | Notes |
-| --- | --- | --- |
-| `@green-goods/shared` | Preferred | Main consumer API for app code |
-| `@green-goods/shared/components` | Supported | Shared UI primitives and stories |
-| `@green-goods/shared/config` | Supported | App and chain configuration |
-| `@green-goods/shared/hooks` | Supported | React hooks grouped by domain |
-| `@green-goods/shared/i18n` | Supported | Catalog helpers and language JSON |
-| `@green-goods/shared/modules` | Supported | Cross-app business logic and adapters |
-| `@green-goods/shared/providers` | Supported | Context providers and selector hooks |
-| `@green-goods/shared/stores` | Supported | Zustand stores |
-| `@green-goods/shared/types` | Supported | Domain and generated types |
-| `@green-goods/shared/utils` | Supported | Pure utilities and helpers |
-| `@green-goods/shared/workflows` | Supported | XState machines and auth actor exports |
-| `@green-goods/shared/styles` | Supported | Theme CSS import path |
-| `@green-goods/shared/styles/theme.css` | Supported | Direct theme stylesheet |
-| `@green-goods/shared/styles/utilities.css` | Supported | Direct utilities stylesheet |
-| `@green-goods/shared/testing` | Supported | Shared test utilities |
-| `@green-goods/shared/mocks` | Supported | Browser and Node mocks |
-| `@green-goods/shared/mocks/browser` | Supported | Browser mock entrypoint |
-| `@green-goods/shared/__tests__/setupTests.base` | Operational | Test bootstrap helper |
-| `@green-goods/shared/cards` | Legacy | Compatibility entrypoint; no new usage |
-| `@green-goods/shared/display` | Legacy | Compatibility entrypoint; no new usage |
-| `@green-goods/shared/badge` | Legacy | Compatibility entrypoint; no new usage |
-| `@green-goods/shared/toast` | Legacy | Compatibility entrypoint; no new usage |
+The [export manifest](../package.json) is the complete inventory. These examples explain the
+main boundaries without duplicating every leaf:
+
+| Entrypoint | Role |
+|---|---|
+| `@green-goods/shared/hooks/auth/useAuth` | Auth state and action selectors |
+| `@green-goods/shared/providers/Work` | Work selection and form contexts |
+| `@green-goods/shared/config/query-keys/registry` | Centralized query keys |
+| `@green-goods/shared/components/StatusBadge` | A declared UI component leaf |
+| `@green-goods/shared/commitment-pooling` | Pooling facade over its modules and hooks |
+| `@green-goods/shared/commitment-pooling/public` | Public-route pooling reads and presentation |
+| `@green-goods/shared/profile-avatar/protocol` | Avatar request/response contract without React hooks |
+| `@green-goods/shared/styles/theme.css` | Shared theme stylesheet |
+| `@green-goods/shared/styles/utilities.css` | Shared utilities stylesheet |
+
+The root and broad family barrels remain declared exports with consumer restrictions. Existing
+`cards`, `display`, `badge`, and `toast` compatibility entrypoints are not preferred for new usage.
 
 ## Internal Module Groups
 
@@ -211,6 +206,8 @@ export.
 | Group | Purpose |
 | --- | --- |
 | `components/` | Shared UI primitives consumed by client and admin |
+| `commitment-pooling/` | Public entry files; implementation stays in `modules/commitment-pooling/` and `hooks/commitment-pooling/` |
+| `profile-avatar/` | Public entry files; implementation stays in `modules/profile-avatar/`, `hooks/profile/`, and `public-contracts/` |
 | `i18n/` | Translation catalogs (`en`, `es`, `pt`) |
 | `lib/hypercerts/` | Pure hypercert domain logic and schema helpers |
 | `styles/` | Shared CSS tokens and utility layers |
@@ -241,6 +238,6 @@ lib/hypercerts/ is pure-domain logic used by hooks/components/workflows
 4. `workflows/` are XState machines and auth actor support files. Preserve their boundaries; do
    not move generic domain logic into machines.
 5. `stores/` are Zustand slices with minimal dependencies.
-6. Root barrel is the preferred public API, but it is not the only supported API. Domain subpaths
-   are part of the compatibility contract today.
+6. Declared public exports and the source-structure checker jointly define allowed imports.
+   Keep public entry files separate from the module and hook implementations they expose.
 7. Selector-first hooks are the preferred consumption pattern for auth/work state.

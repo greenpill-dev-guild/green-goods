@@ -2,7 +2,8 @@
 /**
  * The queue's failure toast (PWA Home step 12). Your Work lists only the active garden, so a failed
  * upload in another of the member's gardens names that garden and offers the switcher, which
- * changes nothing until the member picks; one in the active garden keeps today's toast.
+ * changes nothing until the member picks; one in the active garden says to open Your Work and
+ * offers Review, which does. The job's own error reaches the diagnostics only.
  */
 
 import { createIntl } from "react-intl";
@@ -67,15 +68,36 @@ describe("queue failure toast", () => {
     ]);
   });
 
-  it("keeps today's toast for a failed upload the active garden's Your Work lists", () => {
+  it("says to open Your Work for a failed upload the active garden lists, with Review opening it, never the job's error", () => {
     const error = vi.spyOn(toastService, "error").mockReturnValue("work-upload");
+    const openYourWork = vi.fn();
 
-    toastsIn("en", en).jobFailed("work");
+    toastsIn("en", en).jobFailed("work", "Max retries (3) exceeded", undefined, openYourWork);
 
     const [shown] = error.mock.calls[0];
-    expect(shown.message).toBe(
-      "Your work is still saved on this device. Open Your Work to try again."
-    );
-    expect(shown.action).toBeUndefined();
+    expect(shown).toMatchObject({
+      message: "Your work is still saved on this device. Open Your Work to try again.",
+      devMessage: "Max retries (3) exceeded",
+      action: { label: "Review", dismissOnClick: true },
+    });
+    shown.action?.onClick();
+    expect(openYourWork).toHaveBeenCalledOnce();
+
+    toastsIn("es", es).jobFailed("approval", "network", undefined, openYourWork);
+    toastsIn("pt", pt).jobFailed("work", "network", undefined, openYourWork);
+    expect(error.mock.calls.slice(1).map(([next]) => [next.message, next.action?.label])).toEqual([
+      [
+        "Tu decisión sigue guardada en este dispositivo. Abre Tu trabajo para intentarlo de nuevo.",
+        "Revisar",
+      ],
+      [
+        "Seu trabalho continua salvo neste dispositivo. Abra Seu trabalho para tentar de novo.",
+        "Revisar",
+      ],
+    ]);
+
+    // Without a way to Your Work, the words stand on their own.
+    toastsIn("en", en).jobFailed("work", "network");
+    expect(error.mock.lastCall?.[0].action).toBeUndefined();
   });
 });

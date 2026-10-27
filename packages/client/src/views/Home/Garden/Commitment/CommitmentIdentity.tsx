@@ -7,12 +7,19 @@ import {
   type CommitmentSeat,
   commitmentNeedsSeat,
 } from "@green-goods/shared/commitment-pooling";
+import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiGroupLine } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
 
-import { presentState } from "@/components/Features/Commitments";
+import {
+  presentState,
+  promisePayoutOf,
+  promiseRewardOf,
+  promiseRewardText,
+  rewardsNeedPrice,
+} from "@/components/Features/Commitments";
 import { CommitmentPeople, confirmerOf } from "./CommitmentPeople";
 import { Provenance } from "./ConfirmOutcome";
 import type { StatusBand } from "./statusBand";
@@ -56,7 +63,8 @@ export interface CommitmentIdentityProps {
  * A status read after the people and the progress is a status nobody reads, so
  * the block leads: the state's pill, a marker when it needs the reader, and one
  * sentence, written from the reader's seat, about who acts next. The pill is
- * said once; the facts below carry no second copy of it.
+ * said once; the facts below carry no second copy of it, and they include the
+ * reward its record carries, so it stays in sight after the promise is taken up.
  */
 export function CommitmentIdentity({
   commitment,
@@ -70,11 +78,27 @@ export function CommitmentIdentity({
   stewards,
   serviceBand = null,
 }: CommitmentIdentityProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const headingId = useId();
+  const rewards = [promiseRewardOf(commitment, metadata)].filter((reward) => reward !== null);
+  // Today's G$ price is read only for a reward whose dollars can't be read from its record.
+  const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
+  const reward = promiseRewardText({
+    intl,
+    rewards,
+    price: price.state,
+    payout: promisePayoutOf(commitment),
+  });
   const state = presentState(commitment.derivedState);
-  const needsYou = serviceBand ? serviceBand.needsYou : commitmentNeedsSeat({ commitment, seat });
-  const tone = serviceBand?.tone ?? band?.tone ?? "neutral";
+  // A booking's stage can wait on others while the promise itself waits on the reader (Confirm
+  // It Was Kept while a transfer is on its way): either one needing the reader says so.
+  const needsYou = Boolean(serviceBand?.needsYou) || commitmentNeedsSeat({ commitment, seat });
+  const tone = serviceBand
+    ? needsYou
+      ? "attention"
+      : serviceBand.tone
+    : (band?.tone ?? "neutral");
   const kept = commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED";
   // The sentence names who acts next when one person does: whoever confirms it,
   // or, once kept, whoever confirmed it. Otherwise it says the same thing unnamed.
@@ -151,6 +175,7 @@ export function CommitmentIdentity({
           contributors={contributors}
           seat={seat}
           units={units}
+          reward={reward}
           viewer={viewer}
           stewards={stewards}
         />

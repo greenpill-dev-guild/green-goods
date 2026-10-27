@@ -1,5 +1,6 @@
 import type {
   BookingContext,
+  BookingHistoryAnchor,
   ServiceBookingView,
   ServiceConfirmExtras,
   ServicePhase,
@@ -39,15 +40,23 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
     state: ServiceStepState,
     stateLabel = t(`pu.s.${state}`)
   ): ServiceStep => ({ id, text, state, stateLabel });
+  // The steps that are the promise's own events take their time from them in History.
+  const dated = (entry: ServiceStep, anchor: BookingHistoryAnchor): ServiceStep => ({
+    ...entry,
+    anchor,
+  });
   const canceled = stage === "canceling" || stage === "canceled";
   // Decision 3 sets the deadline seven days from agreeing, so the agreement's day reads from it.
   const agreedAt = ctx.deadline !== null ? ctx.deadline - 7n * 86_400n : null;
   const phases = [
     phase("booked", t("rd.p.booked"), t("rd.who.booked"), [
-      step(
-        "agreed",
-        agreedAt !== null ? t("rd.sub.agreed", { date: date(agreedAt) }) : t("pay.j.agree"),
-        "done"
+      dated(
+        step(
+          "agreed",
+          agreedAt !== null ? t("rd.sub.agreed", { date: date(agreedAt) }) : t("pay.j.agree"),
+          "done"
+        ),
+        "CLAIM_REQUESTED"
       ),
       step(
         "approved",
@@ -89,7 +98,10 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
   return [
     ...phases,
     phase("accepted", t("rd.p.accepted"), t("rd.who.sun"), [
-      step("accepted", t("rd.sub.accepted"), stage === "termsChanged" ? "warn" : at(3)),
+      dated(
+        step("accepted", t("rd.sub.accepted"), stage === "termsChanged" ? "warn" : at(3)),
+        "ACCEPTED"
+      ),
       step("started", t("rd.sub.started"), at(4)),
     ]),
     phase(
@@ -97,15 +109,18 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
       t(profile === "access" ? "rd.p.lessons" : "rd.p.session"),
       t("rd.who.sunReports"),
       [
-        step(
-          "delivered",
-          deliveredText,
-          flagged ? "warn" : at(5),
-          stage === "problemReported"
-            ? t("pu.s.disputed")
-            : stage === "returnProposed"
-              ? t("pu.s.review")
-              : undefined
+        dated(
+          step(
+            "delivered",
+            deliveredText,
+            flagged ? "warn" : at(5),
+            stage === "problemReported"
+              ? t("pu.s.disputed")
+              : stage === "returnProposed"
+                ? t("pu.s.review")
+                : undefined
+          ),
+          "READY_FOR_CONFIRMATION"
         ),
       ]
     ),
@@ -128,8 +143,14 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
               : "todo"
       ),
       ctx.refund === 0n
-        ? step("kept", t("rd.sub.kept"), ctx.kept ? "done" : final ? "now" : "todo")
-        : step("closedEarly", t("rd.sub.closedEarly"), ctx.endedEarly ? "done" : "todo"),
+        ? dated(
+            step("kept", t("rd.sub.kept"), ctx.kept ? "done" : final ? "now" : "todo"),
+            "FULFILLED"
+          )
+        : dated(
+            step("closedEarly", t("rd.sub.closedEarly"), ctx.endedEarly ? "done" : "todo"),
+            "CANCELLED"
+          ),
     ]),
   ];
 }
@@ -196,8 +217,13 @@ export function bookingDelivery(ctx: BookingContext): ServiceBookingView["delive
 
 /** Promise kept? once the split is final: the strip at its last step and the approved split. */
 export function bookingConfirm(ctx: BookingContext): ServiceConfirmExtras | null {
-  if (!ctx.setup?.destination?.finalAllocation) return null;
+  const final = ctx.setup?.destination?.finalAllocation;
+  if (!final) return null;
   const { t } = ctx;
+  // Settlement and confirming are separate: the transfers may finish before the member confirms.
+  const arrived = [final.release.state, final.refund.state].every(
+    (state) => state === "succeeded" || state === "not-required"
+  );
   return {
     stepsLabel: t("pay.journey"),
     steps: [
@@ -207,7 +233,7 @@ export function bookingConfirm(ctx: BookingContext): ServiceConfirmExtras | null
     split: {
       label: t("rd.sh.splitDone"),
       value: t("rd.sh.splitDoneV", { rel: ctx.values.rel }),
-      detail: t("rd.sh.splitDoneS"),
+      detail: t(arrived ? "rd.sh.splitArrived" : "rd.sh.splitDoneS"),
     },
     note: t("rd.sh.confirmNote"),
     passkey: t("c.passkey"),

@@ -267,7 +267,8 @@ function groupMatches(path, rule) {
       (rule.excludeTests === true && isTestPath(path)) ||
       (rule.excludeExact?.includes(path) ?? false) ||
       (rule.excludePrefixes?.some((prefix) => path.startsWith(prefix)) ?? false) ||
-      (rule.excludeContains?.some((part) => path.includes(part)) ?? false));
+      (rule.excludeContains?.some((part) => path.includes(part)) ?? false) ||
+      (rule.excludeSuffixes?.some((suffix) => path.endsWith(suffix)) ?? false));
   if (excluded) return false;
   const groups = [];
   if (rule.exact?.length) groups.push(exactMatch);

@@ -9,6 +9,10 @@ import { restoreDashboardScroll } from "@/components/Navigation/restoreDashboard
  */
 export interface HomePlace {
   scrollTop: number;
+  /**
+   * The last control pressed in Home's content. It stays through every return, since Forward
+   * and Back press nothing in Home, and only another press in Home replaces it.
+   */
   opener: HTMLElement | null;
   away: boolean;
 }
@@ -48,9 +52,11 @@ export function followHomePlace(
 /**
  * Puts Home back where it was once it shows again. The shell scrolls every new route to the top
  * in a layout effect that runs after Home's own, so the offset goes back on the next frame,
- * before it paints, and holds while late rows settle until it fits or the reader scrolls. Focus
- * then returns to the control that opened the page, unless something else took it, such as a
- * sheet reopened over Home. Following resumes once both are back. Returns the cleanup.
+ * before it paints, and holds while late rows settle until it fits or the reader scrolls, in
+ * Home's content or on the scroller itself (a scrollbar drag, a key). Focus then returns to the
+ * control that opened the page, unless something else took it, such as a sheet reopened over
+ * Home, and that control stays the opener for the next return. Following resumes once both are
+ * back. Returns the cleanup.
  */
 export function restoreHomePlace(
   content: HTMLElement,
@@ -63,10 +69,12 @@ export function restoreHomePlace(
       content,
       () => scroller,
       place.scrollTop,
-      () => {}
+      () => {},
+      [scroller]
     );
     const { opener } = place;
-    place.opener = null;
+    // Only a control still in Home can be returned to; one its rows have since replaced is let go.
+    if (!opener?.isConnected) place.opener = null;
     const unclaimed = document.activeElement === null || document.activeElement === document.body;
     if (opener?.isConnected && unclaimed) opener.focus({ preventScroll: true });
     place.away = false;

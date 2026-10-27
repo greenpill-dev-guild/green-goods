@@ -314,27 +314,9 @@
       "status": "historical"
     },
     {
-      "page": "docs/docs/community/funder-guide/funding-a-garden.mdx",
-      "images": ["/img/screenshots/public-endowment-amount.png"],
-      "capture_note": "The amount control in isolation, with an example dollar amount. Source: deployed Storybook, PublicFundingCard / AmountInputWithValue, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable.",
-      "status": "historical"
-    },
-    {
-      "page": "docs/docs/community/funder-guide/funding-a-garden.mdx",
-      "images": ["/img/screenshots/public-endowment-result.png"],
-      "capture_note": "An example result, not a receipt for a real payment. Source: deployed Storybook, PublicFundingCard / SuccessEndow, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable. No wallet transaction was made.",
-      "status": "historical"
-    },
-    {
       "page": "docs/docs/community/gardener-guide/recovery-and-sync.mdx",
       "images": ["/img/community/editorial-field-preparation.webp"],
       "capture_note": "Keep the phone you recorded with while you recover the saved work. AI-generated editorial illustration, created for these docs on 12 October 2026; not a real device, location or app screen.",
-      "status": "historical"
-    },
-    {
-      "page": "docs/docs/community/gardener-guide/recovery-and-sync.mdx",
-      "images": ["/img/screenshots/client-work-pending-example.png"],
-      "capture_note": "Check the saved item before you send it. This example is To upload. Use Upload all when you are online and it is ready. \u201cNothing sent yet\u201d describes the work record, not whether media is already public.\n    Source: local static Storybook, WorkDashboard / Pending With Example Photo, 13 October 2026; 390 \u00d7 844. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. The record is fictional; the photo does not verify its count, time or note.",
       "status": "historical"
     },
     {
@@ -396,18 +378,6 @@
     },
     {
       "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
-      "images": ["/img/screenshots/client-work-pending-example.png"],
-      "capture_note": "Check the saved item before you send it. This example is To upload. Use Upload all when you are online and it is ready. \u201cNothing sent yet\u201d describes the work record, not whether media is already public.\n    Source: local static Storybook, WorkDashboard / Pending With Example Photo, 13 October 2026; 390 \u00d7 844. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. The record is fictional; the photo does not verify its count, time or note.",
-      "status": "historical"
-    },
-    {
-      "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
-      "images": ["/img/screenshots/client-work-completed-example.png"],
-      "capture_note": "Find your own reviewed work. On Completed, choose My work. Open the item to read the decision; an approval is not a payment.\n  Source: local static Storybook, WorkDashboard / Completed With Example Photo, 13 October 2026; 390 \u00d7 844. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. Fictional reviewed record; no real approval was made.",
-      "status": "historical"
-    },
-    {
-      "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
       "images": ["/img/screenshots/client-cookie-jar-claim.webp"],
       "capture_note": "A separate claim, if your garden offers one. Read the jar's limits and enter a purpose before Claim. These example amounts are not promised rewards for approved work.\n    Source: deployed Storybook, Client/Wallet/CookieJarTab,\n    Claimable Jar fixture, with example amounts and purpose. Captured 12 October 2026;\n    780 \u00d7 900 image cropped from a 390 \u00d7 844 phone viewport at 2\u00d7. Build revision unavailable.\n    This is a form, not a payment receipt."
     },
@@ -436,12 +406,6 @@
       "page": "docs/docs/community/steward-guide/index.mdx",
       "images": ["/img/screenshots/admin-request-steward-access.webp"],
       "capture_note": "Ask to help run this garden. Check which account receives access and add a note for the person deciding. Sending the request does not give you the role.\n  Source: deployed Storybook, StewardAccessRequest fixture, 12 October 2026; 960 \u00d7 1400 capture with fictional request data. Build revision unavailable."
-    },
-    {
-      "page": "docs/docs/community/steward-guide/managing-actions.mdx",
-      "images": ["/img/screenshots/admin-create-action.webp"],
-      "capture_note": "Create Action, on Basics. The start and end dates decide when gardeners can submit and when stewards can review. Source: earlier Storybook fixture, October 2026. Exact capture day and build revision unrecorded; inspected 13 October 2026. Fictional example data.",
-      "status": "historical"
     },
     {
       "page": "docs/docs/community/steward-guide/creating-impact-certificates.mdx",
@@ -482,36 +446,6 @@
       "page": "docs/docs/community/steward-guide/managing-members.mdx",
       "images": ["/img/screenshots/admin-edit-garden.webp"],
       "capture_note": "Open joining and Limit gardeners are in Edit Garden. In this fixture the garden's limit has not loaded, so that switch cannot be changed yet. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data."
-    },
-    {
-      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
-      "images": ["/img/screenshots/admin-create-assessment.webp"],
-      "capture_note": "Create Assessment, on Domain &amp; Context. The four steps are listed on the left. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.",
-      "status": "historical"
-    },
-    {
-      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
-      "images": ["/img/screenshots/admin-assessment-goals.png"],
-      "capture_note": "Challenge &amp; Goals, with example answers. Source: deployed Storybook, StrategyKernelStep / Prefilled, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable.",
-      "status": "historical"
-    },
-    {
-      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
-      "images": ["/img/screenshots/admin-assessment-period.png"],
-      "capture_note": "Actions &amp; Reporting Period. Source: deployed Storybook, ActionsHarvestStep / WithSelection, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable.",
-      "status": "historical"
-    },
-    {
-      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
-      "images": ["/img/screenshots/admin-assessment-review.png"],
-      "capture_note": "Review before submitting. Scroll through the form to check every section. Source: deployed Storybook, ReviewStep / InFlowReady, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable. No assessment was submitted for this capture.",
-      "status": "historical"
-    },
-    {
-      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
-      "images": ["/img/screenshots/admin-assessments-tab.webp"],
-      "capture_note": "The Assessments tab, with one assessment on record. This fixture has no reporting period, so only the recorded date shows. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.",
-      "status": "historical"
     },
     {
       "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
@@ -680,15 +614,15 @@
     {
       "page": "docs/docs/community/gardener-guide/confirm-a-promise.mdx",
       "images": ["/img/screenshots/guide-promise-confirm.webp"],
-      "recorded_at": "2026-10-17",
+      "recorded_at": "2026-10-26",
       "proof_class": "Storybook",
-      "engine": "Chromium in-app browser",
+      "engine": "Chromium (Playwright, headless)",
       "data": "Fictional garden/account/work records; write callbacks are local stubs.",
       "capture_name": "promise-confirm",
       "width": 480,
       "height": 1000,
-      "sha256": "a22881afdaac5823cf09fd414c998fef10164f0d6971aaf4938bc9cc76a19286",
-      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "sha256": "e0d477ddc369a405f06e7ddb11eec6696642185ac3feba7a6d05cf1dad86dcb1",
+      "source_revision": "PR #1335 (request confirm copy) plus PRD-1156 documentation capture fixtures",
       "status": "current",
       "story_id": "client-commitments-confirmsheet--documentation",
       "viewport": {
@@ -700,15 +634,15 @@
     {
       "page": "docs/docs/community/gardener-guide/confirm-a-promise.mdx",
       "images": ["/img/screenshots/guide-promise-not-yet.webp"],
-      "recorded_at": "2026-10-17",
+      "recorded_at": "2026-10-26",
       "proof_class": "Storybook",
-      "engine": "Chromium in-app browser",
+      "engine": "Chromium (Playwright, headless)",
       "data": "Fictional garden/account/work records; write callbacks are local stubs.",
       "capture_name": "promise-not-yet",
       "width": 480,
       "height": 740,
-      "sha256": "4717ed1679e753689f908f0ea4eb085a25317ef73a8ff8bb7b323363a4e7b1fa",
-      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "sha256": "9533dc3177c1209198f7ba9028a8ea994b329709a3d895ce0548cbffdc530ae8",
+      "source_revision": "PR #1335 (request confirm copy) plus PRD-1156 documentation capture fixtures",
       "status": "current",
       "story_id": "client-commitments-confirmsheet--documentation",
       "viewport": {

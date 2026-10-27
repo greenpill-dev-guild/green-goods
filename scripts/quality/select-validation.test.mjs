@@ -1382,7 +1382,7 @@ test("push keeps test-only proof focused while strict intents preserve owning ga
   }
 });
 
-test("scoped admin ship selects exactly the accepted seven checks", () => {
+test("scoped admin ship selects exactly the accepted eight checks", () => {
   const plan = selectValidation({
     intent: "ship",
     changedPaths: ["packages/admin/src/views/Garden/SubmitWork.tsx"],
@@ -1397,6 +1397,7 @@ test("scoped admin ship selects exactly the accepted seven checks", () => {
     "admin-build",
     "source-structure",
     "design-guardrails",
+    "story-quality",
   ]);
   assert.ok(plan.checks.every((check) => check.mandatory));
 });
@@ -1516,6 +1517,7 @@ test("local merge and merge --ci select identical checks while preserving CI pac
     "admin-build",
     "source-structure",
     "design-guardrails",
+    "story-quality",
   ];
 
   assert.deepEqual(ids(local), expected);
@@ -2859,6 +2861,43 @@ test("every file the brand voice parity check reads runs it locally and in Desig
     /run: bun run check --only brand-voice-parity/,
     "Design CI runs the brand voice parity check",
   );
+});
+
+test("every component file the story coverage check scans runs it locally and in Design CI, and the policy lists nothing else", () => {
+  // check-story-coverage.ts runs under Bun and imports `bun`, so Node reads the trees it scans from
+  // its source: each `glob.scan({ cwd: NAME })` and NAME's `join(REPO_ROOT, ...)`.
+  const checker = readFileSync(join(repositoryRoot, "scripts/quality/check-story-coverage.ts"), "utf8");
+  const trees = [...checker.matchAll(/\.scan\(\{ cwd: ([A-Z_]+) \}\)/g)].map(([, name]) => {
+    const declaration = checker.match(new RegExp(`\\bconst ${name} = join\\(REPO_ROOT, ([^)]+)\\)`));
+    assert.ok(declaration, `${name} is declared as join(REPO_ROOT, ...)`);
+    return declaration[1].split(",").map((segment) => JSON.parse(segment.trim())).join("/");
+  });
+  const rule = loadPolicy().conditionalRules.find((entry) => entry.check === "story-quality");
+  assert.ok(rule?.globs, "Route the component trees to story-quality in scripts/data/validation-policy.json");
+  assert.deepEqual(
+    [...rule.globs].sort(),
+    trees.map((tree) => `${tree}/**/*.tsx`).sort(),
+    "Mirror the trees check-story-coverage.ts scans in the story-quality rule",
+  );
+  const selectsStoryChecks = (path) =>
+    selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] })
+      .checks.find((check) => check.id === "story-quality")
+      ?.selectedBy.includes("conditional:story-quality") ?? false;
+  for (const tree of trees) {
+    // A new component with no story yet: no changed story selects the check for it.
+    const component = `${tree}/Example/NewComponent.tsx`;
+    assert.ok(selectsStoryChecks(component), component);
+    assert.ok(selectExpectedWorkflows({ changedPaths: [component], intent: "merge", ci: true }).includes("Design"), component);
+    // The checker skips only names ending in .test.tsx or .service.tsx, so a helper in a test
+    // folder still needs a story, even one whose name contains either, and Design CI's path filter
+    // never starts for it.
+    for (const helper of ["Fixture.tsx", "Widget.test.fixture.tsx", "Widget.test.tsx.fixture.tsx", "Widget.service.tsx.fixture.tsx"]) {
+      assert.ok(selectsStoryChecks(`${tree}/Example/__tests__/${helper}`), `${tree} ${helper}`);
+    }
+    for (const skipped of ["__tests__/Example.test.tsx", "Example.service.tsx"]) {
+      assert.ok(!selectsStoryChecks(`${tree}/Example/${skipped}`), `${tree} ${skipped}`);
+    }
+  }
 });
 
 test("every file a certified seam fingerprints selects test-quality", () => {

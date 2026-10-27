@@ -21,7 +21,7 @@ import {
   serviceTuple,
   serviceUint,
 } from "../modules/commitment-pooling/service-access-chain-values";
-import { createCommitmentPoolingReadRepository } from "../modules/commitment-pooling/read-repository";
+import { createServiceAccessReadRepository } from "../modules/commitment-pooling/service-access-read-repository";
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import type { ServiceAccessKey } from "../modules/commitment-pooling/service-access-types";
 import type { NetworkContracts } from "../types/contracts";
@@ -426,7 +426,7 @@ describe("authoritative service reads", () => {
 
   it("keeps authoritative reads usable when the optional indexer is unavailable", async () => {
     const f = fixture();
-    const repository = createCommitmentPoolingReadRepository(
+    const repository = createServiceAccessReadRepository(
       {
         query: vi.fn().mockResolvedValue({ error: new Error("index unavailable") }),
       } as GraphQLReader,

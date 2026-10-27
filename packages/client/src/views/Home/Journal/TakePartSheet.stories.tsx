@@ -10,7 +10,7 @@ import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { useLayoutEffect } from "react";
 import { IntlProvider } from "react-intl";
-import { expect, mocked, screen, within } from "storybook/test";
+import { expect, mocked, screen, userEvent, within } from "storybook/test";
 import {
   AUTUMN_PLANTING,
   JOURNEY_CYCLE_NAMES,
@@ -46,10 +46,13 @@ const PHONE_VIEWPORTS = {
 const MESSAGES = { en, es, pt } as const;
 type Locale = keyof typeof MESSAGES;
 
-type Scene = "all" | "season" | "nothingInCampaign";
+type Scene = "all" | "season" | "nothingInCampaign" | "campaignNoLongerListed";
 
 /** How each story opens the sheet, and the open promises the garden's read returns. */
-const SCENES: Record<Scene, { cycleId?: bigint; entries: TakePartEntry[] }> = {
+const SCENES: Record<
+  Scene,
+  { cycleId?: bigint; cycleType?: "SEASON" | "CAMPAIGN"; entries: TakePartEntry[] }
+> = {
   all: { entries: JOURNAL_ENTRIES },
   season: { cycleId: AUTUMN_PLANTING.cycleId, entries: JOURNAL_ENTRIES },
   // The campaign's one ask was taken up, so nothing in it is open any more.
@@ -57,14 +60,20 @@ const SCENES: Record<Scene, { cycleId?: bigint; entries: TakePartEntry[] }> = {
     cycleId: SEED_SWAP.cycleId,
     entries: JOURNAL_ENTRIES.filter((entry) => entry.copy.cycleId !== SEED_SWAP.cycleId),
   },
+  // A campaign that closed between its details and the sheet: the rail no longer lists it.
+  campaignNoLongerListed: {
+    cycleId: 404n,
+    cycleType: "CAMPAIGN",
+    entries: JOURNAL_ENTRIES,
+  },
 };
 
 function TakePartSheetStory({ scene }: { scene: Scene }) {
-  const { cycleId } = SCENES[scene];
+  const { cycleId, cycleType } = SCENES[scene];
   useLayoutEffect(() => {
-    useUIStore.getState().openTakePartSheet({ cycleId: cycleId?.toString() });
+    useUIStore.getState().openTakePartSheet({ cycleId: cycleId?.toString(), cycleType });
     return () => useUIStore.getState().closeTakePartSheet();
-  }, [cycleId]);
+  }, [cycleId, cycleType]);
   return (
     <div className="min-h-dvh bg-bg-canvas">
       <TakePartSheet garden={JOURNEY_GARDEN_RECORD} />
@@ -101,7 +110,12 @@ const meta: Meta<typeof TakePartSheetStory> = {
     withClientAppRuntime,
   ],
   args: { scene: "all" },
-  argTypes: { scene: { control: "radio", options: ["all", "season", "nothingInCampaign"] } },
+  argTypes: {
+    scene: {
+      control: "radio",
+      options: ["all", "season", "nothingInCampaign", "campaignNoLongerListed"],
+    },
+  },
   beforeEach: ({ args }) => {
     const { entries } = SCENES[args.scene];
     mocked(useGardenOpenPromises).mockReturnValue({
@@ -172,6 +186,25 @@ export const NothingOpenInTheCampaign: Story = {
 export const NothingOpenInTheCampaignAt390: Story = {
   args: { scene: "nothingInCampaign" },
   globals: { viewport: { value: "homePhone390" } },
+};
+
+/**
+ * Show Its Promises on a campaign the rail no longer lists (it closed on a refetch): the list
+ * stays the campaign's rather than widening to the garden's, nothing in the rail is chosen, and
+ * the one row offers See All, since the card to tap again is gone.
+ */
+export const CampaignNoLongerListed: Story = {
+  tags: ["storybook-ci"],
+  args: { scene: "campaignNoLongerListed" },
+  play: async ({ canvasElement }) => {
+    const { dialog, sheet } = await findSheet();
+    await expect(sheet.getByText("Nothing open in this campaign")).toBeVisible();
+    await expect(sheet.queryByText("Tap it again to see them all")).toBeNull();
+    await expect(sheet.queryByRole("button", { pressed: true })).toBeNull();
+    await userEvent.click(sheet.getByRole("button", { name: "See All" }));
+    await expect(rowsIn(dialog)).toHaveLength(JOURNAL_ENTRIES.length);
+    await expect(canvasElement).toBeInTheDocument();
+  },
 };
 
 export const NothingOpenInTheCampaignSpanish: Story = {

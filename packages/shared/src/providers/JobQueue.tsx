@@ -66,10 +66,11 @@ interface JobQueueProviderProps {
   children: React.ReactNode;
   queue?: JobQueueHandle;
   /**
-   * Open Home's garden switcher (PWA Home step 12). Your Work lists the active garden only, so a
-   * failed upload that waits in another of the member's gardens names that garden and offers
-   * this instead of Your Work. Without it, every failed upload keeps the Your Work toast.
+   * Where a failed upload's toast sends the member (PWA Home step 12): Your Work on Pending, which
+   * lists the active garden's uploads, or Home's garden switcher for an upload that waits in
+   * another of their gardens, which the toast names. Without them the toast carries no action.
    */
+  onOpenYourWork?: () => void;
   onOpenGardenSwitcher?: () => void;
 }
 
@@ -93,6 +94,7 @@ const SOURCE_WORK_TERMINAL = "identity_conflict:source-work-terminal";
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
   children,
   queue = jobQueue,
+  onOpenYourWork,
   onOpenGardenSwitcher,
 }) => {
   const { formatMessage } = useIntl();
@@ -110,7 +112,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
   const toastFailure = useUploadFailureToast(
     currentUserAddress,
     queueToasts.jobFailed,
-    onOpenGardenSwitcher
+    onOpenGardenSwitcher,
+    onOpenYourWork
   );
 
   const [stats, setStats] = useState<QueueStats>(EMPTY_QUEUE_STATS);
@@ -484,14 +487,6 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;
 };
 
-export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({
-  children,
-  queue,
-  onOpenGardenSwitcher,
-}) => {
-  return (
-    <JobQueueProviderInner queue={queue ?? jobQueue} onOpenGardenSwitcher={onOpenGardenSwitcher}>
-      {children}
-    </JobQueueProviderInner>
-  );
-};
+export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ queue, ...props }) => (
+  <JobQueueProviderInner queue={queue ?? jobQueue} {...props} />
+);

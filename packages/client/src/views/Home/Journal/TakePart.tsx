@@ -1,5 +1,6 @@
 // Command Surface: what the member can take part in, on Home (DL-127, decision 32).
 import type { CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
+import type { CommitmentRowProps } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import {
   type GardenOpenPromises,
@@ -97,11 +98,14 @@ export function TakePartRows({
   titleOf,
   onRetry,
   onOpen,
+  serviceOf,
 }: {
   state: GardenOpenPromises["state"];
   titleOf: GardenOpenPromises["titleOf"];
   onRetry: () => void;
   onOpen: (entry: TakePartEntry) => void;
+  /** A service offer's line, where the list reads services; Home's own section reads none. */
+  serviceOf?: (commitmentId: bigint) => CommitmentRowProps["service"];
 }): ReactNode {
   const { formatMessage } = useIntl();
   switch (state.status) {
@@ -153,6 +157,7 @@ export function TakePartRows({
             <PromiseRow
               row={entry.row}
               title={titleOf(entry.row.commitment.metadataCID)}
+              service={serviceOf?.(entry.row.commitment.commitmentId)}
               onOpen={() => onOpen(entry)}
             />
           </li>
@@ -176,14 +181,15 @@ export function TakePartRows({
 function CycleLines({ gardenId }: { gardenId: string }) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const { state } = useGardenOpenCycles(gardenId);
+  // Home shown again reads the cycles' clock afresh, so days left never stand stale under a page.
+  const homeShown = useContext(HomeShownContext);
+  const { state } = useGardenOpenCycles(gardenId, { shown: homeShown });
   // The last cycle stays drawn while its sheet closes.
   const [details, setDetails] = useState<{ cycle: CommitmentCycleRecord | null; open: boolean }>({
     cycle: null,
     open: false,
   });
   // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
-  const homeShown = useContext(HomeShownContext);
   if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
   if (state.status !== "ready") return null;
 

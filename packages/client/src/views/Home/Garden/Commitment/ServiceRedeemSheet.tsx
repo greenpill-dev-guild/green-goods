@@ -16,6 +16,7 @@ export type ServiceRedeemOutcome =
   | "nothingSent"
   | "notEnough"
   | "signingUnavailable"
+  | "paused"
   | "offline"
   | null;
 
@@ -34,6 +35,8 @@ export interface ServiceRedeemSheetProps {
   onDeposit: () => void;
   onCheck: () => void;
   onExchange: () => void;
+  /** Whether a pool can quote an exchange; without one, too few vouchers has no Exchange act. */
+  canExchange: boolean;
 }
 
 /** A fact's value with its one line of detail under it (D1 Full copy). */
@@ -68,6 +71,7 @@ export function ServiceRedeemSheet({
   onDeposit,
   onCheck,
   onExchange,
+  canExchange,
 }: ServiceRedeemSheetProps) {
   const intl = useIntl();
   const w = view.words;
@@ -200,9 +204,11 @@ export function ServiceRedeemSheet({
           )
         : outcome === "signingUnavailable"
           ? notice("warning", t("pay.r.unavail.t"), t("pay.r.unavail.b"))
-          : outcome === "offline"
-            ? notice("info", t("pay.r.offline.t"), t("pay.r.offlineV.b"))
-            : null;
+          : outcome === "paused"
+            ? notice("warning", t("pay.r.paused.t"), t("pay.r.paused.b"))
+            : outcome === "offline"
+              ? notice("info", t("pay.r.offline.t"), t("pay.r.offlineV.b"))
+              : null;
     body = (
       <>
         <FactList frame="inset">
@@ -219,7 +225,9 @@ export function ServiceRedeemSheet({
     );
     actions =
       outcome === "notEnough"
-        ? { primary: { label: t("of.a.exchange"), onClick: onExchange } }
+        ? canExchange
+          ? { primary: { label: t("of.a.exchange"), onClick: onExchange } }
+          : { primary: { label: t("c.done"), onClick: () => onOpenChange(false) } }
         : {
             primary: {
               label:
@@ -229,7 +237,8 @@ export function ServiceRedeemSheet({
                     ? t("pay.m.deposit")
                     : t("pay.cta.deposit", { n: w.n }),
               loading: isPending,
-              disabled: outcome === "signingUnavailable" || outcome === "offline",
+              disabled:
+                outcome === "signingUnavailable" || outcome === "paused" || outcome === "offline",
               onClick: onDeposit,
             },
           };

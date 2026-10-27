@@ -116,9 +116,11 @@ export function serviceRewardsView(
     if (all) return gd ? t("rw.n.done.b", values) : t("rw.n.doneV.b", values);
     if (voucher?.status === "waiting")
       return gd?.status === "received" ? t("rw.n.short.b") : t("rw.n.shortV.b");
+    // A voucher transfer that failed is never "on its way", with or without G$ beside it.
+    if (voucher?.status === "delayed") return t("rw.n.delayedV.b");
     if (gd?.status === "delayed") return t("rw.n.delayed.b");
     if (voucher?.status === "received" && gd) return t("rw.n.vin.b", values);
-    return t("rw.n.both.b");
+    return gd ? t("rw.n.both.b") : t("rw.n.onWayV.b");
   })();
   const working = !due && !OPEN.includes(input.coreState);
   const tone: ServiceBandTone = working ? "attention" : all ? "kept" : due ? "waiting" : "neutral";

@@ -121,17 +121,26 @@ vi.mock("../../views/Home/Notifications/Launcher", () => ({
   },
 }));
 vi.mock("../../views/Home/CommitmentsSheet", () => ({ CommitmentsSheet: () => null }));
+// The Promises launcher loads once Home is idle, reading the inbox through the query cache; a
+// test that renders after its chunk resolved would draw the real one without a query client.
+vi.mock("../../views/Home/CommitmentsSheet/Launcher", () => ({
+  CommitmentsSheetLauncher: () => createElement("button", { type: "button" }, "Promises"),
+}));
 vi.mock("../../views/Home/WalletSheet", () => ({ WalletSheet: () => null }));
 // The journal is the seam the journal steps fill; Home only mounts it. Its row opens a page under
 // Home, as a Recent Activity or Take Part row does.
 vi.mock("../../views/Home/Journal", async () => {
   const { useNavigate } = await import("react-router-dom");
+  const { useContext } = await import("react");
+  const { HomeShownContext } = await import("../../views/Home/Journal/homeShown");
   return {
     HomeJournal: ({ garden }: { garden: Garden }) => {
       const navigate = useNavigate();
+      // Whether Home tells its sections that it shows: they close their own sheets when not.
+      const shown = useContext(HomeShownContext);
       return createElement(
         "section",
-        { "data-testid": "home-journal" },
+        { "data-testid": "home-journal", "data-shown": String(shown) },
         garden.name,
         createElement(
           "button",
@@ -349,10 +358,11 @@ describe("the one-time chooser", () => {
     ]);
   });
 
-  it("opens once as Choose a Garden, and dismissing it leaves a quiet prompt without a write", () => {
+  it("opens once as Choose a Garden, and dismissing it leaves a quiet prompt without a write", async () => {
     const view = renderHome();
 
-    const chooser = screen.getByRole("dialog", { name: "Choose a Garden" });
+    // The switcher's code loads with its first opening.
+    const chooser = await screen.findByRole("dialog", { name: "Choose a Garden" });
     fireEvent.click(within(chooser).getByTestId("app-sheet-close"));
     finishSheetMotion();
 
@@ -369,11 +379,11 @@ describe("the one-time chooser", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("writes only the garden the member picks", () => {
+  it("writes only the garden the member picks", async () => {
     renderHome();
 
     fireEvent.click(
-      within(screen.getByRole("dialog", { name: "Choose a Garden" })).getByRole("button", {
+      within(await screen.findByRole("dialog", { name: "Choose a Garden" })).getByRole("button", {
         name: /Aiyeloja Family Garden/,
       })
     );
@@ -396,14 +406,15 @@ describe("the switcher", () => {
     state.awaiting = new Set([VIDA.id.toLowerCase()]);
   });
 
+  // The switcher's code loads with its first opening.
   const openSwitcher = () => {
     fireEvent.click(screen.getByRole("button", { name: /TAS HUB/ }));
-    return screen.getByRole("dialog", { name: "Your Gardens" });
+    return screen.findByRole("dialog", { name: "Your Gardens" });
   };
 
-  it("lists the member's gardens with their place and role, the active one marked, and Explore last", () => {
+  it("lists the member's gardens with their place and role, the active one marked, and Explore last", async () => {
     renderHome();
-    const switcher = openSwitcher();
+    const switcher = await openSwitcher();
 
     const rows = within(switcher).getAllByRole("button", { name: /./ }).slice(1);
     expect(rows.map((row) => row.textContent)).toEqual([
@@ -416,24 +427,26 @@ describe("the switcher", () => {
     expect(rows[1]).not.toHaveAttribute("aria-current");
   });
 
-  it("opens with one garden too", () => {
+  it("opens with one garden too", async () => {
     setActive("ready", [[TAS, ["gardener"]]], TAS.id);
     renderHome();
 
-    expect(openSwitcher()).toBeInTheDocument();
+    expect(await openSwitcher()).toBeInTheDocument();
   });
 
-  it("switches on a pick and stays on Home", () => {
+  it("switches on a pick and stays on Home", async () => {
     renderHome();
-    fireEvent.click(within(openSwitcher()).getByRole("button", { name: /Aiyeloja Family Garden/ }));
+    fireEvent.click(
+      within(await openSwitcher()).getByRole("button", { name: /Aiyeloja Family Garden/ })
+    );
 
     expect(selectGarden).toHaveBeenCalledExactlyOnceWith(AIYELOJA.id);
     expect(location).toBe("/home");
   });
 
-  it("visits a garden awaiting review without switching to it", () => {
+  it("visits a garden awaiting review without switching to it", async () => {
     renderHome();
-    fireEvent.click(within(openSwitcher()).getByRole("button", { name: /Vida Verde/ }));
+    fireEvent.click(within(await openSwitcher()).getByRole("button", { name: /Vida Verde/ }));
 
     expect(location).toBe(`/home/${VIDA.id}`);
     // Home names itself as where the visit came from, so the garden's Back steps back here.
@@ -441,9 +454,9 @@ describe("the switcher", () => {
     expect(selectGarden).not.toHaveBeenCalled();
   });
 
-  it("opens Explore from its last row", () => {
+  it("opens Explore from its last row", async () => {
     renderHome();
-    fireEvent.click(within(openSwitcher()).getByRole("button", { name: /Explore Gardens/ }));
+    fireEvent.click(within(await openSwitcher()).getByRole("button", { name: /Explore Gardens/ }));
 
     expect(location).toBe("/home/explore");
     expect(selectGarden).not.toHaveBeenCalled();
@@ -521,6 +534,30 @@ describe("Home under its child routes", () => {
       if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
       else Reflect.deleteProperty(Element.prototype, "scrollTop");
     }
+  });
+
+  // A failed upload's toast floats over any sheet, and its Review opens Your Work over Home: the
+  // sheet under it closes, as when Home opens a page (Codex on #1339).
+  it("closes its other sheets as Your Work opens over Home, and tells the journal it is covered", async () => {
+    renderHome();
+    passIdle();
+    const launcher = await screen.findByTestId("notifications-launcher");
+    fireEvent.click(within(launcher).getByRole("button", { name: "Notifications" }));
+    act(() => {
+      useUIStore.getState().openWalletSheet();
+      useUIStore.getState().openTakePartSheet();
+    });
+    expect(screen.getByTestId("notifications-sheet")).toBeInTheDocument();
+    expect(screen.getByTestId("home-journal")).toHaveAttribute("data-shown", "true");
+
+    act(() => useUIStore.getState().openWorkDashboard("pending", "all"));
+
+    expect(screen.queryByTestId("notifications-sheet")).not.toBeInTheDocument();
+    expect(useUIStore.getState()).toMatchObject({ isWalletSheetOpen: false, takePartSheet: null });
+    expect(screen.getByTestId("home-journal")).toHaveAttribute("data-shown", "false");
+
+    act(() => useUIStore.getState().closeWorkDashboard());
+    expect(screen.getByTestId("home-journal")).toHaveAttribute("data-shown", "true");
   });
 
   // The header stays mounted under a child screen, so a sheet it opened would stay drawn over

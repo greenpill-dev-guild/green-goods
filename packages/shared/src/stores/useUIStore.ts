@@ -60,6 +60,8 @@ export interface CommitmentsSheetOpening {
 export interface TakePartSheetOpening {
   /** A season's or campaign's id as a decimal string, from its Show Its Promises; null for all. */
   cycleId: string | null;
+  /** Its kind, so the sheet can still name it once the rail no longer lists the cycle. */
+  cycleType?: "SEASON" | "CAMPAIGN";
 }
 
 export type DashboardSnapshot =
@@ -147,8 +149,8 @@ export type UIState = {
    * not the reader's own, which the Promises sheet keeps. Null while it is closed.
    */
   takePartSheet: TakePartSheetOpening | null;
-  /** Opens it whole, or at one season or campaign (`cycleId` as a decimal string). */
-  openTakePartSheet: (opening?: { cycleId?: string }) => void;
+  /** Opens it whole, or at one season or campaign (`cycleId` as a decimal string, and its kind). */
+  openTakePartSheet: (opening?: { cycleId?: string; cycleType?: string | null }) => void;
   closeTakePartSheet: () => void;
 
   /**
@@ -257,11 +259,14 @@ export const useUIStore = create<UIState>()(
       closeCommitmentsSheet: () => set({ isCommitmentsSheetOpen: false }),
 
       takePartSheet: null,
-      // Only a string cycle id is read: Home may hand this straight to a button.
+      // Only a string cycle id and a known kind are read: Home may hand this straight to a button.
       openTakePartSheet: (opening) =>
         set({
           takePartSheet: {
             cycleId: typeof opening?.cycleId === "string" ? opening.cycleId : null,
+            ...(opening?.cycleType === "SEASON" || opening?.cycleType === "CAMPAIGN"
+              ? { cycleType: opening.cycleType }
+              : {}),
           },
         }),
       closeTakePartSheet: () => set({ takePartSheet: null }),

@@ -39,6 +39,7 @@ const meta: Meta<typeof PromiseGroupPage> = {
   args: {
     title: STORY_GROUP_TITLE,
     note: STORY_GROUP_NOTE,
+    reward: null,
     availabilityKnown: true,
     cap: 2n,
     isPending: false,
@@ -55,13 +56,17 @@ const meta: Meta<typeof PromiseGroupPage> = {
 export default meta;
 type Story = StoryObj<typeof PromiseGroupPage>;
 
-/** Nobody's taken one of these up yet here: Take Up One, and the pool's at-once limit, stated once. */
+/**
+ * Nobody's taken one of these up yet here: Take Up One, what keeping one earns, and the pool's
+ * at-once limit, stated once.
+ */
 export const Open: Story = {
+  args: { reward: "$5.00, paid in G$ after it's kept" },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("region", { name: "What each one asks" })).toHaveTextContent(
-      "2 hours"
-    );
+    const asks = canvas.getByRole("region", { name: "What each one asks" });
+    await expect(asks).toHaveTextContent("2 hours");
+    await expect(within(asks).getByText("$5.00, paid in G$ after it's kept")).toBeVisible();
     await expect(
       canvas.getByText("You can hold up to 2 promises from this pool at once.")
     ).toBeVisible();

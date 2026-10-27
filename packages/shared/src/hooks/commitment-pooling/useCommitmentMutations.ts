@@ -12,11 +12,8 @@ import { selectCommitmentPoolingAvailability } from "../../modules/commitment-po
 import type { TransactionSendOptions } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
-import {
-  CommitmentPoolingModuleABI,
-  CommitmentServiceOffersABI,
-  getNetworkContracts,
-} from "../../utils/blockchain/contracts";
+import { CommitmentServiceOffersABI } from "../../utils/blockchain/contract-abis/commitment-service-offers";
+import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";

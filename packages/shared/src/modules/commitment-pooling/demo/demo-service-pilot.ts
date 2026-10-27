@@ -4,6 +4,7 @@ import type {
   ServiceAccessPilot,
   ServiceAccessPilotAction,
 } from "../service-access-pilot-types";
+import { PILOT_EXCHANGE_INPUT } from "../service-access-pilot";
 import type { ServiceAccessKey, ServiceAccessSnapshot } from "../service-access-types";
 import { rehearsalHash } from "./demo-service-identities";
 
@@ -206,10 +207,12 @@ export function applyPilotAction(
     return;
   }
   if (a.action === "quotePilotExchange") {
-    const input = 2_044_986n,
+    const input = a.input ?? PILOT_EXCHANGE_INPUT,
       grossOutput = (input * 1_000_000n) / 2_000_000n;
     const poolFee = (grossOutput * 20_000n) / 1_000_000n,
       protocolFee = (poolFee * 100_000n) / 1_000_000n;
+    // The pilot quotes no slippage: its minimum is what it quotes, 1 voucher for the full input.
+    const netOutput = grossOutput - poolFee - protocolFee;
     const q = {
       chainId: 100 as const,
       pool: POOL,
@@ -220,8 +223,8 @@ export function applyPilotAction(
       grossOutput,
       poolFee,
       protocolFee,
-      netOutput: grossOutput - poolFee - protocolFee,
-      minimumOutput: 1_000_000n,
+      netOutput,
+      minimumOutput: netOutput,
       deadline: l.clock + 1000n,
       configuration: l.configuration,
     };

@@ -1,12 +1,13 @@
 /** @vitest-environment happy-dom */
 
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook as renderBareHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useGardenCommitmentController } from "../../../hooks/client-ui/commitment/useGardenCommitmentController";
 import type { CommitmentJobInput } from "../../../hooks/commitment-pooling/useCommitmentJobs";
 import type { CommitmentMutationInput } from "../../../hooks/commitment-pooling/useCommitmentMutations";
 import { CommitmentReasonPinError } from "../../../modules/commitment-pooling/reasons";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 import {
   DEMO_CHAIN_ID,
   DEMO_GARDEN,
@@ -32,6 +33,10 @@ import {
 
 type Enqueue = (input: CommitmentJobInput) => Promise<string>;
 type Mutate = (input: CommitmentMutationInput) => Promise<`0x${string}`>;
+
+// The due clock reads the chain's time through the query cache, as every screen provides it.
+const renderHook: typeof renderBareHook = (callback, options) =>
+  renderBareHook(callback, { wrapper: createTestWrapper(), ...options });
 
 const work = (overrides: Partial<Work> = {}): Work => ({
   id: "0xaaaa",
@@ -230,7 +235,8 @@ beforeEach(() => {
   mocks.works = [work(), work({ id: "0xbbbb", status: "rejected" })];
   mocks.linked = new Set();
   mocks.pool = poolFixture({ poolType: "PROTOCOL" });
-  mocks.cycles = [];
+  // The fixture promise carries no due date, so it falls due with its season: read, and open.
+  mocks.cycles = [cycleFixture({ endTime: BigInt(Math.floor(Date.now() / 1000)) + 86_400n })];
   mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:steward`, true]]);
   mocks.gardens = [
     {
@@ -665,14 +671,18 @@ describe("useGardenCommitmentController", () => {
       })
     );
     expect(result.current.actKind).toBeNull();
+    // Asking again is a take-up too, so it waits for the due date and stops at it.
+    expect(result.current.canAskAgain).toBe(false);
 
     mocks.cycles = [cycleFixture({ endTime: now + 3_600n })];
     rerender();
     expect(result.current.actKind).toBe("takeUp");
+    expect(result.current.canAskAgain).toBe(true);
 
     mocks.cycles = [cycleFixture({ endTime: now - 60n })];
     rerender();
     expect(result.current.actKind).toBeNull();
+    expect(result.current.canAskAgain).toBe(false);
   });
 
   it("offers Ask Again only while the reader may still take the commitment up", () => {

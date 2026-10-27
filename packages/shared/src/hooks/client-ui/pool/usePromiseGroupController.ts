@@ -22,6 +22,7 @@ import {
 import {
   findDisplayGroup,
   type GroupTakeUpBar,
+  groupCountsOnClock,
   isAtTakeUpLimit,
   isViewerCopy,
   pickCopyToTakeUp,
@@ -271,7 +272,7 @@ export function usePromiseGroupController(input: {
     viewer,
     queued,
     reread,
-    cycleEndTimes: due.clock.cycleEndTimes,
+    clock: due.clock,
   });
   const { takeUp: send, settle } = takeUp;
   const takeUpState = takeUp.state;
@@ -293,7 +294,8 @@ export function usePromiseGroupController(input: {
     group,
     sample,
     metadata: sample?.metadataCID ? (byCID.get(sample.metadataCID.trim()) ?? null) : null,
-    counts: group?.counts ?? null,
+    // A copy past due counts as ended, so the page never says one is available beside a held act.
+    counts: group ? (due.known ? groupCountsOnClock(group, due.clock) : group.counts) : null,
     availabilityKnown,
     yours,
     bar,

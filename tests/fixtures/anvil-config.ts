@@ -36,7 +36,7 @@ export const FORK_CONFIG = {
  * Anvil's deterministic test accounts.
  * These are the same across every Anvil instance and are pre-funded with 10,000 ETH.
  *
- * @see https://book.getfoundry.sh/reference/anvil/#supported-transport-modes
+ * @see https://www.getfoundry.sh/anvil#default-accounts
  */
 export const TEST_ACCOUNTS = {
   /** Account 0 - Used as deployer/admin */

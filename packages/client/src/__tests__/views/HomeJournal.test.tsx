@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   cycles: vi.fn(),
   promises: vi.fn(),
   cycleNames: vi.fn(),
+  serviceLines: vi.fn(),
   shareLink: vi.fn(),
   // The edges of the About section's access predicate (`useGardenAccess`): who is signed in,
   // the garden's vaults, the account's deposits, and the chain's answer on the evaluator role.
@@ -46,14 +47,17 @@ vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenJournal", () => ({
   useGardenRecentActivity: (gardenId: string) => mocks.recent(gardenId),
-  useGardenOpenCycles: (gardenId: string) => mocks.cycles(gardenId),
+  useGardenOpenCycles: (gardenId: string, options?: { shown?: boolean }) =>
+    mocks.cycles(gardenId, options),
   useGardenOpenPromises: (gardenId: string) => mocks.promises(gardenId),
 }));
 
-// The details sheet names its cycle itself, from the cycle's metadata.
+// The details sheet names its cycle itself, from the cycle's metadata. A service offer's line
+// is read by the lists that show one (PRD-1299, decision 12).
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitmentCycleNames: () => mocks.cycleNames(),
+  useServiceOfferLines: (input: unknown) => mocks.serviceLines(input),
 }));
 
 // Needs Your Attention (step 19) and Continue (step 8), each with its own tests, stand in as
@@ -327,6 +331,7 @@ describe("Home journal", () => {
     mocks.cycles.mockReturnValue(cycles());
     mocks.promises.mockReturnValue(promises());
     mocks.cycleNames.mockReturnValue({ byCycleId: new Map(), isLoading: false });
+    mocks.serviceLines.mockReturnValue(new Map());
   });
 
   describe("Recent Activity", () => {
@@ -470,6 +475,45 @@ describe("Home journal", () => {
       expect(useUIStore.getState().takePartSheet).toBeNull();
     });
 
+    // The garden's list over Home says what booking a service takes first, then who promises it
+    // (PRD-1299, decision 12); Take Part on Home itself gains nothing voucher-specific.
+    it("draws a service offer's line in the open promises over Home, never on Home itself", async () => {
+      const user = userEvent.setup();
+      mocks.serviceLines.mockReturnValue(
+        new Map([
+          [
+            "21",
+            {
+              promisedBy: "Tech and Sun",
+              booking: { kind: "hold", held: 9_000_000n, decimals: 6 },
+            },
+          ],
+        ])
+      );
+      render(
+        <>
+          <TakePart gardenId={GARDEN} />
+          <TakePartSheet garden={GARDEN_RECORD} />
+        </>
+      );
+      const onHome = screen.getByRole("button", { name: /Teach the composting basics workshop/ });
+      expect(onHome).not.toHaveAttribute("data-service");
+      expect(onHome).not.toHaveTextContent("You hold");
+
+      await user.click(screen.getByRole("button", { name: "See All" }));
+      const sheet = await screen.findByRole("dialog");
+      const inSheet = within(sheet).getByRole("button", {
+        name: /Teach the composting basics workshop/,
+      });
+      expect(inSheet).toHaveAttribute("data-service", "offer");
+      expect(inSheet).toHaveTextContent(/You hold 9.*Tech and Sun/);
+      // Only the sheet asks for lines, with the garden's whole list.
+      expect(mocks.serviceLines).toHaveBeenCalledWith({
+        chainId: expect.any(Number),
+        offers: [OFFER.copy, ASK.copy],
+      });
+    });
+
     it("closes the open promises when the journal turns to another garden or goes away", () => {
       const membership = { roles: ["gardener" as const], pendingJoin: false };
       const journal = (id: string) => (
@@ -519,6 +563,60 @@ describe("Home journal", () => {
       expect(sheetRows(sheet)).toEqual([
         "Teach the composting basics workshop",
         "Mulch the orchard rows",
+      ]);
+    });
+
+    // A cycle that closed on a refetch between the details and the sheet is no longer on the
+    // rail; Show Its Promises must not widen to the garden's whole list (Codex on #1331).
+    // A cycle can close on a refetch between its details and the sheet, or after it is chosen
+    // on the rail; Show Its Promises must not widen to the garden's list then (Codex on #1331),
+    // and the list must keep a way back to all of them (Codex on #1339) and its campaign's name
+    // (CodeRabbit on #1339).
+    it("keeps a cycle the rail no longer lists as the filter, named, with See All to widen it", async () => {
+      const user = userEvent.setup();
+      const inClosed = openAsk(19, { cycleId: 99n });
+      mocks.promises.mockReturnValue(
+        promises({ all: { status: "ready", items: [OFFER, inClosed], savedAt: null } })
+      );
+      mocks.cycleNames.mockReturnValue({
+        byCycleId: new Map([
+          [CAMPAIGN.cycle.cycleId.toString(), { status: "resolved", name: "Seed Swap Weekend" }],
+        ]),
+        isLoading: false,
+      });
+      useUIStore.setState({ takePartSheet: { cycleId: "99", cycleType: "CAMPAIGN" } });
+      const { rerender } = render(<TakePartSheet garden={GARDEN_RECORD} />);
+      const again = () =>
+        rerender(
+          <MemoryRouter>
+            <TakePartSheet garden={GARDEN_RECORD} />
+          </MemoryRouter>
+        );
+
+      // The cycle's own rows, with no card chosen on the rail: See All is the way back.
+      const sheet = await screen.findByRole("dialog");
+      expect(sheetRows(sheet)).toEqual(["Water the new beds"]);
+      expect(within(sheet).queryByRole("button", { pressed: true })).toBeNull();
+      await user.click(within(sheet).getByRole("button", { name: "See All" }));
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Water the new beds",
+      ]);
+
+      // A campaign chosen on the rail, with nothing open in it, then dropped by a refetch: the
+      // row still names a campaign, and See All stands in for the card that is gone.
+      await user.click(within(sheet).getByRole("button", { name: /Seed Swap Weekend/ }));
+      expect(within(sheet).getByText("Tap it again to see them all")).toBeVisible();
+      mocks.cycles.mockReturnValue(
+        cycles({ state: { status: "ready", items: [SEASON], savedAt: null } })
+      );
+      again();
+      expect(within(sheet).getByText("Nothing open in this campaign")).toBeVisible();
+      expect(within(sheet).queryByText("Tap it again to see them all")).toBeNull();
+      await user.click(within(sheet).getByRole("button", { name: "See All" }));
+      expect(sheetRows(sheet)).toEqual([
+        "Teach the composting basics workshop",
+        "Water the new beds",
       ]);
     });
 
@@ -572,6 +670,7 @@ describe("Home journal", () => {
       await waitFor(() =>
         expect(useUIStore.getState().takePartSheet).toEqual({
           cycleId: SEASON.cycle.cycleId.toString(),
+          cycleType: "SEASON",
         })
       );
       expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
@@ -625,6 +724,7 @@ describe("Home journal", () => {
       await waitFor(() =>
         expect(useUIStore.getState().takePartSheet).toEqual({
           cycleId: SEASON.cycle.cycleId.toString(),
+          cycleType: "SEASON",
         })
       );
       expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
@@ -736,9 +836,10 @@ describe("Home journal", () => {
     ]);
     // The interim garden page that stood in About's slot (steps 8 and 19) is gone.
     expect(screen.queryByTestId("home-garden-page")).toBeNull();
-    for (const read of [mocks.cycles, mocks.recent, mocks.promises]) {
+    for (const read of [mocks.recent, mocks.promises]) {
       expect(read).toHaveBeenCalledWith(GARDEN);
     }
+    expect(mocks.cycles).toHaveBeenCalledWith(GARDEN, { shown: true });
   });
 
   describe("About This Garden", () => {
@@ -904,17 +1005,20 @@ describe("Home journal", () => {
     });
   });
 
-  // The cycle details portal past Home's hidden wrapper too (Codex P2 on #1333).
+  // The cycle details portal past Home's hidden wrapper too (Codex P2 on #1333), and the cycles'
+  // clock is read again as Home shows, so days left never stand stale under a page.
   it.each([
     ["the carousel's", <HighlightsCarousel key="carousel" gardenId={GARDEN} />],
     ["Take Part's", <TakePart key="take-part" gardenId={GARDEN} withCycleLines />],
-  ])("closes %s cycle details when Home opens a page", async (_host, host) => {
+  ])("closes %s cycle details when Home opens a page, and tells its cycles whether Home shows", async (_host, host) => {
     const user = userEvent.setup();
     const { rerender } = renderWithProviders(asHomeHolds(host, true));
+    expect(mocks.cycles).toHaveBeenLastCalledWith(GARDEN, { shown: true });
     await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
 
     rerender(asHomeHolds(host, false));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(mocks.cycles).toHaveBeenLastCalledWith(GARDEN, { shown: false });
   });
 });

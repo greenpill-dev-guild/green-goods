@@ -19,7 +19,9 @@ Read the repository AGENTS.md and applicable skills, then:
 1. `.plans/backlog/cosmo-local-credit-interop/brief.md`, `spec.md`, `plan.todo.md`, `eval.md`.
 2. `.plans/backlog/cosmo-local-credit-interop/whitepaper-v8-review.md` and
    `project-reconciliation.md` for the implementation findings, current ownership and limits.
-3. `.plans/active/pwa-interface-simplification/brief.md` and `spec.md` for the member experience.
+3. The PWA Home hub's `brief.md` and `spec.md` for the member experience: the hub closed on
+   26 October 2026 (its row in `.plans/ARCHIVE.md`), so read them from the archive commit's
+   parent in Git history.
 4. Relevant owning code and current Linear records, including comments and receipts. Plans describe
    intended behavior; code and tests establish implemented behavior; a live receipt establishes a
    particular deployed observation. None substitutes for the others.

@@ -10,7 +10,8 @@ import { isPoolSteward } from "../../modules/commitment-pooling/steward-selector
 import { getOntologyChainMaturity } from "../../ontology/query";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
-import { getNetworkContracts, SettlementModuleABI } from "../../utils/blockchain/contracts";
+import { SettlementModuleABI } from "../../utils/blockchain/contract-abis/settlement-module";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";

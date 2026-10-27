@@ -8,9 +8,9 @@
  * Pipeline: WebP/PNG source → Pinata → actions.json
  *
  * Usage:
- *   bun scripts/upload-action-images.ts              # Full run
- *   bun scripts/upload-action-images.ts --dry-run    # Compress only, no upload
- *   bun scripts/upload-action-images.ts --force      # Skip cache, re-upload all
+ *   bun scripts/ops/upload-action-images.ts              # Full run
+ *   bun scripts/ops/upload-action-images.ts --dry-run    # Compress only, no upload
+ *   bun scripts/ops/upload-action-images.ts --force      # Skip cache, re-upload all
  *
  * Required env vars (unless --dry-run):
  *   PINATA_JWT - Pinata JWT for uploads
