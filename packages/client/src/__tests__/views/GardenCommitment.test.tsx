@@ -1668,6 +1668,19 @@ describe("a promise whose service read hasn't answered", () => {
     await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
+
+  it("says why its requests are withheld after it was taken up, too", () => {
+    mockUseController.mockReturnValue(controller({ actKind: null, seat: "confirmer" }));
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "error",
+      fetchStatus: "idle",
+      isError: true,
+      refetch: vi.fn(),
+    });
+    render();
+    expect(screen.getByText(/couldn't check how this promise is taken up/i)).toBeInTheDocument();
+  });
 });
 
 describe("a request that rewards vouchers", () => {

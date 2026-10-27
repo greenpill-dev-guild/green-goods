@@ -357,10 +357,13 @@ describe("local exchange failure conservation", () => {
     await adapter.execute(k, observe("voucher-budget-repaired"));
     await adapter.execute(k, reward("voucher"));
     const smaller = await adapter.execute(k, { action: "quotePilotExchange", input: 1_000_000n });
-    expect(smaller.snapshot.pilot!.exchange.quote).toMatchObject({
-      input: 1_000_000n,
-      grossOutput: 500_000n,
-    });
+    const quote = smaller.snapshot.pilot!.exchange.quote!;
+    expect(quote).toMatchObject({ input: 1_000_000n, grossOutput: 500_000n });
+    // Its minimum scales with it, so the smaller exchange can run.
+    expect(quote.minimumOutput).toBe(quote.netOutput);
+    await adapter.execute(k, { action: "approvePilotExchange", expectedQuoteId: quote.id });
+    const swapped = await adapter.execute(k, { action: "executePilotExchange", quote });
+    expect(swapped.snapshot.pilot!.exchange).toMatchObject({ status: "unknown", failure: null });
     await expect(adapter.execute(k, { action: "quotePilotExchange", input: 0n })).rejects.toThrow();
     await expect(
       adapter.execute(k, { action: "quotePilotExchange", input: 2_044_987n })

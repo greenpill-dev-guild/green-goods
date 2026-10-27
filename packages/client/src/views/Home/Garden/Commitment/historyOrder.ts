@@ -1,59 +1,40 @@
 import type { BookingHistoryAnchor } from "./serviceBookingTypes";
 
-/** When each anchor event last happened, from the promise's own History read. */
-export type AnchorTimes = Partial<Record<BookingHistoryAnchor, number>>;
-
-const ANCHORS: ReadonlySet<string> = new Set<BookingHistoryAnchor>([
-  "CLAIM_REQUESTED",
-  "ACCEPTED",
-  "READY_FOR_CONFIRMATION",
-  "FULFILLED",
-  "CANCELLED",
-]);
-
-/** The latest time of each event a booking step can be the same act as. */
-export function anchorTimes(
-  events: readonly { eventType: string; timestamp: number }[]
-): AnchorTimes {
-  const times: AnchorTimes = {};
-  for (const event of events) {
-    if (!ANCHORS.has(event.eventType)) continue;
-    const anchor = event.eventType as BookingHistoryAnchor;
-    times[anchor] = Math.max(times[anchor] ?? Number.NEGATIVE_INFINITY, event.timestamp);
-  }
-  return times;
-}
-
 export type HistoryEntry<C, B> = { core: C } | { booking: B };
 
 /**
  * The promise's events and a booking's steps in one History, newest first. A step that is one of
- * the promise's own events (agreeing is its claim request, acceptance its acceptance) takes that
- * event's time. Every other step happened after the step before it, so it takes that time and
- * sorts above whatever the promise recorded then; anything the promise recorded later, such as a
- * confirmation while a transfer is still on its way, sorts above it.
+ * the promise's own events (agreeing is its claim request, acceptance its acceptance) sits just
+ * above that event's line. Every other step happened after the step before it, so it sits with
+ * that step, above the same line: anything the promise recorded later, such as a confirmation
+ * while a transfer is still on its way, stays above it, even when both landed in one block.
  *
- * `core` and `booking` both come newest first, as History draws them.
+ * `core` and `booking` both come newest first, as History draws them; each core line names the
+ * events it stands for (a confirmation that kept the promise is both).
  */
-export function orderHistory<C extends { at: number }, B extends { anchor?: BookingHistoryAnchor }>(
-  core: readonly C[],
-  booking: readonly B[],
-  times: AnchorTimes
-): HistoryEntry<C, B>[] {
-  let last = Number.NEGATIVE_INFINITY;
-  const steps = [...booking].reverse().map((line, sequence) => {
-    const own = line.anchor ? times[line.anchor] : undefined;
-    // Never earlier than the step before it, whatever its own event says.
-    last = own === undefined ? last : Math.max(own, last);
-    return { at: last, rank: 1, order: sequence, entry: { booking: line } };
+export function orderHistory<
+  C extends { eventTypes: readonly string[] },
+  B extends { anchor?: BookingHistoryAnchor },
+>(core: readonly C[], booking: readonly B[]): HistoryEntry<C, B>[] {
+  // Where each event's latest line sits; the newest comes first.
+  const position = new Map<string, number>();
+  core.forEach((line, index) => {
+    for (const type of line.eventTypes) if (!position.has(type)) position.set(type, index);
   });
-  const events = core.map((line, index) => ({
-    at: line.at,
-    rank: 0,
-    order: -index,
-    entry: { core: line },
-  }));
-  return [...events, ...steps]
-    .sort((a, b) => b.at - a.at || b.rank - a.rank || b.order - a.order)
-    .map(({ entry }) => entry as HistoryEntry<C, B>);
+  // Steps above each line, newest first; the last slot is below every line.
+  const slots: B[][] = Array.from({ length: core.length + 1 }, () => []);
+  let slot = core.length;
+  for (const line of [...booking].reverse()) {
+    const own = line.anchor ? position.get(line.anchor) : undefined;
+    // Never below the step before it, whatever its own event says.
+    if (own !== undefined) slot = Math.min(own, slot);
+    slots[slot]!.unshift(line);
+  }
+  return [
+    ...core.flatMap((line, index): HistoryEntry<C, B>[] => [
+      ...slots[index]!.map((step) => ({ booking: step })),
+      { core: line },
+    ]),
+    ...slots[core.length]!.map((step) => ({ booking: step })),
+  ];
 }

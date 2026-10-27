@@ -115,6 +115,39 @@ describe("a voucher booking in History", () => {
     expect(texts.indexOf("Booking: accepted")).toBeLessThan(texts.indexOf("Booking: agreed"));
   });
 
+  it("keeps a confirmation in the same block as the send above the split", () => {
+    // Sent for confirmation and confirmed in one block: one timestamp, the confirmation newer.
+    mocks.events = [
+      event("CONFIRMATION_RECORDED", 40),
+      event("READY_FOR_CONFIRMATION", 40),
+      event("ACCEPTED", 30),
+      event("CLAIM_REQUESTED", 10),
+    ];
+    const lines = renderHistory();
+    expect(lines[0]).toEqual({ text: "You confirmed it was kept", latest: true });
+    expect(lines[1]?.text).toBe("Booking: split");
+  });
+
+  it("puts the kept step at the confirmation that kept the promise", () => {
+    mocks.events = [
+      event("FULFILLED", 50),
+      event("CONFIRMATION_RECORDED", 50),
+      event("ACCEPTED", 30),
+    ];
+    // The two land in one transaction, so History draws one line for both.
+    mocks.events[0]!.txHash = mocks.events[1]!.txHash;
+    const texts = renderHistory([
+      step("kept", "FULFILLED"),
+      step("split"),
+      step("accepted", "ACCEPTED"),
+    ]).map((line) => line.text);
+    expect(texts.slice(0, 3)).toEqual([
+      "Booking: kept",
+      "You confirmed it was kept",
+      "Booking: split",
+    ]);
+  });
+
   it("keeps the promise's events in their own order when there is no booking", () => {
     const lines = renderHistory([]);
     expect(lines[0]).toEqual({ text: "You confirmed it was kept", latest: true });

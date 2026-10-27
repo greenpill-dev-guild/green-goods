@@ -27,7 +27,10 @@ import {
   serviceActOffered,
   type ServiceActStep,
 } from "../../views/Home/Garden/Commitment/serviceActs";
-import { serviceBookingView } from "../../views/Home/Garden/Commitment/serviceBooking";
+import {
+  bookingVoucherIssuer,
+  serviceBookingView,
+} from "../../views/Home/Garden/Commitment/serviceBooking";
 import { exchangeStateFromPilot } from "../../views/Home/Garden/Commitment/serviceExchange";
 import { serviceRewardsView } from "../../views/Home/Garden/Commitment/serviceRewards";
 
@@ -207,6 +210,28 @@ describe("voucher booking on the promise page", () => {
     expect(view("hubDay", "transfersPending", { coreState: "DISPUTED" }).stage).toBe(
       "problemReported"
     );
+  });
+
+  it("names a booking's frozen issuer even when another issuer shares its token", () => {
+    const { techAndSun } = VOUCHER_STORY_ISSUERS;
+    const twin = {
+      ...techAndSun,
+      account: "0x000000000000000000000000000000000000ab01" as `0x${string}`,
+      name: "Another Collective",
+    };
+    const booked = bookingStorySnapshot("hubDay", "termsChanged");
+    // The offer moved to the twin; the booking froze Tech and Sun.
+    const snapshot = {
+      ...booked,
+      offer: booked.offer && {
+        ...booked.offer,
+        voucher: { ...booked.offer.voucher!, issuer: twin.account },
+      },
+    };
+    expect(bookingVoucherIssuer(snapshot, [twin, techAndSun])?.name).toBe("Tech and Sun");
+    expect(
+      bookingVoucherIssuer(bookingStorySnapshot("hubDay", "open"), [twin, techAndSun])?.name
+    ).toBe("Tech and Sun");
   });
 
   it("keeps a changed-terms booking on the revision it was set up on", () => {
