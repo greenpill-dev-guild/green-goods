@@ -153,7 +153,7 @@ export function bookingStorySnapshot(
     confirmed?: boolean;
     held?: bigint;
     /** The shared pool's exchange, for an offer the reader holds too few vouchers for. */
-    exchange?: "none" | "quoted" | "unknown" | "confirmed";
+    exchange?: ExchangeStoryState;
     /** False is the moment an acceptance lands, before the source records the activation. */
     activationRecorded?: boolean;
     /** False is a split whose transfers nobody sent yet: the reader declined their prompt. */
@@ -273,11 +273,15 @@ export function bookingStorySnapshot(
   return s;
 }
 
+/** Where Lina's exchange stands; `short` and `failed` are the quote's failed runs. */
+export type ExchangeStoryState = "none" | "quoted" | "unknown" | "confirmed" | "short" | "failed";
+
 /**
  * Lina's exchange in the one shared pool: 8.01 Tech and Sun vouchers for 8 Green Goods vouchers
- * at the pilot's 1:1, with a 0.01 protocol fee, a minimum of 8 and a quote valid until 14:05.
+ * at the pilot's 1:1, with a 0.01 protocol fee, a minimum of 8 and a quote valid until 14:05. A
+ * short pool has 5 left to give; a failed run's transfer didn't go through.
  */
-function exchangeStoryPilot(status: "none" | "quoted" | "unknown" | "confirmed"): ServiceAccessPilot {
+function exchangeStoryPilot(status: ExchangeStoryState): ServiceAccessPilot {
   const { greenGoods, techAndSun } = VOUCHER_STORY_ISSUERS;
   const swapped = status === "unknown" || status === "confirmed";
   const quote =
@@ -310,13 +314,13 @@ function exchangeStoryPilot(status: "none" | "quoted" | "unknown" | "confirmed")
     inventory: { asset: greenGoods.asset, reserve: 0n, allowance: 0n, acceptedUndelivered: 0n },
     exchange: {
       pool: "0x000000000000000000000000000000000000fc01" as Address,
-      inventory: swapped ? vouchers(6) : vouchers(14),
+      inventory: swapped ? vouchers(6) : status === "short" ? vouchers(5) : vouchers(14),
       inputHolding: swapped ? vouchers(8.01) : 0n,
       inputLimit: vouchers(20),
       listed: true,
       allowance: quote ? quote.input : 0n,
-      status: status === "none" ? "none" : status,
-      failure: null,
+      status: status === "short" || status === "failed" ? "failed" : status,
+      failure: status === "short" ? "inventory" : status === "failed" ? "transfer" : null,
       quote,
       receipt: swapped
         ? {
