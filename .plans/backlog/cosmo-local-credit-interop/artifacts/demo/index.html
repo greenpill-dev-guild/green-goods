@@ -36,7 +36,7 @@
       --rule: #34302B; --rule-2: #46403A;
       --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF; --tint: #1E2B23;
       --ring: #3BD483; --ring-soft: rgba(59, 212, 131, 0.22); --ring-ping: rgba(59, 212, 131, 0.6);
-      --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
+      --bezel: #0D0B0A; --bezel-edge: #5A524B; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
       --pilot-bg: #3A2D16; --pilot-ink: #F3CD82; --pilot-edge: #5C4521;
       --track: #46403A; --knob: #F5F1EA;
       --seg: #3A3530; --seg-done: #2F6B49; --seg-now: #6BD39A;
@@ -48,7 +48,7 @@
     --rule: #34302B; --rule-2: #46403A;
     --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF; --tint: #1E2B23;
     --ring: #3BD483; --ring-soft: rgba(59, 212, 131, 0.22); --ring-ping: rgba(59, 212, 131, 0.6);
-    --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
+    --bezel: #0D0B0A; --bezel-edge: #5A524B; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
     --pilot-bg: #3A2D16; --pilot-ink: #F3CD82; --pilot-edge: #5C4521;
     --track: #46403A; --knob: #F5F1EA;
     --seg: #3A3530; --seg-done: #2F6B49; --seg-now: #6BD39A;
@@ -80,6 +80,7 @@
   .btn.primary { background: var(--action); border-color: var(--action); color: var(--on-action); }
   .btn.primary:hover { background: var(--action-hover); border-color: var(--action-hover); }
   .btn svg { width: 18px; height: 18px; flex: none; }
+  a.btn { text-decoration: none; }
   .btn.quiet { min-height: 44px; padding: 0 18px 0 14px; font-size: 16px; }
   .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; }
   .pilot { display: inline-flex; align-items: center; flex: none; min-height: 26px; padding: 0 10px; border: 1px solid var(--pilot-edge); border-radius: 999px; background: var(--pilot-bg); color: var(--pilot-ink); font: 600 13px/1 var(--sans); letter-spacing: 0.02em; white-space: nowrap; }
@@ -109,7 +110,8 @@
   .hero-shot figcaption { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font: 500 15px/1.35 var(--sans); color: var(--stone); text-align: center; }
   .outline { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--rule); }
   .outline > li { display: flex; min-width: 0; border-bottom: 1px solid var(--rule); }
-  .chapter { flex: 1; min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 14px; row-gap: 4px; padding: 14px 4px 16px 0; border: 0; background: none; color: var(--ink); text-align: left; cursor: pointer; }
+  /* A button centres its content; the chapters start at the top so their names share a line. */
+  .chapter { flex: 1; min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-content: start; column-gap: 14px; row-gap: 4px; padding: 14px 4px 16px 0; border: 0; background: none; color: var(--ink); text-align: left; cursor: pointer; }
   .chapter:hover .cname { color: var(--accent); }
   .num { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--action); color: var(--on-action); font: 600 15px/1 var(--sans); font-variant-numeric: tabular-nums; }
   .chapter .num { grid-row: span 3; }
@@ -165,8 +167,22 @@
   /* Wide enough for "12 of 12", so a second digit never moves Back and Next. */
   .counter { margin: 0; width: 4.75em; text-align: center; font: 600 16px/1 var(--sans); font-variant-numeric: tabular-nums; color: var(--sub); white-space: nowrap; }
 
-  /* Close */
+  /* Close: the recap, then the story's four chapters again, each opening the story there. */
   .close { display: grid; gap: 22px; max-width: 760px; }
+  .recap { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .recap > li { display: flex; min-width: 0; }
+  .recap-card { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0; border: 1px solid var(--rule); border-radius: 18px; background: var(--paper); color: var(--ink); text-align: left; cursor: pointer; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  .recap-card:hover { border-color: var(--rule-2); box-shadow: 0 18px 36px -24px var(--shadow); }
+  .recap-card:hover .rname { color: var(--accent); }
+  .recap-shot { --shot-h: clamp(128px, 11vw, 168px); --pad: 12px; height: var(--shot-h); display: flex; align-items: center; justify-content: center; padding: var(--pad); background: var(--linen); border-bottom: 1px solid var(--rule); }
+  .recap-shot .device { --bezel-w: 4px; --inner: calc(var(--shot-h) - 2 * var(--pad) - 2 * var(--bezel-w) - 2px); box-shadow: 0 12px 24px -16px var(--shadow); }
+  .recap-shot .device.phone { width: calc(var(--inner) * 0.4621 + 2 * var(--bezel-w) + 2px); }
+  .recap-shot .device.desktop { width: min(100%, calc(var(--inner) * 1.6 + 2 * var(--bezel-w) + 2px)); }
+  .recap-text { display: grid; align-content: start; gap: 6px; padding: 14px 16px 16px; }
+  .recap-top { display: flex; align-items: center; gap: 10px; }
+  .recap-top .num { width: 26px; height: 26px; font-size: 13px; }
+  .rname { font: 400 clamp(19px, 0.5vw + 14px, 22px)/1.15 var(--serif); letter-spacing: -0.01em; }
+  .rline { font: 400 15px/1.4 var(--sans); color: var(--sub); text-wrap: pretty; }
 
   /* Every step: one tile per chapter. */
   .steps-head { display: grid; gap: 16px; max-width: 760px; }
@@ -187,6 +203,7 @@
   .thumb .device.desktop { width: 100%; }
 
   @media (min-width: 880px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
+  @media (min-width: 900px) { .recap { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
   @media (min-width: 900px) {
     .outline { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: clamp(16px, 2vw, 28px); border-top: 0; }
     .outline > li { border-bottom: 0; border-top: 2px solid var(--rule-2); }
@@ -229,6 +246,11 @@
     .stage .device.phone { --bezel-w: 7px; }
     .tile-text { padding: 16px 14px 18px; }
     .line { font-size: 16px; }
+    /* The close's chapters: one a row, the screen beside the words. */
+    .recap { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .recap-card { flex-direction: row; }
+    .recap-shot { --shot-h: 116px; flex: 0 0 128px; height: auto; min-height: var(--shot-h); border-bottom: 0; border-right: 1px solid var(--rule); }
+    .recap-text { align-content: center; padding: 12px 14px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .hotspot::after { animation: none; }
@@ -305,8 +327,10 @@
       <div class="actions">
         <button class="btn primary" type="button" id="end-steps">See every step</button>
         <button class="btn" type="button" id="again">Start over</button>
+        <a class="btn" id="live-hub" href="https://www.greengoods.app/gardens/tas-hub" target="_blank" rel="noopener">See TAS HUB on Green Goods<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 13 13 7M8 7h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       </div>
     </section>
+    <ol class="recap" id="recap" aria-label="The story's chapters"></ol>
   </div>
 </main>
 
@@ -334,6 +358,7 @@
         "line": "A member finds work her hub needs",
         "who": "You are Ifeoma, a member of the hub",
         "where": "App",
+        "thumb": "promise-2",
         "screens": [
           {
             "file": "promise-1",
@@ -351,10 +376,11 @@
         "line": "She does it, and a steward approves it",
         "who": "You are Ifeoma, a member of the hub",
         "where": "App",
+        "thumb": "approval-3",
         "screens": [
           {
             "file": "promise-5",
-            "caption": "Taken up: it pays vouchers and G$"
+            "caption": "Taken up: 2 vouchers and $20 in G$"
           },
           {
             "file": "work-3",
@@ -374,6 +400,7 @@
         "line": "Vouchers earned, swapped and spent",
         "who": "You are Ifeoma, a member of the hub",
         "where": "App",
+        "thumb": "swap-2",
         "screens": [
           {
             "file": "vouchers-1",
@@ -386,7 +413,7 @@
           },
           {
             "file": "swap-2",
-            "caption": "She swaps her vouchers in the shared pool"
+            "caption": "She swaps 8 of her 9 earned vouchers"
           },
           {
             "file": "swap-6",
@@ -406,10 +433,12 @@
         "line": "The public record, and a donation",
         "who": "You are Funmi, a supporter of the hub",
         "where": "Website",
+        "thumb": "impact-2",
         "screens": [
           {
-            "file": "impact-3",
-            "caption": "Anyone can see the bootcamp on the record"
+            "file": "impact-2",
+            "caption": "Anyone can find the bootcamp on the record",
+            "hotspot": false
           },
           {
             "file": "funding-5",
@@ -581,7 +610,7 @@
       "line": "Open the season, add promises",
       "who": "You are Obinna, the hub's steward",
       "where": "Dashboard",
-      "thumb": "season-4",
+      "thumb": "season-3",
       "intro": "He starts the season the assessment calls for, then asks for a promise members can take up: running a one-week AI content bootcamp, for $20.",
       "screens": [
         {
@@ -765,7 +794,7 @@
           ],
           "hotspot": [
             0.7777,
-            0.3507,
+            0.2559,
             0.1813,
             0.0379
           ],
@@ -812,8 +841,8 @@
             0.0569
           ],
           "back": [
-            0.0615,
-            0.019,
+            0.0205,
+            0,
             0.0821,
             0.0379
           ],
@@ -892,14 +921,14 @@
             844
           ],
           "hotspot": [
-            0.041,
-            0.1991,
-            0.9179,
+            0,
+            0.1801,
+            1,
             0.1564
           ],
           "back": [
-            0.0615,
-            0.019,
+            0.0205,
+            0,
             0.0821,
             0.0379
           ],
@@ -922,8 +951,8 @@
             0.0569
           ],
           "back": [
-            0.0615,
-            0.019,
+            0.0205,
+            0,
             0.0821,
             0.0379
           ],
@@ -940,8 +969,8 @@
             844
           ],
           "back": [
-            0.0615,
-            0.019,
+            0.0205,
+            0,
             0.0821,
             0.0379
           ],
@@ -1055,6 +1084,7 @@
       "label": "Vouchers",
       "line": "Earn vouchers, book a day",
       "who": "You are Ifeoma, a member of the hub",
+      "tileWho": "You are Ifeoma, then Obinna, the hub's steward",
       "where": "App",
       "thumb": "vouchers-3",
       "intro": "The kept promise pays her 2 Tech and Sun vouchers and G$. She spends a voucher on a day at the hub, and Obinna accepts the booking.",
@@ -1071,14 +1101,14 @@
             844
           ],
           "hotspot": [
-            0.3359,
-            0.7924,
+            0.2949,
+            0.7734,
             0.4454,
             0.0237
           ],
           "back": [
-            0.1026,
-            0.0379,
+            0.0615,
+            0.019,
             0.0821,
             0.0379
           ],
@@ -1121,8 +1151,8 @@
             0.0569
           ],
           "back": [
-            0.1026,
-            0.0379,
+            0.0615,
+            0.019,
             0.0821,
             0.0379
           ],
@@ -1165,14 +1195,14 @@
             844
           ],
           "hotspot": [
-            0.1256,
-            0.2121,
-            0.7487,
+            0.0846,
+            0.1931,
+            0.8308,
             0.0809
           ],
           "back": [
-            0.1026,
-            0.0379,
+            0.0615,
+            0.019,
             0.0821,
             0.0379
           ],
@@ -1255,6 +1285,7 @@
       "label": "Swap",
       "line": "Swap vouchers, book a seat",
       "who": "You are Ifeoma, a member of the hub",
+      "tileWho": "You are Ifeoma, then a Green Goods steward",
       "where": "App",
       "thumb": "swap-2",
       "intro": "Instead of a hub day, she swaps Tech and Sun vouchers for Green Goods vouchers in the shared pool and books an AI tool seat. Green Goods accepts it in its own pool once four checks pass.",
@@ -1272,14 +1303,14 @@
             844
           ],
           "hotspot": [
-            0.1256,
-            0.7459,
+            0.0846,
+            0.6762,
             0.4754,
             0.0474
           ],
           "back": [
-            0.1026,
-            0.0379,
+            0.0615,
+            0.019,
             0.0821,
             0.0379
           ]
@@ -1402,27 +1433,27 @@
           "alt": "Accept Ifeoma? in Green Goods’ own pool, the protocol pool: all four checks hold for her 10 vouchers, before Accept Ifeoma",
           "story": "admin-pool-voucheraskdialogs--accept-green-goods-access",
           "size": [
-            1440,
-            900
+            1152,
+            720
           ],
           "hotspot": [
-            0.5408,
-            0.8072,
-            0.0981,
-            0.0444
+            0.551,
+            0.884,
+            0.1226,
+            0.0556
           ],
           "back": [
             [
-              0.6167,
-              0.1528,
-              0.0278,
-              0.0444
+              0.6458,
+              0.066,
+              0.0347,
+              0.0556
             ],
             [
-              0.4732,
-              0.8072,
-              0.062,
-              0.0444
+              0.4665,
+              0.884,
+              0.0775,
+              0.0556
             ]
           ]
         },
@@ -1705,6 +1736,28 @@
       $("outline").append(li);
     });
 
+    // The close: the story's chapters again, each with one of its screens, opening the story there.
+    story.chapters.forEach((c, i) => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "recap-card";
+      b.id = `recap-${c.id}`;
+      const pick = c.screens.find((s) => s.file === c.thumb) || c.screens[0];
+      const shotBox = document.createElement("span");
+      shotBox.className = "recap-shot";
+      shotBox.append(device(pick.device, pick.file));
+      const text = document.createElement("span");
+      text.className = "recap-text";
+      text.innerHTML = `<span class="recap-top"><span class="num">${i + 1}</span> <span class="rname"></span></span> <span class="rline"></span>`;
+      text.querySelector(".rname").textContent = c.label;
+      text.querySelector(".rline").textContent = c.line;
+      b.append(shotBox, text);
+      b.addEventListener("click", () => { go({ view: "player", track: "story", at: story.starts[i] }); focusNext(); });
+      li.append(b);
+      $("recap").append(li);
+    });
+
     // Every step: one tile per chapter.
     $("steps-lede").textContent = `The whole season at the hub in ${plural(flows.length, "chapter")} and ${plural(steps.items.length, "screen")}, from the steward's first assessment to a supporter's donation.`;
     flows.forEach((f, i) => {
@@ -1718,8 +1771,10 @@
       text.innerHTML = `<span class="tile-top"><span class="num">${i + 1}</span> <span class="name"></span></span> <span class="line"></span> <span class="tile-who"></span> <span class="tile-meta"><span class="count"></span></span>`;
       text.querySelector(".name").textContent = f.label;
       text.querySelector(".line").textContent = f.line;
-      text.querySelector(".tile-who").textContent = f.who;
-      text.querySelector(".count").textContent = `${f.where ? `${f.where} · ` : ""}${plural(f.screens.length, "screen")}`;
+      // A chapter whose screens change hands names both people; its surfaces come from its screens.
+      text.querySelector(".tile-who").textContent = f.tileWho || f.who;
+      const wheres = [...new Set(f.screens.map((s) => s.where || f.where).filter(Boolean))];
+      text.querySelector(".count").textContent = `${wheres.length ? `${wheres.join(" and ")} · ` : ""}${plural(f.screens.length, "screen")}`;
       if (f.screens.every((s) => s.pilot)) text.querySelector(".tile-meta").insertAdjacentHTML("beforeend", ' <span class="pilot">In pilot</span>');
       const pick = f.screens.find((s) => s.file === f.thumb) || f.screens[0];
       const thumb = document.createElement("span");

@@ -17,19 +17,23 @@ shows the public record and a donation.
 |---|---|---|---|---|
 | 1 | The hub | promise-1 | Take Part lists what the hub needs | Ifeoma |
 | 2 | The hub | promise-2 | This season asks for an AI bootcamp | Ifeoma |
-| 3 | A promise kept | promise-5 | Taken up: it pays vouchers and G$ | Ifeoma |
+| 3 | A promise kept | promise-5 | Taken up: 2 vouchers and $20 in G$ | Ifeoma |
 | 4 | A promise kept | work-3 | After the bootcamp, she logs the work | Ifeoma |
 | 5 | A promise kept | approval-3 | The hub's steward checks it and approves | Obinna |
 | 6 | Built for SF.Live | vouchers-1 | Kept: her vouchers and G$ arrive | Ifeoma |
 | 7 | Built for SF.Live | swap-1 | An AI tool seat takes Green Goods vouchers | Ifeoma |
-| 8 | Built for SF.Live | swap-2 | She swaps her vouchers in the shared pool | Ifeoma |
+| 8 | Built for SF.Live | swap-2 | She swaps 8 of her 9 earned vouchers | Ifeoma |
 | 9 | Built for SF.Live | swap-6 | Swapped, she books the seat | Ifeoma |
 | 10 | Built for SF.Live | swap-7 | Green Goods accepts once four checks pass | A Green Goods steward |
-| 11 | For supporters | impact-3 | Anyone can see the bootcamp on the record | Funmi |
+| 11 | For supporters | impact-2 | Anyone can find the bootcamp on the record | Funmi |
 | 12 | For supporters | funding-5 | Funmi backs the hub with a donation | Funmi |
 
 Each story screen is an appendix screen with its own caption. Its image, hotspot and back regions
-come from the appendix, except vouchers-1, whose hotspot opens her wallet, a step the story skips.
+come from the appendix, except two whose hotspot leads somewhere the story skips: vouchers-1's opens
+her wallet, and impact-2's opens the record, where the story goes on to the donation.
+
+The captions carry what a judge needs to follow the numbers: the reward is $20 in G$ (155,460 G$ on
+screen), and the 8 vouchers she swaps come from the 9 she holds, more than this one promise paid.
 
 ## Every step
 
@@ -76,13 +80,16 @@ not add up across them.
   which does what Next does. A tap elsewhere on the screen only points at the hotspot again. Back,
   the Left arrow, the browser's back and the app's own back arrows, close buttons and Cancel go
   back a screen; Escape and the top-left button go up to the intro or the chapter list.
-- **Endings.** The story's Finish opens a close: a recap, a pointer back to the deck, and See every
-  step. Every step ends back at its chapter list.
+- **Endings.** The story's Finish opens a close: a recap, a pointer back to the deck, See every
+  step, Start over, a link to TAS HUB's live page on greengoods.app, and the story's four chapters
+  as cards, each with one of its screens, that open the story there. Every step ends back at its
+  chapter list, whose tiles name each chapter's surfaces from its screens (Vouchers and Swap end
+  in the dashboard).
 - **Links.** Plain anchors, the only kind an artifact link carries: `#story-5` opens the story's
   fifth screen, `#work-3` an appendix screen, `#end` the close and `#steps` the chapter list. v4's
   `#/work/3` links still open.
 - **Theme.** The page follows the viewer's light or dark setting, with a switch; the screens stay as
-  captured.
+  captured, and in dark the devices keep a lighter edge so they stand off the page.
 
 - Drive: `Shared drives/Greenpill Dev Guild/Product/Green Goods/Growth/SF Live 2026/Green Goods SF Live 2026 Demo.html`
 - Artifact (shared by link): <https://claude.ai/artifact/9ThhqDPZTEggFZuKnvS2wa>
@@ -103,6 +110,13 @@ not add up across them.
 - **Composite**: a Storybook panel, sheet or dialog drawn into the real page it belongs to, in the
   real one's place (`over` in `capture.mjs`), so the page around it stays the hub's.
 
+Phone screens are 390x844 and desktop screens 1440x900, except Green Goods' Accept (swap-7), which
+is 1152x720 in the same 16:10 frame so the dialog a judge reads in the story shows about a quarter
+larger. The steward's review (approval-3) stays at 1440x900: its form needs more height than a
+720-high screen gives the dialog, where the real one would scroll Approve out of view. A phone story
+takes Storybook's 16px frame out, so its page fills the screen as the app's does, except the
+wallet's Vouchers tab (vouchers-2, vouchers-8), a panel shown alone, which keeps it as a card.
+
 ## What is here
 
 | Path | What it is |
@@ -118,9 +132,12 @@ not add up across them.
 
 Capture needs the develop app on port 3122 and the dashboard on 3102, both from a develop checkout
 with dependencies installed, on the hub's chain and the hosted indexer, and a Storybook built from
-the same checkout. The deployed Storybook (design.greengoods.app) cannot render a story since
-develop stopped falling back to a default indexer; until its build sets the indexer, build it
-locally and serve the folder (any static server that copes with a few hundred parallel requests):
+the same checkout. The checkout needs its own install: one whose package `node_modules` link into
+another checkout loads React Query twice, and every page or story with a wallet hook then fails with
+"No QueryClient set". The dashboard's first load on a cold dev server takes a few minutes. The
+deployed Storybook (design.greengoods.app) cannot render a story since develop stopped falling back
+to a default indexer; until its build sets the indexer, build it locally and serve the folder (any
+static server that copes with a few hundred parallel requests):
 
 ```bash
 cd packages/client && SKIP_MKCERT=true APP_ENV=development VITE_CHAIN_ID=42161 VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql node ../../scripts/dev/node-cli.js vite --port 3122 --strictPort
@@ -238,9 +255,9 @@ To change a caption, a "who you are" line or a chapter's line in the story, edit
 vouchers-7); a Green Goods steward for the seat's acceptance (swap-7); Ifeoma for Promise, Work and
 the rest of Vouchers and Swap; Funmi for Impact and Funding.
 
-Desktop screens are 1440 by 900 at 1.5x and phone screens 390 by 844 at 2x, saved as JPEG. The app's
-own back arrow, close button or Cancel on a screen is a back region, measured by `capture.mjs` like
-the hotspot.
+Desktop screens are 1440 by 900 at 1.5x (swap-7 1152 by 720 at 1.875x, the same pixels) and phone
+screens 390 by 844 at 2x, saved as JPEG. The app's own back arrow, close button or Cancel on a screen
+is a back region, measured by `capture.mjs` like the hotspot.
 
 ### Where the app stops and what stands in
 
@@ -254,12 +271,17 @@ the hotspot.
   dialog over it. The seed flow (season-3 to season-7) is the real dashboard; "Create Promise" asks
   for a signature. Its review's reward reads "$20.00, paid in G$ once it's kept": develop shows
   "None" there while settlement is switched off (`SETTLEMENT_ENABLED`), and the pitch shows payouts
-  on. The Pool Funding card, which reads that switch, is hidden.
+  on. The Pool Funding card, which reads that switch, is hidden, and so is the warning develop added
+  to the tab (#1363) when its voucher reads fail, as they do on the hosted indexer: the pilot's
+  bookings are not these screens' subject, and on a desktop the warning takes the tab's first grid
+  cell and pushes its columns out of place.
 - **Promise.** The bootcamp promise was never created (no signature), and develop's Home lists no
   open promise for the hub today, so Take Part on Home (promise-1) is the Storybook section drawn
   where the real one sits, and the Take Part sheet, the promise's page and the take-up sheet are
-  Storybook, with the sheets drawn over the screen they open from. Her promise in progress
-  (promise-5) is the earn journey's request page once her take-up is recorded, with both rewards.
+  Storybook, with the sheets drawn over the screen they open from. The sheet's season fixture lists
+  offers, so its rows read "Asked for" and take the request row's icon, as Home's row draws a
+  request. Her promise in progress (promise-5) is the earn journey's request page once her take-up
+  is recorded, unscrolled: its title and status, then both rewards running under the action bar.
 - **Work.** Submit Work's Start, Media and Review for a promise are Storybook (the mock account
   holds no promise). The hub's record has one photo of the bootcamp, so her upload has one, and the
   review shows the garden as facts (#1335).
@@ -274,11 +296,13 @@ the hotspot.
   buttons. The service the fixtures call "Claude access" is shown as the deck names it, an AI tool
   seat. Green Goods accepts bookings in its own pool, the protocol pool (the root garden's), so its
   Accept (swap-7) is the `AcceptGreenGoodsAccess` story of `VoucherAskDialogs` (#1371), which sets
-  that pool apart with its warning, drawn with its scrim over that pool's real Promises tab. Her two
-  scrolled pages (promise-5 and swap-8) take out Storybook's padding above the
-  page, which would show content above the app's top bar.
+  that pool apart with its warning, drawn with its scrim over that pool's real Promises tab. The
+  journey's deadline to accept, a week after she agrees, reads 8 November, the day the pilot's
+  Claude seats start.
 - **Impact.** The public site as it stands: the home page, the Impact page's evidence ledger
-  filtered to Education, and the bootcamp's approved submission.
+  filtered to Education, and the bootcamp's approved submission. The ledger and Fund date the
+  bootcamp's real submission 26 August; the demo tells it as this season's work, submitted and
+  approved on 26 October (approval-1 to approval-4), so those two screens read 26 October.
 - **Funding.** The hub's page, Fund and the Donate dialog are real up to Connect Wallet; the
   connected and donated states are the Storybook dialogs drawn over the real Fund page.
 
@@ -299,9 +323,10 @@ actions and its public pages):
 
 Sample: every person's name (below); the earlier assessment; the new assessment and its targets;
 the bootcamp promise (its title, 20 hours, 25 November 2026 and $20); Ifeoma's take-up, her
-submission's time and the approval note; the vouchers (2 earned, 9 held, the hub day booked for
+submission's time and the approval note, and the bootcamp's date on the ledger and Fund (26
+October; the record says 26 August); the vouchers (2 earned, 9 held, the hub day booked for
 January); the swap (2 Green Goods vouchers held, 10 for the seat, 8.01 Tech and Sun vouchers for 8,
-a 0.01 fee, the pilot's 1:1 rate, a 2 November deadline); the G$ amount (155,460, at the rate the
+a 0.01 fee, the pilot's 1:1 rate, an 8 November deadline); the G$ amount (155,460, at the rate the
 Storybook fixtures fix); and the $500 donation.
 
 ## Names
@@ -326,8 +351,8 @@ The confirmer field's hint keeps the app's own example, lina.eth.
 Swapped into each screen's text, `alt`, `aria-label`, `title`, placeholders and field values after
 it renders, with the photos named in the flows table. Components, layout and controls stay as
 rendered. The tables in `capture.mjs` (`HUB_LIST`, `SEASON_SETUP`, `TAKE_PART`, `GROUP`,
-`START`, `FOR_PROMISE`, `QUEUE`, `REVIEW_FORM`, `EARN`, `READER`, `SEAT`, `HUB_DAY`,
-`DONATE`, `ASSESSMENT`) hold every rule; in short:
+`START`, `FOR_PROMISE`, `QUEUE`, `REVIEW_FORM`, `EARN`, `READER`, `SEAT`, `SEAT_DEADLINE`,
+`SEAT_ACCEPT`, `HUB_DAY`, `RECORD_DAY`, `DONATE`, `ASSESSMENT`) hold every rule; in short:
 
 | Fixture or record text | Demo copy | Screens |
 |---|---|---|
@@ -336,14 +361,16 @@ rendered. The tables in `capture.mjs` (`HUB_LIST`, `SEASON_SETUP`, `TAKE_PART`, 
 | Reward: None | $20.00, paid in G$ once it's kept | season-7 |
 | Riverside Commons Garden; Autumn Planting 2026; Sep 1 – Nov 30 · 3 of 7 kept | TAS HUB; Climate and Tech Education; Oct 10 – Jan 31 · 1 of 2 kept | promise-2, promise-5 |
 | The fixture requests and offers (household survey, compost workshops, fence repair, composting workshop, seed library, watering) | Run a one-week AI content bootcamp; the season's course | promise-1 to promise-5, work-1 to work-3, vouchers-1 |
-| Offered (Take Part rows) | Asked for | promise-2 |
+| Offered, and the offer's icon (Take Part rows) | Asked for, and the request's icon | promise-2 |
 | 2 hours, 1 repair, 2 workshops; Oct 20, Oct 30, Dec 14; $5.00 | 20 hours; Nov 25, 2026; $20.00 | promise-3 to promise-5, vouchers-1 |
 | 4 available · 3 in progress · 3 kept | 1 available · 0 in progress · 0 kept | promise-3 |
 | Workshop photos; 3 of 12 approved; Seedling Transplant; Plants moved 36; Members 3 | the bootcamp; 0 of 1 approved; Workshop Delivered; Facilitators 2; Members 14 | work-1 to work-3 |
 | The steward's own pending Node Operation Log, by afo, 3 weeks ago, Oct 1 | Workshop Delivered, by ifeoma, 12 minutes ago, Oct 26, 2026, 4:48 PM | approval-1 to approval-4 |
 | 120 G$ | 155,460 G$ | promise-5, vouchers-1 |
 | Claude access; Claude seat; Claude Team seat | AI tool seat | swap-1 to swap-8 |
-| Mara; Jan 14; Jan 21 (the Accept dialog's member, its Safe's approval and its deadline) | Ifeoma; Oct 26; Nov 2 | swap-7 |
+| Mara; Jan 14; Jan 21 (the Accept dialog's member, its Safe's approval and its deadline) | Ifeoma; Oct 26; Nov 8 | swap-7 |
+| Nov 2 (the seat's deadline to accept) | Nov 8 | swap-6, swap-8 |
+| Aug 26, 2026 (the bootcamp on the ledger; TAS HUB's latest on Fund) | Oct 26, 2026 | impact-2, funding-2 to funding-5 |
 | Nov 2; Oct 26 (the hub day's deadline and agreement) | Jan 20; Jan 13 | vouchers-4, vouchers-5 |
 | $50.00 | $500.00 | funding-4, funding-5 |
 | The fixture photos; the node log's photo | record-06 (the bootcamp's record photo) | promise-1, work-2, work-3, approval-1 to approval-4 |
@@ -355,9 +382,9 @@ Hidden on screens, because the story does not have them: the steward's "Needs Yo
 on Home (promise-1, when present); the season's course requests on the Promises tab before the
 season (season-1); the Pool Funding card (season-1, season-3 to season-7); the fixture's campaign
 and its rows in Take Part; the node log in Start's promises (work-1); the fixture's second review
-photo (work-3); "waiting over a week" (approval-1); the root garden pool's voucher panel, which says
-it could not load the pilot's bookings from the hosted indexer (under swap-7); and the voucher
-stories' narration.
+photo (work-3); "waiting over a week" (approval-1); the Promises tab's voucher warning, which says
+it could not load the pilot's bookings from the hosted indexer (season-1, season-3 to season-7, and
+under vouchers-6 and swap-7); and the voucher stories' narration.
 
 ## Claims
 
@@ -461,5 +488,20 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `1e3462
 | story | 06:40 → 06:58 | `AcceptGreenGoodsAccess` in `VoucherAskDialogs.stories.tsx`, with `STORY_MARA_ACCESS_ASK` in `poolStoryVouchers.ts`: Green Goods accepts 30 days of Claude access in the protocol pool. Biome format and oxlint clean; the admin typecheck reports nothing in the two files; in a local Storybook build the story renders and its play test finishes, with four checks holding and Accept enabled |
 | demo | 06:58 → 07:05 | The swap chapter recaptured with the Accept as swap-7, drawn over the root garden's real Promises tab (its voucher panel, which cannot read the pilot's bookings from the hosted indexer, hidden), and her active booking as swap-8; the story's voucher chapter ends on Green Goods accepting. `check.mjs` exit 0: 50 screens, 35 back regions |
 | publish | 07:05 → 07:21 | Afo chose own PR merged on green, republish now, the note's wording in a later PR and no Linear record. #1371 opened after the push gate passed (format, lint, docs-authority, source-structure, story-quality, react-patterns and the focused `VoucherMemberBooking` test); demo commit `760a00414` pushed; artifact version 13; Drive copy replaced. #1371 merged at 07:21 once a re-run of its Playwright job (whose browser setup had timed out before any test) and of CI Gate passed |
+
+Human corrections: 0 observed in this segment; attention unknown.
+
+## Task record · polish from the 27 October review
+
+Task record: SF.Live clickable demo, review polish (P1 and P2) | Type: feature | Outcome: complete
+Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `d335b0a4d`, captured on develop `1675ce406`
+
+| Phase | Start → end (UTC, 27 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| setup | 08:05 → 08:24 | The develop worktree's package `node_modules` still held 51 links into another checkout, so React Query loaded twice and every dashboard page and wallet-hook story failed with "No QueryClient set"; the links were removed and the frozen-lockfile install restored them locally. Storybook rebuilt; the app, dashboard and Storybook served from that worktree |
+| implement | 08:24 → 08:50 | Phone stories without Storybook's 16px frame (the wallet's lone panel keeps it); the season sheet's rows as requests with the request icon; story 1's Home scrolled so no card is cut under its top bar; story 3 unscrolled, with its title; story 11 is the ledger (impact-2); the record and Fund dated 26 October, the seat's deadline 8 November; develop's voucher warning hidden on the pools' Promises tabs; Green Goods' Accept at 1152x720; captions that carry the numbers; the intro's chapters top-aligned; every-step tiles that name each chapter's surfaces and both people; the close's chapter cards and its link to TAS HUB's live page; a lighter device edge in dark |
+| verify | 08:32 → 08:57 | The first full capture stopped on one problem: Green Goods' pool now lists its live offer, "30 days of Claude Team access", which `SEAT_OFFER` names as the journey does. The second: 50 screens, 0 problems. `build.mjs` 8.73 MB; `check.mjs` exit 0: 62 screens, 35 back regions, every part held at 1440x900, 1280x720, 768x1024 and 390x844; the story, close, chapter list, phone and dark views inspected |
+
+Two review items changed on inspection. The steward's review stays at 1440x900: its form needs more height than a 720-high screen gives the dialog. The ring on the Take Part sheet's close button (story 2) was the page's keyboard focus on a back region, which the checker's keyboard walk had left there; a pointer never shows it.
 
 Human corrections: 0 observed in this segment; attention unknown.

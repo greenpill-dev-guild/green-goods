@@ -55,6 +55,10 @@ const note = (message) => { problems.push(message); console.log(`  problem: ${me
 
 const PHONE = { width: 390, height: 844, scale: 2 };
 const DESKTOP = { width: 1440, height: 900, scale: 1.5 };
+// Green Goods' Accept, which the story asks a judge to read: a smaller desktop in the same 16:10
+// frame, so its type shows about a quarter larger. The steward's review form needs more height
+// than a 720-high screen gives its dialog, so the approval stays on DESKTOP.
+const DESKTOP_CLOSE = { width: 1152, height: 720, scale: 1.875 };
 const APP = "http://localhost:3122";
 const ADMIN = "https://localhost:3102";
 const TAS = "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3";
@@ -172,6 +176,19 @@ const TAKE_PART = [
   // The pool's requests are the steward's.
   ["0x5e...0b2", "obinna"],
 ];
+// The season's sheet fixture lists offers, which the demo shows as the pool's requests ("Offered"
+// reads "Asked for"), so each row also takes the request row's icon (Remix hand-heart), as Home and
+// the sheet's See All story draw a request.
+const REQUEST_ICON = "M5.00488 9.00268C5.55717 9.00268 6.00488 9.45039 6.00488 10.0027C7.63965 10.0027 9.14352 10.5631 10.3349 11.5022L12.5049 11.5027C13.837 11.5027 15.0339 12.0815 15.8579 13.0014L19.0049 13.0027C20.9972 13.0027 22.7173 14.1679 23.521 15.8541C21.1562 18.9747 17.3268 21.0027 13.0049 21.0027C10.2142 21.0027 7.85466 20.3994 5.944 19.3447C5.80557 19.7283 5.43727 20.0027 5.00488 20.0027H2.00488C1.4526 20.0027 1.00488 19.555 1.00488 19.0027V10.0027C1.00488 9.45039 1.4526 9.00268 2.00488 9.00268H5.00488ZM6.00589 12.0027L6.00488 17.0238L6.05024 17.0572C7.84406 18.3176 10.183 19.0027 13.0049 19.0027C16.0089 19.0027 18.8035 17.847 20.84 15.8732L20.9729 15.7397L20.8537 15.6393C20.3897 15.2763 19.8205 15.051 19.2099 15.0096L19.0049 15.0027L16.8932 15.0017C16.9663 15.3236 17.0049 15.6586 17.0049 16.0027V17.0027H8.00488V15.0027L14.7949 15.0017L14.7605 14.9232C14.38 14.1296 13.593 13.568 12.6693 13.508L12.5049 13.5027L9.57547 13.5025C8.66823 12.5772 7.40412 12.003 6.00589 12.0027ZM4.00488 11.0027H3.00488V18.0027H4.00488V11.0027ZM13.6513 3.57806L14.0046 3.93183L14.3584 3.57806C15.3347 2.60175 16.9177 2.60175 17.894 3.57806C18.8703 4.55437 18.8703 6.13728 17.894 7.11359L14.0049 11.0027L10.1158 7.11359C9.13948 6.13728 9.13948 4.55437 10.1158 3.57806C11.0921 2.60175 12.675 2.60175 13.6513 3.57806ZM11.53 4.99227C11.3564 5.16584 11.3372 5.43526 11.4714 5.62938L11.5289 5.69831L14.0039 8.17368L16.4798 5.69938C16.6533 5.52581 16.6726 5.25639 16.5376 5.06152L16.4798 4.99227C16.3062 4.81871 16.0368 4.79942 15.8417 4.93457L15.7724 4.99249L14.0033 6.76111L12.236 4.9912L12.1679 4.93442C11.973 4.79942 11.7036 4.81871 11.53 4.99227Z";
+const asRequests = {
+  script: (d) => document.querySelectorAll('[data-component="CommitmentRow"][data-direction="OFFER"]').forEach((row) => {
+    row.setAttribute("data-direction", "REQUEST");
+    const tile = row.querySelector(".gg-item-row-tile-icon");
+    tile?.setAttribute("aria-label", "Request");
+    tile?.querySelector("path")?.setAttribute("d", d);
+  }),
+  arg: REQUEST_ICON,
+};
 // The bootcamp's group page and take-up sheet (a support fixture with one copy).
 const GROUP = [
   ["Survey household water use on Mill Lane", BOOTCAMP],
@@ -216,10 +233,20 @@ const EARN = [...EARN_TERMS, ["No approved work yet · no proof yet", "1 approve
 const READER = [["Lina", "Ifeoma"], ["lina", "ifeoma"]];
 // Green Goods' service in the swap journey, named as the deck names it.
 const SEAT = [["Claude Team seat", "AI tool seat"], ["Claude access", "AI tool seat"], ["Claude seat", "AI tool seat"]];
-// Green Goods accepting her seat: the dialog story's member and its frozen-clock dates, as the
-// exchange journey has her agree on 26 October with a 2 November deadline.
-const SEAT_ACCEPT = [["Mara", "Ifeoma"], ["Jan 14", "Oct 26"], ["Jan 21", "Nov 2"]];
+// Green Goods' own pool lists its live offer under the service's own name; the demo names it as the
+// journey's page does.
+const SEAT_OFFER = [["30 days of Claude Team access", "AI tool seat, 30 days"]];
+// The seat's deadline to accept: the exchange journey has her agree on 26 October with a deadline a
+// week on, which reads 8 November, the day the pilot's Claude seats start.
+const SEAT_DEADLINE = [["Nov 2", "Nov 8", undefined, true]];
+// Green Goods accepting her seat: the dialog story's member and its frozen-clock dates, on the
+// journey's days.
+const SEAT_ACCEPT = [["Mara", "Ifeoma"], ["Jan 14", "Oct 26"], ["Jan 21", "Nov 8"]];
 const VOUCHERS_UNREAD = "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.";
+const VOUCHERS_PARTIAL = "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.";
+// The hub's public record and its Fund card date the bootcamp's real submission 26 August; the demo
+// tells it as this season's work, logged and approved on 26 October, so those screens carry that day.
+const RECORD_DAY = [["Aug 26, 2026", "Oct 26, 2026", 0]];
 // The hub day she books in January, and the booking's dates in the fixtures.
 const HUB_DAY = [["Nov 2", "Jan 20"], ["Oct 26", "Jan 13"]];
 // The app lists WETH before DAI (funding-3); the stories list DAI first.
@@ -233,7 +260,7 @@ const wethFirst = {
 const DONATE = [["$50.00", "$500.00"], ["50.00", "500.00", undefined, true], ["0x5eed...00a1", "funmi.eth"]];
 
 // Fixture text that must not survive in a Storybook screen.
-const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /\btomas\b/, /\bamara\b/, /\bdele\b/i, /Greenpill NYC/, /vault-owner/, /[Ss]eedling/, /lettuce/, /Mulch/, /Pond/, /canopy/i, /\bafo\b/, /Node Operation/, /Muizenberg/, /Rocinha/, /First Rains/, /Okafor/, /compost/i, /\bKwesi\b/i, /\bLina\b/, /Botanic/, /Market rides/, /Harvest Season/, /Seed Swap/, /Step \d+ of \d+/, /Claude/, /\bMara\b/, /Voucher bookings could not be loaded/];
+const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /\btomas\b/, /\bamara\b/, /\bdele\b/i, /Greenpill NYC/, /vault-owner/, /[Ss]eedling/, /lettuce/, /Mulch/, /Pond/, /canopy/i, /\bafo\b/, /Node Operation/, /Muizenberg/, /Rocinha/, /First Rains/, /Okafor/, /compost/i, /\bKwesi\b/i, /\bLina\b/, /Botanic/, /Market rides/, /Harvest Season/, /Seed Swap/, /Step \d+ of \d+/, /Claude/, /\bMara\b/, /Voucher bookings could not be loaded/, /Voucher discovery is incomplete/];
 
 // Hides the card around `text`: its nearest opaque ancestor at least `minHeight` tall.
 const hideCard = (text, minHeight = 80) => ({
@@ -247,19 +274,18 @@ const hideCard = (text, minHeight = 80) => ({
   arg: { text, minHeight },
 });
 const showCards = { script: () => document.querySelectorAll("[data-demo-hidden]").forEach((el) => { el.style.removeProperty("display"); el.removeAttribute("data-demo-hidden"); }) };
+// Develop's pool tab warns when its voucher reads fail (#1363), as they do on the hosted indexer the
+// demo reads. The pilot's bookings are not these screens' subject, and on a desktop the warning takes
+// the tab's first grid cell and pushes the pool's columns out of place, so it is hidden.
+const hideVoucherWarnings = [hideCard(VOUCHERS_UNREAD, 40), hideCard(VOUCHERS_PARTIAL, 40)];
 // The voucher journeys' story harness (its "Step n of m" line and buttons) is not part of the app.
 const hideHarness = { script: () => document.querySelectorAll('[data-component="VoucherJourneyNarration"]').forEach((el) => el.style.setProperty("display", "none", "important")) };
-// Storybook's padding above a story's page lets a scrolled page show above the app's top bar, which
-// the app pins to the top of the screen; a scrolled screen takes that padding out.
-const flushTop = {
-  script: () => {
-    let el = document.querySelector('[aria-label="Go back"]');
-    while (el && getComputedStyle(el).position !== "fixed") el = el.parentElement;
-    for (el = el?.parentElement; el && el !== document.body; el = el.parentElement) {
-      if (parseFloat(getComputedStyle(el).paddingTop) > 0) { el.style.setProperty("padding-top", "0", "important"); return; }
-    }
-  },
-};
+// Storybook draws a client story's page inside a 16px frame, where the app fills the phone's screen:
+// the page sat in a narrower column with its back arrow 16px in, a section sized to the real slot
+// ran past the screen's edge, and a scrolled page showed above the app's top bar. A phone story
+// takes the frame's padding out (runSession), except a panel shown alone (`frame: true`), which
+// the frame presents as a card on the page.
+const PHONE_FRAME = ".storybook-browser-preview { padding: 0 !important; }";
 // Its buttons stand in for the other people's acts, so it shows again before they are pressed.
 const showHarness = { script: () => document.querySelectorAll('[data-component="VoucherJourneyNarration"]').forEach((el) => el.style.removeProperty("display")) };
 
@@ -317,6 +343,7 @@ const SESSIONS = [
   {
     id: "season-under", device: DESKTOP, url: `${ADMIN}/garden/pool?gardenId=${TAS}&mockAuth=deployer`, app: true, ready: "Seed Promises", swaps: PEOPLE,
     steps: [
+      ...hideVoucherWarnings,
       // Pool Funding reads the settlement switch, which develop has off; the pitch shows payouts on.
       hideCard("Pool Funding", 120),
       // Before the season there are no promises in it.
@@ -337,12 +364,14 @@ const SESSIONS = [
   {
     id: "season-console", device: DESKTOP, url: `${ADMIN}/garden/pool?gardenId=${TAS}&mockAuth=deployer`, app: true, ready: "Seed Promises", swaps: PEOPLE,
     steps: [
+      ...hideVoucherWarnings,
       hideCard("Pool Funding", 120),
       { shot: "season-3", expect: [SEASON, "Seed Promises"], tap: { role: "button", name: "Seed Promises" } },
       // In January the booking fills Review Promises, which grows down the column.
       hideCard("Pool Status", 120),
       { shot: "vouchers-6-under", under: true, box: { text: "Review Promises", minHeight: 60 } },
       showCards,
+      ...hideVoucherWarnings,
       hideCard("Pool Funding", 120),
       { click: { role: "button", name: "Seed Promises" }, wait: 4000 },
       { click: { text: "Garden work" }, wait: 800 },
@@ -375,8 +404,9 @@ const SESSIONS = [
       // Stewards see what waits on them at the top of Home; Ifeoma is a member.
       { remove: { text: "Needs Your Attention" }, up: 1, optional: true },
       // Develop's Home lists no open promise for the hub today, so Take Part is the Storybook
-      // section with the bootcamp, drawn where the real one sits.
-      { scrollTo: { text: "Take Part", align: "start", top: 300 } },
+      // section with the bootcamp, drawn where the real one sits. Continue sits right under the top
+      // bar, so no card is cut in half above it.
+      { scrollTo: { text: "Take Part", align: "start", top: 220 } },
       { shot: "promise-1-under", under: true, swaps: HOME_ACTIVITY, photos: ["record-03.jpg", "record-03.jpg"], box: { css: '[data-component="TakePart"]' } },
     ],
   },
@@ -393,6 +423,7 @@ const SESSIONS = [
     steps: [
       // Tech and Sun runs no campaign this season.
       { remove: { role: "button", name: "Show promises in Seed Swap Weekend" } },
+      asRequests,
       { shot: "promise-2", back: { role: "button", name: "Close" }, swaps: [...TAKE_PART, ["Offered", "Asked for", undefined, true], ...BASE], over: { screen: "promise-1", text: "Take Part", minHeight: 300, scrim: '[data-component="PwaSheet"]:not([role])' }, tap: { text: BOOTCAMP, card: true } },
     ],
   },
@@ -405,9 +436,7 @@ const SESSIONS = [
     steps: [
       { click: { role: "button", name: "Green Goods records Lina's agreement" }, wait: 2500 },
       hideHarness,
-      // The promise and its rewards, under the page's top bar.
-      flushTop,
-      { scrollTo: { text: "What was promised", align: "start", top: 108 } },
+      // Unscrolled, so the promise's title and status lead and the rewards run under the action bar.
       { shot: "promise-5", swaps: [...EARN_TERMS, ...READER, ...BASE], tap: { role: "button", name: "Add Proof" } },
     ],
   },
@@ -488,7 +517,8 @@ const SESSIONS = [
       { shot: "vouchers-1", back: { role: "button", name: "Go back" }, swaps: [...EARN, ...VOUCHER_PEOPLE, ...BASE], tap: { text: "2 Tech and Sun vouchers" } },
     ],
   },
-  { id: "vouchers-2", device: PHONE, url: story("client-wallet-voucherstab--voucher-open"), steps: [{ shot: "vouchers-2", expect: ["Tech and Sun vouchers"], tap: { role: "button", name: "Book a Service" } }] },
+  // The wallet's Vouchers tab has no story inside the wallet sheet, so its panel stands alone, framed.
+  { id: "vouchers-2", device: PHONE, frame: true, url: story("client-wallet-voucherstab--voucher-open"), steps: [{ shot: "vouchers-2", expect: ["Tech and Sun vouchers"], tap: { role: "button", name: "Book a Service" } }] },
   {
     id: "vouchers-hubday", device: PHONE, url: story("client-commitments-voucher-journeys--redeem-hub-day"),
     steps: [
@@ -508,7 +538,7 @@ const SESSIONS = [
     ],
   },
   { id: "vouchers-7", device: DESKTOP, url: story("admin-pool-poolclaimscard--voucher-accept"), steps: [{ shot: "vouchers-7", back: [{ role: "button", name: "Close" }, { role: "button", name: "Cancel" }], swaps: VOUCHER_PEOPLE, over: { screen: "vouchers-6", text: "Writing to", minHeight: 300, scrim: '[data-component="AdminDialog"]' }, tap: { role: "button", name: "Accept Ifeoma" } }] },
-  { id: "vouchers-8", device: PHONE, url: story("client-wallet-voucherstab--booked"), steps: [{ shot: "vouchers-8", expect: ["Booked", "in a booking"] }] },
+  { id: "vouchers-8", device: PHONE, frame: true, url: story("client-wallet-voucherstab--booked"), steps: [{ shot: "vouchers-8", expect: ["Booked", "in a booking"] }] },
 
   // Swap (in pilot): instead of a hub day, Ifeoma swaps Tech and Sun vouchers for Green Goods
   // vouchers in the shared pool and books Green Goods' AI tool seat, which Green Goods accepts.
@@ -516,7 +546,7 @@ const SESSIONS = [
   // nothing signs or sends); Green Goods' Accept is the dialog's story, drawn over its own pool.
   {
     id: "swap", device: PHONE, url: story("client-commitments-voucher-journeys--exchange-then-redeem"),
-    swaps: [...SEAT, ...READER, ...BASE],
+    swaps: [...SEAT, ...SEAT_DEADLINE, ...READER, ...BASE],
     steps: [
       hideHarness,
       { scrollTo: { text: "Exchange Vouchers", align: "end", margin: 140 } },
@@ -548,24 +578,24 @@ const SESSIONS = [
       showHarness,
       { click: { role: "button", name: "Green Goods accepts" }, wait: 3500 },
       hideHarness,
-      flushTop,
-      { scrollTo: { text: "Booking steps", align: "start", top: 108 } },
+      // The booking's terms row stays whole above its steps.
+      { scrollTo: { text: "Booking steps", align: "start", top: 140 } },
       { shot: "swap-8", expect: ["Green Goods accepted you"] },
     ],
   },
   // Green Goods' own pool is the protocol pool, the root garden's: the steward's Promises tab
   // there, and the Accept dialog's story with its scrim drawn over it.
   {
-    id: "swap-accept-under", device: DESKTOP, url: `${ADMIN}/garden/pool?gardenId=${GREEN_GOODS_GARDEN}&mockAuth=deployer`, app: true, ready: "Review Promises", swaps: PEOPLE,
+    id: "swap-accept-under", device: DESKTOP_CLOSE, url: `${ADMIN}/garden/pool?gardenId=${GREEN_GOODS_GARDEN}&mockAuth=deployer`, app: true, ready: "Review Promises", swaps: PEOPLE,
     steps: [
       // The pilot's voucher reads are not on the hosted indexer, so the pool's voucher panel says it
       // could not load them; the booking it would list is the dialog's.
-      hideCard(VOUCHERS_UNREAD, 120),
-      { shot: "swap-7-under", under: true, expect: ["Review Promises"] },
+      ...hideVoucherWarnings,
+      { shot: "swap-7-under", under: true, expect: ["Review Promises"], swaps: SEAT_OFFER },
     ],
   },
   {
-    id: "swap-accept", device: DESKTOP, url: story("admin-pool-voucheraskdialogs--accept-green-goods-access"),
+    id: "swap-accept", device: DESKTOP_CLOSE, url: story("admin-pool-voucheraskdialogs--accept-green-goods-access"),
     steps: [{ shot: "swap-7", back: [{ role: "button", name: "Close" }, { role: "button", name: "Cancel" }], swaps: [...SEAT, ...SEAT_ACCEPT], over: { screen: "swap-7-under", text: "Accept Ifeoma?", minHeight: 300, scrim: '[data-component="AdminDialog"]' }, tap: { role: "button", name: "Accept Ifeoma" } }],
   },
 
@@ -578,7 +608,7 @@ const SESSIONS = [
       { scrollTo: { text: "Recent submissions and assessments.", align: "start", top: 72 } },
       { click: { role: "button", name: "Education" }, wait: 3000 },
       { scrollTo: { text: BOOTCAMP_NOTE, align: "start", card: "img", top: 160 } },
-      { shot: "impact-2", expect: [BOOTCAMP_NOTE], tap: { text: BOOTCAMP_NOTE } },
+      { shot: "impact-2", expect: [BOOTCAMP_NOTE], swaps: RECORD_DAY, tap: { text: BOOTCAMP_NOTE } },
       { click: { text: BOOTCAMP_NOTE }, wait: 6000 },
       { shot: "impact-3", expect: [BOOTCAMP_NOTE], back: { role: "button", name: "Close", nth: 1 } },
     ],
@@ -592,10 +622,10 @@ const SESSIONS = [
       { scroll: 99999, wait: 2500 },
       { shot: "funding-1", tap: { role: "link", name: "Support This Garden" } },
       { click: { role: "link", name: "Support This Garden" }, wait: 7000 },
-      { shot: "funding-2", tap: { card: "TAS HUB", role: "button", name: "Donate" } },
+      { shot: "funding-2", swaps: RECORD_DAY, tap: { card: "TAS HUB", role: "button", name: "Donate" } },
       { click: { card: "TAS HUB", role: "button", name: "Donate" }, wait: 3500 },
       { fill: { css: '[role="dialog"] input' }, value: "500" },
-      { shot: "funding-3", back: { role: "button", name: /close/i }, box: { text: "Donate to", minHeight: 150 }, tap: { role: "button", name: "Connect Wallet" } },
+      { shot: "funding-3", swaps: RECORD_DAY, back: { role: "button", name: /close/i }, box: { text: "Donate to", minHeight: 150 }, tap: { role: "button", name: "Connect Wallet" } },
     ],
   },
   // Once a wallet is connected: the Storybook dialog states, drawn over the real Fund page.
@@ -976,6 +1006,7 @@ async function runSession(browser, session) {
   try {
     await page.goto(session.url, { waitUntil: "domcontentloaded", timeout: 900000 });
     await waitReady(page, session);
+    if (!session.app && session.device === PHONE && !session.frame) await page.addStyleTag({ content: PHONE_FRAME });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(session.app ? 5000 : 3000);
     for (const step of session.steps) {
