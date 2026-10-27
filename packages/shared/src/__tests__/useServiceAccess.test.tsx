@@ -229,7 +229,13 @@ describe("service access hooks", () => {
     const techAndSun = REHEARSAL_VOUCHER_ISSUERS.techAndSun;
     const hubDay = createServiceRehearsalSnapshot({ ...key, commitmentId: 1023n });
     hubDay.capabilities.gnosisHolder = gnosis;
-    mocks.read.mockResolvedValue(hubDay);
+    // A personal G$ service listed first names no Gnosis holder, and its read answers first.
+    const personal = createServiceRehearsalSnapshot({ ...key, commitmentId: 1022n });
+    mocks.read.mockImplementation(async (read: ServiceAccessKey) =>
+      read.commitmentId === 1022n
+        ? personal
+        : new Promise((resolve) => setTimeout(() => resolve(hubDay), 20))
+    );
     mocks.wallet = async (scope) => ({
       account: scope.account,
       evidence: "onchain",
@@ -248,7 +254,7 @@ describe("service access hooks", () => {
       claimType: "INDIVIDUAL",
     } as const;
     const { result } = renderHookWithProviders(() =>
-      useServiceOfferLines({ chainId: 42161, offers: [offer] })
+      useServiceOfferLines({ chainId: 42161, offers: [{ ...offer, commitmentId: 1022n }, offer] })
     );
     await waitFor(() =>
       expect(result.current.get("1023")).toEqual({
@@ -256,6 +262,7 @@ describe("service access hooks", () => {
         booking: { kind: "hold", held: 9_000_000n, decimals: 6 },
       })
     );
+    expect(result.current.has("1022")).toBe(false);
   });
 
   it("uses a different cache identity after buyer or rehearsal-gate change", async () => {

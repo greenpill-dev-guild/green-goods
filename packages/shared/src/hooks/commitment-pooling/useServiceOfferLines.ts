@@ -62,7 +62,10 @@ export function useServiceOfferLines(input: {
     [chainId, coreModule, offers, viewer]
   );
   const reads = useServiceAccessReads(keys);
-  const holders = reads.map((read) => (read.data ? serviceVoucherHolder(read.data) : null));
+  // Only a voucher offer's read says whose vouchers count; another service's names no holder.
+  const holders = reads.map((read) =>
+    read.data?.mode === "voucher" ? serviceVoucherHolder(read.data) : null
+  );
   const holder = holders.find((account) => account !== null) ?? null;
   const wallet = useVoucherWallet(
     holder ? { sourceChainId: chainId, coreModule, account: holder } : null
