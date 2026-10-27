@@ -84,6 +84,12 @@ const VOUCHER_ACTS_NOT_ADOPTED: VoucherConsoleActs = {
   raiseAllowance: refuseUntilAdopted,
 };
 
+/** Retry Transfer is one tap from its row, with no dialog to say it failed: the shared toast does. */
+const reportVoucherActError = createMutationErrorHandler({
+  source: "useVoucherConsole",
+  toastContext: "voucher transfer",
+});
+
 /**
  * The voucher console beside a garden's pool console (PRD-1297 surface 6): the
  * bookings asked in the pool, the bookings under way on its offers, the
@@ -124,12 +130,29 @@ export function useVoucherConsole(input: { chainId: number; garden: Address }): 
       bookingFor: (commitmentId: bigint) => bookings.get(commitmentId.toString()),
     };
   }, [snapshot]);
+  const acts = useMemo(
+    (): VoucherConsoleActs => ({
+      ...VOUCHER_ACTS_NOT_ADOPTED,
+      // A failed retry leaves its row as it was, to try again; the toast says it failed.
+      retryTransfer: async (booking) => {
+        try {
+          await VOUCHER_ACTS_NOT_ADOPTED.retryTransfer(booking);
+        } catch (error) {
+          reportVoucherActError(error, {
+            gardenAddress: garden,
+            metadata: { act: "retryTransfer", commitmentId: booking.commitmentId.toString() },
+          });
+        }
+      },
+    }),
+    [garden]
+  );
   return {
     snapshot,
     // The chain's time, never before the read's own: a deadline passes between reads too.
     now: Math.max(snapshot.observedAt, Number(clock)),
     ...lookups,
-    acts: VOUCHER_ACTS_NOT_ADOPTED,
+    acts,
   };
 }
 

@@ -708,6 +708,30 @@ describe("usePoolConsoleController", () => {
     expect(refresh).toHaveBeenCalledTimes(3);
   });
 
+  // Retry Transfer is one tap from its row: a failure used to reach only the logger, so the
+  // steward never learned that nothing changed (Codex on #1320).
+  it("reports a failed transfer retry through the shared toast and leaves the row to try again", async () => {
+    const { result } = renderHook(() => useVoucherConsole({ chainId: CHAIN_ID, garden: GARDEN }), {
+      wrapper: createTestWrapper(testQueryClient()),
+    });
+    const booking: VoucherBooking = {
+      commitmentId: 51n,
+      holder: CLAIMANT,
+      setupId: `0x${"b5".repeat(32)}`,
+      issuer: { name: "Green Goods", chainId: 100, safe: GARDEN, decimals: 6 },
+      voucherUnits: 10_000_000n,
+      service: { kind: "access", daysUsed: 12, daysOf: 30 },
+      stage: { kind: "return-failed", units: 6_000_000n },
+    };
+
+    await expect(result.current.acts.retryTransfer(booking)).resolves.toBeUndefined();
+
+    expect(mocks.reportError).toHaveBeenCalledExactlyOnceWith(expect.any(Error), {
+      gardenAddress: GARDEN,
+      metadata: { act: "retryTransfer", commitmentId: "51" },
+    });
+  });
+
   it("composes pending state from either mutation hook", () => {
     mocks.poolPending = true;
     let queryClient = testQueryClient();

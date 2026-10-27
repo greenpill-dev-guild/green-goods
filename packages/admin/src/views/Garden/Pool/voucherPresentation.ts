@@ -206,6 +206,18 @@ interface VoucherBookingRowView {
   act: "report" | "propose" | "retry" | null;
 }
 
+/**
+ * The act a booking under way offers on its row: the same transfer again after
+ * a return failed, a proposed return once the service stopped early, whatever
+ * it was, and a visit's report while it runs.
+ */
+export function voucherBookingAct(booking: VoucherBooking): VoucherBookingRowView["act"] {
+  const { service, stage } = booking;
+  if (stage.kind === "return-failed") return "retry";
+  if (stage.kind === "ended-early") return "propose";
+  return service.kind === "visit" ? "report" : null;
+}
+
 /** How a booking under way reads on its offer's row, and the act it offers there. */
 function voucherBookingRow(
   booking: VoucherBooking,
@@ -214,6 +226,7 @@ function voucherBookingRow(
 ): VoucherBookingRowView {
   const { formatMessage } = intl;
   const { service, stage } = booking;
+  const act = voucherBookingAct(booking);
   if (stage.kind === "return-failed") {
     return {
       note: {
@@ -230,7 +243,32 @@ function voucherBookingRow(
         }),
         tone: "error",
       },
-      act: "retry",
+      act,
+    };
+  }
+  if (stage.kind === "ended-early") {
+    return {
+      note:
+        service.kind === "visit"
+          ? formatMessage(
+              {
+                id: "cockpit.garden.pool.voucher.row.endedEarlyHours",
+                defaultMessage: "Ended early · {used} of {of} hours",
+              },
+              { used: service.report.usableHours, of: service.report.ofHours }
+            )
+          : formatMessage(
+              {
+                id: "cockpit.garden.pool.voucher.row.endedEarly",
+                defaultMessage: "Ended early · {done} of {of} days",
+              },
+              { done: service.daysUsed, of: service.daysOf }
+            ),
+      status: {
+        label: formatMessage({ id: "app.commitments.row.needsYou", defaultMessage: "Needs you" }),
+        tone: "warning",
+      },
+      act,
     };
   }
   if (service.kind === "visit") {
@@ -252,23 +290,7 @@ function voucherBookingRow(
         title: exactTime(intl, start),
       },
       status: null,
-      act: stage.kind === "in-progress" ? "report" : null,
-    };
-  }
-  if (stage.kind === "ended-early") {
-    return {
-      note: formatMessage(
-        {
-          id: "cockpit.garden.pool.voucher.row.endedEarly",
-          defaultMessage: "Ended early · {done} of {of} days",
-        },
-        { done: service.daysUsed, of: service.daysOf }
-      ),
-      status: {
-        label: formatMessage({ id: "app.commitments.row.needsYou", defaultMessage: "Needs you" }),
-        tone: "warning",
-      },
-      act: "propose",
+      act,
     };
   }
   return {
@@ -277,7 +299,7 @@ function voucherBookingRow(
       { done: service.daysUsed, of: service.daysOf }
     ),
     status: null,
-    act: null,
+    act,
   };
 }
 

@@ -254,7 +254,19 @@ export const STORY_LINA_ENDED: VoucherBooking = {
   voucherUnits: 10n * VOUCHER,
   service: { kind: "access", daysUsed: 12, daysOf: 30 },
   // The working terms' days-of-access return: 18 of 30 days unused, 6 of 10 vouchers.
-  stage: { kind: "ended-early", returnLimit: 6n * VOUCHER },
+  stage: { kind: "ended-early", returnLimit: 6n * VOUCHER, returnCeiling: 0n },
+};
+
+/** Mara's hub day stopped after 2 of its 4 usable hours: up to half a voucher comes back. */
+export const STORY_MARA_VISIT_ENDED: VoucherBooking = {
+  ...STORY_MARA_VISIT,
+  service: {
+    kind: "visit",
+    startsAt: VISIT_START - 5 * 86_400,
+    endsAt: VISIT_START - 5 * 86_400 + 4 * 3_600,
+    report: { checkedIn: true, usableHours: 2, ofHours: 4, photos: 1 },
+  },
+  stage: { kind: "ended-early", returnLimit: VOUCHER / 2n, returnCeiling: 0n },
 };
 
 export const STORY_GREEN_GOODS_COMMITMENTS = [LINA_ACCESS, KWESI_ACCESS, RAFA_OFFER];

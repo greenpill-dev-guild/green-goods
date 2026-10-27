@@ -82,8 +82,11 @@ export type VoucherBookingService =
 
 export type VoucherBookingStage =
   | { kind: "in-progress" }
-  /** The service stopped early: the issuer proposes what comes back, within its terms. */
-  | { kind: "ended-early"; returnLimit: bigint }
+  /**
+   * The service stopped early: the issuer proposes what comes back, within its terms. The
+   * escrow keeps the most the issuer has let come back so far as a ceiling that only rises.
+   */
+  | { kind: "ended-early"; returnLimit: bigint; returnCeiling: bigint }
   /** A transfer after the final split didn't go through: anyone can retry the same one. */
   | { kind: "return-failed"; units: bigint };
 
@@ -264,20 +267,30 @@ export function selectCanApproveBooking(input: {
 /**
  * A return the issuer proposes for a booking that ended early: what goes back
  * to the holder and what is released to the issuer's reserve. The contract
- * stores only a ceiling; the limit is the issuer's published terms, so a
- * return above it is refused here.
+ * stores only a ceiling, which never comes down (`authorizeReturn`), so a
+ * proposal has to raise the one it keeps; the limit is the issuer's published
+ * terms, so a return above it is refused here.
  */
 export function selectReturnProposal(
-  booking: { voucherUnits: bigint; returnLimit: bigint },
+  booking: { voucherUnits: bigint; returnLimit: bigint; returnCeiling: bigint },
   refund: bigint
-): { refund: bigint; release: bigint; aboveTerms: boolean; valid: boolean } {
+): {
+  refund: bigint;
+  release: bigint;
+  aboveTerms: boolean;
+  /** No more than the escrow already lets come back: the proposal would change nothing. */
+  belowCeiling: boolean;
+  valid: boolean;
+} {
   const aboveTerms = refund > booking.returnLimit;
+  const belowCeiling = refund <= booking.returnCeiling;
   const fits = refund <= booking.voucherUnits;
   return {
     refund,
     release: fits ? booking.voucherUnits - refund : 0n,
     aboveTerms,
-    valid: refund > 0n && fits && !aboveTerms,
+    belowCeiling,
+    valid: refund > 0n && fits && !aboveTerms && !belowCeiling,
   };
 }
 

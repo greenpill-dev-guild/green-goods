@@ -153,7 +153,10 @@ export interface VoucherConsoleActs {
   reportVisit: (booking: VoucherBooking) => Promise<void>;
   /** `authorizeReturn`: the most that can come back; the holder still decides the split. */
   proposeReturn: (booking: VoucherBooking, refund: bigint) => Promise<void>;
-  /** The same transfer again; it can't be sent twice. */
+  /**
+   * The same transfer again; it can't be sent twice. One tap from its row, so a failure is
+   * reported through the shared toast rather than thrown, and the row stays to try again.
+   */
   retryTransfer: (booking: VoucherBooking) => Promise<void>;
   /** The reserve's allowance for promised rewards; it creates no vouchers. */
   raiseAllowance: (reserve: VoucherIssuerReserve, allowance: bigint) => Promise<void>;

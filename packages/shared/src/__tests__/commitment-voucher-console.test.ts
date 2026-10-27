@@ -150,13 +150,14 @@ describe("voucher ask stage", () => {
 });
 
 describe("return proposal", () => {
-  const booking = { voucherUnits: 10n * VOUCHER, returnLimit: 6n * VOUCHER };
+  const booking = { voucherUnits: 10n * VOUCHER, returnLimit: 6n * VOUCHER, returnCeiling: 0n };
 
   it("splits the deposit into what goes back and what the issuer keeps, within the terms", () => {
     expect(selectReturnProposal(booking, 6n * VOUCHER)).toEqual({
       refund: 6n * VOUCHER,
       release: 4n * VOUCHER,
       aboveTerms: false,
+      belowCeiling: false,
       valid: true,
     });
   });
@@ -167,6 +168,22 @@ describe("return proposal", () => {
       valid: false,
     });
     expect(selectReturnProposal(booking, 0n)).toMatchObject({ aboveTerms: false, valid: false });
+  });
+
+  // `authorizeReturn` reverts below the ceiling it keeps, and the issuer's own review asks for a
+  // strict increase, so a smaller proposal is a Safe write bound to fail (Codex on #1320).
+  it("refuses a return that doesn't raise the ceiling the escrow keeps", () => {
+    const proposed = { ...booking, returnCeiling: 4n * VOUCHER };
+    for (const refund of [3n * VOUCHER, 4n * VOUCHER]) {
+      expect(selectReturnProposal(proposed, refund), String(refund)).toMatchObject({
+        belowCeiling: true,
+        valid: false,
+      });
+    }
+    expect(selectReturnProposal(proposed, 5n * VOUCHER)).toMatchObject({
+      belowCeiling: false,
+      valid: true,
+    });
   });
 });
 
