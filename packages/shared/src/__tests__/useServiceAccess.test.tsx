@@ -43,6 +43,14 @@ vi.mock("../modules/commitment-pooling/service-access-wallet", async (importOrig
       (mocks.wallet ?? actual.readLiveVoucherWallet)(scope),
   };
 });
+// These cases read through mocked snapshots on Arbitrum's pooling core, which #1350 made a live
+// route; a unit test can't verify that route on chain, so it stays out here.
+vi.mock("../modules/commitment-pooling/service-access-live-config", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("../modules/commitment-pooling/service-access-live-config")
+  >()),
+  SERVICE_LIVE_ROUTES: [],
+}));
 vi.mock("../hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => mocks.online }));
 vi.mock("../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: key.buyer, authMode: "wallet", passkeyAccountProfile: null }),
