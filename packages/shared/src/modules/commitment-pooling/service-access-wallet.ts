@@ -176,115 +176,128 @@ export async function readLiveVoucherWallet(
     readSnapshot?: (key: ServiceAccessSnapshot["key"]) => Promise<ServiceAccessSnapshot>;
   } = {}
 ): Promise<VoucherWalletSnapshot> {
-  const route = (dependencies.routes ?? SERVICE_LIVE_ROUTES).find(
-    (r) =>
-      r.sourceChainId === scope.sourceChainId &&
-      r.core.address.toLowerCase() === scope.coreModule.toLowerCase()
-  );
-  if (!route?.walletState) return unavailableVoucherWallet(scope, "routes-unconfigured");
-  const chain = dependencies.chain ?? serviceLiveChain;
-  const reader = dependencies.reader ?? greenGoodsIndexer;
-  await verifyServiceLiveRoute(route, chain);
-  const state = route.walletState;
-  const stateAbi = parseAbi([
-    "function assetAuthorizations(address issuer,address token) view returns(address issuerAuthority,bool enabled)",
-    "function have(address token) view returns(bool)",
-    "function limitOf(address token,address pool) view returns(uint256)",
-  ]);
-  const issuers: VoucherIssuer[] = await Promise.all(
-    route.assets.map(async (asset) => {
-      const read = (address: Address, functionName: string, args: readonly unknown[]) =>
-        chain.read({ chainId: 100, address, abi: stateAbi, functionName, args });
-      const [authorization, admitted, cap] = await Promise.all([
-        read(state.adapter, "assetAuthorizations", [asset.issuer, asset.token]),
-        read(state.registry, "have", [asset.token]),
-        read(state.limiter, "limitOf", [asset.token, state.pool]),
-      ]);
-      const reserve = serviceTuple(authorization, ["issuerAuthority", "enabled"]);
-      return {
-        account: asset.issuer,
-        kind: "collective" as const,
-        name: asset.issuerName ?? asset.symbol,
-        gender: null,
-        garden: asset.garden ?? scope.coreModule,
-        asset: { chainId: 100, token: asset.token, symbol: asset.symbol, decimals: asset.decimals },
-        // The member-row PR consumes these canonical states; delisting does not remove holdings.
-        standing: {
-          bookings: serviceFlag(reserve.enabled) ? ("open" as const) : ("paused" as const),
-          exchange:
-            serviceFlag(admitted) && serviceUint(cap) > 0n
-              ? ("listed" as const)
-              : ("delisted" as const),
-        },
-      };
-    })
-  );
-  const balances = await Promise.all(
-    route.assets.map(async (asset) => ({
-      token: asset.token,
-      amount: serviceUint(
-        await chain.read({
-          chainId: 100,
-          address: asset.token,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [scope.account],
-        })
-      ),
-    }))
-  );
-  const setups: ServiceVoucherSetup[] = [];
-  let discoveryFailed = false;
   try {
-    const discovered = await discoverWalletVoucherSetups(scope, route.source.address, reader);
-    // A bounded cross-chain projection cannot prove that every setup has arrived.
+    const route = (dependencies.routes ?? SERVICE_LIVE_ROUTES).find(
+      (r) =>
+        r.sourceChainId === scope.sourceChainId &&
+        r.core.address.toLowerCase() === scope.coreModule.toLowerCase()
+    );
+    if (!route?.walletState) return unavailableVoucherWallet(scope, "routes-unconfigured");
+    const chain = dependencies.chain ?? serviceLiveChain;
+    const reader = dependencies.reader ?? greenGoodsIndexer;
+    await verifyServiceLiveRoute(route, chain);
+    const state = route.walletState;
+    const stateAbi = parseAbi([
+      "function assetAuthorizations(address issuer,address token) view returns(address issuerAuthority,bool enabled)",
+      "function have(address token) view returns(bool)",
+      "function limitOf(address token,address pool) view returns(uint256)",
+    ]);
+    const issuers: VoucherIssuer[] = await Promise.all(
+      route.assets.map(async (asset) => {
+        const read = (address: Address, functionName: string, args: readonly unknown[]) =>
+          chain.read({ chainId: 100, address, abi: stateAbi, functionName, args });
+        const [authorization, admitted, cap] = await Promise.all([
+          read(state.adapter.address, "assetAuthorizations", [asset.issuer, asset.token]),
+          read(state.registry.address, "have", [asset.token]),
+          read(state.limiter.address, "limitOf", [asset.token, state.pool.address]),
+        ]);
+        const reserve = serviceTuple(authorization, ["issuerAuthority", "enabled"]);
+        return {
+          account: asset.issuer,
+          kind: "collective" as const,
+          name: asset.issuerName ?? asset.symbol,
+          gender: null,
+          garden: asset.garden ?? scope.coreModule,
+          asset: {
+            chainId: 100,
+            token: asset.token,
+            symbol: asset.symbol,
+            decimals: asset.decimals,
+          },
+          // The member-row PR consumes these canonical states; delisting does not remove holdings.
+          standing: {
+            bookings: serviceFlag(reserve.enabled) ? ("open" as const) : ("paused" as const),
+            exchange:
+              serviceFlag(admitted) && serviceUint(cap) > 0n
+                ? ("listed" as const)
+                : ("delisted" as const),
+          },
+        };
+      })
+    );
+    const balances = await Promise.all(
+      route.assets.map(async (asset) => ({
+        token: asset.token,
+        amount: serviceUint(
+          await chain.read({
+            chainId: 100,
+            address: asset.token,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [scope.account],
+          })
+        ),
+      }))
+    );
+    const setups: ServiceVoucherSetup[] = [];
+    let discoveryFailed = false;
+    try {
+      const discovered = await discoverWalletVoucherSetups(scope, route.source.address, reader);
+      // A bounded cross-chain projection cannot prove that every setup has arrived.
 
-    const read =
-      dependencies.readSnapshot ??
-      createServiceAccessReadRepository(reader, { read: chain.read }).getServiceAccess;
-    const snapshots = new Map<string, ServiceAccessSnapshot>();
-    for (const hint of discovered.records) {
-      const key = `${hint.commitmentId}:${hint.buyer}`;
-      let snapshot = snapshots.get(key);
-      if (!snapshot) {
-        snapshot = await read({
-          sourceChainId: scope.sourceChainId,
-          coreModule: scope.coreModule,
-          commitmentId: hint.commitmentId,
-          buyer: hint.buyer,
-        });
-        if (
-          snapshot.evidence !== "onchain" ||
-          snapshot.capabilities.reasons.includes("authoritative-read-failed")
-        )
-          throw new Error("Canonical wallet booking unavailable");
-        await hydrateLiveVoucherSnapshot(snapshot, route, chain);
-        snapshots.set(key, snapshot);
+      const read =
+        dependencies.readSnapshot ??
+        createServiceAccessReadRepository(reader, { read: chain.read }).getServiceAccess;
+      const snapshots = new Map<string, ServiceAccessSnapshot>();
+      for (const hint of discovered.records) {
+        const key = `${hint.commitmentId}:${hint.buyer}`;
+        let snapshot = snapshots.get(key);
+        if (!snapshot) {
+          snapshot = await read({
+            sourceChainId: scope.sourceChainId,
+            coreModule: scope.coreModule,
+            commitmentId: hint.commitmentId,
+            buyer: hint.buyer,
+          });
+          if (
+            snapshot.evidence !== "onchain" ||
+            snapshot.capabilities.reasons.includes("authoritative-read-failed")
+          )
+            throw new Error("Canonical wallet booking unavailable");
+          await hydrateLiveVoucherSnapshot(snapshot, route, chain);
+          snapshots.set(key, snapshot);
+        }
+        const setup = snapshot.voucherSetups.find(
+          (row) =>
+            row.setupId === hint.setupId &&
+            row.authorization.holder.toLowerCase() === scope.account.toLowerCase()
+        );
+        if (!setup) throw new Error("Indexed wallet booking does not match the canonical holder");
+        setups.push(setup);
       }
-      const setup = snapshot.voucherSetups.find(
-        (row) =>
-          row.setupId === hint.setupId &&
-          row.authorization.holder.toLowerCase() === scope.account.toLowerCase()
-      );
-      if (!setup) throw new Error("Indexed wallet booking does not match the canonical holder");
-      setups.push(setup);
+    } catch (error) {
+      discoveryFailed = true;
+      logger.warn("Voucher wallet booking discovery is incomplete", {
+        source: "readLiveVoucherWallet",
+        error,
+      });
     }
-  } catch (error) {
-    discoveryFailed = true;
-    logger.warn("Voucher wallet booking discovery is incomplete", {
-      source: "readLiveVoucherWallet",
-      error,
+    const wallet = voucherWalletFromSetups({
+      scope,
+      evidence: "onchain",
+      complete: false,
+      issuers,
+      balances,
+      setups,
     });
+    return { ...wallet, reason: discoveryFailed ? "projection-unregistered" : null };
+  } catch (error) {
+    logger.warn("Canonical voucher wallet reads are unavailable", {
+      error,
+      account: scope.account,
+    });
+    return unavailableVoucherWallet(scope, "canonical-read-unavailable");
   }
-  const wallet = voucherWalletFromSetups({
-    scope,
-    evidence: "onchain",
-    complete: false,
-    issuers,
-    balances,
-    setups,
-  });
-  return { ...wallet, reason: discoveryFailed ? "projection-unregistered" : null };
 }
 
 function rewardDelivery(

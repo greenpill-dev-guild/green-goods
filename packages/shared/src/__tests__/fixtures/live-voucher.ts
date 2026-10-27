@@ -7,7 +7,8 @@ import type { ServiceLiveChain } from "../../modules/commitment-pooling/service-
 export function liveVoucherFixture(rows: unknown[] = []) {
   const route = structuredClone(SERVICE_LIVE_ROUTES[0]!);
   delete route.core.receipt.kind;
-  const pins = [route.core, route.source, route.destination];
+  const deploymentPins = [route.core, route.source, route.destination];
+  const pins = [...deploymentPins, ...Object.values(route.walletState ?? {})];
   for (const pin of [...pins, ...route.assets]) {
     pin.runtimeCodeHash = keccak256("0x6001");
     pin.implementation.runtimeCodeHash = keccak256("0x6002");
@@ -24,7 +25,7 @@ export function liveVoucherFixture(rows: unknown[] = []) {
       return `0x${"0".repeat(24)}${pin.implementation.address.slice(2)}`;
     },
     receipt: async (_chain, hash) => {
-      const pin = pins.find((p) => p.receipt.transactionHash === hash)!;
+      const pin = deploymentPins.find((p) => p.receipt.transactionHash === hash)!;
       return {
         status: "success",
         transactionHash: hash,

@@ -220,6 +220,17 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           })}
         </Alert>
       ) : null}
+      {vouchers.snapshot.status === "observed" &&
+      vouchers.snapshot.incomplete &&
+      pool.chainId === 42161 ? (
+        <Alert variant="warning">
+          {formatMessage({
+            id: "cockpit.garden.pool.voucher.live.partial",
+            defaultMessage:
+              "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
+          })}
+        </Alert>
+      ) : null}
       <div className="garden-tab-main">
         {summary}
 

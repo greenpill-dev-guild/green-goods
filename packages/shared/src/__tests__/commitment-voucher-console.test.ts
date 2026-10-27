@@ -59,6 +59,11 @@ function ask(
 }
 
 describe("voucher acceptance checks", () => {
+  it("withholds approval and acceptance while a route endpoint is paused", () => {
+    const booking = ask({ paused: true });
+    expect(selectVoucherAskStage(booking, NOW)).toBe("paused");
+    expect(selectVoucherAcceptanceChecks(booking, NOW).ready).toBe(false);
+  });
   it("lets the steward accept only when consent, approval, deposit and deadline all hold", () => {
     const cases: Array<
       [string, VoucherAsk, keyof ReturnType<typeof selectVoucherAcceptanceChecks>]

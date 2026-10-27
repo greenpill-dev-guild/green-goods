@@ -275,7 +275,7 @@ describe("live voucher steward integration", () => {
     ).rejects.toThrow("ceiling");
     await expect(
       prepareVoucherSafeFile(f.input, { kind: "retry", booking }, f.deps)
-    ).rejects.toThrow("failed frozen transfer");
+    ).rejects.toThrow("pending or failed frozen transfer");
   });
 
   it("hydrates account-wide wallet bookings from canonical custody", async () => {
@@ -290,10 +290,14 @@ describe("live voucher steward integration", () => {
     });
   });
   it.each([
-    "refund",
-    "release",
-    "both",
-  ])("exports only the failed frozen %s legs and refuses delivered legs", async (failed) => {
+    ["refund", "pending"],
+    ["release", "pending"],
+    ["both", "pending"],
+    ["refund", "failed"],
+    ["release", "failed"],
+    ["both", "failed"],
+    ["both", "mixed"],
+  ] as const)("exports the required frozen %s legs in %s state and refuses delivered legs", async (failed, progress) => {
     const f = fixture(true);
     const release = failed === "refund" ? 0n : failed === "both" ? 500_000n : 1_000_000n;
     const refund = 1_000_000n - release;
@@ -303,6 +307,11 @@ describe("live voucher steward integration", () => {
       refundVoucherUnits: refund,
     };
     const decisionId = voucherFinalDecisionId(f.a, hash("6"), allocation, 1_000_000n);
+    const leg = (units: bigint, failed: boolean) => ({
+      state: units === 0n ? 0 : failed ? 2 : 1,
+      attempts: units > 0n && failed ? 1n : 0n,
+      failureHash: units > 0n && failed ? hash("8") : zero,
+    });
     const final = {
       protocolVersion: 2,
       setupId: f.setup.setupId,
@@ -312,16 +321,8 @@ describe("live voucher steward integration", () => {
       decisionId,
       issuerReturnApprovalAtFreeze: 1_000_000n,
       allocation,
-      release: {
-        state: release > 0n ? 2 : 0,
-        attempts: release > 0n ? 1n : 0n,
-        failureHash: release > 0n ? hash("8") : zero,
-      },
-      refund: {
-        state: refund > 0n ? 2 : 0,
-        attempts: refund > 0n ? 1n : 0n,
-        failureHash: refund > 0n ? hash("8") : zero,
-      },
+      release: leg(release, progress === "failed"),
+      refund: leg(refund, progress !== "pending"),
     };
     const read = f.chain.read;
     f.chain.read = async (input) => {
@@ -345,7 +346,14 @@ describe("live voucher steward integration", () => {
       return value;
     };
     const booking = (await readLiveVoucherConsole(f.input, f.deps)).bookings[0]!;
-    expect(booking.stage.kind).toBe(failed === "refund" ? "return-failed" : "transfer-failed");
+    expect(booking.stage.kind).toBe(
+      progress === "pending"
+        ? "transfer-pending"
+        : final.release.state === 2
+          ? "transfer-failed"
+          : "return-failed"
+    );
+    expect(booking.stage).toMatchObject({ units: 1_000_000n });
     const file = await prepareVoucherSafeFile(f.input, { kind: "retry", booking }, f.deps);
     expect(
       file.transactions.map((tx) => decodeFunctionData({ abi: EscrowABI as Abi, data: tx.data }))
@@ -360,13 +368,115 @@ describe("live voucher steward integration", () => {
       ].filter(Boolean)
     );
     for (const leg of [final.release, final.refund])
-      if (leg.state === 2) {
+      if (leg.state === 1 || leg.state === 2) {
         leg.state = 3;
+        leg.attempts = 1n;
         leg.failureHash = zero;
       }
     await expect(
       prepareVoucherSafeFile(f.input, { kind: "retry", booking }, f.deps)
-    ).rejects.toThrow("failed frozen transfer");
+    ).rejects.toThrow("pending or failed frozen transfer");
+  });
+  it.each([
+    "rpc",
+    "implementation",
+    "owner",
+  ])("replaces prior observations when route %s verification fails", async (failure) => {
+    const f = fixture();
+    expect((await readLiveVoucherConsole(f.input, f.deps)).asks).toHaveLength(1);
+    if (failure === "rpc")
+      f.chain.code = async () => {
+        throw new Error("RPC unavailable");
+      };
+    if (failure === "implementation") f.chain.storage = async () => zero;
+    if (failure === "owner") {
+      const read = f.chain.read;
+      f.chain.read = async (input) =>
+        input.functionName === "owner" ? f.wallet.account : read(input);
+    }
+    expect(await readLiveVoucherConsole(f.input, f.deps)).toMatchObject({
+      status: "unavailable",
+      asks: [],
+      bookings: [],
+    });
+  });
+  it.each([
+    "adapter",
+    "registry",
+    "limiter",
+    "pool",
+  ] as const)("rejects changed %s proxy state before returning canonical wallet data", async (name) => {
+    for (const failure of ["code", "implementation", "implementation-code", "owner"] as const) {
+      const f = fixture();
+      const pin = f.route.walletState![name];
+      const code = f.chain.code;
+      const storage = f.chain.storage;
+      const read = f.chain.read;
+      f.chain.code = async (id, address) =>
+        (failure === "code" && address.toLowerCase() === pin.address.toLowerCase()) ||
+        (failure === "implementation-code" &&
+          address.toLowerCase() === pin.implementation.address.toLowerCase())
+          ? "0x6003"
+          : code(id, address);
+      f.chain.storage = async (id, address, slot) =>
+        failure === "implementation" && address.toLowerCase() === pin.address.toLowerCase()
+          ? zero
+          : storage(id, address, slot);
+      f.chain.read = async (input) =>
+        failure === "owner" &&
+        input.functionName === "owner" &&
+        input.address.toLowerCase() === pin.address.toLowerCase()
+          ? f.wallet.account
+          : read(input);
+      expect(await readLiveVoucherWallet(f.wallet, f.deps)).toMatchObject({
+        evidence: "unavailable",
+        reason: "canonical-read-unavailable",
+        holdings: [],
+        bookings: [],
+        returns: [],
+      });
+    }
+  });
+  it.each([
+    "assetAuthorizations",
+    "have",
+    "limitOf",
+    "balanceOf",
+  ])("clears prior wallet observations when %s fails", async (functionName) => {
+    const f = fixture(true);
+    expect((await readLiveVoucherWallet(f.wallet, f.deps)).bookings).toHaveLength(1);
+    const read = f.chain.read;
+    f.chain.read = async (input) => {
+      if (input.functionName === functionName) throw new Error("RPC unavailable");
+      return read(input);
+    };
+    expect(await readLiveVoucherWallet(f.wallet, f.deps)).toMatchObject({
+      evidence: "unavailable",
+      reason: "canonical-read-unavailable",
+      holdings: [],
+      bookings: [],
+      returns: [],
+    });
+  });
+  it.each([
+    "core",
+    "sourceVoucher",
+    "destinationVoucher",
+  ] as const)("marks pending approval paused when %s is paused", async (component) => {
+    const f = fixture();
+    if (component === "destinationVoucher") {
+      const read = f.chain.read;
+      f.chain.read = async (input) => (input.functionName === "paused" ? true : read(input));
+    } else f.snapshot.pause[component] = true;
+    expect((await readLiveVoucherConsole(f.input, f.deps)).asks[0]).toMatchObject({ paused: true });
+  });
+  it("preserves the live pilot's same-address buyer and holder boundary", async () => {
+    const f = fixture(true);
+    f.snapshot.voucherSetups[0]!.authorization.holder = f.route.core.owner;
+    expect(await readLiveVoucherConsole(f.input, f.deps)).toMatchObject({
+      status: "unavailable",
+      bookings: [],
+    });
   });
   it("does not turn missing tables into an observed empty console", async () => {
     const f = fixture();

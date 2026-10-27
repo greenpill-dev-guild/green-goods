@@ -8326,5 +8326,10 @@
   "cockpit.garden.pool.voucher.live.aboveDeposit": "La devolución no puede superar los {limit} vales de la reserva",
   "cockpit.garden.pool.voucher.live.returnHint": "Hasta {limit} vales, según los términos de servicio y devolución acordados",
   "cockpit.garden.pool.voucher.live.indexerUnavailable": "No se pudieron cargar las reservas con vales. El indexador puede estar sincronizándose. Actualiza antes de aprobar o aceptar una reserva.",
-  "cockpit.garden.pool.voucher.live.transferFailed": "No se completó la transferencia de vales"
+  "cockpit.garden.pool.voucher.live.transferFailed": "No se completó la transferencia de vales",
+  "cockpit.garden.pool.voucher.live.transferPending": "La transferencia de vales necesita completarse",
+  "cockpit.garden.pool.voucher.live.paused": "Reserva de vales en pausa",
+  "cockpit.garden.pool.voucher.live.pausedDetail": "Las aprobaciones y la aceptación esperan hasta que se reanude la ruta de vales.",
+  "cockpit.garden.pool.voucher.live.partial": "La búsqueda de reservas con vales está incompleta. Pueden faltar reservas mientras llegan los mensajes entre cadenas o se actualiza el indexador.",
+  "app.voucher.wl.unavailable": "No se pudieron consultar los saldos de vales ni las reservas. Comprueba tu conexión e inténtalo de nuevo."
 }

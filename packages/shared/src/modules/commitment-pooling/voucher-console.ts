@@ -60,6 +60,8 @@ export interface VoucherAskSetup {
 
 /** One voucher booking asked on a service offer in the pool: a pending service claim. */
 export interface VoucherAsk {
+  /** Approval and source acceptance wait while any route endpoint is paused. */
+  paused?: boolean;
   commitmentId: bigint;
   /** The member who asked: the pending claim's claimant. */
   buyer: Address;
@@ -102,7 +104,8 @@ export type VoucherBookingStage =
   | { kind: "ended-early"; returnLimit: bigint; returnCeiling: bigint }
   /** A transfer after the final split didn't go through: anyone can retry the same one. */
   | { kind: "return-failed"; units: bigint }
-  | { kind: "transfer-failed"; units: bigint };
+  | { kind: "transfer-failed"; units: bigint }
+  | { kind: "transfer-pending"; units: bigint };
 
 /** A booking under way on one of the pool's offers. */
 export interface VoucherBooking {
@@ -224,12 +227,13 @@ export function selectVoucherAcceptanceChecks(
     approval,
     deposit,
     deadline,
-    ready: consent && approval && deposit && deadline,
+    ready: !ask.paused && consent && approval && deposit && deadline,
   };
 }
 
 /** Where a booking asked in the pool stands, from the steward's seat. */
 export type VoucherAskStage =
+  | "paused"
   /** The offer changed since the member agreed: they cancel and book again. */
   | "terms-changed"
   /** The ask carries no consent the acceptance can name, so it can't be accepted: they book again. */
@@ -249,6 +253,7 @@ export type VoucherAskStage =
   | "ready";
 
 export function selectVoucherAskStage(ask: VoucherAsk, now: number): VoucherAskStage {
+  if (ask.paused) return "paused";
   if (!sameTerms(ask)) return "terms-changed";
   if (!namedConsent(ask)) return "consent-missing";
   if (ask.setup === null) return "setting-up";

@@ -34,7 +34,7 @@ export function withVoucherRecovery<
   const failed = commitments.filter(
     (row) =>
       !listed.has(row.id) &&
-      ["return-failed", "transfer-failed"].includes(
+      ["return-failed", "transfer-failed", "transfer-pending"].includes(
         vouchers.bookingFor(row.commitmentId)?.stage.kind ?? ""
       )
   );

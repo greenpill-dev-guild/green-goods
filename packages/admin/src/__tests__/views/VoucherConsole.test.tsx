@@ -274,6 +274,7 @@ describe("the issuer's acts in the Promises console", () => {
   it.each([
     "return-failed",
     "transfer-failed",
+    "transfer-pending",
   ] as const)("counts %s as needing recovery, and retries that transfer", async (kind) => {
     const retryTransfer = vi.fn().mockResolvedValue(undefined);
     const failed: VoucherBooking = {
@@ -285,7 +286,11 @@ describe("the issuer's acts in the Promises console", () => {
     expect(screen.getByRole("button", { name: "Needs recovery (1)" })).toBeInTheDocument();
     expect(
       screen.getByText(
-        kind === "return-failed" ? "Return didn’t go through" : "Voucher transfer didn’t go through"
+        kind === "return-failed"
+          ? "Return didn’t go through"
+          : kind === "transfer-pending"
+            ? "Voucher transfer needs completion"
+            : "Voucher transfer didn’t go through"
       )
     ).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Retry Transfer" })[0]!);

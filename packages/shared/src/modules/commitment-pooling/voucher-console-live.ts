@@ -8,6 +8,7 @@ import {
   serviceTuple,
   serviceUint,
 } from "./service-access-chain-values";
+import type { VoucherLegProgress } from "./service-access-voucher-types";
 import { context, issuerFor, same, type Dependencies } from "./voucher-console-live-context";
 import {
   UNAVAILABLE_VOUCHER_CONSOLE,
@@ -16,12 +17,21 @@ import {
   type VoucherConsoleSnapshot,
 } from "./voucher-console";
 
+const needsExecution = (leg: VoucherLegProgress | undefined) =>
+  leg?.state === "pending" || leg?.state === "failed";
+
 /** The index discovers candidates; exact source consent and destination custody own the console. */
 export async function readLiveVoucherConsole(
   input: { chainId: number; garden: Address },
   deps: Dependencies = {}
 ): Promise<VoucherConsoleSnapshot> {
-  const ctx = await context(input, deps);
+  let ctx;
+  try {
+    ctx = await context(input, deps);
+  } catch (error) {
+    logger.warn("Voucher console route is unavailable", { error, garden: input.garden });
+    return UNAVAILABLE_VOUCHER_CONSOLE;
+  }
   if (!ctx) return UNAVAILABLE_VOUCHER_CONSOLE;
   const { route, reader } = ctx;
   const asset = route.assets.find((a) => a.garden && same(a.garden, input.garden));
@@ -102,6 +112,10 @@ export async function readLiveVoucherConsole(
       const d = setup.destination;
       if (source.consent?.state === "pending") {
         asks.push({
+          paused:
+            source.pause.core !== false ||
+            source.pause.sourceVoucher !== false ||
+            source.pause.destinationVoucher !== false,
           commitmentId: a.commitmentId,
           buyer: a.buyer,
           claimHash: source.consent.claimHash,
@@ -134,6 +148,9 @@ export async function readLiveVoucherConsole(
         d.finalAllocation?.financiallyClosed
       )
         continue;
+      const final = d.finalAllocation;
+      const releaseNeedsExecution = needsExecution(final?.release);
+      const refundNeedsExecution = needsExecution(final?.refund);
       bookings.push({
         commitmentId: a.commitmentId,
         holder: a.holder,
@@ -144,24 +161,23 @@ export async function readLiveVoucherConsole(
           kind: "units",
           units: a.serviceUnits,
           label: source.offer!.unitLabel,
+          // This is the contract ceiling for a new issuer permission, not a calculated remedy entitlement.
+          // Safe signers must review the pinned service/remedy terms before authorizing it.
           returnLimit: d.finalAllocation || d.issuerReturnCeiling === null ? null : a.voucherUnits,
           returnCeiling: d.issuerReturnCeiling ?? 0n,
         },
         stage:
-          d.finalAllocation?.release.state === "failed" ||
-          d.finalAllocation?.refund.state === "failed"
+          releaseNeedsExecution || refundNeedsExecution
             ? {
                 kind:
-                  d.finalAllocation?.release.state === "failed"
+                  final?.release.state === "failed"
                     ? "transfer-failed"
-                    : "return-failed",
+                    : final?.refund.state === "failed"
+                      ? "return-failed"
+                      : "transfer-pending",
                 units:
-                  (d.finalAllocation?.release.state === "failed"
-                    ? d.finalAllocation!.allocation.releaseVoucherUnits
-                    : 0n) +
-                  (d.finalAllocation!.refund.state === "failed"
-                    ? d.finalAllocation!.allocation.refundVoucherUnits
-                    : 0n),
+                  (releaseNeedsExecution ? final!.allocation.releaseVoucherUnits : 0n) +
+                  (refundNeedsExecution ? final!.allocation.refundVoucherUnits : 0n),
               }
             : { kind: "in-progress" },
       });
@@ -254,11 +270,11 @@ export async function prepareVoucherSafeFile(
     calls = [[setup.setupId, setup.authorizationHash, action.ceiling]];
   } else {
     const final = d.finalAllocation;
-    if (!final) throw new Error("No failed frozen transfer to retry");
+    if (!final) throw new Error("No pending or failed frozen transfer to execute");
     calls = [final.release, final.refund].flatMap((leg, index) =>
-      leg.state === "failed" ? [[setup.setupId, final.decisionId, index]] : []
+      needsExecution(leg) ? [[setup.setupId, final.decisionId, index]] : []
     );
-    if (!calls.length) throw new Error("No failed frozen transfer to retry");
+    if (!calls.length) throw new Error("No pending or failed frozen transfer to execute");
     functionName = "executeFinalLeg";
   }
   return {

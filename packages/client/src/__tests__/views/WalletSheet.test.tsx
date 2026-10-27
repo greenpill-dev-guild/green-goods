@@ -134,6 +134,15 @@ describe("WalletSheet", () => {
     mockUseVoucherWallet.mockReturnValue(voucherWallet("unavailable"));
   });
 
+  it("keeps Vouchers available when a configured route's canonical reads fail", () => {
+    const state = voucherWallet("unavailable");
+    mockUseVoucherWallet.mockReturnValue({
+      ...state,
+      data: { ...state.data, reason: "canonical-read-unavailable" },
+    });
+    render(<WalletSheet isOpen onClose={() => {}} />);
+    expect(screen.getByRole("tab", { name: /Vouchers/ })).toBeInTheDocument();
+  });
   it("counts only jars that can actually be claimed in the Cookies badge", () => {
     // One claimable, one drained (balance 0), one paused → badge shows 1.
     mockUseAccessibleCookieJars.mockReturnValue(jarsState([baseJar, emptyJar, pausedJar]));

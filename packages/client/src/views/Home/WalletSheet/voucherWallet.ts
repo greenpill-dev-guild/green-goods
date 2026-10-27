@@ -16,7 +16,11 @@ const VOUCHER_DECIMALS = 6;
 export function hasVoucherWallet(
   wallet: VoucherWalletSnapshot | null | undefined
 ): wallet is VoucherWalletSnapshot {
-  return wallet !== null && wallet !== undefined && wallet.evidence !== "unavailable";
+  return (
+    wallet !== null &&
+    wallet !== undefined &&
+    (wallet.evidence !== "unavailable" || wallet.reason === "canonical-read-unavailable")
+  );
 }
 
 /**

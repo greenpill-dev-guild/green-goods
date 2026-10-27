@@ -89,9 +89,16 @@ describe("receipt-backed live voucher wallet", () => {
       if (input.functionName === "assetAuthorizations") throw new Error("reserve RPC unavailable");
       return read(input);
     };
-    await expect(
-      readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
-    ).rejects.toThrow("reserve RPC unavailable");
+    expect(
+      await readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
+    ).toMatchObject({
+      evidence: "unavailable",
+      reason: "canonical-read-unavailable",
+      issuers: [],
+      holdings: [],
+      bookings: [],
+      returns: [],
+    });
   });
   it("keeps canonical holdings but marks bookings incomplete when the hosted table is missing", async () => {
     const f = liveVoucherFixture();
@@ -127,9 +134,16 @@ describe("receipt-backed live voucher wallet", () => {
   it("refuses changed deployed bytecode before reporting any holdings", async () => {
     const f = liveVoucherFixture();
     f.chain.code = async () => "0x00";
-    await expect(
-      readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
-    ).rejects.toThrow("implementation or owner");
+    expect(
+      await readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
+    ).toMatchObject({
+      evidence: "unavailable",
+      reason: "canonical-read-unavailable",
+      issuers: [],
+      holdings: [],
+      bookings: [],
+      returns: [],
+    });
   });
   it("leaves unsupported networks unavailable", async () => {
     const f = liveVoucherFixture();
@@ -144,9 +158,16 @@ describe("receipt-backed live voucher wallet", () => {
       input.functionName === "owner" && input.address === f.route.assets[0]!.token
         ? Promise.resolve(f.wallet.account)
         : read(input);
-    await expect(
-      readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
-    ).rejects.toThrow("voucher token changed");
+    expect(
+      await readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
+    ).toMatchObject({
+      evidence: "unavailable",
+      reason: "canonical-read-unavailable",
+      issuers: [],
+      holdings: [],
+      bookings: [],
+      returns: [],
+    });
   });
 });
 
