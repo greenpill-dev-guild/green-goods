@@ -3,7 +3,7 @@
  */
 
 import { act, render } from "@testing-library/react";
-import { createElement } from "react";
+import { createElement, StrictMode } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -46,17 +46,27 @@ vi.mock("@green-goods/shared/components/Toast/presets/update", () => ({
   }),
 }));
 
-vi.mock("@green-goods/shared/modules/app/cache-recovery", () => ({
-  appCodeRecovery: {
-    getSnapshot: () => sharedMocks.codeRecoveryRequired,
-    subscribe: (listener: () => void) => {
-      sharedMocks.codeRecoveryListeners.add(listener);
-      return () => {
-        sharedMocks.codeRecoveryListeners.delete(listener);
-      };
+vi.mock("@green-goods/shared/modules/app/cache-recovery", async (importOriginal) => {
+  const { isAppCodeLoadError } =
+    await importOriginal<typeof import("@green-goods/shared/modules/app/cache-recovery")>();
+  return {
+    appCodeRecovery: {
+      report: (error: unknown) => {
+        if (!isAppCodeLoadError(error)) return false;
+        sharedMocks.codeRecoveryRequired += 1;
+        for (const listener of sharedMocks.codeRecoveryListeners) listener();
+        return true;
+      },
+      getSnapshot: () => sharedMocks.codeRecoveryRequired,
+      subscribe: (listener: () => void) => {
+        sharedMocks.codeRecoveryListeners.add(listener);
+        return () => {
+          sharedMocks.codeRecoveryListeners.delete(listener);
+        };
+      },
     },
-  },
-}));
+  };
+});
 
 vi.mock("@green-goods/shared/service-worker", () => ({
   schedulePwaShellPreparation: sharedMocks.schedulePwaShellPreparation,
@@ -122,6 +132,14 @@ describe("PwaUpdateNotifier", () => {
 
     renderNotifier();
 
+    act(() => {
+      window.dispatchEvent(
+        Object.assign(new Event("vite:preloadError"), {
+          payload: new Error("Failed to fetch dynamically imported module"),
+        })
+      );
+    });
+    expect(sharedMocks.codeRecoveryRequired).toBe(0);
     expect(sharedMocks.useServiceWorkerUpdate).not.toHaveBeenCalled();
     expect(sharedMocks.ready).not.toHaveBeenCalled();
     expect(sharedMocks.applying).not.toHaveBeenCalled();
@@ -144,6 +162,69 @@ describe("PwaUpdateNotifier", () => {
     expect(sharedMocks.useServiceWorkerUpdate).toHaveBeenCalledTimes(1);
     expect(sharedMocks.checking).not.toHaveBeenCalled();
     expect(sharedMocks.downloading).not.toHaveBeenCalled();
+  });
+
+  it("offers a restart for a wallet import failure even when the SDK swallows it", () => {
+    renderNotifier();
+    const event = Object.assign(new Event("vite:preloadError", { cancelable: true }), {
+      payload: new Error("Failed to fetch dynamically imported module"),
+    });
+
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    expect(sharedMocks.codeUnavailable).toHaveBeenCalledWith(
+      sharedMocks.activateNow,
+      expect.any(Function)
+    );
+    expect(event.defaultPrevented).toBe(false);
+    expect(sharedMocks.activateNow).not.toHaveBeenCalled();
+  });
+
+  it("does not offer code recovery for ordinary errors or a missing import-event payload", () => {
+    renderNotifier();
+    act(() => {
+      window.dispatchEvent(
+        Object.assign(new Event("vite:preloadError"), {
+          payload: new Error("Wallet request rejected"),
+        })
+      );
+      window.dispatchEvent(new Event("vite:preloadError"));
+    });
+    expect(sharedMocks.codeRecoveryRequired).toBe(0);
+    expect(sharedMocks.codeUnavailable).not.toHaveBeenCalled();
+  });
+
+  it("keeps one import listener through Strict Mode's effect cleanup and setup", () => {
+    render(createElement(StrictMode, null, notifierTree()));
+    act(() => {
+      window.dispatchEvent(
+        Object.assign(new Event("vite:preloadError"), {
+          payload: new TypeError("Importing a module script failed."),
+        })
+      );
+    });
+    expect(sharedMocks.codeRecoveryRequired).toBe(1);
+    expect(sharedMocks.codeUnavailable).toHaveBeenCalledOnce();
+  });
+
+  it("removes the import listener on unmount and restores it on remount", () => {
+    const { unmount } = renderNotifier();
+    const event = Object.assign(new Event("vite:preloadError"), {
+      payload: new Error("Failed to fetch dynamically imported module"),
+    });
+    unmount();
+    act(() => {
+      window.dispatchEvent(event);
+    });
+    expect(sharedMocks.codeRecoveryRequired).toBe(0);
+    renderNotifier();
+    act(() => {
+      window.dispatchEvent(event);
+    });
+    expect(sharedMocks.codeRecoveryRequired).toBe(1);
+    expect(sharedMocks.codeUnavailable).toHaveBeenCalledOnce();
   });
 
   it("keeps passive update downloads quiet in PWA presentation", () => {

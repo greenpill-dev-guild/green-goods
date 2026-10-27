@@ -10,7 +10,6 @@
 import { logger } from "./logger";
 import { track } from "./posthog";
 import { trackError, type ErrorCategory, type ErrorContext } from "./error-categories";
-import { appCodeRecovery } from "./cache-recovery";
 
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
@@ -121,12 +120,6 @@ export function initGlobalErrorHandlers(): () => void {
     });
   };
 
-  // Vite emits before SDKs such as AppKit catch and swallow import failures.
-  const handlePreloadError = (event: Event) => {
-    if ("payload" in event) appCodeRecovery.report(event.payload);
-  };
-
-  window.addEventListener("vite:preloadError", handlePreloadError);
   window.addEventListener("error", handleError);
   window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
@@ -138,7 +131,6 @@ export function initGlobalErrorHandlers(): () => void {
 
   // Return cleanup function
   cleanupGlobalHandlers = () => {
-    window.removeEventListener("vite:preloadError", handlePreloadError);
     window.removeEventListener("error", handleError);
     window.removeEventListener("unhandledrejection", handleUnhandledRejection);
     globalHandlersInitialized = false;

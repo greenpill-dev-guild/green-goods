@@ -36,6 +36,16 @@ function ServiceWorkerUpdateNotifier() {
     dismissUpdate();
   }, [codeUnavailable, dismissUpdate]);
 
+  // Vite reports failures before wallet SDKs catch them. Keep the listener here
+  // so recovery stays in the lazy PWA runtime rather than the website's boot.
+  useEffect(() => {
+    const handlePreloadError = (event: Event) => {
+      if ("payload" in event) appCodeRecovery.report(event.payload);
+    };
+    window.addEventListener("vite:preloadError", handlePreloadError);
+    return () => window.removeEventListener("vite:preloadError", handlePreloadError);
+  }, []);
+
   // A failed install recovers with a fresh check, not another activation. The
   // reader asked for it, so the toast follows the check through instead of
   // leaving the failure up, and a ready update is offered at once rather than
