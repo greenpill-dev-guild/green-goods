@@ -105,9 +105,11 @@ export function selectPoolCommitmentRows({
   const placed = new Set<string>();
   return rows.flatMap((record): PoolCommitmentEntry[] => {
     const group = groupOf.get(record.id);
-    if (!group || standsAlone?.(record)) return [{ kind: "single", record }];
-    if (placed.has(group.key)) return [];
+    if (!group) return [{ kind: "single", record }];
+    // The group still counts a copy that stands alone, and keeps its row when every copy does.
+    const own: PoolCommitmentEntry[] = standsAlone?.(record) ? [{ kind: "single", record }] : [];
+    if (placed.has(group.key)) return own;
     placed.add(group.key);
-    return [group];
+    return [group, ...own];
   });
 }
