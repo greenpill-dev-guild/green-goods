@@ -1970,8 +1970,9 @@ The app's `SERVICE_LIVE_ROUTES` now pins this deployment. The core is pinned by 
 CREATE2 creation (`0xf7c81fd3d697b77ac06d5834bc1fef317f7a74f95d8d31e6e6d7a319fe6cb2c6`, through the
 keyless deployer) plus its current implementation and owner. The Shared `safe-upgrade` receipt
 kind cannot verify the actual relayed MultiSend upgrade, so it is not used. The app's own
-`verifyServiceLiveRoute` accepted the committed route against both chains in 39 read calls and
-rejected a tampered implementation hash.
+`verifyServiceLiveRoute` accepted the committed route against both chains in 45 read calls,
+including each voucher token's owner, symbol and decimals, and rejected a tampered implementation
+hash.
 
 Task record: Cosmo-Local live wiring | Type: verification/feature | Outcome: adoption verified on
 chain; wiring prepared, merge held for the recorded review points

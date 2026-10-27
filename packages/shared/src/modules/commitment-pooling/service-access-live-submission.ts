@@ -25,7 +25,8 @@ interface ServiceSubmissionContext {
   session(): ServiceLiveSession;
   storage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined;
   chain: ServiceLiveChain;
-  read(key: ServiceAccessKey, reconcile?: boolean): Promise<ServiceAccessSnapshot>;
+  /** `fresh` proves the route from the chain again instead of reusing a recent proof. */
+  read(key: ServiceAccessKey, reconcile?: boolean, fresh?: boolean): Promise<ServiceAccessSnapshot>;
   assertSession(
     key: ServiceAccessKey,
     expected?: string,
@@ -186,10 +187,10 @@ export async function executeLiveServiceCall(
     }
     const choice = selectServiceAccessAction(snapshot, action);
     if (!choice.allowed) throw new Error(choice.reason ?? "Service action unavailable");
-    const assertFresh = async () => {
+    const assertFresh = async (beforeBroadcast = false) => {
       await assertSession(key, expectedSession, call.chainId);
       if (routeHash !== configIdentity(route)) throw new Error("Service route revision changed");
-      const fresh = await read(key);
+      const fresh = await read(key, true, beforeBroadcast);
       const eligibility = selectServiceAccessAction(fresh, action);
       if (
         !eligibility.allowed ||
@@ -218,10 +219,10 @@ export async function executeLiveServiceCall(
     };
     await assertFresh();
     const result = await sender.sendContractCall(call, {
-      assertOwnership: assertFresh,
+      assertOwnership: () => assertFresh(),
       onBeforeBroadcast: async (reference) => {
         try {
-          await assertFresh();
+          await assertFresh(true);
           pending = {
             version: 1,
             route: routeHash,

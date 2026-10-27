@@ -141,6 +141,10 @@ function fixture() {
       switch (functionName) {
         case "owner":
           return address === row.authorization.token ? row.authorization.issuer : account(10);
+        case "symbol":
+          return "TEST";
+        case "decimals":
+          return 0;
         case "serviceOfferProtocolVersion":
         case "voucherAcceptanceProtocolVersion":
           return 1;
@@ -321,6 +325,40 @@ describe("live service access", () => {
       "Authoritative live service state unavailable"
     );
     expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("keeps a routed promise it could not read a failure, never an ordinary promise", async () => {
+    const f = fixture();
+    // A failed authoritative read: no chain evidence, so its route is unknown.
+    f.dependencies.readSnapshot = async () => ({
+      ...structuredClone(f.s),
+      evidence: "indexed" as const,
+      mode: "unavailable" as const,
+    });
+    const receipt = vi.spyOn(f.chain, "receipt");
+    await expect(f.adapter().read(key)).rejects.toThrow(
+      "Authoritative live service state unavailable"
+    );
+    expect(receipt).not.toHaveBeenCalled();
+  });
+
+  it("keeps an unknown buyer-garden membership a read failure the member can retry", async () => {
+    const f = fixture();
+    const adapter = createLiveServiceAccessAdapter({
+      ...f.dependencies,
+      membership: async () => null,
+    });
+    await expect(adapter.read(key)).rejects.toThrow("Buyer garden membership unavailable");
+  });
+
+  it("proves the route for the first read and again only right before the broadcast", async () => {
+    const f = fixture();
+    const receipt = vi.spyOn(f.chain, "receipt");
+    await f.adapter().execute(key, f.action);
+    const proofs = receipt.mock.calls.filter(
+      ([, hash]) => hash === f.route.core.receipt.transactionHash
+    );
+    expect(proofs).toHaveLength(2);
   });
 
   it("sends one exact finite approval with a member-owned EOA and confirmed Gnosis readback", async () => {
@@ -575,6 +613,22 @@ describe("live service access", () => {
     if (kind === "reviewed-upgrade")
       await expect(verifyServiceLiveRoute(f.route, f.chain)).resolves.toBeUndefined();
     else await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow("receipt");
+  });
+
+  it.each([
+    ["owner", account(66)],
+    ["symbol", "OTHER"],
+    ["decimals", 6],
+  ])("refuses a route whose voucher token now reports another %s", async (functionName, value) => {
+    const f = fixture();
+    const { read } = f.chain;
+    f.chain.read = async (input) =>
+      input.address === f.row.authorization.token && input.functionName === functionName
+        ? value
+        : read(input);
+    await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow(
+      "Service voucher token changed"
+    );
   });
 
   it.each([

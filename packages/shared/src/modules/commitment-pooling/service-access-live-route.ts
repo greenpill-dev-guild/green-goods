@@ -7,6 +7,7 @@ import {
   decodeEventLog,
   decodeFunctionData,
   encodeFunctionData,
+  erc20Abi,
   getContractAddress,
   type Hex,
   keccak256,
@@ -18,6 +19,7 @@ import { serviceAddress as address, serviceUint as uint } from "./service-access
 import type { ServiceDeploymentPin, ServiceLiveRoute } from "./service-access-live-config";
 
 const OWNER = parseAbi(["function owner() view returns (address)"]);
+const TOKEN = [...OWNER, ...erc20Abi];
 const SAFE_UPGRADE = parseAbi([
   "function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,bytes signatures) returns (bool)",
   "event ExecutionSuccess(bytes32 txHash,uint256 payment)",
@@ -262,10 +264,15 @@ export async function verifyServiceLiveRoute(route: ServiceLiveRoute, chain: Ser
   );
   await Promise.all(
     route.assets.map(async (asset) => {
-      const [code, slot, implementation] = await Promise.all([
+      const token = (functionName: string) =>
+        chain.read({ chainId: 100, address: asset.token, abi: TOKEN, functionName });
+      const [code, slot, implementation, issuer, symbol, decimals] = await Promise.all([
         chain.code(100, asset.token),
         chain.storage(100, asset.token, IMPLEMENTATION_SLOT),
         chain.code(100, asset.implementation.address),
+        token("owner"),
+        token("symbol"),
+        token("decimals"),
       ]);
       if (
         code === "0x" ||
@@ -273,7 +280,11 @@ export async function verifyServiceLiveRoute(route: ServiceLiveRoute, chain: Ser
         !/^0x0{24}[a-f0-9]{40}$/i.test(slot) ||
         !same(`0x${slot.slice(-40)}`, asset.implementation.address) ||
         implementation === "0x" ||
-        !same(keccak256(implementation), asset.implementation.runtimeCodeHash)
+        !same(keccak256(implementation), asset.implementation.runtimeCodeHash) ||
+        // Snapshots show the route's issuer, symbol and decimals, so the token must still agree.
+        !same(address(issuer), asset.issuer) ||
+        symbol !== asset.symbol ||
+        decimals !== asset.decimals
       )
         throw new Error("Service voucher token changed");
     })
