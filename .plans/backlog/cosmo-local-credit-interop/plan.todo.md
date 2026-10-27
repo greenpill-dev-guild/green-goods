@@ -120,7 +120,7 @@ release updates; this checkout owns the canonical Plan Hub changes.
   Actual-member signing/provider readiness and live migration remain open.
 - [ ] Establish the exact configured account/EntryPoint/provider path and sponsorship or funding.
 - [x] Record both issuers' selected services and accepted price/cap baseline, with draft operating terms in
-  [working issuer terms](pilot-issuer-terms.md), including two GG vouchers per thirty-minute assistance session and Claude Team seat limits.
+  [working issuer terms](pilot-issuer-terms.md), including two GG vouchers per forty-five-minute assistance session (approved 27 October 2026) and Claude Team seat limits.
 - [x] Reuse the existing GG Gnosis Safe at its current 2-of-5 for both network pool administration
   and GG issuer reserve; no separate pool Safe. Tech and Sun bootstrap remains 2-of-3.
 - [x] Select fixed-two Tech and Sun steward signing, superseding the earlier majority policy;
