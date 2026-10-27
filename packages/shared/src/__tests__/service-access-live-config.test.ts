@@ -25,6 +25,12 @@ describe("the pilot's live service route", () => {
     expect(same(route.core.owner, arbitrumPilot.endpointOwner)).toBe(true);
   });
 
+  it("lets two distinct gardens book, one of them the core's recorded root garden", () => {
+    const gardens = route.buyerGardens.map((garden) => garden.address.toLowerCase());
+    expect(new Set(gardens).size).toBe(2);
+    expect(gardens).toContain(arbitrumLatest.rootGarden.address.toLowerCase());
+  });
+
   it.each([
     ["source", arbitrumPilot],
     ["destination", gnosisPilot],

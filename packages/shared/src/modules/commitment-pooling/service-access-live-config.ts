@@ -122,7 +122,13 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
         implementation: CLC_TOKEN_IMPLEMENTATION,
       },
     ],
-    // The pilot cohort books through its own garden.
-    buyerGardens: [{ address: "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3", name: "TAS HUB" }],
+    // The pilot cohort's garden, and the core's root garden.
+    buyerGardens: [
+      { address: "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3", name: "TAS HUB" },
+      {
+        address: "0xf401f34378384713222d1d21f63359cc4E8a858a",
+        name: "Green Goods Community Garden",
+      },
+    ],
   },
 ];
