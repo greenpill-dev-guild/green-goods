@@ -3,15 +3,18 @@
  * One-shot for the Green Goods voucher offers under terms pilot-2026-10-27-r2.
  *
  * Finds the service promises seeded for the pilot in the Green Goods Community Garden's pool,
- * checks each against the approved offer shape, test-calls setServiceOfferTerms as the Green
- * Goods Safe, and writes a Safe Transaction Builder file for Arbitrum. It reads chain state
- * only: it never signs or sends. green-goods-offer-publishing-runbook.md says when to run it.
+ * checks each against the approved offer shape and test-calls setServiceOfferTerms as whoever
+ * will send it. The contract accepts the pool's stewards as well as the Green Goods Safe, which
+ * owns the Pooling core. With --steward it writes a local page that hands each call to that
+ * steward's wallet, one prompt per promise; without it, a Safe Transaction Builder file for
+ * Arbitrum. It never signs or sends. green-goods-offer-publishing-runbook.md says when to run it.
  *
  * From the repository root:
- *   bun --no-env-file <this file> --preflight      check the gates only
- *   bun --no-env-file <this file>                  build the batch for the assisted sessions
- *   bun --no-env-file <this file> --with-claude    also include the Claude seats
- *   bun --no-env-file <this file> --verify         read back the published offers
+ *   bun --no-env-file <this file> --preflight                 check the gates and the agent
+ *   bun --no-env-file <this file> --steward 0x… --serve       build and serve the steward page
+ *   bun --no-env-file <this file>                             build the Safe batch instead
+ *   bun --no-env-file <this file> --verify                    read back the published offers
+ * Add --with-claude to include the Claude seats.
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -79,10 +82,20 @@ const { values: args } = parseArgs({
     creator: { type: "string" },
     from: { type: "string", default: "43" },
     out: { type: "string" },
+    steward: { type: "string" },
+    serve: { type: "boolean", default: false },
+    port: { type: "string", default: "4790" },
+    "agent-url": { type: "string", default: "https://agent.greengoods.app" },
     "arbitrum-rpc": { type: "string", default: "https://arb1.arbitrum.io/rpc" },
     "gnosis-rpc": { type: "string", default: "https://rpc.gnosischain.com" },
   },
 });
+
+if (args.steward && !/^0x[0-9a-fA-F]{40}$/.test(args.steward))
+  throw new Error("--steward takes the steward's address");
+// The cockpit's Seed Promises uploads each promise's words before asking the wallet, and the
+// agent signs that upload. Down, it leaves every promise waiting with no wallet prompt at all.
+const COCKPIT_ORIGIN = "https://beta.admin.greengoods.app";
 
 const abiFile = async (name) =>
   JSON.parse(await readFile(path.join(ROOT, "packages/contracts/abis", `${name}.json`), "utf8"));
@@ -143,7 +156,34 @@ async function preflight() {
   ];
   for (const [label, ok, actual] of checks) console.log(`${ok ? "PASS" : "FAIL"}  ${label} (${actual})`);
   console.log(`info  Pool inventory of GGV: ${vouchers(poolBalance)}`);
-  return checks.every(([, ok]) => ok);
+  const agent = await agentChecks();
+  for (const [label, ok, actual] of agent) console.log(`${ok ? "PASS" : "FAIL"}  ${label} (${actual})`);
+  if (!agent.every(([, ok]) => ok))
+    console.log("hint  Seeding waits until the agent answers: fly status -a green-goods, then fly logs -a green-goods --no-tail");
+  return { chain: checks.every(([, ok]) => ok), agent: agent.every(([, ok]) => ok) };
+}
+
+/** Whether the agent answers and signs a metadata upload for the cockpit. A cold start takes ~10 s. */
+async function agentChecks() {
+  const base = args["agent-url"].replace(/\/+$/, "");
+  const answer = async (url, init) => {
+    try {
+      const response = await fetch(url, { ...init, signal: AbortSignal.timeout(30_000) });
+      return { status: response.status, body: await response.json().catch(() => null) };
+    } catch (error) {
+      return { status: 0, body: null, error: error instanceof Error ? error.message : String(error) };
+    }
+  };
+  const health = await answer(`${base}/health`);
+  const sign = await answer(`${base}/api/uploads/sign`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: COCKPIT_ORIGIN },
+    body: JSON.stringify({ filename: "metadata.json", mimeType: "application/json", size: 64, category: "json_upload", source: "commitment-creation" }),
+  });
+  return [
+    ["Agent answers /health", health.body?.status === "ok", health.error ?? `HTTP ${health.status}`],
+    ["Agent signs a metadata upload for the cockpit", sign.body?.ok === true && typeof sign.body?.url === "string", sign.error ?? `HTTP ${sign.status}`],
+  ];
 }
 
 /** Every promise in pool 1 from --from upward, with its current offer terms. */
@@ -257,11 +297,13 @@ async function build() {
       voucherUnits: offer.voucherUnits,
     };
     const callArgs = [id, 0n, terms, 0n];
-    // Each promise is independent, so each call is tested alone against current state.
-    await arb.simulateContract({ address: CORE, abi: offersAbi, functionName: "setServiceOfferTerms", args: callArgs, account: SAFE });
+    // Each promise is independent, so each call is tested alone against current state, as the
+    // account that will send it: the steward's guard and the Safe's are different checks.
+    await arb.simulateContract({ address: CORE, abi: offersAbi, functionName: "setServiceOfferTerms", args: callArgs, account: args.steward ?? SAFE });
     calls.push({ id, kind, data: encodeFunctionData({ abi: offersAbi, functionName: "setServiceOfferTerms", args: callArgs }) });
     console.log(`ok    #${id} ${kind}: ${vouchers(offer.voucherUnits)} GGV, due ${new Date(Number(promise.dueDate) * 1000).toISOString().slice(0, 10)}, seeded by ${promise.creator}`);
   }
+  if (args.steward) return writeStewardPage(calls);
   const count = (kind) => calls.filter((call) => call.kind === kind).length;
   const file = {
     version: "1.0",
@@ -278,14 +320,127 @@ async function build() {
   await mkdir(path.dirname(out), { recursive: true });
   await writeFile(out, `${JSON.stringify(file, null, 2)}\n`);
   console.log(`Wrote ${calls.length} ${calls.length === 1 ? "call" : "calls"} to ${out}. Nothing was signed or sent.`);
-  return true;
+  return out;
 }
 
-const gatesPass = await preflight();
-if (args.preflight) process.exit(gatesPass ? 0 : 1);
+/** The steward's page: the tested calls, sent one wallet prompt at a time, resumable after a decline. */
+async function writeStewardPage(calls) {
+  const dir = path.resolve(ROOT, args.out ?? `output/voucher-offers/steward-terms-${Date.now()}`);
+  await mkdir(dir, { recursive: true });
+  const plan = {
+    chainIdHex: "0xa4b1",
+    steward: args.steward,
+    calls: calls.map((call) => ({ id: Number(call.id), name: OFFERS[call.kind].name, price: vouchers(OFFERS[call.kind].voucherUnits), to: CORE, data: call.data })),
+  };
+  await writeFile(path.join(dir, "calls.json"), `${JSON.stringify(plan, null, 2)}\n`);
+  await writeFile(path.join(dir, "index.html"), STEWARD_PAGE);
+  console.log(`Wrote ${calls.length} steward ${calls.length === 1 ? "call" : "calls"} and their page to ${dir}. Nothing was signed or sent.`);
+  return dir;
+}
+
+const STEWARD_PAGE = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publish Green Goods offers</title>
+<style>
+  body { font: 15px/1.45 system-ui, sans-serif; margin: 24px; color: #1d2a20; background: #f7f6f1; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p { margin: 4px 0 12px; color: #4a5a4e; }
+  button { font: inherit; padding: 8px 16px; border-radius: 999px; border: 1px solid #2f6b45; background: #2f6b45; color: #fff; cursor: pointer; margin-right: 8px; }
+  button:disabled { opacity: .5; cursor: default; }
+  table { border-collapse: collapse; margin-top: 16px; width: 100%; max-width: 820px; }
+  td, th { text-align: left; padding: 6px 10px; border-bottom: 1px solid #ddd8cc; font-variant-numeric: tabular-nums; }
+  .ok { color: #2f6b45; font-weight: 600; } .bad { color: #a3341f; font-weight: 600; } .wait { color: #8a6d1d; }
+</style>
+</head>
+<body>
+<h1>Publish Green Goods voucher offers</h1>
+<p>Sets voucher terms on the listed promises from the steward account, one wallet prompt per promise. The script test-called every call as this account before writing this page. A wallet's own simulation can still warn; a call that fails only reverts.</p>
+<div><button id="connect">Connect Wallet</button><button id="send" disabled>Send All Pending</button></div>
+<p id="status">Not connected.</p>
+<table><thead><tr><th>Promise</th><th>Offer</th><th>Price</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table>
+<script>
+const $ = (id) => document.getElementById(id);
+let plan, account;
+const cell = (id) => document.querySelector('[data-id="' + id + '"] .st');
+const set = (id, text, cls) => { const el = cell(id); el.textContent = text; el.className = "st " + (cls || ""); };
+async function load() {
+  plan = await (await fetch("calls.json", { cache: "no-store" })).json();
+  $("rows").innerHTML = plan.calls.map((c) => '<tr data-id="' + c.id + '"><td>#' + c.id + '</td><td>' + c.name + '</td><td>' + c.price + ' GGV</td><td class="st wait">pending</td></tr>').join("");
+}
+async function receipt(hash) {
+  for (let i = 0; i < 120; i++) {
+    const r = await window.ethereum.request({ method: "eth_getTransactionReceipt", params: [hash] });
+    if (r) return r;
+    await new Promise((res) => setTimeout(res, 1500));
+  }
+  return null;
+}
+$("connect").onclick = async () => {
+  if (!window.ethereum) { $("status").textContent = "No wallet found in this browser."; return; }
+  const [a] = await window.ethereum.request({ method: "eth_requestAccounts" });
+  const chain = await window.ethereum.request({ method: "eth_chainId" });
+  if (chain !== plan.chainIdHex) await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: plan.chainIdHex }] });
+  account = a;
+  const ok = a && a.toLowerCase() === plan.steward.toLowerCase();
+  $("status").textContent = ok ? "Connected as the steward on Arbitrum." : "This wallet account is not the steward the calls were tested for. Switch accounts, then connect again.";
+  $("send").disabled = !ok;
+};
+$("send").onclick = async () => {
+  $("send").disabled = true;
+  for (const c of plan.calls) {
+    if (cell(c.id).classList.contains("ok")) continue;
+    set(c.id, "asking the wallet…", "wait");
+    $("status").textContent = "Approve promise #" + c.id + " in your wallet.";
+    let hash;
+    try {
+      hash = await window.ethereum.request({ method: "eth_sendTransaction", params: [{ from: account, to: c.to, data: c.data, value: "0x0" }] });
+    } catch (e) {
+      set(c.id, e && e.code === 4001 ? "declined" : "not sent: " + String((e && e.message) || e).slice(0, 80), "bad");
+      $("status").textContent = "Stopped at #" + c.id + ". Press Send All Pending to continue from here.";
+      $("send").disabled = false;
+      return;
+    }
+    set(c.id, "sent " + hash.slice(0, 10) + "… waiting", "wait");
+    const r = await receipt(hash);
+    if (r && r.status === "0x1") { set(c.id, "published · " + hash.slice(0, 10) + "…", "ok"); continue; }
+    set(c.id, (r ? "reverted · " : "no receipt yet · ") + hash.slice(0, 10) + "…", "bad");
+    $("status").textContent = "Stopped at #" + c.id + ". Check it on chain before continuing.";
+    $("send").disabled = false;
+    return;
+  }
+  $("status").textContent = "All listed offers are published.";
+};
+load();
+</script>
+</body>
+</html>
+`;
+
+/** Serves only the steward page and its calls, on loopback, until stopped. */
+function serveStewardPage(dir) {
+  const files = { "/": "index.html", "/index.html": "index.html", "/calls.json": "calls.json" };
+  Bun.serve({
+    port: Number(args.port),
+    hostname: "127.0.0.1",
+    fetch(request) {
+      const name = files[new URL(request.url).pathname];
+      return name ? new Response(Bun.file(path.join(dir, name))) : new Response("not found", { status: 404 });
+    },
+  });
+  console.log(`Open http://127.0.0.1:${args.port}/ in the browser that holds the steward's wallet. Stop with Ctrl-C when every row reads published.`);
+}
+
+const gates = await preflight();
+if (args.preflight) process.exit(gates.chain && gates.agent ? 0 : 1);
 if (args.verify) process.exit((await verify()) ? 0 : 1);
-if (!gatesPass) {
+if (!gates.chain) {
   console.log("Stop: a gate failed. Finish the Gnosis mint, limit and approve batch first.");
   process.exit(1);
 }
-process.exit((await build()) ? 0 : 1);
+const built = await build();
+if (!built) process.exit(1);
+if (args.steward && args.serve) serveStewardPage(built);
+else process.exit(0);
