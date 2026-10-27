@@ -163,4 +163,58 @@ describe("VouchersTab", () => {
 
     expect(screen.getByText(/may be missing a booking or a return/)).toBeInTheDocument();
   });
+
+  it("leaves out an issuer the account holds none of, and says No vouchers yet when that is all", () => {
+    const none = (of: VoucherIssuer) => ({ issuer: of, available: 0n });
+    const view = render(
+      <VouchersTab
+        wallet={wallet({
+          holdings: [{ issuer: TECH_AND_SUN, available: 9n * VOUCHER }, none(GREEN_GOODS)],
+        })}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("button", { name: /Tech and Sun vouchers/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Green Goods vouchers/ })).not.toBeInTheDocument();
+
+    view.rerender(
+      <VouchersTab
+        wallet={wallet({ holdings: [none(TECH_AND_SUN), none(GREEN_GOODS)] })}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByText("No vouchers yet")).toBeInTheDocument();
+    expect(screen.queryByText("available")).not.toBeInTheDocument();
+  });
+
+  it("writes a booking's and a return's amounts in their own asset, listed issuer or not", () => {
+    // An issuer the wallet no longer lists, whose vouchers carry no decimals.
+    const retired = "0x5afe00000000000000000000000000000000e5f6" as const;
+    const asset = { chainId: 100, token: retired, symbol: null, decimals: 0 };
+    const booking = {
+      booking: ref(1023n),
+      issuer: retired,
+      asset,
+      agreed: 3n,
+      held: 3n,
+      stage: "held" as const,
+    };
+    const back = {
+      booking: ref(1027n),
+      issuer: retired,
+      asset,
+      amount: 2n,
+      cause: "split" as const,
+      state: "pending" as const,
+      attempts: 0n,
+    };
+    render(
+      <VouchersTab wallet={wallet({ bookings: [booking], returns: [back] })} onClose={vi.fn()} />
+    );
+
+    expect(
+      within(screen.getByRole("button", { name: /Booked/ })).getByText("3")
+    ).toBeInTheDocument();
+    expect(screen.getByText("2 coming back")).toBeInTheDocument();
+  });
 });

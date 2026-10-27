@@ -33,10 +33,16 @@ function evidence(cid: string): ResolvedEvidence {
   };
 }
 
-function renderSheet(indexedEvidenceCount: number, overrides: Partial<CommitmentReadModel> = {}) {
-  return renderWithProviders(
+function sheet(
+  indexedEvidenceCount: number,
+  overrides: Partial<CommitmentReadModel> = {},
+  open = true,
+  startInNotYet = false
+) {
+  return (
     <ConfirmSheet
-      open
+      open={open}
+      startInNotYet={startInNotYet}
       onOpenChange={vi.fn()}
       commitment={commitmentFixture({
         creator: PROVIDER,
@@ -60,6 +66,10 @@ function renderSheet(indexedEvidenceCount: number, overrides: Partial<Commitment
       onDone={vi.fn()}
     />
   );
+}
+
+function renderSheet(indexedEvidenceCount: number, overrides: Partial<CommitmentReadModel> = {}) {
+  return renderWithProviders(sheet(indexedEvidenceCount, overrides));
 }
 
 describe("ConfirmSheet proof summary", () => {
@@ -133,5 +143,17 @@ describe("ConfirmSheet words for a request that is not garden work", () => {
       "placeholder",
       "The last part is still to come…"
     );
+  });
+});
+
+describe("ConfirmSheet opening", () => {
+  it("opens Confirm It Was Kept on its ask after Report a Problem closed from the page", () => {
+    const { rerender } = renderWithProviders(sheet(0, {}, true, true));
+    expect(screen.getByRole("button", { name: "Send to the Stewards" })).toBeInTheDocument();
+    // The page closes the sheet itself once the report is sent, so the dialog never says so.
+    rerender(sheet(0, {}, false, true));
+    rerender(sheet(0, {}, true, false));
+    expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Send to the Stewards" })).toBeNull();
   });
 });

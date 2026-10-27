@@ -75,7 +75,11 @@ export interface VoucherPendingReturn {
   cause: "split" | "cancellation";
   /** A failed transfer can be retried, for the same amount only. */
   state: "pending" | "failed";
-  attempts: bigint;
+  /**
+   * How many times a split's refund was sent. Null for a cancellation: its refund runs as the
+   * escrow's setup action, which keeps only its last outcome and counts no attempts.
+   */
+  attempts: bigint | null;
 }
 
 /** Vouchers in the holder's account now, per issuer token. */

@@ -102,18 +102,18 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
   const mutation = useMutation({
     mutationFn: async (params: OctantVaultRedeemParams) => {
       if (params.chainId !== OCTANT_V2_ETHEREUM_CHAIN_ID) {
-        throw new Error("Octant vault redeem requires Ethereum mainnet chain ID 1");
+        throw new Error("Octant vault withdrawals require Ethereum mainnet chain ID 1");
       }
       if (!sender) {
         throw new Error("TransactionSender not available — auth not initialized");
       }
       if (authMode !== "wallet" || sender.authMode !== "wallet" || !primaryAddress) {
-        throw new Error("Octant vault redeem requires a connected wallet");
+        throw new Error("Octant vault withdrawals require a connected wallet");
       }
 
       const owner = (params.owner ?? primaryAddress) as Address;
       if (!addressesEqual(owner, primaryAddress)) {
-        throw new Error("Octant vault redeem owner must be the connected wallet");
+        throw new Error("Octant vault withdrawal owner must be the connected wallet");
       }
       const receiver = (params.receiver ?? owner) as Address;
       const maxLossBps = params.maxLossBps ?? DEFAULT_WITHDRAW_MAX_LOSS_BPS;

@@ -91,8 +91,14 @@ export function CommitmentIdentity({
     payout: promisePayoutOf(commitment),
   });
   const state = presentState(commitment.derivedState);
-  const needsYou = serviceBand ? serviceBand.needsYou : commitmentNeedsSeat({ commitment, seat });
-  const tone = serviceBand?.tone ?? band?.tone ?? "neutral";
+  // A booking's stage can wait on others while the promise itself waits on the reader (Confirm
+  // It Was Kept while a transfer is on its way): either one needing the reader says so.
+  const needsYou = Boolean(serviceBand?.needsYou) || commitmentNeedsSeat({ commitment, seat });
+  const tone = serviceBand
+    ? needsYou
+      ? "attention"
+      : serviceBand.tone
+    : (band?.tone ?? "neutral");
   const kept = commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED";
   // The sentence names who acts next when one person does: whoever confirms it,
   // or, once kept, whoever confirmed it. Otherwise it says the same thing unnamed.

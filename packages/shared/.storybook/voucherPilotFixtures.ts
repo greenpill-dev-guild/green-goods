@@ -131,7 +131,10 @@ export function voucherStorySeeds(
               signers: null,
             };
       return [
-        [commitmentPoolingKeys.issuerApproval(chainId, issuer.account, false), approval] as const,
+        [
+          commitmentPoolingKeys.issuerApproval(chainId, issuer.account, issuer.kind, false),
+          approval,
+        ] as const,
         [commitmentPoolingKeys.issuerSafeThreshold(chainId, issuer.account), safe] as const,
       ];
     }),

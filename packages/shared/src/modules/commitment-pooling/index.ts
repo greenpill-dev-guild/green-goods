@@ -31,6 +31,7 @@ export type { ServiceOfferLine } from "./service-offer-line";
 export {
   readIssuerSafeThreshold,
   requestRewardDeliveries,
+  serviceVoucherHolder,
   voucherBookingEscrow,
   voucherPendingReturn,
 } from "./service-access-wallet";

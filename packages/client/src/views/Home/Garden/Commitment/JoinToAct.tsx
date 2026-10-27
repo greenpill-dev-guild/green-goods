@@ -117,14 +117,26 @@ export function JoinToActDoor({
  * The read that decides whether the reader may take this up failed. Saying
  * nothing would leave a member with no act and no reason; saying "join" would
  * tell a member to join a garden they belong to. So the card says the check
- * failed and offers it again.
+ * failed and offers it again. The same holds for the service read: a service
+ * offer refuses the ordinary take-up, so it waits until the page can tell.
  */
-export function MembershipCheckFailed({ onRetry }: { onRetry: () => void }) {
+export function MembershipCheckFailed({
+  onRetry,
+  check = "membership",
+}: {
+  onRetry: () => void;
+  check?: "membership" | "service";
+}) {
   const { formatMessage } = useIntl();
   return (
     <Alert variant="warning" className="p-3">
-      <p data-component="MembershipCheckFailed">
-        {formatMessage({ id: "app.commitment.join.unavailable" })}
+      <p data-component={check === "service" ? "ServiceCheckFailed" : "MembershipCheckFailed"}>
+        {formatMessage({
+          id:
+            check === "service"
+              ? "app.commitment.join.serviceUnavailable"
+              : "app.commitment.join.unavailable",
+        })}
       </p>
       <Button
         type="button"
