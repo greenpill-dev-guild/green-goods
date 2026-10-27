@@ -101,7 +101,10 @@ export interface VoucherHolding {
   available: bigint;
 }
 
-export type VoucherWalletUnavailableReason = "routes-unconfigured" | "projection-unregistered";
+export type VoucherWalletUnavailableReason =
+  | "routes-unconfigured"
+  | "projection-unregistered"
+  | "canonical-read-unavailable";
 
 /** One account's vouchers across gardens: what it holds, what bookings hold, what is coming back. */
 export interface VoucherWalletSnapshot {

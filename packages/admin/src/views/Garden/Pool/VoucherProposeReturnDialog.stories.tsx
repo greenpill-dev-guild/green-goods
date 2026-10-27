@@ -10,6 +10,7 @@ import {
   STORY_LINA_ENDED,
   STORY_MARA_VISIT_ENDED,
   STORY_TECH_AND_SUN_SAFE,
+  STORY_TECH_AND_SUN_VOUCHERS,
   nameVoucherMembers,
 } from "./poolStoryVouchers";
 
@@ -120,5 +121,18 @@ export const ProposeReturnBusy: Story = {
   play: async () => {
     const dialog = within(await screen.findByRole("dialog"));
     await expect(dialog.getByRole("button", { name: "Propose Return" })).toBeDisabled();
+  },
+};
+
+/** Canonical units have no invented visit schedule, elapsed days or published refund policy. */
+export const SafeFileReturn: Story = {
+  args: {
+    booking: {
+      ...STORY_LINA_ENDED,
+      issuer: { ...STORY_TECH_AND_SUN_VOUCHERS.issuer!, execution: "safe-file" },
+      service: { kind: "units", units: 1n, label: "visits", returnLimit: 10_000_000n },
+      stage: { kind: "in-progress" },
+    },
+    title: "Garden visit",
   },
 };

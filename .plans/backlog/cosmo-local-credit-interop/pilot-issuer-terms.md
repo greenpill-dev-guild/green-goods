@@ -126,14 +126,17 @@ this example and remains an independent Celo route.
 
 ## Existing collective issuer baseline
 
-**Version:** `pilot-2026-10-23-draft-3` · **Status:** business baseline accepted; issuer capacity and live configuration unconfirmed.
+**Version:** `pilot-2026-10-27-r2` · **Status:** operating terms approved on 27 October 2026 (UTC) with two changes, and Green Goods' ceiling raised to 120 the same day for Claude access; cash swap-back is open, and each issuer's identities stay on the private path.
 
 The selected services are Tech and Sun hub access, Green Goods assisted sessions, and Claude
 access under a Green Goods team. The human release owner accepted the service prices below,
 a twenty-voucher ceiling per issuer, ten participants and an initial 1:1 gross exchange ratio
-on 22 October Pacific, adjusting assistance to two GG vouchers per thirty minutes. Other
-operating terms below remain a draft for issuer acceptance. Neither issuer has yet supplied
-confirmed capacity, accountable addresses or its acceptance record. The [deployment package](handoffs/codex-live-pilot-deployment.md)
+on 22 October Pacific. On 27 October 2026 (UTC) the release owner approved the operating
+terms below, with two changes: an assisted session is forty-five minutes for two GG vouchers,
+and the booking window runs to 31 December 2026. The same day Green Goods' ceiling rose to 120
+vouchers, so all ten funded Claude seats can be booked at once. Any term can change later
+through a new terms revision, and a booking keeps the revision it was agreed under. Neither issuer has yet supplied
+its accountable addresses or acceptance record through the private path. The [deployment package](handoffs/codex-live-pilot-deployment.md)
 tracks those inputs separately from technical readiness.
 
 ## Services and voucher prices
@@ -141,18 +144,17 @@ tracks those inputs separately from technical readiness.
 | Issuer / offer | Full service for the stated voucher price | Capacity required by the baseline, still unconfirmed |
 |---|---|---|
 | Tech and Sun — hub day | **1 Tech and Sun voucher:** one named person's reserved visit of up to four hours, including workspace, power and connectivity. Publish the location, opening hours and equipment restrictions before accepting a booking. | Twenty visits, at least eighty seat-hours in a published calendar. These are proposed resources, not observed capacity. |
-| Green Goods — assisted session | **2 Green Goods vouchers:** one thirty-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, five facilitator-hours, if every GG voucher is used for assistance. |
-| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Up to two seat-periods if every GG voucher is used for Claude. Budget and eligible seat provisioning are still unconfirmed. |
+| Green Goods — assisted session | **2 Green Goods vouchers:** one forty-five-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, seven and a half facilitator-hours, if every GG voucher is used for assistance. |
+| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Ten funded seat-periods, all bookable at once: Green Goods' ceiling rises to 120 vouchers for it. Confirming that participant seats are permitted under the supplier terms is still open. |
 
 These are full-access offers at their stated scope, rather than discounts requiring an unstated
 cash contribution. A four-hour hub visit is one booking; unused time does not create another
 visit. Assistance excludes ongoing delivery or maintenance beyond the booked session. Holding
 a voucher confers the issuer's published service rights, never garden governance or Safe control.
 
-The two Green Goods offers share **one** twenty-voucher service budget. A possible mix is one
-Claude seat-period and five assisted sessions: `10 + 5 × 2 = 20`. Ten sessions plus two Claude
-seat-periods would cost forty vouchers and is outside this draft. Green Goods must be capable
-of honoring every permitted mix before releasing that inventory.
+The two Green Goods offers share **one** 120-voucher service budget: 100 for ten Claude
+seat-periods and 20 for ten assisted sessions, `10 × 10 + 10 × 2 = 120`. Green Goods must be
+capable of honoring every permitted mix before releasing that inventory.
 
 ## Claude service definition and cost
 
@@ -188,13 +190,13 @@ The other approved services may proceed independently.
 
 | Limit | Tech and Sun | Green Goods | Meaning |
 |---|---:|---:|---|
-| Total initial voucher supply / issuance ceiling | 20 | 20 | No automatic increase or replenishment by minting. Bind the actual token implementation and authorities. |
+| Total initial voucher supply / issuance ceiling | 20 | 120 | Green Goods' ceiling was raised from 20 on 27 October 2026 (UTC): 100 vouchers for ten Claude seat-periods and 20 for ten sessions. No automatic increase or replenishment by minting. Bind the actual token implementation and authorities. |
 | Initial shared-pool inventory | 10 | 10 | Part of the twenty issued units; not additional capacity. Pool stock is available for swaps, not the reward adapter. |
-| Initial issuer reserve | 10 | 10 | Separate issuer-controlled custody; actual reserve addresses remain open. |
-| Initial adapter allowance | At most 10 | At most 10 | Finite allowance from that reserve to the exact adapter. Lower it to actual stock and remaining service budget; never unlimited. |
+| Initial issuer reserve | 10 | 110 | Separate issuer-controlled custody. Green Goods' 100 new vouchers are minted to its reserve, while its pool inventory stays at 10. |
+| Initial adapter allowance | At most 10 | At most 110 | Finite allowance from that reserve to the exact adapter. Lower it to actual stock and remaining service budget; never unlimited. |
 | Per-participant operational limit | 10 | 10 | Ten units allows a whole Claude redemption. This is an admission/distribution rule until selected limiter enforcement is proved; do not claim a global transfer restriction. |
-| Initial pool holding ceiling per asset | 20 | 20 | Accepted on 23 October: ten units of starting inventory and a twenty-unit holding cap per asset, within the existing twenty-unit issuance ceiling. This leaves ten units of incoming swap headroom; bind and read back the separate pool limiter setting. |
-| Whole-pilot discharged service budget | 20 visits | 20 GG units | Cumulative delivered service cost, not a token balance or automatically reset allowance. |
+| Initial pool holding ceiling per asset | 20 | 120 | Accepted on 23 October at twenty units per asset; Green Goods' was raised to 120 on 27 October with its ceiling. Bind and read back the separate pool limiter setting. |
+| Whole-pilot discharged service budget | 20 visits | 120 GG units | Cumulative delivered service cost, not a token balance or automatically reset allowance. |
 
 The accepted cohort ceiling is ten invited participants. Propose adults only for the first
 operating cohort, with no public sale. Any participant purchase in this pilot is the bounded
@@ -223,9 +225,9 @@ work, or stop accepting rewards when coverage is insufficient. Never display res
 stock as if both were spendable by the same adapter.
 
 Returned delivered vouchers remain in the issuer reserve but **do not restore consumed service
-capacity**. Example: ten GG vouchers returned after one completed Claude seat-period leave ten
-GG units of the twenty-unit pilot budget. Distributing all twenty reserve units again would
-exceed that budget. Quarantine returned inventory unless remaining capacity covers its reuse;
+capacity**. Example: ten GG vouchers returned after one completed Claude seat-period leave 110
+GG units of the 120-unit pilot budget. Distributing every reserve unit again would exceed that
+budget. Quarantine returned inventory unless remaining capacity covers its reuse;
 use finite allowance and pause/revoke paths to stop distribution. A new service budget needs
 explicit issuer approval. Token supply, transfers and service discharge remain distinct; no
 automatic burn is assumed.
@@ -238,7 +240,7 @@ separate obligations with separate evidence.
 
 ## Booking, activation and remedies
 
-Propose first bookings on 25–26 October and a published booking calendar through 30 November
+First bookings open on 28 October, with a published booking calendar through 31 December
 2026. Confirm local opening hours and every participant's timezone. Closing this pilot window
 stops new offers; it does not erase outstanding service rights or force an escrow settlement.
 
@@ -264,7 +266,7 @@ stops new offers; it does not erase outstanding service rights or force an escro
 | Service | Proposed partial-delivery calculation |
 |---|---|
 | Hub visit | Holder-approved usable minutes / 240, capped at the agreed one-voucher cost. Provider-caused loss of the promised power/connectivity is reflected in usable time; a mutually accepted equivalent may be agreed before the allocation is fixed. |
-| Assisted session | Holder-approved delivered minutes / 30 × 2, capped at two GG vouchers. A failed connection with no useful session is zero delivered. |
+| Assisted session | Holder-approved delivered minutes / 45 × 2, capped at two GG vouchers. A failed connection with no useful session is zero delivered. |
 | Claude access | Holder-approved available days / 30 × 10 GG vouchers. The thirty-day clock starts with working access, not the invitation or invoice. A seven-day failure is not a full subscription delivery. Normal disclosed provider usage limits do not count as an outage; loss of the promised seat does. |
 
 Calculate delivered base units by rounding down at verified token precision; refundable amount

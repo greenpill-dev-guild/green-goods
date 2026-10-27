@@ -58,7 +58,7 @@ export interface ServiceLiveChain {
 }
 
 export async function verifyServiceDeploymentState(
-  pin: ServiceDeploymentPin,
+  pin: Omit<ServiceDeploymentPin, "receipt">,
   chainId: number,
   chain: ServiceLiveChain
 ) {
@@ -207,6 +207,9 @@ export async function verifyServiceLiveRoute(route: ServiceLiveRoute, chain: Ser
     verifyServiceDeployment(route.core, 42161, chain),
     verifyServiceDeployment(route.source, 42161, chain),
     verifyServiceDeployment(route.destination, 100, chain),
+    ...Object.values(route.walletState ?? {}).map((pin) =>
+      verifyServiceDeploymentState(pin, 100, chain)
+    ),
   ]);
   const read = (chainId: number, account: Address, abi: Abi, functionName: string) =>
     chain.read({ chainId, address: account, abi, functionName });

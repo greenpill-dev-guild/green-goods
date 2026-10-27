@@ -8325,5 +8325,21 @@
   "app.voucher.rd.sub.returnedM": "Your voucher back to you",
   "app.voucher.pay.m.deposit": "Deposit 1 Voucher",
   "app.voucher.pay.m.depNote": "You may be asked to approve twice: once to allow exactly 1 voucher, then to deposit it.",
-  "app.voucher.rd.p.lessons": "Access"
+  "app.voucher.rd.p.lessons": "Access",
+  "cockpit.garden.pool.voucher.live.recorded": "on chain",
+  "cockpit.garden.pool.voucher.live.approved": "Issuer approval confirmed · accept by {due}",
+  "cockpit.garden.pool.voucher.live.units": "{units} {label} booked",
+  "cockpit.garden.pool.voucher.live.safeFileNote": "Download a Safe transaction file, review it in the issuer’s Safe, and collect its required signatures. Downloading submits no transaction. This view updates after execution is confirmed on chain.",
+  "cockpit.garden.pool.voucher.live.download": "Download Safe File",
+  "cockpit.garden.pool.voucher.live.downloadRetry": "Download Retry File",
+  "cockpit.garden.pool.voucher.live.returnNote": "Choose the maximum return you authorize under the agreed terms. This permission moves no vouchers; the holder must still approve the final split.",
+  "cockpit.garden.pool.voucher.live.aboveDeposit": "The return cannot exceed the booking’s {limit} vouchers",
+  "cockpit.garden.pool.voucher.live.returnHint": "Up to {limit} vouchers, subject to the agreed service and remedy terms",
+  "cockpit.garden.pool.voucher.live.indexerUnavailable": "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.",
+  "cockpit.garden.pool.voucher.live.transferFailed": "Voucher transfer didn’t go through",
+  "cockpit.garden.pool.voucher.live.transferPending": "Voucher transfer needs completion",
+  "cockpit.garden.pool.voucher.live.paused": "Voucher booking paused",
+  "cockpit.garden.pool.voucher.live.pausedDetail": "Approvals and acceptance wait until the voucher route resumes.",
+  "cockpit.garden.pool.voucher.live.partial": "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
+  "app.voucher.wl.unavailable": "Voucher balances and bookings could not be read. Check your connection and try again."
 }

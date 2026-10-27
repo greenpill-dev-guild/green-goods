@@ -1,3 +1,4 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { useIssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
 import {
   usePoolConsoleController,
@@ -210,6 +211,26 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
 
   return (
     <div className="garden-tab-layout" data-component="GardenPoolTab" data-region="garden-pool">
+      {vouchers.snapshot.status === "unavailable" && pool.chainId === 42161 ? (
+        <Alert variant="warning">
+          {formatMessage({
+            id: "cockpit.garden.pool.voucher.live.indexerUnavailable",
+            defaultMessage:
+              "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.",
+          })}
+        </Alert>
+      ) : null}
+      {vouchers.snapshot.status === "observed" &&
+      vouchers.snapshot.incomplete &&
+      pool.chainId === 42161 ? (
+        <Alert variant="warning">
+          {formatMessage({
+            id: "cockpit.garden.pool.voucher.live.partial",
+            defaultMessage:
+              "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
+          })}
+        </Alert>
+      ) : null}
       <div className="garden-tab-main">
         {summary}
 

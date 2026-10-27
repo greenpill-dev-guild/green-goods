@@ -40,10 +40,16 @@ export function VoucherRowAct({ booking, act, disabled, onOpen, onRetry }: Vouch
   const view =
     act === "retry"
       ? {
-          label: formatMessage({
-            id: "cockpit.garden.pool.voucher.act.retry",
-            defaultMessage: "Retry Transfer",
-          }),
+          label:
+            booking.issuer.execution === "safe-file"
+              ? formatMessage({
+                  id: "cockpit.garden.pool.voucher.live.downloadRetry",
+                  defaultMessage: "Download Retry File",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.voucher.act.retry",
+                  defaultMessage: "Retry Transfer",
+                }),
           glyph: <RiRefreshLine aria-hidden="true" />,
           emphasis: "primary" as const,
           onClick: () => void retry(),

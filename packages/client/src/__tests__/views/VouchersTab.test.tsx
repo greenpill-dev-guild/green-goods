@@ -85,6 +85,26 @@ function wallet(overrides: Partial<VoucherWalletSnapshot> = {}): VoucherWalletSn
 describe("VouchersTab", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("shows unavailable reads without claiming the account has no vouchers", () => {
+    render(
+      <VouchersTab
+        wallet={wallet({
+          evidence: "unavailable",
+          reason: "canonical-read-unavailable",
+          complete: false,
+          issuers: [],
+          holdings: [],
+        })}
+        onClose={() => {}}
+      />
+    );
+    expect(
+      screen.getByText(
+        "Voucher balances and bookings could not be read. Check your connection and try again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No vouchers yet")).not.toBeInTheDocument();
+  });
   it("lists each issuer's vouchers with what's available, and opens one in place to book from its garden", () => {
     const onClose = vi.fn();
     render(<VouchersTab wallet={wallet()} onClose={onClose} />);
