@@ -12,6 +12,11 @@ Older local-only dispatch limits below are historical.
 closes the bootstrap-mode gap found in the 26 October review, in which every mirrored steward
 could sign alone. It also records the general steward Safe model accepted the same day.
 
+[Green Goods voucher offers publishing runbook, 27 October](green-goods-offer-publishing-runbook.md)
+publishes the approved assisted-session and Claude offers after the Gnosis mint, limit and approve
+batch. Its [terms batch script](green-goods-offer-terms-batch.mjs) builds the Safe file; both were
+rehearsed on local Arbitrum and Gnosis forks.
+
 [Current account/provider proof](codex-gnosis-account-provider-proof.md) owns the root-signing
 traces, native batch candidate review and open same-address/provider gates. The
 [helper/failure record](codex-helper-provenance-and-failure-safety.md) retains exact provenance
