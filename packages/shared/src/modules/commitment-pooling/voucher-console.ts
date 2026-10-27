@@ -21,6 +21,7 @@
 
 import { parseUnits, type Hex } from "viem";
 import type { Address } from "../../types/domain";
+import type { IssuerSafeThreshold } from "./service-access-wallet-types";
 
 export interface VoucherIssuer {
   /** How members know the issuer: "Tech and Sun", "Green Goods". */
@@ -81,8 +82,11 @@ export type VoucherBookingService =
 
 export type VoucherBookingStage =
   | { kind: "in-progress" }
-  /** The service stopped early: the issuer proposes what comes back, within its terms. */
-  | { kind: "ended-early"; returnLimit: bigint }
+  /**
+   * The service stopped early: the issuer proposes what comes back, within its terms. The
+   * escrow keeps the most the issuer has let come back so far as a ceiling that only rises.
+   */
+  | { kind: "ended-early"; returnLimit: bigint; returnCeiling: bigint }
   /** A transfer after the final split didn't go through: anyone can retry the same one. */
   | { kind: "return-failed"; units: bigint };
 
@@ -157,6 +161,13 @@ function sameTerms({ agreed, current }: VoucherAsk): boolean {
   );
 }
 
+/** The ask carries a consent the acceptance can name; without one the contract refuses it. */
+function namedConsent({ claimHash }: VoucherAsk): boolean {
+  return HASH.test(claimHash) && !ZERO_HASH.test(claimHash);
+}
+
+const sameAddress = (a: Address, b: Address) => a.toLowerCase() === b.toLowerCase();
+
 /** The whole booking is in escrow, and the deposit's result has reached Green Goods. */
 function depositHolds(setup: VoucherAskSetup): boolean {
   return (
@@ -186,7 +197,7 @@ export function selectVoucherAcceptanceChecks(
   now: number
 ): VoucherAcceptanceChecks {
   const { setup } = ask;
-  const consent = sameTerms(ask) && HASH.test(ask.claimHash) && !ZERO_HASH.test(ask.claimHash);
+  const consent = sameTerms(ask) && namedConsent(ask);
   const approval = setup !== null && setup.approvedAt !== null;
   const deposit = setup !== null && depositHolds(setup);
   const deadline = setup !== null && now <= setup.acceptBy;
@@ -203,9 +214,14 @@ export function selectVoucherAcceptanceChecks(
 export type VoucherAskStage =
   /** The offer changed since the member agreed: they cancel and book again. */
   | "terms-changed"
+  /** The ask carries no consent the acceptance can name, so it can't be accepted: they book again. */
+  | "consent-missing"
   /** The member agreed; their escrow setup hasn't reached the issuer yet. */
   | "setting-up"
-  /** The deadline passed before acceptance: the deposit comes back. */
+  /**
+   * The deadline passed before acceptance. The deposit comes back once the booking is canceled,
+   * which anyone may now do; the escrow never refunds on a timeout of its own.
+   */
   | "past-deadline"
   /** The issuer's Safe approves this exact booking next. */
   | "needs-approval"
@@ -216,6 +232,7 @@ export type VoucherAskStage =
 
 export function selectVoucherAskStage(ask: VoucherAsk, now: number): VoucherAskStage {
   if (!sameTerms(ask)) return "terms-changed";
+  if (!namedConsent(ask)) return "consent-missing";
   if (ask.setup === null) return "setting-up";
   if (now > ask.setup.acceptBy) return "past-deadline";
   if (ask.setup.approvedAt === null) return "needs-approval";
@@ -223,31 +240,73 @@ export function selectVoucherAskStage(ask: VoucherAsk, now: number): VoucherAskS
 }
 
 /**
+ * Whether the viewer can approve a booking (`approveSetupAuthorization`, the
+ * issuer's Safe): the booking is the garden's own issuer's, whose Safe the
+ * console reads, and the viewer is one of that Safe's owners. Anyone else sees
+ * the booking wait for its issuer; a Safe whose owners can't be read approves
+ * nothing here.
+ */
+export function selectCanApproveBooking(input: {
+  ask: Pick<VoucherAsk, "issuer">;
+  /** The garden's own issuer (`VoucherConsoleSnapshot.issuer`). */
+  issuer: VoucherIssuer | null;
+  /** That issuer's Safe, as read. */
+  safe: IssuerSafeThreshold | undefined;
+  viewer: Address | undefined;
+}): boolean {
+  const { ask, issuer, safe, viewer } = input;
+  if (!issuer || !viewer || safe?.status !== "observed" || !safe.signers) return false;
+  return (
+    ask.issuer.chainId === issuer.chainId &&
+    sameAddress(ask.issuer.safe, issuer.safe) &&
+    sameAddress(safe.safe, issuer.safe) &&
+    safe.signers.some((signer) => sameAddress(signer, viewer))
+  );
+}
+
+/**
  * A return the issuer proposes for a booking that ended early: what goes back
  * to the holder and what is released to the issuer's reserve. The contract
- * stores only a ceiling; the limit is the issuer's published terms, so a
- * return above it is refused here.
+ * stores only a ceiling, which never comes down (`authorizeReturn`), so a
+ * proposal has to raise the one it keeps; the limit is the issuer's published
+ * terms, so a return above it is refused here.
  */
 export function selectReturnProposal(
-  booking: { voucherUnits: bigint; returnLimit: bigint },
+  booking: { voucherUnits: bigint; returnLimit: bigint; returnCeiling: bigint },
   refund: bigint
-): { refund: bigint; release: bigint; aboveTerms: boolean; valid: boolean } {
+): {
+  refund: bigint;
+  release: bigint;
+  aboveTerms: boolean;
+  /** No more than the escrow already lets come back: the proposal would change nothing. */
+  belowCeiling: boolean;
+  valid: boolean;
+} {
   const aboveTerms = refund > booking.returnLimit;
+  const belowCeiling = refund <= booking.returnCeiling;
   const fits = refund <= booking.voucherUnits;
   return {
     refund,
     release: fits ? booking.voucherUnits - refund : 0n,
     aboveTerms,
-    valid: refund > 0n && fits && !aboveTerms,
+    belowCeiling,
+    valid: refund > 0n && fits && !aboveTerms && !belowCeiling,
   };
 }
 
-/** A raised allowance has to give the garden's rewards more to draw than is left now. */
+/**
+ * A raised allowance has to give the garden's rewards more to draw than is
+ * left now, and enough for the reward waiting on it, or its retry fails again.
+ */
 export function selectAllowanceRaise(
-  reserve: { allowance: { left: bigint } },
+  reserve: { allowance: { left: bigint }; waitingReward: { units: bigint } | null },
   allowance: bigint
-): { valid: boolean } {
-  return { valid: allowance > 0n && allowance > reserve.allowance.left };
+): { valid: boolean; coversWaiting: boolean } {
+  const coversWaiting = reserve.waitingReward === null || allowance >= reserve.waitingReward.units;
+  return {
+    valid: allowance > 0n && allowance > reserve.allowance.left && coversWaiting,
+    coversWaiting,
+  };
 }
 
 /**
