@@ -126,7 +126,7 @@ this example and remains an independent Celo route.
 
 ## Existing collective issuer baseline
 
-**Version:** `pilot-2026-10-27-r2` · **Status:** operating terms approved on 27 October 2026 (UTC) with two changes, and Green Goods' ceiling raised to 120 the same day for Claude access; cash swap-back is open, and each issuer's identities stay on the private path.
+**Version:** `pilot-2026-10-27-r2` · **Status:** operating terms approved on 27 October 2026 (UTC) with two changes, and Green Goods' ceiling raised to 120 the same day for Claude access, with participant seats confirmed as permitted and ten seat-periods funded; cash swap-back is open, and each issuer's identities stay on the private path.
 
 The selected services are Tech and Sun hub access, Green Goods assisted sessions, and Claude
 access under a Green Goods team. The human release owner accepted the service prices below,
@@ -145,7 +145,7 @@ tracks those inputs separately from technical readiness.
 |---|---|---|
 | Tech and Sun — hub day | **1 Tech and Sun voucher:** one named person's reserved visit of up to four hours, including workspace, power and connectivity. Publish the location, opening hours and equipment restrictions before accepting a booking. | Twenty visits, at least eighty seat-hours in a published calendar. These are proposed resources, not observed capacity. |
 | Green Goods — assisted session | **2 Green Goods vouchers:** one forty-five-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, seven and a half facilitator-hours, if every GG voucher is used for assistance. |
-| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Ten funded seat-periods, all bookable at once: Green Goods' ceiling rises to 120 vouchers for it. Confirming that participant seats are permitted under the supplier terms is still open. |
+| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Ten funded seat-periods, all bookable at once: Green Goods' ceiling rises to 120 vouchers for it. On 27 October 2026 (UTC) Green Goods confirmed that participant seats are permitted under its supplier terms and that all ten are funded. |
 
 These are full-access offers at their stated scope, rather than discounts requiring an unstated
 cash contribution. A four-hour hub visit is one booking; unused time does not create another
@@ -182,8 +182,9 @@ A transferable service voucher does not transfer an Anthropic account or confer 
 resell subscriptions. Before enabling this offer, Green Goods must confirm that its intended
 participant provisioning is permitted by its supplier agreement; Anthropic's
 [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) restrict resale without express
-approval. This draft establishes no such approval. If provisioning is unavailable, leave this
-specific offer unavailable; do not substitute shared logins, individual Pro or API credits.
+approval. Green Goods confirmed on 27 October 2026 (UTC) that participant seats are permitted under
+its supplier terms. If provisioning becomes unavailable, leave this specific offer unavailable;
+do not substitute shared logins, individual Pro or API credits.
 The other approved services may proceed independently.
 
 ## Accepted ceilings and proposed inventory allocation
@@ -285,9 +286,10 @@ cash compensation or successful service delivery. No timeout resolves a disputed
 
 The accepted business baseline fixes the current prices, issuance ceilings, cohort ceiling and
 initial exchange ratio. Each issuer must confirm its deliverable quantities, calendar, remedies
-and caps, and identify its accountable service operator and help route. Green Goods must additionally
-confirm its actual Claude organization, permitted participant provisioning, funded seat capacity,
-billing interval and participant-visible workspace/data rules. Keep those private records private;
+and caps, and identify its accountable service operator and help route. Green Goods confirmed
+permitted participant provisioning and ten funded seat-periods on 27 October 2026 (UTC); it must
+still confirm its actual Claude organization, billing interval and participant-visible
+workspace/data rules. Keep those private records private;
 only a public-safe acceptance reference belongs here.
 
 The deployment manifest must then bind each issuer's Gnosis token, reserve, owner/admin Safe,
