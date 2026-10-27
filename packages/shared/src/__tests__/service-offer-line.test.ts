@@ -28,6 +28,7 @@ const issuer = (over: Partial<VoucherIssuer> = {}): VoucherIssuer => ({
   gender: "feminine",
   asset: { chainId: 100, token: TOKEN, symbol: "TAS", decimals: 6 },
   garden: TECH_AND_SUN,
+  standing: { bookings: "open", exchange: "listed" },
   ...over,
 });
 
@@ -94,20 +95,61 @@ describe("serviceOfferLine", () => {
     ).toEqual({ kind: "exchange" });
   });
 
-  // A member's own service is the pilot's second slice.
-  it("leaves a member issuer's offer an ordinary row", () => {
-    const member = issuer({
-      account: MAYA,
-      kind: "individual",
-      name: "Maya",
-      asset: { chainId: 100, token: MAYA_TOKEN, symbol: "MAYA", decimals: 6 },
-    });
-    const snapshot = {
+  describe("a member's own service (slice 2)", () => {
+    const maya = (standing: VoucherIssuer["standing"] = { bookings: "open", exchange: "listed" }) =>
+      issuer({
+        account: MAYA,
+        kind: "individual",
+        name: "Maya Ruiz",
+        asset: { chainId: 100, token: MAYA_TOKEN, symbol: "MAYA", decimals: 6 },
+        standing,
+      });
+    const coaching = {
       mode: "voucher",
-      offer: { voucher: { asset: member.asset, issuer: MAYA, units: ONE } },
+      offer: { voucher: { asset: maya().asset, issuer: MAYA, units: ONE } },
     } as unknown as Pick<ServiceAccessSnapshot, "mode" | "offer">;
+    const holding = (member: VoucherIssuer, held: bigint) =>
+      wallet(0n, { issuers: [member], holdings: [{ issuer: member, available: held }] });
 
-    expect(serviceOfferLine(snapshot, wallet(ONE, { issuers: [member], holdings: [] }))).toBeNull();
+    it("reads as a garden's does, naming the member who promises delivery", () => {
+      expect(serviceOfferLine(coaching, holding(maya(), ONE))).toEqual({
+        promisedBy: "Maya Ruiz",
+        booking: { kind: "hold", held: ONE, decimals: 6 },
+      });
+      expect(serviceOfferLine(coaching, holding(maya(), 0n))?.booking).toEqual({
+        kind: "exchange",
+      });
+    });
+
+    // Pausing stops new bookings whatever the reader holds; booked ones go ahead elsewhere.
+    it("says bookings are paused, even to someone who holds enough", () => {
+      const paused = maya({ bookings: "paused", exchange: "listed" });
+
+      expect(serviceOfferLine(coaching, holding(paused, 2n * ONE))).toEqual({
+        promisedBy: "Maya Ruiz",
+        booking: { kind: "paused" },
+      });
+      expect(serviceOfferLine(coaching, holding(paused, 0n))?.booking).toEqual({ kind: "paused" });
+      // Paused and delisted at once: no booking can start, so that is what the line says.
+      expect(
+        serviceOfferLine(coaching, holding(maya({ bookings: "paused", exchange: "delisted" }), 0n))
+          ?.booking
+      ).toEqual({ kind: "paused" });
+    });
+
+    // Delisting stops new exchanges only: a holder still books with the vouchers they have.
+    it("says the vouchers left the exchange pool only to someone who would exchange first", () => {
+      const delisted = maya({ bookings: "open", exchange: "delisted" });
+
+      expect(serviceOfferLine(coaching, holding(delisted, 0n))?.booking).toEqual({
+        kind: "delisted",
+      });
+      expect(serviceOfferLine(coaching, holding(delisted, ONE))?.booking).toEqual({
+        kind: "hold",
+        held: ONE,
+        decimals: 6,
+      });
+    });
   });
 
   // Until the deployment is adopted, the live reads answer "unavailable": every row stays an
