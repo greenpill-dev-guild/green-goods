@@ -5,21 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Green Goods Clickable Demo</title>
 <meta name="claude:viewport-fit-sides" content="cover" />
-<meta name="description" content="One season at Tech and Sun's hub in Awka, Nigeria, in four clickable flows for SustainableFinance.Live 2026: the steward names a need, a member keeps a promise, the hub logs a bootcamp, and a supporter endows the hub. Real app screens with names changed. Captions, sources and hotspots are in the #flows block; capture.mjs captures the screens and build.mjs inlines them." />
+<meta name="description" content="One season at Tech and Sun's hub in Awka, Nigeria, told chapter by chapter for SustainableFinance.Live 2026, from the hub's need to a supporter's funding. Real app screens with demo data. Chapters, captions, steps, sources and hotspots are in the #flows block; capture.mjs captures the screens and build.mjs inlines them." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" />
 <style>
-  /* A landing of the season's four flows, then one app screen at a time in a device frame with a
-     single hotspot, one caption line, who you are, and a way back to the flows that never hides.
-     The deck's Warm Earth tokens, Fraunces headlines with the green italic accent, Inter for
-     everything else, solid lines only. */
+  /* A landing of the season's chapters in two columns, then one app screen at a time in a device
+     frame, with the chapter's steps beside it and the whole season along the top. The deck's Warm
+     Earth tokens, Fraunces headlines with the green italic accent, Inter for everything else, solid
+     lines only. The screens stay as captured in both themes. */
   :root {
     --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
     --rule: #E7E1D9; --rule-2: #D9D1C5;
     --accent: #1A7544; --action: #1A7544; --action-hover: #155F37; --on-action: #FFFFFF; --tint: #E8F3EC;
     --ring: #1FC16B; --ring-soft: rgba(31, 193, 107, 0.2); --ring-ping: rgba(31, 193, 107, 0.55);
     --bezel: #1C1917; --bezel-edge: #3A3531; --screen: #FFFFFF; --shadow: rgba(41, 37, 36, 0.28);
+    --pilot-bg: #FBF0DA; --pilot-ink: #7A4D0B; --pilot-edge: #EBD3A0;
+    --track: #D9D1C5; --knob: #FFFFFF;
+    /* The back regions sit on the captured screens, which are light in both themes. */
+    --back-ring: rgba(28, 25, 23, 0.7); --back-fill: rgba(28, 25, 23, 0.07);
     --serif: "Fraunces", Georgia, "Times New Roman", serif;
     --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --gutter-l: max(16px, env(safe-area-inset-left, 0px)); --gutter-r: max(16px, env(safe-area-inset-right, 0px));
@@ -31,6 +35,8 @@
       --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF; --tint: #1E2B23;
       --ring: #3BD483; --ring-soft: rgba(59, 212, 131, 0.22); --ring-ping: rgba(59, 212, 131, 0.6);
       --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
+      --pilot-bg: #3A2D16; --pilot-ink: #F3CD82; --pilot-edge: #5C4521;
+      --track: #46403A; --knob: #F5F1EA;
       color-scheme: dark;
     }
   }
@@ -40,146 +46,234 @@
     --accent: #6BD39A; --action: #2C8A56; --action-hover: #33A064; --on-action: #FFFFFF; --tint: #1E2B23;
     --ring: #3BD483; --ring-soft: rgba(59, 212, 131, 0.22); --ring-ping: rgba(59, 212, 131, 0.6);
     --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
+    --pilot-bg: #3A2D16; --pilot-ink: #F3CD82; --pilot-edge: #5C4521;
+    --track: #46403A; --knob: #F5F1EA;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { height: 100%; }
   body { margin: 0; background: var(--linen); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
   button { font: inherit; color: inherit; }
   :focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
+  .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
   .view { min-height: 100%; display: flex; flex-direction: column; padding-left: var(--gutter-l); padding-right: var(--gutter-r); padding-block: 20px 24px; }
-  .view[hidden] { display: none; }
-  .bar { display: flex; align-items: center; gap: 16px; min-height: 52px; }
-  .mark { display: block; flex: none; width: 60px; height: auto; }
 
-  /* Landing */
-  .landing-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: clamp(28px, 5vh, 52px); width: 100%; max-width: 1180px; margin: 0 auto; padding-block: 20px 8px; }
-  h1 { margin: 0; font: 400 clamp(40px, 3.6vw + 16px, 76px)/1.04 var(--serif); letter-spacing: -0.02em; text-wrap: balance; }
-  em.accent { font-style: italic; color: var(--accent); }
-  .lede { margin: 18px 0 0; max-width: 46ch; font: 400 clamp(19px, 0.6vw + 14px, 24px)/1.4 var(--sans); color: var(--sub); text-wrap: pretty; }
-  .start { margin-top: 26px; }
-  .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
-  .tile { width: 100%; height: 100%; display: grid; grid-template-rows: auto auto 1fr; text-align: left; padding: 0; border: 1px solid var(--rule); border-radius: 20px; background: var(--paper); cursor: pointer; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-  .tile:hover { border-color: var(--rule-2); box-shadow: 0 18px 36px -24px var(--shadow); }
-  .thumb { height: 210px; display: grid; place-items: center; padding: 18px 16px 0; background: var(--linen); border-bottom: 1px solid var(--rule); overflow: hidden; }
-  .thumb .device { --bezel-w: 5px; box-shadow: 0 12px 24px -16px var(--shadow); }
-  .thumb .device.phone { width: 96px; margin-bottom: -40px; }
-  .thumb .device.desktop { width: min(100%, 236px); align-self: center; margin-bottom: 18px; }
-  .tile-text { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: baseline; padding: 18px 20px 22px; }
-  .num { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--action); color: var(--on-action); font: 600 15px/1 var(--sans); transform: translateY(-3px); }
-  .name { font: 400 32px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
-  .line { grid-column: 1 / -1; margin-top: 8px; font: 400 18px/1.4 var(--sans); color: var(--sub); text-wrap: balance; }
-  .steps { grid-column: 1 / -1; margin-top: 10px; font: 500 15px/1.3 var(--sans); color: var(--stone); }
-
-  /* Devices: the capture fills the screen; the bezel is the only frame. */
-  .device { --bezel-w: 10px; position: relative; padding: var(--bezel-w); background: var(--bezel); border: 1px solid var(--bezel-edge); margin: 0; }
-  .device.phone { --ratio: 0.4621; border-radius: calc(var(--bezel-w) * 4.6); }
-  .device.desktop { --ratio: 1.6; border-radius: calc(var(--bezel-w) * 1.8); }
-  .screen { position: relative; overflow: hidden; background: var(--screen); }
-  .phone .screen { aspect-ratio: 390 / 844; border-radius: calc(var(--bezel-w) * 3.6); }
-  .desktop .screen { aspect-ratio: 1440 / 900; border-radius: calc(var(--bezel-w) * 0.8); }
-  .screen img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
-
-  /* Flow: a definite full-height grid, so the stage's container query units resolve. */
-  #flow { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; }
-  #flow[hidden] { display: none; }
+  /* Buttons shared by both views. */
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 24px; border-radius: 999px; border: 1px solid var(--rule-2); background: var(--paper); color: var(--ink); font: 600 17px/1 var(--sans); cursor: pointer; white-space: nowrap; }
   .btn:hover:not(:disabled) { border-color: var(--stone); }
   .btn:disabled { opacity: 0.4; cursor: default; }
   .btn.primary { background: var(--action); border-color: var(--action); color: var(--on-action); }
   .btn.primary:hover { background: var(--action-hover); border-color: var(--action-hover); }
-  .btn[hidden] { display: none; }
   .btn svg { width: 18px; height: 18px; flex: none; }
   .all { min-height: 44px; padding: 0 18px 0 14px; font-size: 16px; }
-  .flow-head { min-width: 0; display: grid; gap: 4px; }
-  .flow-name { display: flex; align-items: center; gap: 10px; margin: 0; font: 400 clamp(24px, 1vw + 16px, 32px)/1.1 var(--serif); letter-spacing: -0.012em; }
-  .flow-name .num { transform: none; width: 28px; height: 28px; font-size: 14px; }
-  .who { margin: 0; font: 500 16px/1.3 var(--sans); color: var(--sub); }
-  .progress { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .num { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--action); color: var(--on-action); font: 600 15px/1 var(--sans); font-variant-numeric: tabular-nums; }
+
+  /* The light and dark switch: the page follows the system until the viewer picks. */
+  .theme-switch { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 10px; border: 1px solid var(--rule-2); border-radius: 999px; background: var(--paper); color: var(--ink); font: 500 15px/1 var(--sans); cursor: pointer; white-space: nowrap; }
+  .theme-switch:hover { border-color: var(--stone); }
+  .track { position: relative; flex: none; width: 38px; height: 22px; border-radius: 999px; background: var(--track); transition: background-color 0.15s ease; }
+  .knob { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--knob); box-shadow: 0 1px 2px var(--shadow); transition: transform 0.15s ease; }
+  .theme-switch[aria-checked="true"] .track { background: var(--action); }
+  .theme-switch[aria-checked="true"] .knob { transform: translateX(16px); }
+
+  /* Landing */
+  .landing-inner { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(28px, 4vh, 48px); padding-inline: clamp(6px, 2vw, 16px); }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 52px; padding-top: clamp(4px, 1.2vh, 14px); }
+  .mark { display: block; flex: none; width: 56px; height: auto; }
+  .landing-head { display: grid; gap: 18px; max-width: 760px; }
+  h1 { margin: 0; font: 400 clamp(40px, 3.2vw + 16px, 72px)/1.04 var(--serif); letter-spacing: -0.02em; text-wrap: balance; }
+  em.accent { font-style: italic; color: var(--accent); }
+  .lede { margin: 0; max-width: 46ch; font: 400 clamp(19px, 0.6vw + 14px, 23px)/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
+  .tiles { list-style: none; margin: 0; padding: 0 0 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .tiles > li { display: flex; min-width: 0; }
+  .tile { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(104px, 15vw, 200px); padding: 0; border: 1px solid var(--rule); border-radius: 20px; background: var(--paper); text-align: left; cursor: pointer; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  .tile:hover { border-color: var(--rule-2); box-shadow: 0 18px 36px -24px var(--shadow); }
+  .tile-text { min-width: 0; display: grid; align-content: start; gap: 8px; padding: 20px 20px 22px; }
+  .tile-top { display: flex; align-items: center; gap: 12px; }
+  .name { font: 400 clamp(26px, 0.8vw + 18px, 32px)/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
+  .line { font: 400 17px/1.4 var(--sans); color: var(--sub); text-wrap: balance; }
+  .tile-who { font: 500 15px/1.35 var(--sans); color: var(--stone); }
+  .tile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 2px; font: 500 14px/1.3 var(--sans); color: var(--stone); }
+  .start-here { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; background: var(--tint); color: var(--accent); font: 600 13px/1 var(--sans); }
+  .thumb { min-width: 0; display: flex; align-items: center; justify-content: center; padding: 14px; background: var(--linen); border-left: 1px solid var(--rule); overflow: hidden; }
+  .thumb.phone { align-items: flex-start; padding-bottom: 0; }
+  .thumb .device { --bezel-w: 5px; box-shadow: 0 12px 24px -16px var(--shadow); }
+  .thumb .device.phone { width: clamp(64px, 6.5vw, 92px); }
+  .thumb .device.desktop { width: 100%; }
+
+  /* Devices: the capture fills the screen; the bezel is the only frame. */
+  .device { --bezel-w: 10px; position: relative; display: block; padding: var(--bezel-w); background: var(--bezel); border: 1px solid var(--bezel-edge); margin: 0; }
+  .device.phone { --ratio: 0.4621; border-radius: calc(var(--bezel-w) * 4.6); }
+  .device.desktop { --ratio: 1.6; border-radius: calc(var(--bezel-w) * 1.8); }
+  .screen { position: relative; display: block; overflow: hidden; background: var(--screen); }
+  .phone .screen { aspect-ratio: 390 / 844; border-radius: calc(var(--bezel-w) * 3.6); }
+  .desktop .screen { aspect-ratio: 1440 / 900; border-radius: calc(var(--bezel-w) * 0.8); }
+  .screen img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
+
+  /* Chapter view: a definite full-height grid, so the stage's container query units resolve. */
+  #flow { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); row-gap: 14px; }
+  .flowbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "all strip theme"; align-items: center; column-gap: 16px; row-gap: 8px; min-height: 52px; }
+  .flowbar .all { grid-area: all; justify-self: start; }
+  .flowbar .theme-switch { grid-area: theme; justify-self: end; }
+  /* The mask only fades the chips at the edges when the strip is wider than its room. */
+  .strip { grid-area: strip; position: relative; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; padding-block: 3px; -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent); }
+  .strip ol { list-style: none; margin: 0 auto; padding: 0 3px; display: flex; gap: 6px; width: max-content; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px 0 6px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); color: var(--sub); font: 500 15px/1 var(--sans); cursor: pointer; white-space: nowrap; }
+  .chip:hover { border-color: var(--rule-2); color: var(--ink); }
+  .chip-num, .stepnum { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--rule-2); font: 600 13px/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .chip.done .chip-num, .stepbtn.done .stepnum { background: var(--rule-2); border-color: var(--rule-2); color: var(--ink-2); }
+  .chip[aria-current="true"] { background: var(--action); border-color: var(--action); color: var(--on-action); }
+  .chip[aria-current="true"] .chip-num { background: var(--on-action); border-color: var(--on-action); color: var(--action); }
+
+  .flow-main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
+  .panel { min-width: 0; min-height: 0; display: grid; align-content: start; gap: 18px; }
+  .panel-head { display: grid; grid-template-areas: "name" "meta" "row"; gap: 10px; }
+  .flow-name { grid-area: name; display: flex; align-items: center; gap: 10px; margin: 0; font: 400 clamp(24px, 0.8vw + 16px, 30px)/1.1 var(--serif); letter-spacing: -0.012em; }
+  .flow-name .num { width: 28px; height: 28px; font-size: 14px; }
+  .meta { grid-area: meta; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .where { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border-radius: 6px; background: var(--tint); color: var(--accent); font: 600 12px/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
+  .who { font: 500 16px/1.35 var(--sans); color: var(--sub); }
+  .panel-row { grid-area: row; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .count { margin: 0; font: 600 15px/1 var(--sans); color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .dots { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; }
-  .dots li { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--rule-2); }
-  .dots li.done { background: var(--rule-2); }
-  .dots li.now { background: var(--action); border-color: var(--action); }
-  .stage { min-height: 0; container-type: size; display: grid; place-items: center; padding-block: 14px; }
+  .panel-toggle { display: none; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px 0 14px; border: 1px solid var(--rule-2); border-radius: 999px; background: var(--paper); color: var(--ink); font: 600 14px/1 var(--sans); cursor: pointer; }
+  .panel-toggle svg { width: 16px; height: 16px; transition: transform 0.15s ease; }
+  .panel-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .panel-body { display: grid; gap: 14px; }
+  .intro { margin: 0; max-width: 40ch; font: 400 17px/1.5 var(--sans); color: var(--ink-2); text-wrap: pretty; }
+  .steplist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .stepbtn { width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 10px 6px 6px; border: 0; border-radius: 12px; background: transparent; color: var(--sub); font: 500 15px/1.3 var(--sans); text-align: left; cursor: pointer; }
+  .stepbtn:hover { background: var(--paper); color: var(--ink); }
+  .stepbtn[aria-current="step"] { background: var(--tint); color: var(--ink); font-weight: 600; }
+  .stepbtn[aria-current="step"] .stepnum { background: var(--action); border-color: var(--action); color: var(--on-action); }
+
+  .stagewrap { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto auto; }
+  .stage { min-height: 0; container-type: size; display: grid; place-items: center; padding-block: 6px 12px; }
   .stage .device { width: min(100cqw, calc((100cqh - 2 * var(--bezel-w)) * var(--ratio) + 2 * var(--bezel-w))); box-shadow: 0 30px 60px -30px var(--shadow); }
   .stage .device.desktop { --bezel-w: 12px; }
-  .hotspot { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--r, 18px); box-shadow: 0 0 0 3px var(--ring), 0 0 0 10px var(--ring-soft); }
+  .hotspot { position: absolute; z-index: 2; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--r, 18px); box-shadow: 0 0 0 3px var(--ring), 0 0 0 10px var(--ring-soft); }
   .hotspot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; animation: ping 1.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite; }
   .hotspot.nudge { animation: nudge 0.5s ease-out; }
   @keyframes ping { from { box-shadow: 0 0 0 3px var(--ring-ping); } to { box-shadow: 0 0 0 22px transparent; } }
   @keyframes nudge { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.08); } }
-  .caption { margin: 6px auto 0; max-width: 34ch; min-height: 1.3em; text-align: center; font: 500 clamp(20px, 1vw + 12px, 28px)/1.3 var(--sans); color: var(--ink); text-wrap: balance; }
+  /* The app's own back, close and Cancel controls: quiet until pointed at or focused. */
+  .backspots { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+  .backspot { position: absolute; pointer-events: auto; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--r, 14px); }
+  .backspot:hover { background: var(--back-fill); box-shadow: 0 0 0 2px var(--back-ring); }
+  .backspot:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; box-shadow: 0 0 0 2px var(--back-ring); }
+  .caption-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; margin: 2px auto 0; max-width: 46ch; min-height: 1.3em; }
+  .caption { margin: 0; text-align: center; font: 500 clamp(20px, 1vw + 12px, 28px)/1.3 var(--sans); color: var(--ink); text-wrap: balance; }
+  .pilot { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border: 1px solid var(--pilot-edge); border-radius: 999px; background: var(--pilot-bg); color: var(--pilot-ink); font: 600 13px/1 var(--sans); letter-spacing: 0.02em; white-space: nowrap; }
   .hint { margin: 6px 0 0; text-align: center; font: 400 15px/1.4 var(--sans); color: var(--stone); }
-  .hint[hidden] { display: none; }
-  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 16px; }
+  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 14px; }
 
-  @media (max-width: 1040px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 880px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
+  @media (min-width: 1100px) {
+    .flow-main { grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); column-gap: clamp(24px, 3vw, 48px); }
+    .panel { overflow-y: auto; padding: 4px 14px 12px 2px; border-right: 1px solid var(--rule); }
+  }
+  @media (max-width: 1359.98px) { .flowbar .theme-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } .flowbar .theme-switch { padding: 0 10px; } }
+  /* Narrower than the side-by-side layout: the panel is a block above the screen. Its steps open
+     on request; a chapter's intro shows on its first screen. */
+  @media (max-width: 1099.98px) {
+    .panel { gap: 10px; }
+    .panel-head { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name row" "meta meta"; align-items: center; column-gap: 12px; row-gap: 8px; }
+    .panel-toggle { display: inline-flex; }
+    .panel:not(.open) .panel-body { display: none; }
+    .panel.at-start:not(.open) .panel-body { display: grid; }
+    .panel.at-start:not(.open) .steplist { display: none; }
+    .panel.open .panel-body { max-height: 40svh; overflow-y: auto; padding-right: 4px; }
+    .intro { max-width: 70ch; font-size: 16px; }
+  }
+  @media (max-width: 899.98px) {
+    .flowbar { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "all theme" "strip strip"; }
+    .chip { min-height: 36px; font-size: 14px; }
+  }
   @media (max-width: 760px) {
-    .dots { display: none; }
-    .bar { gap: 12px; }
     .who { font-size: 14px; }
+    .view#flow { padding-block: 12px 16px; }
   }
   @media (max-width: 560px) {
-    .tiles { grid-template-columns: minmax(0, 1fr); }
-    .thumb { height: 180px; }
     .mark { width: 48px; }
+    .theme-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .theme-switch { padding: 0 10px; }
     .all { padding: 0 14px 0 10px; font-size: 15px; }
     .flow-name { font-size: 22px; gap: 8px; }
     .flow-name .num { width: 24px; height: 24px; font-size: 13px; }
     .count .long { display: none; }
     .controls .btn { padding: 0 18px; }
     .stage .device.desktop { --bezel-w: 6px; }
+    .tile-text { padding: 16px 14px 18px; }
+    .line { font-size: 16px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .hotspot::after { animation: none; }
     .hotspot.nudge { animation: none; box-shadow: 0 0 0 4px var(--ring), 0 0 0 14px var(--ring-soft); }
-    .tile { transition: none; }
+    .tile, .track, .knob, .panel-toggle svg { transition: none; }
   }
 </style>
 </head>
 <body>
+<script>
+  // Apply the viewer's remembered light or dark pick before the page draws.
+  try { const pick = localStorage.getItem("gg-sf-live-demo-theme"); if (pick === "dark" || pick === "light") document.documentElement.dataset.theme = pick; } catch { /* storage may be blocked; the page follows the system setting */ }
+</script>
 <main class="view" id="landing">
-  <div class="bar"><img class="mark" src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /></div>
-  <div class="landing-body">
-    <header>
+  <div class="landing-inner">
+    <div class="topbar">
+      <img class="mark" src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" />
+      <button class="theme-switch" type="button" role="switch" aria-checked="false" id="theme-landing"><span class="track" aria-hidden="true"><span class="knob"></span></span><span class="theme-label">Dark mode</span></button>
+    </div>
+    <header class="landing-head">
       <h1>Click through a season <em class="accent">at the hub</em></h1>
-      <p class="lede">Follow one season at Tech and Sun's hub in Awka, Nigeria, from need to funding. Real app screens and hub photos; names are changed.</p>
-      <button class="btn primary start" type="button" id="start">Start from the beginning</button>
+      <p class="lede" id="lede">Follow one season at Tech and Sun's hub in Awka, Nigeria, from need to funding. Real app screens with demo data.</p>
     </header>
-    <ol class="tiles" id="tiles"></ol>
+    <ol class="tiles" id="tiles" aria-label="Chapters"></ol>
   </div>
 </main>
 
 <section class="view" id="flow" hidden aria-labelledby="flow-name">
-  <div class="bar">
+  <div class="flowbar">
     <button class="btn all" type="button" id="home-flow"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>All flows</button>
-    <div class="flow-head">
-      <h2 class="flow-name"><span class="num" id="flow-num"></span><span id="flow-name"></span></h2>
-      <p class="who" id="who"></p>
-    </div>
-    <div class="progress">
-      <p class="count" id="count"></p>
-      <ol class="dots" id="dots" aria-hidden="true"></ol>
-    </div>
+    <nav class="strip" id="strip-nav" aria-label="Chapters"><ol id="strip"></ol></nav>
+    <button class="theme-switch" type="button" role="switch" aria-checked="false" id="theme-flow"><span class="track" aria-hidden="true"><span class="knob"></span></span><span class="theme-label">Dark mode</span></button>
   </div>
-  <div class="stage">
-    <figure class="device phone" id="device">
-      <div class="screen" id="screen">
-        <img id="shot" alt="" draggable="false" />
-        <button class="hotspot" type="button" id="hotspot"></button>
+  <div class="flow-main">
+    <aside class="panel" id="panel" aria-label="This chapter">
+      <div class="panel-head">
+        <h2 class="flow-name"><span class="num" id="flow-num"></span><span id="flow-name"></span></h2>
+        <p class="meta"><span class="where" id="where"></span><span class="who" id="who"></span></p>
+        <div class="panel-row">
+          <p class="count" id="count"></p>
+          <button class="panel-toggle" type="button" id="panel-toggle" aria-expanded="false" aria-controls="panel-body">Steps<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 8 10 12.5 14.5 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
       </div>
-    </figure>
+      <div class="panel-body" id="panel-body">
+        <p class="intro" id="intro"></p>
+        <ol class="steplist" id="steplist" aria-label="Steps in this chapter"></ol>
+      </div>
+    </aside>
+    <div class="stagewrap">
+      <div class="stage">
+        <figure class="device phone" id="device">
+          <div class="screen" id="screen">
+            <img id="shot" alt="" draggable="false" />
+            <div class="backspots" id="backspots"></div>
+            <button class="hotspot" type="button" id="hotspot"></button>
+          </div>
+        </figure>
+      </div>
+      <div class="caption-row"><p class="caption" id="caption" aria-live="polite"></p><span class="pilot" id="pilot" hidden>In pilot</span></div>
+      <p class="hint" id="hint">Tap the green ring to go on. Arrow keys work too.</p>
+      <nav class="controls" aria-label="Flow">
+        <button class="btn" type="button" id="back">Back</button>
+        <button class="btn" type="button" id="restart">Restart</button>
+        <button class="btn" type="button" id="all-end" hidden>All flows</button>
+        <button class="btn primary" type="button" id="next-flow" hidden></button>
+      </nav>
+    </div>
   </div>
-  <p class="caption" id="caption" aria-live="polite"></p>
-  <p class="hint" id="hint">Tap the green ring to go on. Arrow keys work too.</p>
-  <nav class="controls" aria-label="Flow">
-    <button class="btn" type="button" id="back">Back</button>
-    <button class="btn" type="button" id="restart">Restart</button>
-    <button class="btn" type="button" id="all-end" hidden>All flows</button>
-    <button class="btn primary" type="button" id="next-flow" hidden></button>
-  </nav>
 </section>
 
 <script type="application/json" id="flows">
@@ -188,46 +282,51 @@
     {
       "id": "needs",
       "label": "Needs",
-      "line": "The hub names its need",
+      "line": "Name what the hub needs",
       "who": "You are Obinna, the hub's steward",
+      "where": "Dashboard",
       "thumb": "needs-3",
+      "intro": "Obinna signs in to the dashboard, looks over the hub's earlier assessment, and records this season's need: climate and digital skills for members.",
       "screens": [
         {
           "file": "needs-1",
           "device": "desktop",
-          "caption": "Start the season's assessment",
-          "story": "dashboard/hub/assess",
+          "caption": "Sign in to the hub's dashboard",
+          "step": "Sign in",
+          "story": "dashboard/",
           "size": [
             1440,
             900
           ],
           "hotspot": [
-            0.5843,
-            0.1089,
-            0.1321,
-            0.0356
+            0.4397,
+            0.6044,
+            0.1207,
+            0.0444
           ]
         },
         {
           "file": "needs-2",
           "device": "desktop",
-          "caption": "Name the need: climate and tech skills",
-          "story": "dashboard/hub/assess",
+          "caption": "The hub's earlier assessment, then a new one",
+          "step": "Earlier assessments",
+          "story": "admin-workspaces-hub--assessments-tab",
           "size": [
             1440,
             900
           ],
           "hotspot": [
-            0.7992,
-            0.8694,
-            0.0452,
+            0.5826,
+            0.1267,
+            0.1321,
             0.0356
           ]
         },
         {
           "file": "needs-3",
           "device": "desktop",
-          "caption": "Set the targets the season should reach",
+          "caption": "Name the need: climate and tech skills",
+          "step": "Name the need",
           "story": "dashboard/hub/assess",
           "size": [
             1440,
@@ -237,13 +336,20 @@
             0.7992,
             0.8694,
             0.0452,
+            0.0356
+          ],
+          "back": [
+            0.7375,
+            0.8694,
+            0.0561,
             0.0356
           ]
         },
         {
           "file": "needs-4",
           "device": "desktop",
-          "caption": "Choose the work that counts toward them",
+          "caption": "Set the targets the season should reach",
+          "step": "Set targets",
           "story": "dashboard/hub/assess",
           "size": [
             1440,
@@ -254,12 +360,42 @@
             0.8694,
             0.0452,
             0.0356
+          ],
+          "back": [
+            0.7467,
+            0.8694,
+            0.047,
+            0.0356
           ]
         },
         {
           "file": "needs-5",
           "device": "desktop",
+          "caption": "Choose the work that counts toward them",
+          "step": "Pick the work",
+          "story": "dashboard/hub/assess",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.7992,
+            0.8694,
+            0.0452,
+            0.0356
+          ],
+          "back": [
+            0.7467,
+            0.8694,
+            0.047,
+            0.0356
+          ]
+        },
+        {
+          "file": "needs-6",
+          "device": "desktop",
           "caption": "Check everything, then submit",
+          "step": "Review and submit",
           "story": "dashboard/hub/assess",
           "size": [
             1440,
@@ -270,33 +406,185 @@
             0.8694,
             0.1144,
             0.0356
-          ]
-        },
-        {
-          "file": "needs-6",
-          "device": "desktop",
-          "caption": "Close the saved assessment",
-          "story": "admin-workflows-assessment-reviewstep--in-flow-sent",
-          "size": [
-            1440,
-            900
           ],
-          "hotspot": [
-            0.7959,
+          "back": [
+            0.6775,
             0.8694,
-            0.0486,
+            0.047,
             0.0356
           ]
         },
         {
           "file": "needs-7",
-          "device": "phone",
-          "caption": "Members see what the hub needs",
-          "who": "You are Chiamaka, a member of the hub",
-          "story": "client-home-gardensheets--insights-with-banner-at-390",
+          "device": "desktop",
+          "caption": "The need is on the record",
+          "step": "Saved",
+          "story": "admin-workflows-assessment-reviewstep--in-flow-sent",
           "size": [
-            390,
-            844
+            1440,
+            900
+          ]
+        }
+      ]
+    },
+    {
+      "id": "season",
+      "label": "Season",
+      "line": "Open the season, add promises",
+      "who": "You are Obinna, the hub's steward",
+      "where": "Dashboard",
+      "thumb": "season-4",
+      "intro": "He starts the season the assessment calls for, then asks for a promise members can take up: running a one-week AI content bootcamp, for $20.",
+      "screens": [
+        {
+          "file": "season-1",
+          "device": "desktop",
+          "caption": "Start the season in Promises",
+          "step": "Promises tab",
+          "story": "admin-pool-poolcyclescard--no-season",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.5161,
+            0.3589,
+            0.0746,
+            0.0311
+          ]
+        },
+        {
+          "file": "season-2",
+          "device": "desktop",
+          "caption": "Name the season and its dates",
+          "step": "Name and dates",
+          "story": "admin-pool-poolsetupflow--new-season",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.7992,
+            0.8694,
+            0.0452,
+            0.0356
+          ],
+          "back": [
+            [
+              0.8194,
+              0.0839,
+              0.0278,
+              0.0444
+            ],
+            [
+              0.7375,
+              0.8694,
+              0.0561,
+              0.0356
+            ]
+          ]
+        },
+        {
+          "file": "season-3",
+          "device": "desktop",
+          "caption": "The season is open; add a promise",
+          "step": "Season open",
+          "story": "dashboard/garden/pool",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.4906,
+            0.5889,
+            0.1001,
+            0.0311
+          ]
+        },
+        {
+          "file": "season-4",
+          "device": "desktop",
+          "caption": "Ask for a one-week AI bootcamp",
+          "step": "What it asks",
+          "story": "dashboard/garden/pool",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.7992,
+            0.8694,
+            0.0452,
+            0.0356
+          ],
+          "back": [
+            0.7375,
+            0.8694,
+            0.0561,
+            0.0356
+          ]
+        },
+        {
+          "file": "season-5",
+          "device": "desktop",
+          "caption": "Twenty hours of Workshop Delivered",
+          "step": "How much",
+          "story": "dashboard/garden/pool",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.7992,
+            0.8694,
+            0.0452,
+            0.0356
+          ],
+          "back": [
+            0.7467,
+            0.8694,
+            0.047,
+            0.0356
+          ]
+        },
+        {
+          "file": "season-6",
+          "device": "desktop",
+          "caption": "Who confirms it and who can take it",
+          "step": "Who confirms",
+          "story": "dashboard/garden/pool",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.7992,
+            0.8694,
+            0.0452,
+            0.0356
+          ],
+          "back": [
+            0.7467,
+            0.8694,
+            0.047,
+            0.0356
+          ]
+        },
+        {
+          "file": "season-7",
+          "device": "desktop",
+          "caption": "Check it, then create the promise",
+          "step": "Review and create",
+          "story": "dashboard/garden/pool",
+          "size": [
+            1440,
+            900
+          ],
+          "back": [
+            0.5709,
+            0.8694,
+            0.047,
+            0.0356
           ]
         }
       ]
@@ -304,62 +592,57 @@
     {
       "id": "promise",
       "label": "Promise",
-      "line": "Members promise a climate course",
-      "who": "You are Chiamaka, a member of the hub",
-      "thumb": "promise-4",
+      "line": "A member takes it up",
+      "who": "You are Ifeoma, a member of the hub",
+      "where": "App",
+      "thumb": "promise-3",
+      "intro": "Ifeoma finds the bootcamp in Take Part on the hub's Home and takes it up. It is hers alone, and it is kept when the stewards approve its work.",
       "screens": [
         {
           "file": "promise-1",
           "device": "phone",
-          "caption": "Open this season at the hub",
-          "story": "app/home",
+          "caption": "Open Take Part on the hub's Home",
+          "step": "Home",
+          "story": "client-home-takepart--default",
           "size": [
             390,
             844
           ],
           "hotspot": [
-            0.041,
-            0.1528,
-            0.7179,
-            0.1327
+            0.7777,
+            0.3507,
+            0.1813,
+            0.0379
           ]
         },
         {
           "file": "promise-2",
           "device": "phone",
-          "caption": "See what the season asks members",
-          "story": "app/home",
+          "caption": "Find the bootcamp in the season",
+          "step": "Take Part",
+          "story": "client-home-takepartsheet--at-the-season",
           "size": [
             390,
             844
           ],
           "hotspot": [
             0.0436,
-            0.9289,
+            0.659,
             0.9128,
+            0.1043
+          ],
+          "back": [
+            0.8436,
+            0.332,
+            0.1128,
             0.0521
           ]
         },
         {
           "file": "promise-3",
           "device": "phone",
-          "caption": "Open the climate course request",
-          "story": "app/home",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.0436,
-            0.5197,
-            0.9128,
-            0.1043
-          ]
-        },
-        {
-          "file": "promise-4",
-          "device": "phone",
-          "caption": "Read what it asks, then take one",
+          "caption": "Read what it asks, then take it",
+          "step": "The promise",
           "story": "client-commitments-promisegrouppage--open",
           "size": [
             390,
@@ -370,12 +653,19 @@
             0.9242,
             0.9179,
             0.0569
+          ],
+          "back": [
+            0.0615,
+            0.019,
+            0.0821,
+            0.0379
           ]
         },
         {
-          "file": "promise-5",
+          "file": "promise-4",
           "device": "phone",
-          "caption": "Promise to finish the course",
+          "caption": "Promise to run the bootcamp",
+          "step": "Take it up",
           "story": "client-commitments-takeuponesheet--ready",
           "size": [
             390,
@@ -386,114 +676,37 @@
             0.8673,
             0.9128,
             0.0521
+          ],
+          "back": [
+            [
+              0.8436,
+              0.532,
+              0.1128,
+              0.0521
+            ],
+            [
+              0.0436,
+              0.9289,
+              0.9128,
+              0.0521
+            ]
           ]
         },
         {
-          "file": "promise-6",
+          "file": "promise-5",
           "device": "phone",
-          "caption": "Finished? Add your proof",
+          "caption": "Hers now, kept when work is approved",
+          "step": "In progress",
           "story": "client-commitments-gardencommitment--in-progress",
           "size": [
             390,
             844
           ],
-          "hotspot": [
-            0.041,
-            0.9242,
-            0.9179,
-            0.0569
-          ]
-        },
-        {
-          "file": "promise-7",
-          "device": "phone",
-          "caption": "Add a photo of your result",
-          "story": "client-commitments-proofcomposer--media-added",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.5333,
-            0.9289,
-            0.4256,
-            0.0569
-          ]
-        },
-        {
-          "file": "promise-8",
-          "device": "phone",
-          "caption": "Say what you did",
-          "story": "client-commitments-proofcomposer--details",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.041,
-            0.9289,
-            0.9179,
-            0.0569
-          ]
-        },
-        {
-          "file": "promise-9",
-          "device": "phone",
-          "caption": "Check it, then send it to the hub",
-          "story": "client-commitments-proofcomposer--review-send",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.041,
-            0.9289,
-            0.9179,
-            0.0569
-          ]
-        },
-        {
-          "file": "promise-10",
-          "device": "phone",
-          "caption": "As steward, open the finished promise",
-          "who": "You are Obinna, the hub's steward",
-          "story": "app/home/0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3/commitments/19",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.041,
-            0.9242,
-            0.9179,
-            0.0569
-          ]
-        },
-        {
-          "file": "promise-11",
-          "device": "phone",
-          "caption": "Confirm she finished the course",
-          "who": "You are Obinna, the hub's steward",
-          "story": "app/home/0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3/commitments/19",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.0436,
-            0.8673,
-            0.9128,
-            0.0521
-          ]
-        },
-        {
-          "file": "promise-12",
-          "device": "phone",
-          "caption": "The promise is kept",
-          "story": "client-commitments-gardencommitment--kept",
-          "size": [
-            390,
-            844
+          "back": [
+            0.0615,
+            0.019,
+            0.0821,
+            0.0379
           ]
         }
       ]
@@ -501,95 +714,41 @@
     {
       "id": "work",
       "label": "Work",
-      "line": "The hub runs the bootcamp",
-      "who": "You are Ifeoma, who ran the bootcamp",
-      "thumb": "work-6",
+      "line": "Log the work for it",
+      "who": "You are Ifeoma, a member of the hub",
+      "where": "App",
+      "thumb": "work-2",
+      "intro": "After the bootcamp she logs it for her promise as Workshop Delivered, with a photo from the week.",
       "screens": [
         {
           "file": "work-1",
           "device": "phone",
-          "caption": "Tap Garden to log the bootcamp",
-          "story": "app/home",
+          "caption": "Pick the promise this work keeps",
+          "step": "Start",
+          "story": "client-work-submitwork--start-on-promises",
           "size": [
             390,
             844
           ],
           "hotspot": [
-            0.4282,
-            0.9289,
-            0.1436,
-            0.0616
+            0.041,
+            0.1991,
+            0.9179,
+            0.1564
+          ],
+          "back": [
+            0.0615,
+            0.019,
+            0.0821,
+            0.0379
           ]
         },
         {
           "file": "work-2",
           "device": "phone",
-          "caption": "Switch to Education",
-          "story": "app/home",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.6749,
-            0.1019,
-            0.1502,
-            0.019
-          ]
-        },
-        {
-          "file": "work-3",
-          "device": "phone",
-          "caption": "Pick Workshop Delivered",
-          "story": "app/home",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.0399,
-            0.2808,
-            0.8261,
-            0.2062
-          ]
-        },
-        {
-          "file": "work-4",
-          "device": "phone",
-          "caption": "Start logging the workshop",
-          "story": "app/home",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.041,
-            0.9289,
-            0.9179,
-            0.0569
-          ]
-        },
-        {
-          "file": "work-5",
-          "device": "phone",
-          "caption": "Add photos from the bootcamp",
-          "story": "app/home",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.041,
-            0.9289,
-            0.1231,
-            0.0569
-          ]
-        },
-        {
-          "file": "work-6",
-          "device": "phone",
-          "caption": "Three photos in, now the details",
-          "story": "app/home",
+          "caption": "Add a photo from the bootcamp",
+          "step": "Photo",
+          "story": "client-work-submitwork--media-for-a-promise",
           "size": [
             390,
             844
@@ -599,100 +758,374 @@
             0.9289,
             0.4256,
             0.0569
+          ],
+          "back": [
+            0.0615,
+            0.019,
+            0.0821,
+            0.0379
           ]
         },
         {
-          "file": "work-7",
+          "file": "work-3",
           "device": "phone",
-          "caption": "Add hours, facilitators and topics",
-          "story": "app/home",
+          "caption": "Check the details, then upload",
+          "step": "Review",
+          "story": "client-work-submitwork--review-for-a-promise",
           "size": [
             390,
             844
           ],
-          "hotspot": [
-            0.041,
-            0.9289,
-            0.9179,
-            0.0569
+          "back": [
+            0.0615,
+            0.019,
+            0.0821,
+            0.0379
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "approval",
+      "label": "Approval",
+      "line": "A steward approves the work",
+      "who": "You are Obinna, the hub's steward",
+      "where": "Dashboard",
+      "thumb": "approval-3",
+      "intro": "Obinna reviews the bootcamp in the dashboard's Hub and approves it. Approving the work keeps Ifeoma's promise.",
+      "screens": [
         {
-          "file": "work-8",
-          "device": "phone",
-          "caption": "Check it all, then upload",
-          "story": "app/home",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.041,
-            0.9289,
-            0.9179,
-            0.0569
-          ]
-        },
-        {
-          "file": "work-9",
-          "device": "phone",
-          "caption": "Open the new workshop to review it",
-          "who": "You are Obinna, the hub's steward",
-          "story": "app/home",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.041,
-            0.3472,
-            0.9179,
-            0.1043
-          ]
-        },
-        {
-          "file": "work-10",
-          "device": "phone",
-          "caption": "Approve what the photos show",
-          "who": "You are Obinna, the hub's steward",
-          "story": "client-work-reviewwork--evaluate-example",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.5154,
-            0.9147,
-            0.4436,
-            0.0569
-          ]
-        },
-        {
-          "file": "work-11",
-          "device": "phone",
-          "caption": "Add a note and submit",
-          "who": "You are Obinna, the hub's steward",
-          "story": "client-work-reviewwork--feedback-example",
-          "size": [
-            390,
-            844
-          ],
-          "hotspot": [
-            0.5154,
-            0.9147,
-            0.4436,
-            0.0569
-          ]
-        },
-        {
-          "file": "work-12",
+          "file": "approval-1",
           "device": "desktop",
-          "caption": "The bootcamp joins the hub's public record",
-          "who": "Anyone can open the hub's page",
-          "story": "app/gardens/tas-hub",
+          "caption": "The bootcamp waits in the Hub",
+          "step": "Work queue",
+          "story": "dashboard/hub/work",
           "size": [
             1440,
             900
+          ],
+          "hotspot": [
+            0.0483,
+            0.31,
+            0.2956,
+            0.1356
+          ]
+        },
+        {
+          "file": "approval-2",
+          "device": "desktop",
+          "caption": "Check the photo and details",
+          "step": "Review",
+          "story": "admin-workflows-hub-reviewform--actionable",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.6028,
+            0.3777,
+            0.0422,
+            0.0356
+          ],
+          "back": [
+            0.7667,
+            0.0822,
+            0.0278,
+            0.0444
+          ]
+        },
+        {
+          "file": "approval-3",
+          "device": "desktop",
+          "caption": "Approve it with a note",
+          "step": "Approve",
+          "story": "admin-workflows-hub-reviewform--actionable",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.6834,
+            0.8244,
+            0.0639,
+            0.0356
+          ],
+          "back": [
+            0.7667,
+            0.0822,
+            0.0278,
+            0.0444
+          ]
+        },
+        {
+          "file": "approval-4",
+          "device": "desktop",
+          "caption": "Approved: her promise is kept",
+          "step": "Approved",
+          "story": "admin-workflows-hub-reviewform--already-reviewed",
+          "size": [
+            1440,
+            900
+          ],
+          "back": [
+            0.7667,
+            0.0822,
+            0.0278,
+            0.0444
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vouchers",
+      "label": "Vouchers",
+      "line": "Earn vouchers, book a day",
+      "who": "You are Ifeoma, a member of the hub",
+      "where": "App",
+      "thumb": "vouchers-3",
+      "intro": "The kept promise pays her 2 Tech and Sun vouchers and G$. She spends a voucher on a day at the hub, and Obinna accepts the booking.",
+      "screens": [
+        {
+          "file": "vouchers-1",
+          "device": "phone",
+          "caption": "Her rewards arrive, each on its own",
+          "step": "Rewards",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--earn-vouchers",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.3359,
+            0.7924,
+            0.4454,
+            0.0237
+          ],
+          "back": [
+            0.1026,
+            0.0379,
+            0.0821,
+            0.0379
+          ]
+        },
+        {
+          "file": "vouchers-2",
+          "device": "phone",
+          "caption": "Her vouchers wait in her wallet",
+          "step": "Wallet",
+          "pilot": true,
+          "story": "client-wallet-voucherstab--voucher-open",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.1179,
+            0.2346,
+            0.7641,
+            0.0474
+          ]
+        },
+        {
+          "file": "vouchers-3",
+          "device": "phone",
+          "caption": "A hub day takes one voucher",
+          "step": "Hub day",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--redeem-hub-day",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9242,
+            0.9179,
+            0.0569
+          ],
+          "back": [
+            0.1026,
+            0.0379,
+            0.0821,
+            0.0379
+          ]
+        },
+        {
+          "file": "vouchers-4",
+          "device": "phone",
+          "caption": "Agree to the exact terms",
+          "step": "Agree",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--redeem-hub-day",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0436,
+            0.9289,
+            0.9128,
+            0.0521
+          ],
+          "back": [
+            0.8436,
+            0.182,
+            0.1128,
+            0.0521
+          ]
+        },
+        {
+          "file": "vouchers-5",
+          "device": "phone",
+          "caption": "Her voucher waits in escrow",
+          "step": "Deposit",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--hub-day-agree-and-deposit",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.1256,
+            0.2121,
+            0.7487,
+            0.0809
+          ],
+          "back": [
+            0.1026,
+            0.0379,
+            0.0821,
+            0.0379
+          ]
+        },
+        {
+          "file": "vouchers-6",
+          "device": "desktop",
+          "caption": "The booking waits for the steward",
+          "step": "Booking waits",
+          "pilot": true,
+          "who": "You are Obinna, the hub's steward",
+          "where": "Dashboard",
+          "story": "admin-pool-poolclaimscard--voucher-accept",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.8834,
+            0.4511,
+            0.0565,
+            0.0311
+          ]
+        },
+        {
+          "file": "vouchers-7",
+          "device": "desktop",
+          "caption": "Accept once the four checks pass",
+          "step": "Accept",
+          "pilot": true,
+          "who": "You are Obinna, the hub's steward",
+          "where": "Dashboard",
+          "story": "admin-pool-poolclaimscard--voucher-accept",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.5408,
+            0.7506,
+            0.0981,
+            0.0444
+          ],
+          "back": [
+            [
+              0.6167,
+              0.2094,
+              0.0278,
+              0.0444
+            ],
+            [
+              0.4732,
+              0.7506,
+              0.062,
+              0.0444
+            ]
+          ]
+        },
+        {
+          "file": "vouchers-8",
+          "device": "phone",
+          "caption": "Booked: her hub day is set",
+          "step": "Booked",
+          "pilot": true,
+          "who": "You are Ifeoma, a member of the hub",
+          "story": "client-wallet-voucherstab--booked",
+          "size": [
+            390,
+            844
+          ]
+        }
+      ]
+    },
+    {
+      "id": "impact",
+      "label": "Impact",
+      "line": "See the hub's public record",
+      "who": "You are Funmi, a supporter of the hub",
+      "where": "Website",
+      "thumb": "impact-2",
+      "intro": "Funmi finds Green Goods on the web, opens its record of approved work and finds the hub's bootcamp in it.",
+      "screens": [
+        {
+          "file": "impact-1",
+          "device": "desktop",
+          "caption": "Green Goods on the web",
+          "step": "Home page",
+          "story": "app/",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.4245,
+            0.0111,
+            0.0612,
+            0.0489
+          ]
+        },
+        {
+          "file": "impact-2",
+          "device": "desktop",
+          "caption": "Approved work, filtered to Education",
+          "step": "Impact ledger",
+          "story": "app/",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.0556,
+            0.6067,
+            0.2741,
+            0.0241
+          ]
+        },
+        {
+          "file": "impact-3",
+          "device": "desktop",
+          "caption": "The bootcamp, on the public record",
+          "step": "The record",
+          "story": "app/",
+          "size": [
+            1440,
+            900
+          ],
+          "back": [
+            0.9161,
+            0.0222,
+            0.0561,
+            0.0356
           ]
         }
       ]
@@ -700,14 +1133,17 @@
     {
       "id": "funding",
       "label": "Funding",
-      "line": "Supporters fund the next cohort",
+      "line": "Donate to the hub's fund",
       "who": "You are Funmi, a supporter of the hub",
+      "where": "Website",
       "thumb": "funding-2",
+      "intro": "She backs the hub from its own page with a donation to its shared fund.",
       "screens": [
         {
           "file": "funding-1",
           "device": "desktop",
           "caption": "Back the hub from its own page",
+          "step": "Support",
           "story": "app/gardens/tas-hub",
           "size": [
             1440,
@@ -723,7 +1159,8 @@
         {
           "file": "funding-2",
           "device": "desktop",
-          "caption": "Endow the hub for the long run",
+          "caption": "Choose Donate for the hub",
+          "step": "Donate",
           "story": "app/gardens/tas-hub",
           "size": [
             1440,
@@ -731,7 +1168,7 @@
           ],
           "hotspot": [
             0.4373,
-            0.0758,
+            0.018,
             0.0544,
             0.0444
           ]
@@ -740,6 +1177,7 @@
           "file": "funding-3",
           "device": "desktop",
           "caption": "Enter an amount and connect",
+          "step": "Amount",
           "story": "app/gardens/tas-hub",
           "size": [
             1440,
@@ -750,13 +1188,20 @@
             0.7091,
             0.2667,
             0.0489
+          ],
+          "back": [
+            0,
+            0,
+            1,
+            1
           ]
         },
         {
           "file": "funding-4",
           "device": "desktop",
-          "caption": "Confirm the endowment in DAI",
-          "story": "public-documentation-funding--endow",
+          "caption": "Confirm the donation",
+          "step": "Confirm",
+          "story": "public-documentation-funding--donate",
           "size": [
             1440,
             900
@@ -766,18 +1211,8 @@
             0.6888,
             0.2667,
             0.0489
-          ]
-        },
-        {
-          "file": "funding-5",
-          "device": "desktop",
-          "caption": "Close and see where it goes",
-          "story": "public-documentation-funding--endowed",
-          "size": [
-            1440,
-            900
           ],
-          "hotspot": [
+          "back": [
             0,
             0,
             1,
@@ -785,13 +1220,20 @@
           ]
         },
         {
-          "file": "funding-6",
+          "file": "funding-5",
           "device": "desktop",
-          "caption": "Follow the work it supports",
-          "story": "app/gardens/tas-hub",
+          "caption": "Donated to the hub's shared fund",
+          "step": "Done",
+          "story": "public-documentation-funding--donated",
           "size": [
             1440,
             900
+          ],
+          "back": [
+            0,
+            0,
+            1,
+            1
           ]
         }
       ]
@@ -806,18 +1248,37 @@
     const images = inlined ? JSON.parse(inlined.textContent) : {};
     const src = (file) => images[file] || `assets/screens/${file}.jpg`;
     const $ = (id) => document.getElementById(id);
+    const root = document.documentElement;
     const landing = $("landing"), view = $("flow"), shot = $("shot"), hotspot = $("hotspot"), screen = $("screen");
+    const panel = $("panel"), toggle = $("panel-toggle"), steplist = $("steplist"), backspots = $("backspots"), strip = $("strip"), stripNav = $("strip-nav");
     let flow = null;
     let step = 0;
+
+    // Light and dark: follow the system until the viewer picks, then remember the pick here.
+    const THEME_KEY = "gg-sf-live-demo-theme";
+    const system = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    const switches = [...document.querySelectorAll(".theme-switch")];
+    const theme = () => (root.dataset.theme === "dark" || root.dataset.theme === "light" ? root.dataset.theme : system?.matches ? "dark" : "light");
+    const showTheme = () => switches.forEach((s) => s.setAttribute("aria-checked", String(theme() === "dark")));
+    switches.forEach((s) => s.addEventListener("click", () => {
+      const pick = theme() === "dark" ? "light" : "dark";
+      root.dataset.theme = pick;
+      try { localStorage.setItem(THEME_KEY, pick); } catch { /* storage may be blocked; the pick lasts for this visit */ }
+      showTheme();
+    }));
+    system?.addEventListener?.("change", showTheme);
+    new MutationObserver(showTheme).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    showTheme();
 
     function device(kind, file) {
       const figure = document.createElement("span");
       figure.className = `device ${kind}`;
-      figure.innerHTML = `<span class="screen" style="display:block"><img alt="" draggable="false" loading="eager" /></span>`;
+      figure.innerHTML = `<span class="screen"><img alt="" draggable="false" loading="eager" /></span>`;
       figure.querySelector("img").src = src(file);
       return figure;
     }
 
+    // Landing tiles, one per chapter.
     flows.forEach((f, i) => {
       const li = document.createElement("li");
       const tile = document.createElement("button");
@@ -825,118 +1286,235 @@
       tile.className = "tile";
       tile.id = `tile-${f.id}`;
       tile.dataset.flow = f.id;
-      const pick = f.screens.find((s) => s.file === f.thumb) || f.screens[0];
-      const thumb = document.createElement("span");
-      thumb.className = "thumb";
-      thumb.append(device(pick.device, pick.file));
       const text = document.createElement("span");
       text.className = "tile-text";
-      text.innerHTML = `<span class="num">${i + 1}</span><span class="name"></span><span class="line"></span><span class="steps"></span>`;
+      text.innerHTML = `<span class="tile-top"><span class="num">${i + 1}</span><span class="name"></span></span><span class="line"></span><span class="tile-who"></span><span class="tile-meta">${i === 0 ? '<span class="start-here">Start here</span>' : ""}<span class="steps"></span></span>`;
       text.querySelector(".name").textContent = f.label;
       text.querySelector(".line").textContent = f.line;
-      text.querySelector(".steps").textContent = `${f.screens.length} screens`;
-      tile.append(thumb, text);
-      tile.addEventListener("click", () => open(f.id, 0));
+      text.querySelector(".tile-who").textContent = f.who;
+      text.querySelector(".steps").textContent = `${f.where ? `${f.where} · ` : ""}${f.screens.length} screens`;
+      const pick = f.screens.find((s) => s.file === f.thumb) || f.screens[0];
+      const thumb = document.createElement("span");
+      thumb.className = `thumb ${pick.device}`;
+      thumb.append(device(pick.device, pick.file));
+      tile.append(text, thumb);
+      tile.addEventListener("click", () => { go({ id: f.id, step: 0 }); focusStage(); });
       li.append(tile);
       $("tiles").append(li);
     });
 
-    function setHash(value) {
-      try { history.replaceState(null, "", value ? `#${value}` : location.pathname + location.search); } catch { /* a sandboxed frame may refuse; the page works without it */ }
+    // The strip: every chapter in order, each opening at its first screen.
+    flows.forEach((f, i) => {
+      const li = document.createElement("li");
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip";
+      chip.id = `chip-${f.id}`;
+      chip.innerHTML = `<span class="chip-num">${i + 1}</span><span class="chip-label"></span>`;
+      chip.querySelector(".chip-label").textContent = f.label;
+      chip.addEventListener("click", () => go({ id: f.id, step: 0 }));
+      li.append(chip);
+      strip.append(li);
+    });
+
+    function buildSteps() {
+      const id = flow.id;
+      steplist.replaceChildren(...flow.screens.map((s, i) => {
+        const li = document.createElement("li");
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "stepbtn";
+        b.innerHTML = `<span class="stepnum">${i + 1}</span><span class="steplabel"></span>`;
+        b.querySelector(".steplabel").textContent = s.step || s.caption;
+        b.addEventListener("click", () => go({ id, step: i }));
+        li.append(b);
+        return li;
+      }));
     }
 
-    function open(id, at) {
-      flow = flows.find((f) => f.id === id) || flows[0];
-      step = Math.min(Math.max(at, 0), flow.screens.length - 1);
+    // History: #/ is the landing and #/<chapter>/<n> a screen. Every move adds one entry, so the
+    // browser's back and forward walk the screens. A plain #<chapter>-<n> link opens too, since an
+    // artifact link carries only plain anchors.
+    function hashFor(target) { return target ? `#/${target.id}/${target.step + 1}` : "#/"; }
+    function parse(hash) {
+      const match = /^#\/([a-z0-9-]+)(?:\/(\d+))?\/?$/i.exec(hash) || /^#([a-z][a-z0-9]*)(?:-(\d+))?$/i.exec(hash);
+      const f = match && flows.find((x) => x.id === match[1]);
+      if (!f) return null;
+      return { id: f.id, step: Math.min(Math.max(Number(match[2] || 1), 1), f.screens.length) - 1 };
+    }
+    function record(target, how) {
+      const url = hashFor(target);
+      const data = target ? { id: target.id, step: target.step } : { landing: true };
+      try {
+        if (how === "push") history.pushState(data, "", url); else history.replaceState(data, "", url);
+      } catch {
+        // A sandboxed frame may refuse history; a hash change still records the move.
+        try { if (how === "push" && location.hash !== url) location.hash = url; } catch { /* the page works without history */ }
+      }
+    }
+    function current(target) {
+      return target ? !view.hidden && flow?.id === target.id && step === target.step : view.hidden;
+    }
+    function go(target, how = "push") {
+      if (current(target)) return;
+      show(target);
+      record(target, how);
+    }
+
+    function show(target) {
+      if (!target) {
+        const from = flow;
+        flow = null;
+        view.hidden = true;
+        landing.hidden = false;
+        document.body.dataset.view = "landing";
+        if (from) $(`tile-${from.id}`)?.focus();
+        return;
+      }
+      const next = flows.find((f) => f.id === target.id);
+      const changed = next !== flow;
+      flow = next;
+      step = Math.min(Math.max(target.step, 0), flow.screens.length - 1);
       landing.hidden = true;
       view.hidden = false;
       document.body.dataset.view = "flow";
-      $("flow-num").textContent = String(flows.indexOf(flow) + 1);
-      $("flow-name").textContent = flow.label;
-      $("dots").replaceChildren(...flow.screens.map(() => document.createElement("li")));
+      if (changed) {
+        $("flow-num").textContent = String(flows.indexOf(flow) + 1);
+        $("flow-name").textContent = flow.label;
+        $("intro").textContent = flow.intro || "";
+        buildSteps();
+        panel.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+      }
       render();
-      hotspot.hidden ? $("next-flow").focus() : hotspot.focus({ preventScroll: true });
+      if (changed) revealChip();
     }
 
-    function home() {
-      const from = flow;
-      flow = null;
-      view.hidden = true;
-      landing.hidden = false;
-      document.body.dataset.view = "landing";
-      setHash("");
-      ($(`tile-${from?.id}`) || $("start")).focus({ preventScroll: true });
+    const rects = (value) => (!value ? [] : Array.isArray(value[0]) ? value : [value]);
+    function place(el, [x, y, w, h], pad) {
+      el.style.left = `calc(${x * 100}% - ${pad}px)`;
+      el.style.top = `calc(${y * 100}% - ${pad}px)`;
+      el.style.width = `calc(${w * 100}% + ${2 * pad}px)`;
+      el.style.height = `calc(${h * 100}% + ${2 * pad}px)`;
     }
-
-    function nextFlow() { return flows[flows.indexOf(flow) + 1]; }
 
     function render() {
       const s = flow.screens[step];
+      const index = flows.indexOf(flow);
       const last = step === flow.screens.length - 1;
-      const next = nextFlow();
+      const next = flows[index + 1];
+      const where = s.where || flow.where || "";
       $("device").className = `device ${s.device}`;
       shot.src = src(s.file);
       shot.alt = `${flow.label}, screen ${step + 1} of ${flow.screens.length}`;
       $("caption").textContent = s.caption;
+      $("pilot").hidden = !s.pilot;
       $("who").textContent = s.who || flow.who;
+      $("where").textContent = where;
+      $("where").hidden = !where;
       $("count").innerHTML = `<span class="long">Screen </span>${step + 1} of ${flow.screens.length}`;
-      [...$("dots").children].forEach((dot, i) => { dot.className = i < step ? "done" : i === step ? "now" : ""; });
+      steplist.querySelectorAll(".stepbtn").forEach((b, i) => {
+        b.classList.toggle("done", i < step);
+        if (i === step) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      });
+      strip.querySelectorAll(".chip").forEach((c, i) => {
+        c.classList.toggle("done", i < index);
+        if (i === index) c.setAttribute("aria-current", "true"); else c.removeAttribute("aria-current");
+      });
       hotspot.hidden = last || !s.hotspot;
       if (!hotspot.hidden) {
-        const [x, y, w, h] = s.hotspot;
-        hotspot.style.left = `calc(${x * 100}% - 6px)`;
-        hotspot.style.top = `calc(${y * 100}% - 6px)`;
-        hotspot.style.width = `calc(${w * 100}% + 12px)`;
-        hotspot.style.height = `calc(${h * 100}% + 12px)`;
+        place(hotspot, s.hotspot, 6);
         hotspot.setAttribute("aria-label", s.caption);
-        requestAnimationFrame(round);
       }
+      backspots.replaceChildren(...rects(s.back).map((r) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "backspot";
+        b.title = "Back";
+        b.setAttribute("aria-label", "Back");
+        place(b, r, 4);
+        b.addEventListener("click", (event) => { event.stopPropagation(); backInScreen(); });
+        return b;
+      }));
+      requestAnimationFrame(round);
       $("hint").hidden = step !== 0;
+      panel.classList.toggle("at-start", step === 0);
       $("back").disabled = step === 0;
       $("restart").disabled = step === 0;
-      // The last screen continues the story in the next flow; the last flow ends at the landing.
+      // The last screen continues the story in the next chapter; the last chapter ends at the landing.
       $("next-flow").hidden = !last;
       $("next-flow").textContent = next ? `Next: ${next.label}` : "All flows";
       $("all-end").hidden = !last || !next;
       document.body.dataset.flow = flow.id;
       document.body.dataset.step = String(step + 1);
-      setHash(`${flow.id}-${step + 1}`);
+      keepStepInView();
       const upcoming = flow.screens[step + 1] || next?.screens[0];
       if (upcoming) new Image().src = src(upcoming.file);
     }
 
     function round() {
       if (!hotspot.hidden) hotspot.style.setProperty("--r", `${Math.min(hotspot.getBoundingClientRect().height / 2, 20)}px`);
+      backspots.querySelectorAll(".backspot").forEach((b) => b.style.setProperty("--r", `${Math.min(b.getBoundingClientRect().height / 2, 16)}px`));
+    }
+
+    // Scroll the panel, not the page, to keep the current step in sight in a long chapter.
+    function keepStepInView() {
+      const now = steplist.querySelector('[aria-current="step"]');
+      if (!now) return;
+      for (const box of [$("panel-body"), panel]) {
+        if (box.scrollHeight <= box.clientHeight + 1) continue;
+        const b = box.getBoundingClientRect(), c = now.getBoundingClientRect();
+        if (c.top < b.top) box.scrollTop -= b.top - c.top + 8;
+        else if (c.bottom > b.bottom) box.scrollTop += c.bottom - b.bottom + 8;
+        return;
+      }
+    }
+
+    function revealChip() {
+      const chip = $(`chip-${flow.id}`);
+      if (chip && stripNav.scrollWidth > stripNav.clientWidth) stripNav.scrollLeft = chip.offsetLeft - (stripNav.clientWidth - chip.offsetWidth) / 2;
+    }
+
+    function focusStage() {
+      if (view.hidden) return;
+      (hotspot.hidden ? $("next-flow") : hotspot).focus({ preventScroll: true });
     }
 
     // A render hides the hotspot on the last screen, shows the closing buttons only there and
     // disables Back and Restart on the first screen, so a keyboard user who held a control that
     // just went away lands on the one now in play instead of on a hidden or disabled one.
     function keepFocus(before) {
-      if (![hotspot, $("next-flow"), $("all-end"), $("back"), $("restart")].includes(before)) return;
+      if (view.hidden || ![hotspot, $("next-flow"), $("all-end"), $("back"), $("restart")].includes(before)) return;
       if (!before.hidden && !before.disabled) return;
-      if (!hotspot.hidden) hotspot.focus({ preventScroll: true });
-      else $("next-flow").focus({ preventScroll: true });
+      focusStage();
     }
+
+    function nextFlow() { return flows[flows.indexOf(flow) + 1]; }
+    function home() { go(null); }
 
     function advance() {
       if (!flow) return;
-      if (step < flow.screens.length - 1) {
-        const before = document.activeElement;
-        step += 1;
-        render();
-        keepFocus(before);
-        return;
-      }
+      const before = document.activeElement;
+      if (step < flow.screens.length - 1) { go({ id: flow.id, step: step + 1 }); keepFocus(before); return; }
       const next = nextFlow();
-      if (next) open(next.id, 0); else home();
+      if (next) { go({ id: next.id, step: 0 }); focusStage(); } else home();
     }
     function retreat() {
       if (!flow || step === 0) return;
       const before = document.activeElement;
-      step -= 1;
-      render();
+      go({ id: flow.id, step: step - 1 });
       keepFocus(before);
+    }
+    // The app's own back control steps back one screen, across chapters, and out to the landing
+    // from the very first screen.
+    function backInScreen() {
+      if (!flow) return;
+      const held = document.activeElement?.classList.contains("backspot");
+      const index = flows.indexOf(flow);
+      if (step > 0) go({ id: flow.id, step: step - 1 });
+      else if (index > 0) go({ id: flows[index - 1].id, step: flows[index - 1].screens.length - 1 });
+      else { home(); return; }
+      if (held) (backspots.querySelector(".backspot") || (hotspot.hidden ? $("next-flow") : hotspot)).focus({ preventScroll: true });
     }
 
     hotspot.addEventListener("click", (event) => { event.stopPropagation(); advance(); });
@@ -949,12 +1527,17 @@
     });
     hotspot.addEventListener("animationend", (event) => { if (event.animationName === "nudge") hotspot.classList.remove("nudge"); });
     $("back").addEventListener("click", retreat);
-    $("restart").addEventListener("click", () => { const before = document.activeElement; step = 0; render(); keepFocus(before); });
+    $("restart").addEventListener("click", () => { if (!flow) return; const before = document.activeElement; go({ id: flow.id, step: 0 }); keepFocus(before); });
     $("next-flow").addEventListener("click", advance);
     $("all-end").addEventListener("click", home);
     $("home-flow").addEventListener("click", home);
-    $("start").addEventListener("click", () => open(flows[0].id, 0));
-    window.addEventListener("resize", round);
+    toggle.addEventListener("click", () => {
+      const open = !panel.classList.contains("open");
+      panel.classList.toggle("open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      if (open) keepStepInView();
+    });
+    window.addEventListener("resize", () => { round(); if (flow) revealChip(); });
     document.addEventListener("keydown", (event) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === "Escape" && flow) { event.preventDefault(); home(); }
@@ -962,15 +1545,20 @@
       else if (event.key === "ArrowLeft" && flow) { event.preventDefault(); retreat(); }
     });
 
-    // #needs opens a flow; #promise-3 opens its third screen.
-    function route() {
-      const match = /^#([a-z]+)(?:-(\d+))?$/.exec(location.hash);
-      if (match && flows.some((f) => f.id === match[1])) open(match[1], Number(match[2] || 1) - 1);
-      else if (flow) home();
-      else document.body.dataset.view = "landing";
+    // Back, forward and a typed link land here; a move this page made itself is already shown.
+    function sync() {
+      const target = parse(location.hash);
+      if (current(target)) return;
+      const before = document.activeElement;
+      show(target);
+      keepFocus(before);
     }
-    window.addEventListener("hashchange", route);
-    route();
+    window.addEventListener("popstate", sync);
+    window.addEventListener("hashchange", sync);
+
+    const first = parse(location.hash);
+    if (first) { show(first); record(first, "replace"); focusStage(); }
+    else { document.body.dataset.view = "landing"; record(null, "replace"); }
   })();
 </script>
 </body>

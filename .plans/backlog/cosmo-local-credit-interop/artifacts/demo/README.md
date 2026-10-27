@@ -1,263 +1,300 @@
 # Clickable demo · SustainableFinance.Live 2026
 
 The demonstrator for the submission: one page a judge clicks through. It follows one season at
-Tech and Sun's hub in Awka, Nigeria, through the loop on slide 5 of the deck. Each of the four
-flows starts where that person starts in the current app and shows every step:
+Tech and Sun's hub in Awka, Nigeria, as one story in eight chapters. Obinna is the hub's steward,
+Ifeoma a member, and Funmi a supporter:
 
-1. **Needs** (7 screens). Obinna, the hub's steward, opens the dashboard and writes the season's
-   assessment, step by step: the need, two targets (24 members certified, 5 bootcamp sessions), the
-   work that counts toward them and the period. Members then see it in the app.
-2. **Promise** (12). Chiamaka opens the season from Home, finds the hub's request "Complete the UN
-   CC:Learn climate course" (one of 24), takes one up, adds her proof and sends it. Obinna confirms
-   it on the hub's record, and the promise is kept.
-3. **Work** (12). Ifeoma logs the hub's bootcamp from Home: Garden, Education, Workshop Delivered,
-   three photos, the details form, review. Obinna finds it on his Home and approves it with a note,
-   and it shows on the hub's public record.
-4. **Funding** (6). Funmi backs the hub from its public page: Fund, Endow, $500, her wallet, the
-   confirmation, and back to the record the money follows.
+1. **Needs** (7 screens, dashboard). Obinna signs in, looks over the hub's earlier assessment and
+   writes this season's: the need, two targets (24 members certified, 5 bootcamp sessions), the work
+   that counts toward them and the period.
+2. **Season** (7, dashboard). He starts the season "Climate and Tech Education" in the hub's
+   Promises tab, then seeds the promise members can take up: "Run a one-week AI content bootcamp",
+   garden work kept by one approved Workshop Delivered, 20 hours, $20.
+3. **Promise** (5, app). Ifeoma finds the bootcamp in Take Part on the hub's Home and takes it up.
+4. **Work** (3, app). After the bootcamp she logs it for her promise: Start ("Which promise is this
+   work for?"), the bootcamp's photo, review.
+5. **Approval** (4, dashboard). Obinna opens it from the Hub's Work queue and approves it. In the
+   app's words, "A promise kept through garden work is confirmed when that work is approved."
+6. **Vouchers** (8, app and dashboard; every screen marked "In pilot"). The kept promise pays her 2
+   Tech and Sun vouchers and G$, each on its own row. She spends a voucher on a hub day, and Obinna
+   accepts the booking once its four checks pass.
+7. **Impact** (3, website). Funmi finds Green Goods on the web, opens its evidence ledger filtered
+   to Education, and opens the bootcamp's public record.
+8. **Funding** (5, website). She backs the hub from its own page with a $500 donation to its shared
+   fund.
 
-Every screen has one caption, who you are, and one hotspot on the control to tap; a tap anywhere
-else does not advance. "All flows" stays at the top left of every screen, and each flow's last
-screen continues to the next flow, so "Start from the beginning" plays the whole season.
+The page:
+- The landing shows the chapters in two columns on wide screens; chapter 1 says "Start here".
+- In a chapter, a side panel gives its intro, who you are and its steps (click one to jump), and a
+  strip across the top lists all eight.
+- Every screen has one caption, and every screen but a chapter's last has one pulsing hotspot on
+  the control to tap; a chapter's last screen offers "Next: <chapter>".
+- The app's own back arrows, close buttons and Cancel go back a screen, and so do the browser's back
+  button and the outside Back button. "All flows" stays at the top left, and each chapter's last
+  screen continues to the next.
+- The page follows the viewer's light or dark setting, with a switch; the screens stay as captured.
 
 - Drive: `Shared drives/Greenpill Dev Guild/Product/Green Goods/Growth/SF.Live 2026/Green Goods SF.Live 2026 clickable demo.html`
 - Artifact (shared by link): <https://claude.ai/artifact/9ThhqDPZTEggFZuKnvS2wa>
-- UI review of every screen: [`ui-review-2026-10-26.md`](ui-review-2026-10-26.md)
+- UI review of every screen: [`ui-review-2026-10-27.md`](ui-review-2026-10-27.md)
 
 ## Where the screens come from
 
-- **App** (24 screens): the develop app and dashboard, run locally against the hub's record (the
-  hosted indexer and the hub's pinned photos and documents), signed in with the dev-only mock
-  account that is one of the hub's stewards. `capture.mjs` clicks, types, chooses and attaches
-  photos as a person would. Nothing is uploaded, signed or sent: each flow stops on the button that
-  would ask for a signature, and the hotspot sits on it.
-- **Storybook** (9): the deployed Storybook at design.greengoods.app, built from develop, for the
-  states the app reaches only after a signature (taken up, proof sent, approved, kept) and for
-  Chiamaka's own view of her promise. Fixture copy is swapped for the hub's (Demo copy, below).
-- **Composite** (4): the dashboard's "assessment saved" dialog and the Endow dialog's two connected
-  states are Storybook dialogs drawn over the App screen they follow, in the real dialog's place,
-  and the members' Insights sheet is the Storybook sheet, with its own scrim, drawn over the hub's
-  Home, so the page behind stays the hub's (`over` in `capture.mjs`).
+**42 screens**: 17 App, 12 Storybook and 13 Composite.
+
+- **App**: the develop app, dashboard and public site, run locally against the hub's record (the
+  hosted indexer and the hub's pinned photos), signed in with the dev-only mock account, which is
+  one of the hub's stewards. `capture.mjs` clicks, types and chooses as a person would. Nothing is
+  uploaded, signed or sent: a chapter stops on the button that would ask for a signature.
+- **Storybook**: Storybook built from develop, for the states the app reaches only after a
+  signature, the states the hub's record does not have, and every voucher screen. Fixture copy is
+  swapped for the hub's (Demo copy, below).
+- **Composite**: a Storybook panel, sheet or dialog drawn into the real page it belongs to, in the
+  real one's place (`over` in `capture.mjs`), so the page around it stays the hub's.
 
 ## What is here
 
 | Path | What it is |
 |---|---|
-| [`index.html`](index.html) | The page: landing, flow view and the `#flows` block with every caption, who you are, source and hotspot. It shows the screens from `assets/screens/` when they are present |
-| [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, and the course proof as `proof-course.jpg`, cropped to the result. It replaces the set whole: one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
-| [`capture.mjs`](capture.mjs) | Walks each flow's session in the app and Storybook, captures the 37 screens, swaps in names and the hub's content, and writes each screen's source, size and measured hotspot into `#flows` |
-| [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper). A missing screen or a page over 15 MB fails the build before it writes, so the last good build survives |
-| [`check.mjs`](check.mjs) | Checks the build and walks every flow headless; screenshots each step and a contact sheet into `output/` |
+| [`index.html`](index.html) | The page: landing, chapter view and the `#flows` block with every caption, step, who you are, source, hotspot and back region. It shows the screens from `assets/screens/` when they are present |
+| [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`. It replaces the set whole: one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
+| [`capture.mjs`](capture.mjs) | Walks each chapter's sessions in the app and Storybook, captures the 42 screens, swaps in names and the hub's content, and writes each screen's source, size, hotspot and back regions into `#flows` |
+| [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper). A missing screen or a page over 15 MB fails the build before it writes |
+| [`check.mjs`](check.mjs) | Checks the build and walks every chapter headless; screenshots each step and a contact sheet into `output/` |
 | `assets/screens/`, `assets/photos/`, `output/` | Local files, not committed: the photos, the screens and the built page show identifiable people |
 
 ## Capture, build and check
 
 Capture needs the develop app on port 3122 and the dashboard on 3102, both from a develop checkout
-with dependencies installed, on the hub's chain and the hosted indexer (no new dependency):
+with dependencies installed, on the hub's chain and the hosted indexer, and a Storybook built from
+the same checkout. The deployed Storybook (design.greengoods.app) cannot render a story since
+develop stopped falling back to a default indexer; until its build sets the indexer, build it
+locally and serve the folder (any static server that copes with a few hundred parallel requests):
 
 ```bash
-cd packages/client && SKIP_MKCERT=true APP_ENV=development VITE_CHAIN_ID=42161 VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/de3e5df/v1/graphql node ../../scripts/dev/node-cli.js vite --port 3122 --strictPort
-cd packages/admin && APP_ENV=development VITE_CHAIN_ID=42161 node ../../scripts/dev/node-cli.js vite --port 3102 --strictPort
+cd packages/client && SKIP_MKCERT=true APP_ENV=development VITE_CHAIN_ID=42161 VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql node ../../scripts/dev/node-cli.js vite --port 3122 --strictPort
 ```
 
-Then, from the repository root (Playwright and network access), place the approved Awka photo, save
-the record's photos, and capture, build and check. A missing photo fails the capture:
+```bash
+cd packages/admin && APP_ENV=development VITE_CHAIN_ID=42161 VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql node ../../scripts/dev/node-cli.js vite --port 3102 --strictPort
+```
+
+```bash
+cd packages/shared && VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql bun run build-storybook
+```
+
+Then, from the repository root, place the approved Awka photo, save the record's photos, and
+capture, build and check:
 
 ```bash
 cp /Users/afo/Code/greenpill/artifacts/octant-e12-deck/assets/photos/awka-hub.jpg .plans/backlog/cosmo-local-credit-interop/artifacts/demo/assets/photos/
+```
+
+```bash
 node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/photos.mjs
-node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/capture.mjs
+```
+
+```bash
+node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/capture.mjs --storybook=http://127.0.0.1:4621
+```
+
+```bash
 node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/build.mjs
+```
+
+```bash
 node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/check.mjs
 ```
 
-`capture.mjs --only=work-app,promise-4` re-runs single sessions (session ids are in `SESSIONS`); an
-unknown id stops the run before anything is captured, and swap rules shared with sessions outside
-`--only` are reported as not validated rather than passed. `--debug` prints each screen's text. A
-composite needs the App screen under it captured first. Screens are staged and replace the current
-set only when the run has no problem, so a failed capture leaves the existing screens and
-`index.html` untouched. A capture fails when a step fails; when any swap rule, shared ones
-included, matches nothing on a full capture; when a fixture name survives, or a name ending in
-`.eth` that is not one of the demo's appears; when the Awka banner or a listed photo is missing or
-does not decode; when a record photo's title in `record-photos.tsv` no longer matches the
-submission `RECORDS` binds it to (the hub's page lists newest first, so a new approved submission
-renumbers the files); when Storybook shows its not-found view; when a screen without a hotspot
-shows neither its `expect` copy nor any of its own swaps; or when a hotspot target is missing or
-off screen.
+`capture.mjs --only=season-console,promise-3` re-runs single sessions (session ids are in
+`SESSIONS`); an unknown id stops the run before anything is captured, and swap rules shared with
+sessions outside `--only` are reported as not validated rather than passed. `--debug` prints each
+screen's text, `--html=<file>` writes another page's `#flows` block, and `--accept` keeps a run's
+screens despite its problems while iterating; a capture for the page runs without it. A composite
+needs the App screen under it captured first. Screens are staged and replace the current set only
+when the run has no problem. A capture fails when a step fails; when any swap rule, shared ones
+included, matches nothing on a full capture; when a fixture name survives on screen, or a name
+ending in `.eth` that is not one of the demo's appears; when a listed photo is missing or does not
+decode; when a record photo's title in `record-photos.tsv` no longer matches the submission
+`RECORDS` binds it to; when Storybook shows its not-found view; when a screen without a hotspot
+shows neither its `expect` copy nor any of its own swaps; or when a hotspot or back target is
+missing or off screen.
 
-Check fails on an em dash in the demo's HTML or Markdown; a caption over eight words; a caption,
-tile line or "who you are" line using "commitment", "chain", "blockchain", "Arbitrum", "Celo",
-"Gnosis" or "live"; a tile line that is not five words; a missing or extra hotspot; a stale build; a
-file over 15 MB; an image that does not load; a caption that does not change; a tap beside the
-hotspot that advances; a missing "All flows" button; a flow's end that does not continue to the
-next flow; broken keys (Right, Left, Escape), Back, Restart or deep links (`#work-3`); keyboard
-focus left on a hidden or disabled control (Enter through a flow, Left from its last screen, Back
-or Restart by keyboard); any request beyond Google Fonts; console errors; sideways scroll at 390
-wide; or a light background in dark mode.
+`check.mjs` lists what it checks at its top: the copy rules, one hotspot on every screen but a
+chapter's last, the landing, the chapter strip and panel, in-screen and browser back, keys, focus,
+the theme switch, deep links (`#/promise/3`, and `#work-3` for artifact links), requests, console
+errors, and the phone width and dark mode.
 
-To change a caption, a "who you are" line or a tile line, edit `#flows` in `index.html`, then build
-and check. To present, open the built file; `#promise` opens a flow and `#promise-3` its third
-screen.
+To change a caption, a step, a "who you are" line, a tile line or an intro, edit `#flows` in
+`index.html`, then build and check.
 
 ## The flows
 
 | Screen | Source | What the screen shows | Caption |
 |---|---|---|---|
-| needs-1 | App: dashboard, Hub, Assessments, TAS HUB chosen | No assessments yet | Start the season's assessment |
-| needs-2 | App: Create Assessment, step 1 | Education chosen; title, location and description typed | Name the need: climate and tech skills |
-| needs-3 | App: step 2 | The challenge typed; "Members earn the UN CC:Learn climate certificate", Participants, 24; "The hub runs hands-on bootcamp sessions", Sessions delivered, 5; Complicated chosen | Set the targets the season should reach |
-| needs-4 | App: step 3 | Workshop Delivered chosen as the work that counts | Choose the work that counts toward them |
-| needs-5 | App: step 4, review | Everything entered, before Submit Assessment | Check everything, then submit |
-| needs-6 | Composite: `admin-workflows-assessment-reviewstep--in-flow-sent` over needs-5 | Assessment submitted | Close the saved assessment |
-| needs-7 | Composite: `client-home-gardensheets--insights-with-banner-at-390` over promise-1 (the hub's Home) | The hub's Insights sheet with its description and the assessment | Members see what the hub needs |
-| promise-1 | App: `/home`, TAS HUB chosen in the garden picker | Home: the season, recent activity, Continue | Open this season at the hub |
-| promise-2 | App: the season card's sheet | The season's dates and counts | See what the season asks members |
-| promise-3 | App: "Show Its Promises" | The season's open course requests | Open the climate course request |
-| promise-4 | Storybook: `client-commitments-promisegrouppage--open` | What each request asks; 24 available | Read what it asks, then take one |
-| promise-5 | Storybook: `client-commitments-takeuponesheet--ready` | The take-up sheet | Promise to finish the course |
-| promise-6 | Storybook: `client-commitments-gardencommitment--in-progress` | Her promise, in progress | Finished? Add your proof |
-| promise-7 | Storybook: `client-commitments-proofcomposer--media-added` | The course result photo added | Add a photo of your result |
-| promise-8 | Storybook: `client-commitments-proofcomposer--details` | Credited to her; the record's note | Say what you did |
-| promise-9 | Storybook: `client-commitments-proofcomposer--review-send` | The proof to send | Check it, then send it to the hub |
-| promise-10 | App: `/home/<TAS HUB>/commitments/19`, as the steward who asked | The record's waiting promise, its note and photo | As steward, open the finished promise |
-| promise-11 | App: the same page's "Confirm It Was Kept" | The confirm sheet with the proof | Confirm she finished the course |
-| promise-12 | Storybook: `client-commitments-gardencommitment--kept` | Kept, as she sees it | The promise is kept |
-| work-1 | App: `/home`, TAS HUB chosen | Home | Tap Garden to log the bootcamp |
-| work-2 | App: the Garden tab's Start step | The Solar actions | Switch to Education |
-| work-3 | App: Education | The Education actions, Workshop Delivered in view | Pick Workshop Delivered |
-| work-4 | App: Workshop Delivered chosen | The Promise section and Start Gardening | Start logging the workshop |
-| work-5 | App: Media step | Capture Workshop Photo, nothing added yet | Add photos from the bootcamp |
-| work-6 | App: three photos attached through the file picker (record-06, -07, -04) | 3 photos added | Three photos in, now the details |
-| work-7 | App: Details step | 20 hours, 1200 minutes, 2 facilitators, Impact measurement and Other, the record's description | Add hours, facilitators and topics |
-| work-8 | App: Review step | Review Workshop with the hub and the three photos | Check it all, then upload |
-| work-9 | App: `/home` as the steward | Ifeoma's bootcamp pending at the top of Recent Activity | Open the new workshop to review it |
-| work-10 | Storybook: `client-work-reviewwork--evaluate-example` | Evaluate Work | Approve what the photos show |
-| work-11 | Storybook: `client-work-reviewwork--feedback-example` | Add Feedback | Add a note and submit |
-| work-12 | App: `/gardens/tas-hub`, approved submissions | The bootcamp's record entry | The bootcamp joins the hub's public record |
-| funding-1 | App: `/gardens/tas-hub`, the end of the page | Support This Garden | Back the hub from its own page |
-| funding-2 | App: `/fund`, opened from "Support This Garden" | TAS HUB first, with Donate and Endow | Endow the hub for the long run |
-| funding-3 | App: Endow, 500 typed | Amount and payment currency, Connect Wallet | Enter an amount and connect |
-| funding-4 | Composite: `public-documentation-funding--endow` over funding-3 | Endow $500.00 in DAI, wallet connected | Confirm the endowment in DAI |
-| funding-5 | Composite: `public-documentation-funding--endowed` over funding-3 | Endowed $500.00 to TAS HUB | Close and see where it goes |
-| funding-6 | App: `/gardens/tas-hub`, Recent approved submissions | The hub's record | Follow the work it supports |
+| needs-1 | App: `dashboard /` | The dashboard's sign-in: Connect Wallet or Sign in with Passkey | Sign in to the hub's dashboard |
+| needs-2 | Storybook: `admin-workspaces-hub--assessments-tab` | The Hub's Assessments tab with one earlier assessment (demo data) | The hub's earlier assessment, then a new one |
+| needs-3 | App: `dashboard /hub/assess` | Create Assessment, step 1: Education; title, location and description typed | Name the need: climate and tech skills |
+| needs-4 | App: `dashboard /hub/assess` | Step 2: the challenge typed; 24 participants and 5 sessions as targets; Complicated | Set the targets the season should reach |
+| needs-5 | App: `dashboard /hub/assess` | Step 3: Workshop Delivered as the work that counts; 10 Oct 2026 to 31 Jan 2027 | Choose the work that counts toward them |
+| needs-6 | App: `dashboard /hub/assess` | Step 4: the review, before Submit Assessment | Check everything, then submit |
+| needs-7 | Composite: `admin-workflows-assessment-reviewstep--in-flow-sent` over needs-6 | The assessment saved | The need is on the record |
+| season-1 | Composite: `admin-pool-poolcyclescard--no-season` over the real `dashboard /garden/pool` | The hub's Promises tab before the season: No season running, Start Season | Start the season in Promises |
+| season-2 | Composite: `admin-pool-poolsetupflow--new-season` over season-1 | Start a Season: the name and dates typed | Name the season and its dates |
+| season-3 | App: `dashboard /garden/pool` | The Promises tab with the season open and its course requests | The season is open; add a promise |
+| season-4 | App: `dashboard /garden/pool` | Seed Promises, What: the season, Garden work, The pool requests, title and note typed | Ask for a one-week AI bootcamp |
+| season-5 | App: `dashboard /garden/pool` | How Much: one promise, 20 hours, due in 30 days, lead-managed, Workshop Delivered × 1 | Twenty hours of Workshop Delivered |
+| season-6 | App: `dashboard /garden/pool` | Proof & Confirmation: the hub's stewards, open to anyone in the garden | Who confirms it and who can take it |
+| season-7 | App: `dashboard /garden/pool` | Review: the promise as it will be created, $20 reward, before Create Promise | Check it, then create the promise |
+| promise-1 | Composite: `client-home-takepart--default` over the real `/home` | The hub's Home with Take Part listing the bootcamp | Open Take Part on the hub's Home |
+| promise-2 | Composite: `client-home-takepartsheet--at-the-season` over promise-1 | Take Part at the season: the course and the bootcamp | Find the bootcamp in the season |
+| promise-3 | Storybook: `client-commitments-promisegrouppage--open` | The bootcamp's page: what it asks, 20 hours, due 25 Nov | Read what it asks, then take it |
+| promise-4 | Composite: `client-commitments-takeuponesheet--ready` over promise-3 | The take-up sheet | Promise to run the bootcamp |
+| promise-5 | Storybook: `client-commitments-gardencommitment--in-progress` | Her promise in progress: kept when the stewards approve its work | Hers now, kept when work is approved |
+| work-1 | Storybook: `client-work-submitwork--start-on-promises` | Submit Work, Start: Keep a Promise, the bootcamp | Pick the promise this work keeps |
+| work-2 | Storybook: `client-work-submitwork--media-for-a-promise` | Media for the promise: the bootcamp's three photos | Add a photo from the bootcamp |
+| work-3 | Storybook: `client-work-submitwork--review-for-a-promise` | Review for the promise: the garden as facts, the three photos and the details | Check the details, then upload |
+| approval-1 | App: `dashboard /hub/work` | The Hub's Work queue: the bootcamp pending | The bootcamp waits in the Hub |
+| approval-2 | Composite: `admin-workflows-hub-reviewform--actionable` over the real `dashboard /hub/work` | The work's dialog: the bootcamp's photo, the details, the review form | Check the photo and details |
+| approval-3 | Composite: `admin-workflows-hub-reviewform--actionable` over the real `dashboard /hub/work` | High confidence and a note, before Approve | Approve it with a note |
+| approval-4 | Composite: `admin-workflows-hub-reviewform--already-reviewed` over the real `dashboard /hub/work` | Approved | Approved: her promise is kept |
+| vouchers-1 | Storybook: `client-commitments-voucher-journeys--earn-vouchers` | Her promise kept: 2 Tech and Sun vouchers and the G$ received, each on its own row | Her rewards arrive, each on its own |
+| vouchers-2 | Storybook: `client-wallet-voucherstab--voucher-open` | The wallet's Vouchers tab: Tech and Sun vouchers, 9 available, Book a Service | Her vouchers wait in her wallet |
+| vouchers-3 | Storybook: `client-commitments-voucher-journeys--redeem-hub-day` | A hub day: what she gets, gives (1 voucher) and who holds it | A hub day takes one voucher |
+| vouchers-4 | Storybook: `client-commitments-voucher-journeys--redeem-hub-day` | Review and Redeem: the exact terms, before Agree to These Terms | Agree to the exact terms |
+| vouchers-5 | Storybook: `client-commitments-voucher-journeys--hub-day-agree-and-deposit` | Her voucher in escrow; Green Goods confirms the deposit | Her voucher waits in escrow |
+| vouchers-6 | Composite: `admin-pool-poolclaimscard--voucher-accept` over the real `dashboard /garden/pool` | The steward's Review Promises: her booking, Accept | The booking waits for the steward |
+| vouchers-7 | Composite: `admin-pool-poolclaimscard--voucher-accept` over vouchers-6 | Accept: the four checks the contract enforces | Accept once the four checks pass |
+| vouchers-8 | Storybook: `client-wallet-voucherstab--booked` | The wallet: the hub day booked, 1 voucher in a booking | Booked: her hub day is set |
+| impact-1 | App: `/` | greengoods.app's home page | Green Goods on the web |
+| impact-2 | App: `/` | Impact's evidence ledger, filtered to Education, at the bootcamp | Approved work, filtered to Education |
+| impact-3 | App: `/` | The bootcamp's approved submission, opened from the ledger | The bootcamp, on the public record |
+| funding-1 | App: `/gardens/tas-hub` | The end of the hub's page: Support This Garden | Back the hub from its own page |
+| funding-2 | App: `/gardens/tas-hub` | Fund: the hub with Donate and Endow | Choose Donate for the hub |
+| funding-3 | App: `/gardens/tas-hub` | Donate: 500 typed, Connect Wallet | Enter an amount and connect |
+| funding-4 | Composite: `public-documentation-funding--donate` over funding-3 | Donate $500.00 in DAI, wallet connected | Confirm the donation |
+| funding-5 | Composite: `public-documentation-funding--donated` over funding-3 | Donated $500.00 to the hub | Donated to the hub's shared fund |
 
-"Who you are" is Obinna for Needs and for promise-10 and promise-11, and for work-9 to work-11;
-Chiamaka for needs-7 and the rest of Promise; Ifeoma for work-1 to work-8; "Anyone can open the
-hub's page" for work-12; Funmi for Funding.
+"Who you are" is Obinna for Needs, Season, Approval and the booking's acceptance (vouchers-6 and
+vouchers-7); Ifeoma for Promise, Work and the rest of Vouchers; Funmi for Impact and Funding.
 
-Desktop screens are 1440 by 900 at 1.5x and phone screens 390 by 844 at 2x, saved as JPEG.
+Desktop screens are 1440 by 900 at 1.5x and phone screens 390 by 844 at 2x, saved as JPEG. The app's
+own back arrow, close button or Cancel on a screen is a back region, measured by `capture.mjs` like
+the hotspot.
 
 ### Where the app stops and what stands in
 
-- **Needs.** "Submit Assessment" asks for a signature, so the saved dialog (needs-6) is the
-  Storybook dialog, drawn over the review it replaces. The hub has no assessment on record, so the
-  member's view of it (needs-7) is the Storybook Insights sheet with the demo's assessment, drawn
-  over the hub's Home.
-- **Promise.** Taking a promise up and sending proof both ask for signatures, and the mock account
-  is the steward who asked for the course, so Chiamaka's screens (promise-4 to promise-9 and
-  promise-12) are Storybook. The steward's screens (promise-10, promise-11) are the hub's real
-  waiting promise, opened in the app. The Storybook promise asks for linked garden work; for a
-  course promise the app shows the proof line ("Add proof as you go…") and a single Add Proof
-  button (`statusBand.ts`, `GardenCommitment.tsx`), and promise-6 shows those.
-- **Work.** "Upload Work" asks for a signature. The steward's Home (work-9) is the app as it stands,
-  with the steward's own pending entry relabeled as Ifeoma's bootcamp, three photos and "4 min.
-  ago"; the review and approval (work-10, work-11) are Storybook.
-- **Funding.** The Endow dialog stops at "Connect Wallet". Its connected and endowed states
-  (funding-4, funding-5) are the Storybook dialogs drawn over the real Fund page.
+- **Needs.** The sign-in is the dashboard signed out. The hub has no assessment on record, so the
+  earlier one (needs-2) is the Hub's Storybook tab with one assessment, as demo data. "Submit
+  Assessment" asks for a signature, so the saved dialog (needs-7) is Storybook, drawn over the
+  review it replaces.
+- **Season.** The hub already runs this season and the app opens one at a time, so the Promises tab
+  before it (season-1) is the real tab with Storybook's "No season running" card in the season's
+  place and the season's course requests hidden, and "Start a Season" (season-2) is the Storybook
+  dialog over it. The seed flow (season-3 to season-7) is the real dashboard; "Create Promise" asks
+  for a signature. Its review's reward reads "$20.00, paid in G$ once it's kept": develop shows
+  "None" there while settlement is switched off (`SETTLEMENT_ENABLED`), and the pitch shows payouts
+  on. The Pool Funding card, which reads that switch, is hidden.
+- **Promise.** The bootcamp promise was never created (no signature), and develop's Home lists no
+  open promise for the hub today, so Take Part on Home (promise-1) is the Storybook section drawn
+  where the real one sits, and the Take Part sheet, the promise's page, the take-up sheet and her
+  promise in progress are Storybook, with the sheets drawn over the screen they open from.
+- **Work.** Submit Work's Start, Media and Review for a promise are Storybook (the mock account
+  holds no promise). The hub's record has one photo of the bootcamp, so her upload has one, and the
+  review shows the garden as facts (#1335).
+- **Approval.** The Hub's queue and the work's dialog are the real dashboard, with the steward's own
+  pending node log relabeled as Ifeoma's bootcamp (title, action, gardener, time, photo). The app
+  asks another steward to review the viewer's own work, so the review panel is the Storybook review
+  form, drawn in the real panel, which is as tall as the form makes it. Approving asks for a
+  signature; approval-4 is the Storybook summary in the same panel.
+- **Vouchers.** Every screen is Storybook: the pilot's reads are not live. The booking's card and
+  its Accept dialog are drawn into the hub's real Promises tab.
+- **Impact.** The public site as it stands: the home page, the Impact page's evidence ledger
+  filtered to Education, and the bootcamp's approved submission.
+- **Funding.** The hub's page, Fund and the Donate dialog are real up to Connect Wallet; the
+  connected and donated states are the Storybook dialogs drawn over the real Fund page.
 
 ## What is real and what is sample
 
-Read from Tech and Sun's record on 26 October 2026 (the garden, its season pool, its promises, its
-actions and its public page):
+Read from Tech and Sun's record on 26 and 27 October 2026 (the garden, its pool and season, its
+actions and its public pages):
 
 - The hub: TAS HUB in Awka, Nigeria, 14 members, its description, its banner photo and its record
-  of 16 approved submissions.
-- The season "Climate and Tech Education", 10 October 2026 to 31 January 2027, and its 24 requests
-  "Complete the UN CC:Learn climate course": one certificate each, the request's note, due 31
-  January 2027. The request also carries a $20 reward, which no screen shows (see the UI review).
-- The one promise taken up so far: taken up and proved on 21 October 2026, with the member's note
-  "I completed the course, I attached my Proof too." and a photo of their course result (9.5 out of
-  10), now waiting for the steward. The photo is cropped to the result, because the original also
-  shows the member's name and email.
-- The Workshop Delivered and Hub Service Session forms, their labels, the dashboard's assessment
-  wizard and its metrics, and every App screen's layout, counts and state.
-- The bootcamp: its record entry "A one week content creation bootcamp with AI" and its photos. The
-  Work flow replays how that entry reached the record.
-- Every photo: the approved Awka group photo as the hub's banner, and the hub's public submission
-  photos. `record-15`, a letter that names a person, is never used.
-- The Funding flow's public pages, with their counts.
+  of approved submissions.
+- The season "Climate and Tech Education", 10 October 2026 to 31 January 2027, and its 24 course
+  requests ("Complete the UN CC:Learn climate course", $20 each, due 31 January 2027).
+- The Workshop Delivered action, the dashboard's assessment wizard, seed flow and work queue, and
+  every App screen's layout, counts and state.
+- The bootcamp's record entry, "A one week content creation bootcamp with AI", and its photo. The
+  Work and Approval chapters replay how that entry reached the record.
+- The public pages and their counts.
 
-Sample: every person's name (below), the assessment and its targets, the bootcamp's hours and
-facilitator count, Chiamaka's take-up as shown in Storybook (its dates are the record's), the
-approval note, the endowment of $500 and its confirmation, and the date the promise is confirmed.
+Sample: every person's name (below); the earlier assessment; the new assessment and its targets;
+the bootcamp promise (its title, 20 hours, 25 November 2026 and $20); Ifeoma's take-up, her
+submission's time and the approval note; the vouchers (2 earned, 9 held, the hub day booked for
+January); the G$ amount (155,460, at the rate the Storybook fixtures fix); and the $500 donation.
 
 ## Names
 
-Every person is invented. The mock account (a steward of the hub) is Obinna; the member whose
-promise is on the record is Chiamaka; the hub's two other stewards are adaeze.eth and ikenna.eth;
-Ifeoma ran the bootcamp; Funmi is the supporter. Any other shortened address on screen becomes one
-of eight invented handles (tobenna.eth, kelechi.eth, nneka.eth, ada.eth, uche.eth, ngozi.eth,
-chidi.eth, amaka.eth), the same one for the same address. Names are swapped on every screen,
-including the public pages; nothing else on those pages changes.
+Every person is invented. The mock account (a steward of the hub) is Obinna; Ifeoma is the member
+who runs the bootcamp; Funmi is the supporter; the hub's two other stewards are adaeze.eth and
+ikenna.eth; Nneka is the other member booking a hub day in the voucher fixtures. Any other
+shortened address on screen becomes one of eight invented handles (tobenna.eth, kelechi.eth,
+nneka.eth, ada.eth, uche.eth, ngozi.eth, chidi.eth, amaka.eth), the same one for the same address.
+The confirmer field's hint keeps the app's own example, lina.eth.
 
 | On the record or in the fixture | In the demo |
 |---|---|
-| The mock account's handle; the fixture steward `tomas` | obinna |
-| The member who took the course up (a shortened address); the fixture member `amara` | chiamaka |
-| The two named confirmers and stewards (their ENS names) | adaeze.eth; ikenna.eth |
-| The fixture team member `dele` | removed (the promise is kept alone) |
+| The mock account's handle; the fixture steward `tomas`; the pool's requester `0x5e...0b2` | obinna |
+| The fixture member `amara`, `lina` and `Kwesi`; the steward's own node log's submitter | ifeoma / Ifeoma |
+| The fixture member `Lina` who books first | Nneka |
+| The hub's two other stewards (their ENS names) | adaeze.eth; ikenna.eth |
 | The fixture wallet `0x5eed...00a1` | funmi.eth |
 
 ## Demo copy
 
 Swapped into each screen's text, `alt`, `aria-label`, `title`, placeholders and field values after
-it renders, together with the photos named in the flows table. Components, layout and controls stay
-as rendered.
+it renders, with the photos named in the flows table. Components, layout and controls stay as
+rendered. The tables in `capture.mjs` (`HUB_LIST`, `SEASON_SETUP`, `TAKE_PART`, `GROUP`,
+`IN_PROGRESS`, `START`, `FOR_PROMISE`, `QUEUE`, `REVIEW_FORM`, `EARN`, `HUB_DAY`, `DONATE`,
+`ASSESSMENT`) hold every rule; in short:
 
 | Fixture or record text | Demo copy | Screens |
 |---|---|---|
-| Riverside Commons Garden | TAS HUB | needs-7, promise-6, promise-12, work-10, work-11, funding-4, funding-5 |
-| Riverside District; 3 members | Awka, Nigeria; 14 members | work-10, work-11 |
-| Autumn Planting 2026 | Climate and Tech Education | promise-6, promise-12 |
-| The steward's own pending Node Operation Log | Energy & Uptime Check (promise-1, work-1); Workshop Delivered by ifeoma, 4 min. ago, 3 photos (work-9) | promise-1, work-1, work-9 |
-| The node log's black photo | record-03 (promise-1, work-1); record-06 (work-9) | promise-1, work-1, work-9 |
-| Survey household water use on Mill Lane; Repair the north fence panel by the compost bays before the first frost | Complete the UN CC:Learn climate course | promise-4 to promise-9, promise-12 |
-| The two fixture notes | Complete the agreed UN CC:Learn course and submit your certificate so the hub can verify your learning. | promise-4, promise-6, promise-12 |
-| 4 available · 3 in progress · 3 kept | 24 available · 0 in progress · 0 kept | promise-4 |
-| 2 hours; 1 repair; Oct 30, 2026; Oct 20, 2026 | 1 certificate; Jan 31, 2027 | promise-4 to promise-6, promise-12 |
-| Link the required work below. Garden stewards approve it; no separate send is needed.; Link Work | Add proof as you go. When it's complete, send it to be confirmed.; Add Proof | promise-6 |
-| Proof added: 2 photos, 1 voice note; Optional: you already added 2 photos and 1 voice note. | Proof added: 1 photo; Optional: you already added 1 photo. | promise-7, promise-8 |
-| Replaced two split slats and secured the panel. Dele helped with measuring and fastening. | I completed the course, I attached my Proof too. | promise-8, promise-9 |
-| The proof photos; the record's proof photo | proof-course.jpg | promise-7, promise-9, promise-10, promise-11 |
-| Asked Oct 2, taken up Oct 3, proof Oct 12, sent Oct 12, confirmed Oct 14 | Asked Oct 13, 2:55 PM; taken up Oct 21, 2:53 PM; proof and sent Oct 21, 2:57 PM (the record's times); confirmed Oct 26, 9:05 AM | promise-6, promise-12 |
-| No approved work yet · no proof yet | No approved work yet · 1 proof | promise-12 |
-| Seedling Transplant; Plants Moved 36; 1h 30m | Workshop Delivered; Facilitators 2; 20h | work-10, work-11 |
-| Moved 36 lettuce seedlings into the east bed and watered them after transplanting. | A one week content creation bootcamp with AI | work-10, work-11 |
-| The count and note match the evidence checked at the garden. | The photos match the session I saw at the hub. | work-11 |
-| The garden card's no-banner pattern; the work photo | awka-hub.jpg; record-06 | work-10, work-11 |
-| The fixture assessment: East plot, Rio Rainforest Lab; Agroforestry; Rio canopy baseline, wet season; its description, challenge, outcomes, action and dates | TAS HUB; Awka, Nigeria; Education; the title, description, challenge, outcomes, action and period typed in needs-2 to needs-4 | needs-6 |
-| Riverside Commons grows food along the river and shares the harvest with its block.; Native canopy returns along the riverbank; Oct 18, 2025 – Jan 16, 2026; Agroforestry; the banner | The hub's description; Climate and tech skills for members; Oct 10, 2026 – Jan 31, 2027; Education; awka-hub.jpg | needs-7 |
+| Rio Rainforest Lab; Rainforest canopy strategy; Jan 3, 2026; Agroforestry | TAS HUB; Reliable power and internet at the hub; Apr 6, 2026; Solar | needs-2 |
+| Rocinha's pool; Season of First Rains | TAS HUB's pool; Climate and Tech Education | season-2 |
+| Reward: None | $20.00, paid in G$ once it's kept | season-7 |
+| Riverside Commons Garden; Autumn Planting 2026; Sep 1 – Nov 30 · 3 of 7 kept | TAS HUB; Climate and Tech Education; Oct 10 – Jan 31 · 1 of 2 kept | promise-2, promise-5 |
+| The fixture requests and offers (household survey, fence repair, composting workshop, seed library, watering) | Run a one-week AI content bootcamp; the season's course | promise-1 to promise-5, work-1 to work-3, vouchers-1 |
+| Offered (Take Part rows) | Asked for | promise-2 |
+| 2 hours, 1 repair, 2 workshops; Oct 20, Oct 30, Dec 14; $5.00 | 20 hours; Nov 25, 2026; $20.00 | promise-3 to promise-5, vouchers-1 |
+| 4 available · 3 in progress · 3 kept | 1 available · 0 in progress · 0 kept | promise-3 |
+| Workshop photos; 3 of 12 approved; Seedling Transplant; Plants moved 36; Members 3 | the bootcamp; 0 of 1 approved; Workshop Delivered; Facilitators 2; Members 14 | work-1 to work-3 |
+| The steward's own pending Node Operation Log, by afo, 3 weeks ago, Oct 1 | Workshop Delivered, by ifeoma, 12 minutes ago, Oct 26, 2026, 4:48 PM | approval-1 to approval-4 |
+| 120 G$ | 155,460 G$ | vouchers-1 |
+| Nov 2; Oct 26 (the hub day's deadline and agreement) | Jan 20; Jan 13 | vouchers-4, vouchers-5 |
 | $50.00 | $500.00 | funding-4, funding-5 |
+| The fixture photos; the node log's photo | record-06 (the bootcamp's record photo) | promise-1, work-2, work-3, approval-1 to approval-4 |
 
-Typed into the app rather than swapped: the assessment (needs-2 to needs-4), the work's details
-(work-7) and the 500 in the Endow amount (funding-3).
+Typed into the app rather than swapped: the assessment (needs-3 to needs-5), the seeded promise
+(season-4 and season-5) and the 500 in the Donate amount (funding-3).
 
-Removed from screens, because the hub's record does not have them: the Solar actions' first card,
-Node Operation Log, which the pitch leaves out (work-2); the promise that was already waiting, from
-the list as it stood before Chiamaka took hers up (promise-3); the fixture's second photo, voice
-note, link and second team member (promise-6 to promise-9, promise-12); the fixture's Link Work
-button, since a course promise shows Add Proof alone (promise-6); and the fixture's second, older
-assessment (needs-7).
+Hidden on screens, because the story does not have them: the steward's "Needs Your Attention" row
+on Home (promise-1, when present); the season's course requests on the Promises tab before the
+season (season-1); the Pool Funding card (season-1, season-3 to season-7); the fixture's campaign
+and its rows in Take Part; the fixture's second team member (promise-5); the node log in Start's
+promises (work-1); the fixture's second review photo (work-3); "waiting over a week" (approval-1);
+and the voucher stories' narration.
 
 ## Claims
 
-- Captions, "who you are" lines and the page's own words say nothing about chains, "live" or
-  vouchers, and use "promise", never "commitment".
-- App text inside the screens still says "Live" (the Promises tabs and the season sheet), "sign
-  twice" (promise-9), and WETH, DAI and "Connect Wallet" (funding-3, funding-4); none of them names
-  a chain.
-- Vouchers appear nowhere, so no "in pilot" label was needed.
-- The landing says "Real app screens and hub photos; names are changed."
+- Captions, steps, intros and the page's own words say nothing about chains, use "promise", never
+  "commitment", and mark every voucher screen "In pilot". The landing says "Real app screens with
+  demo data."
+- App text inside the screens still says "Connect Wallet", WETH and DAI (funding-3, funding-4),
+  "Your wallet will ask you once" (season-7) and "Starting follows on the voucher network"
+  (vouchers-7); none of them names a chain.
+- Payouts are shown on (season-7, promise-3, vouchers-1) while develop's settlement switch is off.
 
 ## Task record · clickable demo
 
@@ -300,3 +337,18 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `c0fc53
 | harden | 08:20 → 08:29 | The PR branch's review fixes ported (staged captures, title-bound photos, decode and content checks, atomic photo refresh, keyboard walk, its `build.mjs`); one full staged capture with 0 problems; `check.mjs` exit 0, and exit 1 with the focus handling removed |
 
 Human corrections: 1 observed in this segment (the demo should start each flow at its beginning, use the current app, show every step and always offer a way back); attention unknown.
+
+## Task record · one season in eight chapters
+
+Task record: SF.Live clickable demo, v4 | Type: feature | Outcome: complete; delivery links above
+Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `b9d3ba279` (develop merged at `3d1327dc1`)
+
+| Phase | Start → end (UTC, 26 and 27 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| align | 22:20 → 23:10 (26th) | Afo's review of v3; develop's new surfaces mapped (season setup, seed flow, Hub work queue, public Impact and Fund, the merged voucher stories); seven decisions in two rounds of questions |
+| sync | 00:08 → 00:20 (27th) | Signed merge of develop into this branch; the capture checkout moved to develop's tip, then to `a4e083adc` once #1335 merged (01:27) |
+| implement | 00:20 → 02:50 | The page's new shell by a parallel agent (two-column landing, chapter strip and panel, in-screen and browser back, theme switch, check rework); `capture.mjs` v4 sessions for 42 screens; a local Storybook build, since the deployed one cannot render a story |
+| verify | 02:50 → 03:25 | A clean full capture: 42 screens, 0 problems; `build.mjs` 7.44 MB; `check.mjs` exit 0 (42 steps, 25 back regions walked); every screen and the contact sheet inspected, and the approval form re-fitted to its dialog |
+| publish | {{PUBLISH}} | {{PUBLISH_RESULT}} |
+
+Human corrections: 1 observed in this segment (Afo's review: the flows felt disconnected, the app's own back controls did nothing, "names are changed" should read as demo data, the dashboard's approvals and the merged voucher work were missing, and garden cards should be text); attention unknown.
