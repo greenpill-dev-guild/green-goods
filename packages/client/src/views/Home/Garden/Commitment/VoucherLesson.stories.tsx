@@ -16,7 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLayoutEffect, useMemo } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { expect, fn, mocked, waitFor } from "storybook/test";
+import { expect, fn, mocked, waitFor, within } from "storybook/test";
 import {
   type BookingStoryStage,
   VOUCHER_STORY_NAMES,
@@ -25,6 +25,7 @@ import {
 import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
 import {
   LESSON_STORY_ISSUER,
+  LESSON_STORY_PAUSED_ISSUER,
   lessonStoryController,
   lessonStorySnapshot,
   lessonStoryWallet,
@@ -48,12 +49,25 @@ function heldAt(stage: BookingStoryStage): number {
 }
 
 /** The lesson's promise page at one stage, with the reader's acts answered in place. */
-function LessonPage({ stage, lang }: { stage: BookingStoryStage; lang: Lang }) {
+function LessonPage({
+  stage,
+  lang,
+  paused = false,
+}: {
+  stage: BookingStoryStage;
+  lang: Lang;
+  /** Teo paused new bookings. */
+  paused?: boolean;
+}) {
   const snapshot = useMemo(() => lessonStorySnapshot(stage), [stage]);
   const client = useQueryClient();
   useLayoutEffect(() => {
-    client.setQueryData(VOUCHER_STORY_WALLET_KEY, lessonStoryWallet(snapshot, heldAt(stage)));
-  }, [client, snapshot, stage]);
+    const issuer = paused ? LESSON_STORY_PAUSED_ISSUER : LESSON_STORY_ISSUER;
+    client.setQueryData(
+      VOUCHER_STORY_WALLET_KEY,
+      lessonStoryWallet(snapshot, heldAt(stage), issuer)
+    );
+  }, [client, snapshot, stage, paused]);
   mocked(useServiceAccess).mockReturnValue({
     data: snapshot,
     isLoading: false,
@@ -128,6 +142,7 @@ const meta: Meta<typeof LessonPage> = {
     ),
   argTypes: {
     stage: { control: false },
+    paused: { control: false },
     lang: { control: "inline-radio", options: ["en", "es", "pt"] },
   },
   args: { lang: "en" },
@@ -149,6 +164,20 @@ const shows =
 export const Offer: Story = {
   args: { stage: "open" },
   play: shows("Teo Alves approves, then the garden's stewards accept you"),
+};
+
+/** Teo paused new bookings: the offer's act stays, disabled, with the reason above it. */
+export const Paused: Story = {
+  args: { stage: "open", paused: true },
+  play: async (context) => {
+    await shows(
+      "Teo Alves paused new bookings. Your voucher keeps its terms, and booked services go ahead."
+    )?.(context);
+    if (context.args.lang === "en")
+      await expect(
+        within(context.canvasElement).getByRole("button", { name: "Review and Redeem" })
+      ).toBeDisabled();
+  },
 };
 
 /** No Teo voucher yet: what the lesson takes, and the shared pool's exchange as the door. */

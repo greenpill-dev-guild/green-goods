@@ -94,16 +94,19 @@ function offers(
   acts: Partial<VoucherConsoleView["acts"]> = {},
   options: { commitments?: CommitmentReadModel[]; titles?: PoolConsoleController["titles"] } = {}
 ) {
-  const vouchers = voucherConsoleViewFixture({
-    now: NOW,
-    snapshot: {
-      status: "observed",
-      observedAt: NOW,
-      bookings,
-      issuer: ISSUER,
-    },
-  });
-  const view = { ...vouchers, acts: { ...vouchers.acts, ...acts } };
+  const viewOf = (read: VoucherBooking[]) => {
+    const vouchers = voucherConsoleViewFixture({
+      now: NOW,
+      snapshot: {
+        status: "observed",
+        observedAt: NOW,
+        bookings: read,
+        issuer: ISSUER,
+      },
+    });
+    return { ...vouchers, acts: { ...vouchers.acts, ...acts } };
+  };
+  const view = viewOf(bookings);
   const commitments =
     options.commitments ??
     bookings.map((booking) =>
@@ -128,10 +131,10 @@ function offers(
         ])
       ),
   });
-  const render = (console: PoolConsoleController) => (
+  const render = (console: PoolConsoleController, vouchers: VoucherConsoleView = view) => (
     <PoolCommitmentsCard
       console={console}
-      vouchers={view}
+      vouchers={vouchers}
       target={{ gardenName: "Green Goods Community Garden", isProtocol: false }}
       scope="open"
       onScopeChange={() => undefined}
@@ -145,8 +148,9 @@ function offers(
   );
   const result = renderWithProviders(render(pool));
   return {
-    rerender: (next: Partial<PoolConsoleController>) =>
-      result.rerender(render({ ...pool, ...next })),
+    /** The console as read again, and optionally the voucher read with it. */
+    rerender: (next: Partial<PoolConsoleController>, read?: VoucherBooking[]) =>
+      result.rerender(render({ ...pool, ...next }, read ? viewOf(read) : view)),
   };
 }
 
@@ -279,6 +283,27 @@ describe("the issuer's acts in the Promises console", () => {
     expect(screen.getByText("Return didn’t go through")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Retry Transfer" })[0]!);
     await waitFor(() => expect(retryTransfer).toHaveBeenCalledWith(failed));
+  });
+
+  // An open dialog checked the booking as it was when it opened (Codex on #1352).
+  it("checks an open return against the ceiling the read has now", async () => {
+    const proposeReturn = vi.fn().mockResolvedValue(undefined);
+    const view = offers([endedEarly], { proposeReturn });
+    fireEvent.click(screen.getAllByRole("button", { name: "Propose Return…" })[0]!);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText(/Back to Lina/), { target: { value: "4" } });
+    expect(within(dialog).getByRole("button", { name: "Propose Return" })).toBeEnabled();
+
+    // Another owner of the issuer's Safe lets 4 come back meanwhile.
+    view.rerender({}, [
+      {
+        ...endedEarly,
+        stage: { kind: "ended-early", returnLimit: 6n * VOUCHER, returnCeiling: 4n * VOUCHER },
+      },
+    ]);
+    expect(within(dialog).getByText("More than the 4 already proposed")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Propose Return" })).toBeDisabled();
+    expect(proposeReturn).not.toHaveBeenCalled();
   });
 
   // Past due used to win the row's one slot, and Expire Now repays no one (Codex on #1320).

@@ -139,15 +139,25 @@ export function lessonStoryController(stage: BookingStoryStage): GardenCommitmen
   };
 }
 
+/** Teo after pausing new bookings: booked lessons go ahead, and his vouchers stay listed. */
+export const LESSON_STORY_PAUSED_ISSUER: VoucherIssuer = {
+  ...LESSON_STORY_ISSUER,
+  standing: { bookings: "paused", exchange: "listed" },
+};
+
 /** The reader holds one Teo voucher before booking; the booking holds it, then half returns. */
-export function lessonStoryWallet(snapshot: ServiceAccessSnapshot, held: number): VoucherWalletSnapshot {
+export function lessonStoryWallet(
+  snapshot: ServiceAccessSnapshot,
+  held: number,
+  issuer: VoucherIssuer = LESSON_STORY_ISSUER
+): VoucherWalletSnapshot {
   return {
     account: VOUCHER_STORY_SCOPE.account,
     evidence: "local-rehearsal",
     complete: true,
     reason: null,
-    issuers: [LESSON_STORY_ISSUER],
-    holdings: [{ issuer: LESSON_STORY_ISSUER, available: vouchers(held) }],
+    issuers: [issuer],
+    holdings: [{ issuer, available: vouchers(held) }],
     bookings: snapshot.voucherSetups
       .map(voucherBookingEscrow)
       .filter((escrow) => escrow.stage !== "closed"),
