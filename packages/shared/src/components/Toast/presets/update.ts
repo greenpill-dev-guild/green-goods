@@ -4,7 +4,7 @@ import { type FormatMessageFn, toastMessageIdsUpdate } from "./types";
 /** Default (English) fallback messages for app update toasts */
 const updateDefaults = {
   codeUnavailable: {
-    title: "Restart to continue uploading",
+    title: "Restart to continue",
     message: "Your saved work is kept on this device. Update or restart the app, then try again.",
     action: "Update",
   },
