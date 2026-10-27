@@ -41,8 +41,8 @@ function MemberRewardPage({ state, lang }: { state: RewardStoryState; lang: Vouc
 }
 
 /**
- * A request rewarded with a member's voucher (PRD-1299 SReward "Member voucher", slice 2): Tech
- * and Sun asks for its impact website's design and rewards 1 Teo voucher, sent from Teo's own
+ * A request rewarded with a member's voucher (PRD-1299 SReward "Member voucher", slice 2): the
+ * garden asks for its impact website's design and rewards 1 Teo voucher, sent from Teo's own
  * reserve under the allowance he approves for rewards. Fictional people from the design lab.
  * Pick the language with `lang`.
  */

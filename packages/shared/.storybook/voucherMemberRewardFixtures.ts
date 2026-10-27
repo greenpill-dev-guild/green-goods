@@ -11,7 +11,7 @@ import { vouchers } from "./voucherPilotFixtures";
 
 /**
  * Storybook-only fixtures for a request rewarded with a member's voucher (PRD-1299 SReward,
- * slice 2): Tech and Sun asks for its impact website's design and rewards 1 Teo voucher, sent
+ * slice 2): the garden asks for its impact website's design and rewards 1 Teo voucher, sent
  * from Teo's reserve under the allowance he approves for rewards. Its short state is that
  * allowance used up, unless the reserve itself runs short. Fictional, from the design lab.
  */
@@ -45,14 +45,14 @@ export function memberRewardStorySnapshot(
   return s;
 }
 
-/** The request's page controller: Tech and Sun's request, with the design brief's words. */
+/** The request's page controller: the garden's request, with the design brief's words. */
 export function memberRewardStoryController(state: RewardStoryState): GardenCommitmentController {
   return {
     ...rewardStoryController(state, false),
     metadata: {
       version: 1,
       title: MEMBER_REWARD_TITLE,
-      note: "Design the landing page and impact section for Tech and Sun's website, with a reviewed handoff for the build.",
+      note: "Design the landing page and impact section for the garden's website, with a reviewed handoff for the build.",
     },
   };
 }
