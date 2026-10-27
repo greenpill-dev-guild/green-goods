@@ -120,6 +120,24 @@ const Home: React.FC = () => {
   const gardenSwitcherRequested = useUIStore((s) => s.gardenSwitcherRequested);
   const clearGardenSwitcherRequest = useUIStore((s) => s.clearGardenSwitcherRequest);
 
+  // A link opens the wallet on its Vouchers tab: a received voucher reward's See Your Vouchers.
+  const [walletStart, setWalletStart] = useState<"vouchers" | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (!isHomeRoute || params.get("wallet") !== "vouchers") return;
+    params.delete("wallet");
+    setWalletStart("vouchers");
+    openWalletSheet();
+    const search = params.toString();
+    routerNavigate({ search: search ? `?${search}` : "" }, { replace: true });
+  }, [isHomeRoute, location.search, openWalletSheet, routerNavigate]);
+  // Once that wallet closes, the next one opens where the reader left it.
+  const walletWasOpen = useRef(false);
+  useEffect(() => {
+    if (walletWasOpen.current && !isWalletSheetOpen) setWalletStart(null);
+    walletWasOpen.current = isWalletSheetOpen;
+  }, [isWalletSheetOpen]);
+
   // The switcher keeps its mode while it slides out, so its title never flips mid-exit.
   const [switcher, setSwitcher] = useState<{ open: boolean; mode: SwitcherMode }>({
     open: false,
@@ -457,7 +475,11 @@ const Home: React.FC = () => {
       ) : null}
       {isWalletSheetPresent ? (
         <Suspense fallback={null}>
-          <WalletSheet isOpen={isWalletSheetOpen} onClose={closeWalletSheet} />
+          <WalletSheet
+            isOpen={isWalletSheetOpen}
+            onClose={closeWalletSheet}
+            startTab={walletStart ?? undefined}
+          />
         </Suspense>
       ) : null}
       {isCommitmentsSheetPresent ? (

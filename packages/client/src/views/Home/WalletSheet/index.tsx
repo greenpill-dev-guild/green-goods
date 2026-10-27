@@ -16,6 +16,8 @@ import { hasVoucherWallet } from "./voucherWallet";
 interface WalletSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  /** The tab it opens on, when a link asked for one; it falls back to Cookies while unread. */
+  startTab?: "vouchers";
 }
 
 /**
@@ -25,9 +27,9 @@ interface WalletSheetProps {
  * a voucher a booking holds shows as its own row that opens the booking, since
  * the wallet is account-wide and Home shows one garden (PRD-1299 decision 11).
  */
-export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose }) => {
+export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose, startTab }) => {
   const { formatMessage } = useIntl();
-  const [activeTab, setActiveTab] = useState("cookie-jar");
+  const [activeTab, setActiveTab] = useState<string>(startTab ?? "cookie-jar");
   // Bumped whenever the Tokens tab is (re)selected, so re-tapping it resets the
   // Tokens tab back to its Balance home.
   const [sendResetNonce, setSendResetNonce] = useState(0);
