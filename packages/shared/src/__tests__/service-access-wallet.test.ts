@@ -213,14 +213,22 @@ describe("voucher wallet reads", () => {
   });
 
   const safe = REHEARSAL_VOUCHER_ISSUERS.greenGoods.account;
-  const unread = { safe, status: "unavailable", threshold: null, owners: null } as const;
+  const unread = { safe, status: "unavailable", threshold: null, owners: null, signers: null };
+  const ownerAddress = (owner: string) => owner.padEnd(42, "0");
   it.each([
     [
       "a Safe's own threshold",
       2n,
       ["0x01", "0x02", "0x03", "0x04", "0x05"],
       { kind: "safe", threshold: 2, owners: 5 },
-      { safe, status: "observed", threshold: 2, owners: 5 },
+      // The console names who can sign the Safe's acts, from the same read as the count.
+      {
+        safe,
+        status: "observed",
+        threshold: 2,
+        owners: 5,
+        signers: ["0x01", "0x02", "0x03", "0x04", "0x05"].map(ownerAddress),
+      },
     ],
     [
       "a threshold above its owners",
@@ -240,9 +248,7 @@ describe("voucher wallet reads", () => {
   ] as const)("reads the signature count from the issuer: %s", async (_case, threshold, owners, expected, rule) => {
     const read: ServiceChainRead = async ({ functionName, chainId, address }) => {
       expect([chainId, address]).toEqual([100, safe]);
-      return functionName === "getThreshold"
-        ? threshold
-        : owners.map((owner) => owner.padEnd(42, "0"));
+      return functionName === "getThreshold" ? threshold : owners.map(ownerAddress);
     };
     expect(
       await readVoucherIssuerApproval(read, REHEARSAL_VOUCHER_ISSUERS.greenGoods)
@@ -274,6 +280,7 @@ describe("voucher wallet reads", () => {
       status: "unavailable",
       threshold: null,
       owners: null,
+      signers: null,
     });
   });
 

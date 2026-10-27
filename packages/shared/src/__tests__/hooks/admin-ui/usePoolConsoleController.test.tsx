@@ -5,7 +5,10 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "../../../config/query-keys";
-import { usePoolConsoleController } from "../../../hooks/admin-ui/pool/usePoolConsoleController";
+import {
+  usePoolConsoleController,
+  useVoucherConsole,
+} from "../../../hooks/admin-ui/pool/usePoolConsoleController";
 import type { CommitmentMutationInput } from "../../../hooks/commitment-pooling/useCommitmentMutations";
 import type { CommitmentPoolMutationInput } from "../../../hooks/commitment-pooling/useCommitmentPoolMutations";
 import type { CommitmentQueueState } from "../../../hooks/commitment-pooling/useCommitmentQueueState";
@@ -23,7 +26,12 @@ import {
   TUNDE,
 } from "../../../modules/commitment-pooling/demo/demo-builders";
 import type { HexString } from "../../../modules/commitment-pooling/types";
-import type { VoucherAsk } from "../../../modules/commitment-pooling/voucher-console";
+import {
+  selectVoucherAskStage,
+  type VoucherAsk,
+  type VoucherBooking,
+  type VoucherConsoleSnapshot,
+} from "../../../modules/commitment-pooling/voucher-console";
 import { claimActKey } from "../../../modules/transactions/act-phase";
 import {
   availableCapability,
@@ -178,6 +186,27 @@ const COMMITMENT = commitmentFixture({
   metadataCID: COMMITMENT_METADATA_CID,
 });
 const CLAIM = poolClaimRowFixture({ commitment: COMMITMENT });
+
+/** A booking asked on the console's promise, ready to accept unless `setup` says otherwise. */
+function voucherAsk(at: number, setup: Partial<NonNullable<VoucherAsk["setup"]>> = {}): VoucherAsk {
+  return {
+    commitmentId: COMMITMENT.commitmentId,
+    buyer: CLAIMANT,
+    claimHash: `0x${"c1".repeat(32)}`,
+    agreed: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
+    current: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
+    agreedAt: at - 172_800,
+    issuer: { name: "Tech and Sun", chainId: 100, safe: GARDEN, decimals: 6 },
+    setup: {
+      voucherUnits: 1_000_000n,
+      approvedAt: at - 86_400,
+      depositedUnits: 1_000_000n,
+      depositConfirmed: true,
+      acceptBy: at + 432_000,
+      ...setup,
+    },
+  };
+}
 
 const poolsKey = queryKeys.commitmentPooling.pools(CHAIN_ID, GARDEN);
 const cyclesKey = queryKeys.commitmentPooling.cycles(CHAIN_ID, POOL_ID);
@@ -596,26 +625,12 @@ describe("usePoolConsoleController", () => {
   });
 
   it("accepts a voucher booking through acceptServiceClaim, refusing before the wallet while a check fails", async () => {
+    const at = 1_761_600_000;
+    vi.spyOn(Date, "now").mockReturnValue(at * 1000);
     const queryClient = testQueryClient();
     seedControllerQueries(queryClient);
     const { result } = renderController(queryClient);
-    const at = 1_761_600_000;
-    const booking: VoucherAsk = {
-      commitmentId: COMMITMENT.commitmentId,
-      buyer: CLAIMANT,
-      claimHash: `0x${"c1".repeat(32)}`,
-      agreed: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
-      current: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
-      agreedAt: at - 172_800,
-      issuer: { name: "Tech and Sun", chainId: 100, safe: GARDEN, decimals: 6 },
-      setup: {
-        voucherUnits: 1_000_000n,
-        approvedAt: at - 86_400,
-        depositedUnits: 1_000_000n,
-        depositConfirmed: false,
-        acceptBy: at + 432_000,
-      },
-    };
+    const booking = voucherAsk(at, { depositConfirmed: false });
 
     // The deposit hasn't reached Green Goods: the contract would refuse, so the wallet never asks.
     await expect(result.current.acts.acceptServiceClaim(booking, at)).rejects.toThrow(
@@ -640,6 +655,24 @@ describe("usePoolConsoleController", () => {
     expect(
       result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
     ).toMatchObject({ kind: "approved", commitmentId: COMMITMENT.commitmentId.toString() });
+  });
+
+  // A tab left open across the deadline hands the act the time its dialog last drew: the act
+  // reads the chain's time as it starts, and the contract would refuse a late accept anyway
+  // (Codex on #1320).
+  it("judges an acceptance on the chain's time as the act starts, not the time the dialog drew", async () => {
+    const at = 1_761_600_000;
+    const ready = voucherAsk(at);
+    const acceptBy = ready.setup!.acceptBy;
+    vi.spyOn(Date, "now").mockReturnValue((acceptBy + 1) * 1000);
+    const queryClient = testQueryClient();
+    seedControllerQueries(queryClient);
+    const { result } = renderController(queryClient);
+
+    await expect(result.current.acts.acceptServiceClaim(ready, acceptBy)).rejects.toThrow(
+      "This booking isn't ready to accept"
+    );
+    expect(mocks.commitmentMutate).not.toHaveBeenCalled();
   });
 
   it("sends or drops a queued creation and re-reads the row either way", async () => {
@@ -773,5 +806,38 @@ describe("usePoolConsoleController", () => {
       poolId: POOL_ID,
       state: "PENDING",
     });
+  });
+});
+
+describe("useVoucherConsole", () => {
+  const voucherKey = queryKeys.commitmentPooling.voucherConsole(CHAIN_ID, GARDEN);
+  const renderVouchers = (queryClient: QueryClient) =>
+    renderHook(() => useVoucherConsole({ chainId: CHAIN_ID, garden: GARDEN }), {
+      wrapper: createTestWrapper(queryClient),
+    });
+  const snapshot = (asks: VoucherAsk[]): VoucherConsoleSnapshot => ({
+    status: "observed",
+    observedAt: NOW,
+    asks,
+    bookings: [],
+    issuer: null,
+    reserve: null,
+  });
+
+  // The clock used to be read only when the tab drew, so a console left open across a deadline
+  // kept offering Accept (Codex on #1320).
+  it("ticks past an ask's acceptance deadline while the console stays open", () => {
+    vi.useFakeTimers();
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(NOW * 1000);
+    const ask = voucherAsk(NOW, { acceptBy: NOW + 1 });
+    const queryClient = testQueryClient();
+    queryClient.setQueryData(voucherKey, snapshot([ask]));
+    const { result } = renderVouchers(queryClient);
+    expect(selectVoucherAskStage(ask, result.current.now)).toBe("ready");
+
+    dateNow.mockReturnValue((NOW + 2) * 1000);
+    act(() => vi.advanceTimersByTime(2_000));
+
+    expect(selectVoucherAskStage(ask, result.current.now)).toBe("past-deadline");
   });
 });

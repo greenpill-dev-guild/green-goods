@@ -7,7 +7,10 @@ import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type Config, WagmiContext } from "wagmi";
 
-import { useExpiryClock } from "../../../hooks/commitment-pooling/useExpiryClock";
+import {
+  useChainClockReader,
+  useExpiryClock,
+} from "../../../hooks/commitment-pooling/useExpiryClock";
 import { selectDueLiveCommitments } from "../../../modules/commitment-pooling/steward-selectors";
 import { createTestQueryClient } from "../../test-utils/query-client";
 
@@ -108,6 +111,29 @@ describe("useExpiryClock", () => {
     expect(dueAt(commitments, result.current)).toHaveLength(0);
     await act(async () => vi.advanceTimersByTimeAsync(2_000));
     expect(dueAt(commitments, result.current)).toHaveLength(1);
+  });
+
+  // A booking's acceptance deadline is no promise's due date, and an act that judges one reads
+  // the chain's time as it starts, not the time a page last drew (Codex on #1320).
+  it("ticks past other deadlines on the chain's clock, and reads that clock when an act asks", async () => {
+    vi.useFakeTimers();
+    const chainNow = 1_800_000_000;
+    vi.setSystemTime((chainNow + 3_600) * 1000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow) });
+    const deadlines = [BigInt(chainNow + 1)];
+    const { result } = renderHook(
+      () => ({
+        now: useExpiryClock({ chainId: CHAIN_ID, commitments: [], cycleEndTimes, deadlines }),
+        read: useChainClockReader(CHAIN_ID),
+      }),
+      { wrapper: providers({ wallet: true }) }
+    );
+    await vi.waitFor(() => expect(result.current.now).toBe(BigInt(chainNow)));
+    expect(result.current.read()).toBe(BigInt(chainNow));
+
+    await act(async () => vi.advanceTimersByTimeAsync(2_000));
+    expect(result.current.now).toBe(BigInt(chainNow + 2));
+    expect(result.current.read()).toBe(BigInt(chainNow + 2));
   });
 
   // An offset read against a device clock that is later corrected would carry the old error

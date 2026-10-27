@@ -51,6 +51,14 @@ const ISSUER = {
   decimals: 6,
 };
 
+const SAFE = {
+  safe: ISSUER.safe,
+  status: "observed",
+  threshold: 1,
+  owners: 1,
+  signers: [],
+} as const;
+
 const visit: VoucherBooking = {
   commitmentId: 43n,
   holder: MARA,
@@ -184,7 +192,7 @@ describe("the issuer's acts in the Promises console", () => {
     renderWithProviders(
       <VoucherReserveCard
         reserve={reserve}
-        safe={{ safe: ISSUER.safe, status: "observed", threshold: 1, owners: 1 }}
+        safe={SAFE}
         disabled={false}
         onRaiseAllowance={onRaiseAllowance}
       />

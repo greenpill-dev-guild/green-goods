@@ -8,9 +8,12 @@
 
 import { describe, expect, it } from "vitest";
 
+import type { Address } from "../types/domain";
 import {
+  type IssuerSafeThreshold,
   parseVoucherAmount,
   selectAllowanceRaise,
+  selectCanApproveBooking,
   selectReturnProposal,
   selectVoucherAcceptanceChecks,
   selectVoucherAskStage,
@@ -120,6 +123,16 @@ describe("voucher ask stage", () => {
   it("reads where the booking stands in the order it moves, the blocking states first", () => {
     const cases: Array<[VoucherAsk, ReturnType<typeof selectVoucherAskStage>]> = [
       [ask({ current: { revision: 3n, termsHash: `0x${"7e".repeat(32)}` } }), "terms-changed"],
+      [
+        ask({
+          claimHash: `0x${"00".repeat(32)}`,
+          current: { revision: 3n, termsHash: `0x${"7e".repeat(32)}` },
+        }),
+        "terms-changed",
+      ],
+      // Deposited and approved, but with no consent to name the acceptance refuses (Codex on #1320).
+      [ask({ claimHash: `0x${"00".repeat(32)}` }), "consent-missing"],
+      [ask({ claimHash: "0x1234" as VoucherAsk["claimHash"], setup: null }), "consent-missing"],
       [ask({ setup: null }), "setting-up"],
       [ask({ setup: { acceptBy: NOW - 1, approvedAt: null } }), "past-deadline"],
       [
@@ -165,6 +178,80 @@ describe("allowance raise", () => {
     expect(selectAllowanceRaise({ allowance: { left: 2n * VOUCHER } }, 2n * VOUCHER)).toEqual({
       valid: false,
     });
+  });
+});
+
+describe("who approves a booking", () => {
+  const STEWARD = "0x6166e1964447e0959bc7c8d543db3ab82db65044" as Address;
+  const OTHER = "0x1111111111111111111111111111111111111111" as Address;
+  const issuer = ask().issuer;
+  const safe = (signers: readonly Address[] | null): IssuerSafeThreshold => ({
+    safe: issuer.safe,
+    status: signers ? "observed" : "unavailable",
+    threshold: signers ? 1 : null,
+    owners: signers?.length ?? null,
+    signers,
+  });
+
+  // Approving is the issuer Safe's act: a steward who can't sign it sees the booking wait
+  // (Codex on #1320).
+  it("offers Approve only to an owner of the booking issuer's own Safe", () => {
+    const cases: Array<[string, Parameters<typeof selectCanApproveBooking>[0], boolean]> = [
+      [
+        "an owner of the Safe",
+        { ask: ask(), issuer, safe: safe([OTHER, STEWARD]), viewer: STEWARD },
+        true,
+      ],
+      [
+        "a steward who isn't an owner",
+        { ask: ask(), issuer, safe: safe([OTHER]), viewer: STEWARD },
+        false,
+      ],
+      [
+        "a Safe whose owners can't be read",
+        { ask: ask(), issuer, safe: safe(null), viewer: STEWARD },
+        false,
+      ],
+      ["no Safe read yet", { ask: ask(), issuer, safe: undefined, viewer: STEWARD }, false],
+      ["no viewer", { ask: ask(), issuer, safe: safe([STEWARD]), viewer: undefined }, false],
+      [
+        "a booking another issuer approves",
+        {
+          ask: ask({ issuer: { ...issuer, safe: OTHER } }),
+          issuer,
+          safe: safe([STEWARD]),
+          viewer: STEWARD,
+        },
+        false,
+      ],
+      [
+        "the same Safe address on another network",
+        {
+          ask: ask({ issuer: { ...issuer, chainId: 1 } }),
+          issuer,
+          safe: safe([STEWARD]),
+          viewer: STEWARD,
+        },
+        false,
+      ],
+      [
+        "a garden that issues no vouchers",
+        { ask: ask(), issuer: null, safe: safe([STEWARD]), viewer: STEWARD },
+        false,
+      ],
+    ];
+    for (const [why, input, approves] of cases) {
+      expect(selectCanApproveBooking(input), why).toBe(approves);
+    }
+    // Owners come back lowercased from the read; a viewer's checksummed address still matches.
+    expect(
+      selectCanApproveBooking({
+        ask: ask(),
+        issuer,
+        safe: safe([STEWARD]),
+        viewer: "0x6166E1964447E0959BC7C8D543DB3AB82DB65044" as Address,
+      })
+    ).toBe(true);
   });
 });
 

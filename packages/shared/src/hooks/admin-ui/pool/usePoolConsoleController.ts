@@ -25,6 +25,7 @@ import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { commitmentNeedsSeat } from "../../../modules/commitment-pooling/acts";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
 import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
+import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types-core";
 import {
   selectVoucherAcceptanceChecks,
   UNAVAILABLE_VOUCHER_CONSOLE,
@@ -59,10 +60,14 @@ import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReaso
 import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
-import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
+import { useChainClockReader, useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
 import { useClaimDecisions, useClaimDecisionVisit } from "./useClaimDecisions";
 import { useFinishCreating } from "./useFinishCreating";
+
+/** The voucher console's clock ticks only past its asks' deadlines, never a promise's due date. */
+const NO_PROMISES: readonly CommitmentReadModel[] = [];
+const NO_CYCLE_ENDS: ReadonlyMap<string, bigint | null> = new Map();
 
 /**
  * The issuer's acts sign with the issuer's Safe on the voucher network, which
@@ -96,6 +101,17 @@ export function useVoucherConsole(input: { chainId: number; garden: Address }): 
     staleTime: Number.POSITIVE_INFINITY,
   });
   const snapshot = query.data ?? UNAVAILABLE_VOUCHER_CONSOLE;
+  // Acceptance deadlines are in source time, the pool's chain, whose clock ticks past each one.
+  const deadlines = useMemo(
+    () => snapshot.asks.flatMap((ask) => (ask.setup ? [BigInt(ask.setup.acceptBy)] : [])),
+    [snapshot.asks]
+  );
+  const clock = useExpiryClock({
+    chainId,
+    commitments: NO_PROMISES,
+    cycleEndTimes: NO_CYCLE_ENDS,
+    deadlines,
+  });
   const lookups = useMemo(() => {
     const asks = new Map(
       snapshot.asks.map((ask) => [claimActKey(ask.commitmentId, ask.buyer), ask] as const)
@@ -110,8 +126,8 @@ export function useVoucherConsole(input: { chainId: number; garden: Address }): 
   }, [snapshot]);
   return {
     snapshot,
-    // Read each render: a deadline passes on this device's clock even between reads.
-    now: Math.max(snapshot.observedAt, Math.floor(Date.now() / 1000)),
+    // The chain's time, never before the read's own: a deadline passes between reads too.
+    now: Math.max(snapshot.observedAt, Number(clock)),
     ...lookups,
     acts: VOUCHER_ACTS_NOT_ADOPTED,
   };
@@ -197,6 +213,7 @@ export function usePoolConsoleController(input: {
     commitments: commitmentsQuery.commitments,
     cycleEndTimes,
   });
+  const readChainClock = useChainClockReader(chainId);
   const model = useMemo(
     () =>
       selectPoolConsoleModel({
@@ -304,10 +321,12 @@ export function usePoolConsoleController(input: {
           askedAt(commitmentId, claimant)
         ),
       // A voucher booking is the ask's decision on the same line, so its row
-      // follows the act and keeps the outcome; the checks gate the wallet too,
-      // not only the dialog's button.
+      // follows the act and keeps the outcome. The checks gate the wallet too,
+      // not only the dialog's button, on the chain's time as the act starts: a
+      // tab left open across the deadline holds the time it last drew.
       acceptServiceClaim: (ask: VoucherAsk, now: number) => {
-        if (!selectVoucherAcceptanceChecks(ask, now).ready) {
+        const at = Math.max(now, Number(readChainClock()));
+        if (!selectVoucherAcceptanceChecks(ask, at).ready) {
           return Promise.reject(new Error("This booking isn't ready to accept"));
         }
         const { commitmentId, buyer, claimHash } = ask;
@@ -386,6 +405,7 @@ export function usePoolConsoleController(input: {
       approveClaim,
       declineClaim,
       askedAt,
+      readChainClock,
       trackPool,
       trackQueued,
       finishGroup,

@@ -19,7 +19,10 @@ import type {
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
-import type { VoucherAsk } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type {
+  IssuerSafeThreshold,
+  VoucherAsk,
+} from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { PoolClaimRequestRow } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Address } from "@green-goods/shared/types/domain";
 import { describe, expect, it, vi } from "vitest";
@@ -69,22 +72,24 @@ const TARGET = { gardenName: "Tech and Sun", isProtocol: false };
 
 function card(
   overrides: Partial<PoolConsoleController> = {},
-  vouchers: VoucherConsoleView = voucherConsoleViewFixture()
+  vouchers: VoucherConsoleView = voucherConsoleViewFixture(),
+  safe?: IssuerSafeThreshold
 ) {
   const pool = poolConsoleControllerFixture({ claims: [ines, kwame, lena], titles, ...overrides });
   const handlers = { onDecline: vi.fn(), onOpen: vi.fn() };
   const view = renderWithProviders(
-    <PoolClaimsCard console={pool} vouchers={vouchers} target={TARGET} {...handlers} />
+    <PoolClaimsCard console={pool} vouchers={vouchers} target={TARGET} safe={safe} {...handlers} />
   );
   return {
     ...handlers,
     pool,
-    rerender: (next: Partial<PoolConsoleController>) =>
+    rerender: (next: Partial<PoolConsoleController>, nextVouchers = vouchers) =>
       view.rerender(
         <PoolClaimsCard
           console={{ ...pool, ...next }}
-          vouchers={vouchers}
+          vouchers={nextVouchers}
           target={TARGET}
+          safe={safe}
           {...handlers}
         />
       ),
@@ -180,6 +185,21 @@ describe("PoolClaimsCard (Review Promises)", () => {
     const LINA = "0x4444444444444444444444444444444444444444" as Address;
     const KWESI = "0x5555555555555555555555555555555555555555" as Address;
     const NOW = 1_771_800_000;
+    const ISSUER = {
+      name: "Tech and Sun",
+      chainId: 100,
+      safe: "0x5afe00000000000000000000000000000000a1b2" as Address,
+      decimals: 6,
+    };
+    const VIEWER = poolConsoleControllerFixture().viewer!;
+    /** The issuer's Safe as read, with who owns it. */
+    const safeOwnedBy = (...signers: Address[]): IssuerSafeThreshold => ({
+      safe: ISSUER.safe,
+      status: "observed",
+      threshold: 1,
+      owners: signers.length,
+      signers,
+    });
     const linaRow = {
       claim: claimFixture({ commitmentId: 41n, claimant: LINA }),
       commitment: commitmentFixture({
@@ -208,7 +228,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
         agreed: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
         current: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
         agreedAt: NOW - 172_800,
-        issuer: { name: "Tech and Sun", chainId: 100, safe: LINA, decimals: 6 },
+        issuer: ISSUER,
         setup: {
           voucherUnits: 1_000_000n,
           approvedAt: NOW - 86_400,
@@ -231,6 +251,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
           status: "observed",
           observedAt: NOW,
           asks,
+          issuer: ISSUER,
         },
       });
     const bookingTitles = new Map([
@@ -247,7 +268,8 @@ describe("PoolClaimsCard (Review Promises)", () => {
           titles: bookingTitles,
           acts: { ...poolConsoleControllerFixture().acts, acceptClaim, acceptServiceClaim },
         },
-        vouchersFor([linaAsk, kwesiAsk])
+        vouchersFor([linaAsk, kwesiAsk]),
+        safeOwnedBy(VIEWER)
       );
       const [lina, kwesi] = screen.getAllByRole("listitem");
       expect(within(lina!).getByText("Needs your approval")).toBeInTheDocument();
@@ -268,7 +290,8 @@ describe("PoolClaimsCard (Review Promises)", () => {
       expect(acceptClaim).not.toHaveBeenCalled();
     });
 
-    it("keeps Accept off while a check fails, saying which", async () => {
+    // The row read "Deposit confirmed" with Accept… although its dialog refused (Codex on #1320).
+    it("reads an ask with no consent to name as missing its agreement, with no Accept", () => {
       const acceptServiceClaim = vi.fn().mockResolvedValue("0x2");
       // The deposit landed, but the consent the acceptance must name can't be read.
       const unnamed = { ...kwesiAsk, claimHash: `0x${"00".repeat(32)}` } satisfies VoucherAsk;
@@ -280,15 +303,71 @@ describe("PoolClaimsCard (Review Promises)", () => {
         },
         vouchersFor([unnamed])
       );
-      fireEvent.click(screen.getByRole("button", { name: "Accept…" }));
-      const dialog = await screen.findByRole("dialog");
-      expect(
-        within(dialog)
-          .getByTestId("voucher-acceptance-checks")
-          .querySelector('[data-check="consent"]')
-      ).toHaveAttribute("data-holds", "false");
-      expect(within(dialog).getByRole("button", { name: "Accept Kwesi" })).toBeDisabled();
+      const row = screen.getByRole("listitem");
+      expect(within(row).getByText("Agreement missing")).toBeInTheDocument();
+      expect(within(row).getByText("No agreement to accept · they book again")).toBeInTheDocument();
+      expect(within(row).queryByText("Deposit confirmed")).not.toBeInTheDocument();
+      expect(within(row).queryByRole("button", { name: "Accept…" })).not.toBeInTheDocument();
       expect(acceptServiceClaim).not.toHaveBeenCalled();
+    });
+
+    // Approving is the issuer Safe's act; the card offered it to any steward (Codex on #1320).
+    it("offers Approve only to an owner of the booking issuer's Safe; anyone else sees it wait", () => {
+      const other = "0x9999999999999999999999999999999999999999" as Address;
+      card(
+        { claims: [linaRow], titles: bookingTitles },
+        vouchersFor([linaAsk]),
+        safeOwnedBy(other)
+      );
+      const row = screen.getByRole("listitem");
+      expect(within(row).getByText("Waiting for Tech and Sun’s approval")).toBeInTheDocument();
+      expect(within(row).queryByRole("button", { name: "Approve…" })).not.toBeInTheDocument();
+    });
+
+    it("waits for the issuer when the booking is another issuer's, whose Safe the console doesn't read", () => {
+      const theirs = { ...linaAsk, issuer: { ...ISSUER, name: "Teo", safe: KWESI } };
+      card(
+        { claims: [linaRow], titles: bookingTitles },
+        vouchersFor([theirs]),
+        safeOwnedBy(VIEWER)
+      );
+      const row = screen.getByRole("listitem");
+      expect(within(row).getByText("Waiting for Teo’s approval")).toBeInTheDocument();
+      expect(within(row).queryByRole("button", { name: "Approve…" })).not.toBeInTheDocument();
+    });
+
+    // The deposit returns only after an abort, never by itself at the deadline (Codex on #1320).
+    it("says a deposit past the deadline comes back once the booking is canceled", () => {
+      const late = booking(42n, KWESI, { acceptBy: NOW - 60 });
+      card({ claims: [kwesiRow], titles: bookingTitles }, vouchersFor([late]));
+      const row = screen.getByRole("listitem");
+      expect(within(row).getByText("Deadline passed")).toBeInTheDocument();
+      expect(
+        within(row).getByText(/the deposit comes back once it’s canceled$/)
+      ).toBeInTheDocument();
+    });
+
+    // The read drops an accepted ask; the row read "Approved" and lost its booking line (Codex on #1320).
+    it("keeps an accepted booking reading Accepted, as a booking, after the refresh drops its ask", () => {
+      const view = card({ claims: [kwesiRow], titles: bookingTitles }, vouchersFor([kwesiAsk]));
+      view.rerender(
+        {
+          claims: [],
+          claimDecisions: {
+            [claimRowKey(kwesiRow)]: {
+              kind: "approved",
+              commitmentId: "42",
+              at: Date.UTC(2026, 9, 25),
+            },
+          },
+        },
+        vouchersFor([])
+      );
+      const row = screen.getByRole("listitem");
+      expect(row).toHaveAttribute("data-state", "approved");
+      expect(within(row).getByText("Accepted")).toBeInTheDocument();
+      expect(within(row).queryByText("Approved")).not.toBeInTheDocument();
+      expect(within(row).getByText("Booking · Hub day, up to 4 hours")).toBeInTheDocument();
     });
 
     it("reads an accepted booking as Accepted, never Approved", () => {

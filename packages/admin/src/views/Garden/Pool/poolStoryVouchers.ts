@@ -59,12 +59,22 @@ const issuer = (name: string, safe: Address) => ({ name, chainId: 100, safe, dec
 const TECH_AND_SUN = issuer("Tech and Sun", "0x5afe00000000000000000000000000000000a1b2");
 const GREEN_GOODS = issuer("Green Goods", "0x5afe00000000000000000000000000000000c3d4");
 
-function observedSafe(safe: Address, threshold: number, owners: number): IssuerSafeThreshold {
-  return { safe, status: "observed", threshold, owners };
+function observedSafe(safe: Address, threshold: number, signers: Address[]): IssuerSafeThreshold {
+  const owners = signers.map((signer) => signer.toLowerCase() as Address);
+  return { safe, status: "observed", threshold, owners: owners.length, signers: owners };
 }
-/** Tech and Sun's Safe starts with one approved signer; the Green Goods Safe signs two of five. */
-export const STORY_TECH_AND_SUN_SAFE = observedSafe(TECH_AND_SUN.safe, 1, 1);
-export const STORY_GREEN_GOODS_SAFE = observedSafe(GREEN_GOODS.safe, 2, 5);
+/** Fellow owners of the Green Goods Safe, beside the steward viewing. */
+const SAFE_OWNERS = ["0xa1", "0xa2", "0xa3", "0xa4"].map((id) => id.padEnd(42, "0") as Address);
+/**
+ * Tech and Sun's Safe starts with one approved signer, the steward viewing; the Green Goods
+ * Safe signs two of five. A steward who owns neither sees bookings wait for the issuer.
+ */
+export const STORY_TECH_AND_SUN_SAFE = observedSafe(TECH_AND_SUN.safe, 1, [STORY_STEWARD]);
+export const STORY_GREEN_GOODS_SAFE = observedSafe(GREEN_GOODS.safe, 2, [
+  STORY_STEWARD,
+  ...SAFE_OWNERS,
+]);
+export const STORY_TECH_AND_SUN_SAFE_OTHERS = observedSafe(TECH_AND_SUN.safe, 1, [SAFE_OWNERS[0]!]);
 
 /** The offers' titles, as their issuers wrote them. */
 export const STORY_VOUCHER_TITLES = new Map([

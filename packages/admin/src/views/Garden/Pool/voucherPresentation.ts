@@ -29,20 +29,37 @@ export function voucherCount(units: bigint, decimals: number): number {
   return Number(formatUnits(units, decimals));
 }
 
-/** An ask's pill: what the booking waits on now. */
+/**
+ * An ask's pill: what the booking waits on now. `approves` says whether the
+ * viewer can give the issuer's approval (`selectCanApproveBooking`); anyone
+ * else sees the booking wait for its issuer.
+ */
 export function voucherAskTag(
+  ask: Pick<VoucherAsk, "issuer">,
   stage: VoucherAskStage,
+  approves: boolean,
   formatMessage: FormatMessage
 ): { label: string; tone: ItemRowTone } {
   switch (stage) {
     case "needs-approval":
-      return {
-        label: formatMessage({
-          id: "cockpit.garden.pool.voucher.tag.needsApproval",
-          defaultMessage: "Needs your approval",
-        }),
-        tone: "warning",
-      };
+      return approves
+        ? {
+            label: formatMessage({
+              id: "cockpit.garden.pool.voucher.tag.needsApproval",
+              defaultMessage: "Needs your approval",
+            }),
+            tone: "warning",
+          }
+        : {
+            label: formatMessage(
+              {
+                id: "cockpit.garden.pool.voucher.tag.waitingIssuer",
+                defaultMessage: "Waiting for {issuer}’s approval",
+              },
+              { issuer: ask.issuer.name }
+            ),
+            tone: "info",
+          };
     case "waiting-for-deposit":
       return {
         label: formatMessage({
@@ -72,6 +89,14 @@ export function voucherAskTag(
         label: formatMessage({
           id: "cockpit.garden.pool.voucher.tag.termsChanged",
           defaultMessage: "Terms changed",
+        }),
+        tone: "error",
+      };
+    case "consent-missing":
+      return {
+        label: formatMessage({
+          id: "cockpit.garden.pool.voucher.tag.consentMissing",
+          defaultMessage: "Agreement missing",
         }),
         tone: "error",
       };
@@ -105,6 +130,12 @@ export function voucherAskDetail(
       { agreed: ask.agreed.revision.toString(), current: ask.current.revision.toString() }
     );
   }
+  if (stage === "consent-missing") {
+    return formatMessage({
+      id: "cockpit.garden.pool.voucher.ask.consentMissing",
+      defaultMessage: "No agreement to accept · they book again",
+    });
+  }
   if (setup === null) {
     return formatMessage(
       {
@@ -121,7 +152,7 @@ export function voucherAskDetail(
       return formatMessage(
         {
           id: "cockpit.garden.pool.voucher.ask.pastDeadline",
-          defaultMessage: "Not accepted by {due} · the deposit goes back",
+          defaultMessage: "Not accepted by {due} · the deposit comes back once it’s canceled",
         },
         { due }
       );
@@ -154,9 +185,15 @@ export function voucherAskDetail(
   }
 }
 
-/** The ask's one act: the issuer's approval first, the pool steward's acceptance once deposited. */
-export function voucherAskAct(stage: VoucherAskStage): "approve" | "accept" | null {
-  if (stage === "needs-approval") return "approve";
+/**
+ * The ask's one act: the issuer's approval first, for a viewer who can give it,
+ * then the pool steward's acceptance once deposited.
+ */
+export function voucherAskAct(
+  stage: VoucherAskStage,
+  approves: boolean
+): "approve" | "accept" | null {
+  if (stage === "needs-approval") return approves ? "approve" : null;
   if (stage === "ready") return "accept";
   return null;
 }

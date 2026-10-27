@@ -161,7 +161,7 @@ async function readSafeRule(
   read: ServiceChainRead,
   chainId: number,
   safe: Address
-): Promise<{ threshold: number; owners: number } | null> {
+): Promise<{ threshold: number; owners: number; signers: Address[] } | null> {
   const call = (functionName: "getThreshold" | "getOwners") =>
     read({ chainId, address: safe, abi: SAFE_ABI, functionName });
   try {
@@ -169,17 +169,18 @@ async function readSafeRule(
     const threshold = serviceUint(rawThreshold);
     if (!Array.isArray(rawOwners) || rawOwners.length > MAX_SAFE_OWNERS)
       throw new Error("Malformed Safe owner list");
-    const owners = new Set(rawOwners.map(serviceAddress)).size;
+    const signers = [...new Set(rawOwners.map(serviceAddress))];
+    const owners = signers.length;
     if (owners !== rawOwners.length || threshold < 1n || threshold > BigInt(owners))
       throw new Error("Safe threshold outside its owners");
-    return { threshold: Number(threshold), owners };
+    return { threshold: Number(threshold), owners, signers };
   } catch (error) {
     logger.warn("Issuer Safe threshold read failed", { error, safe });
     return null;
   }
 }
 
-/** An issuer Safe's signature rule in the console's contract: a count only when observed. */
+/** An issuer Safe's signature rule in the console's contract: a count and owners only when observed. */
 export async function readIssuerSafeThreshold(
   read: ServiceChainRead,
   chainId: number,
@@ -188,7 +189,7 @@ export async function readIssuerSafeThreshold(
   const rule = await readSafeRule(read, chainId, safe);
   return rule
     ? { safe, status: "observed", ...rule }
-    : { safe, status: "unavailable", threshold: null, owners: null };
+    : { safe, status: "unavailable", threshold: null, owners: null, signers: null };
 }
 
 /** The signature count comes from the Safe itself; a member issuer approves from its own account. */
@@ -199,7 +200,7 @@ export async function readVoucherIssuerApproval(
   if (issuer.kind === "individual") return { kind: "account", evidence: "onchain" };
   const rule = await readSafeRule(read, issuer.asset.chainId, issuer.account);
   return rule
-    ? { kind: "safe", evidence: "onchain", ...rule }
+    ? { kind: "safe", evidence: "onchain", threshold: rule.threshold, owners: rule.owners }
     : { kind: "unavailable", reason: "read-failed" };
 }
 
