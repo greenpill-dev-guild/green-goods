@@ -152,8 +152,8 @@ To change a caption, a step, a "who you are" line, a tile line or an intro, edit
 | promise-4 | Composite: `client-commitments-takeuponesheet--ready` over promise-3 | The take-up sheet | Promise to run the bootcamp |
 | promise-5 | Storybook: `client-commitments-gardencommitment--in-progress` | Her promise in progress: kept when the stewards approve its work | Hers now, kept when work is approved |
 | work-1 | Storybook: `client-work-submitwork--start-on-promises` | Submit Work, Start: Keep a Promise, the bootcamp | Pick the promise this work keeps |
-| work-2 | Storybook: `client-work-submitwork--media-for-a-promise` | Media for the promise: the bootcamp's three photos | Add a photo from the bootcamp |
-| work-3 | Storybook: `client-work-submitwork--review-for-a-promise` | Review for the promise: the garden as facts, the three photos and the details | Check the details, then upload |
+| work-2 | Storybook: `client-work-submitwork--media-for-a-promise` | Media for the promise: the bootcamp's photo | Add a photo from the bootcamp |
+| work-3 | Storybook: `client-work-submitwork--review-for-a-promise` | Review for the promise: the garden as facts, the photo and the details | Check the details, then upload |
 | approval-1 | App: `dashboard /hub/work` | The Hub's Work queue: the bootcamp pending | The bootcamp waits in the Hub |
 | approval-2 | Composite: `admin-workflows-hub-reviewform--actionable` over the real `dashboard /hub/work` | The work's dialog: the bootcamp's photo, the details, the review form | Check the photo and details |
 | approval-3 | Composite: `admin-workflows-hub-reviewform--actionable` over the real `dashboard /hub/work` | High confidence and a note, before Approve | Approve it with a note |
