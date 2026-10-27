@@ -1,80 +1,150 @@
 import {
   SERVICE_ISSUER_ROUTES,
-  serviceIssuerGovernanceDrafts,
-  type ServiceIssuerAsset,
+  type ServiceIssuerDraft,
+  type ServiceIssuerDraftRecord,
+  type ServiceIssuerListings,
   type ServiceIssuerRoute,
+  useServiceIssuerDrafts,
+  useServiceIssuerListings,
 } from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { encodeFunctionData, formatUnits } from "viem";
-import { AdminDialog } from "@/components/AdminDialog";
+import { formatUnits } from "viem";
+import { VoucherIssuerDialog, type VoucherIssuerDialogKind } from "./VoucherIssuerDialogs";
+import {
+  type VoucherIssuerRow,
+  type VoucherIssuerStatus,
+  voucherIssuerRows,
+} from "./voucherIssuerRows";
 
 interface Props {
   canPrepare: boolean;
   routes?: readonly ServiceIssuerRoute[];
   rehearsal?: boolean;
+  /** Member drafts from the stewards' draft desk; none exists before the first onboarding. */
+  drafts?: readonly ServiceIssuerDraftRecord[];
+  /** Each reviewed token's admission and holding limit in the shared pool. */
+  listings?: ServiceIssuerListings;
+  onSend?: (draft: ServiceIssuerDraft) => void;
+  onRemind?: (draft: ServiceIssuerDraft) => void;
 }
 
-/** Command: stewards review prepared issuer terms; owner Safe calls stay separate from member acts. */
-export function VoucherIssuerOnboarding({
+const PILL: Record<VoucherIssuerStatus, "success" | "warning" | "info" | "neutral"> = {
+  draft: "neutral",
+  waiting: "warning",
+  changed: "warning",
+  declined: "neutral",
+  approved: "info",
+  setup: "info",
+  listed: "success",
+  delisted: "neutral",
+  unread: "neutral",
+};
+
+/** The card in the protocol garden's Community, Coordination, on the live reads. */
+export function VoucherIssuerOnboarding({ canPrepare }: { canPrepare: boolean }) {
+  const drafts = useServiceIssuerDrafts();
+  const listings = useServiceIssuerListings();
+  return (
+    <VoucherIssuerCard
+      canPrepare={canPrepare}
+      drafts={drafts.data?.status === "observed" ? drafts.data.records : []}
+      listings={listings.data}
+    />
+  );
+}
+
+/**
+ * Command: stewards prepare a member's draft, wait for the member's own signed approval, copy
+ * the owner Safe drafts that list the token, and prepare its delisting. Nothing here sends a
+ * transaction or stands in for a member's approval.
+ */
+export function VoucherIssuerCard({
   canPrepare,
   routes = SERVICE_ISSUER_ROUTES,
   rehearsal = false,
+  drafts = [],
+  listings,
+  onSend,
+  onRemind,
 }: Props) {
-  const { formatMessage } = useIntl();
-  const text = (key: string) => formatMessage({ id: `cockpit.community.voucherIssuers.${key}` });
-  const [selected, setSelected] = useState<{
-    route: ServiceIssuerRoute;
-    asset: ServiceIssuerAsset;
-  } | null>(null);
-  const [copyFailed, setCopyFailed] = useState(false);
-  const rows = routes.flatMap((route) => route.assets.map((asset) => ({ route, asset })));
-  // A changed catalog invalidates an open review instead of exporting an obsolete configuration.
+  const intl = useIntl();
+  const text = (key: string, values?: Record<string, string | number>) =>
+    intl.formatMessage({ id: `cockpit.community.voucherIssuers.${key}` }, values);
+  const [open, setOpen] = useState<{ row: VoucherIssuerRow; kind: VoucherIssuerDialogKind } | null>(
+    null
+  );
+  const rows = voucherIssuerRows(routes, drafts, listings);
+  // A changed catalog closes an open dialog instead of exporting an obsolete configuration.
   const current =
-    selected &&
-    rows.find(({ route, asset }) => route === selected.route && asset === selected.asset);
-  const amount = (value: bigint | null, asset: ServiceIssuerAsset) =>
-    value === null ? text("unconfirmed") : `${formatUnits(value, asset.decimals)} ${asset.symbol}`;
-  let drafts: ReturnType<typeof serviceIssuerGovernanceDrafts> | null = null;
-  if (current) {
-    try {
-      drafts = serviceIssuerGovernanceDrafts(current.route, current.asset.id);
-    } catch {
-      /* Incomplete reviewed metadata must remain unavailable. */
-    }
-  }
-  const copy = async () => {
-    if (!canPrepare || rehearsal || !current || !drafts) return;
-    setCopyFailed(false);
-    try {
-      await navigator.clipboard.writeText(
-        JSON.stringify(
-          {
-            kind: "owner-safe-drafts",
-            routeId: current.route.service.id,
-            assetId: current.asset.id,
-            calls: drafts.map(({ purpose, owner, call }) => ({
-              purpose,
-              owner,
-              chainId: call.chainId,
-              to: call.address,
-              value: "0",
-              data: encodeFunctionData({
-                abi: call.abi,
-                functionName: call.functionName,
-                args: call.args,
-              }),
-            })),
-          },
-          null,
-          2
-        )
-      );
-      toastService.success({ title: text("copied") });
-    } catch {
-      setCopyFailed(true);
+    open &&
+    rows.find(
+      (row) =>
+        row.key === open.row.key &&
+        row.route === open.row.route &&
+        row.asset === open.row.asset &&
+        row.record === open.row.record
+    );
+  const date = (seconds: bigint | null) =>
+    seconds === null
+      ? ""
+      : intl.formatDate(Number(seconds) * 1000, { month: "short", day: "numeric" });
+  const describe = (row: VoucherIssuerRow) => {
+    const draft = row.record?.draft;
+    const name = draft?.memberName ?? row.asset?.name ?? "";
+    const service = draft?.terms.service.title ?? row.asset?.service.unit ?? text("unconfirmed");
+    const pool = (value: bigint | undefined) =>
+      row.asset && value !== undefined ? formatUnits(value, row.asset.decimals) : "";
+    // A member's reviewed record exists only after their approval, so its setup reads as approved.
+    const status =
+      row.status === "changed"
+        ? "waiting"
+        : row.status === "setup" && row.kind === "individual"
+          ? "approved"
+          : row.status;
+    return {
+      name,
+      title: row.asset?.name ?? draft?.terms.token.name ?? "",
+      pill: text(`st.${status}`, { name }),
+      meta: text(`m.${row.status}`, {
+        service,
+        name,
+        date: date(
+          row.status === "declined"
+            ? (row.record?.declinedAt ?? null)
+            : row.status === "approved"
+              ? (row.record?.approval?.signedAt ?? null)
+              : (draft?.sentAt ?? null)
+        ),
+        holding: pool(row.listing?.holding),
+        cap: pool(row.listing?.limit),
+      }),
+    };
+  };
+  const acts = (row: VoucherIssuerRow, name: string): [string, VoucherIssuerDialogKind][] => {
+    switch (row.status) {
+      case "draft":
+        return [[text("a.prepare"), "prepare"]];
+      case "waiting":
+      case "changed":
+        return [[text("a.remind", { name }), "awaiting"]];
+      case "declined":
+        return [[text("review"), "prepare"]];
+      case "approved":
+        return [[text("a.approval"), "approval"]];
+      case "setup":
+        return [[text("a.drafts"), "drafts"]];
+      case "listed":
+        return row.kind === "individual"
+          ? [
+              [text("review"), "review"],
+              [text("a.delist"), "delist"],
+            ]
+          : [[text("review"), "review"]];
+      default:
+        return [[text("review"), "review"]];
     }
   };
   return (
@@ -96,114 +166,59 @@ export function VoucherIssuerOnboarding({
         </p>
       ) : (
         <ul className="divide-y divide-stroke-soft">
-          {rows.map(({ route, asset }) => (
-            <li
-              key={`${route.service.id}:${asset.id}`}
-              className="flex flex-wrap items-center justify-between gap-2 py-3"
-            >
-              <div className="min-w-0">
-                <p className="type-body font-medium text-text-strong">{asset.name}</p>
-                <p className="type-meta text-text-soft">
-                  {text(asset.kind)} · {asset.service.unit ?? text("unconfirmed")}
-                </p>
-              </div>
-              <Button
-                type="button"
-                emphasis="secondary"
-                size="sm"
-                disabled={!canPrepare}
-                onClick={() => {
-                  setSelected({ route, asset });
-                  setCopyFailed(false);
-                }}
+          {rows.map((row) => {
+            const view = describe(row);
+            return (
+              <li
+                key={row.key}
+                className="flex flex-wrap items-center justify-between gap-2 py-3"
+                data-status={row.status}
               >
-                {text("review")}
-              </Button>
-            </li>
-          ))}
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate type-body font-medium text-text-strong" title={view.title}>
+                    {view.title}
+                  </p>
+                  <p className="type-meta text-text-soft">
+                    {text(row.kind)} · {view.meta}
+                  </p>
+                  <StatusBadge size="sm" variant={PILL[row.status]} showIcon={false}>
+                    {view.pill}
+                  </StatusBadge>
+                </div>
+                <div className="ml-auto flex flex-col items-end gap-1">
+                  {acts(row, view.name).map(([label, kind], index) => (
+                    <Button
+                      key={kind}
+                      data-act={kind}
+                      type="button"
+                      emphasis={index === 0 ? "secondary" : "tertiary"}
+                      tone={kind === "delist" ? "danger" : undefined}
+                      size="sm"
+                      disabled={!canPrepare}
+                      onClick={() => setOpen({ row, kind })}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
       {!canPrepare ? <p className="type-meta text-text-soft">{text("stewardOnly")}</p> : null}
-      <AdminDialog
-        open={Boolean(current)}
-        onOpenChange={(open) => !open && setSelected(null)}
-        title={text("reviewTitle")}
-        target={current?.asset.name}
-        description={text("draftOnly")}
-        size="lg"
-        tone="community"
-        actions={
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="sm"
-            disabled={!canPrepare || rehearsal || !drafts}
-            onClick={() => void copy()}
-          >
-            {text("copy")}
-          </Button>
-        }
-      >
-        {current ? (
-          <div className="space-y-4">
-            <dl className="space-y-2 type-meta">
-              {[
-                ["owner", current.asset.ownerReserve],
-                ["sourceAuthority", current.asset.sourceAuthority],
-                ["unit", current.asset.service.unit ?? text("unconfirmed")],
-                ["terms", current.asset.service.terms.reference ?? text("unconfirmed")],
-                ["termsDigest", current.asset.service.terms.digest ?? text("unconfirmed")],
-                ["approval", current.asset.service.approval.reference ?? text("unconfirmed")],
-                ["approvalDigest", current.asset.service.approval.digest ?? text("unconfirmed")],
-                [
-                  "capacity",
-                  text(current.asset.service.capacityConfirmed ? "confirmed" : "unconfirmed"),
-                ],
-                ["supply", amount(current.asset.initialSupply, current.asset)],
-                ["allowance", amount(current.asset.adapterAllowance, current.asset)],
-                ["cap", amount(current.asset.poolHoldingCap, current.asset)],
-                ["price", current.asset.priceIndex?.toString() ?? text("unconfirmed")],
-                ["control", current.asset.upgradeControl?.admin ?? text("unconfirmed")],
-              ].map(([key, value]) => (
-                <div key={key} className="space-y-1 break-all">
-                  <dt className="text-text-soft">{text(key!)}</dt>
-                  <dd className="text-text-strong">{value}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="type-meta text-text-soft">{text("capacityHelp")}</p>
-            {drafts ? (
-              <ol className="space-y-3">
-                {drafts.map((draft) => (
-                  <li key={draft.purpose} className="space-y-1 type-meta break-all">
-                    <p className="font-medium">{text(draft.purpose)}</p>
-                    <p>
-                      {text("chain")}: {draft.call.chainId} · {text("safe")}: {draft.owner}
-                    </p>
-                    <p>
-                      {text("target")}: {draft.call.address}
-                    </p>
-                    <p>{text("nativeValue")}: 0</p>
-                    <code className="block whitespace-normal type-label-sm">
-                      {draft.call.functionName}({draft.call.args?.map(String).join(", ")})
-                    </code>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p role="status" className="type-meta">
-                {text("incomplete")}
-              </p>
-            )}
-            <p className="type-meta text-text-soft">{text("pause")}</p>
-            {copyFailed ? (
-              <p role="alert" className="type-meta text-error-dark">
-                {text("copyFailed")}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </AdminDialog>
+      {current && open ? (
+        <VoucherIssuerDialog
+          key={`${current.key}:${open.kind}`}
+          row={current}
+          kind={open.kind}
+          canPrepare={canPrepare}
+          rehearsal={rehearsal}
+          onClose={() => setOpen(null)}
+          onSend={onSend}
+          onRemind={onRemind}
+        />
+      ) : null}
     </section>
   );
 }
