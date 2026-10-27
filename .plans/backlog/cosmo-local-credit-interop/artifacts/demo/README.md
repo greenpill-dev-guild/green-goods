@@ -74,8 +74,11 @@ not add up across them.
 - **One screen at a time on a fixed stage.** The bar (the way back, a strip with one bar per screen
   grouped by chapter, the theme switch), the device, the who-you-are row, a two-line caption
   and the controls (Back, "5 of 12", Next) each keep one place and one height, so nothing moves from
-  screen to screen. Phone and desktop screens share the stage: a phone screen stands in the middle
-  at the same height as a desktop one.
+  screen to screen. On a wide landscape window (1000px and up) the words stand in a column beside
+  the device, the pair centered, so the device takes the whole height under the bar: a phone screen
+  fills it and a desktop screen fills the width beside the column, both centered on one line. There
+  the caption is set in the deck's serif as the screen's headline. Narrower, or in portrait, the
+  words sit under the device, and phone and desktop screens share the stage at one height.
 - **Moving on.** Next, the Right arrow, or the pulsing hotspot on the control a person would tap,
   which does what Next does. A tap elsewhere on the screen only points at the hotspot again. Back,
   the Left arrow, the browser's back and the app's own back arrows, close buttons and Cancel go
@@ -99,6 +102,7 @@ not add up across them.
 - Artifact: a Claude artifact shared by link for the submission. Its link stays out of this
   public repository, because the built page shows identifiable people and a member's proof.
 - UI review of every screen: [`ui-review-2026-10-27.md`](ui-review-2026-10-27.md)
+- Review of the page as a judge meets it, after the wide layout: [`artifact-review-2026-10-27.md`](artifact-review-2026-10-27.md)
 
 ## Where the screens come from
 
@@ -132,6 +136,7 @@ wallet's Vouchers tab (vouchers-2, vouchers-8), a panel shown alone, which keeps
 | [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper), reading the page and screens under the capture's publication lock and promoting the pair together. A missing screen, a page over 15 MB or a partial capture's marker fails the build before it writes |
 | [`check.mjs`](check.mjs) | Checks the build and the artifact copy (it must match the build and open its deep links inside the Artifact tool's wrapper), walks the story and every step headless, and holds the player's parts to one place on every screen; screenshots each screen and a contact sheet into `output/` |
 | `assets/screens/`, `assets/photos/`, `output/` | Local files, not committed: the photos, the screens and the built page show identifiable people |
+| [`artifact-review-2026-10-27.md`](artifact-review-2026-10-27.md) | The page as a judge meets it, after the wide layout of 27 October: what changed, then nine areas to strengthen (load, dialog size, orientation, numbers, links, chapter intros, hints), each with evidence and a fix |
 
 ## Capture, build and check
 
@@ -551,5 +556,15 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: `index.html` and `check.m
 | investigate | 11:26 → 11:36 | A review thread on #1317: the intro's and the close's See every step and the chapter list's Intro left focus on the page, since the view switch placed focus only on the way back from the player. Reproduced headless on the merged build. A second cause turned up: the close and the chapter list had the ids `end` and `steps`, the names of the links that open them, so whenever a move went through the hash (the page's fallback when `pushState` is refused, and one of the browser's back steps) the browser moved focus to that view and, as it cannot take focus, on to the page |
 | implement | 11:30 → 11:38 | Every change of view puts focus on the new view's first control; coming back from a chapter still lands on its tile, and the page's first view takes none. The two views are now `end-view` and `steps-view`. `check.mjs`'s keyboard walk opens `#steps`, `#end` and `#intro` and presses Intro, See every step on the close and See every step on the intro, checking focus after each link and each button |
 | verify | 11:33 → 11:45 | Before: focus on the page after all three buttons, and after See every step with `pushState` refused. After: Start, See every step or the first tile in every case, with history working, refused, and walked back and forward; the way back from the player unchanged. `build.mjs` 8.81 MB; `check.mjs` exit 0 (62 screens, 35 back regions) |
+
+Human corrections: 0 observed in this segment; attention unknown.
+
+## Task record · larger screens beside the words
+
+| Phase | Start → end (UTC, 27 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| investigate | 20:10 → 20:22 | Afo's feedback: the devices too small, with the words under them and empty space at the sides. The published artifact read back and found byte-identical to a build of this branch's `index.html`; its screens extracted to `assets/screens/` so `build.mjs` and `check.mjs` run here. Measured at 1440x900 a phone screen was 301px wide and at 1280x720 220px, with 325px of each window's height under the bar going to the words |
+| implement | 20:22 → 20:33 | The player's body holds the stage and a side block; wide and landscape (1000px and up) the words stand in a fixed column at the right and the device takes the body's height in the space that remains, a phone centered, a desktop screen width-bound; the caption in Fraunces as the screen's headline, the counter above Back and Next. A first cut centered the pair, and `check.mjs` showed the controls moving 300px between phone and desktop screens; fixed by holding the column. `check.mjs` measures the body, holds the device's middle beside the words and keeps the pinned top and bottom under them |
+| verify | 20:26 → 20:35 | Phone screens 300px at 1280x720 (+36%), 383px at 1440x900 (+27%), 467px at 1920x1080; desktop screens 883px at 1280x720 (+25%), 1012px at 1440x900; the 390px layout unchanged; every caption within two lines from 1024x768 to 2560x1440; `check.mjs` exit 0 (62 screens, 35 back regions); dark mode inspected. Published as artifact version 17; the Drive copy not refreshed. Load measured for the review: 4.2 s at 20 Mbps, 2.0 s at 50 Mbps |
 
 Human corrections: 0 observed in this segment; attention unknown.

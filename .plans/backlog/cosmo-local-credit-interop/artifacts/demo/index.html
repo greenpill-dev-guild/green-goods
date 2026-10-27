@@ -119,9 +119,14 @@
   .cline { font: 400 16px/1.4 var(--sans); color: var(--sub); text-wrap: pretty; }
   .cmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; font: 500 14px/1.3 var(--sans); color: var(--stone); font-variant-numeric: tabular-nums; }
 
-  /* Player: a definite full-height grid, so the stage's container query units resolve and every
-     row but the stage keeps a fixed height whatever the caption or chips say. */
-  #player { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto; row-gap: 12px; padding-block: 14px 18px; }
+  /* Player: a definite full-height grid of the bar and the body, so the container query units
+     resolve. The body holds the stage and the words (who you are, the caption, the controls).
+     Narrow, the words sit under the device in rows of fixed height; wide and landscape, they stand
+     in a column of fixed width beside it, so the device takes the body's whole height and nothing
+     moves from screen to screen whatever the caption or chips say. */
+  #player { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); row-gap: 12px; padding-block: 14px 18px; }
+  .body { --side-w: clamp(320px, 24vw, 440px); --side-gap: clamp(32px, 3.5vw, 64px); min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; row-gap: 12px; }
+  .side { min-width: 0; display: grid; grid-template-rows: auto auto auto; row-gap: 12px; }
   .bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "home strip theme"; align-items: center; column-gap: clamp(16px, 2.4vw, 40px); min-height: 52px; }
   .bar .home { grid-area: home; justify-self: start; }
   .bar .theme-switch { grid-area: theme; justify-self: end; }
@@ -166,6 +171,26 @@
   .controls .next { justify-self: start; }
   /* Wide enough for "12 of 12", so a second digit never moves Back and Next. */
   .counter { margin: 0; width: 4.75em; text-align: center; font: 600 16px/1 var(--sans); font-variant-numeric: tabular-nums; color: var(--sub); white-space: nowrap; }
+  /* Wide and landscape: the words stand in a column of fixed width at the right, so Back and Next
+     keep one place, and the device takes the body's height in the space that remains (or that
+     space's width, for a desktop screen), centered there. The body is the container here, so the
+     device's height never depends on its own column. */
+  @media (min-width: 1000px) and (min-aspect-ratio: 1/1) {
+    .body { container-type: size; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr) var(--side-w); column-gap: var(--side-gap); align-items: center; }
+    .stage { container-type: normal; min-height: 0; max-height: 100%; width: 100%; }
+    .stage .device { width: min(100%, calc((100cqh - 2 * var(--bezel-w) - 2px) * var(--ratio) + 2 * var(--bezel-w) + 2px)); }
+    .side { align-content: center; justify-items: start; row-gap: 18px; }
+    /* The chips on one line, who you are on the next: two fixed lines. */
+    .meta { height: 54px; flex-wrap: wrap; align-content: center; justify-content: flex-start; row-gap: 6px; column-gap: 8px; }
+    .who { flex: 0 0 100%; order: 1; font: 500 17px/1.3 var(--sans); color: var(--ink-2); }
+    .meta .where, .meta .pilot { order: 0; }
+    /* The caption as the screen's headline, in the deck's serif, two lines held. */
+    .caption { --cap: clamp(26px, 1.1vw + 11px, 34px); margin: 0; max-width: none; height: calc(2 * 1.18 * var(--cap)); font: 400 var(--cap)/1.18 var(--serif); letter-spacing: -0.015em; text-align: left; text-wrap: pretty; }
+    .controls { max-width: none; height: 82px; margin: 0; grid-template-columns: auto auto; grid-template-rows: auto auto; grid-template-areas: "counter counter" "back next"; justify-content: start; align-content: space-between; column-gap: 12px; row-gap: 10px; }
+    .controls .back { grid-area: back; justify-self: start; }
+    .controls .next { grid-area: next; justify-self: start; }
+    .counter { grid-area: counter; width: auto; text-align: left; }
+  }
 
   /* Close: the recap, then the story's four chapters again, each opening the story there. */
   .close { display: grid; gap: 22px; max-width: 760px; }
@@ -231,7 +256,8 @@
   }
   @media (max-width: 559.98px) {
     .view { padding-block: 14px 20px; }
-    #player { row-gap: 8px; padding-block: 10px 12px; }
+    #player, .body, .side { row-gap: 8px; }
+    #player { padding-block: 10px 12px; }
     .mark { width: 48px; }
     .theme-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .theme-switch { padding: 0 10px; }
@@ -296,22 +322,26 @@
     <nav class="strip" id="strip-nav" aria-label="Chapters"><ol id="strip"></ol></nav>
     <button class="theme-switch" type="button" role="switch" aria-checked="false" id="theme-player"><span class="track" aria-hidden="true"><span class="knob"></span></span><span class="theme-label">Dark mode</span></button>
   </div>
-  <div class="stage">
-    <figure class="device phone" id="device">
-      <div class="screen" id="screen">
-        <img id="shot" alt="" draggable="false" />
-        <div class="backspots" id="backspots"></div>
-        <button class="hotspot" type="button" id="hotspot"></button>
-      </div>
-    </figure>
+  <div class="body">
+    <div class="stage">
+      <figure class="device phone" id="device">
+        <div class="screen" id="screen">
+          <img id="shot" alt="" draggable="false" />
+          <div class="backspots" id="backspots"></div>
+          <button class="hotspot" type="button" id="hotspot"></button>
+        </div>
+      </figure>
+    </div>
+    <div class="side">
+      <p class="meta"><span class="where" id="where"></span> <span class="who" id="who"></span> <span class="pilot" id="pilot" hidden>In pilot</span></p>
+      <p class="caption" id="caption" aria-live="polite"></p>
+      <nav class="controls" aria-label="Screens">
+        <button class="btn back" type="button" id="back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</button>
+        <p class="counter" id="counter"></p>
+        <button class="btn primary next" type="button" id="next"><span id="next-label">Next</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </nav>
+    </div>
   </div>
-  <p class="meta"><span class="where" id="where"></span> <span class="who" id="who"></span> <span class="pilot" id="pilot" hidden>In pilot</span></p>
-  <p class="caption" id="caption" aria-live="polite"></p>
-  <nav class="controls" aria-label="Screens">
-    <button class="btn back" type="button" id="back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</button>
-    <p class="counter" id="counter"></p>
-    <button class="btn primary next" type="button" id="next"><span id="next-label">Next</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-  </nav>
 </section>
 
 <main class="view" id="end-view" hidden>
