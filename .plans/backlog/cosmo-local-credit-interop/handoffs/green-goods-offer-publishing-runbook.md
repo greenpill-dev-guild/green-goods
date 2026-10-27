@@ -26,9 +26,10 @@ Stop and ask Afo if a gate fails.
 
    Every line must read `PASS`: 120 GGV issued, a pool limit of 120, an adapter allowance of 110
    and a Safe reserve of at least 110.
-2. **Claude seats need permission.** Seed and publish the Claude set only after Afo confirms that
-   participant seats are permitted under Green Goods' supplier terms and that ten seat-periods
-   are funded. Without that confirmation, publish the sessions alone.
+2. **Claude seats need permission: met on 27 October 2026.** Afo confirmed that participant seats
+   are permitted under Green Goods' supplier terms and that ten seat-periods are funded, so seed the
+   Claude set and pass `--with-claude`. If that confirmation is ever withdrawn, publish the sessions
+   alone.
 3. **The right people.** A Green Goods Community Garden steward is signed in to the cockpit (the
    protocol pool accepts promises only from its stewards and the Safe), and two Safe owners are
    available for step 4.
