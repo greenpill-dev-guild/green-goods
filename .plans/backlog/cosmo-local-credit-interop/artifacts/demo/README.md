@@ -80,6 +80,10 @@ not add up across them.
   which does what Next does. A tap elsewhere on the screen only points at the hotspot again. Back,
   the Left arrow, the browser's back and the app's own back arrows, close buttons and Cancel go
   back a screen; Escape and the top-left button go up to the intro or the chapter list.
+- **Focus.** Each change of view moves keyboard focus onto the new view's first control: Start on
+  the intro, See every step on the close, and on the chapter list the first tile, or the tile of
+  the chapter just left. Entering the story or a chapter puts it on Next. No view's id is the name
+  of a link, since the browser moves focus to whatever element a hash names.
 - **Endings.** The story's Finish opens a close: a recap, a pointer back to the deck, See every
   step, Start over, a link to TAS HUB's live page on greengoods.app, and the story's four chapters
   as cards, each with one of its screens, that open the story there. Every step ends back at its
@@ -534,5 +538,18 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: `research/sf-live-clickab
 |---|---|---|
 | merge | 09:25 → 10:10 | The demo branch had 22 commits #1317 lacked, and #1317 had hardened the same scripts after it last took the demo. `build.mjs` and `photos.mjs` merged clean as #1317's. `index.html` is the demo's (#1317's changes there were alt text and a hotspot for screens the demo replaced). In `capture.mjs` the demo's sessions and composites stay, with #1317's hardening: visible-only swap hits held per rule, single-screen rules, the scrim-sized target check (now on back regions too), decode, photo, image and font checks, composites recaptured with their base, and a locked, backed-up publication that rereads `index.html` and leaves a partial-capture marker (an `--accept` run leaves it too; a failed run keeps `.last-failed`). `check.mjs` adds #1317's description, every-screen tap and artifact-copy checks to the demo's. The README keeps #1317's wording without the artifact's link |
 | verify | 10:10 → 11:08 | Three full captures. The first stopped on what the stricter rig now catches: two rules that only ever matched hidden text (the season field's example name, "Lina" in the story harness), now dropped, and Home's four activity photos where the step listed two. The second caught the hub's page still loading under a fixed wait; funding-1 now waits for its stewards and "Support This Garden". The third: 50 screens, 0 problems. The Donate dialog's back regions, whole-screen before (its backdrop is also named Close), now sit on its own close button. `build.mjs` 8.81 MB; `check.mjs` exit 0 (62 screens, 35 back regions) |
+
+Human corrections: 0 observed in this segment; attention unknown.
+
+## Task record · focus on every change of view
+
+Task record: SF.Live clickable demo, keyboard focus between views | Type: fix | Outcome: complete
+Agent/model: Claude Code / Claude Opus 5.5 | Coverage: `index.html` and `check.mjs` on #1317's branch after `712e8f227`; no screen re-captured
+
+| Phase | Start → end (UTC, 27 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| investigate | 11:26 → 11:36 | A review thread on #1317: the intro's and the close's See every step and the chapter list's Intro left focus on the page, since the view switch placed focus only on the way back from the player. Reproduced headless on the merged build. A second cause turned up: the close and the chapter list had the ids `end` and `steps`, the names of the links that open them, so whenever a move went through the hash (the page's fallback when `pushState` is refused, and one of the browser's back steps) the browser moved focus to that view and, as it cannot take focus, on to the page |
+| implement | 11:30 → 11:38 | Every change of view puts focus on the new view's first control; coming back from a chapter still lands on its tile, and the page's first view takes none. The two views are now `end-view` and `steps-view`. `check.mjs`'s keyboard walk opens `#steps`, `#end` and `#intro` and presses Intro, See every step on the close and See every step on the intro, checking focus after each link and each button |
+| verify | 11:33 → 11:45 | Before: focus on the page after all three buttons, and after See every step with `pushState` refused. After: Start, See every step or the first tile in every case, with history working, refused, and walked back and forward; the way back from the player unchanged. `build.mjs` 8.81 MB; `check.mjs` exit 0 (62 screens, 35 back regions) |
 
 Human corrections: 0 observed in this segment; attention unknown.

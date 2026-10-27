@@ -314,7 +314,7 @@
   </nav>
 </section>
 
-<main class="view" id="end" hidden>
+<main class="view" id="end-view" hidden>
   <div class="page">
     <div class="topbar">
       <img class="mark" src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" />
@@ -334,7 +334,7 @@
   </div>
 </main>
 
-<main class="view" id="steps" hidden>
+<main class="view" id="steps-view" hidden>
   <div class="page">
     <div class="topbar">
       <button class="btn quiet" type="button" id="steps-home"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Intro</button>
@@ -1662,7 +1662,9 @@
     const src = (file) => images[file] || `assets/screens/${file}.jpg`;
     const $ = (id) => document.getElementById(id);
     const root = document.documentElement;
-    const views = { landing: $("landing"), player: $("player"), end: $("end"), steps: $("steps") };
+    // No view's id is a link's name: the browser moves focus to the element a hash names, or to the
+    // page when that element cannot take it, after this script has placed focus.
+    const views = { landing: $("landing"), player: $("player"), end: $("end-view"), steps: $("steps-view") };
     const shot = $("shot"), hotspot = $("hotspot"), screen = $("screen"), backspots = $("backspots"), strip = $("strip");
     const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -1869,11 +1871,12 @@
       }
       delete document.body.dataset.track;
       delete document.body.dataset.at;
-      // Coming back from the player, the control that led there takes focus again.
-      if (from.view !== "player") return;
-      if (target.view === "steps" && from.track === "steps") $(`tile-${flows[steps.items[from.at].chapter].id}`)?.focus({ preventScroll: true });
-      else if (target.view === "landing") $("start").focus({ preventScroll: true });
-      else if (target.view === "end") $("end-steps").focus({ preventScroll: true });
+      // Focus moves with the view, since the button just used is hidden with the old one: back from
+      // a chapter, onto its tile; otherwise onto the view's first control. The first view takes none.
+      if (!from.view) return;
+      const chapter = from.view === "player" && from.track === "steps" ? steps.items[from.at].chapter : 0;
+      const first = { landing: "start", end: "end-steps", steps: `tile-${flows[chapter].id}` }[target.view];
+      $(first)?.focus({ preventScroll: true });
     }
 
     const rects = (value) => (!value ? [] : Array.isArray(value[0]) ? value : [value]);

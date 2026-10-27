@@ -17,7 +17,8 @@
 // step; every chapter walked the same way, its end opening the next chapter; every back region
 // going back a screen and the browser's back returning; a tap beside the hotspot not advancing;
 // Right, Left, Escape, Back and Intro; focus kept on a visible control when the hotspot or a back
-// region goes away; #story-5, #work-3, #/promise/3, #end and #steps links, and the browser's back
+// region goes away, and moved onto the new view's first control when a link, "See every step" or
+// Intro changes the view; #story-5, #work-3, #/promise/3, #end and #steps links, and the browser's back
 // and forward; the light and dark switch, which survives a reload; no request leaving the page
 // but Google Fonts; no console errors. Then the story at 1280x720, 768x1024 and 390x844, held in
 // place there too without the page scrolling, and the intro, close and every step at 390x844 and
@@ -368,7 +369,7 @@ await section("keys and controls", async () => {
 });
 
 // Focus stays on a control a keyboard user can see: Next, when the hotspot or a back region they
-// held goes away.
+// held goes away, and the new view's first control when the button they pressed hides with its view.
 await section("keyboard focus", async () => {
   const gap = storyItems.findIndex((s, i) => s.hotspot && storyItems[i + 1] && !storyItems[i + 1].hotspot);
   if (gap >= 0) {
@@ -393,6 +394,20 @@ await section("keyboard focus", async () => {
   await page.focus("#next");
   for (let i = 1; i < storyItems.length; i += 1) await page.keyboard.press("Enter");
   if (!(await atScreen(page, "story", storyItems.length))) note("Enter on Next did not walk the story to its last screen");
+  // A link, then the button pressed on its view, each leave focus on the new view's first control.
+  const firstControl = { landing: "start", end: "end-steps", steps: `tile-${flows[0].id}` };
+  const lands = async (how, view) => {
+    if (!(await inView(page, view))) note(`${how} opened ${JSON.stringify(await state(page))}`);
+    const f = await focused(page);
+    if (f.id !== firstControl[view] || f.hidden) note(`after ${how}, focus sits on "${f.id}", not on #${firstControl[view]}`);
+  };
+  for (const [hash, view, button, next] of [["#steps", "steps", "steps-home", "landing"], ["#end", "end", "end-steps", "steps"], ["#intro", "landing", "see-steps", "steps"]]) {
+    await page.goto(`${url}${hash}`, { waitUntil: "load" });
+    await lands(hash, view);
+    await page.focus(`#${button}`);
+    await page.keyboard.press("Enter");
+    await lands(`Enter on #${button}`, next);
+  }
 });
 
 await section("links and history", async () => {
