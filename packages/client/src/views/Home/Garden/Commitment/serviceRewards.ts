@@ -38,8 +38,8 @@ export interface ServiceRewardsView {
 export interface ServiceRewardsInput {
   snapshot: ServiceAccessSnapshot;
   coreState: CommitmentDerivedState;
-  /** The voucher reward's issuer, from the voucher wallet's directory. */
-  issuer: Pick<VoucherIssuer, "name" | "gender"> | null;
+  /** The voucher reward's issuer, from the voucher wallet's directory: a garden or a member. */
+  issuer: Pick<VoucherIssuer, "name" | "gender" | "kind"> | null;
   /** The request's garden, whose pool pays any G$. */
   garden: string;
 }
@@ -72,6 +72,9 @@ export function serviceRewardsView(
     formatTokenAmount(d.amount, d.asset.decimals ?? 0, 2, intl.locale);
   const voucher = deliveries.find((d) => d.kind === "voucher") ?? null;
   const gd = deliveries.find((d) => d.kind === "gd") ?? null;
+  const oneVoucher = voucher?.amount === 10n ** BigInt(voucher?.asset.decimals ?? 0);
+  // A member sends rewards from their own reserve, under the allowance they approve for them.
+  const member = input.issuer?.kind === "individual";
   const vouchers = voucher
     ? t("rw.vou", {
         n: amount(voucher),
@@ -94,9 +97,11 @@ export function serviceRewardsView(
       d.kind === "voucher"
         ? d.status === "on-the-way"
           ? t("rw.d.sending")
-          : d.status === "waiting" || d.status === "delayed"
-            ? t("rw.d.waits")
-            : t("rw.d.fromReserve")
+          : d.status === "waiting" && d.shortOf === "allowance"
+            ? t("rw.r.vouShortM")
+            : d.status === "waiting" || d.status === "delayed"
+              ? t("rw.d.waits")
+              : t("rw.d.fromReserve")
         : d.status === "on-the-way"
           ? t("rw.d.paying")
           : d.status === "delayed"
@@ -115,9 +120,15 @@ export function serviceRewardsView(
   const all = deliveries.every((d) => d.status === "received");
   const sentence = ((): string => {
     if (!due) return OPEN.includes(input.coreState) ? t("rw.band.open") : t("rw.n.prog.b");
-    if (all) return gd ? t("rw.n.done.b", values) : t("rw.n.doneV.b", values);
+    if (all)
+      return gd
+        ? t("rw.n.done.b", values)
+        : t(oneVoucher ? "rw.n.doneM.b" : "rw.n.doneV.b", values);
+    // An allowance used up waits for the issuer to approve more; a short reserve, for a top-up.
     if (voucher?.status === "waiting")
-      return gd?.status === "received" ? t("rw.n.short.b") : t("rw.n.shortV.b");
+      return gd?.status === "received"
+        ? t("rw.n.short.b")
+        : t(voucher.shortOf === "allowance" ? "rw.n.shortM.b" : "rw.n.shortV.b");
     // A voucher transfer that failed is never "on its way", with or without G$ beside it.
     if (voucher?.status === "delayed") return t("rw.n.delayedV.b");
     if (gd?.status === "delayed") return t("rw.n.delayed.b");
@@ -139,7 +150,12 @@ export function serviceRewardsView(
         value: t("rw.arriveV"),
         detail: gd ? t("rw.arriveS") : t("rw.arriveSV"),
       },
-      { id: "aside", label: t("rw.q.aside"), value: t("rw.asideV"), detail: t("rw.asideS") },
+      {
+        id: "aside",
+        label: t("rw.q.aside"),
+        value: t("rw.asideV"),
+        detail: t(member ? "rw.m.asideS" : "rw.asideS"),
+      },
     ],
     details: [
       ...(voucher ? [t("rw.x.vou")] : []),
