@@ -300,6 +300,13 @@ describe("useSubmissionFlowController", () => {
       })
     );
     expect(waiting.result.current.progress).toBe(4);
+
+    // A send that failed after the queue took the work retires the draft with no outcome; the
+    // markers stay on Review while the composer leaves for Your Work.
+    const failed = renderWork(
+      workController({ activeTab: "Review", submissionCompleted: true, submissionOutcome: null })
+    );
+    expect(failed.result.current.progress).toBe(4);
   });
 
   it("pins the promise the submission is for and opens it without leaving the stage", () => {

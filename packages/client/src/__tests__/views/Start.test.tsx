@@ -228,6 +228,21 @@ describe("WorkStart", () => {
     expect(start.pickPromise).toHaveBeenCalledWith(ask);
   });
 
+  it("says on the promises screen when the garden's Open asks could not be read, with a retry", () => {
+    const start = startStep({
+      screen: { kind: "promises" },
+      promises: [promise([1], false)],
+      promisesFailed: true,
+    });
+    renderStart({ start });
+
+    expect(
+      screen.getByText("Eligible promises could not be read. Try again or continue without one.")
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(start.retryPromises).toHaveBeenCalledOnce();
+  });
+
   it.each([
     ["rows up to three", [1, 2, 3], 3, false],
     ["two-up tiles past that", [1, 2, 3, 4], 4, true],

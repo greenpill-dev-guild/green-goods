@@ -18,7 +18,7 @@ Loaded when working in `packages/contracts/`. Extends `packages/contracts/AGENTS
 | `bun run contracts -- deploy core --network sepolia --mode simulate` | Simulate Sepolia deployment |
 | `bun run contracts -- upgrade all --network sepolia --mode preflight` | Check upgrade prerequisites (named targets + gates: see § Upgrade CLI below) |
 
-> **Build modes:** Use `build`/`build:changed`/`build:target` for local iteration. Use `build:full` for deployment and CI.
+> **Build modes:** Use `build`, `build --mode changed`, or `build --mode target <path...>` for local iteration. Use `build --mode full` for deployment and CI.
 > **Steward defaults:** Use the package-owned contracts CLI. Applicable Arbitrum operations
 > set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, and upgrades that need the
 > current proxy owner use sender `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.

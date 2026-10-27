@@ -72,6 +72,11 @@ interface CommitmentHistoryProps {
    * record yet. `at` is when this phone last touched it, in milliseconds.
    */
   localLine?: { text: string; at: number } | null;
+  /**
+   * A voucher booking's own events, newest first: its approvals, deposit, transfers and
+   * close. A step still on its way keeps a dashed node and says so in place of a time.
+   */
+  bookingLines?: readonly { id: string; text: string; state: string; stateLabel: string }[];
 }
 
 /**
@@ -84,6 +89,7 @@ export function CommitmentHistory({
   commitment,
   viewer,
   localLine,
+  bookingLines = [],
 }: CommitmentHistoryProps) {
   const intl = useIntl();
   const headingId = useId();
@@ -121,7 +127,7 @@ export function CommitmentHistory({
     ];
   });
 
-  if (!localLine && lines.length === 0 && !isError) return null;
+  if (!localLine && lines.length === 0 && bookingLines.length === 0 && !isError) return null;
 
   return (
     <section
@@ -145,12 +151,21 @@ export function CommitmentHistory({
             latest={false}
           />
         ) : null}
+        {bookingLines.map((line, index) => (
+          <HistoryLine
+            key={`booking-${line.id}`}
+            text={line.text}
+            when={line.stateLabel}
+            local={line.state !== "done"}
+            latest={!localLine && index === 0 && line.state === "done"}
+          />
+        ))}
         {lines.map((line, index) => (
           <HistoryLine
             key={line.key}
             text={line.text}
             when={line.when}
-            latest={!localLine && index === 0}
+            latest={!localLine && bookingLines.length === 0 && index === 0}
           />
         ))}
       </ol>

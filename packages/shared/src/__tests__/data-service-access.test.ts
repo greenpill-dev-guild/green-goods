@@ -3,7 +3,7 @@ import {
   getServiceAccessProjection,
   unavailableServiceAccess,
 } from "../modules/commitment-pooling/data-service-access";
-import { createCommitmentPoolingReadRepository } from "../modules/commitment-pooling/read-repository";
+import { createServiceAccessReadRepository } from "../modules/commitment-pooling/service-access-read-repository";
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import type { ServiceAccessKey } from "../modules/commitment-pooling/service-access-types";
 
@@ -54,7 +54,7 @@ function rows() {
 describe("service access projection reader", () => {
   it("uses the injected repository and preserves exact decimal integers and incomplete observation meaning", async () => {
     const query = vi.fn().mockResolvedValue({ data: rows() });
-    const repository = createCommitmentPoolingReadRepository({ query } as GraphQLReader);
+    const repository = createServiceAccessReadRepository({ query } as GraphQLReader);
     const result = await repository.getServiceAccessProjection(key);
     expect(result).toMatchObject({
       complete: false,

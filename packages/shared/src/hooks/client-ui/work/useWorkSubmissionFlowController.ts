@@ -11,7 +11,6 @@ import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { logger } from "../../../modules/app/logger";
 import {
   dependentWorkLinkPayload,
-  toDraftWorkLink,
   type WorkLinkIntent,
 } from "../../../modules/commitment-pooling/work-link-intent";
 import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
@@ -120,14 +119,16 @@ export function useWorkSubmissionFlowController({
     parsedLinkIntent,
     hasLinkIntentParams,
     linkAtEntry,
-    linkChoices,
+    retryLink,
     linkIntent,
     linkIntentStatus,
+    draftLink,
     workablePromises,
     openAsks,
     clearLinkIntent,
     selectLinkIntent,
     takeUpFirst,
+    takeUpPrompts,
     promptCount,
   } = useWorkLinkIntent({
     searchParams,
@@ -171,11 +172,8 @@ export function useWorkSubmissionFlowController({
       tags,
       location: roundWorkLocation(formLocation),
       currentStep: activeTab.toLowerCase() as "intro" | "media" | "details" | "review",
-      linkIntent: parsedLinkIntent
-        ? toDraftWorkLink(parsedLinkIntent)
-        : linkCleared
-          ? null
-          : undefined,
+      // Taking the promise off wins over a link still in the address; else the draft's stands.
+      linkIntent: linkCleared ? null : (draftLink ?? undefined),
     },
     images,
     { enabled: !legacyRecovery && !isResumingFromUrl }
@@ -384,7 +382,7 @@ export function useWorkSubmissionFlowController({
       garden: linkIntent?.garden ?? null,
     },
     promises: workablePromises,
-    asks: { list: openAsks.asks, loading: openAsks.isLoading },
+    openAsks,
     setGardenAddress: selection.setGardenAddress,
     setActiveTab,
     changeTab,
@@ -460,8 +458,9 @@ export function useWorkSubmissionFlowController({
     linkIntent,
     linkGardenAddress: linkIntent?.garden ?? null,
     linkIntentStatus,
+    takeUpPrompts,
     promptCount,
-    refetchCommitmentLinkChoices: linkChoices.refetch,
+    refetchCommitmentLinkChoices: retryLink,
     clearLinkIntent,
     selectLinkIntent,
     isSchedulingDependentLink,

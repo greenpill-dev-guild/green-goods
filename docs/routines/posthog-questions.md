@@ -728,7 +728,7 @@ A routine wiring this library should:
 ## Related Skills
 
 - `debug` uses product-quality questions for bug investigation and reporter/session lookup.
-- Routine setup, cloud-run configuration, and automation wiring live in [`docs/routines/README.md`](../../../docs/routines/README.md).
+- Routine setup, cloud-run configuration, and automation wiring live in [`docs/routines/README.md`](README.md).
 - `plan` owns follow-up implementation planning when a new question needs emit-side events or a wrapper script.
 
 ## Versioning

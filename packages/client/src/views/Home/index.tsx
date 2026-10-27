@@ -12,12 +12,9 @@ import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarde
 import { useAwaitingJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
-import { logger } from "@green-goods/shared/modules/app/logger";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import {
-  type ComponentType,
-  lazy,
   type ReactNode,
   Suspense,
   useCallback,
@@ -40,80 +37,24 @@ import {
 } from "./arrivalToast";
 import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
 import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
+import { DeferredLauncher } from "./DeferredLauncher";
+import {
+  CommitmentsSheet,
+  CommitmentsSheetLauncher,
+  GardenSwitcherSheet,
+  NotificationsLauncher,
+  WalletSheet,
+} from "./DeferredSurfaces";
 import type { GardenVisitState } from "./Garden";
-import { GardenSwitcherSheet } from "./GardenSwitcher";
 import { HomeHeader } from "./HomeHeader";
 import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./HomeStates";
 import { awaitingGardens, switcherRows } from "./homeGardens";
+import { followHomePlace, type HomePlace, restoreHomePlace } from "./homePlace";
 import { HomeJournal } from "./Journal";
+import { HomeShownContext } from "./Journal/homeShown";
 import { NotificationsIcon } from "./Notifications/Icon";
-import type { NotificationsLauncherProps } from "./Notifications/Launcher";
 import { WalletSheetIcon } from "./WalletSheet/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
-
-const CommitmentsSheet = lazy(() =>
-  import("./CommitmentsSheet").then(({ CommitmentsSheet }) => ({ default: CommitmentsSheet }))
-);
-const CommitmentsSheetLauncher = lazy(
-  (): Promise<{ default: ComponentType<{ onClick: () => void }> }> =>
-    import("./CommitmentsSheet/Launcher")
-      .then(({ CommitmentsSheetLauncher }) => ({
-        default: CommitmentsSheetLauncher,
-      }))
-      // Ambient adjunct: if the launcher chunk cannot load (offline dev serving),
-      // hide it rather than failing the whole Home route.
-      .catch(() => ({ default: () => null }))
-);
-const NotificationsLauncher = lazy(
-  (): Promise<{ default: ComponentType<NotificationsLauncherProps> }> =>
-    import("./Notifications/Launcher")
-      .then(({ NotificationsLauncher }) => ({ default: NotificationsLauncher }))
-      // Ambient adjunct: without its chunk the bell keeps its place, disabled. A browser keeps a
-      // failed dynamic import for the page's life, so a bell left enabled would do nothing on
-      // every tap until a reload.
-      .catch((error: unknown) => {
-        logger.warn("The notifications bell's code could not load", {
-          source: "Home",
-          error,
-        });
-        return { default: () => <NotificationsIcon disabled /> };
-      })
-);
-const WalletSheet = lazy(() =>
-  import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
-);
-
-/**
- * Mounts a launcher's reads at an idle moment, so Home's first paint waits on none of them. The
- * placeholder is the same icon with nothing counted, so nothing moves when the reads land. A tap
- * on the placeholder before that moment asks for the launcher's sheet, so `requested` mounts the
- * launcher at once instead of leaving the tap to a later idle period.
- */
-function DeferredLauncher({
-  placeholder,
-  requested = false,
-  children,
-}: {
-  placeholder: ReactNode;
-  requested?: boolean;
-  children: ReactNode;
-}) {
-  const [loadReads, setLoadReads] = useState(false);
-
-  useEffect(() => {
-    const idleCallback =
-      window.requestIdleCallback ??
-      ((callback: IdleRequestCallback) => window.setTimeout(callback, 1_000));
-    const handle = idleCallback(() => setLoadReads(true));
-    return () => {
-      if (window.cancelIdleCallback) window.cancelIdleCallback(handle);
-      else window.clearTimeout(handle);
-    };
-  }, []);
-
-  if (!loadReads && !requested) return <>{placeholder}</>;
-  return <Suspense fallback={placeholder}>{children}</Suspense>;
-}
 
 type SwitcherMode = "switch" | "choose";
 
@@ -167,6 +108,7 @@ const Home: React.FC = () => {
 
   // UI state from store
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const isWalletSheetOpen = useUIStore((s) => s.isWalletSheetOpen);
   const openWalletSheet = useUIStore((s) => s.openWalletSheet);
   const closeWalletSheet = useUIStore((s) => s.closeWalletSheet);
@@ -174,6 +116,7 @@ const Home: React.FC = () => {
   const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
   const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
   const closeGardenSheet = useUIStore((s) => s.closeGardenSheet);
+  const closeTakePartSheet = useUIStore((s) => s.closeTakePartSheet);
   const gardenSwitcherRequested = useUIStore((s) => s.gardenSwitcherRequested);
   const clearGardenSwitcherRequest = useUIStore((s) => s.clearGardenSwitcherRequest);
 
@@ -222,31 +165,71 @@ const Home: React.FC = () => {
   }, [clearGardenSwitcherRequest, gardenSwitcherRequested, isHomeRoute, openSwitcher]);
 
   // Several gardens and none remembered: the switcher opens once as the chooser. Dismissing
-  // it leaves the prompt; only a pick writes.
+  // it leaves the prompt; only a pick writes. Nothing was pressed to open it, and a sheet hands
+  // focus back to whatever held it as it opened, so the prompt's action takes focus first and
+  // dismissing lands where the chooser opens again.
   const offerScope = chooserScope(DEFAULT_CHAIN_ID, primaryAddress);
+  const chooserActionRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (status !== "choose" || !isHomeRoute || !offerScope || hasOfferedChooser(offerScope)) {
       return;
     }
     markChooserOffered(offerScope);
+    chooserActionRef.current?.focus({ preventScroll: true });
     setSwitcher({ open: true, mode: "choose" });
   }, [isHomeRoute, offerScope, status]);
+
+  // Home keeps its place under the pages it opens: the journal stays mounted out of sight, and
+  // coming back puts the scroller and focus where they were.
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [scroller, setScroller] = useState<HTMLElement | null>(null);
+  const attachContent = useCallback((node: HTMLDivElement | null) => {
+    contentRef.current = node;
+    setScroller(node?.closest<HTMLElement>("#app-scroll") ?? null);
+  }, []);
+  const place = useRef<HomePlace>({ scrollTop: 0, opener: null, away: false });
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content || !scroller) return;
+    return followHomePlace(content, scroller, place.current);
+  }, [scroller]);
+  // A layout effect, so leaving stops the following before the shell's reset, and the restore
+  // is scheduled before the first paint of Home shown again. `away` clears only once the place
+  // is back: StrictMode's second run must restore as well.
+  useLayoutEffect(() => {
+    if (!isHomeRoute) {
+      place.current.away = true;
+      return;
+    }
+    const content = contentRef.current;
+    if (!place.current.away || !content || !scroller) return;
+    return restoreHomePlace(content, scroller, place.current);
+  }, [isHomeRoute, scroller]);
 
   // Auth state for welcome message
   const { isAuthenticated } = useAuthState();
   const hasShownArrivalRef = useRef(false);
   const { set: scheduleArrival, clear: cancelArrival } = useTimeout();
 
-  // Close home drawers when navigating away. The journal's section sheet (DL-128) closes with
-  // them: a work opened from the Work sheet returns to Home itself, not to the sheet.
+  // Close home drawers when navigating away, or as Your Work opens over Home (a toast's Review
+  // can open it over one). The section sheet (DL-128) and the open promises close with them.
   useEffect(() => {
-    if (!isHomeRoute) {
+    if (!isHomeRoute || isWorkDashboardOpen) {
       closeWalletSheet();
       closeSwitcher();
       closeNotifications();
       closeGardenSheet();
+      closeTakePartSheet();
     }
-  }, [closeGardenSheet, closeNotifications, closeSwitcher, closeWalletSheet, isHomeRoute]);
+  }, [
+    closeGardenSheet,
+    closeNotifications,
+    closeSwitcher,
+    closeTakePartSheet,
+    closeWalletSheet,
+    isHomeRoute,
+    isWorkDashboardOpen,
+  ]);
 
   // Home names itself as where the visit came from, so the garden's Back steps back here.
   const visitGarden = useCallback(
@@ -396,13 +379,19 @@ const Home: React.FC = () => {
       );
       break;
     case "choose":
-      body = <HomeChoosePrompt onChoose={() => setSwitcher({ open: true, mode: "choose" })} />;
+      body = (
+        <HomeChoosePrompt
+          actionRef={chooserActionRef}
+          onChoose={() => setSwitcher({ open: true, mode: "choose" })}
+        />
+      );
       break;
     case "ready":
-      // The journal leaves while a child route shows: a garden page there renders its own
-      // sheets, and the Endowment sheet opens from one app-wide flag.
+      // The journal stays mounted, out of sight, while a page it opened shows, so its rows and
+      // layout are there to come back to. Its sheets open from its own state or from flags Home
+      // closes on leaving, never from the Endowment flag a garden page reads.
       body =
-        isHomeRoute && garden && activeMembership ? (
+        garden && activeMembership ? (
           <HomeJournal garden={garden} membership={activeMembership} />
         ) : null;
       break;
@@ -410,7 +399,7 @@ const Home: React.FC = () => {
 
   return (
     <article className="mb-6">
-      <div hidden={!isHomeRoute}>
+      <div ref={attachContent} hidden={!isHomeRoute}>
         <HomeHeader
           lead={lead}
           launchers={
@@ -447,19 +436,24 @@ const Home: React.FC = () => {
             </>
           }
         />
-        <div className={status === "ready" ? "pt-2" : "padded pt-2"}>{body}</div>
+        {/* The journal's sections close their sheets as Home stops showing or Your Work opens. */}
+        <HomeShownContext value={isHomeRoute && !isWorkDashboardOpen}>
+          <div className={status === "ready" ? "pt-2" : "padded pt-2"}>{body}</div>
+        </HomeShownContext>
       </div>
       <Outlet />
       {isSwitcherPresent ? (
-        <GardenSwitcherSheet
-          isOpen={switcher.open}
-          onClose={closeSwitcher}
-          mode={switcher.mode}
-          rows={rows}
-          onPick={pickGarden}
-          onVisit={visitGarden}
-          onExplore={openExplore}
-        />
+        <Suspense fallback={null}>
+          <GardenSwitcherSheet
+            isOpen={switcher.open}
+            onClose={closeSwitcher}
+            mode={switcher.mode}
+            rows={rows}
+            onPick={pickGarden}
+            onVisit={visitGarden}
+            onExplore={openExplore}
+          />
+        </Suspense>
       ) : null}
       {isWalletSheetPresent ? (
         <Suspense fallback={null}>

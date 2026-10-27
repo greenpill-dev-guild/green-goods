@@ -19,6 +19,7 @@ import {
 import { attachQueryPersistence } from "../../providers/QueryPersistence";
 import { GC_TIMES, queryClient } from "../../config/react-query";
 import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
 import { worksKeys } from "../../config/query-keys/work";
 
@@ -56,12 +57,14 @@ describe("durable offline reads", () => {
     source.clear();
   });
 
-  it("omits never-loaded queries, other namespaces, queue projections and ceremony state", () => {
+  it("omits never-loaded queries, other namespaces, queue projections, ceremony state and the due clock's calibration", () => {
     const source = new QueryClient();
     source.getQueryCache().build(source, { queryKey: gardensKeys.byChain(11155111) });
     source.setQueryData(["wallet", "secret"], "session");
     source.setQueryData(["greengoods", "queue"], [{ id: "job" }]);
     source.setQueryData(agentReportingKeys.challenge("challenge-1"), "proof_verified");
+    // Restored after the device clock moved, an offset would move the chain's clock with it.
+    source.setQueryData(commitmentPoolingKeys.chainClock(42161), -3_600_000);
     expect(dehydrate(source, { shouldDehydrateQuery }).queries).toEqual([]);
     source.clear();
   });

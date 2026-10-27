@@ -43,6 +43,17 @@ export interface CommitmentIdentityProps {
   viewer: Address | null;
   /** The stewards of the promise's garden, when the page knows them. */
   stewards: readonly Address[];
+  /**
+   * A voucher booking or a request's rewards say where they stand themselves: one sentence
+   * in place of the promise's own, its tone, whether it needs the reader, and a state word
+   * where the promise's own says too little ("Ended early").
+   */
+  serviceBand?: {
+    sentence: string;
+    tone: StatusBand["tone"];
+    needsYou: boolean;
+    pillId?: string | null;
+  } | null;
 }
 
 /**
@@ -64,6 +75,7 @@ export function CommitmentIdentity({
   joinable,
   viewer,
   stewards,
+  serviceBand = null,
 }: CommitmentIdentityProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -78,7 +90,8 @@ export function CommitmentIdentity({
     paid: commitment.considerationPaid === true,
   });
   const state = presentState(commitment.derivedState);
-  const needsYou = commitmentNeedsSeat({ commitment, seat });
+  const needsYou = serviceBand ? serviceBand.needsYou : commitmentNeedsSeat({ commitment, seat });
+  const tone = serviceBand?.tone ?? band?.tone ?? "neutral";
   const kept = commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED";
   // The sentence names who acts next when one person does: whoever confirms it,
   // or, once kept, whoever confirmed it. Otherwise it says the same thing unnamed.
@@ -96,14 +109,18 @@ export function CommitmentIdentity({
   return (
     <>
       <section
-        className={`rounded-[var(--radius-lg)] border p-4 ${BAND_TONE_CLASS[band?.tone ?? "neutral"]}`}
+        className={`rounded-[var(--radius-lg)] border p-4 ${BAND_TONE_CLASS[tone]}`}
         data-component="CommitmentStatusBand"
-        data-tone={band?.tone ?? "neutral"}
+        data-tone={tone}
         aria-label={formatMessage({ id: "app.commitment.status.label" })}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge size="sm" variant={state.tone} showIcon={false}>
-            {formatMessage({ id: state.labelId })}
+          <StatusBadge
+            size="sm"
+            variant={serviceBand?.pillId ? "neutral" : state.tone}
+            showIcon={false}
+          >
+            {formatMessage({ id: serviceBand?.pillId ?? state.labelId })}
           </StatusBadge>
           {needsYou ? (
             <span className="text-xs font-medium text-warning-dark">
@@ -111,7 +128,11 @@ export function CommitmentIdentity({
             </span>
           ) : null}
         </div>
-        {sentenceId ? (
+        {serviceBand ? (
+          <p className="mt-2 text-sm leading-relaxed text-text-strong-950">
+            {serviceBand.sentence}
+          </p>
+        ) : sentenceId ? (
           <p className="mt-2 text-sm leading-relaxed text-text-strong-950">
             {formatMessage(
               { id: sentenceId },

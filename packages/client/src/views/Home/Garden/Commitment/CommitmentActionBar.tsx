@@ -13,12 +13,14 @@ export interface CommitmentActionBarProps {
    * and says what is stopping it.
    */
   blockedReasonId?: string | null;
+  /** The same reason already in words, where it takes values. */
+  blockedReason?: string | null;
   onRun: () => void;
   /**
-   * A second act that belongs to the same seat (optional proof beside required work). The
-   * two share one row, the primary rightmost; only this pair ever shares the bar.
+   * A second act that belongs to the same seat (optional proof beside required work, or a
+   * booking's Cancel beside its Deposit). The two share one row, the primary rightmost.
    */
-  secondary?: { labelId: string; onRun: () => void; disabled?: boolean } | null;
+  secondary?: { labelId: string; label?: string; onRun: () => void; disabled?: boolean } | null;
 }
 
 /**
@@ -42,22 +44,24 @@ export function CommitmentActionBar({
   isPending,
   isOnline,
   blockedReasonId = null,
+  blockedReason = null,
   onRun,
   secondary = null,
 }: CommitmentActionBarProps) {
   const { formatMessage } = useIntl();
-  // Withdrawing is an immediate contract call rather than a queued job, so it
-  // is the one act that cannot be taken offline. Everything else queues.
-  const needsNetwork = act.kind === "withdraw";
+  // Withdrawing is an immediate contract call rather than a queued job, and so is
+  // every voucher booking act. Everything else queues.
+  const needsNetwork = act.kind === "withdraw" || act.needsNetwork === true;
   const reasonId =
     blockedReasonId ?? (needsNetwork && !isOnline ? "app.commitment.act.needsNetwork" : null);
-  const unavailable = reasonId !== null;
+  const reason = blockedReason ?? (reasonId ? formatMessage({ id: reasonId }) : null);
+  const unavailable = reason !== null;
 
   return (
     <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,var(--safe-area-bottom))]">
-      {reasonId ? (
+      {reason ? (
         <p className="mb-2 text-xs text-text-sub-600" role="status">
-          {formatMessage({ id: reasonId })}
+          {reason}
         </p>
       ) : null}
       <div
@@ -67,6 +71,7 @@ export function CommitmentActionBar({
         <Button
           type="button"
           size="lg"
+          emphasis={act.emphasis}
           tone={act.destructive ? "danger" : "default"}
           onClick={onRun}
           loading={isPending}
@@ -75,7 +80,7 @@ export function CommitmentActionBar({
           data-act={act.kind}
           className={secondary ? "min-w-max grow basis-[calc(50%-0.25rem)]" : "w-full"}
         >
-          {formatMessage({ id: act.labelId })}
+          {act.label ?? formatMessage({ id: act.labelId })}
         </Button>
         {secondary ? (
           <Button
@@ -87,7 +92,7 @@ export function CommitmentActionBar({
             data-component="CommitmentActionBarSecondary"
             className="min-w-max grow basis-[calc(50%-0.25rem)]"
           >
-            {formatMessage({ id: secondary.labelId })}
+            {secondary.label ?? formatMessage({ id: secondary.labelId })}
           </Button>
         ) : null}
       </div>

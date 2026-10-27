@@ -326,6 +326,10 @@ export function createShouldDehydrateQuery({
     // Reporting ceremony state (pairing codes, publication status) is private and short-lived.
     if (key[1] === "agent-reporting") return false;
 
+    // The due clock's calibration belongs to the page that read it: restored after the device
+    // clock moved, it would move the chain's clock with it.
+    if (key[1] === "commitment-pooling" && key[3] === "chain-clock") return false;
+
     // A list whose instructions fell back to the built-in copy stays usable for
     // this session but must not become the durable offline copy.
     if (key[1] === "actions" && hasFallbackInstructions(query.state.data)) return false;

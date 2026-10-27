@@ -9,6 +9,7 @@ import {
   RiPlantLine,
   RiSeedlingLine,
 } from "@remixicon/react";
+import type { Ref } from "react";
 import { useIntl } from "react-intl";
 import { JoinGardenButton } from "@/components/Features/Garden/JoinGardenButton";
 import { HomeSection } from "./HomeSection";
@@ -49,8 +50,17 @@ export function HomeError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-/** Several gardens and none chosen: the quiet prompt a dismissed chooser leaves. */
-export function HomeChoosePrompt({ onChoose }: { onChoose: () => void }) {
+/**
+ * Several gardens and none chosen: the quiet prompt a dismissed chooser leaves. `actionRef` lets
+ * Home give its action focus before the chooser opens by itself, so dismissing lands there.
+ */
+export function HomeChoosePrompt({
+  onChoose,
+  actionRef,
+}: {
+  onChoose: () => void;
+  actionRef?: Ref<HTMLButtonElement>;
+}) {
   const { formatMessage } = useIntl();
   return (
     <EmptyState
@@ -58,7 +68,7 @@ export function HomeChoosePrompt({ onChoose }: { onChoose: () => void }) {
       title={formatMessage({ id: "app.home.chooser.title" })}
       description={formatMessage({ id: "app.home.chooser.description" })}
       action={
-        <Button type="button" emphasis="secondary" onClick={onChoose}>
+        <Button ref={actionRef} type="button" emphasis="secondary" onClick={onChoose}>
           {formatMessage({ id: "app.home.chooser.action" })}
         </Button>
       }

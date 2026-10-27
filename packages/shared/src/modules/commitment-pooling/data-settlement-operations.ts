@@ -12,7 +12,8 @@ import { readContract } from "@wagmi/core";
 
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
-import { getNetworkContracts, SettlementModuleABI } from "../../utils/blockchain/contracts";
+import { SettlementModuleABI } from "../../utils/blockchain/contract-abis/settlement-module";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { readSettlementFunction } from "./data-settlement-chain";
 import { addressOrNull } from "./data-settlement-chain-mappers";
 

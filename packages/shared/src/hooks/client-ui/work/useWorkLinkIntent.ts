@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import type { useSearchParams } from "react-router-dom";
 import { toastService } from "../../../components/Toast/toast.service";
@@ -9,6 +9,7 @@ import {
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
   sameWorkLinkIdentity,
+  toDraftWorkLink,
   type WorkLinkChoice,
   type WorkLinkIntent,
   workLinkReturnGarden,
@@ -100,6 +101,9 @@ export function useWorkLinkIntent({
   };
   const workablePromises = useWorkablePromises(flowGarden);
   const openAsks = useTakeUpChoices(flowGarden);
+  // A first read of the member's promises that waits for a connection (offline, nothing cached)
+  // has answered nothing, as one that failed: TanStack reports it neither loading nor failed.
+  const linkChoicesPaused = linkChoices.data === undefined && linkChoices.fetchStatus === "paused";
   // An ask the member can take up now is valid whatever the read of their own promises says.
   const linkIntentStatus: WorkLinkStatus = !hasLinkIntentParams
     ? "none"
@@ -109,15 +113,47 @@ export function useWorkLinkIntent({
         ? "validating"
         : takeUpLink
           ? "valid"
-          : linkChoices.isError
+          : linkChoices.isError || linkChoicesPaused
             ? "unavailable"
             : ownLink
               ? "valid"
               : takeUpChoices.isLoading
                 ? "validating"
-                : takeUpChoices.isError
+                : takeUpChoices.isError || takeUpChoices.isPaused
                   ? "unavailable"
                   : "invalid";
+  // What Review says of a take-up: the page's word while the live reads answer nothing yet, so a
+  // resumed draft keeps saying so meanwhile (offline too), and theirs once they answer, since
+  // Upload goes on their answer. Only `takesUp`, the live answer, decides that Submit takes the
+  // ask up.
+  const unanswered = linkIntentStatus === "validating" || linkIntentStatus === "unavailable";
+  const saysTakeUp = unanswered ? parsedLinkIntent?.takesUp === true : takesUp;
+  // The live reads may answer that the link is no Open ask to take up (the member's own promise
+  // now, or neither). A cached answer still being read again waits, offline too (TanStack reports
+  // that read paused, not fetching): the fresh one may yet find the ask, so the page's take-up
+  // stays in its address and in the draft meanwhile. Once fresh reads disprove it, it leaves both,
+  // so a reload, a resumed draft or a later failed read never brings it back.
+  const answersNoTakeUp =
+    parsedLinkIntent?.takesUp === true &&
+    (linkIntentStatus === "invalid" || (linkIntentStatus === "valid" && !takeUpLink));
+  const rereading = linkChoices.fetchStatus !== "idle" || takeUpChoices.isFetching;
+  const takeUpDisproved = answersNoTakeUp && !rereading;
+  const draftLink = parsedLinkIntent
+    ? toDraftWorkLink({
+        ...parsedLinkIntent,
+        takesUp: saysTakeUp || (answersNoTakeUp && rereading) || undefined,
+      })
+    : null;
+  useEffect(() => {
+    if (!takeUpDisproved || !parsedLinkIntent) return;
+    const { takesUp: _disproved, ...link } = parsedLinkIntent;
+    setSearchParams(writeWorkLinkIntent(searchParams, link), { replace: true });
+  }, [takeUpDisproved, parsedLinkIntent, searchParams, setSearchParams]);
+  /** Reads the link's standing again: the member's promises, and the Open asks it may be one of. */
+  const retryLink = () => {
+    void linkChoices.refetch();
+    takeUpChoices.refetch();
+  };
   // Taking the promise off is saved with the draft; see draftLinkCleared.
   const clearLinkIntent = useCallback(() => {
     setLinkAtEntry(false);
@@ -202,11 +238,18 @@ export function useWorkLinkIntent({
     linkChoices,
     linkIntent,
     linkIntentStatus,
+    retryLink,
+    /** What a draft keeps of the link; null when the page has none. */
+    draftLink,
     workablePromises,
     openAsks,
     clearLinkIntent,
     selectLinkIntent,
     takeUpFirst,
+    /** Submit takes the link's Open ask up first, as the live asks say. */
+    takesUp,
+    /** The prompts Review says before the first when the work takes an ask up; null otherwise. */
+    takeUpPrompts: saysTakeUp ? submissionPromptCount({ linksPromise: true, takesUp: true }) : null,
     /** Prompts this submission asks for, to say before the first: take-up, work, link. */
     promptCount: submissionPromptCount({ linksPromise: Boolean(linkIntent), takesUp }),
   };

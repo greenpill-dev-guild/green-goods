@@ -126,7 +126,10 @@ export const MultiGarden: Story = {
     const trigger = canvas.getByRole("button", { name: /garden alpha/i });
     await expect(trigger).toHaveAttribute("data-component", "GardenChip");
     await userEvent.click(trigger);
-    const menu = await within(document.body).findByText("Jardim Botafogo");
+    // The menu's code arrives with this first press.
+    const menu = await within(document.body).findByText("Jardim Botafogo", undefined, {
+      timeout: 5_000,
+    });
     await userEvent.click(menu);
     await expect(args.onSelectGarden).toHaveBeenCalledWith(multipleGardens[1]);
   },

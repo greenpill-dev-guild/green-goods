@@ -500,19 +500,19 @@ describe("/vaults?manage=positions", () => {
     renderPage("/vaults?manage=positions");
 
     const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-    await user.click(within(row).getByRole("button", { name: "Redeem" }));
+    await user.click(within(row).getByRole("button", { name: "Withdraw" }));
 
-    const amount = within(row).getByLabelText("Amount to redeem");
+    const amount = within(row).getByLabelText("Amount to withdraw");
     // Over the max → the redeem button stays disabled and an error shows.
     await user.type(amount, "2");
-    expect(within(row).getByText(/no higher than what is redeemable now/i)).toBeInTheDocument();
-    expect(within(row).getByRole("button", { name: /^Redeem / })).toBeDisabled();
+    expect(within(row).getByText(/no higher than what you can withdraw now/i)).toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: /^Withdraw / })).toBeDisabled();
 
     // Valid amount → the single redeem button (carrying the estimate) enables
     // and goes straight to the chain-aware redeem; no in-app confirm step.
     await user.clear(amount);
     await user.type(amount, "0.5");
-    const submit = within(row).getByRole("button", { name: /^Redeem / });
+    const submit = within(row).getByRole("button", { name: /^Withdraw / });
     expect(submit).toBeEnabled();
     expect(submit).toHaveAccessibleName(/0\.6 WETH/);
     await user.click(submit);
@@ -552,14 +552,14 @@ describe("/vaults?manage=positions", () => {
       renderPage("/vaults?manage=positions");
 
       const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-      await user.click(within(row).getByRole("button", { name: "Redeem" }));
+      await user.click(within(row).getByRole("button", { name: "Withdraw" }));
       await user.click(within(row).getByRole("button", { name: "Max" }));
 
-      const amount = within(row).getByLabelText<HTMLInputElement>("Amount to redeem");
+      const amount = within(row).getByLabelText<HTMLInputElement>("Amount to withdraw");
       // Locale-independent: exactly "1.5", never "15" (the old comma-strip result).
       expect(amount.value).toBe("1.5");
 
-      const submit = within(row).getByRole("button", { name: /^Redeem / });
+      const submit = within(row).getByRole("button", { name: /^Withdraw / });
       expect(submit).toBeEnabled();
       await user.click(submit);
 
@@ -587,15 +587,15 @@ describe("/vaults?manage=positions", () => {
     renderPage("/vaults?manage=positions");
 
     const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-    await user.click(within(row).getByRole("button", { name: "Redeem" }));
+    await user.click(within(row).getByRole("button", { name: "Withdraw" }));
 
-    const amount = within(row).getByLabelText<HTMLInputElement>("Amount to redeem");
+    const amount = within(row).getByLabelText<HTMLInputElement>("Amount to withdraw");
     await user.type(amount, ".001");
     expect(amount.value).toBe(".001");
 
     // No in-app confirm step: parsedShares normalizes the leading-decimal input
     // internally, so a single submit sends 0.001 shares to the wallet.
-    await user.click(within(row).getByRole("button", { name: /^Redeem / }));
+    await user.click(within(row).getByRole("button", { name: /^Withdraw / }));
 
     await waitFor(() => expect(mocks.redeemMutateAsync).toHaveBeenCalledTimes(1));
     expect(mocks.redeemMutateAsync).toHaveBeenCalledWith(
@@ -615,11 +615,11 @@ describe("/vaults?manage=positions", () => {
     renderPage("/vaults?manage=positions");
 
     const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-    expect(within(row).getByText("Redemption unavailable right now")).toBeInTheDocument();
-    expect(within(row).getByText(/nothing is redeemable right now/i)).toBeInTheDocument();
+    expect(within(row).getByText("Withdrawal unavailable right now")).toBeInTheDocument();
+    expect(within(row).getByText(/nothing can be withdrawn right now/i)).toBeInTheDocument();
     expect(within(row).getByText(/^Estimated return/)).toBeInTheDocument();
     expect(within(row).getByText("Unavailable")).toBeInTheDocument();
-    expect(within(row).queryByRole("button", { name: "Redeem" })).toBeNull();
+    expect(within(row).queryByRole("button", { name: "Withdraw" })).toBeNull();
   });
 
   it("blocks redemption when estimated WETH proceeds cannot be previewed", () => {
@@ -642,7 +642,7 @@ describe("/vaults?manage=positions", () => {
     expect(within(row).getAllByText(/Estimated return/i)).toHaveLength(2);
     expect(within(row).getByText("Unavailable")).toBeInTheDocument();
     expect(within(row).getByText("Estimated return unavailable")).toBeInTheDocument();
-    expect(within(row).queryByRole("button", { name: "Redeem" })).toBeNull();
+    expect(within(row).queryByRole("button", { name: "Withdraw" })).toBeNull();
   });
 
   it("ignores stale card-wallet cache and keeps management wallet-only", () => {
@@ -655,7 +655,7 @@ describe("/vaults?manage=positions", () => {
     const panel = screen.getByTestId("vault-manage-positions-panel");
     expect(within(panel).queryByRole("tab", { name: "Card wallet" })).not.toBeInTheDocument();
     expect(within(panel).queryByText(/card wallet/i)).not.toBeInTheDocument();
-    expect(within(panel).queryByText("Restore access to redeem")).not.toBeInTheDocument();
+    expect(within(panel).queryByText("Restore access to withdraw")).not.toBeInTheDocument();
     expect(
       within(panel).queryByTestId("vault-manage-pending-funded-greenpill-nyc")
     ).not.toBeInTheDocument();

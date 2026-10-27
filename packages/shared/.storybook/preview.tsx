@@ -2,6 +2,7 @@ import "./storybook.css";
 import type { Preview } from "@storybook/react";
 import { mocked, sb } from "storybook/test";
 import { useServiceAccess, useServiceAccessMutation } from "../src/hooks/commitment-pooling/useServiceAccess";
+import { useServiceOfferLines } from "../src/hooks/commitment-pooling/useServiceOfferLines";
 import { unavailableServiceAccess } from "../src/modules/commitment-pooling/data-service-access";
 import {
   withAdminStoryIsolation,
@@ -54,6 +55,7 @@ sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMetadata.ts"), { sp
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentPooling.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentQueueState.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useServiceAccess.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useServiceOfferLines.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useAllocateHypercertSupport.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useConvictionStrategies.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useGardenCommunity.ts"), { spy: true });
@@ -110,6 +112,8 @@ const preview: Preview = {
       isPending: false, error: null,
       mutateAsync: async () => { throw new Error("Service signing unavailable in Storybook"); },
     } as unknown as ReturnType<typeof useServiceAccessMutation>);
+    // A garden's list reads no services until a story names its own offers' lines.
+    mocked(useServiceOfferLines).mockReturnValue(new Map());
   },
   globalTypes: {
     locale: {

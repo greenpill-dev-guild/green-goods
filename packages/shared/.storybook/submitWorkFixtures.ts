@@ -170,6 +170,8 @@ export const START_ACTIONS: Action[] = [
 
 // Midday UTC, so the date reads the same in every time zone a reviewer opens it in.
 const DUE_DEC_15 = 1_797_336_000n; // 15 December 2026
+/** The chain's clock the Start step reads its asks against: 15 November 2026, a month early. */
+const STORY_NOW = 1_794_744_000n;
 const DUE_JAN_31 = 1_801_396_800n; // 31 January 2027
 
 function startChoice(
@@ -263,6 +265,7 @@ export const START_ASKS: WorkablePromise[] = oneTapAsks({
   metadataByCID: new Map(),
   viewer: JOURNEY_VIEWER,
   poolOpen: true,
+  clock: { now: STORY_NOW, cycleEndTimes: new Map() },
   takeUps: viewerTakeUps({
     viewer: JOURNEY_VIEWER,
     pendingRequests: [claimFixture({ commitmentId: 33n, claimant: JOURNEY_VIEWER, state: "PENDING" })],
@@ -311,11 +314,14 @@ export function submitWorkControllerFixture(
   step: "start" | "media" | "review",
   {
     linked = step !== "start",
+    takesUp = false,
     documentationPhoto = false,
     start = startStepFixture(),
     namedGarden = null,
   }: {
     linked?: boolean;
+    /** The promise is the hub's Open ask, which Submit takes up first (decision 18). */
+    takesUp?: boolean;
     documentationPhoto?: boolean;
     start?: StartStep;
     /** The submission garden, named under the steps while it is not the active one. */
@@ -370,8 +376,14 @@ export function submitWorkControllerFixture(
     isWalletRequestExpired: false,
     joinableCommunityGarden: null,
     joinCommunityGarden: noop,
-    linkIntent: linked ? SEEDLING_INTENT : null,
+    linkIntent: linked
+      ? takesUp
+        ? { ...SEEDLING_INTENT, direction: "REQUEST", takesUp: true }
+        : SEEDLING_INTENT
+      : null,
     linkIntentStatus: linked ? "valid" : "none",
+    takeUpPrompts: linked && takesUp ? 3 : null,
+    promptCount: linked ? (takesUp ? 3 : 2) : 1,
     namedSubmissionGarden: namedGarden,
     submissionGardenSettled: true,
     refetchCommitmentLinkChoices: async () => undefined,

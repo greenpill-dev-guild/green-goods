@@ -21,11 +21,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const USER_ADDRESS = "0x1234567890123456789012345678901234567890";
 const PROTOCOL_HAT_ID = 42n;
 
-vi.mock("../../../utils/blockchain/contracts", () => ({
-  GreenGoodsENSABI: [
-    { name: "HATS", type: "function", inputs: [], outputs: [{ type: "address" }] },
-    { name: "protocolHatId", type: "function", inputs: [], outputs: [{ type: "uint256" }] },
-  ],
+vi.mock("../../../utils/blockchain/contract-abis/hats", () => ({
   HatsABI: [
     {
       name: "isWearerOfHat",
@@ -36,6 +32,13 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
       ],
       outputs: [{ type: "bool" }],
     },
+  ],
+}));
+
+vi.mock("../../../utils/blockchain/contracts", () => ({
+  GreenGoodsENSABI: [
+    { name: "HATS", type: "function", inputs: [], outputs: [{ type: "address" }] },
+    { name: "protocolHatId", type: "function", inputs: [], outputs: [{ type: "uint256" }] },
   ],
   getNetworkContracts: vi.fn(() => ({
     greenGoodsENS: ENS_ADDRESS,

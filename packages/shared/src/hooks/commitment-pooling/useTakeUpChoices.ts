@@ -30,10 +30,25 @@ import { isOneTapTakeUp, oneTapAsks } from "../../modules/garden/journal";
 import type { Address } from "../../types/domain";
 import { useCommitmentMetadata } from "./useCommitmentMetadata";
 import { useCommitmentPool, useCommitmentPools, useCommitments } from "./useCommitmentPooling";
+import { useDueClock } from "./useDueClock";
 import { useViewerTakeUps } from "./useViewerTakeUps";
 import { workLinkReturnTo } from "./useWorkLinkChoices";
 
 const NO_COMMITMENTS: CommitmentReadModel[] = [];
+
+/**
+ * A read whose first fetch waits for a connection: nothing is cached, and TanStack has paused it.
+ * It is neither loading nor failed (`isLoading` and `isError` are both false), and it has
+ * answered nothing.
+ */
+const firstReadPaused = (read: { data: unknown; fetchStatus: string }) =>
+  read.data === undefined && read.fetchStatus === "paused";
+
+/**
+ * A read in flight, one that waits for a connection included: TanStack reports a read started
+ * offline paused, not fetching, though its answer may still change what is cached.
+ */
+const inFlight = (read: { fetchStatus: string }) => read.fetchStatus !== "idle";
 
 /**
  * An Open ask as Submit Work offers it: a promise the reader does not hold yet, so it takes no
@@ -99,6 +114,7 @@ export function useTakeUpChoices(input: {
     takeUps,
     settled,
     unavailable,
+    refreshing,
     retry: retryTakeUps,
   } = useViewerTakeUps({
     chainId,
@@ -108,6 +124,8 @@ export function useTakeUpChoices(input: {
   });
   const listed = commitments.data ?? NO_COMMITMENTS;
   const { byCID } = useCommitmentMetadata(listed);
+  // Ticks when a listed ask falls due, so a lapsed one leaves Start's list.
+  const due = useDueClock({ chainId, poolId: pool?.poolId ?? null, commitments: listed });
   const untitled = formatMessage({ id: "app.commitments.row.untitled" });
   const atLimit = isAtTakeUpLimit({
     direction: "REQUEST",
@@ -125,9 +143,11 @@ export function useTakeUpChoices(input: {
         returnGarden,
         title: byCID.get(commitment.metadataCID?.trim() ?? "")?.title?.trim() || untitled,
       });
-    // A pool that is not open takes nothing up, and neither does a reader at its limit or a
-    // phone whose queue cannot be read.
-    if (pool?.state !== "OPEN" || unavailable || atLimit) return { asks: [], choices: [] };
+    // A pool that is not open takes nothing up, and neither does a reader at its limit, a
+    // phone whose queue cannot be read, or an ask whose cycle's end is unread.
+    if (pool?.state !== "OPEN" || unavailable || atLimit || !due.known) {
+      return { asks: [], choices: [] };
+    }
     return {
       asks: oneTapAsks({
         commitments: listed,
@@ -135,10 +155,11 @@ export function useTakeUpChoices(input: {
         viewer: account,
         poolOpen: true,
         takeUps,
+        clock: due.clock,
       }).map(shape),
       // Every copy of a set, so a link to any of them holds, whichever one Start lists.
       choices: listed
-        .filter((commitment) => isOneTapTakeUp(commitment, account, takeUps))
+        .filter((commitment) => isOneTapTakeUp(commitment, account, takeUps, due.clock))
         .flatMap((commitment) => shape(commitment).choices),
     };
   }, [
@@ -151,6 +172,8 @@ export function useTakeUpChoices(input: {
     listed,
     account,
     takeUps,
+    due.known,
+    due.clock,
     byCID,
     untitled,
   ]);
@@ -161,12 +184,35 @@ export function useTakeUpChoices(input: {
     // The pool's limit is held for while it is read; one that cannot be read reads as room.
     isLoading:
       enabled &&
-      (pools.isLoading || (ownPool && (commitments.isLoading || poolDetail.isLoading || !settled))),
-    isError: pools.isError || commitments.isError || unavailable,
+      (pools.isLoading ||
+        (ownPool &&
+          (commitments.isLoading ||
+            poolDetail.isLoading ||
+            !settled ||
+            (!due.known && !due.isError && !due.isPaused)))),
+    isError: pools.isError || commitments.isError || unavailable || due.isError,
+    /**
+     * A first read waits for a connection, so the asks are unknown: not none, and not loading.
+     * Start says so with a retry, and a link to an ask keeps its take-up until they answer.
+     */
+    isPaused:
+      enabled &&
+      (firstReadPaused(pools) ||
+        (ownPool && (firstReadPaused(commitments) || firstReadPaused(poolDetail) || due.isPaused))),
+    /**
+     * A read is in flight, a cached answer's included, offline too: what it says may still change.
+     * That covers the reader's own take-ups as well, the requests and this phone's queue, which
+     * leave asks out.
+     */
+    isFetching:
+      enabled &&
+      (inFlight(pools) ||
+        (ownPool && (inFlight(commitments) || inFlight(poolDetail) || refreshing))),
     refetch: () => {
       if (pools.isError) void pools.refetch();
       if (commitments.isError) void commitments.refetch();
       if (unavailable) retryTakeUps();
+      if (due.isError) due.retry();
     },
   };
 }

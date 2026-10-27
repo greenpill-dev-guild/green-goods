@@ -60,6 +60,11 @@ export interface SubmissionForwardAct {
   loading: boolean;
   /** Why the act waits, said above it; null when nothing is said. */
   blockedReasonId: string | null;
+  /**
+   * The prompts Review's act opens when it takes an Open ask up first (decision 18), said above it
+   * before the first: the take-up, the work and its link. Null when it takes nothing up.
+   */
+  takeUpPrompts: number | null;
 }
 
 /** The Media stage's tools: the kind's own photo and camera inputs, and the voice note. */
@@ -172,6 +177,8 @@ function workKind(controller: WorkSubmissionFlowController): SubmissionKindModul
         controller.hasPendingLinkRecovery,
       loading: false,
       blockedReasonId: null,
+      // Start's asks say it as one is picked; a resumed draft skips Start, so Review says it too.
+      takeUpPrompts: current === "review" ? controller.takeUpPrompts : null,
     }),
     mediaTools: {
       // The media step registers its own openers once mounted; its hidden inputs are the fallback.
@@ -187,9 +194,12 @@ function workKind(controller: WorkSubmissionFlowController): SubmissionKindModul
       isRecording: controller.isRecording,
       disabled: false,
     },
+    // A send that failed after the queue took the work retires the draft with no outcome; its
+    // markers stay on Review while the composer leaves for Your Work.
     completed:
       controller.submissionCompleted &&
-      controller.submissionOutcome?.kind !== "awaiting-confirmation",
+      controller.submissionOutcome !== null &&
+      controller.submissionOutcome.kind !== "awaiting-confirmation",
     promise: controller.linkIntent
       ? {
           title: controller.linkIntent.commitmentTitle,
@@ -243,6 +253,7 @@ function evidenceKind(
               ? "app.proof.draft.saveRequired"
               : "app.proof.draft.saving"
             : ((ready.reason && EVIDENCE_BLOCKED_REASON_IDS[ready.reason]) ?? null),
+        takeUpPrompts: null,
       };
     },
     mediaTools: {

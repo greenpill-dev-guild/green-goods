@@ -73,8 +73,8 @@ function heldElsewhere(queued: QueuedWorkSubmission, ports: SubmitWorkPorts): Su
  * wakes background preparation, which would otherwise claim the work first and
  * leave it for Upload all, so preparation is held back until this Submit has
  * sent the work or left it queued; it then prepares whatever is left. The
- * draft is held the same way: a send that completes here leaves it to the
- * composer, which retires it once it has the outcome.
+ * draft is held the same way: whatever the send does here, it is left to the
+ * composer, which retires it once the queue holds the work.
  */
 export async function submitAdmittedWork(
   input: ResolvedSubmitWorkCommand,
@@ -98,6 +98,7 @@ async function admitAndSend(
   // so a draft the person changes afterwards is never mistaken for what was sent.
   const drafted = await draftContentOf(input);
   const queued = await ports.queue.admit!(input);
+  input.onAdmitted?.();
   if (queued.newlyAdmitted && drafted !== undefined)
     await noteQueuedDraftContent(queued.jobId, drafted);
   const completed = await jobQueueDB.getWorkCompletion(

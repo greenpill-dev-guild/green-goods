@@ -1,8 +1,6 @@
-import * as Popover from "@radix-ui/react-popover";
-import { RiAddLine, RiArrowDownSLine, RiSeedlingLine } from "@remixicon/react";
-import { useState, type CSSProperties } from "react";
+import { RiArrowDownSLine, RiSeedlingLine } from "@remixicon/react";
+import { type CSSProperties, lazy, Suspense, useState } from "react";
 import { useIntl } from "react-intl";
-import { compareAddresses } from "../../utils/blockchain/address";
 import { cn } from "../../utils/styles/cn";
 import { GardenBannerFallback } from "../Display/GardenBannerFallback";
 import { ImageWithFallback } from "../Display/ImageWithFallback";
@@ -41,6 +39,13 @@ export interface GardenChipProps {
 // GardenChip
 // ----------------------------------------------------------------------------
 
+// The cockpit's menu arrives with the chip's first press. The installed app opens its own
+// switcher (`onOpen`) and never asks for it, so the popover and its positioning stay out of the
+// app's startup bundle.
+const GardenChipMenu = lazy(() =>
+  import("./GardenChipMenu").then(({ GardenChipMenu }) => ({ default: GardenChipMenu }))
+);
+
 /**
  * Compact pill/chip showing the active garden name, with the garden's banner as its
  * avatar when the caller passes one (DL-124).
@@ -68,7 +73,8 @@ export function GardenChip({
   emptyLabel,
 }: GardenChipProps) {
   const { formatMessage } = useIntl();
-  const [open, setOpen] = useState(false);
+  // The menu is asked for with the first press and keeps its open state here from then on.
+  const [menu, setMenu] = useState({ requested: false, open: false });
 
   const displayName =
     selectedGarden?.name ??
@@ -216,119 +222,43 @@ export function GardenChip({
     );
   }
 
-  // Multi-garden: interactive chip with popover
-  return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          className={triggerClassName}
-          style={chipStyle}
-          data-component="GardenChip"
-          data-slot="trigger"
-          data-selection-state={selectedGarden ? "selected" : "empty"}
-        >
-          {triggerContent}
-        </button>
-      </Popover.Trigger>
-
-      <Popover.Portal>
-        {/* Solid, like every menu (DL-108): the chip's own raised surface, white in light
-            and the cockpit's card in dark. */}
-        <Popover.Content
-          align="start"
-          sideOffset={8}
-          className={cn(
-            "z-overlay rounded-xl bg-[var(--surface-raised,rgb(var(--bg-white-0)))] p-1 shadow-[var(--edge-rest),_var(--m3-elevation-2)]",
-            "animate-in fade-in-0 zoom-in-95",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
-            "motion-reduce:animate-none"
-          )}
-          style={menuSizingStyle}
-          data-component="GardenChip"
-          data-slot="menu"
-        >
-          {/* Garden list */}
-          {gardens.map((garden) => (
-            <GardenDropdownItem
-              key={garden.id}
-              label={garden.name}
-              isSelected={compareAddresses(selectedGarden?.id, garden.id)}
-              onClick={() => {
-                onSelectGarden(garden);
-                setOpen(false);
-              }}
-            />
-          ))}
-
-          {/* Divider + Create Garden. The divider is the raised surface's hairline, so it
-              still reads on the cockpit's dark card. */}
-          {showCreateAction && (
-            <>
-              <div className="mx-2 my-1 border-t border-[color:var(--hairline,rgb(var(--stroke-soft-200)))]" />
-              <button
-                type="button"
-                onClick={() => {
-                  onCreateGarden?.();
-                  setOpen(false);
-                }}
-                className={cn(
-                  // Menu row on cockpit roles (tone-aware with shared fallbacks
-                  // — this popover only ever renders inside the admin shell):
-                  // accent from the workspace, ink hover layer, the canonical
-                  // focus-ring role. Previously client-green + raw primary ring.
-                  "flex w-full items-center gap-2 rounded-lg px-3 py-2 type-label",
-                  "[color:rgb(var(--tone-on-surface-accent,var(--primary-base)))]",
-                  "hover:bg-[rgb(var(--m3-on-surface,var(--text-strong-950))/0.08)]",
-                  "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-                  "motion-reduce:transition-none",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
-                )}
-                data-component="GardenChip"
-                data-slot="create-action"
-              >
-                <RiAddLine className="h-4 w-4" />
-                {formatMessage({ id: "cockpit.gardenChip.createGarden" })}
-              </button>
-            </>
-          )}
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
-// ----------------------------------------------------------------------------
-// Dropdown item sub-component
-// ----------------------------------------------------------------------------
-
-interface GardenDropdownItemProps {
-  label: string;
-  isSelected: boolean;
-  onClick: () => void;
-}
-
-function GardenDropdownItem({ label, isSelected, onClick }: GardenDropdownItemProps) {
-  return (
+  // Multi-garden: the cockpit's chip and its menu. Until the menu's code has arrived, the chip
+  // stands in with the same markup, and the press that asked for the menu opens it as it mounts.
+  const trigger = {
+    className: triggerClassName,
+    style: chipStyle,
+    content: triggerContent,
+    selectionState: (selectedGarden ? "selected" : "empty") as "selected" | "empty",
+  };
+  const standInTrigger = (
     <button
       type="button"
-      onClick={onClick}
-      className={cn(
-        "flex w-full items-center rounded-lg px-3 py-2 type-body",
-        "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-        "motion-reduce:transition-none",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
-        isSelected
-          ? "bg-primary-alpha-10 font-medium text-primary-dark"
-          : "text-text-main hover:bg-bg-weak"
-      )}
+      onClick={() => setMenu((current) => ({ requested: true, open: !current.open }))}
+      aria-haspopup="dialog"
+      aria-expanded={menu.open}
+      className={trigger.className}
+      style={trigger.style}
       data-component="GardenChip"
-      data-slot="option"
-      data-state={isSelected ? "selected" : "unselected"}
+      data-slot="trigger"
+      data-selection-state={trigger.selectionState}
     >
-      <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title={label}>
-        {label}
-      </span>
+      {triggerContent}
     </button>
+  );
+  if (!menu.requested) return standInTrigger;
+
+  return (
+    <Suspense fallback={standInTrigger}>
+      <GardenChipMenu
+        gardens={gardens}
+        selectedGarden={selectedGarden}
+        onSelectGarden={onSelectGarden}
+        onCreateGarden={showCreateAction ? onCreateGarden : undefined}
+        open={menu.open}
+        onOpenChange={(open) => setMenu({ requested: true, open })}
+        trigger={trigger}
+        menuStyle={menuSizingStyle}
+      />
+    </Suspense>
   );
 }
