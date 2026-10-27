@@ -320,7 +320,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
         safeOwnedBy(other)
       );
       const row = screen.getByRole("listitem");
-      expect(within(row).getByText("Waiting for Tech and Sun’s approval")).toBeInTheDocument();
+      expect(within(row).getByText("Waiting for Tech and Sun")).toBeInTheDocument();
       expect(within(row).queryByRole("button", { name: "Approve…" })).not.toBeInTheDocument();
     });
 
@@ -332,7 +332,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
         safeOwnedBy(VIEWER)
       );
       const row = screen.getByRole("listitem");
-      expect(within(row).getByText("Waiting for Teo’s approval")).toBeInTheDocument();
+      expect(within(row).getByText("Waiting for Teo")).toBeInTheDocument();
       expect(within(row).queryByRole("button", { name: "Approve…" })).not.toBeInTheDocument();
     });
 

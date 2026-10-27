@@ -6811,7 +6811,7 @@
   "cockpit.garden.pool.voucher.tag.settingUp": "Being set up",
   "cockpit.garden.pool.voucher.tag.termsChanged": "Terms changed",
   "cockpit.garden.pool.voucher.tag.pastDeadline": "Deadline passed",
-  "cockpit.garden.pool.voucher.tag.waitingIssuer": "Waiting for {issuer}’s approval",
+  "cockpit.garden.pool.voucher.tag.waitingIssuer": "Waiting for {issuer}",
   "cockpit.garden.pool.voucher.tag.consentMissing": "Agreement missing",
   "cockpit.garden.pool.voucher.ask.agreed": "Agreed {date} · {count, plural, one {# voucher} other {# vouchers}} · accept by {due}",
   "cockpit.garden.pool.voucher.ask.inEscrow": "{count, plural, one {# voucher} other {# vouchers}} in escrow · accept by {due}",

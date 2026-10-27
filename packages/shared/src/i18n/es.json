@@ -6811,7 +6811,7 @@
   "cockpit.garden.pool.voucher.tag.settingUp": "En preparación",
   "cockpit.garden.pool.voucher.tag.termsChanged": "Cambiaron las condiciones",
   "cockpit.garden.pool.voucher.tag.pastDeadline": "Venció el plazo",
-  "cockpit.garden.pool.voucher.tag.waitingIssuer": "Esperando la aprobación de {issuer}",
+  "cockpit.garden.pool.voucher.tag.waitingIssuer": "Esperando a {issuer}",
   "cockpit.garden.pool.voucher.tag.consentMissing": "Falta el acuerdo",
   "cockpit.garden.pool.voucher.ask.agreed": "Aceptó el {date} · {count, plural, one {# vale} other {# vales}} · aceptar antes del {due}",
   "cockpit.garden.pool.voucher.ask.inEscrow": "{count, plural, one {# vale} other {# vales}} en garantía · aceptar antes del {due}",

@@ -283,7 +283,7 @@ export const VoucherAskWaitingForIssuer: Story = {
   beforeEach: nameVoucherMembers,
   play: async ({ canvasElement }) => {
     const card = within(canvasElement);
-    await expect(await card.findByText("Waiting for Tech and Sun’s approval")).toBeVisible();
+    await expect(await card.findByText("Waiting for Tech and Sun")).toBeVisible();
     await expect(card.queryByRole("button", { name: "Approve…" })).toBeNull();
     await expect(card.getByRole("button", { name: "Accept…" })).toBeEnabled();
   },

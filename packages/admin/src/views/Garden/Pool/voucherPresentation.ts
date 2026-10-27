@@ -54,7 +54,7 @@ export function voucherAskTag(
             label: formatMessage(
               {
                 id: "cockpit.garden.pool.voucher.tag.waitingIssuer",
-                defaultMessage: "Waiting for {issuer}’s approval",
+                defaultMessage: "Waiting for {issuer}",
               },
               { issuer: ask.issuer.name }
             ),
