@@ -3,6 +3,7 @@ import {
   encodeAbiParameters,
   encodeEventTopics,
   encodeFunctionData,
+  getContractAddress,
   keccak256,
   parseAbi,
   type Hex,
@@ -309,6 +310,19 @@ describe("live service access", () => {
     ).rejects.toThrow("reviewed deployment");
   });
 
+  it("reads the routed core's other promises as unrouted ones and acts on none of them", async () => {
+    const f = fixture();
+    const legacy = { ...structuredClone(f.s), mode: "legacy" as const };
+    f.dependencies.readSnapshot = async () => structuredClone(legacy);
+    const receipt = vi.spyOn(f.chain, "receipt");
+    await expect(f.adapter().read(key)).resolves.toEqual(legacy);
+    expect(receipt).not.toHaveBeenCalled();
+    await expect(f.adapter().execute(key, f.action)).rejects.toThrow(
+      "Authoritative live service state unavailable"
+    );
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("sends one exact finite approval with a member-owned EOA and confirmed Gnosis readback", async () => {
     const f = fixture();
     const result = await f.adapter().execute(key, f.action);
@@ -559,6 +573,55 @@ describe("live service access", () => {
       input: outer,
     });
     if (kind === "reviewed-upgrade")
+      await expect(verifyServiceLiveRoute(f.route, f.chain)).resolves.toBeUndefined();
+    else await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow("receipt");
+  });
+
+  it.each([
+    "reviewed-create2",
+    "other-address",
+    "direct-call",
+    "no-proxy-log",
+    "deployer-changed",
+  ])("checks a CREATE2 deployment receipt for %s", async (kind) => {
+    const f = fixture();
+    const deployer = "0x4e59b44847b379578588920cA78FbF26c0B4956C" as Address;
+    const deployerRuntime =
+      "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3";
+    const initCode = "0x60806040" as Hex;
+    const created = getContractAddress({
+      opcode: "CREATE2",
+      from: deployer,
+      salt: H,
+      bytecode: initCode,
+    });
+    f.route.core.address = kind === "other-address" ? account(77) : created;
+    f.route.core.receipt.kind = "create2";
+    const { code, read, receipt } = f.chain;
+    const target = kind === "direct-call" ? f.route.core.address : deployer;
+    f.chain.code = async (chain, a) =>
+      a === deployer ? (kind === "deployer-changed" ? "0x6001" : deployerRuntime) : code(chain, a);
+    f.chain.read = async (input) =>
+      input.functionName === "commitmentPooling" ? f.route.core.address : read(input);
+    f.chain.receipt = async (chain, hash) =>
+      hash === f.route.core.receipt.transactionHash
+        ? {
+            ...(await receipt(chain, hash)),
+            to: target,
+            contractAddress: null,
+            logs:
+              kind === "no-proxy-log"
+                ? []
+                : [{ address: f.route.core.address, topics: [H], data: "0x" }],
+          }
+        : receipt(chain, hash);
+    f.chain.transaction = async () => ({
+      from: account(8),
+      to: target,
+      value: 0n,
+      input: `${H}${initCode.slice(2)}`,
+    });
+    if (kind === "reviewed-create2")
       await expect(verifyServiceLiveRoute(f.route, f.chain)).resolves.toBeUndefined();
     else await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow("receipt");
   });

@@ -1926,3 +1926,61 @@ Agent/model: Codex / unknown | Coverage: user-reported readonly-property error
 | Verify | ongoing | Regression RED/GREEN, 18 focused and 37 CLI cases, types, lint and ABI synchronization pass; production gate running. |
 
 Human corrections: one observed (another error in the delivered operator); attention: unknown.
+
+## 2026-10-26 — Owner packets executed; the app's live service route
+
+Read-only RPC readback on 27 October UTC (Gnosis block 48961294, Arbitrum 518599900). No send,
+signature or Safe action is part of this record.
+
+All three owner packets executed, each `ExecutionSuccess` carrying the exact final SafeTx hash from
+its `.safe-batch.review.json`, with zero payment and no `ExecutionFailure`:
+
+| Packet | Safe nonce | Transaction | Block (UTC) |
+| --- | --- | --- | --- |
+| GG Gnosis, 14 calls, `0xffe534ce…b21e` | 2 → 3 | `0xd4e8c914df6f7be83f40d20d4f6cbcf0bd54a22e245fd1194f68b8908d3c2d30` | 48930601 (25 Oct 05:46:45) |
+| GG Arbitrum, 8 calls, `0xa0ebe237…8444` | 34 → 35 | `0xf0c3c94ffb6b93bd9c5f409066a0e60d41f12285531d0b1114791d7d1946b97c` | 518058816 (25 Oct 05:49:23) |
+| Tech and Sun Gnosis, 5 calls, `0x8734285c…e45a` | 0 → 1 | `0xfed1a687884d0d56cc907715539659695a6218191438fc1a554ad1e3c92524f5` | 48931036 (25 Oct 06:23:30) |
+
+The Arbitrum packet ran before Tech and Sun's rather than after it. Nothing depended on the order:
+the live Pooling core has no `ServiceOfferTermsSet` or consent event since the source upgrade.
+
+State after the packets: Pooling, Settlement, both Arbitrum voucher modules, the Gnosis adapter and
+the escrow are unpaused and owned by the GG Safe. The four voucher endpoints name the deployer as
+their separate guardian, and each names its peer and the CCIP router and selector that
+`config/voucher-pilot-release.json` pins. The redemption module, entitlement module and escrow
+report zero upgrade delay and no scheduled implementation. Pooling pins the redemption module as
+its setup module. GGV and TSV each have 20 units minted at six decimals, 10 in the pool and 10 with
+their Safe, a 10-unit adapter allowance, a 20-unit pool limit and a price index of 1,000,000. The
+adapter authorizes the GG Safe for GGV and the bootstrap signer for TSV. The pool is sealed (31),
+fees are decoupled, and the factory reports the published init-code hash. All 23 recorded runtime
+hashes and all 29 recorded receipts match the chain.
+
+Still open:
+
+- **`finalizeBootstrap()` has not run.** `bootstrapFinalized()` is false, the Hats Signer Gate
+  counts one valid signer at threshold (0, 1, 1), unlocked, and the Tech and Sun Safe is one of
+  one. No steward has been mirrored (`dispatchedRevision` 0 for the bootstrap signer). The
+  [finalize runbook](tas-steward-safe-finalize-runbook.md) still applies from step 0.
+- **The indexer is not deployed,** as #1329 records; the hosted indexer was not probed here.
+  Without it, booking discovery falls back to the core's own reads of the member's current claim.
+- **Issuer terms and capacity (COM-46) are open,** so `SERVICE_ISSUER_ROUTES` stays empty: its
+  assets require accepted terms and approval digests and confirmed capacity.
+
+The app's `SERVICE_LIVE_ROUTES` now pins this deployment. The core is pinned by its 13 August
+CREATE2 creation (`0xf7c81fd3d697b77ac06d5834bc1fef317f7a74f95d8d31e6e6d7a319fe6cb2c6`, through the
+keyless deployer) plus its current implementation and owner. The Shared `safe-upgrade` receipt
+kind cannot verify the actual relayed MultiSend upgrade, so it is not used. The app's own
+`verifyServiceLiveRoute` accepted the committed route against both chains in 39 read calls and
+rejected a tampered implementation hash.
+
+Task record: Cosmo-Local live wiring | Type: verification/feature | Outcome: adoption verified on
+chain; wiring prepared, merge held for the recorded review points
+Agent/model: Claude Code / claude-opus-5-5 | Coverage: adoption readback and the app's live route
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+| --- | --- | --- |
+| Investigate | unknown → 2026-10-27 01:04 | Records, packets and read-only readback above |
+| Implement | 2026-10-27 01:04 → 01:12 | Route pins, CREATE2 receipt kind, voucher-only routing |
+| Verify | 2026-10-27 01:12 → 01:16 | RED/GREEN focused tests; live route verifier on both chains |
+
+Human corrections: zero observed; attention: unknown.

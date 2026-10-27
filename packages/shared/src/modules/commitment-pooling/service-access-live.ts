@@ -68,11 +68,17 @@ export function createLiveServiceAccessAdapter(
       expected
     );
   };
-  const read = async (key: ServiceAccessKey, reconcile = true): Promise<ServiceAccessSnapshot> => {
+  const read = async (
+    key: ServiceAccessKey,
+    reconcile = true,
+    voucherOnly = false
+  ): Promise<ServiceAccessSnapshot> => {
     const route = routeFor(key);
     if (!route) return deps.readSnapshot(key);
-    await verifyServiceLiveRoute(route, chain);
     const s = await deps.readSnapshot(key);
+    // The route carries the core's voucher offers; its other promises read as they do unrouted.
+    if (s.mode !== "voucher" && !voucherOnly) return s;
+    await verifyServiceLiveRoute(route, chain);
     if (
       s.evidence !== "onchain" ||
       s.mode !== "voucher" ||
@@ -169,11 +175,11 @@ export function createLiveServiceAccessAdapter(
       session: () => deps.session(),
       storage: () => deps.storage ?? globalThis.localStorage,
       chain,
-      read,
+      read: (k, reconcile) => read(k, reconcile, true),
       assertSession,
     });
   return {
-    read,
+    read: (key) => read(key),
     execute: (key, action) => {
       if (!routeFor(key)) return execute(key, action);
       // The same member cannot approve two service calls concurrently in separate tabs.

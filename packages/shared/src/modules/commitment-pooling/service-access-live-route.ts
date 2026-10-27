@@ -7,6 +7,7 @@ import {
   decodeEventLog,
   decodeFunctionData,
   encodeFunctionData,
+  getContractAddress,
   type Hex,
   keccak256,
   parseAbi,
@@ -25,6 +26,10 @@ const SAFE_UPGRADE = parseAbi([
 ]);
 const UPGRADE = parseAbi(["function upgradeTo(address implementation)"]);
 const IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+// The keyless deterministic deployer takes salt ‖ init code and leaves contractAddress empty.
+const CREATE2_DEPLOYER = "0x4e59b44847b379578588920cA78FbF26c0B4956C";
+const CREATE2_DEPLOYER_RUNTIME =
+  "0x2fa86add0aed31f33a762c9d88e807c475bd51d0f52bd0955754b2608f7e4989";
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 export interface ServiceLiveChain {
@@ -84,6 +89,34 @@ export async function verifyServiceDeployment(
   let targetMatches = [receipt.to, receipt.contractAddress].some(
     (value) => value && same(value, pin.address)
   );
+  if (pin.receipt.kind === "create2") {
+    const [transaction, deployer] = await Promise.all([
+      chain.transaction(chainId, pin.receipt.transactionHash),
+      chain.code(chainId, CREATE2_DEPLOYER),
+    ]);
+    const input = transaction.input;
+    targetMatches =
+      !receipt.contractAddress &&
+      !!receipt.to &&
+      same(receipt.to, CREATE2_DEPLOYER) &&
+      !!transaction.to &&
+      same(transaction.to, CREATE2_DEPLOYER) &&
+      transaction.value === 0n &&
+      deployer !== "0x" &&
+      same(keccak256(deployer), CREATE2_DEPLOYER_RUNTIME) &&
+      /^0x(?:[a-f0-9]{2}){33,}$/i.test(input) &&
+      same(
+        getContractAddress({
+          opcode: "CREATE2",
+          from: CREATE2_DEPLOYER,
+          salt: input.slice(0, 66) as Hex,
+          bytecode: `0x${input.slice(66)}`,
+        }),
+        pin.address
+      ) &&
+      // The created proxy itself logged in this receipt, so the creation ran here.
+      (receipt.logs ?? []).some((log) => same(log.address, pin.address));
+  }
   if (pin.receipt.kind === "safe-upgrade") {
     targetMatches = false;
     const transaction = await chain.transaction(chainId, pin.receipt.transactionHash);
