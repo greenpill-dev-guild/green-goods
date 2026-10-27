@@ -7182,7 +7182,7 @@
   "cockpit.garden.pool.voucher.reserve.capNote": "Política publicada e monitorada. Ainda não aplicada.",
   "cockpit.garden.pool.voucher.reserve.shortTitle": "A recompensa de {count, plural, one {# vale} other {# vales}} de {name} está aguardando.",
   "cockpit.garden.pool.voucher.reserve.shortBody": "A permissão de {garden} acabou. Aumente-a para a recompensa poder ser enviada. Recompensas prometidas não separam vales.",
-  "cockpit.garden.pool.voucher.reserve.shortBodyLeft": "A permissão de {garden} tem {left} restantes, menos do que a recompensa precisa. Aumente-a para a recompensa poder ser enviada. Recompensas prometidas não separam vales.",
+  "cockpit.garden.pool.voucher.reserve.shortBodyLeft": "{left, plural, one {A permissão de {garden} tem # restante} other {A permissão de {garden} tem # restantes}}, menos do que a recompensa precisa. Aumente-a para a recompensa poder ser enviada. Recompensas prometidas não separam vales.",
   "cockpit.garden.pool.voucher.act.raise": "Aumentar permissão…",
   "cockpit.garden.pool.voucher.raise.title": "Aumentar a permissão de {garden}",
   "cockpit.garden.pool.voucher.fact.allowance": "Permissão",

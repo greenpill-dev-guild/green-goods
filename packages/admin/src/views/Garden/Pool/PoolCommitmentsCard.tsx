@@ -93,6 +93,12 @@ export function PoolCommitmentsCard({
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
   const [bookingAct, setBookingAct] = useState<VoucherBookingAct>(null);
+  // The open act follows its booking as the read has it now (another Safe owner can raise the
+  // return ceiling meanwhile), and closes once the booking leaves the read.
+  const openBooking = bookingAct && vouchers.bookingFor(bookingAct.booking.commitmentId);
+  if (bookingAct && !openBooking) setBookingAct(null);
+  const openAct: VoucherBookingAct =
+    bookingAct && openBooking ? { kind: bookingAct.kind, booking: openBooking } : null;
 
   const dueIds = useMemo(() => new Set(model.dueLive.map((row) => row.id)), [model.dueLive]);
 
@@ -391,8 +397,8 @@ export function PoolCommitmentsCard({
       </AdminCard>
 
       <VoucherBookingDialogs
-        open={bookingAct}
-        title={bookingAct ? titleFor(bookingAct.booking.commitmentId) : ""}
+        open={openAct}
+        title={openAct ? titleFor(openAct.booking.commitmentId) : ""}
         vouchers={vouchers}
         safe={safe}
         target={target}
