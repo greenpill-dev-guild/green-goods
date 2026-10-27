@@ -62,6 +62,10 @@ describe("formatCommitmentUnits", () => {
       ["en", "lecciones", "1 lección"],
       // "activities" could be "activity" or, like "movies", end in "ie": it stays as written.
       ["en", "activities", "1 activities"],
+      // As do plurals whose singular the ending can't settle: bus, analysis, leaf.
+      ["en", "buses", "1 buses"],
+      ["en", "analyses", "1 analyses"],
+      ["en", "leaves", "1 leaves"],
       ["en", "climate courses", "1 climate courses"],
       ["es", "certificados", "1 certificado"],
       ["es", "árboles", "1 árboles"],

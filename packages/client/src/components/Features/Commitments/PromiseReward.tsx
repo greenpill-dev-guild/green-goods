@@ -40,9 +40,9 @@ export function promiseRewardOf(
 }
 
 /**
- * The rewards on the copies of a group a member could still take up, lowest
- * first: one amount, unless an Edit Reward stopped part way. With none left to
- * take up, the first copy's, for what each one carried.
+ * The rewards on the copies of a group a member could still take up: one
+ * amount, unless an Edit Reward stopped part way. With none left to take up,
+ * every copy's, for what each one carried.
  */
 export function groupRewardsOf(
   copies: readonly (RewardRecord & Pick<CommitmentReadModel, "onchainState">)[],
@@ -50,11 +50,19 @@ export function groupRewardsOf(
 ): PromiseReward[] {
   const available = copies.filter((copy) => displayBucketOf(copy.onchainState) === "available");
   const byWei = new Map<bigint, PromiseReward>();
-  for (const copy of available.length > 0 ? available : copies.slice(0, 1)) {
+  for (const copy of available.length > 0 ? available : copies) {
     const reward = promiseRewardOf(copy, metadata);
     if (reward && !byWei.has(reward.wei)) byWei.set(reward.wei, reward);
   }
-  return [...byWei.values()].sort((a, b) => (a.wei < b.wei ? -1 : a.wei > b.wei ? 1 : 0));
+  return [...byWei.values()];
+}
+
+const ascending = (a: bigint, b: bigint) => (a < b ? -1 : a > b ? 1 : 0);
+
+/** The dollars a reward reads in, or null where it reads in G$. */
+function shownCents(reward: PromiseReward, price: GoodDollarPriceState): bigint | null {
+  if (reward.centsAsSet !== null) return reward.centsAsSet;
+  return price.status === "ready" ? goodDollarWeiToUsdCents(reward.wei, price.price) : null;
 }
 
 /** Whether any of these rewards reads in dollars only at today's G$ price. */
@@ -88,28 +96,44 @@ function amountText(intl: RewardIntl, reward: PromiseReward, price: GoodDollarPr
 
 /**
  * The reward as a member reads it before taking a promise up: its amount, and
- * that it is paid in G$ once the promise is kept, or that it has been paid.
+ * that it is paid in G$ once the promise is kept; once kept, whether it has
+ * been paid yet. Several amounts read as a range, lowest first by what they
+ * show, so dollars set at Create and dollars at today's rate stay in order.
  */
 export function promiseRewardText(input: {
   intl: RewardIntl;
   rewards: readonly PromiseReward[];
   price: GoodDollarPriceState;
+  /** The promise has been kept. */
+  kept?: boolean;
   /** The reward on this promise has been paid. */
   paid?: boolean;
 }): string | null {
-  const { intl, rewards, price, paid = false } = input;
-  const low = rewards[0];
-  const high = rewards[rewards.length - 1];
+  const { intl, rewards, price, kept = false, paid = false } = input;
+  const cents = rewards.map((reward) => shownCents(reward, price));
+  const ranked = cents.every((value) => value !== null)
+    ? rewards
+        .map((reward, index) => ({ reward, value: cents[index] as bigint }))
+        .sort((a, b) => ascending(a.value, b.value))
+        .map(({ reward }) => reward)
+    : [...rewards].sort((a, b) => ascending(a.wei, b.wei));
+  const low = ranked[0];
+  const high = ranked[ranked.length - 1];
   if (!low || !high) return null;
+  const lowText = amountText(intl, low, price);
+  const highText = amountText(intl, high, price);
   const amount =
-    low === high
-      ? amountText(intl, low, price)
-      : intl.formatMessage(
-          { id: "app.commitment.reward.range" },
-          { low: amountText(intl, low, price), high: amountText(intl, high, price) }
-        );
+    lowText === highText
+      ? lowText
+      : intl.formatMessage({ id: "app.commitment.reward.range" }, { low: lowText, high: highText });
   return intl.formatMessage(
-    { id: paid ? "app.commitment.reward.paid" : "app.commitment.reward.afterKept" },
+    {
+      id: paid
+        ? "app.commitment.reward.paid"
+        : kept
+          ? "app.commitment.reward.notPaidYet"
+          : "app.commitment.reward.afterKept",
+    },
     { amount }
   );
 }

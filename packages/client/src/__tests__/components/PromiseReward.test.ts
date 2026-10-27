@@ -47,7 +47,7 @@ describe("promise rewards", () => {
     ).toBeNull();
   });
 
-  it("says it is paid in G$ once kept, or that it was paid", () => {
+  it("says it is paid in G$ once kept, then whether it has been paid", () => {
     const rewards = [promiseRewardOf(onRail(SET_WEI), METADATA)].filter(
       (reward) => reward !== null
     );
@@ -55,7 +55,11 @@ describe("promise rewards", () => {
     expect(promiseRewardText({ intl, rewards, price: NO_PRICE })).toBe(
       "$20.00, paid in G$ after it's kept"
     );
-    expect(promiseRewardText({ intl, rewards, price: NO_PRICE, paid: true })).toBe(
+    // Kept, with the payout still to come: never "after it's kept" on a kept promise.
+    expect(promiseRewardText({ intl, rewards, price: NO_PRICE, kept: true })).toBe(
+      "$20.00 in G$, not paid yet"
+    );
+    expect(promiseRewardText({ intl, rewards, price: NO_PRICE, kept: true, paid: true })).toBe(
       "$20.00, paid in G$"
     );
     expect(promiseRewardText({ intl, rewards: [], price: PRICE })).toBeNull();
@@ -92,13 +96,31 @@ describe("promise rewards", () => {
       METADATA
     );
 
-    expect(partial.map((reward) => reward.wei)).toEqual([SET_WEI, 200_000n * G]);
+    expect(partial.map((reward) => reward.wei).sort()).toEqual([SET_WEI, 200_000n * G].sort());
     expect(promiseRewardText({ intl, rewards: partial, price: PRICE })).toBe(
       "$20.00 to about $25.00, paid in G$ after it's kept"
     );
-    // Nothing left to take up: the page still says what each one carried.
-    expect(
-      groupRewardsOf([copy(SET_WEI, "ACCEPTED"), copy(SET_WEI, "FULFILLED")], METADATA)
-    ).toEqual([{ wei: SET_WEI, centsAsSet: 2000n }]);
+    // Nothing left to take up: the page says what every copy carried, edited ones included.
+    const taken = groupRewardsOf(
+      [copy(SET_WEI, "ACCEPTED"), copy(200_000n * G, "FULFILLED"), copy(SET_WEI, "FULFILLED")],
+      METADATA
+    );
+    expect(promiseRewardText({ intl, rewards: taken, price: PRICE })).toBe(
+      "$20.00 to about $25.00, paid in G$ after it's kept"
+    );
+  });
+
+  it("orders a range by the dollars it shows, not by its G$", () => {
+    // Edited down to 100,000 G$, worth about $30.00 after the rate rose; the 160,000 G$ set at
+    // Create still reads its $20.00. By G$ alone the range would read backwards.
+    const risen: GoodDollarPriceState = { status: "ready", price: 300_000_000_000_000n, readAt: 0 };
+    const rewards = [
+      promiseRewardOf(onRail(100_000n * G), METADATA),
+      promiseRewardOf(onRail(SET_WEI), METADATA),
+    ].filter((reward) => reward !== null);
+
+    expect(promiseRewardText({ intl, rewards, price: risen })).toBe(
+      "$20.00 to about $30.00, paid in G$ after it's kept"
+    );
   });
 });

@@ -58,8 +58,9 @@ const SINGULAR_ANY_LANGUAGE: readonly SingularRule[] = [
  */
 const SINGULAR_ENGLISH: readonly SingularRule[] = [
   [/(ss|sh|ch|x)es$/i, "$1"],
-  // "activities" and "movies" end alike; "status" and "basis" are not plurals.
-  [/(ies|ss|us|is)$/i, null],
+  // Endings whose singular the word can't settle: "activities" or "movies", "buses" or
+  // "courses", "leaves" or "gloves", "potatoes" or "shoes"; "status" and "basis" are no plurals.
+  [/(ies|ses|ves|oes|ss|us|is)$/i, null],
   [/(.{3})s$/i, "$1"],
 ];
 

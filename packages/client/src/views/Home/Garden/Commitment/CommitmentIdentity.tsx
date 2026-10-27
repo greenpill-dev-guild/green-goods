@@ -87,6 +87,7 @@ export function CommitmentIdentity({
     intl,
     rewards,
     price: price.state,
+    kept: commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED",
     paid: commitment.considerationPaid === true,
   });
   const state = presentState(commitment.derivedState);
