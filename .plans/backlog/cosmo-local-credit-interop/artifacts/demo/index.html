@@ -394,7 +394,9 @@
           },
           {
             "file": "swap-7",
-            "caption": "Green Goods accepts, and her seat is active"
+            "caption": "Green Goods accepts once four checks pass",
+            "who": "You are a Green Goods steward",
+            "where": "Dashboard"
           }
         ]
       },
@@ -1255,7 +1257,7 @@
       "who": "You are Ifeoma, a member of the hub",
       "where": "App",
       "thumb": "swap-2",
-      "intro": "Instead of a hub day, she swaps Tech and Sun vouchers for Green Goods vouchers in the shared pool, then books an AI tool seat from Green Goods.",
+      "intro": "Instead of a hub day, she swaps Tech and Sun vouchers for Green Goods vouchers in the shared pool and books an AI tool seat. Green Goods accepts it in its own pool once four checks pass.",
       "screens": [
         {
           "file": "swap-1",
@@ -1391,7 +1393,42 @@
         },
         {
           "file": "swap-7",
-          "caption": "Green Goods accepts, and her seat is active",
+          "device": "desktop",
+          "pilot": true,
+          "caption": "Green Goods accepts once four checks pass",
+          "step": "Accept",
+          "who": "You are a Green Goods steward",
+          "where": "Dashboard",
+          "alt": "Accept Ifeoma? in Green Goods’ own pool, the protocol pool: all four checks hold for her 10 vouchers, before Accept Ifeoma",
+          "story": "admin-pool-voucheraskdialogs--accept-green-goods-access",
+          "size": [
+            1440,
+            900
+          ],
+          "hotspot": [
+            0.5408,
+            0.8072,
+            0.0981,
+            0.0444
+          ],
+          "back": [
+            [
+              0.6167,
+              0.1528,
+              0.0278,
+              0.0444
+            ],
+            [
+              0.4732,
+              0.8072,
+              0.062,
+              0.0444
+            ]
+          ]
+        },
+        {
+          "file": "swap-8",
+          "caption": "Accepted, her seat is active",
           "step": "Active",
           "alt": "Her booking steps, all done through Green Goods accepting her; access has started",
           "device": "phone",

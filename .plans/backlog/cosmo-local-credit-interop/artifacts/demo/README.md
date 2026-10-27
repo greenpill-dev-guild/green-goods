@@ -10,7 +10,8 @@ supporter.
 Four chapters. The first two ground Green Goods: a hub's need, and a promise kept and approved. The
 third is what was built for SF.Live, and every screen in it is marked "In pilot": the kept promise
 pays Tech and Sun vouchers and G$, Ifeoma swaps the vouchers in the shared pool for Green Goods
-vouchers, and books an AI tool seat with them. The fourth shows the public record and a donation.
+vouchers, and books an AI tool seat with them, which Green Goods accepts in its own pool. The fourth
+shows the public record and a donation.
 
 | # | Chapter | Screen | Caption | Who you are |
 |---|---|---|---|---|
@@ -23,7 +24,7 @@ vouchers, and books an AI tool seat with them. The fourth shows the public recor
 | 7 | Built for SF.Live | swap-1 | An AI tool seat takes Green Goods vouchers | Ifeoma |
 | 8 | Built for SF.Live | swap-2 | She swaps her vouchers in the shared pool | Ifeoma |
 | 9 | Built for SF.Live | swap-6 | Swapped, she books the seat | Ifeoma |
-| 10 | Built for SF.Live | swap-7 | Green Goods accepts, and her seat is active | Ifeoma |
+| 10 | Built for SF.Live | swap-7 | Green Goods accepts once four checks pass | a Green Goods steward |
 | 11 | For supporters | impact-3 | Anyone can see the bootcamp on the record | Funmi |
 | 12 | For supporters | funding-5 | Funmi backs the hub with a donation | Funmi |
 
@@ -32,7 +33,7 @@ come from the appendix, except vouchers-1, whose hotspot opens her wallet, a ste
 
 ## Every step
 
-Nine chapters, 49 screens, one season:
+Nine chapters, 50 screens, one season:
 
 1. **Needs** (7 screens, dashboard). Obinna signs in, looks over the hub's earlier assessment and
    writes this season's: the need, two targets (24 members certified, 5 bootcamp sessions), the work
@@ -49,9 +50,10 @@ Nine chapters, 49 screens, one season:
 6. **Vouchers** (8, app and dashboard; every screen in pilot). The kept promise pays her 2 Tech and
    Sun vouchers and G$, each on its own row. She spends a voucher on a hub day, and Obinna accepts
    the booking once its four checks pass.
-7. **Swap** (7, app; every screen in pilot). Instead of a hub day, she swaps 8.01 Tech and Sun
-   vouchers for 8 Green Goods vouchers in the shared pool and books an AI tool seat from Green
-   Goods. The chapter ends on her booking with every step done, Green Goods' acceptance included.
+7. **Swap** (8, app and dashboard; every screen in pilot). Instead of a hub day, she swaps 8.01
+   Tech and Sun vouchers for 8 Green Goods vouchers in the shared pool and books an AI tool seat
+   from Green Goods. A Green Goods steward accepts it in Green Goods' own pool once its four checks
+   pass, and the chapter ends on her booking with every step done.
 8. **Impact** (3, website). Funmi finds Green Goods on the web, opens its evidence ledger filtered
    to Education, and opens the bootcamp's public record.
 9. **Funding** (5, website). She backs the hub from its own page with a $500 donation to its shared
@@ -88,7 +90,7 @@ not add up across them.
 
 ## Where the screens come from
 
-**49 screens**: 17 App, 19 Storybook and 13 Composite.
+**50 screens**: 17 App, 19 Storybook and 14 Composite.
 
 - **App**: the develop app, dashboard and public site, run locally against the hub's record (the
   hosted indexer and the hub's pinned photos), signed in with the dev-only mock account, which is
@@ -107,7 +109,7 @@ not add up across them.
 |---|---|
 | [`index.html`](index.html) | The page: intro, player, close and chapter list, and the `#flows` block: the story (its chapters, lines, captions and who you are) and every step (each screen's caption, step, who you are, source, hotspot, back regions and alt text). It shows the screens from `assets/screens/` when they are present |
 | [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`. It replaces the set whole: one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
-| [`capture.mjs`](capture.mjs) | Walks each chapter's sessions in the app and Storybook, captures the 49 screens, swaps in names and the hub's content, and writes each screen's source, size, hotspot and back regions into `#flows` |
+| [`capture.mjs`](capture.mjs) | Walks each chapter's sessions in the app and Storybook, captures the 50 screens, swaps in names and the hub's content, and writes each screen's source, size, hotspot and back regions into `#flows` |
 | [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper). A missing screen or a page over 15 MB fails the build before it writes |
 | [`check.mjs`](check.mjs) | Checks the build, walks the story and every step headless, and holds the player's parts to one place on every screen; screenshots each screen and a contact sheet into `output/` |
 | `assets/screens/`, `assets/photos/`, `output/` | Local files, not committed: the photos, the screens and the built page show identifiable people |
@@ -221,7 +223,8 @@ To change a caption, a "who you are" line or a chapter's line in the story, edit
 | swap-4 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Exchanged: the receipt for 8.01 Tech and Sun vouchers to 8 Green Goods vouchers | Swapped. Nothing is booked yet |
 | swap-5 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | The seat's page: she holds 10 Green Goods vouchers; Review and Redeem | She holds 10 now, enough to book |
 | swap-6 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Review and Redeem: 30 days of a named AI tool seat for 10 Green Goods vouchers, held in escrow | Agree to the seat's exact terms |
-| swap-7 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Her booking steps, all done through Green Goods accepting her; access has started | Green Goods accepts, and her seat is active |
+| swap-7 | Composite: `admin-pool-voucheraskdialogs--accept-green-goods-access` over the real `dashboard /garden/pool` | Accept Ifeoma? in Green Goods’ own pool, the protocol pool: all four checks hold for her 10 vouchers, before Accept Ifeoma | Green Goods accepts once four checks pass |
+| swap-8 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Her booking steps, all done through Green Goods accepting her; access has started | Accepted, her seat is active |
 | impact-1 | App: `/` | greengoods.app's home page | Green Goods on the web |
 | impact-2 | App: `/` | Impact's evidence ledger, filtered to Education, at the bootcamp | Approved work, filtered to Education |
 | impact-3 | App: `/` | The bootcamp's approved submission, opened from the ledger | The bootcamp, on the public record |
@@ -231,8 +234,9 @@ To change a caption, a "who you are" line or a chapter's line in the story, edit
 | funding-4 | Composite: `public-documentation-funding--donate` over funding-3 | Donate $500.00 in DAI, wallet connected | Confirm the donation |
 | funding-5 | Composite: `public-documentation-funding--donated` over funding-3 | Donated $500.00 to the hub | Donated to the hub's shared fund |
 
-"Who you are" is Obinna for Needs, Season, Approval and the booking's acceptance (vouchers-6 and
-vouchers-7); Ifeoma for Promise, Work, Swap and the rest of Vouchers; Funmi for Impact and Funding.
+"Who you are" is Obinna for Needs, Season, Approval and the hub day's acceptance (vouchers-6 and
+vouchers-7); a Green Goods steward for the seat's acceptance (swap-7); Ifeoma for Promise, Work and
+the rest of Vouchers and Swap; Funmi for Impact and Funding.
 
 Desktop screens are 1440 by 900 at 1.5x and phone screens 390 by 844 at 2x, saved as JPEG. The app's
 own back arrow, close button or Cancel on a screen is a back region, measured by `capture.mjs` like
@@ -266,12 +270,14 @@ the hotspot.
   signature; approval-4 is the Storybook summary in the same panel.
 - **Vouchers.** Every screen is Storybook: the pilot's reads are not live. The booking's card and
   its Accept dialog are drawn into the hub's real Promises tab.
-- **Swap.** Every screen is the exchange journey's Storybook story (#1356), walked by its own
+- **Swap.** Her screens are the exchange journey's Storybook story (#1356), walked by its own
   buttons. The service the fixtures call "Claude access" is shown as the deck names it, an AI tool
-  seat. Green Goods accepts bookings in its own pool, the protocol pool, and develop has no story of
-  that Accept dialog, so the chapter ends on her booking with every step done rather than on a
-  dialog borrowed from the hub's pool. Her two scrolled pages (promise-5 and swap-7) take out
-  Storybook's padding above the page, which would show content above the app's top bar.
+  seat. Green Goods accepts bookings in its own pool, the protocol pool (the root garden's), so its
+  Accept (swap-7) is the `AcceptGreenGoodsAccess` story of `VoucherAskDialogs`, which sets that
+  pool apart with its warning, drawn with its scrim over that pool's real Promises tab. That story
+  arrives with #1371; until it merges into develop, capturing swap-7 needs a Storybook built from
+  that branch. Her two scrolled pages (promise-5 and swap-8) take out Storybook's padding above the
+  page, which would show content above the app's top bar.
 - **Impact.** The public site as it stands: the home page, the Impact page's evidence ledger
   filtered to Education, and the bootcamp's approved submission.
 - **Funding.** The hub's page, Fund and the Donate dialog are real up to Connect Wallet; the
@@ -311,7 +317,7 @@ The confirmer field's hint keeps the app's own example, lina.eth.
 | On the record or in the fixture | In the demo |
 |---|---|
 | The mock account's handle; the pool's requester `0x5e...0b2` | obinna |
-| The fixture member `amara`, `lina` and `Kwesi`; the earn and swap journeys' reader `Lina`; the steward's own node log's submitter | ifeoma / Ifeoma |
+| The fixture member `amara`, `lina` and `Kwesi`; the earn and swap journeys' reader `Lina`; `Mara` in Green Goods' Accept; the steward's own node log's submitter | ifeoma / Ifeoma |
 | The fixture member `Lina` who books first in the hub-day fixtures | Nneka |
 | The hub's two other stewards (their ENS names) | adaeze.eth; ikenna.eth |
 | The fixture wallet `0x5eed...00a1` | funmi.eth |
@@ -337,7 +343,8 @@ rendered. The tables in `capture.mjs` (`HUB_LIST`, `SEASON_SETUP`, `TAKE_PART`, 
 | Workshop photos; 3 of 12 approved; Seedling Transplant; Plants moved 36; Members 3 | the bootcamp; 0 of 1 approved; Workshop Delivered; Facilitators 2; Members 14 | work-1 to work-3 |
 | The steward's own pending Node Operation Log, by afo, 3 weeks ago, Oct 1 | Workshop Delivered, by ifeoma, 12 minutes ago, Oct 26, 2026, 4:48 PM | approval-1 to approval-4 |
 | 120 G$ | 155,460 G$ | promise-5, vouchers-1 |
-| Claude access; Claude seat; Claude Team seat | AI tool seat | swap-1 to swap-7 |
+| Claude access; Claude seat; Claude Team seat | AI tool seat | swap-1 to swap-8 |
+| Mara; Jan 14; Jan 21 (the Accept dialog's member, its Safe's approval and its deadline) | Ifeoma; Oct 26; Nov 2 | swap-7 |
 | Nov 2; Oct 26 (the hub day's deadline and agreement) | Jan 20; Jan 13 | vouchers-4, vouchers-5 |
 | $50.00 | $500.00 | funding-4, funding-5 |
 | The fixture photos; the node log's photo | record-06 (the bootcamp's record photo) | promise-1, work-2, work-3, approval-1 to approval-4 |
@@ -349,7 +356,9 @@ Hidden on screens, because the story does not have them: the steward's "Needs Yo
 on Home (promise-1, when present); the season's course requests on the Promises tab before the
 season (season-1); the Pool Funding card (season-1, season-3 to season-7); the fixture's campaign
 and its rows in Take Part; the node log in Start's promises (work-1); the fixture's second review
-photo (work-3); "waiting over a week" (approval-1); and the voucher stories' narration.
+photo (work-3); "waiting over a week" (approval-1); the root garden pool's voucher panel, which says
+it could not load the pilot's bookings from the hosted indexer (under swap-7); and the voucher
+stories' narration.
 
 ## Claims
 
@@ -358,11 +367,13 @@ photo (work-3); "waiting over a week" (approval-1); and the voucher stories' nar
   data" and that vouchers are in pilot.
 - App text inside the screens still says "Connect Wallet", WETH and DAI (funding-3, funding-4),
   "Your wallet will ask you once" (season-7), "Starting follows on the voucher network" (vouchers-7)
-  and "Deposit confirmed on Green Goods" (swap-7); none of them names a chain.
+  and "Deposit confirmed on Green Goods" (swap-7, swap-8); none of them names a chain.
 - Payouts are shown on (season-7, promise-3, promise-5, vouchers-1) while develop's settlement
   switch is off.
 - The swap's rate and fees are the pilot fixture's. The brief says no member has used a voucher yet,
   which the "In pilot" marks keep true.
+- Both Accept dialogs (vouchers-7, swap-7) end on the app's note "It doesn't mean the visit
+  happened", written for hub days; on the seat it is the app's own wording, left as it is.
 
 ## Task record · clickable demo
 
@@ -434,9 +445,21 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `89b7fb
 | verify | 05:51 → 06:32 | A clean full capture on `19d8ebf8e`: 49 screens, 0 problems (the first full run failed only on a rename rule no screen needed any more, now removed); `build.mjs` 8.38 MB; `check.mjs` exit 0: the story and all 49 appendix screens walked, 33 back regions, and the bar, stage, who-you-are row, caption, controls and device held in place on every screen at 1440x900, 1280x720, 768x1024 and 390x844; every new screen and the story's contact sheet inspected |
 | publish | 06:32 → 06:34 | Commit `066f23775` pushed (gate passed: format and lint); artifact version 12 at the same link; Drive copy replaced (8.8 MB) |
 
-One locked decision changed in the build: Green Goods' acceptance of the seat has no story on
-develop (its pool is the protocol pool, whose Accept dialog differs from the hub's), so the story's
-voucher chapter ends on her booking with every step done, and the steward accepting a booking stays
-in the appendix (vouchers-7, the hub day).
+One locked decision changed in the build and was restored the same morning: develop had no story of
+Green Goods accepting the seat (its pool is the protocol pool, whose Accept dialog differs from the
+hub's), so v5 first ended the story's voucher chapter on her booking. The next segment adds that
+story and ends the chapter on Green Goods accepting.
 
 Human corrections: 1 observed in this segment (Afo's v4 review: no layout shift, far fewer clicks, ground in the core loop and focus on what was built for the hackathon); attention unknown.
+
+## Task record · Green Goods accepts the seat
+
+Task record: SF.Live clickable demo, Green Goods' Accept | Type: feature | Outcome: built; delivery waits on Afo's answer
+Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `1e346217c`, and an uncommitted story on develop `f201fee18`
+
+| Phase | Start → end (UTC, 27 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| story | 06:40 → 06:58 | `AcceptGreenGoodsAccess` in `VoucherAskDialogs.stories.tsx`, with `STORY_MARA_ACCESS_ASK` in `poolStoryVouchers.ts`: Green Goods accepts 30 days of Claude access in the protocol pool. Biome format and oxlint clean; the admin typecheck reports nothing in the two files; in a local Storybook build the story renders and its play test finishes, with four checks holding and Accept enabled |
+| demo | 06:58 → 07:05 | The swap chapter recaptured with the Accept as swap-7, drawn over the root garden's real Promises tab (its voucher panel, which cannot read the pilot's bookings from the hosted indexer, hidden), and her active booking as swap-8; the story's voucher chapter ends on Green Goods accepting. `check.mjs` exit 0: 50 screens, 35 back regions |
+
+Human corrections: 0 observed in this segment; attention unknown.

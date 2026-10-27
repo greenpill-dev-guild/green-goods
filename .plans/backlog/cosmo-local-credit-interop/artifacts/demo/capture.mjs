@@ -58,6 +58,8 @@ const DESKTOP = { width: 1440, height: 900, scale: 1.5 };
 const APP = "http://localhost:3122";
 const ADMIN = "https://localhost:3102";
 const TAS = "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3";
+// The root garden, the Green Goods Community Garden, whose pool is the protocol pool.
+const GREEN_GOODS_GARDEN = "0xf401f34378384713222d1d21f63359cc4E8a858a";
 const HOME = `${APP}/home?mockAuth=deployer&presentation=pwa`;
 // Storybook built from develop. The deployed one (design.greengoods.app) is the default; --storybook=
 // points at a local static build, which a capture needs while the deployed one cannot render.
@@ -213,7 +215,11 @@ const EARN = [...EARN_TERMS, ["No approved work yet · no proof yet", "1 approve
 // The reader of the earn and swap journeys is Ifeoma.
 const READER = [["Lina", "Ifeoma"], ["lina", "ifeoma"]];
 // Green Goods' service in the swap journey, named as the deck names it.
-const SEAT = [["Claude Team seat", "AI tool seat"], ["Claude seat", "AI tool seat"], ["Claude access", "AI tool seat"]];
+const SEAT = [["Claude Team seat", "AI tool seat"], ["Claude access", "AI tool seat"], ["Claude seat", "AI tool seat"]];
+// Green Goods accepting her seat: the dialog story's member and its frozen-clock dates, as the
+// exchange journey has her agree on 26 October with a 2 November deadline.
+const SEAT_ACCEPT = [["Mara", "Ifeoma"], ["Jan 14", "Oct 26"], ["Jan 21", "Nov 2"]];
+const VOUCHERS_UNREAD = "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.";
 // The hub day she books in January, and the booking's dates in the fixtures.
 const HUB_DAY = [["Nov 2", "Jan 20"], ["Oct 26", "Jan 13"]];
 // The app lists WETH before DAI (funding-3); the stories list DAI first.
@@ -227,7 +233,7 @@ const wethFirst = {
 const DONATE = [["$50.00", "$500.00"], ["50.00", "500.00", undefined, true], ["0x5eed...00a1", "funmi.eth"]];
 
 // Fixture text that must not survive in a Storybook screen.
-const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /\btomas\b/, /\bamara\b/, /\bdele\b/i, /Greenpill NYC/, /vault-owner/, /[Ss]eedling/, /lettuce/, /Mulch/, /Pond/, /canopy/i, /\bafo\b/, /Node Operation/, /Muizenberg/, /Rocinha/, /First Rains/, /Okafor/, /compost/i, /\bKwesi\b/i, /\bLina\b/, /Botanic/, /Market rides/, /Harvest Season/, /Seed Swap/, /Step \d+ of \d+/, /Claude/];
+const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /\btomas\b/, /\bamara\b/, /\bdele\b/i, /Greenpill NYC/, /vault-owner/, /[Ss]eedling/, /lettuce/, /Mulch/, /Pond/, /canopy/i, /\bafo\b/, /Node Operation/, /Muizenberg/, /Rocinha/, /First Rains/, /Okafor/, /compost/i, /\bKwesi\b/i, /\bLina\b/, /Botanic/, /Market rides/, /Harvest Season/, /Seed Swap/, /Step \d+ of \d+/, /Claude/, /\bMara\b/, /Voucher bookings could not be loaded/];
 
 // Hides the card around `text`: its nearest opaque ancestor at least `minHeight` tall.
 const hideCard = (text, minHeight = 80) => ({
@@ -505,9 +511,9 @@ const SESSIONS = [
   { id: "vouchers-8", device: PHONE, url: story("client-wallet-voucherstab--booked"), steps: [{ shot: "vouchers-8", expect: ["Booked", "in a booking"] }] },
 
   // Swap (in pilot): instead of a hub day, Ifeoma swaps Tech and Sun vouchers for Green Goods
-  // vouchers in the shared pool and books Green Goods' AI tool seat. Every screen is the exchange
-  // journey's story, walked by its own buttons (fixtures only: nothing signs or sends). Green Goods'
-  // acceptance has no story of its own, so the journey ends on her page with every step done.
+  // vouchers in the shared pool and books Green Goods' AI tool seat, which Green Goods accepts.
+  // Her screens are the exchange journey's story, walked by its own buttons (fixtures only:
+  // nothing signs or sends); Green Goods' Accept is the dialog's story, drawn over its own pool.
   {
     id: "swap", device: PHONE, url: story("client-commitments-voucher-journeys--exchange-then-redeem"),
     swaps: [...SEAT, ...READER, ...BASE],
@@ -544,8 +550,23 @@ const SESSIONS = [
       hideHarness,
       flushTop,
       { scrollTo: { text: "Booking steps", align: "start", top: 108 } },
-      { shot: "swap-7", expect: ["Green Goods accepted you"] },
+      { shot: "swap-8", expect: ["Green Goods accepted you"] },
     ],
+  },
+  // Green Goods' own pool is the protocol pool, the root garden's: the steward's Promises tab
+  // there, and the Accept dialog's story with its scrim drawn over it.
+  {
+    id: "swap-accept-under", device: DESKTOP, url: `${ADMIN}/garden/pool?gardenId=${GREEN_GOODS_GARDEN}&mockAuth=deployer`, app: true, ready: "Review Promises", swaps: PEOPLE,
+    steps: [
+      // The pilot's voucher reads are not on the hosted indexer, so the pool's voucher panel says it
+      // could not load them; the booking it would list is the dialog's.
+      hideCard(VOUCHERS_UNREAD, 120),
+      { shot: "swap-7-under", under: true, expect: ["Review Promises"] },
+    ],
+  },
+  {
+    id: "swap-accept", device: DESKTOP, url: story("admin-pool-voucheraskdialogs--accept-green-goods-access"),
+    steps: [{ shot: "swap-7", back: [{ role: "button", name: "Close" }, { role: "button", name: "Cancel" }], swaps: [...SEAT, ...SEAT_ACCEPT], over: { screen: "swap-7-under", text: "Accept Ifeoma?", minHeight: 300, scrim: '[data-component="AdminDialog"]' }, tap: { role: "button", name: "Accept Ifeoma" } }],
   },
 
   // Impact: Funmi finds Green Goods on the web and follows its record to the hub and the bootcamp.
