@@ -11,6 +11,7 @@ import {
   contributorFixture,
 } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { commitmentDialogControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { CommitmentVoucherOutcomes } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 
 import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
@@ -30,10 +31,12 @@ vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
 }));
 beforeEach(() => {
   releaseScope.settlementEnabled = true;
+  mocks.voucherOutcomes = null;
 });
 
 const mocks = vi.hoisted(() => ({
   controller: null as CommitmentDialogController | null,
+  voucherOutcomes: null as CommitmentVoucherOutcomes | null,
   navigate: vi.fn(),
   toastError: vi.fn(),
 }));
@@ -41,6 +44,17 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController", () => ({
   useCommitmentDialogController: () => mocks.controller!,
 }));
+
+// A promise's voucher outcomes come from the member's service read, proven where it is built.
+vi.mock(
+  "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController")
+    >()),
+    useCommitmentVoucherOutcomes: () => mocks.voucherOutcomes,
+  })
+);
 
 // This view proves the confirmation flow; ENS resolution has its own coverage.
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
@@ -337,6 +351,31 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(consoleError.mock.calls.flat().join(" ")).not.toMatch(
       /cannot be a descendant|validateDOMNesting|hydration/i
     );
+  });
+
+  it("shows a promise's voucher outcomes after its facts, and nothing for one that has none", () => {
+    const none = renderPanel();
+    expect(screen.queryByRole("region", { name: "Rewards" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Voucher Payment" })).not.toBeInTheDocument();
+    none.unmount();
+
+    mocks.voucherOutcomes = {
+      rewards: [],
+      workFulfilled: false,
+      payment: {
+        asset: { chainId: 100, token: TAKER, symbol: "TEST-B", decimals: 0 },
+        issuer: { name: "Tech and Sun", gender: "feminine" },
+        issuerAccount: TAKER,
+        units: 1n,
+        revision: 1n,
+      },
+    };
+    renderPanel();
+    const payment = screen.getByRole("region", { name: "Voucher Payment" });
+    const facts = screen.getByRole("region", { name: "Facts" });
+
+    expect(facts.compareDocumentPosition(payment) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(payment).toHaveTextContent("1 Tech and Sun voucher");
   });
 
   it("offers the accepted row's three separate acts and routes each through its own reason", async () => {

@@ -1720,6 +1720,7 @@
         "packages/shared/src/hooks/admin-ui/pool/useAddToGroup.ts",
         "packages/shared/src/hooks/admin-ui/pool/useCommitmentDialogController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useCommitmentSettlementController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useCommitmentVoucherOutcomes.ts",
         "packages/shared/src/hooks/admin-ui/pool/useEditReward.ts",
         "packages/shared/src/hooks/admin-ui/pool/useFinishCreating.ts",
         "packages/shared/src/hooks/admin-ui/pool/useHubConfirmQueueController.ts",

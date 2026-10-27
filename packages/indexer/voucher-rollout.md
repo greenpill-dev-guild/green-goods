@@ -5,7 +5,7 @@ leave production running unchanged.
 
 ## Candidate and current production
 
-- Candidate: `d7329744ffcff11cdfdaed7c65f01e5c56c06e82` on `develop`, with Envio `3.6.1`.
+- Candidate: `67dc82ee77572476a0a74320ccddefc88066c280` on `develop`, with Envio `3.6.1`.
 - Current production: `3228823`, deployed from `codex/indexer-rollout-3228823`.
 - Project: [greenpill-dev-guild / green-goods](https://envio.dev/app/greenpill-dev-guild/green-goods).
 - Indexer Directory: `packages/indexer`; Config File: `config.yaml`.
