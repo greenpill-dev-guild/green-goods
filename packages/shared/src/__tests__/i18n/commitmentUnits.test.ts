@@ -51,4 +51,38 @@ describe("formatCommitmentUnits", () => {
     expect(formatCommitmentUnits(intl, 1n, "sessões")).toBe("1 sessão");
     expect(formatCommitmentUnits(intl, 1n, "trees")).toBe("1 trees");
   });
+
+  it("reads a garden's own plural unit in the singular for one, only where the plural is certain", () => {
+    const messagesOf = { en, es, pt } as const;
+    const cases = [
+      // Tech and Sun's course request: "1 certificates" before.
+      ["en", "certificates", "1 certificate"],
+      ["en", "classes", "1 class"],
+      ["en", "workshops", "1 workshop"],
+      ["en", "lecciones", "1 lección"],
+      // "activities" could be "activity" or, like "movies", end in "ie": it stays as written.
+      ["en", "activities", "1 activities"],
+      // As do plurals whose singular the ending can't settle: bus, analysis, leaf.
+      ["en", "buses", "1 buses"],
+      ["en", "analyses", "1 analyses"],
+      ["en", "leaves", "1 leaves"],
+      // And units that may be singular already: "-as", "-os" and "-ns" prove no plural.
+      ["en", "canvas", "1 canvas"],
+      ["en", "lens", "1 lens"],
+      ["en", "photos", "1 photos"],
+      ["en", "climate courses", "1 climate courses"],
+      ["es", "certificados", "1 certificado"],
+      ["es", "árboles", "1 árboles"],
+      ["es", "certificates", "1 certificates"],
+      ["pt", "lições", "1 lição"],
+      ["pt", "aulas", "1 aula"],
+    ] as const;
+
+    for (const [locale, unit, expected] of cases) {
+      const intl = createIntl({ locale, messages: messagesOf[locale] });
+      expect(formatCommitmentUnits(intl, 1n, unit)).toBe(expected);
+    }
+    const english = createIntl({ locale: "en", messages: en });
+    expect(formatCommitmentUnits(english, 2n, "certificates")).toBe("2 certificates");
+  });
 });
