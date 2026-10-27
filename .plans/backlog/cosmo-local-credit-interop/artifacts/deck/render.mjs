@@ -4,7 +4,7 @@
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --check      checks only, no browser
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --sync       copy the Markdown notes into index.html, then check
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --only=3,7   render and probe only those slides
-// Source checks: 13 slides, the corner symbol on every slide, slide numbers in order (the title and
+// Source checks: 17 slides, the corner symbol on every slide, slide numbers in order (the title and
 // the closing slide carry none), the HTML notes equal the Markdown notes, data-time equals each
 // notes heading, the spoken timings total 8:00, and no em dashes. While rendering it also reports
 // text outside the 128px side margins or in the corner band, text or artwork over the headline,
@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const EXPECTED_SLIDES = 13;
+const EXPECTED_SLIDES = 17;
 const EXPECTED_SECONDS = 8 * 60;
 const here = dirname(fileURLToPath(import.meta.url));
 const htmlPath = join(here, "index.html");

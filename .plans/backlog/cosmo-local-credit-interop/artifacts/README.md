@@ -16,8 +16,10 @@ slide in the deck, and renamed, linked and re-fitted the brief; see
 brief's links, the architecture page's layout, the season's status and one Drive folder; see
 [links, layout and the season](#links-layout-and-the-season--26-october-2026); and **rebuilt on 27 October**
 after rehearsal feedback into 13 slides, why first, with one builder's journey; see
-[the rehearsal rebuild](#the-rehearsal-rebuild--27-october-2026). The pitch is scheduled for 28 October
-from 10 AM London; submission was due 27 October.
+[the rehearsal rebuild](#the-rehearsal-rebuild--27-october-2026); and **rebuilt again late on
+27 October** after Afo's review into 17 slides, the problem and solution first and his why woven
+through; see [the why-thread rebuild](#the-why-thread-rebuild--27-october-2026). The pitch is
+scheduled for 28 October from 10 AM London; submission was due 27 October.
 
 The [claim ledger](../research/claim-ledger.md), current addendum first, owns wording boundaries.
 The [event research](../research/hackathon-pitch-research-2026-10-23.md) explains the strategy and
@@ -27,8 +29,8 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 
 | Path | What it is |
 |---|---|
-| [`deck/index.html`](deck/index.html) | The 13-slide deck: one HTML file with inline diagrams, map and QR code, the Warm Earth tokens and the speaker notes in its `#speaker-notes` block |
-| [`deck/speaker-notes.md`](deck/speaker-notes.md) | Thirteen notes of 10 seconds to a minute each, 8:00 in total, plus cuts for a shorter slot, claims to keep straight and the Q&A business-model and endowment references |
+| [`deck/index.html`](deck/index.html) | The 17-slide deck: one HTML file with inline diagrams, map and QR code, the Warm Earth tokens and the speaker notes in its `#speaker-notes` block |
+| [`deck/speaker-notes.md`](deck/speaker-notes.md) | Seventeen notes of 10 seconds to a minute each, 8:00 in total, plus cuts for a shorter slot, claims to keep straight and the Q&A business-model and endowment references |
 | [`deck/render.mjs`](deck/render.mjs) | Checks the deck, syncs the notes, renders PNGs, a contact sheet and the PDF |
 | [`deck/assets/brand/`](deck/assets/brand/) | The official logo and the symbol, cropped to its shapes for the corner mark |
 | `deck/assets/screens/`, `deck/assets/photos/` | Local images, not committed; see [Photos and screens](#photos-and-screens) |
@@ -68,7 +70,7 @@ node .plans/backlog/cosmo-local-credit-interop/artifacts/submission/render.mjs
 
 The clickable demo has its own capture, build and check commands in `demo/README.md`.
 
-The deck script checks 13 slides, the corner symbol on each, the slide number on each except the
+The deck script checks 17 slides, the corner symbol on each, the slide number on each except the
 title and the closing slide, notes identical in the HTML and the Markdown, each slide's timing
 equal to its notes heading, 8:00 in total and no em dashes. While rendering it reports text
 outside the 128px side margins or in the corner band, text or artwork over a headline, artwork
@@ -89,14 +91,19 @@ into the `s-thanks` slide's QR `<svg>`:
 NODE_PATH=$(ls -d node_modules/.bun/qrcode@*/node_modules | head -1) node -e 'require("qrcode").toString("https://beta.greengoods.app", { type: "svg", errorCorrectionLevel: "M", margin: 0 }, (e, svg) => console.log(svg))'
 ```
 
+Since the 27 October why-thread rebuild the code renders at 406px, 14px a module instead of 9, so a
+phone can read it off a shared screen; the link is unchanged. Before the change a dependency-free
+check encoder in the build session reproduced the committed path module for module, so the
+committed code still encodes exactly that link.
+
 The roadmap slide's dot map is static SVG, drawn once from hand-simplified outlines in a Natural
 Earth projection with the installed `d3-geo`; no map data was downloaded. Its markers are plain
 circles in the same SVG, placed at the projected position of each place.
 
 ## Photos and screens
 
-The pitch uses four approved photographs: the Awka hub from outside (slide 3 and the brief's
-first page) and inside (slide 2), and the two Omo Yoruba photos (slide 9). They show identifiable people
+The pitch uses four approved photographs: the Awka hub from outside (slide 5 and the brief's
+first page) and inside (slide 4), and the two Omo Yoruba photos (slide 14). They show identifiable people
 and belong to Tech and Sun and Omo Yoruba, so they stay out of git. Authorized copies sit in the
 June 2026 Octant demo-day deck's folder; place them with:
 
@@ -104,19 +111,19 @@ June 2026 Octant demo-day deck's folder; place them with:
 cp /Users/afo/Code/greenpill/artifacts/octant-e12-deck/assets/photos/{awka-hub,tas-hub-build,odunde-masquerade,omo-yoruba-bridge}.jpg .plans/backlog/cosmo-local-credit-interop/artifacts/deck/assets/photos/
 ```
 
-Since 27 October slides 2, 3 and 4 also show five photos from Tech and Sun's public garden page,
+Since 27 October slides 4, 5, 7 and 9 also show five photos from Tech and Sun's public garden page,
 which Afo cleared for the demo on 26 October: copies of the demo's refreshed `record-NN.jpg` files
 under stable names (`hub-desks`, `hub-launch-day`, `hub-members-together`, `hub-bootcamp` and
 `hub-workshop`, from records 03, 08, 05, 06 and 07 of the 26 October list), also kept out of git.
 Never use record 15, a letter that names a person. Copy them again only from the same titles in
 `demo/assets/photos/record-photos.tsv`, since a new submission renumbers the list.
 
-Slide 4 names and quotes one member only with his agreement. His name, his lightly trimmed words
-and the matching notes line live in `deck/assets/private/names.js`, which is never committed; the
-deck reads it when present, and without it the slide keeps the role text written in
-`index.html` and hides the quote. `?public=1` previews that version.
+Since the why-thread rebuild late on 27 October the deck names and quotes nobody: slide 9 keeps
+the role text, and Afo says the builder's name and their conversation aloud, with the member's
+agreement. `deck/assets/private/` stays gitignored but is no longer read, and `?public=1` no
+longer does anything.
 
-Slide 7 and the brief's second page show two screens the deck owns, also kept out of git:
+Slide 10 and the brief's second page show two screens the deck owns, also kept out of git:
 `deck/assets/screens/promises-sheet.jpg`, the hub's Promises sheet in its open season, and
 `confirm-sheet.jpg`, the sheet that confirms a kept promise, with a member's course proof. They
 are copies of the clickable demo's 26 October capture (its `promise-3.jpg` and `promise-11.jpg`,
@@ -125,7 +132,11 @@ member names. The demo's later rebuild tells one chain and no longer captures th
 these copies; to replace them, capture the hub's Promises sheet and a course promise's confirm
 sheet from the app at 390 px wide and 2x, with both sheets' top edges at y 250. The notes'
 claims list tells the presenter what they show. The earlier Storybook pair and its capture
-script retired in the [critique pass](#the-critique-pass--26-october-2026).
+script retired in the [critique pass](#the-critique-pass--26-october-2026). Since the why-thread
+rebuild slide 12 shows a third screen, `deck/assets/screens/fund-sheet.jpg`: a copy of the demo's
+`funding-2` capture, the hub's page in the app with Donate and Endow, at the same 780 by 1688. The
+deck shows it from the top of the capture; if the capture needs a different crop, change
+`.phone.p3 img` in `index.html`.
 
 ## The revision · 25 October 2026
 
@@ -505,6 +516,42 @@ now says "before central costs" and lists the fee as "$3,000 setup, $7,000 suppo
 An earlier check of the Octant pilot vaults' underlying rate read about 1.4%, below this range, so
 every mention keeps "typically" and the risk line.
 
+## The why-thread rebuild · 27 October 2026
+
+Afo's review of the 13-slide deck, late on 27 October: the why must run through the whole deck,
+not sit at the front; commitment pooling stays key beside the endowment; the 2.7% share is said
+once; the order is the problem and solution first, then why he builds, the hub, the member and the
+community bonds; Ubuntu names the bond; his why reaches beyond bonds to the people he cares about
+in the regenerative ecosystem, a bridge of trust and transparency for the Nigerian diaspora and
+the coming generation in Nigeria and across the Global South; the builder's line goes into the
+present tense; and the QR code works for him but not for others. The copy for all 17 slides was
+aligned in chat, slide by slide, before any file changed, and his line-by-line edits were applied
+before the lock.
+
+- **Order:** title; the problem in four lines (funding one grant at a time, reporting by hand, the
+  record on someone else's server, nothing following the need to the outcomes); the solution
+  answering each line; why I build Green Goods (bonds and trust, with three reasons); who we build
+  for (Tech and Sun, across Nigeria); five roles, back from the 18-slide deck; Ubuntu, where the
+  confirmation rule now lives; the cycle; one builder, one community, as the needs a season starts
+  from; commitment pooling, as the hub's asks and offers; what promises open, the use cases back
+  from the 18-slide deck; funding four ways beside the hub's Fund sheet; four levels of capital;
+  the Nigerian diaspora with the bridge line; the business model, where the 2.7% share appears
+  once; needs and roadmap; and the closing with "I am because we are." over a QR code at 406px.
+- **Text:** about 700 words on the slides, four lines on the problem and the solution by Afo's
+  choice and at most three elsewhere; no eyebrows, tags or dashed lines.
+- **The problem's evidence:** Humentum, CEP, IIED and the Grant Givers' Movement, from search
+  summaries read on 27 October; the primary pages could not be opened from the build sandbox, and
+  the notes' claims list says so and tells the presenter to say "in one study".
+- **Privacy:** the deck names and quotes nobody from the career calls; the private names file is no
+  longer read, and the career-call facts on slide 9 are the four already cleared.
+- **Notes:** rewritten to 8:00 with the why thread's connecting lines; the claims list adds the
+  problem's evidence, outcomes, "across Nigeria", Ubuntu, the hub's needs, the shared fund and
+  Omo Yoruba's need for trust and transparency, and moves every slide number.
+- **Checks:** `render.mjs` expects 17 slides. Source checks, every render check and the PDF word
+  check pass with gray placeholder photos and screens after one caption fix; the render with the
+  real photos is owed on Afo's machine, as is the push gate, which needs the repository's
+  installed tools and could not run in the build sandbox.
+
 ## The rehearsal rebuild · 27 October 2026
 
 Feedback on Afo's rehearsal: too much text, the slides repeat each other, lean harder on why than
@@ -634,8 +681,8 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    the notes run; the five-minute cut stays as a fallback.
 7. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
    gift method (the Omo Yoruba donate page has no payment form).
-8. **Live counts.** No slide shows the live garden page any more, so nothing needs re-capturing
-   before presenting; the Storybook screens show demo data.
+8. **Live counts.** No slide shows live counts. Slide 12's Fund sheet and slide 10's two sheets are
+   the demo's captures of the hub's page in the app, so nothing needs re-capturing before presenting.
 9. **Recorded clip.** The stretch-goal clip of the rehearsed voucher flow was not made; the notes
    say where it would go. Afo plans a walkthrough video for the submission; the clickable demo
    is its path.
@@ -653,6 +700,24 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
     line is the ledger owner's to reconcile; the deck states no time of day.
 11. **Fonts offline.** Fraunces and Inter load from Google Fonts. Vendoring the OFL files would
     remove that dependency; it needs a download this task did not authorize. The PDFs embed both.
+
+## Task record · why-thread rebuild
+
+Task record: SF.Live deck, 17-slide rebuild to Afo's outline with the why woven through | Type:
+documentation/design | Outcome: copy aligned slide by slide in chat, then the deck, notes, render
+script and this README rebuilt and render-checked with placeholders; the real-photo render, the
+push gate, the Drive copies and the submission page's slide count pending on Afo's machine |
+Agent/model: Claude Code | Coverage: deck, notes, render script and this README, from `02cd30241`
+
+| Phase | Start → end (UTC, 27 October 2026) | Result / evidence |
+|---|---|---|
+| investigate | 20:06 → unknown | The 13-slide deck, notes, claims, README and the 18-slide visuals read; Ubuntu, Igwebuike and esusu checked against sources; the beta and www links unreachable from the sandbox |
+| align | unknown → unknown | Three rounds of copy forks, one full read-through, the problem sent back for deeper research, then Afo's line-by-line edits applied and locked |
+| implement | unknown → 23:46 | 17 sections spliced into the deck, notes rewritten to 8:00, render script set to 17, placeholder screens and photos made |
+| verify | 23:46 → unknown | `render.mjs --sync` and the full render exit 0 after one caption fix; the push gate could not run without `node_modules` |
+
+Human corrections: 1 (the problem framing was sent back for deeper research and a higher-level
+framing before the lock).
 
 ## Task record · rehearsal rebuild
 
