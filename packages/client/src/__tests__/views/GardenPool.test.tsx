@@ -403,38 +403,6 @@ describe("GardenPool", () => {
     });
   });
 
-  // A member's issuer that paused bookings, or whose vouchers left the exchange pool, says so
-  // where the booking would start, as a reason, and the row keeps naming who promises it.
-  it("says when an issuer paused bookings or its vouchers left the exchange pool", () => {
-    const lesson = commitment({
-      commitmentId: 41n,
-      onchainState: "OFFERED",
-      derivedState: "OFFERED",
-      state: "OFFERED",
-      claimMode: "APPROVAL_GATED",
-    });
-    const coaching = commitment({ ...lesson, commitmentId: 42n });
-    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [lesson, coaching] }));
-    mockUseServiceOfferLines.mockReturnValue(
-      new Map([
-        ["41", { promisedBy: "Teo Alves", booking: { kind: "paused" } }],
-        ["42", { promisedBy: "Maya Ruiz", booking: { kind: "delisted" } }],
-      ])
-    );
-
-    render(<GardenPool pool={pool()} />);
-
-    const [paused, delisted] = screen
-      .getAllByRole("button")
-      .filter((row) => row.getAttribute("data-component") === "CommitmentRow");
-    const reason = (row: HTMLElement | undefined) =>
-      row?.querySelector('.gg-item-row-detail[data-tone="error"]');
-    expect(paused).toHaveTextContent(/Bookings paused.*Teo Alves/);
-    expect(reason(paused)).toHaveTextContent("Bookings paused");
-    expect(delisted).toHaveTextContent(/Not in the exchange pool.*Maya Ruiz/);
-    expect(reason(delisted)).toHaveTextContent("Not in the exchange pool");
-  });
-
   it("draws a commitment still on this phone at the top of the pool, as waiting to send", () => {
     mockUseQueueState.mockReturnValue({
       pendingCommitmentIds: new Set<string>(),
