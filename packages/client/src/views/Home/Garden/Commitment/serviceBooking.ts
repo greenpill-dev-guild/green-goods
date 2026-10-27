@@ -51,6 +51,7 @@ function serviceProfile(unitLabel: string | null | undefined): ServiceProfile {
   const unit = unitLabel?.trim().toLocaleLowerCase() ?? "";
   if (unit.includes("hub")) return "hubDay";
   if (["day", "days", "día", "días", "dia", "dias"].includes(unit)) return "access";
+  if (["minute", "minutes", "minuto", "minutos"].includes(unit)) return "minutes";
   return "generic";
 }
 
@@ -244,6 +245,7 @@ export function serviceBookingView(
   // A booking keeps the terms it was set up on, even after the offer changes them.
   const revision = setup?.authorization.termsRevision ?? offer?.revision ?? null;
   const profile = serviceProfile(offer?.unitLabel);
+  const member = input.issuer?.kind === "individual";
   const issuer = input.issuer?.name ?? asset?.symbol ?? "";
   const gender = input.issuer?.gender ?? "other";
   const t = (id: string, values: Record<string, string | number> = {}) =>
@@ -285,6 +287,7 @@ export function serviceBookingView(
     input,
     stage,
     profile,
+    member,
     setup,
     t,
     count,
@@ -368,10 +371,18 @@ export function serviceBookingView(
       stage === "notEnough"
         ? {
             title: t("of.r.shortV.t", { have: count(held), unit: unit(held) }),
-            body: t(profile === "access" ? "of.r.shortV.bc" : "of.r.shortV.bs", { n }),
+            body: t(
+              profile === "access"
+                ? "of.r.shortV.bc"
+                : profile === "hubDay"
+                  ? "of.r.shortV.bs"
+                  : "of.r.shortV.bm",
+              { n }
+            ),
             act: act("exchange"),
           }
         : null,
+    issuerPaused: stage === "open" && input.issuer?.standing.bookings === "paused",
     // History keeps what happened; the step under way shows in the booking's steps.
     events: phases
       .flatMap((p) => p.steps)
@@ -401,6 +412,7 @@ export function serviceBookingView(
       accessDays,
       deadline: deadline !== null ? date(deadline) : null,
       sigs: ctx.sigs,
+      member,
     },
   };
 }

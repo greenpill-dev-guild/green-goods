@@ -154,7 +154,11 @@ export function ServiceRedeemSheet({
               label={t("pay.f.deadline")}
               value={detailed(
                 agreeDeadline,
-                w.one ? t("pay.v.deadline1S") : t("pay.v.deadlineS", { n: w.n })
+                w.member
+                  ? t("pay.m.deadlineS")
+                  : w.one
+                    ? t("pay.v.deadline1S")
+                    : t("pay.v.deadlineS", { n: w.n })
               )}
             />
           ) : null}
@@ -165,7 +169,9 @@ export function ServiceRedeemSheet({
                 ? t("pay.c.after", { of: w.accessDays })
                 : view.profile === "hubDay"
                   ? t("pay.s.after")
-                  : t("rd.f.backS"),
+                  : view.profile === "minutes"
+                    ? t("pay.m.after", { of: Number(w.serviceUnits) })
+                    : t("rd.f.backS"),
               t("pay.v.afterS")
             )}
           />
@@ -186,10 +192,15 @@ export function ServiceRedeemSheet({
     };
   } else if (at === 1) {
     stepTitle = t("pay.step.wait");
+    // A member approves from their own account; a garden, by its Safe's signatures.
     body = notice(
       "info",
       t("pay.v.wait.t"),
-      w.sigs ? t("pay.v.wait.b", { sigs: w.sigs }) : t("rd.n.approval.t")
+      w.member
+        ? t("pay.v.waitM.b")
+        : w.sigs
+          ? t("pay.v.wait.b", { sigs: w.sigs })
+          : t("rd.n.approval.t")
     );
     actions = { primary: { label: t("c.done"), onClick: () => onOpenChange(false) } };
     passkey = false;
@@ -244,8 +255,12 @@ export function ServiceRedeemSheet({
           };
     passkey = outcome !== "notEnough";
   } else {
-    stepTitle = t("pay.step.accept");
-    body = notice("success", t("pay.n.deposited.t"), t("pay.n.deposited.b"));
+    stepTitle = t(w.member ? "pay.step.acceptM" : "pay.step.accept");
+    body = notice(
+      "success",
+      t("pay.n.deposited.t"),
+      t(w.member ? "pay.n.depositedM.b" : "pay.n.deposited.b")
+    );
     actions = { primary: { label: t("pay.cta.viewB"), onClick: () => onOpenChange(false) } };
     passkey = false;
   }
