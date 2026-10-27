@@ -105,6 +105,14 @@ export const commitmentPoolingKeys = {
       routeId,
       assetId,
     ] as const,
+  /** Member issuer drafts, every member's for the stewards' card or one member's own. */
+  issuerDrafts: (member?: Address | null) =>
+    member
+      ? ([...commitmentPoolingKeys.all(100), "issuer-drafts", normalizeAddress(member)] as const)
+      : ([...commitmentPoolingKeys.all(100), "issuer-drafts"] as const),
+  /** Each issuer token's admission and holding limit in the shared pool. */
+  issuerListings: (routeIds: readonly string[]) =>
+    [...commitmentPoolingKeys.all(100), "issuer-listings", [...routeIds].sort().join(",")] as const,
   /**
    * Chain-free on purpose: content at a CID is the same bytes everywhere, so a
    * title resolved on one chain is the same title on another.

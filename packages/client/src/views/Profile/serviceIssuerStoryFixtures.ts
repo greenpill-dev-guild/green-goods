@@ -100,6 +100,7 @@ export function issuerStorySnapshot(): Extract<ServiceIssuerSnapshot, { evidence
     reserveEnabled: true,
     configuredReserveAuthority: ISSUER_STORY_ADDRESS,
     registeredSourceAuthority: ISSUER_STORY_ADDRESS,
+    pool: { admitted: true, limit: 5_000_000n, holding: 1_000_000n },
     pending: null,
     bookings: {
       status: "observed",

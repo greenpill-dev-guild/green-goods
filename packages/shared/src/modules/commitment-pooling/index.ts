@@ -36,8 +36,23 @@ export {
 } from "./service-access-wallet";
 export type * from "./service-access-wallet-types";
 export type * from "./service-issuer-types";
+export type {
+  ServiceIssuerDraft,
+  ServiceIssuerDraftRecord,
+  ServiceIssuerSignedApproval,
+  ServiceIssuerTerms,
+  ServiceIssuerTermsSetting,
+} from "./service-issuer-approval";
+export {
+  serviceIssuerApprovalProvenance,
+  serviceIssuerDraftApproval,
+  serviceIssuerTermsDigest,
+} from "./service-issuer-approval";
 export { SERVICE_ISSUER_ROUTES } from "./service-issuer-metadata";
-export { serviceIssuerGovernanceDrafts } from "./service-issuer-governance";
+export {
+  serviceIssuerDelistingDraft,
+  serviceIssuerGovernanceDrafts,
+} from "./service-issuer-governance";
 export * from "./settlement";
 export * from "./settlement-workflow";
 export * from "./steward-selectors";
