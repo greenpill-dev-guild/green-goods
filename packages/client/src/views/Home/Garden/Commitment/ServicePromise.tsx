@@ -268,7 +268,7 @@ export function ServicePromise({
               title={booking.door.title}
               line={booking.door.body}
               door={
-                snapshot && exchangeAvailable(snapshot)
+                booking.door.act && snapshot && exchangeAvailable(snapshot)
                   ? {
                       label: booking.door.act.label,
                       icon: <RiExchangeLine className="h-4 w-4" aria-hidden="true" />,
@@ -328,7 +328,11 @@ export function ServicePromise({
             reviewed,
             outcome,
             held: booking.setup?.destination?.holderBalance ?? held,
-            onAgree: () => void act(agreeStep).then((end) => setOutcome(notice(end))),
+            // The issuer's pause stops a new booking at the write, whenever it was read.
+            onAgree: () => {
+              if (booking.issuerPaused) return;
+              void act(agreeStep).then((end) => setOutcome(notice(end)));
+            },
             onDeposit: () => void act(depositStep).then((end) => setOutcome(notice(end))),
             onCheck: () => {
               setOutcome(null);
@@ -344,9 +348,7 @@ export function ServicePromise({
           }}
           onReport={report}
           exchange={{
-            quote: wallet
-              ? exchangeQuoteFromPilot(snapshot, wallet.issuers, wallet.holdings)
-              : null,
+            quote: wallet ? exchangeQuoteFromPilot(snapshot, wallet) : null,
             reviewing: reviewingExchange,
             onOpen: openExchange,
             onReview: () => setReviewingExchange(true),

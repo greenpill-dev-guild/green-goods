@@ -2,29 +2,28 @@ import type { BookingContext, ServiceFact } from "./serviceBookingTypes";
 
 /**
  * The one status message, from the reader's seat, with the title where a value has no read. A
- * member's booking takes one voucher, one published unit of their service, so its member words
- * speak of one voucher.
+ * member's words count the vouchers the booking takes, one or more.
  */
 export function bookingSentence(ctx: BookingContext): string {
   const { t, stage, profile, member, values, one, refund, units, date } = ctx;
   const { coreState, schedule, problem } = ctx.input;
   const final = ctx.setup?.destination?.finalAllocation ?? null;
+  const counted = { ...values, count: one ? 1 : 2 };
   switch (stage) {
     case "open":
     case "notEnough":
       return t("pp.band.openV");
     case "waitingApproval":
-      if (member) return t("rd.n.approvalM.b");
+      if (member) return t("rd.n.approvalM.b", counted);
       return ctx.sigs ? t("rd.band.approval", { sigs: ctx.sigs }) : t("rd.n.approval.t");
     case "readyToDeposit":
-      return t(member ? "rd.n.depositM.b" : one ? "rd.n.deposit1.b" : "rd.n.deposit.b", values);
+      if (member) return t("rd.n.depositM.b", counted);
+      return t(one ? "rd.n.deposit1.b" : "rd.n.deposit.b", values);
     case "confirmingDeposit":
-      return t(member ? "rd.n.confirmingM.b" : "rd.n.confirming.b");
+      return member ? t("rd.n.confirmingM.b", counted) : t("rd.n.confirming.b");
     case "waitingAcceptance":
-      return t(
-        member ? "rd.n.acceptanceM.b" : one ? "rd.n.acceptance1.b" : "rd.n.acceptance.b",
-        values
-      );
+      if (member) return t("rd.n.acceptanceM.b", counted);
+      return t(one ? "rd.n.acceptance1.b" : "rd.n.acceptance.b", values);
     case "starting":
       return t(member ? "rd.n.startingM.b" : "rd.n.starting.b");
     case "inProgress":
@@ -121,7 +120,7 @@ export function bookingFacts(ctx: BookingContext): ServiceFact[] {
       fact(
         "back",
         t("of.q.back"),
-        t(member ? "of.m.back" : "of.v.back"),
+        member ? t("of.m.back", { count: ctx.one ? 1 : 2 }) : t("of.v.back"),
         profile === "hubDay"
           ? t("of.s.backS")
           : profile === "access"
@@ -135,7 +134,14 @@ export function bookingFacts(ctx: BookingContext): ServiceFact[] {
   const [amount, where] = vouchersNow(ctx);
   const facts = [fact("vouchers", t("rd.f.vouchers"), `${count(amount)} ${where}`, null)];
   if (ctx.deadline !== null)
-    facts.push(fact("deadline", t("rd.f.deadline"), ctx.date(ctx.deadline), t("rd.f.deadlineS")));
+    facts.push(
+      fact(
+        "deadline",
+        t("rd.f.deadline"),
+        ctx.date(ctx.deadline),
+        t(member ? "rd.f.deadlineSM" : "rd.f.deadlineS")
+      )
+    );
   facts.push(
     fact(
       "back",

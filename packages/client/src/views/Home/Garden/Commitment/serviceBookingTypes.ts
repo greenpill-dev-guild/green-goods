@@ -131,11 +131,14 @@ export interface ServiceBookingView {
   delivery: { label: string; done: number; of: number } | { none: string } | null;
   primary: ServiceAct | null;
   secondary: ServiceAct | null;
-  /** One sentence for a reader who can't act here, and its one door (JoinToAct's anatomy). */
-  door: { title: string; body: string; act: ServiceAct } | null;
   /**
-   * The issuer paused new bookings: an open offer keeps its act, disabled, with the reason above
-   * it. A booking already under way goes ahead.
+   * One sentence for a reader who can't act here, and its one door (JoinToAct's anatomy); a
+   * paused issuer's offer has no door, since no booking can start.
+   */
+  door: { title: string; body: string; act: ServiceAct | null } | null;
+  /**
+   * The issuer paused new bookings: whatever the reader holds, no booking can start on the offer,
+   * so its act stays disabled with the reason beside it. A booking already under way goes ahead.
    */
   issuerPaused: boolean;
   /** Booking events that happened, for History, newest first. */
