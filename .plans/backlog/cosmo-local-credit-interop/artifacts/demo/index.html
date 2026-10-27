@@ -5,15 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Green Goods Clickable Demo</title>
 <meta name="claude:viewport-fit-sides" content="cover" />
-<meta name="description" content="One season at Tech and Sun's hub in Awka, Nigeria, told chapter by chapter for SustainableFinance.Live 2026, from the hub's need to a supporter's funding. Real app screens with demo data. Chapters, captions, steps, sources and hotspots are in the #flows block; capture.mjs captures the screens and build.mjs inlines them." />
+<meta name="description" content="One promise at Tech and Sun's hub in Awka, Nigeria, in twelve screens for SustainableFinance.Live 2026: a member keeps it, a steward approves it, and the vouchers it pays are swapped in a shared pool for a service (in pilot). Every step of the season follows as an appendix. Real app screens with demo data. The story, chapters, captions and hotspots are in the #flows block; capture.mjs captures the screens and build.mjs inlines them." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" />
 <style>
-  /* A landing of the season's chapters in two columns, then one app screen at a time in a device
-     frame, with the chapter's steps beside it and the whole season along the top. The deck's Warm
-     Earth tokens, Fraunces headlines with the green italic accent, Inter for everything else, solid
-     lines only. The screens stay as captured in both themes. */
+  /* An intro, then one app screen at a time on a fixed stage: the bar, the device, who you are,
+     the caption and the controls each keep one place and one height, so nothing moves from screen
+     to screen. The 12-screen story comes first; every step of the season follows as an appendix.
+     The deck's Warm Earth tokens, Fraunces headlines with the green italic accent, Inter for
+     everything else, solid lines only. The screens stay as captured in both themes. */
   :root {
     --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
     --rule: #E7E1D9; --rule-2: #D9D1C5;
@@ -22,6 +23,7 @@
     --bezel: #1C1917; --bezel-edge: #3A3531; --screen: #FFFFFF; --shadow: rgba(41, 37, 36, 0.28);
     --pilot-bg: #FBF0DA; --pilot-ink: #7A4D0B; --pilot-edge: #EBD3A0;
     --track: #D9D1C5; --knob: #FFFFFF;
+    --seg: #E2DBD1; --seg-done: #93C3A5; --seg-now: #1A7544;
     /* The back regions sit on the captured screens, which are light in both themes. */
     --back-ring: rgba(28, 25, 23, 0.7); --back-fill: rgba(28, 25, 23, 0.07);
     --serif: "Fraunces", Georgia, "Times New Roman", serif;
@@ -37,6 +39,7 @@
       --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
       --pilot-bg: #3A2D16; --pilot-ink: #F3CD82; --pilot-edge: #5C4521;
       --track: #46403A; --knob: #F5F1EA;
+      --seg: #3A3530; --seg-done: #2F6B49; --seg-now: #6BD39A;
       color-scheme: dark;
     }
   }
@@ -48,6 +51,7 @@
     --bezel: #0D0B0A; --bezel-edge: #2E2925; --screen: #FFFFFF; --shadow: rgba(0, 0, 0, 0.6);
     --pilot-bg: #3A2D16; --pilot-ink: #F3CD82; --pilot-edge: #5C4521;
     --track: #46403A; --knob: #F5F1EA;
+    --seg: #3A3530; --seg-done: #2F6B49; --seg-now: #6BD39A;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -58,17 +62,27 @@
   :focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
   .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-  .view { min-height: 100%; display: flex; flex-direction: column; padding-left: var(--gutter-l); padding-right: var(--gutter-r); padding-block: 20px 24px; }
+  .view { min-height: 100%; display: flex; flex-direction: column; padding-left: var(--gutter-l); padding-right: var(--gutter-r); padding-block: 20px 28px; }
+  .page { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(24px, 4vh, 44px); padding-inline: clamp(0px, 1.5vw, 16px); }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 52px; padding-top: clamp(4px, 1.2vh, 14px); }
+  .mark { display: block; flex: none; width: 56px; height: auto; }
+  h1, h2 { margin: 0; font-family: var(--serif); font-weight: 400; letter-spacing: -0.02em; text-wrap: balance; }
+  h1 { font-size: clamp(40px, 3.2vw + 16px, 72px); line-height: 1.04; }
+  h2 { font-size: clamp(34px, 2.4vw + 16px, 58px); line-height: 1.06; }
+  em.accent { font-style: italic; color: var(--accent); }
+  .lede { margin: 0; max-width: 50ch; font: 400 clamp(19px, 0.6vw + 14px, 23px)/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
+  .facts { margin: 0; font: 500 16px/1.45 var(--sans); color: var(--stone); text-wrap: pretty; }
 
-  /* Buttons shared by both views. */
+  /* Buttons */
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 24px; border-radius: 999px; border: 1px solid var(--rule-2); background: var(--paper); color: var(--ink); font: 600 17px/1 var(--sans); cursor: pointer; white-space: nowrap; }
   .btn:hover:not(:disabled) { border-color: var(--stone); }
   .btn:disabled { opacity: 0.4; cursor: default; }
   .btn.primary { background: var(--action); border-color: var(--action); color: var(--on-action); }
   .btn.primary:hover { background: var(--action-hover); border-color: var(--action-hover); }
   .btn svg { width: 18px; height: 18px; flex: none; }
-  .all { min-height: 44px; padding: 0 18px 0 14px; font-size: 16px; }
-  .num { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--action); color: var(--on-action); font: 600 15px/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .btn.quiet { min-height: 44px; padding: 0 18px 0 14px; font-size: 16px; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; }
+  .pilot { display: inline-flex; align-items: center; flex: none; min-height: 26px; padding: 0 10px; border: 1px solid var(--pilot-edge); border-radius: 999px; background: var(--pilot-bg); color: var(--pilot-ink); font: 600 13px/1 var(--sans); letter-spacing: 0.02em; white-space: nowrap; }
 
   /* The light and dark switch: the page follows the system until the viewer picks. */
   .theme-switch { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 10px; border: 1px solid var(--rule-2); border-radius: 999px; background: var(--paper); color: var(--ink); font: 500 15px/1 var(--sans); cursor: pointer; white-space: nowrap; }
@@ -78,33 +92,8 @@
   .theme-switch[aria-checked="true"] .track { background: var(--action); }
   .theme-switch[aria-checked="true"] .knob { transform: translateX(16px); }
 
-  /* Landing */
-  .landing-inner { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(28px, 4vh, 48px); padding-inline: clamp(6px, 2vw, 16px); }
-  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 52px; padding-top: clamp(4px, 1.2vh, 14px); }
-  .mark { display: block; flex: none; width: 56px; height: auto; }
-  .landing-head { display: grid; gap: 18px; max-width: 760px; }
-  h1 { margin: 0; font: 400 clamp(40px, 3.2vw + 16px, 72px)/1.04 var(--serif); letter-spacing: -0.02em; text-wrap: balance; }
-  em.accent { font-style: italic; color: var(--accent); }
-  .lede { margin: 0; max-width: 46ch; font: 400 clamp(19px, 0.6vw + 14px, 23px)/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
-  .tiles { list-style: none; margin: 0; padding: 0 0 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .tiles > li { display: flex; min-width: 0; }
-  .tile { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(104px, 15vw, 200px); padding: 0; border: 1px solid var(--rule); border-radius: 20px; background: var(--paper); text-align: left; cursor: pointer; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-  .tile:hover { border-color: var(--rule-2); box-shadow: 0 18px 36px -24px var(--shadow); }
-  .tile-text { min-width: 0; display: grid; align-content: start; gap: 8px; padding: 20px 20px 22px; }
-  .tile-top { display: flex; align-items: center; gap: 12px; }
-  .name { font: 400 clamp(26px, 0.8vw + 18px, 32px)/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
-  .line { font: 400 17px/1.4 var(--sans); color: var(--sub); text-wrap: balance; }
-  .tile-who { font: 500 15px/1.35 var(--sans); color: var(--stone); }
-  .tile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 2px; font: 500 14px/1.3 var(--sans); color: var(--stone); }
-  .start-here { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; background: var(--tint); color: var(--accent); font: 600 13px/1 var(--sans); }
-  .thumb { min-width: 0; display: flex; align-items: center; justify-content: center; padding: 14px; background: var(--linen); border-left: 1px solid var(--rule); overflow: hidden; }
-  .thumb.phone { align-items: flex-start; padding-bottom: 0; }
-  .thumb .device { --bezel-w: 5px; box-shadow: 0 12px 24px -16px var(--shadow); }
-  .thumb .device.phone { width: clamp(64px, 6.5vw, 92px); }
-  .thumb .device.desktop { width: 100%; }
-
   /* Devices: the capture fills the screen; the bezel is the only frame. */
-  .device { --bezel-w: 10px; position: relative; display: block; padding: var(--bezel-w); background: var(--bezel); border: 1px solid var(--bezel-edge); margin: 0; }
+  .device { --bezel-w: 10px; position: relative; display: block; max-width: 100%; padding: var(--bezel-w); background: var(--bezel); border: 1px solid var(--bezel-edge); margin: 0; }
   .device.phone { --ratio: 0.4621; border-radius: calc(var(--bezel-w) * 4.6); }
   .device.desktop { --ratio: 1.6; border-radius: calc(var(--bezel-w) * 1.8); }
   .screen { position: relative; display: block; overflow: hidden; background: var(--screen); }
@@ -112,45 +101,47 @@
   .desktop .screen { aspect-ratio: 1440 / 900; border-radius: calc(var(--bezel-w) * 0.8); }
   .screen img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
 
-  /* Chapter view: a definite full-height grid, so the stage's container query units resolve. */
-  #flow { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); row-gap: 14px; }
-  .flowbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "all strip theme"; align-items: center; column-gap: 16px; row-gap: 8px; min-height: 52px; }
-  .flowbar .all { grid-area: all; justify-self: start; }
-  .flowbar .theme-switch { grid-area: theme; justify-self: end; }
-  /* The mask only fades the chips at the edges when the strip is wider than its room. */
-  .strip { grid-area: strip; position: relative; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; padding-block: 3px; -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent); }
-  .strip ol { list-style: none; margin: 0 auto; padding: 0 3px; display: flex; gap: 6px; width: max-content; }
-  .chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px 0 6px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); color: var(--sub); font: 500 15px/1 var(--sans); cursor: pointer; white-space: nowrap; }
-  .chip:hover { border-color: var(--rule-2); color: var(--ink); }
-  .chip-num, .stepnum { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--rule-2); font: 600 13px/1 var(--sans); font-variant-numeric: tabular-nums; }
-  .chip.done .chip-num, .stepbtn.done .stepnum { background: var(--rule-2); border-color: var(--rule-2); color: var(--ink-2); }
-  .chip[aria-current="true"] { background: var(--action); border-color: var(--action); color: var(--on-action); }
-  .chip[aria-current="true"] .chip-num { background: var(--on-action); border-color: var(--on-action); color: var(--action); }
+  /* Intro */
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: center; }
+  .hero-text { display: grid; gap: 22px; min-width: 0; }
+  .hero-shot { display: none; margin: 0; justify-items: center; gap: 14px; }
+  .hero-shot .device { width: clamp(200px, 15vw, 236px); box-shadow: 0 30px 60px -34px var(--shadow); }
+  .hero-shot figcaption { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font: 500 15px/1.35 var(--sans); color: var(--stone); text-align: center; }
+  .outline { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--rule); }
+  .outline > li { display: flex; min-width: 0; border-bottom: 1px solid var(--rule); }
+  .chapter { flex: 1; min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 14px; row-gap: 4px; padding: 14px 4px 16px 0; border: 0; background: none; color: var(--ink); text-align: left; cursor: pointer; }
+  .chapter:hover .cname { color: var(--accent); }
+  .num { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--action); color: var(--on-action); font: 600 15px/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .chapter .num { grid-row: span 3; }
+  .cname { font: 400 clamp(23px, 0.6vw + 17px, 27px)/1.15 var(--serif); letter-spacing: -0.01em; }
+  .cline { font: 400 16px/1.4 var(--sans); color: var(--sub); text-wrap: pretty; }
+  .cmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; font: 500 14px/1.3 var(--sans); color: var(--stone); font-variant-numeric: tabular-nums; }
 
-  .flow-main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
-  .panel { min-width: 0; min-height: 0; display: grid; align-content: start; gap: 18px; }
-  .panel-head { display: grid; grid-template-areas: "name" "meta" "row"; gap: 10px; }
-  .flow-name { grid-area: name; display: flex; align-items: center; gap: 10px; margin: 0; font: 400 clamp(24px, 0.8vw + 16px, 30px)/1.1 var(--serif); letter-spacing: -0.012em; }
-  .flow-name .num { width: 28px; height: 28px; font-size: 14px; }
-  .meta { grid-area: meta; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-  .where { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border-radius: 6px; background: var(--tint); color: var(--accent); font: 600 12px/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
-  .who { font: 500 16px/1.35 var(--sans); color: var(--sub); }
-  .panel-row { grid-area: row; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .count { margin: 0; font: 600 15px/1 var(--sans); color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .panel-toggle { display: none; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px 0 14px; border: 1px solid var(--rule-2); border-radius: 999px; background: var(--paper); color: var(--ink); font: 600 14px/1 var(--sans); cursor: pointer; }
-  .panel-toggle svg { width: 16px; height: 16px; transition: transform 0.15s ease; }
-  .panel-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-  .panel-body { display: grid; gap: 14px; }
-  .intro { margin: 0; max-width: 40ch; font: 400 17px/1.5 var(--sans); color: var(--ink-2); text-wrap: pretty; }
-  .steplist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-  .stepbtn { width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 10px 6px 6px; border: 0; border-radius: 12px; background: transparent; color: var(--sub); font: 500 15px/1.3 var(--sans); text-align: left; cursor: pointer; }
-  .stepbtn:hover { background: var(--paper); color: var(--ink); }
-  .stepbtn[aria-current="step"] { background: var(--tint); color: var(--ink); font-weight: 600; }
-  .stepbtn[aria-current="step"] .stepnum { background: var(--action); border-color: var(--action); color: var(--on-action); }
+  /* Player: a definite full-height grid, so the stage's container query units resolve and every
+     row but the stage keeps a fixed height whatever the caption or chips say. */
+  #player { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto; row-gap: 12px; padding-block: 14px 18px; }
+  .bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "home strip theme"; align-items: center; column-gap: clamp(16px, 2.4vw, 40px); min-height: 52px; }
+  .bar .home { grid-area: home; justify-self: start; }
+  .bar .theme-switch { grid-area: theme; justify-self: end; }
+  .now { grid-area: now; display: none; margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font: 600 15px/1.2 var(--sans); color: var(--ink); }
+  .strip { grid-area: strip; min-width: 0; width: 100%; max-width: 1000px; justify-self: center; }
+  .strip ol { list-style: none; margin: 0; padding: 0; display: flex; gap: clamp(10px, 1.4vw, 22px); }
+  .group { flex: var(--n) 1 0; min-width: 0; display: grid; gap: 2px; }
+  .glabel { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 2px 0; border: 0; background: none; color: var(--stone); font: 500 14px/1.2 var(--sans); text-align: left; cursor: pointer; white-space: nowrap; }
+  .glabel:hover { color: var(--ink); }
+  .gnum { flex: none; font-variant-numeric: tabular-nums; }
+  .gname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .group.current .glabel { color: var(--ink); font-weight: 600; }
+  .segs { display: flex; gap: 3px; }
+  .seg { position: relative; flex: 1 1 0; min-width: 0; height: 16px; padding: 0; border: 0; background: none; cursor: pointer; }
+  .seg::before { content: ""; position: absolute; inset: 6px 0; border-radius: 2px; background: var(--seg); }
+  .seg.done::before { background: var(--seg-done); }
+  .seg.now::before { inset: 5px 0; background: var(--seg-now); }
 
-  .stagewrap { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto auto; }
-  .stage { min-height: 0; container-type: size; display: grid; place-items: center; padding-block: 6px 12px; }
-  .stage .device { width: min(100cqw, calc((100cqh - 2 * var(--bezel-w)) * var(--ratio) + 2 * var(--bezel-w))); box-shadow: 0 30px 60px -30px var(--shadow); }
+  .stage { min-height: 0; container-type: size; display: grid; place-items: center; }
+  /* The widest device the stage holds: a height-bound one is exactly the stage's height, bezel and
+     1px edge included, so phone and desktop screens share a top and a bottom. */
+  .stage .device { width: min(100cqw, calc((100cqh - 2 * var(--bezel-w) - 2px) * var(--ratio) + 2 * var(--bezel-w) + 2px)); box-shadow: 0 30px 60px -30px var(--shadow); }
   .stage .device.desktop { --bezel-w: 12px; }
   .hotspot { position: absolute; z-index: 2; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--r, 18px); box-shadow: 0 0 0 3px var(--ring), 0 0 0 10px var(--ring-soft); }
   .hotspot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; animation: ping 1.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite; }
@@ -162,55 +153,87 @@
   .backspot { position: absolute; pointer-events: auto; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--r, 14px); }
   .backspot:hover { background: var(--back-fill); box-shadow: 0 0 0 2px var(--back-ring); }
   .backspot:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; box-shadow: 0 0 0 2px var(--back-ring); }
-  .caption-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; margin: 2px auto 0; max-width: 46ch; min-height: 1.3em; }
-  .caption { margin: 0; text-align: center; font: 500 clamp(20px, 1vw + 12px, 28px)/1.3 var(--sans); color: var(--ink); text-wrap: balance; }
-  .pilot { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border: 1px solid var(--pilot-edge); border-radius: 999px; background: var(--pilot-bg); color: var(--pilot-ink); font: 600 13px/1 var(--sans); letter-spacing: 0.02em; white-space: nowrap; }
-  .hint { margin: 6px 0 0; text-align: center; font: 400 15px/1.4 var(--sans); color: var(--stone); }
-  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 14px; }
+
+  .meta { margin: 0; height: 28px; display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 0; overflow: hidden; }
+  .where { display: inline-flex; align-items: center; flex: none; min-height: 24px; padding: 0 8px; border-radius: 6px; background: var(--tint); color: var(--accent); font: 600 12px/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
+  .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 16px/1.3 var(--sans); color: var(--sub); }
+  .caption { --cap: clamp(20px, 0.8vw + 13px, 26px); margin: 0 auto; width: 100%; max-width: 44ch; height: calc(2 * 1.25 * var(--cap)); font: 500 var(--cap)/1.25 var(--sans); text-align: center; text-wrap: balance; color: var(--ink); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: clip; }
+  .controls { width: 100%; max-width: 560px; height: 52px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 20px; }
+  .controls .btn { min-width: 136px; }
+  .controls .back { justify-self: end; }
+  .controls .next { justify-self: start; }
+  /* Wide enough for "12 of 12", so a second digit never moves Back and Next. */
+  .counter { margin: 0; width: 4.75em; text-align: center; font: 600 16px/1 var(--sans); font-variant-numeric: tabular-nums; color: var(--sub); white-space: nowrap; }
+
+  /* Close */
+  .close { display: grid; gap: 22px; max-width: 760px; }
+
+  /* Every step: one tile per chapter. */
+  .steps-head { display: grid; gap: 16px; max-width: 760px; }
+  .tiles { list-style: none; margin: 0; padding: 0 0 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .tiles > li { display: flex; min-width: 0; }
+  .tile { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(104px, 15vw, 200px); padding: 0; border: 1px solid var(--rule); border-radius: 20px; background: var(--paper); color: var(--ink); text-align: left; cursor: pointer; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  .tile:hover { border-color: var(--rule-2); box-shadow: 0 18px 36px -24px var(--shadow); }
+  .tile-text { min-width: 0; display: grid; align-content: start; gap: 8px; padding: 20px 20px 22px; }
+  .tile-top { display: flex; align-items: center; gap: 12px; }
+  .name { font: 400 clamp(26px, 0.8vw + 18px, 32px)/1.1 var(--serif); letter-spacing: -0.012em; }
+  .line { font: 400 17px/1.4 var(--sans); color: var(--sub); text-wrap: balance; }
+  .tile-who { font: 500 15px/1.35 var(--sans); color: var(--stone); }
+  .tile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 2px; font: 500 14px/1.3 var(--sans); color: var(--stone); }
+  .thumb { min-width: 0; display: flex; align-items: center; justify-content: center; padding: 14px; background: var(--linen); border-left: 1px solid var(--rule); overflow: hidden; }
+  .thumb.phone { align-items: flex-start; padding-bottom: 0; }
+  .thumb .device { --bezel-w: 5px; box-shadow: 0 12px 24px -16px var(--shadow); }
+  .thumb .device.phone { width: clamp(64px, 6.5vw, 92px); }
+  .thumb .device.desktop { width: 100%; }
 
   @media (min-width: 880px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
-  @media (min-width: 1100px) {
-    .flow-main { grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); column-gap: clamp(24px, 3vw, 48px); }
-    .panel { overflow-y: auto; padding: 4px 14px 12px 2px; border-right: 1px solid var(--rule); }
+  @media (min-width: 900px) {
+    .outline { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: clamp(16px, 2vw, 28px); border-top: 0; }
+    .outline > li { border-bottom: 0; border-top: 2px solid var(--rule-2); }
+    .chapter { grid-template-columns: minmax(0, 1fr); padding: 16px 0 4px; row-gap: 8px; }
+    .chapter .num { grid-row: auto; }
   }
-  @media (max-width: 1359.98px) { .flowbar .theme-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } .flowbar .theme-switch { padding: 0 10px; } }
-  /* Narrower than the side-by-side layout: the panel is a block above the screen. Its steps open
-     on request; a chapter's intro shows on its first screen. */
-  @media (max-width: 1099.98px) {
-    .panel { gap: 10px; }
-    .panel-head { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name row" "meta meta"; align-items: center; column-gap: 12px; row-gap: 8px; }
-    .panel-toggle { display: inline-flex; }
-    .panel:not(.open) .panel-body { display: none; }
-    .panel.at-start:not(.open) .panel-body { display: grid; }
-    .panel.at-start:not(.open) .steplist { display: none; }
-    .panel.open .panel-body { max-height: 40svh; overflow-y: auto; padding-right: 4px; }
-    .intro { max-width: 70ch; font-size: 16px; }
+  @media (min-width: 1000px) {
+    .hero { grid-template-columns: minmax(0, 1fr) auto; column-gap: clamp(40px, 6vw, 96px); }
+    .hero-shot { display: grid; }
   }
-  @media (max-width: 899.98px) {
-    .flowbar { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "all theme" "strip strip"; }
-    .chip { min-height: 36px; font-size: 14px; }
+  @media (max-width: 1199.98px) { .bar .theme-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } .bar .theme-switch { padding: 0 10px; } }
+  /* Every step's nine chapters, and any narrow screen: the chapter's name leaves the strip for a
+     line of its own above it. */
+  body[data-track="steps"] .bar { grid-template-areas: "home now theme" "strip strip strip"; row-gap: 8px; }
+  body[data-track="steps"] .now { display: block; }
+  body[data-track="steps"] .glabel { display: none; }
+  body[data-track="steps"] .strip { max-width: none; }
+  @media (max-width: 719.98px) {
+    .bar { grid-template-areas: "home now theme" "strip strip strip"; row-gap: 8px; min-height: 0; }
+    .now { display: block; }
+    .glabel { display: none; }
+    .strip { max-width: none; }
+    .strip ol { gap: 8px; }
+    .segs { gap: 2px; }
   }
-  @media (max-width: 760px) {
-    .who { font-size: 14px; }
-    .view#flow { padding-block: 12px 16px; }
-  }
-  @media (max-width: 560px) {
+  @media (max-width: 559.98px) {
+    .view { padding-block: 14px 20px; }
+    #player { row-gap: 8px; padding-block: 10px 12px; }
     .mark { width: 48px; }
     .theme-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .theme-switch { padding: 0 10px; }
-    .all { padding: 0 14px 0 10px; font-size: 15px; }
-    .flow-name { font-size: 22px; gap: 8px; }
-    .flow-name .num { width: 24px; height: 24px; font-size: 13px; }
-    .count .long { display: none; }
-    .controls .btn { padding: 0 18px; }
+    .btn.quiet { padding: 0 14px 0 10px; font-size: 15px; }
+    /* Who you are on a line of its own, the chips under it: two fixed lines. */
+    .meta { height: 50px; flex-wrap: wrap; align-content: center; row-gap: 5px; column-gap: 8px; }
+    .who { flex: 0 0 100%; order: -1; text-align: center; font-size: 14px; }
+    .meta .where, .meta .pilot { min-height: 21px; font-size: 11.5px; }
+    .controls { column-gap: 12px; height: 48px; }
+    .controls .btn { min-width: 112px; padding: 0 16px; }
     .stage .device.desktop { --bezel-w: 6px; }
+    .stage .device.phone { --bezel-w: 7px; }
     .tile-text { padding: 16px 14px 18px; }
     .line { font-size: 16px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .hotspot::after { animation: none; }
     .hotspot.nudge { animation: none; box-shadow: 0 0 0 4px var(--ring), 0 0 0 14px var(--ring-soft); }
-    .tile, .track, .knob, .panel-toggle svg { transition: none; }
+    .tile, .track, .knob { transition: none; }
   }
 </style>
 </head>
@@ -220,64 +243,180 @@
   try { const pick = localStorage.getItem("gg-sf-live-demo-theme"); if (pick === "dark" || pick === "light") document.documentElement.dataset.theme = pick; } catch { /* storage may be blocked; the page follows the system setting */ }
 </script>
 <main class="view" id="landing">
-  <div class="landing-inner">
+  <div class="page">
     <div class="topbar">
       <img class="mark" src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" />
       <button class="theme-switch" type="button" role="switch" aria-checked="false" id="theme-landing"><span class="track" aria-hidden="true"><span class="knob"></span></span><span class="theme-label">Dark mode</span></button>
     </div>
-    <header class="landing-head">
-      <h1>Click through a season <em class="accent">at the hub</em></h1>
-      <p class="lede" id="lede">Follow one season at Tech and Sun's hub in Awka, Nigeria, from need to funding. Real app screens with demo data.</p>
+    <div class="hero">
+      <div class="hero-text">
+        <h1>Follow one promise <em class="accent">at Tech and Sun</em></h1>
+        <p class="lede" id="lede">Green Goods gives a community one record of what it promised, did and proved. For SF.Live we connected promises to Cosmo-Local service vouchers that members earn, swap in one shared pool and spend on services across communities.</p>
+        <div class="actions">
+          <button class="btn primary" type="button" id="start">Start the demo<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="btn" type="button" id="see-steps">See every step</button>
+        </div>
+        <p class="facts" id="facts"><span id="story-size"></span> Real app screens with demo data; vouchers are in pilot.</p>
+      </div>
+      <figure class="hero-shot" id="hero-shot">
+        <span class="device phone"><span class="screen"><img id="hero-img" alt="" draggable="false" /></span></span>
+        <figcaption><span class="pilot">In pilot</span> <span id="hero-caption">The swap in the shared pool</span></figcaption>
+      </figure>
+    </div>
+    <ol class="outline" id="outline" aria-label="Chapters of the story"></ol>
+  </div>
+</main>
+
+<section class="view" id="player" hidden aria-label="Demo">
+  <div class="bar">
+    <button class="btn quiet home" type="button" id="home"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="home-label">Intro</span></button>
+    <p class="now" id="now" aria-hidden="true"></p>
+    <nav class="strip" id="strip-nav" aria-label="Chapters"><ol id="strip"></ol></nav>
+    <button class="theme-switch" type="button" role="switch" aria-checked="false" id="theme-player"><span class="track" aria-hidden="true"><span class="knob"></span></span><span class="theme-label">Dark mode</span></button>
+  </div>
+  <div class="stage">
+    <figure class="device phone" id="device">
+      <div class="screen" id="screen">
+        <img id="shot" alt="" draggable="false" />
+        <div class="backspots" id="backspots"></div>
+        <button class="hotspot" type="button" id="hotspot"></button>
+      </div>
+    </figure>
+  </div>
+  <p class="meta"><span class="where" id="where"></span> <span class="who" id="who"></span> <span class="pilot" id="pilot" hidden>In pilot</span></p>
+  <p class="caption" id="caption" aria-live="polite"></p>
+  <nav class="controls" aria-label="Screens">
+    <button class="btn back" type="button" id="back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</button>
+    <p class="counter" id="counter"></p>
+    <button class="btn primary next" type="button" id="next"><span id="next-label">Next</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </nav>
+</section>
+
+<main class="view" id="end" hidden>
+  <div class="page">
+    <div class="topbar">
+      <img class="mark" src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" />
+      <button class="theme-switch" type="button" role="switch" aria-checked="false" id="theme-end"><span class="track" aria-hidden="true"><span class="knob"></span></span><span class="theme-label">Dark mode</span></button>
+    </div>
+    <section class="close" aria-labelledby="end-title">
+      <h2 id="end-title">One promise, <em class="accent">kept and paid</em></h2>
+      <p class="lede">Tech and Sun's hub asked for a bootcamp. Ifeoma ran it and Obinna approved it. It paid her Tech and Sun vouchers, which she swapped in the shared pool to book an AI tool seat from Green Goods. Anyone can see the record and back the hub.</p>
+      <p class="facts">The deck covers the revenue model and how this grows from one hub to more places.</p>
+      <div class="actions">
+        <button class="btn primary" type="button" id="end-steps">See every step</button>
+        <button class="btn" type="button" id="again">Start over</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+<main class="view" id="steps" hidden>
+  <div class="page">
+    <div class="topbar">
+      <button class="btn quiet" type="button" id="steps-home"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Intro</button>
+      <button class="theme-switch" type="button" role="switch" aria-checked="false" id="theme-steps"><span class="track" aria-hidden="true"><span class="knob"></span></span><span class="theme-label">Dark mode</span></button>
+    </div>
+    <header class="steps-head">
+      <h2>Every step <em class="accent">of the season</em></h2>
+      <p class="lede" id="steps-lede">The whole season at the hub, from the steward's first assessment to a supporter's donation.</p>
     </header>
     <ol class="tiles" id="tiles" aria-label="Chapters"></ol>
   </div>
 </main>
 
-<section class="view" id="flow" hidden aria-labelledby="flow-name">
-  <div class="flowbar">
-    <button class="btn all" type="button" id="home-flow"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>All flows</button>
-    <nav class="strip" id="strip-nav" aria-label="Chapters"><ol id="strip"></ol></nav>
-    <button class="theme-switch" type="button" role="switch" aria-checked="false" id="theme-flow"><span class="track" aria-hidden="true"><span class="knob"></span></span><span class="theme-label">Dark mode</span></button>
-  </div>
-  <div class="flow-main">
-    <aside class="panel" id="panel" aria-label="This chapter">
-      <div class="panel-head">
-        <h2 class="flow-name"><span class="num" id="flow-num"></span><span id="flow-name"></span></h2>
-        <p class="meta"><span class="where" id="where"></span><span class="who" id="who"></span></p>
-        <div class="panel-row">
-          <p class="count" id="count"></p>
-          <button class="panel-toggle" type="button" id="panel-toggle" aria-expanded="false" aria-controls="panel-body">Steps<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 8 10 12.5 14.5 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        </div>
-      </div>
-      <div class="panel-body" id="panel-body">
-        <p class="intro" id="intro"></p>
-        <ol class="steplist" id="steplist" aria-label="Steps in this chapter"></ol>
-      </div>
-    </aside>
-    <div class="stagewrap">
-      <div class="stage">
-        <figure class="device phone" id="device">
-          <div class="screen" id="screen">
-            <img id="shot" alt="" draggable="false" />
-            <div class="backspots" id="backspots"></div>
-            <button class="hotspot" type="button" id="hotspot"></button>
-          </div>
-        </figure>
-      </div>
-      <div class="caption-row"><p class="caption" id="caption" aria-live="polite"></p><span class="pilot" id="pilot" hidden>In pilot</span></div>
-      <p class="hint" id="hint">Tap the green ring to go on. Arrow keys work too.</p>
-      <nav class="controls" aria-label="Flow">
-        <button class="btn" type="button" id="back">Back</button>
-        <button class="btn" type="button" id="restart">Restart</button>
-        <button class="btn" type="button" id="all-end" hidden>All flows</button>
-        <button class="btn primary" type="button" id="next-flow" hidden></button>
-      </nav>
-    </div>
-  </div>
-</section>
-
 <script type="application/json" id="flows">
 {
+  "story": {
+    "chapters": [
+      {
+        "id": "hub",
+        "label": "The hub",
+        "line": "A member finds work her hub needs",
+        "who": "You are Ifeoma, a member of the hub",
+        "where": "App",
+        "screens": [
+          {
+            "file": "promise-1",
+            "caption": "Take Part lists what the hub needs"
+          },
+          {
+            "file": "promise-2",
+            "caption": "This season asks for an AI bootcamp"
+          }
+        ]
+      },
+      {
+        "id": "kept",
+        "label": "A promise kept",
+        "line": "She does it, and a steward approves it",
+        "who": "You are Ifeoma, a member of the hub",
+        "where": "App",
+        "screens": [
+          {
+            "file": "promise-5",
+            "caption": "Taken up: it pays vouchers and G$"
+          },
+          {
+            "file": "work-3",
+            "caption": "After the bootcamp, she logs the work"
+          },
+          {
+            "file": "approval-3",
+            "caption": "The hub's steward checks it and approves",
+            "who": "You are Obinna, the hub's steward",
+            "where": "Dashboard"
+          }
+        ]
+      },
+      {
+        "id": "built",
+        "label": "Built for SF.Live",
+        "line": "Vouchers earned, swapped and spent",
+        "who": "You are Ifeoma, a member of the hub",
+        "where": "App",
+        "screens": [
+          {
+            "file": "vouchers-1",
+            "caption": "Kept: her vouchers and G$ arrive",
+            "hotspot": false
+          },
+          {
+            "file": "swap-1",
+            "caption": "An AI tool seat takes Green Goods vouchers"
+          },
+          {
+            "file": "swap-2",
+            "caption": "She swaps her vouchers in the shared pool"
+          },
+          {
+            "file": "swap-6",
+            "caption": "Swapped, she books the seat"
+          },
+          {
+            "file": "swap-7",
+            "caption": "Green Goods accepts, and her seat is active"
+          }
+        ]
+      },
+      {
+        "id": "supporters",
+        "label": "For supporters",
+        "line": "The public record, and a donation",
+        "who": "You are Funmi, a supporter of the hub",
+        "where": "Website",
+        "screens": [
+          {
+            "file": "impact-3",
+            "caption": "Anyone can see the bootcamp on the record"
+          },
+          {
+            "file": "funding-5",
+            "caption": "Funmi backs the hub with a donation"
+          }
+        ]
+      }
+    ]
+  },
   "flows": [
     {
       "id": "needs",
@@ -557,7 +696,7 @@
             0.047,
             0.0356
           ],
-          "alt": "How Much: one promise, 20 hours, due in 30 days, lead-managed, Workshop Delivered \u00d7 1"
+          "alt": "How Much: one promise, 20 hours, due in 30 days, lead-managed, Workshop Delivered × 1"
         },
         {
           "file": "season-6",
@@ -713,20 +852,21 @@
         {
           "file": "promise-5",
           "device": "phone",
-          "caption": "Hers now, kept when work is approved",
+          "caption": "Hers now: vouchers and G$ once it's kept",
           "step": "In progress",
-          "story": "client-commitments-gardencommitment--in-progress",
+          "story": "client-commitments-voucher-journeys--earn-vouchers",
           "size": [
             390,
             844
           ],
-          "back": [
-            0.0615,
-            0.019,
-            0.0821,
-            0.0379
-          ],
-          "alt": "Her promise in progress: kept when the stewards approve its work"
+          "alt": "Her promise in progress, with its rewards: 2 Tech and Sun vouchers and G$ after the work",
+          "pilot": true,
+          "hotspot": [
+            0.041,
+            0.9242,
+            0.9179,
+            0.0569
+          ]
         }
       ]
     },
@@ -803,7 +943,13 @@
             0.0821,
             0.0379
           ],
-          "alt": "Review for the promise: the garden as facts, the photo and the details"
+          "alt": "Review for the promise: the garden as facts, the photo and the details",
+          "hotspot": [
+            0.041,
+            0.9289,
+            0.9179,
+            0.0569
+          ]
         }
       ]
     },
@@ -1103,6 +1249,162 @@
       ]
     },
     {
+      "id": "swap",
+      "label": "Swap",
+      "line": "Swap vouchers, book a seat",
+      "who": "You are Ifeoma, a member of the hub",
+      "where": "App",
+      "thumb": "swap-2",
+      "intro": "Instead of a hub day, she swaps Tech and Sun vouchers for Green Goods vouchers in the shared pool, then books an AI tool seat from Green Goods.",
+      "screens": [
+        {
+          "file": "swap-1",
+          "caption": "The seat takes 10 Green Goods vouchers",
+          "step": "The seat",
+          "alt": "Green Goods' AI tool seat, 30 days: she holds 2 Green Goods vouchers and it takes 10; Exchange Vouchers",
+          "device": "phone",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--exchange-then-redeem",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.1256,
+            0.7459,
+            0.4754,
+            0.0474
+          ],
+          "back": [
+            0.1026,
+            0.0379,
+            0.0821,
+            0.0379
+          ]
+        },
+        {
+          "file": "swap-2",
+          "caption": "The shared pool quotes the swap",
+          "step": "Quote",
+          "alt": "Exchange Vouchers in the shared pool: 8.01 Tech and Sun vouchers for 8 Green Goods vouchers, fees included",
+          "device": "phone",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--exchange-then-redeem",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0436,
+            0.9289,
+            0.9128,
+            0.0521
+          ],
+          "back": [
+            0.8436,
+            0.182,
+            0.1128,
+            0.0521
+          ]
+        },
+        {
+          "file": "swap-3",
+          "caption": "Check the swap, then approve it",
+          "step": "Review",
+          "alt": "Review the Exchange: what she spends, at least what she receives, and the fees",
+          "device": "phone",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--exchange-then-redeem",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0436,
+            0.9289,
+            0.9128,
+            0.0521
+          ]
+        },
+        {
+          "file": "swap-4",
+          "caption": "Swapped. Nothing is booked yet",
+          "step": "Swapped",
+          "alt": "Exchanged: the receipt for 8.01 Tech and Sun vouchers to 8 Green Goods vouchers",
+          "device": "phone",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--exchange-then-redeem",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0436,
+            0.9289,
+            0.9128,
+            0.0521
+          ]
+        },
+        {
+          "file": "swap-5",
+          "caption": "She holds 10 now, enough to book",
+          "step": "Book",
+          "alt": "The seat's page: she holds 10 Green Goods vouchers; Review and Redeem",
+          "device": "phone",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--exchange-then-redeem",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.041,
+            0.9242,
+            0.9179,
+            0.0569
+          ]
+        },
+        {
+          "file": "swap-6",
+          "caption": "Agree to the seat's exact terms",
+          "step": "Agree",
+          "alt": "Review and Redeem: 30 days of a named AI tool seat for 10 Green Goods vouchers, held in escrow",
+          "device": "phone",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--exchange-then-redeem",
+          "size": [
+            390,
+            844
+          ],
+          "hotspot": [
+            0.0436,
+            0.9289,
+            0.9128,
+            0.0521
+          ],
+          "back": [
+            0.8436,
+            0.182,
+            0.1128,
+            0.0521
+          ]
+        },
+        {
+          "file": "swap-7",
+          "caption": "Green Goods accepts, and her seat is active",
+          "step": "Active",
+          "alt": "Her booking steps, all done through Green Goods accepting her; access has started",
+          "device": "phone",
+          "pilot": true,
+          "story": "client-commitments-voucher-journeys--exchange-then-redeem",
+          "size": [
+            390,
+            844
+          ]
+        }
+      ]
+    },
+    {
       "id": "impact",
       "label": "Impact",
       "line": "See the hub's public record",
@@ -1285,16 +1587,39 @@
 </script>
 <script>
   (() => {
-    const { flows } = JSON.parse(document.getElementById("flows").textContent);
+    const data = JSON.parse(document.getElementById("flows").textContent);
+    const flows = data.flows;
     const inlined = document.getElementById("images");
     const images = inlined ? JSON.parse(inlined.textContent) : {};
     const src = (file) => images[file] || `assets/screens/${file}.jpg`;
     const $ = (id) => document.getElementById(id);
     const root = document.documentElement;
-    const landing = $("landing"), view = $("flow"), shot = $("shot"), hotspot = $("hotspot"), screen = $("screen");
-    const panel = $("panel"), toggle = $("panel-toggle"), steplist = $("steplist"), backspots = $("backspots"), strip = $("strip"), stripNav = $("strip-nav");
-    let flow = null;
-    let step = 0;
+    const views = { landing: $("landing"), player: $("player"), end: $("end"), steps: $("steps") };
+    const shot = $("shot"), hotspot = $("hotspot"), screen = $("screen"), backspots = $("backspots"), strip = $("strip");
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+    // Two tracks share one player. The story is twelve of the appendix's screens with their own
+    // captions; every step is the appendix itself. A screen's image, hotspot and back regions come
+    // from its appendix entry, so a capture updates both.
+    const byFile = new Map(flows.flatMap((f) => f.screens.map((s) => [s.file, s])));
+    function track(id, chapters) {
+      const items = [];
+      const starts = [];
+      chapters.forEach((c, ci) => {
+        starts.push(items.length);
+        c.screens.forEach((s, si) => items.push({ ...s, chapter: ci, index: si, count: c.screens.length, who: s.who || c.who, where: s.where || c.where }));
+      });
+      return { id, chapters, items, starts };
+    }
+    const story = track("story", data.story.chapters.map((c) => ({
+      ...c,
+      screens: c.screens.map((s) => {
+        const base = byFile.get(s.file) || {};
+        return { ...base, ...s, hotspot: s.hotspot === false ? null : base.hotspot };
+      }),
+    })));
+    const steps = track("steps", flows);
+    const tracks = { story, steps };
 
     // Light and dark: follow the system until the viewer picks, then remember the pick here.
     const THEME_KEY = "gg-sf-live-demo-theme";
@@ -1320,116 +1645,143 @@
       return figure;
     }
 
-    // Landing tiles, one per chapter.
+    // Intro: the story's size, its shot of the swap, and its chapters, each opening the story there.
+    // A chapter is marked "In pilot" only when every screen in it is; a screen says so on its own.
+    const minutes = Math.max(1, Math.round(story.items.length * 10 / 60));
+    $("story-size").textContent = `${plural(story.items.length, "screen")}, about ${plural(minutes, "minute")}.`;
+    const heroFile = byFile.has("swap-2") ? "swap-2" : story.items[0].file;
+    $("hero-img").src = src(heroFile);
+    $("hero-img").alt = byFile.get(heroFile)?.alt || "";
+    story.chapters.forEach((c, i) => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chapter";
+      b.id = `chapter-${c.id}`;
+      b.innerHTML = `<span class="num">${i + 1}</span> <span class="cname"></span> <span class="cline"></span> <span class="cmeta"><span class="ccount"></span></span>`;
+      b.querySelector(".cname").textContent = c.label;
+      b.querySelector(".cline").textContent = c.line;
+      b.querySelector(".ccount").textContent = plural(c.screens.length, "screen");
+      if (c.screens.every((s) => s.pilot)) b.querySelector(".cmeta").insertAdjacentHTML("beforeend", ' <span class="pilot">In pilot</span>');
+      b.addEventListener("click", () => { go({ view: "player", track: "story", at: story.starts[i] }); focusNext(); });
+      li.append(b);
+      $("outline").append(li);
+    });
+
+    // Every step: one tile per chapter.
+    $("steps-lede").textContent = `The whole season at the hub in ${plural(flows.length, "chapter")} and ${plural(steps.items.length, "screen")}, from the steward's first assessment to a supporter's donation.`;
     flows.forEach((f, i) => {
       const li = document.createElement("li");
       const tile = document.createElement("button");
       tile.type = "button";
       tile.className = "tile";
       tile.id = `tile-${f.id}`;
-      tile.dataset.flow = f.id;
       const text = document.createElement("span");
       text.className = "tile-text";
-      text.innerHTML = `<span class="tile-top"><span class="num">${i + 1}</span><span class="name"></span></span><span class="line"></span><span class="tile-who"></span><span class="tile-meta">${i === 0 ? '<span class="start-here">Start here</span>' : ""}<span class="steps"></span></span>`;
+      text.innerHTML = `<span class="tile-top"><span class="num">${i + 1}</span> <span class="name"></span></span> <span class="line"></span> <span class="tile-who"></span> <span class="tile-meta"><span class="count"></span></span>`;
       text.querySelector(".name").textContent = f.label;
       text.querySelector(".line").textContent = f.line;
       text.querySelector(".tile-who").textContent = f.who;
-      text.querySelector(".steps").textContent = `${f.where ? `${f.where} · ` : ""}${f.screens.length} screens`;
+      text.querySelector(".count").textContent = `${f.where ? `${f.where} · ` : ""}${plural(f.screens.length, "screen")}`;
+      if (f.screens.every((s) => s.pilot)) text.querySelector(".tile-meta").insertAdjacentHTML("beforeend", ' <span class="pilot">In pilot</span>');
       const pick = f.screens.find((s) => s.file === f.thumb) || f.screens[0];
       const thumb = document.createElement("span");
       thumb.className = `thumb ${pick.device}`;
       thumb.append(device(pick.device, pick.file));
       tile.append(text, thumb);
-      tile.addEventListener("click", () => { go({ id: f.id, step: 0 }); focusStage(); });
+      tile.addEventListener("click", () => { go({ view: "player", track: "steps", at: steps.starts[i] }); focusNext(); });
       li.append(tile);
       $("tiles").append(li);
     });
 
-    // The strip: every chapter in order, each opening at its first screen.
-    flows.forEach((f, i) => {
-      const li = document.createElement("li");
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "chip";
-      chip.id = `chip-${f.id}`;
-      chip.innerHTML = `<span class="chip-num">${i + 1}</span><span class="chip-label"></span>`;
-      chip.querySelector(".chip-label").textContent = f.label;
-      chip.addEventListener("click", () => go({ id: f.id, step: 0 }));
-      li.append(chip);
-      strip.append(li);
-    });
-
-    function buildSteps() {
-      const id = flow.id;
-      steplist.replaceChildren(...flow.screens.map((s, i) => {
+    // The strip: the track's chapters, each a group of its screens.
+    let built = null;
+    function buildStrip(t) {
+      if (built === t.id) return;
+      built = t.id;
+      strip.replaceChildren(...t.chapters.map((c, ci) => {
         const li = document.createElement("li");
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "stepbtn";
-        b.innerHTML = `<span class="stepnum">${i + 1}</span><span class="steplabel"></span>`;
-        b.querySelector(".steplabel").textContent = s.step || s.caption;
-        b.addEventListener("click", () => go({ id, step: i }));
-        li.append(b);
+        li.className = "group";
+        li.style.setProperty("--n", String(c.screens.length));
+        const label = document.createElement("button");
+        label.type = "button";
+        label.className = "glabel";
+        label.innerHTML = `<span class="gnum">${ci + 1}</span><span class="gname"></span>`;
+        label.querySelector(".gname").textContent = c.label;
+        label.setAttribute("aria-label", `Chapter ${ci + 1}: ${c.label}`);
+        label.addEventListener("click", () => go({ view: "player", track: t.id, at: t.starts[ci] }));
+        const segs = document.createElement("span");
+        segs.className = "segs";
+        c.screens.forEach((s, si) => {
+          const seg = document.createElement("button");
+          seg.type = "button";
+          seg.className = "seg";
+          // The chapter's name is the keyboard's way in; the bars are for the pointer.
+          seg.tabIndex = -1;
+          seg.setAttribute("aria-label", `${c.label}, screen ${si + 1}: ${s.caption}`);
+          seg.addEventListener("click", () => go({ view: "player", track: t.id, at: t.starts[ci] + si }));
+          segs.append(seg);
+        });
+        li.append(label, segs);
         return li;
       }));
     }
 
-    // History: #/ is the landing and #/<chapter>/<n> a screen. Every move adds one entry, so the
-    // browser's back and forward walk the screens. A plain #<chapter>-<n> link opens too, since an
-    // artifact link carries only plain anchors.
-    function hashFor(target) { return target ? `#/${target.id}/${target.step + 1}` : "#/"; }
+    // History and links. Every link is a plain anchor, the only kind an artifact link carries:
+    // #intro, #story-5, #end, #steps and #<chapter>-<n> for every step. Every move adds one entry,
+    // so the browser's back and forward walk the screens. Older #/<chapter>/<n> links still open.
+    let now = { view: "landing" };
+    function hashFor(target) {
+      if (target.view !== "player") return `#${target.view === "landing" ? "intro" : target.view}`;
+      if (target.track === "story") return `#story-${target.at + 1}`;
+      const item = steps.items[target.at];
+      return `#${flows[item.chapter].id}-${item.index + 1}`;
+    }
     function parse(hash) {
-      const match = /^#\/([a-z0-9-]+)(?:\/(\d+))?\/?$/i.exec(hash) || /^#([a-z][a-z0-9]*)(?:-(\d+))?$/i.exec(hash);
-      const f = match && flows.find((x) => x.id === match[1]);
-      if (!f) return null;
-      return { id: f.id, step: Math.min(Math.max(Number(match[2] || 1), 1), f.screens.length) - 1 };
+      const h = hash.replace(/^#\/?/, "").replace(/\/$/, "");
+      if (!h || h === "intro") return { view: "landing" };
+      if (h === "end" || h === "steps") return { view: h };
+      let m = /^story-(\d+)$/.exec(h);
+      if (m) return { view: "player", track: "story", at: Math.min(Math.max(Number(m[1]), 1), story.items.length) - 1 };
+      m = /^([a-z][a-z0-9]*)(?:[-/](\d+))?$/i.exec(h);
+      const ci = m ? flows.findIndex((f) => f.id === m[1]) : -1;
+      if (ci < 0) return null;
+      return { view: "player", track: "steps", at: steps.starts[ci] + Math.min(Math.max(Number(m[2] || 1), 1), flows[ci].screens.length) - 1 };
     }
     function record(target, how) {
       const url = hashFor(target);
-      const data = target ? { id: target.id, step: target.step } : { landing: true };
       try {
-        if (how === "push") history.pushState(data, "", url); else history.replaceState(data, "", url);
+        if (how === "push") history.pushState(target, "", url); else history.replaceState(target, "", url);
       } catch {
         // A sandboxed frame may refuse history; a hash change still records the move.
         try { if (how === "push" && location.hash !== url) location.hash = url; } catch { /* the page works without history */ }
       }
     }
-    function current(target) {
-      return target ? !view.hidden && flow?.id === target.id && step === target.step : view.hidden;
-    }
+    const same = (a, b) => a.view === b.view && (a.view !== "player" || (a.track === b.track && a.at === b.at));
     function go(target, how = "push") {
-      if (current(target)) return;
+      if (same(target, now)) return;
       show(target);
       record(target, how);
     }
 
     function show(target) {
-      if (!target) {
-        const from = flow;
-        flow = null;
-        view.hidden = true;
-        landing.hidden = false;
-        document.body.dataset.view = "landing";
-        if (from) $(`tile-${from.id}`)?.focus();
+      const from = now;
+      now = target;
+      for (const [name, el] of Object.entries(views)) el.hidden = name !== target.view;
+      document.body.dataset.view = target.view;
+      if (target.view === "player") {
+        document.body.dataset.track = target.track;
+        document.body.dataset.at = String(target.at + 1);
+        render();
         return;
       }
-      const next = flows.find((f) => f.id === target.id);
-      const changed = next !== flow;
-      flow = next;
-      step = Math.min(Math.max(target.step, 0), flow.screens.length - 1);
-      landing.hidden = true;
-      view.hidden = false;
-      document.body.dataset.view = "flow";
-      if (changed) {
-        $("flow-num").textContent = String(flows.indexOf(flow) + 1);
-        $("flow-name").textContent = flow.label;
-        $("intro").textContent = flow.intro || "";
-        buildSteps();
-        panel.classList.remove("open");
-        toggle.setAttribute("aria-expanded", "false");
-      }
-      render();
-      if (changed) revealChip();
+      delete document.body.dataset.track;
+      delete document.body.dataset.at;
+      // Coming back from the player, the control that led there takes focus again.
+      if (from.view !== "player") return;
+      if (target.view === "steps" && from.track === "steps") $(`tile-${flows[steps.items[from.at].chapter].id}`)?.focus({ preventScroll: true });
+      else if (target.view === "landing") $("start").focus({ preventScroll: true });
+      else if (target.view === "end") $("end-steps").focus({ preventScroll: true });
     }
 
     const rects = (value) => (!value ? [] : Array.isArray(value[0]) ? value : [value]);
@@ -1441,57 +1793,44 @@
     }
 
     function render() {
-      const s = flow.screens[step];
-      const index = flows.indexOf(flow);
-      const last = step === flow.screens.length - 1;
-      const next = flows[index + 1];
-      const where = s.where || flow.where || "";
-      $("device").className = `device ${s.device}`;
-      shot.src = src(s.file);
+      const t = tracks[now.track];
+      const item = t.items[now.at];
+      const chapter = t.chapters[item.chapter];
+      const last = now.at === t.items.length - 1;
+      buildStrip(t);
+      $("device").className = `device ${item.device}`;
+      shot.src = src(item.file);
       // What the screen shows, for a screen reader; the caption below it names the next action.
-      shot.alt = `${flow.label}, screen ${step + 1} of ${flow.screens.length}: ${s.alt || s.caption}`;
-      $("caption").textContent = s.caption;
-      $("pilot").hidden = !s.pilot;
-      $("who").textContent = s.who || flow.who;
-      $("where").textContent = where;
-      $("where").hidden = !where;
-      $("count").innerHTML = `<span class="long">Screen </span>${step + 1} of ${flow.screens.length}`;
-      steplist.querySelectorAll(".stepbtn").forEach((b, i) => {
-        b.classList.toggle("done", i < step);
-        if (i === step) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
-      });
-      strip.querySelectorAll(".chip").forEach((c, i) => {
-        c.classList.toggle("done", i < index);
-        if (i === index) c.setAttribute("aria-current", "true"); else c.removeAttribute("aria-current");
-      });
-      hotspot.hidden = last || !s.hotspot;
-      if (!hotspot.hidden) {
-        place(hotspot, s.hotspot, 6);
-        hotspot.setAttribute("aria-label", s.caption);
+      shot.alt = `${chapter.label}, screen ${item.index + 1} of ${item.count}: ${item.alt || item.caption}`;
+      $("caption").textContent = item.caption;
+      $("who").textContent = item.who || "";
+      $("where").textContent = item.where || "";
+      $("where").hidden = !item.where;
+      $("pilot").hidden = !item.pilot;
+      $("now").textContent = `${item.chapter + 1} · ${chapter.label}`;
+      $("home-label").textContent = t.id === "story" ? "Intro" : "Chapters";
+      $("counter").textContent = t.id === "story" ? `${now.at + 1} of ${t.items.length}` : `${item.index + 1} of ${item.count}`;
+      $("next-label").textContent = last ? "Finish" : "Next";
+      strip.querySelectorAll(".group").forEach((g, gi) => g.classList.toggle("current", gi === item.chapter));
+      strip.querySelectorAll(".glabel").forEach((b, gi) => { if (gi === item.chapter) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current"); });
+      strip.querySelectorAll(".seg").forEach((seg, i) => { seg.classList.toggle("done", i < now.at); seg.classList.toggle("now", i === now.at); });
+      hotspot.hidden = !item.hotspot;
+      if (item.hotspot) {
+        place(hotspot, item.hotspot, 6);
+        hotspot.setAttribute("aria-label", `${item.caption} (next screen)`);
       }
-      backspots.replaceChildren(...rects(s.back).map((r) => {
+      backspots.replaceChildren(...rects(item.back).map((r) => {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "backspot";
         b.title = "Back";
         b.setAttribute("aria-label", "Back");
         place(b, r, 4);
-        b.addEventListener("click", (event) => { event.stopPropagation(); backInScreen(); });
+        b.addEventListener("click", (event) => { event.stopPropagation(); back(); });
         return b;
       }));
       requestAnimationFrame(round);
-      $("hint").hidden = step !== 0;
-      panel.classList.toggle("at-start", step === 0);
-      $("back").disabled = step === 0;
-      $("restart").disabled = step === 0;
-      // The last screen continues the story in the next chapter; the last chapter ends at the landing.
-      $("next-flow").hidden = !last;
-      $("next-flow").textContent = next ? `Next: ${next.label}` : "All flows";
-      $("all-end").hidden = !last || !next;
-      document.body.dataset.flow = flow.id;
-      document.body.dataset.step = String(step + 1);
-      keepStepInView();
-      const upcoming = flow.screens[step + 1] || next?.screens[0];
+      const upcoming = t.items[now.at + 1];
       if (upcoming) new Image().src = src(upcoming.file);
     }
 
@@ -1500,67 +1839,33 @@
       backspots.querySelectorAll(".backspot").forEach((b) => b.style.setProperty("--r", `${Math.min(b.getBoundingClientRect().height / 2, 16)}px`));
     }
 
-    // Scroll the panel, not the page, to keep the current step in sight in a long chapter.
-    function keepStepInView() {
-      const now = steplist.querySelector('[aria-current="step"]');
-      if (!now) return;
-      for (const box of [$("panel-body"), panel]) {
-        if (box.scrollHeight <= box.clientHeight + 1) continue;
-        const b = box.getBoundingClientRect(), c = now.getBoundingClientRect();
-        if (c.top < b.top) box.scrollTop -= b.top - c.top + 8;
-        else if (c.bottom > b.bottom) box.scrollTop += c.bottom - b.bottom + 8;
-        return;
-      }
-    }
-
-    function revealChip() {
-      const chip = $(`chip-${flow.id}`);
-      if (chip && stripNav.scrollWidth > stripNav.clientWidth) stripNav.scrollLeft = chip.offsetLeft - (stripNav.clientWidth - chip.offsetWidth) / 2;
-    }
-
-    function focusStage() {
-      if (view.hidden) return;
-      (hotspot.hidden ? $("next-flow") : hotspot).focus({ preventScroll: true });
-    }
-
-    // A render hides the hotspot on the last screen, shows the closing buttons only there and
-    // disables Back and Restart on the first screen, so a keyboard user who held a control that
-    // just went away lands on the one now in play instead of on a hidden or disabled one.
+    function focusNext() { if (now.view === "player") $("next").focus({ preventScroll: true }); }
+    // A render can hide the hotspot or replace the back regions under a keyboard user's focus;
+    // focus then lands on Next, which every screen has.
     function keepFocus(before) {
-      if (view.hidden || ![hotspot, $("next-flow"), $("all-end"), $("back"), $("restart")].includes(before)) return;
-      if (!before.hidden && !before.disabled) return;
-      focusStage();
+      if (now.view !== "player" || !before || before === document.body) return;
+      if (before.isConnected && !before.hidden && !before.disabled) return;
+      focusNext();
     }
-
-    function nextFlow() { return flows[flows.indexOf(flow) + 1]; }
-    function home() { go(null); }
-
-    function advance() {
-      if (!flow) return;
+    function next() {
+      if (now.view !== "player") return;
+      const t = tracks[now.track];
       const before = document.activeElement;
-      if (step < flow.screens.length - 1) { go({ id: flow.id, step: step + 1 }); keepFocus(before); return; }
-      const next = nextFlow();
-      if (next) { go({ id: next.id, step: 0 }); focusStage(); } else home();
+      if (now.at < t.items.length - 1) { go({ view: "player", track: t.id, at: now.at + 1 }); keepFocus(before); return; }
+      go({ view: t.id === "story" ? "end" : "steps" });
     }
-    function retreat() {
-      if (!flow || step === 0) return;
+    function back() {
+      if (now.view !== "player") return;
       const before = document.activeElement;
-      go({ id: flow.id, step: step - 1 });
-      keepFocus(before);
+      if (now.at > 0) { go({ view: "player", track: now.track, at: now.at - 1 }); keepFocus(before); return; }
+      go({ view: now.track === "story" ? "landing" : "steps" });
     }
-    // The app's own back control steps back one screen, across chapters, and out to the landing
-    // from the very first screen.
-    function backInScreen() {
-      if (!flow) return;
-      const held = document.activeElement?.classList.contains("backspot");
-      const index = flows.indexOf(flow);
-      if (step > 0) go({ id: flow.id, step: step - 1 });
-      else if (index > 0) go({ id: flows[index - 1].id, step: flows[index - 1].screens.length - 1 });
-      else { home(); return; }
-      if (held) (backspots.querySelector(".backspot") || (hotspot.hidden ? $("next-flow") : hotspot)).focus({ preventScroll: true });
+    function up() {
+      if (now.view === "player") go({ view: now.track === "story" ? "landing" : "steps" });
+      else if (now.view !== "landing") go({ view: "landing" });
     }
 
-    hotspot.addEventListener("click", (event) => { event.stopPropagation(); advance(); });
+    hotspot.addEventListener("click", (event) => { event.stopPropagation(); next(); });
     // A tap anywhere else on the screen never advances; it only points at the hotspot again.
     screen.addEventListener("click", () => {
       if (hotspot.hidden) return;
@@ -1569,29 +1874,27 @@
       hotspot.classList.add("nudge");
     });
     hotspot.addEventListener("animationend", (event) => { if (event.animationName === "nudge") hotspot.classList.remove("nudge"); });
-    $("back").addEventListener("click", retreat);
-    $("restart").addEventListener("click", () => { if (!flow) return; const before = document.activeElement; go({ id: flow.id, step: 0 }); keepFocus(before); });
-    $("next-flow").addEventListener("click", advance);
-    $("all-end").addEventListener("click", home);
-    $("home-flow").addEventListener("click", home);
-    toggle.addEventListener("click", () => {
-      const open = !panel.classList.contains("open");
-      panel.classList.toggle("open", open);
-      toggle.setAttribute("aria-expanded", String(open));
-      if (open) keepStepInView();
-    });
-    window.addEventListener("resize", () => { round(); if (flow) revealChip(); });
+    $("next").addEventListener("click", next);
+    $("back").addEventListener("click", back);
+    $("home").addEventListener("click", up);
+    $("start").addEventListener("click", () => { go({ view: "player", track: "story", at: 0 }); focusNext(); });
+    $("see-steps").addEventListener("click", () => go({ view: "steps" }));
+    $("end-steps").addEventListener("click", () => go({ view: "steps" }));
+    $("again").addEventListener("click", () => { go({ view: "player", track: "story", at: 0 }); focusNext(); });
+    $("steps-home").addEventListener("click", () => go({ view: "landing" }));
+    window.addEventListener("resize", round);
     document.addEventListener("keydown", (event) => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key === "Escape" && flow) { event.preventDefault(); home(); }
-      else if (event.key === "ArrowRight" && flow) { event.preventDefault(); advance(); }
-      else if (event.key === "ArrowLeft" && flow) { event.preventDefault(); retreat(); }
+      if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
+      if (event.key === "Escape" && now.view !== "landing") { event.preventDefault(); up(); }
+      else if (now.view !== "player") return;
+      else if (event.key === "ArrowRight") { event.preventDefault(); next(); }
+      else if (event.key === "ArrowLeft") { event.preventDefault(); back(); }
     });
 
     // Back, forward and a typed link land here; a move this page made itself is already shown.
     function sync() {
-      const target = parse(location.hash);
-      if (current(target)) return;
+      const target = parse(location.hash) || { view: "landing" };
+      if (same(target, now)) return;
       const before = document.activeElement;
       show(target);
       keepFocus(before);
@@ -1599,9 +1902,11 @@
     window.addEventListener("popstate", sync);
     window.addEventListener("hashchange", sync);
 
-    const first = parse(location.hash);
-    if (first) { show(first); record(first, "replace"); focusStage(); }
-    else { document.body.dataset.view = "landing"; record(null, "replace"); }
+    const first = parse(location.hash) || { view: "landing" };
+    now = { view: "" };
+    show(first);
+    record(first, "replace");
+    if (first.view === "player") focusNext();
   })();
 </script>
 </body>

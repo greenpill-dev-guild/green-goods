@@ -1,8 +1,38 @@
 # Clickable demo · SustainableFinance.Live 2026
 
-The demonstrator for the submission: one page a judge clicks through. It follows one season at
-Tech and Sun's hub in Awka, Nigeria, as one story in eight chapters. Obinna is the hub's steward,
-Ifeoma a member, and Funmi a supporter:
+The demonstrator for the submission: one page a judge clicks through. It opens on a story of one
+promise at Tech and Sun's hub in Awka, Nigeria, in twelve screens and about two minutes, and keeps
+the whole season behind "See every step". Obinna is the hub's steward, Ifeoma a member, and Funmi a
+supporter.
+
+## The story
+
+Four chapters. The first two ground Green Goods: a hub's need, and a promise kept and approved. The
+third is what was built for SF.Live, and every screen in it is marked "In pilot": the kept promise
+pays Tech and Sun vouchers and G$, Ifeoma swaps the vouchers in the shared pool for Green Goods
+vouchers, and books an AI tool seat with them. The fourth shows the public record and a donation.
+
+| # | Chapter | Screen | Caption | Who you are |
+|---|---|---|---|---|
+| 1 | The hub | promise-1 | Take Part lists what the hub needs | Ifeoma |
+| 2 | The hub | promise-2 | This season asks for an AI bootcamp | Ifeoma |
+| 3 | A promise kept | promise-5 | Taken up: it pays vouchers and G$ | Ifeoma |
+| 4 | A promise kept | work-3 | After the bootcamp, she logs the work | Ifeoma |
+| 5 | A promise kept | approval-3 | The hub's steward checks it and approves | Obinna |
+| 6 | Built for SF.Live | vouchers-1 | Kept: her vouchers and G$ arrive | Ifeoma |
+| 7 | Built for SF.Live | swap-1 | An AI tool seat takes Green Goods vouchers | Ifeoma |
+| 8 | Built for SF.Live | swap-2 | She swaps her vouchers in the shared pool | Ifeoma |
+| 9 | Built for SF.Live | swap-6 | Swapped, she books the seat | Ifeoma |
+| 10 | Built for SF.Live | swap-7 | Green Goods accepts, and her seat is active | Ifeoma |
+| 11 | For supporters | impact-3 | Anyone can see the bootcamp on the record | Funmi |
+| 12 | For supporters | funding-5 | Funmi backs the hub with a donation | Funmi |
+
+Each story screen is an appendix screen with its own caption. Its image, hotspot and back regions
+come from the appendix, except vouchers-1, whose hotspot opens her wallet, a step the story skips.
+
+## Every step
+
+Nine chapters, 49 screens, one season:
 
 1. **Needs** (7 screens, dashboard). Obinna signs in, looks over the hub's earlier assessment and
    writes this season's: the need, two targets (24 members certified, 5 bootcamp sessions), the work
@@ -10,29 +40,47 @@ Ifeoma a member, and Funmi a supporter:
 2. **Season** (7, dashboard). He starts the season "Climate and Tech Education" in the hub's
    Promises tab, then seeds the promise members can take up: "Run a one-week AI content bootcamp",
    garden work kept by one approved Workshop Delivered, 20 hours, $20.
-3. **Promise** (5, app). Ifeoma finds the bootcamp in Take Part on the hub's Home and takes it up.
+3. **Promise** (5, app). Ifeoma finds the bootcamp in Take Part on the hub's Home and takes it up;
+   her promise shows the rewards the hub agreed, 2 Tech and Sun vouchers and G$ (in pilot).
 4. **Work** (3, app). After the bootcamp she logs it for her promise: Start ("Which promise is this
    work for?"), the bootcamp's photo, review.
 5. **Approval** (4, dashboard). Obinna opens it from the Hub's Work queue and approves it. In the
    app's words, "A promise kept through garden work is confirmed when that work is approved."
-6. **Vouchers** (8, app and dashboard; every screen marked "In pilot"). The kept promise pays her 2
-   Tech and Sun vouchers and G$, each on its own row. She spends a voucher on a hub day, and Obinna
-   accepts the booking once its four checks pass.
-7. **Impact** (3, website). Funmi finds Green Goods on the web, opens its evidence ledger filtered
+6. **Vouchers** (8, app and dashboard; every screen in pilot). The kept promise pays her 2 Tech and
+   Sun vouchers and G$, each on its own row. She spends a voucher on a hub day, and Obinna accepts
+   the booking once its four checks pass.
+7. **Swap** (7, app; every screen in pilot). Instead of a hub day, she swaps 8.01 Tech and Sun
+   vouchers for 8 Green Goods vouchers in the shared pool and books an AI tool seat from Green
+   Goods. The chapter ends on her booking with every step done, Green Goods' acceptance included.
+8. **Impact** (3, website). Funmi finds Green Goods on the web, opens its evidence ledger filtered
    to Education, and opens the bootcamp's public record.
-8. **Funding** (5, website). She backs the hub from its own page with a $500 donation to its shared
+9. **Funding** (5, website). She backs the hub from its own page with a $500 donation to its shared
    fund.
 
-The page:
-- The landing shows the chapters in two columns on wide screens; chapter 1 says "Start here".
-- In a chapter, a side panel gives its intro, who you are and its steps (click one to jump), and a
-  strip across the top lists all eight.
-- Every screen has one caption, and every screen but a chapter's last has one pulsing hotspot on
-  the control to tap; a chapter's last screen offers "Next: <chapter>".
-- The app's own back arrows, close buttons and Cancel go back a screen, and so do the browser's back
-  button and the outside Back button. "All flows" stays at the top left, and each chapter's last
-  screen continues to the next.
-- The page follows the viewer's light or dark setting, with a switch; the screens stay as captured.
+The Vouchers and Swap chapters are two ways to spend the same reward, so their voucher counts do
+not add up across them.
+
+## The page
+
+- **Intro.** What Green Goods is and what was built for SF.Live, "12 screens, about 2 minutes",
+  Start the demo and See every step, the swap's quote on a phone, and the story's four chapters
+  (each opens the story there).
+- **One screen at a time on a fixed stage.** The bar (the way back, a strip with one bar per screen
+  grouped by chapter, the theme switch), the device, the who-you-are row, a two-line caption
+  and the controls (Back, "5 of 12", Next) each keep one place and one height, so nothing moves from
+  screen to screen. Phone and desktop screens share the stage: a phone screen stands in the middle
+  at the same height as a desktop one.
+- **Moving on.** Next, the Right arrow, or the pulsing hotspot on the control a person would tap,
+  which does what Next does. A tap elsewhere on the screen only points at the hotspot again. Back,
+  the Left arrow, the browser's back and the app's own back arrows, close buttons and Cancel go
+  back a screen; Escape and the top-left button go up to the intro or the chapter list.
+- **Endings.** The story's Finish opens a close: a recap, a pointer back to the deck, and See every
+  step. Every step ends back at its chapter list.
+- **Links.** Plain anchors, the only kind an artifact link carries: `#story-5` opens the story's
+  fifth screen, `#work-3` an appendix screen, `#end` the close and `#steps` the chapter list. v4's
+  `#/work/3` links still open.
+- **Theme.** The page follows the viewer's light or dark setting, with a switch; the screens stay as
+  captured.
 
 - Drive: `Shared drives/Greenpill Dev Guild/Product/Green Goods/Growth/SF Live 2026/Green Goods SF Live 2026 Demo.html`
 - Artifact (shared by link): <https://claude.ai/artifact/9ThhqDPZTEggFZuKnvS2wa>
@@ -40,7 +88,7 @@ The page:
 
 ## Where the screens come from
 
-**42 screens**: 17 App, 12 Storybook and 13 Composite.
+**49 screens**: 17 App, 19 Storybook and 13 Composite.
 
 - **App**: the develop app, dashboard and public site, run locally against the hub's record (the
   hosted indexer and the hub's pinned photos), signed in with the dev-only mock account, which is
@@ -48,7 +96,8 @@ The page:
   uploaded, signed or sent: a chapter stops on the button that would ask for a signature.
 - **Storybook**: Storybook built from develop, for the states the app reaches only after a
   signature, the states the hub's record does not have, and every voucher screen. Fixture copy is
-  swapped for the hub's (Demo copy, below).
+  swapped for the hub's (Demo copy, below). The voucher journeys are walked by their own buttons,
+  which stand in for the other people's acts; nothing in a story signs or sends.
 - **Composite**: a Storybook panel, sheet or dialog drawn into the real page it belongs to, in the
   real one's place (`over` in `capture.mjs`), so the page around it stays the hub's.
 
@@ -56,11 +105,11 @@ The page:
 
 | Path | What it is |
 |---|---|
-| [`index.html`](index.html) | The page: landing, chapter view and the `#flows` block with every caption, step, who you are, source, hotspot and back region. It shows the screens from `assets/screens/` when they are present |
+| [`index.html`](index.html) | The page: intro, player, close and chapter list, and the `#flows` block: the story (its chapters, lines, captions and who you are) and every step (each screen's caption, step, who you are, source, hotspot, back regions and alt text). It shows the screens from `assets/screens/` when they are present |
 | [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`. It replaces the set whole: one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
-| [`capture.mjs`](capture.mjs) | Walks each chapter's sessions in the app and Storybook, captures the 42 screens, swaps in names and the hub's content, and writes each screen's source, size, hotspot and back regions into `#flows` |
+| [`capture.mjs`](capture.mjs) | Walks each chapter's sessions in the app and Storybook, captures the 49 screens, swaps in names and the hub's content, and writes each screen's source, size, hotspot and back regions into `#flows` |
 | [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper). A missing screen or a page over 15 MB fails the build before it writes |
-| [`check.mjs`](check.mjs) | Checks the build and walks every chapter headless; screenshots each step and a contact sheet into `output/` |
+| [`check.mjs`](check.mjs) | Checks the build, walks the story and every step headless, and holds the player's parts to one place on every screen; screenshots each screen and a contact sheet into `output/` |
 | `assets/screens/`, `assets/photos/`, `output/` | Local files, not committed: the photos, the screens and the built page show identifiable people |
 
 ## Capture, build and check
@@ -106,27 +155,27 @@ node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/build.mjs
 node .plans/backlog/cosmo-local-credit-interop/artifacts/demo/check.mjs
 ```
 
-`capture.mjs --only=season-console,promise-3` re-runs single sessions (session ids are in
-`SESSIONS`); an unknown id stops the run before anything is captured, and swap rules shared with
-sessions outside `--only` are reported as not validated rather than passed. `--debug` prints each
-screen's text, `--html=<file>` writes another page's `#flows` block, and `--accept` keeps a run's
-screens despite its problems while iterating; a capture for the page runs without it. A composite
-needs the App screen under it captured first. Screens are staged and replace the current set only
-when the run has no problem. A capture fails when a step fails; when any swap rule, shared ones
-included, matches nothing on a full capture; when a fixture name survives on screen, or a name
-ending in `.eth` that is not one of the demo's appears; when a listed photo is missing or does not
-decode; when a record photo's title in `record-photos.tsv` no longer matches the submission
-`RECORDS` binds it to; when Storybook shows its not-found view; when a screen without a hotspot
-shows neither its `expect` copy nor any of its own swaps; or when a hotspot or back target is
-missing or off screen.
+`capture.mjs --only=swap,promise-5` re-runs single sessions (session ids are in `SESSIONS`); an
+unknown id stops the run before anything is captured, and swap rules shared with sessions outside
+`--only` are reported as not validated rather than passed. `--debug` prints each screen's text,
+`--html=<file>` writes another page's `#flows` block, and `--accept` keeps a run's screens despite
+its problems while iterating; a capture for the page runs without it. A composite needs the App
+screen under it captured first. Screens are staged and replace the current set only when the run
+has no problem. A capture fails when a step fails; when any swap rule, shared ones included,
+matches nothing on a full capture; when a fixture name survives on screen, or a name ending in
+`.eth` that is not one of the demo's appears; when a listed photo is missing or does not decode;
+when a record photo's title in `record-photos.tsv` no longer matches the submission `RECORDS`
+binds it to; when Storybook shows its not-found view; when a screen without a hotspot shows
+neither its `expect` copy nor any of its own swaps; or when a hotspot or back target is missing or
+off screen.
 
-`check.mjs` lists what it checks at its top: the copy rules, one hotspot on every screen but a
-chapter's last, the landing, the chapter strip and panel, in-screen and browser back, keys, focus,
-the theme switch, deep links (`#/promise/3`, and `#work-3` for artifact links), requests, console
-errors, and the phone width and dark mode.
+`check.mjs` lists what it checks at its top: the copy rules, the story's length, a hotspot on every
+appendix screen but a chapter's last, the intro, the story and every chapter walked by hotspot or
+Next, the player's parts held in place on every screen at four sizes, in-screen and browser back,
+keys, focus, links, the theme switch, requests, console errors, and the phone width and dark mode.
 
-To change a caption, a step, a "who you are" line, a tile line or an intro, edit `#flows` in
-`index.html`, then build and check.
+To change a caption, a "who you are" line or a chapter's line in the story, edit `story` in the
+`#flows` block of `index.html`; for every step, edit `flows`. Then build and check.
 
 ## The flows
 
@@ -150,7 +199,7 @@ To change a caption, a step, a "who you are" line, a tile line or an intro, edit
 | promise-2 | Composite: `client-home-takepartsheet--at-the-season` over promise-1 | Take Part at the season: the course and the bootcamp | Find the bootcamp in the season |
 | promise-3 | Storybook: `client-commitments-promisegrouppage--open` | The bootcamp's page: what it asks, 20 hours, due 25 Nov | Read what it asks, then take it |
 | promise-4 | Composite: `client-commitments-takeuponesheet--ready` over promise-3 | The take-up sheet | Promise to run the bootcamp |
-| promise-5 | Storybook: `client-commitments-gardencommitment--in-progress` | Her promise in progress: kept when the stewards approve its work | Hers now, kept when work is approved |
+| promise-5 | Storybook: `client-commitments-voucher-journeys--earn-vouchers` | Her promise in progress, with its rewards: 2 Tech and Sun vouchers and G$ after the work | Hers now: vouchers and G$ once it's kept |
 | work-1 | Storybook: `client-work-submitwork--start-on-promises` | Submit Work, Start: Keep a Promise, the bootcamp | Pick the promise this work keeps |
 | work-2 | Storybook: `client-work-submitwork--media-for-a-promise` | Media for the promise: the bootcamp's photo | Add a photo from the bootcamp |
 | work-3 | Storybook: `client-work-submitwork--review-for-a-promise` | Review for the promise: the garden as facts, the photo and the details | Check the details, then upload |
@@ -166,6 +215,13 @@ To change a caption, a step, a "who you are" line, a tile line or an intro, edit
 | vouchers-6 | Composite: `admin-pool-poolclaimscard--voucher-accept` over the real `dashboard /garden/pool` | The steward's Review Promises: her booking, Accept | The booking waits for the steward |
 | vouchers-7 | Composite: `admin-pool-poolclaimscard--voucher-accept` over vouchers-6 | Accept: the four checks the contract enforces | Accept once the four checks pass |
 | vouchers-8 | Storybook: `client-wallet-voucherstab--booked` | The wallet: the hub day booked, 1 voucher in a booking | Booked: her hub day is set |
+| swap-1 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Green Goods' AI tool seat, 30 days: she holds 2 Green Goods vouchers and it takes 10; Exchange Vouchers | The seat takes 10 Green Goods vouchers |
+| swap-2 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Exchange Vouchers in the shared pool: 8.01 Tech and Sun vouchers for 8 Green Goods vouchers, fees included | The shared pool quotes the swap |
+| swap-3 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Review the Exchange: what she spends, at least what she receives, and the fees | Check the swap, then approve it |
+| swap-4 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Exchanged: the receipt for 8.01 Tech and Sun vouchers to 8 Green Goods vouchers | Swapped. Nothing is booked yet |
+| swap-5 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | The seat's page: she holds 10 Green Goods vouchers; Review and Redeem | She holds 10 now, enough to book |
+| swap-6 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Review and Redeem: 30 days of a named AI tool seat for 10 Green Goods vouchers, held in escrow | Agree to the seat's exact terms |
+| swap-7 | Storybook: `client-commitments-voucher-journeys--exchange-then-redeem` | Her booking steps, all done through Green Goods accepting her; access has started | Green Goods accepts, and her seat is active |
 | impact-1 | App: `/` | greengoods.app's home page | Green Goods on the web |
 | impact-2 | App: `/` | Impact's evidence ledger, filtered to Education, at the bootcamp | Approved work, filtered to Education |
 | impact-3 | App: `/` | The bootcamp's approved submission, opened from the ledger | The bootcamp, on the public record |
@@ -176,7 +232,7 @@ To change a caption, a step, a "who you are" line, a tile line or an intro, edit
 | funding-5 | Composite: `public-documentation-funding--donated` over funding-3 | Donated $500.00 to the hub | Donated to the hub's shared fund |
 
 "Who you are" is Obinna for Needs, Season, Approval and the booking's acceptance (vouchers-6 and
-vouchers-7); Ifeoma for Promise, Work and the rest of Vouchers; Funmi for Impact and Funding.
+vouchers-7); Ifeoma for Promise, Work, Swap and the rest of Vouchers; Funmi for Impact and Funding.
 
 Desktop screens are 1440 by 900 at 1.5x and phone screens 390 by 844 at 2x, saved as JPEG. The app's
 own back arrow, close button or Cancel on a screen is a back region, measured by `capture.mjs` like
@@ -197,8 +253,9 @@ the hotspot.
   on. The Pool Funding card, which reads that switch, is hidden.
 - **Promise.** The bootcamp promise was never created (no signature), and develop's Home lists no
   open promise for the hub today, so Take Part on Home (promise-1) is the Storybook section drawn
-  where the real one sits, and the Take Part sheet, the promise's page, the take-up sheet and her
-  promise in progress are Storybook, with the sheets drawn over the screen they open from.
+  where the real one sits, and the Take Part sheet, the promise's page and the take-up sheet are
+  Storybook, with the sheets drawn over the screen they open from. Her promise in progress
+  (promise-5) is the earn journey's request page once her take-up is recorded, with both rewards.
 - **Work.** Submit Work's Start, Media and Review for a promise are Storybook (the mock account
   holds no promise). The hub's record has one photo of the bootcamp, so her upload has one, and the
   review shows the garden as facts (#1335).
@@ -209,6 +266,12 @@ the hotspot.
   signature; approval-4 is the Storybook summary in the same panel.
 - **Vouchers.** Every screen is Storybook: the pilot's reads are not live. The booking's card and
   its Accept dialog are drawn into the hub's real Promises tab.
+- **Swap.** Every screen is the exchange journey's Storybook story (#1356), walked by its own
+  buttons. The service the fixtures call "Claude access" is shown as the deck names it, an AI tool
+  seat. Green Goods accepts bookings in its own pool, the protocol pool, and develop has no story of
+  that Accept dialog, so the chapter ends on her booking with every step done rather than on a
+  dialog borrowed from the hub's pool. Her two scrolled pages (promise-5 and swap-7) take out
+  Storybook's padding above the page, which would show content above the app's top bar.
 - **Impact.** The public site as it stands: the home page, the Impact page's evidence ledger
   filtered to Education, and the bootcamp's approved submission.
 - **Funding.** The hub's page, Fund and the Donate dialog are real up to Connect Wallet; the
@@ -232,7 +295,9 @@ actions and its public pages):
 Sample: every person's name (below); the earlier assessment; the new assessment and its targets;
 the bootcamp promise (its title, 20 hours, 25 November 2026 and $20); Ifeoma's take-up, her
 submission's time and the approval note; the vouchers (2 earned, 9 held, the hub day booked for
-January); the G$ amount (155,460, at the rate the Storybook fixtures fix); and the $500 donation.
+January); the swap (2 Green Goods vouchers held, 10 for the seat, 8.01 Tech and Sun vouchers for 8,
+a 0.01 fee, the pilot's 1:1 rate, a 2 November deadline); the G$ amount (155,460, at the rate the
+Storybook fixtures fix); and the $500 donation.
 
 ## Names
 
@@ -245,9 +310,9 @@ The confirmer field's hint keeps the app's own example, lina.eth.
 
 | On the record or in the fixture | In the demo |
 |---|---|
-| The mock account's handle; the fixture steward `tomas`; the pool's requester `0x5e...0b2` | obinna |
-| The fixture member `amara`, `lina` and `Kwesi`; the steward's own node log's submitter | ifeoma / Ifeoma |
-| The fixture member `Lina` who books first | Nneka |
+| The mock account's handle; the pool's requester `0x5e...0b2` | obinna |
+| The fixture member `amara`, `lina` and `Kwesi`; the earn and swap journeys' reader `Lina`; the steward's own node log's submitter | ifeoma / Ifeoma |
+| The fixture member `Lina` who books first in the hub-day fixtures | Nneka |
 | The hub's two other stewards (their ENS names) | adaeze.eth; ikenna.eth |
 | The fixture wallet `0x5eed...00a1` | funmi.eth |
 
@@ -256,8 +321,8 @@ The confirmer field's hint keeps the app's own example, lina.eth.
 Swapped into each screen's text, `alt`, `aria-label`, `title`, placeholders and field values after
 it renders, with the photos named in the flows table. Components, layout and controls stay as
 rendered. The tables in `capture.mjs` (`HUB_LIST`, `SEASON_SETUP`, `TAKE_PART`, `GROUP`,
-`IN_PROGRESS`, `START`, `FOR_PROMISE`, `QUEUE`, `REVIEW_FORM`, `EARN`, `HUB_DAY`, `DONATE`,
-`ASSESSMENT`) hold every rule; in short:
+`START`, `FOR_PROMISE`, `QUEUE`, `REVIEW_FORM`, `EARN`, `READER`, `SEAT`, `HUB_DAY`,
+`DONATE`, `ASSESSMENT`) hold every rule; in short:
 
 | Fixture or record text | Demo copy | Screens |
 |---|---|---|
@@ -265,13 +330,14 @@ rendered. The tables in `capture.mjs` (`HUB_LIST`, `SEASON_SETUP`, `TAKE_PART`, 
 | Rocinha's pool; Season of First Rains | TAS HUB's pool; Climate and Tech Education | season-2 |
 | Reward: None | $20.00, paid in G$ once it's kept | season-7 |
 | Riverside Commons Garden; Autumn Planting 2026; Sep 1 – Nov 30 · 3 of 7 kept | TAS HUB; Climate and Tech Education; Oct 10 – Jan 31 · 1 of 2 kept | promise-2, promise-5 |
-| The fixture requests and offers (household survey, fence repair, composting workshop, seed library, watering) | Run a one-week AI content bootcamp; the season's course | promise-1 to promise-5, work-1 to work-3, vouchers-1 |
+| The fixture requests and offers (household survey, compost workshops, fence repair, composting workshop, seed library, watering) | Run a one-week AI content bootcamp; the season's course | promise-1 to promise-5, work-1 to work-3, vouchers-1 |
 | Offered (Take Part rows) | Asked for | promise-2 |
 | 2 hours, 1 repair, 2 workshops; Oct 20, Oct 30, Dec 14; $5.00 | 20 hours; Nov 25, 2026; $20.00 | promise-3 to promise-5, vouchers-1 |
 | 4 available · 3 in progress · 3 kept | 1 available · 0 in progress · 0 kept | promise-3 |
 | Workshop photos; 3 of 12 approved; Seedling Transplant; Plants moved 36; Members 3 | the bootcamp; 0 of 1 approved; Workshop Delivered; Facilitators 2; Members 14 | work-1 to work-3 |
 | The steward's own pending Node Operation Log, by afo, 3 weeks ago, Oct 1 | Workshop Delivered, by ifeoma, 12 minutes ago, Oct 26, 2026, 4:48 PM | approval-1 to approval-4 |
-| 120 G$ | 155,460 G$ | vouchers-1 |
+| 120 G$ | 155,460 G$ | promise-5, vouchers-1 |
+| Claude access; Claude seat; Claude Team seat | AI tool seat | swap-1 to swap-7 |
 | Nov 2; Oct 26 (the hub day's deadline and agreement) | Jan 20; Jan 13 | vouchers-4, vouchers-5 |
 | $50.00 | $500.00 | funding-4, funding-5 |
 | The fixture photos; the node log's photo | record-06 (the bootcamp's record photo) | promise-1, work-2, work-3, approval-1 to approval-4 |
@@ -282,19 +348,21 @@ Typed into the app rather than swapped: the assessment (needs-3 to needs-5), the
 Hidden on screens, because the story does not have them: the steward's "Needs Your Attention" row
 on Home (promise-1, when present); the season's course requests on the Promises tab before the
 season (season-1); the Pool Funding card (season-1, season-3 to season-7); the fixture's campaign
-and its rows in Take Part; the fixture's second team member (promise-5); the node log in Start's
-promises (work-1); the fixture's second review photo (work-3); "waiting over a week" (approval-1);
-and the voucher stories' narration.
+and its rows in Take Part; the node log in Start's promises (work-1); the fixture's second review
+photo (work-3); "waiting over a week" (approval-1); and the voucher stories' narration.
 
 ## Claims
 
 - Captions, steps, intros and the page's own words say nothing about chains, use "promise", never
-  "commitment", and mark every voucher screen "In pilot". The landing says "Real app screens with
-  demo data."
+  "commitment", and mark every voucher screen "In pilot". The intro says "Real app screens with demo
+  data" and that vouchers are in pilot.
 - App text inside the screens still says "Connect Wallet", WETH and DAI (funding-3, funding-4),
-  "Your wallet will ask you once" (season-7) and "Starting follows on the voucher network"
-  (vouchers-7); none of them names a chain.
-- Payouts are shown on (season-7, promise-3, vouchers-1) while develop's settlement switch is off.
+  "Your wallet will ask you once" (season-7), "Starting follows on the voucher network" (vouchers-7)
+  and "Deposit confirmed on Green Goods" (swap-7); none of them names a chain.
+- Payouts are shown on (season-7, promise-3, promise-5, vouchers-1) while develop's settlement
+  switch is off.
+- The swap's rate and fees are the pilot fixture's. The brief says no member has used a voucher yet,
+  which the "In pilot" marks keep true.
 
 ## Task record · clickable demo
 
@@ -352,3 +420,23 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `b9d3ba
 | publish | 03:05 → 03:10 | Commits `a415f8521`, `e61bd3807` and `237347b0f` pushed (gate passed; the first try stopped on the uncommitted launch config's format); artifact version 11 at the same link, carrying the alt text another session had added to the live v3; Drive copy replaced |
 
 Human corrections: 1 observed in this segment (Afo's review: the flows felt disconnected, the app's own back controls did nothing, "names are changed" should read as demo data, the dashboard's approvals and the merged voucher work were missing, and garden cards should be text); attention unknown.
+
+## Task record · a 12-screen story
+
+Task record: SF.Live clickable demo, v5 | Type: feature | Outcome: complete; delivery links above
+Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `89b7fb45e`
+
+| Phase | Start → end (UTC, 27 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| research | 03:42 → 04:52 | Afo's review of v4: the frame moved as captions wrapped, and eight chapters felt like too much clicking. The shift measured on every v4 screen and fixed on a scratch copy; interactive-demo and hackathon-judging practice read (10 to 12 steps, about two minutes); the submission brief and the deck pinned what was built for SF.Live; four decisions locked with Afo (12-screen story with the appendix, earn then swap then book, both steward screens, Next beside the hotspot) |
+| sync | 04:52 → 05:01 | The capture checkout moved to develop's `19d8ebf8e` (the swap, #1356; a member's own lesson, #1359; the steward's voucher outcomes, #1360); Storybook rebuilt from it |
+| implement | 05:01 → 05:51 | The swap chapter's seven screens from the exchange journey story; her promise in progress with both rewards; the page's new shell (intro, fixed-stage player with Next, close, chapter list); `check.mjs` rewritten around the fixed layout |
+| verify | 05:51 → 06:32 | A clean full capture on `19d8ebf8e`: 49 screens, 0 problems (the first full run failed only on a rename rule no screen needed any more, now removed); `build.mjs` 8.38 MB; `check.mjs` exit 0: the story and all 49 appendix screens walked, 33 back regions, and the bar, stage, who-you-are row, caption, controls and device held in place on every screen at 1440x900, 1280x720, 768x1024 and 390x844; every new screen and the story's contact sheet inspected |
+| publish | 06:32 → | Recorded in the next commit |
+
+One locked decision changed in the build: Green Goods' acceptance of the seat has no story on
+develop (its pool is the protocol pool, whose Accept dialog differs from the hub's), so the story's
+voucher chapter ends on her booking with every step done, and the steward accepting a booking stays
+in the appendix (vouchers-7, the hub day).
+
+Human corrections: 1 observed in this segment (Afo's v4 review: no layout shift, far fewer clicks, ground in the core loop and focus on what was built for the hackathon); attention unknown.

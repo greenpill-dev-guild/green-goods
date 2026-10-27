@@ -1,10 +1,12 @@
 // Captures the clickable demo's screens into ./assets/screens (not committed) and writes each
 // screen's source, size, measured hotspot and back regions into index.html's #flows block.
 //
-// The demo follows one season at Tech and Sun's hub, TAS HUB in Awka, in eight chapters: the
-// steward records the need and starts the season with a bootcamp promise, a member takes it up and
-// logs the bootcamp for it, the steward approves it (which keeps the promise), the kept promise pays
-// vouchers that buy a hub day (in pilot), and a supporter follows the public record and donates.
+// The demo follows one season at Tech and Sun's hub, TAS HUB in Awka, in nine chapters ("See every
+// step"): the steward records the need and starts the season with a bootcamp promise, a member takes
+// it up and logs the bootcamp for it, the steward approves it (which keeps the promise), the kept
+// promise pays vouchers that buy a hub day or, swapped in the shared pool, an AI tool seat from Green
+// Goods (in pilot), and a supporter follows the public record and donates. The 12-screen story on
+// the page's landing reuses twelve of these screens.
 // Each chapter is a set of sessions that start where a person starts and walk the app and
 // dashboard on develop, clicking, typing and choosing, with Tech and Sun's record behind them. A
 // step that would need a signature is never pressed; the states after it, the states the hub's
@@ -102,7 +104,6 @@ const BOOTCAMP_NOTE = "A one week content creation bootcamp with AI";
 const ADDRESS_NAMES = ["tobenna.eth", "kelechi.eth", "nneka.eth", "ada.eth", "uche.eth", "ngozi.eth", "chidi.eth", "amaka.eth"];
 const PEOPLE = [
   ["afo", "obinna", undefined, true],
-  ["tomas", "obinna", undefined, true],
   // The hub's two other stewards, named as confirmers and on its public page.
   ["nansel.eth", "adaeze.eth"],
   ["amioantho.eth", "ikenna.eth"],
@@ -180,15 +181,6 @@ const GROUP = [
   ["4 available · 3 in progress · 3 kept", "1 available · 0 in progress · 0 kept"],
   ["$5.00", "$20.00"],
 ];
-// Her promise once taken up: a garden-work promise, kept when the stewards approve its work.
-const IN_PROGRESS = [
-  ["Repair the north fence panel by the compost bays before the first frost", BOOTCAMP],
-  ["Two slats are split and loose after the storm. Materials are in the tool shed.", BOOTCAMP_ASK],
-  ["1 repair", "20 hours"],
-  ["Oct 20, 2026", BOOTCAMP_DUE],
-  ["amara", "ifeoma", undefined, true],
-  ["tomas", "obinna", undefined, true],
-];
 // Submit Work for her promise (Start, Media and Review stories), and the details she gives.
 const START = [["Workshop photos", BOOTCAMP], ["3 of 12 approved", "0 of 1 approved"], ["due Jan 31, 2027", `due ${BOOTCAMP_DUE}`]];
 const FOR_PROMISE = [
@@ -209,15 +201,19 @@ const QUEUE = [
 ];
 const REVIEW_FORM = [["0x11...111", "ifeoma"], ["Rio Rainforest Lab's", "TAS HUB's"]];
 // The kept promise's rewards: vouchers from Tech and Sun's reserve and G$ from the hub's pool.
-const EARN = [
+const EARN_TERMS = [
   ["Teach two compost workshops", BOOTCAMP],
   ["120 G$", REWARD_GD],
   ["2 workshops", "20 hours"],
   ["Dec 14, 2026", BOOTCAMP_DUE],
   ["Run two hands-on compost workshops for neighbors at the garden, one in November and one in December.", BOOTCAMP_ASK],
   ["Riverside Commons Garden's pool", "TAS HUB's pool"],
-  ["No approved work yet · no proof yet", "1 approved work · no proof yet"],
 ];
+const EARN = [...EARN_TERMS, ["No approved work yet · no proof yet", "1 approved work · no proof yet"]];
+// The reader of the earn and swap journeys is Ifeoma.
+const READER = [["Lina", "Ifeoma"], ["lina", "ifeoma"]];
+// Green Goods' service in the swap journey, named as the deck names it.
+const SEAT = [["Claude Team seat", "AI tool seat"], ["Claude seat", "AI tool seat"], ["Claude access", "AI tool seat"]];
 // The hub day she books in January, and the booking's dates in the fixtures.
 const HUB_DAY = [["Nov 2", "Jan 20"], ["Oct 26", "Jan 13"]];
 // The app lists WETH before DAI (funding-3); the stories list DAI first.
@@ -231,7 +227,7 @@ const wethFirst = {
 const DONATE = [["$50.00", "$500.00"], ["50.00", "500.00", undefined, true], ["0x5eed...00a1", "funmi.eth"]];
 
 // Fixture text that must not survive in a Storybook screen.
-const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /\btomas\b/, /\bamara\b/, /\bdele\b/i, /Greenpill NYC/, /vault-owner/, /[Ss]eedling/, /lettuce/, /Mulch/, /Pond/, /canopy/i, /\bafo\b/, /Node Operation/, /Muizenberg/, /Rocinha/, /First Rains/, /Okafor/, /compost/i, /\bKwesi\b/i, /\bLina\b/, /Botanic/, /Market rides/, /Harvest Season/, /Seed Swap/, /Step \d+ of \d+/];
+const LEFTOVERS = [/Riverside/, /Rio (Rainforest|canopy)/, /Mill Lane/, /frost/, /fence/i, /Autumn/, /\btomas\b/, /\bamara\b/, /\bdele\b/i, /Greenpill NYC/, /vault-owner/, /[Ss]eedling/, /lettuce/, /Mulch/, /Pond/, /canopy/i, /\bafo\b/, /Node Operation/, /Muizenberg/, /Rocinha/, /First Rains/, /Okafor/, /compost/i, /\bKwesi\b/i, /\bLina\b/, /Botanic/, /Market rides/, /Harvest Season/, /Seed Swap/, /Step \d+ of \d+/, /Claude/];
 
 // Hides the card around `text`: its nearest opaque ancestor at least `minHeight` tall.
 const hideCard = (text, minHeight = 80) => ({
@@ -247,6 +243,19 @@ const hideCard = (text, minHeight = 80) => ({
 const showCards = { script: () => document.querySelectorAll("[data-demo-hidden]").forEach((el) => { el.style.removeProperty("display"); el.removeAttribute("data-demo-hidden"); }) };
 // The voucher journeys' story harness (its "Step n of m" line and buttons) is not part of the app.
 const hideHarness = { script: () => document.querySelectorAll('[data-component="VoucherJourneyNarration"]').forEach((el) => el.style.setProperty("display", "none", "important")) };
+// Storybook's padding above a story's page lets a scrolled page show above the app's top bar, which
+// the app pins to the top of the screen; a scrolled screen takes that padding out.
+const flushTop = {
+  script: () => {
+    let el = document.querySelector('[aria-label="Go back"]');
+    while (el && getComputedStyle(el).position !== "fixed") el = el.parentElement;
+    for (el = el?.parentElement; el && el !== document.body; el = el.parentElement) {
+      if (parseFloat(getComputedStyle(el).paddingTop) > 0) { el.style.setProperty("padding-top", "0", "important"); return; }
+    }
+  },
+};
+// Its buttons stand in for the other people's acts, so it shows again before they are pressed.
+const showHarness = { script: () => document.querySelectorAll('[data-component="VoucherJourneyNarration"]').forEach((el) => el.style.removeProperty("display")) };
 
 // Sessions. Each opens one browser context at `url` and runs `steps` in order. A step is an
 // action ({ click }, { fill, value }, { select, value }, { pickDate }, { files }, { reveal },
@@ -383,13 +392,17 @@ const SESSIONS = [
   },
   { id: "promise-3", device: PHONE, url: story("client-commitments-promisegrouppage--open"), steps: [{ shot: "promise-3", back: { role: "button", name: "Go back" }, swaps: [...GROUP, ...BASE], tap: { role: "button", name: "Take Up One" } }] },
   { id: "promise-4", device: PHONE, url: story("client-commitments-takeuponesheet--ready"), steps: [{ shot: "promise-4", back: [{ role: "button", name: "Close" }, { role: "button", name: "Cancel" }], swaps: [...GROUP, ...BASE], over: { screen: "promise-3", text: "Take up one of these promises", minHeight: 200, scrim: '[data-component="PwaSheet"]:not([role])' }, tap: { role: "button", name: "Take Up One" } }] },
+  // Hers once taken up, with the rewards the hub agreed (in pilot): the earn journey's request page
+  // after the take-up is recorded.
   {
-    id: "promise-5", device: PHONE, url: story("client-commitments-gardencommitment--in-progress"),
+    id: "promise-5", device: PHONE, url: story("client-commitments-voucher-journeys--earn-vouchers"),
     steps: [
-      // She leads it alone at first.
-      { remove: { text: /is helping/ }, up: 1 },
-      { remove: { css: 'section[data-component="CommitmentTeam"] li:nth-child(2)' } },
-      { shot: "promise-5", back: { role: "button", name: "Go back" }, swaps: [...IN_PROGRESS, ...BASE] },
+      { click: { role: "button", name: "Green Goods records Lina's agreement" }, wait: 2500 },
+      hideHarness,
+      // The promise and its rewards, under the page's top bar.
+      flushTop,
+      { scrollTo: { text: "What was promised", align: "start", top: 108 } },
+      { shot: "promise-5", swaps: [...EARN_TERMS, ...READER, ...BASE], tap: { role: "button", name: "Add Proof" } },
     ],
   },
 
@@ -414,7 +427,7 @@ const SESSIONS = [
     steps: [
       // One photo, as on the record: the fixture's second goes.
       { script: () => { const imgs = [...document.querySelectorAll("img")].filter((img) => img.getBoundingClientRect().width >= 60); let tile = imgs[1]; while (tile?.parentElement && tile.parentElement.querySelectorAll("img").length < 2) tile = tile.parentElement; tile?.style.setProperty("display", "none", "important"); } },
-      { shot: "work-3", back: { role: "button", name: "Go back" }, swaps: [["3", "14", 0, true], ...FOR_PROMISE, ...BASE], photos: ["record-06.jpg"] },
+      { shot: "work-3", back: { role: "button", name: "Go back" }, swaps: [["3", "14", 0, true], ...FOR_PROMISE, ...BASE], photos: ["record-06.jpg"], tap: { role: "button", name: "Upload Work" } },
     ],
   },
 
@@ -490,6 +503,50 @@ const SESSIONS = [
   },
   { id: "vouchers-7", device: DESKTOP, url: story("admin-pool-poolclaimscard--voucher-accept"), steps: [{ shot: "vouchers-7", back: [{ role: "button", name: "Close" }, { role: "button", name: "Cancel" }], swaps: VOUCHER_PEOPLE, over: { screen: "vouchers-6", text: "Writing to", minHeight: 300, scrim: '[data-component="AdminDialog"]' }, tap: { role: "button", name: "Accept Ifeoma" } }] },
   { id: "vouchers-8", device: PHONE, url: story("client-wallet-voucherstab--booked"), steps: [{ shot: "vouchers-8", expect: ["Booked", "in a booking"] }] },
+
+  // Swap (in pilot): instead of a hub day, Ifeoma swaps Tech and Sun vouchers for Green Goods
+  // vouchers in the shared pool and books Green Goods' AI tool seat. Every screen is the exchange
+  // journey's story, walked by its own buttons (fixtures only: nothing signs or sends). Green Goods'
+  // acceptance has no story of its own, so the journey ends on her page with every step done.
+  {
+    id: "swap", device: PHONE, url: story("client-commitments-voucher-journeys--exchange-then-redeem"),
+    swaps: [...SEAT, ...READER, ...BASE],
+    steps: [
+      hideHarness,
+      { scrollTo: { text: "Exchange Vouchers", align: "end", margin: 140 } },
+      { shot: "swap-1", back: { role: "button", name: "Go back" }, tap: { role: "button", name: "Exchange Vouchers" } },
+      { click: { role: "button", name: "Exchange Vouchers" }, wait: 2500 },
+      hideHarness,
+      { shot: "swap-2", back: { role: "button", name: "Close" }, tap: { role: "button", name: "Review Exchange" } },
+      { click: { role: "button", name: "Review Exchange" }, wait: 2500 },
+      hideHarness,
+      { shot: "swap-3", tap: { role: "button", name: "Exchange" } },
+      { click: { role: "button", name: "Exchange" }, wait: 3500 },
+      { click: { role: "button", name: "Check Receipt" }, wait: 3500 },
+      hideHarness,
+      // The receipt's Back and close both lead on to her page, so neither goes back a screen.
+      { shot: "swap-4", expect: ["Exchanged", "Receipt"], tap: { role: "button", name: "Back" } },
+      { click: { role: "button", name: "Close" }, wait: 2500 },
+      hideHarness,
+      { shot: "swap-5", expect: ["You hold 10."], tap: { role: "button", name: "Review and Redeem" } },
+      { click: { role: "button", name: "Review and Redeem" }, wait: 3000 },
+      hideHarness,
+      { shot: "swap-6", back: { role: "button", name: "Close" }, tap: { role: "button", name: "Agree to These Terms" } },
+      { click: { role: "button", name: "Agree to These Terms" }, wait: 3500 },
+      { click: { role: "button", name: "Done" }, wait: 2500 },
+      showHarness,
+      { click: { role: "button", name: "Green Goods approves" }, wait: 3000 },
+      { click: { role: "button", name: "Deposit 10 Vouchers" }, wait: 3000 },
+      { click: { role: "button", name: "Deposit 10 Vouchers" }, wait: 3500 },
+      { click: { role: "button", name: "View Booking" }, wait: 3000 },
+      showHarness,
+      { click: { role: "button", name: "Green Goods accepts" }, wait: 3500 },
+      hideHarness,
+      flushTop,
+      { scrollTo: { text: "Booking steps", align: "start", top: 108 } },
+      { shot: "swap-7", expect: ["Green Goods accepted you"] },
+    ],
+  },
 
   // Impact: Funmi finds Green Goods on the web and follows its record to the hub and the bootcamp.
   {
