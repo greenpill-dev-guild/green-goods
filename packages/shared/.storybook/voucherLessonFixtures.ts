@@ -113,11 +113,24 @@ export function lessonStoryCoreState(stage: BookingStoryStage): CommitmentDerive
   return stage === "closed" ? "CANCELLED" : bookingStoryCoreState("hubDay", stage);
 }
 
-/** The promise page's controller for the lesson: Teo's offer in his garden. */
+/** The promise page's controller for the lesson: Teo's offer, which he leads. */
 export function lessonStoryController(stage: BookingStoryStage): GardenCommitmentController {
   const controller = bookingStoryController("hubDay", lessonStoryCoreState(stage));
+  const teo = LESSON_STORY_ISSUER.account;
+  const detail = controller.detail && {
+    ...controller.detail,
+    commitment: {
+      ...controller.detail.commitment,
+      creator: teo,
+      leadProvider: teo,
+      unitLabel: "minutes",
+      targetUnits: MINUTES,
+    },
+    contributors: controller.detail.contributors.map((entry) => ({ ...entry, contributor: teo })),
+  };
   return {
     ...controller,
+    detail,
     metadata: {
       version: 1,
       title: LESSON_STORY_TITLE,
