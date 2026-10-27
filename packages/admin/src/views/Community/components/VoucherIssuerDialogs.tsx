@@ -235,7 +235,7 @@ export function VoucherIssuerDialog({
             {["c.hold", "c.book", "c.ex", "c.obl"].map((key) => (
               <li key={key} className="flex items-start gap-2 type-body text-text-strong">
                 <RiCheckLine
-                  className="mt-0.5 h-4 w-4 shrink-0 text-success-base"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-success-dark"
                   aria-hidden="true"
                 />
                 <span>{t(key)}</span>
