@@ -86,6 +86,8 @@ export type PilotRoleObservation =
 export type ServiceAccessPilotAction =
   | { action: "observePilotRole"; observation: PilotRoleObservation }
   | { action: "deliverPilotReward" | "acknowledgePilotReward"; asset: "voucher" | "gd" }
-  | { action: "quotePilotExchange" | "resolvePilotExchange" }
+  /** A quote for the pilot's input amount, or for a smaller one after a short pool. */
+  | { action: "quotePilotExchange"; input?: bigint }
+  | { action: "resolvePilotExchange" }
   | { action: "approvePilotExchange"; expectedQuoteId: Hex }
   | { action: "executePilotExchange"; quote: PilotExchangeQuote };

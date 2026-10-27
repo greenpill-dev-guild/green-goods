@@ -4,6 +4,7 @@ import type {
   ServiceAccessPilot,
   ServiceAccessPilotAction,
 } from "../service-access-pilot-types";
+import { PILOT_EXCHANGE_INPUT } from "../service-access-pilot";
 import type { ServiceAccessKey, ServiceAccessSnapshot } from "../service-access-types";
 import { rehearsalHash } from "./demo-service-identities";
 
@@ -206,7 +207,7 @@ export function applyPilotAction(
     return;
   }
   if (a.action === "quotePilotExchange") {
-    const input = 2_044_986n,
+    const input = a.input ?? PILOT_EXCHANGE_INPUT,
       grossOutput = (input * 1_000_000n) / 2_000_000n;
     const poolFee = (grossOutput * 20_000n) / 1_000_000n,
       protocolFee = (poolFee * 100_000n) / 1_000_000n;
