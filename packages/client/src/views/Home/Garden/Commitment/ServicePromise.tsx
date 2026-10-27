@@ -4,13 +4,16 @@ import {
   type ServiceAccessAction,
   type ServiceAccessKey,
   type ServiceAccessSnapshot,
+  serviceVoucherHolder,
   useServiceAccessMutation,
   useVoucherIssuerApproval,
   useVoucherWallet,
 } from "@green-goods/shared/commitment-pooling";
-import { RiExchangeLine } from "@remixicon/react";
+import { RiExchangeLine, RiQuestionLine } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { useNavigate } from "react-router-dom";
+import { APP_ROUTES } from "@/config/pwaRouting";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import type { CommitmentIdentityProps } from "./CommitmentIdentity";
 import { JoinToActDoor } from "./JoinToAct";
@@ -22,16 +25,28 @@ import {
   cancelStep,
   depositStep,
   legStep,
+  retryConfirmStep,
   runServiceAct,
   type ServiceActEnd,
   type ServiceActStep,
   serviceActOffered,
   splitStep,
+  unsentLegStep,
 } from "./serviceActs";
-import { formatVoucherMessage, isServiceAccessPromise, serviceBookingView } from "./serviceBooking";
+import {
+  bookingVoucherIssuer,
+  formatVoucherMessage,
+  isServiceAccessPromise,
+  serviceBookingView,
+} from "./serviceBooking";
 import { ServiceBookingSheets, type ServiceSheet } from "./ServiceBookingSheets";
 import type { ServiceActKind, ServiceBookingView } from "./serviceBookingTypes";
-import { exchangeQuoteFromPilot, exchangeStep } from "./serviceExchange";
+import {
+  exchangeAvailable,
+  exchangeQuoteFromPilot,
+  exchangeStep,
+  smallerExchangeInput,
+} from "./serviceExchange";
 import type { ServiceRedeemOutcome } from "./ServiceRedeemSheet";
 import { ServiceRewardsSection } from "./ServiceRewardsSection";
 import { serviceRewardsView } from "./serviceRewards";
@@ -84,11 +99,13 @@ export function ServicePromise({
   children,
 }: ServicePromiseProps) {
   const intl = useIntl();
+  const navigate = useNavigate();
   const mutation = useServiceAccessMutation(serviceKey);
   const snapshot = access.data ?? null;
   const walletChain = snapshot?.key.sourceChainId;
   const walletModule = snapshot?.key.coreModule;
-  const walletAccount = snapshot?.key.buyer;
+  // The vouchers are the holder's, who need not be the member who agreed.
+  const walletAccount = snapshot ? serviceVoucherHolder(snapshot) : undefined;
   const walletScope = useMemo(
     () =>
       walletChain !== undefined && walletModule && walletAccount
@@ -97,12 +114,7 @@ export function ServicePromise({
     [walletChain, walletModule, walletAccount]
   );
   const wallet = useVoucherWallet(walletScope).data;
-  const token =
-    snapshot?.offer?.voucher?.asset.token ?? snapshot?.pilot?.reward?.voucher.asset.token;
-  const issuer =
-    wallet?.issuers.find(
-      (entry) => token !== undefined && entry.asset.token.toLowerCase() === token.toLowerCase()
-    ) ?? null;
+  const issuer = bookingVoucherIssuer(snapshot, wallet?.issuers);
   const approval = useVoucherIssuerApproval(issuer).data ?? null;
   const [sheet, setSheet] = useState<ServiceSheet>(null);
   const [outcome, setOutcome] = useState<ServiceRedeemOutcome>(null);
@@ -176,9 +188,11 @@ export function ServicePromise({
           ? "offline"
           : !snapshot.capabilities.canSignHolder
             ? "signingUnavailable"
-            : balance !== null && balance < booking.words.units
-              ? "notEnough"
-              : null
+            : snapshot.pause.destinationVoucher === true
+              ? "paused"
+              : balance !== null && balance < booking.words.units
+                ? "notEnough"
+                : null
       );
       setSheet("redeem");
     } else if (kind === "close" || kind === "review") setSheet("split");
@@ -187,6 +201,8 @@ export function ServicePromise({
     else if (kind === "activate") void act(activateStep);
     else if (kind === "cancel" || kind === "cancelChanged") void act(cancelStep);
     else if (kind === "retry") void act(legStep);
+    else if (kind === "send") void act(unsentLegStep);
+    else if (kind === "retryConfirm") void act(retryConfirmStep);
   };
   // The bar offers an act only when the shared selector offers its first write. Deposit's sheet
   // and a paused or offline offer say why an act can't run; any other refusal hides the act.
@@ -239,7 +255,7 @@ export function ServicePromise({
               title={booking.door.title}
               line={booking.door.body}
               door={
-                snapshot?.pilot
+                snapshot && exchangeAvailable(snapshot)
                   ? {
                       label: booking.door.act.label,
                       icon: <RiExchangeLine className="h-4 w-4" aria-hidden="true" />,
@@ -253,7 +269,12 @@ export function ServicePromise({
             <JoinToActDoor
               title={rewards.agreementUnavailable.title}
               line={rewards.agreementUnavailable.body}
-              door={null}
+              door={{
+                label: rewards.agreementUnavailable.label,
+                icon: <RiQuestionLine className="h-4 w-4" aria-hidden="true" />,
+                // The app's Help, where it says how to reach the Green Goods team.
+                onAct: () => navigate(`${APP_ROUTES.profile}?tab=help`),
+              }}
             />
           ) : null}
           {booking ? <ServiceAccessSection view={booking} /> : null}
@@ -320,6 +341,12 @@ export function ServicePromise({
             onRequote: () => {
               setReviewingExchange(false);
               void runOnce({ action: "quotePilotExchange" });
+            },
+            // A short pool quotes again for what it can give, not the same amount.
+            smaller: smallerExchangeInput(snapshot),
+            onSmaller: (input) => {
+              setReviewingExchange(false);
+              void runOnce({ action: "quotePilotExchange", input });
             },
           }}
           isPending={pending}

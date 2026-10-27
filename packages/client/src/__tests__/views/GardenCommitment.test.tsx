@@ -136,10 +136,14 @@ const { GardenCommitment } = await import("../../views/Home/Garden/Commitment");
 const { serviceAccessStorySnapshot } = await import(
   "../../views/Home/Garden/Commitment/serviceAccessStoryFixtures"
 );
-const { bookingStorySnapshot, bookingStoryWallet } = await import(
-  "../../../../shared/.storybook/voucherBookingFixtures"
-);
-const { VOUCHER_STORY_APPROVALS } = await import(
+const {
+  bookingStoryController,
+  bookingStorySnapshot,
+  bookingStoryWallet,
+  rewardStoryController,
+  rewardStorySnapshot,
+} = await import("../../../../shared/.storybook/voucherBookingFixtures");
+const { VOUCHER_STORY_APPROVALS, VOUCHER_STORY_ISSUERS, vouchers } = await import(
   "../../../../shared/.storybook/voucherPilotFixtures"
 );
 
@@ -314,9 +318,15 @@ function render(commitmentId = "9") {
         <Route path="/home/:id/commitments/:commitmentId/proof" element={<p>Proof composer</p>} />
         <Route path="/home/:id/work/:workId" element={<p>Work detail</p>} />
         <Route path="/home/garden" element={<WorkSubmissionRoute />} />
+        <Route path="/home/profile" element={<HelpRoute />} />
       </Routes>
     </MemoryRouter>
   );
+}
+
+function HelpRoute() {
+  const location = useLocation();
+  return <output data-testid="help-route">{`${location.pathname}${location.search}`}</output>;
 }
 
 function ComposerRoute() {
@@ -440,6 +450,29 @@ describe("GardenCommitment", () => {
     expect(screen.getByRole("button", { name: "Deposit 1 Voucher" })).toBeInTheDocument();
   });
 
+  it("reads the voucher wallet of the booking's holder, not of the member who agreed", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        seat: "bystander",
+        detail: detail({
+          commitment: { onchainState: "OFFERED", derivedState: "OFFERED", creator: OTHER },
+        }),
+      })
+    );
+    const snapshot = bookingStorySnapshot("hubDay", "readyToDeposit");
+    snapshot.voucherSetups = snapshot.voucherSetups.map((setup) => ({
+      ...setup,
+      authorization: { ...setup.authorization, holder: HELPER },
+    }));
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    render();
+    expect(snapshot.key.buyer).not.toBe(HELPER);
+    expect(mockVoucherWallet).toHaveBeenLastCalledWith(
+      expect.objectContaining({ account: HELPER })
+    );
+  });
+
   it("uses the service boundary for known incomplete opt-in instead of generic claim and acceptance", () => {
     mockUseController.mockReturnValue(
       controller({
@@ -532,6 +565,32 @@ describe("GardenCommitment", () => {
     });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("3 hours");
     expect(screen.getByRole("button", { name: "Add Proof" })).toBeInTheDocument();
+  });
+
+  it("names the reward among what was promised, so it stays in sight after taking one up", () => {
+    const wei = 160_000n * 10n ** 18n;
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          commitment: {
+            direction: "REQUEST",
+            commitmentType: "SUPPORT_SERVICE",
+            considerationRail: "CELO_SETTLEMENT",
+            considerationAmount: wei,
+          },
+        }),
+        metadata: {
+          version: 1,
+          title: "Complete the climate course",
+          reward: { version: 1, usdCents: "2000", goodDollarWei: wei.toString() },
+        },
+      })
+    );
+    render();
+
+    const promised = screen.getByRole("region", { name: "What was promised" });
+    expect(within(promised).getByText("Reward")).toBeInTheDocument();
+    expect(within(promised).getByText("$20.00, paid in G$ after it's kept")).toBeInTheDocument();
   });
 
   it("makes required work the primary action while keeping optional proof available", () => {
@@ -1447,5 +1506,222 @@ describe("GardenCommitment", () => {
     expect(screen.getByText(/couldn't check whether you belong/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a voucher booking on the promise page", () => {
+  type BookingSnapshot = ReturnType<typeof bookingStorySnapshot>;
+  /** The page over one booking or reward read, with the wallet and approval it reads beside it. */
+  function show(
+    snapshot: BookingSnapshot,
+    page: GardenCommitmentController,
+    holds = { techAndSun: 9, greenGoods: 2 }
+  ) {
+    mockUseController.mockReturnValue(page);
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    mockServiceMutation.mockResolvedValue({
+      kind: "local-rehearsal",
+      observationId: "x",
+      snapshot,
+    });
+    mockVoucherWallet.mockReturnValue({ data: bookingStoryWallet(snapshot, holds) });
+    mockIssuerApproval.mockReturnValue({ data: VOUCHER_STORY_APPROVALS.techAndSunBootstrap });
+    render();
+  }
+
+  it("names a booking by the voucher its setup froze, after the offer changed it", () => {
+    const changed = bookingStorySnapshot("hubDay", "termsChanged");
+    const { greenGoods } = VOUCHER_STORY_ISSUERS;
+    show(
+      {
+        ...changed,
+        offer: changed.offer && {
+          ...changed.offer,
+          voucher: { asset: greenGoods.asset, issuer: greenGoods.account, units: vouchers(1) },
+        },
+      },
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    const section = screen.getByRole("region", { name: "Service Access" });
+    expect(section).toHaveTextContent("1 Tech and Sun voucher, still in your account");
+    expect(section).not.toHaveTextContent("Green Goods voucher");
+  });
+
+  it("says Needs you when the promise waits on the reader under a booking that doesn't", () => {
+    show(
+      bookingStorySnapshot("hubDay", "transfersPending"),
+      bookingStoryController("hubDay", "READY_FOR_CONFIRMATION")
+    );
+    const band = screen.getByRole("region", { name: "Where this stands" });
+    expect(band).toHaveTextContent("Needs you");
+    expect(band).toHaveAttribute("data-tone", "attention");
+    expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
+  });
+
+  it("sends the transfers of an approved split whose prompt the reader declined", async () => {
+    show(
+      bookingStorySnapshot("hubDay", "transfersPending", { legsSent: false }),
+      bookingStoryController("hubDay", "READY_FOR_CONFIRMATION")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Close the Booking" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "executeVoucherFinalLeg", leg: "release" })
+    );
+  });
+
+  it("sends the deposit's confirmation again when it didn't reach the source", async () => {
+    show(
+      bookingStorySnapshot("hubDay", "confirmingDeposit", { ackStuck: true }),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry Confirmation" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "retryVoucherSetupAcknowledgment", reviewedNativeFee: 0n })
+    );
+  });
+
+  it("says why Deposit can't run while the escrow is paused", async () => {
+    show(
+      bookingStorySnapshot("hubDay", "readyToDeposit", { pause: { destinationVoucher: true } }),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Deposit 1 Voucher" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).getByText("Depositing is paused.")).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Deposit 1 Voucher" })).toBeDisabled();
+  });
+
+  it("offers Exchange Vouchers for too few vouchers only where a pool can quote", async () => {
+    show(
+      bookingStorySnapshot("hubDay", "readyToDeposit", { held: 0n }),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Deposit 1 Voucher" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).getByText("You hold 0 Tech and Sun vouchers.")).toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+    expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
+  });
+
+  it("offers Exchange Vouchers only when the pool can quote for vouchers the reader holds", async () => {
+    // A pool is set up, but the reader holds none of the voucher it would take.
+    const unquotable = (snapshot: BookingSnapshot): BookingSnapshot => ({
+      ...snapshot,
+      pilot: snapshot.pilot && { ...snapshot.pilot, holdings: { a: 0n, b: 0n } },
+    });
+    show(
+      unquotable(bookingStorySnapshot("hubDay", "readyToDeposit", { held: 0n, exchange: "none" })),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Deposit 1 Voucher" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+    expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
+  });
+
+  it("gives the too-few-vouchers door no Exchange act when the pool can't quote", () => {
+    const short = bookingStorySnapshot("access", "notEnough", { exchange: "none" });
+    show(
+      { ...short, pilot: short.pilot && { ...short.pilot, holdings: { a: 0n, b: 0n } } },
+      bookingStoryController("access", "OFFERED")
+    );
+    expect(document.querySelector('[data-component="JoinToAct"][data-mode="door"]')).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+  });
+
+  it("asks a short pool for a smaller exchange, not the same quote again", async () => {
+    const quoted = bookingStorySnapshot("access", "notEnough", { exchange: "quoted" });
+    const pilot = quoted.pilot!;
+    show(
+      {
+        ...quoted,
+        pilot: {
+          ...pilot,
+          exchange: {
+            ...pilot.exchange,
+            status: "failed",
+            failure: "inventory",
+            inventory: vouchers(5),
+          },
+        },
+      },
+      bookingStoryController("access", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Exchange Vouchers" }));
+    await userEvent.click(screen.getByRole("button", { name: "Try a Smaller Amount" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith({
+      action: "quotePilotExchange",
+      input: vouchers(5),
+    });
+  });
+
+  it("takes Ask for Help to the app's Help for an agreement the app can't sign", async () => {
+    show(
+      rewardStorySnapshot("agreementUnavailable", true),
+      rewardStoryController("agreementUnavailable", true)
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ask for Help" }));
+    expect(screen.getByTestId("help-route")).toHaveTextContent("/home/profile?tab=help");
+  });
+});
+
+describe("a promise whose service read hasn't answered", () => {
+  beforeEach(() => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: "askToTakeUp",
+        seat: "bystander",
+        detail: detail({
+          commitment: {
+            onchainState: "OFFERED",
+            derivedState: "OFFERED",
+            creator: OTHER,
+            leadProvider: OTHER,
+          },
+        }),
+      })
+    );
+  });
+
+  it("holds the ordinary take-up while the read is on its way", () => {
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "pending",
+      fetchStatus: "fetching",
+      isError: false,
+      refetch: vi.fn(),
+    });
+    render();
+    expect(screen.queryByRole("button", { name: "Ask to take this up" })).toBeNull();
+    expect(screen.queryByText(/couldn't check how this promise/i)).toBeNull();
+  });
+
+  it("offers the check again when the read failed, instead of the ordinary take-up", async () => {
+    const refetch = vi.fn();
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "error",
+      fetchStatus: "idle",
+      isError: true,
+      refetch,
+    });
+    render();
+    expect(screen.queryByRole("button", { name: "Ask to take this up" })).toBeNull();
+    expect(screen.getByText(/couldn't check how this promise is taken up/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("says why its requests are withheld after it was taken up, too", () => {
+    mockUseController.mockReturnValue(controller({ actKind: null, seat: "confirmer" }));
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "error",
+      fetchStatus: "idle",
+      isError: true,
+      refetch: vi.fn(),
+    });
+    render();
+    expect(screen.getByText(/couldn't check how this promise is taken up/i)).toBeInTheDocument();
   });
 });

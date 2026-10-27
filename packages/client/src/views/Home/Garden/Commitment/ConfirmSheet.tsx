@@ -95,8 +95,10 @@ export function ConfirmSheet({
   const { formatMessage } = useIntl();
   const cast = selectConfirmCast(commitment);
   const [mode, setMode] = useState<"ask" | "notYet">("ask");
+  // Each opening starts where it was asked to, however the last one closed: Report a Problem on
+  // the Not yet form, Confirm It Was Kept on its ask.
   useEffect(() => {
-    if (open && startInNotYet) setMode("notYet");
+    if (open) setMode(startInNotYet ? "notYet" : "ask");
   }, [open, startInNotYet]);
   const { evidence, isLoading: evidenceLoading } = useCommitmentEvidence(evidenceAttributions);
   // The words of a Not yet survive closing the sheet and losing the signal.
