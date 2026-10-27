@@ -95,10 +95,22 @@ describe("WorkView", () => {
       );
     });
 
-    it("renders garden card", () => {
-      render(createElement(WorkView, defaultProps));
+    it("says the garden as facts, counting each member once, with no photo", () => {
+      const garden = {
+        ...mockGarden,
+        bannerImage: "https://example.test/banner.jpg",
+        gardeners: ["0x1", "0x2"],
+        stewards: ["0x2", "0x3"],
+      };
+      const { container } = render(createElement(WorkView, { ...defaultProps, garden }));
 
-      expect(screen.getByTestId("garden-card")).toHaveTextContent("Test Garden");
+      const facts = container.querySelector('[data-component="WorkGarden"]') as HTMLElement;
+      expect(facts).toHaveTextContent("NameTest Garden");
+      expect(facts).toHaveTextContent("Members3");
+      expect(facts).toHaveTextContent("PlaceTest Location");
+      // The work's own media carries the pictures; the garden draws none.
+      expect(facts.querySelector("img")).toBeNull();
+      expect(screen.queryByTestId("garden-card")).toBeNull();
     });
 
     it("renders action title in details", () => {
