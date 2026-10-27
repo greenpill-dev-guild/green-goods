@@ -2,6 +2,18 @@ import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
 import type { ServiceAsset } from "./service-access-types";
 
+/**
+ * Where an issuer stands for new business, read as the member's own Service Assets reads it: from
+ * the issuer's reserve and its token's place in the shared pool. A paused issuer, its reserve
+ * disabled after setup, takes no new bookings, while booked ones go ahead. A delisted token,
+ * admitted with a zero pool holding limit, can't be exchanged for, while holders keep their
+ * vouchers and terms. Neither moves a balance or a booking.
+ */
+export interface VoucherIssuerStanding {
+  bookings: "open" | "paused";
+  exchange: "listed" | "delisted";
+}
+
 /** A service voucher issuer: a collective's Safe or, from slice 2, a member's own account. */
 export interface VoucherIssuer {
   /** The account that approves each booking and holds the reserve. */
@@ -14,6 +26,7 @@ export interface VoucherIssuer {
   asset: ServiceAsset;
   /** The garden whose promises list this issuer's services. */
   garden: Address;
+  standing: VoucherIssuerStanding;
 }
 
 /**
