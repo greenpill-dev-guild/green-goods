@@ -382,6 +382,7 @@ export function serviceBookingView(
             act: act("exchange"),
           }
         : null,
+    issuerPaused: stage === "open" && input.issuer?.standing.bookings === "paused",
     // History keeps what happened; the step under way shows in the booking's steps.
     events: phases
       .flatMap((p) => p.steps)

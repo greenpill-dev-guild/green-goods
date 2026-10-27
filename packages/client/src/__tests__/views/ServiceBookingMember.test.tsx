@@ -29,13 +29,14 @@ const intl = createIntl({ locale: "en", messages: en });
 
 function lesson(
   stage: BookingStoryStage,
-  snapshot: ServiceAccessSnapshot = lessonStorySnapshot(stage)
+  snapshot: ServiceAccessSnapshot = lessonStorySnapshot(stage),
+  issuer = LESSON_STORY_ISSUER
 ) {
   const view = serviceBookingView(
     {
       snapshot,
       coreState: lessonStoryCoreState(stage),
-      issuer: LESSON_STORY_ISSUER,
+      issuer,
       approval: LESSON_STORY_APPROVAL,
       held: stage === "notEnough" ? 0n : vouchers(1),
     },
@@ -113,6 +114,17 @@ describe("a member's lesson on the promise page", () => {
     expect(lesson("closed").band.sentence).toBe(
       "0.5 vouchers are back with you and 0.5 went to Teo Alves' reserve. The garden's stewards closed the promise as ended early. A return doesn't reverse an exchange or restore Teo Alves' capacity."
     );
+  });
+
+  // Pausing stops new bookings; one already under way goes ahead.
+  it("holds a paused member's offer, and only the offer", () => {
+    const paused = {
+      ...LESSON_STORY_ISSUER,
+      standing: { bookings: "paused", exchange: "listed" },
+    } as const;
+    expect(lesson("open", undefined, paused).issuerPaused).toBe(true);
+    expect(lesson("open").issuerPaused).toBe(false);
+    expect(lesson("waitingApproval", undefined, paused).issuerPaused).toBe(false);
   });
 
   it("tells a reader with no Teo voucher what the lesson takes", () => {

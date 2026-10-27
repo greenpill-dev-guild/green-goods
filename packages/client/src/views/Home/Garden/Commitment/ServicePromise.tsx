@@ -137,7 +137,10 @@ export function ServicePromise({
   const text = (id: string) =>
     formatVoucherMessage(intl, id, { issuer: booking?.words.issuer ?? "" });
   const offline = snapshot?.capabilities.reasons.includes("offline") ?? false;
-  const paused = Boolean(snapshot && Object.values(snapshot.pause).some((p) => p === true));
+  // A paused contract stops every new booking; a paused issuer, its own.
+  const paused =
+    Boolean(snapshot && Object.values(snapshot.pause).some((p) => p === true)) ||
+    booking?.issuerPaused === true;
   const blocked =
     booking?.stage === "open"
       ? paused

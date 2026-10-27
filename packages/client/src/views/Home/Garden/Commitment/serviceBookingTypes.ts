@@ -133,6 +133,11 @@ export interface ServiceBookingView {
   secondary: ServiceAct | null;
   /** One sentence for a reader who can't act here, and its one door (JoinToAct's anatomy). */
   door: { title: string; body: string; act: ServiceAct } | null;
+  /**
+   * The issuer paused new bookings: an open offer keeps its act, disabled, with the reason above
+   * it. A booking already under way goes ahead.
+   */
+  issuerPaused: boolean;
   /** Booking events that happened, for History, newest first. */
   events: ServiceStep[];
   /** The split this booking can freeze now: what was reported, within the issuer's return limit. */
@@ -166,7 +171,7 @@ export interface ServiceBookingView {
 export interface ServiceBookingInput {
   snapshot: ServiceAccessSnapshot;
   coreState: CommitmentDerivedState;
-  issuer: Pick<VoucherIssuer, "name" | "gender" | "kind"> | null;
+  issuer: Pick<VoucherIssuer, "name" | "gender" | "kind" | "standing"> | null;
   approval: VoucherIssuerApproval | null;
   /** The offer's vouchers in the reader's account, from the voucher wallet; null while unknown. */
   held: bigint | null;
