@@ -225,6 +225,9 @@ export function bookingStorySnapshot(
         creatorConsentRevision: null,
         participant: null,
         participantConsentRevision: null,
+        claimType: null,
+        viewerConsentRevision: null,
+        modulePaused: null,
         accountRouteAvailable: false,
       },
     },
@@ -775,7 +778,9 @@ export function rewardStoryController(
         : "Walk the beds and draw where the water lines and taps run, so new gardeners can find them.",
     },
     seat: taken ? "provider" : "bystander",
-    actKind: state === "inProgress" ? "addProof" : null,
+    // The member could take the request up, so agreeing to its reward is theirs to do.
+    actKind:
+      state === "inProgress" ? "addProof" : state === "agreementUnavailable" ? "takeUp" : null,
     membership: { isMember: true, garden: null, unavailable: false, retry: () => undefined },
   });
   return { ...controller, roles: { ...controller.roles, garden: STORY_HOME_GARDEN_RECORD } };

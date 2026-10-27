@@ -5,6 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import { decodeFunctionResult, encodeFunctionResult, type Abi, type AbiParameter } from "viem";
 import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule.json";
 import { readEarnedAcceptance } from "../modules/commitment-pooling/service-access-earned-chain";
+import { assertEarnedRewardAgreed } from "../modules/commitment-pooling/earned-agreement";
+import type { ServiceChainRead } from "../modules/commitment-pooling/service-access-chain";
+import { parseContractError } from "../utils/errors/contract-errors";
 import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
 
 const key = {
@@ -72,12 +75,18 @@ describe("earned terms canonical account reads", () => {
       remoteChainId: 100n,
       getTerms: decoded,
       consentRevision: 9n,
+      paused: false,
     };
     const read = vi.fn(async ({ functionName }: { functionName: string }) => {
       if (!(functionName in table)) throw new Error("Unexpected canonical read");
       return table[functionName];
     });
-    await readEarnedAcceptance(s, { creator: key.coreModule, counterparty: key.buyer }, read);
+    // ICommitmentPoolingModule.ClaimType.Individual: the member agrees from their own account.
+    await readEarnedAcceptance(
+      s,
+      { creator: key.coreModule, counterparty: key.buyer, claimType: 1 },
+      read
+    );
     expect(s.acceptancePolicy).toMatchObject({
       kind: "service",
       knownOptIn: true,
@@ -89,6 +98,9 @@ describe("earned terms canonical account reads", () => {
         participant: key.buyer,
         creatorConsentRevision: 9n,
         participantConsentRevision: 9n,
+        claimType: "individual",
+        viewerConsentRevision: 9n,
+        modulePaused: false,
         accountRouteAvailable: false,
         terms: {
           totalUnits: (1n << 180n) + 7n,
@@ -231,5 +243,53 @@ describe("route-zero earned voucher boundary", () => {
     expect(read).toHaveBeenCalledWith(
       expect.objectContaining({ functionName: "getEarnedVoucherBinding" })
     );
+  });
+});
+
+describe("a take-up of a request with a voucher reward", () => {
+  const MODULE = "0x0000000000000000000000000000000000000400" as const;
+  const input = {
+    chainId: key.sourceChainId,
+    core: key.coreModule,
+    commitmentId: key.commitmentId,
+    claimant: key.buyer,
+  };
+  /** The core's binding for the request, and the claimant's own agreement on the reward module. */
+  function chain(module: `0x${string}`, agreed = 0n): ServiceChainRead {
+    return async ({ functionName, address }) => {
+      if (functionName === "getEarnedVoucherBinding" && address === key.coreModule)
+        return {
+          module,
+          revision: 1n,
+          termsHash: HASH,
+          acceptedRevision: 0n,
+          acceptedTermsHash: EMPTY,
+          acceptedCounterparty: ZERO,
+        };
+      if (functionName === "consentRevision" && address === MODULE) return agreed;
+      throw new Error(`Unexpected read ${functionName}`);
+    };
+  }
+
+  it("goes ahead for a request with no reward, and for a reward its claimant agreed to", async () => {
+    await expect(assertEarnedRewardAgreed(input, chain(ZERO))).resolves.toBeUndefined();
+    await expect(assertEarnedRewardAgreed(input, chain(MODULE, 1n))).resolves.toBeUndefined();
+  });
+
+  it("stops before queueing a take-up its claimant hasn't agreed to, in the chain's own words", async () => {
+    const refused = await assertEarnedRewardAgreed(input, chain(MODULE)).catch((e: unknown) => e);
+    // The core refuses the same take-up with VoucherConsentMissing() (0x51789899).
+    for (const error of [refused, new Error("reverted with the following signature: 0x51789899")])
+      expect(parseContractError(error)).toMatchObject({
+        name: "VoucherConsentMissing",
+        message: "This promise has a reward to agree to first",
+      });
+  });
+
+  it("decides nothing when the reward can't be read: the claim's own check still stops it", async () => {
+    const unread: ServiceChainRead = async () => {
+      throw new Error("RPC unavailable");
+    };
+    await expect(assertEarnedRewardAgreed(input, unread)).resolves.toBeUndefined();
   });
 });

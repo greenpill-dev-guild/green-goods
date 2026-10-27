@@ -22,7 +22,7 @@ import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
-import { commitmentActForKind } from "./commitmentActions";
+import { commitmentActForKind, takeUpMode } from "./commitmentActions";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
@@ -119,10 +119,14 @@ export function GardenCommitment() {
   const requiredWorkApproved =
     requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
   const genericAct = commitmentActForKind(controller.actKind);
-  const selectedAct =
-    !ordinary && (genericAct?.kind === "takeUp" || genericAct?.kind === "askToTakeUp")
-      ? null
-      : genericAct;
+  const mode = takeUpMode(genericAct);
+  const selectedAct = !ordinary && mode ? null : genericAct;
+  // A request's voucher reward is agreed to first, from its own bar, which then takes it up. A
+  // claim that must first name its garden (the protocol pool) isn't offered there yet.
+  const rewardTakeUp =
+    mode && !controller.claimNeedsContext
+      ? { mode, run: () => keepSurfaceOnFailure(controller.acts.claimPersonal()) }
+      : null;
   // Linking the required work advances Garden Work promises; proof stays available.
   const workIsPrimary =
     selectedAct?.kind === "addProof" && controller.linkable && !requiredWorkApproved;
@@ -486,6 +490,7 @@ export function GardenCommitment() {
       hasCoreAct={Boolean(act)}
       isOnline={controller.isOnline}
       onReport={controller.confirmation.canNotYet ? () => setConfirmOpen("report") : null}
+      takeUp={rewardTakeUp}
     >
       {page}
     </ServicePromise>

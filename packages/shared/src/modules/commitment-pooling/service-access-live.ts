@@ -10,6 +10,7 @@ import {
   verifyServiceLiveRoute,
 } from "./service-access-live-chain";
 import { SERVICE_LIVE_ROUTES, type ServiceLiveRoute } from "./service-access-live-config";
+import { verifyServiceDeployment } from "./service-access-live-route";
 import {
   configIdentity,
   executeLiveServiceCall,
@@ -17,6 +18,8 @@ import {
   parsePending,
   verifyWalletExecution,
 } from "./service-access-live-submission";
+import { SERVICE_ISSUER_ROUTES } from "./service-issuer-metadata";
+import type { ServiceIssuerRoute } from "./service-issuer-types";
 import type {
   ServiceAccessAction,
   ServiceAccessActionResult,
@@ -39,10 +42,14 @@ interface ServiceLiveDependencies {
   sender(): TransactionSender | null;
   readSnapshot(key: ServiceAccessKey): Promise<ServiceAccessSnapshot>;
   routes?: readonly ServiceLiveRoute[];
+  /** The reviewed issuer routes, whose source pin is the reward module a request's reward binds. */
+  issuerRoutes?: readonly ServiceIssuerRoute[];
   chain?: ServiceLiveChain;
   membership?: typeof readGardenMembership;
   storage?: Pick<Storage, "getItem" | "setItem" | "removeItem">;
 }
+/** A voucher offer's acts, a request reward's agreement, or whatever the promise reads as. */
+type ServiceLiveReadPurpose = "any" | "voucher" | "earned";
 const same = (a: string | null | undefined, b: string | null | undefined) =>
   !!a && !!b && a.toLowerCase() === b.toLowerCase();
 const ROUTE_PROOF_REUSE_MS = 60_000;
@@ -72,21 +79,151 @@ export function createLiveServiceAccessAdapter(
   // A route's proof costs about forty reads. Reads share a recent one; the check right before a
   // broadcast always proves the route again.
   const proofs = new Map<string, { at: number; proof: Promise<void> }>();
-  const verifyRoute = (route: ServiceLiveRoute, fresh: boolean) => {
-    const id = configIdentity(route);
+  const prove = (id: string, fresh: boolean, run: () => Promise<void>) => {
     const cached = proofs.get(id);
     if (!fresh && cached && Date.now() - cached.at < ROUTE_PROOF_REUSE_MS) return cached.proof;
-    const proof = verifyServiceLiveRoute(route, chain);
+    const proof = run();
     proofs.set(id, { at: Date.now(), proof });
     proof.catch(() => {
       if (proofs.get(id)?.proof === proof) proofs.delete(id);
     });
     return proof;
   };
+  const verifyRoute = (route: ServiceLiveRoute, fresh: boolean) =>
+    prove(configIdentity(route), fresh, () => verifyServiceLiveRoute(route, chain));
+  // The issuer route over the same core pins the Arbitrum reward module that a request's reward
+  // binds; the live route's own identity stays unchanged, so no pending record is orphaned.
+  const issuerRoutes = deps.issuerRoutes ?? SERVICE_ISSUER_ROUTES;
+  const earnedModuleFor = (route: ServiceLiveRoute) =>
+    issuerRoutes.find(
+      (issuer) =>
+        issuer.service.sourceChainId === route.sourceChainId &&
+        same(issuer.service.core.address, route.core.address)
+    )?.adapterSource ?? null;
+  const storage = () => deps.storage ?? globalThis.localStorage;
+  /** A send on record is settled before any new act; until then the act waits for it. */
+  const reconcilePending = async (
+    s: ServiceAccessSnapshot,
+    key: ServiceAccessKey,
+    route: ServiceLiveRoute,
+    chainIds: readonly number[],
+    reconcile: boolean
+  ) => {
+    const store = storage();
+    for (const chainId of chainIds) {
+      const scope = `green-goods:service-pending:v1:${chainId}:${key.buyer.toLowerCase()}`;
+      if (!store || hasActiveServiceSubmission(scope) || !reconcile) continue;
+      const record = store.getItem(scope);
+      if (!record) continue;
+      const pending = parsePending(record, chainId, key.buyer, configIdentity(route));
+      const sender = deps.sender();
+      const outcome =
+        pending.version === 1 &&
+        pending.route === configIdentity(route) &&
+        pending.submission &&
+        sender
+          ? await reconcileTransaction(sender, pending.submission, async (hash) => {
+              const receipt = await chain.receipt(chainId, hash);
+              return {
+                status: receipt.status === "success" ? "success" : "reverted",
+                transactionHash: receipt.transactionHash,
+              };
+            })
+          : { status: "unresolved" as const };
+      if (outcome.status !== "unresolved") {
+        if (outcome.status === "confirmed" && sender?.authMode === "wallet")
+          await verifyWalletExecution(chain, chainId, outcome.transactionHash, pending.call);
+        store.removeItem(scope);
+      } else {
+        s.capabilities.mutation = "unavailable";
+        s.capabilities.reasons = [...s.capabilities.reasons, "submission-pending"];
+      }
+    }
+  };
+  /** The reviewed voucher a request's reward pays, under the reviewed reward module; else throws. */
+  const reviewEarned = async (
+    s: ServiceAccessSnapshot,
+    route: ServiceLiveRoute,
+    fresh: boolean
+  ) => {
+    const earned = s.acceptancePolicy.earned;
+    const pin = earnedModuleFor(route);
+    if (s.capabilities.reasons.includes("authoritative-read-failed") || !earned.terms)
+      throw new Error("Authoritative live service state unavailable");
+    if (!pin || !earned.module || !same(earned.module, pin.address))
+      throw new Error("Earned reward module is outside the reviewed route");
+    const terms = earned.terms;
+    const asset = route.assets.find(
+      (v) => same(v.token, terms.asset.token) && same(v.issuer, terms.issuer)
+    );
+    if (!asset || terms.asset.chainId !== 100)
+      throw new Error("Earned reward asset is outside the reviewed route");
+    await Promise.all([
+      verifyRoute(route, fresh),
+      prove(`earned:${pin.address.toLowerCase()}`, fresh, () =>
+        verifyServiceDeployment(pin, route.sourceChainId, chain)
+      ),
+    ]);
+    return asset;
+  };
+  /**
+   * A request's voucher reward, which its member agrees to from their own account before taking
+   * it up. The agreement is offered only for the reviewed reward module and a reviewed voucher; an
+   * unreviewed reward still reads as the core reports it, and only an agreement refuses it.
+   */
+  const readEarned = async (
+    key: ServiceAccessKey,
+    s: ServiceAccessSnapshot,
+    route: ServiceLiveRoute,
+    reconcile: boolean,
+    fresh: boolean,
+    agreeing: boolean
+  ): Promise<ServiceAccessSnapshot> => {
+    const earned = s.acceptancePolicy.earned;
+    let asset: Awaited<ReturnType<typeof reviewEarned>>;
+    try {
+      asset = await reviewEarned(s, route, fresh);
+    } catch (error) {
+      if (agreeing) throw error;
+      return s;
+    }
+    const terms = earned.terms!;
+    terms.asset = {
+      chainId: 100,
+      token: asset.token,
+      symbol: asset.symbol,
+      decimals: asset.decimals,
+    };
+    s.complete = true;
+    s.capabilities = {
+      mutation: "onchain",
+      reasons: [],
+      sourceBuyer: key.buyer,
+      celoDepositor: null,
+      gnosisHolder: null,
+      canSignSource: false,
+      canSendSource: false,
+      canSignCelo: false,
+      canSignHolder: false,
+      canSendDestination: false,
+    };
+    try {
+      await assertSession(key);
+      s.capabilities.canSignSource = s.capabilities.canSendSource = true;
+    } catch {
+      s.capabilities.reasons = ["signer-unavailable"];
+    }
+    // A garden claim's account must agree for itself; this app signs only a member's own.
+    if (earned.claimType !== "individual")
+      s.capabilities.reasons = [...s.capabilities.reasons, "earned-consent-unavailable"];
+    await reconcilePending(s, key, route, [key.sourceChainId], reconcile);
+    s.availableActions = serviceAccessAvailableActions(s);
+    return s;
+  };
   const read = async (
     key: ServiceAccessKey,
     reconcile = true,
-    voucherOnly = false,
+    purpose: ServiceLiveReadPurpose = "any",
     fresh = false
   ): Promise<ServiceAccessSnapshot> => {
     const route = routeFor(key);
@@ -94,8 +231,13 @@ export function createLiveServiceAccessAdapter(
     const s = await deps.readSnapshot(key);
     // An unread promise may still be a voucher offer, so a failed read stays a failure.
     if (s.evidence !== "onchain") throw new Error("Authoritative live service state unavailable");
+    const earned = s.mode !== "voucher" && s.acceptancePolicy.earned.status === "bound";
+    if (purpose === "earned" && !earned)
+      throw new Error("Authoritative live service state unavailable");
+    if (earned && purpose !== "voucher")
+      return readEarned(key, s, route, reconcile, fresh, purpose === "earned");
     // The route carries the core's voucher offers; its other promises read as they do unrouted.
-    if (s.mode !== "voucher" && !voucherOnly) return s;
+    if (s.mode !== "voucher" && purpose !== "voucher") return s;
     await verifyRoute(route, fresh);
     if (
       s.evidence !== "onchain" ||
@@ -157,36 +299,7 @@ export function createLiveServiceAccessAdapter(
     } catch {
       s.capabilities.reasons = ["signer-unavailable"];
     }
-    const storage = deps.storage ?? globalThis.localStorage;
-    for (const chainId of [key.sourceChainId, 100]) {
-      const scope = `green-goods:service-pending:v1:${chainId}:${key.buyer.toLowerCase()}`;
-      if (!storage || hasActiveServiceSubmission(scope) || !reconcile) continue;
-      const record = storage.getItem(scope);
-      if (!record) continue;
-      const pending = parsePending(record, chainId, key.buyer, configIdentity(route));
-      const sender = deps.sender();
-      const outcome =
-        pending.version === 1 &&
-        pending.route === configIdentity(route) &&
-        pending.submission &&
-        sender
-          ? await reconcileTransaction(sender, pending.submission, async (hash) => {
-              const receipt = await chain.receipt(chainId, hash);
-              return {
-                status: receipt.status === "success" ? "success" : "reverted",
-                transactionHash: receipt.transactionHash,
-              };
-            })
-          : { status: "unresolved" as const };
-      if (outcome.status !== "unresolved") {
-        if (outcome.status === "confirmed" && sender?.authMode === "wallet")
-          await verifyWalletExecution(chain, chainId, outcome.transactionHash, pending.call);
-        storage.removeItem(scope);
-      } else {
-        s.capabilities.mutation = "unavailable";
-        s.capabilities.reasons = [...s.capabilities.reasons, "submission-pending"];
-      }
-    }
+    await reconcilePending(s, key, route, [key.sourceChainId, 100], reconcile);
     s.availableActions = serviceAccessAvailableActions(s);
     s.voucherSetups = s.voucherSetups.map((row) => ({
       ...row,
@@ -200,9 +313,10 @@ export function createLiveServiceAccessAdapter(
   ): Promise<ServiceAccessActionResult> =>
     executeLiveServiceCall(key, action, routeFor(key), {
       session: () => deps.session(),
-      storage: () => deps.storage ?? globalThis.localStorage,
+      storage,
       chain,
-      read: (k, reconcile, fresh) => read(k, reconcile, true, fresh),
+      read: (k, reconcile, fresh) =>
+        read(k, reconcile, action.action === "consentEarnedTerms" ? "earned" : "voucher", fresh),
       assertSession,
     });
   return {

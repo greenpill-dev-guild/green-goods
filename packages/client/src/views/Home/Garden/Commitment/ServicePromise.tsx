@@ -13,9 +13,11 @@ import { RiExchangeLine, RiQuestionLine } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import type { Hex } from "viem";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import type { CommitmentIdentityProps } from "./CommitmentIdentity";
+import { type EarnedAgreeOutcome, EarnedRewardAgreeSheet } from "./EarnedRewardAgreeSheet";
 import { JoinToActDoor } from "./JoinToAct";
 import { ServiceAccessPanel } from "./ServiceAccessPanel";
 import { ServiceAccessSection } from "./ServiceAccessSection";
@@ -24,6 +26,7 @@ import {
   agreeStep,
   cancelStep,
   depositStep,
+  earnedAgreeStep,
   legStep,
   retryConfirmStep,
   runServiceAct,
@@ -81,6 +84,11 @@ export interface ServicePromiseProps {
   isOnline: boolean;
   /** Report a Problem raises a dispute, which the chain takes only from some readers. */
   onReport: (() => void) | null;
+  /**
+   * The reader's take-up of a request, when the page offers one: at once (open) or by asking its
+   * stewards. A request's voucher reward is agreed to first, from the reward's own bar.
+   */
+  takeUp: { mode: "open" | "reviewed"; run: () => void } | null;
   children: (parts: ServicePromiseParts) => ReactNode;
 }
 
@@ -98,6 +106,7 @@ export function ServicePromise({
   hasCoreAct,
   isOnline,
   onReport,
+  takeUp,
   children,
 }: ServicePromiseProps) {
   const intl = useIntl();
@@ -123,6 +132,9 @@ export function ServicePromise({
   const [reviewed, setReviewed] = useState<{ revision: bigint; units: bigint } | null>(null);
   const [running, setRunning] = useState(false);
   const [reviewingExchange, setReviewingExchange] = useState(false);
+  // The reward terms as the member opened Agree to the Rewards: what they agree to.
+  const [agreeing, setAgreeing] = useState<{ revision: bigint; termsHash: Hex } | null>(null);
+  const [agreeOutcome, setAgreeOutcome] = useState<EarnedAgreeOutcome>(null);
 
   const held = issuer
     ? (wallet?.holdings.find((entry) => entry.issuer.account === issuer.account)?.available ?? null)
@@ -132,7 +144,10 @@ export function ServicePromise({
     : null;
   const rewards =
     snapshot && !booking
-      ? serviceRewardsView({ snapshot, coreState, issuer, garden: gardenName }, intl)
+      ? serviceRewardsView(
+          { snapshot, coreState, issuer, garden: gardenName, takeUp: takeUp?.mode ?? null },
+          intl
+        )
       : null;
   const text = (id: string) =>
     formatVoucherMessage(intl, id, { issuer: booking?.words.issuer ?? "" });
@@ -222,7 +237,48 @@ export function ServicePromise({
     (booking.secondary.kind !== "report" || report)
       ? booking.secondary
       : null;
-  const bar = primary ? (
+  /** Agree to the Rewards, then the take-up: two prompts, the second only once the first landed. */
+  const agree = () => {
+    if (!agreeing) return;
+    void act(earnedAgreeStep(agreeing)).then((end) => {
+      if (end === "done") {
+        setAgreeing(null);
+        takeUp?.run();
+      } else if (end === "notOffered") setAgreeOutcome("changed");
+      else if (end === "nothingSent") setAgreeOutcome("nothingSent");
+      // An unknown result closes the sheet; the page's own read says where the agreement stands.
+      else setAgreeing(null);
+    });
+  };
+  const rewardBar =
+    takeUp && rewards?.agree === "offered" && rewards.agreeSheet ? (
+      <CommitmentActionBar
+        act={{ kind: "service", labelId: "", label: rewards.agreeSheet.cta, needsNetwork: true }}
+        isPending={pending}
+        isOnline={isOnline}
+        onRun={() => {
+          const earned = snapshot?.acceptancePolicy.earned;
+          if (!earned || earned.revision === null || !earned.termsHash) return;
+          setAgreeOutcome(null);
+          setAgreeing({ revision: earned.revision, termsHash: earned.termsHash });
+        }}
+      />
+    ) : takeUp && rewards?.agree === "agreed" ? (
+      <CommitmentActionBar
+        act={{
+          kind: "service",
+          labelId: "",
+          label: formatVoucherMessage(intl, "rw.a.take"),
+          needsNetwork: true,
+        }}
+        isPending={pending}
+        isOnline={isOnline}
+        onRun={takeUp.run}
+      />
+    ) : null;
+  const bar = rewardBar ? (
+    rewardBar
+  ) : primary ? (
     <CommitmentActionBar
       act={{ kind: "service", labelId: "", label: primary.label, needsNetwork: true }}
       isPending={pending}
@@ -366,6 +422,18 @@ export function ServicePromise({
             },
           }}
           isPending={pending}
+        />
+      ) : rewards?.agreeSheet ? (
+        <EarnedRewardAgreeSheet
+          sheet={rewards.agreeSheet}
+          work={heading}
+          open={agreeing !== null}
+          outcome={agreeOutcome}
+          isPending={pending}
+          onOpenChange={(open) => {
+            if (!open) setAgreeing(null);
+          }}
+          onAgree={agree}
         />
       ) : null,
   });

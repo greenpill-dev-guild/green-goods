@@ -8202,6 +8202,7 @@
   "app.voucher.rw.sh.gdV": "{amt} G$ to your account",
   "app.voucher.rw.sh.gdS": "From {garden}'s pool, by its payout plan",
   "app.voucher.rw.sh.consent": "Agreeing records these exact rewards with your request. {garden}'s stewards then accept you.",
+  "app.voucher.rw.sh.consentOpen": "Agreeing records these exact rewards. Then you take the promise up, and it's yours right away.",
   "app.voucher.rw.sh.cta": "Agree and Take It Up",
   "app.voucher.rw.a.take": "Take It Up",
   "app.voucher.rw.a.work": "Add Your Work",

@@ -71,13 +71,17 @@ export function bookingVoucherIssuer(
   const setup = s ? currentVoucherSetup(s) : null;
   const voucher = s?.offer?.voucher;
   const reward = s?.pilot?.reward?.voucher;
+  // A live request's reward names its issuer in the terms it binds.
+  const earned = s?.acceptancePolicy.earned.terms;
   const pair = setup
     ? { token: setup.asset.token, account: setup.authorization.issuer }
     : voucher
       ? { token: voucher.asset.token, account: voucher.issuer }
       : reward
         ? { token: reward.asset.token, account: reward.funder }
-        : null;
+        : earned
+          ? { token: earned.asset.token, account: earned.issuer }
+          : null;
   return (
     issuers?.find(
       (entry) => same(entry.asset.token, pair?.token) && same(entry.account, pair?.account)

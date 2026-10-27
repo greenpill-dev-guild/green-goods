@@ -8202,6 +8202,7 @@
   "app.voucher.rw.sh.gdV": "{amt} G$ para tu cuenta",
   "app.voucher.rw.sh.gdS": "Del fondo de {garden}, según su plan de pagos",
   "app.voucher.rw.sh.consent": "Aceptar registra estas recompensas exactas con tu solicitud. Luego los responsables de {garden} te aceptan.",
+  "app.voucher.rw.sh.consentOpen": "Aceptar registra estas recompensas exactas. Luego asumes la promesa y es tuya de inmediato.",
   "app.voucher.rw.sh.cta": "Aceptar y asumirla",
   "app.voucher.rw.a.take": "Asumirla",
   "app.voucher.rw.a.work": "Agregar tu trabajo",

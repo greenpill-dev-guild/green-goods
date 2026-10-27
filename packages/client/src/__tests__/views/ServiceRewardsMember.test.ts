@@ -26,6 +26,7 @@ function rewards(
       coreState: rewardStoryCoreState(state),
       issuer: options.issuer === undefined ? LESSON_STORY_ISSUER : options.issuer,
       garden: "Tech and Sun",
+      takeUp: null,
     },
     intl
   );

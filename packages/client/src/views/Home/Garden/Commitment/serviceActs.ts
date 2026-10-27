@@ -4,6 +4,7 @@ import {
   type ServiceVoucherSetup,
   selectServiceAccessAction,
 } from "@green-goods/shared/commitment-pooling";
+import type { Hex } from "viem";
 import { currentVoucherSetup, SERVICE_ACCEPTANCE_WINDOW_SECONDS } from "./serviceBooking";
 import type { ServiceActKind } from "./serviceBookingTypes";
 import { boundVoucherSetup } from "./serviceVoucherReview";
@@ -63,6 +64,31 @@ export const agreeStep: ServiceActStep = (s) => {
       reviewedNativeFee: row.fees.authorization,
     };
   return null;
+};
+
+/**
+ * Agree to a request's voucher reward as the member reviewed it, before they take it up. A reward
+ * that changed since the review is not agreed to; the act ends unoffered and the sheet says so.
+ * The agreement is one write, asked once: a read that lags its receipt never asks again.
+ */
+export const earnedAgreeStep = (reviewed: { revision: bigint; termsHash: Hex }): ServiceActStep => {
+  let asked = false;
+  return (s) => {
+    const earned = s.acceptancePolicy.earned;
+    if (
+      asked ||
+      !offers(s, "consentEarnedTerms") ||
+      earned.revision !== reviewed.revision ||
+      earned.termsHash !== reviewed.termsHash
+    )
+      return null;
+    asked = true;
+    return {
+      action: "consentEarnedTerms",
+      expectedRevision: reviewed.revision,
+      expectedTermsHash: reviewed.termsHash,
+    };
+  };
 };
 
 /**

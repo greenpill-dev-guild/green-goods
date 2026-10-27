@@ -29,7 +29,7 @@ import type { Action, Work } from "@green-goods/shared/types/domain";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, within } from "../test-utils";
+import { renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
@@ -1668,6 +1668,78 @@ describe("a voucher booking on the promise page", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Ask for Help" }));
     expect(screen.getByTestId("help-route")).toHaveTextContent("/home/profile?tab=help");
+  });
+
+  it("agrees to the reward from its own bar, then takes the request up", async () => {
+    const TERMS = `0x${"c".repeat(64)}` as const;
+    // A live open request whose reward its creator froze and this member can agree to.
+    const snapshot = rewardStorySnapshot("agreementUnavailable", true);
+    Object.assign(snapshot, {
+      evidence: "onchain",
+      knownService: false,
+      availableActions: ["consentEarnedTerms"],
+    });
+    snapshot.pause.core = false;
+    snapshot.capabilities = {
+      ...snapshot.capabilities,
+      mutation: "onchain",
+      reasons: [],
+      sourceBuyer: snapshot.key.buyer,
+      canSignSource: true,
+    };
+    snapshot.acceptancePolicy.earned = {
+      ...snapshot.acceptancePolicy.earned,
+      module: VOUCHER_STORY_ISSUERS.techAndSun.account,
+      termsHash: TERMS,
+      terms: {
+        issuer: VOUCHER_STORY_ISSUERS.techAndSun.account,
+        issuerAuthority: VOUCHER_STORY_ISSUERS.techAndSun.account,
+        asset: {
+          chainId: 100,
+          token: VOUCHER_STORY_ISSUERS.techAndSun.asset.token,
+          symbol: null,
+          decimals: null,
+        },
+        totalUnits: 1n,
+        allocationPolicy: TERMS,
+        serviceTermsRef: TERMS,
+        season: 3n,
+        issuerApproved: true,
+        frozen: true,
+      },
+      creator: VOUCHER_STORY_ISSUERS.techAndSun.account,
+      claimType: "individual",
+      viewerConsentRevision: 0n,
+      modulePaused: false,
+    };
+    const page = rewardStoryController("agreementUnavailable", true);
+    const claimPersonal = vi.fn(async () => "claim-job");
+    show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });
+    expect(screen.queryByRole("button", { name: "Ask for Help" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Agree and Take It Up" }));
+    const sheet = await screen.findByRole("dialog", { name: "Agree to the Rewards" });
+    expect(
+      within(sheet).getByText(
+        "Agreeing records these exact rewards. Then you take the promise up, and it's yours right away."
+      )
+    ).toBeInTheDocument();
+    // Once the agreement lands, the read no longer offers it.
+    const agreed = structuredClone(snapshot);
+    agreed.availableActions = [];
+    agreed.acceptancePolicy.earned.viewerConsentRevision = 2n;
+    mockServiceMutation.mockResolvedValueOnce({
+      kind: "onchain",
+      observationId: "x",
+      snapshot: agreed,
+    });
+    await userEvent.click(within(sheet).getByRole("button", { name: "Agree and Take It Up" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith({
+      action: "consentEarnedTerms",
+      expectedRevision: 2n,
+      expectedTermsHash: TERMS,
+    });
+    await waitFor(() => expect(claimPersonal).toHaveBeenCalledTimes(1));
   });
 });
 

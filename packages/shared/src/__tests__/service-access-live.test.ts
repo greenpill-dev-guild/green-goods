@@ -28,6 +28,7 @@ import {
   type ContractCall,
   type TransactionSender,
 } from "../modules/transactions/types";
+import type { ServiceIssuerRoute } from "../modules/commitment-pooling/service-issuer-types";
 import type { Address } from "../types/domain";
 
 const account = (n: number) => `0x${n.toString(16).padStart(40, "0")}` as Address;
@@ -689,5 +690,117 @@ describe("live service access", () => {
     if (kind === "reviewed-create2")
       await expect(verifyServiceLiveRoute(f.route, f.chain)).resolves.toBeUndefined();
     else await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow("receipt");
+  });
+});
+
+describe("a member's agreement to a request's voucher reward", () => {
+  const MODULE = account(40);
+  /** A routed open request whose 1-voucher reward, in the route's reviewed voucher, is frozen. */
+  function rewarded() {
+    const f = fixture();
+    const asset = f.route.assets[0]!;
+    const request = structuredClone(f.s);
+    Object.assign(request, {
+      mode: "legacy",
+      knownService: false,
+      coreState: "REQUESTED",
+      voucherSetups: [],
+    });
+    request.pause.core = false;
+    request.acceptancePolicy.earned = {
+      ...request.acceptancePolicy.earned,
+      status: "bound",
+      module: MODULE,
+      revision: 1n,
+      termsHash: H,
+      terms: {
+        issuer: asset.issuer,
+        issuerAuthority: account(30),
+        asset: { chainId: 100, token: asset.token, symbol: null, decimals: null },
+        totalUnits: 1n,
+        allocationPolicy: H,
+        serviceTermsRef: H,
+        season: 3n,
+        issuerApproved: true,
+        frozen: true,
+      },
+      creator: account(30),
+      claimType: "individual",
+      viewerConsentRevision: 0n,
+      modulePaused: false,
+    };
+    f.dependencies.readSnapshot = async () => structuredClone(request);
+    // The reviewed issuer route over the same core pins the reward module, proven like any pin.
+    const issuerRoutes = [
+      {
+        service: f.route,
+        adapterSource: {
+          address: MODULE,
+          owner: account(10),
+          receipt: {
+            transactionHash: `0x${MODULE.slice(2).padStart(64, "0")}` as Hex,
+            blockNumber: 10n,
+            blockHash: H,
+          },
+          runtimeCodeHash: keccak256("0x6001"),
+          implementation: { address: account(90), runtimeCodeHash: keccak256("0x6002") },
+          guardian: account(11),
+          router: account(12),
+          remoteSelector: 13n,
+        },
+      } as unknown as ServiceIssuerRoute,
+    ];
+    const adapter = () => createLiveServiceAccessAdapter({ ...f.dependencies, issuerRoutes });
+    return { f, request, adapter };
+  }
+
+  it("offers it only under the reviewed module and voucher, and sends exactly that agreement", async () => {
+    const { f, adapter } = rewarded();
+    const read = await adapter().read(key);
+    expect(read.availableActions).toEqual(["consentEarnedTerms"]);
+    expect(read.capabilities).toMatchObject({ mutation: "onchain", canSignSource: true });
+    // The live read names the reward's voucher from the reviewed route.
+    expect(read.acceptancePolicy.earned.terms?.asset).toMatchObject({
+      symbol: "TEST",
+      decimals: 0,
+    });
+    await adapter().execute(key, {
+      action: "consentEarnedTerms",
+      expectedRevision: 1n,
+      expectedTermsHash: H,
+    });
+    expect(f.sender.sendContractCall).toHaveBeenCalledTimes(1);
+    expect(f.sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: MODULE,
+        chainId: 42161,
+        account: key.buyer,
+        functionName: "consentTerms",
+        args: [key.commitmentId, 1n],
+        value: 0n,
+      }),
+      expect.anything()
+    );
+  });
+
+  it.each([
+    ["a module outside the reviewed route", "module"],
+    ["a voucher outside the reviewed route", "asset"],
+  ] as const)("shows but never offers agreement to %s", async (_case, drift) => {
+    const { f, request, adapter } = rewarded();
+    if (drift === "module") request.acceptancePolicy.earned.module = account(41);
+    else request.acceptancePolicy.earned.terms!.asset.token = account(42);
+    // The page still reads the reward as the core reports it; only agreeing is refused.
+    const read = await adapter().read(key);
+    expect(read.availableActions).not.toContain("consentEarnedTerms");
+    expect(read.acceptancePolicy.earned.status).toBe("bound");
+    await expect(
+      adapter().execute(key, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: H,
+      })
+    ).rejects.toThrow("outside the reviewed route");
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
   });
 });

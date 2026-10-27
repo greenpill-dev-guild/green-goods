@@ -6,6 +6,7 @@ import type { ServiceChainRead } from "./service-access-chain";
 import {
   serviceAddress,
   serviceChainId,
+  serviceEnum,
   serviceFlag,
   serviceHash,
   serviceTuple,
@@ -111,11 +112,13 @@ export async function readEarnedAcceptance(
     const creator = serviceAddress(core.creator);
     const counterparty = serviceAddress(core.counterparty);
     const participant = counterparty === SERVICE_ZERO_ADDRESS ? null : counterparty;
-    const [creatorConsent, participantConsent] = await Promise.all([
+    const [creatorConsent, participantConsent, viewerConsent, modulePaused] = await Promise.all([
       earnedRead("consentRevision", [key.commitmentId, creator]),
       participant
         ? earnedRead("consentRevision", [key.commitmentId, participant])
         : Promise.resolve(null),
+      earnedRead("consentRevision", [key.commitmentId, key.buyer]),
+      earnedRead("paused"),
     ]);
     policy.earned.terms = {
       issuer: serviceAddress(a.issuer),
@@ -133,12 +136,19 @@ export async function readEarnedAcceptance(
       issuerApproved: serviceFlag(t.issuerApproved),
       frozen: serviceFlag(t.frozen),
     };
+    // ICommitmentPoolingModule.ClaimType: Garden, Individual.
+    const claimType = serviceEnum(core.claimType, ["garden", "individual"]) as
+      | "garden"
+      | "individual";
     Object.assign(policy.earned, {
       creator,
       creatorConsentRevision: serviceUint(creatorConsent, 64),
       participant,
       participantConsentRevision:
         participantConsent === null ? null : serviceUint(participantConsent, 64),
+      claimType,
+      viewerConsentRevision: serviceUint(viewerConsent, 64),
+      modulePaused: serviceFlag(modulePaused),
     });
   } catch {
     // Positive facts survive hydration failure. Unsupported old cores stay unknown without a global legacy-flow block.
