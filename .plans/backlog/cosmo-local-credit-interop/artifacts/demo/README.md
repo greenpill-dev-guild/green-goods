@@ -454,12 +454,13 @@ Human corrections: 1 observed in this segment (Afo's v4 review: no layout shift,
 
 ## Task record · Green Goods accepts the seat
 
-Task record: SF.Live clickable demo, Green Goods' Accept | Type: feature | Outcome: built; delivery waits on Afo's answer
-Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `1e346217c`, and an uncommitted story on develop `f201fee18`
+Task record: SF.Live clickable demo, Green Goods' Accept | Type: feature | Outcome: complete; the story's PR #1371 merges on green (Afo's choice)
+Agent/model: Claude Code / Claude Opus 5.5 | Coverage: this folder, from `1e346217c`, and the story in #1371 (`4971dbd74`, on develop `ab8e34dd9`)
 
 | Phase | Start → end (UTC, 27 October 2026, approximate) | Result / evidence |
 |---|---|---|
 | story | 06:40 → 06:58 | `AcceptGreenGoodsAccess` in `VoucherAskDialogs.stories.tsx`, with `STORY_MARA_ACCESS_ASK` in `poolStoryVouchers.ts`: Green Goods accepts 30 days of Claude access in the protocol pool. Biome format and oxlint clean; the admin typecheck reports nothing in the two files; in a local Storybook build the story renders and its play test finishes, with four checks holding and Accept enabled |
 | demo | 06:58 → 07:05 | The swap chapter recaptured with the Accept as swap-7, drawn over the root garden's real Promises tab (its voucher panel, which cannot read the pilot's bookings from the hosted indexer, hidden), and her active booking as swap-8; the story's voucher chapter ends on Green Goods accepting. `check.mjs` exit 0: 50 screens, 35 back regions |
+| publish | 07:05 → 07:10 | Afo chose own PR merged on green, republish now, the note's wording in a later PR and no Linear record. #1371 opened after the push gate passed (format, lint, docs-authority, source-structure, story-quality, react-patterns and the focused `VoucherMemberBooking` test); demo commit `760a00414` pushed; artifact version 13; Drive copy replaced |
 
 Human corrections: 0 observed in this segment; attention unknown.
