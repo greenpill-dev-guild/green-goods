@@ -113,6 +113,7 @@ export function voucherStorySeeds(
     ...Object.entries(approvals).flatMap(([id, approval]) => {
       const issuer = VOUCHER_STORY_ISSUERS[id as keyof typeof VOUCHER_STORY_ISSUERS];
       const { chainId } = issuer.asset;
+      // The stories name no Safe owners, so no reader is offered the issuer Safe's own acts.
       const safe: IssuerSafeThreshold =
         approval.kind === "safe"
           ? {
@@ -120,8 +121,15 @@ export function voucherStorySeeds(
               status: "observed",
               threshold: approval.threshold,
               owners: approval.owners,
+              signers: null,
             }
-          : { safe: issuer.account, status: "unavailable", threshold: null, owners: null };
+          : {
+              safe: issuer.account,
+              status: "unavailable",
+              threshold: null,
+              owners: null,
+              signers: null,
+            };
       return [
         [
           commitmentPoolingKeys.issuerApproval(chainId, issuer.account, issuer.kind, false),

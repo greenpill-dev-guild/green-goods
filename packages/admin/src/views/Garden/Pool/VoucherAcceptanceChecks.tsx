@@ -1,6 +1,7 @@
-import type {
-  VoucherAcceptanceChecks as Checks,
-  VoucherAsk,
+import {
+  type VoucherAcceptanceChecks as Checks,
+  selectVoucherAskStage,
+  type VoucherAsk,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
@@ -30,6 +31,8 @@ export function VoucherAcceptanceChecks({
   const intl = useIntl();
   const { formatMessage } = intl;
   const { setup } = ask;
+  // Consent fails two ways: the offer's terms moved, or the ask names no agreement at all.
+  const stage = selectVoucherAskStage(ask, nowMs / 1000);
   const approvedAt = setup ? setup.approvedAt : null;
   const count = voucherCount(setup?.voucherUnits ?? 0n, ask.issuer.decimals);
   const line = {
@@ -46,13 +49,21 @@ export function VoucherAcceptanceChecks({
             { id: "cockpit.garden.pool.voucher.version", defaultMessage: "Version {version}" },
             { version: ask.agreed.revision.toString() }
           )
-        : formatMessage(
-            {
-              id: "cockpit.garden.pool.voucher.check.consentFailed",
-              defaultMessage: "The terms changed after {name} agreed, so they book again",
-            },
-            { name }
-          ),
+        : stage === "terms-changed"
+          ? formatMessage(
+              {
+                id: "cockpit.garden.pool.voucher.check.consentFailed",
+                defaultMessage: "The terms changed after {name} agreed, so they book again",
+              },
+              { name }
+            )
+          : formatMessage(
+              {
+                id: "cockpit.garden.pool.voucher.check.consentMissing",
+                defaultMessage: "There’s no agreement from {name} to accept, so they book again",
+              },
+              { name }
+            ),
     },
     approval: {
       title: formatMessage({

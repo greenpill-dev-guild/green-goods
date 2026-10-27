@@ -48,6 +48,7 @@ const approve = (overrides: Partial<Parameters<typeof VoucherApproveDialog>[0]> 
     title="Hub day, up to 4 hours"
     safe={STORY_TECH_AND_SUN_SAFE}
     nowMs={NOW_MS}
+    disabled={false}
     tone="garden"
     onClose={() => undefined}
     onApprove={async () => undefined}
@@ -96,8 +97,23 @@ export const ApproveTwoOfFive: Story = {
 export const ApproveSafeUnread: Story = {
   render: () =>
     approve({
-      safe: { ...STORY_TECH_AND_SUN_SAFE, status: "unavailable", threshold: null, owners: null },
+      safe: {
+        ...STORY_TECH_AND_SUN_SAFE,
+        status: "unavailable",
+        threshold: null,
+        owners: null,
+        signers: null,
+      },
     }),
+};
+
+/** The console went offline with the dialog open: Approve Booking waits, as the row's act does. */
+export const ApproveOffline: Story = {
+  render: () => approve({ disabled: true }),
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog"));
+    await expect(dialog.getByRole("button", { name: "Approve Booking" })).toBeDisabled();
+  },
 };
 
 /** Kwesi's deposit is confirmed on Green Goods: every check holds, and Accept is on. */
@@ -124,6 +140,18 @@ export const AcceptBlocked: Story = {
   play: async () => {
     const dialog = within(await screen.findByRole("dialog"));
     await expect(dialog.getByText("Not confirmed on Green Goods yet")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Accept Kwesi" })).toBeDisabled();
+  },
+};
+
+/** The ask names no agreement the acceptance can name: the consent check says so, not changed terms. */
+export const AcceptAgreementMissing: Story = {
+  render: () => accept({ ask: { ...STORY_KWESI_ASK, claimHash: `0x${"00".repeat(32)}` } }),
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog"));
+    await expect(
+      dialog.getByText("There’s no agreement from Kwesi to accept, so they book again")
+    ).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Accept Kwesi" })).toBeDisabled();
   },
 };

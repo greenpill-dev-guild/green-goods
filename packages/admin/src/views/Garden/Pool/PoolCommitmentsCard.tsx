@@ -29,7 +29,7 @@ import {
 } from "./poolCommitmentRows";
 import { commitmentStateChip } from "./poolPresentation";
 import { rowDueDetail } from "./poolTime";
-import { voucherOfferRow } from "./voucherPresentation";
+import { voucherBookingAct, voucherOfferRow } from "./voucherPresentation";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
@@ -116,6 +116,11 @@ export function PoolCommitmentsCard({
     focus,
     search,
     titleOf,
+    // A copy whose booking waits on the steward's act keeps its own row, act and all.
+    standsAlone: (row) => {
+      const booking = vouchers.bookingFor(row.commitmentId);
+      return booking !== undefined && voucherBookingAct(booking) !== null;
+    },
   });
   // A group's queued copies are counted on its row, so they leave the queued
   // list, while it can still finish them. Past its deadline they stay listed on
@@ -302,8 +307,10 @@ export function PoolCommitmentsCard({
               }
               const commitment = entry.record;
               const chip = commitmentStateChip(commitment, formatMessage);
-              const isDue = dueIds.has(commitment.id);
               const voucher = voucherOfferRow(commitment.commitmentId, vouchers, intl, now);
+              // A return that didn't go through owes the holder vouchers: its retry keeps the
+              // row past the due date, where expiring would fix nothing.
+              const isDue = dueIds.has(commitment.id) && voucher?.act !== "retry";
               return (
                 <li
                   key={commitment.id}
@@ -390,6 +397,7 @@ export function PoolCommitmentsCard({
         safe={safe}
         target={target}
         nowMs={now}
+        disabled={actDisabled}
         tone={tone}
         onClose={() => setBookingAct(null)}
       />

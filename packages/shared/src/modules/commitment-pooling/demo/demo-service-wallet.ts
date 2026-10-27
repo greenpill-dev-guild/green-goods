@@ -55,12 +55,15 @@ export function rehearsalIssuerApproval(
     : { kind: "unavailable", reason: "unconfigured" };
 }
 
-/** The same Safes in the console's contract: observed for the pilot's two, unread otherwise. */
+/**
+ * The same Safes in the console's contract: observed for the pilot's two, unread otherwise. The
+ * rehearsal names no owners, so it offers no one a Safe's own acts.
+ */
 export function rehearsalIssuerSafeThreshold(safe: Address): IssuerSafeThreshold {
   const rule = REHEARSAL_SAFES[safe.toLowerCase() as Address];
   return rule
-    ? { safe, status: "observed", ...rule }
-    : { safe, status: "unavailable", threshold: null, owners: null };
+    ? { safe, status: "observed", ...rule, signers: null }
+    : { safe, status: "unavailable", threshold: null, owners: null, signers: null };
 }
 
 /** Holdings come from the shared ledger; escrow and returns from the account's own setups. */

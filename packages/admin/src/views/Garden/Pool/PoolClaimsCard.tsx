@@ -2,9 +2,14 @@ import type {
   PoolConsoleController,
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import { useWaitingForApproval } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
+import {
+  isStillWaiting,
+  useWaitingForApproval,
+  type WaitingRow,
+} from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import {
   type IssuerSafeThreshold,
+  selectCanApproveBooking,
   selectVoucherAskStage,
   type VoucherAsk,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
@@ -46,9 +51,11 @@ export interface PoolClaimsCardProps {
  * not disabled: the contract refuses them, so the rows only wait.
  *
  * A voucher booking (PRD-1297 surface 6) is an ask the contract refuses to
- * approve in one tap: its issuer's Safe approves it first (Approve…), the
- * member deposits, and only then the pool's steward accepts it through
- * `acceptServiceClaim` (Accept…), each in a dialog with its facts or checks.
+ * approve in one tap: its issuer's Safe approves it first (Approve…, offered
+ * only to an owner of that Safe), the member deposits, and only then the
+ * pool's steward accepts it through `acceptServiceClaim` (Accept…), each in a
+ * dialog with its facts or checks. A booking decided this visit keeps reading
+ * as one after the voucher read drops its ask, as the visit keeps its row.
  */
 export function PoolClaimsCard({
   console: pool,
@@ -65,6 +72,21 @@ export function PoolClaimsCard({
   const approvals = useWaitingForApproval(pool);
   const [approving, setApproving] = useState<VoucherAsk | null>(null);
   const [accepting, setAccepting] = useState<VoucherAsk | null>(null);
+  // Each booking's ask as last read this visit, by its row: an accepted ask leaves the voucher
+  // read, and its row still reads Accepted, "Booking · …", while the visit keeps it.
+  const visit = `${chainId}:${pool.garden.toLowerCase()}`;
+  const [seen, setSeen] = useState({ visit, asks: new Map<string, VoucherAsk>() });
+  const known = seen.visit === visit ? seen.asks : new Map<string, VoucherAsk>();
+  const live = approvals.rows.flatMap((item) => {
+    const ask = vouchers.askFor(item.row.claim.commitmentId, item.row.claim.claimant);
+    return ask ? [[item.key, ask] as const] : [];
+  });
+  if (seen.visit !== visit || live.some(([key, ask]) => known.get(key) !== ask)) {
+    setSeen({ visit, asks: new Map([...known, ...live]) });
+  }
+  const askOf = (item: WaitingRow) =>
+    vouchers.askFor(item.row.claim.commitmentId, item.row.claim.claimant) ??
+    (isStillWaiting(item.state) ? undefined : known.get(item.key));
   // One decision at a time: the wallet asks for one, from this card or the inspector.
   const disabled = !isOnline || isActing || claimInFlight;
   const nowMs = vouchers.now * 1000;
@@ -78,13 +100,20 @@ export function PoolClaimsCard({
     const row = ask && pool.claims.find((entry) => entry.claim.commitmentId === ask.commitmentId);
     return row ? titleOf(row.commitment) : "";
   };
-  const voucherView = (row: PoolClaimRequestRow): VoucherAskRowView | undefined => {
-    const ask = vouchers.askFor(row.claim.commitmentId, row.claim.claimant);
+  // Read live: the account, or the Safe's owners, can change while an approval is open.
+  const approves = (ask: VoucherAsk) =>
+    selectCanApproveBooking({ ask, issuer: vouchers.snapshot.issuer, safe, viewer: pool.viewer });
+  const approveBooking = (ask: VoucherAsk) =>
+    approves(ask)
+      ? vouchers.acts.approveBooking(ask)
+      : Promise.reject(new Error("Only an owner of the issuer's Safe can approve this booking"));
+  const voucherView = (item: WaitingRow): VoucherAskRowView | undefined => {
+    const ask = askOf(item);
     if (!ask) return undefined;
     const stage = selectVoucherAskStage(ask, vouchers.now);
-    const act = voucherAskAct(stage);
+    const act = voucherAskAct(stage, approves(ask));
     return {
-      tag: voucherAskTag(stage, formatMessage),
+      tag: voucherAskTag(ask, stage, approves(ask), formatMessage),
       detail: voucherAskDetail(ask, stage, intl, nowMs),
       act:
         act === "approve"
@@ -170,7 +199,7 @@ export function PoolClaimsCard({
                   .catch(() => undefined)
               }
               onDecline={() => onDecline(item.row)}
-              voucher={voucherView(item.row)}
+              voucher={voucherView(item)}
             />
           ))}
         </ul>
@@ -180,9 +209,10 @@ export function PoolClaimsCard({
         title={titleFor(approving)}
         safe={safe}
         nowMs={nowMs}
+        disabled={disabled || (approving !== null && !approves(approving))}
         tone={tone}
         onClose={() => setApproving(null)}
-        onApprove={vouchers.acts.approveBooking}
+        onApprove={approveBooking}
       />
       <VoucherAcceptDialog
         ask={accepting}
