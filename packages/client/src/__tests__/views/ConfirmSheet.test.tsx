@@ -32,10 +32,11 @@ function evidence(cid: string): ResolvedEvidence {
   };
 }
 
-function renderSheet(indexedEvidenceCount: number) {
-  return renderWithProviders(
+function sheet(indexedEvidenceCount: number, open = true, startInNotYet = false) {
+  return (
     <ConfirmSheet
-      open
+      open={open}
+      startInNotYet={startInNotYet}
       onOpenChange={vi.fn()}
       commitment={commitmentFixture({
         creator: PROVIDER,
@@ -58,6 +59,10 @@ function renderSheet(indexedEvidenceCount: number) {
       onDone={vi.fn()}
     />
   );
+}
+
+function renderSheet(indexedEvidenceCount: number) {
+  return renderWithProviders(sheet(indexedEvidenceCount));
 }
 
 describe("ConfirmSheet proof summary", () => {
@@ -104,5 +109,17 @@ describe("ConfirmSheet proof summary", () => {
 
     expect(screen.getByText("2 items")).toBeInTheDocument();
     expect(screen.queryByText("No proof has been attached yet.")).not.toBeInTheDocument();
+  });
+});
+
+describe("ConfirmSheet opening", () => {
+  it("opens Confirm It Was Kept on its ask after Report a Problem closed from the page", () => {
+    const { rerender } = renderWithProviders(sheet(0, true, true));
+    expect(screen.getByRole("button", { name: "Send to the Stewards" })).toBeInTheDocument();
+    // The page closes the sheet itself once the report is sent, so the dialog never says so.
+    rerender(sheet(0, false, true));
+    rerender(sheet(0, true, false));
+    expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Send to the Stewards" })).toBeNull();
   });
 });

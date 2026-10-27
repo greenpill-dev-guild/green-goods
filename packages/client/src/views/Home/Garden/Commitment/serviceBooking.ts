@@ -78,6 +78,22 @@ export function isServiceAccessPromise(s: ServiceAccessSnapshot | null | undefin
   return s?.knownService === true || s?.acceptancePolicy.blockGenericMemberAcceptance === true;
 }
 
+/**
+ * Whether the page can tell a service offer from an ordinary promise yet. Until the service read
+ * answers, or when it failed, a promise may still be a service offer, which refuses the generic
+ * take-up. A read with no one to read for never runs, so it decides nothing.
+ */
+export function serviceReadOutcome(read: {
+  data?: ServiceAccessSnapshot | null;
+  isError?: boolean;
+  status?: string;
+  fetchStatus?: string;
+}): "service" | "ordinary" | "unresolved" | "failed" {
+  if (read.data) return isServiceAccessPromise(read.data) ? "service" : "ordinary";
+  if (read.isError) return "failed";
+  return read.status === "pending" && read.fetchStatus !== "idle" ? "unresolved" : "ordinary";
+}
+
 /** The stage a voucher booking is in; null when the promise has no voucher route. */
 function serviceBookingStage(
   input: Pick<ServiceBookingInput, "snapshot" | "coreState" | "held">

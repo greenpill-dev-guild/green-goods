@@ -1203,6 +1203,7 @@
   "app.commitment.queue.notice.unsent.body": "It waits on this phone until you send it, and shows below once it lands.",
   "app.commitment.queue.notice.membership.bodyUnsent": "Your garden membership hadn't landed when this was last tried. Send it once it has.",
   "app.commitment.join.unavailable": "We couldn't check whether you belong to this garden, so taking this up is paused.",
+  "app.commitment.join.serviceUnavailable": "We couldn't check how this promise is taken up, so taking it up is paused.",
   "app.commitment.team.assigned": "Assigned: {rows}",
   "app.commitment.team.credits": "{work, plural, =0 {No approved work yet} one {# approved work} other {# approved works}} · {proof, plural, =0 {no proof yet} one {# proof} other {# proofs}}",
   "app.commitment.team.frozen": "Team set",

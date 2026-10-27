@@ -1498,6 +1498,17 @@ describe("a voucher booking on the promise page", () => {
     expect(section).not.toHaveTextContent("Green Goods voucher");
   });
 
+  it("says Needs you when the promise waits on the reader under a booking that doesn't", () => {
+    show(
+      bookingStorySnapshot("hubDay", "transfersPending"),
+      bookingStoryController("hubDay", "READY_FOR_CONFIRMATION")
+    );
+    const band = screen.getByRole("region", { name: "Where this stands" });
+    expect(band).toHaveTextContent("Needs you");
+    expect(band).toHaveAttribute("data-tone", "attention");
+    expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
+  });
+
   it("sends the transfers of an approved split whose prompt the reader declined", async () => {
     show(
       bookingStorySnapshot("hubDay", "transfersPending", { legsSent: false }),
@@ -1576,5 +1587,53 @@ describe("a voucher booking on the promise page", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Ask for Help" }));
     expect(screen.getByTestId("help-route")).toHaveTextContent("/home/profile?tab=help");
+  });
+});
+
+describe("a promise whose service read hasn't answered", () => {
+  beforeEach(() => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: "askToTakeUp",
+        seat: "bystander",
+        detail: detail({
+          commitment: {
+            onchainState: "OFFERED",
+            derivedState: "OFFERED",
+            creator: OTHER,
+            leadProvider: OTHER,
+          },
+        }),
+      })
+    );
+  });
+
+  it("holds the ordinary take-up while the read is on its way", () => {
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "pending",
+      fetchStatus: "fetching",
+      isError: false,
+      refetch: vi.fn(),
+    });
+    render();
+    expect(screen.queryByRole("button", { name: "Ask to take this up" })).toBeNull();
+    expect(screen.queryByText(/couldn't check how this promise/i)).toBeNull();
+  });
+
+  it("offers the check again when the read failed, instead of the ordinary take-up", async () => {
+    const refetch = vi.fn();
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "error",
+      fetchStatus: "idle",
+      isError: true,
+      refetch,
+    });
+    render();
+    expect(screen.queryByRole("button", { name: "Ask to take this up" })).toBeNull();
+    expect(screen.getByText(/couldn't check how this promise is taken up/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });
