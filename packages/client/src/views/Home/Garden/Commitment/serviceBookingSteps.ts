@@ -29,7 +29,7 @@ function phase(
 
 /** The booking's steps grouped into phases, each naming who acts (V2). */
 export function bookingPhases(ctx: BookingContext): ServicePhase[] {
-  const { t, stage, profile, pos, setup, one, n, units, date } = ctx;
+  const { t, stage, profile, member, pos, setup, one, n, units, date } = ctx;
   if (!setup) return [];
   const d = setup.destination;
   const final = d?.finalAllocation ?? null;
@@ -93,20 +93,33 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
       ? t("rd.sub.lessons", { done: ctx.daysDone ?? 0, of: ctx.accessDays })
       : profile === "hubDay" && visit?.visitAt && visit.from && visit.to
         ? t("rd.sub.session", { date: date(visit.visitAt), from: visit.from, to: visit.to })
-        : t("rd.who.sunReports");
+        : profile === "minutes" && ctx.reported
+          ? t("rd.sub.minutes", { done: Number(ctx.delivered), of: Number(ctx.serviceUnits) })
+          : t("rd.who.sunReports");
   const flagged = stage === "problemReported" || stage === "returnProposed";
   return [
     ...phases,
-    phase("accepted", t("rd.p.accepted"), t("rd.who.sun"), [
+    // A member approves their own bookings; the garden's stewards accept them.
+    phase("accepted", t("rd.p.accepted"), t(member ? "rd.who.stewards" : "rd.who.sun"), [
       dated(
-        step("accepted", t("rd.sub.accepted"), stage === "termsChanged" ? "warn" : at(3)),
+        step(
+          "accepted",
+          t(member ? "rd.sub.acceptedM" : "rd.sub.accepted"),
+          stage === "termsChanged" ? "warn" : at(3)
+        ),
         "ACCEPTED"
       ),
       step("started", t("rd.sub.started"), at(4)),
     ]),
     phase(
       "delivery",
-      t(profile === "access" ? "rd.p.lessons" : "rd.p.session"),
+      t(
+        profile === "access"
+          ? "rd.p.lessons"
+          : profile === "minutes"
+            ? "rd.p.lesson"
+            : "rd.p.session"
+      ),
       t("rd.who.sunReports"),
       [
         dated(
@@ -206,13 +219,13 @@ export function bookingDelivery(ctx: BookingContext): ServiceBookingView["delive
   if (!ctx.setup) return null;
   const counted = ctx.reported || (ctx.profile === "access" && ctx.daysDone !== null);
   if (ctx.pos < 5 || !counted) return { none: ctx.t("rd.prog.none") };
-  return ctx.profile === "access"
-    ? { label: ctx.t("rd.prog.lessons"), done: ctx.daysDone ?? 0, of: ctx.accessDays }
-    : {
-        label: ctx.t("rd.prog.session"),
-        done: Number(ctx.delivered),
-        of: Number(ctx.serviceUnits),
-      };
+  if (ctx.profile === "access")
+    return { label: ctx.t("rd.prog.lessons"), done: ctx.daysDone ?? 0, of: ctx.accessDays };
+  return {
+    label: ctx.t(ctx.profile === "minutes" ? "rd.prog.minutes" : "rd.prog.session"),
+    done: Number(ctx.delivered),
+    of: Number(ctx.serviceUnits),
+  };
 }
 
 /** Promise kept? once the split is final: the strip at its last step and the approved split. */

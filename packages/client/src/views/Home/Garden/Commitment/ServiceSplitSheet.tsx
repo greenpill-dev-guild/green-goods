@@ -59,21 +59,23 @@ export function ServiceSplitSheet({
   const delivered = split.delivered > 0n;
   // A hub day that returns part of its voucher was cut short, never the full day.
   const part = split.release > 0n && split.refund > 0n;
+  const minutes = { done, of: Number(w.serviceUnits) };
   const deliveredValue =
     view.profile === "access"
       ? t("rd.sh.deliveredC", { done, of })
       : view.profile === "hubDay"
         ? t(part ? "rd.sh.deliveredSP" : "rd.sh.deliveredS")
-        : formatMessage(
-            { id: "app.commitment.progress.count" },
-            { done, of: Number(w.serviceUnits) }
-          );
+        : view.profile === "minutes"
+          ? t("rd.sh.deliveredL", minutes)
+          : formatMessage({ id: "app.commitment.progress.count" }, minutes);
   const check =
     view.profile === "access"
       ? t("rd.sh.chkC", { done, of })
       : view.profile === "hubDay"
         ? t(part ? "rd.sh.chkSP" : "rd.sh.chkS")
-        : `${t("rd.sh.delivered")}: ${deliveredValue}`;
+        : view.profile === "minutes"
+          ? t("rd.sh.chkL", minutes)
+          : `${t("rd.sh.delivered")}: ${deliveredValue}`;
   const total = Number(split.release + split.refund) || 1;
   return (
     <DialogShell
@@ -146,7 +148,9 @@ export function ServiceSplitSheet({
                   ? t("rd.sh.toSunC", { done })
                   : view.profile === "hubDay"
                     ? t("rd.sh.toSunS")
-                    : null
+                    : view.profile === "minutes"
+                      ? t("rd.sh.toSunL", { done })
+                      : null
             )}
           />
           <FactRow
