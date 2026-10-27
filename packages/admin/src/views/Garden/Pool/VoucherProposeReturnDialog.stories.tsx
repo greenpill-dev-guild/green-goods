@@ -122,3 +122,16 @@ export const ProposeReturnBusy: Story = {
     await expect(dialog.getByRole("button", { name: "Propose Return" })).toBeDisabled();
   },
 };
+
+/** Canonical units have no invented visit schedule, elapsed days or published refund policy. */
+export const SafeFileReturn: Story = {
+  args: {
+    booking: {
+      ...STORY_LINA_ENDED,
+      issuer: { ...STORY_LINA_ENDED.issuer, execution: "safe-file" },
+      service: { kind: "units", units: 1n, label: "visits", returnLimit: 10_000_000n },
+      stage: { kind: "in-progress" },
+    },
+    title: "Garden visit",
+  },
+};

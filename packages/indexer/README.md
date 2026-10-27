@@ -3,6 +3,10 @@
 The Green Goods indexer uses Envio HyperIndex `3.6.1` to process protocol events into PostgreSQL
 and expose them through Hasura GraphQL. It indexes protocol state, not EAS attestations.
 
+For the prepared voucher release, use the [voucher rollout checklist](voucher-rollout.md).
+It records the candidate, public-table checks, replay checks and rollback; production has not
+been changed.
+
 See the [Indexer package guide](https://docs.greengoods.app/builders/packages/indexer) for the
 architecture and builder contract.
 

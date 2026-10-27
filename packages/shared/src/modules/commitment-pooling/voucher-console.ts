@@ -24,6 +24,8 @@ import type { Address } from "../../types/domain";
 import type { IssuerSafeThreshold } from "./service-access-wallet-types";
 
 export interface VoucherIssuer {
+  /** Collective writes are reviewed exports, not submitted transactions. */
+  execution?: "safe-file";
   /** How members know the issuer: "Tech and Sun", "Green Goods". */
   name: string;
   /** The voucher network the issuer's token and Safe live on. */
@@ -40,6 +42,10 @@ export interface VoucherTermsVersion {
 }
 
 export interface VoucherAskSetup {
+  setupId?: Hex;
+  authorizationHash?: Hex;
+  /** Canonical approval when its historical timestamp is not available. */
+  issuerApproved?: boolean;
   /** What the member deposits for the booking. */
   voucherUnits: bigint;
   /** When the issuer's Safe approved this exact booking; null until it does. */
@@ -62,7 +68,7 @@ export interface VoucherAsk {
   /** The terms the member agreed to, and the offer's terms now. */
   agreed: VoucherTermsVersion;
   current: VoucherTermsVersion;
-  agreedAt: number;
+  agreedAt: number | null;
   issuer: VoucherIssuer;
   /** The booking's escrow setup, once it reaches the issuer; null before. */
   setup: VoucherAskSetup | null;
@@ -77,6 +83,13 @@ export interface VoucherVisitReport {
 }
 
 export type VoucherBookingService =
+  | {
+      kind: "units";
+      units: bigint;
+      label: string;
+      returnLimit: bigint | null;
+      returnCeiling?: bigint;
+    }
   | { kind: "visit"; startsAt: number; endsAt: number; report: VoucherVisitReport }
   | { kind: "access"; daysUsed: number; daysOf: number };
 
@@ -88,7 +101,8 @@ export type VoucherBookingStage =
    */
   | { kind: "ended-early"; returnLimit: bigint; returnCeiling: bigint }
   /** A transfer after the final split didn't go through: anyone can retry the same one. */
-  | { kind: "return-failed"; units: bigint };
+  | { kind: "return-failed"; units: bigint }
+  | { kind: "transfer-failed"; units: bigint };
 
 /** A booking under way on one of the pool's offers. */
 export interface VoucherBooking {
@@ -130,6 +144,10 @@ export interface VoucherIssuerReserve {
 export type { IssuerSafeThreshold } from "./service-access-wallet-types";
 
 export interface VoucherConsoleSnapshot {
+  /** Labels live observations and keeps rehearsal seeds isolated from live refreshes. */
+  evidence?: "onchain" | "local-rehearsal";
+  /** Discovery is bounded; absence in a cross-chain index is not proof of no obligations. */
+  incomplete?: boolean;
   /** Unavailable until the voucher pilot deployment is adopted and its reads are wired. */
   status: "observed" | "unavailable";
   /** The source time the read was taken at; checks never trust a device clock alone. */
@@ -198,7 +216,7 @@ export function selectVoucherAcceptanceChecks(
 ): VoucherAcceptanceChecks {
   const { setup } = ask;
   const consent = sameTerms(ask) && namedConsent(ask);
-  const approval = setup !== null && setup.approvedAt !== null;
+  const approval = setup !== null && (setup.issuerApproved ?? setup.approvedAt !== null);
   const deposit = setup !== null && depositHolds(setup);
   const deadline = setup !== null && now <= setup.acceptBy;
   return {
@@ -235,7 +253,7 @@ export function selectVoucherAskStage(ask: VoucherAsk, now: number): VoucherAskS
   if (!namedConsent(ask)) return "consent-missing";
   if (ask.setup === null) return "setting-up";
   if (now > ask.setup.acceptBy) return "past-deadline";
-  if (ask.setup.approvedAt === null) return "needs-approval";
+  if (!(ask.setup.issuerApproved ?? ask.setup.approvedAt !== null)) return "needs-approval";
   return depositHolds(ask.setup) ? "ready" : "waiting-for-deposit";
 }
 

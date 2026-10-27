@@ -189,3 +189,15 @@ export const AcceptBookingPt: Story = {
   render: () => accept(),
   decorators: [inLocale("pt")],
 };
+
+/** Collective approvals download a proposal and remain unapproved until Safe execution. */
+export const SafeFileApproval: Story = {
+  render: () =>
+    approve({
+      ask: {
+        ...STORY_LINA_ASK,
+        agreedAt: null,
+        issuer: { ...STORY_LINA_ASK.issuer, execution: "safe-file" },
+      },
+    }),
+};

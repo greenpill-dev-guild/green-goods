@@ -25,11 +25,14 @@ export interface ServiceLiveRoute {
     router: Address;
     remoteSelector: bigint;
   };
+  walletState?: { adapter: Address; registry: Address; limiter: Address; pool: Address };
   assets: readonly {
     token: Address;
     issuer: Address;
     symbol: string;
     decimals: number;
+    issuerName?: string;
+    garden?: Address;
     runtimeCodeHash: Hex;
     implementation: { address: Address; runtimeCodeHash: Hex };
   }[];
@@ -53,6 +56,13 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
     id: "green-goods-tech-and-sun-voucher-pilot",
     revision: 1,
     sourceChainId: 42161,
+    // Public Gnosis pilot downstream record: reserve adapter, token index, limiter and pool.
+    walletState: {
+      adapter: "0x80a906C175ea875af8a2afcA8F91F60b201dc824",
+      registry: "0xf685212bB309F36F74B53ba0c9f1E49B4222d036",
+      limiter: "0xbA96741cc022F48a1F936a085b7549AEa3B01b9C",
+      pool: "0x6AFc963B583fBB536F05B2D7ae832880662b98A4",
+    },
     // 42161-latest.json's Pooling proxy, created through the CREATE2 deployer; its voucher
     // implementation is the Safe's 24 October source upgrade (Safe nonce 33).
     core: {
@@ -109,6 +119,8 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
         token: "0xbaF8c6f7c0cA8310Df725D90023C188FA8f1B590",
         issuer: GREEN_GOODS_SAFE,
         symbol: "GGV",
+        issuerName: "Green Goods",
+        garden: "0xf401f34378384713222d1d21f63359cc4E8a858a",
         decimals: 6,
         runtimeCodeHash: CLC_TOKEN_PROXY_RUNTIME,
         implementation: CLC_TOKEN_IMPLEMENTATION,
@@ -117,6 +129,8 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
         token: "0xB89300F212fcbdF3D5b73eADE290b3c0d6292143",
         issuer: "0x9BE5f0D6B95Ea3735df71023F5dFED53b4c1aABf",
         symbol: "TSV",
+        issuerName: "Tech and Sun",
+        garden: "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
         decimals: 6,
         runtimeCodeHash: CLC_TOKEN_PROXY_RUNTIME,
         implementation: CLC_TOKEN_IMPLEMENTATION,

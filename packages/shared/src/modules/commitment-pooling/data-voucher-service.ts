@@ -2,6 +2,7 @@ import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
 import type { GraphQLReader } from "../data/graphql-client";
 import type { ServiceAccessKey } from "./service-access-types";
+import type { VoucherWalletScope } from "./service-access-wallet-types";
 import type { ServiceVoucherSetup } from "./service-access-voucher-types";
 import {
   serviceAddress,
@@ -33,6 +34,47 @@ function scope(value: unknown, chain: number, module: Address, setupId?: Hex) {
   )
     throw new Error("Voucher projection scope mismatch");
   return r;
+}
+
+/** Account-wide discovery is bounded and scoped; canonical reads still decide custody. */
+export async function discoverWalletVoucherSetups(
+  wallet: VoucherWalletScope,
+  module: Address,
+  reader: GraphQLReader
+) {
+  const result = await reader.query<{ VoucherServiceSetup: unknown[] }>(
+    `query WalletVoucherSetups($chain: Int!, $module: String!, $core: String!, $account: String!) {
+      VoucherServiceSetup(where: {chainId: {_eq: $chain}, moduleAddress: {_eq: $module}, coreModule: {_eq: $core}, holder: {_eq: $account}, authorizationSeen: {_eq: true}}, order_by: {id: asc}, limit: 101) {
+        id chainId moduleAddress setupId coreModule commitmentId buyer holder authorizationSeen
+      }
+    }`,
+    {
+      chain: wallet.sourceChainId,
+      module: module.toLowerCase(),
+      core: wallet.coreModule.toLowerCase(),
+      account: wallet.account.toLowerCase(),
+    },
+    "discoverWalletVoucherSetups"
+  );
+  if (result.error) throw result.error;
+  if (!Array.isArray(result.data.VoucherServiceSetup))
+    throw new Error("Wallet booking discovery unavailable");
+  const seen = new Set<string>();
+  const records = result.data.VoucherServiceSetup.slice(0, 100).map((value) => {
+    const r = scope(value, wallet.sourceChainId, module);
+    const setupId = serviceHash(r.setupId);
+    if (
+      seen.has(setupId) ||
+      r.id !== `${wallet.sourceChainId}-${module.toLowerCase()}-${setupId}` ||
+      serviceAddress(r.coreModule) !== wallet.coreModule.toLowerCase() ||
+      serviceAddress(r.holder) !== wallet.account.toLowerCase() ||
+      !serviceFlag(r.authorizationSeen)
+    )
+      throw new Error("Wallet booking discovery identity mismatch");
+    seen.add(setupId);
+    return { setupId, commitmentId: decimal(r.commitmentId), buyer: serviceAddress(r.buyer) };
+  });
+  return { records, partial: result.data.VoucherServiceSetup.length > 100 };
 }
 
 /** Issuer discovery is a scoped hint, never a balance, obligation total or signing authority. */

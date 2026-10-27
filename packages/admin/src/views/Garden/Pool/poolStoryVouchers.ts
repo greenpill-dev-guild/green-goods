@@ -349,7 +349,10 @@ export function storyVoucherConsole(
 export function voucherConsoleSeeds(snapshot: VoucherConsoleSnapshot, safe: IssuerSafeThreshold) {
   const voucherChain = snapshot.issuer?.chainId ?? DEFAULT_CHAIN_ID;
   return [
-    [queryKeys.commitmentPooling.voucherConsole(DEFAULT_CHAIN_ID, STORY_GARDEN), snapshot],
+    [
+      queryKeys.commitmentPooling.voucherConsole(DEFAULT_CHAIN_ID, STORY_GARDEN),
+      { ...snapshot, evidence: "local-rehearsal" },
+    ],
     [queryKeys.commitmentPooling.issuerSafeThreshold(voucherChain, safe.safe), safe],
   ] as const;
 }

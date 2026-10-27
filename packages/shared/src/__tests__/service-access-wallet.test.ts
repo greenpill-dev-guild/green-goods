@@ -1,3 +1,4 @@
+import { liveVoucherFixture } from "./fixtures/live-voucher";
 import { decodeFunctionData, encodeFunctionResult, type Hex, parseAbi } from "viem";
 import { describe, expect, it } from "vitest";
 import { createServiceRehearsalAdapter } from "../modules/commitment-pooling/demo/demo-service-access";
@@ -12,6 +13,7 @@ import {
   readIssuerSafeThreshold,
   readVoucherIssuerApproval,
   requestRewardDeliveries,
+  readLiveVoucherWallet,
   serviceVoucherHolder,
 } from "../modules/commitment-pooling/service-access-wallet";
 import type { VoucherWalletScope } from "../modules/commitment-pooling/service-access-wallet-types";
@@ -40,6 +42,113 @@ const observe = (
     | "issuer-approved"
     | "provider-accepted"
 ) => ({ action: "observePilotRole" as const, observation });
+
+describe("receipt-backed live voucher wallet", () => {
+  it("reads actual token holdings and an empty booking projection without claiming completeness", async () => {
+    const f = liveVoucherFixture();
+    const result = await readLiveVoucherWallet(f.wallet, {
+      routes: [f.route],
+      chain: f.chain,
+      reader: f.reader,
+    });
+    expect(result).toMatchObject({
+      evidence: "onchain",
+      complete: false,
+      reason: null,
+      bookings: [],
+      returns: [],
+    });
+    expect(result.holdings.map((row) => row.available)).toEqual([17n, 3n]);
+    expect(result.issuers.map((row) => row.asset.symbol)).toEqual(["GGV", "TSV"]);
+  });
+  it("reads paused and delisted standing without hiding vouchers already held", async () => {
+    const f = liveVoucherFixture();
+    const read = f.chain.read;
+    f.chain.read = async (input) =>
+      input.functionName === "assetAuthorizations"
+        ? [f.route.core.owner, false]
+        : input.functionName === "limitOf"
+          ? 0n
+          : read(input);
+    const result = await readLiveVoucherWallet(f.wallet, {
+      routes: [f.route],
+      chain: f.chain,
+      reader: f.reader,
+    });
+    expect(result.issuers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ standing: { bookings: "paused", exchange: "delisted" } }),
+      ])
+    );
+    expect(result.holdings.map((row) => row.available)).toEqual([17n, 3n]);
+  });
+  it("refuses an unknown issuer standing instead of reporting it open", async () => {
+    const f = liveVoucherFixture();
+    const read = f.chain.read;
+    f.chain.read = async (input) => {
+      if (input.functionName === "assetAuthorizations") throw new Error("reserve RPC unavailable");
+      return read(input);
+    };
+    await expect(
+      readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
+    ).rejects.toThrow("reserve RPC unavailable");
+  });
+  it("keeps canonical holdings but marks bookings incomplete when the hosted table is missing", async () => {
+    const f = liveVoucherFixture();
+    f.reader.query = async () => ({ error: new Error("VoucherServiceSetup not found") });
+    const result = await readLiveVoucherWallet(f.wallet, {
+      routes: [f.route],
+      chain: f.chain,
+      reader: f.reader,
+    });
+    expect(result).toMatchObject({
+      evidence: "onchain",
+      complete: false,
+      reason: "projection-unregistered",
+    });
+    expect(result.holdings[0]!.available).toBe(17n);
+  });
+  it("does not hydrate or invent a booking from a mismatched holder", async () => {
+    const f = liveVoucherFixture([
+      {
+        id: "foreign",
+        chainId: 42161,
+        moduleAddress: "0x0000000000000000000000000000000000000999",
+        setupId: `0x${"1".repeat(64)}`,
+      },
+    ]);
+    const result = await readLiveVoucherWallet(f.wallet, {
+      routes: [f.route],
+      chain: f.chain,
+      reader: f.reader,
+    });
+    expect(result).toMatchObject({ complete: false, bookings: [], returns: [] });
+  });
+  it("refuses changed deployed bytecode before reporting any holdings", async () => {
+    const f = liveVoucherFixture();
+    f.chain.code = async () => "0x00";
+    await expect(
+      readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
+    ).rejects.toThrow("implementation or owner");
+  });
+  it("leaves unsupported networks unavailable", async () => {
+    const f = liveVoucherFixture();
+    expect(
+      await readLiveVoucherWallet({ ...f.wallet, sourceChainId: 11155111 }, { routes: [f.route] })
+    ).toMatchObject({ evidence: "unavailable", reason: "routes-unconfigured", complete: false });
+  });
+  it("rejects a voucher whose issuer changed even when bytecode and balances did not", async () => {
+    const f = liveVoucherFixture();
+    const read = f.chain.read;
+    f.chain.read = (input) =>
+      input.functionName === "owner" && input.address === f.route.assets[0]!.token
+        ? Promise.resolve(f.wallet.account)
+        : read(input);
+    await expect(
+      readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
+    ).rejects.toThrow("voucher token changed");
+  });
+});
 
 /** Earn one Tech and Sun voucher, then book the hub day and deposit it into escrow. */
 async function depositedHubDay(transfer: () => boolean = () => true) {
