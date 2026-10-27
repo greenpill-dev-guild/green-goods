@@ -57,7 +57,7 @@ describe("promise rewards", () => {
     );
     // Kept, with the payout still to come: never "after it's kept" on a kept promise.
     expect(promiseRewardText({ intl, rewards, price: NO_PRICE, kept: true })).toBe(
-      "$20.00 in G$, not paid yet"
+      "$20.00, not yet paid in G$"
     );
     expect(promiseRewardText({ intl, rewards, price: NO_PRICE, kept: true, paid: true })).toBe(
       "$20.00, paid in G$"
@@ -77,6 +77,10 @@ describe("promise rewards", () => {
     );
     expect(promiseRewardText({ intl, rewards: edited, price: NO_PRICE })).toBe(
       "200,000 G$, paid in G$ after it's kept"
+    );
+    // A G$ amount is never followed by "in G$".
+    expect(promiseRewardText({ intl, rewards: edited, price: NO_PRICE, kept: true })).toBe(
+      "200,000 G$, not yet paid in G$"
     );
   });
 

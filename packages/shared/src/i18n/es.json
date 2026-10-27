@@ -1166,7 +1166,7 @@
   "app.commitment.reward.range": "de {low} a {high}",
   "app.commitment.reward.afterKept": "{amount}, pagada en G$ cuando se cumpla",
   "app.commitment.reward.paid": "{amount}, pagada en G$",
-  "app.commitment.reward.notPaidYet": "{amount} en G$, aún sin pagar",
+  "app.commitment.reward.notPaidYet": "{amount}, aún no pagada en G$",
   "app.commitment.people.team": "Equipo",
   "app.commitment.people.you": "Tú",
   "app.commitment.progress.count": "{done} de {of}",
