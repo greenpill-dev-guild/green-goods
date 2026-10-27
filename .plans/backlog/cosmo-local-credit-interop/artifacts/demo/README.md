@@ -21,7 +21,8 @@ else does not advance. "All flows" stays at the top left of every screen, and ea
 screen continues to the next flow, so "Start from the beginning" plays the whole season.
 
 - Drive: `Shared drives/Greenpill Dev Guild/Product/Green Goods/Growth/SF.Live 2026/Green Goods SF.Live 2026 clickable demo.html`
-- Artifact (shared by link): <https://claude.ai/artifact/9ThhqDPZTEggFZuKnvS2wa>
+- Artifact: a Claude artifact shared by link for the submission. Its link stays out of this
+  public repository, because the built page shows identifiable people and a member's proof.
 - UI review of every screen: [`ui-review-2026-10-26.md`](ui-review-2026-10-26.md)
 
 ## Where the screens come from
