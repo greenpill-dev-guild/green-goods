@@ -3,13 +3,14 @@ import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ComponentType } from "react";
 import { IntlProvider } from "react-intl";
-import { expect, screen, userEvent, within } from "storybook/test";
+import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_NOW_SECONDS } from "../../../../../shared/.storybook/fixtures";
 import { VoucherAcceptDialog, VoucherApproveDialog } from "./VoucherAskDialogs";
 import {
   STORY_GREEN_GOODS_SAFE,
   STORY_KWESI_ASK,
   STORY_LINA_ASK,
+  STORY_MAYA_ASK,
   STORY_TECH_AND_SUN_SAFE,
   nameVoucherMembers,
 } from "./poolStoryVouchers";
@@ -32,7 +33,7 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "The two dialogs a voucher booking's ask opens from Review Promises (PRD-1297 surface 6, `SIssuer`), on the cockpit's confirm dialog. Approve Booking is the issuer Safe's approval of the exact booking: an escrow write, so a plain description rather than the pool's target line, its facts, a note that approving isn't accepting, and the Safe's signature count read from the Safe. Accept is the pool steward's `acceptServiceClaim`: it names the pool, lists the four checks the contract enforces (current consent, the Safe's approval, the confirmed deposit, the deadline), keeps Accept off while any fails, and follows the act from the wallet to the chain. The people, addresses and moments are fictional.",
+          "The two dialogs a voucher booking's ask opens from Review Promises (PRD-1297 surface 6, `SIssuer`), on the cockpit's confirm dialog. Approve Booking is the issuer Safe's approval of the exact booking: an escrow write, so a plain description rather than the pool's target line, its facts, a note that approving isn't accepting, and the Safe's signature count read from the Safe. Accept is the pool steward's `acceptServiceClaim`: it names the pool, lists the four checks the contract enforces (current consent, the Safe's approval, the confirmed deposit, the deadline), keeps Accept off while any fails, and follows the act from the wallet to the chain. A member issuer's booking (slice 2) names the member's own terms and their approval from their own account, and says the steward couldn't have given it. The people, addresses and moments are fictional.",
       },
     },
   },
@@ -168,6 +169,36 @@ export const Accepting: Story = {
     await userEvent.click(dialog.getByRole("button", { name: "Accept Kwesi" }));
     await expect(await dialog.findByText(/Confirming on/)).toBeVisible();
   },
+};
+
+/**
+ * Maya's lesson is Teo's, a member who approved it from his own account: the checks name his
+ * terms and approval, and the note says the steward couldn't have approved for him.
+ */
+export const AcceptMemberBooking: Story = {
+  render: () => accept({ ask: STORY_MAYA_ASK, title: "Integration lesson, 60 minutes" }),
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog"));
+    // The dialog fades in, so its words are read once it has.
+    await waitFor(() => expect(dialog.getByText("Accept Maya?")).toBeVisible());
+    await expect(dialog.getByText("Maya agreed to Teo Alves’s current terms")).toBeVisible();
+    await expect(
+      dialog.getByText("Teo Alves approved the booking from their account")
+    ).toBeVisible();
+    await expect(dialog.queryByText("Your Safe approved the booking")).toBeNull();
+    await expect(dialog.getByText("you couldn’t give it for them", { exact: false })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Accept Maya" })).toBeEnabled();
+  },
+};
+
+export const AcceptMemberBookingEs: Story = {
+  render: AcceptMemberBooking.render,
+  decorators: [inLocale("es")],
+};
+
+export const AcceptMemberBookingPt: Story = {
+  render: AcceptMemberBooking.render,
+  decorators: [inLocale("pt")],
 };
 
 export const ApproveBookingEs: Story = {

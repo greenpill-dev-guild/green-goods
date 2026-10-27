@@ -216,7 +216,7 @@ function voucherAsk(at: number, setup: Partial<NonNullable<VoucherAsk["setup"]>>
     agreed: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
     current: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
     agreedAt: at - 172_800,
-    issuer: { name: "Tech and Sun", chainId: 100, safe: GARDEN, decimals: 6 },
+    issuer: { kind: "collective", name: "Tech and Sun", chainId: 100, safe: GARDEN, decimals: 6 },
     setup: {
       voucherUnits: 1_000_000n,
       approvedAt: at - 86_400,
@@ -769,7 +769,7 @@ describe("usePoolConsoleController", () => {
       commitmentId: 51n,
       holder: CLAIMANT,
       setupId: `0x${"b5".repeat(32)}`,
-      issuer: { name: "Green Goods", chainId: 100, safe: GARDEN, decimals: 6 },
+      issuer: { kind: "collective", name: "Green Goods", chainId: 100, safe: GARDEN, decimals: 6 },
       voucherUnits: 10_000_000n,
       service: { kind: "access", daysUsed: 12, daysOf: 30 },
       stage: { kind: "return-failed", units: 6_000_000n },

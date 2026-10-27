@@ -14,7 +14,7 @@ const meta: Meta<typeof CommitmentVoucherOutcomes> = {
     docs: {
       description: {
         component:
-          "A promise's voucher outcomes in its inspector: a request's rewards, each with its own state and receipt, or an offer's voucher payment. Fictional accounts and receipts only.",
+          "A promise's voucher outcomes in its inspector: a request's rewards, each with its own state and receipt, or an offer's voucher payment, with a gardener issuer's pool listing and holding limit. Fictional accounts and receipts only.",
       },
     },
   },
@@ -160,7 +160,32 @@ export const OfferPayment: Story = {
         issuerAccount: "0x5afe00000000000000000000000000000000a1b2",
         units: 1_000_000n,
         revision: 2n,
+        admission: null,
       },
     },
   },
+};
+
+/** Teo's lesson, paid in his own vouchers (PRD-1299 slice 2): where his token stands in the pool. */
+const memberOffer = (admission: NonNullable<Outcomes["payment"]>["admission"]): Outcomes => ({
+  rewards: [],
+  workFulfilled: false,
+  payment: {
+    asset: asset("TEO", "0x000000000000000000000000000000000000e7e1"),
+    issuer: { name: "Teo Alves", gender: "masculine" },
+    issuerAccount: "0x000000000000000000000000000000000000e7e0",
+    units: 1_000_000n,
+    revision: 1n,
+    admission,
+  },
+});
+
+/** A gardener issuer's token is listed: the pool takes up to its holding limit. */
+export const MemberOfferListed: Story = {
+  args: { outcomes: memberOffer({ status: "listed", limit: 6_000_000n, holding: 2_000_000n }) },
+};
+
+/** Delisted: the pool takes in no more of Teo's vouchers, and what it holds stays. */
+export const MemberOfferDelisted: Story = {
+  args: { outcomes: memberOffer({ status: "delisted", limit: 0n, holding: 2_000_000n }) },
 };

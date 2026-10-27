@@ -203,7 +203,9 @@ export interface VoucherAcceptDialogProps {
  * `acceptServiceClaim`, which needs the member's current consent, the issuer's
  * approval, the confirmed deposit and an unexpired deadline. The dialog lists
  * those four checks, and Accept stays off while any fails (V5). It names the
- * pool it writes to and follows the act from the wallet to the chain.
+ * pool it writes to and follows the act from the wallet to the chain. A member
+ * issuer's booking (`SIssuer` · Accept member booking) names the member's own
+ * terms and approval, and says the steward couldn't have given that approval.
  */
 export function VoucherAcceptDialog({
   ask,
@@ -265,11 +267,20 @@ export function VoucherAcceptDialog({
               defaultMessage: "Accepting starts the booking",
             })}
           >
-            {formatMessage({
-              id: "cockpit.garden.pool.voucher.accept.noteBody",
-              defaultMessage:
-                "Starting follows on the voucher network. It doesn’t mean the visit happened.",
-            })}
+            {ask?.issuer.kind === "individual"
+              ? formatMessage(
+                  {
+                    id: "cockpit.garden.pool.voucher.accept.noteBodyMember",
+                    defaultMessage:
+                      "You accept as the pool’s steward. {issuer}’s approval was required first; you couldn’t give it for them.",
+                  },
+                  { issuer: ask.issuer.name }
+                )
+              : formatMessage({
+                  id: "cockpit.garden.pool.voucher.accept.noteBody",
+                  defaultMessage:
+                    "Starting follows on the voucher network. It doesn’t mean the visit happened.",
+                })}
           </Alert>
         </VoucherActDialog>
       )}

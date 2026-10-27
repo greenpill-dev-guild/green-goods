@@ -51,6 +51,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
 const NOW = 1_771_800_000;
 const VOUCHER = 1_000_000n;
 const ISSUER = {
+  kind: "collective" as const,
   name: "Green Goods",
   chainId: 100,
   safe: "0x5afe00000000000000000000000000000000c3d4" as Address,
