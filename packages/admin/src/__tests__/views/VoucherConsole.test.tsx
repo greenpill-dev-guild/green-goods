@@ -149,6 +149,28 @@ function offers(
   };
 }
 
+/** Shared by the short-allowance cases and the open-dialog ones. */
+const reserve = (left: bigint): VoucherIssuerReserve => ({
+  issuer: ISSUER,
+  inReserve: 8n * VOUCHER,
+  promised: 3n * VOUCHER,
+  allowance: { garden: "Riverside Commons", limit: 4n * VOUCHER, left },
+  openBookings: 3,
+  terms: { version: 2n, returns: { kind: "usable-hours", of: 4 } },
+  cap: { issued: 20n * VOUCHER, ceiling: 20n * VOUCHER },
+  waitingReward: { recipient: LINA, units: 2n * VOUCHER, title: "Map the water lines" },
+});
+const card = (left: bigint, disabled = false) => {
+  const onRaiseAllowance = vi.fn().mockResolvedValue(undefined);
+  const props = { reserve: reserve(left), safe: SAFE, onRaiseAllowance };
+  const view = renderWithProviders(<VoucherReserveCard {...props} disabled={disabled} />);
+  return {
+    onRaiseAllowance,
+    setDisabled: (next: boolean) =>
+      view.rerender(<VoucherReserveCard {...props} disabled={next} />),
+  };
+};
+
 describe("the issuer's acts in the Promises console", () => {
   it("offers Report Visit on a visit under way, and reports that booking", async () => {
     const reportVisit = vi.fn().mockResolvedValue(undefined);
@@ -318,5 +340,32 @@ describe("the issuer's acts in the Promises console", () => {
     fireEvent.change(within(dialog).getByLabelText(/New allowance/), { target: { value: "3" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Raise Allowance" }));
     await waitFor(() => expect(onRaiseAllowance).toHaveBeenCalledWith(reserve, 3n * VOUCHER));
+  });
+
+  describe("a short allowance", () => {
+    // A raise below the waiting reward leaves its retry short again (Codex on #1320).
+    it("raises only to enough for the reward that waits", async () => {
+      const { onRaiseAllowance } = card(0n);
+      fireEvent.click(screen.getByRole("button", { name: "Raise Allowance…" }));
+      const dialog = await screen.findByRole("dialog");
+      fireEvent.change(within(dialog).getByLabelText(/New allowance/), { target: { value: "1" } });
+      expect(
+        within(dialog).getByText("At least 2, so the waiting reward can be sent")
+      ).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Raise Allowance" })).toBeDisabled();
+      expect(onRaiseAllowance).not.toHaveBeenCalled();
+    });
+
+    // One left against a reward of two read "used up" beside a fact row saying 1 left (Codex on #1320).
+    it("says how much is left when the allowance is short of the reward, not that it's used up", () => {
+      card(VOUCHER);
+      expect(
+        screen.getByText(
+          "The allowance for Riverside Commons has 1 left, less than the reward needs.",
+          { exact: false }
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText("is used up", { exact: false })).not.toBeInTheDocument();
+    });
   });
 });

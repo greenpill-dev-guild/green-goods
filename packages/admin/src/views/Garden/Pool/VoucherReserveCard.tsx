@@ -28,8 +28,9 @@ export interface VoucherReserveCardProps {
  * the vouchers its promised rewards draw on, kept apart from bookings, the
  * funding garden's allowance, the service terms, and the issuer's published
  * cap. When the allowance can't cover a promised reward, the reward waits (it
- * isn't lost) and Raise Allowance… repairs it; the Safe's signature count
- * comes from the Safe.
+ * isn't lost), the card says whether the allowance is used up or only short of
+ * it, and Raise Allowance… repairs it; the Safe's signature count comes from
+ * the Safe.
  */
 export function VoucherReserveCard({
   reserve,
@@ -250,14 +251,23 @@ export function VoucherReserveCard({
                 </Button>
               }
             >
-              {formatMessage(
-                {
-                  id: "cockpit.garden.pool.voucher.reserve.shortBody",
-                  defaultMessage:
-                    "The allowance for {garden} is used up. Raise it so the reward can be sent. Promised rewards don’t set vouchers aside.",
-                },
-                { garden: allowance.garden }
-              )}
+              {allowance.left === 0n
+                ? formatMessage(
+                    {
+                      id: "cockpit.garden.pool.voucher.reserve.shortBody",
+                      defaultMessage:
+                        "The allowance for {garden} is used up. Raise it so the reward can be sent. Promised rewards don’t set vouchers aside.",
+                    },
+                    { garden: allowance.garden }
+                  )
+                : formatMessage(
+                    {
+                      id: "cockpit.garden.pool.voucher.reserve.shortBodyLeft",
+                      defaultMessage:
+                        "The allowance for {garden} has {left} left, less than the reward needs. Raise it so the reward can be sent. Promised rewards don’t set vouchers aside.",
+                    },
+                    { garden: allowance.garden, left: count(allowance.left) }
+                  )}
             </Alert>
           )}
         </WithPerson>

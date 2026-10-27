@@ -294,12 +294,19 @@ export function selectReturnProposal(
   };
 }
 
-/** A raised allowance has to give the garden's rewards more to draw than is left now. */
+/**
+ * A raised allowance has to give the garden's rewards more to draw than is
+ * left now, and enough for the reward waiting on it, or its retry fails again.
+ */
 export function selectAllowanceRaise(
-  reserve: { allowance: { left: bigint } },
+  reserve: { allowance: { left: bigint }; waitingReward: { units: bigint } | null },
   allowance: bigint
-): { valid: boolean } {
-  return { valid: allowance > 0n && allowance > reserve.allowance.left };
+): { valid: boolean; coversWaiting: boolean } {
+  const coversWaiting = reserve.waitingReward === null || allowance >= reserve.waitingReward.units;
+  return {
+    valid: allowance > 0n && allowance > reserve.allowance.left && coversWaiting,
+    coversWaiting,
+  };
 }
 
 /**

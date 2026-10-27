@@ -189,11 +189,21 @@ describe("return proposal", () => {
 
 describe("allowance raise", () => {
   it("raises only above what the garden's rewards can still draw", () => {
-    const usedUp = { allowance: { left: 0n } };
-    expect(selectAllowanceRaise(usedUp, 6n * VOUCHER)).toEqual({ valid: true });
-    expect(selectAllowanceRaise(usedUp, 0n)).toEqual({ valid: false });
-    expect(selectAllowanceRaise({ allowance: { left: 2n * VOUCHER } }, 2n * VOUCHER)).toEqual({
-      valid: false,
+    const usedUp = { allowance: { left: 0n }, waitingReward: null };
+    expect(selectAllowanceRaise(usedUp, 6n * VOUCHER)).toMatchObject({ valid: true });
+    expect(selectAllowanceRaise(usedUp, 0n)).toMatchObject({ valid: false });
+    expect(
+      selectAllowanceRaise({ allowance: { left: 2n * VOUCHER }, waitingReward: null }, 2n * VOUCHER)
+    ).toMatchObject({ valid: false });
+  });
+
+  // Raising to less than the waiting reward leaves its retry short again (Codex on #1320).
+  it("raises only to enough for the reward waiting on it", () => {
+    const waiting = { allowance: { left: 0n }, waitingReward: { units: 2n * VOUCHER } };
+    expect(selectAllowanceRaise(waiting, VOUCHER)).toEqual({ valid: false, coversWaiting: false });
+    expect(selectAllowanceRaise(waiting, 2n * VOUCHER)).toEqual({
+      valid: true,
+      coversWaiting: true,
     });
   });
 });
