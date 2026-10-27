@@ -10,6 +10,7 @@ import {
   STORY_GREEN_GOODS_SAFE,
   STORY_KWESI_ASK,
   STORY_LINA_ASK,
+  STORY_MARA_ACCESS_ASK,
   STORY_MAYA_ASK,
   STORY_TECH_AND_SUN_SAFE,
   STORY_TECH_AND_SUN_VOUCHERS,
@@ -18,6 +19,8 @@ import {
 
 const NOW_MS = STORYBOOK_NOW_SECONDS * 1000;
 const TARGET = { gardenName: "Tech and Sun", isProtocol: false };
+/** Green Goods' own pool is the protocol pool, the Green Goods Community Garden's. */
+const GREEN_GOODS_TARGET = { gardenName: "Green Goods Community Garden", isProtocol: true };
 
 function inLocale(locale: "es" | "pt") {
   return (Story: ComponentType) => (
@@ -169,6 +172,29 @@ export const Accepting: Story = {
     const dialog = within(await screen.findByRole("dialog"));
     await userEvent.click(dialog.getByRole("button", { name: "Accept Kwesi" }));
     await expect(await dialog.findByText(/Confirming on/)).toBeVisible();
+  },
+};
+
+/**
+ * Green Goods accepts Mara's 30 days of Claude access in its own pool, the protocol pool: the
+ * dialog sets that pool apart with its warning, and all four checks hold for her 10 vouchers.
+ */
+export const AcceptGreenGoodsAccess: Story = {
+  render: () =>
+    accept({
+      ask: STORY_MARA_ACCESS_ASK,
+      title: "Claude access, 30 days",
+      target: GREEN_GOODS_TARGET,
+    }),
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog"));
+    // The dialog fades in, so its words are read once it has.
+    await waitFor(() => expect(dialog.getByText("Accept Mara?")).toBeVisible());
+    await expect(dialog.getByText("Writing to the Green Goods protocol pool")).toBeVisible();
+    await expect(dialog.getByText("10 vouchers deposited in escrow")).toBeVisible();
+    const checks = dialog.getByTestId("voucher-acceptance-checks");
+    await expect(checks.querySelectorAll('[data-holds="true"]')).toHaveLength(4);
+    await expect(dialog.getByRole("button", { name: "Accept Mara" })).toBeEnabled();
   },
 };
 
