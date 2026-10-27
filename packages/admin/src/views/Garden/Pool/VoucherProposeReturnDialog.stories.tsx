@@ -10,6 +10,7 @@ import {
   STORY_LINA_ENDED,
   STORY_MARA_VISIT_ENDED,
   STORY_TECH_AND_SUN_SAFE,
+  STORY_TECH_AND_SUN_VOUCHERS,
   nameVoucherMembers,
 } from "./poolStoryVouchers";
 
@@ -128,7 +129,7 @@ export const SafeFileReturn: Story = {
   args: {
     booking: {
       ...STORY_LINA_ENDED,
-      issuer: { ...STORY_LINA_ENDED.issuer, execution: "safe-file" },
+      issuer: { ...STORY_TECH_AND_SUN_VOUCHERS.issuer!, execution: "safe-file" },
       service: { kind: "units", units: 1n, label: "visits", returnLimit: 10_000_000n },
       stage: { kind: "in-progress" },
     },

@@ -12,6 +12,7 @@ import {
   STORY_LINA_ASK,
   STORY_MAYA_ASK,
   STORY_TECH_AND_SUN_SAFE,
+  STORY_TECH_AND_SUN_VOUCHERS,
   nameVoucherMembers,
 } from "./poolStoryVouchers";
 
@@ -228,7 +229,7 @@ export const SafeFileApproval: Story = {
       ask: {
         ...STORY_LINA_ASK,
         agreedAt: null,
-        issuer: { ...STORY_LINA_ASK.issuer, execution: "safe-file" },
+        issuer: { ...STORY_TECH_AND_SUN_VOUCHERS.issuer!, execution: "safe-file" },
       },
     }),
 };
