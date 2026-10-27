@@ -8325,5 +8325,21 @@
   "app.voucher.rd.sub.returnedM": "Seu vale de volta para você",
   "app.voucher.pay.m.deposit": "Depositar 1 vale",
   "app.voucher.pay.m.depNote": "Talvez peçam sua aprovação duas vezes: uma para permitir exatamente 1 vale e outra para depositá-lo.",
-  "app.voucher.rd.p.lessons": "Acesso"
+  "app.voucher.rd.p.lessons": "Acesso",
+  "cockpit.garden.pool.voucher.live.recorded": "na rede",
+  "cockpit.garden.pool.voucher.live.approved": "Aprovação do emissor confirmada · aceitar até {due}",
+  "cockpit.garden.pool.voucher.live.units": "{units} {label} reservados",
+  "cockpit.garden.pool.voucher.live.safeFileNote": "Baixe o arquivo de transação do Safe, revise-o no Safe do emissor e reúna as assinaturas necessárias. O download não envia nenhuma transação. Esta tela é atualizada após a confirmação da execução na rede.",
+  "cockpit.garden.pool.voucher.live.download": "Baixar arquivo do Safe",
+  "cockpit.garden.pool.voucher.live.downloadRetry": "Baixar arquivo de nova tentativa",
+  "cockpit.garden.pool.voucher.live.returnNote": "Escolha a devolução máxima que você autoriza conforme os termos acordados. Esta permissão não move vales; o titular ainda precisa aprovar a divisão final.",
+  "cockpit.garden.pool.voucher.live.aboveDeposit": "A devolução não pode exceder os {limit} vales da reserva",
+  "cockpit.garden.pool.voucher.live.returnHint": "Até {limit} vales, conforme os termos de serviço e devolução acordados",
+  "cockpit.garden.pool.voucher.live.indexerUnavailable": "Não foi possível carregar as reservas com vales. O indexador pode estar sincronizando. Atualize antes de aprovar ou aceitar uma reserva.",
+  "cockpit.garden.pool.voucher.live.transferFailed": "A transferência de vales não foi concluída",
+  "cockpit.garden.pool.voucher.live.transferPending": "A transferência de vales precisa ser concluída",
+  "cockpit.garden.pool.voucher.live.paused": "Reserva de vales pausada",
+  "cockpit.garden.pool.voucher.live.pausedDetail": "As aprovações e a aceitação aguardam a retomada da rota de vales.",
+  "cockpit.garden.pool.voucher.live.partial": "A busca de reservas com vales está incompleta. Algumas reservas podem não aparecer enquanto as mensagens entre redes chegam ou o indexador se atualiza.",
+  "app.voucher.wl.unavailable": "Não foi possível consultar os saldos de vales e as reservas. Verifique sua conexão e tente novamente."
 }

@@ -65,6 +65,17 @@ export function VouchersTab({ wallet, onClose }: VouchersTabProps) {
   };
   const empty = rows.bookings.length + rows.returns.length + rows.holdings.length === 0;
 
+  if (wallet.evidence === "unavailable")
+    return (
+      <div className={PWA_SHEET_SCROLL_CLASSNAME}>
+        <div className="p-4">
+          <Alert variant="warning">
+            {intl.formatMessage({ id: "app.voucher.wl.unavailable" })}
+          </Alert>
+        </div>
+      </div>
+    );
+
   return (
     <div className={PWA_SHEET_SCROLL_CLASSNAME}>
       <div className="flex flex-col gap-3 p-4">

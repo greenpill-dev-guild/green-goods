@@ -169,3 +169,15 @@ export const ReturnPendingPt: Story = {
   decorators: [inLocale("pt")],
   play: undefined,
 };
+
+/** A failed canonical read stays visible without reusing balances or claiming an empty account. */
+export const Unavailable: Story = {
+  args: {
+    wallet: {
+      ...voucherWalletStory("empty"),
+      evidence: "unavailable",
+      reason: "canonical-read-unavailable",
+      complete: false,
+    },
+  },
+};

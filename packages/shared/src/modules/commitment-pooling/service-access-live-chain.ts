@@ -65,6 +65,8 @@ export async function hydrateLiveVoucherSnapshot(
       !same(a.sourceModule, route.source.address) ||
       !same(a.destinationEscrow, route.destination.address) ||
       a.destinationChainId !== 100 ||
+      // The live member adapter signs both chains as the source buyer. Distinct holders
+      // require a separately reviewed actor/session path; rehearsal support does not enable it.
       !same(a.buyer, a.holder)
     )
       throw new Error("Voucher authorization is outside the reviewed pilot route");

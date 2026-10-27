@@ -33,7 +33,10 @@ export function withVoucherRecovery<
   const listed = new Set(model.needsRecovery.map((row) => row.id));
   const failed = commitments.filter(
     (row) =>
-      !listed.has(row.id) && vouchers.bookingFor(row.commitmentId)?.stage.kind === "return-failed"
+      !listed.has(row.id) &&
+      ["return-failed", "transfer-failed", "transfer-pending"].includes(
+        vouchers.bookingFor(row.commitmentId)?.stage.kind ?? ""
+      )
   );
   if (failed.length === 0) return model;
   const needsRecovery = [...model.needsRecovery, ...failed];

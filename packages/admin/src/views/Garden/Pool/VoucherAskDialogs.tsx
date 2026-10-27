@@ -68,15 +68,22 @@ export function VoucherApproveDialog({
             { name }
           )}
           description={title}
-          confirmLabel={formatMessage({
-            id: "cockpit.garden.pool.voucher.approve.confirm",
-            defaultMessage: "Approve Booking",
-          })}
+          confirmLabel={
+            ask?.issuer.execution === "safe-file"
+              ? formatMessage({
+                  id: "cockpit.garden.pool.voucher.live.download",
+                  defaultMessage: "Download Safe File",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.voucher.approve.confirm",
+                  defaultMessage: "Approve Booking",
+                })
+          }
           confirmDisabled={disabled}
           act={async () => {
             if (ask) await onApprove(ask);
           }}
-          note={voucherSafeNote(safe, formatMessage)}
+          note={voucherSafeNote(safe, formatMessage, ask?.issuer.execution)}
         >
           {ask && setup ? (
             <FactList frame="card">
@@ -131,14 +138,18 @@ export function VoucherApproveDialog({
                 value={
                   <FactValue
                     value={dueDateText(intl, setup.acceptBy * 1000, nowMs)}
-                    note={formatMessage(
-                      {
-                        id: "cockpit.garden.pool.voucher.fact.acceptByNote",
-                        defaultMessage:
-                          "{days, plural, one {# day} other {# days}} from agreeing, under your terms",
-                      },
-                      { days: Math.round((setup.acceptBy - ask.agreedAt) / DAY_SECONDS) }
-                    )}
+                    note={
+                      ask.agreedAt === null
+                        ? undefined
+                        : formatMessage(
+                            {
+                              id: "cockpit.garden.pool.voucher.fact.acceptByNote",
+                              defaultMessage:
+                                "{days, plural, one {# day} other {# days}} from agreeing, under your terms",
+                            },
+                            { days: Math.round((setup.acceptBy - ask.agreedAt) / DAY_SECONDS) }
+                          )
+                    }
                   />
                 }
               />

@@ -1,32 +1,31 @@
-import { decodeFunctionResult, encodeFunctionData, type Hex, multicall3Abi, parseAbi } from "viem";
-import { getChain } from "../../config/chains";
+import { erc20Abi, parseAbi } from "viem";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
-import type { ServiceChainRead } from "./service-access-chain";
-import { serviceAddress, serviceUint } from "./service-access-chain-values";
+import { serviceFlag, serviceTuple, serviceUint } from "./service-access-chain-values";
 import type { PilotRewardItem } from "./service-access-pilot-types";
 import type { ServiceAccessSnapshot } from "./service-access-types";
 import type { ServiceVoucherSetup } from "./service-access-voucher-types";
+import { greenGoodsIndexer, type GraphQLReader } from "../data/graphql-client";
+import { discoverWalletVoucherSetups } from "./data-voucher-service";
+import { SERVICE_LIVE_ROUTES, type ServiceLiveRoute } from "./service-access-live-config";
+import {
+  serviceLiveChain,
+  hydrateLiveVoucherSnapshot,
+  verifyServiceLiveRoute,
+  type ServiceLiveChain,
+} from "./service-access-live-chain";
+import { createServiceAccessReadRepository } from "./service-access-read-repository";
 import type {
-  IssuerSafeThreshold,
   RequestRewardDelivery,
   VoucherBookingEscrow,
   VoucherBookingRef,
   VoucherHolding,
   VoucherIssuer,
-  VoucherIssuerApproval,
   VoucherPendingReturn,
   VoucherWalletScope,
   VoucherWalletSnapshot,
   VoucherWalletUnavailableReason,
 } from "./service-access-wallet-types";
-
-const SAFE_ABI = parseAbi([
-  "function getThreshold() view returns (uint256)",
-  "function getOwners() view returns (address[])",
-]);
-/** A Safe's owner list is bounded in practice; a larger answer is not a Safe we can trust. */
-const MAX_SAFE_OWNERS = 255;
 
 function voucherBookingRef(setup: ServiceVoucherSetup): VoucherBookingRef {
   const a = setup.authorization;
@@ -167,90 +166,138 @@ export function serviceVoucherHolder(
   return booking?.authorization.holder ?? snapshot.capabilities.gnosisHolder ?? snapshot.key.buyer;
 }
 
-/** No account-wide booking projection exists before the deployment is adopted (gap 12). */
+/** Index discovery never replaces canonical balances, authorization or escrow results. */
 export async function readLiveVoucherWallet(
-  scope: VoucherWalletScope
+  scope: VoucherWalletScope,
+  dependencies: {
+    routes?: readonly ServiceLiveRoute[];
+    chain?: ServiceLiveChain;
+    reader?: GraphQLReader;
+    readSnapshot?: (key: ServiceAccessSnapshot["key"]) => Promise<ServiceAccessSnapshot>;
+  } = {}
 ): Promise<VoucherWalletSnapshot> {
-  return unavailableVoucherWallet(scope, "routes-unconfigured");
-}
-
-/**
- * A Safe's threshold, its owners and their count; null when the read fails or the answer is
- * impossible. Both ride one batched call, so they come from one block: two separate reads could
- * straddle a change of rule and pair the old threshold with the new owners, a rule the Safe never
- * had.
- */
-async function readSafeRule(
-  read: ServiceChainRead,
-  chainId: number,
-  safe: Address
-): Promise<{ threshold: number; owners: number; signers: Address[] } | null> {
   try {
-    const batch = getChain(chainId).contracts?.multicall3?.address;
-    if (!batch) throw new Error("No batch reader on the Safe's chain");
-    const call = (functionName: "getThreshold" | "getOwners") => ({
-      target: safe,
-      allowFailure: false,
-      callData: encodeFunctionData({ abi: SAFE_ABI, functionName }),
+    const route = (dependencies.routes ?? SERVICE_LIVE_ROUTES).find(
+      (r) =>
+        r.sourceChainId === scope.sourceChainId &&
+        r.core.address.toLowerCase() === scope.coreModule.toLowerCase()
+    );
+    if (!route?.walletState) return unavailableVoucherWallet(scope, "routes-unconfigured");
+    const chain = dependencies.chain ?? serviceLiveChain;
+    const reader = dependencies.reader ?? greenGoodsIndexer;
+    await verifyServiceLiveRoute(route, chain);
+    const state = route.walletState;
+    const stateAbi = parseAbi([
+      "function assetAuthorizations(address issuer,address token) view returns(address issuerAuthority,bool enabled)",
+      "function have(address token) view returns(bool)",
+      "function limitOf(address token,address pool) view returns(uint256)",
+    ]);
+    const issuers: VoucherIssuer[] = await Promise.all(
+      route.assets.map(async (asset) => {
+        const read = (address: Address, functionName: string, args: readonly unknown[]) =>
+          chain.read({ chainId: 100, address, abi: stateAbi, functionName, args });
+        const [authorization, admitted, cap] = await Promise.all([
+          read(state.adapter.address, "assetAuthorizations", [asset.issuer, asset.token]),
+          read(state.registry.address, "have", [asset.token]),
+          read(state.limiter.address, "limitOf", [asset.token, state.pool.address]),
+        ]);
+        const reserve = serviceTuple(authorization, ["issuerAuthority", "enabled"]);
+        return {
+          account: asset.issuer,
+          kind: "collective" as const,
+          name: asset.issuerName ?? asset.symbol,
+          gender: null,
+          garden: asset.garden ?? scope.coreModule,
+          asset: {
+            chainId: 100,
+            token: asset.token,
+            symbol: asset.symbol,
+            decimals: asset.decimals,
+          },
+          // The member-row PR consumes these canonical states; delisting does not remove holdings.
+          standing: {
+            bookings: serviceFlag(reserve.enabled) ? ("open" as const) : ("paused" as const),
+            exchange:
+              serviceFlag(admitted) && serviceUint(cap) > 0n
+                ? ("listed" as const)
+                : ("delisted" as const),
+          },
+        };
+      })
+    );
+    const balances = await Promise.all(
+      route.assets.map(async (asset) => ({
+        token: asset.token,
+        amount: serviceUint(
+          await chain.read({
+            chainId: 100,
+            address: asset.token,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [scope.account],
+          })
+        ),
+      }))
+    );
+    const setups: ServiceVoucherSetup[] = [];
+    let discoveryFailed = false;
+    try {
+      const discovered = await discoverWalletVoucherSetups(scope, route.source.address, reader);
+      // A bounded cross-chain projection cannot prove that every setup has arrived.
+
+      const read =
+        dependencies.readSnapshot ??
+        createServiceAccessReadRepository(reader, { read: chain.read }).getServiceAccess;
+      const snapshots = new Map<string, ServiceAccessSnapshot>();
+      for (const hint of discovered.records) {
+        const key = `${hint.commitmentId}:${hint.buyer}`;
+        let snapshot = snapshots.get(key);
+        if (!snapshot) {
+          snapshot = await read({
+            sourceChainId: scope.sourceChainId,
+            coreModule: scope.coreModule,
+            commitmentId: hint.commitmentId,
+            buyer: hint.buyer,
+          });
+          if (
+            snapshot.evidence !== "onchain" ||
+            snapshot.capabilities.reasons.includes("authoritative-read-failed")
+          )
+            throw new Error("Canonical wallet booking unavailable");
+          await hydrateLiveVoucherSnapshot(snapshot, route, chain);
+          snapshots.set(key, snapshot);
+        }
+        const setup = snapshot.voucherSetups.find(
+          (row) =>
+            row.setupId === hint.setupId &&
+            row.authorization.holder.toLowerCase() === scope.account.toLowerCase()
+        );
+        if (!setup) throw new Error("Indexed wallet booking does not match the canonical holder");
+        setups.push(setup);
+      }
+    } catch (error) {
+      discoveryFailed = true;
+      logger.warn("Voucher wallet booking discovery is incomplete", {
+        source: "readLiveVoucherWallet",
+        error,
+      });
+    }
+    const wallet = voucherWalletFromSetups({
+      scope,
+      evidence: "onchain",
+      complete: false,
+      issuers,
+      balances,
+      setups,
     });
-    const results = await read({
-      chainId,
-      address: batch,
-      abi: multicall3Abi,
-      functionName: "aggregate3",
-      args: [[call("getThreshold"), call("getOwners")]],
-    });
-    const [thresholdResult, ownersResult] = (Array.isArray(results) ? results : []) as readonly {
-      returnData?: Hex;
-    }[];
-    if (!thresholdResult?.returnData || !ownersResult?.returnData)
-      throw new Error("Malformed Safe rule read");
-    const rawThreshold = decodeFunctionResult({
-      abi: SAFE_ABI,
-      functionName: "getThreshold",
-      data: thresholdResult.returnData,
-    });
-    const rawOwners = decodeFunctionResult({
-      abi: SAFE_ABI,
-      functionName: "getOwners",
-      data: ownersResult.returnData,
-    });
-    const threshold = serviceUint(rawThreshold);
-    if (!Array.isArray(rawOwners) || rawOwners.length > MAX_SAFE_OWNERS)
-      throw new Error("Malformed Safe owner list");
-    const signers = [...new Set(rawOwners.map(serviceAddress))];
-    const owners = signers.length;
-    if (owners !== rawOwners.length || threshold < 1n || threshold > BigInt(owners))
-      throw new Error("Safe threshold outside its owners");
-    return { threshold: Number(threshold), owners, signers };
+    return { ...wallet, reason: discoveryFailed ? "projection-unregistered" : null };
   } catch (error) {
-    logger.warn("Issuer Safe threshold read failed", { error, safe });
-    return null;
+    logger.warn("Canonical voucher wallet reads are unavailable", {
+      error,
+      account: scope.account,
+    });
+    return unavailableVoucherWallet(scope, "canonical-read-unavailable");
   }
-}
-
-/** An issuer Safe's signature rule in the console's contract: a count and owners only when observed. */
-export async function readIssuerSafeThreshold(
-  read: ServiceChainRead,
-  chainId: number,
-  safe: Address
-): Promise<IssuerSafeThreshold> {
-  const rule = await readSafeRule(read, chainId, safe);
-  return rule
-    ? { safe, status: "observed", ...rule }
-    : { safe, status: "unavailable", threshold: null, owners: null, signers: null };
-}
-
-/** The signature count comes from the Safe itself; a member issuer approves from its own account. */
-export async function readVoucherIssuerApproval(
-  read: ServiceChainRead,
-  issuer: Pick<VoucherIssuer, "account" | "kind" | "asset">
-): Promise<VoucherIssuerApproval> {
-  if (issuer.kind === "individual") return { kind: "account", evidence: "onchain" };
-  const rule = await readSafeRule(read, issuer.asset.chainId, issuer.account);
-  return rule
-    ? { kind: "safe", evidence: "onchain", threshold: rule.threshold, owners: rule.owners }
-    : { kind: "unavailable", reason: "read-failed" };
 }
 
 function rewardDelivery(
@@ -301,3 +348,5 @@ export function requestRewardDeliveries(
     item ? [rewardDelivery(item, reward.workFulfilled, pilot.inventory)] : []
   );
 }
+
+export { readIssuerSafeThreshold, readVoucherIssuerApproval } from "./service-access-issuer-rule";

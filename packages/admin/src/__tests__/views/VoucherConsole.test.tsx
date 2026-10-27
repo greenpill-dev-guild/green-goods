@@ -272,16 +272,28 @@ describe("the issuer's acts in the Promises console", () => {
     expect(proposeReturn).not.toHaveBeenCalled();
   });
 
-  it("counts a return that didn't go through as needing recovery, and retries that transfer", async () => {
+  it.each([
+    "return-failed",
+    "transfer-failed",
+    "transfer-pending",
+  ] as const)("counts %s as needing recovery, and retries that transfer", async (kind) => {
     const retryTransfer = vi.fn().mockResolvedValue(undefined);
     const failed: VoucherBooking = {
       ...endedEarly,
-      stage: { kind: "return-failed", units: 6n * VOUCHER },
+      stage: { kind, units: 6n * VOUCHER },
     };
     offers([failed], { retryTransfer });
 
     expect(screen.getByRole("button", { name: "Needs recovery (1)" })).toBeInTheDocument();
-    expect(screen.getByText("Return didn’t go through")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        kind === "return-failed"
+          ? "Return didn’t go through"
+          : kind === "transfer-pending"
+            ? "Voucher transfer needs completion"
+            : "Voucher transfer didn’t go through"
+      )
+    ).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Retry Transfer" })[0]!);
     await waitFor(() => expect(retryTransfer).toHaveBeenCalledWith(failed));
   });

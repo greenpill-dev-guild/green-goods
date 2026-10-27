@@ -12,6 +12,7 @@ import {
   STORY_LINA_ASK,
   STORY_MAYA_ASK,
   STORY_TECH_AND_SUN_SAFE,
+  STORY_TECH_AND_SUN_VOUCHERS,
   nameVoucherMembers,
 } from "./poolStoryVouchers";
 
@@ -219,4 +220,16 @@ export const ApproveBookingPt: Story = {
 export const AcceptBookingPt: Story = {
   render: () => accept(),
   decorators: [inLocale("pt")],
+};
+
+/** Collective approvals download a proposal and remain unapproved until Safe execution. */
+export const SafeFileApproval: Story = {
+  render: () =>
+    approve({
+      ask: {
+        ...STORY_LINA_ASK,
+        agreedAt: null,
+        issuer: { ...STORY_TECH_AND_SUN_VOUCHERS.issuer!, execution: "safe-file" },
+      },
+    }),
 };

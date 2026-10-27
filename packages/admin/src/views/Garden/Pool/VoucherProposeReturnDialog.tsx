@@ -52,17 +52,19 @@ export function VoucherProposeReturnDialog({
   const [entry, setEntry] = useState<string | null>(null);
   const service = booking?.service ?? null;
   const ended = booking?.stage.kind === "ended-early" ? booking.stage : null;
-  const limit = ended?.returnLimit ?? 0n;
+  const units = service?.kind === "units" ? service : null;
+  const limit = units ? (units.returnLimit ?? 0n) : (ended?.returnLimit ?? 0n);
+  const ceiling = units?.returnCeiling ?? ended?.returnCeiling ?? 0n;
   const decimals = booking?.issuer.decimals ?? 0;
   const text = entry ?? formatUnits(limit, decimals);
   const refund = parseVoucherAmount(text, decimals);
   const proposal =
-    booking && ended && refund !== null
+    booking && (ended || units) && refund !== null
       ? selectReturnProposal(
           {
             voucherUnits: booking.voucherUnits,
-            returnLimit: ended.returnLimit,
-            returnCeiling: ended.returnCeiling,
+            returnLimit: limit,
+            returnCeiling: ceiling,
           },
           refund
         )
@@ -110,34 +112,52 @@ export function VoucherProposeReturnDialog({
               { name }
             )}
             description={
-              hours
-                ? formatMessage(
-                    {
-                      id: "cockpit.garden.pool.voucher.propose.descriptionHours",
-                      defaultMessage: "{title} · stopped after {used} of {of} hours",
-                    },
-                    { title, ...hours }
-                  )
-                : formatMessage(
-                    {
-                      id: "cockpit.garden.pool.voucher.propose.description",
-                      defaultMessage:
-                        "{title} · stopped after {days, plural, one {# day} other {# days}}",
-                    },
-                    { title, days }
-                  )
+              units
+                ? title
+                : hours
+                  ? formatMessage(
+                      {
+                        id: "cockpit.garden.pool.voucher.propose.descriptionHours",
+                        defaultMessage: "{title} · stopped after {used} of {of} hours",
+                      },
+                      { title, ...hours }
+                    )
+                  : formatMessage(
+                      {
+                        id: "cockpit.garden.pool.voucher.propose.description",
+                        defaultMessage:
+                          "{title} · stopped after {days, plural, one {# day} other {# days}}",
+                      },
+                      { title, days }
+                    )
             }
-            confirmLabel={formatMessage({
-              id: "cockpit.garden.pool.voucher.propose.confirm",
-              defaultMessage: "Propose Return",
-            })}
+            confirmLabel={
+              booking?.issuer.execution === "safe-file"
+                ? formatMessage({
+                    id: "cockpit.garden.pool.voucher.live.download",
+                    defaultMessage: "Download Safe File",
+                  })
+                : formatMessage({
+                    id: "cockpit.garden.pool.voucher.propose.confirm",
+                    defaultMessage: "Propose Return",
+                  })
+            }
             confirmDisabled={disabled || !proposal?.valid}
             act={async () => {
               if (booking && proposal?.valid) await onPropose(booking, proposal.refund);
             }}
-            note={voucherSafeNote(safe, formatMessage)}
+            note={voucherSafeNote(safe, formatMessage, booking?.issuer.execution)}
           >
-            {booking && service ? (
+            {units ? (
+              <Alert variant="info">
+                {formatMessage({
+                  id: "cockpit.garden.pool.voucher.live.returnNote",
+                  defaultMessage:
+                    "Choose the maximum return you authorize under the agreed terms. This permission moves no vouchers; the holder must still approve the final split.",
+                })}
+              </Alert>
+            ) : null}
+            {booking && service && service.kind !== "units" ? (
               <FactList frame="card">
                 <FactRow
                   label={formatMessage({
@@ -208,30 +228,38 @@ export function VoucherProposeReturnDialog({
               onChange={(event) => setEntry(event.target.value)}
               error={
                 proposal?.aboveTerms
-                  ? hours
+                  ? units
                     ? formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.propose.aboveTermsHours",
-                          defaultMessage:
-                            "Above the {limit} your terms allow after {used} of {of} hours",
+                          id: "cockpit.garden.pool.voucher.live.aboveDeposit",
+                          defaultMessage: "The return cannot exceed the booking’s {limit} vouchers",
                         },
-                        { limit: limitCount, ...hours }
+                        { limit: limitCount }
                       )
-                    : formatMessage(
-                        {
-                          id: "cockpit.garden.pool.voucher.propose.aboveTerms",
-                          defaultMessage:
-                            "Above the {limit} your terms allow after {days, plural, one {# day} other {# days}}",
-                        },
-                        { limit: limitCount, days }
-                      )
+                    : hours
+                      ? formatMessage(
+                          {
+                            id: "cockpit.garden.pool.voucher.propose.aboveTermsHours",
+                            defaultMessage:
+                              "Above the {limit} your terms allow after {used} of {of} hours",
+                          },
+                          { limit: limitCount, ...hours }
+                        )
+                      : formatMessage(
+                          {
+                            id: "cockpit.garden.pool.voucher.propose.aboveTerms",
+                            defaultMessage:
+                              "Above the {limit} your terms allow after {days, plural, one {# day} other {# days}}",
+                          },
+                          { limit: limitCount, days }
+                        )
                   : proposal?.belowCeiling && refund !== null && refund > 0n
                     ? formatMessage(
                         {
                           id: "cockpit.garden.pool.voucher.propose.belowCeiling",
                           defaultMessage: "More than the {ceiling} already proposed",
                         },
-                        { ceiling: voucherCount(ended?.returnCeiling ?? 0n, decimals) }
+                        { ceiling: voucherCount(ceiling, decimals) }
                       )
                     : proposal?.valid
                       ? undefined
@@ -241,22 +269,32 @@ export function VoucherProposeReturnDialog({
                         })
               }
               helperText={
-                hours
+                units
                   ? formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.propose.hintHours",
-                        defaultMessage: "Your terms allow up to {limit} after {used} of {of} hours",
-                      },
-                      { limit: limitCount, ...hours }
-                    )
-                  : formatMessage(
-                      {
-                        id: "cockpit.garden.pool.voucher.propose.hint",
+                        id: "cockpit.garden.pool.voucher.live.returnHint",
                         defaultMessage:
-                          "Your terms allow up to {limit} after {days, plural, one {# day} other {# days}}",
+                          "Up to {limit} vouchers, subject to the agreed service and remedy terms",
                       },
-                      { limit: limitCount, days }
+                      { limit: limitCount }
                     )
+                  : hours
+                    ? formatMessage(
+                        {
+                          id: "cockpit.garden.pool.voucher.propose.hintHours",
+                          defaultMessage:
+                            "Your terms allow up to {limit} after {used} of {of} hours",
+                        },
+                        { limit: limitCount, ...hours }
+                      )
+                    : formatMessage(
+                        {
+                          id: "cockpit.garden.pool.voucher.propose.hint",
+                          defaultMessage:
+                            "Your terms allow up to {limit} after {days, plural, one {# day} other {# days}}",
+                        },
+                        { limit: limitCount, days }
+                      )
               }
               inputProps={{ inputMode: "decimal", autoComplete: "off" }}
             />

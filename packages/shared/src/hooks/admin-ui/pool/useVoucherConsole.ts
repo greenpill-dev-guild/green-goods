@@ -3,7 +3,7 @@
  *
  * The voucher bookings beside a garden's pool console (PRD-1297 surface 6), published through the
  * `usePoolConsoleController` leaf: what the console reads, the clock its acceptance checks run on,
- * and the issuer's acts, which refuse until the pilot deployment is adopted.
+ * and the issuer's reviewed Safe transaction files.
  *
  * @module hooks/admin-ui/pool/useVoucherConsole
  */
@@ -13,10 +13,12 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types-core";
+import { UNAVAILABLE_VOUCHER_CONSOLE } from "../../../modules/commitment-pooling/voucher-console";
 import {
-  UNAVAILABLE_VOUCHER_CONSOLE,
-  type VoucherConsoleSnapshot,
-} from "../../../modules/commitment-pooling/voucher-console";
+  prepareVoucherSafeFile,
+  readLiveVoucherConsole,
+  type VoucherSafeFile,
+} from "../../../modules/commitment-pooling/voucher-console-live";
 import { claimActKey } from "../../../modules/transactions/act-phase";
 import type { Address } from "../../../types/domain";
 import { createMutationErrorHandler } from "../../../utils/errors/mutation-error-handler";
@@ -27,37 +29,34 @@ import type { VoucherConsoleActs, VoucherConsoleView } from "./controller.types"
 const NO_PROMISES: readonly CommitmentReadModel[] = [];
 const NO_CYCLE_ENDS: ReadonlyMap<string, bigint | null> = new Map();
 
-/**
- * The issuer's acts sign with the issuer's Safe on the voucher network, which
- * the cockpit can't propose to yet, and the pilot deployment they would reach
- * isn't adopted: each refuses before anything reaches a wallet.
- */
-const VOUCHER_PILOT_NOT_ADOPTED = "Voucher bookings open here once the pilot deployment is adopted";
-const refuseUntilAdopted = () => Promise.reject(new Error(VOUCHER_PILOT_NOT_ADOPTED));
-const VOUCHER_ACTS_NOT_ADOPTED: VoucherConsoleActs = {
-  approveBooking: refuseUntilAdopted,
-  reportVisit: refuseUntilAdopted,
-  proposeReturn: refuseUntilAdopted,
-  retryTransfer: refuseUntilAdopted,
-  raiseAllowance: refuseUntilAdopted,
-};
+/** Downloaded proposals never change observed approval, custody or final delivery. */
+function downloadSafeFile(file: VoucherSafeFile) {
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(file, null, 2)], { type: "application/json" })
+  );
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `voucher-${file.meta.createdFromSafeAddress}-${file.createdAt}.json`;
+  document.body.appendChild(anchor);
+  try {
+    anchor.click();
+  } finally {
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+}
 
-/**
- * The voucher console beside a garden's pool console (PRD-1297 surface 6): the
- * bookings asked in the pool, the bookings under way on its offers, the
- * issuer's reserve and its Safe's signature rule. The pilot's routes stay empty
- * until its deployment is adopted (`SERVICE_LIVE_ROUTES`), so the read answers
- * unavailable and the console shows only what the pool reads; Storybook seeds
- * the same key with the pilot's fictional bookings. The pool steward's
- * acceptance is the pool console's own act (`acceptServiceClaim`).
- */
+/** Canonical voucher reads and reviewed Safe files; execution remains with the Safe signers. */
 export function useVoucherConsole(input: { chainId: number; garden: Address }): VoucherConsoleView {
   const { chainId, garden } = input;
   const { formatMessage } = useIntl();
   const query = useQuery({
     queryKey: commitmentPoolingKeys.voucherConsole(chainId, garden),
-    queryFn: async (): Promise<VoucherConsoleSnapshot> => UNAVAILABLE_VOUCHER_CONSOLE,
-    staleTime: Number.POSITIVE_INFINITY,
+    queryFn: () => readLiveVoucherConsole(input),
+    staleTime: (query) =>
+      query.state.data?.evidence === "local-rehearsal" ? Number.POSITIVE_INFINITY : 15_000,
+    refetchInterval: (query) => (query.state.data?.evidence === "local-rehearsal" ? false : 30_000),
+    retry: false,
   });
   const snapshot = query.data ?? UNAVAILABLE_VOUCHER_CONSOLE;
   // Acceptance deadlines are in source time, the pool's chain, whose clock ticks past each one.
@@ -102,11 +101,26 @@ export function useVoucherConsole(input: { chainId: number; garden: Address }): 
         }),
     });
     return {
-      ...VOUCHER_ACTS_NOT_ADOPTED,
+      approveBooking: async (ask) =>
+        downloadSafeFile(
+          await prepareVoucherSafeFile({ chainId, garden }, { kind: "approve", ask })
+        ),
+      proposeReturn: async (booking, ceiling) =>
+        downloadSafeFile(
+          await prepareVoucherSafeFile({ chainId, garden }, { kind: "return", booking, ceiling })
+        ),
+      reportVisit: async () => {
+        throw new Error("Add visit evidence through the promise's evidence flow");
+      },
+      raiseAllowance: async () => {
+        throw new Error("Published reserve policy is required before preparing a new allowance");
+      },
       // A failed retry leaves its row as it was, to try again; the toast says it failed.
       retryTransfer: async (booking) => {
         try {
-          await VOUCHER_ACTS_NOT_ADOPTED.retryTransfer(booking);
+          downloadSafeFile(
+            await prepareVoucherSafeFile({ chainId, garden }, { kind: "retry", booking })
+          );
         } catch (error) {
           reportRetryError(error, {
             gardenAddress: garden,
@@ -115,7 +129,7 @@ export function useVoucherConsole(input: { chainId: number; garden: Address }): 
         }
       },
     };
-  }, [formatMessage, garden]);
+  }, [chainId, formatMessage, garden]);
   return {
     snapshot,
     // The chain's time, never before the read's own: a deadline passes between reads too.

@@ -41,6 +41,14 @@ export function voucherAskTag(
   formatMessage: FormatMessage
 ): { label: string; tone: ItemRowTone } {
   switch (stage) {
+    case "paused":
+      return {
+        label: formatMessage({
+          id: "cockpit.garden.pool.voucher.live.paused",
+          defaultMessage: "Voucher booking paused",
+        }),
+        tone: "warning",
+      };
     case "needs-approval":
       return approves
         ? {
@@ -119,8 +127,19 @@ export function voucherAskDetail(
   nowMs: number
 ): string {
   const { formatMessage } = intl;
-  const agreed = dayText(intl, ask.agreedAt * 1000, nowMs);
+  const agreed =
+    ask.agreedAt === null
+      ? formatMessage({
+          id: "cockpit.garden.pool.voucher.live.recorded",
+          defaultMessage: "on chain",
+        })
+      : dayText(intl, ask.agreedAt * 1000, nowMs);
   const { setup } = ask;
+  if (stage === "paused")
+    return formatMessage({
+      id: "cockpit.garden.pool.voucher.live.pausedDetail",
+      defaultMessage: "Approvals and acceptance wait until the voucher route resumes.",
+    });
   if (stage === "terms-changed") {
     return formatMessage(
       {
@@ -168,7 +187,15 @@ export function voucherAskDetail(
         { date: agreed, count, due }
       );
     case "waiting-for-deposit": {
-      const date = dayText(intl, (setup.approvedAt ?? ask.agreedAt) * 1000, nowMs);
+      if (setup.approvedAt === null)
+        return formatMessage(
+          {
+            id: "cockpit.garden.pool.voucher.live.approved",
+            defaultMessage: "Issuer approval confirmed · accept by {due}",
+          },
+          { due }
+        );
+      const date = dayText(intl, setup.approvedAt * 1000, nowMs);
       return member
         ? formatMessage(
             {
@@ -234,8 +261,14 @@ interface VoucherBookingRowView {
  */
 export function voucherBookingAct(booking: VoucherBooking): VoucherBookingRowView["act"] {
   const { service, stage } = booking;
-  if (stage.kind === "return-failed") return "retry";
+  if (
+    stage.kind === "return-failed" ||
+    stage.kind === "transfer-failed" ||
+    stage.kind === "transfer-pending"
+  )
+    return "retry";
   if (stage.kind === "ended-early") return "propose";
+  if (service.kind === "units") return service.returnLimit === null ? null : "propose";
   return service.kind === "visit" ? "report" : null;
 }
 
@@ -248,13 +281,28 @@ function voucherBookingRow(
   const { formatMessage } = intl;
   const { service, stage } = booking;
   const act = voucherBookingAct(booking);
-  if (stage.kind === "return-failed") {
+  if (
+    stage.kind === "return-failed" ||
+    stage.kind === "transfer-failed" ||
+    stage.kind === "transfer-pending"
+  ) {
     return {
       note: {
-        text: formatMessage({
-          id: "cockpit.garden.pool.voucher.row.returnFailed",
-          defaultMessage: "Return didn’t go through",
-        }),
+        text:
+          stage.kind === "transfer-pending"
+            ? formatMessage({
+                id: "cockpit.garden.pool.voucher.live.transferPending",
+                defaultMessage: "Voucher transfer needs completion",
+              })
+            : stage.kind === "transfer-failed"
+              ? formatMessage({
+                  id: "cockpit.garden.pool.voucher.live.transferFailed",
+                  defaultMessage: "Voucher transfer didn’t go through",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.voucher.row.returnFailed",
+                  defaultMessage: "Return didn’t go through",
+                }),
         tone: "error",
       },
       status: {
@@ -278,17 +326,35 @@ function voucherBookingRow(
               },
               { used: service.report.usableHours, of: service.report.ofHours }
             )
-          : formatMessage(
-              {
-                id: "cockpit.garden.pool.voucher.row.endedEarly",
-                defaultMessage: "Ended early · {done} of {of} days",
-              },
-              { done: service.daysUsed, of: service.daysOf }
-            ),
+          : service.kind === "units"
+            ? formatMessage(
+                {
+                  id: "cockpit.garden.pool.voucher.live.units",
+                  defaultMessage: "{units} {label} booked",
+                },
+                { units: service.units.toString(), label: service.label }
+              )
+            : formatMessage(
+                {
+                  id: "cockpit.garden.pool.voucher.row.endedEarly",
+                  defaultMessage: "Ended early · {done} of {of} days",
+                },
+                { done: service.daysUsed, of: service.daysOf }
+              ),
       status: {
         label: formatMessage({ id: "app.commitments.row.needsYou", defaultMessage: "Needs you" }),
         tone: "warning",
       },
+      act,
+    };
+  }
+  if (service.kind === "units") {
+    return {
+      note: formatMessage(
+        { id: "cockpit.garden.pool.voucher.live.units", defaultMessage: "{units} {label} booked" },
+        { units: service.units.toString(), label: service.label }
+      ),
+      status: null,
       act,
     };
   }
@@ -359,20 +425,39 @@ export function voucherOfferRow(
 /** The issuer Safe's signature rule, closing a Safe write's dialog as the shipped dialogs say their prompts. */
 export function voucherSafeNote(
   safe: IssuerSafeThreshold | undefined,
-  formatMessage: FormatMessage
+  formatMessage: FormatMessage,
+  execution?: "safe-file"
 ): string {
+  const fileNote =
+    execution === "safe-file"
+      ? formatMessage({
+          id: "cockpit.garden.pool.voucher.live.safeFileNote",
+          defaultMessage:
+            "Download a Safe transaction file, review it in the issuer’s Safe, and collect its required signatures. Downloading submits no transaction. This view updates after execution is confirmed on chain.",
+        })
+      : "";
   if (safe?.status !== "observed" || safe.threshold === null || safe.owners === null) {
-    return formatMessage({
-      id: "cockpit.garden.pool.voucher.safe.unread",
-      defaultMessage: "Your Safe signs this. Its signature count can’t be read right now.",
-    });
+    return [
+      fileNote,
+      formatMessage({
+        id: "cockpit.garden.pool.voucher.safe.unread",
+        defaultMessage: "Your Safe signs this. Its signature count can’t be read right now.",
+      }),
+    ]
+      .filter(Boolean)
+      .join(" ");
   }
-  return formatMessage(
-    {
-      id: "cockpit.garden.pool.voucher.safe.needs",
-      defaultMessage:
-        "{threshold, plural, one {Your Safe needs # signature.} other {Your Safe needs # of {owners} signatures.}}",
-    },
-    { threshold: safe.threshold, owners: safe.owners }
-  );
+  return [
+    fileNote,
+    formatMessage(
+      {
+        id: "cockpit.garden.pool.voucher.safe.needs",
+        defaultMessage:
+          "{threshold, plural, one {Your Safe needs # signature.} other {Your Safe needs # of {owners} signatures.}}",
+      },
+      { threshold: safe.threshold, owners: safe.owners }
+    ),
+  ]
+    .filter(Boolean)
+    .join(" ");
 }

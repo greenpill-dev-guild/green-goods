@@ -25,11 +25,17 @@ export interface ServiceLiveRoute {
     router: Address;
     remoteSelector: bigint;
   };
+  walletState?: Record<
+    "adapter" | "registry" | "limiter" | "pool",
+    Omit<ServiceDeploymentPin, "receipt">
+  >;
   assets: readonly {
     token: Address;
     issuer: Address;
     symbol: string;
     decimals: number;
+    issuerName?: string;
+    garden?: Address;
     runtimeCodeHash: Hex;
     implementation: { address: Address; runtimeCodeHash: Hex };
   }[];
@@ -51,8 +57,48 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
   {
     // releaseId of deployments/42161-pilot-downstream.json and 100-pilot-downstream.json.
     id: "green-goods-tech-and-sun-voucher-pilot",
-    revision: 1,
+    revision: 2,
     sourceChainId: 42161,
+    // Public Gnosis pilot downstream record: reserve adapter, token index, limiter and pool.
+    // Current proxy implementations and owners verified against the public Gnosis deployment.
+    walletState: {
+      adapter: {
+        address: "0x80a906C175ea875af8a2afcA8F91F60b201dc824",
+        owner: GREEN_GOODS_SAFE,
+        runtimeCodeHash: "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7",
+        implementation: {
+          address: "0x021368bf9958f4d535d39d571bc45f74d20e4666",
+          runtimeCodeHash: "0x1a384cfbcf8d8bfe9eee1a652f9135ae8d3f0bb7e7a851144ec8b6ecacd19010",
+        },
+      },
+      registry: {
+        address: "0xf685212bB309F36F74B53ba0c9f1E49B4222d036",
+        owner: GREEN_GOODS_SAFE,
+        runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
+        implementation: {
+          address: "0x0ceb18ba6562d3227717d98c044a5849be8362ef",
+          runtimeCodeHash: "0x7d87c5eb290d28f0961269d99ccb278992b7a1e1ad358abb35156a80bc7f3db5",
+        },
+      },
+      limiter: {
+        address: "0xbA96741cc022F48a1F936a085b7549AEa3B01b9C",
+        owner: GREEN_GOODS_SAFE,
+        runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
+        implementation: {
+          address: "0x258aad6c933f70d7f071e112800a41fb60434048",
+          runtimeCodeHash: "0x4703592f66925654d50872a319602d2ec144698515abc9e4df00c36d5b4a3d32",
+        },
+      },
+      pool: {
+        address: "0x6AFc963B583fBB536F05B2D7ae832880662b98A4",
+        owner: GREEN_GOODS_SAFE,
+        runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
+        implementation: {
+          address: "0x9e694d342cab02e295262b2290b0e64a0334160d",
+          runtimeCodeHash: "0xc353aac7dd541d1c50c7eeb20a15a44ea9f93524f23a26217a557667ddd87847",
+        },
+      },
+    },
     // 42161-latest.json's Pooling proxy, created through the CREATE2 deployer; its voucher
     // implementation is the Safe's 24 October source upgrade (Safe nonce 33).
     core: {
@@ -109,6 +155,8 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
         token: "0xbaF8c6f7c0cA8310Df725D90023C188FA8f1B590",
         issuer: GREEN_GOODS_SAFE,
         symbol: "GGV",
+        issuerName: "Green Goods",
+        garden: "0xf401f34378384713222d1d21f63359cc4E8a858a",
         decimals: 6,
         runtimeCodeHash: CLC_TOKEN_PROXY_RUNTIME,
         implementation: CLC_TOKEN_IMPLEMENTATION,
@@ -117,6 +165,8 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
         token: "0xB89300F212fcbdF3D5b73eADE290b3c0d6292143",
         issuer: "0x9BE5f0D6B95Ea3735df71023F5dFED53b4c1aABf",
         symbol: "TSV",
+        issuerName: "Tech and Sun",
+        garden: "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
         decimals: 6,
         runtimeCodeHash: CLC_TOKEN_PROXY_RUNTIME,
         implementation: CLC_TOKEN_IMPLEMENTATION,

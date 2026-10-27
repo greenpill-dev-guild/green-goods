@@ -36,6 +36,8 @@ interface VoucherIssuerBase {
 /** A collective issues through its Safe on the voucher network, which approves each booking and proposes returns. */
 interface CollectiveVoucherIssuer extends VoucherIssuerBase {
   kind: "collective";
+  /** Collective writes are reviewed exports, not submitted transactions. */
+  execution?: "safe-file";
   safe: Address;
 }
 
@@ -45,6 +47,7 @@ interface CollectiveVoucherIssuer extends VoucherIssuerBase {
  */
 interface MemberVoucherIssuer extends VoucherIssuerBase {
   kind: "individual";
+  execution?: never;
   account: Address;
 }
 
@@ -57,6 +60,10 @@ export interface VoucherTermsVersion {
 }
 
 export interface VoucherAskSetup {
+  setupId?: Hex;
+  authorizationHash?: Hex;
+  /** Canonical approval when its historical timestamp is not available. */
+  issuerApproved?: boolean;
   /** What the member deposits for the booking. */
   voucherUnits: bigint;
   /** When the issuer's Safe approved this exact booking; null until it does. */
@@ -71,6 +78,8 @@ export interface VoucherAskSetup {
 
 /** One voucher booking asked on a service offer in the pool: a pending service claim. */
 export interface VoucherAsk {
+  /** Approval and source acceptance wait while any route endpoint is paused. */
+  paused?: boolean;
   commitmentId: bigint;
   /** The member who asked: the pending claim's claimant. */
   buyer: Address;
@@ -79,7 +88,7 @@ export interface VoucherAsk {
   /** The terms the member agreed to, and the offer's terms now. */
   agreed: VoucherTermsVersion;
   current: VoucherTermsVersion;
-  agreedAt: number;
+  agreedAt: number | null;
   issuer: VoucherIssuer;
   /** The booking's escrow setup, once it reaches the issuer; null before. */
   setup: VoucherAskSetup | null;
@@ -94,6 +103,13 @@ export interface VoucherVisitReport {
 }
 
 export type VoucherBookingService =
+  | {
+      kind: "units";
+      units: bigint;
+      label: string;
+      returnLimit: bigint | null;
+      returnCeiling?: bigint;
+    }
   | { kind: "visit"; startsAt: number; endsAt: number; report: VoucherVisitReport }
   | { kind: "access"; daysUsed: number; daysOf: number };
 
@@ -105,7 +121,9 @@ export type VoucherBookingStage =
    */
   | { kind: "ended-early"; returnLimit: bigint; returnCeiling: bigint }
   /** A transfer after the final split didn't go through: anyone can retry the same one. */
-  | { kind: "return-failed"; units: bigint };
+  | { kind: "return-failed"; units: bigint }
+  | { kind: "transfer-failed"; units: bigint }
+  | { kind: "transfer-pending"; units: bigint };
 
 /** A booking under way on one of the pool's offers. */
 export interface VoucherBooking {
@@ -147,6 +165,10 @@ export interface VoucherIssuerReserve {
 export type { IssuerSafeThreshold } from "./service-access-wallet-types";
 
 export interface VoucherConsoleSnapshot {
+  /** Labels live observations and keeps rehearsal seeds isolated from live refreshes. */
+  evidence?: "onchain" | "local-rehearsal";
+  /** Discovery is bounded; absence in a cross-chain index is not proof of no obligations. */
+  incomplete?: boolean;
   /** Unavailable until the voucher pilot deployment is adopted and its reads are wired. */
   status: "observed" | "unavailable";
   /** The source time the read was taken at; checks never trust a device clock alone. */
@@ -215,7 +237,7 @@ export function selectVoucherAcceptanceChecks(
 ): VoucherAcceptanceChecks {
   const { setup } = ask;
   const consent = sameTerms(ask) && namedConsent(ask);
-  const approval = setup !== null && setup.approvedAt !== null;
+  const approval = setup !== null && (setup.issuerApproved ?? setup.approvedAt !== null);
   const deposit = setup !== null && depositHolds(setup);
   const deadline = setup !== null && now <= setup.acceptBy;
   return {
@@ -223,12 +245,13 @@ export function selectVoucherAcceptanceChecks(
     approval,
     deposit,
     deadline,
-    ready: consent && approval && deposit && deadline,
+    ready: !ask.paused && consent && approval && deposit && deadline,
   };
 }
 
 /** Where a booking asked in the pool stands, from the steward's seat. */
 export type VoucherAskStage =
+  | "paused"
   /** The offer changed since the member agreed: they cancel and book again. */
   | "terms-changed"
   /** The ask carries no consent the acceptance can name, so it can't be accepted: they book again. */
@@ -248,11 +271,12 @@ export type VoucherAskStage =
   | "ready";
 
 export function selectVoucherAskStage(ask: VoucherAsk, now: number): VoucherAskStage {
+  if (ask.paused) return "paused";
   if (!sameTerms(ask)) return "terms-changed";
   if (!namedConsent(ask)) return "consent-missing";
   if (ask.setup === null) return "setting-up";
   if (now > ask.setup.acceptBy) return "past-deadline";
-  if (ask.setup.approvedAt === null) return "needs-approval";
+  if (!(ask.setup.issuerApproved ?? ask.setup.approvedAt !== null)) return "needs-approval";
   return depositHolds(ask.setup) ? "ready" : "waiting-for-deposit";
 }
 
