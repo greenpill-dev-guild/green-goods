@@ -1927,7 +1927,7 @@ Agent/model: Codex / unknown | Coverage: user-reported readonly-property error
 
 Human corrections: one observed (another error in the delivered operator); attention: unknown.
 
-## 2026-10-26 — Owner packets executed; the app's live service route
+## 2026-10-26: Owner packets executed and the app's live service route
 
 Read-only RPC readback on 27 October UTC (Gnosis block 48961294, Arbitrum 518599900). No send,
 signature or Safe action is part of this record.
