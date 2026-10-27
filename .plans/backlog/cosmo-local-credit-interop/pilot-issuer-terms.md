@@ -126,15 +126,16 @@ this example and remains an independent Celo route.
 
 ## Existing collective issuer baseline
 
-**Version:** `pilot-2026-10-27` · **Status:** operating terms approved on 27 October 2026 (UTC) with two changes; the Claude seat budget and cash swap-back are open, and each issuer's identities stay on the private path.
+**Version:** `pilot-2026-10-27-r2` · **Status:** operating terms approved on 27 October 2026 (UTC) with two changes, and Green Goods' ceiling raised to 120 the same day for Claude access; cash swap-back is open, and each issuer's identities stay on the private path.
 
 The selected services are Tech and Sun hub access, Green Goods assisted sessions, and Claude
 access under a Green Goods team. The human release owner accepted the service prices below,
 a twenty-voucher ceiling per issuer, ten participants and an initial 1:1 gross exchange ratio
 on 22 October Pacific. On 27 October 2026 (UTC) the release owner approved the operating
 terms below, with two changes: an assisted session is forty-five minutes for two GG vouchers,
-and the booking window runs to 31 December 2026. Any term can change later through a new terms
-revision, and a booking keeps the revision it was agreed under. Neither issuer has yet supplied
+and the booking window runs to 31 December 2026. The same day Green Goods' ceiling rose to 120
+vouchers, so all ten funded Claude seats can be booked at once. Any term can change later
+through a new terms revision, and a booking keeps the revision it was agreed under. Neither issuer has yet supplied
 its accountable addresses or acceptance record through the private path. The [deployment package](handoffs/codex-live-pilot-deployment.md)
 tracks those inputs separately from technical readiness.
 
@@ -144,17 +145,16 @@ tracks those inputs separately from technical readiness.
 |---|---|---|
 | Tech and Sun — hub day | **1 Tech and Sun voucher:** one named person's reserved visit of up to four hours, including workspace, power and connectivity. Publish the location, opening hours and equipment restrictions before accepting a booking. | Twenty visits, at least eighty seat-hours in a published calendar. These are proposed resources, not observed capacity. |
 | Green Goods — assisted session | **2 Green Goods vouchers:** one forty-five-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, seven and a half facilitator-hours, if every GG voucher is used for assistance. |
-| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Approved to run with up to ten funded seats. The twenty-voucher ceiling covers two seat-periods at a time; whether to mint more GG vouchers or recirculate returned ones is open, as is confirming that participant seats are permitted under the supplier terms. |
+| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Ten funded seat-periods, all bookable at once: Green Goods' ceiling rises to 120 vouchers for it. Confirming that participant seats are permitted under the supplier terms is still open. |
 
 These are full-access offers at their stated scope, rather than discounts requiring an unstated
 cash contribution. A four-hour hub visit is one booking; unused time does not create another
 visit. Assistance excludes ongoing delivery or maintenance beyond the booked session. Holding
 a voucher confers the issuer's published service rights, never garden governance or Safe control.
 
-The two Green Goods offers share **one** twenty-voucher service budget. A possible mix is one
-Claude seat-period and five assisted sessions: `10 + 5 × 2 = 20`. Ten sessions plus two Claude
-seat-periods would cost forty vouchers and is outside this draft. Green Goods must be capable
-of honoring every permitted mix before releasing that inventory.
+The two Green Goods offers share **one** 120-voucher service budget: 100 for ten Claude
+seat-periods and 20 for ten assisted sessions, `10 × 10 + 10 × 2 = 120`. Green Goods must be
+capable of honoring every permitted mix before releasing that inventory.
 
 ## Claude service definition and cost
 
@@ -190,13 +190,13 @@ The other approved services may proceed independently.
 
 | Limit | Tech and Sun | Green Goods | Meaning |
 |---|---:|---:|---|
-| Total initial voucher supply / issuance ceiling | 20 | 20 | No automatic increase or replenishment by minting. Bind the actual token implementation and authorities. |
+| Total initial voucher supply / issuance ceiling | 20 | 120 | Green Goods' ceiling was raised from 20 on 27 October 2026 (UTC): 100 vouchers for ten Claude seat-periods and 20 for ten sessions. No automatic increase or replenishment by minting. Bind the actual token implementation and authorities. |
 | Initial shared-pool inventory | 10 | 10 | Part of the twenty issued units; not additional capacity. Pool stock is available for swaps, not the reward adapter. |
-| Initial issuer reserve | 10 | 10 | Separate issuer-controlled custody; actual reserve addresses remain open. |
-| Initial adapter allowance | At most 10 | At most 10 | Finite allowance from that reserve to the exact adapter. Lower it to actual stock and remaining service budget; never unlimited. |
+| Initial issuer reserve | 10 | 110 | Separate issuer-controlled custody. Green Goods' 100 new vouchers are minted to its reserve, while its pool inventory stays at 10. |
+| Initial adapter allowance | At most 10 | At most 110 | Finite allowance from that reserve to the exact adapter. Lower it to actual stock and remaining service budget; never unlimited. |
 | Per-participant operational limit | 10 | 10 | Ten units allows a whole Claude redemption. This is an admission/distribution rule until selected limiter enforcement is proved; do not claim a global transfer restriction. |
-| Initial pool holding ceiling per asset | 20 | 20 | Accepted on 23 October: ten units of starting inventory and a twenty-unit holding cap per asset, within the existing twenty-unit issuance ceiling. This leaves ten units of incoming swap headroom; bind and read back the separate pool limiter setting. |
-| Whole-pilot discharged service budget | 20 visits | 20 GG units | Cumulative delivered service cost, not a token balance or automatically reset allowance. |
+| Initial pool holding ceiling per asset | 20 | 120 | Accepted on 23 October at twenty units per asset; Green Goods' was raised to 120 on 27 October with its ceiling. Bind and read back the separate pool limiter setting. |
+| Whole-pilot discharged service budget | 20 visits | 120 GG units | Cumulative delivered service cost, not a token balance or automatically reset allowance. |
 
 The accepted cohort ceiling is ten invited participants. Propose adults only for the first
 operating cohort, with no public sale. Any participant purchase in this pilot is the bounded
@@ -225,9 +225,9 @@ work, or stop accepting rewards when coverage is insufficient. Never display res
 stock as if both were spendable by the same adapter.
 
 Returned delivered vouchers remain in the issuer reserve but **do not restore consumed service
-capacity**. Example: ten GG vouchers returned after one completed Claude seat-period leave ten
-GG units of the twenty-unit pilot budget. Distributing all twenty reserve units again would
-exceed that budget. Quarantine returned inventory unless remaining capacity covers its reuse;
+capacity**. Example: ten GG vouchers returned after one completed Claude seat-period leave 110
+GG units of the 120-unit pilot budget. Distributing every reserve unit again would exceed that
+budget. Quarantine returned inventory unless remaining capacity covers its reuse;
 use finite allowance and pause/revoke paths to stop distribution. A new service budget needs
 explicit issuer approval. Token supply, transfers and service discharge remain distinct; no
 automatic burn is assumed.
