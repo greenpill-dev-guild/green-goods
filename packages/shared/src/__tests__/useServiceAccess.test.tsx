@@ -40,17 +40,21 @@ vi.mock("../modules/commitment-pooling/service-access-wallet", async (importOrig
   return {
     ...actual,
     readLiveVoucherWallet: (scope: VoucherWalletScope) =>
-      (mocks.wallet ?? actual.readLiveVoucherWallet)(scope),
+      mocks.wallet ? mocks.wallet(scope) : actual.readLiveVoucherWallet(scope, { routes: [] }),
   };
 });
 // These cases read through mocked snapshots on Arbitrum's pooling core, which #1350 made a live
-// route; a unit test can't verify that route on chain, so it stays out here.
-vi.mock("../modules/commitment-pooling/service-access-live-config", async (importOriginal) => ({
-  ...(await importOriginal<
-    typeof import("../modules/commitment-pooling/service-access-live-config")
-  >()),
-  SERVICE_LIVE_ROUTES: [],
-}));
+// route. Inject no live routes at the read seams without replacing the shared reviewed catalog.
+vi.mock("../modules/commitment-pooling/service-access-live", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../modules/commitment-pooling/service-access-live")>();
+  return {
+    ...actual,
+    createLiveServiceAccessAdapter: (
+      deps: Parameters<typeof actual.createLiveServiceAccessAdapter>[0]
+    ) => actual.createLiveServiceAccessAdapter({ ...deps, routes: [] }),
+  };
+});
 vi.mock("../hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => mocks.online }));
 vi.mock("../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: key.buyer, authMode: "wallet", passkeyAccountProfile: null }),

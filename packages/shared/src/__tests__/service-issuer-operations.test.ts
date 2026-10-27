@@ -27,6 +27,7 @@ import {
 } from "../modules/commitment-pooling/service-issuer-abis";
 import type { ServiceIssuerChain } from "../modules/commitment-pooling/service-issuer-chain";
 import type {
+  ServiceIssuerAsset,
   ServiceIssuerAction,
   ServiceIssuerActor,
   ServiceIssuerRoute,
@@ -978,6 +979,67 @@ describe("member-owned service operations", () => {
       })
     );
     expect(f.state.ceiling).toBe(5n);
+  });
+  it.each([
+    "none",
+    "service",
+    "remedy",
+    "unit",
+    "service-units",
+    "voucher-units",
+  ] as const)("matches each offer's exact binding, with %s changed, independently of the catalog digest", async (change) => {
+    const f = fixture();
+    f.hints.push(f.hint);
+    f.state.enabled = true;
+    const asset: ServiceIssuerAsset = f.assets[0]!;
+    asset.service.terms.digest = TX;
+    const offer = {
+      unit: "test hour",
+      serviceUnits: 2n,
+      voucherUnits: 20n,
+      serviceTermsRef: H,
+      remedyTermsRef: H,
+      capacity: 1000n,
+    };
+    if (change === "service") offer.serviceTermsRef = TX;
+    if (change === "remedy") offer.remedyTermsRef = TX;
+    if (change === "unit") offer.unit = "wrong unit";
+    if (change === "service-units") offer.serviceUnits = 3n;
+    if (change === "voucher-units") offer.voucherUnits = 21n;
+    asset.service.offers = [offer];
+    expect(await f.create().read(f.actor)).toMatchObject({
+      bookings: {
+        records: [{ reviewedTermsMatch: change === "none", approvalEligible: change === "none" }],
+      },
+    });
+    const action = {
+      kind: "approveBooking" as const,
+      setupId: f.identity.setupId,
+      authorizationHash: f.identity.authorizationHash,
+    };
+    if (change === "none")
+      expect((await f.create().review(f.actor, action)).call.functionName).toBe(
+        "approveSetupAuthorization"
+      );
+    else await expect(f.create().review(f.actor, action)).rejects.toThrow("terms");
+  });
+  it("rejects issuance inside transaction preparation while one service capacity is unknown", async () => {
+    const f = fixture();
+    const asset: ServiceIssuerAsset = f.assets[0]!;
+    asset.service.offers = [
+      {
+        unit: "test hour",
+        serviceUnits: 2n,
+        voucherUnits: 20n,
+        serviceTermsRef: H,
+        remedyTermsRef: H,
+        capacity: null,
+      },
+    ];
+    await expect(f.create().review(f.actor, { kind: "issue", amount: 1n })).rejects.toThrow(
+      "capacity"
+    );
+    expect(f.state.broadcast).toBe(0);
   });
   it("allows member reserve configuration and disabling while transport is paused", async () => {
     const f = fixture();

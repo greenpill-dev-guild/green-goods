@@ -8341,5 +8341,6 @@
   "cockpit.garden.pool.voucher.live.paused": "Voucher booking paused",
   "cockpit.garden.pool.voucher.live.pausedDetail": "Approvals and acceptance wait until the voucher route resumes.",
   "cockpit.garden.pool.voucher.live.partial": "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
-  "app.voucher.wl.unavailable": "Voucher balances and bookings could not be read. Check your connection and try again."
+  "app.voucher.wl.unavailable": "Voucher balances and bookings could not be read. Check your connection and try again.",
+  "app.commitments.row.service.setup": "Issuer setup pending"
 }

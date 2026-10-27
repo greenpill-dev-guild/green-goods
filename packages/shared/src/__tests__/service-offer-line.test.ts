@@ -137,6 +137,14 @@ describe("serviceOfferLine", () => {
       ).toEqual({ kind: "paused" });
     });
 
+    it("shows setup instead of an exchange or delisting, while keeping held vouchers usable", () => {
+      const setup = maya({ bookings: "open", exchange: "setup" });
+      expect(serviceOfferLine(coaching, holding(setup, 0n))?.booking).toEqual({ kind: "setup" });
+      expect(serviceOfferLine(coaching, holding(setup, ONE))?.booking).toMatchObject({
+        kind: "hold",
+        held: ONE,
+      });
+    });
     // Delisting stops new exchanges only: a holder still books with the vouchers they have.
     it("says the vouchers left the exchange pool only to someone who would exchange first", () => {
       const delisted = maya({ bookings: "open", exchange: "delisted" });

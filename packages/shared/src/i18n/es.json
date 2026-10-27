@@ -8341,5 +8341,6 @@
   "cockpit.garden.pool.voucher.live.paused": "Reserva de vales en pausa",
   "cockpit.garden.pool.voucher.live.pausedDetail": "Las aprobaciones y la aceptación esperan hasta que se reanude la ruta de vales.",
   "cockpit.garden.pool.voucher.live.partial": "La búsqueda de reservas con vales está incompleta. Pueden faltar reservas mientras llegan los mensajes entre cadenas o se actualiza el indexador.",
-  "app.voucher.wl.unavailable": "No se pudieron consultar los saldos de vales ni las reservas. Comprueba tu conexión e inténtalo de nuevo."
+  "app.voucher.wl.unavailable": "No se pudieron consultar los saldos de vales ni las reservas. Comprueba tu conexión e inténtalo de nuevo.",
+  "app.commitments.row.service.setup": "Configuración del emisor pendiente"
 }

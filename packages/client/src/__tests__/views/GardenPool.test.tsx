@@ -364,7 +364,10 @@ describe("GardenPool", () => {
 
   // A service offer reads as on the garden's list over Home: what booking takes first, then who
   // promises it (PRD-1299, decision 12). Any other offer keeps its due date and person.
-  it("draws a service offer's line: what booking takes first, then who promises it", () => {
+  it.each([
+    ["exchange", "Exchange first"],
+    ["setup", "Issuer setup pending"],
+  ])("draws a service offer's %s state without inventing an exchange", (kind, label) => {
     const hubDay = commitment({
       commitmentId: 31n,
       onchainState: "OFFERED",
@@ -382,7 +385,7 @@ describe("GardenPool", () => {
           "31",
           { promisedBy: "Tech and Sun", booking: { kind: "hold", held: 9_000_000n, decimals: 6 } },
         ],
-        ["32", { promisedBy: "Green Goods", booking: { kind: "exchange" } }],
+        ["32", { promisedBy: "Green Goods", booking: { kind } }],
       ])
     );
 
@@ -394,7 +397,8 @@ describe("GardenPool", () => {
     const [first, second, other] = rows;
     expect(first).toHaveAttribute("data-service", "offer");
     expect(first).toHaveTextContent(/You hold 9.*Tech and Sun/);
-    expect(second).toHaveTextContent(/Exchange first.*Green Goods/);
+    expect(second).toHaveTextContent(label);
+    expect(second).toHaveTextContent("Green Goods");
     expect(other).not.toHaveAttribute("data-service");
     // The tab hands the hook its listed promises; the hook keeps only possible services.
     expect(mockUseServiceOfferLines).toHaveBeenLastCalledWith({
