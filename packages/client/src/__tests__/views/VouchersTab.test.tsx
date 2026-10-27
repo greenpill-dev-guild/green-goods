@@ -42,6 +42,7 @@ const issuer = (
   gender,
   asset: { chainId: 100, token: account, symbol: null, decimals: 6 },
   garden,
+  standing: { bookings: "open", exchange: "listed" },
 });
 const TECH_AND_SUN = issuer(
   "Tech and Sun",

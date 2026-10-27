@@ -279,3 +279,97 @@ export const ServiceOffers: Story = {
     }
   },
 };
+
+/** The member services the lab lists: one booking line each, then the member who delivers. */
+const MEMBER_SERVICES = [
+  { title: "Integration lesson, 60 minutes", by: "Teo Alves", line: "hold" },
+  { title: "Measurement coaching, 60 minutes", by: "Maya Ruiz", line: "exchange" },
+  { title: "Integration lesson, 60 minutes", by: "Teo Alves", line: "paused" },
+  { title: "Measurement coaching, 60 minutes", by: "Maya Ruiz", line: "delisted" },
+] as const;
+
+function MemberServiceRows() {
+  const { formatMessage } = useIntl();
+  const booking = (line: (typeof MEMBER_SERVICES)[number]["line"]) =>
+    line === "hold"
+      ? formatMessage({ id: "app.commitments.row.service.hold" }, { count: "1" })
+      : line === "exchange"
+        ? formatMessage({ id: "app.commitments.row.service.exchange" })
+        : {
+            text: formatMessage({ id: `app.commitments.row.service.${line}` }),
+            tone: "error" as const,
+          };
+  return (
+    <>
+      {MEMBER_SERVICES.map(({ title, by, line }) => (
+        <CommitmentRow
+          key={`${title}:${line}`}
+          direction="OFFER"
+          title={title}
+          status={{ label: "Offered", tone: "info" }}
+          service={{ booking: booking(line), promisedBy: by }}
+          onOpen={fn()}
+          data-line={line}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * A member's own service on the same row (slice 2): Teo's lesson the reader can redeem, Maya's
+ * coaching to exchange for first, then each after its issuer paused bookings or left the
+ * exchange pool. The reason takes the booking's place, marked as one to act on, and the member
+ * who promises delivery stays whole on the line in each language at both phone widths.
+ */
+export const MemberServiceOffers: Story = {
+  globals: { viewport: { value: "desktop" } },
+  render: () => (
+    <div className="flex flex-col gap-8">
+      {(Object.keys(catalogs) as (keyof typeof catalogs)[]).map((locale) => (
+        <IntlProvider key={locale} locale={locale} messages={catalogs[locale]}>
+          <section className="flex flex-wrap items-start gap-4" data-locale={locale}>
+            {[288, 358].map((width) => (
+              <Column key={width} width={width}>
+                <MemberServiceRows />
+              </Column>
+            ))}
+          </section>
+        </IntlProvider>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
+    for (const section of canvasElement.querySelectorAll<HTMLElement>("[data-locale]")) {
+      const words = catalogs[section.dataset.locale as keyof typeof catalogs] as Record<
+        string,
+        string
+      >;
+      const lineText = {
+        hold: words["app.commitments.row.service.hold"]!.replace("{count}", "1"),
+        exchange: words["app.commitments.row.service.exchange"],
+        paused: words["app.commitments.row.service.paused"],
+        delisted: words["app.commitments.row.service.delisted"],
+      };
+      const rows = [...section.querySelectorAll<HTMLElement>('[data-service="offer"]')];
+      await expect(rows).toHaveLength(MEMBER_SERVICES.length * 2);
+      for (const row of rows) {
+        const spec = MEMBER_SERVICES.find(
+          ({ title, line }) => row.dataset.line === line && row.textContent?.includes(title)
+        );
+        const line = row.querySelector<HTMLElement>(".gg-item-row-details");
+        const lineBox = line?.getBoundingClientRect();
+        const shown = [...row.querySelectorAll<HTMLElement>(".gg-item-row-detail")].filter(
+          (detail) => lineBox && detail.getBoundingClientRect().top < lineBox.bottom - 1
+        );
+        await expect(shown.map((detail) => detail.textContent)).toEqual([
+          spec && lineText[spec.line],
+          spec?.by,
+        ]);
+        const reason = spec?.line === "paused" || spec?.line === "delisted";
+        await expect(shown[0]?.dataset.tone).toBe(reason ? "error" : undefined);
+      }
+    }
+  },
+};
