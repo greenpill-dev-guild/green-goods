@@ -57,7 +57,9 @@ import { useTxActPhase } from "../../blockchain/useTxActPhase";
 import { useClaimDecisions, useClaimDecisionVisit } from "./useClaimDecisions";
 import { useFinishCreating } from "./useFinishCreating";
 
-// The voucher console sits beside this one on the same public leaf (PRD-1297 surface 6).
+// The voucher console sits beside this one on the same public leaf (PRD-1297 surface 6), and so
+// do a promise's voucher outcomes, for its inspector (PRD-1323).
+export { useCommitmentVoucherOutcomes } from "./useCommitmentVoucherOutcomes";
 export { useVoucherConsole } from "./useVoucherConsole";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
