@@ -171,6 +171,7 @@
   .next-label { font: italic 400 26px var(--serif); fill: var(--stone); }
   .s-mech .mcol { position: absolute; top: 668px; width: 400px; text-align: center; }
   .s-mech .mcol p { font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
+  .s-mech .mcol p.split { margin-top: 8px; font-size: 22px; color: var(--stone); } /* the endowment's default earnings split */
   .state { font: 600 24px/1.2 var(--sans) !important; margin-bottom: 10px; }
   .state.live { color: var(--green-action) !important; }
   .state.pilot, .state.partial { color: #B45309 !important; }
@@ -210,7 +211,8 @@
 
   /* 17 · What we need */
   .s-ask .needs { position: absolute; left: var(--px); top: 340px; width: 900px; list-style: none; margin: 0; padding: 0; }
-  .s-ask .needs li { display: grid; grid-template-columns: 48px 1fr; column-gap: 26px; align-items: start; font: 400 40px/1.35 var(--sans); color: var(--ink-2); } /* the one ask */
+  .s-ask .needs li { display: grid; grid-template-columns: 48px 1fr; column-gap: 26px; align-items: start; margin-bottom: 44px; font: 400 32px/1.38 var(--sans); color: var(--ink-2); } /* who we are looking for */
+  .s-ask .needs li b { font-weight: 600; color: var(--ink); }
   .s-ask .contact { position: absolute; left: var(--px); top: 790px; font: 400 44px/1 var(--serif); color: var(--green-action); letter-spacing: -0.01em; } /* baseline level with the photo's foot */
   .ask-photo { position: absolute; left: 1140px; top: 340px; width: 652px; margin: 0; }
   .ask-photo img { display: block; width: 100%; height: 489px; object-fit: cover; }
@@ -364,10 +366,10 @@
 <section class="slide s-hub" data-label="Tech and Sun" data-time="0:30">
   <h1 class="md">We're starting with Tech and Sun, which builds solar-powered hubs in Nigeria.</h1>
   <div class="hub-text">
-    <p>Its first hub is live in Awka, with steady power and internet for students and builders.</p>
+    <p>Its first hub, in Awka, has served more than 300 people with steady power and internet.</p>
     <p>Members told us internet and power come first, then learning, engineering and AI.</p>
     <p>What they want most is opportunity: introductions to work and one-to-one career calls, and the hub is where they find people to build with.</p>
-    <p class="small">From a member poll in September and a member survey in October 2026.</p>
+    <p class="small">From member polls, surveys and conversations in September and October 2026.</p>
   </div>
   <figure class="hub-photo"><img src="assets/photos/awka-hub.jpg" alt="Tech and Sun members standing together in front of the solar-roofed hub in Awka" /><figcaption>The Awka hub. Photo: Tech and Sun.</figcaption></figure>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">8 / 18</span>
@@ -452,9 +454,9 @@
     <line class="flowline" x1="865" y1="520" x2="1055" y2="520" marker-end="url(#ah-ink)"/>
     <text class="flow-label" x="960" y="470" text-anchor="middle">kept promises</text>
     <text class="flow-label" x="960" y="502" text-anchor="middle">earn vouchers</text>
-    <circle class="mech" cx="340" cy="520" r="104"/><text class="mech-name" x="340" y="531" text-anchor="middle">Endowment</text><circle class="mech hubby" cx="753" cy="520" r="104"/><text class="mech-name" x="753" y="514" text-anchor="middle">Commitment</text><text class="mech-name" x="753" y="550" text-anchor="middle">pool</text><circle class="mech" cx="1167" cy="520" r="104"/><text class="mech-name" x="1167" y="514" text-anchor="middle">Exchange</text><text class="mech-name" x="1167" y="550" text-anchor="middle">pool</text><circle class="mech" cx="1580" cy="520" r="104"/><text class="mech-name" x="1580" y="531" text-anchor="middle">Certificates</text>
+    <circle class="mech" cx="340" cy="520" r="104"/><text class="mech-name" x="340" y="531" text-anchor="middle">Endowment</text><circle class="mech hubby" cx="753" cy="520" r="104"/><text class="mech-name" x="753" y="514" text-anchor="middle">Commitment</text><text class="mech-name" x="753" y="550" text-anchor="middle">pool</text><circle class="mech" cx="1167" cy="520" r="104"/><text class="mech-name" x="1167" y="514" text-anchor="middle">Exchange</text><text class="mech-name" x="1167" y="550" text-anchor="middle">pool</text><circle class="mech" cx="1580" cy="520" r="104"/><text class="mech-name" x="1580" y="514" text-anchor="middle">Impact</text><text class="mech-name" x="1580" y="550" text-anchor="middle">certificates</text>
   </svg>
-  <div class="mcol" style="left:140px"><p class="state live">Live today</p><p>Supporters deposit. The capital stays invested, and part of its earnings goes to the garden.</p></div><div class="mcol" style="left:553px"><p class="state live">Live today</p><p>Members promise work. Kept promises earn agreed rewards in G$ and build the record.</p></div><div class="mcol" style="left:967px"><p class="state pilot">In pilot</p><p>Members swap service vouchers in a shared pool, like an hour of help for a career call.</p></div><div class="mcol" style="left:1380px"><p class="state partial">Partly built</p><p>A garden turns a season's impact into a certificate. Next, supporters can buy a share.</p></div>
+  <div class="mcol" style="left:140px"><p class="state live">Live today</p><p>Supporters deposit. The capital stays invested, and its earnings split by default:</p><p class="split">48.65% to the garden's shared fund, 48.65% to impact certificates, 2.7% to Green Goods, being switched on</p></div><div class="mcol" style="left:553px"><p class="state live">Live today</p><p>Members promise work. Kept promises earn agreed rewards in G$ and build the record.</p></div><div class="mcol" style="left:967px"><p class="state pilot">In pilot</p><p>Members swap service vouchers in a shared pool, like an hour of help for a career call.</p></div><div class="mcol" style="left:1380px"><p class="state partial">Partly built</p><p>A garden turns a season's impact into a certificate. Next, supporters can buy a share.</p></div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">13 / 18</span>
 </section>
 
@@ -474,7 +476,7 @@
     <div class="item rule"><h3>Setup</h3><p>Onboard the garden, its stewards and its first season.</p></div>
     <div class="item rule"><h3>Support</h3><p>Tools, training and help through the season.</p></div>
     <div class="item rule"><h3>Reporting</h3><p>Delivery records a funder can act on and renew from.</p></div>
-    <p class="closing">Fees for service and a share of what endowments earn. Never a supporter's deposit, never a garden's shared fund.</p>
+    <p class="closing">Fees for service and a 2.7% share of what endowments earn by default, being switched on. Never a supporter's deposit, never a garden's shared fund.</p>
   </div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">14 / 18</span>
 </section>
@@ -514,8 +516,8 @@
 <!-- 17 · What we need -->
 <section class="slide s-ask" data-label="What we need" data-time="0:25">
   <h1 class="md">Help us find the first supporter, and tell us what would make you the second.</h1>
-  <ul class="needs"><li><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg><span>Introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods.</span></li></ul>
-  <p class="contact">greengoods.app</p>
+  <ul class="needs"><li><svg class="icon" aria-hidden="true"><use href="#i-funder"/></svg><span><b>Institutional funders</b> who want to pilot allocation tools like Green Goods.</span></li><li><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><span><b>Diaspora associations</b> ready to pool members' gifts behind a hub's season.</span></li><li><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg><span><b>Mentors</b> for business development and for telling our story.</span></li></ul>
+  <p class="contact">contact@greengoods.app</p>
   <figure class="ask-photo"><img src="assets/photos/tas-hub-build.jpg" alt="Members working at laptops inside the hub in Awka" /><figcaption>Inside the hub. Photo: Tech and Sun.</figcaption></figure>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">17 / 18</span>
 </section>
@@ -546,16 +548,16 @@
   "A garden runs as a loop, season after season. Needs: stewards and evaluators record what the place needs and where things stand today. Promise: members promise work to each other and to the garden, and agree who does what by when. Work: it is documented with photos and notes, reviewed by stewards and confirmed by the people it served. Funding: supporters fund what the record shows. And what was learned shapes the next season's needs.",
   "We built commitment pooling for that Promise step. Members offer or request specific work, like a workshop, a repair or a planting, and see what others offer and need, so skills and help move between them. Anyone in the garden can take a promise up. When the work is done, the person it was made for confirms it was kept. The person who did it never can, and if a steward has to step in, the record shows it. These screens are Tech and Sun's real season in the app, with invented member names.",
   "Members trade services with vouchers. A member or a garden offers a service as vouchers: an hour of help, a hub visit, a career call. Kept promises can earn vouchers, and members can swap them in one shared pool, like an hour of help for a career call. Booking holds the vouchers until the service happens. Then delivered units go back to the issuer, and anything undelivered returns to the holder. For this hackathon we built it on Cosmo-Local Credit, the open voucher protocol from Grassroots Economics.",
-  "We're starting with Tech and Sun, an initiative that builds solar-powered hubs in Nigeria. Its first hub is live in Awka, and its plan names Enugu and Abuja next. Members told us internet and power come first, then learning, engineering and AI. What they want most is opportunity: an October survey put introductions to work and career calls first, and the hub is where they find people to build with. This is the hub in Awka.",
+  "We're starting with Tech and Sun, an initiative that builds solar-powered hubs in Nigeria. Its first hub, in Awka, has served more than 300 people, and its plan names Enugu and Abuja next. Members told us internet and power come first, then learning, engineering and AI. What they want most is opportunity: an October survey put introductions to work and career calls first, and the hub is where they find people to build with. This is the hub in Awka.",
   "So what do members get? Credibility they can carry. In the pilot we're setting up, a designer, an analyst and an engineer build a website together, and each confirmed part goes into their portfolio. Vouchers earned on projects can book career calls and one-to-one help, which is what members asked for. Vouchers can also open hub visits and AI tool seats members can't afford alone. Because the person who did the work never confirms it, the record carries weight with the next employer, mentor or funder.",
   "Hubs are rich in capital, but short of money. Around the hub, the community adds social, cultural, material and living capital. The diaspora brings money, culture, relationships and expertise, and institutions bring money, knowledge and equipment. Money flows in, and evidence of delivery radiates back out.",
   "That money can come from people and programs who already care. Diaspora supporters give gifts and sponsor seasons. Diaspora associations can pool their members' gifts behind a whole program, with no institution needed. Institutions fund climate, clean energy and skills, and public goods funds have already backed Green Goods.",
   "In 2024, 22.1 billion dollars in remittances reached Nigeria, according to the World Bank, and Nigeria is where Tech and Sun is building hubs. The diaspora also brings culture and connections. Our first diaspora community is Omo Yoruba of Southern California, a Yoruba community nonprofit in Los Angeles. Here they are at the Odunde Festival in Leimert Park, in a procession and a Yoruba language class. Other diaspora associations can follow the same path.",
-  "Four mechanisms turn support into lasting capacity. The endowment: supporters deposit, the capital stays invested, and part of its earnings, which vary, goes to the garden. Nothing is guaranteed. The commitment pool: members promise work, and kept promises earn agreed rewards in G$ and build the record. The exchange pool, in pilot: members swap service vouchers, like an hour of help for a career call. Later, supporters and endowment earnings could add funds; that's future work, not a cash-out promise. And certificates: a garden turns a season's impact into a certificate, and next, supporters can buy a share.",
+  "Four mechanisms turn support into lasting capacity. The endowment: supporters deposit and the capital stays invested. By default its earnings, which vary, split 48.65% to the garden's shared fund, 48.65% to impact certificates and 2.7% to Green Goods, a route being switched on. Nothing is guaranteed. The commitment pool: members promise work, and kept promises earn agreed rewards in G$ and build the record. The exchange pool, in pilot: members swap service vouchers, like an hour of help for a career call. Later, supporters and endowment earnings could add funds; that's future work, not a cash-out promise. And impact certificates: a garden turns a season's impact into a certificate, and next, supporters can buy a share.",
   "This is our revenue model. Funders pay us a separate fee for setup, support and reporting, priced by projects and workload. Green Goods' share of what each garden's endowment earns is 2.7% by default, set per garden, and routing it to us is being switched on. Never a supporter's deposit, never a garden's shared fund. Today our income is grants; the fee and the share are the path. A worked example is in our brief.",
-  "Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is open and runs to the end of January. Then more places on the same model: waste work in South Africa next, and agroforestry in Kenya and in Brazil, where Greenpill Kenya, AgroforestDAO and Growecosystems already keep gardens on Green Goods. We are exploring both with local groups.",
+  "Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is open and runs to the end of January. Then more places on the same model. Next is waste work in Cape Town, where a youth program already pays for each bucket of organic waste collected; a small Green Goods pilot adds three or four community members over 35, whom that program can't include. Agroforestry in Kenya and Brazil we are exploring with local groups.",
   "Our technical goal is simple: report once, and let the record count everywhere. Communities report by app or chat, and Green Goods carries the record to networks they already use: Cosmo-Local Credit now, then Ma Earth through Hypercerts Certified, and Bloom Network and Regen Network, both in conversation.",
-  "Beyond funding, one thing would help us most: introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods. So help us find the first supporter, and tell us what would make you the second.",
+  "Beyond funding, here is who we are looking for: institutional funders who want to pilot allocation tools like Green Goods, diaspora associations ready to pool members' gifts behind a hub's season, and mentors for business development and for telling our story. So help us find the first supporter, and tell us what would make you the second.",
   "Let's grow together. Thank you. Scan the code to see commitment pooling live on our beta, and we'd love your questions."
 ]
 </script>

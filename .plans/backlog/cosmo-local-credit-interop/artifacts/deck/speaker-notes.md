@@ -45,7 +45,7 @@ Members trade services with vouchers. A member or a garden offers a service as v
 
 ## 8. Tech and Sun · 0:30
 
-We're starting with Tech and Sun, an initiative that builds solar-powered hubs in Nigeria. Its first hub is live in Awka, and its plan names Enugu and Abuja next. Members told us internet and power come first, then learning, engineering and AI. What they want most is opportunity: an October survey put introductions to work and career calls first, and the hub is where they find people to build with. This is the hub in Awka.
+We're starting with Tech and Sun, an initiative that builds solar-powered hubs in Nigeria. Its first hub, in Awka, has served more than 300 people, and its plan names Enugu and Abuja next. Members told us internet and power come first, then learning, engineering and AI. What they want most is opportunity: an October survey put introductions to work and career calls first, and the hub is where they find people to build with. This is the hub in Awka.
 
 ## 9. Member use cases · 0:35
 
@@ -65,7 +65,7 @@ In 2024, 22.1 billion dollars in remittances reached Nigeria, according to the W
 
 ## 13. Four mechanisms · 0:40
 
-Four mechanisms turn support into lasting capacity. The endowment: supporters deposit, the capital stays invested, and part of its earnings, which vary, goes to the garden. Nothing is guaranteed. The commitment pool: members promise work, and kept promises earn agreed rewards in G$ and build the record. The exchange pool, in pilot: members swap service vouchers, like an hour of help for a career call. Later, supporters and endowment earnings could add funds; that's future work, not a cash-out promise. And certificates: a garden turns a season's impact into a certificate, and next, supporters can buy a share.
+Four mechanisms turn support into lasting capacity. The endowment: supporters deposit and the capital stays invested. By default its earnings, which vary, split 48.65% to the garden's shared fund, 48.65% to impact certificates and 2.7% to Green Goods, a route being switched on. Nothing is guaranteed. The commitment pool: members promise work, and kept promises earn agreed rewards in G$ and build the record. The exchange pool, in pilot: members swap service vouchers, like an hour of help for a career call. Later, supporters and endowment earnings could add funds; that's future work, not a cash-out promise. And impact certificates: a garden turns a season's impact into a certificate, and next, supporters can buy a share.
 
 ## 14. Business model · 0:30
 
@@ -73,7 +73,7 @@ This is our revenue model. Funders pay us a separate fee for setup, support and 
 
 ## 15. Where we are and where next · 0:30
 
-Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is open and runs to the end of January. Then more places on the same model: waste work in South Africa next, and agroforestry in Kenya and in Brazil, where Greenpill Kenya, AgroforestDAO and Growecosystems already keep gardens on Green Goods. We are exploring both with local groups.
+Where are we today? The app is live, and promises and chat reporting joined it in October. We start with one hub in Nigeria, where the first promise season is open and runs to the end of January. Then more places on the same model. Next is waste work in Cape Town, where a youth program already pays for each bucket of organic waste collected; a small Green Goods pilot adds three or four community members over 35, whom that program can't include. Agroforestry in Kenya and Brazil we are exploring with local groups.
 
 ## 16. Technical roadmap · 0:20
 
@@ -81,7 +81,7 @@ Our technical goal is simple: report once, and let the record count everywhere. 
 
 ## 17. What we need · 0:25
 
-Beyond funding, one thing would help us most: introductions to institutional and diaspora funders who want to pilot allocation tools like Green Goods. So help us find the first supporter, and tell us what would make you the second.
+Beyond funding, here is who we are looking for: institutional funders who want to pilot allocation tools like Green Goods, diaspora associations ready to pool members' gifts behind a hub's season, and mentors for business development and for telling our story. So help us find the first supporter, and tell us what would make you the second.
 
 ## 18. Let's grow together · 0:10
 
@@ -137,7 +137,9 @@ Let's grow together. Thank you. Scan the code to see commitment pooling live on 
   forecasts. Never a supporter's deposit, never a garden's shared fund.
 - **Screens.** The two phone screens on slide 6 come from the clickable demo: Tech and Sun's real
   season and course request, with invented member names. Say so if asked.
-- **Certificates.** A garden turns a season's impact into a certificate, and part of the
+- **Hub reach.** Say "more than 300 people" have used the Awka hub. Tech and Sun gave the figure at
+  its 26 October weekly sync; its public post with the hub's statistics is still to come.
+- **Impact certificates.** A garden turns a season's impact into a certificate, and part of the
   endowment's earnings is set aside for them. Gardens can mint them today; nobody can buy a share
   through Green Goods yet ("next, supporters can buy a share"), and demand is unproven. Say "partly built". Never equity, land, a carbon offset or audited impact.
 - **Remittances.** Say 22.1 billion dollars in 2024, from the World Bank's personal remittances

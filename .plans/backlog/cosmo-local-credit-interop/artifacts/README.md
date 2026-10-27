@@ -449,6 +449,38 @@ misreadings, or that would add errors, did not.
   reviewed inputs; and the critics' generic network reasons. The notes' claims heading moved to 26
   October, closing a review nit on two readings taken that day.
 
+## Afo's fourth review · 26 October 2026
+
+Given in chat on the evening of 26 October and applied as proposed, after the proposal was shown.
+
+- **Slide 8.** It opens with the hub's reach ("has served more than 300 people", from Tech and
+  Sun's 26 October weekly sync; its public post with the statistics is still to come), and the
+  source line credits member polls, surveys and conversations in September and October.
+- **Impact certificates.** The full term is used in every label and first mention: slide 13's
+  circle, the architecture's services box, Data out line and endowment box, the brief's
+  contracts table and endowment split. The canvas already used it.
+- **Endowment split.** Slide 13 shows the default split under the endowment (48.65% to the
+  garden's shared fund, 48.65% to impact certificates, 2.7% to Green Goods, being switched on),
+  and slide 14 names the 2.7% share. Afo had listed this as his own step at the Tech and Sun sync.
+- **Slide 17.** Three rows name who we are looking for: institutional funders who want to pilot
+  allocation tools, diaspora associations ready to pool members' gifts behind a hub's season,
+  and mentors for business development and storytelling. The address under them is
+  contact@greengoods.app, since slide 18 carries the beta link and its code.
+- **The architecture page.** Its rules keep only what holds today; voucher recovery and a
+  member's approval of delegated authority move to the status line as still being built, and the
+  brief's "Safety by design" and evidence table do the same. Data in drops the context sources,
+  which are not data entering the system, and the Public pages card no longer holds a link.
+- **The canvas.** Its cards hold no links; the line under them links Tech and Sun, Omo Yoruba of
+  Southern California, Grassroots Economics, GoodDollar and Hypercerts.
+- **The brief.** The pilot box is "Where the pilot stands": the first members are chosen and their
+  services are taking shape with Tech and Sun. "Account proof" is gone, its example folded into
+  Deployed. Kenya and Brazil read "Agroforestry. Exploring." without garden names or links.
+  South Africa carries the Cape Town context from Afo's 26 October call with the local lead: a
+  youth program pays for each bucket of organic waste collected, and a small Green Goods pilot
+  adds three or four community members over 35. The slide 15 note says all of it; the brief's
+  quarter-width roadmap cell fits only "Cape Town waste work for members over 35 a youth program
+  can't take." Program names and personal names stay out.
+
 ## The rebuild · 24 October 2026
 
 Superseded in part by the revision above. Applied from Afo's review and two rounds of questions;
