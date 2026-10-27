@@ -37,6 +37,8 @@ export type {
   VoucherConsoleSnapshot,
   VoucherIssuerReserve,
 } from "./voucher-console";
+// A promise's voucher outcomes, for its inspector (PRD-1323).
+export type { CommitmentRewardOutcome, CommitmentVoucherOutcomes } from "./voucher-outcomes";
 
 export type PoolConsoleStatus =
   | "unregistered"
