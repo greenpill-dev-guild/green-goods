@@ -25,6 +25,7 @@ export const REHEARSAL_VOUCHER_ISSUERS: Readonly<
     gender: "masculine",
     asset: PILOT_ASSETS.a,
     garden: DEMO_GARDEN,
+    standing: { bookings: "open", exchange: "listed" },
   },
   techAndSun: {
     account: PILOT_ISSUERS.b,
@@ -33,6 +34,7 @@ export const REHEARSAL_VOUCHER_ISSUERS: Readonly<
     gender: "feminine",
     asset: PILOT_ASSETS.b,
     garden: DEMO_GARDEN,
+    standing: { bookings: "open", exchange: "listed" },
   },
 };
 
