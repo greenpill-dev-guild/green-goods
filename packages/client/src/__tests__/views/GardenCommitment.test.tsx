@@ -440,6 +440,29 @@ describe("GardenCommitment", () => {
     expect(screen.getByRole("button", { name: "Deposit 1 Voucher" })).toBeInTheDocument();
   });
 
+  it("reads the voucher wallet of the booking's holder, not of the member who agreed", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        seat: "bystander",
+        detail: detail({
+          commitment: { onchainState: "OFFERED", derivedState: "OFFERED", creator: OTHER },
+        }),
+      })
+    );
+    const snapshot = bookingStorySnapshot("hubDay", "readyToDeposit");
+    snapshot.voucherSetups = snapshot.voucherSetups.map((setup) => ({
+      ...setup,
+      authorization: { ...setup.authorization, holder: HELPER },
+    }));
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    render();
+    expect(snapshot.key.buyer).not.toBe(HELPER);
+    expect(mockVoucherWallet).toHaveBeenLastCalledWith(
+      expect.objectContaining({ account: HELPER })
+    );
+  });
+
   it("uses the service boundary for known incomplete opt-in instead of generic claim and acceptance", () => {
     mockUseController.mockReturnValue(
       controller({
