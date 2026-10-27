@@ -97,7 +97,7 @@ describe("WorkView", () => {
 
     it("says the garden as facts, counting each member once, with no photo", () => {
       const garden = {
-        ...mockGarden,
+        ...defaultProps.garden,
         bannerImage: "https://example.test/banner.jpg",
         gardeners: ["0x1", "0x2"],
         stewards: ["0x2", "0x3"],
