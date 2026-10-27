@@ -14,8 +14,9 @@ could sign alone. It also records the general steward Safe model accepted the sa
 
 [Green Goods voucher offers publishing runbook, 27 October](green-goods-offer-publishing-runbook.md)
 publishes the approved assisted-session and Claude offers after the Gnosis mint, limit and approve
-batch. Its [terms batch script](green-goods-offer-terms-batch.mjs) builds the Safe file; both were
-rehearsed on local Arbitrum and Gnosis forks.
+batch. Its [terms script](green-goods-offer-terms-batch.mjs) builds a steward's sending page or a Safe
+file and checks the agent before seeding; both paths were rehearsed on local forks, and the live
+offers went out from a steward account on 27 October.
 
 [Current account/provider proof](codex-gnosis-account-provider-proof.md) owns the root-signing
 traces, native batch candidate review and open same-address/provider gates. The

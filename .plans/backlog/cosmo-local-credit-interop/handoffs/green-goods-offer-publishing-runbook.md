@@ -2,38 +2,45 @@
 
 This publishes Green Goods' two approved voucher offers under terms `pilot-2026-10-27-r2`: ten
 45-minute assisted sessions at 2 GGV and ten 30-day Claude Team seats at 10 GGV. It is written for
-a UI agent driving the cockpit and Safe{Wallet}. A person approves every wallet prompt; the agent
-never signs. Run it after the Gnosis batch that mints 100 GGV to the Green Goods Safe, raises the
+a UI agent driving the cockpit and a steward's wallet. A person approves every wallet prompt; the
+agent never signs. Run it after the Gnosis batch that mints 100 GGV to the Green Goods Safe, raises the
 pool limit to 120 and approves the adapter for 110.
 
 ## How an offer works
 
 An offer is one promise. A steward seeds a steward-reviewed service promise in the Green Goods
-Community Garden's pool (pool 1, the protocol pool on Arbitrum). The Green Goods Safe, which owns
-the Pooling core, then attaches the voucher terms with `setServiceOfferTerms`. One promise serves
-one buyer, so ten seats are ten promises. The terms references written on chain are the keccak256
-hashes of the four statements in the [reference](#reference).
+Community Garden's pool (pool 1, the protocol pool on Arbitrum). A Community Garden steward then
+attaches the voucher terms with `setServiceOfferTerms`; the contract also accepts the Green Goods
+Safe, which owns the Pooling core, but a steward needs no second signature. Either way the terms
+name the Safe as the voucher issuer. One promise serves one buyer, so ten seats are ten promises.
+The terms references written on chain are the keccak256 hashes of the four statements in the
+[reference](#reference).
 
 ## Gates
 
 Stop and ask Afo if a gate fails.
 
-1. **The Gnosis batch is done.** From the repository root:
+1. **The Gnosis batch is done and the agent is up.** From the repository root:
 
    ```bash
    bun --no-env-file .plans/backlog/cosmo-local-credit-interop/handoffs/green-goods-offer-terms-batch.mjs --preflight
    ```
 
-   Every line must read `PASS`: 120 GGV issued, a pool limit of 120, an adapter allowance of 110
-   and a Safe reserve of at least 110.
+   Every line must read `PASS`: 120 GGV issued, a pool limit of 120, an adapter allowance of 110,
+   a Safe reserve of at least 110, and an agent that answers `/health` and signs a metadata upload.
+   The cockpit uploads each promise's words through the agent before it asks the wallet, so
+   without the agent, seeding shows "Confirm in your wallet" and no prompt ever comes. If the agent
+   lines fail, read `fly status -a green-goods` and `fly logs -a green-goods --no-tail`. On
+   27 October the agent was crash-looping on a missing Fly secret, `VITE_ENVIO_INDEXER_URL`.
 2. **Claude seats need permission: met on 27 October 2026.** Afo confirmed that participant seats
    are permitted under Green Goods' supplier terms and that ten seat-periods are funded, so seed the
    Claude set and pass `--with-claude`. Seats open on 8 November 2026, when Green Goods' Claude Team
    subscription starts; the Claude note says so, and bookings made earlier wait for it. If that
    confirmation is ever withdrawn, publish the sessions alone.
 3. **The right people.** A Green Goods Community Garden steward is signed in to the cockpit (the
-   protocol pool accepts promises only from its stewards and the Safe), and two Safe owners are
-   available for step 4.
+   protocol pool accepts promises only from its stewards and the Safe), with Arbitrum gas for about
+   0.00002 ETH per promise and half that per terms call. The same steward publishes the terms in
+   step 4. Only the Safe path needs two Safe owners.
 4. **Before the first booking, not before publishing:** deploy the indexer as
    `packages/indexer/voucher-rollout.md` describes, because the cockpit's voucher console reads
    bookings from it. Members book on <https://beta.greengoods.app> until production is promoted.
@@ -79,6 +86,11 @@ Season One free to reconcile. The due date covers the booking window plus a thir
 The batch script matches on the unit, the number, the claim mode and the due date, and skips
 any promise that differs.
 
+If the dialog ends with "didn't send", nothing was lost: the promises wait in this browser's
+queue as "Not sent", and each gets five tries at its metadata upload. Fix whatever stopped them
+(re-run the preflight's agent lines), then press **Finish Creating** on the set's row. Reloading
+is safe; the cockpit checks the chain for a promise before it sends that promise again.
+
 ## 2. Seed the Claude seats (cockpit, gate 2 only)
 
 Repeat step 1 with these changes: Title `30 days of Claude Team access`, Each promise asks for
@@ -88,21 +100,36 @@ Repeat step 1 with these changes: Title `30 days of Claude Team access`, Each pr
 > 30 days start when you can sign in. Costs 10 Green Goods vouchers. No auto-renewal. Book by
 > 31 December 2026. You approve the days that worked; the rest comes back as vouchers.
 
-## 3. Build the terms batch (terminal)
+## 3. Build the terms calls (terminal)
 
 ```bash
-bun --no-env-file .plans/backlog/cosmo-local-credit-interop/handoffs/green-goods-offer-terms-batch.mjs
+bun --no-env-file .plans/backlog/cosmo-local-credit-interop/handoffs/green-goods-offer-terms-batch.mjs --steward <steward address> --with-claude --serve
 ```
 
 Add `--with-claude` only when gate 2 passed. The script repeats the gates and prints the four
 statement hashes, which must match the reference. It then lists every seeded promise from #43
-upward as `ok`, `hold` or `skip`, test-calls `setServiceOfferTerms` as the Safe for each `ok`, and
-writes `output/voucher-offers/green-goods-offer-terms-<time>.json`. It reads the chain only.
+upward as `ok`, `hold` or `skip`, and test-calls `setServiceOfferTerms` as the steward for each
+`ok`. It writes the calls and a sending page to `output/voucher-offers/steward-terms-<time>/` and
+serves that page on <http://127.0.0.1:4790> until you stop it. It reads the chain only.
+Without `--steward`, it test-calls as the Safe and writes a Transaction Builder file instead.
 
 Expect ten `ok` session lines, plus ten Claude lines with the flag. Stop on any `skip` you did not
 expect. The script refuses to go past ten of either offer, counting offers already published.
 
-## 4. Propose and sign in Safe (Arbitrum)
+## 4. Publish the terms
+
+From the steward account:
+
+1. Open <http://127.0.0.1:4790> in the browser that holds the steward's wallet.
+2. Choose **Connect Wallet** with the steward account. The page refuses any other account.
+3. Choose **Send All Pending** and approve one prompt per promise.
+
+Rabby may warn "simulation failed" although the script test-called each call as this account
+against current state; on 27 October every flagged call succeeded. A call that does fail only
+reverts, and none can publish twice, because each names the revision it expects. If you decline
+one, press **Send All Pending** to resume. Stop the script once every row reads published.
+
+As a Safe batch instead:
 
 1. Open <https://app.safe.global> on Arbitrum with the Green Goods Safe.
 2. Open **Apps**, then **Transaction Builder**, and drop in the file from step 3.
@@ -119,7 +146,7 @@ bun --no-env-file .plans/backlog/cosmo-local-credit-interop/handoffs/green-goods
 
 Every published promise must read `PASS` at revision 1: 2 GGV for a session, 10 GGV for a Claude
 seat. Then open the garden on <https://beta.greengoods.app> as a member and check that the offers
-show their voucher prices. Record the Safe transaction hash and the promise numbers on COM-46.
+show their voucher prices. Record the promise numbers on COM-46.
 
 ## Undo and later
 
@@ -170,6 +197,18 @@ final allocation. Delivered vouchers are the approved available days / 30 x 10, 
 token precision and capped at 10; the rest returns to the holder. Normal provider usage limits are
 not an outage; losing the seat is. Changes need mutual consent; a timeout alone decides neither
 delivery nor refund.
+
+## Live run, 27 October 2026
+
+Published from the steward account: assisted sessions #43 to #52 and Claude seats #53 to #62, all
+passing `--verify` at revision 1. The first seeding attempt stalled with no wallet prompts while
+the agent was down; the queued promises went through after the Fly secret was set. Terms went out
+before the Gnosis batch's second signature, which is safe for publishing: bookings still need the
+steward's acceptance and the Safe's approval on Gnosis.
+
+The steward path was then rehearsed on local forks: two promises seeded as the steward, the
+script's page and calls built with `--steward`, both calls sent as the steward, and `--verify`
+passing both. The Safe path still built its two-call file.
 
 ## Rehearsal, 27 October 2026
 
