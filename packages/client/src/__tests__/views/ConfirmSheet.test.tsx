@@ -2,10 +2,11 @@
  * @vitest-environment happy-dom
  */
 
-import type { ResolvedEvidence } from "@green-goods/shared/commitment-pooling";
+import type { CommitmentReadModel, ResolvedEvidence } from "@green-goods/shared/commitment-pooling";
 import { commitmentFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { renderWithProviders, screen, within } from "../test-utils";
 
 const mocks = vi.hoisted(() => ({ evidence: [] as ResolvedEvidence[] }));
 
@@ -32,7 +33,12 @@ function evidence(cid: string): ResolvedEvidence {
   };
 }
 
-function sheet(indexedEvidenceCount: number, open = true, startInNotYet = false) {
+function sheet(
+  indexedEvidenceCount: number,
+  overrides: Partial<CommitmentReadModel> = {},
+  open = true,
+  startInNotYet = false
+) {
   return (
     <ConfirmSheet
       open={open}
@@ -45,6 +51,7 @@ function sheet(indexedEvidenceCount: number, open = true, startInNotYet = false)
         derivedState: "READY_FOR_CONFIRMATION",
         onchainState: "READY_FOR_CONFIRMATION",
         evidenceCount: indexedEvidenceCount,
+        ...overrides,
       })}
       requirements={[]}
       contributors={[]}
@@ -61,8 +68,8 @@ function sheet(indexedEvidenceCount: number, open = true, startInNotYet = false)
   );
 }
 
-function renderSheet(indexedEvidenceCount: number) {
-  return renderWithProviders(sheet(indexedEvidenceCount));
+function renderSheet(indexedEvidenceCount: number, overrides: Partial<CommitmentReadModel> = {}) {
+  return renderWithProviders(sheet(indexedEvidenceCount, overrides));
 }
 
 describe("ConfirmSheet proof summary", () => {
@@ -112,13 +119,40 @@ describe("ConfirmSheet proof summary", () => {
   });
 });
 
+describe("ConfirmSheet words for a request that is not garden work", () => {
+  it("asks whether the promise was kept, never whether help arrived", async () => {
+    // A course a garden asked members to complete is the same kind of record as a ride
+    // someone asked for, so the sheet asks in the promise's own words.
+    renderSheet(1, {
+      direction: "REQUEST",
+      commitmentType: "SUPPORT_SERVICE",
+      creator: VIEWER,
+      counterparty: PROVIDER,
+    });
+
+    const sheet = screen.getByRole("dialog", { name: "Promise kept?" });
+    expect(within(sheet).getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
+    expect(within(sheet).queryByText(/help/i)).toBeNull();
+
+    await userEvent.setup().click(within(sheet).getByRole("button", { name: "Not Yet" }));
+    expect(
+      within(sheet).getByRole("button", { name: "It hasn't happened yet" })
+    ).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Not finished yet" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("textbox")).toHaveAttribute(
+      "placeholder",
+      "The last part is still to come…"
+    );
+  });
+});
+
 describe("ConfirmSheet opening", () => {
   it("opens Confirm It Was Kept on its ask after Report a Problem closed from the page", () => {
-    const { rerender } = renderWithProviders(sheet(0, true, true));
+    const { rerender } = renderWithProviders(sheet(0, {}, true, true));
     expect(screen.getByRole("button", { name: "Send to the Stewards" })).toBeInTheDocument();
     // The page closes the sheet itself once the report is sent, so the dialog never says so.
-    rerender(sheet(0, false, true));
-    rerender(sheet(0, true, false));
+    rerender(sheet(0, {}, false, true));
+    rerender(sheet(0, {}, true, false));
     expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Send to the Stewards" })).toBeNull();
   });

@@ -12,6 +12,7 @@ import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
+import { workInputLabel } from "@/components/Features/Work/workInputLabel";
 import { PublicRecordDrawer } from "@/components/Public/PublicRecordDrawer";
 import { formatNoteDate, NoteAuthor, NotePlaceholderTile } from "./GardenDetailAtoms";
 
@@ -106,8 +107,10 @@ function NoteMediaMosaic({
 type FormatMessage = ReturnType<typeof useIntl>["formatMessage"];
 
 function detailLabel(input: WorkInput | undefined, key: string, formatMessage: FormatMessage) {
-  const title = input?.title ?? fallbackDetailLabel(key, formatMessage);
-  return input?.unit && !title.includes(`(${input.unit})`) ? `${title} (${input.unit})` : title;
+  return workInputLabel({
+    title: input?.title ?? fallbackDetailLabel(key, formatMessage),
+    unit: input?.unit,
+  });
 }
 
 function formatDetailValue(

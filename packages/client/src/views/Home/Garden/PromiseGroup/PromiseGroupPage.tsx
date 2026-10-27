@@ -8,7 +8,7 @@ import { RiHandHeartLine, RiRefreshLine, RiSeedlingLine, RiTimeLine } from "@rem
 import { type ReactNode, useId } from "react";
 import { useIntl } from "react-intl";
 
-import { groupCountsText, PromiseRow } from "@/components/Features/Commitments";
+import { groupCountsText, PromiseRewardRow, PromiseRow } from "@/components/Features/Commitments";
 import { CommitmentActionBar } from "../Commitment/CommitmentActionBar";
 import { CommitmentDetailShell } from "../Commitment/CommitmentDetailShell";
 
@@ -33,6 +33,8 @@ export interface PromiseGroupPageProps {
   sample: CommitmentReadModel;
   /** The promises' shared note, in the words they were made with. */
   note: string | null;
+  /** The reward each one carries, in words, or null when they carry none. */
+  reward: string | null;
   counts: DisplayGroupCounts;
   availabilityKnown: boolean;
   /** The pool's at-once limit, stated for promises it counts against. */
@@ -52,15 +54,17 @@ export interface PromiseGroupPageProps {
 
 /**
  * A group's page (PRD-1029 c2): what each promise asks, in the words it was
- * made with; how many are available, in progress and kept, and that finishing
- * yours never waits for anyone else; then the reader's own copies. The bar's
- * one act takes up one copy the app picks. Held, it says why: the pool's
- * at-once limit, none available, or availability that can't be read.
+ * made with, and what keeping one earns; how many are available, in progress
+ * and kept, and that finishing yours never waits for anyone else; then the
+ * reader's own copies. The bar's one act takes up one copy the app picks.
+ * Held, it says why: the pool's at-once limit, none available, or availability
+ * that can't be read.
  */
 export function PromiseGroupPage({
   title,
   sample,
   note,
+  reward,
   counts,
   availabilityKnown,
   cap,
@@ -138,6 +142,7 @@ export function PromiseGroupPage({
               })}
             />
           ) : null}
+          {reward ? <PromiseRewardRow text={reward} /> : null}
         </FactList>
         {note ? <p className="mt-2 text-sm leading-relaxed text-text-sub-600">{note}</p> : null}
         {cap !== null && isRequest ? (
