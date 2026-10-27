@@ -157,9 +157,16 @@ export type ServiceIssuerSnapshot =
       reserveEnabled: boolean;
       configuredReserveAuthority: Address;
       registeredSourceAuthority: Address;
+      pool: ServiceIssuerPoolListing;
       pending: ServiceIssuerPending | null;
       bookings: ServiceIssuerBookings;
     };
+/** Admitted with a zero holding limit is delisted: the pool takes in no more of the token. */
+export interface ServiceIssuerPoolListing {
+  admitted: boolean;
+  limit: bigint;
+  holding: bigint;
+}
 export interface ServiceIssuerBooking {
   setupId: Hex;
   authorizationHash: Hex;

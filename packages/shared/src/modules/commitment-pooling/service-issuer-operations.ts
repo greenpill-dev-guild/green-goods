@@ -18,6 +18,7 @@ import { sessionIdentity, verifyWalletExecution } from "./service-access-live-su
 import { serviceCallIdentity } from "./service-access-live-commands";
 import {
   issuerAssetState,
+  issuerPoolListing,
   issuerPoolState,
   verifyIssuerRoute,
   serviceIssuerChain,
@@ -276,7 +277,10 @@ export function createServiceIssuerOperations(deps: Dependencies): ServiceIssuer
       const route = routeFor(actor);
       const asset = issuerAsset(route, actor.assetId, true);
       await verifyIssuerRoute(route, asset, chain);
-      const state = await issuerAssetState(chain, route, asset, actor.address);
+      const [state, pool] = await Promise.all([
+        issuerAssetState(chain, route, asset, actor.address),
+        issuerPoolListing(chain, route, asset),
+      ]);
       const authorization = serviceTuple(state.authorization, ["issuerAuthority", "enabled"]);
       const own = issuerSame(actor.address, asset.ownerReserve);
       return {
@@ -291,6 +295,7 @@ export function createServiceIssuerOperations(deps: Dependencies): ServiceIssuer
         reserveEnabled: serviceFlag(authorization.enabled),
         configuredReserveAuthority: serviceAddress(authorization.issuerAuthority),
         registeredSourceAuthority: state.sourceAuthority,
+        pool,
         pending: pending(actor),
         bookings: await readIssuerBookings(
           chain,

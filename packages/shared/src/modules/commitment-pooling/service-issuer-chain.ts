@@ -15,6 +15,7 @@ import { issuerSame } from "./service-issuer-metadata";
 import type {
   ServiceIssuerAsset,
   ServiceIssuerCodePin,
+  ServiceIssuerPoolListing,
   ServiceIssuerRoute,
 } from "./service-issuer-types";
 import { AdapterABI, TokenABI, PoolABI } from "./service-issuer-abis";
@@ -240,6 +241,28 @@ export async function issuerAssetState(
     adapterPaused: serviceFlag(adapterPaused),
     escrowPaused: serviceFlag(escrowPaused),
     sourceAuthority: serviceAddress(sourceAuthority),
+  };
+}
+/**
+ * The token's place in the shared pool: admitted by the registry, the limiter's holding limit
+ * (zero once delisted) and what the pool holds now. Read apart from any review's state, so a
+ * trade in the pool never invalidates the member's own review.
+ */
+export async function issuerPoolListing(
+  chain: ServiceIssuerChain,
+  route: ServiceIssuerRoute,
+  asset: ServiceIssuerAsset
+): Promise<ServiceIssuerPoolListing> {
+  const pool = route.pool.deployment.address;
+  const [admitted, limit, holding] = await Promise.all([
+    issuerRead(chain, route.pool.registry.address, "have", [asset.token.address]),
+    issuerRead(chain, route.pool.limiter.address, "limitOf", [asset.token.address, pool]),
+    issuerRead(chain, asset.token.address, "balanceOf", [pool], TokenABI as Abi),
+  ]);
+  return {
+    admitted: serviceFlag(admitted),
+    limit: serviceUint(limit),
+    holding: serviceUint(holding),
   };
 }
 export async function issuerPoolState(
