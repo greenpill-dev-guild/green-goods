@@ -57,11 +57,13 @@ export function ServiceSplitSheet({
   const confirmsAfter = split.refund === 0n;
   // Nothing was delivered when the whole booking comes back: no "I had it" box, no received line.
   const delivered = split.delivered > 0n;
+  // A hub day that returns part of its voucher was cut short, never the full day.
+  const part = split.release > 0n && split.refund > 0n;
   const deliveredValue =
     view.profile === "access"
       ? t("rd.sh.deliveredC", { done, of })
       : view.profile === "hubDay"
-        ? t("rd.sh.deliveredS")
+        ? t(part ? "rd.sh.deliveredSP" : "rd.sh.deliveredS")
         : formatMessage(
             { id: "app.commitment.progress.count" },
             { done, of: Number(w.serviceUnits) }
@@ -70,7 +72,7 @@ export function ServiceSplitSheet({
     view.profile === "access"
       ? t("rd.sh.chkC", { done, of })
       : view.profile === "hubDay"
-        ? t("rd.sh.chkS")
+        ? t(part ? "rd.sh.chkSP" : "rd.sh.chkS")
         : `${t("rd.sh.delivered")}: ${deliveredValue}`;
   const total = Number(split.release + split.refund) || 1;
   return (

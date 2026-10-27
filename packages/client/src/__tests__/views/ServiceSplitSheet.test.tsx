@@ -101,6 +101,35 @@ describe("Approve the Final Split", () => {
     expect(screen.getByRole("button", { name: "Approve Split" })).toBeEnabled();
   });
 
+  it("never calls a hub day cut short the full hub day", () => {
+    const proposed = bookingStorySnapshot("hubDay", "returnProposed");
+    // Tech and Sun proposes half the voucher back.
+    const view = serviceBookingView(
+      {
+        snapshot: {
+          ...proposed,
+          voucherSetups: proposed.voucherSetups.map((row) => ({
+            ...row,
+            destination: row.destination && {
+              ...row.destination,
+              issuerReturnCeiling: vouchers(0.5),
+            },
+          })),
+        },
+        coreState: "ACCEPTED",
+        issuer: VOUCHER_STORY_ISSUERS.techAndSun,
+        approval: VOUCHER_STORY_APPROVALS.techAndSunBootstrap,
+        held: vouchers(10),
+      },
+      intl
+    );
+    if (!view) throw new Error("No hub day view");
+    renderWithProviders(sheet(view));
+    expect(screen.getByRole("checkbox", { name: "I had part of the hub day" })).toBeTruthy();
+    expect(screen.getByText("Part of the hub day")).toBeTruthy();
+    expect(screen.queryByText("The full hub day")).toBeNull();
+  });
+
   it("counts a partial delivery against the units the booking authorized", () => {
     // 6 of 10 vouchers come back, so 12 of the 30 authorized sessions were delivered.
     renderWithProviders(sheet(genericView(vouchers(6))));
