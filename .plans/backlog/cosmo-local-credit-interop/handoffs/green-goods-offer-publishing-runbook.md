@@ -28,14 +28,16 @@ Stop and ask Afo if a gate fails.
    and a Safe reserve of at least 110.
 2. **Claude seats need permission: met on 27 October 2026.** Afo confirmed that participant seats
    are permitted under Green Goods' supplier terms and that ten seat-periods are funded, so seed the
-   Claude set and pass `--with-claude`. If that confirmation is ever withdrawn, publish the sessions
-   alone.
+   Claude set and pass `--with-claude`. Seats open on 8 November 2026, when Green Goods' Claude Team
+   subscription starts; the Claude note says so, and bookings made earlier wait for it. If that
+   confirmation is ever withdrawn, publish the sessions alone.
 3. **The right people.** A Green Goods Community Garden steward is signed in to the cockpit (the
    protocol pool accepts promises only from its stewards and the Safe), and two Safe owners are
    available for step 4.
 4. **Before the first booking, not before publishing:** deploy the indexer as
    `packages/indexer/voucher-rollout.md` describes, because the cockpit's voucher console reads
    bookings from it. Members book on <https://beta.greengoods.app> until production is promoted.
+   Publish the session calendar too: the facilitator, languages and appointment times.
 
 ## 1. Seed the assisted sessions (cockpit)
 
@@ -82,9 +84,9 @@ any promise that differs.
 Repeat step 1 with these changes: Title `30 days of Claude Team access`, Each promise asks for
 30, Unit `seat days`, and this note:
 
-> A named Claude Team Standard seat in Green Goods' organization for 30 days, starting when you
-> can sign in. Costs 10 Green Goods vouchers. No auto-renewal or extra usage. Book by
-> 31 December 2026. You approve the days that worked, and the rest comes back to you as vouchers.
+> A named Claude Team Standard seat in Green Goods' organization. Seats open 8 November 2026; your
+> 30 days start when you can sign in. Costs 10 Green Goods vouchers. No auto-renewal. Book by
+> 31 December 2026. You approve the days that worked; the rest comes back as vouchers.
 
 ## 3. Build the terms batch (terminal)
 
