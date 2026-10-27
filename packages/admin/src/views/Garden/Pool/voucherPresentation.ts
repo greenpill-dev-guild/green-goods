@@ -166,6 +166,8 @@ export function voucherAskDetail(
   }
   const due = dueDateText(intl, setup.acceptBy * 1000, nowMs);
   const count = voucherCount(setup.voucherUnits, ask.issuer.decimals);
+  // A member issuer approves from their own account, so the line says who approved.
+  const member = ask.issuer.kind === "individual" ? ask.issuer.name : null;
   switch (stage) {
     case "past-deadline":
       return formatMessage(
@@ -184,7 +186,7 @@ export function voucherAskDetail(
         },
         { date: agreed, count, due }
       );
-    case "waiting-for-deposit":
+    case "waiting-for-deposit": {
       if (setup.approvedAt === null)
         return formatMessage(
           {
@@ -193,22 +195,41 @@ export function voucherAskDetail(
           },
           { due }
         );
-      return formatMessage(
-        {
-          id: "cockpit.garden.pool.voucher.ask.approved",
-          defaultMessage: "Approved {date} · accept by {due}",
-        },
-        { date: dayText(intl, setup.approvedAt * 1000, nowMs), due }
-      );
+      const date = dayText(intl, setup.approvedAt * 1000, nowMs);
+      return member
+        ? formatMessage(
+            {
+              id: "cockpit.garden.pool.voucher.ask.approvedMember",
+              defaultMessage: "{issuer} approved {date} · accept by {due}",
+            },
+            { issuer: member, date, due }
+          )
+        : formatMessage(
+            {
+              id: "cockpit.garden.pool.voucher.ask.approved",
+              defaultMessage: "Approved {date} · accept by {due}",
+            },
+            { date, due }
+          );
+    }
     default:
-      return formatMessage(
-        {
-          id: "cockpit.garden.pool.voucher.ask.inEscrow",
-          defaultMessage:
-            "{count, plural, one {# voucher} other {# vouchers}} in escrow · accept by {due}",
-        },
-        { count, due }
-      );
+      return member
+        ? formatMessage(
+            {
+              id: "cockpit.garden.pool.voucher.ask.inEscrowMember",
+              defaultMessage:
+                "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}} in escrow · {issuer} approved · accept by {due}",
+            },
+            { count, issuer: member, due }
+          )
+        : formatMessage(
+            {
+              id: "cockpit.garden.pool.voucher.ask.inEscrow",
+              defaultMessage:
+                "{count, plural, one {# voucher} other {# vouchers}} in escrow · accept by {due}",
+            },
+            { count, due }
+          );
   }
 }
 

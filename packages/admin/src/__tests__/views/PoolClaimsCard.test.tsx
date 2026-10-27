@@ -186,6 +186,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
     const KWESI = "0x5555555555555555555555555555555555555555" as Address;
     const NOW = 1_771_800_000;
     const ISSUER = {
+      kind: "collective" as const,
       name: "Tech and Sun",
       chainId: 100,
       safe: "0x5afe00000000000000000000000000000000a1b2" as Address,

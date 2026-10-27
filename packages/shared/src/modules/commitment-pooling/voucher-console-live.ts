@@ -44,6 +44,7 @@ export async function readLiveVoucherConsole(
     reserve: null,
     issuer: asset
       ? {
+          kind: "collective",
           name: asset.issuerName ?? asset.symbol,
           safe: asset.issuer,
           decimals: asset.decimals,
@@ -212,6 +213,8 @@ export async function prepareVoucherSafeFile(
   const ctx = await context(input, deps);
   if (!ctx) throw new Error("Voucher route unavailable");
   const candidate = action.kind === "approve" ? action.ask : action.booking;
+  if (candidate.issuer.kind !== "collective")
+    throw new Error("Member issuers do not use Safe files");
   const buyer = action.kind === "approve" ? action.ask.buyer : action.booking.holder;
   const { snapshot, setup } = await ctx.booking(
     candidate.commitmentId,

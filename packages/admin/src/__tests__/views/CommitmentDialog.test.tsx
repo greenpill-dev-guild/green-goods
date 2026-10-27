@@ -368,6 +368,7 @@ describe("CommitmentDialogPanel (W10)", () => {
         issuerAccount: TAKER,
         units: 1n,
         revision: 1n,
+        admission: null,
       },
     };
     renderPanel();

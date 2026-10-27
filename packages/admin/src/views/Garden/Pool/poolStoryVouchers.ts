@@ -2,7 +2,8 @@
  * The voucher pilot's issuer consoles for the pool stories (PRD-1297 surface 6,
  * PRD-1299 `SIssuer`): Tech and Sun's hub days and Green Goods' Claude access,
  * with the bookings asked in each pool, the bookings under way on their offers,
- * and each issuer's reserve. The services and prices are the working pilot
+ * and each issuer's reserve; from slice 2, a member's lesson asked in Tech and
+ * Sun's pool. The services and prices are the working pilot
  * terms, which the issuers haven't accepted; the people, Riverside Commons,
  * every address, balance and moment are fictional, on the frozen Storybook clock.
  */
@@ -45,6 +46,7 @@ const STORY_LINA = "0x52a0000000000000000000000000000000009a1a" as Address;
 const STORY_KWESI = "0x6b30000000000000000000000000000000004b2c" as Address;
 const STORY_MARA = "0x7c40000000000000000000000000000000005c3d" as Address;
 const STORY_RAFA = "0x8d50000000000000000000000000000000006d4e" as Address;
+const STORY_MAYA = "0x9e60000000000000000000000000000000007e5f" as Address;
 
 /** Who each fictional member is, as their Green Goods names would say. */
 const STORY_VOUCHER_NAMES: Record<string, string> = {
@@ -52,12 +54,22 @@ const STORY_VOUCHER_NAMES: Record<string, string> = {
   [STORY_KWESI.toLowerCase()]: "Kwesi",
   [STORY_MARA.toLowerCase()]: "Mara",
   [STORY_RAFA.toLowerCase()]: "Rafa",
+  [STORY_MAYA.toLowerCase()]: "Maya",
 };
 
 // The vouchers and their issuers' Safes live on Gnosis, the pilot's voucher network.
-const issuer = (name: string, safe: Address) => ({ name, chainId: 100, safe, decimals: 6 });
+const issuer = (name: string, safe: Address) =>
+  ({ kind: "collective", name, chainId: 100, safe, decimals: 6 }) as const;
 const TECH_AND_SUN = issuer("Tech and Sun", "0x5afe00000000000000000000000000000000a1b2");
 const GREEN_GOODS = issuer("Green Goods", "0x5afe00000000000000000000000000000000c3d4");
+/** A Tech and Sun member who issues his own lesson vouchers, approving each booking himself. */
+const TEO = {
+  kind: "individual",
+  name: "Teo Alves",
+  chainId: 100,
+  account: "0x000000000000000000000000000000000000e7e0",
+  decimals: 6,
+} as const;
 
 function observedSafe(safe: Address, threshold: number, signers: Address[]): IssuerSafeThreshold {
   const owners = signers.map((signer) => signer.toLowerCase() as Address);
@@ -81,6 +93,7 @@ export const STORY_VOUCHER_TITLES = new Map([
   ["bafy-hub-day", { version: 1 as const, title: "Hub day, up to 4 hours" }],
   ["bafy-claude", { version: 1 as const, title: "Claude access, 30 days" }],
   ["bafy-session", { version: 1 as const, title: "Assisted session, 30 minutes" }],
+  ["bafy-lesson", { version: 1 as const, title: "Integration lesson, 60 minutes" }],
 ]);
 
 function offer(
@@ -225,6 +238,27 @@ export const STORY_TECH_AND_SUN_VOUCHERS: VoucherConsoleSnapshot = {
   bookings: [STORY_MARA_VISIT],
   issuer: TECH_AND_SUN,
   reserve: TECH_AND_SUN_RESERVE,
+};
+
+// Teo's lesson, offered in Tech and Sun's pool (PRD-1299 slice 2): he approves, a steward accepts.
+const MAYA_OFFER = offer(44n, "bafy-lesson", { creator: TEO.account, leadProvider: TEO.account });
+
+/** Maya booked Teo's lesson yesterday; Teo approved it from his account, and her deposit is confirmed. */
+export const STORY_MAYA_ASK = ask(44n, STORY_MAYA, {
+  issuer: TEO,
+  agreedAt: daysAgo(1),
+  setup: { approvedAt: daysAgo(1) + 7_200 },
+});
+
+export const STORY_TECH_AND_SUN_MEMBER_CLAIMS = [
+  ...STORY_TECH_AND_SUN_CLAIMS,
+  claimRow(MAYA_OFFER, STORY_MAYA, daysAgo(1)),
+];
+
+/** Tech and Sun's console with a member's lesson asked beside its hub days. */
+export const STORY_TECH_AND_SUN_MEMBER_VOUCHERS: VoucherConsoleSnapshot = {
+  ...STORY_TECH_AND_SUN_VOUCHERS,
+  asks: [...STORY_TECH_AND_SUN_VOUCHERS.asks, STORY_MAYA_ASK],
 };
 
 /** Riverside Commons' allowance is used up, so Lina's reward of 2 vouchers waits. */

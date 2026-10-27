@@ -50,6 +50,7 @@ export {
   serviceIssuerTermsDigest,
 } from "./service-issuer-approval";
 export { SERVICE_ISSUER_ROUTES } from "./service-issuer-metadata";
+export { issuerPoolStatus } from "./service-issuer-pool";
 export {
   serviceIssuerDelistingDraft,
   serviceIssuerGovernanceDrafts,

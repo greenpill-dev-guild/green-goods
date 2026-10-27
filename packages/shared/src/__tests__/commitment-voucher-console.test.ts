@@ -23,6 +23,13 @@ import {
 const NOW = 1_761_600_000;
 const DAY = 86_400;
 const VOUCHER = 1_000_000n;
+const TECH_AND_SUN = {
+  kind: "collective",
+  name: "Tech and Sun",
+  chainId: 100,
+  safe: "0x5afe000000000000000000000000000000005afe",
+  decimals: 6,
+} as const;
 
 function ask(
   overrides: Partial<Omit<VoucherAsk, "setup">> & {
@@ -37,12 +44,7 @@ function ask(
     agreed: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
     current: { revision: 2n, termsHash: `0x${"7e".repeat(32)}` },
     agreedAt: NOW - 2 * DAY,
-    issuer: {
-      name: "Tech and Sun",
-      chainId: 100,
-      safe: "0x5afe000000000000000000000000000000005afe",
-      decimals: 6,
-    },
+    issuer: TECH_AND_SUN,
     ...rest,
     setup:
       setup === null
@@ -216,7 +218,7 @@ describe("allowance raise", () => {
 describe("who approves a booking", () => {
   const STEWARD = "0x6166e1964447e0959bc7c8d543db3ab82db65044" as Address;
   const OTHER = "0x1111111111111111111111111111111111111111" as Address;
-  const issuer = ask().issuer;
+  const issuer = TECH_AND_SUN;
   const safe = (signers: readonly Address[] | null): IssuerSafeThreshold => ({
     safe: issuer.safe,
     status: signers ? "observed" : "unavailable",
@@ -284,6 +286,26 @@ describe("who approves a booking", () => {
         viewer: "0x6166E1964447E0959BC7C8D543DB3AB82DB65044" as Address,
       })
     ).toBe(true);
+  });
+
+  // A member approves their own bookings from their own account (PRD-1299 slice 2), so the
+  // console never offers it, even to the member viewing as an owner of the garden's Safe.
+  it("never offers a member issuer's booking for approval here", () => {
+    const teo = {
+      kind: "individual",
+      name: "Teo Alves",
+      chainId: 100,
+      account: STEWARD,
+      decimals: 6,
+    } as const;
+    expect(
+      selectCanApproveBooking({
+        ask: ask({ issuer: teo }),
+        issuer,
+        safe: safe([STEWARD]),
+        viewer: STEWARD,
+      })
+    ).toBe(false);
   });
 });
 

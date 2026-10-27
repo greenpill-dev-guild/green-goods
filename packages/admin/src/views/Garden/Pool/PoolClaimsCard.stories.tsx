@@ -3,7 +3,7 @@ import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingF
 import type { PoolClaimRequestRow } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useState } from "react";
-import { expect, screen, userEvent, within } from "storybook/test";
+import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { withSeededQueryClient } from "../../../../../shared/.storybook/decorators";
@@ -25,6 +25,8 @@ import {
   STORY_KWESI_ASK,
   STORY_LINA_ASK,
   STORY_TECH_AND_SUN_CLAIMS,
+  STORY_TECH_AND_SUN_MEMBER_CLAIMS,
+  STORY_TECH_AND_SUN_MEMBER_VOUCHERS,
   STORY_TECH_AND_SUN_SAFE,
   STORY_TECH_AND_SUN_SAFE_OTHERS,
   STORY_TECH_AND_SUN_VOUCHERS,
@@ -272,6 +274,35 @@ export const VoucherAskGreenGoods: Story = {
     safe: STORY_GREEN_GOODS_SAFE,
   },
   beforeEach: nameVoucherMembers,
+};
+
+/**
+ * A member's lesson beside the hub days (PRD-1299 slice 2): Teo approved Maya's
+ * booking from his own account, so her row says he did, and Accept… opens his
+ * checks, never the Safe's.
+ */
+export const VoucherMemberAsk: Story = {
+  args: {
+    ...VoucherAsks.args,
+    console: storyPoolConsole({
+      claims: STORY_TECH_AND_SUN_MEMBER_CLAIMS,
+      titles: STORY_VOUCHER_TITLES,
+    }),
+    vouchers: storyVoucherConsole(STORY_TECH_AND_SUN_MEMBER_VOUCHERS),
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const line = await within(canvasElement).findByText(
+      /^1 Teo Alves voucher in escrow · Teo Alves approved · accept by /
+    );
+    const row = within(line.closest("li")!);
+    await userEvent.click(row.getByRole("button", { name: "Accept…" }));
+    // The dialog fades in, so its words are read once it has.
+    await waitFor(async () => expect(await screen.findByText("Accept Maya?")).toBeVisible());
+    await expect(
+      screen.getByText("Teo Alves approved the booking from their account")
+    ).toBeVisible();
+  },
 };
 
 /**

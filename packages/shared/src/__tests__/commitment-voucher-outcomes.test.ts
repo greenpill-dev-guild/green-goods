@@ -83,10 +83,50 @@ describe("a promise's voucher outcomes for its stewards", () => {
         issuerAccount: PILOT_ISSUERS.b,
         units: 1_000_000n,
         revision: 1n,
+        admission: null,
       },
     });
     // An issuer the directory doesn't list stays unnamed rather than borrowing another's name.
     expect(selectCommitmentVoucherOutcomes(hubDay, [greenGoods])!.payment!.issuer).toBeNull();
+  });
+
+  // PRD-1323: for a gardener issuer, the payment says where the token stands in the shared pool.
+  it("places a gardener issuer's payment in the pool from that token's listing", async () => {
+    const hubDay = await createServiceRehearsalAdapter().read(key(1023n));
+    const asset = (kind: "individual" | "collective", owner: Address = PILOT_ISSUERS.b) => ({
+      id: "lesson",
+      kind,
+      ownerReserve: owner,
+      token: { address: PILOT_ASSETS.b.token },
+    });
+    const admission = (
+      listing: { admitted: boolean; limit: bigint; holding: bigint } | undefined,
+      reviewed = asset("individual")
+    ) =>
+      selectCommitmentVoucherOutcomes(hubDay, [], {
+        routes: [{ service: { id: "member-route" }, assets: [reviewed] }],
+        listing: (routeId, assetId) =>
+          routeId === "member-route" && assetId === "lesson" ? listing : undefined,
+      })!.payment!.admission;
+
+    expect(admission({ admitted: true, limit: 6_000_000n, holding: 2_000_000n })).toEqual({
+      status: "listed",
+      limit: 6_000_000n,
+      holding: 2_000_000n,
+    });
+    // Admitted with a zero holding limit is delisted; what the pool holds stays.
+    expect(admission({ admitted: true, limit: 0n, holding: 2_000_000n })).toMatchObject({
+      status: "delisted",
+      holding: 2_000_000n,
+    });
+    expect(admission({ admitted: false, limit: 0n, holding: 0n })).toMatchObject({
+      status: "setup",
+    });
+    expect(admission(undefined)).toEqual({ status: "unread" });
+    // A collective's token, or the same token under another owner, has no gardener admission.
+    const listed = { admitted: true, limit: 6_000_000n, holding: 0n };
+    expect(admission(listed, asset("collective"))).toBeNull();
+    expect(admission(listed, asset("individual", PILOT_ISSUERS.a))).toBeNull();
   });
 
   it("shows nothing for a promise that pays no reward and takes no vouchers", async () => {

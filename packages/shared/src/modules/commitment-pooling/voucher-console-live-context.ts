@@ -20,13 +20,17 @@ export interface Dependencies {
   readSnapshot?: (key: ServiceAccessKey) => Promise<ServiceAccessSnapshot>;
 }
 export const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-export const issuerFor = (route: ServiceLiveRoute, setup: ServiceVoucherSetup): VoucherIssuer => {
+export const issuerFor = (
+  route: ServiceLiveRoute,
+  setup: ServiceVoucherSetup
+): Extract<VoucherIssuer, { kind: "collective" }> => {
   const asset = route.assets.find(
     (asset) =>
       same(asset.token, setup.authorization.token) && same(asset.issuer, setup.authorization.issuer)
   );
   if (!asset) throw new Error("Booking issuer is outside the reviewed route");
   return {
+    kind: "collective",
     name: asset.issuerName ?? asset.symbol,
     safe: asset.issuer,
     decimals: asset.decimals,

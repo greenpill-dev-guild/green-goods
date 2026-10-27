@@ -234,6 +234,20 @@ describe("live voucher steward integration", () => {
       false
     );
   });
+  it("keeps a member issuer out of the collective Safe-file path", async () => {
+    const f = fixture();
+    const ask = (await readLiveVoucherConsole(f.input, f.deps)).asks[0]!;
+    ask.issuer = {
+      kind: "individual",
+      account: f.wallet.account,
+      name: "Member issuer",
+      chainId: 100,
+      decimals: 6,
+    };
+    await expect(prepareVoucherSafeFile(f.input, { kind: "approve", ask }, f.deps)).rejects.toThrow(
+      "Member issuers do not use Safe files"
+    );
+  });
   it.each([
     "consent",
     "deadline",
@@ -246,7 +260,7 @@ describe("live voucher steward integration", () => {
     const ask = (await readLiveVoucherConsole(f.input, f.deps)).asks[0]!;
     if (change === "consent") f.snapshot.consent!.claimHash = hash("9");
     if (change === "deadline") f.snapshot.sourceTimestamp = 201n;
-    if (change === "issuer") ask.issuer.safe = f.wallet.account;
+    if (change === "issuer" && ask.issuer.kind === "collective") ask.issuer.safe = f.wallet.account;
     if (change === "paused") f.snapshot.pause.core = true;
     if (change === "scope") f.snapshot.key.coreModule = f.wallet.account;
     if (change === "quantity") ask.setup!.voucherUnits = 2_000_000n;

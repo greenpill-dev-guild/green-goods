@@ -5,10 +5,11 @@
  * reads them.
  *
  * A booking moves in one order: the member agrees to the exact terms, their
- * escrow setup reaches the issuer, the issuer's Safe approves that exact
- * booking, the member deposits, the deposit's result reaches Green Goods, and
- * the pool's steward accepts through `acceptServiceClaim`. Approving and
- * accepting are separate acts by separate parties, so they never share a word.
+ * escrow setup reaches the issuer, the issuer approves that exact booking (a
+ * collective from its Safe, a member issuer from their own account), the
+ * member deposits, the deposit's result reaches Green Goods, and the pool's
+ * steward accepts through `acceptServiceClaim`. Approving and accepting are
+ * separate acts by separate parties, so they never share a word.
  * The acceptance checks are the ones the chain enforces
  * (`VoucherRedemptionModule.validateVoucherServiceAcceptance`), so the cockpit
  * never offers an Accept the contract would refuse.
@@ -23,18 +24,35 @@ import { parseUnits, type Hex } from "viem";
 import type { Address } from "../../types/domain";
 import type { IssuerSafeThreshold } from "./service-access-wallet-types";
 
-export interface VoucherIssuer {
-  /** Collective writes are reviewed exports, not submitted transactions. */
-  execution?: "safe-file";
-  /** How members know the issuer: "Tech and Sun", "Green Goods". */
+interface VoucherIssuerBase {
+  /** How members know the issuer: "Tech and Sun", "Green Goods", "Teo Alves". */
   name: string;
-  /** The voucher network the issuer's token and Safe live on. */
+  /** The voucher network the issuer's token and approving account live on. */
   chainId: number;
-  /** The issuer's Safe on the voucher network: it approves each booking and proposes returns. */
-  safe: Address;
   /** A voucher is 10^decimals of the token's units. */
   decimals: number;
 }
+
+/** A collective issues through its Safe on the voucher network, which approves each booking and proposes returns. */
+interface CollectiveVoucherIssuer extends VoucherIssuerBase {
+  kind: "collective";
+  /** Collective writes are reviewed exports, not submitted transactions. */
+  execution?: "safe-file";
+  safe: Address;
+}
+
+/**
+ * A member issues from their own account (PRD-1299 slice 2): they approve each booking there,
+ * then the pool's steward accepts it. No steward can approve for a member.
+ */
+interface MemberVoucherIssuer extends VoucherIssuerBase {
+  kind: "individual";
+  execution?: never;
+  account: Address;
+}
+
+/** The kinds are the voucher wallet's (`VoucherIssuer` in `service-access-wallet-types`). */
+export type VoucherIssuer = CollectiveVoucherIssuer | MemberVoucherIssuer;
 
 export interface VoucherTermsVersion {
   revision: bigint;
@@ -123,9 +141,9 @@ export type VoucherReturnBasis =
   | { kind: "usable-hours"; of: number }
   | { kind: "access-days"; of: number };
 
-/** The issuer's own reserve, kept apart from bookings: what its promised rewards draw on. */
+/** The garden's own issuer reserve, kept apart from bookings: what its promised rewards draw on. */
 export interface VoucherIssuerReserve {
-  issuer: VoucherIssuer;
+  issuer: CollectiveVoucherIssuer;
   inReserve: bigint;
   /** Rewards promised from the reserve and not yet sent; they set no vouchers aside. */
   promised: bigint;
@@ -158,7 +176,7 @@ export interface VoucherConsoleSnapshot {
   asks: readonly VoucherAsk[];
   bookings: readonly VoucherBooking[];
   /** The garden's own voucher issuer, whose Safe approves its bookings; null if it issues none. */
-  issuer: VoucherIssuer | null;
+  issuer: CollectiveVoucherIssuer | null;
   /** The garden's own issuer reserve, when the garden issues vouchers. */
   reserve: VoucherIssuerReserve | null;
 }
@@ -267,12 +285,13 @@ export function selectVoucherAskStage(ask: VoucherAsk, now: number): VoucherAskS
  * issuer's Safe): the booking is the garden's own issuer's, whose Safe the
  * console reads, and the viewer is one of that Safe's owners. Anyone else sees
  * the booking wait for its issuer; a Safe whose owners can't be read approves
- * nothing here.
+ * nothing here. A member issuer's booking waits for the member, who approves
+ * it from their own account, never from this console.
  */
 export function selectCanApproveBooking(input: {
   ask: Pick<VoucherAsk, "issuer">;
   /** The garden's own issuer (`VoucherConsoleSnapshot.issuer`). */
-  issuer: VoucherIssuer | null;
+  issuer: CollectiveVoucherIssuer | null;
   /** That issuer's Safe, as read. */
   safe: IssuerSafeThreshold | undefined;
   viewer: Address | undefined;
@@ -280,6 +299,7 @@ export function selectCanApproveBooking(input: {
   const { ask, issuer, safe, viewer } = input;
   if (!issuer || !viewer || safe?.status !== "observed" || !safe.signers) return false;
   return (
+    ask.issuer.kind === "collective" &&
     ask.issuer.chainId === issuer.chainId &&
     sameAddress(ask.issuer.safe, issuer.safe) &&
     sameAddress(safe.safe, issuer.safe) &&
