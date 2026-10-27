@@ -5,8 +5,8 @@
  * it (PRD-1299 surface 5, decision 12), for the shared commitment row: the garden page's
  * Promises tab for visitors, and the garden's open promises over Home for its members. It reads
  * each approval-gated individual offer's service terms, sharing the promise page's cached read,
- * and the reader's vouchers. Reads only; an offer the reads cannot place stays an ordinary offer
- * (`serviceOfferLine`).
+ * and the vouchers of the Gnosis account that holds the reader's, which need not be the source
+ * buyer. Reads only; an offer the reads cannot place stays an ordinary offer (`serviceOfferLine`).
  *
  * @module hooks/commitment-pooling/useServiceOfferLines
  */
@@ -18,6 +18,7 @@ import {
   serviceOfferLine,
 } from "../../modules/commitment-pooling/service-offer-line";
 import type { ServiceAccessKey } from "../../modules/commitment-pooling/service-access-types";
+import { serviceVoucherHolder } from "../../modules/commitment-pooling/service-access-wallet";
 import type { CommitmentReadModel } from "../../modules/commitment-pooling/types-core";
 import type { Address } from "../../types/domain";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -61,13 +62,19 @@ export function useServiceOfferLines(input: {
     [chainId, coreModule, offers, viewer]
   );
   const reads = useServiceAccessReads(keys);
+  const holders = reads.map((read) => (read.data ? serviceVoucherHolder(read.data) : null));
+  const holder = holders.find((account) => account !== null) ?? null;
   const wallet = useVoucherWallet(
-    viewer && keys.length > 0 ? { sourceChainId: chainId, coreModule, account: viewer } : null
+    holder ? { sourceChainId: chainId, coreModule, account: holder } : null
   ).data;
 
   const lines = new Map<string, ServiceOfferLine>();
   keys.forEach((key, index) => {
-    const line = serviceOfferLine(reads[index]?.data, wallet);
+    // A row is placed only from its own holder's wallet; one whose booking named another stays plain.
+    const own = holders[index];
+    const held =
+      wallet && own && own.toLowerCase() === wallet.account.toLowerCase() ? wallet : null;
+    const line = serviceOfferLine(reads[index]?.data, held);
     if (line) lines.set(key.commitmentId.toString(), line);
   });
   return lines;

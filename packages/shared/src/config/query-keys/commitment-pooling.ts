@@ -72,12 +72,21 @@ export const commitmentPoolingKeys = {
       account.toLowerCase(),
       rehearsal ? "local-rehearsal" : "onchain",
     ] as const,
-  /** Keyed by the issuer's own chain: the threshold is read from the issuer's Safe there. */
-  issuerApproval: (chainId: number, issuer: Address, rehearsal: boolean) =>
+  /**
+   * Keyed by the issuer's own chain, where a collective's threshold is read from its Safe, and by
+   * its authority: the same account as a member approves from itself, with no Safe read.
+   */
+  issuerApproval: (
+    chainId: number,
+    issuer: Address,
+    kind: "collective" | "individual",
+    rehearsal: boolean
+  ) =>
     [
       ...commitmentPoolingKeys.all(chainId),
       "issuer-approval",
       issuer.toLowerCase(),
+      kind,
       rehearsal ? "local-rehearsal" : "onchain",
     ] as const,
   /** An issuer Safe's signature rule on the voucher network; the DEV rehearsal keeps its own. */

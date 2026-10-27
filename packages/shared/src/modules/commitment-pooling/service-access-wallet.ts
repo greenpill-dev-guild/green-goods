@@ -1,4 +1,5 @@
-import { parseAbi } from "viem";
+import { decodeFunctionResult, encodeFunctionData, type Hex, multicall3Abi, parseAbi } from "viem";
+import { getChain } from "../../config/chains";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import type { ServiceChainRead } from "./service-access-chain";
@@ -99,7 +100,7 @@ export function voucherPendingReturn(setup: ServiceVoucherSetup): VoucherPending
     cause: "cancellation",
     state:
       d.result.phase === "abort-refund-pending" && !d.result.actionSucceeded ? "failed" : "pending",
-    attempts: 0n,
+    attempts: null,
   };
 }
 
@@ -149,6 +150,23 @@ function unavailableVoucherWallet(
   };
 }
 
+/**
+ * Whose vouchers a service read concerns: the holder a booking froze when it was prepared, else
+ * the Gnosis account the reader holds vouchers in, else the source buyer, as agreeing names it. A
+ * wallet's escrow and returns are its holder's, so the buyer's own wallet can miss them.
+ */
+export function serviceVoucherHolder(
+  snapshot: Pick<
+    ServiceAccessSnapshot,
+    "key" | "capabilities" | "voucherSetups" | "currentVoucherSetupId"
+  >
+): Address {
+  const booking = snapshot.voucherSetups.find(
+    (setup) => setup.setupId === snapshot.currentVoucherSetupId
+  );
+  return booking?.authorization.holder ?? snapshot.capabilities.gnosisHolder ?? snapshot.key.buyer;
+}
+
 /** No account-wide booking projection exists before the deployment is adopted (gap 12). */
 export async function readLiveVoucherWallet(
   scope: VoucherWalletScope
@@ -156,16 +174,46 @@ export async function readLiveVoucherWallet(
   return unavailableVoucherWallet(scope, "routes-unconfigured");
 }
 
-/** A Safe's threshold and owner count; null when the read fails or the answer is impossible. */
+/**
+ * A Safe's threshold and owner count; null when the read fails or the answer is impossible. Both
+ * ride one batched call, so they come from one block: two separate reads could straddle a change
+ * of rule and pair the old threshold with the new owners, a rule the Safe never had.
+ */
 async function readSafeRule(
   read: ServiceChainRead,
   chainId: number,
   safe: Address
 ): Promise<{ threshold: number; owners: number } | null> {
-  const call = (functionName: "getThreshold" | "getOwners") =>
-    read({ chainId, address: safe, abi: SAFE_ABI, functionName });
   try {
-    const [rawThreshold, rawOwners] = await Promise.all([call("getThreshold"), call("getOwners")]);
+    const batch = getChain(chainId).contracts?.multicall3?.address;
+    if (!batch) throw new Error("No batch reader on the Safe's chain");
+    const call = (functionName: "getThreshold" | "getOwners") => ({
+      target: safe,
+      allowFailure: false,
+      callData: encodeFunctionData({ abi: SAFE_ABI, functionName }),
+    });
+    const results = await read({
+      chainId,
+      address: batch,
+      abi: multicall3Abi,
+      functionName: "aggregate3",
+      args: [[call("getThreshold"), call("getOwners")]],
+    });
+    const [thresholdResult, ownersResult] = (Array.isArray(results) ? results : []) as readonly {
+      returnData?: Hex;
+    }[];
+    if (!thresholdResult?.returnData || !ownersResult?.returnData)
+      throw new Error("Malformed Safe rule read");
+    const rawThreshold = decodeFunctionResult({
+      abi: SAFE_ABI,
+      functionName: "getThreshold",
+      data: thresholdResult.returnData,
+    });
+    const rawOwners = decodeFunctionResult({
+      abi: SAFE_ABI,
+      functionName: "getOwners",
+      data: ownersResult.returnData,
+    });
     const threshold = serviceUint(rawThreshold);
     if (!Array.isArray(rawOwners) || rawOwners.length > MAX_SAFE_OWNERS)
       throw new Error("Malformed Safe owner list");
