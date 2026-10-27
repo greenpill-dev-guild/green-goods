@@ -33,7 +33,7 @@ function isServiceRehearsalKey(key: ServiceAccessKey): boolean {
 }
 
 export interface ServiceRehearsalAdapter extends ServiceAccessAdapter {
-  /** The account's vouchers across every rehearsal booking, from the same ledger. */
+  /** The account's vouchers across the pilot's rehearsal bookings, from the same ledger. */
   wallet(scope: VoucherWalletScope): Promise<VoucherWalletSnapshot>;
 }
 
@@ -100,7 +100,9 @@ export function createServiceRehearsalAdapter(
         commitmentId: 0n,
         buyer: scope.account,
       };
-      const snapshots = SERVICE_REHEARSAL_IDS.map((commitmentId) =>
+      // Only the pilot's commitments: the generic TEST-VOUCHER rehearsal (1024) books with an
+      // issuer outside the pilot's two, so its booking stays on its own promise page.
+      const snapshots = SERVICE_REHEARSAL_IDS.filter(isPilotCommitment).map((commitmentId) =>
         copy(current({ ...key, commitmentId }))
       );
       return structuredClone(rehearsalVoucherWallet(scope, ledger(key), snapshots));

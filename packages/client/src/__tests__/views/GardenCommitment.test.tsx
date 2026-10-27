@@ -440,6 +440,29 @@ describe("GardenCommitment", () => {
     expect(screen.getByRole("button", { name: "Deposit 1 Voucher" })).toBeInTheDocument();
   });
 
+  it("reads the voucher wallet of the booking's holder, not of the member who agreed", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        seat: "bystander",
+        detail: detail({
+          commitment: { onchainState: "OFFERED", derivedState: "OFFERED", creator: OTHER },
+        }),
+      })
+    );
+    const snapshot = bookingStorySnapshot("hubDay", "readyToDeposit");
+    snapshot.voucherSetups = snapshot.voucherSetups.map((setup) => ({
+      ...setup,
+      authorization: { ...setup.authorization, holder: HELPER },
+    }));
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    render();
+    expect(snapshot.key.buyer).not.toBe(HELPER);
+    expect(mockVoucherWallet).toHaveBeenLastCalledWith(
+      expect.objectContaining({ account: HELPER })
+    );
+  });
+
   it("uses the service boundary for known incomplete opt-in instead of generic claim and acceptance", () => {
     mockUseController.mockReturnValue(
       controller({
@@ -532,6 +555,32 @@ describe("GardenCommitment", () => {
     });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("3 hours");
     expect(screen.getByRole("button", { name: "Add Proof" })).toBeInTheDocument();
+  });
+
+  it("names the reward among what was promised, so it stays in sight after taking one up", () => {
+    const wei = 160_000n * 10n ** 18n;
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          commitment: {
+            direction: "REQUEST",
+            commitmentType: "SUPPORT_SERVICE",
+            considerationRail: "CELO_SETTLEMENT",
+            considerationAmount: wei,
+          },
+        }),
+        metadata: {
+          version: 1,
+          title: "Complete the climate course",
+          reward: { version: 1, usdCents: "2000", goodDollarWei: wei.toString() },
+        },
+      })
+    );
+    render();
+
+    const promised = screen.getByRole("region", { name: "What was promised" });
+    expect(within(promised).getByText("Reward")).toBeInTheDocument();
+    expect(within(promised).getByText("$20.00, paid in G$ after it's kept")).toBeInTheDocument();
   });
 
   it("makes required work the primary action while keeping optional proof available", () => {

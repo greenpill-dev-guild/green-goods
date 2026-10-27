@@ -4,6 +4,7 @@ import {
   type ServiceAccessAction,
   type ServiceAccessKey,
   type ServiceAccessSnapshot,
+  serviceVoucherHolder,
   useServiceAccessMutation,
   useVoucherIssuerApproval,
   useVoucherWallet,
@@ -88,7 +89,8 @@ export function ServicePromise({
   const snapshot = access.data ?? null;
   const walletChain = snapshot?.key.sourceChainId;
   const walletModule = snapshot?.key.coreModule;
-  const walletAccount = snapshot?.key.buyer;
+  // The vouchers are the holder's, who need not be the member who agreed.
+  const walletAccount = snapshot ? serviceVoucherHolder(snapshot) : undefined;
   const walletScope = useMemo(
     () =>
       walletChain !== undefined && walletModule && walletAccount

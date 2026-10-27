@@ -52,14 +52,17 @@ export interface GardenCardProps
   tag?: string;
 }
 
+/** How many members a garden has. A member is a person, whatever roles they hold (DL-049). */
+export function gardenMemberCount(garden: Pick<GardenCardData, "gardeners" | "stewards">): number {
+  return buildGardenMemberSets(garden.gardeners ?? [], garden.stewards ?? []).memberIds.size;
+}
+
 /** The card's picture, title and detail line, shared by the card and the picker. */
 function gardenCardContent(
   garden: GardenCardData,
   formatMessage: IntlShape["formatMessage"]
 ): Pick<MediaCardPickerOption, "media" | "title" | "details" | "detailsTitle"> {
-  // A member is a person, whatever roles they hold (DL-049).
-  const members = buildGardenMemberSets(garden.gardeners ?? [], garden.stewards ?? []).memberIds
-    .size;
+  const members = gardenMemberCount(garden);
   const place = garden.location?.trim();
   const memberLabel = formatMessage({ id: "app.garden.memberCount" }, { count: members });
   return {

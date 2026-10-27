@@ -2,10 +2,11 @@
  * @vitest-environment happy-dom
  */
 
-import type { ResolvedEvidence } from "@green-goods/shared/commitment-pooling";
+import type { CommitmentReadModel, ResolvedEvidence } from "@green-goods/shared/commitment-pooling";
 import { commitmentFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { renderWithProviders, screen, within } from "../test-utils";
 
 const mocks = vi.hoisted(() => ({ evidence: [] as ResolvedEvidence[] }));
 
@@ -32,7 +33,7 @@ function evidence(cid: string): ResolvedEvidence {
   };
 }
 
-function renderSheet(indexedEvidenceCount: number) {
+function renderSheet(indexedEvidenceCount: number, overrides: Partial<CommitmentReadModel> = {}) {
   return renderWithProviders(
     <ConfirmSheet
       open
@@ -44,6 +45,7 @@ function renderSheet(indexedEvidenceCount: number) {
         derivedState: "READY_FOR_CONFIRMATION",
         onchainState: "READY_FOR_CONFIRMATION",
         evidenceCount: indexedEvidenceCount,
+        ...overrides,
       })}
       requirements={[]}
       contributors={[]}
@@ -104,5 +106,32 @@ describe("ConfirmSheet proof summary", () => {
 
     expect(screen.getByText("2 items")).toBeInTheDocument();
     expect(screen.queryByText("No proof has been attached yet.")).not.toBeInTheDocument();
+  });
+});
+
+describe("ConfirmSheet words for a request that is not garden work", () => {
+  it("asks whether the promise was kept, never whether help arrived", async () => {
+    // A course a garden asked members to complete is the same kind of record as a ride
+    // someone asked for, so the sheet asks in the promise's own words.
+    renderSheet(1, {
+      direction: "REQUEST",
+      commitmentType: "SUPPORT_SERVICE",
+      creator: VIEWER,
+      counterparty: PROVIDER,
+    });
+
+    const sheet = screen.getByRole("dialog", { name: "Promise kept?" });
+    expect(within(sheet).getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
+    expect(within(sheet).queryByText(/help/i)).toBeNull();
+
+    await userEvent.setup().click(within(sheet).getByRole("button", { name: "Not Yet" }));
+    expect(
+      within(sheet).getByRole("button", { name: "It hasn't happened yet" })
+    ).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Not finished yet" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("textbox")).toHaveAttribute(
+      "placeholder",
+      "The last part is still to come…"
+    );
   });
 });
