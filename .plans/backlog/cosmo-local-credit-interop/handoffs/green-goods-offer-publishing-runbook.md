@@ -153,9 +153,9 @@ show their voucher prices. Record the promise numbers on COM-46.
 - Before anyone books, cancel a wrong promise in the cockpit, or set its terms again at the next
   revision. Terms lock when a booking is accepted.
 - On 1 January 2027, cancel the offers nobody booked. Booked offers keep their terms.
-- Not covered: Tech and Sun's hub-day offers, which wait on their Safe's
-  [finalization](tas-steward-safe-finalize-runbook.md) and their issuer acceptance, and booking
-  approvals, which the cockpit's voucher console exports as Safe files.
+- Not covered: booking approvals, which the cockpit's voucher console exports as Safe files.
+  Tech and Sun's hub days went out the same day; see
+  [Tech and Sun hub days](#tech-and-sun-hub-days-27-october-2026).
 
 ## Reference
 
@@ -209,6 +209,52 @@ steward's acceptance and the Safe's approval on Gnosis.
 The steward path was then rehearsed on local forks: two promises seeded as the steward, the
 script's page and calls built with `--steward`, both calls sent as the steward, and `--verify`
 passing both. The Safe path still built its two-call file.
+
+## Tech and Sun hub days, 27 October 2026
+
+Afo approved the hub-day terms as written and chose to publish before the Tech and Sun Safe is
+finalized, so choosing its second signer does not hold up setup. The bootstrap signer, a Tech and
+Sun steward, seeded twenty hub days in the TAS HUB pool (pool 3) from the cockpit and set their
+terms from the same account: promises #63 to #82, 1 TSV each, with the Tech and Sun Safe as
+issuer. All twenty read back at terms revision 1 with the hashes below.
+
+Rabby warned "simulation failed" on these calls although each one succeeded; a test call against
+live state, not the wallet's simulator, is the check. Rabby also once delivered a request it had
+seemed to drop. The second copy reverted on the revision guard, so nothing was published twice. If
+Rabby shows two prompts for the same promise, reject the extra one.
+
+Seeding used the table in step 1 with these changes: the TAS HUB garden, title
+`Four-hour hub day`, 20 promises and 4 `hours` each, with this note: "One named person's reserved
+visit of up to four hours at the Tech and Sun hub, with workspace, power and connectivity. Costs 1
+Tech and Sun voucher. Tech and Sun publishes the location, opening hours and equipment limits
+before accepting a booking. Book by 31 December 2026."
+
+| Item | Value |
+|---|---|
+| Tech and Sun Safe (Gnosis), voucher issuer | `0x9BE5f0D6B95Ea3735df71023F5dFED53b4c1aABf` |
+| TAS HUB garden (Arbitrum), pool 3 | `0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3` |
+| TSV (Gnosis, 6 decimals) | `0xB89300F212fcbdF3D5b73eADE290b3c0d6292143` |
+| Hub day service statement | `0xc578a009af4631285536903e3afcd5c1f64e26e198ca6528d5d882187062f6e4` |
+| Hub day remedy statement | `0x0bef2135fabeaf322746ca9e32dbd8d0a179dd083d9e8f014ac57c4cdb70bc16` |
+
+**Hub day service:** Tech and Sun voucher offer, terms pilot-2026-10-27-r2: 1 Tech and Sun voucher
+buys one named person's reserved visit of up to four hours at the Tech and Sun hub, including
+workspace, power and connectivity. Tech and Sun publishes the location, opening hours and
+equipment restrictions before accepting a booking. Bookings open 28 October 2026 and close
+31 December 2026. Tech and Sun confirms a booking within two business days. Activation needs
+accepted terms and full escrow, not proof of delivery.
+
+**Hub day remedy:** Tech and Sun voucher remedy, terms pilot-2026-10-27-r2: the holder approves one
+final allocation. Delivered vouchers are the approved hours the hub was open to the holder during
+the booked visit / 4 x 1, rounded down at token precision and capped at 1; the rest returns to the
+holder. Hours the holder chose not to use count as delivered; a visit the hub could not host
+delivers zero. Changes need mutual consent; a timeout alone decides neither delivery nor refund.
+
+Before accepting a hub-day booking, Tech and Sun confirms these terms and the capacity as its own
+and publishes the hub's location, opening hours and equipment restrictions. Until the
+[finalization](tas-steward-safe-finalize-runbook.md) runs, the Tech and Sun Safe is 1-of-1 under
+the bootstrap signer, so one signature approves a booking, and any steward mirrored before then
+can sign alone too.
 
 ## Rehearsal, 27 October 2026
 
