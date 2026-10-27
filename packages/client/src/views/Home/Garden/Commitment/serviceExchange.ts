@@ -3,37 +3,42 @@ import {
   type ServiceAccessSnapshot,
   type ServiceAsset,
   selectServiceAccessAction,
-  type VoucherIssuer,
+  type VoucherWalletSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 import type { ServiceExchangeQuote, ServiceExchangeState } from "./ServiceExchangeSheet";
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /**
- * The exchange the rehearsal's pool quoted, in the sheet's terms. Only the DEV rehearsal quotes
- * today: the live pool is not configured before the deployment is adopted, so there is no quote
- * and the offer's door to exchange stays closed.
+ * The exchange the rehearsal's pool quoted, in the sheet's terms, for the wallet that spends it.
+ * Only the DEV rehearsal quotes today: the live pool is not configured before the deployment is
+ * adopted, so there is no quote and the offer's door to exchange stays closed.
  */
 export function exchangeQuoteFromPilot(
   snapshot: ServiceAccessSnapshot,
-  issuers: readonly VoucherIssuer[],
-  holdings: readonly { issuer: VoucherIssuer; available: bigint }[]
+  wallet: Pick<VoucherWalletSnapshot, "account" | "issuers" | "holdings">
 ): ServiceExchangeQuote | null {
   const pilot = snapshot.pilot;
   const quote = pilot?.exchange.quote;
   if (!pilot || !quote) return null;
   const assets = [pilot.assets.a, pilot.assets.b];
+  const issuerOf = (token: string) =>
+    wallet.issuers.find((entry) => same(entry.asset.token, token));
   const side = (token: string, amount: bigint) => {
     const asset = assets.find((entry) => same(entry.token, token)) as ServiceAsset;
-    const issuer = issuers.find((entry) => same(entry.asset.token, token));
     return {
       amount,
       asset,
-      issuer: issuer ?? { name: asset.symbol ?? "", gender: null },
+      issuer: issuerOf(token) ?? { name: asset.symbol ?? "", gender: null, kind: null },
     };
   };
+  const spent = issuerOf(quote.inputToken);
   return {
-    input: side(quote.inputToken, quote.input),
+    // Vouchers the reader issued promise the reader's own service to whoever holds them next.
+    input: {
+      ...side(quote.inputToken, quote.input),
+      own: spent ? same(spent.account, wallet.account) : false,
+    },
     output: side(quote.outputToken, quote.netOutput),
     gross: quote.grossOutput,
     poolFee: quote.poolFee,
@@ -41,8 +46,8 @@ export function exchangeQuoteFromPilot(
     minimum: quote.minimumOutput,
     deadline: Number(quote.deadline),
     held:
-      holdings.find((holding) => same(holding.issuer.asset.token, quote.inputToken))?.available ??
-      0n,
+      wallet.holdings.find((holding) => same(holding.issuer.asset.token, quote.inputToken))
+        ?.available ?? 0n,
     available: pilot.exchange.inventory,
   };
 }
