@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { decodeFunctionData, type Abi, type Hex } from "viem";
+import { decodeFunctionData, type Abi, type Hex, type PublicClient } from "viem";
 import EscrowABI from "@green-goods/contracts/abis/GnosisVoucherEscrow.json";
+import type { GraphQLReader } from "../modules/data/graphql-client";
 import { readLiveVoucherWallet } from "../modules/commitment-pooling/service-access-wallet";
 import { liveVoucherFixture } from "./fixtures/live-voucher";
 import { unavailableServiceAccess } from "../modules/commitment-pooling/data-service-access";
@@ -501,6 +502,32 @@ describe("live voucher steward integration", () => {
       bookings: [],
       reserve: null,
     });
+  });
+  it("warns of missing bookings only while the index trails Arbitrum or its progress is unknown", async () => {
+    const f = fixture();
+    const now = 1_800_000_000;
+    let processedAt = now - 30;
+    const setups = { data: { VoucherServiceSetup: [f.row] } };
+    const progress = {
+      data: { chain_metadata: [{ chain_id: 42161, latest_processed_block: "9" }] },
+    };
+    f.reader.query = vi.fn(async (_query: unknown, _variables?: unknown, operation?: string) =>
+      operation === "getPoolFundingFreshness" ? progress : setups
+    ) as unknown as GraphQLReader["query"];
+    const deps = {
+      ...f.deps,
+      now,
+      createClient: () =>
+        ({ getBlock: async () => ({ timestamp: BigInt(processedAt) }) }) as unknown as PublicClient,
+    };
+    expect(await readLiveVoucherConsole(f.input, deps)).toMatchObject({
+      status: "observed",
+      incomplete: false,
+    });
+    processedAt = now - 600;
+    expect((await readLiveVoucherConsole(f.input, deps)).incomplete).toBe(true);
+    f.reader.query = vi.fn().mockResolvedValue(setups);
+    expect((await readLiveVoucherConsole(f.input, deps)).incomplete).toBe(true);
   });
   it("rejects a foreign indexed scope without displaying its records", async () => {
     const f = fixture();

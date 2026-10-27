@@ -1,7 +1,15 @@
 import EscrowABI from "@green-goods/contracts/abis/GnosisVoucherEscrow.json";
-import { type Abi, type Hex, encodeFunctionData } from "viem";
+import { type Abi, type Hex, type PublicClient, encodeFunctionData } from "viem";
+import { createPublicClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
+import type { GraphQLReader } from "../data/graphql-client";
+import {
+  LEDGER_MAX_AGE_SECONDS,
+  ledgerAgeSeconds,
+  readProcessedBlockTimestamps,
+} from "./data-pool-funding-freshness";
+import { queryProcessedBlocks } from "./data-pool-funding-indexed-queries";
 import {
   serviceAddress,
   serviceHash,
@@ -19,6 +27,26 @@ import {
 
 const needsExecution = (leg: VoucherLegProgress | undefined) =>
   leg?.state === "pending" || leg?.state === "failed";
+
+/**
+ * Whether the index has every booking prepared on the source chain up to two minutes ago, read
+ * from the time of the last block it processed there. Destination custody comes from the chain,
+ * so a cross-chain message still in flight shows on its booking instead of hiding it.
+ */
+async function discoveryCurrent(
+  chainId: number,
+  reader: GraphQLReader,
+  deps: Dependencies
+): Promise<boolean> {
+  const processed = await queryProcessedBlocks(reader, [chainId]);
+  if (!processed) return false;
+  const timestamps = await readProcessedBlockTimestamps(
+    processed,
+    deps.createClient ?? (createPublicClientForChain as (chainId: number) => PublicClient)
+  );
+  const age = ledgerAgeSeconds(timestamps, deps.now ?? Math.floor(Date.now() / 1_000));
+  return age !== null && age <= LEDGER_MAX_AGE_SECONDS;
+}
 
 /** The index discovers candidates; exact source consent and destination custody own the console. */
 export async function readLiveVoucherConsole(
@@ -54,6 +82,10 @@ export async function readLiveVoucherConsole(
       : null,
     incomplete: true,
   };
+  const current = discoveryCurrent(input.chainId, reader, deps).catch((error: unknown) => {
+    logger.warn("Voucher discovery freshness is unknown", { error, garden: input.garden });
+    return false;
+  });
   try {
     const result = await reader.query<{ VoucherServiceSetup: unknown[] }>(
       `query GardenVoucherSetups($chain: Int!, $module: String!, $core: String!, $garden: String!) {
@@ -185,7 +217,8 @@ export async function readLiveVoucherConsole(
     }
     snapshot.asks = asks;
     snapshot.bookings = bookings;
-    // A bounded projection cannot establish that every cross-chain message has arrived.
+    // A full bounded read or an index behind the source chain can still be missing bookings.
+    snapshot.incomplete = result.data.VoucherServiceSetup.length > 100 || !(await current);
   } catch (error) {
     snapshot.status = "unavailable";
     logger.warn("Voucher console discovery is unavailable", { error, garden: input.garden });

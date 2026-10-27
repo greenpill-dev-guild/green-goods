@@ -950,6 +950,10 @@ describe("GardenPoolTab (W7)", () => {
     ).toEqual(["Review Promises", "Pool Status", "Pool Funding"]);
     // The promises stay on the left, so nothing on the right moves them.
     expect(within(aside).queryByTestId("pool-commitments")).not.toBeInTheDocument();
+    // A voucher notice heads the left column; as a grid cell of its own it pushed the promises right.
+    expect(
+      screen.getByText(/Voucher bookings could not be loaded/).closest(".garden-tab-main")
+    ).toContainElement(screen.getByTestId("pool-commitments"));
     expect(
       within(screen.getByTestId("pool-commitments")).getByRole("heading", {
         name: "Offers and Requests",
