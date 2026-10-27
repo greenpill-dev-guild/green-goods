@@ -126,14 +126,16 @@ this example and remains an independent Celo route.
 
 ## Existing collective issuer baseline
 
-**Version:** `pilot-2026-10-23-draft-3` · **Status:** business baseline accepted; issuer capacity and live configuration unconfirmed.
+**Version:** `pilot-2026-10-27` · **Status:** operating terms approved on 27 October 2026 (UTC) with two changes; the Claude seat budget and cash swap-back are open, and each issuer's identities stay on the private path.
 
 The selected services are Tech and Sun hub access, Green Goods assisted sessions, and Claude
 access under a Green Goods team. The human release owner accepted the service prices below,
 a twenty-voucher ceiling per issuer, ten participants and an initial 1:1 gross exchange ratio
-on 22 October Pacific, adjusting assistance to two GG vouchers per thirty minutes. Other
-operating terms below remain a draft for issuer acceptance. Neither issuer has yet supplied
-confirmed capacity, accountable addresses or its acceptance record. The [deployment package](handoffs/codex-live-pilot-deployment.md)
+on 22 October Pacific. On 27 October 2026 (UTC) the release owner approved the operating
+terms below, with two changes: an assisted session is forty-five minutes for two GG vouchers,
+and the booking window runs to 31 December 2026. Any term can change later through a new terms
+revision, and a booking keeps the revision it was agreed under. Neither issuer has yet supplied
+its accountable addresses or acceptance record through the private path. The [deployment package](handoffs/codex-live-pilot-deployment.md)
 tracks those inputs separately from technical readiness.
 
 ## Services and voucher prices
@@ -141,8 +143,8 @@ tracks those inputs separately from technical readiness.
 | Issuer / offer | Full service for the stated voucher price | Capacity required by the baseline, still unconfirmed |
 |---|---|---|
 | Tech and Sun — hub day | **1 Tech and Sun voucher:** one named person's reserved visit of up to four hours, including workspace, power and connectivity. Publish the location, opening hours and equipment restrictions before accepting a booking. | Twenty visits, at least eighty seat-hours in a published calendar. These are proposed resources, not observed capacity. |
-| Green Goods — assisted session | **2 Green Goods vouchers:** one thirty-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, five facilitator-hours, if every GG voucher is used for assistance. |
-| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Up to two seat-periods if every GG voucher is used for Claude. Budget and eligible seat provisioning are still unconfirmed. |
+| Green Goods — assisted session | **2 Green Goods vouchers:** one forty-five-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, seven and a half facilitator-hours, if every GG voucher is used for assistance. |
+| Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Approved to run with up to ten funded seats. The twenty-voucher ceiling covers two seat-periods at a time; whether to mint more GG vouchers or recirculate returned ones is open, as is confirming that participant seats are permitted under the supplier terms. |
 
 These are full-access offers at their stated scope, rather than discounts requiring an unstated
 cash contribution. A four-hour hub visit is one booking; unused time does not create another
@@ -238,7 +240,7 @@ separate obligations with separate evidence.
 
 ## Booking, activation and remedies
 
-Propose first bookings on 25–26 October and a published booking calendar through 30 November
+First bookings open on 28 October, with a published booking calendar through 31 December
 2026. Confirm local opening hours and every participant's timezone. Closing this pilot window
 stops new offers; it does not erase outstanding service rights or force an escrow settlement.
 
@@ -264,7 +266,7 @@ stops new offers; it does not erase outstanding service rights or force an escro
 | Service | Proposed partial-delivery calculation |
 |---|---|
 | Hub visit | Holder-approved usable minutes / 240, capped at the agreed one-voucher cost. Provider-caused loss of the promised power/connectivity is reflected in usable time; a mutually accepted equivalent may be agreed before the allocation is fixed. |
-| Assisted session | Holder-approved delivered minutes / 30 × 2, capped at two GG vouchers. A failed connection with no useful session is zero delivered. |
+| Assisted session | Holder-approved delivered minutes / 45 × 2, capped at two GG vouchers. A failed connection with no useful session is zero delivered. |
 | Claude access | Holder-approved available days / 30 × 10 GG vouchers. The thirty-day clock starts with working access, not the invitation or invoice. A seven-day failure is not a full subscription delivery. Normal disclosed provider usage limits do not count as an outage; loss of the promised seat does. |
 
 Calculate delivered base units by rounding down at verified token precision; refundable amount
