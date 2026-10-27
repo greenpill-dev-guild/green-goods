@@ -393,9 +393,11 @@ material, and an accuracy pass over the four documents.
   file before the rest moved). The older Google Docs conversion of the deck stays loose in Growth;
   it is not this work's file.
 - **Indexer coverage (review, 26 October).** The architecture's indexer box said it reads every
-  network and brief page 4 said it reads "the chains", but `packages/indexer/config.yaml` lists
-  Arbitrum One, Sepolia and Celo only, and no tracked file binds it to the Gnosis addresses (the
-  status refresh above). Both now say Arbitrum One and Celo today, Gnosis next.
+  network and brief page 4 said it reads "the chains". Gnosis (chain 100) is configured: since
+  `ebe7c2b6d` (25 October) `packages/indexer/config.yaml` registers it from block 48,925,690 and
+  pins the pilot's adapter, escrow, shared pool and steward Safe receiver. The indexer README
+  claims no hosted deployment for it, so the step left is the hosted rollout, not the
+  implementation, and both pages say Arbitrum One and Celo today, Gnosis next.
 - **The demo, rebuilt.** Later on 26 October the side session rebuilt the demo as four full flows
   on the current app (37 screens, an "All flows" button on every screen, each flow ending in the
   next), carried this branch's review hardening into the rebuild and replaced the Drive copy and
