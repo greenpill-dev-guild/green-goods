@@ -5,11 +5,13 @@ import type {
   ServiceIssuerBookings as Bookings,
 } from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type {
   ItemRowDetail,
   ItemRowTone,
 } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
+import { RiArrowGoBackLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import {
   type IssuerBookingState,
@@ -125,16 +127,18 @@ export function ServiceIssuerBookings({
                   {t("a.review")}
                 </Button>
               ) : record.returnEligible && (state === "active" || state === "proposed") ? (
-                <Button
+                // An icon keeps the pill readable beside it; its name is also its tooltip.
+                <IconButton
                   type="button"
                   size="sm"
                   emphasis="secondary"
                   data-act="propose"
+                  aria-label={t("a.propose")}
+                  title={t("a.propose")}
+                  icon={<RiArrowGoBackLine aria-hidden="true" />}
                   disabled={disabled}
                   onClick={() => onPropose(record)}
-                >
-                  {t("a.propose")}
-                </Button>
+                />
               ) : undefined;
             return (
               <li key={`${record.setupId}:${record.authorizationHash}`}>
