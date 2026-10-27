@@ -6,6 +6,7 @@ import {
   type ServiceIssuerDraftRecord,
   signServiceIssuerApproval,
 } from "../../modules/commitment-pooling/service-issuer-approval";
+import { serviceActorAccountSupported } from "../../modules/commitment-pooling/service-actor-session";
 import {
   issuerPoolListing,
   serviceIssuerChain,
@@ -42,6 +43,8 @@ export function useServiceIssuerDrafts(member?: Address | null) {
 /**
  * The member signs one draft revision's exact terms from their own account; nothing is sent or
  * issued. The signed record joins the drafts read, where the desk that records it will keep it.
+ * `canSign` says whether this account can sign on the voucher network at all, so a draft waits
+ * visibly instead of offering an approval that would be refused.
  */
 export function useServiceIssuerApproval() {
   const user = useUser();
@@ -53,7 +56,7 @@ export function useServiceIssuerApproval() {
     current.current.generation++;
   Object.assign(current.current, { identity, user, sender, online });
   const client = useQueryClient();
-  return useMutation({
+  const approve = useMutation({
     retry: false,
     networkMode: "always",
     mutationFn: (draft: ServiceIssuerDraft) =>
@@ -87,6 +90,11 @@ export function useServiceIssuerApproval() {
             : drafts
       ),
   });
+  const canSign = serviceActorAccountSupported({
+    authMode: user.authMode,
+    profile: user.passkeyAccountProfile ?? null,
+  });
+  return { approve, canSign };
 }
 
 export type ServiceIssuerListings = ReadonlyMap<string, ServiceIssuerPoolListing>;

@@ -9,7 +9,10 @@ import {
   useServiceIssuerDrafts,
 } from "../../../hooks/commitment-pooling/useServiceIssuerOnboarding";
 import type { ServiceIssuerDraft } from "../../../modules/commitment-pooling/service-issuer-approval";
-import type { TransactionSender } from "../../../modules/transactions/types";
+import type {
+  AccountTypedDataRequest,
+  TransactionSender,
+} from "../../../modules/transactions/types";
 import { AuthContext, type AuthContextType } from "../../../providers/authContext";
 import type { Address } from "../../../types/domain";
 import { createTestQueryClient } from "../../test-utils/query-client";
@@ -57,8 +60,8 @@ function draft(): ServiceIssuerDraft {
   };
 }
 
-function fixture(signedIn: Address) {
-  const signTypedData = vi.fn(async () => SIGNATURE);
+function fixture(signedIn: Address, authMode: "passkey" | "embedded" = "passkey") {
+  const signTypedData = vi.fn(async (_request: AccountTypedDataRequest) => SIGNATURE);
   sender.current = {
     authMode: "passkey",
     supportsSponsorship: true,
@@ -70,7 +73,7 @@ function fixture(signedIn: Address) {
     sendContractCall: vi.fn(),
   } satisfies TransactionSender;
   const auth = {
-    authMode: "passkey",
+    authMode,
     isReady: true,
     isAuthenticated: true,
     smartAccountAddress: signedIn,
@@ -79,10 +82,11 @@ function fixture(signedIn: Address) {
     embeddedAddress: null,
   } as unknown as AuthContextType;
   const client = createTestQueryClient();
-  client.setQueryData<ServiceIssuerDrafts>(commitmentPoolingKeys.issuerDrafts(MEMBER), {
+  const seeded: ServiceIssuerDrafts = {
     status: "observed",
     records: [{ draft: draft(), approval: null, declinedAt: null }],
-  });
+  };
+  client.setQueryData(commitmentPoolingKeys.issuerDrafts(MEMBER), seeded);
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>
       <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>
@@ -103,8 +107,9 @@ describe("member issuer onboarding hooks", () => {
       () => ({ approve: useServiceIssuerApproval(), drafts: useServiceIssuerDrafts(MEMBER) }),
       f
     );
+    expect(result.current.approve.canSign).toBe(true);
     await act(async () => {
-      await result.current.approve.mutateAsync(draft());
+      await result.current.approve.approve.mutateAsync(draft());
     });
     expect(f.signTypedData).toHaveBeenCalledOnce();
     expect(f.signTypedData.mock.calls[0]![0]).toMatchObject({ account: MEMBER, chainId: 100 });
@@ -115,11 +120,16 @@ describe("member issuer onboarding hooks", () => {
     );
   });
 
+  it("tells an account that can't sign on the voucher network so the draft waits visibly", () => {
+    const { result } = renderHook(() => useServiceIssuerApproval(), fixture(MEMBER, "embedded"));
+    expect(result.current.canSign).toBe(false);
+  });
+
   it("never signs a member's draft from a steward's session", async () => {
     const f = fixture(STEWARD);
     const { result } = renderHook(() => useServiceIssuerApproval(), f);
     await act(async () => {
-      await expect(result.current.mutateAsync(draft())).rejects.toThrow("Service account");
+      await expect(result.current.approve.mutateAsync(draft())).rejects.toThrow("Service account");
     });
     expect(f.signTypedData).not.toHaveBeenCalled();
   });

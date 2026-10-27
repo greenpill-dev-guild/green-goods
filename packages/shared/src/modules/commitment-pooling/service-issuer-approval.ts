@@ -146,7 +146,7 @@ export function serviceIssuerApprovalTypedData(
  */
 export function serviceIssuerApprovalProvenance(
   approval: ServiceIssuerSignedApproval
-): ServiceIssuerProvenance {
+): ServiceIssuerProvenance & { reference: string; digest: Hex } {
   const { signature, ...unsigned } = approval;
   return {
     reference: `issuer-approval:${APPROVAL_CHAIN_ID}:${approval.member.toLowerCase()}:${approval.draftId}:${approval.revision}`,
