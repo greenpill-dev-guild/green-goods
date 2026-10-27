@@ -4,6 +4,12 @@
 signer and one trusted Tech and Sun steward. This is a one-off operation on the receiver deployed
 on 24 October. New gardens move to the general steward Safe model described at the end.
 
+**27 October 2026:** Afo deferred the finalization until the second signer is chosen, so that
+choice does not hold up setup; Tech and Sun's hub-day offers went out first. That morning the
+roster had four Tech and Sun stewards on Arbitrum, the bootstrap signer among them, and none was
+queued, dispatched or mirrored. The publisher held 0.0005 ETH of transport fuel against a quote
+of about 0.00005 ETH per mirror, so step 1 needs gas only.
+
 ## Why
 
 The receiver started in bootstrap mode with the Hats Signer Gate at a minimum of one and a target
