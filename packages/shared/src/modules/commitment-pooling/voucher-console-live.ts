@@ -4,11 +4,7 @@ import { createPublicClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import type { GraphQLReader } from "../data/graphql-client";
-import {
-  LEDGER_MAX_AGE_SECONDS,
-  ledgerAgeSeconds,
-  readProcessedBlockTimestamps,
-} from "./data-pool-funding-freshness";
+import { LEDGER_MAX_AGE_SECONDS, ledgerAgeSeconds } from "./data-pool-funding-freshness";
 import { queryProcessedBlocks } from "./data-pool-funding-indexed-queries";
 import {
   serviceAddress,
@@ -38,10 +34,28 @@ async function discoveryCurrent(
   deps: Dependencies
 ): Promise<boolean> {
   const processed = await queryProcessedBlocks(reader, [chainId]);
-  if (!processed) return false;
-  const timestamps = await readProcessedBlockTimestamps(
-    processed,
-    deps.createClient ?? (createPublicClientForChain as (chainId: number) => PublicClient)
+  if (!processed) {
+    logger.warn("Voucher discovery cannot read the indexer's progress", { chainId });
+    return false;
+  }
+  const createClient =
+    deps.createClient ?? (createPublicClientForChain as (chainId: number) => PublicClient);
+  const timestamps = await Promise.all(
+    processed.map(({ chainId: chain, block }) =>
+      createClient(chain)
+        .getBlock({ blockNumber: block })
+        .then(
+          (read) => Number(read.timestamp),
+          (error: unknown) => {
+            logger.warn("Voucher discovery cannot read the indexer's last block", {
+              error,
+              chainId: chain,
+              block: block.toString(),
+            });
+            return null;
+          }
+        )
+    )
   );
   const age = ledgerAgeSeconds(timestamps, deps.now ?? Math.floor(Date.now() / 1_000));
   return age !== null && age <= LEDGER_MAX_AGE_SECONDS;
