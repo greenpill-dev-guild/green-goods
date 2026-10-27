@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { WagmiContext } from "wagmi";
+import { type Config, WagmiContext } from "wagmi";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { logger } from "../../modules/app/logger";
 import { selectNextDueBoundary } from "../../modules/commitment-pooling/steward-selectors";
@@ -15,6 +15,18 @@ const CHAIN_CLOCK_STALE_MS = 30 * 60_000;
 
 /** The chain's time now, in Unix seconds: this device's clock, moved by how far it runs off. */
 const chainSecondsNow = (offsetMs: number) => BigInt(Math.floor((Date.now() + offsetMs) / 1000));
+
+/** The read of how far the chain's clock runs ahead of this device's, shared by every clock. */
+function chainClockQuery(config: Config | undefined, chainId: number) {
+  return {
+    queryKey: commitmentPoolingKeys.chainClock(chainId),
+    queryFn: async () => {
+      if (!config) throw new Error("No wagmi client to read the chain's time");
+      const { readChainClockOffsetMs } = await import("../../utils/blockchain/chain-clock");
+      return readChainClockOffsetMs(config, chainId);
+    },
+  };
+}
 
 /**
  * How far the chain's clock runs ahead of this device's, in milliseconds: the latest block's
@@ -31,12 +43,7 @@ const chainSecondsNow = (offsetMs: number) => BigInt(Math.floor((Date.now() + of
 function useChainClockOffsetMs(chainId: number): number {
   const config = useContext(WagmiContext);
   const { data, isError, error } = useQuery({
-    queryKey: commitmentPoolingKeys.chainClock(chainId),
-    queryFn: async () => {
-      if (!config) throw new Error("No wagmi client to read the chain's time");
-      const { readChainClockOffsetMs } = await import("../../utils/blockchain/chain-clock");
-      return readChainClockOffsetMs(config, chainId);
-    },
+    ...chainClockQuery(config, chainId),
     enabled: config !== undefined,
     staleTime: CHAIN_CLOCK_STALE_MS,
     refetchOnMount: "always",
@@ -124,11 +131,21 @@ export function useExpiryClock(input: {
 }
 
 /**
- * The chain's clock as `useExpiryClock` keeps it, read at the moment an act asks, in Unix
- * seconds. An act that judges a deadline as it starts reads it rather than the time a page last
- * drew: a page's clock moves only when it ticks, and a background tab's timers run late.
+ * The chain's time read afresh as an act starts, in Unix seconds: the latest block read again,
+ * against this device's clock. An act that judges a deadline awaits it rather than the time a page
+ * last drew, and it rejects when the chain's time can't be read, so the act can refuse instead of
+ * trusting a device clock that runs slow. The read lands in the clocks' shared cache, so every
+ * open clock moves to it.
  */
-export function useChainClockReader(chainId: number): () => bigint {
-  const offsetMs = useChainClockOffsetMs(chainId);
-  return useCallback(() => chainSecondsNow(offsetMs), [offsetMs]);
+export function useChainClockReader(chainId: number): () => Promise<bigint> {
+  const config = useContext(WagmiContext);
+  const queryClient = useQueryClient();
+  return useCallback(async () => {
+    const offsetMs = await queryClient.fetchQuery({
+      ...chainClockQuery(config, chainId),
+      staleTime: 0,
+      retry: 1,
+    });
+    return chainSecondsNow(offsetMs);
+  }, [config, chainId, queryClient]);
 }

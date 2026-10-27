@@ -403,5 +403,23 @@ describe("PoolClaimsCard (Review Promises)", () => {
       view.rerender({ isOnline: false });
       expect(within(dialog).getByRole("button", { name: "Approve Booking" })).toBeDisabled();
     });
+
+    // The account behind an open approval can change; the dialog follows it (Codex on #1352).
+    it("holds an open approval once the account no longer owns the issuer's Safe", async () => {
+      const approveBooking = vi.fn().mockResolvedValue(undefined);
+      const vouchers = vouchersFor([linaAsk]);
+      const view = card(
+        { claims: [linaRow], titles: bookingTitles },
+        { ...vouchers, acts: { ...vouchers.acts, approveBooking } },
+        safeOwnedBy(VIEWER)
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Approve…" }));
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByRole("button", { name: "Approve Booking" })).toBeEnabled();
+
+      view.rerender({ viewer: "0x9999999999999999999999999999999999999999" as Address });
+      expect(within(dialog).getByRole("button", { name: "Approve Booking" })).toBeDisabled();
+      expect(approveBooking).not.toHaveBeenCalled();
+    });
   });
 });

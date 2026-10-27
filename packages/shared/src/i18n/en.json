@@ -6862,6 +6862,8 @@
   "cockpit.garden.pool.voucher.act.report": "Report Visit…",
   "cockpit.garden.pool.voucher.act.propose": "Propose Return…",
   "cockpit.garden.pool.voucher.act.retry": "Retry Transfer",
+  "cockpit.garden.pool.voucher.retry.failedTitle": "The transfer wasn’t retried",
+  "cockpit.garden.pool.voucher.retry.failedBody": "Nothing changed. You can retry the same transfer.",
   "cockpit.garden.pool.voucher.report.title": "Report {name}’s Visit",
   "cockpit.garden.pool.voucher.fact.date": "Date",
   "cockpit.garden.pool.voucher.fact.attendance": "Attendance",

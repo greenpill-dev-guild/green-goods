@@ -1,7 +1,15 @@
 /** @vitest-environment happy-dom */
 
-import { focusManager, onlineManager, QueryClient } from "@tanstack/react-query";
+import {
+  focusManager,
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
+import { type Config, WagmiContext } from "wagmi";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "../../../config/query-keys";
@@ -40,6 +48,7 @@ import {
   poolClaimRowFixture,
   poolFixture,
 } from "../../test-utils/commitment-pooling-fixtures";
+import esMessages from "../../../i18n/es.json";
 import { createTestWrapper } from "../../test-utils/render-helpers";
 
 type PoolMutate = (input: CommitmentPoolMutationInput) => Promise<HexString>;
@@ -73,6 +82,8 @@ const mocks = vi.hoisted(() => ({
   sender: { authMode: "wallet" },
   retryQueuedCommitmentJob: vi.fn(),
   discardJob: vi.fn(),
+  getBlock: vi.fn(),
+  handlerConfigs: [] as Array<{ source: string } & Record<string, unknown>>,
   reportError: vi.fn(),
 }));
 
@@ -123,7 +134,16 @@ vi.mock("../../../modules/job-queue/default-instance", () => ({
 }));
 
 vi.mock("../../../utils/errors/mutation-error-handler", () => ({
-  createMutationErrorHandler: () => mocks.reportError,
+  createMutationErrorHandler: (config: { source: string } & Record<string, unknown>) => {
+    mocks.handlerConfigs.push(config);
+    return mocks.reportError;
+  },
+}));
+
+// The chain's latest block is the edge an acceptance reads its time from.
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
+  getBlock: mocks.getBlock,
 }));
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
@@ -273,8 +293,22 @@ function renderController(queryClient: QueryClient) {
   });
 }
 
+/** The console where the app's wallet runtime mounts, so an act can read the chain's time. */
+function renderControllerOnChain(queryClient: QueryClient) {
+  const Base = createTestWrapper(queryClient);
+  return renderHook(() => usePoolConsoleController({ chainId: CHAIN_ID, garden: GARDEN }), {
+    wrapper: ({ children }: { children: ReactNode }) =>
+      createElement(
+        Base,
+        null,
+        createElement(WagmiContext.Provider, { value: {} as Config }, children)
+      ),
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.handlerConfigs.length = 0;
   mocks.viewer = TUNDE;
   mocks.isOnline = true;
   mocks.poolPending = false;
@@ -627,9 +661,10 @@ describe("usePoolConsoleController", () => {
   it("accepts a voucher booking through acceptServiceClaim, refusing before the wallet while a check fails", async () => {
     const at = 1_761_600_000;
     vi.spyOn(Date, "now").mockReturnValue(at * 1000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(at) });
     const queryClient = testQueryClient();
     seedControllerQueries(queryClient);
-    const { result } = renderController(queryClient);
+    const { result } = renderControllerOnChain(queryClient);
     const booking = voucherAsk(at, { depositConfirmed: false });
 
     // The deposit hasn't reached Green Goods: the contract would refuse, so the wallet never asks.
@@ -657,20 +692,36 @@ describe("usePoolConsoleController", () => {
     ).toMatchObject({ kind: "approved", commitmentId: COMMITMENT.commitmentId.toString() });
   });
 
-  // A tab left open across the deadline hands the act the time its dialog last drew: the act
-  // reads the chain's time as it starts, and the contract would refuse a late accept anyway
-  // (Codex on #1320).
-  it("judges an acceptance on the chain's time as the act starts, not the time the dialog drew", async () => {
+  // A tab left open across the deadline hands the act the time its dialog last drew, and a clock
+  // whose calibration is still pending stands in with the device's own (Codex on #1320 and on
+  // #1352): the act reads the chain's latest block as it starts.
+  it("judges an acceptance on the chain's latest block as the act starts, not on a slow device", async () => {
     const at = 1_761_600_000;
     const ready = voucherAsk(at);
     const acceptBy = ready.setup!.acceptBy;
-    vi.spyOn(Date, "now").mockReturnValue((acceptBy + 1) * 1000);
+    // The device runs ten minutes slow; the chain is half a minute past the deadline.
+    vi.spyOn(Date, "now").mockReturnValue((acceptBy - 600) * 1000);
+    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(acceptBy + 30) });
     const queryClient = testQueryClient();
     seedControllerQueries(queryClient);
-    const { result } = renderController(queryClient);
+    const { result } = renderControllerOnChain(queryClient);
 
-    await expect(result.current.acts.acceptServiceClaim(ready, acceptBy)).rejects.toThrow(
+    await expect(result.current.acts.acceptServiceClaim(ready, acceptBy - 600)).rejects.toThrow(
       "This booking isn't ready to accept"
+    );
+    expect(mocks.commitmentMutate).not.toHaveBeenCalled();
+  });
+
+  it("refuses an acceptance while the chain's time can't be read", async () => {
+    const at = 1_761_600_000;
+    vi.spyOn(Date, "now").mockReturnValue(at * 1000);
+    mocks.getBlock.mockRejectedValue(new Error("RPC unavailable"));
+    const queryClient = testQueryClient();
+    seedControllerQueries(queryClient);
+    const { result } = renderControllerOnChain(queryClient);
+
+    await expect(result.current.acts.acceptServiceClaim(voucherAsk(at), at)).rejects.toThrow(
+      "The chain's time can't be read right now, so nothing was accepted"
     );
     expect(mocks.commitmentMutate).not.toHaveBeenCalled();
   });
@@ -730,6 +781,25 @@ describe("usePoolConsoleController", () => {
       gardenAddress: GARDEN,
       metadata: { act: "retryTransfer", commitmentId: "51" },
     });
+  });
+
+  // The toast fell back to English under Spanish or Portuguese (Codex on #1352).
+  it("words a failed transfer retry's toast in the steward's language", () => {
+    const client = testQueryClient();
+    renderHook(() => useVoucherConsole({ chainId: CHAIN_ID, garden: GARDEN }), {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        createElement(
+          QueryClientProvider,
+          { client },
+          createElement(IntlProvider, { locale: "es", messages: esMessages }, children)
+        ),
+    });
+    const retry = mocks.handlerConfigs.find((config) => config.source === "useVoucherConsole");
+    expect(retry).toMatchObject({ formatMessage: expect.any(Function) });
+    expect((retry!.getFallbackTitle as () => string)()).toBe("No se reintentó la transferencia");
+    expect((retry!.getFallbackMessage as () => string)()).toBe(
+      "No cambió nada. Puedes reintentar la misma transferencia."
+    );
   });
 
   it("composes pending state from either mutation hook", () => {

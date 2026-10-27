@@ -6862,6 +6862,8 @@
   "cockpit.garden.pool.voucher.act.report": "Informar visita…",
   "cockpit.garden.pool.voucher.act.propose": "Proponer devolución…",
   "cockpit.garden.pool.voucher.act.retry": "Reintentar transferencia",
+  "cockpit.garden.pool.voucher.retry.failedTitle": "No se reintentó la transferencia",
+  "cockpit.garden.pool.voucher.retry.failedBody": "No cambió nada. Puedes reintentar la misma transferencia.",
   "cockpit.garden.pool.voucher.report.title": "Informar la visita de {name}",
   "cockpit.garden.pool.voucher.fact.date": "Fecha",
   "cockpit.garden.pool.voucher.fact.attendance": "Asistencia",

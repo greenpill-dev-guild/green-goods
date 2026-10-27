@@ -100,19 +100,20 @@ export function PoolClaimsCard({
     const row = ask && pool.claims.find((entry) => entry.claim.commitmentId === ask.commitmentId);
     return row ? titleOf(row.commitment) : "";
   };
+  // Read live: the account, or the Safe's owners, can change while an approval is open.
+  const approves = (ask: VoucherAsk) =>
+    selectCanApproveBooking({ ask, issuer: vouchers.snapshot.issuer, safe, viewer: pool.viewer });
+  const approveBooking = (ask: VoucherAsk) =>
+    approves(ask)
+      ? vouchers.acts.approveBooking(ask)
+      : Promise.reject(new Error("Only an owner of the issuer's Safe can approve this booking"));
   const voucherView = (item: WaitingRow): VoucherAskRowView | undefined => {
     const ask = askOf(item);
     if (!ask) return undefined;
     const stage = selectVoucherAskStage(ask, vouchers.now);
-    const approves = selectCanApproveBooking({
-      ask,
-      issuer: vouchers.snapshot.issuer,
-      safe,
-      viewer: pool.viewer,
-    });
-    const act = voucherAskAct(stage, approves);
+    const act = voucherAskAct(stage, approves(ask));
     return {
-      tag: voucherAskTag(ask, stage, approves, formatMessage),
+      tag: voucherAskTag(ask, stage, approves(ask), formatMessage),
       detail: voucherAskDetail(ask, stage, intl, nowMs),
       act:
         act === "approve"
@@ -208,10 +209,10 @@ export function PoolClaimsCard({
         title={titleFor(approving)}
         safe={safe}
         nowMs={nowMs}
-        disabled={disabled}
+        disabled={disabled || (approving !== null && !approves(approving))}
         tone={tone}
         onClose={() => setApproving(null)}
-        onApprove={vouchers.acts.approveBooking}
+        onApprove={approveBooking}
       />
       <VoucherAcceptDialog
         ask={accepting}

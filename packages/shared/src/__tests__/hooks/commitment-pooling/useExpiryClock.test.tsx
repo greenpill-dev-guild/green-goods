@@ -114,12 +114,15 @@ describe("useExpiryClock", () => {
   });
 
   // A booking's acceptance deadline is no promise's due date, and an act that judges one reads
-  // the chain's time as it starts, not the time a page last drew (Codex on #1320).
-  it("ticks past other deadlines on the chain's clock, and reads that clock when an act asks", async () => {
+  // the chain afresh as it starts, not the calibration a page drew with (Codex on #1320, #1352).
+  it("ticks past other deadlines on the chain's clock, and reads the chain again when an act asks", async () => {
     vi.useFakeTimers();
     const chainNow = 1_800_000_000;
     vi.setSystemTime((chainNow + 3_600) * 1000);
-    mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow) });
+    // The chain runs an hour behind this device.
+    mocks.getBlock.mockImplementation(async () => ({
+      timestamp: BigInt(Math.floor(Date.now() / 1000) - 3_600),
+    }));
     const deadlines = [BigInt(chainNow + 1)];
     const { result } = renderHook(
       () => ({
@@ -129,11 +132,12 @@ describe("useExpiryClock", () => {
       { wrapper: providers({ wallet: true }) }
     );
     await vi.waitFor(() => expect(result.current.now).toBe(BigInt(chainNow)));
-    expect(result.current.read()).toBe(BigInt(chainNow));
 
     await act(async () => vi.advanceTimersByTimeAsync(2_000));
     expect(result.current.now).toBe(BigInt(chainNow + 2));
-    expect(result.current.read()).toBe(BigInt(chainNow + 2));
+    const reads = mocks.getBlock.mock.calls.length;
+    await expect(result.current.read()).resolves.toBe(BigInt(chainNow + 2));
+    expect(mocks.getBlock).toHaveBeenCalledTimes(reads + 1);
   });
 
   // An offset read against a device clock that is later corrected would carry the old error
