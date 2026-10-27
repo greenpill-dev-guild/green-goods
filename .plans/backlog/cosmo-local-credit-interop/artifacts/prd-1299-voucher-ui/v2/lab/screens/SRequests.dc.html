@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Requests to accept</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app" inert="{{baseHidden}}">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">{{me}}</span></span>
+  </header>
+  <main class="c-route" inert="{{baseHidden}}">
+    <div class="c-head"><div><h1>{{pageTitle}}</h1><p>{{garden}}</p></div></div>
+    <div class="c-tabs" role="tablist"><span role="tab" aria-selected="false">{{tHealth}}</span><span role="tab" aria-selected="false">{{tImpact}}</span><span role="tab" aria-selected="false">{{tActivity}}</span><span class="on" role="tab" aria-selected="true">{{tPromises}}</span></div>
+    <div class="c-grid" data-component="GardenPoolTab">
+      <div class="ck-main">
+        <section class="ck-card ck-stats" aria-label="{{needsLabel}}">
+          <sc-for list="{{stats}}" as="x" hint-placeholder-count="3"><button type="button"><b>{{x.n}}</b><span>{{x.k}}</span></button></sc-for>
+        </section>
+        <section class="ck-card" aria-label="{{cyclesLabel}}">
+          <div class="ck-cycle"><div class="ct2">{{seasonTitle}}<span class="gg-badge">{{seasonKind}}</span><span class="gg-badge" data-tone="success">{{cycleOpen}}</span></div><small>{{seasonMeta}}</small></div>
+          <div class="ck-cycle"><div class="ck-cyrow"><small>{{campaignsLine}}</small><button type="button" class="abtn">{{startCampaign}}</button></div>
+            <div class="ct2" style="margin-top: 8px">{{campaignTitle}}<span class="gg-badge">{{campaignKind}}</span><span class="gg-badge" data-tone="success">{{cycleOpen}}</span></div><small>{{campaignMeta}}</small></div>
+        </section>
+        <section class="ck-card" aria-labelledby="ck-prom" data-focus="{{focusRows}}">
+          <div class="ckh"><h2 id="ck-prom">{{promTitle}}</h2><button type="button" class="abtn"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg>{{seed}}</button></div>
+          <div class="ck-filters"><span class="ck-search"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg>{{search}}</span><sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><span class="chipf {{c.cls}}">{{c.label}}</span></sc-for></div>
+          <div class="ck-rows">
+            <sc-for list="{{prows}}" as="r" hint-placeholder-count="5">
+              <div class="gg-item-row gg-card" data-edge="{{r.tone}}" data-selected="{{r.sel}}" data-component="CommitmentRow">
+                <span class="gg-item-row-open">
+                  <span class="gg-item-row-lead"><span class="gg-item-row-tile" role="img" aria-label="{{r.dir}}"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{r.icon}}"/></svg></span></span>
+                  <span class="gg-item-row-body"><span class="gg-item-row-title">{{r.title}}</span><span class="gg-badge" data-tone="{{r.tone}}">{{r.pill}}</span><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><sc-for list="{{r.details}}" as="d" hint-placeholder-count="2"><span class="gg-item-row-detail" data-tone="{{d.tone}}"><span>{{d.text}}</span></span></sc-for></span></span></span>
+                </span>
+                <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{false}}"><span class="gg-item-row-action"><button type="button" class="abtn {{r.actCls}}">{{r.act}}</button></span></sc-if>
+                <sc-if value="{{r.chev}}" hint-placeholder-val="{{true}}"><span class="gg-item-row-chev"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></sc-if>
+              </div>
+              <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
+                <div class="ck-xp">
+                  <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
+                  <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                  <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
+                  <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="ck-f1">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f1" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h1">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h1">{{fHint}}</span></div>
+                    <sc-if value="{{dBar}}" hint-placeholder-val="{{true}}"><div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: 40">{{barA}}</span><span class="b" style="flex: 60">{{barB}}</span></div></sc-if></sc-if>
+                  <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}"><div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div><div class="gg-field"><label for="ck-r1">{{reasonLabel}}</label><div class="ctl" id="ck-r1" role="textbox">{{reasonV}}</div><span class="msg">{{reasonHint}}</span></div></sc-if>
+                  <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                  <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                </div>
+              </sc-if>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+      <aside class="ck-rail">
+        <section class="ck-card" aria-labelledby="ck-claims" data-focus="{{focusClaims}}" data-component="PoolClaimsCard">
+          <div class="ckh"><h2 id="ck-claims">{{claimsTitle}}</h2><sc-if value="{{hasClaimsBadge}}" hint-placeholder-val="{{false}}"><span class="gg-badge">{{claimsBadge}}</span></sc-if></div>
+          <p class="ckd">{{claimsDesc}}</p>
+          <sc-if value="{{hasClaims}}" hint-placeholder-val="{{true}}">
+            <ul class="ck-decide">
+              <sc-for list="{{claims}}" as="c" hint-placeholder-count="3">
+                <li class="{{c.cls}}">
+                  <span class="who">{{c.who}}<small>{{c.when}}</small></span>
+                  <span class="what">{{c.what}}<sc-if value="{{c.hasTag}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="{{c.tagTone}}">{{c.tag}}</span></sc-if></span>
+                  <span class="acts"><sc-if value="{{c.canDecline}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn cmp link">{{decline}}</button></sc-if><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn cmp {{c.actCls}}">{{c.act}}</button></sc-if><sc-if value="{{c.blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn cmp fill off" disabled aria-describedby="{{c.whyId}}">{{c.act}}</button></sc-if></span>
+                  <sc-if value="{{c.hasWhy}}" hint-placeholder-val="{{false}}"><span class="why2 {{c.whyCls}}" id="{{c.whyId}}">{{c.why}}</span></sc-if>
+                  <sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
+                    <div class="ck-xp" style="grid-column: 1 / -1">
+                      <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
+                      <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                      <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="k" hint-placeholder-count="4"><div class="ckr {{k.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{k.icon}}"/></svg></span><span>{{k.t}}<small>{{k.s}}</small></span></div></sc-for></div></sc-if>
+                      <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}"><div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div><div class="gg-field"><label for="ck-r3">{{reasonLabel}}</label><div class="ctl" id="ck-r3" role="textbox">{{reasonV}}</div><span class="msg">{{reasonHint}}</span></div></sc-if>
+                      <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                      <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                    </div>
+                  </sc-if>
+                </li>
+              </sc-for>
+            </ul>
+          </sc-if>
+        </section>
+        <sc-if value="{{hasEx}}" hint-placeholder-val="{{false}}">
+          <section class="ck-card" aria-labelledby="ck-ex" data-focus="{{focusEx}}">
+            <h2 id="ck-ex">{{exTitle}}</h2>
+            <p class="ckd">{{exDesc}}</p>
+            <dl class="gg-fact-list" data-frame="inset" style="margin-top: 6px"><sc-for list="{{exFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl>
+            <sc-if value="{{exShort}}" hint-placeholder-val="{{false}}"><div class="notice warn" role="status" style="margin-top: 10px"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{exShortT}}</span><p>{{exShortB}}</p></div></sc-if>
+            <sc-if value="{{exHasRows}}" hint-placeholder-val="{{false}}">
+              <ul class="ck-decide">
+                <sc-for list="{{exRows}}" as="c" hint-placeholder-count="2">
+                  <li class="{{c.cls}}">
+                    <span class="who">{{c.who}}<small>{{c.when}}</small></span>
+                    <span class="what">{{c.what}}<sc-if value="{{c.hasTag}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="{{c.tagTone}}">{{c.tag}}</span></sc-if></span>
+                    <span class="acts"><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn cmp {{c.actCls}}">{{c.act}}</button></sc-if></span>
+                    <sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
+                      <div class="ck-xp" style="grid-column: 1 / -1">
+                        <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
+                        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="k" hint-placeholder-count="4"><div class="ckr {{k.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{k.icon}}"/></svg></span><span>{{k.t}}<small>{{k.s}}</small></span></div></sc-for></div></sc-if>
+                        <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                        <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                      </div>
+                    </sc-if>
+                  </li>
+                </sc-for>
+              </ul>
+            </sc-if>
+            <sc-if value="{{exHasAct}}" hint-placeholder-val="{{false}}"><div class="ck-acts"><button type="button" class="abtn fill">{{exAct}}</button></div></sc-if>
+            <sc-if value="{{exOpen}}" hint-placeholder-val="{{false}}">
+              <div class="ck-xp">
+                <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="ck-f3">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f3" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h3">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h3">{{fHint}}</span></div></sc-if>
+                <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+              </div>
+            </sc-if>
+          </section>
+        </sc-if>
+        <section class="ck-card" aria-labelledby="ck-status" data-component="PoolStatusCard">
+          <div class="ckh"><h2 id="ck-status">{{statusTitle}}</h2><span class="gg-badge" data-tone="success"><svg class="i" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg>{{statusChip}}</span></div>
+          <dl class="gg-fact-list" data-frame="inset" style="margin-top: 6px"><sc-for list="{{statusFacts}}" as="f" hint-placeholder-count="2"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}</dd></div></sc-for></dl>
+          <div class="ck-acts"><button type="button" class="abtn">{{editPool}}</button><button type="button" class="abtn">{{pausePool}}</button></div>
+        </section>
+        <section class="ck-card" aria-labelledby="ck-funding" data-component="PoolFundingSection">
+          <div class="ckh"><h2 id="ck-funding">{{fundingTitle}}</h2><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-refresh-line"/></svg></div>
+          <p class="ckd" style="margin-top: 8px">{{fundingAvail}}</p>
+          <p class="ck-amt">{{fundingValue}}</p>
+          <p class="ck-meta">{{fundingNote}} <a class="tlink" href="#">{{viewDetails}}</a></p>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <nav class="dock" aria-label="{{dockLabel}}" inert="{{baseHidden}}">
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>{{dHub}}</span>
+    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>{{dGarden}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>{{dCommunity}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>{{dActions}}</span>
+  </nav>
+  <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="ck-dlg" data-focus="1">
+      <div class="dh" data-component="SheetHeader"><div><h2 id="ck-dlg">{{dTitle}}</h2><sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn tgt-alert" data-component="PoolTarget"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if><sc-if value="{{dHasSub}}" hint-placeholder-val="{{true}}"><p>{{dSub}}</p></sc-if></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
+        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
+        <sc-if value="{{dField}}" hint-placeholder-val="{{false}}">
+          <div class="gg-field"><label for="ck-f2">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f2" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h2">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h2">{{fHint}}</span></div>
+          <sc-if value="{{dBar}}" hint-placeholder-val="{{true}}"><div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: 40">{{barA}}</span><span class="b" style="flex: 60">{{barB}}</span></div></sc-if>
+        </sc-if>
+        <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}">
+          <div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div>
+          <div class="gg-field"><label for="ck-r2">{{reasonLabel}}</label><div class="ctl" id="ck-r2" role="textbox" aria-describedby="ck-rh2">{{reasonV}}</div><span class="msg" id="ck-rh2">{{reasonHint}}</span></div>
+        </sc-if>
+        <sc-if value="{{dHasKeep}}" hint-placeholder-val="{{false}}"><div class="target"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>{{keepNote}}</div></sc-if>
+        <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+        <sc-if value="{{dHasNote}}" hint-placeholder-val="{{true}}"><p class="dnote">{{dNote}}</p></sc-if>
+      </div>
+      <div class="df" data-component="SheetActions"><button type="button" class="abtn lg">{{cancel}}</button>
+        <sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn lg fill {{dCtaCls}}">{{dCta}}</button></sc-if>
+        <sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn lg fill off" disabled>{{dCta}}</button></sc-if>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Review","Accept","Decline","Mark ready","Dispute"],"default":"Review","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Review';
+    var dark = this.props.dark ?? false;
+    var g = t.g, n = t.n;
+    var D2 = function (text, tone) { return { text: text, tone: tone || '' }; };
+    // Review Promises: members asking to take up the protocol pool's offer. Accept waits for the buyer's home garden to check the payment.
+    var claims = [
+      { who: t('who.lina'), when: t('is.cl.ago', { n: n(2) }), what: t('rq.cl.what'), tag: t('rq.tag.checked'), tagTone: 'success', why: t('rq.m.lina', { date: t.d('2026-10-22') }), whyCls: '', act: t('rq.a.accept'), key: 'accept', blocked: false },
+      { who: t('who.ama'), when: t('is.cl.today'), what: t('rq.cl.what'), tag: t('rq.tag.unchecked'), tagTone: 'warning', why: t('rq.w.ama'), whyCls: 'warn', act: t('rq.a.accept'), key: '', blocked: true }
+    ];
+    // Offers and Requests: the offer itself, then each member's month on the shared promise row with its act in the right slot
+    var prows = [
+      { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.g.title'), pill: t('sh.st.offered'), tone: 'info', details: [D2(t('rq.o.places')), D2(t('rq.d.gd'))], act: '', key: '' },
+      { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.g.title'), pill: t('sh.st.inProgress'), tone: 'info', details: [D2(t('rq.d.month', { date: t.d('2026-11-12') })), D2(t('who.kofi'))], act: t('rq.a.ready'), key: 'ready' },
+      { dir: t('sh.ck.offer'), icon: '#ri-seedling-line', title: t('of.g.title'), pill: t('sh.st.disputed'), tone: 'warning', details: [D2(t('rq.d.reported', { date: t.d('2026-11-26') })), D2(t('who.mara'))], act: t('rq.a.respond'), key: 'dispute' }
+    ];
+    var D = {
+      // Every promise here lives in the protocol pool, so each dialog's header carries the protocol warning in place of a target line
+      'Accept': { title: t('rq.d.accept.t'), sub: '', record: t('of.g.title'), protocol: true, cta: t('rq.d.accept.cta'), ctaCls: '', at: 'accept',
+        facts: [], checks: [{ t: t('rq.c.terms'), s: t('rq.c.termsS', { date: t.d('2026-10-22') }) }, { t: t('rq.c.paid', { amt: g(450) }), s: t('rq.c.paidS', { date: t.d('2026-10-22') }) }], fsr: 'rq.f.accept' },
+      'Decline': { title: t('rq.d.decline.t'), sub: '', record: t('of.g.title'), protocol: true, cta: t('rq.d.decline.cta'), ctaCls: 'dng', at: 'accept',
+        facts: [[t('rq.d.f.recorded'), g(450) + ' G$', t('rq.d.f.recordedS')]], checks: [], fsr: 'rq.f.decline' },
+      'Mark ready': { title: t('rq.d.ready.t'), sub: '', record: t('of.g.title'), protocol: true, cta: t('rq.d.ready.cta'), ctaCls: '', at: 'ready',
+        facts: [[t('rq.d.f.since'), t.d('2026-10-12'), ''], [t('rq.d.f.ended'), t.d('2026-11-12'), '']], checks: [], fsr: 'rq.f.ready' },
+      'Dispute': { title: t('rq.d.dispute.t'), sub: t('rq.d.dispute.sub'), record: t('of.g.title'), protocol: true, cta: t('rq.d.dispute.cta'), ctaCls: '', choices: true, at: 'dispute',
+        facts: [[t('rq.d.f.reported'), t('rq.d.f.reportedV', { date: t.d('2026-11-26') }), ''], [t('rq.d.f.evidence'), t('rq.d.f.evidenceV'), ''], [t('rq.d.f.who'), t('rq.d.f.whoV'), t('rq.d.f.whoS')]],
+        checks: [], fsr: 'rq.f.dispute' }
+    }[st];
+    // The lab's confirm dial: the cockpit's confirm dialog, or the same checks opened in the row itself
+    var inline = (this.props.confirm ?? 'dialog') === 'inline' && !!D;
+    var at = D ? D.at : '';
+    prows.forEach(function (r) { r.hasAct = !!r.act; r.actCls = ''; r.chev = !r.act; r.open = inline && r.key === at; r.sel = r.open ? 'true' : 'false'; });
+    claims.forEach(function (c, i) { c.hasTag = true; c.hasWhy = true; c.canDecline = true; c.hasAct = !c.blocked; c.actCls = 'fill'; c.whyId = 'rq-w' + i; c.cls = ''; c.open = inline && c.key === at; });
+    var dlgOpen = !!D && !inline;
+    var focusRows = inline && (at === 'ready' || at === 'dispute');
+    return Object.assign(GGTW(this.props), {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.gg'), me: 'K', closeLabel: t('c.close'),
+      baseHidden: dlgOpen ? 'true' : 'false', pageTitle: t('sh.ck.garden'),
+      tHealth: t('sh.ck.health'), tImpact: t('sh.ck.impact'), tActivity: t('sh.ck.activity'), tPromises: t('sh.ck.promisesTab'),
+      needsLabel: t('sh.ck.needs'), stats: [{ n: n(claims.length), k: t('sh.ck.toReview') }, { n: n(0), k: t('sh.ck.recovery') }, { n: n(0), k: t('sh.ck.pastDue') }],
+      cyclesLabel: t('ck.cycles'), seasonTitle: t('pp.cycle.gg'), seasonKind: t('sh.ck.season'), cycleOpen: t('sh.ck.cycleOpen'),
+      seasonMeta: t('ck.cyc.meta', { count: n(14), kept: n(6), date: t.d('2026-12-31') }),
+      campaignsLine: t('sh.ck.campaigns', { open: n(0), waiting: n(0) }), startCampaign: t('sh.ck.startCampaign'),
+      campaignTitle: t('rq.cyc.camp'), campaignKind: t('sh.ck.campaign'), campaignMeta: t('ck.cyc.meta', { count: n(4), kept: n(4), date: t.d('2026-09-30') }),
+      promTitle: t('sh.ck.promises'), seed: t('sh.ck.seed'), search: t('sh.ck.search'),
+      chips: [{ label: t('sh.ck.open'), cls: 'on' }, { label: t('sh.ck.confirmed'), cls: '' }, { label: t('sh.ck.past'), cls: '' }, { label: t('sh.ck.pastDueN', { count: n(0) }), cls: '' }, { label: t('sh.ck.recoveryN', { count: n(0) }), cls: '' }],
+      prows: prows, focusRows: focusRows ? '1' : '',
+      claimsTitle: t('sh.ck.review'), claimsDesc: t('rq.review.d'), hasClaimsBadge: true, claimsBadge: t('rq.protocol'), hasClaims: true, claims: claims, decline: t('rq.a.decline'),
+      focusClaims: !focusRows && (!D || inline) ? '1' : '',
+      hasEx: false, exTitle: '', exDesc: '', exFacts: [], exShort: false, exShortT: '', exShortB: '', exHasRows: false, exRows: [], exHasAct: false, exAct: '', exOpen: false, focusEx: '',
+      statusTitle: t('sh.ck.status'), statusChip: t('sh.ck.taking'),
+      statusFacts: [{ k: t('sh.ck.charter'), v: t('rq.st.charter') }, { k: t('sh.ck.cap'), v: t('ck.st.capV', { n: n(24) }) }], editPool: t('sh.ck.editPool'), pausePool: t('sh.ck.pause'),
+      fundingTitle: t('sh.ck.funding'), fundingAvail: t('sh.ck.available'), fundingValue: g(5400) + ' G$', fundingNote: t('rq.fund.note'), viewDetails: t('sh.ck.viewDetails'),
+      dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
+      showDlg: dlgOpen, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: t('c.wallet'), dHasErr: false, dErrT: '', dErrB: '', dHasKeep: false, keepNote: '',
+      dProtocol: !!(D && D.protocol), ptT: t('sh.ck.targetProtocol'), ptB: D && D.record ? t('sh.ck.targetProtocolRecord', { record: D.record }) : '',
+      dHasSub: !!(D && D.sub), dHasNote: !!D,
+      dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
+      dHasChecks: !!(D && D.checks.length), dChecks: D ? D.checks.map(function (c) { return { t: c.t, s: c.s, cls: 'ok', icon: '#ri-check-line' }; }) : [],
+      dChoices: !!(D && D.choices), choiceLabel: t('rq.ch.label'),
+      choices: [{ t: t('rq.ch.kept'), s: t('rq.ch.keptS'), on: '', aria: 'false' }, { t: t('rq.ch.cancel'), s: t('rq.ch.cancelS', { amt: g(450) }), on: 'on', aria: 'true' }],
+      reasonLabel: t('rq.reason'), reasonV: t('rq.reasonV'), reasonHint: t('rq.reasonHint'),
+      dField: false, fLabel: '', fValue: '', fUnit: '', fHint: '', fBad: '', fInvalid: 'false', fHintCls: '', dBar: false, barLabel: '', barA: '', barB: '',
+      fsrCls: 'info', fsrIcon: '#ri-information-line', fsrT: D ? t(D.fsr + '.t') : '', fsrB: D ? t(D.fsr + '.b', { amt: g(450) }) : '',
+      cancel: t('c.cancel'), dCta: D ? D.cta : '', dCtaCls: D ? D.ctaCls : '', dCan: !!D, dCannot: false
+    });
+  }
+}
+</script>
+</body>
+</html>

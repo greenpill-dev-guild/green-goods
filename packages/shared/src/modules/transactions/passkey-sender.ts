@@ -8,7 +8,7 @@
  */
 
 import type { SmartAccountClient } from "permissionless";
-import { encodeFunctionData, type Hex } from "viem";
+import { encodeFunctionData, toEventSelector, type Hex } from "viem";
 import type { SmartAccountClientResolver } from "../../types/auth";
 import {
   assertSmartAccountClient,
@@ -30,6 +30,22 @@ import {
   type TxResult,
 } from "./types";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
+import type { Address } from "../../types/domain";
+
+const KERNEL_TRY_FAILURE = toEventSelector("TryExecuteUnsuccessful(uint256,bytes)");
+
+function kernelCallFailed(
+  logs: readonly { address: Address; topics: readonly Hex[] }[],
+  account: Address
+): boolean {
+  if (!Array.isArray(logs)) throw new Error("UserOperation receipt is missing scoped logs");
+  // These are the operation's own logs. The nested execution receipt also contains other UserOperations.
+  return logs.some(
+    (log) =>
+      log.address.toLowerCase() === account.toLowerCase() &&
+      log.topics[0]?.toLowerCase() === KERNEL_TRY_FAILURE.toLowerCase()
+  );
+}
 
 interface PasskeySenderDeps {
   resolveSmartAccountClient?: SmartAccountClientResolver | null;
@@ -114,7 +130,11 @@ export class PasskeySender implements TransactionSender {
     ) {
       throw new Error("UserOperation receipt does not match the submitted operation");
     }
-    if (receipt.success !== true || receipt.receipt.status !== "success")
+    if (
+      receipt.success !== true ||
+      receipt.receipt.status !== "success" ||
+      kernelCallFailed(receipt.logs, client.account!.address)
+    )
       throw new TransactionRevertedError(operationHash, "UserOperation execution reverted");
     const hash = receipt.receipt.transactionHash;
     await options.onBroadcast?.(hash);
@@ -184,7 +204,14 @@ export class PasskeySender implements TransactionSender {
       assertSmartAccountClient(client, chainId, this.client.account!.address);
       const receipt = await client.getUserOperationReceipt({ hash: reference.hash });
       if (!receipt) return { status: "unresolved" };
-      return receipt.success
+      if (
+        receipt.userOpHash.toLowerCase() !== reference.hash.toLowerCase() ||
+        receipt.sender.toLowerCase() !== client.account!.address.toLowerCase()
+      )
+        return { status: "unresolved" };
+      return receipt.success &&
+        receipt.receipt.status === "success" &&
+        !kernelCallFailed(receipt.logs, client.account!.address)
         ? { status: "confirmed", transactionHash: receipt.receipt.transactionHash }
         : { status: "reverted" };
     } catch {

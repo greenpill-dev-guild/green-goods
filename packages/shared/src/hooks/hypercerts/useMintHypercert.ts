@@ -147,7 +147,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
       // The runtime implementation is type-safe, but TypeScript cannot infer the
       // correct types through the provide() boundary. We use 'as unknown as typeof'
       // to maintain some type safety while satisfying the compiler.
-      // See: https://stately.ai/docs/actors#fromPromise
+      // See: https://stately.ai/docs/actors#frompromise
     } as unknown as typeof mintHypercertMachine.implementations);
   }, []); // Machine created once — actors read current values from refs
 

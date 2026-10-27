@@ -88,26 +88,15 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(page.getByTestId("work-dashboard-button")).toBeEnabled({ timeout: 15000 });
     await page.getByRole("link", { name: "Garden" }).click();
 
-    // Each picker is a listbox of cards; a press chooses one.
-    const actionCard = page
-      .getByRole("listbox", { name: "Select Your Action" })
-      .getByRole("option")
-      .first();
-    const gardenCard = page
-      .getByRole("listbox", { name: "Select Your Garden" })
-      .getByRole("option")
-      .first();
+    // The account's one garden is its active garden, with one action and nothing owed, so
+    // Start's answer is known and the flow opens on Media with that action (DL-131).
+    const steps = page.getByRole("list", { name: "Steps" }).getByRole("listitem");
     // A cold dev server transforms the wizard route on first request.
-    await expect(actionCard).toBeVisible({ timeout: 15000 });
-    await expect(gardenCard).toBeVisible();
-    await actionCard.click();
-    await gardenCard.click();
-    const startButton = page.getByRole("button", { name: "Start Gardening" });
-    await expect(startButton).toBeEnabled();
-    await startButton.click();
+    await expect(steps.nth(1)).toHaveAttribute("aria-current", "step", { timeout: 15000 });
+    await expect(page.getByRole("button", { name: "Start Gardening" })).toHaveCount(0);
 
     // Warm the on-demand image compressor once while online for the same
-    // reason, then return to the first step so every step below runs offline.
+    // reason, then take the photo off again so every step below runs offline.
     const mediaInput = page.locator("#work-media-upload");
     await mediaInput.setInputFiles({
       name: "warm-up.png",
@@ -118,16 +107,11 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(detailsButton).toBeEnabled({ timeout: 15000 });
     await page.getByRole("button", { name: "Remove media 1" }).click();
     await expect(detailsButton).toBeDisabled();
-    await page.getByRole("button", { name: "Go back" }).click();
-    await expect(startButton).toBeEnabled();
 
     await context.setOffline(true);
     await expect(page.getByRole("status", OFFLINE_STATUS)).toBeVisible({ timeout: 10000 });
 
-    // Step 1: action and garden.
-    await startButton.click();
-
-    // Step 2: media.
+    // Step 2: media (Start was skipped).
     await mediaInput.setInputFiles({
       name: "planting-proof.png",
       mimeType: "image/png",

@@ -1,7 +1,7 @@
 ---
 name: ship
 user-invocable: false
-description: Publish changes safely with targeted local proof, a budgeted push gate, and current-head GitHub CI. Runs the explicit full local gate only for offline/full-readiness requests, critical surfaces, or releases.
+description: Publish changes safely with targeted local proof, a budgeted push gate, and current-head GitHub CI. Runs the explicit full local gate only for offline/full-readiness requests or releases; critical surfaces run the selector's mandatory override.
 argument-hint: "[--dry-run] [--no-commit] [--pr] [--full-local]"
 ---
 
@@ -9,7 +9,8 @@ argument-hint: "[--dry-run] [--no-commit] [--pr] [--full-local]"
 
 Publish Green Goods changes without duplicating CI locally. Ordinary work proves the changed
 behavior, passes the ready-for-CI push gate, and lets GitHub CI own broad regression coverage and
-merge approval. Critical and release work retain the complete local override.
+merge approval. Critical work keeps its mandatory override; release work keeps the complete local
+gate.
 
 ## Iron law
 
@@ -21,9 +22,10 @@ For ordinary publication, fresh evidence means targeted behavior proof, the post
 and required GitHub CI green for the PR's current head SHA. Pending, missing, stale-SHA, or
 unavailable CI is `BLOCKED`; a local full-suite run is not a substitute for PR approval.
 
-For critical surfaces, releases, or an explicit offline/full-local readiness request, fresh
-evidence also includes the complete local Ship Gate from
-[`validation-pipeline.md`](../../context/validation-pipeline.md).
+For releases or an explicit offline/full-local readiness request, fresh evidence also includes the
+complete local Ship Gate from [`validation-pipeline.md`](../../context/validation-pipeline.md). For
+critical surfaces it includes the selector's mandatory override (step 2); an ordinary critical
+commit or push does not require the complete Ship Gate.
 
 ## Activation
 
@@ -31,7 +33,8 @@ evidence also includes the complete local Ship Gate from
 |---|---|
 | “commit”, “push”, or “open a PR” | Targeted proof → commit → Push Gate → push/PR → current-head CI |
 | “ready to ship” or `--full-local` | Full local Ship Gate, then the publication flow |
-| Critical or release surface | Mandatory full local override, then the publication flow |
+| Critical surface | Mandatory override (owner typecheck and focused suite plus consumer typechecks; the full local gate for contracts, consumer suites and builds included), then the publication flow |
+| Release | Complete local Ship Gate, then the publication flow |
 | “dry-run ship check” | Selected validation only; no commit, push, or PR |
 
 Do not activate this skill for "QA mode", "quick fix", "get this to staging", or similar requests
@@ -70,9 +73,11 @@ Use `--test-path <surface>:<path>` to give the selector direct proof. A `needs-f
 nothing: provide a focused test, narrow the change, or choose an existing explicit acceptance
 check.
 
-If the selector marks any surface critical, run its complete mandatory local override. For a
-release or explicit `--full-local` request, run the complete Ship Gate. Do not use compatibility
-flags or receipts to suppress critical checks.
+If the selector marks any surface critical, run its mandatory override: for Shared, the owner's
+typecheck and focused suite plus every consumer's typechecks, with CI owning the consumer suites and
+builds; for contracts, the full local gate, consumer suites and builds included. For a release or explicit `--full-local`
+request, run the complete Ship Gate. Do not use compatibility flags or receipts to suppress
+critical checks.
 
 ## 3. Commit the proven change
 
@@ -96,7 +101,13 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
   --test-path <surface>:<focused-test-path>
 ```
 
-Routine work has a 90-second hard limit; sensitive work has 180 seconds. `needs-focus` and
+The push gate is a thin pre-check: format, lint, cheap repository checks, owner and consumer
+typechecks, docs drift and focused tests. The plan lists the builds, Storybook build, browser
+presets and whole suites it leaves to PR CI; current-head CI runs them (step 6). A critical
+contracts change keeps its full local gate, consumer suites and builds included.
+
+Routine work has a 90-second hard limit; sensitive work has 180 seconds; a saturated host (1-minute
+load above 1.5× the host CPU count) suspends the limit, so it stops no check. `needs-focus` and
 `budget-exceeded` block publication. Passing receipts are reusable only when the commit,
 working-tree fingerprint, command, policy, toolchain, validated paths, and environment match
 exactly. The pre-push hook calls the same command and may reuse that exact pass.
@@ -116,8 +127,8 @@ Wait for all required workflows selected for the changed paths to finish on the 
 SHA. A failure blocks readiness. Pending, missing, or unavailable CI yields a blocked report; do not
 run a broad local fallback and call the PR approved.
 
-Critical surfaces require both the complete local override and current-head CI. Ordinary work needs
-the targeted local contract and current-head CI.
+Critical surfaces require both the selector's mandatory override and current-head CI, which owns
+the consumer suites and builds. Ordinary work needs the targeted local contract and current-head CI.
 
 ## 7. Close out Linear after a merge
 

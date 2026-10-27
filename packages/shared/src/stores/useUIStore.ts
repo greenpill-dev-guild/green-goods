@@ -44,12 +44,37 @@ export type CommitmentsDirectionFilter = "all" | "OFFER" | "REQUEST";
 export interface CommitmentsDashboardReturnState {
   tab: "live" | "over-time" | "to-confirm";
   direction: CommitmentsDirectionFilter;
+  /** The season or campaign the list was filtered to, as a decimal id. */
+  cycleId?: string;
   scrollTop: number;
+}
+
+/** Where the Promises sheet opens: a tab, or the list filtered to one season or campaign. */
+export interface CommitmentsSheetOpening {
+  tab?: CommitmentsDashboardReturnState["tab"];
+  /** A season's or campaign's id as a decimal string, as Home's Show Its Promises passes it. */
+  cycleId?: string;
+}
+
+/** Home's sheet of the garden's open promises, as it opens: whole, or at one season or campaign. */
+export interface TakePartSheetOpening {
+  /** A season's or campaign's id as a decimal string, from its Show Its Promises; null for all. */
+  cycleId: string | null;
+  /** Its kind, so the sheet can still name it once the rail no longer lists the cycle. */
+  cycleType?: "SEASON" | "CAMPAIGN";
 }
 
 export type DashboardSnapshot =
   | ({ kind: "work" } & WorkDashboardReturnState)
   | ({ kind: "commitments" } & CommitmentsDashboardReturnState);
+
+/**
+ * A garden section open as a `tall` sheet over Home (DL-128): the active garden's Work,
+ * Insights or Gardeners, under the one shared sheet header. Home's About rows, Recent Activity's
+ * See All and a steward's duty row open them; the Work sheet lists pending work first, as the
+ * Work tab does.
+ */
+export type GardenSheet = "work" | "insights" | "gardeners";
 
 export type UIState = {
   /** Invalidates history snapshots when the signed-in identity changes; never persisted. */
@@ -66,6 +91,15 @@ export type UIState = {
   rememberWorkDashboard: (state: WorkDashboardReturnState) => void;
   restoreWorkDashboard: () => void;
   closeWorkDashboard: () => void;
+
+  /**
+   * A screen outside Home asked for Home's garden switcher (client), as the queue's failure
+   * toast does for an upload waiting in another garden. Home opens it once it shows and clears
+   * the request; nothing here switches the garden (PWA Home decision 6).
+   */
+  gardenSwitcherRequested: boolean;
+  requestGardenSwitcher: () => void;
+  clearGardenSwitcherRequest: () => void;
 
   // Garden filter sheet controls (client)
   isGardenFilterOpen: boolean;
@@ -92,6 +126,12 @@ export type UIState = {
   openEndowmentSheet: () => void;
   closeEndowmentSheet: () => void;
 
+  // The garden section open as a sheet over Home (client); null while none is.
+  gardenSheet: GardenSheet | null;
+  /** Opens one section over Home, in place of any other that was open: the sheets never stack. */
+  openGardenSheet: (sheet: GardenSheet) => void;
+  closeGardenSheet: () => void;
+
   // Wallet sheet controls (client)
   isWalletSheetOpen: boolean;
   openWalletSheet: () => void;
@@ -99,8 +139,19 @@ export type UIState = {
 
   // Commitments sheet controls (client)
   isCommitmentsSheetOpen: boolean;
-  openCommitmentsSheet: () => void;
+  /** Where the sheet opens (consumed once on mount); undefined = the Live tab, unfiltered. */
+  commitmentsSheetOpening?: CommitmentsSheetOpening;
+  openCommitmentsSheet: (opening?: CommitmentsSheetOpening) => void;
   closeCommitmentsSheet: () => void;
+
+  /**
+   * The garden's open promises as a sheet over Home (client): every promise Take Part could list,
+   * not the reader's own, which the Promises sheet keeps. Null while it is closed.
+   */
+  takePartSheet: TakePartSheetOpening | null;
+  /** Opens it whole, or at one season or campaign (`cycleId` as a decimal string, and its kind). */
+  openTakePartSheet: (opening?: { cycleId?: string; cycleType?: string | null }) => void;
+  closeTakePartSheet: () => void;
 
   /**
    * How many sheets and dialogs are open right now. Every sheet surface
@@ -152,6 +203,10 @@ export const useUIStore = create<UIState>()(
         })),
       closeWorkDashboard: () => set({ isWorkDashboardOpen: false }),
 
+      gardenSwitcherRequested: false,
+      requestGardenSwitcher: () => set({ gardenSwitcherRequested: true }),
+      clearGardenSwitcherRequest: () => set({ gardenSwitcherRequested: false }),
+
       isGardenFilterOpen: false,
       openGardenFilter: () => set({ isGardenFilterOpen: true }),
       closeGardenFilter: () => set({ isGardenFilterOpen: false }),
@@ -165,10 +220,14 @@ export const useUIStore = create<UIState>()(
           dashboardNavigationId: crypto.randomUUID(),
           commitmentsSheetReturnState: undefined,
           gardenFilters: DEFAULT_GARDEN_FILTERS,
+          gardenSwitcherRequested: false,
           isGardenFilterOpen: false,
           isEndowmentSheetOpen: false,
+          gardenSheet: null,
           isWalletSheetOpen: false,
           isCommitmentsSheetOpen: false,
+          commitmentsSheetOpening: undefined,
+          takePartSheet: null,
           isWorkDashboardOpen: false,
           workDashboardInitialTab: undefined,
           workDashboardInitialPendingFilter: undefined,
@@ -179,14 +238,38 @@ export const useUIStore = create<UIState>()(
       openEndowmentSheet: () => set({ isEndowmentSheetOpen: true }),
       closeEndowmentSheet: () => set({ isEndowmentSheetOpen: false }),
 
+      gardenSheet: null,
+      openGardenSheet: (sheet) => set({ gardenSheet: sheet }),
+      closeGardenSheet: () => set({ gardenSheet: null }),
+
       isWalletSheetOpen: false,
       openWalletSheet: () => set({ isWalletSheetOpen: true }),
       closeWalletSheet: () => set({ isWalletSheetOpen: false }),
 
       isCommitmentsSheetOpen: false,
-      openCommitmentsSheet: () =>
-        set({ isCommitmentsSheetOpen: true, commitmentsSheetReturnState: undefined }),
+      // Overwritten on every open, as the work dashboard's presets are: a bare
+      // open never inherits the previous one's tab or season. Home hands this
+      // straight to a button, so only the two presets are read from what arrives.
+      openCommitmentsSheet: (opening) =>
+        set({
+          isCommitmentsSheetOpen: true,
+          commitmentsSheetOpening: opening && { tab: opening.tab, cycleId: opening.cycleId },
+          commitmentsSheetReturnState: undefined,
+        }),
       closeCommitmentsSheet: () => set({ isCommitmentsSheetOpen: false }),
+
+      takePartSheet: null,
+      // Only a string cycle id and a known kind are read: Home may hand this straight to a button.
+      openTakePartSheet: (opening) =>
+        set({
+          takePartSheet: {
+            cycleId: typeof opening?.cycleId === "string" ? opening.cycleId : null,
+            ...(opening?.cycleType === "SEASON" || opening?.cycleType === "CAMPAIGN"
+              ? { cycleType: opening.cycleType }
+              : {}),
+          },
+        }),
+      closeTakePartSheet: () => set({ takePartSheet: null }),
 
       openSheetCount: 0,
       registerOpenSheet: () => {

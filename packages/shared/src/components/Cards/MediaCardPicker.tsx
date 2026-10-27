@@ -9,8 +9,10 @@
  * focus moves. The chosen card takes the media card's selected mark, the 3px border in the focus
  * role. `row` lays the cards in one row that scrolls sideways, each 90% of it, snapping
  * to a card's start (the installed app); `grid` lays them one to a row, then two once the
- * picker is 36rem wide (the cockpit's flow dialog). While the options load, `loading` holds
- * their place with four empty cards in the same layout (DL-056).
+ * picker is 36rem wide (the cockpit's flow dialog); `tiles` lays them two to a row at every
+ * width, each picture in a 16:9 frame and each title on two lines, so every tile is one height
+ * (the installed app's Start step, DL-131). While the options load, `loading` holds their place
+ * with four empty cards in the same layout (DL-056).
  *
  * @module components/Cards/MediaCardPicker
  */
@@ -18,7 +20,7 @@ import * as React from "react";
 import { cn } from "../../utils/styles/cn";
 import { MediaCard, type MediaCardProps, MediaCardSkeleton } from "./MediaCard";
 
-export type MediaCardPickerLayout = "row" | "grid";
+export type MediaCardPickerLayout = "row" | "grid" | "tiles";
 
 export interface MediaCardPickerOption
   extends Pick<
@@ -65,7 +67,15 @@ const LAYOUT_CLASSES: Record<MediaCardPickerLayout, { group: string; card: strin
     group: "@container",
     card: "",
   },
+  tiles: {
+    group: "grid grid-cols-2 gap-(--gg-list-gap)",
+    card: "",
+  },
 };
+
+/** Two-up tiles share a row, so each keeps its picture in proportion and a two-line title. */
+const TILE_CARD = { mediaShape: "photo", titleLines: 2 } as const;
+const BANNER_CARD = { mediaShape: "banner", titleLines: 1 } as const;
 
 /** The next card that can take focus from `from`, stepping by `step` and wrapping. */
 function nextEnabled(
@@ -137,7 +147,7 @@ export function MediaCardPicker({
     const skeletons = Array.from({ length: SKELETON_COUNT }, (_, index) => (
       <MediaCardSkeleton
         key={`skeleton-${index}`}
-        mediaShape="banner"
+        {...(layout === "tiles" ? TILE_CARD : BANNER_CARD)}
         className={LAYOUT_CLASSES[layout].card}
       />
     ));
@@ -158,7 +168,7 @@ export function MediaCardPicker({
         ref={(element: HTMLElement | null) => {
           cardRefs.current[index] = element;
         }}
-        mediaShape="banner"
+        {...(layout === "tiles" ? TILE_CARD : BANNER_CARD)}
         role="option"
         aria-selected={chosen}
         tabIndex={index === tabStop ? 0 : -1}

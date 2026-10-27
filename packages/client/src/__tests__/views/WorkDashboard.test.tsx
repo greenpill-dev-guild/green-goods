@@ -13,6 +13,17 @@ const mockUseMyWorks = vi.fn();
 const mockUseMyOnlineWorks = vi.fn();
 let mockReviewerGardenIds: string[] = [];
 let mockProofs: PendingProof[] = [];
+let mockDrafts: Array<Record<string, unknown>> = [];
+let mockActions: Array<{ id: string; title: string }> = [];
+/** The garden the chip on Home has chosen; null before a member has one. */
+let mockActiveGarden: { id: string; name: string } | null = null;
+let mockUploadOptions: unknown;
+/** The gardens each review read asked for: reviewer gardens, and gardens waiting reviews name. */
+let mockNeedsReviewReads: string[][] = [];
+/** Gardens whose review read fails; a read that asks for one of them fails whole. */
+let mockFailedReviewGardens: string[] = [];
+/** The member's gardens, which the chip can switch to; a garden the member left is not one. */
+let mockMemberGardenIds: string[] = [];
 let mockQueueUnreadable = false;
 let mockInitialPendingFilter: string | undefined;
 let mockReturnState: WorkDashboardReturnState | undefined;
@@ -85,6 +96,7 @@ function idleUploads() {
     isPreparing: false,
     isUploading: false,
     waitingDecisionWorkIds: new Set<string>() as ReadonlySet<string>,
+    waitingDecisionGardenIds: [] as string[],
     decisionFor: () => undefined,
     statusOf: () => undefined,
     upload: vi.fn(async () => undefined),
@@ -174,7 +186,20 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOrigi
 });
 
 vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
-  useDrafts: () => ({ drafts: [], draftCount: 0, deleteDraft: vi.fn(), isDeleting: false }),
+  useDrafts: () => ({ drafts: mockDrafts, deleteDraft: vi.fn(), isDeleting: false }),
+  useDraftThumbnail: () => ({ ref: { current: null }, url: null }),
+}));
+
+// The scope rule is proven in Shared; here the active garden's own items show, and so do items
+// in a garden the member left, while another of the member's gardens waits for the chip.
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({
+    garden: mockActiveGarden,
+    inScope: (gardens: readonly (string | null | undefined)[]) =>
+      !mockActiveGarden ||
+      gardens.some((garden) => garden?.toLowerCase() === mockActiveGarden?.id) ||
+      !gardens.some((garden) => garden && mockMemberGardenIds.includes(garden.toLowerCase())),
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/client-ui/commitment/usePendingProof", () => ({
@@ -189,6 +214,7 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => 
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => ({
     linkedWorkIds: new Set<string>(),
+    failedLinkWorkIds: new Set<string>(),
     refresh: mockQueueRefresh,
   }),
 }));
@@ -198,7 +224,7 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling", () 
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
-  useActions: () => ({ data: [] }),
+  useActions: () => ({ data: mockActions }),
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useYourWorkCount", () => ({
@@ -225,8 +251,20 @@ vi.mock("@green-goods/shared/hooks/work/useReviewerGardenIds", () => ({
   useReviewerGardenIds: () => ({ reviewerGardenIds: mockReviewerGardenIds, isLoading: false }),
 }));
 
+// A garden's read lists only that garden's works.
 vi.mock("@green-goods/shared/hooks/work/useNeedsReview", () => ({
-  useNeedsReview: () => mockNeedsReviewState,
+  useNeedsReview: (gardenIds: string[]) => {
+    mockNeedsReviewReads.push(gardenIds);
+    const read = new Set(gardenIds.map((garden) => garden.toLowerCase()));
+    const inRead = (item: Work) => read.has(item.gardenAddress.toLowerCase());
+    return {
+      ...mockNeedsReviewState,
+      isError: mockNeedsReviewState.isError || mockFailedReviewGardens.some((g) => read.has(g)),
+      allWorks: mockNeedsReviewState.allWorks.filter(inRead),
+      works: mockNeedsReviewState.works.filter(inRead),
+      decidedHere: mockNeedsReviewState.decidedHere.filter(inRead),
+    };
+  },
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
@@ -269,7 +307,10 @@ vi.mock("@green-goods/shared/hooks/work/useWorkApprovals", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useWorkUploads", () => ({
-  useWorkUploads: () => mockUploads,
+  useWorkUploads: (options: unknown) => {
+    mockUploadOptions = options;
+    return mockUploads;
+  },
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
@@ -282,6 +323,9 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
 });
 
 vi.mock("../../components/Cards", () => ({
+  // Which drafts are listed is the subject here; the card's own anatomy has its own tests.
+  DraftCard: ({ actionTitle, onResume }: { actionTitle?: string; onResume: () => void }) =>
+    createElement("button", { type: "button", onClick: onResume }, actionTitle ?? "Untitled"),
   MinimalWorkCard: ({
     work,
     onClick,
@@ -324,7 +368,17 @@ describe("WorkDashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReviewerGardenIds = [];
+    mockNeedsReviewReads = [];
+    mockFailedReviewGardens = [];
+    mockMemberGardenIds = [
+      "0x00000000000000000000000000000000000000a1",
+      "0x00000000000000000000000000000000000000b2",
+    ];
     mockProofs = [];
+    mockDrafts = [];
+    mockActions = [];
+    mockActiveGarden = null;
+    mockUploadOptions = undefined;
     mockQueueUnreadable = false;
     mockInitialPendingFilter = undefined;
     mockReturnState = undefined;
@@ -401,6 +455,101 @@ describe("WorkDashboard", () => {
     expect(screen.getByText("Queued tree planting")).toBeInTheDocument();
     expect(mockUseMyWorks).toHaveBeenCalledWith({ includeOffline: true });
     expect(mockUseMyOnlineWorks).not.toHaveBeenCalled();
+  });
+
+  it("names the active garden and lists only its work, the rest waiting until the chip switches", () => {
+    const here = "0x00000000000000000000000000000000000000a1";
+    const there = "0x00000000000000000000000000000000000000b2";
+    const proof = (id: string, title: string, savedGarden: string): PendingProof => ({
+      id,
+      source: "queued",
+      commitmentId: 7n,
+      garden: savedGarden as `0x${string}`,
+      savedGarden: savedGarden as `0x${string}`,
+      commitment: null,
+      title,
+      savedAt: Date.now(),
+      contents: { photos: 1, videos: 0, voiceNotes: 0, links: 0, words: false },
+      waitingReason: null,
+      failed: false,
+      sending: false,
+      discardable: true,
+      firstPhoto: null,
+    });
+    const draft = (id: string, actionUID: number, gardenAddress: string) => ({
+      id,
+      actionUID,
+      gardenAddress,
+      images: [],
+      thumbnailUrl: null,
+      currentStep: "media",
+      firstIncompleteStep: "media",
+      updatedAt: Date.now(),
+    });
+    mockActions = [
+      { id: "42161-11", title: "Compost Turn" },
+      { id: "42161-12", title: "Seed Swap" },
+    ];
+    mockReviewerGardenIds = [here, there];
+    mockNeedsReviewState = {
+      ...mockNeedsReviewState,
+      works: [
+        work({ id: "0xreview-here", title: "Review here", gardenAddress: here }),
+        work({ id: "0xreview-there", title: "Review there", gardenAddress: there }),
+      ],
+    };
+    mockUseMyWorks.mockReturnValue({
+      data: [
+        work({ id: "job-here", title: "Queued here", gardenerAddress: "0xabc", status: "syncing" }),
+        work({
+          id: "job-there",
+          title: "Queued there",
+          gardenerAddress: "0xabc",
+          gardenAddress: there,
+          status: "syncing",
+        }),
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+    mockDrafts = [draft("draft-here", 11, here), draft("draft-there", 12, there)];
+    mockProofs = [
+      proof("proof-here", "Proof here", here),
+      proof("proof-there", "Proof there", there),
+    ];
+    const items = {
+      [here]: ["Review here", "Queued here", "Compost Turn", "Proof here"],
+      [there]: ["Review there", "Queued there", "Seed Swap", "Proof there"],
+    };
+    const sheet = () => screen.getByRole("dialog", { name: "Your Work" });
+
+    mockActiveGarden = { id: here, name: "TAS HUB" };
+    const first = renderDashboard();
+
+    // The garden line takes the description's place under the title.
+    expect(sheet()).toHaveAccessibleDescription("In TAS HUB");
+    for (const title of items[here]) expect(screen.getByText(title)).toBeInTheDocument();
+    for (const title of items[there]) expect(screen.queryByText(title)).not.toBeInTheDocument();
+    // Upload all sends what this list shows, never another garden's work.
+    const { inScope } = mockUploadOptions as { inScope: (gardens: string[]) => boolean };
+    expect(inScope([here])).toBe(true);
+    expect(inScope([there])).toBe(false);
+    // Reviews are read for this garden only, so another garden's slow read never holds the list.
+    expect(mockNeedsReviewReads).toContainEqual([here]);
+    expect(mockNeedsReviewReads.flat()).not.toContain(there);
+    first.unmount();
+
+    // Nothing was lost: switching the chip lists the other garden's.
+    mockActiveGarden = { id: there, name: "Vida Verde" };
+    mockNeedsReviewReads = [];
+    renderDashboard();
+
+    expect(sheet()).toHaveAccessibleDescription("In Vida Verde");
+    expect(mockNeedsReviewReads).toContainEqual([there]);
+    expect(mockNeedsReviewReads.flat()).not.toContain(here);
+    for (const title of items[there]) expect(screen.getByText(title)).toBeInTheDocument();
+    for (const title of items[here]) expect(screen.queryByText(title)).not.toBeInTheDocument();
   });
 
   it("keeps queued submissions visible when review-side queries fail", () => {
@@ -508,6 +657,7 @@ describe("WorkDashboard", () => {
   });
 
   it("marks a decision made here as waiting to upload until Upload all sends it", () => {
+    mockReviewerGardenIds = ["0x00000000000000000000000000000000000000a1"];
     mockNeedsReviewState = {
       ...mockNeedsReviewState,
       decidedHere: [
@@ -520,6 +670,7 @@ describe("WorkDashboard", () => {
       readyCount: 1,
       queuedCount: 1,
       waitingDecisionWorkIds: new Set(["0xdecided"]),
+      waitingDecisionGardenIds: ["0x00000000000000000000000000000000000000a1"],
     };
 
     renderDashboard();
@@ -532,6 +683,72 @@ describe("WorkDashboard", () => {
     expect(screen.queryByRole("button", { name: /Queued approval/ })).not.toBeInTheDocument();
     const sent = screen.getByRole("button", { name: /Sent approval/ });
     expect(within(sent).queryByText("Your review isn't sent yet")).not.toBeInTheDocument();
+  });
+
+  it("lists a review queued for a garden the member left, as the badge counts it", () => {
+    const here = "0x00000000000000000000000000000000000000a1";
+    const left = "0x00000000000000000000000000000000000000c3";
+    mockActiveGarden = { id: here, name: "TAS HUB" };
+    // The member reviews here only; they reviewed in the other garden before leaving it.
+    mockReviewerGardenIds = [here];
+    mockNeedsReviewState = {
+      ...mockNeedsReviewState,
+      decidedHere: [
+        work({
+          id: "0xLEFT-REVIEW",
+          title: "Review from a garden I left",
+          status: "approved",
+          gardenAddress: left,
+        }),
+      ],
+    };
+    mockUploads = {
+      ...idleUploads(),
+      attentionCount: 1,
+      queuedCount: 1,
+      waitingDecisionWorkIds: new Set(["0xleft-review"]),
+      waitingDecisionGardenIds: [left],
+    };
+    mockOnPhone = 1;
+
+    renderDashboard();
+
+    expect(mockNeedsReviewReads).toContainEqual([left]);
+    const row = screen
+      .getByText("Review from a garden I left")
+      .closest("[data-component='PendingCard']");
+    if (!(row instanceof HTMLElement)) throw new Error("The queued review has no row");
+    expect(within(row).getByText("Your review")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["needsReview", "Nothing pending"],
+    ["upload", "Unable to load work"],
+  ] as const)("answers an empty %s filter alone for a left garden's failed review read", (filter, expected) => {
+    const here = "0x00000000000000000000000000000000000000a1";
+    const left = "0x00000000000000000000000000000000000000c3";
+    mockActiveGarden = { id: here, name: "TAS HUB" };
+    mockReviewerGardenIds = [here];
+    // The review waiting to upload names a garden the member left, and that garden won't read.
+    mockFailedReviewGardens = [left];
+    mockUploads = {
+      ...idleUploads(),
+      attentionCount: 1,
+      queuedCount: 1,
+      waitingDecisionWorkIds: new Set(["0xleft-review"]),
+      waitingDecisionGardenIds: [left],
+    };
+    mockUseMyWorks.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+    mockInitialPendingFilter = filter;
+
+    renderDashboard();
+
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
   it("keeps an on-chain submission out of Pending until its review read lands", () => {
@@ -650,6 +867,7 @@ describe("WorkDashboard", () => {
         source: "queued",
         commitmentId: 7n,
         garden: "0x00000000000000000000000000000000000000a1",
+        savedGarden: "0x00000000000000000000000000000000000000a1",
         commitment: null,
         title: "Repair the north fence panel",
         savedAt: Date.now(),
@@ -694,6 +912,7 @@ describe("WorkDashboard", () => {
         source: "draft",
         commitmentId: 7n,
         garden: "0x00000000000000000000000000000000000000a1",
+        savedGarden: "0x00000000000000000000000000000000000000a1",
         commitment: null,
         title: "Repair the north fence panel",
         savedAt: Date.now(),

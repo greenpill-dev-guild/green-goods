@@ -16,6 +16,19 @@ const CRITICAL_TARGETS = [
   { file: "src/registries/ENS.sol", line: 90, branch: 80 },
   { file: "src/registries/ENSReceiver.sol", line: 90, branch: 70 },
   { file: "src/registries/Power.sol", line: 80, branch: 60 },
+  // Voucher pilot value paths (24 October 2026). Initial floors: ratchet them to the first measured
+  // nightly run. StewardSafeReceiver is proved only by the gnosis-vouchers fork shard.
+  { file: "src/modules/VoucherEntitlementModule.sol", line: 85, branch: 60 },
+  { file: "src/modules/GnosisVoucherAdapter.sol", line: 85, branch: 60 },
+  { file: "src/modules/VoucherRedemptionModule.sol", line: 85, branch: 60 },
+  { file: "src/modules/VoucherRedemptionReceiver.sol", line: 85, branch: 60 },
+  { file: "src/modules/GnosisVoucherEscrow.sol", line: 85, branch: 60 },
+  { file: "src/lib/VoucherService/VoucherFinalAllocationLib.sol", line: 85, branch: 60 },
+  { file: "src/lib/CommitmentPooling/ServiceOffersLib.sol", line: 85, branch: 60 },
+  { file: "src/lib/CommitmentPooling/VoucherAcceptanceLib.sol", line: 85, branch: 60 },
+  { file: "src/lib/Settlement/PersonalFundingLib.sol", line: 85, branch: 60 },
+  { file: "src/lib/Settlement/PersonalPurchaseOutcomeLib.sol", line: 85, branch: 60 },
+  { file: "src/accounts/StewardRolePublisher.sol", line: 85, branch: 60 },
 ];
 
 function parseArgs(argv) {

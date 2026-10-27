@@ -6,6 +6,7 @@ import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/
 import { useLinkedWorkUIDs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
 import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
+import type { WorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
@@ -19,12 +20,18 @@ import { MemoryRouter } from "react-router-dom";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import {
   JOURNEY_GARDEN,
+  JOURNEY_GARDEN_RECORD,
   JOURNEY_NEIGHBOUR,
   JOURNEY_VIEWER,
   todayAt,
 } from "../../../../../shared/.storybook/clientJourneyFixtures";
 import { withHeldToast } from "../../../../../shared/.storybook/decorators";
-import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../../shared/.storybook/fixtures";
+import {
+  FIXTURE_IMAGE_BANNER,
+  FIXTURE_IMAGE_WASTE,
+  FIXTURE_WORK_MEDIA,
+  hoursAgo,
+} from "../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { DOCUMENTATION_SUBMISSION } from "../../../../../shared/.storybook/submitWorkFixtures";
 import {
@@ -48,7 +55,7 @@ const PHONE_VIEWPORT = {
 const MESSAGES = { en, es, pt } as const;
 type Locale = keyof typeof MESSAGES;
 
-type Moment = "all" | "afterCancel" | "afterDiscard" | "empty";
+type Moment = "all" | "afterCancel" | "afterDiscard" | "empty" | "takeUp";
 
 const EMPTY: PendingWorkFixture = {
   submissions: [],
@@ -59,8 +66,46 @@ const EMPTY: PendingWorkFixture = {
   onPhone: 0,
 };
 
+/** Work queued on this phone, for a promise the same tap took up (decision 18). */
+function forPromise(id: string, title: string, actionUID: number, savedAt: number): Work {
+  return {
+    ...gardenWork(id, title, { actionUID, gardenerAddress: JOURNEY_VIEWER, createdAt: savedAt }),
+    metadata: JSON.stringify({ clientWorkId: `client-${id}`, submissionState: "ready" }),
+    status: "offline",
+  };
+}
+
+/**
+ * The three stages of a take-up chain, as Your Work names them: a work waiting for its take-up,
+ * one whose take-up gave up, and a sent work whose link to the promise gave up.
+ */
+const TAKE_UP_CHAIN: PendingWorkFixture = {
+  submissions: [
+    forPromise("job-compost", "Compost Turn", 2, hoursAgo(2)),
+    forPromise("job-mulch", "Mulching", 4, hoursAgo(3)),
+    gardenWork("0x5eed07", "Seedling Transplant", {
+      actionUID: 5,
+      gardenerAddress: JOURNEY_VIEWER,
+      createdAt: hoursAgo(26),
+    }),
+  ],
+  drafts: [],
+  proofs: [],
+  linkedWorkIds: new Set(["job-compost", "job-mulch"]),
+  linkedWorkUIDs: new Set(),
+  onPhone: 2,
+};
+const TAKE_UP_STATES = new Map<string, NonNullable<ReturnType<WorkUploads["statusOf"]>>>([
+  ["job-compost", { state: "take-up-pending" }],
+  ["job-mulch", { state: "take-up-failed" }],
+]);
+
 const fixtureAt = (moment: Moment, documentationPhoto = false) =>
-  moment === "empty" ? EMPTY : pendingWorkFixture(moment, documentationPhoto);
+  moment === "empty"
+    ? EMPTY
+    : moment === "takeUp"
+      ? TAKE_UP_CHAIN
+      : pendingWorkFixture(moment, documentationPhoto);
 
 /** Work in a garden the steward reviews, and a review of theirs still on this phone. */
 function gardenWork(id: string, title: string, overrides: Partial<Work> = {}): Work {
@@ -103,7 +148,12 @@ interface DashboardFrameProps {
   savedAt?: number;
   /** Queued work and decisions: renders the Pending header action when set. */
   uploads?: Partial<UploadBarState>;
+  /** The active garden, named under the title (DL-129); unset draws a member with none. */
+  gardenName?: string;
 }
+
+/** The frames hand the tab the active garden's rows already, so its own scope keeps them all. */
+const IN_ACTIVE_GARDEN = () => true;
 
 const NO_UPLOADS: UploadBarState = {
   readyCount: 0,
@@ -128,6 +178,7 @@ function DashboardFrame({
   isOffline = false,
   savedAt,
   uploads,
+  gardenName,
 }: DashboardFrameProps) {
   const intl = useIntl();
   const fixture = fixtureAt(moment, documentationPhoto);
@@ -156,18 +207,21 @@ function DashboardFrame({
     <WorkDashboardShell
       isClosing={false}
       onRequestClose={fn()}
+      gardenName={gardenName}
       tabs={tabs}
       activeTab={tab}
       onTabChange={fn()}
     >
       {tab === "pending" ? (
         <PendingTab
+          inScope={IN_ACTIVE_GARDEN}
           submissions={fixture.submissions}
           isOnThisDevice={(work) => work.status === "offline"}
           toReview={toReview}
           decisions={decisions}
           uploads={{
             pausedForDataSaver: uploads?.pausedForDataSaver ?? false,
+            statusOf: (jobId) => (moment === "takeUp" ? TAKE_UP_STATES.get(jobId) : undefined),
             decisionFor: (workId) => {
               const decided = decisions.find((work) => work.id === workId);
               return decided
@@ -182,6 +236,7 @@ function DashboardFrame({
           viewer={JOURNEY_VIEWER}
           reads={{
             needsReview: { isLoading: false, isError: false },
+            decisions: { isLoading: false, isError: false },
             myWork: { isLoading: false, isError: false },
           }}
           isFetching={isFetching}
@@ -264,6 +319,7 @@ const meta: Meta<typeof DashboardFrame> = {
     } as unknown as ReturnType<typeof useCommitmentJobs>);
     mocked(useCommitmentQueueState).mockReturnValue({
       linkedWorkIds: fixture.linkedWorkIds,
+      failedLinkWorkIds: new Set(args.moment === "takeUp" ? ["0x5eed07"] : []),
     } as unknown as ReturnType<typeof useCommitmentQueueState>);
     mocked(useLinkedWorkUIDs).mockReturnValue({
       linked: fixture.linkedWorkUIDs,
@@ -318,12 +374,14 @@ export const CompletedWithExamplePhoto: Story = {
         status: "approved",
         gardenerAddress: JOURNEY_VIEWER,
         actionUID: 2,
+        media: [FIXTURE_IMAGE_WASTE],
       }),
       gardenWork("0x5eed06", "Path Edging", {
         status: "rejected",
         gardenerAddress: JOURNEY_VIEWER,
         actionUID: 6,
         feedback: "Add a photo showing the full repaired edge.",
+        media: [FIXTURE_IMAGE_BANNER],
       }),
     ],
   },
@@ -431,6 +489,31 @@ export const PendingSteward: Story = {
   },
 };
 
+/**
+ * Work for a promise taken up in the same tap (decision 18): each row names the stage that
+ * stopped, the take-up first, the work's own upload after it, and the link once the work is sent.
+ */
+export const PendingTakeUpChain: Story = {
+  args: { moment: "takeUp" },
+  play: async ({ canvasElement }) => {
+    // The sheet draws in a portal, so its rows are found from the page body.
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByText("Takes up the promise first")).toBeVisible();
+    await expect(body.getByText("Couldn't take up the promise")).toBeVisible();
+    await expect(body.getByText("Couldn't link it to the promise")).toBeVisible();
+  },
+};
+
+export const PendingTakeUpChainSpanish: Story = {
+  args: { moment: "takeUp" },
+  parameters: { locale: "es" },
+};
+
+export const PendingTakeUpChainPortuguese: Story = {
+  args: { moment: "takeUp" },
+  parameters: { locale: "pt" },
+};
+
 /** The same list where its words run longest. */
 export const PendingSpanish: Story = {
   args: { uploads: READY },
@@ -439,6 +522,30 @@ export const PendingSpanish: Story = {
 
 export const PendingPortuguese: Story = {
   args: { uploads: READY },
+  parameters: { locale: "pt" },
+};
+
+/**
+ * In the member's active garden (DL-129): the sheet lists that garden's work
+ * only, and the line under its title names the garden in the description's place.
+ */
+export const PendingInActiveGarden: Story = {
+  args: { uploads: READY, gardenName: JOURNEY_GARDEN_RECORD.name },
+  play: async ({ canvasElement }) => {
+    const sheet = within(canvasElement.ownerDocument.body).getByRole("dialog", {
+      name: "Your Work",
+    });
+    await expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
+  },
+};
+
+export const PendingInActiveGardenSpanish: Story = {
+  args: { uploads: READY, gardenName: JOURNEY_GARDEN_RECORD.name },
+  parameters: { locale: "es" },
+};
+
+export const PendingInActiveGardenPortuguese: Story = {
+  args: { uploads: READY, gardenName: JOURNEY_GARDEN_RECORD.name },
   parameters: { locale: "pt" },
 };
 

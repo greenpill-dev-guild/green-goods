@@ -83,8 +83,10 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("../utils/blockchain/contracts", () => ({
-  SettlementModuleABI: [],
   getNetworkContracts: () => ({ settlementModule: mocks.settlementAddress }),
+}));
+vi.mock("../utils/blockchain/contract-abis/settlement-module", () => ({
+  SettlementModuleABI: [],
 }));
 
 vi.mock("../utils/errors/contract-errors", () => ({

@@ -13,6 +13,7 @@ import type { Address, ApproximateWorkLocation } from "../../types/domain";
 import type { DraftStep, DraftWorkLink, WorkDraftRecord } from "../../types/job-queue";
 import { draftDB, hasMeaningfulDraftDetails } from "../../modules/job-queue/draft-db";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
+import { compareAddresses } from "../../utils/blockchain/address";
 import { requestPersistentStorageOnce } from "../../utils/storage/quota";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -116,11 +117,18 @@ export function useDraftAutoSave(
     if (committed?.generation === generation && committed.snapshot === snapshot)
       return committed.draftId;
     const { audioNotes = [], ...fields } = snapshot.formData;
+    // A garden alone is not work: Submit Work chooses one before the member does anything (the
+    // active garden), so a draft starts with the first action, photo or word and carries it. Nor
+    // is the action the flow chose when it skipped Start (the garden's only one).
+    const skipped = state.startSkipAction;
+    const flowChoseAction =
+      skipped !== null &&
+      skipped.actionUID === fields.actionUID &&
+      compareAddresses(skipped.garden, fields.gardenAddress);
     const meaningful =
       snapshot.images.length > 0 ||
       audioNotes.length > 0 ||
-      !!fields.gardenAddress ||
-      fields.actionUID !== null ||
+      (fields.actionUID !== null && !flowChoseAction) ||
       fields.feedback.trim() ||
       hasMeaningfulDraftDetails(fields.details) ||
       (fields.timeSpentMinutes ?? 0) > 0;

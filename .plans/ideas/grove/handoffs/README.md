@@ -1,5 +1,20 @@
 # Grove handoff
 
+**Current continuation:** [next-session handoff](next-session.md). The accepted 23 October alignment places Grove within Community Evidence Mesh and publishes the [standalone design-demo source](../artifacts/demos/README.md). The [evidence mapping](../mesh-alignment.md) records the boundaries; all product checkpoints remain pending.
+
+The follow-up publication validates standalone script parsing, public-source/privacy boundaries and DOM navigation through Soil care, both garden timelines and source/Back flows. This is DOM-only proof. Fresh rendered proof is pending: the in-app browser kernel fails on OpenSSL configuration access, and local Chromium exits on macOS Mach-port registration permission. Neither attempt is extension or authenticated Brave proof. Current-head publication/CI evidence belongs in the follow-up PR.
+
+Task record: RESR-103 / Grove alignment | Type: planning and design-source publication | Outcome: repository changes prepared; publication outcome in the follow-up PR
+Agent/model: Codex / runtime model unspecified | Coverage: 23 October alignment segment
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | unknown → 2026-10-24T02:12:18Z | Existing initiative, plan, shared checkout and local demo sources inspected; isolated clone selected |
+| Implement | 2026-10-24T02:12:18Z → 2026-10-24T02:29:18Z | Focused Linear project, five milestones, roadmap alignment, evidence mapping and portable public-safe demo copies |
+| Verify | 2026-10-24T02:29:18Z → ongoing | Linear readback, 32 valid hubs, source/privacy and DOM walkthrough checks pass; rendered proof blocked as described above |
+
+Human corrections: 0 observed in this segment; attention: unknown. Times describe observed elapsed boundaries, not active effort. Product lane receipts remain unchanged.
+
 This hub is the canonical reviewable Grove MVP plan. The user chose the name Grove and requested a dedicated branch and draft PR. The initial plan was prepared in an untracked OS research hub; this publication includes only the Grove plan and its supporting state.
 
 Product implementation has not started. UI and state/API lanes remain todo, QA waits for implementation, and the contracts lane is not applicable. Before execution, follow the start gate in [the implementation sequence](../plan.todo.md), confirm the exact Coop reuse revision and dependencies, and run the model/extension feasibility checkpoint.

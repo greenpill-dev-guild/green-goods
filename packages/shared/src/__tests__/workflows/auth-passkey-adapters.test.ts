@@ -1,6 +1,6 @@
 import { createPublicClient, custom, encodeAbiParameters, type Hex } from "viem";
 import { entryPoint07Address, type P256Credential } from "viem/account-abstraction";
-import { arbitrum, celo } from "viem/chains";
+import { arbitrum, celo, gnosis } from "viem/chains";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { factoryCalls } = vi.hoisted(() => ({
@@ -14,7 +14,7 @@ vi.mock("../../config/pimlico", async (importOriginal) => {
     ...original,
     createPublicClientForChain: (chainId: number) =>
       createPublicClient({
-        chain: chainId === 42220 ? celo : arbitrum,
+        chain: chainId === 42220 ? celo : chainId === 100 ? gnosis : arbitrum,
         transport: custom({
           request: async ({ method }) => {
             if (method === "eth_getCode") return "0x";
@@ -47,6 +47,81 @@ afterEach(() => {
 });
 
 describe("passkey cross-chain account construction", () => {
+  it("rejects Gnosis before deriving an account or constructing a sponsored client", async () => {
+    await expect(
+      defaultPasskeyAdapters.buildSmartAccount(credential, 100, "greengoods.test")
+    ).rejects.toThrow("Legacy passkey accounts are unavailable on Gnosis");
+    expect(factoryCalls).toHaveLength(0);
+  });
+
+  it("uses the explicit patched pilot recipe on all three chains without reinterpreting the legacy ID", async () => {
+    vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
+    const pilotCredential = { ...credential, id: "deadbeef", signingId: "3q2-7w" };
+    const factoryArgs = [];
+    for (const chainId of [42161, 42220, 100]) {
+      const result = await defaultPasskeyAdapters.buildSmartAccount(
+        pilotCredential,
+        chainId,
+        "greengoods.app",
+        undefined,
+        "kernel-0.3.3-pilot"
+      );
+      factoryArgs.push(await result.client.account!.getFactoryArgs());
+      expect(result.client.chain?.id).toBe(chainId);
+    }
+    expect(factoryArgs[0]).toEqual(factoryArgs[1]);
+    expect(factoryArgs[1]).toEqual(factoryArgs[2]);
+    expect(factoryArgs[0].factoryData?.toLowerCase()).toContain(
+      "2577507b78c2008ff367261cb6285d44ba5ef2e9"
+    );
+    expect(factoryArgs[0].factoryData?.toLowerCase()).toContain(
+      "7ab16ff354acb328452f1d445b3ddee9a91e9e69"
+    );
+    expect(factoryArgs[0].factoryData?.toLowerCase()).not.toContain(
+      "ba45a2bfb8de3d24ca9d7f1b551e14dff5d690fd"
+    );
+    expect(pilotCredential.id).toBe("deadbeef");
+  });
+
+  it("requires an established browser credential ID for a pilot profile", async () => {
+    await expect(
+      defaultPasskeyAdapters.buildSmartAccount(
+        credential,
+        100,
+        "greengoods.app",
+        undefined,
+        "kernel-0.3.3-pilot"
+      )
+    ).rejects.toThrow("Sign in with the passkey before selecting the pilot account");
+    expect(factoryCalls).toHaveLength(0);
+  });
+
+  it("refuses a legacy address override for the pilot recipe", async () => {
+    await expect(
+      defaultPasskeyAdapters.buildSmartAccount(
+        { ...credential, signingId: "3q2-7w" },
+        100,
+        "greengoods.app",
+        ACCOUNT,
+        "kernel-0.3.3-pilot"
+      )
+    ).rejects.toThrow("Pilot accounts must be derived without an address override");
+    expect(factoryCalls).toHaveLength(0);
+  });
+
+  it("rejects a pilot profile on a chain outside the accepted cohort networks", async () => {
+    await expect(
+      defaultPasskeyAdapters.buildSmartAccount(
+        { ...credential, signingId: "3q2-7w" },
+        11155111,
+        "greengoods.app",
+        undefined,
+        "kernel-0.3.3-pilot"
+      )
+    ).rejects.toThrow("Pilot passkey accounts are unavailable on chain 11155111");
+    expect(factoryCalls).toHaveLength(0);
+  });
+
   it("uses identical Kernel account factory calldata and EntryPoint 0.7 on Arbitrum and Celo", async () => {
     vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "arbitrum-policy");

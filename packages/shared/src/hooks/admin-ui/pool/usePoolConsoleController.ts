@@ -13,12 +13,24 @@
  * @module hooks/admin-ui/pool/usePoolConsoleController
  */
 
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
-import type { PoolConsoleController } from "./controller.types";
+import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
+import type {
+  PoolConsoleController,
+  VoucherConsoleActs,
+  VoucherConsoleView,
+} from "./controller.types";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { commitmentNeedsSeat } from "../../../modules/commitment-pooling/acts";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
 import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
+import {
+  selectVoucherAcceptanceChecks,
+  UNAVAILABLE_VOUCHER_CONSOLE,
+  type VoucherAsk,
+  type VoucherConsoleSnapshot,
+} from "../../../modules/commitment-pooling/voucher-console";
 import {
   actPhaseFor,
   claimActKey,
@@ -51,6 +63,59 @@ import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
 import { useClaimDecisions, useClaimDecisionVisit } from "./useClaimDecisions";
 import { useFinishCreating } from "./useFinishCreating";
+
+/**
+ * The issuer's acts sign with the issuer's Safe on the voucher network, which
+ * the cockpit can't propose to yet, and the pilot deployment they would reach
+ * isn't adopted: each refuses before anything reaches a wallet.
+ */
+const VOUCHER_PILOT_NOT_ADOPTED = "Voucher bookings open here once the pilot deployment is adopted";
+const refuseUntilAdopted = () => Promise.reject(new Error(VOUCHER_PILOT_NOT_ADOPTED));
+const VOUCHER_ACTS_NOT_ADOPTED: VoucherConsoleActs = {
+  approveBooking: refuseUntilAdopted,
+  reportVisit: refuseUntilAdopted,
+  proposeReturn: refuseUntilAdopted,
+  retryTransfer: refuseUntilAdopted,
+  raiseAllowance: refuseUntilAdopted,
+};
+
+/**
+ * The voucher console beside a garden's pool console (PRD-1297 surface 6): the
+ * bookings asked in the pool, the bookings under way on its offers, the
+ * issuer's reserve and its Safe's signature rule. The pilot's routes stay empty
+ * until its deployment is adopted (`SERVICE_LIVE_ROUTES`), so the read answers
+ * unavailable and the console shows only what the pool reads; Storybook seeds
+ * the same key with the pilot's fictional bookings. The pool steward's
+ * acceptance is the pool console's own act (`acceptServiceClaim`).
+ */
+export function useVoucherConsole(input: { chainId: number; garden: Address }): VoucherConsoleView {
+  const { chainId, garden } = input;
+  const query = useQuery({
+    queryKey: commitmentPoolingKeys.voucherConsole(chainId, garden),
+    queryFn: async (): Promise<VoucherConsoleSnapshot> => UNAVAILABLE_VOUCHER_CONSOLE,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const snapshot = query.data ?? UNAVAILABLE_VOUCHER_CONSOLE;
+  const lookups = useMemo(() => {
+    const asks = new Map(
+      snapshot.asks.map((ask) => [claimActKey(ask.commitmentId, ask.buyer), ask] as const)
+    );
+    const bookings = new Map(
+      snapshot.bookings.map((booking) => [booking.commitmentId.toString(), booking] as const)
+    );
+    return {
+      askFor: (commitmentId: bigint, buyer: Address) => asks.get(claimActKey(commitmentId, buyer)),
+      bookingFor: (commitmentId: bigint) => bookings.get(commitmentId.toString()),
+    };
+  }, [snapshot]);
+  return {
+    snapshot,
+    // Read each render: a deadline passes on this device's clock even between reads.
+    now: Math.max(snapshot.observedAt, Math.floor(Date.now() / 1000)),
+    ...lookups,
+    acts: VOUCHER_ACTS_NOT_ADOPTED,
+  };
+}
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
 const reportQueuedSendError = createMutationErrorHandler({
@@ -127,7 +192,11 @@ export function usePoolConsoleController(input: {
       ),
     [hasPool, cyclesQuery.cycles]
   );
-  const now = useExpiryClock({ commitments: commitmentsQuery.commitments, cycleEndTimes });
+  const now = useExpiryClock({
+    chainId,
+    commitments: commitmentsQuery.commitments,
+    cycleEndTimes,
+  });
   const model = useMemo(
     () =>
       selectPoolConsoleModel({
@@ -234,6 +303,28 @@ export function usePoolConsoleController(input: {
             commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send }),
           askedAt(commitmentId, claimant)
         ),
+      // A voucher booking is the ask's decision on the same line, so its row
+      // follows the act and keeps the outcome; the checks gate the wallet too,
+      // not only the dialog's button.
+      acceptServiceClaim: (ask: VoucherAsk, now: number) => {
+        if (!selectVoucherAcceptanceChecks(ask, now).ready) {
+          return Promise.reject(new Error("This booking isn't ready to accept"));
+        }
+        const { commitmentId, buyer, claimHash } = ask;
+        return approveClaim(
+          commitmentId,
+          buyer,
+          (send) =>
+            commitmentMutation.mutateAsync({
+              action: "acceptServiceClaim",
+              commitmentId,
+              buyer,
+              expectedClaimHash: claimHash,
+              send,
+            }),
+          askedAt(commitmentId, buyer)
+        );
+      },
       declineClaim: (commitmentId: bigint, claimant: Address, reason: string) =>
         declineClaim(
           commitmentId,

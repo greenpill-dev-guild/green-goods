@@ -24,7 +24,13 @@
  */
 
 import type { Address } from "../../types/domain";
-import type { DisplayEntry, DisplayGroupEntry } from "./display-groups";
+import {
+  type DisplayEntry,
+  type DisplayGroupCounts,
+  type DisplayGroupEntry,
+  displayBucketOf,
+} from "./display-groups";
+import { type DueClock, isPastDue } from "./due-dates";
 import { selectSeedTrayRoom } from "./seed-tray";
 import { isCommitmentCreator, isSameAccount } from "./selectors";
 import type { CommitmentProviderExposureRecord, CommitmentReadModel } from "./types-core";
@@ -35,6 +41,8 @@ export type GroupCopy = Pick<
   | "commitmentId"
   | "onchainState"
   | "derivedState"
+  | "dueDate"
+  | "cycleId"
   | "creator"
   | "leadProvider"
   | "counterparty"
@@ -44,9 +52,33 @@ export type GroupCopy = Pick<
 
 const OPEN = new Set<string>(["OFFERED", "REQUESTED"]);
 
-/** Whether anyone could take this copy up now: published, untaken, and not ended. */
-function isOpenToTakeUp(copy: Pick<GroupCopy, "onchainState" | "derivedState">): boolean {
-  return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState);
+/**
+ * Whether anyone could take this copy up now: published, untaken, not ended, and not past due
+ * (`isPastDue`), so a promise the chain would let anyone expire is offered for take-up nowhere.
+ */
+export function isOpenToTakeUp(
+  copy: Pick<GroupCopy, "onchainState" | "derivedState" | "dueDate" | "cycleId">,
+  clock: DueClock
+): boolean {
+  return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState) && !isPastDue(copy, clock);
+}
+
+/**
+ * A group's counts on the chain's clock. A copy still offered or requested on chain but past due
+ * (`isPastDue`) is never available again, since anyone may expire it, so it counts as ended, as
+ * it will be. A surface that offers taking a copy up reads its counts this way, so it never says
+ * a copy is available that its act would not take.
+ */
+export function groupCountsOnClock(
+  group: Pick<DisplayGroupEntry<GroupCopy>, "children" | "counts">,
+  clock: DueClock
+): DisplayGroupCounts {
+  const lapsed = group.children.filter(
+    (copy) => displayBucketOf(copy.onchainState) === "available" && isPastDue(copy, clock)
+  ).length;
+  if (lapsed === 0) return group.counts;
+  const { counts } = group;
+  return { ...counts, available: counts.available - lapsed, ended: counts.ended + lapsed };
 }
 
 /**
@@ -68,12 +100,14 @@ export interface CopyChoiceInput {
   askedFor: ReadonlySet<string>;
   /** Copies to pass over: one just found taken, or one already on its way from this phone. */
   skip?: ReadonlySet<string>;
+  /** The chain's clock and the pool's cycle ends: a copy past due is never chosen. */
+  clock: DueClock;
 }
 
 /** Whether one press may choose this copy, read against the latest facts about it. */
 export function canChooseCopy(copy: GroupCopy, input: CopyChoiceInput): boolean {
   const id = copy.commitmentId.toString();
-  if (!isOpenToTakeUp(copy) || input.skip?.has(id)) return false;
+  if (!isOpenToTakeUp(copy, input.clock) || input.skip?.has(id)) return false;
   if (input.viewer && isCommitmentCreator({ commitment: copy, viewer: input.viewer })) return false;
   return copy.claimMode !== "APPROVAL_GATED" || !input.askedFor.has(id);
 }

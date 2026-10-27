@@ -10,6 +10,29 @@ import { IHatsModuleFactory } from "../../src/interfaces/IHatsModuleFactory.sol"
 import { ICVSyncPowerFacet } from "../../src/interfaces/ICVSyncPowerFacet.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
 import { ZeroAddress, ArrayLengthMismatch } from "../../src/CommonErrors.sol";
+import { StewardRolePublisher } from "../../src/accounts/StewardRolePublisher.sol";
+import { StewardRouterFixture } from "../helpers/StewardRoleFixtures.sol";
+
+contract StewardObserverFixture {
+    HatsModule private immutable module;
+    address private immutable garden;
+    mapping(address => bool) public observed;
+    bool public broken;
+
+    constructor(HatsModule module_, address garden_) {
+        module = module_;
+        garden = garden_;
+    }
+
+    function setBroken(bool value) external {
+        broken = value;
+    }
+
+    function syncSteward(address account) external {
+        require(!broken, "observer unavailable");
+        observed[account] = module.isStewardOf(garden, account);
+    }
+}
 
 /// @notice Mock conviction strategy that records syncPower calls
 contract MockConvictionStrategy is ICVSyncPowerFacet {
@@ -134,6 +157,68 @@ contract HatsModuleTest is Test {
 
     function test_initialize_setsOwner() public {
         assertEq(adapter.owner(), owner, "Owner should be set correctly");
+    }
+
+    function testIntegration_Hats_stewardObserverTracksGrantsOwnerSubgrantAndRevocation() public {
+        adapter.configureGarden(garden1, 1, 2, 3, 4, 5, 6);
+        StewardObserverFixture observer = new StewardObserverFixture(adapter, garden1);
+        adapter.setStewardObserver(garden1, address(observer));
+        vm.startPrank(garden1);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertTrue(observer.observed(user1));
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertFalse(observer.observed(user1));
+        adapter.grantRole(garden1, user2, IHatsModule.GardenRole.Owner);
+        assertTrue(observer.observed(user2));
+        adapter.revokeRole(garden1, user2, IHatsModule.GardenRole.Owner);
+        assertTrue(observer.observed(user2), "owner revocation does not revoke the steward subhat");
+        vm.stopPrank();
+    }
+
+    function testIntegration_Hats_stewardObserverFailureCannotBlockRoleRevocation() public {
+        adapter.configureGarden(garden1, 1, 2, 3, 4, 5, 6);
+        StewardObserverFixture observer = new StewardObserverFixture(adapter, garden1);
+        adapter.setStewardObserver(garden1, address(observer));
+        vm.prank(garden1);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        observer.setBroken(true);
+        vm.prank(garden1);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertFalse(adapter.isStewardOf(garden1, user1));
+    }
+
+    function testIntegration_Hats_stewardObserverConfigurationRequiresProtocolOwner() public {
+        vm.prank(user1);
+        vm.expectRevert("Ownable: caller is not the owner");
+        adapter.setStewardObserver(garden1, address(0x123));
+    }
+
+    function testIntegration_Hats_fundedStewardHookDispatchesAutomaticallyAndTransportFailureCannotBlockRevocation()
+        public
+    {
+        vm.chainId(42_161);
+        adapter.configureGarden(garden1, 1, 2, 3, 4, 5, 6);
+        StewardRouterFixture router = new StewardRouterFixture();
+        StewardRolePublisher publisher =
+            new StewardRolePublisher(address(router), address(adapter), garden1, 2, address(0x789));
+        adapter.setStewardObserver(garden1, address(publisher));
+        vm.deal(address(publisher), 100);
+        vm.prank(garden1);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertEq(router.sends(), 1);
+        assertEq(publisher.dispatchedRevision(user1), 1);
+        router.setBroken(true);
+        vm.prank(garden1);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertFalse(adapter.isStewardOf(garden1, user1));
+        (uint64 revision, bool eligible) = publisher.states(user1);
+        assertEq(revision, 2);
+        assertFalse(eligible);
+        assertEq(router.sends(), 1);
+        router.setBroken(false);
+        publisher.syncSteward(user1);
+        assertEq(router.sends(), 2);
+        assertEq(publisher.dispatchedRevision(user1), 2);
     }
 
     function test_initialize_setsHatsContract() public {

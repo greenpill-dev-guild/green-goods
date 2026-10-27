@@ -9,11 +9,11 @@ export const EN_REPORTING_COPY = {
   "link.copyButton": "Copy link",
   "link.copyAddress": "Copy address",
   "chat.welcomeLinked":
-    "Hi! This chat is connected to {account}.{gardens}\nTell me what you worked on, in your own words, and send photos if you have them. To use a different account, send SWITCH.",
+    "Hi! This chat is connected to {account}.{gardens}\nTell me what you worked on, in your own words, and send photos if you have them. To use a different account, send SWITCH.{menu}",
   "chat.hello": "Hi! Your report is still open, so here's where we were.",
-  "link.notLinked": "This chat isn't connected to an account. Send CONNECT to link one.",
+  "link.notLinked": "This chat isn't connected to an account. Send CONNECT to link one.{menu}",
   "link.disconnected":
-    "Done. This chat is no longer connected to {account}, and any chat reporting permission you approved for it is paused. Send CONNECT to link an account.",
+    "Done. This chat is no longer connected to {account}, and any chat reporting permission you approved for it is paused. Send CONNECT to link an account.{menu}",
   "link.disconnectBusy":
     "A report or review is on its way out with this account, so I can't disconnect it yet. Finish or cancel it, then send DISCONNECT again.",
   "link.disconnectHint":
@@ -41,10 +41,21 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• GARDEN changes the garden for your report, and JOIN shows how to join another garden.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• DISCONNECT unlinks your account from this chat, and SWITCH links a different one.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• GARDEN changes the garden for your report, and JOIN shows how to join another garden.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• ACCOUNT shows which account this chat uses, DISCONNECT unlinks it, and SWITCH links a different one.\n• LANGUAGE lets you choose English, Spanish or Portuguese.\n• STOP stops processing, DELETE removes unpublished data.{menu}\nSupport: {support}",
+  "menu.commands": "\n• Tap Menu, next to where you type, to see these commands.",
+  "menu.account":
+    " Account commands are in the Menu too: /account, /connect, /switch and /disconnect.",
+  "language.ask": "Which language would you like me to use?{how}",
+  "language.askWords": " Send LANG EN (English), LANG ES (Español) or LANG PT (Português).",
+  "language.en": "English",
+  "language.es": "Español",
+  "language.pt": "Português",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
+  "media.photosAdded": "{count} photos added to your report.",
+  "media.stillAdding":
+    "I'm still adding your files. I'll show you the summary as soon as they're in.",
   "media.fileRead": "I read your file and added what I could to your report.",
   "media.fileKept": "I saved your file privately. I'll ask you for the details instead.",
   "media.tooLarge": "That file is larger than 10 MB, so I can't use it. Your report is saved.",
@@ -131,6 +142,8 @@ export const EN_REPORTING_COPY = {
   "report.askEvidence": "Please send {count} photo(s) of the work.",
   "report.evidenceLimit":
     "This activity accepts up to {maximum} photos, so I didn't add the last one.",
+  "report.photosKept":
+    "This activity accepts up to {maximum} photos, so your report keeps the first {maximum} you sent.",
   "report.photoAdded": "Photo received ({have} so far).",
   "report.conflict":
     "You told me “{current}” for {field}, but “{proposed}” was suggested from {source}. Which is right?",
@@ -209,7 +222,7 @@ export const EN_REPORTING_COPY = {
     "Hi! I help you report garden work on Green Goods. Want to connect your account first, so I can show your gardens? You can also just tell me what you did, and I'll ask you to connect when you publish.",
   "link.offerLabel": "Connect account",
   "link.offerDeclined":
-    "No problem. Tell me about the work you did; you can send text and photos. Send CONNECT whenever you want to link your account.",
+    "No problem. Tell me about the work you did; you can send text and photos. Send CONNECT whenever you want to link your account.{menu}",
   "link.connect":
     "To connect your Green Goods account (wallet or passkey), verify it here. The link expires in 10 minutes and never moves funds.",
   "link.connectNamed":
@@ -217,7 +230,7 @@ export const EN_REPORTING_COPY = {
   "link.connectNamedNoGardens":
     "I don't see {account} in a garden yet.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
   "link.already":
-    "This chat is connected to {account}.{gardens}\nTo use a different account, send SWITCH.",
+    "This chat is connected to {account}.{gardens}\nTo use a different account, send SWITCH.{menu}",
   "link.pairFailed":
     "That code doesn't match an open verification. Check the code on the Green Goods page.",
   "link.accountMismatch":
@@ -263,6 +276,8 @@ export const EN_REPORTING_COPY = {
     "The reporting permission for this garden is used up for now. I'll ask you to publish with your passkey instead.",
   "review.pendingList": "Work waiting for your review in {garden}. Choose one to start:",
   "review.none": "There's no work waiting for your review.",
+  "review.resumeFirst":
+    "You have a review in progress. Send CANCEL to discard it or keep going with it.",
   "review.askDecision": "Do you approve or reject “{title}” by {gardener}?",
   "review.approve": "Approve",
   "review.reject": "Reject",

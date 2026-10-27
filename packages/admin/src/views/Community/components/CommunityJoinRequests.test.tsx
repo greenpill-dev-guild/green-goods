@@ -25,6 +25,7 @@ const addSteward = vi.fn(
 );
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
+  useAwaitingJoinRequests: () => new Set<string>(),
   useGardenJoinRequestAvailability: (kind?: string) => kind !== "steward_access" || stewardship,
   useGardenJoinRequests: () => ({
     queue: [

@@ -105,7 +105,10 @@ before PR approval; local proof alone does not establish merge readiness.
 - **Critical:** contract source and release tooling; shared Auth, JobQueue, Work providers and
   modules, workflows, and auth/work/vault hooks; and any other Shared code that signs, sends a
   transaction, moves funds, or changes auth, session or queue state. Read every touched line and
-  retain the selector's complete critical override.
+  run the selector's critical override: for Shared, the owner's typecheck and focused suite plus
+  every consumer's source and test typecheck, with CI's consumer workflows owning the whole suites
+  and builds on the current head; for contracts, the full local gate, consumer suites and builds
+  included.
 - **Sensitive:** Agent runtime, indexer lifecycle/retry behavior, plan evidence, validation or
   migration tooling, admin workflow state, client journeys, and read-only Shared hooks that left
   the critical tier. Inspect failure and recovery.

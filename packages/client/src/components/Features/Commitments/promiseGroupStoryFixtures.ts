@@ -25,7 +25,8 @@ const CID = "bafy-story-water-survey";
 /** Due Fri, Oct 30, 2026, 5:00 PM UTC. */
 const DUE = 1_793_379_600n;
 
-const METADATA = new Map<string, CommitmentMetadataV1>([
+/** The set's words, which name its display group, so a list that reads them folds the copies. */
+export const STORY_GROUP_METADATA = new Map<string, CommitmentMetadataV1>([
   [
     CID,
     {
@@ -37,7 +38,7 @@ const METADATA = new Map<string, CommitmentMetadataV1>([
   ],
 ]);
 
-export const STORY_GROUP_NOTE = METADATA.get(CID)?.note ?? null;
+export const STORY_GROUP_NOTE = STORY_GROUP_METADATA.get(CID)?.note ?? null;
 
 type CopyState = "available" | "inProgress" | "kept" | "ended";
 
@@ -131,7 +132,10 @@ export function storyGroup(input: {
     const taker = state === "available" ? null : mine ? STORY_VIEWER : NEIGHBOUR;
     return copy(101 + index, state, taker, overrides);
   });
-  const [entry] = groupCommitmentsForDisplay({ commitments: copies, metadataByCID: METADATA });
+  const [entry] = groupCommitmentsForDisplay({
+    commitments: copies,
+    metadataByCID: STORY_GROUP_METADATA,
+  });
   if (!entry || entry.kind !== "group") throw new Error("the story set must fold into a group");
   const mine = copies.filter((record) => record.leadProvider === STORY_VIEWER);
   return {

@@ -5,7 +5,7 @@ slug: /community/steward-guide/end-a-season
 description: "Finish a season or campaign and understand the final archive decision."
 audience: steward
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-10-25
 feature_status: Live
 goal: "Finish a season or campaign and understand the final archive decision."
 difficulty: "standard"
@@ -29,6 +29,7 @@ source_of_truth:
   - packages/shared/src/config/app.ts
   - packages/shared/src/hooks/admin-ui/hypercerts/types.ts
   - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
+  - packages/indexer/schema.graphql
   - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
   - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
   - packages/shared/src/i18n/en.json
@@ -73,7 +74,7 @@ End a completed season or campaign to preserve its shared result. Reconciliation
   <figcaption>Ending the season changes its status to <strong className="gg-inline-label">Reconciled</strong>.</figcaption>
 </figure>
 
-3. Decide whether to keep the period available for future certification. The current dashboard cannot create a certificate linked to a pool season or campaign. If your garden wants that option, leave the period **Reconciled** and ask the Green Goods team before archiving.
+3. Decide whether to keep the period available for future certification. A certificate for a season or campaign is built from its kept promises and shared by the split fixed when it opened. The current dashboard cannot create that certificate yet. If your garden wants that option, leave the period **Reconciled** and ask the Green Goods team before archiving.
 4. If the garden has completed its review and does not need that option, consider **Archive…**. Read **Archive This Season** or **Archive This Campaign** before confirming. Archiving is final and prevents making a certificate from that cycle later; its history remains readable.
 
 

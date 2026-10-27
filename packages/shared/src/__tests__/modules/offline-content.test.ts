@@ -2,7 +2,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { worksKeys } from "../../config/query-keys/work";
-import { planOfflineContent } from "../../modules/offline-content/policy";
+import { type OfflineFocus, planOfflineContent } from "../../modules/offline-content/policy";
 import {
   OfflineScheduler,
   type OfflineSchedulerPorts,
@@ -62,6 +62,8 @@ const photo = (name: string) =>
 function harness(options: { gardens?: Garden[]; account?: string } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const conditions = { online: true, visible: true, dataSaver: false, mediaReady: true };
+  /** The garden Home opens in, which the chip can switch mid-run. */
+  const home: { activeGarden?: string } = {};
   const events: string[] = [];
   const saved = new Set<string>();
   const works: Record<string, EASWork[]> = {
@@ -78,6 +80,7 @@ function harness(options: { gardens?: Garden[]; account?: string } = {}) {
     client,
     chainId,
     account: () => options.account ?? account,
+    activeGarden: () => home.activeGarden,
     gardens: () =>
       options.gardens ?? [
         garden(gardenA, [account]),
@@ -114,7 +117,7 @@ function harness(options: { gardens?: Garden[]; account?: string } = {}) {
     idle: vi.fn(async () => {}),
     now: () => 1_000,
   };
-  return { client, conditions, events, ports, saved, works };
+  return { client, conditions, events, home, ports, saved, works };
 }
 
 beforeEach(() => resetOfflineProgress());
@@ -132,14 +135,63 @@ describe("offline plan", () => {
       garden("0xDDDD00000000000000000000000000000000dDdD", [account], 42161),
     ];
 
-    expect(planOfflineContent(gardens, account, chainId)).toEqual({ lists: [gardenA, gardenB] });
-    expect(planOfflineContent(gardens, account, chainId, gardenB.toLowerCase())).toEqual({
-      lists: [gardenB, gardenA],
-      photoGarden: gardenB,
+    expect(planOfflineContent(gardens, account, chainId)).toEqual({
+      lists: [gardenA, gardenB],
+      photoGardens: [],
     });
-    expect(planOfflineContent(gardens, account, chainId, visited.toLowerCase())).toEqual({
+    expect(
+      planOfflineContent(gardens, account, chainId, { gardenInView: gardenB.toLowerCase() })
+    ).toEqual({ lists: [gardenB, gardenA], photoGardens: [gardenB] });
+    expect(
+      planOfflineContent(gardens, account, chainId, { gardenInView: visited.toLowerCase() })
+    ).toEqual({ lists: [visited, gardenA, gardenB], photoGardens: [visited] });
+  });
+
+  it("keeps an owner's and an evaluator's gardens, and reads gardens missing a role list", () => {
+    // PRD-1311: a garden restored from an older build's cache had no `stewards` list, and
+    // spreading the lists threw `e.stewards is not iterable` on /home.
+    const gardens = [
+      { id: gardenA, chainId, owners: [account] },
+      { id: gardenB, chainId, evaluators: [account], stewards: null },
+      { id: visited, chainId, gardeners: [neighbour], stewards: {} },
+    ] as unknown as Garden[];
+
+    expect(planOfflineContent(gardens, account, chainId)).toEqual({
+      lists: [gardenA, gardenB],
+      photoGardens: [],
+    });
+  });
+
+  it("keeps the active garden's photos first and the viewed garden's second, on the same lists", () => {
+    const gardens = [
+      garden(gardenA, [account]),
+      garden(gardenB, [account]),
+      garden(visited, [neighbour]),
+    ];
+    const plan = (focus: OfflineFocus) => planOfflineContent(gardens, account, chainId, focus);
+
+    expect(plan({ activeGarden: gardenB.toLowerCase() })).toEqual({
+      lists: [gardenB, gardenA],
+      photoGardens: [gardenB],
+    });
+    expect(plan({ activeGarden: gardenB, gardenInView: visited.toLowerCase() })).toEqual({
+      lists: [gardenB, visited, gardenA],
+      photoGardens: [gardenB, visited],
+    });
+    // Visiting the active garden keeps it once.
+    expect(plan({ activeGarden: gardenA, gardenInView: gardenA.toLowerCase() })).toEqual({
+      lists: [gardenA, gardenB],
+      photoGardens: [gardenA],
+    });
+    // The active garden orders the photos and never changes which lists are kept.
+    const kept = (focus: OfflineFocus) => [...plan(focus).lists].sort();
+    for (const gardenInView of [undefined, gardenA, visited]) {
+      expect(kept({ activeGarden: gardenB, gardenInView })).toEqual(kept({ gardenInView }));
+    }
+    // An open join the roster does not list yet keeps its list, as a garden in view does.
+    expect(plan({ activeGarden: visited })).toEqual({
       lists: [visited, gardenA, gardenB],
-      photoGarden: visited,
+      photoGardens: [visited],
     });
   });
 });
@@ -148,7 +200,7 @@ describe("offline scheduler", () => {
   it("prepares lists and details everywhere, photos only for the garden in view and own work", async () => {
     const { client, events, ports } = harness();
     const scheduler = new OfflineScheduler(ports);
-    scheduler.setActiveGarden(gardenA.toLowerCase());
+    scheduler.setGardenInView(gardenA.toLowerCase());
 
     await scheduler.run();
 
@@ -206,7 +258,7 @@ describe("offline scheduler", () => {
     const scheduler = new OfflineScheduler(ports);
     vi.mocked(ports.fetchWorks).mockImplementation(async (gardenId: string, take: number) => {
       events.push(`list:${gardenId.toLowerCase()}:${take}`);
-      if (gardenId === gardenB) scheduler.setActiveGarden(gardenA);
+      if (gardenId === gardenB) scheduler.setGardenInView(gardenA);
       return harness().works[gardenId.toLowerCase()];
     });
 
@@ -216,6 +268,37 @@ describe("offline scheduler", () => {
     expect(listA).toBeGreaterThan(-1);
     expect(listA).toBeLessThan(events.indexOf("details:bafy-b-neighbour"));
     expect(events).toContain(`photo:${photo("a-neighbour")}`);
+  });
+
+  it("downloads the active garden's photos first and the garden in view's second", async () => {
+    const { events, home, ports } = harness();
+    home.activeGarden = gardenB.toLowerCase();
+    const scheduler = new OfflineScheduler(ports);
+    scheduler.setGardenInView(gardenA.toLowerCase());
+
+    await scheduler.run();
+
+    const photos = events.filter((event) => event.startsWith("photo:"));
+    const photosOf = (...names: string[]) => names.map((name) => `photo:${photo(name)}`).sort();
+    expect(photos.slice(0, 3).sort()).toEqual(photosOf("banner-BBBB", "b-own", "bafy-b-neighbour"));
+    expect(photos.slice(3).sort()).toEqual(photosOf("banner-AAAA", "a-neighbour", "bafy-a-own"));
+  });
+
+  it("follows the chip to another garden mid-run", async () => {
+    const { events, home, ports, works } = harness();
+    home.activeGarden = gardenA;
+    vi.mocked(ports.fetchWorks).mockImplementation(async (gardenId: string, take: number) => {
+      events.push(`list:${gardenId.toLowerCase()}:${take}`);
+      if (gardenId === gardenA) home.activeGarden = gardenB;
+      return works[gardenId.toLowerCase()];
+    });
+
+    await new OfflineScheduler(ports).run();
+
+    // Garden B's photos are kept now, and a neighbour's photo in garden A no longer is.
+    expect(events).toContain(`photo:${photo("banner-BBBB")}`);
+    expect(events).toContain(`photo:${photo("bafy-b-neighbour")}`);
+    expect(events).not.toContain(`photo:${photo("a-neighbour")}`);
   });
 
   it("keeps lists current under Data Saver, holds photos, and downloads them on Resume", async () => {
@@ -421,7 +504,7 @@ describe("offline scheduler", () => {
   it("lets another account on the same phone reuse downloaded lists and photos", async () => {
     const first = harness();
     const firstScheduler = new OfflineScheduler(first.ports);
-    firstScheduler.setActiveGarden(gardenA);
+    firstScheduler.setGardenInView(gardenA);
     await firstScheduler.run();
     const downloads = vi.mocked(first.ports.media.download).mock.calls.length;
 
@@ -431,7 +514,7 @@ describe("offline scheduler", () => {
       account: () => steward,
       gardens: () => [garden(gardenA, [account, steward])],
     });
-    second.setActiveGarden(gardenA);
+    second.setGardenInView(gardenA);
     await second.run();
 
     expect(first.ports.fetchWorks).toHaveBeenCalledTimes(2);
