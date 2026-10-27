@@ -351,6 +351,17 @@ describe("live service access", () => {
     await expect(adapter.read(key)).rejects.toThrow("Buyer garden membership unavailable");
   });
 
+  it("keeps a confirmed garden usable while another garden's membership is unknown", async () => {
+    const f = fixture();
+    const other = { address: account(55), name: "Other garden" };
+    f.route.buyerGardens = [...f.route.buyerGardens, other];
+    const adapter = createLiveServiceAccessAdapter({
+      ...f.dependencies,
+      membership: async (garden) => (garden === other.address ? null : true),
+    });
+    expect((await adapter.read(key)).eligibleBuyerGardens).toEqual(f.s.eligibleBuyerGardens);
+  });
+
   it("proves the route for the first read and again only right before the broadcast", async () => {
     const f = fixture();
     const receipt = vi.spyOn(f.chain, "receipt");

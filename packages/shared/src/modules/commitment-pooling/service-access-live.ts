@@ -125,8 +125,12 @@ export function createLiveServiceAccessAdapter(
         member: await membership(garden.address, key.buyer, key.sourceChainId),
       }))
     );
-    // An unknown membership is not "no": the member retries instead of reading as ineligible.
-    if (memberships.some(({ member }) => member === null))
+    // An unknown membership is not "no": with no garden confirmed, the member retries instead of
+    // reading as ineligible. A confirmed garden stays usable whatever the others answer.
+    if (
+      !memberships.some(({ member }) => member === true) &&
+      memberships.some(({ member }) => member === null)
+    )
       throw new Error("Buyer garden membership unavailable");
     s.eligibleBuyerGardens = memberships
       .filter(({ member }) => member === true)
