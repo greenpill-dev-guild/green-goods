@@ -153,9 +153,18 @@ export function bookingStorySnapshot(
     confirmed?: boolean;
     held?: bigint;
     /** The shared pool's exchange, for an offer the reader holds too few vouchers for. */
-    exchange?: "none" | "quoted" | "unknown" | "confirmed";
+    exchange?: ExchangeStoryState;
     /** False is the moment an acceptance lands, before the source records the activation. */
     activationRecorded?: boolean;
+    /** False is a split whose transfers nobody sent yet: the reader declined their prompt. */
+    legsSent?: boolean;
+    /** A deposit whose confirmation to the source didn't go, so it waits on a retry. */
+    ackStuck?: boolean;
+    /** A deposit the escrow took but couldn't finish, kept to retry as it was stored. */
+    depositRetry?: boolean;
+    /** False is a cancellation recorded on the source but not yet sent to the escrow. */
+    cancelSent?: boolean;
+    pause?: Partial<ServiceAccessSnapshot["pause"]>;
   } = {}
 ): ServiceAccessSnapshot {
   const k = SERVICES[service];
@@ -249,7 +258,12 @@ export function bookingStorySnapshot(
       claimHash,
       held,
       activationRecorded: options.activationRecorded ?? true,
+      legsSent: options.legsSent ?? true,
+      ackStuck: options.ackStuck ?? false,
+      depositRetry: options.depositRetry ?? false,
+      cancelSent: options.cancelSent ?? true,
     });
+    if (options.pause) s.pause = { ...s.pause, ...options.pause };
     s.voucherSetups = [setup];
     s.currentVoucherSetupId = setup.setupId;
     setup.availableActions = voucherSetupAvailableActions(s, setup);
@@ -259,11 +273,15 @@ export function bookingStorySnapshot(
   return s;
 }
 
+/** Where Lina's exchange stands; `short` and `failed` are the quote's failed runs. */
+export type ExchangeStoryState = "none" | "quoted" | "unknown" | "confirmed" | "short" | "failed";
+
 /**
  * Lina's exchange in the one shared pool: 8.01 Tech and Sun vouchers for 8 Green Goods vouchers
- * at the pilot's 1:1, with a 0.01 protocol fee, a minimum of 8 and a quote valid until 14:05.
+ * at the pilot's 1:1, with a 0.01 protocol fee, a minimum of 8 and a quote valid until 14:05. A
+ * short pool has 5 left to give; a failed run's transfer didn't go through.
  */
-function exchangeStoryPilot(status: "none" | "quoted" | "unknown" | "confirmed"): ServiceAccessPilot {
+function exchangeStoryPilot(status: ExchangeStoryState): ServiceAccessPilot {
   const { greenGoods, techAndSun } = VOUCHER_STORY_ISSUERS;
   const swapped = status === "unknown" || status === "confirmed";
   const quote =
@@ -296,13 +314,13 @@ function exchangeStoryPilot(status: "none" | "quoted" | "unknown" | "confirmed")
     inventory: { asset: greenGoods.asset, reserve: 0n, allowance: 0n, acceptedUndelivered: 0n },
     exchange: {
       pool: "0x000000000000000000000000000000000000fc01" as Address,
-      inventory: swapped ? vouchers(6) : vouchers(14),
+      inventory: swapped ? vouchers(6) : status === "short" ? vouchers(5) : vouchers(14),
       inputHolding: swapped ? vouchers(8.01) : 0n,
       inputLimit: vouchers(20),
       listed: true,
       allowance: quote ? quote.input : 0n,
-      status: status === "none" ? "none" : status,
-      failure: null,
+      status: status === "short" || status === "failed" ? "failed" : status,
+      failure: status === "short" ? "inventory" : status === "failed" ? "transfer" : null,
       quote,
       receipt: swapped
         ? {
@@ -319,7 +337,16 @@ function exchangeStoryPilot(status: "none" | "quoted" | "unknown" | "confirmed")
 function bookingStorySetup(
   service: BookingStoryService,
   stage: BookingStoryStage,
-  ids: { termsHash: Hex; claimHash: Hex; held: bigint; activationRecorded: boolean }
+  ids: {
+    termsHash: Hex;
+    claimHash: Hex;
+    held: bigint;
+    activationRecorded: boolean;
+    legsSent: boolean;
+    ackStuck: boolean;
+    depositRetry: boolean;
+    cancelSent: boolean;
+  }
 ): ServiceVoucherSetup {
   const k = SERVICES[service];
   const units = k.units;
@@ -354,9 +381,15 @@ function bookingStorySetup(
     depositedUnits: deposited ? units : 0n,
     setupRefundedUnits: stage === "canceled" ? units : 0n,
     appliedDecisionId: active || stage === "canceled" ? decisionId : null,
-    actionSucceeded: true,
-    failureHash: null,
+    actionSucceeded: !ids.depositRetry,
+    failureHash: ids.depositRetry ? hash(`${service}:deposit-failed`) : null,
   };
+  // A transfer the split fixed is on its way once sent (the design's pending row); until then
+  // it waits for the reader's own act.
+  const attempts =
+    stage === "returnFailed" || (stage === "transfersPending" && ids.legsSent) ? 1n : 0n;
+  // The deposit's confirmation goes to the source with it, unless it didn't go.
+  const ackSent = observed || (deposited && !ids.ackStuck);
   const legState = (leg: "release" | "refund") => {
     if (stage === "closed") return "succeeded" as const;
     if (stage === "returnFailed")
@@ -416,7 +449,8 @@ function bookingStorySetup(
         : null,
       acceptedReceiptHash: accepted ? hash(`${service}:accepted`) : null,
       authorizationDispatched: true,
-      decisionDispatched: active || stage === "canceled",
+      decisionDispatched:
+        active || stage === "canceled" || (stage === "canceling" && ids.cancelSent),
       setupResult: observed ? { ...result, phase: "deposited", decision: "none", appliedDecisionId: null } : null,
       finalResult: null,
     },
@@ -425,7 +459,7 @@ function bookingStorySetup(
       result,
       issuerReturnCeiling:
         stage === "returnProposed" ? (service === "hubDay" ? units : split.refund) : final ? split.refund : 0n,
-      pendingAction: null,
+      pendingAction: ids.depositRetry ? "deposit" : null,
       holderAbortRequested: stage === "acceptedFirst",
       allowance: deposited ? 0n : approved && stage !== "readyToDeposit" ? units : 0n,
       holderBalance: deposited ? ids.held - units : ids.held,
@@ -439,9 +473,9 @@ function bookingStorySetup(
               releaseVoucherUnits: split.release,
               refundVoucherUnits: split.refund,
             },
-            release: { state: legState("release"), attempts: stage === "returnFailed" ? 1n : 0n, failureHash: null },
+            release: { state: legState("release"), attempts, failureHash: null },
             refund: split.refund
-              ? { state: legState("refund"), attempts: stage === "returnFailed" ? 1n : 0n, failureHash: null }
+              ? { state: legState("refund"), attempts, failureHash: null }
               : { state: "not-required", attempts: 0n, failureHash: null },
             financiallyClosed: stage === "closed",
           }
@@ -450,10 +484,10 @@ function bookingStorySetup(
     acknowledgments: {
       setup: {
         destinationSequence: result.sequence,
-        sentSequence: observed ? result.sequence : null,
+        sentSequence: ackSent ? result.sequence : null,
         sourceObservedSequence: observed ? result.sequence : 0n,
-        pending: deposited && !observed,
-        sent: observed,
+        pending: deposited && !ackSent,
+        sent: ackSent,
       },
       final: {
         destinationSequence: final ? 1n : null,
@@ -563,6 +597,8 @@ export type RewardStoryState =
   | "bothOnTheWay"
   | "vouchersIn"
   | "reserveShort"
+  /** The voucher transfer failed with the reserve full enough: it waits on a retry. */
+  | "voucherDelayed"
   | "gdDelayed"
   | "received";
 
@@ -574,7 +610,7 @@ export function rewardStorySnapshot(state: RewardStoryState, withGd: boolean): S
   const voucherState =
     !due || state === "bothOnTheWay"
       ? "pending"
-      : state === "reserveShort"
+      : state === "reserveShort" || state === "voucherDelayed"
         ? "failed"
         : "delivered";
   const gdState =

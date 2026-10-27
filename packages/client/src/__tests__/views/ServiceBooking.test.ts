@@ -27,7 +27,11 @@ import {
   serviceActOffered,
   type ServiceActStep,
 } from "../../views/Home/Garden/Commitment/serviceActs";
-import { serviceBookingView } from "../../views/Home/Garden/Commitment/serviceBooking";
+import {
+  bookingVoucherIssuer,
+  serviceBookingView,
+} from "../../views/Home/Garden/Commitment/serviceBooking";
+import { exchangeStateFromPilot } from "../../views/Home/Garden/Commitment/serviceExchange";
 import { serviceRewardsView } from "../../views/Home/Garden/Commitment/serviceRewards";
 
 const intl = createIntl({ locale: "en", messages: en as Record<string, string> });
@@ -208,6 +212,72 @@ describe("voucher booking on the promise page", () => {
     );
   });
 
+  it("names a booking's frozen issuer even when another issuer shares its token", () => {
+    const { techAndSun } = VOUCHER_STORY_ISSUERS;
+    const twin = {
+      ...techAndSun,
+      account: "0x000000000000000000000000000000000000ab01" as `0x${string}`,
+      name: "Another Collective",
+    };
+    const booked = bookingStorySnapshot("hubDay", "termsChanged");
+    // The offer moved to the twin; the booking froze Tech and Sun.
+    const snapshot = {
+      ...booked,
+      offer: booked.offer && {
+        ...booked.offer,
+        voucher: { ...booked.offer.voucher!, issuer: twin.account },
+      },
+    };
+    expect(bookingVoucherIssuer(snapshot, [twin, techAndSun])?.name).toBe("Tech and Sun");
+    expect(
+      bookingVoucherIssuer(bookingStorySnapshot("hubDay", "open"), [twin, techAndSun])?.name
+    ).toBe("Tech and Sun");
+  });
+
+  it("keeps a changed-terms booking on the revision it was set up on", () => {
+    // The offer moved to version 3; the booking's deposit and authorization are bound to 2.
+    const changed = view("hubDay", "termsChanged");
+    expect(changed.termsVersion).toBe("Version 2");
+    expect(changed.words.revision).toBe(2n);
+  });
+
+  it("tells Promise kept? the transfer arrived once the split's transfers finished", () => {
+    expect(view("hubDay", "transfersPending").confirm?.split.detail).toBe(
+      "Approved; the transfer is pending"
+    );
+    // Settlement and confirming are separate: the transfer can arrive before the member confirms.
+    const settled = view("hubDay", "closed", { coreState: "READY_FOR_CONFIRMATION" });
+    expect(settled.confirm?.split.detail).toBe("Approved; the transfer arrived");
+  });
+
+  it("counts a partial one-unit delivery as one, so its final split stays offered", () => {
+    const proposed = bookingStorySnapshot("hubDay", "returnProposed");
+    // Tech and Sun proposes half the voucher back for a hub day cut short.
+    const snapshot = {
+      ...proposed,
+      voucherSetups: proposed.voucherSetups.map((row) => ({
+        ...row,
+        destination: row.destination && { ...row.destination, issuerReturnCeiling: vouchers(0.5) },
+      })),
+    };
+    const booking = serviceBookingView(
+      {
+        snapshot,
+        coreState: "ACCEPTED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(10),
+      },
+      intl
+    );
+    expect(booking?.split).toEqual({
+      delivered: 1n,
+      release: vouchers(0.5),
+      refund: vouchers(0.5),
+    });
+    expect(serviceActOffered("review", snapshot, booking?.split ?? null)).toBe(true);
+  });
+
   it("gives a reader with too few vouchers one sentence and one door, not a dead act", () => {
     const short = view("access", "notEnough", { held: vouchers(2) });
     expect(short.primary).toBeNull();
@@ -254,6 +324,52 @@ describe("a request's rewards", () => {
     expect(rewards.rows.map((row) => row.status.label)).toEqual(pills);
     expect(rewards.band.sentence).toContain(sentence);
     expect(rewards.rows[0]?.title).toBe("2 Tech and Sun vouchers");
+  });
+
+  it.each([
+    ["bothOnTheWay", false, "Your reward is on its way."],
+    [
+      "voucherDelayed",
+      false,
+      "The voucher transfer didn't go through, so it waits for Tech and Sun to retry it.",
+    ],
+    [
+      "voucherDelayed",
+      true,
+      "The voucher transfer didn't go through, so it waits for Tech and Sun to retry it.",
+    ],
+  ] as const)("never says a lone or failed voucher reward is on its way with another (%s, G$ %s)", (state, withGd, sentence) => {
+    const rewards = serviceRewardsView(
+      {
+        snapshot: rewardStorySnapshot(state, withGd),
+        coreState: rewardStoryCoreState(state),
+        issuer: VOUCHER_STORY_ISSUERS.techAndSun,
+        garden: "Riverside Commons Garden",
+      },
+      intl
+    )!;
+    expect(rewards.band.sentence).toContain(sentence);
+    expect(rewards.band.sentence).not.toContain("Both rewards");
+  });
+});
+
+describe("the shared pool's exchange", () => {
+  it.each([
+    ["deadline", "expired"],
+    ["minimum", "expired"],
+    ["transfer", "failed"],
+    ["allowance", "failed"],
+    ["inventory", "short"],
+  ] as const)("answers a %s failure as %s", (failure, state) => {
+    const quoted = bookingStorySnapshot("access", "notEnough", { exchange: "quoted" });
+    const failed = {
+      ...quoted,
+      pilot: {
+        ...quoted.pilot!,
+        exchange: { ...quoted.pilot!.exchange, status: "failed", failure },
+      },
+    } as ServiceAccessSnapshot;
+    expect(exchangeStateFromPilot(failed, false)).toBe(state);
   });
 });
 
