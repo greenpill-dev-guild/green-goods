@@ -30,9 +30,96 @@ const STATUS: Record<
   received: { id: "app.voucher.rw.s.received", defaultMessage: "Received", tone: "success" },
 };
 
+/** The pool listing's words, as the Voucher Issuers card says them. */
+const POOL_STATUS = {
+  setup: { id: "cockpit.community.voucherIssuers.st.setup", defaultMessage: "Setup pending" },
+  listed: { id: "cockpit.community.voucherIssuers.st.listed", defaultMessage: "Listed" },
+  delisted: { id: "cockpit.community.voucherIssuers.st.delisted", defaultMessage: "Delisted" },
+} as const;
+
 /** The issuer's name, else its token's symbol, else its account, so a line never has a hole. */
 function issuerName(issuer: { name: string } | null, symbol: string | null, account: Address) {
   return issuer?.name ?? symbol ?? shortAddress(account);
+}
+
+/**
+ * A gardener issuer's token in the shared pool (PRD-1323): its listing, then the holding limit
+ * that caps it, with what the pool holds now. Nothing for a collective's token.
+ */
+function poolAdmissionRows(
+  payment: NonNullable<Outcomes["payment"]>,
+  formatMessage: FormatMessage
+) {
+  const { admission } = payment;
+  if (!admission) return null;
+  const label = formatMessage({
+    id: "cockpit.garden.pool.outcome.payment.listing",
+    defaultMessage: "Pool listing",
+  });
+  if (admission.status === "unread") {
+    return (
+      <FactRow
+        label={label}
+        value={formatMessage({
+          id: "cockpit.garden.pool.outcome.payment.unread",
+          defaultMessage: "Not read",
+        })}
+      />
+    );
+  }
+  const status = formatMessage(POOL_STATUS[admission.status]);
+  const decimals = payment.asset.decimals ?? 0;
+  return (
+    <>
+      <FactRow
+        data-pool-status={admission.status}
+        label={label}
+        value={
+          admission.status === "delisted" ? (
+            <FactValue
+              value={status}
+              note={formatMessage({
+                id: "cockpit.garden.pool.outcome.payment.delistedNote",
+                defaultMessage: "The pool takes in no more",
+              })}
+            />
+          ) : (
+            status
+          )
+        }
+      />
+      {admission.status === "setup" ? null : (
+        <FactRow
+          label={formatMessage({
+            id: "cockpit.community.voucherIssuers.df.cap",
+            defaultMessage: "Pool holding limit",
+          })}
+          value={
+            <FactValue
+              value={formatMessage(
+                {
+                  id: "cockpit.garden.pool.voucher.vouchers",
+                  defaultMessage:
+                    "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
+                },
+                {
+                  count: voucherCount(admission.limit, decimals),
+                  issuer: issuerName(payment.issuer, payment.asset.symbol, payment.issuerAccount),
+                }
+              )}
+              note={formatMessage(
+                {
+                  id: "cockpit.garden.pool.outcome.payment.holding",
+                  defaultMessage: "{count, number} in the pool now",
+                },
+                { count: voucherCount(admission.holding, decimals) }
+              )}
+            />
+          }
+        />
+      )}
+    </>
+  );
 }
 
 /** A reward's amount: vouchers by their issuer, G$ in its own units. Never one sum of both. */
@@ -137,9 +224,10 @@ function rewardDetail(reward: CommitmentRewardOutcome, formatMessage: FormatMess
 /**
  * A promise's voucher outcomes in its inspector (PRD-1323, the stewards' view of `SReward` and
  * `SFunds`): a request's rewards, one fact row each with its own pill and line, the vouchers
- * first, and each receipt under Transaction details (D2); or an offer's voucher payment. A G$
- * reward's payout keeps its own controls in G$ Payout; nothing here acts. Before the work is
- * confirmed the section says nothing is set aside: a promised reward draws on its source only then.
+ * first, and each receipt under Transaction details (D2); or an offer's voucher payment, with a
+ * gardener issuer's pool listing and holding limit. A G$ reward's payout keeps its own controls in
+ * G$ Payout; nothing here acts. Before the work is confirmed the section says nothing is set
+ * aside: a promised reward draws on its source only then.
  */
 export function CommitmentVoucherOutcomes({ outcomes }: { outcomes: Outcomes }) {
   const intl = useIntl();
@@ -272,6 +360,7 @@ export function CommitmentVoucherOutcomes({ outcomes }: { outcomes: Outcomes }) 
                 { version: payment.revision.toString() }
               )}
             />
+            {poolAdmissionRows(payment, formatMessage)}
           </FactList>
         </section>
       ) : null}

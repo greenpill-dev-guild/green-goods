@@ -1,4 +1,5 @@
 import {
+  issuerPoolStatus,
   type ServiceIssuerAsset,
   type ServiceIssuerDraftRecord,
   type ServiceIssuerListings,
@@ -62,13 +63,7 @@ export function voucherIssuerRows(
       return {
         key: `${route.service.id}:${asset.id}`,
         kind: asset.kind,
-        status: !listing
-          ? "unread"
-          : !listing.admitted
-            ? "setup"
-            : listing.limit === 0n
-              ? "delisted"
-              : "listed",
+        status: listing ? issuerPoolStatus(listing) : "unread",
         route,
         asset,
         listing,

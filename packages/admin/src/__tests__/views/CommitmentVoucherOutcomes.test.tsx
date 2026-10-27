@@ -127,6 +127,7 @@ describe("CommitmentVoucherOutcomes", () => {
         issuerAccount: TECH_AND_SUN,
         units: 1_000_000n,
         revision: 2n,
+        admission: null,
         ...payment,
       },
     });
@@ -135,6 +136,8 @@ describe("CommitmentVoucherOutcomes", () => {
 
     expect(payment()).toHaveTextContent("A booking takes1 Tech and Sun voucher");
     expect(payment()).toHaveTextContent("TermsVersion 2");
+    // A collective's token is the pilot's own: no gardener listing to show.
+    expect(payment()).not.toHaveTextContent("Pool listing");
     expect(screen.queryByRole("region", { name: "Rewards" })).not.toBeInTheDocument();
 
     // An issuer with no listed name and no token symbol is named by its account, never a blank.
@@ -144,5 +147,47 @@ describe("CommitmentVoucherOutcomes", () => {
       />
     );
     expect(payment()).toHaveTextContent("A booking takes1 0x0000…fb02 voucher");
+  });
+
+  // PRD-1323: for a gardener issuer, where the token stands in the shared pool, and its cap.
+  it("places a gardener issuer's payment in the pool, under its holding limit", () => {
+    const teo = (admission: NonNullable<Outcomes["payment"]>["admission"]): Outcomes => ({
+      rewards: [],
+      workFulfilled: false,
+      payment: {
+        asset: VOUCHERS,
+        issuer: { name: "Teo Alves", gender: "masculine" },
+        issuerAccount: "0x000000000000000000000000000000000000e7e0" as Address,
+        units: 1_000_000n,
+        revision: 1n,
+        admission,
+      },
+    });
+    const { rerender } = renderWithProviders(
+      <CommitmentVoucherOutcomes
+        outcomes={teo({ status: "listed", limit: 6_000_000n, holding: 2_000_000n })}
+      />
+    );
+    const payment = () => screen.getByRole("region", { name: "Voucher Payment" });
+
+    expect(payment()).toHaveTextContent("Pool listingListed");
+    expect(payment()).toHaveTextContent("Pool holding limit6 Teo Alves vouchers2 in the pool now");
+
+    rerender(
+      <CommitmentVoucherOutcomes
+        outcomes={teo({ status: "delisted", limit: 0n, holding: 2_000_000n })}
+      />
+    );
+    expect(payment()).toHaveTextContent("Pool listingDelistedThe pool takes in no more");
+    expect(payment()).toHaveTextContent("Pool holding limit0 Teo Alves vouchers2 in the pool now");
+
+    // Not admitted yet, there's no cap to show; an unread listing says so instead of guessing.
+    rerender(
+      <CommitmentVoucherOutcomes outcomes={teo({ status: "setup", limit: 0n, holding: 0n })} />
+    );
+    expect(payment()).toHaveTextContent("Pool listingSetup pending");
+    expect(payment()).not.toHaveTextContent("Pool holding limit");
+    rerender(<CommitmentVoucherOutcomes outcomes={teo({ status: "unread" })} />);
+    expect(payment()).toHaveTextContent("Pool listingNot read");
   });
 });
