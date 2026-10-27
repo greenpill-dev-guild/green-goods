@@ -9,10 +9,11 @@ import type { ServiceStripStep } from "./ServiceStepStrip";
 
 /**
  * Which of the pilot's services a booking is. The working terms name a Tech and Sun hub day and
- * Green Goods' Claude access; their copy says so, and any other service reads in general words.
- * The offer's unit label decides until service terms carry a kind.
+ * Green Goods' Claude access; their copy says so. A member's session counted in minutes, such as
+ * a lesson, returns by minutes delivered, and any other service reads in general words. The
+ * offer's unit label decides until service terms carry a kind.
  */
-export type ServiceProfile = "hubDay" | "access" | "generic";
+export type ServiceProfile = "hubDay" | "access" | "minutes" | "generic";
 
 /** Where one booking stands, from the reader's seat: the lab's states for an offer and a booking. */
 export type ServiceBookingStage =
@@ -157,13 +158,15 @@ export interface ServiceBookingView {
     accessDays: number;
     deadline: string | null;
     sigs: string | null;
+    /** A member's own service: the member approves, then the garden's stewards accept. */
+    member: boolean;
   };
 }
 
 export interface ServiceBookingInput {
   snapshot: ServiceAccessSnapshot;
   coreState: CommitmentDerivedState;
-  issuer: Pick<VoucherIssuer, "name" | "gender"> | null;
+  issuer: Pick<VoucherIssuer, "name" | "gender" | "kind"> | null;
   approval: VoucherIssuerApproval | null;
   /** The offer's vouchers in the reader's account, from the voucher wallet; null while unknown. */
   held: bigint | null;
@@ -187,6 +190,11 @@ export interface BookingContext {
   input: ServiceBookingInput;
   stage: ServiceBookingStage;
   profile: ServiceProfile;
+  /**
+   * A member's own service. The member approves each booking from their own account, and the
+   * garden's stewards accept it, so no step names the member as the one who accepts.
+   */
+  member: boolean;
   setup: ServiceVoucherSetup | null;
   /** A voucher string with the issuer's name and grammatical gender already in it. */
   t: (id: string, values?: Record<string, string | number>) => string;

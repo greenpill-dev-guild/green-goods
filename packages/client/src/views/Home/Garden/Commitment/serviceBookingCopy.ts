@@ -1,8 +1,12 @@
 import type { BookingContext, ServiceFact } from "./serviceBookingTypes";
 
-/** The one status message, from the reader's seat, with the title where a value has no read. */
+/**
+ * The one status message, from the reader's seat, with the title where a value has no read. A
+ * member's booking takes one voucher, one published unit of their service, so its member words
+ * speak of one voucher.
+ */
 export function bookingSentence(ctx: BookingContext): string {
-  const { t, stage, profile, values, one, refund, units, date } = ctx;
+  const { t, stage, profile, member, values, one, refund, units, date } = ctx;
   const { coreState, schedule, problem } = ctx.input;
   const final = ctx.setup?.destination?.finalAllocation ?? null;
   switch (stage) {
@@ -10,15 +14,19 @@ export function bookingSentence(ctx: BookingContext): string {
     case "notEnough":
       return t("pp.band.openV");
     case "waitingApproval":
+      if (member) return t("rd.n.approvalM.b");
       return ctx.sigs ? t("rd.band.approval", { sigs: ctx.sigs }) : t("rd.n.approval.t");
     case "readyToDeposit":
-      return t(one ? "rd.n.deposit1.b" : "rd.n.deposit.b", values);
+      return t(member ? "rd.n.depositM.b" : one ? "rd.n.deposit1.b" : "rd.n.deposit.b", values);
     case "confirmingDeposit":
-      return t("rd.n.confirming.b");
+      return t(member ? "rd.n.confirmingM.b" : "rd.n.confirming.b");
     case "waitingAcceptance":
-      return t(one ? "rd.n.acceptance1.b" : "rd.n.acceptance.b", values);
+      return t(
+        member ? "rd.n.acceptanceM.b" : one ? "rd.n.acceptance1.b" : "rd.n.acceptance.b",
+        values
+      );
     case "starting":
-      return t("rd.n.starting.b");
+      return t(member ? "rd.n.startingM.b" : "rd.n.starting.b");
     case "inProgress":
       if (profile === "hubDay" && schedule?.visitAt && schedule.from && schedule.to)
         return t("rd.n.sessionOn.b", {
@@ -37,6 +45,12 @@ export function bookingSentence(ctx: BookingContext): string {
       return t("rd.n.close.b");
     case "returnProposed":
       if (profile === "hubDay" && refund === units) return t("rd.n.proposedS.b");
+      if (profile === "minutes")
+        return t("rd.n.proposedL.b", {
+          ...values,
+          done: Number(ctx.delivered),
+          of: Number(ctx.serviceUnits),
+        });
       return profile === "access" ? t("rd.n.proposed.b", values) : t("rd.n.proposed.t");
     case "transfersPending":
       return refund > 0n ? t("rd.n.legsBack.b", values) : t("rd.n.legsSun.b");
@@ -46,13 +60,14 @@ export function bookingSentence(ctx: BookingContext): string {
         : t("rd.n.legFailedS.b");
     case "closed":
       if (ctx.kept) return profile === "hubDay" ? t("rd.n.kept.b") : t("rd.n.kept.t");
-      return coreState === "CANCELLED" ? t("rd.n.closedEarly.b", values) : t("rd.n.closedEarly.t");
+      if (coreState !== "CANCELLED") return t("rd.n.closedEarly.t");
+      return t(member ? "rd.n.closedEarlyM.b" : "rd.n.closedEarly.b", values);
     case "canceling":
       return t("rd.n.canceling.b");
     case "canceled":
       return one ? t("rd.n.canceledM.b") : t("rd.n.canceled.b", values);
     case "acceptedFirst":
-      return t("rd.n.race.b");
+      return t(member ? "rd.n.raceM.b" : "rd.n.race.b");
     case "termsChanged":
       return t(one ? "rd.n.changed1.b" : "rd.n.changed.b", values);
     case "problemReported":
@@ -77,7 +92,8 @@ function fact(
  * acceptance deadline and its remedy.
  */
 export function bookingFacts(ctx: BookingContext): ServiceFact[] {
-  const { t, unit, count, profile, units, n, accessDays } = ctx;
+  const { t, unit, count, profile, member, units, n, accessDays } = ctx;
+  const minutes = Number(ctx.serviceUnits);
   if (!ctx.setup) {
     const offer = ctx.input.snapshot.offer;
     const held = ctx.input.held;
@@ -99,16 +115,20 @@ export function bookingFacts(ctx: BookingContext): ServiceFact[] {
         held !== null ? t("of.v.giveS", { held: count(held) }) : null
       ),
       fact("held", t("of.q.held"), t("of.v.held"), t("of.v.heldS")),
-      fact("next", t("of.q.next"), t("of.v.next"), t("of.v.nextS")),
+      member
+        ? fact("next", t("of.q.next"), t("of.m.next"), t("of.m.nextS"))
+        : fact("next", t("of.q.next"), t("of.v.next"), t("of.v.nextS")),
       fact(
         "back",
         t("of.q.back"),
-        t("of.v.back"),
+        t(member ? "of.m.back" : "of.v.back"),
         profile === "hubDay"
           ? t("of.s.backS")
           : profile === "access"
             ? t("of.c.backS", { of: accessDays })
-            : t("rd.f.backS")
+            : profile === "minutes"
+              ? t("of.m.backS", { of: minutes })
+              : t("rd.f.backS")
       ),
     ];
   }
@@ -120,7 +140,11 @@ export function bookingFacts(ctx: BookingContext): ServiceFact[] {
     fact(
       "back",
       t("rd.f.back"),
-      profile === "access" ? t("rd.f.backC", { of: accessDays }) : t("rd.f.backS"),
+      profile === "access"
+        ? t("rd.f.backC", { of: accessDays })
+        : profile === "minutes"
+          ? t("rd.f.backL", { of: minutes })
+          : t("rd.f.backS"),
       t("rd.f.backSub")
     )
   );
