@@ -1,6 +1,7 @@
 import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import type { DisputeResolutionKey } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useCommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController";
+import { useCommitmentVoucherOutcomes } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
 import { rewardCentsAsSet } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -31,6 +32,7 @@ import { CommitmentResolveDialog } from "./CommitmentResolveDialog";
 import { CommitmentSettlementSection, showsSettlement } from "./CommitmentSettlement";
 import { CommitmentSummary } from "./CommitmentSummary";
 import { CommitmentTimeline } from "./CommitmentTimeline";
+import { CommitmentVoucherOutcomes } from "./CommitmentVoucherOutcomes";
 import { ConfirmKeptDialog } from "./ConfirmKeptDialog";
 import {
   type OpenDialog,
@@ -81,6 +83,12 @@ function CommitmentRecord({
 }: Omit<CommitmentDialogPanelProps, "commitmentId"> & { commitmentId: bigint }) {
   const { formatMessage } = useIntl();
   const dialog = useCommitmentDialogController({ chainId, garden, commitmentId });
+  // A request's rewards or an offer's voucher payment (PRD-1323), beside the G$ Payout.
+  const voucherOutcomes = useCommitmentVoucherOutcomes({
+    chainId,
+    commitment: dialog.commitment ?? null,
+    viewer: dialog.viewer,
+  });
   const [open, setOpen] = useState<OpenDialog>(null);
   const [resolution, setResolution] = useState<DisputeResolutionKey>("RESTORE_PREVIOUS");
   const [assessmentUID, setAssessmentUID] = useState<string | null>(null);
@@ -169,6 +177,8 @@ function CommitmentRecord({
       />
 
       <CommitmentFacts commitment={commitment} detail={detail} />
+
+      {voucherOutcomes ? <CommitmentVoucherOutcomes outcomes={voucherOutcomes} /> : null}
 
       {showsSettlement(commitment) ? (
         <CommitmentSettlementSection
