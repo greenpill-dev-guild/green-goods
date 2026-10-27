@@ -1,7 +1,11 @@
 import EscrowABI from "@green-goods/contracts/abis/GnosisVoucherEscrow.json";
-import { type Abi, type Hex, encodeFunctionData } from "viem";
+import { type Abi, type Hex, type PublicClient, encodeFunctionData } from "viem";
+import { createPublicClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
+import type { GraphQLReader } from "../data/graphql-client";
+import { LEDGER_MAX_AGE_SECONDS, ledgerAgeSeconds } from "./data-pool-funding-freshness";
+import { queryProcessedBlocks } from "./data-pool-funding-indexed-queries";
 import {
   serviceAddress,
   serviceHash,
@@ -19,6 +23,43 @@ import {
 
 const needsExecution = (leg: VoucherLegProgress | undefined) =>
   leg?.state === "pending" || leg?.state === "failed";
+
+/**
+ * Whether the index has every booking prepared on the source chain up to two minutes ago, read
+ * from the time of the last block it processed there.
+ */
+async function discoveryCurrent(
+  chainId: number,
+  reader: GraphQLReader,
+  deps: Dependencies
+): Promise<boolean> {
+  const processed = await queryProcessedBlocks(reader, [chainId]);
+  if (!processed) {
+    logger.warn("Voucher discovery cannot read the indexer's progress", { chainId });
+    return false;
+  }
+  const createClient =
+    deps.createClient ?? (createPublicClientForChain as (chainId: number) => PublicClient);
+  const timestamps = await Promise.all(
+    processed.map(({ chainId: chain, block }) =>
+      createClient(chain)
+        .getBlock({ blockNumber: block })
+        .then(
+          (read) => Number(read.timestamp),
+          (error: unknown) => {
+            logger.warn("Voucher discovery cannot read the indexer's last block", {
+              error,
+              chainId: chain,
+              block: block.toString(),
+            });
+            return null;
+          }
+        )
+    )
+  );
+  const age = ledgerAgeSeconds(timestamps, deps.now ?? Math.floor(Date.now() / 1_000));
+  return age !== null && age <= LEDGER_MAX_AGE_SECONDS;
+}
 
 /** The index discovers candidates; exact source consent and destination custody own the console. */
 export async function readLiveVoucherConsole(
@@ -54,6 +95,10 @@ export async function readLiveVoucherConsole(
       : null,
     incomplete: true,
   };
+  const current = discoveryCurrent(input.chainId, reader, deps).catch((error: unknown) => {
+    logger.warn("Voucher discovery freshness is unknown", { error, garden: input.garden });
+    return false;
+  });
   try {
     const result = await reader.query<{ VoucherServiceSetup: unknown[] }>(
       `query GardenVoucherSetups($chain: Int!, $module: String!, $core: String!, $garden: String!) {
@@ -75,6 +120,8 @@ export async function readLiveVoucherConsole(
     const asks: VoucherAsk[] = [];
     const bookings: VoucherBooking[] = [];
     const seen = new Set<Hex>();
+    // Accepted on the source but not yet activated on Gnosis: neither an ask nor a booking yet.
+    let awaitingActivation = false;
     for (const value of result.data.VoucherServiceSetup.slice(0, 100)) {
       const row = serviceTuple(value, [
         "id",
@@ -143,6 +190,8 @@ export async function readLiveVoucherConsole(
             : null,
         });
       }
+      if (source.consent?.state === "accepted" && (!d || d.result.decision === "none"))
+        awaitingActivation = true;
       if (
         source.consent?.state !== "accepted" ||
         d?.result.decision !== "activate" ||
@@ -185,7 +234,10 @@ export async function readLiveVoucherConsole(
     }
     snapshot.asks = asks;
     snapshot.bookings = bookings;
-    // A bounded projection cannot establish that every cross-chain message has arrived.
+    // A full bounded read, an activation still crossing to Gnosis, or an index behind the
+    // source chain can each leave a booking out.
+    snapshot.incomplete =
+      result.data.VoucherServiceSetup.length > 100 || awaitingActivation || !(await current);
   } catch (error) {
     snapshot.status = "unavailable";
     logger.warn("Voucher console discovery is unavailable", { error, garden: input.garden });

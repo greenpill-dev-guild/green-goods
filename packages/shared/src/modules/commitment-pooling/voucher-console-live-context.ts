@@ -1,4 +1,4 @@
-import type { Hex } from "viem";
+import type { Hex, PublicClient } from "viem";
 import type { Address } from "../../types/domain";
 import { greenGoodsIndexer, type GraphQLReader } from "../data/graphql-client";
 import { SERVICE_LIVE_ROUTES, type ServiceLiveRoute } from "./service-access-live-config";
@@ -18,6 +18,10 @@ export interface Dependencies {
   chain?: ServiceLiveChain;
   reader?: GraphQLReader;
   readSnapshot?: (key: ServiceAccessKey) => Promise<ServiceAccessSnapshot>;
+  /** Reads when the indexer's last processed block was made, for discovery freshness. */
+  createClient?: (chainId: number) => PublicClient;
+  /** Seconds since the epoch; the device clock by default. */
+  now?: number;
 }
 export const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 export const issuerFor = (
