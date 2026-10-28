@@ -32,6 +32,16 @@ shared top and bottom under them; it passes with 0 problems (62 screens, 35 back
 1024x768 to 2560x1440. Published to the artifact as version 17; the Drive copy still needs the
 new `output/green-goods-sf-live-demo.html`.
 
+## Applied on 28 October
+
+Afo took areas 1, 2, 3, 4, 5, 7, 8 and 9, and added three of his own from a laptop: the intro and
+the close still scrolled a little, the column stood at the window's edge away from a phone screen,
+and every site link should open the beta. All of it is in the page now, with the README's
+[task record](README.md#task-record--the-judges-review-applied) as the evidence: area 1 by the
+reorder (the split stays an option), 2 by `focus` regions on the three desktop story screens, 4 by
+captions (the re-capture stays the stronger fix), 5 with the Drive PDFs, 6 left to the pitch owner
+with the link now on beta.greengoods.app. The findings below are kept as they were read.
+
 ## 1. The page is one 8.8 MB file, and the intro finishes last
 
 Served over a 20 Mbps connection the page takes about 4.2 seconds to arrive, and about 2 seconds

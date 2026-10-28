@@ -24,6 +24,7 @@
     --pilot-bg: #FBF0DA; --pilot-ink: #7A4D0B; --pilot-edge: #EBD3A0;
     --track: #D9D1C5; --knob: #FFFFFF;
     --seg: #E2DBD1; --seg-done: #93C3A5; --seg-now: #1A7544;
+    --tint-dash: #E4ECF6; --dash-ink: #2F5A8F; --tint-web: #EDE7F3; --web-ink: #5B3F82;
     /* The back regions sit on the captured screens, which are light in both themes. */
     --back-ring: rgba(28, 25, 23, 0.7); --back-fill: rgba(28, 25, 23, 0.07);
     --serif: "Fraunces", Georgia, "Times New Roman", serif;
@@ -40,6 +41,7 @@
       --pilot-bg: #3A2D16; --pilot-ink: #F3CD82; --pilot-edge: #5C4521;
       --track: #46403A; --knob: #F5F1EA;
       --seg: #3A3530; --seg-done: #2F6B49; --seg-now: #6BD39A;
+      --tint-dash: #1C2A3A; --dash-ink: #9CC3F0; --tint-web: #2A2235; --web-ink: #C9B5E8;
       color-scheme: dark;
     }
   }
@@ -52,6 +54,7 @@
     --pilot-bg: #3A2D16; --pilot-ink: #F3CD82; --pilot-edge: #5C4521;
     --track: #46403A; --knob: #F5F1EA;
     --seg: #3A3530; --seg-done: #2F6B49; --seg-now: #6BD39A;
+    --tint-dash: #1C2A3A; --dash-ink: #9CC3F0; --tint-web: #2A2235; --web-ink: #C9B5E8;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -83,6 +86,8 @@
   a.btn { text-decoration: none; }
   .btn.quiet { min-height: 44px; padding: 0 18px 0 14px; font-size: 16px; }
   .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; }
+  .people { margin: 0; max-width: 50ch; font: 400 17px/1.45 var(--sans); color: var(--ink-2); text-wrap: pretty; }
+  .facts .pilot { vertical-align: middle; margin-right: 4px; }
   .pilot { display: inline-flex; align-items: center; flex: none; min-height: 26px; padding: 0 10px; border: 1px solid var(--pilot-edge); border-radius: 999px; background: var(--pilot-bg); color: var(--pilot-ink); font: 600 13px/1 var(--sans); letter-spacing: 0.02em; white-space: nowrap; }
 
   /* The light and dark switch: the page follows the system until the viewer picks. */
@@ -98,6 +103,10 @@
   .device.phone { --ratio: 0.4621; border-radius: calc(var(--bezel-w) * 4.6); }
   .device.desktop { --ratio: 1.6; border-radius: calc(var(--bezel-w) * 1.8); }
   .screen { position: relative; display: block; overflow: hidden; background: var(--screen); }
+  /* A story screen may zoom into a region (`focus` in #flows): the pane scales from its top left
+     corner after moving the region's corner there, so the hotspot and back regions move with it. */
+  .pane { position: absolute; inset: 0; transform-origin: 0 0; transform: scale(var(--s, 1)) translate(calc(var(--fx, 0) * -100%), calc(var(--fy, 0) * -100%)); }
+  img.pending { visibility: hidden; }
   .phone .screen { aspect-ratio: 390 / 844; border-radius: calc(var(--bezel-w) * 3.6); }
   .desktop .screen { aspect-ratio: 1440 / 900; border-radius: calc(var(--bezel-w) * 0.8); }
   .screen img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
@@ -144,6 +153,10 @@
   .seg::before { content: ""; position: absolute; inset: 6px 0; border-radius: 2px; background: var(--seg); }
   .seg.done::before { background: var(--seg-done); }
   .seg.now::before { inset: 5px 0; background: var(--seg-now); }
+  .seg:hover::before { background: var(--stone); }
+  .seg.done:hover::before { background: var(--accent); }
+  /* A chapter's intro beside its first screens (every step, wide), and the one hint (story, screen 1). */
+  .intro-line, .hint { display: none; margin: 0; }
 
   .stage { min-height: 0; container-type: size; display: grid; place-items: center; }
   /* The widest device the stage holds: a height-bound one is exactly the stage's height, bezel and
@@ -162,6 +175,8 @@
   .backspot:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; box-shadow: 0 0 0 2px var(--back-ring); }
 
   .meta { margin: 0; height: 28px; display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 0; overflow: hidden; }
+  .where[data-where="Dashboard"] { background: var(--tint-dash); color: var(--dash-ink); }
+  .where[data-where="Website"] { background: var(--tint-web); color: var(--web-ink); }
   .where { display: inline-flex; align-items: center; flex: none; min-height: 24px; padding: 0 8px; border-radius: 6px; background: var(--tint); color: var(--accent); font: 600 12px/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
   .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 16px/1.3 var(--sans); color: var(--sub); }
   .caption { --cap: clamp(20px, 0.8vw + 13px, 26px); margin: 0 auto; width: 100%; max-width: 44ch; height: calc(2 * 1.25 * var(--cap)); font: 500 var(--cap)/1.25 var(--sans); text-align: center; text-wrap: balance; color: var(--ink); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: clip; }
@@ -175,25 +190,64 @@
      keep one place, and the device takes the body's height in the space that remains (or that
      space's width, for a desktop screen), centered there. The body is the container here, so the
      device's height never depends on its own column. */
+  /* A laptop window with the browser's own bars: the intro and the close fit without scrolling. */
+  @media (min-width: 1000px) and (max-height: 899px) {
+    .view { padding-block: 12px 16px; }
+    .page { gap: clamp(12px, 2.2vh, 24px); }
+    .topbar { min-height: 44px; padding-top: 0; }
+    .mark { width: 44px; }
+    h1 { font-size: clamp(32px, 2.2vw + 10px, 50px); }
+    h2 { font-size: clamp(28px, 1.8vw + 10px, 42px); }
+    .lede { font-size: 17px; line-height: 1.4; }
+    .people { font-size: 15px; }
+    .facts { font-size: 14px; }
+    .hero-text { gap: 12px; }
+    .hero-shot .device { width: clamp(132px, 22vh, 236px); }
+    .hero-shot { gap: 8px; }
+    .hero-shot figcaption { font-size: 14px; }
+    .chapter { padding: 10px 0 2px; row-gap: 4px; }
+    .cname { font-size: 21px; }
+    .cline { font-size: 14px; }
+    .cmeta { font-size: 13px; }
+    .close { gap: 12px; }
+    .recap-shot { --shot-h: clamp(88px, 13vh, 168px); }
+    .recap-text { padding: 10px 14px 12px; }
+    .rname { font-size: 19px; }
+    .rline { font-size: 14px; }
+  }
+  @media (min-width: 1000px) and (max-height: 700px) {
+    .close { gap: 10px; }
+    .close .lede { font-size: 16px; }
+    .recap-shot { --shot-h: 72px; --pad: 8px; }
+    .recap-text { padding: 8px 12px 10px; gap: 4px; }
+  }
   @media (min-width: 1000px) and (min-aspect-ratio: 1/1) {
     .body { container-type: size; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr) var(--side-w); column-gap: var(--side-gap); align-items: center; }
     .stage { container-type: normal; min-height: 0; max-height: 100%; width: 100%; }
     .stage .device { width: min(100%, calc((100cqh - 2 * var(--bezel-w) - 2px) * var(--ratio) + 2 * var(--bezel-w) + 2px)); }
+    /* The body is no wider than the words-under-the-device layout needed for a desktop screen, so
+       the column comes in from the edge where there is room; a phone screen shifts toward the words. */
+    .body { width: 100%; max-width: max(calc((100vh - 300px) * 1.6 + 26px + var(--side-gap) + var(--side-w)), 92%); justify-self: center; }
+    .stage .device.phone { margin-left: min(calc(var(--side-w) + var(--side-gap)), 30%); }
     .side { align-content: center; justify-items: start; row-gap: 18px; }
+    body[data-track="steps"] .intro-line { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; line-clamp: 5; overflow: clip; height: calc(5 * 1.4 * 15px); font: 400 15px/1.4 var(--sans); color: var(--sub); text-wrap: pretty; }
+    /* The hint's row keeps its height when the hint is empty, so Back and Next never move. */
+    .hint { display: block; grid-area: hint; min-height: 18px; font: 500 14px/18px var(--sans); color: var(--stone); white-space: nowrap; }
     /* The chips on one line, who you are on the next: two fixed lines. */
     .meta { height: 54px; flex-wrap: wrap; align-content: center; justify-content: flex-start; row-gap: 6px; column-gap: 8px; }
     .who { flex: 0 0 100%; order: 1; font: 500 17px/1.3 var(--sans); color: var(--ink-2); }
     .meta .where, .meta .pilot { order: 0; }
     /* The caption as the screen's headline, in the deck's serif, two lines held. */
     .caption { --cap: clamp(26px, 1.1vw + 11px, 34px); margin: 0; max-width: none; height: calc(2 * 1.18 * var(--cap)); font: 400 var(--cap)/1.18 var(--serif); letter-spacing: -0.015em; text-align: left; text-wrap: pretty; }
-    .controls { max-width: none; height: 82px; margin: 0; grid-template-columns: auto auto; grid-template-rows: auto auto; grid-template-areas: "counter counter" "back next"; justify-content: start; align-content: space-between; column-gap: 12px; row-gap: 10px; }
+    .controls { max-width: none; height: 110px; margin: 0; grid-template-columns: auto auto; grid-template-rows: auto auto auto; grid-template-areas: "counter counter" "back next" "hint hint"; justify-content: start; align-content: space-between; column-gap: 12px; row-gap: 10px; }
     .controls .back { grid-area: back; justify-self: start; }
     .controls .next { grid-area: next; justify-self: start; }
     .counter { grid-area: counter; width: auto; text-align: left; }
   }
 
   /* Close: the recap, then the story's four chapters again, each opening the story there. */
-  .close { display: grid; gap: 22px; max-width: 760px; }
+  .close { display: grid; gap: 22px; max-width: 1000px; }
+  .close .lede { max-width: 50ch; }
   .recap { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .recap > li { display: flex; min-width: 0; }
   .recap-card { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0; border: 1px solid var(--rule); border-radius: 18px; background: var(--paper); color: var(--ink); text-align: left; cursor: pointer; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
@@ -219,6 +273,7 @@
   .tile-top { display: flex; align-items: center; gap: 12px; }
   .name { font: 400 clamp(26px, 0.8vw + 18px, 32px)/1.1 var(--serif); letter-spacing: -0.012em; }
   .line { font: 400 17px/1.4 var(--sans); color: var(--sub); text-wrap: balance; }
+  .tile-intro { font: 400 15px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
   .tile-who { font: 500 15px/1.35 var(--sans); color: var(--stone); }
   .tile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 2px; font: 500 14px/1.3 var(--sans); color: var(--stone); }
   .thumb { min-width: 0; display: flex; align-items: center; justify-content: center; padding: 14px; background: var(--linen); border-left: 1px solid var(--rule); overflow: hidden; }
@@ -300,11 +355,13 @@
       <div class="hero-text">
         <h1>Follow one promise <em class="accent">at Tech and Sun</em></h1>
         <p class="lede" id="lede">Green Goods gives a community one record of what it promised, did and proved. For SF.Live we connected promises to Cosmo-Local service vouchers that members earn, swap in one shared pool and spend on services across communities.</p>
+        <p class="people">Obinna runs Tech and Sun's hub in Awka, Nigeria; Ifeoma is a member; Funmi supports it.</p>
         <div class="actions">
           <button class="btn primary" type="button" id="start">Start the demo<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           <button class="btn" type="button" id="see-steps">See every step</button>
         </div>
-        <p class="facts" id="facts"><span id="story-size"></span> Real app screens with demo data; vouchers are in pilot.</p>
+        <p class="facts" id="facts"><span id="story-size"></span> Real app screens with demo data.</p>
+        <p class="facts"><span class="pilot">In pilot</span> <span id="pilot-note"></span></p>
       </div>
       <figure class="hero-shot" id="hero-shot">
         <span class="device phone"><span class="screen"><img id="hero-img" alt="" draggable="false" /></span></span>
@@ -326,19 +383,23 @@
     <div class="stage">
       <figure class="device phone" id="device">
         <div class="screen" id="screen">
-          <img id="shot" alt="" draggable="false" />
-          <div class="backspots" id="backspots"></div>
-          <button class="hotspot" type="button" id="hotspot"></button>
+          <div class="pane" id="pane">
+            <img id="shot" alt="" draggable="false" />
+            <div class="backspots" id="backspots"></div>
+            <button class="hotspot" type="button" id="hotspot"></button>
+          </div>
         </div>
       </figure>
     </div>
     <div class="side">
       <p class="meta"><span class="where" id="where"></span> <span class="who" id="who"></span> <span class="pilot" id="pilot" hidden>In pilot</span></p>
       <p class="caption" id="caption" aria-live="polite"></p>
+      <p class="intro-line" id="intro-line"></p>
       <nav class="controls" aria-label="Screens">
         <button class="btn back" type="button" id="back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</button>
         <p class="counter" id="counter"></p>
         <button class="btn primary next" type="button" id="next"><span id="next-label">Next</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <p class="hint" id="hint"></p>
       </nav>
     </div>
   </div>
@@ -353,11 +414,13 @@
     <section class="close" aria-labelledby="end-title">
       <h2 id="end-title">One promise, <em class="accent">kept and paid</em></h2>
       <p class="lede">Tech and Sun's hub asked for a bootcamp. Ifeoma ran it and Obinna approved it. It paid her Tech and Sun vouchers, which she swapped in the shared pool to book an AI tool seat from Green Goods. Anyone can see the record and back the hub.</p>
-      <p class="facts">The deck covers the revenue model and how this grows from one hub to more places.</p>
+      <p class="facts">The deck covers the revenue model and how this grows from one hub to more places; the brief has the detail.</p>
       <div class="actions">
         <button class="btn primary" type="button" id="end-steps">See every step</button>
         <button class="btn" type="button" id="again">Start over</button>
-        <a class="btn" id="live-hub" href="https://www.greengoods.app/gardens/tas-hub" target="_blank" rel="noopener">See TAS HUB on Green Goods<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 13 13 7M8 7h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a class="btn" id="deck" href="https://drive.google.com/file/d/1c8YNjDYBNrVTnMNeOSqsCjbCTxr5UIED/view" target="_blank" rel="noopener">Pitch deck<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 13 13 7M8 7h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a class="btn" id="brief" href="https://drive.google.com/file/d/1AKFVu2Q-C93VJv2SQvi_lvj1Wgk52iZ5/view" target="_blank" rel="noopener">Brief<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 13 13 7M8 7h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a class="btn" id="live-hub" href="https://beta.greengoods.app/gardens/tas-hub" target="_blank" rel="noopener">See TAS HUB on Green Goods<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 13 13 7M8 7h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       </div>
     </section>
     <ol class="recap" id="recap" aria-label="The story's chapters"></ol>
@@ -419,6 +482,7 @@
           {
             "file": "approval-3",
             "caption": "The hub's steward checks it and approves",
+            "focus": [0.065, 0.06, 0.87],
             "who": "You are Obinna, the hub's steward",
             "where": "Dashboard"
           }
@@ -434,20 +498,20 @@
         "screens": [
           {
             "file": "vouchers-1",
-            "caption": "Kept: her vouchers and G$ arrive",
+            "caption": "Kept: 2 vouchers and $20 in G$ arrive",
             "hotspot": false
           },
           {
             "file": "swap-1",
-            "caption": "An AI tool seat takes Green Goods vouchers"
+            "caption": "The seat takes 10 Green Goods vouchers"
           },
           {
             "file": "swap-2",
-            "caption": "She swaps 8 of her 9 earned vouchers"
+            "caption": "Her promises earned 9; she swaps 8"
           },
           {
             "file": "swap-6",
-            "caption": "Swapped, she books the seat"
+            "caption": "Holding 10 now, she books the seat"
           },
           {
             "file": "swap-7",
@@ -468,11 +532,13 @@
           {
             "file": "impact-2",
             "caption": "Anyone can find the bootcamp on the record",
+            "focus": [0, 0.04, 0.72],
             "hotspot": false
           },
           {
             "file": "funding-5",
-            "caption": "Funmi backs the hub with a donation"
+            "caption": "Funmi backs the hub with a donation",
+            "focus": [0.19, 0.17, 0.56]
           }
         ]
       }
@@ -1687,9 +1753,19 @@
   (() => {
     const data = JSON.parse(document.getElementById("flows").textContent);
     const flows = data.flows;
-    const inlined = document.getElementById("images");
-    const images = inlined ? JSON.parse(inlined.textContent) : {};
-    const src = (file) => images[file] || `assets/screens/${file}.jpg`;
+    // The built page inlines the screens in a block after this script, so the page draws before
+    // the screens have arrived: an image waits, hidden, and is painted when the document has parsed.
+    const inline = Boolean(document.querySelector('meta[name="gg-screens"][content="inline"]'));
+    let images = null;
+    const loadImages = () => { if (images) return true; const el = document.getElementById("images"); if (!el) return false; images = JSON.parse(el.textContent); return true; };
+    const src = (file) => (loadImages() ? images[file] : null) || (inline ? "" : `assets/screens/${file}.jpg`);
+    function paint(img, file) {
+      img.dataset.file = file;
+      const s = src(file);
+      if (s) { img.src = s; img.classList.remove("pending"); } else { img.removeAttribute("src"); img.classList.add("pending"); }
+    }
+    document.addEventListener("DOMContentLoaded", () => document.querySelectorAll("img.pending").forEach((img) => paint(img, img.dataset.file)));
+    const PILOT_NOTE = "The voucher contracts are deployed on public networks and switched on. No member has used them yet; these screens show demo data.";
     const $ = (id) => document.getElementById(id);
     const root = document.documentElement;
     // No view's id is a link's name: the browser moves focus to the element a hash names, or to the
@@ -1741,7 +1817,7 @@
       const figure = document.createElement("span");
       figure.className = `device ${kind}`;
       figure.innerHTML = `<span class="screen"><img alt="" draggable="false" loading="eager" /></span>`;
-      figure.querySelector("img").src = src(file);
+      paint(figure.querySelector("img"), file);
       return figure;
     }
 
@@ -1750,7 +1826,8 @@
     const minutes = Math.max(1, Math.round(story.items.length * 10 / 60));
     $("story-size").textContent = `${plural(story.items.length, "screen")}, about ${plural(minutes, "minute")}.`;
     const heroFile = byFile.has("swap-2") ? "swap-2" : story.items[0].file;
-    $("hero-img").src = src(heroFile);
+    paint($("hero-img"), heroFile);
+    $("pilot-note").textContent = PILOT_NOTE;
     $("hero-img").alt = byFile.get(heroFile)?.alt || "";
     story.chapters.forEach((c, i) => {
       const li = document.createElement("li");
@@ -1800,9 +1877,10 @@
       tile.id = `tile-${f.id}`;
       const text = document.createElement("span");
       text.className = "tile-text";
-      text.innerHTML = `<span class="tile-top"><span class="num">${i + 1}</span> <span class="name"></span></span> <span class="line"></span> <span class="tile-who"></span> <span class="tile-meta"><span class="count"></span></span>`;
+      text.innerHTML = `<span class="tile-top"><span class="num">${i + 1}</span> <span class="name"></span></span> <span class="line"></span> <span class="tile-intro"></span> <span class="tile-who"></span> <span class="tile-meta"><span class="count"></span></span>`;
       text.querySelector(".name").textContent = f.label;
       text.querySelector(".line").textContent = f.line;
+      text.querySelector(".tile-intro").textContent = f.intro || "";
       // A chapter whose screens change hands names both people; its surfaces come from its screens.
       text.querySelector(".tile-who").textContent = f.tileWho || f.who;
       const wheres = [...new Set(f.screens.map((s) => s.where || f.where).filter(Boolean))];
@@ -1817,6 +1895,7 @@
       li.append(tile);
       $("tiles").append(li);
     });
+    document.querySelectorAll(".pilot").forEach((chip) => { chip.title = PILOT_NOTE; });
 
     // The strip: the track's chapters, each a group of its screens.
     let built = null;
@@ -1924,13 +2003,25 @@
       const last = now.at === t.items.length - 1;
       buildStrip(t);
       $("device").className = `device ${item.device}`;
-      shot.src = src(item.file);
+      paint(shot, item.file);
+      const pane = $("pane");
+      if (item.focus) {
+        const [fx, fy, size] = item.focus;
+        pane.style.setProperty("--s", String(1 / size));
+        pane.style.setProperty("--fx", String(fx));
+        pane.style.setProperty("--fy", String(fy));
+      } else {
+        for (const v of ["--s", "--fx", "--fy"]) pane.style.removeProperty(v);
+      }
       // What the screen shows, for a screen reader; the caption below it names the next action.
       shot.alt = `${chapter.label}, screen ${item.index + 1} of ${item.count}: ${item.alt || item.caption}`;
       $("caption").textContent = item.caption;
       $("who").textContent = item.who || "";
       $("where").textContent = item.where || "";
       $("where").hidden = !item.where;
+      $("where").dataset.where = item.where || "";
+      $("intro-line").textContent = t.id === "steps" ? chapter.intro || "" : "";
+      $("hint").textContent = t.id === "story" && now.at === 0 ? "Tap the ring on the screen, or press →" : "";
       $("pilot").hidden = !item.pilot;
       $("now").textContent = `${item.chapter + 1} · ${chapter.label}`;
       $("home-label").textContent = t.id === "story" ? "Intro" : "Chapters";
@@ -1956,7 +2047,8 @@
       }));
       requestAnimationFrame(round);
       const upcoming = t.items[now.at + 1];
-      if (upcoming) new Image().src = src(upcoming.file);
+      const ahead = upcoming && src(upcoming.file);
+      if (ahead) new Image().src = ahead;
     }
 
     function round() {
