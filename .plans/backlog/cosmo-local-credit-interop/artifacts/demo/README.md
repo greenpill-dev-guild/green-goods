@@ -75,7 +75,7 @@ not add up across them.
 - **Intro.** What Green Goods is and what was built for SF.Live, the three people and the hub,
   "12 screens, about 2 minutes", what "In pilot" means (the same sentence is the chip's title
   everywhere), Start the demo and See every step, the swap's quote on a phone, and the story's four
-  chapters (each opens the story there). On a laptop window (under 900px tall) the intro and the
+  chapters (each opens the story there). On a laptop window (under 960px tall) the intro and the
   close tighten so neither scrolls.
 - **One screen at a time on a fixed stage.** The bar (the way back, a strip with one bar per screen
   grouped by chapter, the theme switch), the device, the who-you-are row, a two-line caption
@@ -593,3 +593,13 @@ Human corrections: 0 observed in this segment; attention unknown.
 | verify | 01:05 → 01:30 | No view scrolls at 1440x789, 1440x760, 1280x720, 1280x680, 1366x650, 1512x860 or 1024x700; every caption within two lines from 1024x768 to 2560x1440; phone screens 300px at 1280x720 and 383px at 1440x900 as before, desktop screens 783px at 1280x720 and 986px at 1440x900 (the tuck's cost against yesterday's 883px and 1012px, never under the words-under layout's 704px and 987px); `check.mjs` on the build (result in the commit message); published to the artifact; the Drive copy not refreshed |
 
 Human corrections: 1 observed in this segment (the column's distance from a phone screen, and the laptop fit, raised after the first publish); attention unknown.
+
+## Task record · the deck's words in the demo
+
+| Phase | Start → end (UTC, 28 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| investigate | 01:40 → 01:50 | The 17-slide deck read from Drive and the branch pulled to its merge. The deck does not link into the demo; its slide 10 carries two of the demo's captures. What carries over is wording: "commitment pooling" as the name of what was built, vouchers on Cosmo-Local Credit from Grassroots Economics, and the status line "deployed on public networks and in pilot with Tech and Sun; rehearsed end to end with demo accounts" |
+| implement | 01:50 → 02:00 | The intro's lede says what SF.Live built in the deck's words; the "In pilot" note is the deck's status line, on the intro and as every chip's title; the laptop tier now covers windows under 960px tall, since the longer lede scrolled 49px at exactly 1440x900 |
+| verify | 01:55 → 02:10 | No view scrolls at 1440x900, 1440x789, 1440x760, 1280x720, 1280x680, 1366x650, 1512x860 or 1024x700; `check.mjs` on the build (result in the commit message); published to the artifact. The Drive copy could not be written from this session: the Drive tool takes a file's content as one call, which an 8.8 MB page cannot pass, and no other Google credential is available here; the built page was handed over for a manual upload |
+
+Human corrections: 0 observed in this segment; attention unknown.

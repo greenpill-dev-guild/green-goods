@@ -191,7 +191,7 @@
      space's width, for a desktop screen), centered there. The body is the container here, so the
      device's height never depends on its own column. */
   /* A laptop window with the browser's own bars: the intro and the close fit without scrolling. */
-  @media (min-width: 1000px) and (max-height: 899px) {
+  @media (min-width: 1000px) and (max-height: 960px) {
     .view { padding-block: 12px 16px; }
     .page { gap: clamp(12px, 2.2vh, 24px); }
     .topbar { min-height: 44px; padding-top: 0; }
@@ -354,7 +354,7 @@
     <div class="hero">
       <div class="hero-text">
         <h1>Follow one promise <em class="accent">at Tech and Sun</em></h1>
-        <p class="lede" id="lede">Green Goods gives a community one record of what it promised, did and proved. For SF.Live we connected promises to Cosmo-Local service vouchers that members earn, swap in one shared pool and spend on services across communities.</p>
+        <p class="lede" id="lede">Green Goods gives a community one record of what it promised, did and proved. For SF.Live we built commitment pooling: the hub asks for what it needs, members keep promises, and kept promises earn agreed rewards and service vouchers on Cosmo-Local Credit, swapped in one shared pool.</p>
         <p class="people">Obinna runs Tech and Sun's hub in Awka, Nigeria; Ifeoma is a member; Funmi supports it.</p>
         <div class="actions">
           <button class="btn primary" type="button" id="start">Start the demo<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -1765,7 +1765,7 @@
       if (s) { img.src = s; img.classList.remove("pending"); } else { img.removeAttribute("src"); img.classList.add("pending"); }
     }
     document.addEventListener("DOMContentLoaded", () => document.querySelectorAll("img.pending").forEach((img) => paint(img, img.dataset.file)));
-    const PILOT_NOTE = "The voucher contracts are deployed on public networks and switched on. No member has used them yet; these screens show demo data.";
+    const PILOT_NOTE = "Vouchers run on Cosmo-Local Credit from Grassroots Economics. The contracts are deployed on public networks and in pilot with Tech and Sun, rehearsed end to end with demo accounts; these screens show demo data.";
     const $ = (id) => document.getElementById(id);
     const root = document.documentElement;
     // No view's id is a link's name: the browser moves focus to the element a hash names, or to the
