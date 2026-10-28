@@ -14,7 +14,8 @@ const offers = [
     voucherUnits: 2n * voucher,
     serviceTermsRef: "0x1616a8f3b5173f56d7c0a7bb7f00c45a64e0e1b4b463d81502d1379f51b20f13",
     remedyTermsRef: "0x0fe1184e5b2d1f6f38ed6a58872bd3c85673c8598aefef09af3bd45f976b4dd6",
-    capacity: null,
+    // COM-46 approves ten sessions; #1377 records the published facilitator, language and calendar.
+    capacity: 20n * voucher,
   },
   {
     unit: "seat days",
@@ -22,7 +23,7 @@ const offers = [
     voucherUnits: 10n * voucher,
     serviceTermsRef: "0xa18d37ab4b89aac3790bf980f50ae2581d7975899e4fed4c0b5af73afdc0a3c0",
     remedyTermsRef: "0x0e13b8482cd3d5d32ba1c72e0e6b8bf72b0da71c5c325d314e50ee554e98aba1",
-    // COM-46 confirms permission and ten funded seat-periods; the session capacity is still unknown.
+    // COM-46 confirms permission and ten funded seat-periods.
     capacity: 100n * voucher,
   },
 ] as const satisfies NonNullable<ServiceIssuerAsset["service"]["offers"]>;
@@ -73,7 +74,7 @@ const service = SERVICE_LIVE_ROUTES.find(
 if (!service) throw new Error("Reviewed pilot service route unavailable");
 const deployment = GREEN_GOODS_ISSUER_DEPLOYMENT;
 
-/** Green Goods only. Reviewed targets remain separate from chain observations and from unconfirmed capacity. */
+/** Green Goods only. Confirmed service capacity is separate from issuance, allowance and pool limits. */
 export const GREEN_GOODS_ISSUER_ROUTE: ServiceIssuerRoute = {
   service,
   factory: deployment.factory,
@@ -94,13 +95,13 @@ export const GREEN_GOODS_ISSUER_ROUTE: ServiceIssuerRoute = {
         unit: "GGV",
         terms: {
           reference:
-            "https://github.com/greenpill-dev-guild/green-goods/blob/1675ce406068574b1e21cc92a2aa9936f7083ae8/.plans/backlog/cosmo-local-credit-interop/pilot-issuer-terms.md",
+            "https://github.com/greenpill-dev-guild/green-goods/blob/f8ff5d0286cc1e91e99e70d71749265394e3ef77/.plans/backlog/cosmo-local-credit-interop/pilot-issuer-terms.md",
           digest: termsDigest,
         },
         approval: { reference, digest: approvalDigest },
         offers,
-        // Facilitator, language, appointment times and 7.5 facilitator-hours are not confirmed.
-        capacity: null,
+        // Ten sessions at 2 GGV plus ten funded Claude seat-periods at 10 GGV.
+        capacity: 120n * voucher,
       },
       delisting: null,
       initialSupply: 120n * voucher,

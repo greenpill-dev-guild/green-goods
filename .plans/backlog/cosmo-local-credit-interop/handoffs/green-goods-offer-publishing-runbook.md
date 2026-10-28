@@ -283,13 +283,16 @@ holding limit and price index 1,000,000. These are configuration targets, not ch
 Verify them with the preflight above only after the Gnosis mint/limit/approve batch executes.
 Deployment identity checks do not establish that this separate batch has executed.
 
-Green Goods' aggregate capacity remains null. The Claude entry records 100 GGV of confirmed
-capacity for ten permitted, funded seat-periods. The session entry remains null until the
-facilitator, language, appointment times and 7.5 facilitator-hours are confirmed. Setting only
-the aggregate capacity cannot bypass the missing session confirmation: the issuance bound
-requires every service's confirmed capacity and a matching aggregate, then applies the lower
-of that capacity and the issuance ceiling. The existing `prepareIssuerCall` guard owns this
-bound; no new collective mint or approval path is introduced.
+Green Goods' confirmed aggregate capacity is 120 GGV: 20 GGV for ten 45-minute sessions
+(7.5 facilitator-hours) and 100 GGV for ten permitted, funded Claude seat-periods. COM-46 records
+the capacity approval; #1377 records the facilitator, language and booking calendar published
+in the Green Goods pool description. The route's terms reference is pinned to that recorded
+version. The four statement hashes and their catalog and approval digests below are unchanged.
+
+The issuance bound still requires every service's confirmed capacity and a matching aggregate,
+then applies the lower of that capacity and the issuance ceiling. Clearing either a service's
+capacity or the aggregate blocks new issuance while preserving recovery. The existing
+`prepareIssuerCall` guard owns this bound; no new collective mint or approval path is introduced.
 
 Claude seats open on 8 November 2026, as the current terms specify. The first Claude booking also
 needs the billing interval and participant-visible workspace/data rules recorded through the
