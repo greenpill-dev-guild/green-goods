@@ -540,6 +540,9 @@ describe("agreeing to a request's reward before taking it up", () => {
   type RewardSnapshot = ReturnType<typeof rewardStorySnapshot>;
   function view(takeUp: "open" | "reviewed" | null, change?: (s: RewardSnapshot) => void) {
     const snapshot = rewardStorySnapshot("agreementUnavailable", false);
+    snapshot.pause.core = false;
+    snapshot.acceptancePolicy.earned.modulePaused = false;
+    snapshot.acceptancePolicy.earned.claimType = "individual";
     change?.(snapshot);
     return serviceRewardsView(
       {

@@ -1670,13 +1670,12 @@ describe("a voucher booking on the promise page", () => {
     expect(screen.getByTestId("help-route")).toHaveTextContent("/home/profile?tab=help");
   });
 
-  it("agrees to the reward from its own bar, then takes the request up", async () => {
-    const TERMS = `0x${"c".repeat(64)}` as const;
-    // A live open request whose reward its creator froze and this member can agree to.
-    const snapshot = rewardStorySnapshot("agreementUnavailable", true);
+  function withReviewedReward(
+    snapshot: BookingSnapshot,
+    termsHash: `0x${string}`
+  ): BookingSnapshot {
     Object.assign(snapshot, {
       evidence: "onchain",
-      knownService: false,
       availableActions: ["consentEarnedTerms"],
     });
     snapshot.pause.core = false;
@@ -1689,20 +1688,22 @@ describe("a voucher booking on the promise page", () => {
     };
     snapshot.acceptancePolicy.earned = {
       ...snapshot.acceptancePolicy.earned,
+      status: "bound",
+      revision: 2n,
       module: VOUCHER_STORY_ISSUERS.techAndSun.account,
-      termsHash: TERMS,
+      termsHash,
       terms: {
         issuer: VOUCHER_STORY_ISSUERS.techAndSun.account,
         issuerAuthority: VOUCHER_STORY_ISSUERS.techAndSun.account,
         asset: {
           chainId: 100,
           token: VOUCHER_STORY_ISSUERS.techAndSun.asset.token,
-          symbol: null,
-          decimals: null,
+          symbol: "TSV",
+          decimals: 6,
         },
-        totalUnits: 1n,
-        allocationPolicy: TERMS,
-        serviceTermsRef: TERMS,
+        totalUnits: vouchers(1),
+        allocationPolicy: termsHash,
+        serviceTermsRef: termsHash,
         season: 3n,
         issuerApproved: true,
         frozen: true,
@@ -1712,6 +1713,46 @@ describe("a voucher booking on the promise page", () => {
       viewerConsentRevision: 0n,
       modulePaused: false,
     };
+    return snapshot;
+  }
+
+  it("reviews a combined booking's earned reward before offering the booking's own consent", async () => {
+    const terms = `0x${"c".repeat(64)}` as const;
+    const snapshot = withReviewedReward(bookingStorySnapshot("hubDay", "open"), terms);
+    const page = bookingStoryController("hubDay", "OFFERED");
+    const claimPersonal = vi.fn();
+    show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });
+    expect(screen.getByRole("region", { name: "Service Access" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Agree to the Rewards" }));
+    const sheet = await screen.findByRole("dialog", { name: "Agree to the Rewards" });
+    expect(
+      within(sheet).getByText(
+        "Agreeing records these exact rewards. Then review and agree to the service booking."
+      )
+    ).toBeInTheDocument();
+    const agreed = structuredClone(snapshot);
+    agreed.acceptancePolicy.earned.viewerConsentRevision = 2n;
+    agreed.availableActions = ["requestClaim"];
+    mockServiceMutation.mockResolvedValueOnce({
+      kind: "onchain",
+      observationId: "reward",
+      snapshot: agreed,
+    });
+    await userEvent.click(within(sheet).getByRole("button", { name: "Agree to the Rewards" }));
+    await waitFor(() => expect(mockServiceMutation).toHaveBeenCalledTimes(1));
+    expect(mockServiceMutation).toHaveBeenCalledWith({
+      action: "consentEarnedTerms",
+      expectedRevision: 2n,
+      expectedTermsHash: terms,
+    });
+    expect(claimPersonal).not.toHaveBeenCalled();
+  });
+
+  it("agrees to the reward from its own bar, then takes the request up", async () => {
+    const TERMS = `0x${"c".repeat(64)}` as const;
+    // A live open request whose reward its creator froze and this member can agree to.
+    const snapshot = rewardStorySnapshot("agreementUnavailable", true);
+    withReviewedReward(snapshot, TERMS);
     const page = rewardStoryController("agreementUnavailable", true);
     const claimPersonal = vi.fn(async () => "claim-job");
     show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });

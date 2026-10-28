@@ -70,6 +70,42 @@ async function codePin(chain: ServiceIssuerChain, pin: ServiceIssuerCodePin) {
   if (code === "0x" || !issuerSame(keccak256(code), pin.runtimeCodeHash))
     throw new Error("Issuer dependency runtime changed");
 }
+const ISSUER_PEER_FIELDS = [
+  "guardian",
+  "CCIP_ROUTER",
+  "LOCAL_CHAIN_ID",
+  "remoteChainId",
+  "remotePeer",
+  "remoteChainSelector",
+];
+
+/** The earned reward route can drift without changing the proxy or its owner. */
+export async function verifyIssuerSourceRoute(
+  route: Pick<ServiceIssuerRoute, "adapterSource" | "adapter">,
+  chain: ServiceLiveChain
+) {
+  await verifyServiceDeployment(route.adapterSource, 42161, chain);
+  const source = await Promise.all(
+    ISSUER_PEER_FIELDS.map((functionName) =>
+      chain.read({
+        chainId: 42161,
+        address: route.adapterSource.address,
+        abi: EntitlementABI as Abi,
+        functionName,
+      })
+    )
+  );
+  if (
+    issuerSame(route.adapterSource.owner, route.adapterSource.guardian) ||
+    !issuerSame(serviceAddress(source[0]), route.adapterSource.guardian) ||
+    !issuerSame(serviceAddress(source[1]), route.adapterSource.router) ||
+    serviceUint(source[2]) !== 42161n ||
+    serviceUint(source[3]) !== 100n ||
+    !issuerSame(serviceAddress(source[4]), route.adapter.address) ||
+    serviceUint(source[5]) !== route.adapterSource.remoteSelector
+  )
+    throw new Error("Issuer source peer or recovery authority changed");
+}
 export async function verifyIssuerRoute(
   route: ServiceIssuerRoute,
   asset: ServiceIssuerAsset,
@@ -78,7 +114,6 @@ export async function verifyIssuerRoute(
   await verifyServiceLiveRoute(route.service, chain);
   await Promise.all([
     codePin(chain, route.factory),
-    verifyServiceDeployment(route.adapterSource, 42161, chain),
     verifyServiceDeployment(route.adapter, 100, chain),
     ...[
       asset.token,
@@ -106,16 +141,10 @@ export async function verifyIssuerRoute(
     await issuerRead(chain, route.factory.address, "adminOf", [asset.token.address])
   );
   if (!issuerSame(admin, control.admin)) throw new Error("Issuer proxy control changed");
-  const fields = [
-    "guardian",
-    "CCIP_ROUTER",
-    "LOCAL_CHAIN_ID",
-    "remoteChainId",
-    "remotePeer",
-    "remoteChainSelector",
-  ];
   const adapter = await Promise.all(
-    fields.map((fn) => issuerRead(chain, route.adapter.address, fn, [], AdapterABI as Abi))
+    ISSUER_PEER_FIELDS.map((fn) =>
+      issuerRead(chain, route.adapter.address, fn, [], AdapterABI as Abi)
+    )
   );
   if (
     issuerSame(route.adapter.owner, route.adapter.guardian) ||
@@ -129,26 +158,7 @@ export async function verifyIssuerRoute(
     throw new Error("Issuer adapter peer or recovery authority changed");
   if (!issuerSame(route.adapter.sourcePeer, route.adapterSource.address))
     throw new Error("Issuer source peer pin missing");
-  const source = await Promise.all(
-    fields.map((functionName) =>
-      chain.read({
-        chainId: 42161,
-        address: route.adapterSource.address,
-        abi: EntitlementABI as Abi,
-        functionName,
-      })
-    )
-  );
-  if (
-    issuerSame(route.adapterSource.owner, route.adapterSource.guardian) ||
-    !issuerSame(serviceAddress(source[0]), route.adapterSource.guardian) ||
-    !issuerSame(serviceAddress(source[1]), route.adapterSource.router) ||
-    serviceUint(source[2]) !== 42161n ||
-    serviceUint(source[3]) !== 100n ||
-    !issuerSame(serviceAddress(source[4]), route.adapter.address) ||
-    serviceUint(source[5]) !== route.adapterSource.remoteSelector
-  )
-    throw new Error("Issuer source peer or recovery authority changed");
+  await verifyIssuerSourceRoute(route, chain);
   const pool = route.pool;
   for (const pin of [
     pool.deployment,

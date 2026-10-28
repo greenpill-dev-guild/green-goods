@@ -18,14 +18,12 @@ import { readSettlementFunction } from "./data-settlement-chain";
 import type { ServiceChainRead } from "./service-access-chain";
 import {
   serviceAddress,
+  serviceFlag,
   serviceTuple,
   serviceUint,
   SERVICE_ZERO_ADDRESS,
 } from "./service-access-chain-values";
-
-/** Named for the core's own refusal, so the app's check and the chain's decode the same way. */
-const EARNED_AGREEMENT_REQUIRED =
-  "VoucherConsentMissing: agree to this promise's reward on its page before taking it up";
+import { TakeUpAgreementRequired } from "./take-up";
 
 export async function assertEarnedRewardAgreed(
   input: { chainId: number; core: Address; commitmentId: bigint; claimant: Address },
@@ -37,6 +35,7 @@ export async function assertEarnedRewardAgreed(
   let module: Address;
   let revision: bigint;
   let agreed: bigint;
+  let paused: boolean;
   try {
     const binding = serviceTuple(
       await read({
@@ -58,16 +57,18 @@ export async function assertEarnedRewardAgreed(
     module = serviceAddress(binding.module);
     if (module === SERVICE_ZERO_ADDRESS) return;
     revision = serviceUint(binding.revision, 64);
-    agreed = serviceUint(
-      await read({
+    const [consent, pause] = await Promise.all([
+      read({
         chainId,
         address: module,
         abi: EntitlementABI as Abi,
         functionName: "consentRevision",
         args: [commitmentId, claimant],
       }),
-      64
-    );
+      read({ chainId, address: module, abi: EntitlementABI as Abi, functionName: "paused" }),
+    ]);
+    agreed = serviceUint(consent, 64);
+    paused = serviceFlag(pause);
   } catch (error) {
     logger.warn("Earned reward agreement unread before a take-up", {
       error,
@@ -75,5 +76,6 @@ export async function assertEarnedRewardAgreed(
     });
     return;
   }
-  if (agreed !== revision) throw new Error(EARNED_AGREEMENT_REQUIRED);
+  if (paused) throw new Error("VoucherPaused");
+  if (agreed !== revision) throw new TakeUpAgreementRequired();
 }

@@ -166,6 +166,23 @@ describe("a member's agreement to a request's voucher reward", () => {
     );
   });
 
+  it("requires earned consent before the service claim, without excluding combined bookings", () => {
+    const s = rewardedRequest();
+    s.knownService = true;
+    s.mode = s.offer!.route;
+    s.coreState = "OFFERED";
+    s.consent = null;
+    s.nextRequestNonce = 1n;
+    s.complete = true;
+    expect(serviceAccessAvailableActions(s)).toContain("consentEarnedTerms");
+    expect(serviceAccessAvailableActions(s)).not.toContain("requestClaim");
+    s.acceptancePolicy.earned.viewerConsentRevision = 1n;
+    expect(serviceAccessAvailableActions(s)).toContain("requestClaim");
+    s.acceptancePolicy.earned.modulePaused = true;
+    expect(serviceAccessAvailableActions(s)).not.toContain("requestClaim");
+    expect(serviceAccessAvailableActions(s)).not.toContain("consentEarnedTerms");
+  });
+
   it.each([
     [
       "a garden's claim, whose account must agree itself",

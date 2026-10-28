@@ -734,6 +734,7 @@ describe("a member's agreement to a request's voucher reward", () => {
     const issuerRoutes = [
       {
         service: f.route,
+        adapter: { address: account(44) },
         adapterSource: {
           address: MODULE,
           owner: account(10),
@@ -750,8 +751,21 @@ describe("a member's agreement to a request's voucher reward", () => {
         },
       } as unknown as ServiceIssuerRoute,
     ];
+    const sourceState: Record<string, unknown> = {
+      guardian: account(11),
+      CCIP_ROUTER: account(12),
+      LOCAL_CHAIN_ID: 42161n,
+      remoteChainId: 100n,
+      remotePeer: account(44),
+      remoteChainSelector: 13n,
+    };
+    const read = f.chain.read;
+    f.chain.read = async (input) =>
+      input.address === MODULE && input.functionName in sourceState
+        ? sourceState[input.functionName]
+        : read(input);
     const adapter = () => createLiveServiceAccessAdapter({ ...f.dependencies, issuerRoutes });
-    return { f, request, adapter };
+    return { f, request, adapter, sourceState };
   }
 
   it("offers it only under the reviewed module and voucher, and sends exactly that agreement", async () => {
@@ -802,5 +816,66 @@ describe("a member's agreement to a request's voucher reward", () => {
       })
     ).rejects.toThrow("outside the reviewed route");
     expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["guardian", account(50)],
+    ["CCIP_ROUTER", account(51)],
+    ["LOCAL_CHAIN_ID", 1n],
+    ["remoteChainId", 1n],
+    ["remotePeer", account(52)],
+    ["remoteChainSelector", 99n],
+  ])("withholds and refuses consent after earned route %s drifts", async (field, value) => {
+    const { f, adapter, sourceState } = rewarded();
+    sourceState[field as string] = value;
+    const live = adapter();
+    expect((await live.read(key)).availableActions).not.toContain("consentEarnedTerms");
+    await expect(
+      live.execute(key, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: H,
+      })
+    ).rejects.toThrow("Issuer source peer or recovery authority changed");
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("rechecks mutable earned routing before sending, even after a cached successful review", async () => {
+    const { f, adapter, sourceState } = rewarded();
+    const live = adapter();
+    expect((await live.read(key)).availableActions).toContain("consentEarnedTerms");
+    sourceState.remotePeer = account(52);
+    await expect(
+      live.execute(key, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: H,
+      })
+    ).rejects.toThrow("Issuer source peer");
+    // The wallet's fresh pre-broadcast check refused the send; no pending transfer remains.
+    expect(
+      f.storage.get(`green-goods:service-pending:v1:42161:${key.buyer.toLowerCase()}`)
+    ).toBeUndefined();
+  });
+
+  it("composes earned agreement with the voucher booking without losing holder capabilities", async () => {
+    const { request, adapter } = rewarded();
+    Object.assign(request, {
+      mode: "voucher",
+      knownService: true,
+      coreState: "OFFERED",
+      consent: null,
+      currentVoucherSetupId: null,
+      nextRequestNonce: 1n,
+    });
+    const live = adapter();
+    const before = await live.read(key);
+    expect(before.availableActions).toContain("consentEarnedTerms");
+    expect(before.availableActions).not.toContain("requestClaim");
+    expect(before.capabilities).toMatchObject({ canSignHolder: true, gnosisHolder: key.buyer });
+    request.acceptancePolicy.earned.viewerConsentRevision = 1n;
+    const after = await live.read(key);
+    expect(after.availableActions).toContain("requestClaim");
+    expect(after.availableActions).not.toContain("consentEarnedTerms");
   });
 });

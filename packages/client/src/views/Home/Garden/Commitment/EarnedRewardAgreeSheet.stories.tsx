@@ -52,6 +52,23 @@ export const RewardChanged: Story = {
   },
 };
 
+export const BeforeServiceBooking: Story = {
+  args: {
+    work: "Host a community workshop about soil care, record what the participants learn, and share the practical steps with the garden before the next planting season",
+    sheet: {
+      ...meta.args!.sheet!,
+      consent:
+        "Agreeing records these exact rewards. Then review and agree to the service booking.",
+      cta: "Agree to the Rewards",
+    },
+  },
+  play: async ({ args }) => {
+    await expect(await screen.findByRole("dialog", { name: "Agree to the Rewards" })).toBeVisible();
+    await expect(screen.getByTitle(args.work)).toBeVisible();
+    await expect(screen.getByText(args.sheet.consent)).toBeVisible();
+  },
+};
+
 export const NothingSent: Story = {
   args: { outcome: "nothingSent" },
   play: async () => {

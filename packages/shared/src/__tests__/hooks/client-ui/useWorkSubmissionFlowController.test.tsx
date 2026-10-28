@@ -147,10 +147,6 @@ vi.mock("../../../hooks/commitment-pooling/useTakeUpChoices", () => ({
   }),
 }));
 
-vi.mock("../../../utils/errors/contract-errors", () => ({
-  parseContractError: () => ({ name: "UnknownError" }),
-}));
-
 vi.mock("../../../components/Toast/toast.service", () => ({
   toastService: { error: mocks.toastError, success: mocks.toastSuccess },
 }));
@@ -312,7 +308,10 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
 }));
 
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
-import { TakeUpNotSent } from "../../../modules/commitment-pooling/take-up";
+import {
+  TakeUpNotSent,
+  TakeUpAgreementRequired,
+} from "../../../modules/commitment-pooling/take-up";
 import { writeWorkLinkIntent } from "../../../modules/commitment-pooling/work-link-intent";
 import { useSubmissionFlowController } from "../../../hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
@@ -1197,13 +1196,13 @@ describe("useWorkSubmissionFlowController", () => {
         }
       );
     };
-    const withAskChosen = () => {
+    const withAskChosen = (wrapper = Wrapper) => {
       mocks.actionUID = ask.actionUID;
       mocks.gardenAddress = ask.garden;
       mocks.takeUpChoices = [ask];
       mocks.outcome = { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false };
       submitWorkForm();
-      const view = renderFlow();
+      const view = renderFlow(wrapper);
       act(() => view.result.current.selectLinkIntent(ask));
       return view;
     };
@@ -1248,6 +1247,52 @@ describe("useWorkSubmissionFlowController", () => {
       expect(admit).not.toHaveBeenCalled();
       expect(mocks.enqueue).not.toHaveBeenCalled();
       expect(mocks.toastError).toHaveBeenCalledWith(expect.objectContaining({ title }));
+    });
+
+    it.each([
+      new TakeUpAgreementRequired(),
+      new TakeUpNotSent("execution reverted: 0x51789899", false),
+    ])("saves the draft before reward review without admitting work or its link: %s", async (error) => {
+      mocks.takeUp.mockRejectedValue(error);
+      let finishSave: (id: string) => void = () => {};
+      mocks.saveOnExit.mockResolvedValueOnce("draft-1").mockReturnValueOnce(
+        new Promise<string>((resolve) => {
+          finishSave = resolve;
+        })
+      );
+      const view = withAskChosen(ExitWrapper);
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+      let submit: Promise<boolean> = Promise.resolve(true);
+      act(() => {
+        submit = view.result.current.submit();
+      });
+      await waitFor(() => expect(mocks.saveOnExit).toHaveBeenCalledTimes(2));
+      expect(exitPath).toBe("/home/garden");
+      expect(admit).not.toHaveBeenCalled();
+      await act(async () => {
+        finishSave("draft-1");
+        await expect(submit).resolves.toBe(false);
+      });
+      expect(exitPath).toBe(ask.returnTo);
+      expect(mocks.enqueue).not.toHaveBeenCalled();
+    });
+
+    it("keeps the composer and admits nothing when saving before reward review fails", async () => {
+      mocks.takeUp.mockRejectedValue(new TakeUpAgreementRequired());
+      mocks.saveOnExit
+        .mockResolvedValueOnce("draft-1")
+        .mockRejectedValueOnce(new Error("storage unavailable"));
+      const view = withAskChosen(ExitWrapper);
+      await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+      await act(async () => {
+        await expect(view.result.current.submit()).resolves.toBe(false);
+      });
+      expect(exitPath).toBe("/home/garden");
+      expect(admit).not.toHaveBeenCalled();
+      expect(mocks.enqueue).not.toHaveBeenCalled();
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "app.garden.draft.backgroundSaveFailed.title" })
+      );
     });
 
     it("takes nothing up for work that fails its own checks", async () => {

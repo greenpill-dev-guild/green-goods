@@ -4,6 +4,7 @@ import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useGroupTakeUp } from "../../../hooks/client-ui/pool/useGroupTakeUp";
+import { TakeUpAgreementRequired } from "../../../modules/commitment-pooling/take-up";
 import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types-core";
 import type { Address } from "../../../types/domain";
 import {
@@ -102,6 +103,20 @@ describe("useGroupTakeUp", () => {
       kind: 0,
       gardenContext: GARDEN,
     });
+  });
+
+  it.each([
+    new TakeUpAgreementRequired(),
+    new Error("execution reverted: 0x51789899"),
+  ])("hands the same copy to reward review after a consent refusal: %s", async (error) => {
+    mocks.detail.mockResolvedValue(commitmentDetailFixture({ commitment: open(11) }));
+    mocks.enqueue.mockRejectedValue(error);
+    const reread = vi.fn();
+    const { result } = renderTakeUp(reread);
+    await act(() => result.current.takeUp(11n, PERSONAL));
+    expect(result.current.state).toEqual({ step: "review", copyId: 11n });
+    expect(reread).not.toHaveBeenCalled();
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
   });
 
   // The page offers copies on the chain's clock (`useDueClock`), and the press judges its copy on

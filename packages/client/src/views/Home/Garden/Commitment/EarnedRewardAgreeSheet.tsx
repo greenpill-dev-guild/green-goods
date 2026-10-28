@@ -43,6 +43,7 @@ export function EarnedRewardAgreeSheet({
       preventClose={isPending}
       title={sheet.title}
       size="md"
+      sheetSize="half"
       actions={{
         primary: { label: sheet.cta, loading: isPending, onClick: onAgree },
         secondary: {
@@ -67,14 +68,19 @@ export function EarnedRewardAgreeSheet({
           </Alert>
         ) : null}
         <FactList frame="inset">
-          <FactRow icon={<RiTaskLine />} label={sheet.work} value={work} />
+          <FactRow
+            icon={<RiTaskLine />}
+            label={sheet.work}
+            value={<span className="line-clamp-2">{work}</span>}
+            valueTitle={work}
+          />
           <FactRow
             icon={<RiCoupon3Line />}
             label={sheet.vouchers}
             value={detailed(sheet.value, sheet.detail)}
           />
         </FactList>
-        <p className="text-sm text-text-sub-600">{sheet.consent}</p>
+        <p className="type-body text-text-sub-600">{sheet.consent}</p>
       </div>
     </DialogShell>
   );

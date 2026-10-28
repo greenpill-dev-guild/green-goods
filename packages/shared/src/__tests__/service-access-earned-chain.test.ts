@@ -255,7 +255,7 @@ describe("a take-up of a request with a voucher reward", () => {
     claimant: key.buyer,
   };
   /** The core's binding for the request, and the claimant's own agreement on the reward module. */
-  function chain(module: `0x${string}`, agreed = 0n): ServiceChainRead {
+  function chain(module: `0x${string}`, agreed = 0n, paused = false): ServiceChainRead {
     return async ({ functionName, address }) => {
       if (functionName === "getEarnedVoucherBinding" && address === key.coreModule)
         return {
@@ -267,6 +267,7 @@ describe("a take-up of a request with a voucher reward", () => {
           acceptedCounterparty: ZERO,
         };
       if (functionName === "consentRevision" && address === MODULE) return agreed;
+      if (functionName === "paused" && address === MODULE) return paused;
       throw new Error(`Unexpected read ${functionName}`);
     };
   }
@@ -291,5 +292,14 @@ describe("a take-up of a request with a voucher reward", () => {
       throw new Error("RPC unavailable");
     };
     await expect(assertEarnedRewardAgreed(input, unread)).resolves.toBeUndefined();
+  });
+
+  it.each([
+    0n,
+    1n,
+  ])("refuses a paused reward even with claimant consent at revision %s", async (agreed) => {
+    await expect(assertEarnedRewardAgreed(input, chain(MODULE, agreed, true))).rejects.toThrow(
+      "VoucherPaused"
+    );
   });
 });

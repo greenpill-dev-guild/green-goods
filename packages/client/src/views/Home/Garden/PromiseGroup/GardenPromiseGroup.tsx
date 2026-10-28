@@ -44,8 +44,9 @@ export function GardenPromiseGroup() {
   const openCopy = (commitmentId: bigint) =>
     navigate(`/home/${gardenAddress}/commitments/${commitmentId.toString()}`);
 
-  // The act landed, or is on its way from this phone: the copy's own page is next.
-  const doneCopy = takeUpState.step === "done" ? takeUpState.copyId : null;
+  // The copy's page owns reward review as well as recovery of an admitted take-up.
+  const doneCopy =
+    takeUpState.step === "done" || takeUpState.step === "review" ? takeUpState.copyId : null;
   useEffect(() => {
     if (doneCopy === null) return;
     setSheetOpen(false);

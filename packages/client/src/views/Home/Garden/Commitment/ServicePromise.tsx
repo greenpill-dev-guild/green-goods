@@ -142,13 +142,25 @@ export function ServicePromise({
   const booking = snapshot
     ? serviceBookingView({ snapshot, coreState, issuer, approval, held }, intl)
     : null;
-  const rewards =
-    snapshot && !booking
-      ? serviceRewardsView(
-          { snapshot, coreState, issuer, garden: gardenName, takeUp: takeUp?.mode ?? null },
-          intl
-        )
-      : null;
+  const rewards = snapshot
+    ? serviceRewardsView(
+        {
+          snapshot,
+          coreState,
+          issuer:
+            wallet?.issuers.find(
+              (entry) =>
+                entry.asset.token.toLowerCase() ===
+                  snapshot.acceptancePolicy.earned.terms?.asset.token.toLowerCase() &&
+                entry.account.toLowerCase() ===
+                  snapshot.acceptancePolicy.earned.terms?.issuer.toLowerCase()
+            ) ?? (booking ? null : issuer),
+          garden: gardenName,
+          takeUp: snapshot.knownService ? "service" : (takeUp?.mode ?? null),
+        },
+        intl
+      )
+    : null;
   const text = (id: string) =>
     formatVoucherMessage(intl, id, { issuer: booking?.words.issuer ?? "" });
   const offline = snapshot?.capabilities.reasons.includes("offline") ?? false;
@@ -243,7 +255,7 @@ export function ServicePromise({
     void act(earnedAgreeStep(agreeing)).then((end) => {
       if (end === "done") {
         setAgreeing(null);
-        takeUp?.run();
+        if (!booking) takeUp?.run();
       } else if (end === "notOffered") setAgreeOutcome("changed");
       else if (end === "nothingSent") setAgreeOutcome("nothingSent");
       // An unknown result closes the sheet; the page's own read says where the agreement stands.
@@ -251,7 +263,7 @@ export function ServicePromise({
     });
   };
   const rewardBar =
-    takeUp && rewards?.agree === "offered" && rewards.agreeSheet ? (
+    (takeUp || snapshot?.knownService) && rewards?.agree === "offered" && rewards.agreeSheet ? (
       <CommitmentActionBar
         act={{ kind: "service", labelId: "", label: rewards.agreeSheet.cta, needsNetwork: true }}
         isPending={pending}
@@ -316,125 +328,133 @@ export function ServicePromise({
 
   return children({
     band: booking?.band ?? rewards?.band ?? null,
-    body:
-      booking || rewards ? (
-        <>
-          {booking?.door ? (
-            <JoinToActDoor
-              title={booking.door.title}
-              line={booking.door.body}
-              door={
-                booking.door.act && snapshot && exchangeAvailable(snapshot)
-                  ? {
-                      label: booking.door.act.label,
-                      icon: <RiExchangeLine className="h-4 w-4" aria-hidden="true" />,
-                      onAct: openExchange,
-                    }
-                  : null
-              }
-            />
-          ) : null}
-          {rewards?.agreementUnavailable ? (
-            <JoinToActDoor
-              title={rewards.agreementUnavailable.title}
-              line={rewards.agreementUnavailable.body}
-              door={{
-                label: rewards.agreementUnavailable.label,
-                icon: <RiQuestionLine className="h-4 w-4" aria-hidden="true" />,
-                // The app's Help, where it says how to reach the Green Goods team.
-                onAct: () => navigate(`${APP_ROUTES.profile}?tab=help`),
-              }}
-            />
-          ) : null}
-          {booking ? <ServiceAccessSection view={booking} /> : null}
-          {rewards ? <ServiceRewardsSection view={rewards} /> : null}
-          {snapshot?.pilot && import.meta.env.DEV && isDemoPoolingActive() ? (
-            <VoucherPilotJourney
-              snapshot={snapshot}
-              busy={pending}
-              onAction={async (action) => {
-                await mutation.mutateAsync(action);
-              }}
-            />
-          ) : null}
-        </>
-      ) : snapshot && showPanel ? (
-        <ServiceAccessPanel
-          key={`${serviceKey?.sourceChainId}:${serviceKey?.coreModule}:${serviceKey?.commitmentId}:${serviceKey?.buyer}`}
-          snapshot={snapshot}
-          isPending={mutation.isPending}
-          onAction={mutation.mutateAsync}
-          onRefresh={() => void access.refetch()}
-        />
-      ) : null,
+    body: (
+      <>
+        {booking || rewards ? (
+          <>
+            {booking?.door ? (
+              <JoinToActDoor
+                title={booking.door.title}
+                line={booking.door.body}
+                door={
+                  booking.door.act && snapshot && exchangeAvailable(snapshot)
+                    ? {
+                        label: booking.door.act.label,
+                        icon: <RiExchangeLine className="h-4 w-4" aria-hidden="true" />,
+                        onAct: openExchange,
+                      }
+                    : null
+                }
+              />
+            ) : null}
+            {rewards?.agreementUnavailable ? (
+              <JoinToActDoor
+                title={rewards.agreementUnavailable.title}
+                line={rewards.agreementUnavailable.body}
+                door={{
+                  label: rewards.agreementUnavailable.label,
+                  icon: <RiQuestionLine className="h-4 w-4" aria-hidden="true" />,
+                  // The app's Help, where it says how to reach the Green Goods team.
+                  onAct: () => navigate(`${APP_ROUTES.profile}?tab=help`),
+                }}
+              />
+            ) : null}
+            {booking ? <ServiceAccessSection view={booking} /> : null}
+            {rewards ? <ServiceRewardsSection view={rewards} /> : null}
+            {snapshot?.pilot && import.meta.env.DEV && isDemoPoolingActive() ? (
+              <VoucherPilotJourney
+                snapshot={snapshot}
+                busy={pending}
+                onAction={async (action) => {
+                  await mutation.mutateAsync(action);
+                }}
+              />
+            ) : null}
+          </>
+        ) : null}
+        {snapshot && showPanel && !booking && (snapshot.knownService || !rewards) ? (
+          <ServiceAccessPanel
+            key={`${serviceKey?.sourceChainId}:${serviceKey?.coreModule}:${serviceKey?.commitmentId}:${serviceKey?.buyer}`}
+            snapshot={snapshot}
+            isPending={mutation.isPending}
+            onAction={mutation.mutateAsync}
+            onRefresh={() => void access.refetch()}
+          />
+        ) : null}
+      </>
+    ),
     bar,
     delivery: booking?.delivery ?? null,
     bookingLines: booking?.events ?? [],
     confirm: booking?.confirm ?? null,
     rewards: rewards !== null,
-    sheets:
-      booking && snapshot ? (
-        <ServiceBookingSheets
-          booking={booking}
-          snapshot={snapshot}
-          heading={heading}
-          sheet={sheet}
-          onClose={() => setSheet(null)}
-          redeem={{
-            reviewed,
-            outcome,
-            held: booking.setup?.destination?.holderBalance ?? held,
-            // The issuer's pause stops a new booking at the write, whenever it was read.
-            onAgree: () => {
-              if (booking.issuerPaused) return;
-              void act(agreeStep).then((end) => setOutcome(notice(end)));
-            },
-            onDeposit: () => void act(depositStep).then((end) => setOutcome(notice(end))),
-            onCheck: () => {
-              setOutcome(null);
-              void access.refetch();
-            },
-          }}
-          onApproveSplit={() => {
-            if (!booking.split) return;
-            // The split is fixed once approved, even if a transfer prompt is declined after it.
-            void act(splitStep(booking.split)).then((end) => {
-              if (end === "done" || end === "stopped") setSheet(null);
-            });
-          }}
-          onReport={report}
-          exchange={{
-            quote: wallet ? exchangeQuoteFromPilot(snapshot, wallet) : null,
-            reviewing: reviewingExchange,
-            onOpen: openExchange,
-            onReview: () => setReviewingExchange(true),
-            onExchange: () => void act(exchangeStep).then(() => setReviewingExchange(false)),
-            onCheck: () => void runOnce({ action: "resolvePilotExchange" }),
-            onRequote: () => {
-              setReviewingExchange(false);
-              void runOnce({ action: "quotePilotExchange" });
-            },
-            // A short pool quotes again for what it can give, not the same amount.
-            smaller: smallerExchangeInput(snapshot),
-            onSmaller: (input) => {
-              setReviewingExchange(false);
-              void runOnce({ action: "quotePilotExchange", input });
-            },
-          }}
-          isPending={pending}
-        />
-      ) : rewards?.agreeSheet ? (
-        <EarnedRewardAgreeSheet
-          sheet={rewards.agreeSheet}
-          work={heading}
-          open={agreeing !== null}
-          outcome={agreeOutcome}
-          isPending={pending}
-          onOpenChange={(open) => {
-            if (!open) setAgreeing(null);
-          }}
-          onAgree={agree}
-        />
-      ) : null,
+    sheets: (
+      <>
+        {booking && snapshot ? (
+          <ServiceBookingSheets
+            booking={booking}
+            snapshot={snapshot}
+            heading={heading}
+            sheet={sheet}
+            onClose={() => setSheet(null)}
+            redeem={{
+              reviewed,
+              outcome,
+              held: booking.setup?.destination?.holderBalance ?? held,
+              // The issuer's pause stops a new booking at the write, whenever it was read.
+              onAgree: () => {
+                if (booking.issuerPaused) return;
+                void act(agreeStep).then((end) => setOutcome(notice(end)));
+              },
+              onDeposit: () => void act(depositStep).then((end) => setOutcome(notice(end))),
+              onCheck: () => {
+                setOutcome(null);
+                void access.refetch();
+              },
+            }}
+            onApproveSplit={() => {
+              if (!booking.split) return;
+              // The split is fixed once approved, even if a transfer prompt is declined after it.
+              void act(splitStep(booking.split)).then((end) => {
+                if (end === "done" || end === "stopped") setSheet(null);
+              });
+            }}
+            onReport={report}
+            exchange={{
+              quote: wallet ? exchangeQuoteFromPilot(snapshot, wallet) : null,
+              reviewing: reviewingExchange,
+              onOpen: openExchange,
+              onReview: () => setReviewingExchange(true),
+              onExchange: () => void act(exchangeStep).then(() => setReviewingExchange(false)),
+              onCheck: () => void runOnce({ action: "resolvePilotExchange" }),
+              onRequote: () => {
+                setReviewingExchange(false);
+                void runOnce({ action: "quotePilotExchange" });
+              },
+              // A short pool quotes again for what it can give, not the same amount.
+              smaller: smallerExchangeInput(snapshot),
+              onSmaller: (input) => {
+                setReviewingExchange(false);
+                void runOnce({ action: "quotePilotExchange", input });
+              },
+            }}
+            isPending={pending}
+          />
+        ) : null}
+        {rewards?.agreeSheet ? (
+          <EarnedRewardAgreeSheet
+            sheet={rewards.agreeSheet}
+            work={heading}
+            open={agreeing !== null}
+            outcome={agreeOutcome}
+            isPending={pending}
+            onOpenChange={(open) => {
+              if (!open) setAgreeing(null);
+            }}
+            onAgree={agree}
+          />
+        ) : null}
+      </>
+    ),
   });
 }

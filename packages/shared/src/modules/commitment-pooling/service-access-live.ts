@@ -1,4 +1,5 @@
 import type { Address } from "../../types/domain";
+import { logger } from "../app/logger";
 import { readGardenMembership } from "../../utils/blockchain/garden-role-reads";
 import { reconcileTransaction } from "../transactions/confirmation";
 import type { TransactionSender } from "../transactions/types";
@@ -10,7 +11,7 @@ import {
   verifyServiceLiveRoute,
 } from "./service-access-live-chain";
 import { SERVICE_LIVE_ROUTES, type ServiceLiveRoute } from "./service-access-live-config";
-import { verifyServiceDeployment } from "./service-access-live-route";
+import { verifyIssuerSourceRoute } from "./service-issuer-chain";
 import {
   configIdentity,
   executeLiveServiceCall,
@@ -52,6 +53,24 @@ interface ServiceLiveDependencies {
 type ServiceLiveReadPurpose = "any" | "voucher" | "earned";
 const same = (a: string | null | undefined, b: string | null | undefined) =>
   !!a && !!b && a.toLowerCase() === b.toLowerCase();
+/** A reviewed route starts without signer powers; each chain's actor check grants its own. */
+function routeCapabilities(
+  key: ServiceAccessKey,
+  holder: Address | null = null
+): ServiceAccessSnapshot["capabilities"] {
+  return {
+    mutation: "onchain",
+    reasons: [],
+    sourceBuyer: key.buyer,
+    celoDepositor: null,
+    gnosisHolder: holder,
+    canSignSource: false,
+    canSendSource: false,
+    canSignCelo: false,
+    canSignHolder: false,
+    canSendDestination: false,
+  };
+}
 const ROUTE_PROOF_REUSE_MS = 60_000;
 /** Online member acts only. Persisted public references are partitioned by chain/address, never replayed automatically. */
 export function createLiveServiceAccessAdapter(
@@ -94,12 +113,12 @@ export function createLiveServiceAccessAdapter(
   // The issuer route over the same core pins the Arbitrum reward module that a request's reward
   // binds; the live route's own identity stays unchanged, so no pending record is orphaned.
   const issuerRoutes = deps.issuerRoutes ?? SERVICE_ISSUER_ROUTES;
-  const earnedModuleFor = (route: ServiceLiveRoute) =>
+  const earnedRouteFor = (route: ServiceLiveRoute) =>
     issuerRoutes.find(
       (issuer) =>
         issuer.service.sourceChainId === route.sourceChainId &&
         same(issuer.service.core.address, route.core.address)
-    )?.adapterSource ?? null;
+    ) ?? null;
   const storage = () => deps.storage ?? globalThis.localStorage;
   /** A send on record is settled before any new act; until then the act waits for it. */
   const reconcilePending = async (
@@ -147,7 +166,8 @@ export function createLiveServiceAccessAdapter(
     fresh: boolean
   ) => {
     const earned = s.acceptancePolicy.earned;
-    const pin = earnedModuleFor(route);
+    const issuer = earnedRouteFor(route);
+    const pin = issuer?.adapterSource;
     if (s.capabilities.reasons.includes("authoritative-read-failed") || !earned.terms)
       throw new Error("Authoritative live service state unavailable");
     if (!pin || !earned.module || !same(earned.module, pin.address))
@@ -161,7 +181,7 @@ export function createLiveServiceAccessAdapter(
     await Promise.all([
       verifyRoute(route, fresh),
       prove(`earned:${pin.address.toLowerCase()}`, fresh, () =>
-        verifyServiceDeployment(pin, route.sourceChainId, chain)
+        verifyIssuerSourceRoute(issuer!, chain)
       ),
     ]);
     return asset;
@@ -185,6 +205,13 @@ export function createLiveServiceAccessAdapter(
       asset = await reviewEarned(s, route, fresh);
     } catch (error) {
       if (agreeing) throw error;
+      logger.warn("Earned reward review failed; agreement is unavailable", {
+        error,
+        commitmentId: key.commitmentId.toString(),
+      });
+      s.capabilities.mutation = "unavailable";
+      s.capabilities.reasons = [...s.capabilities.reasons, "deployment-unreviewed"];
+      s.availableActions = serviceAccessAvailableActions(s);
       return s;
     }
     const terms = earned.terms!;
@@ -195,18 +222,7 @@ export function createLiveServiceAccessAdapter(
       decimals: asset.decimals,
     };
     s.complete = true;
-    s.capabilities = {
-      mutation: "onchain",
-      reasons: [],
-      sourceBuyer: key.buyer,
-      celoDepositor: null,
-      gnosisHolder: null,
-      canSignSource: false,
-      canSendSource: false,
-      canSignCelo: false,
-      canSignHolder: false,
-      canSendDestination: false,
-    };
+    if (s.mode !== "voucher") s.capabilities = routeCapabilities(key);
     try {
       await assertSession(key);
       s.capabilities.canSignSource = s.capabilities.canSendSource = true;
@@ -216,8 +232,18 @@ export function createLiveServiceAccessAdapter(
     // A garden claim's account must agree for itself; this app signs only a member's own.
     if (earned.claimType !== "individual")
       s.capabilities.reasons = [...s.capabilities.reasons, "earned-consent-unavailable"];
-    await reconcilePending(s, key, route, [key.sourceChainId], reconcile);
+    await reconcilePending(
+      s,
+      key,
+      route,
+      s.mode === "voucher" ? [key.sourceChainId, 100] : [key.sourceChainId],
+      reconcile
+    );
     s.availableActions = serviceAccessAvailableActions(s);
+    s.voucherSetups = s.voucherSetups.map((row) => ({
+      ...row,
+      availableActions: voucherSetupAvailableActions(s, row),
+    }));
     return s;
   };
   const read = async (
@@ -231,10 +257,10 @@ export function createLiveServiceAccessAdapter(
     const s = await deps.readSnapshot(key);
     // An unread promise may still be a voucher offer, so a failed read stays a failure.
     if (s.evidence !== "onchain") throw new Error("Authoritative live service state unavailable");
-    const earned = s.mode !== "voucher" && s.acceptancePolicy.earned.status === "bound";
+    const earned = s.acceptancePolicy.earned.status === "bound";
     if (purpose === "earned" && !earned)
       throw new Error("Authoritative live service state unavailable");
-    if (earned && purpose !== "voucher")
+    if (earned && s.mode !== "voucher" && purpose !== "voucher")
       return readEarned(key, s, route, reconcile, fresh, purpose === "earned");
     // The route carries the core's voucher offers; its other promises read as they do unrouted.
     if (s.mode !== "voucher" && purpose !== "voucher") return s;
@@ -279,18 +305,7 @@ export function createLiveServiceAccessAdapter(
       .map(({ garden }) => garden);
     await hydrateLiveVoucherSnapshot(s, route, chain);
     s.complete = true;
-    s.capabilities = {
-      mutation: "onchain",
-      reasons: [],
-      sourceBuyer: key.buyer,
-      celoDepositor: null,
-      gnosisHolder: key.buyer,
-      canSignSource: false,
-      canSendSource: false,
-      canSignCelo: false,
-      canSignHolder: false,
-      canSendDestination: false,
-    };
+    s.capabilities = routeCapabilities(key, key.buyer);
     try {
       await assertSession(key);
       s.capabilities.canSignSource = s.capabilities.canSendSource = true;
@@ -299,6 +314,7 @@ export function createLiveServiceAccessAdapter(
     } catch {
       s.capabilities.reasons = ["signer-unavailable"];
     }
+    if (earned) return readEarned(key, s, route, reconcile, fresh, purpose === "earned");
     await reconcilePending(s, key, route, [key.sourceChainId, 100], reconcile);
     s.availableActions = serviceAccessAvailableActions(s);
     s.voucherSetups = s.voucherSetups.map((row) => ({

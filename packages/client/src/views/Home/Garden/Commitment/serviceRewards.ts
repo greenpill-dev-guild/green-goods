@@ -61,7 +61,7 @@ export interface ServiceRewardsInput {
    * How the reader could take the request up, so agreeing to its reward is theirs to do: at once
    * (an open request) or by asking its stewards; null when they can't.
    */
-  takeUp: "open" | "reviewed" | null;
+  takeUp: "open" | "reviewed" | "service" | null;
 }
 
 const STATUS: Record<RequestRewardDelivery["status"], { id: string; tone: ItemRowTone }> = {
@@ -161,7 +161,14 @@ export function serviceRewardsView(
   const tone: ServiceBandTone = working ? "attention" : all ? "kept" : due ? "waiting" : "neutral";
   const earned = input.snapshot.acceptancePolicy.earned;
   const agree =
-    earned.status !== "bound" || !input.takeUp || !OPEN.includes(input.coreState)
+    earned.status !== "bound" ||
+    earned.claimType !== "individual" ||
+    earned.modulePaused !== false ||
+    input.snapshot.pause.core !== false ||
+    input.snapshot.capabilities.mutation !== input.snapshot.evidence ||
+    !input.snapshot.capabilities.canSignSource ||
+    !input.takeUp ||
+    !OPEN.includes(input.coreState)
       ? null
       : earned.revision !== null && earned.viewerConsentRevision === earned.revision
         ? "agreed"
@@ -215,8 +222,14 @@ export function serviceRewardsView(
             value: t("rw.sh.vouV", values),
             detail: t("rw.sh.vouS"),
             // An open request is the member's once taken up; a reviewed one waits for its stewards.
-            consent: t(input.takeUp === "open" ? "rw.sh.consentOpen" : "rw.sh.consent"),
-            cta: t("rw.sh.cta"),
+            consent: t(
+              input.takeUp === "service"
+                ? "rw.sh.consentService"
+                : input.takeUp === "open"
+                  ? "rw.sh.consentOpen"
+                  : "rw.sh.consent"
+            ),
+            cta: t(input.takeUp === "service" ? "rw.sh.title" : "rw.sh.cta"),
           }
         : null,
     vouchersReceived: voucher?.status === "received",

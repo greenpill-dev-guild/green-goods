@@ -375,7 +375,6 @@ function liveEarnedReward(snapshot: ServiceAccessSnapshot): RequestRewardDeliver
   const earned = snapshot.acceptancePolicy.earned;
   const terms = earned.terms;
   if (
-    snapshot.knownService ||
     earned.status !== "bound" ||
     !earned.termsHash ||
     !terms ||

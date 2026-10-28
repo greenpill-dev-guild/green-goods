@@ -4,7 +4,11 @@ import type { useSearchParams } from "react-router-dom";
 import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import type { ClaimJobPayload } from "../../../modules/commitment-pooling/job-types";
-import { type TakeUpOutcome, TakeUpNotSent } from "../../../modules/commitment-pooling/take-up";
+import {
+  type TakeUpOutcome,
+  TakeUpNotSent,
+  takeUpNeedsRewardAgreement,
+} from "../../../modules/commitment-pooling/take-up";
 import {
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
@@ -37,6 +41,8 @@ interface WorkLinkIntentOptions {
   setGardenAddress: (gardenAddress: Address) => void;
   /** Queues and sends the take-up of an Open ask (`useCommitmentJobs().takeUp`). */
   takeUp: (payload: ClaimJobPayload) => Promise<TakeUpOutcome>;
+  /** Save the work draft before opening the promise's reward review. */
+  reviewReward: (intent: WorkLinkIntent) => Promise<void>;
 }
 
 /**
@@ -61,6 +67,7 @@ export function useWorkLinkIntent({
   actionUID,
   setGardenAddress,
   takeUp,
+  reviewReward,
 }: WorkLinkIntentOptions) {
   const intl = useIntl();
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
@@ -210,6 +217,18 @@ export function useWorkLinkIntent({
         setTakenUpHere((taken) => new Set(taken).add(takeUpLink.commitmentId.toString()));
       return true;
     } catch (error) {
+      if (takeUpNeedsRewardAgreement(error)) {
+        try {
+          await reviewReward(takeUpLink);
+        } catch (saveError) {
+          toastService.error({
+            title: intl.formatMessage({ id: "app.garden.draft.backgroundSaveFailed.title" }),
+            message: intl.formatMessage({ id: "app.garden.draft.backgroundSaveFailed.message" }),
+            error: saveError,
+          });
+        }
+        return false;
+      }
       // Any other failure was said where it happened (`useCommitmentJobs`).
       if (!(error instanceof TakeUpNotSent)) return false;
       toastService.error({

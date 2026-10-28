@@ -77,6 +77,18 @@ describe("useCommitmentJobs", () => {
     expect(mocks.addJob).toHaveBeenCalledWith("claim", payload, VIEWER, { chainId: 42161 });
   });
 
+  it("queues an offline claim without needing to load or read reward consent", async () => {
+    const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    try {
+      const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN };
+      await jobs().current.enqueue({ act: "claim", payload });
+      expect(mocks.addJob).toHaveBeenCalledWith("claim", payload, VIEWER, { chainId: 42161 });
+      expect(mocks.assertEarnedRewardAgreed).not.toHaveBeenCalled();
+    } finally {
+      online.mockRestore();
+    }
+  });
+
   it("queues no take-up of a request whose voucher reward its claimant hasn't agreed to", async () => {
     mocks.assertEarnedRewardAgreed.mockRejectedValue(new Error("VoucherConsentMissing"));
     mocks.sender = { authMode: "wallet" };

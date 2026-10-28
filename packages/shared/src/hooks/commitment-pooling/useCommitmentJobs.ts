@@ -22,7 +22,6 @@ import type { Hex } from "viem";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { logger } from "../../modules/app/logger";
 import { jobQueue } from "../../modules/job-queue/default-instance";
-import { assertEarnedRewardAgreed } from "../../modules/commitment-pooling/earned-agreement";
 import type {
   ClaimJobPayload,
   CommitmentCreationPayload,
@@ -91,7 +90,12 @@ const CLAIM_TYPE_INDIVIDUAL = 1;
  * so it is refused before anything is queued; the promise's page asks for the agreement. An
  * individual claim's claimant is the member, a garden claim's the garden account.
  */
-function assertClaimAgreed(payload: ClaimJobPayload, owner: Address, chainId: number) {
+async function assertClaimAgreed(payload: ClaimJobPayload, owner: Address, chainId: number) {
+  // An uncached lazy reader cannot load offline; leave that claim for its queued send-time check.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  const { assertEarnedRewardAgreed } = await import(
+    "../../modules/commitment-pooling/earned-agreement"
+  );
   return assertEarnedRewardAgreed({
     chainId,
     core: getNetworkContracts(chainId).commitmentPoolingModule as Address,

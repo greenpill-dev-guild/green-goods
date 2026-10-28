@@ -55,7 +55,6 @@ function earnedConsentOffered(snapshot: ServiceAccessSnapshot): boolean {
     snapshot.evidence === "onchain" &&
     snapshot.capabilities.mutation === "onchain" &&
     !snapshot.capabilities.reasons.includes("offline") &&
-    !snapshot.knownService &&
     earned.status === "bound" &&
     earned.revision !== null &&
     earned.termsHash !== null &&
@@ -107,7 +106,12 @@ export function serviceAccessAvailableActions(
       snapshot.pause.core === false &&
       snapshot.nextRequestNonce > 0n &&
       snapshot.nextRequestNonce <= MAX_NONCE &&
-      snapshot.acceptancePolicy.earned.status !== "bound" &&
+      (snapshot.acceptancePolicy.earned.status !== "bound" ||
+        (snapshot.acceptancePolicy.earned.modulePaused === false &&
+          snapshot.acceptancePolicy.earned.claimType === "individual" &&
+          snapshot.acceptancePolicy.earned.revision !== null &&
+          snapshot.acceptancePolicy.earned.viewerConsentRevision ===
+            snapshot.acceptancePolicy.earned.revision)) &&
       (!consent ||
         consent.state === "withdrawn" ||
         consent.state === "declined" ||
