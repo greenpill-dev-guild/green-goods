@@ -133,10 +133,12 @@ these copies; to replace them, capture the hub's Promises sheet and a course pro
 sheet from the app at 390 px wide and 2x, with both sheets' top edges at y 250. The notes'
 claims list tells the presenter what they show. The earlier Storybook pair and its capture
 script retired in the [critique pass](#the-critique-pass--26-october-2026). Since the why-thread
-rebuild slide 12 shows a third screen, `deck/assets/screens/fund-sheet.jpg`: a copy of the demo's
-`funding-2` capture, the hub's page in the app with Donate and Endow, at the same 780 by 1688. The
-deck shows it from the top of the capture; if the capture needs a different crop, change
-`.phone.p3 img` in `index.html`.
+rebuild slide 12 shows a third screen, `deck/assets/screens/fund-sheet.jpg`: the live Fund page
+(`www.greengoods.app/fund?garden=tas-hub`, which the hub's "Support This Garden" link opens),
+captured on 27 October at 390 px wide and 2x (780 by 1688) and scrolled so the hub's highlighted
+card, with Donate and Endow, sits at the top. The demo's `funding-2` is a desktop capture (2160 by
+1350) and does not fit the phone frame. The deck shows the capture from its top; for a different
+crop, change `.phone.p3 img` in `index.html`.
 
 ## The revision · 25 October 2026
 
@@ -681,8 +683,9 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    the notes run; the five-minute cut stays as a fallback.
 7. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
    gift method (the Omo Yoruba donate page has no payment form).
-8. **Live counts.** No slide shows live counts. Slide 12's Fund sheet and slide 10's two sheets are
-   the demo's captures of the hub's page in the app, so nothing needs re-capturing before presenting.
+8. **Live counts.** Slide 12's Fund sheet is the live Fund page as of 27 October: 14 members, 16
+   approved submissions and an endowment of 0.2 DAI and 0.25 ETH. Re-capture it only if those
+   change before the pitch. Slide 10's two sheets are the demo's captures and need nothing.
 9. **Recorded clip.** The stretch-goal clip of the rehearsed voucher flow was not made; the notes
    say where it would go. Afo plans a walkthrough video for the submission; the clickable demo
    is its path.
