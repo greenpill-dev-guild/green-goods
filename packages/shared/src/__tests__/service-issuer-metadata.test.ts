@@ -10,17 +10,29 @@ const VOUCHER = 1_000_000n;
 const route = () => structuredClone(SERVICE_ISSUER_ROUTES[0]!);
 
 describe("reviewed Green Goods production issuer metadata", () => {
-  it("keeps unconfirmed sessions closed for new issuance while preserving recovery reads", () => {
+  it("admits the confirmed session and Claude capacity for reviewed issuer actions", () => {
+    const asset = issuerAsset(route(), "green-goods");
+    expect(asset.service.offers?.map((offer) => offer.capacity)).toEqual([
+      20n * VOUCHER,
+      100n * VOUCHER,
+    ]);
+    expect(asset.service.capacity).toBe(120n * VOUCHER);
+    expect(serviceIssuerIssuanceLimit(asset)).toBe(120n * VOUCHER);
+  });
+  it.each([
+    "session",
+    "aggregate",
+  ])("blocks missing %s capacity while preserving recovery reads", (missing) => {
     const r = route();
+    if (missing === "session") r.assets[0]!.service.offers![0]!.capacity = null;
+    else r.assets[0]!.service.capacity = null;
     expect(() => issuerAsset(r, "green-goods")).toThrow("capacity");
     const asset = issuerAsset(r, "green-goods", true);
-    expect(asset.service.capacity).toBeNull();
-    expect(asset.service.offers?.map((offer) => offer.capacity)).toEqual([null, 100n * VOUCHER]);
     expect(serviceIssuerIssuanceLimit(asset)).toBeNull();
   });
   it("requires every service capacity before admitting the aggregate, then retains the lower issuance ceiling", () => {
     const asset = route().assets[0]!;
-    asset.service.capacity = 120n * VOUCHER;
+    asset.service.offers![0]!.capacity = null;
     expect(serviceIssuerIssuanceLimit(asset)).toBeNull();
     asset.service.offers![0]!.capacity = 20n * VOUCHER;
     expect(serviceIssuerIssuanceLimit(asset)).toBe(120n * VOUCHER);
@@ -29,7 +41,7 @@ describe("reviewed Green Goods production issuer metadata", () => {
     asset.service.capacity = 121n * VOUCHER;
     expect(serviceIssuerIssuanceLimit(asset)).toBeNull();
   });
-  it("carries the approved finite targets without claiming their batch has executed", () => {
+  it("retains the approved finite issuance and exchange targets", () => {
     const asset = route().assets[0]!;
     expect([
       asset.initialSupply,
@@ -37,7 +49,7 @@ describe("reviewed Green Goods production issuer metadata", () => {
       asset.poolHoldingCap,
       asset.priceIndex,
     ]).toEqual([120n * VOUCHER, 110n * VOUCHER, 120n * VOUCHER, 1_000_000n]);
-    expect(asset.service.capacity).toBeNull();
+    expect(asset.service.capacity).toBe(120n * VOUCHER);
     expect(asset.delisting).toBeNull();
   });
   it("excludes Tech and Sun from issuer configuration and preserves collective Safe control", () => {
