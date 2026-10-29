@@ -27,6 +27,7 @@ import {
   pickCopyToTakeUp,
 } from "../../../modules/commitment-pooling/group-browsing";
 import type { Address } from "../../../types/domain";
+import { takeUpNeedsRewardAgreement } from "../../../modules/commitment-pooling/take-up";
 import { isCancelledTxError } from "../../../utils/errors/tx-error-classifier";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 
@@ -57,6 +58,8 @@ export type GroupTakeUpState =
   | { step: "unknown" }
   /** The send didn't go through and nothing is held: Try Again takes up the same copy. */
   | { step: "failed"; copyId: bigint; context: GroupTakeUpContext }
+  /** Nothing was queued; open the chosen promise so the member can review its reward. */
+  | { step: "review"; copyId: bigint }
   /**
    * Taken up, or held on this phone to send: the copy's own page is next. A
    * send that failed but stays in the queue is held too, and its page offers
@@ -171,6 +174,10 @@ export function useGroupTakeUp(source: GroupTakeUpSource) {
           });
           setState({ step: "done", copyId });
         } catch (error) {
+          if (takeUpNeedsRewardAgreement(error)) {
+            setState({ step: "review", copyId });
+            return;
+          }
           // The queue's own handler has logged and told the person. A declined
           // prompt drops the job, as does a refusal before the queue took it, so
           // nothing is held and the sheet offers the same copy again. Any other

@@ -12,6 +12,7 @@ import { selectVoucherSetupAction, voucherSetupAvailableActions } from "./servic
 const MAX_NONCE = (1n << 64n) - 1n;
 const ZERO_ADDRESS = /^0x0{40}$/i;
 const TERMINAL = new Set(["CANCELLED", "EXPIRED", "DISPUTED"]);
+const BEFORE_ACCEPTANCE = new Set(["OFFERED", "REQUESTED"]);
 
 function account(value: string): boolean {
   return isAddress(value) && !ZERO_ADDRESS.test(value);
@@ -43,13 +44,46 @@ function sameServiceFeeQuote(left: GoodDollarFeeQuote, right: GoodDollarFeeQuote
   );
 }
 
+/**
+ * A member agrees to a request's voucher reward from their own account before taking it up: the
+ * issuer approved the terms and the creator's agreement froze them. Only an individual claim's
+ * member is the claimant; a garden claim's account must agree for itself (PRD-1322).
+ */
+function earnedConsentOffered(snapshot: ServiceAccessSnapshot): boolean {
+  const earned = snapshot.acceptancePolicy.earned;
+  return (
+    snapshot.evidence === "onchain" &&
+    snapshot.capabilities.mutation === "onchain" &&
+    !snapshot.capabilities.reasons.includes("offline") &&
+    earned.status === "bound" &&
+    earned.revision !== null &&
+    earned.termsHash !== null &&
+    earned.terms?.issuerApproved === true &&
+    earned.terms.frozen &&
+    earned.modulePaused === false &&
+    earned.claimType === "individual" &&
+    BEFORE_ACCEPTANCE.has(snapshot.coreState ?? "") &&
+    snapshot.pause.core === false &&
+    snapshot.capabilities.canSignSource &&
+    equal(snapshot.key.buyer, snapshot.capabilities.sourceBuyer) &&
+    (!snapshot.knownService || snapshot.eligibleBuyerGardens.length > 0) &&
+    earned.creator !== null &&
+    !equal(earned.creator, snapshot.key.buyer) &&
+    earned.viewerConsentRevision !== earned.revision
+  );
+}
+
 /** Presentation asks this same table; exact submitted amounts are checked below. */
 export function serviceAccessAvailableActions(
   snapshot: ServiceAccessSnapshot
 ): ServiceAccessActionKind[] {
-  const recoveryActions = snapshot.voucherSetups.flatMap((setup) =>
-    voucherSetupAvailableActions(snapshot, setup)
-  );
+  const earnedActions: ServiceAccessActionKind[] = earnedConsentOffered(snapshot)
+    ? ["consentEarnedTerms"]
+    : [];
+  const recoveryActions = [
+    ...snapshot.voucherSetups.flatMap((setup) => voucherSetupAvailableActions(snapshot, setup)),
+    ...earnedActions,
+  ];
   if (
     !["local-rehearsal", "onchain"].includes(snapshot.evidence) ||
     !snapshot.complete ||
@@ -71,9 +105,15 @@ export function serviceAccessAvailableActions(
   if (snapshot.coreState === "OFFERED" && sourceSigner) {
     if (
       snapshot.pause.core === false &&
+      snapshot.eligibleBuyerGardens.length > 0 &&
       snapshot.nextRequestNonce > 0n &&
       snapshot.nextRequestNonce <= MAX_NONCE &&
-      snapshot.acceptancePolicy.earned.status !== "bound" &&
+      (snapshot.acceptancePolicy.earned.status !== "bound" ||
+        (snapshot.acceptancePolicy.earned.modulePaused === false &&
+          snapshot.acceptancePolicy.earned.claimType === "individual" &&
+          snapshot.acceptancePolicy.earned.revision !== null &&
+          snapshot.acceptancePolicy.earned.viewerConsentRevision ===
+            snapshot.acceptancePolicy.earned.revision)) &&
       (!consent ||
         consent.state === "withdrawn" ||
         consent.state === "declined" ||
@@ -118,6 +158,7 @@ export function serviceAccessAvailableActions(
     actions.push("prepareVoucherSetup");
   for (const setup of snapshot.voucherSetups)
     actions.push(...voucherSetupAvailableActions(snapshot, setup));
+  actions.push(...earnedActions);
   return [...new Set(actions)];
 }
 
@@ -130,6 +171,13 @@ export function selectServiceAccessAction(
   if (isPilotAction(action)) return selectPilotAction(snapshot, action);
   if (!serviceAccessAvailableActions(snapshot).includes(action.action))
     return reject("action-unavailable");
+  if (action.action === "consentEarnedTerms") {
+    const earned = snapshot.acceptancePolicy.earned;
+    return action.expectedRevision === earned.revision &&
+      equal(action.expectedTermsHash, earned.termsHash ?? "")
+      ? { allowed: true, reason: null }
+      : reject("terms-changed");
+  }
   if ("setupId" in action || action.action === "prepareVoucherSetup")
     return selectVoucherSetupAction(snapshot, action);
   const { offer, consent, personalPurchase: purchase } = snapshot;

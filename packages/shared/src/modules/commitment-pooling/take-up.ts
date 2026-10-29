@@ -17,12 +17,29 @@
 
 import type { Address } from "../../types/domain";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
+import { parseContractError } from "../../utils/errors/contract-errors";
 import type { JobQueueHandle } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
 import type { ClaimJobPayload } from "./job-types";
 
 /** How the take-up a work goes after ended in the tap. */
 export type TakeUpOutcome = { status: "landed" } | { status: "queued"; reason?: string };
+
+/** Nothing was queued: the member must review the reward on the promise's page first. */
+export class TakeUpAgreementRequired extends Error {
+  constructor() {
+    super("VoucherConsentMissing: agree to this promise's reward before taking it up");
+    this.name = "TakeUpAgreementRequired";
+  }
+}
+
+/** A queued/offline send may return the contract refusal after the local check could not read. */
+export function takeUpNeedsRewardAgreement(error: unknown): boolean {
+  return (
+    error instanceof TakeUpAgreementRequired ||
+    parseContractError(error).name === "VoucherConsentMissing"
+  );
+}
 
 /** The take-up was declined or refused in the tap; nothing of the tap stays queued. */
 export class TakeUpNotSent extends Error {

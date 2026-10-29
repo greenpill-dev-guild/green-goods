@@ -2,6 +2,7 @@ import { encodeFunctionData, erc20Abi, type Abi } from "viem";
 import OffersABI from "@green-goods/contracts/abis/ICommitmentServiceOffers.json";
 import SourceABI from "@green-goods/contracts/abis/VoucherRedemptionModule.json";
 import EscrowABI from "@green-goods/contracts/abis/GnosisVoucherEscrow.json";
+import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule.json";
 import type { ContractCall } from "../transactions/types";
 import type { ServiceLiveRoute } from "./service-access-live-config";
 import type { ServiceAccessAction, ServiceAccessSnapshot } from "./service-access-types";
@@ -65,6 +66,20 @@ export function serviceLiveCall(
         a.expectedRequestNonce,
         a.acceptanceDeadline,
       ]);
+    case "consentEarnedTerms": {
+      // The live read admits only the reviewed reward module the core binds.
+      const module = s.acceptancePolicy.earned.module;
+      if (!module) throw new Error("Earned reward module unavailable");
+      return {
+        account: s.key.buyer,
+        chainId: s.key.sourceChainId,
+        address: module,
+        abi: EntitlementABI as Abi,
+        functionName: "consentTerms",
+        args: [s.key.commitmentId, a.expectedRevision],
+        value: 0n,
+      };
+    }
   }
   if (!("setupId" in a)) throw new Error("This action has no reviewed live service implementation");
   const bound = [a.setupId, a.expectedAuthorizationHash];

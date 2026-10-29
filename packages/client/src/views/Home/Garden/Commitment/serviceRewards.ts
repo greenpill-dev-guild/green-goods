@@ -27,10 +27,25 @@ export interface ServiceRewardsView {
   details: string[];
   band: { tone: ServiceBandTone; sentence: string; needsYou: boolean };
   /**
-   * Agreeing to a voucher reward on the source network stays operator-assisted, so the page
-   * says so with one door instead of an act that can't be signed here.
+   * Where the reader's own agreement can't be signed here (a garden's claim, or no signer), the
+   * page says so with one door instead of an act that can't run.
    */
   agreementUnavailable: { title: string; body: string; label: string } | null;
+  /**
+   * The reader's own agreement to the reward, before they take it up: offered now, already
+   * given, or neither.
+   */
+  agree: "offered" | "agreed" | null;
+  /** Agree to the Rewards: the reward as agreed to, before the member takes the request up. */
+  agreeSheet: null | {
+    title: string;
+    work: string;
+    vouchers: string;
+    value: string;
+    detail: string;
+    consent: string;
+    cta: string;
+  };
   /** The vouchers arrived, so the reader can go to them: See Your Vouchers. */
   vouchersReceived: boolean;
 }
@@ -42,6 +57,11 @@ export interface ServiceRewardsInput {
   issuer: Pick<VoucherIssuer, "name" | "gender" | "kind"> | null;
   /** The request's garden, whose pool pays any G$. */
   garden: string;
+  /**
+   * How the reader could take the request up, so agreeing to its reward is theirs to do: at once
+   * (an open request) or by asking its stewards; null when they can't.
+   */
+  takeUp: "open" | "reviewed" | "service" | null;
 }
 
 const STATUS: Record<RequestRewardDelivery["status"], { id: string; tone: ItemRowTone }> = {
@@ -140,6 +160,21 @@ export function serviceRewardsView(
   const terms = input.snapshot.acceptancePolicy.earned.revision;
   const tone: ServiceBandTone = working ? "attention" : all ? "kept" : due ? "waiting" : "neutral";
   const earned = input.snapshot.acceptancePolicy.earned;
+  const agree =
+    earned.status !== "bound" ||
+    earned.claimType !== "individual" ||
+    earned.modulePaused !== false ||
+    input.snapshot.pause.core !== false ||
+    input.snapshot.capabilities.mutation !== input.snapshot.evidence ||
+    !input.snapshot.capabilities.canSignSource ||
+    !input.takeUp ||
+    !OPEN.includes(input.coreState)
+      ? null
+      : earned.revision !== null && earned.viewerConsentRevision === earned.revision
+        ? "agreed"
+        : input.snapshot.availableActions.includes("consentEarnedTerms")
+          ? "offered"
+          : null;
 
   return {
     rows,
@@ -174,8 +209,28 @@ export function serviceRewardsView(
     ],
     band: { tone, sentence, needsYou: working },
     agreementUnavailable:
-      earned.status === "bound" && OPEN.includes(input.coreState)
+      earned.status === "bound" && input.takeUp && OPEN.includes(input.coreState) && !agree
         ? { title: t("rw.n.consent.t"), body: t("rw.n.consent.b"), label: t("rw.a.help") }
+        : null,
+    agree,
+    agreeSheet:
+      agree === "offered" && voucher
+        ? {
+            title: t("rw.sh.title"),
+            work: t("rw.sh.work"),
+            vouchers: t("rw.sh.vou"),
+            value: t("rw.sh.vouV", values),
+            detail: t("rw.sh.vouS"),
+            // An open request is the member's once taken up; a reviewed one waits for its stewards.
+            consent: t(
+              input.takeUp === "service"
+                ? "rw.sh.consentService"
+                : input.takeUp === "open"
+                  ? "rw.sh.consentOpen"
+                  : "rw.sh.consent"
+            ),
+            cta: t(input.takeUp === "service" ? "rw.sh.title" : "rw.sh.cta"),
+          }
         : null,
     vouchersReceived: voucher?.status === "received",
   };

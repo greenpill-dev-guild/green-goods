@@ -1,9 +1,11 @@
+import { claimFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import {
   type CommitmentDerivedState,
   type CommitmentEventRecord,
   type ServiceAccessAction,
   type ServiceAccessSnapshot,
   selectServiceAccessAction,
+  serviceAccessAvailableActions,
   useServiceAccess,
   useServiceAccessMutation,
 } from "@green-goods/shared/commitment-pooling";
@@ -20,12 +22,18 @@ import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGood
 import enMessages from "@green-goods/shared/i18n/en";
 import esMessages from "@green-goods/shared/i18n/es";
 import ptMessages from "@green-goods/shared/i18n/pt";
-import { useQueryClient } from "@tanstack/react-query";
+import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
 import type { Meta, StoryObj } from "@storybook/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
+import {
+  withAdminIdentity,
+  withSeededQueryClient,
+} from "../../../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import {
   type BookingStoryService,
   type BookingStoryStage,
@@ -41,13 +49,11 @@ import {
   VOUCHER_STORY_NAMES,
   VOUCHER_STORY_WALLET_KEY,
 } from "../../../../../../shared/.storybook/voucherBookingFixtures";
-import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
-import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import {
   VOUCHER_STORY_ISSUERS,
   VOUCHER_STORY_SCOPE,
-  vouchers,
   voucherStorySeeds,
+  vouchers,
   voucherWalletStory,
 } from "../../../../../../shared/.storybook/voucherPilotFixtures";
 import { GardenCommitment } from "./GardenCommitment";
@@ -76,6 +82,10 @@ interface JourneyStep {
     readFailed?: boolean;
   };
   reward?: { state: RewardStoryState; withGd: boolean };
+  /** The pool garden's steward decides the member's already-submitted reward claim. */
+  stewardReview?: "ready" | "paused" | "unread";
+  /** A retained offline claim needs agreement before it can resume. */
+  queuedClaim?: boolean;
   /** The promise's own History, newest first. */
   events?: CommitmentEventRecord[];
   /** What the reader holds now, in whole vouchers. */
@@ -485,6 +495,80 @@ const RECOVERY: JourneyStep[] = [
   },
 ];
 
+/** An agreed reward never replaces the service booking's own review and consent. */
+const AGREED_REWARD_BOOKING: JourneyStep[] = [
+  {
+    caption: "Lina already agreed to this promise's reward. She reviews the service booking next.",
+    booking: {
+      service: "hubDay",
+      stage: "open",
+      core: "OFFERED",
+      tweak: (snapshot) => {
+        const issuer = VOUCHER_STORY_ISSUERS.techAndSun;
+        const termsHash = `0x${"c".repeat(64)}` as const;
+        snapshot.evidence = "onchain";
+        snapshot.pause.core = false;
+        snapshot.capabilities = {
+          ...snapshot.capabilities,
+          mutation: "onchain",
+          reasons: [],
+          sourceBuyer: snapshot.key.buyer,
+          canSignSource: true,
+        };
+        snapshot.availableActions = ["requestClaim"];
+        snapshot.acceptancePolicy.earned = {
+          ...snapshot.acceptancePolicy.earned,
+          status: "bound",
+          module: issuer.account,
+          revision: 2n,
+          termsHash,
+          creator: issuer.account,
+          claimType: "individual",
+          viewerConsentRevision: 2n,
+          modulePaused: false,
+          terms: {
+            issuer: issuer.account,
+            issuerAuthority: issuer.account,
+            asset: issuer.asset,
+            totalUnits: vouchers(1),
+            allocationPolicy: termsHash,
+            serviceTermsRef: termsHash,
+            season: 3n,
+            issuerApproved: true,
+            frozen: true,
+          },
+        };
+        return snapshot;
+      },
+    },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+];
+
+const INELIGIBLE_REWARD_BOOKING: JourneyStep[] = AGREED_REWARD_BOOKING.map((step) => ({
+  ...step,
+  caption: "Lina has no eligible buyer garden. Agreeing to a reward cannot yet lead to a booking.",
+  booking: {
+    ...step.booking!,
+    tweak: (snapshot) => {
+      const reward = step.booking!.tweak!(snapshot);
+      reward.eligibleBuyerGardens = [];
+      reward.acceptancePolicy.earned.viewerConsentRevision = 0n;
+      reward.availableActions = serviceAccessAvailableActions(reward);
+      return reward;
+    },
+  },
+}));
+
+const EARNED_CLAIM_REVIEW: JourneyStep[] = [
+  {
+    caption: "A member asked to take up this rewarded request. Its garden's steward decides.",
+    reward: { state: "agreementUnavailable", withGd: true },
+    stewardReview: "ready",
+    holds: { techAndSun: 0, greenGoods: 0 },
+  },
+];
+
 const JOURNEYS = {
   hubDay: HUB_DAY,
   exchange: EXCHANGE_THEN_REDEEM,
@@ -492,18 +576,73 @@ const JOURNEYS = {
   earn: EARN_WITH_GD,
   earnVouchersOnly: EARN_VOUCHERS_ONLY,
   recovery: RECOVERY,
+  agreedRewardBooking: AGREED_REWARD_BOOKING,
+  ineligibleRewardBooking: INELIGIBLE_REWARD_BOOKING,
+  earnedClaimReview: EARNED_CLAIM_REVIEW,
+  queuedClaimAgreement: EARNED_CLAIM_REVIEW.map((step) => ({
+    ...step,
+    stewardReview: undefined,
+    queuedClaim: true,
+  })),
+  earnedClaimPaused: EARNED_CLAIM_REVIEW.map((step) => ({
+    ...step,
+    stewardReview: "paused" as const,
+  })),
+  earnedClaimUnread: EARNED_CLAIM_REVIEW.map((step) => ({
+    ...step,
+    stewardReview: "unread" as const,
+  })),
 } as const;
 type JourneyId = keyof typeof JOURNEYS;
 
 function snapshotFor(step: JourneyStep): ServiceAccessSnapshot {
-  if (step.reward) return rewardStorySnapshot(step.reward.state, step.reward.withGd);
+  if (step.reward) {
+    const snapshot = rewardStorySnapshot(step.reward.state, step.reward.withGd);
+    if (step.stewardReview || step.queuedClaim) {
+      // Use the same frozen reward fixture as the combined booking, on this earned request.
+      AGREED_REWARD_BOOKING[0]!.booking!.tweak!(snapshot);
+      snapshot.acceptancePolicy.earned.modulePaused =
+        step.stewardReview === "unread" ? null : step.stewardReview === "paused";
+      if (step.stewardReview === "unread") snapshot.acceptancePolicy.earned.terms = null;
+      if (step.queuedClaim) {
+        snapshot.acceptancePolicy.earned.viewerConsentRevision = 0n;
+        snapshot.availableActions = ["consentEarnedTerms"];
+      }
+    }
+    return snapshot;
+  }
   const { service, stage, confirmed, exchange, options, tweak } = step.booking!;
   const snapshot = bookingStorySnapshot(service, stage, { ...options, confirmed, exchange });
   return tweak ? tweak(snapshot) : snapshot;
 }
 
 function controllerFor(step: JourneyStep, onConfirm: () => void) {
-  if (step.reward) return rewardStoryController(step.reward.state, step.reward.withGd);
+  if (step.reward) {
+    const controller = rewardStoryController(step.reward.state, step.reward.withGd);
+    if (step.stewardReview && controller.detail) {
+      controller.detail.commitment.claimMode = "APPROVAL_GATED";
+      controller.actKind = null;
+      controller.roles.stewardsPoolGarden = true;
+      controller.pendingClaimRequests = [
+        claimFixture({
+          commitmentId: controller.detail.commitment.commitmentId,
+          state: "PENDING",
+        }),
+      ];
+    }
+    if (step.queuedClaim) {
+      controller.actKind = null;
+      controller.queue.hasPendingJob = true;
+      controller.queue.pendingAct = {
+        jobId: "held-claim",
+        kind: "claim",
+        waitingReason: "reward-agreement-required",
+        discardable: true,
+        createdAt: 1,
+      };
+    }
+    return controller;
+  }
   const { service, stage, confirmed } = step.booking!;
   const ended = stage === "closed" && service === "access" && step.next === undefined;
   const core =
@@ -655,7 +794,18 @@ function VoucherJourney({
           initialEntries={[`/home/${garden}/commitments/${snapshot.key.commitmentId.toString()}`]}
         >
           <Routes>
-            <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
+            <Route
+              path="/home/:id/commitments/:commitmentId"
+              element={
+                step.queuedClaim ? (
+                  <JobQueueProvider>
+                    <GardenCommitment />
+                  </JobQueueProvider>
+                ) : (
+                  <GardenCommitment />
+                )
+              }
+            />
             <Route path="/home" element={<WalletDestination />} />
           </Routes>
         </MemoryRouter>
@@ -716,6 +866,85 @@ export const ClaudeAccessEndsEarly: Story = { args: { journey: "endsEarly" } };
 
 /** When an act stops partway or a read can't be used: each state and the page's way on. */
 export const RecoveryStates: Story = { args: { journey: "recovery" } };
+
+/** Fictional reviewed reward, with the real booking page and its own consent sheet. */
+export const AgreedRewardKeepsBooking: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "agreedRewardBooking" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(canvas.queryByRole("button", { name: "Take It Up" })).not.toBeInTheDocument();
+    await userEvent.click(await canvas.findByRole("button", { name: "Review and Redeem" }));
+    await expect(await page.findByRole("dialog", { name: "Review and Redeem" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Agree to These Terms" })).toBeVisible();
+  },
+};
+
+/** No paid reward agreement is offered without a buyer garden eligible for the booking. */
+export const RewardWaitsForBuyerEligibility: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "ineligibleRewardBooking" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("region", { name: "Rewards" })).toBeVisible();
+    await expect(
+      canvas.queryByRole("button", { name: "Agree to the Rewards" })
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByRole("button", { name: "Agree and Take It Up" })
+    ).not.toBeInTheDocument();
+  },
+};
+
+/** Reward consent never hides the steward's decision on a submitted approval-gated claim. */
+export const EarnedClaimStewardDecisions: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "earnedClaimReview" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const decisions = within(await canvas.findByRole("region", { name: "Waiting on you" }));
+    await expect(decisions.getByRole("button", { name: /^Accept$/ })).toBeEnabled();
+    await expect(decisions.getByRole("button", { name: /^Decline$/ })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: /^Ask again$/ })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /^Take It Up$/ })).toBeNull();
+  },
+};
+
+/** A paused reward still lets its steward decline a claim, but cannot accept it. */
+export const EarnedClaimPaused: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "earnedClaimPaused" },
+  play: async ({ canvasElement }) => {
+    const decisions = within(
+      await within(canvasElement).findByRole("region", { name: "Waiting on you" })
+    );
+    await expect(decisions.getByRole("button", { name: /^Accept$/ })).toBeDisabled();
+    await expect(decisions.getByRole("button", { name: /^Decline$/ })).toBeEnabled();
+  },
+};
+
+/** An unread reward cannot grant acceptance from a partial snapshot. */
+export const EarnedClaimUnread: Story = {
+  ...EarnedClaimPaused,
+  args: { journey: "earnedClaimUnread" },
+};
+
+/** A waiting queued claim keeps its reward agreement reachable without discarding it. */
+export const QueuedClaimCanReviewRewards: Story = {
+  tags: ["storybook-ci"],
+  decorators: [withAdminIdentity],
+  args: { journey: "queuedClaimAgreement" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "Agree and Take It Up" }));
+    await expect(
+      await within(canvasElement.ownerDocument.body).findByRole("dialog", {
+        name: "Agree to the Rewards",
+      })
+    ).toBeVisible();
+  },
+};
 
 /** The hub day from the offer through the deposit, driven by the page's own acts. */
 export const HubDayAgreeAndDeposit: Story = {

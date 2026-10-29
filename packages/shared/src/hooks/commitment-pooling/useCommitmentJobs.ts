@@ -37,6 +37,7 @@ import {
 import type { ActPhaseReport } from "../../modules/transactions/act-phase";
 import type { TransactionSender } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
@@ -80,6 +81,27 @@ function subjectCommitmentId(input: CommitmentJobInput): bigint | null {
     default:
       return null;
   }
+}
+
+const CLAIM_TYPE_INDIVIDUAL = 1;
+
+/**
+ * A claim on a request whose voucher reward its claimant has not agreed to would only revert,
+ * so it is refused before anything is queued; the promise's page asks for the agreement. An
+ * individual claim's claimant is the member, a garden claim's the garden account.
+ */
+async function assertClaimAgreed(payload: ClaimJobPayload, owner: Address, chainId: number) {
+  // An uncached lazy reader cannot load offline; leave that claim for its queued send-time check.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  const { assertEarnedRewardAgreed } = await import(
+    "../../modules/commitment-pooling/earned-agreement"
+  );
+  return assertEarnedRewardAgreed({
+    chainId,
+    core: getNetworkContracts(chainId).commitmentPoolingModule as Address,
+    commitmentId: payload.commitmentId,
+    claimant: payload.kind === CLAIM_TYPE_INDIVIDUAL ? owner : payload.gardenContext,
+  });
 }
 
 /** Put the act into the queue as the job kind its executor expects. */
@@ -354,6 +376,7 @@ export function useCommitmentJobs(
   const mutation = useMutation({
     mutationFn: async ({ report, ...input }: CommitmentJobVariables) => {
       if (!viewer) throw new Error("Sign in before making a commitment");
+      if (input.act === "claim") await assertClaimAgreed(input.payload, viewer, chainId);
       const jobId = await queueAct(input as CommitmentJobInput, viewer, chainId);
       const followUpJobId =
         input.act === "evidence" && input.sendToo
@@ -385,10 +408,19 @@ export function useCommitmentJobs(
    * Send an act already in the queue as the person's own tap: Add and Send's
    * second act once its proof has landed. A wallet reader is asked now; anyone
    * else's goes with the background flush. Resolves whether it landed here or
-   * was left queued; rejects when it failed or was declined (and dropped).
+   * was left queued; rejects on failure. A resumed claim keeps its only durable
+   * copy on a declined signature with `keepDeclined`; other declines are dropped.
    */
   const sendQueued = useCallback(
-    async ({ jobId, commitmentId }: { jobId: string; commitmentId: bigint }) => {
+    async ({
+      jobId,
+      commitmentId,
+      keepDeclined = false,
+    }: {
+      jobId: string;
+      commitmentId: bigint;
+      keepDeclined?: boolean;
+    }) => {
       let outcome: "landed" | "queued" = "queued";
       await sendFromTap(
         jobId,
@@ -396,7 +428,7 @@ export function useCommitmentJobs(
         (event) => {
           if (event.stage === "landed") outcome = "landed";
         },
-        { foreground }
+        { foreground, keepDeclined }
       );
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       await queryClient.invalidateQueries({
@@ -417,6 +449,7 @@ export function useCommitmentJobs(
     async (payload: ClaimJobPayload): Promise<TakeUpOutcome> => {
       if (!viewer) throw new Error("Sign in before making a commitment");
       try {
+        await assertClaimAgreed(payload, viewer, chainId);
         return await takeUpBeforeWork({ payload, owner: viewer, chainId, sender }, jobQueue);
       } catch (error) {
         if (!(error instanceof TakeUpNotSent))

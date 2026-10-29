@@ -157,6 +157,12 @@ export interface EarnedVoucherAcceptance {
   creatorConsentRevision: bigint | null;
   participant: Address | null;
   participantConsentRevision: bigint | null;
+  /** Only an individual claim's member agrees from their own account; a garden claim's account must. */
+  claimType: "individual" | "garden" | null;
+  /** The revision the reading account agreed to, 0 when it has not; read before it takes the promise up. */
+  viewerConsentRevision: bigint | null;
+  /** The reward module refuses every agreement while paused. */
+  modulePaused: boolean | null;
   /** A steward's EOA is never substituted for an intended GardenAccount. */
   accountRouteAvailable: false;
 }

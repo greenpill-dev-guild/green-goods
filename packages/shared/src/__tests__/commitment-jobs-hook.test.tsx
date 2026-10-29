@@ -34,6 +34,11 @@ const mocks = vi.hoisted(() => ({
   discardJob: vi.fn(),
   viewer: "0x1111111111111111111111111111111111111111" as string | null,
   sender: null as { authMode: "wallet" | "passkey" | "embedded" } | null,
+  assertEarnedRewardAgreed: vi.fn(),
+}));
+
+vi.mock("../modules/commitment-pooling/earned-agreement", () => ({
+  assertEarnedRewardAgreed: mocks.assertEarnedRewardAgreed,
 }));
 
 vi.mock("../modules/job-queue/default-instance", () => ({
@@ -62,6 +67,7 @@ describe("useCommitmentJobs", () => {
     mocks.sender = null;
     mocks.addJob.mockResolvedValue("job-1");
     mocks.processJob.mockResolvedValue({ success: true, txHash: "0xabc" });
+    mocks.assertEarnedRewardAgreed.mockResolvedValue(undefined);
   });
 
   it("sends a claim as its own job kind", async () => {
@@ -69,6 +75,41 @@ describe("useCommitmentJobs", () => {
     await jobs().current.enqueue({ act: "claim", payload });
 
     expect(mocks.addJob).toHaveBeenCalledWith("claim", payload, VIEWER, { chainId: 42161 });
+  });
+
+  it("queues an offline claim without needing to load or read reward consent", async () => {
+    const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    try {
+      const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN };
+      await jobs().current.enqueue({ act: "claim", payload });
+      expect(mocks.addJob).toHaveBeenCalledWith("claim", payload, VIEWER, { chainId: 42161 });
+      expect(mocks.assertEarnedRewardAgreed).not.toHaveBeenCalled();
+    } finally {
+      online.mockRestore();
+    }
+  });
+
+  it("queues no take-up of a request whose voucher reward its claimant hasn't agreed to", async () => {
+    mocks.assertEarnedRewardAgreed.mockRejectedValue(new Error("VoucherConsentMissing"));
+    mocks.sender = { authMode: "wallet" };
+    const personal = { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN };
+    const result = jobs();
+
+    await expect(result.current.enqueue({ act: "claim", payload: personal })).rejects.toThrow(
+      "VoucherConsentMissing"
+    );
+    await expect(result.current.takeUp(personal)).rejects.toThrow("VoucherConsentMissing");
+    expect(mocks.addJob).not.toHaveBeenCalled();
+    // The member agrees for their own claim; a garden's claim, for its garden's account.
+    expect(mocks.assertEarnedRewardAgreed).toHaveBeenCalledWith(
+      expect.objectContaining({ commitmentId: 9n, claimant: VIEWER })
+    );
+    await result.current
+      .enqueue({ act: "claim", payload: { ...personal, kind: 0 } })
+      .catch(() => {});
+    expect(mocks.assertEarnedRewardAgreed).toHaveBeenLastCalledWith(
+      expect.objectContaining({ claimant: GARDEN })
+    );
   });
 
   it("keeps sending and confirming distinct, which nothing else checks", async () => {
@@ -244,6 +285,21 @@ describe("useCommitmentJobs", () => {
 
       await expect(jobs().current.enqueue(confirm)).rejects.toThrow(/rejected/i);
       expect(mocks.discardJob).toHaveBeenCalledWith("job-1");
+    });
+
+    it("keeps an existing claim when its resumed signature is declined", async () => {
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockResolvedValue({ success: false, error: "User rejected the request" });
+      await expect(
+        jobs().current.sendQueued({ jobId: "held-claim", commitmentId: 9n, keepDeclined: true })
+      ).resolves.toBe("queued");
+      expect(mocks.discardJob).not.toHaveBeenCalled();
+      expect(mocks.addJob).not.toHaveBeenCalled();
+      mocks.processJob.mockResolvedValue({ success: true, txHash: "0xabc" });
+      await expect(
+        jobs().current.sendQueued({ jobId: "held-claim", commitmentId: 9n, keepDeclined: true })
+      ).resolves.toBe("landed");
+      expect(mocks.processJob.mock.calls.map(([id]) => id)).toEqual(["held-claim", "held-claim"]);
     });
 
     it.each([

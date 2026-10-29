@@ -26,6 +26,7 @@ function rewards(
       coreState: rewardStoryCoreState(state),
       issuer: options.issuer === undefined ? LESSON_STORY_ISSUER : options.issuer,
       garden: "Tech and Sun",
+      takeUp: null,
     },
     intl
   );
@@ -34,6 +35,37 @@ function rewards(
 }
 
 describe("a request rewarded with a member's voucher", () => {
+  it.each([
+    ["ready", false, true, "local-rehearsal", "agreed"],
+    ["paused", true, true, "local-rehearsal", null],
+    ["pause unknown", null, true, "local-rehearsal", null],
+    ["route unreviewed", false, true, "unavailable", null],
+    ["signer unavailable", false, false, "local-rehearsal", null],
+  ] as const)("offers an agreed take-up only when ready: %s", (_case, paused, signer, mutation, expected) => {
+    const snapshot = memberRewardStorySnapshot("open", "allowance");
+    snapshot.pause.core = false;
+    snapshot.capabilities.canSignSource = signer;
+    snapshot.capabilities.mutation = mutation;
+    Object.assign(snapshot.acceptancePolicy.earned, {
+      status: "bound",
+      claimType: "individual",
+      revision: 1n,
+      viewerConsentRevision: 1n,
+      modulePaused: paused,
+    });
+    const view = serviceRewardsView(
+      {
+        snapshot,
+        coreState: "REQUESTED",
+        issuer: LESSON_STORY_ISSUER,
+        garden: "Test garden",
+        takeUp: "open",
+      },
+      intl
+    );
+    expect(view?.agree).toBe(expected);
+    expect(view?.agreeSheet).toBeNull();
+  });
   // "Short" means the allowance left doesn't cover the reward, not that none is left.
   it("says an allowance that doesn't cover the reward waits for the member to approve more", () => {
     const short = rewards("reserveShort");

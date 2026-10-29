@@ -1,31 +1,32 @@
-import { describe, expect, it, vi } from "vitest";
 import {
   encodeAbiParameters,
   encodeEventTopics,
   encodeFunctionData,
   getContractAddress,
+  type Hex,
   keccak256,
   parseAbi,
-  type Hex,
 } from "viem";
-import { createLiveServiceAccessAdapter } from "../modules/commitment-pooling/service-access-live";
-import {
-  verifyServiceLiveRoute,
-  type ServiceLiveChain,
-} from "../modules/commitment-pooling/service-access-live-chain";
-import type {
-  ServiceLiveRoute,
-  ServiceDeploymentPin,
-} from "../modules/commitment-pooling/service-access-live-config";
+import { describe, expect, it, vi } from "vitest";
 import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
 import { SERVICE_ZERO_HASH as ZERO } from "../modules/commitment-pooling/service-access-chain-values";
+import { createLiveServiceAccessAdapter } from "../modules/commitment-pooling/service-access-live";
+import {
+  type ServiceLiveChain,
+  verifyServiceLiveRoute,
+} from "../modules/commitment-pooling/service-access-live-chain";
+import type {
+  ServiceDeploymentPin,
+  ServiceLiveRoute,
+} from "../modules/commitment-pooling/service-access-live-config";
 import type {
   ServiceAccessAction,
   ServiceAccessKey,
 } from "../modules/commitment-pooling/service-access-types";
+import type { ServiceIssuerRoute } from "../modules/commitment-pooling/service-issuer-types";
 import {
-  TransactionRevertedError,
   type ContractCall,
+  TransactionRevertedError,
   type TransactionSender,
 } from "../modules/transactions/types";
 import type { Address } from "../types/domain";
@@ -111,6 +112,7 @@ function fixture() {
   let paused = false;
   let failReceipt = false;
   let lastCall: ContractCall | undefined;
+  const broadcast = vi.fn();
   const chain: ServiceLiveChain = {
     code: async (_chain, a) => (a === key.buyer ? "0x" : a === account(90) ? "0x6002" : "0x6001"),
     storage: async () => `0x${"0".repeat(24)}${account(90).slice(2)}`,
@@ -237,6 +239,7 @@ function fixture() {
       lastCall = call;
       await options?.assertOwnership?.();
       await options?.onBeforeBroadcast?.();
+      broadcast(call);
       const hash = `0x${"b".repeat(64)}` as Hex;
       await options?.onBroadcastReference?.({
         kind: "transaction",
@@ -273,6 +276,7 @@ function fixture() {
     chain,
     session,
     sender,
+    broadcast,
     storage,
     dependencies,
     adapter,
@@ -689,5 +693,361 @@ describe("live service access", () => {
     if (kind === "reviewed-create2")
       await expect(verifyServiceLiveRoute(f.route, f.chain)).resolves.toBeUndefined();
     else await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow("receipt");
+  });
+});
+
+describe("a member's agreement to a request's voucher reward", () => {
+  const MODULE = account(40);
+  /** A routed open request whose 1-voucher reward, in the route's reviewed voucher, is frozen. */
+  function rewarded() {
+    const f = fixture();
+    const asset = f.route.assets[0]!;
+    const request = structuredClone(f.s);
+    Object.assign(request, {
+      mode: "legacy",
+      knownService: false,
+      coreState: "REQUESTED",
+      voucherSetups: [],
+    });
+    request.pause.core = false;
+    request.acceptancePolicy.earned = {
+      ...request.acceptancePolicy.earned,
+      status: "bound",
+      module: MODULE,
+      revision: 1n,
+      termsHash: H,
+      terms: {
+        issuer: asset.issuer,
+        issuerAuthority: account(30),
+        asset: { chainId: 100, token: asset.token, symbol: null, decimals: null },
+        totalUnits: 1n,
+        allocationPolicy: H,
+        serviceTermsRef: H,
+        season: 3n,
+        issuerApproved: true,
+        frozen: true,
+      },
+      creator: account(30),
+      claimType: "individual",
+      viewerConsentRevision: 0n,
+      modulePaused: false,
+    };
+    f.dependencies.readSnapshot = async () => structuredClone(request);
+    // The reviewed issuer route over the same core pins the reward module, proven like any pin.
+    const issuerRoutes = [
+      {
+        service: f.route,
+        adapter: {
+          ...f.route.core,
+          address: account(44),
+          receipt: {
+            transactionHash: `0x${account(44).slice(2).padStart(64, "0")}` as Hex,
+            blockNumber: 10n,
+            blockHash: H,
+          },
+          guardian: account(11),
+          router: account(12),
+          sourcePeer: MODULE,
+          sourceSelector: 14n,
+        },
+        adapterSource: {
+          address: MODULE,
+          owner: account(10),
+          receipt: {
+            transactionHash: `0x${MODULE.slice(2).padStart(64, "0")}` as Hex,
+            blockNumber: 10n,
+            blockHash: H,
+          },
+          runtimeCodeHash: keccak256("0x6001"),
+          implementation: { address: account(90), runtimeCodeHash: keccak256("0x6002") },
+          guardian: account(11),
+          router: account(12),
+          remoteSelector: 13n,
+        },
+        assets: [
+          {
+            token: { address: asset.token },
+            ownerReserve: asset.issuer,
+            sourceAuthority: account(30),
+          },
+        ],
+      } as unknown as ServiceIssuerRoute,
+    ];
+    const sourceState: Record<string, unknown> = {
+      guardian: account(11),
+      CCIP_ROUTER: account(12),
+      LOCAL_CHAIN_ID: 42161n,
+      remoteChainId: 100n,
+      remotePeer: account(44),
+      remoteChainSelector: 13n,
+      issuerAuthority: account(30),
+    };
+    const destinationState: Record<string, unknown> = {
+      owner: account(10),
+      guardian: account(11),
+      CCIP_ROUTER: account(12),
+      LOCAL_CHAIN_ID: 100n,
+      remoteChainId: 42161n,
+      remotePeer: MODULE,
+      remoteChainSelector: 14n,
+      assetAuthorizations: [account(30), true],
+    };
+    const read = f.chain.read;
+    f.chain.read = async (input) =>
+      input.address === MODULE && input.functionName in sourceState
+        ? sourceState[input.functionName]
+        : input.address === account(44) && input.functionName in destinationState
+          ? destinationState[input.functionName]
+          : read(input);
+    const adapter = () => createLiveServiceAccessAdapter({ ...f.dependencies, issuerRoutes });
+    return { f, request, adapter, sourceState, destinationState };
+  }
+
+  it("offers it only under the reviewed module and voucher, and sends exactly that agreement", async () => {
+    const { f, adapter } = rewarded();
+    const read = await adapter().read(key);
+    expect(read.availableActions).toEqual(["consentEarnedTerms"]);
+    expect(read.capabilities).toMatchObject({ mutation: "onchain", canSignSource: true });
+    // The live read names the reward's voucher from the reviewed route.
+    expect(read.acceptancePolicy.earned.terms?.asset).toMatchObject({
+      symbol: "TEST",
+      decimals: 0,
+    });
+    await adapter().execute(key, {
+      action: "consentEarnedTerms",
+      expectedRevision: 1n,
+      expectedTermsHash: H,
+    });
+    expect(f.sender.sendContractCall).toHaveBeenCalledTimes(1);
+    expect(f.sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: MODULE,
+        chainId: 42161,
+        account: key.buyer,
+        functionName: "consentTerms",
+        args: [key.commitmentId, 1n],
+        value: 0n,
+      }),
+      expect.anything()
+    );
+  });
+
+  it.each([
+    ["a module outside the reviewed route", "module"],
+    ["a voucher outside the reviewed route", "asset"],
+  ] as const)("shows but never offers agreement to %s", async (_case, drift) => {
+    const { f, request, adapter } = rewarded();
+    if (drift === "module") request.acceptancePolicy.earned.module = account(41);
+    else request.acceptancePolicy.earned.terms!.asset.token = account(42);
+    // The page still reads the reward as the core reports it; only agreeing is refused.
+    const read = await adapter().read(key);
+    expect(read.availableActions).not.toContain("consentEarnedTerms");
+    expect(read.acceptancePolicy.earned.status).toBe("bound");
+    await expect(
+      adapter().execute(key, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: H,
+      })
+    ).rejects.toThrow("outside the reviewed route");
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["guardian", account(50)],
+    ["CCIP_ROUTER", account(51)],
+    ["LOCAL_CHAIN_ID", 1n],
+    ["remoteChainId", 1n],
+    ["remotePeer", account(52)],
+    ["remoteChainSelector", 99n],
+  ])("withholds and refuses consent after earned route %s drifts", async (field, value) => {
+    const { f, adapter, sourceState } = rewarded();
+    sourceState[field as string] = value;
+    const live = adapter();
+    expect((await live.read(key)).availableActions).not.toContain("consentEarnedTerms");
+    await expect(
+      live.execute(key, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: H,
+      })
+    ).rejects.toThrow("Issuer source peer or recovery authority changed");
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("rechecks mutable earned routing before sending, even after a cached successful review", async () => {
+    const { f, adapter, sourceState } = rewarded();
+    const live = adapter();
+    expect((await live.read(key)).availableActions).toContain("consentEarnedTerms");
+    sourceState.remotePeer = account(52);
+    await expect(
+      live.execute(key, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: H,
+      })
+    ).rejects.toThrow("Issuer source peer");
+    // The wallet's fresh pre-broadcast check refused the send; no pending transfer remains.
+    expect(
+      f.storage.get(`green-goods:service-pending:v1:42161:${key.buyer.toLowerCase()}`)
+    ).toBeUndefined();
+  });
+
+  // Consent must keep the reviewed payout route and authority on both chains. A cached page
+  // review cannot authorize a later send after any of these mutable records changes.
+  describe.each(["page review", "before send"])("reward verification at %s", (phase) => {
+    it.each([
+      ["guardian", account(50)],
+      ["CCIP_ROUTER", account(51)],
+      ["LOCAL_CHAIN_ID", 1n],
+      ["remoteChainId", 1n],
+      ["remotePeer", account(52)],
+      ["remoteChainSelector", 99n],
+      ["owner", account(53)],
+    ])("refuses a changed destination %s", async (field, value) => {
+      const { f, adapter, destinationState } = rewarded();
+      const live = adapter();
+      if (phase === "before send")
+        expect((await live.read(key)).availableActions).toContain("consentEarnedTerms");
+      destinationState[field as string] = value;
+      if (phase === "page review")
+        expect((await live.read(key)).availableActions).not.toContain("consentEarnedTerms");
+      await expect(
+        live.execute(key, {
+          action: "consentEarnedTerms",
+          expectedRevision: 1n,
+          expectedTermsHash: H,
+        })
+      ).rejects.toThrow(/changed/);
+      expect(f.broadcast).not.toHaveBeenCalled();
+      expect(f.storage.size).toBe(0);
+    });
+
+    it.each([
+      "runtime",
+      "implementation",
+      "receipt",
+    ])("refuses changed destination %s evidence", async (drift) => {
+      const { f, adapter } = rewarded();
+      const live = adapter();
+      if (phase === "before send")
+        expect((await live.read(key)).availableActions).toContain("consentEarnedTerms");
+      if (drift === "runtime") {
+        const code = f.chain.code;
+        vi.spyOn(f.chain, "code").mockImplementation(async (chainId, address) =>
+          chainId === 100 && address === account(44) ? "0x6003" : code(chainId, address)
+        );
+      } else if (drift === "implementation") {
+        const storage = f.chain.storage;
+        vi.spyOn(f.chain, "storage").mockImplementation(async (chainId, address, slot) =>
+          chainId === 100 && address === account(44)
+            ? `0x${"0".repeat(24)}${account(91).slice(2)}`
+            : storage(chainId, address, slot)
+        );
+      } else {
+        const receipt = f.chain.receipt;
+        vi.spyOn(f.chain, "receipt").mockImplementation(async (chainId, hash) => {
+          const value = await receipt(chainId, hash);
+          return chainId === 100 && value.to === account(44)
+            ? { ...value, status: "reverted" }
+            : value;
+        });
+      }
+      if (phase === "page review")
+        expect((await live.read(key)).availableActions).not.toContain("consentEarnedTerms");
+      await expect(
+        live.execute(key, {
+          action: "consentEarnedTerms",
+          expectedRevision: 1n,
+          expectedTermsHash: H,
+        })
+      ).rejects.toThrow(/changed/);
+      expect(f.broadcast).not.toHaveBeenCalled();
+      expect(f.storage.size).toBe(0);
+    });
+
+    it.each([
+      "terms",
+      "source",
+      "destination",
+      "disabled",
+    ])("refuses %s authority drift", async (drift) => {
+      const { f, request, adapter, sourceState, destinationState } = rewarded();
+      const live = adapter();
+      if (phase === "before send")
+        expect((await live.read(key)).availableActions).toContain("consentEarnedTerms");
+      if (drift === "terms") request.acceptancePolicy.earned.terms!.issuerAuthority = account(54);
+      else if (drift === "source") sourceState.issuerAuthority = account(54);
+      else
+        destinationState.assetAuthorizations = [
+          account(drift === "disabled" ? 30 : 54),
+          drift !== "disabled",
+        ];
+      if (phase === "page review")
+        expect((await live.read(key)).availableActions).not.toContain("consentEarnedTerms");
+      await expect(
+        live.execute(key, {
+          action: "consentEarnedTerms",
+          expectedRevision: 1n,
+          expectedTermsHash: H,
+        })
+      ).rejects.toThrow(/authority|reviewed route/);
+      expect(f.broadcast).not.toHaveBeenCalled();
+      expect(f.storage.size).toBe(0);
+    });
+  });
+
+  it("composes earned agreement with the voucher booking without losing holder capabilities", async () => {
+    const { request, adapter } = rewarded();
+    Object.assign(request, {
+      mode: "voucher",
+      knownService: true,
+      coreState: "OFFERED",
+      consent: null,
+      currentVoucherSetupId: null,
+      nextRequestNonce: 1n,
+    });
+    const live = adapter();
+    const before = await live.read(key);
+    expect(before.availableActions).toContain("consentEarnedTerms");
+    expect(before.availableActions).not.toContain("requestClaim");
+    expect(before.capabilities).toMatchObject({ canSignHolder: true, gnosisHolder: key.buyer });
+    request.acceptancePolicy.earned.viewerConsentRevision = 1n;
+    const after = await live.read(key);
+    expect(after.availableActions).toContain("requestClaim");
+    expect(after.availableActions).not.toContain("consentEarnedTerms");
+  });
+
+  it.each([
+    false,
+    true,
+  ])("requires current buyer membership before booking reward consent (previously eligible: %s)", async (wasEligible) => {
+    const { f, request, adapter } = rewarded();
+    Object.assign(request, {
+      mode: "voucher",
+      knownService: true,
+      coreState: "OFFERED",
+      consent: null,
+      currentVoucherSetupId: null,
+      nextRequestNonce: 1n,
+    });
+    let eligible = wasEligible;
+    f.dependencies.membership = async () => eligible;
+    const live = adapter();
+    if (wasEligible)
+      expect((await live.read(key)).availableActions).toContain("consentEarnedTerms");
+    eligible = false;
+    const current = await live.read(key);
+    expect(current.eligibleBuyerGardens).toEqual([]);
+    expect(current.availableActions).not.toContain("consentEarnedTerms");
+    await expect(
+      live.execute(key, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: H,
+      })
+    ).rejects.toThrow("action-unavailable");
+    expect(f.broadcast).not.toHaveBeenCalled();
+    expect(f.storage.size).toBe(0);
   });
 });

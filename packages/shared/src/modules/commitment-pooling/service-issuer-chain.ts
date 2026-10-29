@@ -1,16 +1,18 @@
 import EscrowABI from "@green-goods/contracts/abis/GnosisVoucherEscrow.json";
 import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule.json";
-import { type Abi, encodeFunctionData, keccak256, parseAbi } from "viem";
 import { getPublicClient } from "@wagmi/core";
+import { type Abi, encodeFunctionData, keccak256, parseAbi } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
+import { serviceAddress, serviceFlag, serviceUint } from "./service-access-chain-values";
 import { serviceLiveChain } from "./service-access-live-chain";
 import {
+  type ServiceLiveChain,
   verifyServiceDeployment,
   verifyServiceLiveRoute,
-  type ServiceLiveChain,
 } from "./service-access-live-route";
-import { serviceAddress, serviceFlag, serviceUint } from "./service-access-chain-values";
+import { AdapterABI, PoolABI, TokenABI } from "./service-issuer-abis";
+import { verifyIssuerProxyDeployment } from "./service-issuer-deployment";
 import { issuerSame } from "./service-issuer-metadata";
 import type {
   ServiceIssuerAsset,
@@ -18,10 +20,9 @@ import type {
   ServiceIssuerPoolListing,
   ServiceIssuerRoute,
 } from "./service-issuer-types";
-import { AdapterABI, TokenABI, PoolABI } from "./service-issuer-abis";
-import { verifyIssuerProxyDeployment } from "./service-issuer-deployment";
 
-export { AdapterABI, EscrowABI, TokenABI, PoolABI };
+export { AdapterABI, EscrowABI, PoolABI, TokenABI };
+
 // Published CLC ce090fd ABI getters, also owned by contracts/script/utils/clc-release.ts.
 const ISSUER_READ_ABI = parseAbi([
   "function totalMinted() view returns(uint256)",
@@ -70,6 +71,62 @@ async function codePin(chain: ServiceIssuerChain, pin: ServiceIssuerCodePin) {
   if (code === "0x" || !issuerSame(keccak256(code), pin.runtimeCodeHash))
     throw new Error("Issuer dependency runtime changed");
 }
+const ISSUER_PEER_FIELDS = [
+  "guardian",
+  "CCIP_ROUTER",
+  "LOCAL_CHAIN_ID",
+  "remoteChainId",
+  "remotePeer",
+  "remoteChainSelector",
+];
+
+/** Consent and issuer operations share the reviewed reward route on both chains. */
+export async function verifyIssuerRewardRoute(
+  route: Pick<ServiceIssuerRoute, "adapterSource" | "adapter">,
+  chain: ServiceLiveChain
+) {
+  await Promise.all([
+    verifyServiceDeployment(route.adapterSource, 42161, chain),
+    verifyServiceDeployment(route.adapter, 100, chain),
+  ]);
+  const source = await Promise.all(
+    ISSUER_PEER_FIELDS.map((functionName) =>
+      chain.read({
+        chainId: 42161,
+        address: route.adapterSource.address,
+        abi: EntitlementABI as Abi,
+        functionName,
+      })
+    )
+  );
+  if (
+    issuerSame(route.adapterSource.owner, route.adapterSource.guardian) ||
+    !issuerSame(serviceAddress(source[0]), route.adapterSource.guardian) ||
+    !issuerSame(serviceAddress(source[1]), route.adapterSource.router) ||
+    serviceUint(source[2]) !== 42161n ||
+    serviceUint(source[3]) !== 100n ||
+    !issuerSame(serviceAddress(source[4]), route.adapter.address) ||
+    serviceUint(source[5]) !== route.adapterSource.remoteSelector
+  )
+    throw new Error("Issuer source peer or recovery authority changed");
+  const adapter = await Promise.all(
+    ISSUER_PEER_FIELDS.map((functionName) =>
+      chain.read({ chainId: 100, address: route.adapter.address, abi: AdapterABI, functionName })
+    )
+  );
+  if (
+    issuerSame(route.adapter.owner, route.adapter.guardian) ||
+    !issuerSame(serviceAddress(adapter[0]), route.adapter.guardian) ||
+    !issuerSame(serviceAddress(adapter[1]), route.adapter.router) ||
+    serviceUint(adapter[2]) !== 100n ||
+    serviceUint(adapter[3]) !== 42161n ||
+    !issuerSame(serviceAddress(adapter[4]), route.adapter.sourcePeer) ||
+    serviceUint(adapter[5]) !== route.adapter.sourceSelector
+  )
+    throw new Error("Issuer adapter peer or recovery authority changed");
+  if (!issuerSame(route.adapter.sourcePeer, route.adapterSource.address))
+    throw new Error("Issuer source peer pin missing");
+}
 export async function verifyIssuerRoute(
   route: ServiceIssuerRoute,
   asset: ServiceIssuerAsset,
@@ -78,8 +135,7 @@ export async function verifyIssuerRoute(
   await verifyServiceLiveRoute(route.service, chain);
   await Promise.all([
     codePin(chain, route.factory),
-    verifyServiceDeployment(route.adapterSource, 42161, chain),
-    verifyServiceDeployment(route.adapter, 100, chain),
+    verifyIssuerRewardRoute(route, chain),
     ...[
       asset.token,
       route.pool.deployment,
@@ -106,49 +162,6 @@ export async function verifyIssuerRoute(
     await issuerRead(chain, route.factory.address, "adminOf", [asset.token.address])
   );
   if (!issuerSame(admin, control.admin)) throw new Error("Issuer proxy control changed");
-  const fields = [
-    "guardian",
-    "CCIP_ROUTER",
-    "LOCAL_CHAIN_ID",
-    "remoteChainId",
-    "remotePeer",
-    "remoteChainSelector",
-  ];
-  const adapter = await Promise.all(
-    fields.map((fn) => issuerRead(chain, route.adapter.address, fn, [], AdapterABI as Abi))
-  );
-  if (
-    issuerSame(route.adapter.owner, route.adapter.guardian) ||
-    !issuerSame(serviceAddress(adapter[0]), route.adapter.guardian) ||
-    !issuerSame(serviceAddress(adapter[1]), route.adapter.router) ||
-    serviceUint(adapter[2]) !== 100n ||
-    serviceUint(adapter[3]) !== 42161n ||
-    !issuerSame(serviceAddress(adapter[4]), route.adapter.sourcePeer) ||
-    serviceUint(adapter[5]) !== route.adapter.sourceSelector
-  )
-    throw new Error("Issuer adapter peer or recovery authority changed");
-  if (!issuerSame(route.adapter.sourcePeer, route.adapterSource.address))
-    throw new Error("Issuer source peer pin missing");
-  const source = await Promise.all(
-    fields.map((functionName) =>
-      chain.read({
-        chainId: 42161,
-        address: route.adapterSource.address,
-        abi: EntitlementABI as Abi,
-        functionName,
-      })
-    )
-  );
-  if (
-    issuerSame(route.adapterSource.owner, route.adapterSource.guardian) ||
-    !issuerSame(serviceAddress(source[0]), route.adapterSource.guardian) ||
-    !issuerSame(serviceAddress(source[1]), route.adapterSource.router) ||
-    serviceUint(source[2]) !== 42161n ||
-    serviceUint(source[3]) !== 100n ||
-    !issuerSame(serviceAddress(source[4]), route.adapter.address) ||
-    serviceUint(source[5]) !== route.adapterSource.remoteSelector
-  )
-    throw new Error("Issuer source peer or recovery authority changed");
   const pool = route.pool;
   for (const pin of [
     pool.deployment,

@@ -175,6 +175,8 @@ export type ServiceAccessAction =
       reviewedFee: GoodDollarFeeQuote;
     }
   | { action: "payPersonal"; purchaseId: Hex; reviewedFee: GoodDollarFeeQuote }
+  /** The member's own agreement to a request's voucher reward, before they take it up. */
+  | (ReviewedServiceTerms & { action: "consentEarnedTerms" })
   | VoucherSetupAction
   | ServiceAccessPilotAction;
 

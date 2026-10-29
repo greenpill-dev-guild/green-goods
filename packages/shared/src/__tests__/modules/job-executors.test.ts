@@ -1,8 +1,9 @@
 /** @vitest-environment node */
 
 import "fake-indexeddb/auto";
-import { describe, expect, it, vi } from "vitest";
 import type { Config } from "@wagmi/core";
+import { encodeAbiParameters, encodeEventTopics } from "viem";
+import { describe, expect, it, vi } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
 import type {
   CommitmentCreationPayload,
@@ -13,31 +14,40 @@ import {
   hashSeriesCreationPayload,
   hashWorkLinkPayload,
 } from "../../modules/commitment-pooling/jobs";
-import { encodeAbiParameters, encodeEventTopics } from "viem";
-import { createCommitmentChainReads } from "../../modules/job-queue/commitment-chain-reads";
-import { EASABI, CommitmentPoolingModuleABI } from "../../utils/blockchain/contracts";
 import { executeApprovalJob } from "../../modules/job-queue/approval-executor";
-import { executeCommitmentQueueJob } from "../../modules/job-queue/job-executors";
-import { executeWorkJob } from "../../modules/job-queue/work-executor";
+import {
+  type CommitmentChainReads,
+  createCommitmentChainReads,
+} from "../../modules/job-queue/commitment-chain-reads";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { createJobExecutorRegistry } from "../../modules/job-queue/executor-registry";
-import type { Address } from "../../types/domain";
-import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
-import { createMockTransactionSender } from "../test-utils/transaction-fakes";
-import { sendLockName, stubWebLocks } from "../test-utils/web-locks";
-import { PendingHeicConversionError } from "../../modules/work/work-attachments";
+import { executeCommitmentQueueJob } from "../../modules/job-queue/job-executors";
+import { createJobQueue } from "../../modules/job-queue/queue";
+import {
+  createFakeJobQueueClock,
+  createInMemoryJobQueueStore,
+  createJobQueueDependencies,
+} from "../test-utils/job-queue-fakes";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, sendCheckpointOf } from "../../modules/job-queue/queue-policy";
-import { WorkSendCancelledError } from "../../modules/work/send-outcome";
 import { intentHead } from "../../modules/job-queue/send-chain-reads";
+import { executeWorkJob } from "../../modules/job-queue/work-executor";
+import { WorkSendCancelledError } from "../../modules/work/send-outcome";
 import { StrandedSendReopened } from "../../modules/work/stranded-intent";
+import { PendingHeicConversionError } from "../../modules/work/work-attachments";
 import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
+import type { Address } from "../../types/domain";
+import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
+import { CommitmentPoolingModuleABI, EASABI } from "../../utils/blockchain/contracts";
+import { createMockTransactionSender } from "../test-utils/transaction-fakes";
+import { sendLockName, stubWebLocks } from "../test-utils/web-locks";
 
 // An untitled job looks its action up; keep that lookup off the network.
 vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../modules/data/greengoods")>()),
   getActions: vi.fn(async () => []),
 }));
+
 import { MOCK_TX_HASH } from "../test-utils/mock-factories";
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
@@ -79,7 +89,7 @@ function store() {
 
 function reads(
   overrides: Partial<CommitmentJobExecutionDependencies> = {}
-): CommitmentJobExecutionDependencies {
+): CommitmentJobExecutionDependencies & Pick<CommitmentChainReads, "assertClaimRewardAgreed"> {
   return {
     readSeriesId: vi.fn().mockResolvedValue(0n),
     readSeries: vi.fn(),
@@ -89,6 +99,8 @@ function reads(
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(ZERO_HASH),
     readEvidenceAttached: vi.fn().mockResolvedValue(false),
     hasMembership: vi.fn().mockResolvedValue(true),
+    // The general executor fixtures have no bound reward. Consent cases below use the real reader.
+    assertClaimRewardAgreed: vi.fn().mockResolvedValue(undefined),
     send: vi.fn().mockResolvedValue(HASH),
     ...overrides,
   };
@@ -1326,6 +1338,254 @@ describe("commitment acts record their sends", () => {
     );
     expect(sender.sendContractCall).not.toHaveBeenCalled();
     expect(hasRecordedSend(claim)).toBe(false);
+  });
+});
+
+describe("queued claim reward consent", () => {
+  const rewardModule = "0x9999999999999999999999999999999999999999" as Address;
+  function rewarded(id: string, kind = 1) {
+    const claim = job(
+      "claim",
+      {
+        commitmentId: 7n,
+        kind,
+        gardenContext: GARDEN,
+        gardenAddress: GARDEN,
+      },
+      { id }
+    );
+    const state = { bound: true, revision: 2n, consent: 0n, paused: false, unavailable: false };
+    const readContract = vi.fn(async (_config: Config, request: { functionName: string }) => {
+      if (state.unavailable) throw new Error("RPC unavailable");
+      if (request.functionName === "getEarnedVoucherBinding")
+        return {
+          module: state.bound ? rewardModule : `0x${"0".repeat(40)}`,
+          revision: state.revision,
+          termsHash: HASH,
+          acceptedRevision: 0n,
+          acceptedTermsHash: ZERO_HASH,
+          acceptedCounterparty: `0x${"0".repeat(40)}`,
+        };
+      if (request.functionName === "consentRevision") return state.consent;
+      if (request.functionName === "paused") return state.paused;
+      throw new Error(`Unexpected reward read ${request.functionName}`);
+    });
+    const canonical = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      config: {} as Config,
+      readContract: readContract as never,
+    });
+    const rewardReads: CommitmentChainReads = {
+      ...reads(),
+      assertClaimRewardAgreed: canonical.assertClaimRewardAgreed,
+    };
+    const deps = {
+      demoActive: () => false,
+      store: store(),
+      reads: rewardReads,
+    };
+    const broadcast = vi.fn();
+    const sender = createMockTransactionSender({
+      authMode: "wallet",
+      sendContractCall: async (_call, options) => {
+        await options?.onBeforeBroadcast?.();
+        broadcast();
+        await options?.onBroadcast?.(HASH);
+        return { hash: HASH, sponsored: false };
+      },
+    });
+    const run = () => executeCommitmentQueueJob(claim.id, claim, 42161, sender, deps);
+    return { claim, state, readContract, deps, sender, broadcast, run };
+  }
+
+  it.each([
+    0, 1,
+  ])("refuses an unconsented queued claim of kind %s before any send intent", async (kind) => {
+    const f = rewarded(`queued-unconsented-${kind}`, kind);
+    await expect(f.run()).resolves.toMatchObject({
+      status: "waiting",
+      reason: "reward-agreement-required",
+    });
+    expect(f.readContract).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        functionName: "consentRevision",
+        address: rewardModule,
+        chainId: 42161,
+        args: [7n, kind === 1 ? USER : GARDEN],
+      })
+    );
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(hasRecordedSend(f.claim)).toBe(false);
+    expect(f.deps.store.updateJob).not.toHaveBeenCalled();
+    // The same retained job succeeds only after its own claimant agrees to the current revision.
+    f.state.consent = 2n;
+    await expect(f.run()).resolves.toMatchObject({ status: "complete", txHash: HASH });
+    expect(f.broadcast).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    "revision",
+    "pause",
+    "rpc",
+  ] as const)("rechecks %s after the signing prompt, before recording an intent", async (change) => {
+    const f = rewarded(`queued-prompt-${change}`);
+    f.state.consent = 2n;
+    f.sender.sendContractCall.mockImplementation(async (_call, options) => {
+      if (change === "revision") f.state.revision = 3n;
+      else if (change === "pause") f.state.paused = true;
+      else f.state.unavailable = true;
+      await options?.onBeforeBroadcast?.();
+      f.broadcast();
+      return { hash: HASH, sponsored: false };
+    });
+    await expect(f.run()).resolves.toMatchObject({
+      status: "waiting",
+      reason:
+        change === "pause"
+          ? "reward-paused"
+          : change === "rpc"
+            ? "reward-unreadable"
+            : "reward-agreement-required",
+    });
+    expect(f.broadcast).not.toHaveBeenCalled();
+    expect(hasRecordedSend(f.claim)).toBe(false);
+    expect(f.deps.store.updateJob).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on an unread reward, and still permits unbound claims", async () => {
+    const f = rewarded("queued-unread");
+    f.state.unavailable = true;
+    await expect(f.run()).resolves.toMatchObject({
+      status: "waiting",
+      reason: "reward-unreadable",
+    });
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(hasRecordedSend(f.claim)).toBe(false);
+    f.state.unavailable = false;
+    f.state.bound = false;
+    await expect(f.run()).resolves.toMatchObject({ status: "complete" });
+    expect(f.broadcast).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    "consent",
+    "pause",
+    "rpc",
+  ] as const)("preserves retries while %s blocks the claim, then completes the same job", async (blocked) => {
+    const f = rewarded(`queue-budget-${blocked}`);
+    f.state.consent = blocked === "consent" ? 0n : 2n;
+    f.state.paused = blocked === "pause";
+    f.state.unavailable = blocked === "rpc";
+    f.claim.chainId = 42161;
+    const persisted = createInMemoryJobQueueStore([f.claim]);
+    const clock = createFakeJobQueueClock();
+    const dependencies = createJobQueueDependencies({
+      store: persisted,
+      clock,
+      executors: {
+        execute: (id, queued, chain, sender) =>
+          executeCommitmentQueueJob(id, queued, chain, sender!, {
+            ...f.deps,
+            store: { ...f.deps.store, getJob: persisted.getJob, updateJob: persisted.updateJob },
+          }),
+      },
+    });
+    const queue = createJobQueue(dependencies);
+    for (let index = 0; index <= dependencies.config.maxRetries; index++) {
+      clock.advance(65_000);
+      await expect(
+        queue.processJob(f.claim.id, { transactionSender: f.sender })
+      ).resolves.toMatchObject({ success: false, skipped: true });
+    }
+    expect(await persisted.getJob(f.claim.id)).toMatchObject({
+      attempts: 0,
+      synced: false,
+      meta: { waitingForDependency: true },
+    });
+    expect(f.broadcast).not.toHaveBeenCalled();
+    f.state.consent = 2n;
+    f.state.paused = false;
+    f.state.unavailable = false;
+    clock.advance(65_000);
+    await expect(queue.processJob(f.claim.id, { transactionSender: f.sender })).resolves.toEqual({
+      success: true,
+      txHash: HASH,
+    });
+    expect(await persisted.getJob(f.claim.id)).toBeUndefined();
+    expect(f.broadcast).toHaveBeenCalledOnce();
+  });
+
+  it("does not turn malformed reward data or unrelated send failures into dependencies", async () => {
+    const malformed = rewarded("queue-malformed");
+    malformed.readContract.mockResolvedValueOnce({ module: "invalid" } as never);
+    await expect(malformed.run()).rejects.toThrow("Malformed service ABI tuple");
+    const refused = rewarded("queue-refused");
+    refused.state.consent = 2n;
+    refused.sender.sendContractCall.mockRejectedValueOnce(new Error("Unexpected sender failure"));
+    await expect(refused.run()).rejects.toThrow("Unexpected sender failure");
+  });
+
+  it.each([
+    "consent",
+    "pause",
+    "rpc",
+  ] as const)("waits when %s changes during simulation, without recording a send", async (change) => {
+    const f = rewarded(`queued-simulation-${change}`);
+    f.state.consent = 2n;
+    const refused = new Error("Simulation refused");
+    const simulateSend = vi.fn<() => Promise<void>>(async () => {
+      if (change === "consent") f.state.consent = 0n;
+      else if (change === "pause") f.state.paused = true;
+      else f.state.unavailable = true;
+      throw refused;
+    });
+    f.deps.reads = { ...f.deps.reads, simulateSend };
+    await expect(f.run()).resolves.toMatchObject({
+      status: "waiting",
+      reason:
+        change === "consent"
+          ? "reward-agreement-required"
+          : change === "pause"
+            ? "reward-paused"
+            : "reward-unreadable",
+    });
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(hasRecordedSend(f.claim)).toBe(false);
+    expect(f.deps.store.updateJob).not.toHaveBeenCalled();
+    f.state.consent = 2n;
+    f.state.paused = false;
+    f.state.unavailable = false;
+    simulateSend.mockResolvedValueOnce(undefined);
+    await expect(f.run()).resolves.toMatchObject({ status: "complete", txHash: HASH });
+    expect(f.broadcast).toHaveBeenCalledOnce();
+  });
+
+  it("propagates an unrelated simulation refusal when the reward still permits the claim", async () => {
+    const f = rewarded("queued-unrelated-simulation");
+    f.state.consent = 2n;
+    const refused = new Error("Unrelated simulation refusal");
+    f.deps.reads = { ...f.deps.reads, simulateSend: vi.fn().mockRejectedValue(refused) };
+    await expect(f.run()).rejects.toBe(refused);
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(hasRecordedSend(f.claim)).toBe(false);
+  });
+
+  it("settles a recorded claim without requiring consent again or resending it", async () => {
+    const f = rewarded("queued-recorded");
+    Object.assign(f.claim.payload, {
+      sendCheckpoint: { transactionHash: HASH, broadcastPending: false },
+    });
+    f.state.unavailable = true;
+    await expect(
+      executeCommitmentQueueJob(f.claim.id, f.claim, 42161, f.sender, {
+        ...f.deps,
+        reconcile: vi.fn().mockResolvedValue("confirmed"),
+      })
+    ).resolves.toMatchObject({ status: "complete", txHash: HASH });
+    expect(f.readContract).not.toHaveBeenCalled();
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
   });
 });
 

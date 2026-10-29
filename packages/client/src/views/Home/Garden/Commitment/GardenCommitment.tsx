@@ -10,6 +10,7 @@ import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { describeProofContents } from "@/components/Features/Commitments";
+import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
 import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import { CommitmentClaims } from "./CommitmentClaims";
@@ -22,15 +23,14 @@ import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
-import { commitmentActForKind } from "./commitmentActions";
+import { commitmentActForKind, takeUpMode } from "./commitmentActions";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
 import { proofOnPhoneLine } from "./proofOnPhone";
-import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
-import { serviceReadOutcome } from "./serviceBooking";
 import { ServicePromise, type ServicePromiseParts } from "./ServicePromise";
+import { serviceReadOutcome } from "./serviceBooking";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
 
@@ -79,7 +79,7 @@ export function GardenCommitment() {
   );
   const serviceAccess = useServiceAccess(serviceKey);
   const serviceRead = serviceReadOutcome(serviceAccess);
-  // Generic take-up and claims wait until the page knows this isn't a service offer.
+  // Member take-up follows consent; earned requests still need the stewards' ordinary decisions.
   const ordinary = serviceRead === "ordinary";
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   // Report a Problem opens the same sheet on its Not yet form.
@@ -113,16 +113,19 @@ export function GardenCommitment() {
     return <CommitmentDetailState kind="error" onBack={back} />;
   }
 
-  // The page draws inside the service's render prop, so it keeps the narrowed read.
   const detail = controller.detail;
   const { commitment, contributors, requirements } = detail;
   const requiredWorkApproved =
     requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
   const genericAct = commitmentActForKind(controller.actKind);
-  const selectedAct =
-    !ordinary && (genericAct?.kind === "takeUp" || genericAct?.kind === "askToTakeUp")
-      ? null
-      : genericAct;
+  const mode = takeUpMode(genericAct, controller.queue.pendingAct, commitment.claimMode);
+  const selectedAct = !ordinary && mode ? null : genericAct;
+  // A request's voucher reward is agreed to first, from its own bar, which then takes it up. A
+  // claim that must first name its garden (the protocol pool) isn't offered there yet.
+  const rewardTakeUp =
+    mode && !controller.claimNeedsContext
+      ? { mode, run: () => keepSurfaceOnFailure(controller.acts.claimPersonal()) }
+      : null;
   // Linking the required work advances Garden Work promises; proof stays available.
   const workIsPrimary =
     selectedAct?.kind === "addProof" && controller.linkable && !requiredWorkApproved;
@@ -338,16 +341,17 @@ export function GardenCommitment() {
           isJoining={controller.isSending}
           onJoin={() => keepSurfaceOnFailure(controller.acts.join())}
         />
-        {ordinary ? (
+        {ordinary || serviceAccess.data?.acceptancePolicy.kind === "earned" ? (
           <CommitmentClaims
             commitment={commitment}
+            acceptancePolicy={serviceAccess.data?.acceptancePolicy}
             viewer={controller.viewer}
             ownRequest={controller.ownRequest}
             pendingRequests={controller.pendingClaimRequests}
-            canAskAgain={controller.canAskAgain}
+            canAskAgain={ordinary && controller.canAskAgain}
             stewardsPoolGarden={controller.roles.stewardsPoolGarden}
             claimGardens={controller.roles.claimGardens}
-            contextOpen={contextOpen}
+            contextOpen={ordinary && contextOpen}
             onContextOpenChange={setContextOpen}
             isClaiming={controller.isQueueing}
             isDeciding={controller.isSending}
@@ -486,6 +490,7 @@ export function GardenCommitment() {
       hasCoreAct={Boolean(act)}
       isOnline={controller.isOnline}
       onReport={controller.confirmation.canNotYet ? () => setConfirmOpen("report") : null}
+      takeUp={rewardTakeUp}
     >
       {page}
     </ServicePromise>

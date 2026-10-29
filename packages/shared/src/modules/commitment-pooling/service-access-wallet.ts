@@ -364,13 +364,46 @@ function rewardDelivery(
   };
 }
 
+const BEFORE_CONFIRMATION = new Set(["OFFERED", "REQUESTED", "ACCEPTED", "READY_FOR_CONFIRMATION"]);
+
+/**
+ * A live request's voucher reward while its work is still to come. Only the live read names the
+ * reviewed voucher (its decimals), so an unrouted read shows no row; a confirmed promise's
+ * delivery has its own read (PRD-1323) and shows nothing here rather than a guess.
+ */
+function liveEarnedReward(snapshot: ServiceAccessSnapshot): RequestRewardDelivery[] | null {
+  const earned = snapshot.acceptancePolicy.earned;
+  const terms = earned.terms;
+  if (
+    earned.status !== "bound" ||
+    !earned.termsHash ||
+    !terms ||
+    terms.asset.decimals === null ||
+    !BEFORE_CONFIRMATION.has(snapshot.coreState ?? "")
+  )
+    return null;
+  return [
+    {
+      id: earned.termsHash,
+      kind: "voucher",
+      asset: terms.asset,
+      amount: terms.totalUnits,
+      funder: terms.issuer,
+      status: "after-work",
+      shortOf: null,
+      receipt: null,
+      attempts: 0n,
+    },
+  ];
+}
+
 /** Each reward on its own. Null where no delivery read exists for this request yet. */
 export function requestRewardDeliveries(
   snapshot: ServiceAccessSnapshot
 ): RequestRewardDelivery[] | null {
   const pilot = snapshot.pilot;
   const reward = pilot?.reward;
-  if (!pilot || !reward) return null;
+  if (!pilot || !reward) return liveEarnedReward(snapshot);
   return [reward.voucher, reward.gd].flatMap((item) =>
     item ? [rewardDelivery(item, reward.workFulfilled, pilot.inventory)] : []
   );

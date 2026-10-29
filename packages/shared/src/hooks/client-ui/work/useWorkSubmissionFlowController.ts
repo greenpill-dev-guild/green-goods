@@ -138,6 +138,7 @@ export function useWorkSubmissionFlowController({
     actionUID,
     setGardenAddress: setGardenAddressStable,
     takeUp: commitmentJobs.takeUp,
+    reviewReward: (intent) => saveOnExit().then(() => navigate(intent.returnTo)),
   });
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
   // Hold submission and draft retirement until the dependent link settles. Queueing starts

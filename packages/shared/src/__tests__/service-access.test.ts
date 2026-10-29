@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { createServiceRehearsalAdapter } from "../modules/commitment-pooling/demo/demo-service-access";
 import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
 import {
   selectServiceAccessAction,
   serviceAccessAvailableActions,
 } from "../modules/commitment-pooling/service-access";
-import { createServiceRehearsalAdapter } from "../modules/commitment-pooling/demo/demo-service-access";
-import type { ServiceAccessKey } from "../modules/commitment-pooling/service-access-types";
+import type {
+  ServiceAccessKey,
+  ServiceAccessSnapshot,
+} from "../modules/commitment-pooling/service-access-types";
 
 const key: ServiceAccessKey = {
   sourceChainId: 42161,
@@ -102,6 +105,163 @@ describe("service access controller", () => {
       state: "pending",
     });
     expect(renewed.snapshot.consent!.claimHash).not.toBe(oldHash);
+  });
+});
+
+describe("a member's agreement to a request's voucher reward", () => {
+  const HASH = `0x${"b".repeat(64)}` as const;
+  const CREATOR = "0x0000000000000000000000000000000000000300" as const;
+  const MODULE = "0x0000000000000000000000000000000000000400" as const;
+  /** A live open request in TAS HUB's pool whose 1-voucher reward its creator already froze. */
+  function rewardedRequest(): ServiceAccessSnapshot {
+    const s = createServiceRehearsalSnapshot(key);
+    s.evidence = "onchain";
+    s.mode = "legacy";
+    s.knownService = false;
+    s.coreState = "REQUESTED";
+    s.pause.core = false;
+    s.voucherSetups = [];
+    s.capabilities = {
+      ...s.capabilities,
+      mutation: "onchain",
+      reasons: [],
+      sourceBuyer: key.buyer,
+      canSignSource: true,
+    };
+    s.acceptancePolicy.earned = {
+      ...s.acceptancePolicy.earned,
+      status: "bound",
+      module: MODULE,
+      revision: 1n,
+      termsHash: HASH,
+      terms: {
+        issuer: CREATOR,
+        issuerAuthority: CREATOR,
+        asset: { chainId: 100, token: MODULE, symbol: null, decimals: null },
+        totalUnits: 1_000_000n,
+        allocationPolicy: HASH,
+        serviceTermsRef: HASH,
+        season: 3n,
+        issuerApproved: true,
+        frozen: true,
+      },
+      creator: CREATOR,
+      claimType: "individual",
+      viewerConsentRevision: 0n,
+      modulePaused: false,
+    };
+    return s;
+  }
+
+  it("offers the member's own agreement to the exact approved, frozen revision only", () => {
+    const s = rewardedRequest();
+    expect(serviceAccessAvailableActions(s)).toContain("consentEarnedTerms");
+    const agree = { action: "consentEarnedTerms" as const, expectedTermsHash: HASH };
+    expect(selectServiceAccessAction(s, { ...agree, expectedRevision: 1n })).toEqual({
+      allowed: true,
+      reason: null,
+    });
+    expect(selectServiceAccessAction(s, { ...agree, expectedRevision: 2n }).reason).toBe(
+      "terms-changed"
+    );
+  });
+
+  it("requires earned consent before the service claim, without excluding combined bookings", () => {
+    const s = rewardedRequest();
+    s.knownService = true;
+    s.mode = s.offer!.route;
+    s.coreState = "OFFERED";
+    s.consent = null;
+    s.nextRequestNonce = 1n;
+    s.complete = true;
+    expect(serviceAccessAvailableActions(s)).toContain("consentEarnedTerms");
+    expect(serviceAccessAvailableActions(s)).not.toContain("requestClaim");
+    s.acceptancePolicy.earned.viewerConsentRevision = 1n;
+    expect(serviceAccessAvailableActions(s)).toContain("requestClaim");
+    s.acceptancePolicy.earned.modulePaused = true;
+    expect(serviceAccessAvailableActions(s)).not.toContain("requestClaim");
+    expect(serviceAccessAvailableActions(s)).not.toContain("consentEarnedTerms");
+  });
+
+  it("withholds booking reward consent until a buyer garden is eligible", () => {
+    const s = rewardedRequest();
+    s.knownService = true;
+    s.mode = s.offer!.route;
+    s.coreState = "OFFERED";
+    s.consent = null;
+    s.nextRequestNonce = 1n;
+    s.complete = true;
+    const eligible = s.eligibleBuyerGardens;
+    s.eligibleBuyerGardens = [];
+    expect(serviceAccessAvailableActions(s)).not.toContain("consentEarnedTerms");
+    expect(
+      selectServiceAccessAction(s, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: HASH,
+      })
+    ).toEqual({ allowed: false, reason: "action-unavailable" });
+    s.acceptancePolicy.earned.viewerConsentRevision = 1n;
+    expect(serviceAccessAvailableActions(s)).not.toContain("requestClaim");
+    s.eligibleBuyerGardens = eligible;
+    expect(serviceAccessAvailableActions(s)).toContain("requestClaim");
+    s.acceptancePolicy.earned.viewerConsentRevision = 0n;
+    expect(serviceAccessAvailableActions(s)).toContain("consentEarnedTerms");
+  });
+
+  it("keeps a garden-pool request's own reward consent independent of service buyer gardens", () => {
+    const s = rewardedRequest();
+    s.eligibleBuyerGardens = [];
+    expect(serviceAccessAvailableActions(s)).toContain("consentEarnedTerms");
+  });
+
+  it.each([
+    [
+      "a garden's claim, whose account must agree itself",
+      (s: ServiceAccessSnapshot) => {
+        s.acceptancePolicy.earned.claimType = "garden";
+      },
+    ],
+    [
+      "terms the creator hasn't frozen",
+      (s: ServiceAccessSnapshot) => {
+        s.acceptancePolicy.earned.terms!.frozen = false;
+      },
+    ],
+    [
+      "an agreement already given",
+      (s: ServiceAccessSnapshot) => {
+        s.acceptancePolicy.earned.viewerConsentRevision = 1n;
+      },
+    ],
+    [
+      "the creator reading their own request",
+      (s: ServiceAccessSnapshot) => {
+        s.acceptancePolicy.earned.creator = key.buyer;
+      },
+    ],
+    [
+      "a paused reward module",
+      (s: ServiceAccessSnapshot) => {
+        s.acceptancePolicy.earned.modulePaused = true;
+      },
+    ],
+    [
+      "a request already taken up",
+      (s: ServiceAccessSnapshot) => {
+        s.coreState = "ACCEPTED";
+      },
+    ],
+    [
+      "a reader with no signer",
+      (s: ServiceAccessSnapshot) => {
+        s.capabilities = { ...s.capabilities, canSignSource: false };
+      },
+    ],
+  ])("offers no agreement for %s", (_case, change) => {
+    const s = rewardedRequest();
+    change(s);
+    expect(serviceAccessAvailableActions(s)).not.toContain("consentEarnedTerms");
   });
 });
 

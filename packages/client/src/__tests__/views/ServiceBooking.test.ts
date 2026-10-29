@@ -318,6 +318,7 @@ describe("a request's rewards", () => {
         coreState: rewardStoryCoreState(state as RewardStoryState),
         issuer: VOUCHER_STORY_ISSUERS.techAndSun,
         garden: "Riverside Commons Garden",
+        takeUp: null,
       },
       intl
     )!;
@@ -345,6 +346,7 @@ describe("a request's rewards", () => {
         coreState: rewardStoryCoreState(state),
         issuer: VOUCHER_STORY_ISSUERS.techAndSun,
         garden: "Riverside Commons Garden",
+        takeUp: null,
       },
       intl
     )!;
@@ -361,6 +363,7 @@ describe("a request's reward record", () => {
         coreState: "FULFILLED",
         issuer: VOUCHER_STORY_ISSUERS.techAndSun,
         garden: "Riverside Commons Garden",
+        takeUp: null,
       },
       intl
     )!;
@@ -530,5 +533,56 @@ describe("a member's act on a voucher booking", () => {
       voucherSetups: closing.voucherSetups.map((row) => ({ ...row, availableActions: [] })),
     };
     expect(serviceActOffered("close", refused, split)).toBe(false);
+  });
+});
+
+describe("agreeing to a request's reward before taking it up", () => {
+  type RewardSnapshot = ReturnType<typeof rewardStorySnapshot>;
+  function view(takeUp: "open" | "reviewed" | null, change?: (s: RewardSnapshot) => void) {
+    const snapshot = rewardStorySnapshot("agreementUnavailable", false);
+    snapshot.pause.core = false;
+    snapshot.acceptancePolicy.earned.modulePaused = false;
+    snapshot.acceptancePolicy.earned.claimType = "individual";
+    change?.(snapshot);
+    return serviceRewardsView(
+      {
+        snapshot,
+        coreState: "REQUESTED",
+        issuer: VOUCHER_STORY_ISSUERS.techAndSun,
+        garden: "Riverside Commons Garden",
+        takeUp,
+      },
+      intl
+    )!;
+  }
+  const offered = (s: RewardSnapshot) => {
+    s.availableActions = ["consentEarnedTerms"];
+  };
+
+  it("offers Agree to the Rewards in the words of how the request is taken up", () => {
+    expect(view("open", offered)).toMatchObject({
+      agree: "offered",
+      agreementUnavailable: null,
+      agreeSheet: {
+        title: "Agree to the Rewards",
+        cta: "Agree and Take It Up",
+        value: "2 Tech and Sun vouchers to your account",
+        consent:
+          "Agreeing records these exact rewards. Then you take the promise up, and it's yours right away.",
+      },
+    });
+    expect(view("reviewed", offered).agreeSheet?.consent).toBe(
+      "Agreeing records these exact rewards with your request. Riverside Commons Garden's stewards then accept you."
+    );
+  });
+
+  it("moves on to Take It Up once agreed, and keeps the help door for an agreement it can't sign", () => {
+    const agreed = view("open", (s) => {
+      s.acceptancePolicy.earned.viewerConsentRevision = s.acceptancePolicy.earned.revision;
+    });
+    expect(agreed).toMatchObject({ agree: "agreed", agreeSheet: null, agreementUnavailable: null });
+    expect(view("open").agreementUnavailable?.title).toBe("Agreeing isn't available here yet");
+    // Someone who can't take the request up has nothing to agree to.
+    expect(view(null)).toMatchObject({ agree: null, agreementUnavailable: null });
   });
 });

@@ -29,7 +29,7 @@ import type { Action, Work } from "@green-goods/shared/types/domain";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, within } from "../test-utils";
+import { renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
@@ -681,9 +681,11 @@ describe("GardenCommitment", () => {
     // A protocol commitment is read from the reader's own garden, and the new one
     // has to be composed into the protocol pool, not into the garden it was opened from.
     const PROTOCOL_GARDEN = "0x9999999999999999999999999999999999999999";
+    const claimPersonal = vi.fn();
     mockUseController.mockReturnValue(
       controller({
         actKind: "askAgain",
+        acts: { ...controller().acts, claimPersonal },
         pool: poolFixture({ poolId: 1n, poolType: "PROTOCOL", garden: PROTOCOL_GARDEN }),
       })
     );
@@ -694,6 +696,7 @@ describe("GardenCommitment", () => {
     expect(screen.getByTestId("composer-route")).toHaveTextContent(
       `/home/${PROTOCOL_GARDEN}/commitments/new?direction=request&from=9`
     );
+    expect(claimPersonal).not.toHaveBeenCalled();
   });
 
   it("renders the team and delegates joining to the controller", async () => {
@@ -1668,6 +1671,245 @@ describe("a voucher booking on the promise page", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Ask for Help" }));
     expect(screen.getByTestId("help-route")).toHaveTextContent("/home/profile?tab=help");
+  });
+
+  function withReviewedReward(
+    snapshot: BookingSnapshot,
+    termsHash: `0x${string}`
+  ): BookingSnapshot {
+    Object.assign(snapshot, {
+      evidence: "onchain",
+      availableActions: ["consentEarnedTerms"],
+    });
+    snapshot.pause.core = false;
+    snapshot.capabilities = {
+      ...snapshot.capabilities,
+      mutation: "onchain",
+      reasons: [],
+      sourceBuyer: snapshot.key.buyer,
+      canSignSource: true,
+    };
+    snapshot.acceptancePolicy.earned = {
+      ...snapshot.acceptancePolicy.earned,
+      status: "bound",
+      revision: 2n,
+      module: VOUCHER_STORY_ISSUERS.techAndSun.account,
+      termsHash,
+      terms: {
+        issuer: VOUCHER_STORY_ISSUERS.techAndSun.account,
+        issuerAuthority: VOUCHER_STORY_ISSUERS.techAndSun.account,
+        asset: {
+          chainId: 100,
+          token: VOUCHER_STORY_ISSUERS.techAndSun.asset.token,
+          symbol: "TSV",
+          decimals: 6,
+        },
+        totalUnits: vouchers(1),
+        allocationPolicy: termsHash,
+        serviceTermsRef: termsHash,
+        season: 3n,
+        issuerApproved: true,
+        frozen: true,
+      },
+      creator: VOUCHER_STORY_ISSUERS.techAndSun.account,
+      claimType: "individual",
+      viewerConsentRevision: 0n,
+      modulePaused: false,
+    };
+    return snapshot;
+  }
+
+  function showEarnedClaimRequests(
+    stewardsPoolGarden: boolean,
+    earned: Partial<BookingSnapshot["acceptancePolicy"]["earned"]> = {}
+  ) {
+    const snapshot = withReviewedReward(
+      rewardStorySnapshot("agreementUnavailable", true),
+      `0x${"c".repeat(64)}`
+    );
+    Object.assign(snapshot.acceptancePolicy.earned, earned);
+    const page = rewardStoryController("agreementUnavailable", true);
+    page.detail!.commitment.claimMode = "APPROVAL_GATED";
+    page.roles.stewardsPoolGarden = stewardsPoolGarden;
+    page.actKind = "askToTakeUp";
+    page.canAskAgain = true;
+    page.ownRequest = claimFixture({ claimant: page.viewer!, state: "DECLINED" });
+    page.pendingClaimRequests = [claimFixture({ claimant: OTHER, state: "PENDING" })];
+    page.acts = mockActs;
+    show(snapshot, page);
+  }
+
+  it("lets a pool-garden steward decide earned reward claims without generic member take-up", async () => {
+    showEarnedClaimRequests(true);
+    const decisions = within(screen.getByRole("region", { name: "Waiting on you" }));
+    await userEvent.click(decisions.getByRole("button", { name: /^Accept$/ }));
+    expect(mockActs.acceptClaim).toHaveBeenCalledWith(OTHER);
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    await userEvent.type(
+      decisions.getByLabelText("Why not, in a sentence or two"),
+      "Try next week"
+    );
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    expect(mockActs.declineClaim).toHaveBeenCalledWith(OTHER, "Try next week");
+    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+    expect(mockActs.claim).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: "paused", earned: { modulePaused: true } },
+    { name: "unread pause", earned: { modulePaused: null } },
+    { name: "unread terms", earned: { terms: null } },
+  ])("keeps Decline but disables earned Accept for $name", async ({ earned }) => {
+    showEarnedClaimRequests(true, earned);
+    const decisions = within(screen.getByRole("region", { name: "Waiting on you" }));
+    const accept = decisions.getByRole("button", { name: /^Accept$/ });
+    expect(accept).toBeDisabled();
+    await userEvent.click(accept);
+    expect(mockActs.acceptClaim).not.toHaveBeenCalled();
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    await userEvent.type(decisions.getByLabelText("Why not, in a sentence or two"), "Try later");
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    expect(mockActs.declineClaim).toHaveBeenCalledWith(OTHER, "Try later");
+  });
+
+  it("keeps earned member retries behind consent and hides decisions from non-stewards", () => {
+    showEarnedClaimRequests(false);
+    expect(screen.queryByRole("region", { name: "Waiting on you" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Agree and Take It Up" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Take It Up$/ })).not.toBeInTheDocument();
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+  });
+
+  it("reviews a combined booking's earned reward before offering the booking's own consent", async () => {
+    const terms = `0x${"c".repeat(64)}` as const;
+    const snapshot = withReviewedReward(bookingStorySnapshot("hubDay", "open"), terms);
+    const page = bookingStoryController("hubDay", "OFFERED");
+    const claimPersonal = vi.fn();
+    show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });
+    expect(screen.getByRole("region", { name: "Service Access" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Agree to the Rewards" }));
+    const sheet = await screen.findByRole("dialog", { name: "Agree to the Rewards" });
+    expect(
+      within(sheet).getByText(
+        "Agreeing records these exact rewards. Then review and agree to the service booking."
+      )
+    ).toBeInTheDocument();
+    const agreed = structuredClone(snapshot);
+    agreed.acceptancePolicy.earned.viewerConsentRevision = 2n;
+    agreed.availableActions = ["requestClaim"];
+    mockServiceMutation.mockResolvedValueOnce({
+      kind: "onchain",
+      observationId: "reward",
+      snapshot: agreed,
+    });
+    await userEvent.click(within(sheet).getByRole("button", { name: "Agree to the Rewards" }));
+    await waitFor(() => expect(mockServiceMutation).toHaveBeenCalledTimes(1));
+    expect(mockServiceMutation).toHaveBeenCalledWith({
+      action: "consentEarnedTerms",
+      expectedRevision: 2n,
+      expectedTermsHash: terms,
+    });
+    expect(claimPersonal).not.toHaveBeenCalled();
+  });
+
+  it("keeps an agreed reward on the booking path instead of a generic take-up", async () => {
+    const terms = `0x${"c".repeat(64)}` as const;
+    const snapshot = withReviewedReward(bookingStorySnapshot("hubDay", "open"), terms);
+    snapshot.acceptancePolicy.earned.viewerConsentRevision = 2n;
+    snapshot.availableActions = ["requestClaim"];
+    const page = bookingStoryController("hubDay", "OFFERED");
+    const claimPersonal = vi.fn();
+    show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });
+    expect(screen.queryByRole("button", { name: "Take It Up" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Review and Redeem" }));
+    expect(await screen.findByRole("dialog", { name: "Review and Redeem" })).toBeInTheDocument();
+    expect(claimPersonal).not.toHaveBeenCalled();
+    expect(mockServiceMutation).not.toHaveBeenCalled();
+  });
+
+  it("keeps context-requiring queued reward consent unavailable", () => {
+    const snapshot = withReviewedReward(
+      rewardStorySnapshot("agreementUnavailable", true),
+      `0x${"c".repeat(64)}`
+    );
+    const page = rewardStoryController("agreementUnavailable", true);
+    page.claimNeedsContext = true;
+    page.actKind = null;
+    page.queue.pendingAct = {
+      jobId: "held-claim",
+      kind: "claim",
+      waitingReason: "reward-agreement-required",
+      discardable: true,
+      createdAt: 1,
+    };
+    show(snapshot, page);
+    expect(screen.queryByRole("button", { name: "Agree and Take It Up" })).not.toBeInTheDocument();
+    expect(mockServiceMutation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: "open take-up", actKind: "takeUp" as const, claimMode: "OPEN" as const, queued: false },
+    {
+      name: "reviewed take-up",
+      actKind: "askToTakeUp" as const,
+      claimMode: "APPROVAL_GATED" as const,
+      queued: false,
+    },
+    { name: "queued open claim", actKind: null, claimMode: "OPEN" as const, queued: true },
+    {
+      name: "queued reviewed claim",
+      actKind: null,
+      claimMode: "APPROVAL_GATED" as const,
+      queued: true,
+    },
+  ])("agrees to the reward before $name", async ({ actKind, claimMode, queued }) => {
+    const TERMS = `0x${"c".repeat(64)}` as const;
+    // A live open request whose reward its creator froze and this member can agree to.
+    const snapshot = rewardStorySnapshot("agreementUnavailable", true);
+    withReviewedReward(snapshot, TERMS);
+    const page = rewardStoryController("agreementUnavailable", true);
+    page.detail!.commitment.claimMode = claimMode;
+    page.queue.hasPendingJob = queued;
+    page.queue.pendingAct = queued
+      ? {
+          jobId: "held-claim",
+          kind: "claim",
+          waitingReason: "reward-agreement-required",
+          discardable: true,
+          createdAt: 1,
+        }
+      : null;
+    const claimPersonal = vi.fn(async () => "claim-job");
+    show(snapshot, { ...page, actKind, acts: { ...page.acts, claimPersonal } });
+    expect(screen.queryByRole("button", { name: "Ask for Help" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Agree and Take It Up" }));
+    const sheet = await screen.findByRole("dialog", { name: "Agree to the Rewards" });
+    expect(
+      within(sheet).getByText(
+        claimMode === "OPEN"
+          ? "Agreeing records these exact rewards. Then you take the promise up, and it's yours right away."
+          : /Agreeing records these exact rewards with your request\./
+      )
+    ).toBeInTheDocument();
+    // Once the agreement lands, the read no longer offers it.
+    const agreed = structuredClone(snapshot);
+    agreed.availableActions = [];
+    agreed.acceptancePolicy.earned.viewerConsentRevision = 2n;
+    mockServiceMutation.mockResolvedValueOnce({
+      kind: "onchain",
+      observationId: "x",
+      snapshot: agreed,
+    });
+    await userEvent.click(within(sheet).getByRole("button", { name: "Agree and Take It Up" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith({
+      action: "consentEarnedTerms",
+      expectedRevision: 2n,
+      expectedTermsHash: TERMS,
+    });
+    await waitFor(() => expect(claimPersonal).toHaveBeenCalledTimes(1));
   });
 });
 
