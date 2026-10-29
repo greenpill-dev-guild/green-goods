@@ -20,12 +20,14 @@ import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGood
 import enMessages from "@green-goods/shared/i18n/en";
 import esMessages from "@green-goods/shared/i18n/es";
 import ptMessages from "@green-goods/shared/i18n/pt";
-import { useQueryClient } from "@tanstack/react-query";
 import type { Meta, StoryObj } from "@storybook/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
+import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import {
   type BookingStoryService,
   type BookingStoryStage,
@@ -41,13 +43,11 @@ import {
   VOUCHER_STORY_NAMES,
   VOUCHER_STORY_WALLET_KEY,
 } from "../../../../../../shared/.storybook/voucherBookingFixtures";
-import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
-import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import {
   VOUCHER_STORY_ISSUERS,
   VOUCHER_STORY_SCOPE,
-  vouchers,
   voucherStorySeeds,
+  vouchers,
   voucherWalletStory,
 } from "../../../../../../shared/.storybook/voucherPilotFixtures";
 import { GardenCommitment } from "./GardenCommitment";
@@ -485,6 +485,56 @@ const RECOVERY: JourneyStep[] = [
   },
 ];
 
+/** An agreed reward never replaces the service booking's own review and consent. */
+const AGREED_REWARD_BOOKING: JourneyStep[] = [
+  {
+    caption: "Lina already agreed to this promise's reward. She reviews the service booking next.",
+    booking: {
+      service: "hubDay",
+      stage: "open",
+      core: "OFFERED",
+      tweak: (snapshot) => {
+        const issuer = VOUCHER_STORY_ISSUERS.techAndSun;
+        const termsHash = `0x${"c".repeat(64)}` as const;
+        snapshot.evidence = "onchain";
+        snapshot.pause.core = false;
+        snapshot.capabilities = {
+          ...snapshot.capabilities,
+          mutation: "onchain",
+          reasons: [],
+          sourceBuyer: snapshot.key.buyer,
+          canSignSource: true,
+        };
+        snapshot.availableActions = ["requestClaim"];
+        snapshot.acceptancePolicy.earned = {
+          ...snapshot.acceptancePolicy.earned,
+          status: "bound",
+          module: issuer.account,
+          revision: 2n,
+          termsHash,
+          creator: issuer.account,
+          claimType: "individual",
+          viewerConsentRevision: 2n,
+          modulePaused: false,
+          terms: {
+            issuer: issuer.account,
+            issuerAuthority: issuer.account,
+            asset: issuer.asset,
+            totalUnits: vouchers(1),
+            allocationPolicy: termsHash,
+            serviceTermsRef: termsHash,
+            season: 3n,
+            issuerApproved: true,
+            frozen: true,
+          },
+        };
+        return snapshot;
+      },
+    },
+    holds: { techAndSun: 9, greenGoods: 0 },
+  },
+];
+
 const JOURNEYS = {
   hubDay: HUB_DAY,
   exchange: EXCHANGE_THEN_REDEEM,
@@ -492,6 +542,7 @@ const JOURNEYS = {
   earn: EARN_WITH_GD,
   earnVouchersOnly: EARN_VOUCHERS_ONLY,
   recovery: RECOVERY,
+  agreedRewardBooking: AGREED_REWARD_BOOKING,
 } as const;
 type JourneyId = keyof typeof JOURNEYS;
 
@@ -716,6 +767,20 @@ export const ClaudeAccessEndsEarly: Story = { args: { journey: "endsEarly" } };
 
 /** When an act stops partway or a read can't be used: each state and the page's way on. */
 export const RecoveryStates: Story = { args: { journey: "recovery" } };
+
+/** Fictional reviewed reward, with the real booking page and its own consent sheet. */
+export const AgreedRewardKeepsBooking: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "agreedRewardBooking" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(canvas.queryByRole("button", { name: "Take It Up" })).not.toBeInTheDocument();
+    await userEvent.click(await canvas.findByRole("button", { name: "Review and Redeem" }));
+    await expect(await page.findByRole("dialog", { name: "Review and Redeem" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Agree to These Terms" })).toBeVisible();
+  },
+};
 
 /** The hub day from the offer through the deposit, driven by the page's own acts. */
 export const HubDayAgreeAndDeposit: Story = {

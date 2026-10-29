@@ -1,9 +1,12 @@
+import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule.json";
+import type { Abi } from "viem";
 import type { Address } from "../../types/domain";
-import { logger } from "../app/logger";
 import { readGardenMembership } from "../../utils/blockchain/garden-role-reads";
+import { logger } from "../app/logger";
 import { reconcileTransaction } from "../transactions/confirmation";
 import type { TransactionSender } from "../transactions/types";
 import { serviceAccessAvailableActions } from "./service-access";
+import { serviceAddress, serviceFlag, serviceTuple } from "./service-access-chain-values";
 import {
   hydrateLiveVoucherSnapshot,
   type ServiceLiveChain,
@@ -11,7 +14,6 @@ import {
   verifyServiceLiveRoute,
 } from "./service-access-live-chain";
 import { SERVICE_LIVE_ROUTES, type ServiceLiveRoute } from "./service-access-live-config";
-import { verifyIssuerSourceRoute } from "./service-issuer-chain";
 import {
   configIdentity,
   executeLiveServiceCall,
@@ -19,8 +21,6 @@ import {
   parsePending,
   verifyWalletExecution,
 } from "./service-access-live-submission";
-import { SERVICE_ISSUER_ROUTES } from "./service-issuer-metadata";
-import type { ServiceIssuerRoute } from "./service-issuer-types";
 import type {
   ServiceAccessAction,
   ServiceAccessActionResult,
@@ -30,6 +30,10 @@ import type {
 } from "./service-access-types";
 import { voucherSetupAvailableActions } from "./service-access-voucher";
 import { assertServiceActor } from "./service-actor-session";
+import { AdapterABI } from "./service-issuer-abis";
+import { verifyIssuerRewardRoute } from "./service-issuer-chain";
+import { SERVICE_ISSUER_ROUTES } from "./service-issuer-metadata";
+import type { ServiceIssuerRoute } from "./service-issuer-types";
 
 export interface ServiceLiveSession {
   address: Address | null;
@@ -176,14 +180,46 @@ export function createLiveServiceAccessAdapter(
     const asset = route.assets.find(
       (v) => same(v.token, terms.asset.token) && same(v.issuer, terms.issuer)
     );
-    if (!asset || terms.asset.chainId !== 100)
+    const rewardAsset = issuer!.assets.find(
+      (v) => same(v.token.address, terms.asset.token) && same(v.ownerReserve, terms.issuer)
+    );
+    if (
+      !asset ||
+      !rewardAsset ||
+      terms.asset.chainId !== 100 ||
+      !same(rewardAsset.sourceAuthority, terms.issuerAuthority)
+    )
       throw new Error("Earned reward asset is outside the reviewed route");
     await Promise.all([
       verifyRoute(route, fresh),
       prove(`earned:${pin.address.toLowerCase()}`, fresh, () =>
-        verifyIssuerSourceRoute(issuer!, chain)
+        verifyIssuerRewardRoute(issuer!, chain)
       ),
     ]);
+    // Authorization is mutable per asset; it cannot inherit another asset's cached route proof.
+    const [sourceAuthority, authorization] = await Promise.all([
+      chain.read({
+        chainId: 42161,
+        address: pin.address,
+        abi: EntitlementABI as Abi,
+        functionName: "issuerAuthority",
+        args: [terms.issuer, terms.asset.token],
+      }),
+      chain.read({
+        chainId: 100,
+        address: issuer!.adapter.address,
+        abi: AdapterABI,
+        functionName: "assetAuthorizations",
+        args: [terms.issuer, terms.asset.token],
+      }),
+    ]);
+    const reserve = serviceTuple(authorization, ["issuerAuthority", "enabled"]);
+    if (
+      !same(serviceAddress(sourceAuthority), rewardAsset.sourceAuthority) ||
+      !same(serviceAddress(reserve.issuerAuthority), rewardAsset.sourceAuthority) ||
+      !serviceFlag(reserve.enabled)
+    )
+      throw new Error("Earned reward issuer authority changed");
     return asset;
   };
   /**

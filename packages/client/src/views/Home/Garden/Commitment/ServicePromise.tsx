@@ -21,6 +21,9 @@ import { type EarnedAgreeOutcome, EarnedRewardAgreeSheet } from "./EarnedRewardA
 import { JoinToActDoor } from "./JoinToAct";
 import { ServiceAccessPanel } from "./ServiceAccessPanel";
 import { ServiceAccessSection } from "./ServiceAccessSection";
+import { ServiceBookingSheets, type ServiceSheet } from "./ServiceBookingSheets";
+import type { ServiceRedeemOutcome } from "./ServiceRedeemSheet";
+import { ServiceRewardsSection } from "./ServiceRewardsSection";
 import {
   activateStep,
   agreeStep,
@@ -42,7 +45,6 @@ import {
   isServiceAccessPromise,
   serviceBookingView,
 } from "./serviceBooking";
-import { ServiceBookingSheets, type ServiceSheet } from "./ServiceBookingSheets";
 import type { ServiceActKind, ServiceBookingView } from "./serviceBookingTypes";
 import {
   exchangeAvailable,
@@ -50,8 +52,6 @@ import {
   exchangeStep,
   smallerExchangeInput,
 } from "./serviceExchange";
-import type { ServiceRedeemOutcome } from "./ServiceRedeemSheet";
-import { ServiceRewardsSection } from "./ServiceRewardsSection";
 import { serviceRewardsView } from "./serviceRewards";
 import { VoucherPilotJourney } from "./VoucherPilotJourney";
 
@@ -275,7 +275,7 @@ export function ServicePromise({
           setAgreeing({ revision: earned.revision, termsHash: earned.termsHash });
         }}
       />
-    ) : takeUp && rewards?.agree === "agreed" ? (
+    ) : takeUp && !booking && rewards?.agree === "agreed" ? (
       <CommitmentActionBar
         act={{
           kind: "service",

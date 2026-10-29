@@ -1748,6 +1748,21 @@ describe("a voucher booking on the promise page", () => {
     expect(claimPersonal).not.toHaveBeenCalled();
   });
 
+  it("keeps an agreed reward on the booking path instead of a generic take-up", async () => {
+    const terms = `0x${"c".repeat(64)}` as const;
+    const snapshot = withReviewedReward(bookingStorySnapshot("hubDay", "open"), terms);
+    snapshot.acceptancePolicy.earned.viewerConsentRevision = 2n;
+    snapshot.availableActions = ["requestClaim"];
+    const page = bookingStoryController("hubDay", "OFFERED");
+    const claimPersonal = vi.fn();
+    show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });
+    expect(screen.queryByRole("button", { name: "Take It Up" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Review and Redeem" }));
+    expect(await screen.findByRole("dialog", { name: "Review and Redeem" })).toBeInTheDocument();
+    expect(claimPersonal).not.toHaveBeenCalled();
+    expect(mockServiceMutation).not.toHaveBeenCalled();
+  });
+
   it("agrees to the reward from its own bar, then takes the request up", async () => {
     const TERMS = `0x${"c".repeat(64)}` as const;
     // A live open request whose reward its creator froze and this member can agree to.
