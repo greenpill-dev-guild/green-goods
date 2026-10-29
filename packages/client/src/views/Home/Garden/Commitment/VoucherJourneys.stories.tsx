@@ -1,3 +1,4 @@
+import { claimFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import {
   type CommitmentDerivedState,
   type CommitmentEventRecord,
@@ -77,6 +78,8 @@ interface JourneyStep {
     readFailed?: boolean;
   };
   reward?: { state: RewardStoryState; withGd: boolean };
+  /** The pool garden's steward decides the member's already-submitted reward claim. */
+  stewardReview?: boolean;
   /** The promise's own History, newest first. */
   events?: CommitmentEventRecord[];
   /** What the reader holds now, in whole vouchers. */
@@ -551,6 +554,15 @@ const INELIGIBLE_REWARD_BOOKING: JourneyStep[] = AGREED_REWARD_BOOKING.map((step
   },
 }));
 
+const EARNED_CLAIM_REVIEW: JourneyStep[] = [
+  {
+    caption: "A member asked to take up this rewarded request. Its garden's steward decides.",
+    reward: { state: "agreementUnavailable", withGd: true },
+    stewardReview: true,
+    holds: { techAndSun: 0, greenGoods: 0 },
+  },
+];
+
 const JOURNEYS = {
   hubDay: HUB_DAY,
   exchange: EXCHANGE_THEN_REDEEM,
@@ -560,6 +572,7 @@ const JOURNEYS = {
   recovery: RECOVERY,
   agreedRewardBooking: AGREED_REWARD_BOOKING,
   ineligibleRewardBooking: INELIGIBLE_REWARD_BOOKING,
+  earnedClaimReview: EARNED_CLAIM_REVIEW,
 } as const;
 type JourneyId = keyof typeof JOURNEYS;
 
@@ -571,7 +584,21 @@ function snapshotFor(step: JourneyStep): ServiceAccessSnapshot {
 }
 
 function controllerFor(step: JourneyStep, onConfirm: () => void) {
-  if (step.reward) return rewardStoryController(step.reward.state, step.reward.withGd);
+  if (step.reward) {
+    const controller = rewardStoryController(step.reward.state, step.reward.withGd);
+    if (step.stewardReview && controller.detail) {
+      controller.detail.commitment.claimMode = "APPROVAL_GATED";
+      controller.actKind = null;
+      controller.roles.stewardsPoolGarden = true;
+      controller.pendingClaimRequests = [
+        claimFixture({
+          commitmentId: controller.detail.commitment.commitmentId,
+          state: "PENDING",
+        }),
+      ];
+    }
+    return controller;
+  }
   const { service, stage, confirmed } = step.booking!;
   const ended = stage === "closed" && service === "access" && step.next === undefined;
   const core =
@@ -812,6 +839,20 @@ export const RewardWaitsForBuyerEligibility: Story = {
     await expect(
       canvas.queryByRole("button", { name: "Agree and Take It Up" })
     ).not.toBeInTheDocument();
+  },
+};
+
+/** Reward consent never hides the steward's decision on a submitted approval-gated claim. */
+export const EarnedClaimStewardDecisions: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "earnedClaimReview" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const decisions = within(await canvas.findByRole("region", { name: "Waiting on you" }));
+    await expect(decisions.getByRole("button", { name: /^Accept$/ })).toBeVisible();
+    await expect(decisions.getByRole("button", { name: /^Decline$/ })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: /^Ask again$/ })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /^Take It Up$/ })).toBeNull();
   },
 };
 

@@ -10,6 +10,7 @@ import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { describeProofContents } from "@/components/Features/Commitments";
+import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
 import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import { CommitmentClaims } from "./CommitmentClaims";
@@ -28,9 +29,8 @@ import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
 import { proofOnPhoneLine } from "./proofOnPhone";
-import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
-import { serviceReadOutcome } from "./serviceBooking";
 import { ServicePromise, type ServicePromiseParts } from "./ServicePromise";
+import { serviceReadOutcome } from "./serviceBooking";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
 
@@ -79,7 +79,7 @@ export function GardenCommitment() {
   );
   const serviceAccess = useServiceAccess(serviceKey);
   const serviceRead = serviceReadOutcome(serviceAccess);
-  // Generic take-up and claims wait until the page knows this isn't a service offer.
+  // Member take-up follows consent; earned requests still need the stewards' ordinary decisions.
   const ordinary = serviceRead === "ordinary";
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   // Report a Problem opens the same sheet on its Not yet form.
@@ -342,16 +342,16 @@ export function GardenCommitment() {
           isJoining={controller.isSending}
           onJoin={() => keepSurfaceOnFailure(controller.acts.join())}
         />
-        {ordinary ? (
+        {ordinary || serviceAccess.data?.acceptancePolicy.kind === "earned" ? (
           <CommitmentClaims
             commitment={commitment}
             viewer={controller.viewer}
             ownRequest={controller.ownRequest}
             pendingRequests={controller.pendingClaimRequests}
-            canAskAgain={controller.canAskAgain}
+            canAskAgain={ordinary && controller.canAskAgain}
             stewardsPoolGarden={controller.roles.stewardsPoolGarden}
             claimGardens={controller.roles.claimGardens}
-            contextOpen={contextOpen}
+            contextOpen={ordinary && contextOpen}
             onContextOpenChange={setContextOpen}
             isClaiming={controller.isQueueing}
             isDeciding={controller.isSending}

@@ -1719,6 +1719,48 @@ describe("a voucher booking on the promise page", () => {
     return snapshot;
   }
 
+  function showEarnedClaimRequests(stewardsPoolGarden: boolean) {
+    const snapshot = withReviewedReward(
+      rewardStorySnapshot("agreementUnavailable", true),
+      `0x${"c".repeat(64)}`
+    );
+    const page = rewardStoryController("agreementUnavailable", true);
+    page.detail!.commitment.claimMode = "APPROVAL_GATED";
+    page.roles.stewardsPoolGarden = stewardsPoolGarden;
+    page.actKind = "askToTakeUp";
+    page.canAskAgain = true;
+    page.ownRequest = claimFixture({ claimant: page.viewer!, state: "DECLINED" });
+    page.pendingClaimRequests = [claimFixture({ claimant: OTHER, state: "PENDING" })];
+    page.acts = mockActs;
+    show(snapshot, page);
+  }
+
+  it("lets a pool-garden steward decide earned reward claims without generic member take-up", async () => {
+    showEarnedClaimRequests(true);
+    const decisions = within(screen.getByRole("region", { name: "Waiting on you" }));
+    await userEvent.click(decisions.getByRole("button", { name: /^Accept$/ }));
+    expect(mockActs.acceptClaim).toHaveBeenCalledWith(OTHER);
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    await userEvent.type(
+      decisions.getByLabelText("Why not, in a sentence or two"),
+      "Try next week"
+    );
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    expect(mockActs.declineClaim).toHaveBeenCalledWith(OTHER, "Try next week");
+    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+    expect(mockActs.claim).not.toHaveBeenCalled();
+  });
+
+  it("keeps earned member retries behind consent and hides decisions from non-stewards", () => {
+    showEarnedClaimRequests(false);
+    expect(screen.queryByRole("region", { name: "Waiting on you" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Agree and Take It Up" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Take It Up$/ })).not.toBeInTheDocument();
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+  });
+
   it("reviews a combined booking's earned reward before offering the booking's own consent", async () => {
     const terms = `0x${"c".repeat(64)}` as const;
     const snapshot = withReviewedReward(bookingStorySnapshot("hubDay", "open"), terms);
