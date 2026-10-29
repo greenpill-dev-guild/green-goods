@@ -15,6 +15,7 @@ import type { Abi } from "viem";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { readSettlementFunction } from "./data-settlement-chain";
+import { EarnedRewardWaiting } from "./earned-agreement-error";
 import type { ServiceChainRead } from "./service-access-chain";
 import {
   SERVICE_ZERO_ADDRESS,
@@ -33,13 +34,22 @@ export async function assertEarnedRewardAgreed(
   const { chainId, core, commitmentId, claimant } = input;
   if (phase === "admission" && typeof navigator !== "undefined" && navigator.onLine === false)
     return;
+  // Only a failed external read is a dependency; malformed returned data still fails normally.
+  const readReward: ServiceChainRead = async (request) => {
+    try {
+      return await read(request);
+    } catch (error) {
+      if (phase === "broadcast") throw new EarnedRewardWaiting("reward-unreadable", error);
+      throw error;
+    }
+  };
   let module: Address;
   let revision: bigint;
   let agreed: bigint;
   let paused: boolean;
   try {
     const binding = serviceTuple(
-      await read({
+      await readReward({
         chainId,
         address: core,
         abi: AcceptanceABI as Abi,
@@ -59,14 +69,14 @@ export async function assertEarnedRewardAgreed(
     if (module === SERVICE_ZERO_ADDRESS) return;
     revision = serviceUint(binding.revision, 64);
     const [consent, pause] = await Promise.all([
-      read({
+      readReward({
         chainId,
         address: module,
         abi: EntitlementABI as Abi,
         functionName: "consentRevision",
         args: [commitmentId, claimant],
       }),
-      read({ chainId, address: module, abi: EntitlementABI as Abi, functionName: "paused" }),
+      readReward({ chainId, address: module, abi: EntitlementABI as Abi, functionName: "paused" }),
     ]);
     agreed = serviceUint(consent, 64);
     paused = serviceFlag(pause);
@@ -78,6 +88,14 @@ export async function assertEarnedRewardAgreed(
     if (phase === "broadcast") throw error;
     return;
   }
-  if (paused) throw new Error("VoucherPaused");
-  if (agreed !== revision) throw new TakeUpAgreementRequired();
+  if (paused) {
+    const error = new Error("VoucherPaused");
+    throw phase === "broadcast" ? new EarnedRewardWaiting("reward-paused", error) : error;
+  }
+  if (agreed !== revision) {
+    const error = new TakeUpAgreementRequired();
+    throw phase === "broadcast"
+      ? new EarnedRewardWaiting("reward-agreement-required", error)
+      : error;
+  }
 }

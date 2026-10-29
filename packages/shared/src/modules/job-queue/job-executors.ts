@@ -4,6 +4,7 @@ import type { Job } from "../../types/job-queue";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { logger } from "../app/logger";
 import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
+import { EarnedRewardWaiting } from "../commitment-pooling/earned-agreement-error";
 import {
   type ClaimJobPayload,
   type CommitmentCreationPayload,
@@ -282,6 +283,8 @@ export async function executeCommitmentQueueJob(
   } catch (error) {
     const waiting = waitingForRecordedSend(error);
     if (waiting) return waiting;
+    if (error instanceof EarnedRewardWaiting && !hasRecordedSend(job))
+      return { status: "waiting", reason: error.reason };
     throw error;
   }
 

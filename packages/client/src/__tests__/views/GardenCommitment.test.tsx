@@ -1719,11 +1719,15 @@ describe("a voucher booking on the promise page", () => {
     return snapshot;
   }
 
-  function showEarnedClaimRequests(stewardsPoolGarden: boolean) {
+  function showEarnedClaimRequests(
+    stewardsPoolGarden: boolean,
+    earned: Partial<BookingSnapshot["acceptancePolicy"]["earned"]> = {}
+  ) {
     const snapshot = withReviewedReward(
       rewardStorySnapshot("agreementUnavailable", true),
       `0x${"c".repeat(64)}`
     );
+    Object.assign(snapshot.acceptancePolicy.earned, earned);
     const page = rewardStoryController("agreementUnavailable", true);
     page.detail!.commitment.claimMode = "APPROVAL_GATED";
     page.roles.stewardsPoolGarden = stewardsPoolGarden;
@@ -1750,6 +1754,23 @@ describe("a voucher booking on the promise page", () => {
     expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
     expect(mockActs.claimPersonal).not.toHaveBeenCalled();
     expect(mockActs.claim).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: "paused", earned: { modulePaused: true } },
+    { name: "unread pause", earned: { modulePaused: null } },
+    { name: "unread terms", earned: { terms: null } },
+  ])("keeps Decline but disables earned Accept for $name", async ({ earned }) => {
+    showEarnedClaimRequests(true, earned);
+    const decisions = within(screen.getByRole("region", { name: "Waiting on you" }));
+    const accept = decisions.getByRole("button", { name: /^Accept$/ });
+    expect(accept).toBeDisabled();
+    await userEvent.click(accept);
+    expect(mockActs.acceptClaim).not.toHaveBeenCalled();
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    await userEvent.type(decisions.getByLabelText("Why not, in a sentence or two"), "Try later");
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    expect(mockActs.declineClaim).toHaveBeenCalledWith(OTHER, "Try later");
   });
 
   it("keeps earned member retries behind consent and hides decisions from non-stewards", () => {
@@ -1808,12 +1829,58 @@ describe("a voucher booking on the promise page", () => {
     expect(mockServiceMutation).not.toHaveBeenCalled();
   });
 
-  it.each(["takeUp", "askToTakeUp"] as const)("agrees to the reward before %s", async (actKind) => {
+  it("keeps context-requiring queued reward consent unavailable", () => {
+    const snapshot = withReviewedReward(
+      rewardStorySnapshot("agreementUnavailable", true),
+      `0x${"c".repeat(64)}`
+    );
+    const page = rewardStoryController("agreementUnavailable", true);
+    page.claimNeedsContext = true;
+    page.actKind = null;
+    page.queue.pendingAct = {
+      jobId: "held-claim",
+      kind: "claim",
+      waitingReason: "reward-agreement-required",
+      discardable: true,
+      createdAt: 1,
+    };
+    show(snapshot, page);
+    expect(screen.queryByRole("button", { name: "Agree and Take It Up" })).not.toBeInTheDocument();
+    expect(mockServiceMutation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: "open take-up", actKind: "takeUp" as const, claimMode: "OPEN" as const, queued: false },
+    {
+      name: "reviewed take-up",
+      actKind: "askToTakeUp" as const,
+      claimMode: "APPROVAL_GATED" as const,
+      queued: false,
+    },
+    { name: "queued open claim", actKind: null, claimMode: "OPEN" as const, queued: true },
+    {
+      name: "queued reviewed claim",
+      actKind: null,
+      claimMode: "APPROVAL_GATED" as const,
+      queued: true,
+    },
+  ])("agrees to the reward before $name", async ({ actKind, claimMode, queued }) => {
     const TERMS = `0x${"c".repeat(64)}` as const;
     // A live open request whose reward its creator froze and this member can agree to.
     const snapshot = rewardStorySnapshot("agreementUnavailable", true);
     withReviewedReward(snapshot, TERMS);
     const page = rewardStoryController("agreementUnavailable", true);
+    page.detail!.commitment.claimMode = claimMode;
+    page.queue.hasPendingJob = queued;
+    page.queue.pendingAct = queued
+      ? {
+          jobId: "held-claim",
+          kind: "claim",
+          waitingReason: "reward-agreement-required",
+          discardable: true,
+          createdAt: 1,
+        }
+      : null;
     const claimPersonal = vi.fn(async () => "claim-job");
     show(snapshot, { ...page, actKind, acts: { ...page.acts, claimPersonal } });
     expect(screen.queryByRole("button", { name: "Ask for Help" })).not.toBeInTheDocument();
@@ -1822,7 +1889,7 @@ describe("a voucher booking on the promise page", () => {
     const sheet = await screen.findByRole("dialog", { name: "Agree to the Rewards" });
     expect(
       within(sheet).getByText(
-        actKind === "takeUp"
+        claimMode === "OPEN"
           ? "Agreeing records these exact rewards. Then you take the promise up, and it's yours right away."
           : /Agreeing records these exact rewards with your request\./
       )

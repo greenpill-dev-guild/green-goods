@@ -22,6 +22,12 @@ import {
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { createJobExecutorRegistry } from "../../modules/job-queue/executor-registry";
 import { executeCommitmentQueueJob } from "../../modules/job-queue/job-executors";
+import { createJobQueue } from "../../modules/job-queue/queue";
+import {
+  createFakeJobQueueClock,
+  createInMemoryJobQueueStore,
+  createJobQueueDependencies,
+} from "../test-utils/job-queue-fakes";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, sendCheckpointOf } from "../../modules/job-queue/queue-policy";
 import { intentHead } from "../../modules/job-queue/send-chain-reads";
@@ -1393,7 +1399,10 @@ describe("queued claim reward consent", () => {
     0, 1,
   ])("refuses an unconsented queued claim of kind %s before any send intent", async (kind) => {
     const f = rewarded(`queued-unconsented-${kind}`, kind);
-    await expect(f.run()).rejects.toThrow("VoucherConsentMissing");
+    await expect(f.run()).resolves.toMatchObject({
+      status: "waiting",
+      reason: "reward-agreement-required",
+    });
     expect(f.readContract).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -1427,13 +1436,15 @@ describe("queued claim reward consent", () => {
       f.broadcast();
       return { hash: HASH, sponsored: false };
     });
-    await expect(f.run()).rejects.toThrow(
-      change === "pause"
-        ? "VoucherPaused"
-        : change === "rpc"
-          ? "RPC unavailable"
-          : "VoucherConsentMissing"
-    );
+    await expect(f.run()).resolves.toMatchObject({
+      status: "waiting",
+      reason:
+        change === "pause"
+          ? "reward-paused"
+          : change === "rpc"
+            ? "reward-unreadable"
+            : "reward-agreement-required",
+    });
     expect(f.broadcast).not.toHaveBeenCalled();
     expect(hasRecordedSend(f.claim)).toBe(false);
     expect(f.deps.store.updateJob).not.toHaveBeenCalled();
@@ -1442,13 +1453,74 @@ describe("queued claim reward consent", () => {
   it("fails closed on an unread reward, and still permits unbound claims", async () => {
     const f = rewarded("queued-unread");
     f.state.unavailable = true;
-    await expect(f.run()).rejects.toThrow("RPC unavailable");
+    await expect(f.run()).resolves.toMatchObject({
+      status: "waiting",
+      reason: "reward-unreadable",
+    });
     expect(f.sender.sendContractCall).not.toHaveBeenCalled();
     expect(hasRecordedSend(f.claim)).toBe(false);
     f.state.unavailable = false;
     f.state.bound = false;
     await expect(f.run()).resolves.toMatchObject({ status: "complete" });
     expect(f.broadcast).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    "consent",
+    "pause",
+    "rpc",
+  ] as const)("preserves retries while %s blocks the claim, then completes the same job", async (blocked) => {
+    const f = rewarded(`queue-budget-${blocked}`);
+    f.state.consent = blocked === "consent" ? 0n : 2n;
+    f.state.paused = blocked === "pause";
+    f.state.unavailable = blocked === "rpc";
+    f.claim.chainId = 42161;
+    const persisted = createInMemoryJobQueueStore([f.claim]);
+    const clock = createFakeJobQueueClock();
+    const dependencies = createJobQueueDependencies({
+      store: persisted,
+      clock,
+      executors: {
+        execute: (id, queued, chain, sender) =>
+          executeCommitmentQueueJob(id, queued, chain, sender!, {
+            ...f.deps,
+            store: { ...f.deps.store, getJob: persisted.getJob, updateJob: persisted.updateJob },
+          }),
+      },
+    });
+    const queue = createJobQueue(dependencies);
+    for (let index = 0; index <= dependencies.config.maxRetries; index++) {
+      clock.advance(65_000);
+      await expect(
+        queue.processJob(f.claim.id, { transactionSender: f.sender })
+      ).resolves.toMatchObject({ success: false, skipped: true });
+    }
+    expect(await persisted.getJob(f.claim.id)).toMatchObject({
+      attempts: 0,
+      synced: false,
+      meta: { waitingForDependency: true },
+    });
+    expect(f.broadcast).not.toHaveBeenCalled();
+    f.state.consent = 2n;
+    f.state.paused = false;
+    f.state.unavailable = false;
+    clock.advance(65_000);
+    await expect(queue.processJob(f.claim.id, { transactionSender: f.sender })).resolves.toEqual({
+      success: true,
+      txHash: HASH,
+    });
+    expect(await persisted.getJob(f.claim.id)).toBeUndefined();
+    expect(f.broadcast).toHaveBeenCalledOnce();
+  });
+
+  it("does not turn malformed reward data or unrelated send failures into dependencies", async () => {
+    const malformed = rewarded("queue-malformed");
+    malformed.readContract.mockResolvedValueOnce({ module: "invalid" } as never);
+    await expect(malformed.run()).rejects.toThrow("Malformed service ABI tuple");
+    const refused = rewarded("queue-refused");
+    refused.state.consent = 2n;
+    refused.sender.sendContractCall.mockRejectedValueOnce(new Error("Unexpected sender failure"));
+    await expect(refused.run()).rejects.toThrow("Unexpected sender failure");
   });
 
   it("settles a recorded claim without requiring consent again or resending it", async () => {

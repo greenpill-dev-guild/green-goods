@@ -113,13 +113,12 @@ export function GardenCommitment() {
     return <CommitmentDetailState kind="error" onBack={back} />;
   }
 
-  // The page draws inside the service's render prop, so it keeps the narrowed read.
   const detail = controller.detail;
   const { commitment, contributors, requirements } = detail;
   const requiredWorkApproved =
     requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
   const genericAct = commitmentActForKind(controller.actKind);
-  const mode = takeUpMode(genericAct);
+  const mode = takeUpMode(genericAct, controller.queue.pendingAct, commitment.claimMode);
   const selectedAct = !ordinary && mode ? null : genericAct;
   // A request's voucher reward is agreed to first, from its own bar, which then takes it up. A
   // claim that must first name its garden (the protocol pool) isn't offered there yet.
@@ -345,6 +344,7 @@ export function GardenCommitment() {
         {ordinary || serviceAccess.data?.acceptancePolicy.kind === "earned" ? (
           <CommitmentClaims
             commitment={commitment}
+            acceptancePolicy={serviceAccess.data?.acceptancePolicy}
             viewer={controller.viewer}
             ownRequest={controller.ownRequest}
             pendingRequests={controller.pendingClaimRequests}

@@ -13,6 +13,8 @@ export interface ClaimDecisionPanelProps {
   /** Every request still waiting on a steward, newest first. */
   requests: CommitmentClaimRequestRecord[];
   isPending: boolean;
+  /** Earned acceptance needs a hydrated, unpaused reward; declining stays available. */
+  canAccept?: boolean;
   onAccept: (claimant: Address) => void;
   onDecline: (claimant: Address, reason: string) => void;
 }
@@ -29,6 +31,7 @@ export interface ClaimDecisionPanelProps {
 export function ClaimDecisionPanel({
   requests,
   isPending,
+  canAccept = true,
   onAccept,
   onDecline,
 }: ClaimDecisionPanelProps) {
@@ -114,6 +117,7 @@ export function ClaimDecisionPanel({
                   type="button"
                   size="sm"
                   loading={isPending}
+                  disabled={!canAccept}
                   onClick={() => onAccept(request.claimant)}
                 >
                   {formatMessage({ id: "app.claim.decide.accept" })}

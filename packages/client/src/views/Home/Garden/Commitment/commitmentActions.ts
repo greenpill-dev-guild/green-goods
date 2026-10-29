@@ -48,9 +48,17 @@ export function commitmentActForKind(kind: CommitmentActKind | null): Commitment
 }
 
 /** How a take-up goes: at once on an open request, or by asking its creator on a reviewed one. */
-export function takeUpMode(act: CommitmentAct | null): "open" | "reviewed" | null {
+export function takeUpMode(
+  act: CommitmentAct | null,
+  queued?: { kind: string; waitingReason: string | null } | null,
+  claimMode?: CommitmentReadModel["claimMode"]
+): "open" | "reviewed" | null {
   if (act?.kind === "takeUp") return "open";
-  return act?.kind === "askToTakeUp" ? "reviewed" : null;
+  if (act?.kind === "askToTakeUp") return "reviewed";
+  // The existing queued claim still needs its owner's agreement, rather than another take-up.
+  if (!act && queued?.kind === "claim" && queued.waitingReason === "reward-agreement-required")
+    return claimMode === "OPEN" ? "open" : claimMode === "APPROVAL_GATED" ? "reviewed" : null;
+  return null;
 }
 
 export function selectCommitmentAct(input: {

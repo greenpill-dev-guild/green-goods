@@ -196,6 +196,24 @@ describe("selectCommitmentAct", () => {
   });
 });
 
+describe("reward agreement for an existing queued claim", () => {
+  it("offers only agreement-blocked claims a recovery mode", () => {
+    for (const queued of [
+      { kind: "workLink", waitingReason: "reward-agreement-required" },
+      { kind: "claim", waitingReason: "awaiting-confirmation" },
+      { kind: "claim", waitingReason: "reward-paused" },
+    ])
+      expect(takeUpMode(null, queued, "OPEN")).toBeNull();
+    expect(
+      takeUpMode(
+        { kind: "askAgain", labelId: "" },
+        { kind: "claim", waitingReason: "reward-agreement-required" },
+        "OPEN"
+      )
+    ).toBeNull();
+  });
+});
+
 describe("garden work with evidence submitted", () => {
   it("keeps adding proof rather than offering a send the chain refuses", () => {
     // submitForConfirmation reverts WorkApprovalRequired for every

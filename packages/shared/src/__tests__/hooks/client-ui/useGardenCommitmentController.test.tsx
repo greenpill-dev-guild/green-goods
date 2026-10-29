@@ -78,6 +78,7 @@ const mocks = vi.hoisted(() => ({
     },
   },
   enqueue: vi.fn<Enqueue>(),
+  sendQueued: vi.fn().mockResolvedValue("queued"),
   jobsPending: false,
   queue: {
     pendingCommitmentIds: new Set<string>(),
@@ -192,6 +193,7 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentWorkDecisions", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
   useCommitmentJobs: () => ({
     enqueue: mocks.enqueue,
+    sendQueued: mocks.sendQueued,
     isPending: mocks.jobsPending,
     error: null,
     viewer: mocks.viewer,
@@ -405,6 +407,26 @@ describe("useGardenCommitmentController", () => {
       isUnavailable: true,
       refresh: mocks.queue.refresh,
     });
+  });
+
+  it("resumes the exact claim waiting for reward agreement without enqueueing another", async () => {
+    mocks.queue.pendingActs.set("1001", {
+      jobId: "held-claim",
+      kind: "claim",
+      waitingReason: "reward-agreement-required",
+    });
+    const { result } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    await act(async () => {
+      await expect(result.current.acts.claimPersonal()).resolves.toBe("held-claim");
+    });
+    expect(mocks.sendQueued).toHaveBeenCalledWith({ jobId: "held-claim", commitmentId: 1001n });
+    expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 
   it("maps queue and online acts to their authoritative arguments and returns their promises", async () => {

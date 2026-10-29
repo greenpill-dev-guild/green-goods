@@ -237,7 +237,15 @@ export function useGardenCommitmentController(input: {
           gardenAddress: context.garden,
         },
       }),
-    claimPersonal: () => {
+    claimPersonal: async () => {
+      const queued = queueState.pendingActs.get(queueKey);
+      if (queued?.kind === "claim" && queued.waitingReason === "reward-agreement-required") {
+        await jobs.sendQueued({
+          jobId: queued.jobId,
+          commitmentId: requireCommitment().commitmentId,
+        });
+        return queued.jobId;
+      }
       const garden = requireRouteGarden();
       return jobs.enqueue({
         act: "claim",
