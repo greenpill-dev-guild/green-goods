@@ -3,35 +3,36 @@
  *
  * A request whose reward is bound accepts a claimant only after that claimant agreed to the
  * exact reward revision (the core's `VoucherAcceptanceLib`), so the claim would only revert. The
- * promise's page asks for the agreement first (PRD-1322). A read that fails decides nothing here:
- * the claim's own pre-send check still stops it, with the same decoded reason.
+ * promise's page asks for the agreement first (PRD-1322). Admission reads are best effort so an
+ * offline claim can queue; broadcast requires a fresh, successful read before anything is sent.
  *
  * @module modules/commitment-pooling/earned-agreement
  */
 
-import type { Abi } from "viem";
 import AcceptanceABI from "@green-goods/contracts/abis/ICommitmentVoucherAcceptance.json";
 import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule.json";
+import type { Abi } from "viem";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { readSettlementFunction } from "./data-settlement-chain";
 import type { ServiceChainRead } from "./service-access-chain";
 import {
+  SERVICE_ZERO_ADDRESS,
   serviceAddress,
   serviceFlag,
   serviceTuple,
   serviceUint,
-  SERVICE_ZERO_ADDRESS,
 } from "./service-access-chain-values";
 import { TakeUpAgreementRequired } from "./take-up";
 
 export async function assertEarnedRewardAgreed(
   input: { chainId: number; core: Address; commitmentId: bigint; claimant: Address },
-  read: ServiceChainRead = readSettlementFunction as ServiceChainRead
+  read: ServiceChainRead = readSettlementFunction as ServiceChainRead,
+  phase: "admission" | "broadcast" = "admission"
 ): Promise<void> {
   const { chainId, core, commitmentId, claimant } = input;
-  // Offline, the take-up queues as it always has; the send-time check stops it if it must.
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  if (phase === "admission" && typeof navigator !== "undefined" && navigator.onLine === false)
+    return;
   let module: Address;
   let revision: bigint;
   let agreed: bigint;
@@ -74,6 +75,7 @@ export async function assertEarnedRewardAgreed(
       error,
       commitmentId: commitmentId.toString(),
     });
+    if (phase === "broadcast") throw error;
     return;
   }
   if (paused) throw new Error("VoucherPaused");

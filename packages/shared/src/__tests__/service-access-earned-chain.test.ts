@@ -1,14 +1,14 @@
 import CoreABI from "@green-goods/contracts/abis/ICommitmentPoolingModule.json";
-import { readServiceAccess } from "../modules/commitment-pooling/service-access-chain";
-import type { NetworkContracts } from "../types/contracts";
-import { describe, expect, it, vi } from "vitest";
-import { decodeFunctionResult, encodeFunctionResult, type Abi, type AbiParameter } from "viem";
 import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule.json";
-import { readEarnedAcceptance } from "../modules/commitment-pooling/service-access-earned-chain";
+import { type Abi, type AbiParameter, decodeFunctionResult, encodeFunctionResult } from "viem";
+import { describe, expect, it, vi } from "vitest";
+import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
 import { assertEarnedRewardAgreed } from "../modules/commitment-pooling/earned-agreement";
 import type { ServiceChainRead } from "../modules/commitment-pooling/service-access-chain";
+import { readServiceAccess } from "../modules/commitment-pooling/service-access-chain";
+import { readEarnedAcceptance } from "../modules/commitment-pooling/service-access-earned-chain";
+import type { NetworkContracts } from "../types/contracts";
 import { parseContractError } from "../utils/errors/contract-errors";
-import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
 
 const key = {
   sourceChainId: 42161,
@@ -292,6 +292,24 @@ describe("a take-up of a request with a voucher reward", () => {
       throw new Error("RPC unavailable");
     };
     await expect(assertEarnedRewardAgreed(input, unread)).resolves.toBeUndefined();
+    await expect(assertEarnedRewardAgreed(input, unread, "broadcast")).rejects.toThrow(
+      "RPC unavailable"
+    );
+  });
+
+  it("admits offline claims without a read but never skips broadcast validation", async () => {
+    const read = vi.fn(chain(MODULE));
+    vi.stubGlobal("navigator", { onLine: false });
+    try {
+      await expect(assertEarnedRewardAgreed(input, read)).resolves.toBeUndefined();
+      expect(read).not.toHaveBeenCalled();
+      await expect(assertEarnedRewardAgreed(input, read, "broadcast")).rejects.toThrow(
+        "VoucherConsentMissing"
+      );
+      expect(read).toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it.each([

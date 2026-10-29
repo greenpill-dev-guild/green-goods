@@ -23,7 +23,7 @@ import {
   sendWithCheckpoint,
   settleRecordedSend,
 } from "../work/send-with-checkpoint";
-import { settleStrandedCommitmentIntent, StrandedSendReopened } from "../work/stranded-intent";
+import { StrandedSendReopened, settleStrandedCommitmentIntent } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
   forgetWorkBroadcast,
@@ -73,8 +73,8 @@ export async function sendRecordedAct(
   call: ContractCall,
   sender: TransactionSender,
   store: CommitmentExecutorStore,
-  /** Where the send reads the chain's head, and one read before the send to keep when it cannot. */
-  chain?: Pick<CheckpointedSend, "readChainHead" | "headBeforeSend">
+  /** Fresh action checks and the chain head to keep with the send intent. */
+  chain?: Pick<CheckpointedSend, "readChainHead" | "headBeforeSend" | "beforeBroadcast">
 ): Promise<Hex> {
   const result = await holdingSend(jobId, () =>
     sendWithCheckpoint({
