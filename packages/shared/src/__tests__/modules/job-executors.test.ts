@@ -1376,10 +1376,14 @@ describe("queued claim reward consent", () => {
       config: {} as Config,
       readContract: readContract as never,
     });
+    const rewardReads: CommitmentChainReads = {
+      ...reads(),
+      assertClaimRewardAgreed: canonical.assertClaimRewardAgreed,
+    };
     const deps = {
       demoActive: () => false,
       store: store(),
-      reads: { ...reads(), assertClaimRewardAgreed: canonical.assertClaimRewardAgreed },
+      reads: rewardReads,
     };
     const broadcast = vi.fn();
     const sender = createMockTransactionSender({
@@ -1521,6 +1525,51 @@ describe("queued claim reward consent", () => {
     refused.state.consent = 2n;
     refused.sender.sendContractCall.mockRejectedValueOnce(new Error("Unexpected sender failure"));
     await expect(refused.run()).rejects.toThrow("Unexpected sender failure");
+  });
+
+  it.each([
+    "consent",
+    "pause",
+    "rpc",
+  ] as const)("waits when %s changes during simulation, without recording a send", async (change) => {
+    const f = rewarded(`queued-simulation-${change}`);
+    f.state.consent = 2n;
+    const refused = new Error("Simulation refused");
+    const simulateSend = vi.fn<() => Promise<void>>(async () => {
+      if (change === "consent") f.state.consent = 0n;
+      else if (change === "pause") f.state.paused = true;
+      else f.state.unavailable = true;
+      throw refused;
+    });
+    f.deps.reads = { ...f.deps.reads, simulateSend };
+    await expect(f.run()).resolves.toMatchObject({
+      status: "waiting",
+      reason:
+        change === "consent"
+          ? "reward-agreement-required"
+          : change === "pause"
+            ? "reward-paused"
+            : "reward-unreadable",
+    });
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(hasRecordedSend(f.claim)).toBe(false);
+    expect(f.deps.store.updateJob).not.toHaveBeenCalled();
+    f.state.consent = 2n;
+    f.state.paused = false;
+    f.state.unavailable = false;
+    simulateSend.mockResolvedValueOnce(undefined);
+    await expect(f.run()).resolves.toMatchObject({ status: "complete", txHash: HASH });
+    expect(f.broadcast).toHaveBeenCalledOnce();
+  });
+
+  it("propagates an unrelated simulation refusal when the reward still permits the claim", async () => {
+    const f = rewarded("queued-unrelated-simulation");
+    f.state.consent = 2n;
+    const refused = new Error("Unrelated simulation refusal");
+    f.deps.reads = { ...f.deps.reads, simulateSend: vi.fn().mockRejectedValue(refused) };
+    await expect(f.run()).rejects.toBe(refused);
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(hasRecordedSend(f.claim)).toBe(false);
   });
 
   it("settles a recorded claim without requiring consent again or resending it", async () => {

@@ -252,13 +252,19 @@ export async function executeCommitmentQueueJob(
         if (!recordsSends(job.kind)) return (await sender.sendContractCall(call)).hash;
         // A wallet estimates inside its own send, after the intent is recorded;
         // asking the chain first keeps a refusal a refusal.
-        await chainReads.simulateSend?.({
-          address: target,
-          functionName: built.functionName,
-          args: built.args,
-          account: job.userAddress as Address,
-          chainId: targetChain,
-        });
+        try {
+          await chainReads.simulateSend?.({
+            address: target,
+            functionName: built.functionName,
+            args: built.args,
+            account: job.userAddress as Address,
+            chainId: targetChain,
+          });
+        } catch (simulationError) {
+          // Reward state may have changed since preflight. Only that dependency waits.
+          await beforeBroadcast?.();
+          throw simulationError;
+        }
         // Read after the simulation, and again just before the intent, after any
         // prompt: nothing this send does can land in that block or before, so an
         // earlier ask never passes for this one. The first read must succeed; a

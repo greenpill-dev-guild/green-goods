@@ -243,6 +243,7 @@ export function useGardenCommitmentController(input: {
         await jobs.sendQueued({
           jobId: queued.jobId,
           commitmentId: requireCommitment().commitmentId,
+          keepDeclined: true,
         });
         return queued.jobId;
       }

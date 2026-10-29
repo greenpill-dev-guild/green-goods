@@ -287,6 +287,21 @@ describe("useCommitmentJobs", () => {
       expect(mocks.discardJob).toHaveBeenCalledWith("job-1");
     });
 
+    it("keeps an existing claim when its resumed signature is declined", async () => {
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockResolvedValue({ success: false, error: "User rejected the request" });
+      await expect(
+        jobs().current.sendQueued({ jobId: "held-claim", commitmentId: 9n, keepDeclined: true })
+      ).resolves.toBe("queued");
+      expect(mocks.discardJob).not.toHaveBeenCalled();
+      expect(mocks.addJob).not.toHaveBeenCalled();
+      mocks.processJob.mockResolvedValue({ success: true, txHash: "0xabc" });
+      await expect(
+        jobs().current.sendQueued({ jobId: "held-claim", commitmentId: 9n, keepDeclined: true })
+      ).resolves.toBe("landed");
+      expect(mocks.processJob.mock.calls.map(([id]) => id)).toEqual(["held-claim", "held-claim"]);
+    });
+
     it.each([
       ["a sign-in the wallet never asks", { authMode: "passkey" }, null],
       ["a send that has to wait", { authMode: "wallet" }, { success: false, skipped: true }],

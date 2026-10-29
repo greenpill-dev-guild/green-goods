@@ -408,10 +408,19 @@ export function useCommitmentJobs(
    * Send an act already in the queue as the person's own tap: Add and Send's
    * second act once its proof has landed. A wallet reader is asked now; anyone
    * else's goes with the background flush. Resolves whether it landed here or
-   * was left queued; rejects when it failed or was declined (and dropped).
+   * was left queued; rejects on failure. A resumed claim keeps its only durable
+   * copy on a declined signature with `keepDeclined`; other declines are dropped.
    */
   const sendQueued = useCallback(
-    async ({ jobId, commitmentId }: { jobId: string; commitmentId: bigint }) => {
+    async ({
+      jobId,
+      commitmentId,
+      keepDeclined = false,
+    }: {
+      jobId: string;
+      commitmentId: bigint;
+      keepDeclined?: boolean;
+    }) => {
       let outcome: "landed" | "queued" = "queued";
       await sendFromTap(
         jobId,
@@ -419,7 +428,7 @@ export function useCommitmentJobs(
         (event) => {
           if (event.stage === "landed") outcome = "landed";
         },
-        { foreground }
+        { foreground, keepDeclined }
       );
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       await queryClient.invalidateQueries({

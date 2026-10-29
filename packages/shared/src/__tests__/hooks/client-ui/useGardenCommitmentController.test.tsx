@@ -425,7 +425,11 @@ describe("useGardenCommitmentController", () => {
     await act(async () => {
       await expect(result.current.acts.claimPersonal()).resolves.toBe("held-claim");
     });
-    expect(mocks.sendQueued).toHaveBeenCalledWith({ jobId: "held-claim", commitmentId: 1001n });
+    expect(mocks.sendQueued).toHaveBeenCalledWith({
+      jobId: "held-claim",
+      commitmentId: 1001n,
+      keepDeclined: true,
+    });
     expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 
