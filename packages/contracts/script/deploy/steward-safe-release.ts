@@ -13,10 +13,11 @@ import {
   inspectStewardArtifacts,
   inspectStewardManifest,
   loadStewardArtifacts,
-  STEWARD_CONTRACTS,
+  stewardContracts,
   validateStewardPlan,
 } from "../utils/steward-safe-release";
 import { simulateStewardNetwork } from "../utils/steward-safe-simulation";
+import { voucherDigest } from "../utils/voucher-release";
 
 async function main() {
   const { values } = parseArgs({
@@ -47,7 +48,14 @@ async function main() {
   execFileSync("bun", ["run", "check:foundry-version"], { cwd: CONTRACTS_ROOT, stdio: "pipe" });
   execFileSync(
     "bun",
-    ["run", "build", "--mode", "target", "--", ...STEWARD_CONTRACTS.map((n) => `src/accounts/${n}.sol`)],
+    [
+      "run",
+      "build",
+      "--mode",
+      "target",
+      "--",
+      ...stewardContracts(inspected.manifest).map((n) => `src/accounts/${n}.sol`),
+    ],
     {
       cwd: CONTRACTS_ROOT,
       env: { ...process.env, FOUNDRY_PROFILE: "production" },
@@ -55,8 +63,8 @@ async function main() {
       maxBuffer: 16 * 1024 * 1024,
     },
   );
-  const artifacts = loadStewardArtifacts(getFoundryOutDir("production")),
-    artifactHashes = inspectStewardArtifacts(artifacts);
+  const artifacts = loadStewardArtifacts(getFoundryOutDir("production"), inspected.manifest.schemaVersion === 2),
+    artifactHashes = inspectStewardArtifacts(artifacts, inspected.manifest.schemaVersion === 2);
   if (values.preflight) {
     console.log(
       JSON.stringify(
@@ -116,6 +124,7 @@ async function main() {
   writeReleaseJsonAtomic(output, {
     sourceCommit: commit,
     releaseId: input.releaseId,
+    planHash: voucherDigest(input),
     rows,
     liveBroadcast: false,
     activationIncluded: Boolean(inspected.manifest.bootstrapSigner),

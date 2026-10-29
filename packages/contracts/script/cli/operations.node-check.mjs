@@ -289,6 +289,19 @@ test('steward Safe release prepares roster-driven custody without a broadcast pa
   }
 });
 
+test('dual steward execution separates bounded deployment from activation drafts', () => {
+  const base = 'release steward-safe-execution --manifest config/family.json --plan .generated/steward-safe/plan.json --rehearsal .generated/steward-safe/simulation.json';
+  const send = resolve(`${base} --mode broadcast --envelope .generated/steward-safe/execution.json`);
+  assert.ok(send.capabilities.includes('authorized signer'));
+  assert.ok(send.args.includes('--mode'));
+  for (const mode of ['activation', 'verify']) {
+    assert.ok(!resolve(`${base} --mode ${mode} --output .generated/steward-safe/result.json`).capabilities.includes('authorized signer'));
+  }
+  for (const suffix of ['--mode broadcast', '--mode broadcast --envelope e.json --receipt 0x123',
+    '--mode prepare --target-chain celo', '--mode activation --output o.json --private-key secret',
+    '--mode activation --output o.json --rpc-url https://rpc.invalid']) assert.throws(() => resolve(`${base} ${suffix}`));
+});
+
 test('CLC and source upgrade preparation expose only their owned fork modes', () => {
   for (const [command, handler, rpc] of [
     ['clc', 'clc-release.ts', 'Gnosis RPC'],

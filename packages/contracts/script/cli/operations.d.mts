@@ -12,3 +12,4 @@ export function resolveMintingTransaction(network: string, gardenToken: string, 
 export function explainOperation(resolution: Resolution): Record<string, unknown>;
 export function renderHelp(topic?: string): string;
 export function validateSourceUpgradeMode(values: Record<string, string | boolean | undefined>): void;
+export function validateStewardExecutionMode(values: Record<string, string | boolean | undefined>): void;

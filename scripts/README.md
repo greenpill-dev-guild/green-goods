@@ -96,18 +96,47 @@ perform no live broadcasts, Safe creation, issuer approvals or activation, and d
 canonical deployment or dependent app/indexer configuration. The full live pilot also needs the
 published CLC pool preparation and separate activation operations described below.
 
-The Tech and Sun steward Safe preparation path is
+The steward Safe preparation path is
 `bun run contracts -- release steward-safe --mode preflight`, handled by
 `packages/contracts/script/deploy/steward-safe-release.ts`. Its public draft is
 `packages/contracts/config/steward-safe-release.json`. Preflight reports missing inputs without RPC.
 With committed sources and complete inputs, `--mode plan` binds two CREATE deployments and separate
 HatsModule-owner observer-registration calldata; `--mode simulate --plan
 .generated/steward-safe/<release-id>.plan.json` rehearses deployments on owned Arbitrum/Gnosis forks.
-The Gnosis receiver creates a new Tech and Sun Safe with locked Hats Signer Gate v2, a dedicated
-receiver-controlled signer Hat and two required valid steward signatures. It leaves the existing
-Green Goods pool/reserve Safe unchanged. No live broadcast, observer registration, Hat delivery or
-activation occurs in these modes. Upgrade the source HatsModule through the existing reviewed
-`upgrade hats-module` operation before separately registering its observer.
+Version 1 retains the existing source publisher and Gnosis Safe. Version 2 also creates a native
+Arbitrum Safe through `StewardSafePublisher`; its source root and salt are pinned in `sourceSafe`.
+Both Safes use a locked Hats Signer Gate v2 and a dedicated endpoint-owned signer Hat. The threshold
+is one signature with one reconciled steward, two with two or more. With zero valid stewards,
+spending is blocked. Version 2 forbids a bootstrap signer. The family draft is
+`config/aiyeloja-steward-safe-release.json`; it retains the existing Green Goods pool/reserve Safe.
+These preparation modes do not broadcast, register an observer, deliver Hats or activate authority.
+The source HatsModule must already support its observer hook before registration.
+
+Dual-Safe execution uses `bun run contracts -- release steward-safe-execution`, handled by
+`packages/contracts/script/deploy/steward-safe-execution.ts`. Every mode requires `--manifest`,
+`--plan` and `--rehearsal` from the same committed source revision. Generated JSON belongs in
+`.generated/steward-safe/`; no secrets or private roster evidence belongs in Git.
+
+| Mode | Additional inputs and result |
+|---|---|
+| `prepare` | `--target-chain arbitrum\|gnosis --max-fee-wei N --max-cost-wei N --output <execution.json>`; estimates the exact CREATE and writes a one-hour gas/fee envelope |
+| `broadcast` | `--envelope <execution.json>`; sends one zero-value CREATE through the fixed deployer keystore after live nonce, constructor, balance and budget checks |
+| `adopt` | `--envelope <execution.json> --receipt <hash>`; verifies the canonical transaction and exact rehearsed runtime, guard, modules, locked gate, threshold and roster at the receipt block |
+| `activation` | `--output <activation.json>` and optional `--roster <roster.json>`; verifies source authority and exports observer registration plus initial refresh calldata without sending |
+| `verify` | `--output <readback.json>` and optional `--roster <roster.json>`; checks current owners, valid signatures, thresholds, source/dispatched/destination revisions and fuel; exits nonzero while coordination is pending |
+
+The private roster format is `{ "garden": "0x…", "stewardHat": "…", "accounts": ["0x…"] }`.
+It refines readiness checks; canonical HatsModule authority still decides membership. Neither a
+manifest roster nor a fork proves control of a signer account on either chain.
+An exclusive journal is persisted before each send. If submission is ambiguous or its receipt is
+pending, retain the envelope and use `adopt`; never delete the journal to retry. Expired envelopes
+can still adopt their exact receipts. A changed nonce or next Hats root requires a refreshed,
+committed manifest and new rehearsal. Deployment and coordination proof do not grant issuer,
+earned-reward, reserve or booking authority; those remain separately reviewed activation calls.
+Before either CREATE, execution rechecks both chains: an absent peer must retain its nonce, next
+Hats root and successful constructor estimate; an existing peer must match the exact rehearsal.
+Reserve both deployer nonces until the pair is verified. If one peer is already deployed, its
+immutable address binding must be preserved; do not rewrite half of a deployed plan.
 
 Role hooks refresh canonical changes and automatically dispatch when the publisher has enough native
 transport fuel. Fund that Arbitrum address only for CCIP fees; it has no withdrawal or arbitrary
@@ -116,9 +145,11 @@ retry with `syncSteward(account)`, or pay exactly `quoteSteward(account)` to
 `dispatchSteward(account)`. Initial existing stewards need one refresh after observer registration.
 The receiver reconciles owners after authenticated CCIP delivery; failed cleanup can be retried
 with `reconcile(account)`.
-Revocation takes effect on Gnosis when delivered; source changes outside HatsModule hooks require
-refreshing the affected account. Below two owners, Safe's displayed threshold can be one while HSG
-still blocks spending. Activate only after two confirmed steward accounts are valid on Gnosis.
+The native publisher also reconciles its Safe during the same source hook. Native signatures read
+current canonical authority and explicitly deny a revoked, remapped or unavailable role even if
+cleanup fails; `reconcileSource(account)` retries cleanup. Gnosis revocation takes effect when
+delivered. Source changes outside HatsModule hooks require refreshing the affected account.
+Before granting value authority, verify the complete roster and two usable signers on both chains.
 
 Published CLC preparation is `bun run contracts -- release clc --mode preflight`, handled by
 `packages/contracts/script/deploy/clc-release.ts` with `config/clc-pilot-release.json`.
