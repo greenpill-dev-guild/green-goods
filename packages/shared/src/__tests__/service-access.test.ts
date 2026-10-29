@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { createServiceRehearsalAdapter } from "../modules/commitment-pooling/demo/demo-service-access";
 import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
 import {
   selectServiceAccessAction,
   serviceAccessAvailableActions,
 } from "../modules/commitment-pooling/service-access";
-import { createServiceRehearsalAdapter } from "../modules/commitment-pooling/demo/demo-service-access";
 import type {
   ServiceAccessKey,
   ServiceAccessSnapshot,
@@ -181,6 +181,38 @@ describe("a member's agreement to a request's voucher reward", () => {
     s.acceptancePolicy.earned.modulePaused = true;
     expect(serviceAccessAvailableActions(s)).not.toContain("requestClaim");
     expect(serviceAccessAvailableActions(s)).not.toContain("consentEarnedTerms");
+  });
+
+  it("withholds booking reward consent until a buyer garden is eligible", () => {
+    const s = rewardedRequest();
+    s.knownService = true;
+    s.mode = s.offer!.route;
+    s.coreState = "OFFERED";
+    s.consent = null;
+    s.nextRequestNonce = 1n;
+    s.complete = true;
+    const eligible = s.eligibleBuyerGardens;
+    s.eligibleBuyerGardens = [];
+    expect(serviceAccessAvailableActions(s)).not.toContain("consentEarnedTerms");
+    expect(
+      selectServiceAccessAction(s, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: HASH,
+      })
+    ).toEqual({ allowed: false, reason: "action-unavailable" });
+    s.acceptancePolicy.earned.viewerConsentRevision = 1n;
+    expect(serviceAccessAvailableActions(s)).not.toContain("requestClaim");
+    s.eligibleBuyerGardens = eligible;
+    expect(serviceAccessAvailableActions(s)).toContain("requestClaim");
+    s.acceptancePolicy.earned.viewerConsentRevision = 0n;
+    expect(serviceAccessAvailableActions(s)).toContain("consentEarnedTerms");
+  });
+
+  it("keeps a garden-pool request's own reward consent independent of service buyer gardens", () => {
+    const s = rewardedRequest();
+    s.eligibleBuyerGardens = [];
+    expect(serviceAccessAvailableActions(s)).toContain("consentEarnedTerms");
   });
 
   it.each([

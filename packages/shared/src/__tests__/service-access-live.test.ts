@@ -1017,4 +1017,37 @@ describe("a member's agreement to a request's voucher reward", () => {
     expect(after.availableActions).toContain("requestClaim");
     expect(after.availableActions).not.toContain("consentEarnedTerms");
   });
+
+  it.each([
+    false,
+    true,
+  ])("requires current buyer membership before booking reward consent (previously eligible: %s)", async (wasEligible) => {
+    const { f, request, adapter } = rewarded();
+    Object.assign(request, {
+      mode: "voucher",
+      knownService: true,
+      coreState: "OFFERED",
+      consent: null,
+      currentVoucherSetupId: null,
+      nextRequestNonce: 1n,
+    });
+    let eligible = wasEligible;
+    f.dependencies.membership = async () => eligible;
+    const live = adapter();
+    if (wasEligible)
+      expect((await live.read(key)).availableActions).toContain("consentEarnedTerms");
+    eligible = false;
+    const current = await live.read(key);
+    expect(current.eligibleBuyerGardens).toEqual([]);
+    expect(current.availableActions).not.toContain("consentEarnedTerms");
+    await expect(
+      live.execute(key, {
+        action: "consentEarnedTerms",
+        expectedRevision: 1n,
+        expectedTermsHash: H,
+      })
+    ).rejects.toThrow("action-unavailable");
+    expect(f.broadcast).not.toHaveBeenCalled();
+    expect(f.storage.size).toBe(0);
+  });
 });

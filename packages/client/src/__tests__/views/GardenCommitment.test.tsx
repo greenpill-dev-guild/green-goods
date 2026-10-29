@@ -681,9 +681,11 @@ describe("GardenCommitment", () => {
     // A protocol commitment is read from the reader's own garden, and the new one
     // has to be composed into the protocol pool, not into the garden it was opened from.
     const PROTOCOL_GARDEN = "0x9999999999999999999999999999999999999999";
+    const claimPersonal = vi.fn();
     mockUseController.mockReturnValue(
       controller({
         actKind: "askAgain",
+        acts: { ...controller().acts, claimPersonal },
         pool: poolFixture({ poolId: 1n, poolType: "PROTOCOL", garden: PROTOCOL_GARDEN }),
       })
     );
@@ -694,6 +696,7 @@ describe("GardenCommitment", () => {
     expect(screen.getByTestId("composer-route")).toHaveTextContent(
       `/home/${PROTOCOL_GARDEN}/commitments/new?direction=request&from=9`
     );
+    expect(claimPersonal).not.toHaveBeenCalled();
   });
 
   it("renders the team and delegates joining to the controller", async () => {
@@ -1763,21 +1766,23 @@ describe("a voucher booking on the promise page", () => {
     expect(mockServiceMutation).not.toHaveBeenCalled();
   });
 
-  it("agrees to the reward from its own bar, then takes the request up", async () => {
+  it.each(["takeUp", "askToTakeUp"] as const)("agrees to the reward before %s", async (actKind) => {
     const TERMS = `0x${"c".repeat(64)}` as const;
     // A live open request whose reward its creator froze and this member can agree to.
     const snapshot = rewardStorySnapshot("agreementUnavailable", true);
     withReviewedReward(snapshot, TERMS);
     const page = rewardStoryController("agreementUnavailable", true);
     const claimPersonal = vi.fn(async () => "claim-job");
-    show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });
+    show(snapshot, { ...page, actKind, acts: { ...page.acts, claimPersonal } });
     expect(screen.queryByRole("button", { name: "Ask for Help" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Agree and Take It Up" }));
     const sheet = await screen.findByRole("dialog", { name: "Agree to the Rewards" });
     expect(
       within(sheet).getByText(
-        "Agreeing records these exact rewards. Then you take the promise up, and it's yours right away."
+        actKind === "takeUp"
+          ? "Agreeing records these exact rewards. Then you take the promise up, and it's yours right away."
+          : /Agreeing records these exact rewards with your request\./
       )
     ).toBeInTheDocument();
     // Once the agreement lands, the read no longer offers it.

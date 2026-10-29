@@ -6,12 +6,12 @@
  * the wrong person. Both shipped before, and neither typechecked its way out.
  */
 
-import { describe, expect, it } from "vitest";
-
 import { canLinkWork } from "@green-goods/shared/commitment-pooling";
+import { describe, expect, it } from "vitest";
 import {
   canJoinTeam,
   selectCommitmentAct,
+  takeUpMode,
 } from "../../views/Home/Garden/Commitment/commitmentActions";
 import { selectStatusBand } from "../../views/Home/Garden/Commitment/statusBand";
 
@@ -170,6 +170,29 @@ describe("selectCommitmentAct", () => {
     expect(
       selectCommitmentAct({ commitment: base, seat: "provider", hasPendingJob: true })
     ).toBeNull();
+  });
+
+  it("keeps creator request recreation separate from a member's reviewed take-up", () => {
+    const recreate = selectCommitmentAct({
+      commitment: { ...base, derivedState: "EXPIRED", direction: "REQUEST" },
+      seat: "confirmer",
+      isCreator: true,
+    });
+    expect(recreate?.kind).toBe("askAgain");
+    expect(takeUpMode(recreate)).toBeNull();
+    const memberRequest = selectCommitmentAct({
+      commitment: {
+        ...base,
+        derivedState: "REQUESTED",
+        direction: "REQUEST",
+        claimMode: "APPROVAL_GATED",
+      },
+      seat: "bystander",
+      isMember: true,
+      clock: { now: 1_800_000_000n, cycleEndTimes: new Map() },
+    });
+    expect(memberRequest?.kind).toBe("askToTakeUp");
+    expect(takeUpMode(memberRequest)).toBe("reviewed");
   });
 });
 

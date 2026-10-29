@@ -66,6 +66,7 @@ function earnedConsentOffered(snapshot: ServiceAccessSnapshot): boolean {
     snapshot.pause.core === false &&
     snapshot.capabilities.canSignSource &&
     equal(snapshot.key.buyer, snapshot.capabilities.sourceBuyer) &&
+    (!snapshot.knownService || snapshot.eligibleBuyerGardens.length > 0) &&
     earned.creator !== null &&
     !equal(earned.creator, snapshot.key.buyer) &&
     earned.viewerConsentRevision !== earned.revision
@@ -104,6 +105,7 @@ export function serviceAccessAvailableActions(
   if (snapshot.coreState === "OFFERED" && sourceSigner) {
     if (
       snapshot.pause.core === false &&
+      snapshot.eligibleBuyerGardens.length > 0 &&
       snapshot.nextRequestNonce > 0n &&
       snapshot.nextRequestNonce <= MAX_NONCE &&
       (snapshot.acceptancePolicy.earned.status !== "bound" ||

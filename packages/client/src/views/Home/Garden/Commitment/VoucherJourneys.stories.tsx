@@ -4,6 +4,7 @@ import {
   type ServiceAccessAction,
   type ServiceAccessSnapshot,
   selectServiceAccessAction,
+  serviceAccessAvailableActions,
   useServiceAccess,
   useServiceAccessMutation,
 } from "@green-goods/shared/commitment-pooling";
@@ -535,6 +536,21 @@ const AGREED_REWARD_BOOKING: JourneyStep[] = [
   },
 ];
 
+const INELIGIBLE_REWARD_BOOKING: JourneyStep[] = AGREED_REWARD_BOOKING.map((step) => ({
+  ...step,
+  caption: "Lina has no eligible buyer garden. Agreeing to a reward cannot yet lead to a booking.",
+  booking: {
+    ...step.booking!,
+    tweak: (snapshot) => {
+      const reward = step.booking!.tweak!(snapshot);
+      reward.eligibleBuyerGardens = [];
+      reward.acceptancePolicy.earned.viewerConsentRevision = 0n;
+      reward.availableActions = serviceAccessAvailableActions(reward);
+      return reward;
+    },
+  },
+}));
+
 const JOURNEYS = {
   hubDay: HUB_DAY,
   exchange: EXCHANGE_THEN_REDEEM,
@@ -543,6 +559,7 @@ const JOURNEYS = {
   earnVouchersOnly: EARN_VOUCHERS_ONLY,
   recovery: RECOVERY,
   agreedRewardBooking: AGREED_REWARD_BOOKING,
+  ineligibleRewardBooking: INELIGIBLE_REWARD_BOOKING,
 } as const;
 type JourneyId = keyof typeof JOURNEYS;
 
@@ -779,6 +796,22 @@ export const AgreedRewardKeepsBooking: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: "Review and Redeem" }));
     await expect(await page.findByRole("dialog", { name: "Review and Redeem" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Agree to These Terms" })).toBeVisible();
+  },
+};
+
+/** No paid reward agreement is offered without a buyer garden eligible for the booking. */
+export const RewardWaitsForBuyerEligibility: Story = {
+  tags: ["storybook-ci"],
+  args: { journey: "ineligibleRewardBooking" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("region", { name: "Rewards" })).toBeVisible();
+    await expect(
+      canvas.queryByRole("button", { name: "Agree to the Rewards" })
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByRole("button", { name: "Agree and Take It Up" })
+    ).not.toBeInTheDocument();
   },
 };
 
