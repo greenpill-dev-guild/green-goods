@@ -25,6 +25,8 @@ export interface ContractCall {
   /** Authoritative execution chain; omitted calls use the primary application account. */
   chainId?: number;
   value?: bigint;
+  /** Extra execution gas for best-effort callbacks that successful RPC estimates can omit. */
+  gasBuffer?: bigint;
 }
 
 export type BroadcastReference =

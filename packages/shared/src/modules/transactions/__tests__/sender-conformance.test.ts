@@ -25,6 +25,7 @@ const NON_CANONICAL_HASH = `0x${"c".repeat(130)}` as Hex;
 
 type SenderScenario = {
   hashes?: Hex[];
+  estimateFailure?: Error;
   receiptStatus?: string;
   transportFailure?: Error;
   /** The account the wallet holds now, for senders that read it from wagmi. Named `undefined`, nobody is connected. */
@@ -38,6 +39,7 @@ type ForwardedCall = {
   chainId?: number;
   clientChainId?: number;
   value?: bigint;
+  gas?: bigint;
 };
 
 type SenderHarness = {
@@ -108,7 +110,12 @@ const cases: SenderCase[] = [
       });
       deps.writeContractAsync.mockImplementation(async (call) => {
         trace.push("send");
-        forwarded.push({ account: call.account, chainId: call.chainId, value: call.value });
+        forwarded.push({
+          account: call.account,
+          chainId: call.chainId,
+          value: call.value,
+          gas: call.gas,
+        });
         if (scenario.transportFailure) throw scenario.transportFailure;
         return hashes() as `0x${string}`;
       });
@@ -118,7 +125,14 @@ const cases: SenderCase[] = [
         return { status: scenario.receiptStatus ?? "success" };
       });
       return {
-        sender: new WalletSender(deps.config, deps.writeContractAsync, undefined, deps),
+        sender: new WalletSender(deps.config, deps.writeContractAsync, undefined, {
+          ...deps,
+          estimateCallGas: async () => {
+            trace.push("estimate");
+            if (scenario.estimateFailure) throw scenario.estimateFailure;
+            return 270_000n;
+          },
+        }),
         trace,
         forwarded,
         guardedChains,
@@ -145,6 +159,15 @@ const cases: SenderCase[] = [
       const forwarded: ForwardedCall[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const client = createFakeSmartAccountClient();
+      client.estimateUserOperationGas = vi.fn(async () => {
+        trace.push("estimate");
+        if (scenario.estimateFailure) throw scenario.estimateFailure;
+        return {
+          callGasLimit: 270_000n,
+          verificationGasLimit: 50_000n,
+          preVerificationGas: 20_000n,
+        };
+      }) as typeof client.estimateUserOperationGas;
       client.sendUserOperation.mockImplementation(async (call) => {
         // viem asks the account to sign before it broadcasts.
         const signer = (call as { account: NonNullable<typeof client.account> }).account;
@@ -152,6 +175,7 @@ const cases: SenderCase[] = [
         trace.push("send");
         const transaction = (call as { calls: Array<{ value?: bigint }> }).calls[0];
         forwarded.push({
+          gas: (call as { callGasLimit?: bigint }).callGasLimit,
           clientChainId: client.chain?.id,
           value: transaction.value,
         });
@@ -247,6 +271,7 @@ const cases: SenderCase[] = [
           account: call.account as string | undefined,
           chainId: call.chainId as number,
           value: call.value as bigint | undefined,
+          gas: call.gas as bigint | undefined,
         });
         if (scenario.transportFailure) throw scenario.transportFailure;
         return hashes();
@@ -257,7 +282,14 @@ const cases: SenderCase[] = [
         return { status: scenario.receiptStatus ?? "success" };
       });
       return {
-        sender: new EmbeddedSender(deps.config, undefined, deps),
+        sender: new EmbeddedSender(deps.config, undefined, {
+          ...deps,
+          estimateCallGas: async () => {
+            trace.push("estimate");
+            if (scenario.estimateFailure) throw scenario.estimateFailure;
+            return 270_000n;
+          },
+        }),
         trace,
         forwarded,
         guardedChains,
@@ -268,6 +300,41 @@ const cases: SenderCase[] = [
 ];
 
 const laws: ConformanceLaw<SenderCase>[] = [
+  {
+    name: "reserves callback gas above the transport estimate before asking for a signature",
+    verify: async ({ make }) => {
+      const { sender, forwarded, trace } = make();
+      await sender.sendContractCall({ ...createMockContractCall(), gasBuffer: 1_000_000n });
+      expect(forwarded[0]?.gas).toBe(1_270_000n);
+      expect(trace.indexOf("estimate")).toBeLessThan(trace.indexOf("send"));
+    },
+  },
+  {
+    name: "does not send or persist a broadcast intent when buffered estimation fails",
+    verify: async ({ make }) => {
+      const { sender, forwarded } = make({ estimateFailure: new Error("estimate unavailable") });
+      const before = vi.fn();
+      await expect(
+        sender.sendContractCall(
+          { ...createMockContractCall(), gasBuffer: 1_000_000n },
+          { onBeforeBroadcast: before }
+        )
+      ).rejects.toThrow("estimate unavailable");
+      expect(forwarded).toEqual([]);
+      expect(before).not.toHaveBeenCalled();
+    },
+  },
+  {
+    name: "rejects a negative callback buffer before sending",
+    verify: async ({ make }) => {
+      const { sender, forwarded } = make();
+      await expect(
+        sender.sendContractCall({ ...createMockContractCall(), gasBuffer: -1n })
+      ).rejects.toThrow("Invalid gas buffer");
+      expect(forwarded).toEqual([]);
+    },
+  },
+
   {
     name: "reports its auth mode and capability flags",
     verify: ({ make, expectations }) => {

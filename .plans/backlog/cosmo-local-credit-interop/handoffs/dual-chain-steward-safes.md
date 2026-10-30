@@ -22,6 +22,14 @@ The current policy remains one valid registered steward signing alone and two si
 4. Refresh the private family package with concrete source/destination inputs, operator steps and remaining human/live gates.
 5. Run the selector's critical checks and review every changed line. Record uncommitted worktree evidence honestly; no commit-attributed passing claim until the relevant paths are clean.
 
+The exact activation rehearsal exposed successful low-gas estimates that omit best-effort callbacks.
+The existing `createGardenOperation` owns which role edits need an allowance; the existing
+transaction senders own adding that allowance to their native or UserOperation estimate and
+rechecking signer ownership after estimation. Individual execution is required for buffered calls;
+atomic wallet batches reject them rather than silently drop the allowance. Activation refreshes
+carry an explicit 1,200,000 gas limit. These changes cover the normal application path without a
+HatsModule upgrade. External callers must reserve the callback budget themselves.
+
 ## State / failure matrix
 
 | Boundary | Expected result |
@@ -35,7 +43,7 @@ The current policy remains one valid registered steward signing alone and two si
 | Roster goes to zero and later recovers | No signature is accepted at zero; source grants recover both Safes |
 | Manifest/nonce/dependency/receipt drift | Release preparation/execution fails before further writes |
 
-Owning capability: `StewardRolePublisher` owns canonical revision/transport; the new native publisher owns source Safe eligibility/reconciliation; the shared Safe deployment helper owns dependency and locked-gate policy. The existing release CLI owns planning, execution boundaries and persisted evidence. No application UI or dependencies need changing.
+Owning capability: `StewardRolePublisher` owns canonical revision/transport; the new native publisher owns source Safe eligibility/reconciliation; the shared Safe deployment helper owns dependency and locked-gate policy. The existing release CLI owns planning, execution boundaries and persisted evidence. No application UI or dependencies need changing. The existing garden role mutation and transaction senders also own callback gas reservation.
 
 Linear preservation manifest was checked: RESR-73 remains Done; no Linear fields were changed. Current work is an accepted follow-up, not a reopening of the research decision.
 

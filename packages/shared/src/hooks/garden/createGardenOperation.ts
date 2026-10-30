@@ -369,6 +369,10 @@ export function createGardenOperation(
             functionName: targetFunctionName,
             args: targetArgs,
             chainId,
+            // HatsModule isolates its 800k steward callback. Estimation can succeed
+            // after that callback runs out of gas; reserve its full budget plus
+            // call-frame overhead for owner/steward changes, including new observers.
+            ...(["owner", "steward"].includes(config.memberType) ? { gasBuffer: 1_000_000n } : {}),
           }),
         {
           loadingMessage: config.messages.loading,
