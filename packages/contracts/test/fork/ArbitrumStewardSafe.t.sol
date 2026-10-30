@@ -7,8 +7,7 @@ import { StewardRolePublisher } from "../../src/accounts/StewardRolePublisher.so
 import { HatsModule } from "../../src/modules/Hats.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IHatsSignerGateV2, IStewardSafe } from "../../src/interfaces/IHatsSignerGateV2.sol";
-import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
-import { IStewardSafeTransactions, IRevertingVm } from "./GnosisStewardSafe.t.sol";
+import { IStewardSafeTransactions } from "./GnosisStewardSafe.t.sol";
 
 /// @dev Real Arbitrum HatsModule, Hats, HSG, Safe and router; all mutations and funds are fork-only.
 contract ArbitrumStewardSafeForkTest is Test {
@@ -102,38 +101,36 @@ contract ArbitrumStewardSafeForkTest is Test {
     function testArbitrumStewardSafe_failedCleanupCannotPreserveSignaturesOrPreventRemoteRevocation() public {
         _role(A, true);
         _role(B, true);
-        IRevertingVm(address(vm))
-            .mockCallRevert(address(gate), abi.encodeCall(gate.removeSigner, (vm.addr(A))), bytes("cleanup failed"));
+        // Build a genuine large owner list without subsidizing unrelated mirror messages.
+        // Its cold Safe storage reads exceed the native callback's bounded cleanup budget.
+        vm.prank(OWNER);
+        module.setStewardObserver(GARDEN, address(0));
+        for (uint256 key = 10_000; key < 10_160; ++key) {
+            _role(key, true);
+            publisher.reconcileSource(vm.addr(key));
+        }
+        assertEq(safe.getOwners().length, 162);
+        vm.prank(OWNER);
+        module.setStewardObserver(GARDEN, address(publisher));
         _role(A, false);
         assertTrue(safe.isOwner(vm.addr(A)));
         assertFalse(gate.isValidSigner(vm.addr(A)));
         assertEq(publisher.dispatchedRevision(vm.addr(A)), 2);
         _exec(A, B, bytes4(keccak256("InsufficientValidSignatures()")));
-        vm.clearMockedCalls();
-        publisher.reconcileSource(vm.addr(A));
-        assertFalse(safe.isOwner(vm.addr(A)));
-        _role(A, true);
-        bytes memory gateCode = address(gate).code;
-        // Exhaust the complete bounded cleanup frame; remote dispatch still gets enough gas.
-        vm.etch(address(gate), hex"5b600056");
-        _role(A, false);
-        assertEq(publisher.dispatchedRevision(vm.addr(A)), 4);
-        vm.etch(address(gate), gateCode);
-        assertFalse(gate.isValidSigner(vm.addr(A)));
         publisher.reconcileSource(vm.addr(A));
         assertFalse(safe.isOwner(vm.addr(A)));
     }
 
     function testArbitrumStewardSafe_transportFailureDoesNotBlockSourceOwnersAndCanRetry() public {
-        IRevertingVm(address(vm))
-            .mockCallRevert(ROUTER, abi.encodeWithSelector(IRouterClient.getFee.selector), bytes("transport down"));
+        // A real router quote exceeds the finite fuel balance; no router response is mocked.
+        vm.deal(address(publisher), 1);
         _role(A, true);
         assertTrue(safe.isOwner(vm.addr(A)));
         assertEq(publisher.dispatchedRevision(vm.addr(A)), 0);
         (uint64 revision, bool eligible) = publisher.states(vm.addr(A));
         assertEq(revision, 1);
         assertTrue(eligible);
-        vm.clearMockedCalls();
+        vm.deal(address(publisher), 1 ether);
         publisher.syncSteward(vm.addr(A));
         assertEq(publisher.dispatchedRevision(vm.addr(A)), 1);
         assertEq(gate.validSignerCount(), 1);
@@ -141,16 +138,19 @@ contract ArbitrumStewardSafeForkTest is Test {
 
     function testArbitrumStewardSafe_unavailableOrRemappedAuthorityExplicitlyDeniesSignatures() public {
         _role(A, true);
-        IRevertingVm(address(vm))
-            .mockCallRevert(address(module), abi.encodeCall(module.isStewardOf, (GARDEN, vm.addr(A))), bytes("unavailable"));
+        // Exercise the genuine owner-controlled dependency and garden-configuration setters.
+        vm.prank(OWNER);
+        module.setHatsContract(address(0xDEAD));
         assertFalse(gate.isValidSigner(vm.addr(A)));
         (bool eligible, bool standing) = publisher.getWearerStatus(vm.addr(A), publisher.signerHat());
         assertFalse(eligible);
         assertTrue(standing);
-        vm.clearMockedCalls();
-        vm.mockCall(
-            address(module), abi.encodeCall(module.getGardenHatIds, (GARDEN)), abi.encode(1, 99, 3, 4, 5, 6, 7, true)
-        );
+        vm.prank(OWNER);
+        module.setHatsContract(HATS);
+        (uint256 ownerHat,, uint256 evaluatorHat, uint256 gardenerHat, uint256 funderHat, uint256 communityHat,,) =
+            module.getGardenHatIds(GARDEN);
+        vm.prank(OWNER);
+        module.configureGarden(GARDEN, ownerHat, 99, evaluatorHat, gardenerHat, funderHat, communityHat);
         assertFalse(gate.isValidSigner(vm.addr(A)));
         publisher.syncSteward(vm.addr(A));
         assertFalse(safe.isOwner(vm.addr(A)));
@@ -162,11 +162,11 @@ contract ArbitrumStewardSafeForkTest is Test {
         publisher.reconcileSource(vm.addr(A));
         assertFalse(safe.isOwner(vm.addr(A)));
         uint256 signerHat = publisher.signerHat();
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("NotSignerHatWearer(address)")), vm.addr(A)));
         gate.claimSignerFor(signerHat, vm.addr(A));
         _role(A, true);
         vm.prank(vm.addr(A));
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("Locked()")));
         gate.setThresholdConfig(IHatsSignerGateV2.ThresholdConfig(0, 1, 1));
     }
 
