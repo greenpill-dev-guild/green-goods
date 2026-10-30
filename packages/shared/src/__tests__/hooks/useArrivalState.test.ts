@@ -22,6 +22,7 @@ const { ACCOUNT, CHAIN, GARDEN, OTHER_GARDEN, THIRD_GARDEN, mocks } = vi.hoisted
     account: null as string | null,
     queue: { data: undefined as Job[] | undefined, isSuccess: false },
     gardensLoaded: true,
+    gardensError: false,
   },
 }));
 
@@ -54,6 +55,7 @@ vi.mock("../../hooks/garden/useActiveGarden", async () => {
           ? gardens.map((garden) => ({ garden, membership: { roles: ["gardener"] } }))
           : [],
         isLoaded: mocks.gardensLoaded,
+        isError: mocks.gardensError,
       },
     }),
   };
@@ -82,6 +84,7 @@ describe("useArrivalState", () => {
   beforeEach(() => {
     mocks.account = ACCOUNT;
     mocks.gardensLoaded = true;
+    mocks.gardensError = false;
   });
 
   it("stays pending until the queue answers, and says when nothing waits on this phone", () => {
@@ -122,6 +125,30 @@ describe("useArrivalState", () => {
     expect(arriveWith([job("work", GARDEN, 1)])).toEqual({
       kind: "queue",
       orientation: { target: "yourWork" },
+    });
+  });
+
+  it("settles a failed garden read without inventing an upload destination, and recovers on retry", () => {
+    mocks.gardensLoaded = false;
+    mocks.queue = { data: [job("work", OTHER_GARDEN, 1)], isSuccess: true };
+    const arrival = renderHook(() => useArrivalState());
+    expect(arrival.result.current).toEqual({ kind: "pending" });
+
+    mocks.gardensError = true;
+    arrival.rerender();
+    expect(arrival.result.current).toEqual({ kind: "queue", orientation: null });
+    expect(arriveWith([job("work", GARDEN, 1)])).toEqual({
+      kind: "queue",
+      orientation: { target: "yourWork" },
+    });
+
+    mocks.queue = { data: [job("work", OTHER_GARDEN, 1)], isSuccess: true };
+    mocks.gardensError = false;
+    mocks.gardensLoaded = true;
+    arrival.rerender();
+    expect(arrival.result.current).toEqual({
+      kind: "queue",
+      orientation: { target: "switcher", gardenId: OTHER_GARDEN, gardenName: "Vida Verde" },
     });
   });
 });

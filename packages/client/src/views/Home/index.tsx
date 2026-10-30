@@ -299,10 +299,8 @@ const Home: React.FC = () => {
     latestArrival.current = arrival;
   }, [arrival]);
 
-  // Show the arrival toast once per browser session, scoped to the signed-in address, and only
-  // while the session is still on the Home it opened on: AppShell marks the arrival passed as
-  // soon as the session is on any other screen. useArrivalState stays pending until it knows,
-  // and an arrival with nothing waiting passes quietly, so work queued later raises no toast.
+  // Once per tab and account, only on the Home the session opened on. An unresolved queue
+  // waits; a failed garden read can still announce uploads without inventing a destination.
   useEffect(() => {
     if (!isAuthenticated || hasShownArrivalRef.current) return;
     if (!isHomeRoute) return;
@@ -318,20 +316,23 @@ const Home: React.FC = () => {
     hasShownArrivalRef.current = true;
     if (arrival.kind === "none") return;
 
-    // Small delay to let the page render first.
     scheduleArrival(() => {
       const shown = latestArrival.current;
       if (shown.kind !== "queue") return;
       const spec = arrivalToastSpec(shown.orientation);
+      const action = spec.action;
       toastService.info({
         title: intl.formatMessage({ id: spec.titleId }),
         message: intl.formatMessage({ id: spec.messageId }, spec.values),
         duration: 6000,
-        action: {
-          label: intl.formatMessage({ id: spec.actionLabelId }),
-          onClick: () => runArrivalAction(spec.action),
-          dismissOnClick: true,
-        },
+        action:
+          action && spec.actionLabelId
+            ? {
+                label: intl.formatMessage({ id: spec.actionLabelId }),
+                onClick: () => runArrivalAction(action),
+                dismissOnClick: true,
+              }
+            : undefined,
         suppressLogging: true,
       });
     }, 700);

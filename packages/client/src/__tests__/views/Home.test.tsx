@@ -753,6 +753,22 @@ describe("arrival toast", () => {
     expect(toastService.info).not.toHaveBeenCalled();
   });
 
+  it("announces unplaced uploads once without sending the member to an unverified garden", () => {
+    state.arrival = { kind: "queue", orientation: null };
+    const home = renderHome();
+    passArrivalDelay();
+
+    expect(shownToast()).toMatchObject({
+      title: "Work is waiting to sync",
+      message: "Some of your work hasn't uploaded yet.",
+    });
+    expect(shownToast()?.action).toBeUndefined();
+    expect(hasArrivalPassed(ACCOUNT)).toBe(true);
+    home.rerender();
+    passArrivalDelay();
+    expect(toastService.info).toHaveBeenCalledOnce();
+  });
+
   it("stays quiet on Home once the session has arrived on another screen", () => {
     markArrivalPassed(ACCOUNT);
 
