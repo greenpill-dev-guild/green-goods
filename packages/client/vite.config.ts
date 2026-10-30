@@ -26,6 +26,7 @@ import { createIconLeaves } from "./vite/icon-leaves";
 import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 import { createPublicLocalesPlugin } from "./vite/public-locales";
+import { createLocaleCataloguesPlugin } from "./vite/locale-catalogues";
 import { resolveViteWatchOptions } from "./vite/watch";
 
 const CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
@@ -294,6 +295,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     babel({ presets: [reactCompilerPreset()] }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
     createPublicLocalesPlugin(),
+    createLocaleCataloguesPlugin(),
     createPwaShellAssetsPlugin(),
     createChainImportsPlugin(),
     iconLeaves.plugin,

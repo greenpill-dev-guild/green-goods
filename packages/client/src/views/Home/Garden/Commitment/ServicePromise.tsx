@@ -9,6 +9,7 @@ import {
   useVoucherIssuerApproval,
   useVoucherWallet,
 } from "@green-goods/shared/commitment-pooling";
+import { Button } from "@green-goods/shared/components/Button";
 import { RiExchangeLine, RiQuestionLine } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -74,7 +75,13 @@ export interface ServicePromiseParts {
 export interface ServicePromiseProps {
   serviceKey: ServiceAccessKey | null;
   /** The page's read of the service, which also settles its own acts. */
-  access: { data?: ServiceAccessSnapshot | null; refetch: () => unknown };
+  access: {
+    data?: ServiceAccessSnapshot | null;
+    refetch: () => unknown;
+    isFetching?: boolean;
+    isError?: boolean;
+    dataUpdatedAt?: number;
+  };
   coreState: CommitmentDerivedState;
   /** The request's garden, whose pool pays any G$. */
   gardenName: string;
@@ -361,6 +368,33 @@ export function ServicePromise({
             ) : null}
             {booking ? <ServiceAccessSection view={booking} /> : null}
             {rewards ? <ServiceRewardsSection view={rewards} /> : null}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-sub-600">
+              <p role="status">
+                {!isOnline
+                  ? text("wait.offline")
+                  : access.isError
+                    ? text("wait.readFailed")
+                    : access.dataUpdatedAt
+                      ? intl.formatMessage(
+                          { id: "app.voucher.wait.checked" },
+                          {
+                            time: intl.formatTime(access.dataUpdatedAt, {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            }),
+                          }
+                        )
+                      : text("wait.auto")}
+              </p>
+              <Button
+                type="button"
+                emphasis="secondary"
+                disabled={!isOnline || access.isFetching || pending}
+                onClick={() => void access.refetch()}
+              >
+                {text(access.isFetching ? "wait.checking" : "wait.check")}
+              </Button>
+            </div>
             {snapshot?.pilot && import.meta.env.DEV && isDemoPoolingActive() ? (
               <VoucherPilotJourney
                 snapshot={snapshot}

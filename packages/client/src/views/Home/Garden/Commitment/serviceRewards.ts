@@ -25,6 +25,7 @@ export interface ServiceRewardsView {
   facts: { id: "arrive" | "aside"; label: string; value: string; detail: string }[];
   /** Where each reward comes from and its receipt, only under Transaction details (D2). */
   details: string[];
+  messageLinks: { label: string; href: string }[];
   band: { tone: ServiceBandTone; sentence: string; needsYou: boolean };
   /**
    * Where the reader's own agreement can't be signed here (a garden's claim, or no signer), the
@@ -66,6 +67,8 @@ export interface ServiceRewardsInput {
 
 const STATUS: Record<RequestRewardDelivery["status"], { id: string; tone: ItemRowTone }> = {
   "after-work": { id: "rw.s.notYet", tone: "neutral" },
+  preparing: { id: "wait.rewardPreparing", tone: "info" },
+  unavailable: { id: "wait.rewardUnavailable", tone: "warning" },
   "on-the-way": { id: "rw.s.pending", tone: "info" },
   waiting: { id: "rw.s.waiting", tone: "warning" },
   delayed: { id: "rw.s.delayed", tone: "warning" },
@@ -113,13 +116,17 @@ export function serviceRewardsView(
     const status = STATUS[d.status];
     const detail =
       d.kind === "voucher"
-        ? d.status === "on-the-way"
-          ? t("rw.d.sending")
-          : d.status === "waiting" && d.shortOf === "allowance"
-            ? t("rw.r.vouShortM")
-            : d.status === "waiting" || d.status === "delayed"
-              ? t("rw.d.waits")
-              : t("rw.d.fromReserve")
+        ? d.status === "preparing"
+          ? t("wait.rewardPreparingDetail")
+          : d.status === "unavailable"
+            ? t("wait.rewardUnavailableDetail")
+            : d.status === "on-the-way"
+              ? t(input.snapshot.earnedReward ? "wait.rewardInTransit" : "rw.d.sending")
+              : d.status === "waiting" && d.shortOf === "allowance"
+                ? t("rw.r.vouShortM")
+                : d.status === "waiting" || d.status === "delayed"
+                  ? t("rw.d.waits")
+                  : t("rw.d.fromReserve")
         : d.status === "on-the-way"
           ? t("rw.d.paying")
           : d.status === "delayed"
@@ -138,6 +145,9 @@ export function serviceRewardsView(
   const all = deliveries.every((d) => d.status === "received");
   const sentence = ((): string => {
     if (!due) return OPEN.includes(input.coreState) ? t("rw.band.open") : t("rw.n.prog.b");
+    if (voucher?.status === "unavailable") return t("wait.rewardUnavailableDetail");
+    if (voucher?.status === "preparing") return t("wait.rewardPreparingDetail");
+    if (all && input.snapshot.earnedReward) return t("wait.rewardDelivered");
     if (all)
       return gd
         ? t("rw.n.done.b", values)
@@ -185,16 +195,20 @@ export function serviceRewardsView(
         value: t("rw.arriveV"),
         detail: gd ? t("rw.arriveS") : t("rw.arriveSV"),
       },
-      {
-        id: "aside",
-        label: t("rw.q.aside"),
-        value: t("rw.asideV"),
-        // A garden's line says "its"; anyone else's, or an issuer the wallet hasn't named yet, "their".
-        detail: t(input.issuer?.kind === "collective" ? "rw.asideS" : "rw.m.asideS"),
-      },
+      ...(!input.snapshot.earnedReward
+        ? [
+            {
+              id: "aside",
+              label: t("rw.q.aside"),
+              value: t("rw.asideV"),
+              // A garden's line says "its"; anyone else's, or an issuer the wallet hasn't named yet, "their".
+              detail: t(input.issuer?.kind === "collective" ? "rw.asideS" : "rw.m.asideS"),
+            } as const,
+          ]
+        : []),
     ],
     details: [
-      ...(voucher ? [t("rw.x.vou")] : []),
+      ...(voucher ? [t(voucher.status === "received" ? "rw.x.vou" : "wait.rewardSource")] : []),
       ...(voucher?.receipt ? [voucher.receipt] : []),
       ...(gd ? [t("rw.x.gd")] : []),
       ...(gd?.receipt ? [gd.receipt] : []),
@@ -207,6 +221,9 @@ export function serviceRewardsView(
           ]
         : []),
     ],
+    messageLinks: voucher?.messageId
+      ? [{ label: t("wait.trackReward"), href: `https://ccip.chain.link/msg/${voucher.messageId}` }]
+      : [],
     band: { tone, sentence, needsYou: working },
     agreementUnavailable:
       earned.status === "bound" && input.takeUp && OPEN.includes(input.coreState) && !agree

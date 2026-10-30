@@ -272,6 +272,8 @@ abstract contract CLCVoucherPilotFixture is CLCPurchaseFixture, CommitmentPoolin
         );
         vm.startPrank(_communitySafeStandIn);
         earned.setIssuerAuthority(_issuerSafeStandIn, address(_voucher), _issuerSafeStandIn);
+        earned.setFeeReserveMinimum(1);
+        vm.deal(address(earned), 1);
         earned.unpause();
         vm.stopPrank();
         module.setPaused(true);

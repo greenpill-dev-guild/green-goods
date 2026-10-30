@@ -12,6 +12,9 @@ The MVP serves one active garden view on one desktop browser profile, with isola
 
 ## Read this plan
 
+- [Prototype: four parts, one loop](prototype.md): the smallest build that shows Gemma, KOI, Pi Durable and WebMCP together, with its decisions, code and demo checks.
+- [Prototype architecture](prototype-architecture.md): packages, dependencies, where the code runs, module layers, the types that cross boundaries, UI components and data flows.
+- [Prototype design brief](prototype-design.md): Grove as the cockpit's dialect on a graph; the shared core, the dials, the garden tone, the canvas legend, states, copy and the Storybook proof.
 - [Mesh alignment and evidence boundary](mesh-alignment.md): accepted project relationship, authority mapping and conformance gates.
 - [Continue in another session](handoffs/next-session.md): current state, next bounded step and portable source locations.
 - [Interactive design demos](artifacts/demos/README.md): five standalone HTML studies, including public-safe TAS/Vida Verde scenarios and timelines.

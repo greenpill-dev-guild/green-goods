@@ -89,6 +89,45 @@ contract CosmoLocalVoucherTest is CommitmentPoolingFixture, ERC6551Helper {
         _deploySettlementRail();
     }
 
+    function testIntegration_CosmoLocalVoucher_administrativeClosureAllowsDestinationRepairWithoutRepeatingGdollar()
+        public
+    {
+        uint256 id = _createRequest(keccak256("fictional-closed-reward"));
+        _gardenConsent(id);
+        _fulfillRequest(id);
+        PaymentProof memory payment = _completePayment(id);
+        bytes32 entitlement = _prepareVoucher(id);
+        TransportMessage memory command = _dispatchVoucher(entitlement);
+        vm.chainId(GNOSIS_CHAIN);
+        _deliverVoucherCommand(command); // finite reserve approval is deliberately missing
+        assertFalse(adapter.getExecutionResult(entitlement).success);
+        _relayVoucherAck();
+        bytes32 evidence = keccak256("fictional-operator-closeout-record");
+        vouchers.closeDispatch(entitlement, evidence);
+        vm.expectRevert(VoucherEntitlementModule.VoucherDispatchIsClosed.selector);
+        vouchers.dispatch(entitlement);
+        _assertPaymentUnchanged(payment);
+        vm.chainId(GNOSIS_CHAIN);
+        vm.startPrank(LOCAL_ISSUER_SAFE);
+        voucherToken.approve(address(adapter), VOUCHER_REWARD);
+        adapter.safeRetry(entitlement);
+        vm.stopPrank();
+        assertEq(voucherToken.balanceOf(CLAIMANT), VOUCHER_REWARD);
+        adapter.retryAcknowledgment(entitlement);
+        _relayVoucherAck();
+        assertEq(
+            uint8(vouchers.getDistribution(entitlement).state), uint8(VoucherEntitlementModule.DeliveryState.Delivered)
+        );
+        assertEq(vouchers.dispatchCloseoutEvidence(entitlement), evidence);
+        assertEq(vouchers.getCommand(entitlement), command.data);
+        _assertPaymentUnchanged(payment);
+        vm.chainId(GNOSIS_CHAIN);
+        _deliverVoucherCommand(command); // in-flight duplicate still cannot repeat the reserve payment
+        assertEq(voucherToken.balanceOf(CLAIMANT), VOUCHER_REWARD);
+        assertEq(voucherToken.allowance(LOCAL_ISSUER_SAFE, address(adapter)), 0);
+        _assertPaymentUnchanged(payment);
+    }
+
     function testIntegration_CosmoLocalVoucher_failureRecoveryAndLostAckNeverRepeatCompletedGdollar() public {
         uint256 id = _createRequest(keccak256("fictional-joint-reward"));
         _gardenConsent(id);
@@ -411,6 +450,8 @@ contract CosmoLocalVoucherTest is CommitmentPoolingFixture, ERC6551Helper {
         VoucherAcceptance(address(module)).pinEarnedVoucherModule(address(vouchers));
         module.setPaused(false);
         vouchers.setIssuerAuthority(LOCAL_ISSUER_SAFE, address(voucherToken), ISSUER_AUTHORITY);
+        vouchers.setFeeReserveMinimum(1);
+        vm.deal(address(vouchers), 1);
         vouchers.unpause();
     }
 
@@ -508,6 +549,8 @@ contract CosmoLocalVoucherTest is CommitmentPoolingFixture, ERC6551Helper {
         vm.chainId(ARBITRUM_CHAIN);
         vouchers.pause();
         vouchers.setIssuerAuthority(LOCAL_ISSUER_SAFE, address(voucherToken), ISSUER_AUTHORITY);
+        vouchers.setFeeReserveMinimum(1);
+        vm.deal(address(vouchers), 1);
         vouchers.unpause();
         hats.setGardener(ROOT_GARDEN, CLAIMANT, true);
         ICommitmentPoolingModule.CreateCommitmentParams memory params =

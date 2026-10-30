@@ -138,9 +138,18 @@ export interface RequestRewardDelivery {
   amount: bigint;
   /** The issuer whose reserve pays a voucher reward, or the account paying G$. */
   funder: Address;
-  status: "after-work" | "on-the-way" | "waiting" | "delayed" | "received";
+  status:
+    | "after-work"
+    | "preparing"
+    | "on-the-way"
+    | "waiting"
+    | "delayed"
+    | "received"
+    | "unavailable";
   /** What a waiting voucher reward needs topped up or raised. */
   shortOf: "reserve" | "allowance" | null;
   receipt: string | null;
   attempts: bigint;
+  /** A source dispatch is tracking evidence, never proof of destination delivery. */
+  messageId?: Hex | null;
 }

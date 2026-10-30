@@ -832,6 +832,39 @@ describe("a member's agreement to a request's voucher reward", () => {
     );
   });
 
+  it("composes a fulfilled request with its real destination delivery read without sending", async () => {
+    const { f, request, adapter, sourceState, destinationState } = rewarded();
+    request.coreState = "FULFILLED";
+    destinationState.assetAuthorizations = [account(30), false];
+    sourceState.distributionOfCommitment = H;
+    sourceState.getDistribution = {
+      commitmentId: key.commitmentId,
+      payloadHash: H,
+      state: 2,
+      resultSequence: 0n,
+      resultHash: ZERO,
+      failureHash: ZERO,
+      lastMessageId: H,
+    };
+    destinationState.getExecutionResult = {
+      payloadHash: H,
+      sequence: 1n,
+      success: true,
+      acknowledgmentSequence: 0n,
+      failureHash: ZERO,
+      acknowledgmentMessageId: ZERO,
+      acknowledgmentFailureHash: ZERO,
+    };
+    const result = await adapter().read(key);
+    expect(result.earnedReward).toMatchObject({
+      status: "received",
+      messageId: H,
+      amount: 1n,
+      asset: { symbol: "TEST", decimals: 0 },
+    });
+    expect(f.sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["a module outside the reviewed route", "module"],
     ["a voucher outside the reviewed route", "asset"],

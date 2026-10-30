@@ -94,6 +94,8 @@ export async function projectEarnedVoucherDistribution(
     commitmentId: undefined,
     payloadHash: undefined,
     preparedSeen: false,
+    dispatchCloseoutEvidence: undefined,
+    ...cursor("closeout"),
     lastMessageId: undefined,
     resultSequence: undefined,
     delivered: undefined,
@@ -140,6 +142,19 @@ export async function projectEarnedVoucherDistribution(
       ...cursor("dispatch", event),
       ...times(event, row),
     });
+  } else if (event.eventName === "VoucherDispatchClosed") {
+    const facts = {
+      payloadHash: text(p, "payloadHash"),
+      dispatchCloseoutEvidence: text(p, "evidenceHash"),
+    };
+    sameFacts(row, facts, "earned voucher close-out");
+    if (row.dispatchCloseoutEvidence !== undefined) return;
+    await context.EarnedVoucherDistribution.set({
+      ...row,
+      ...facts,
+      ...cursor("closeout", event),
+      ...times(event, row),
+    });
   } else if (event.eventName === "VoucherResultRecorded") {
     const resultSequence = integer(p, "resultSequence");
     const result = { delivered: flag(p, "success"), failureHash: text(p, "failureHash") };
@@ -171,6 +186,7 @@ for (const event of [
 for (const event of [
   "VoucherDistributionPrepared",
   "VoucherDistributionDispatched",
+  "VoucherDispatchClosed",
   "VoucherResultRecorded",
 ] as const) {
   indexer.onEvent({ contract: "VoucherEntitlementModule", event }, async ({ event, context }) => {
