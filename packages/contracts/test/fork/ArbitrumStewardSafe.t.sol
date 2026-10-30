@@ -9,6 +9,10 @@ import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IHatsSignerGateV2, IStewardSafe } from "../../src/interfaces/IHatsSignerGateV2.sol";
 import { IStewardSafeTransactions } from "./GnosisStewardSafe.t.sol";
 
+interface IColdAccessVm {
+    function cool(address target) external;
+}
+
 /// @dev Real Arbitrum HatsModule, Hats, HSG, Safe and router; all mutations and funds are fork-only.
 contract ArbitrumStewardSafeForkTest is Test {
     address private constant GARDEN = 0xF7b892886998DAe960D64a9db488336684F137A0;
@@ -112,6 +116,8 @@ contract ArbitrumStewardSafeForkTest is Test {
         assertEq(safe.getOwners().length, 162);
         vm.prank(OWNER);
         module.setStewardObserver(GARDEN, address(publisher));
+        // Match a fresh transaction even when the runner keeps this fixture's slots warm.
+        IColdAccessVm(address(vm)).cool(address(safe));
         _role(A, false);
         assertTrue(safe.isOwner(vm.addr(A)));
         assertFalse(gate.isValidSigner(vm.addr(A)));
