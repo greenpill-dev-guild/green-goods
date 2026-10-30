@@ -1,7 +1,7 @@
 /** CI Playwright: navigation with the supported dev-auth seam and fictional garden data. */
 import { expect, type Page, test } from "@playwright/test";
 import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
-import { ClientTestHelper, setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
+import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 // Home opens in the account's one garden, and its header chip names that garden.
 async function expectHomeInGarden(page: Page) {
@@ -13,15 +13,19 @@ async function expectHomeInGarden(page: Page) {
 test.describe("Client Navigation", () => {
   test.use({ baseURL: TEST_URLS.client });
 
-  test("redirects unauthenticated users from protected routes", async ({ page }) => {
-    const helper = new ClientTestHelper(page);
-    for (const route of ["/home?presentation=pwa", "/home/profile", "/home/garden"]) {
+  for (const route of [
+    "/home?presentation=pwa",
+    "/home/profile?presentation=pwa",
+    "/home/garden?presentation=pwa",
+  ]) {
+    test(`redirects signed-out users from ${route}`, async ({ page }) => {
+      const helper = await setupAuthenticatedClient(page, "disconnected");
       await page.goto(route);
       await helper.waitForPageLoad();
       await expect(page).toHaveURL(/\/home\/login/);
       await expect(page.getByTestId("login-button")).toBeVisible();
-    }
-  });
+    });
+  }
 
   test("opens Profile from the mobile navigation", async ({ page }) => {
     const helper = await setupAuthenticatedClient(page);
