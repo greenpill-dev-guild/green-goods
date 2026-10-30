@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { IntlProvider } from "react-intl";
@@ -16,20 +16,32 @@ const messages = {
 
 /** Mirror the viewport the shared dialogs switch on (`PWA_SHEET_MEDIA_QUERY`). */
 function stubViewportWidth(widthPx: number) {
+  const queries: Array<EventTarget & { media: string; matches: boolean }> = [];
+  const matches = (query: string) => query.includes("max-width: 639px") && widthPx <= 639;
   Object.defineProperty(window, "matchMedia", {
     writable: true,
     configurable: true,
-    value: vi.fn((query: string) => ({
-      matches: query.includes("max-width: 639px") ? widthPx <= 639 : false,
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
+    value: vi.fn((query: string) => {
+      const media = Object.assign(new EventTarget(), {
+        matches: matches(query),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      });
+      queries.push(media);
+      return media;
+    }),
   });
+  return (width: number) => {
+    widthPx = width;
+    for (const media of queries) {
+      const next = matches(media.media);
+      if (next === media.matches) continue;
+      media.matches = next;
+      media.dispatchEvent(Object.assign(new Event("change"), { matches: next }));
+    }
+  };
 }
 
 function wrap(node: React.ReactElement) {
@@ -37,6 +49,26 @@ function wrap(node: React.ReactElement) {
     <IntlProvider locale="en" messages={messages}>
       {node}
     </IntlProvider>
+  );
+}
+
+function ReviewReward() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        Review reward
+      </button>
+      <DialogShell
+        open={open}
+        onOpenChange={setOpen}
+        title="Review reward"
+        description="Check the reward before continuing."
+        actions={{ secondary: { label: "Cancel", onClick: () => setOpen(false) } }}
+      >
+        <input aria-label="Recipient" />
+      </DialogShell>
+    </>
   );
 }
 
@@ -54,26 +86,7 @@ describe("DialogShell", () => {
     [1280, "Cancel"],
   ] as const)("returns keyboard focus to its opener at %ipx after %s", async (width, dismiss) => {
     stubViewportWidth(width);
-    function Review() {
-      const [open, setOpen] = useState(false);
-      return (
-        <>
-          <button type="button" onClick={() => setOpen(true)}>
-            Review reward
-          </button>
-          <DialogShell
-            open={open}
-            onOpenChange={setOpen}
-            title="Review reward"
-            description="Check the reward before continuing."
-            actions={{ secondary: { label: "Cancel", onClick: () => setOpen(false) } }}
-          >
-            <input aria-label="Recipient" />
-          </DialogShell>
-        </>
-      );
-    }
-    render(wrap(<Review />));
+    render(wrap(<ReviewReward />));
     const user = userEvent.setup();
     const opener = screen.getByRole("button", { name: "Review reward" });
     await user.tab();
@@ -82,6 +95,27 @@ describe("DialogShell", () => {
     expect(screen.getByRole("dialog", { name: "Review reward" })).toBeInTheDocument();
     if (dismiss === "Escape") await user.keyboard("{Escape}");
     else await user.click(screen.getByRole("button", { name: dismiss }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(opener).toHaveFocus();
+    });
+  });
+
+  it.each([
+    [1280, 375],
+    [375, 1280],
+  ])("preserves the opener when an open dialog resizes from %ipx to %ipx", async (start, end) => {
+    const resize = stubViewportWidth(start);
+    render(wrap(<ReviewReward />));
+    const user = userEvent.setup();
+    const opener = screen.getByRole("button", { name: "Review reward" });
+    await user.tab();
+    await user.keyboard("{Enter}");
+    act(() => resize(end));
+    await waitFor(() =>
+      expect(screen.getByRole("dialog")).toContainElement(document.activeElement as HTMLElement)
+    );
+    await user.keyboard("{Escape}");
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(opener).toHaveFocus();
