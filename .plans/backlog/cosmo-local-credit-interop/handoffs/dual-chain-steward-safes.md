@@ -67,3 +67,12 @@ or grant source issuer authority.
 The recorded private direct-Hat native-Safe experiment is superseded by the constructor-locked
 native publisher: no setup steward or manual source owner-list procedure is part of this design.
 Private operator identities and live ceremony evidence stay outside this public repository.
+
+The existing `shared-work-provider-command` certification was reviewed on 30 October after its
+registered sender-conformance proof gained callback-gas cases. Its module, declared export,
+composition root, direct consumer, direct subject test and provider integration test are unchanged.
+Work submissions do not request the new optional gas allowance. The complete Shared suite, including
+all three proof categories, passed at `59711aded`; only the registry review date and deterministic
+evidence fingerprint needed refreshing. This is evidence maintenance, with no new exception or
+change to the certified module's lifecycle. The private handoff records the tested-parent path diff
+and the fresh repository-check result for this evidence-only follow-up.
