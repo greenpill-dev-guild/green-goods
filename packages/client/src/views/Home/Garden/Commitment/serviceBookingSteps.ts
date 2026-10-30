@@ -1,3 +1,4 @@
+import { voucherBookingEscrow } from "@green-goods/shared/commitment-pooling";
 import type {
   BookingContext,
   BookingHistoryAnchor,
@@ -57,6 +58,20 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
           "done"
         ),
         "CLAIM_REQUESTED"
+      ),
+      step(
+        "requestSent",
+        t("wait.requestSent"),
+        setup.source.authorizationDispatched ? "done" : "now"
+      ),
+      step(
+        "requestArrived",
+        t("wait.requestArrived"),
+        d && d.result.phase !== "none"
+          ? "done"
+          : setup.source.authorizationDispatched
+            ? "now"
+            : "todo"
       ),
       step(
         "approved",
@@ -207,8 +222,17 @@ export function bookingTransfers(ctx: BookingContext): ServiceTransfer[] {
 export function bookingDetails(ctx: BookingContext): string[] {
   const a = ctx.setup?.authorization;
   if (!a) return [];
+  const custody = ctx.setup?.destination ? voucherBookingEscrow(ctx.setup) : null;
   return [
-    ctx.t("rd.x.escrow"),
+    ctx.t(
+      !custody
+        ? "wait.custodyUnknown"
+        : custody.held > 0n
+          ? "rd.x.escrow"
+          : custody.stage === "closed"
+            ? "wait.custodyClosed"
+            : "wait.custodyBefore"
+    ),
     ctx.t("rd.x.record", { id: a.commitmentId.toString(), v: a.termsRevision.toString() }),
     ctx.t("rd.x.receipts"),
   ];

@@ -51,6 +51,17 @@ const request = (rewards: CommitmentRewardOutcome[]): Outcomes => ({
 });
 
 describe("CommitmentVoucherOutcomes", () => {
+  it.each([
+    "preparing",
+    "unavailable",
+  ] as const)("does not describe %s as a reward being sent", (status) => {
+    renderWithProviders(
+      <CommitmentVoucherOutcomes outcomes={request([voucherReward({ status })])} />
+    );
+    const row = screen.getByRole("region", { name: "Rewards" }).querySelector("[data-reward]");
+    expect(row).toHaveTextContent(status === "preparing" ? "Being prepared" : "Status unavailable");
+    expect(row).not.toHaveTextContent("Being sent");
+  });
   it("lists each reward on its own, the vouchers first, each with its own state and receipt", () => {
     renderWithProviders(
       <CommitmentVoucherOutcomes

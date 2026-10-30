@@ -364,14 +364,21 @@ function rewardDelivery(
   };
 }
 
-const BEFORE_CONFIRMATION = new Set(["OFFERED", "REQUESTED", "ACCEPTED", "READY_FOR_CONFIRMATION"]);
+const BEFORE_CONFIRMATION = new Set([
+  "OFFERED",
+  "REQUESTED",
+  "ACCEPTED",
+  "EVIDENCE_SUBMITTED",
+  "READY_FOR_CONFIRMATION",
+]);
 
 /**
  * A live request's voucher reward while its work is still to come. Only the live read names the
- * reviewed voucher (its decimals), so an unrouted read shows no row; a confirmed promise's
- * delivery has its own read (PRD-1323) and shows nothing here rather than a guess.
+ * reviewed voucher (its decimals). After confirmation the live distribution read owns delivery;
+ * a source receipt alone never establishes arrival.
  */
 function liveEarnedReward(snapshot: ServiceAccessSnapshot): RequestRewardDelivery[] | null {
+  if (snapshot.earnedReward) return [snapshot.earnedReward];
   const earned = snapshot.acceptancePolicy.earned;
   const terms = earned.terms;
   if (

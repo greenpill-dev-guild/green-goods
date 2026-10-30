@@ -1,7 +1,9 @@
-import type {
-  CommitmentDerivedState,
-  ServiceAccessAction,
-  ServiceAccessSnapshot,
+import {
+  type CommitmentDerivedState,
+  type ServiceAccessAction,
+  type ServiceAccessSnapshot,
+  serviceAccessAvailableActions,
+  selectServiceAccessAction,
 } from "@green-goods/shared/commitment-pooling";
 import en from "@green-goods/shared/i18n/en";
 import { createIntl } from "react-intl";
@@ -69,6 +71,63 @@ function view(
 }
 
 describe("voucher booking on the promise page", () => {
+  it.each([false, true])("separates an unsent request from its network wait (sent=%s)", (sent) => {
+    const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");
+    const setup = snapshot.voucherSetups[0]!;
+    setup.destination!.result.phase = "none";
+    setup.source.authorizationDispatched = sent;
+    setup.source.authorizationMessageId = sent ? setup.setupId : null;
+    const result = serviceBookingView(
+      {
+        snapshot,
+        coreState: "OFFERED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(9),
+      },
+      intl
+    )!;
+    expect(result.stage).toBe(sent ? "requestInTransit" : "requestNotSent");
+    expect(result.band.sentence).not.toContain("their Safe needs");
+    expect(result.primary?.kind ?? null).toBe(sent ? null : "redeem");
+    expect(result.messageLinks).toHaveLength(sent ? 1 : 0);
+    expect(result.details[0]).toBe("No vouchers have been deposited for this booking.");
+    expect(result.facts[0]?.value).toContain("still in your account");
+    if (!sent) {
+      snapshot.availableActions = serviceAccessAvailableActions(snapshot);
+      setup.availableActions = ["dispatchVoucherSetupCommand"];
+      expect(agreeStep(snapshot)).toMatchObject({
+        action: "dispatchVoucherSetupCommand",
+        kind: "authorization",
+        setupId: setup.setupId,
+      });
+      expect(selectServiceAccessAction(snapshot, agreeStep(snapshot)!).allowed).toBe(true);
+    }
+  });
+  it("waits for a dispatched activation without offering it for signing again", () => {
+    const snapshot = bookingStorySnapshot("hubDay", "starting");
+    snapshot.voucherSetups[0]!.source.decisionDispatched = true;
+    const result = serviceBookingView(
+      {
+        snapshot,
+        coreState: "ACCEPTED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(8),
+      },
+      intl
+    )!;
+    expect(result.stage).toBe("activationInTransit");
+    expect(result.primary).toBeNull();
+    expect(result.band.sentence).toContain("has been sent");
+  });
+  it.each([
+    ["waitingApproval", "No vouchers have been deposited"],
+    ["confirmingDeposit", "Vouchers are held in escrow"],
+    ["closed", "No vouchers remain held"],
+  ] as const)("reports confirmed custody at %s", (stage, expected) => {
+    expect(view("hubDay", stage).details[0]).toContain(expected);
+  });
   it.each([
     ["hubDay", "open", "Open for booking.", "Review and Redeem", null],
     ["hubDay", "waitingApproval", "their Safe needs 1 signature", null, "Cancel Booking"],

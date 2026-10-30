@@ -110,6 +110,8 @@ export interface ServiceVoucherSetup {
     acceptedReceiptHash: Hex | null;
     authorizationDispatched: boolean;
     decisionDispatched: boolean;
+    authorizationMessageId?: Hex | null;
+    decisionMessageId?: Hex | null;
     setupResult: VoucherSetupResult | null;
     finalResult: (VoucherFinalAllocationRecord & { sequence: bigint }) | null;
   };

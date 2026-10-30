@@ -19,6 +19,16 @@ const STATUS: Record<
   CommitmentRewardOutcome["status"],
   { id: string; defaultMessage: string; tone: ItemRowTone }
 > = {
+  preparing: {
+    id: "app.voucher.wait.rewardPreparing",
+    defaultMessage: "Being prepared",
+    tone: "info",
+  },
+  unavailable: {
+    id: "app.voucher.wait.rewardUnavailable",
+    defaultMessage: "Status unavailable",
+    tone: "warning",
+  },
   "after-work": {
     id: "app.voucher.rw.s.notYet",
     defaultMessage: "After the work",
@@ -173,6 +183,10 @@ function rewardDetail(reward: CommitmentRewardOutcome, formatMessage: FormatMess
     }
   }
   switch (reward.status) {
+    case "preparing":
+      return formatMessage({ id: "app.voucher.wait.rewardPreparingDetail" });
+    case "unavailable":
+      return formatMessage(STATUS.unavailable);
     case "received":
       return formatMessage(
         {
