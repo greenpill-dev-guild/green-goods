@@ -143,10 +143,17 @@ export const SHARDS = {
   },
   "gnosis-vouchers": {
     description:
-      "Gnosis voucher pilot, purchase, redemption, reserve and steward Safe suites against published CLC, Hats, HSG and Safe bytecode",
-    // Each suite selects its own pinned Gnosis (and Arbitrum) forks, so no process fork is set.
-    glob: "test/fork/{GnosisStewardSafe,GnosisVoucherPilot,GnosisVoucherPurchase,GnosisVoucherRedemption,GnosisVoucherReserve}.t.sol",
+      "Gnosis voucher journeys and dual-chain steward Safes against published CLC, Hats, HSG and Safe bytecode",
+    // Each suite selects its own fork; no older process-wide block overrides the current source hook proof.
+    glob: "test/fork/{ArbitrumStewardSafe,GnosisStewardSafe,GnosisVoucherPilot,GnosisVoucherPurchase,GnosisVoucherRedemption,GnosisVoucherReserve}.t.sol",
     productionTargets: VOUCHER_PRODUCTION_TARGETS,
+    extraRuns: [{
+      profile: "production",
+      glob: "test/fork/ArbitrumStewardSafe.t.sol",
+      matchTest: "testArbitrumStewardSafe_",
+      isolate: true,
+      description: "Production native Safe role hooks and CCIP dispatch under the cold callback gas limit",
+    }],
   },
 };
 
@@ -294,6 +301,7 @@ function runShard(name) {
       extraRun.glob,
       "--match-test",
       extraRun.matchTest,
+      ...(extraRun.isolate ? ["--isolate"] : []),
       ...extraForkArgs,
       ...commonArgs(),
     ];

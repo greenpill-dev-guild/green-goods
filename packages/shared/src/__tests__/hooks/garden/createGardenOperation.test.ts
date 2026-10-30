@@ -143,6 +143,27 @@ describe("createGardenOperation", () => {
   // ------------------------------------------
 
   describe("successful operation", () => {
+    it.each([
+      "owner",
+      "steward",
+      "gardener",
+    ] as const)("reserves callback gas only for the %s role when adding or removing", async (memberType) => {
+      const sender = createMockSender();
+      for (const operationType of ["add", "remove"] as const) {
+        const operation = createGardenOperation(
+          GARDEN_ID,
+          createConfig({ memberType, operationType }),
+          sender,
+          USER_ADDRESS,
+          CHAIN_ID,
+          createMockExecuteWithToast(),
+          mockSetIsLoading
+        );
+        expect((await operation(TARGET_ADDRESS)).success).toBe(true);
+        const call = sender.sendContractCall.mock.calls.at(-1)[0];
+        expect(call.gasBuffer).toBe(memberType === "gardener" ? undefined : 1_000_000n);
+      }
+    });
     it("returns success with tx hash", async () => {
       const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();

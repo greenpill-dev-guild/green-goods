@@ -17,6 +17,7 @@
  */
 
 import {
+  estimateGas as defaultEstimateGas,
   signTypedData as defaultSignTypedData,
   ConnectorNotConnectedError,
   getAccount as defaultGetAccount,
@@ -26,7 +27,7 @@ import {
   waitForTransactionReceipt as defaultWaitForReceipt,
   type Config,
 } from "@wagmi/core";
-import type { Abi, Hex } from "viem";
+import { encodeFunctionData, type Abi, type Hex } from "viem";
 import type { Address } from "../../types/domain";
 import { isCanonicalTransactionHash } from "./confirmation";
 import { reconcileWalletBroadcast } from "./wallet-reconciliation";
@@ -72,6 +73,7 @@ async function withinMs<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 /** Injectable dependency for testability */
 export interface WalletSenderDeps {
+  estimateCallGas?: (config: Config, call: ContractCall) => Promise<bigint>;
   reconcileBroadcast?: TransactionSender["reconcileBroadcast"];
   signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
   waitForTransactionReceipt: (
@@ -131,6 +133,7 @@ export class WalletSender implements TransactionSender {
     args: readonly unknown[];
     chainId?: number;
     value?: bigint;
+    gas?: bigint;
   }) => Promise<`0x${string}`>;
   private deps: WalletSenderDeps;
 
@@ -144,6 +147,7 @@ export class WalletSender implements TransactionSender {
       args: readonly unknown[];
       chainId?: number;
       value?: bigint;
+      gas?: bigint;
     }) => Promise<`0x${string}`>,
     _erc7677ProxyUrl?: string,
     deps?: WalletSenderDeps
@@ -171,6 +175,18 @@ export class WalletSender implements TransactionSender {
           >
         )(config, params),
     };
+    this.deps.estimateCallGas ??= (config, call) =>
+      defaultEstimateGas(config, {
+        to: call.address,
+        data: encodeFunctionData({
+          abi: call.abi,
+          functionName: call.functionName,
+          args: call.args,
+        }),
+        account: call.account,
+        chainId: call.chainId,
+        value: call.value,
+      });
     this.deps.signTypedData ??= (config, request) =>
       defaultSignTypedData(config, { ...request.data, account: request.account } as Parameters<
         typeof defaultSignTypedData
@@ -253,10 +269,16 @@ export class WalletSender implements TransactionSender {
     // Fall back to direct writeContractAsync if the wallet doesn't support it.
 
     const call = this.forSigner(named);
+    if (call.gasBuffer !== undefined && call.gasBuffer < 0n) throw new Error("Invalid gas buffer");
     // Cast to string to allow non-canonical hash detection (Safe wallets
     // can return identifiers that don't match `0x${string}` at runtime).
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.readyWallet(call, chainId, options, "write");
+    const gas = call.gasBuffer
+      ? (await this.deps.estimateCallGas!(this.config, { ...call, chainId })) + call.gasBuffer
+      : undefined;
+    // Estimation can outlive the wallet connection that authorized this call.
+    if (gas !== undefined) await this.assertSigner(call, options);
     // The wallet approves and broadcasts in one step, so the intent is recorded
     // before asking. A rejected prompt is recognised and clears it.
     await options.onBeforeBroadcast?.();
@@ -274,6 +296,7 @@ export class WalletSender implements TransactionSender {
           args: call.args,
           chainId,
           ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
+          ...(gas !== undefined ? { gas } : {}),
         }),
       () => this.readyWallet(call, chainId, options, "retry")
     );
@@ -358,6 +381,8 @@ export class WalletSender implements TransactionSender {
     options: AtomicBatchOptions = {}
   ): Promise<TxResult> {
     if (calls.length === 0) throw new Error("Cannot send empty batch");
+    if (calls.some((call) => call.gasBuffer !== undefined))
+      throw new Error("Gas-buffered calls require individual execution");
     const sendCalls = this.deps.sendCalls;
     const waitForCallsStatus = this.deps.waitForCallsStatus;
     if (!sendCalls || !waitForCallsStatus) {

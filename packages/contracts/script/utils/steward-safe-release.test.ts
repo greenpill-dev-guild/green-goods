@@ -49,6 +49,35 @@ function artifacts(): StewardArtifacts {
 }
 const commit = "a".repeat(40);
 describe("roster steward Safe release", () => {
+  it("binds a native source Safe and destination mirror to the same garden without a bootstrap signer", () => {
+    const m = {
+      ...fixture(),
+      schemaVersion: 2,
+      sourceSafe: { expectedTopHat: String(9n << 224n), salt: "7" },
+    };
+    const a = {
+      ...artifacts(),
+      StewardSafePublisher: {
+        ...artifacts().StewardRolePublisher,
+        abi: ["constructor(address,address,address,uint256,address,string,uint256,uint256)"],
+        metadata: {
+          ...artifacts().StewardRolePublisher.metadata,
+          settings: {
+            ...artifacts().StewardRolePublisher.metadata.settings,
+            compilationTarget: { "src/accounts/StewardSafePublisher.sol": "StewardSafePublisher" },
+          },
+        },
+      },
+    };
+    const plan = buildStewardPlan(m, a, commit);
+    expect(plan.transactions.map((tx) => tx.contract)).toEqual(["StewardSafePublisher", "StewardSafeReceiver"]);
+    expect(plan.activationIncluded).toBe(false);
+    expect(plan.transactions[0].data).toContain(plan.transactions[1].address.slice(2).toLowerCase());
+    expect(() => buildStewardPlan({ ...m, bootstrapSigner: address(90) }, a, commit)).toThrow();
+    expect(inspectStewardManifest({ ...m, sourceSafe: { ...m.sourceSafe, expectedTopHat: null } }).missing).toContain(
+      "sourceSafe.expectedTopHat",
+    );
+  });
   it("keeps missing deployment and real signer inputs explicit", () => {
     const incomplete = { ...fixture(), garden: null, confirmedStewards: [] };
     const report = inspectStewardManifest(incomplete);

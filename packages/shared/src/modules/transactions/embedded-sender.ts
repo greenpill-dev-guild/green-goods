@@ -15,6 +15,7 @@
  */
 
 import {
+  estimateGas as defaultEstimateGas,
   signTypedData as defaultSignTypedData,
   ConnectorNotConnectedError,
   getAccount as defaultGetAccount,
@@ -22,7 +23,7 @@ import {
   writeContract as defaultWriteContract,
   type Config,
 } from "@wagmi/core";
-import type { Hex } from "viem";
+import { encodeFunctionData, type Hex } from "viem";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -46,6 +47,7 @@ import {
 
 /** Injectable wagmi functions for testability */
 export interface EmbeddedSenderDeps {
+  estimateCallGas?: (config: Config, call: ContractCall) => Promise<bigint>;
   signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
   writeContract: (config: Config, params: Record<string, unknown>) => Promise<Hex>;
   waitForTransactionReceipt: (
@@ -83,6 +85,18 @@ export class EmbeddedSender implements TransactionSender {
         defaultWaitForReceipt as unknown as EmbeddedSenderDeps["waitForTransactionReceipt"],
       assertWriteSafety: assertLocalArbitrumForkWallet,
     };
+    this.deps.estimateCallGas ??= (config, call) =>
+      defaultEstimateGas(config, {
+        to: call.address,
+        data: encodeFunctionData({
+          abi: call.abi,
+          functionName: call.functionName,
+          args: call.args,
+        }),
+        account: call.account,
+        chainId: call.chainId,
+        value: call.value,
+      });
     this.deps.signTypedData ??= (config, request) =>
       defaultSignTypedData(config, { ...request.data, account: request.account } as Parameters<
         typeof defaultSignTypedData
@@ -158,8 +172,14 @@ export class EmbeddedSender implements TransactionSender {
   ): Promise<TxResult> {
     // TODO: Replace with EIP-5792 sendCalls + paymasterService once @wagmi/core/experimental is stable.
     const call = this.forSigner(named);
+    if (call.gasBuffer !== undefined && call.gasBuffer < 0n) throw new Error("Invalid gas buffer");
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.readyWallet(call, chainId, options, "write");
+    const gas = call.gasBuffer
+      ? (await this.deps.estimateCallGas!(this.config, { ...call, chainId })) + call.gasBuffer
+      : undefined;
+    // Estimation can outlive the wallet connection that authorized this call.
+    if (gas !== undefined) await this.assertSigner(call, options);
     await options.onBeforeBroadcast?.();
 
     // The wallet can change network between the guard and the write. viem then
@@ -175,6 +195,7 @@ export class EmbeddedSender implements TransactionSender {
           args: call.args as unknown[],
           chainId,
           ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
+          ...(gas !== undefined ? { gas } : {}),
         }),
       () => this.readyWallet(call, chainId, options, "retry")
     );

@@ -1337,7 +1337,9 @@ export function renderContractOperations({ root, sources, digest }) {
       body += "| Command | Networks | Modes |\n|---|---|---|\n";
       for (const operation of cluster) {
         const required = (operation.required ?? []).map((key) => ` --${key} <value>`).join("");
-        const command = `bun run contracts -- ${operation.command}${operation.positional ? " <input>" : ""}${operation.network ? " --network <network>" : ""}${operation.modes && !operation.modeOptional ? " --mode <mode>" : ""}${required}`;
+        const command = operation.exampleArgs
+          ? `bun run contracts -- ${operation.command} ${operation.exampleArgs.join(" ")}`
+          : `bun run contracts -- ${operation.command}${operation.positional ? " <input>" : ""}${operation.network ? " --network <network>" : ""}${operation.modes && !operation.modeOptional ? " --mode <mode>" : ""}${required}`;
         const modes = operation.modes ? `${Object.keys(operation.modes).join(", ")}${operation.modeOptional ? " (optional)" : ""}` : "none";
         body += `| ${copyCommand(command)} | ${operation.network ? operation.networks.join(", ") : "not network-scoped"} | ${modes} |\n`;
       }

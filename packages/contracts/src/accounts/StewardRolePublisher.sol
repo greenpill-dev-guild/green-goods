@@ -111,7 +111,11 @@ contract StewardRolePublisher is ReentrancyGuard, IStewardRoleObserver {
             states[account] = next;
             emit StewardQueued(account, next.revision, next.eligible);
         }
+        _afterSync(account);
     }
+
+    /// @dev Native Safe reconciliation is isolated by the dual-chain publisher; legacy publishers have no local Safe.
+    function _afterSync(address) internal virtual { }
 
     function _nextState(address account) private view returns (State memory next) {
         if (uint160(account) <= 1) revert InvalidAccount();
@@ -123,7 +127,7 @@ contract StewardRolePublisher is ReentrancyGuard, IStewardRoleObserver {
         }
     }
 
-    function _isSteward(address account) private view returns (bool) {
+    function _isSteward(address account) internal view returns (bool) {
         // Changing/deconfiguring the pinned source hat cannot silently grant a different roster.
         (, uint256 currentHat,,,,,, bool configured) = hatsModule.getGardenHatIds(garden);
         if (!configured || currentHat != stewardHat) return false;

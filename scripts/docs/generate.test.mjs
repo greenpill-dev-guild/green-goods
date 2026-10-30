@@ -1138,7 +1138,7 @@ test("every copied contract command resolves once its placeholders are filled", 
   // A row a reader copies has to be a complete command: with a network and mode from its own row
   // and a value for each placeholder, the CLI's own resolver must accept it. The samples only need
   // the right shape, and a new required value without one fails here on purpose.
-  const SAMPLE = { "expected-nonce": "1", step: "1", commit: "a".repeat(40), receipt: `0x${"a".repeat(64)}` };
+  const SAMPLE = { "expected-nonce": "1", step: "1", commit: "a".repeat(40), receipt: `0x${"a".repeat(64)}`, manifest: "config/aiyeloja-steward-safe-release.json", plan: ".generated/steward-safe/release.plan.json", rehearsal: ".generated/steward-safe/release.simulation.json", roster: ".generated/steward-safe/roster.json", output: ".generated/steward-safe/coordination.json" };
   const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/packages/contract-operations.mdx");
   const rendered = renderProjection(REPO_ROOT, projection);
   const decode = (text) => text.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&#124;", "|").replaceAll("&amp;", "&");
@@ -1191,6 +1191,7 @@ test("contract operations group by verb, factor common options, and carry no ret
   assert.equal((rendered.match(/<CopyCommand command="bun run contracts -- /g) ?? []).length >= 92, true);
   assert.match(rendered, /^Options: `--save-artifacts`/m);
   assert.ok(rendered.includes('<CopyCommand command="bun run contracts -- deploy greenwill --network &lt;network&gt; --mode &lt;mode&gt;" />'), "network-scoped, mode-required commands carry both placeholders");
+  assert.ok(rendered.includes("release steward-safe-execution --mode verify --manifest &lt;value&gt; --plan &lt;value&gt; --rehearsal &lt;value&gt; --roster &lt;value&gt; --output &lt;value&gt;"), "mode-specific required inputs have a complete read-only example");
   assert.match(rendered, /<CopyCommand command="bun run contracts -- release operator[^"]*" \/>/, "an operation without a network stays listed");
   assert.doesNotMatch(rendered, /bun run contracts -- release operator[^"]*--network/, "an operation without a network carries no network placeholder");
   const deploySection = rendered.slice(rendered.indexOf("### Deploy ("), rendered.indexOf("### Upgrade ("));

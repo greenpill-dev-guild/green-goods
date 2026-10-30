@@ -462,6 +462,13 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               test: /[\\/]@reown[\\/]appkit[\\/]dist[\\/]esm[\\/]src[\\/]library[\\/]react[\\/]components\.js$/,
               sideEffects: false,
             },
+            // Attestation encoding uses only SchemaEncoder. The SDK and generated contracts
+            // declare classes, ABIs and constants; importing their barrels must not retain
+            // unused clients, decorated methods and contract factories in the offline shell.
+            {
+              test: /[\\/]node_modules[\\/]@ethereum-attestation-service[\\/](?:eas-sdk|eas-contracts)[\\/]/,
+              sideEffects: false,
+            },
             // The commitment-pooling barrels and the client's promise-row and card barrels
             // only re-export. Startup reads a few pooling helpers and rows through them;
             // without this, every module behind them joined the installed startup budget,

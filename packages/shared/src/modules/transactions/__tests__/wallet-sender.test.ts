@@ -78,6 +78,23 @@ describe("WalletSender", () => {
   });
 
   describe("sendContractCall", () => {
+    it("refuses a connection takeover during buffered gas estimation", async () => {
+      mockDeps.estimateCallGas = async () => {
+        mockDeps.getAccount = () => ({ address: "0x1111111111111111111111111111111111111111" });
+        return 200_000n;
+      };
+      await expect(
+        sender.sendContractCall({ ...TEST_CALL, gasBuffer: 1_000_000n })
+      ).rejects.toThrow();
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
+    });
+
+    it("refuses buffered atomic batches instead of dropping their callback budget", async () => {
+      await expect(
+        sender.sendAtomicBatch([{ ...TEST_CALL, gasBuffer: 1_000_000n }])
+      ).rejects.toThrow("Gas-buffered calls require individual execution");
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
+    });
     it("sends transaction via writeContractAsync", async () => {
       const result = await sender.sendContractCall(TEST_CALL);
 

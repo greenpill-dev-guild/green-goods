@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:d5b9c6c56a4a0fcd6ae5408f542f93d8f76aa43bdd2540470ac79c1b16c2c9e1"
+source_digest: "sha256:43936e9a536866d8200a91eba2d319dab45a0175f12858078c0937ad74f6ac7a"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -18,7 +18,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # Contract operations
 
-Generated from the package-owned CLI definitions: 98 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
+Generated from the package-owned CLI definitions: 99 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
 
 `--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.
 
@@ -135,7 +135,7 @@ No options beyond the command itself.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
-### Release (12)
+### Release (13)
 
 Run a release session step by step with its transaction boundaries.
 
@@ -185,6 +185,12 @@ Options: `--recover-lock`, `--resume-plan`, `--manifest <value>`, `--plan <value
 | Command | Networks | Modes |
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release source-upgrades --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate, prepare-execution, broadcast, broadcast-creates, export-safe, sign-safe, broadcast-safe, draft-safe-batch, simulate-safe-batch, export-safe-batch, adopt-safe-batch, adopt |
+
+Options: `--manifest <value> (required)`, `--plan <value> (required)`, `--rehearsal <value> (required)`, `--envelope <value>`, `--target-chain <value>`, `--max-fee-wei <value>`, `--max-cost-wei <value>`, `--receipt <value>`, `--output <value>`, `--roster <value>`.
+
+| Command | Networks | Modes |
+|---|---|---|
+| <CopyCommand command="bun run contracts -- release steward-safe-execution --mode verify --manifest &lt;value&gt; --plan &lt;value&gt; --rehearsal &lt;value&gt; --roster &lt;value&gt; --output &lt;value&gt;" /> | not network-scoped | prepare, broadcast, adopt, activation, verify |
 
 ### Settlement (23)
 

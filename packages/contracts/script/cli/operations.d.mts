@@ -1,7 +1,7 @@
 export interface Invocation { command: string; args: string[]; cwd: string; env: Record<string, string>; }
 export interface Resolution extends Invocation { operation: string; network?: string; mode?: string; checks: Array<{command: string; args: string[]}>; explain: boolean; json: boolean; capabilities: string[]; effects: string[]; safeguards: string[]; }
 export interface Help { help: true; topic: string; }
-export interface Operation { command: string; handler: string; prefix: string[]; network: boolean; networks: string[]; modes: Record<string, string[]> | null; flags: string[]; values: string[]; positional: number; }
+export interface Operation { exampleArgs?: string[]; command: string; handler: string; prefix: string[]; network: boolean; networks: string[]; modes: Record<string, string[]> | null; flags: string[]; values: string[]; positional: number; }
 export const PACKAGE_ROOT: string;
 export const OPERATOR: string;
 export const OPERATOR_ARGUMENTS: Readonly<Record<string, readonly string[]>>;
@@ -12,3 +12,4 @@ export function resolveMintingTransaction(network: string, gardenToken: string, 
 export function explainOperation(resolution: Resolution): Record<string, unknown>;
 export function renderHelp(topic?: string): string;
 export function validateSourceUpgradeMode(values: Record<string, string | boolean | undefined>): void;
+export function validateStewardExecutionMode(values: Record<string, string | boolean | undefined>): void;

@@ -13,7 +13,8 @@ interface Chain {
   nonce: number | null;
 }
 export interface StewardManifest {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
+  sourceSafe?: { expectedTopHat: string | null; salt: string };
   releaseId: string;
   threshold: 2;
   bootstrapSigner?: string | null;
@@ -27,7 +28,15 @@ export interface StewardManifest {
   confirmedStewards: string[];
   networks: Record<StewardNetwork, Chain>;
 }
-export type StewardArtifacts = Record<(typeof STEWARD_CONTRACTS)[number], VoucherArtifact>;
+export type StewardArtifacts = Record<(typeof STEWARD_CONTRACTS)[number], VoucherArtifact> & {
+  StewardSafePublisher?: VoucherArtifact;
+};
+export function stewardContracts(manifest: StewardManifest) {
+  return [
+    manifest.schemaVersion === 2 ? "StewardSafePublisher" : "StewardRolePublisher",
+    "StewardSafeReceiver",
+  ] as const;
+}
 export interface StewardPlan {
   schemaVersion: 1;
   /** The Safe mirrors the steward roster: one steward signs alone, two or more need two signatures. */
@@ -67,6 +76,7 @@ export function inspectStewardManifest(value: unknown): {
     value,
     [
       "schemaVersion",
+      ...((value as StewardManifest)?.schemaVersion === 2 ? ["sourceSafe"] : []),
       "releaseId",
       "threshold",
       ...(Object.hasOwn(value as object, "bootstrapSigner") ? ["bootstrapSigner"] : []),
@@ -83,7 +93,7 @@ export function inspectStewardManifest(value: unknown): {
     "manifest",
   );
   if (
-    root.schemaVersion !== 1 ||
+    ![1, 2].includes(root.schemaVersion as number) ||
     root.threshold !== 2 ||
     typeof root.releaseId !== "string" ||
     !/^[a-z0-9][a-z0-9-]{0,79}$/.test(root.releaseId)
@@ -114,6 +124,15 @@ export function inspectStewardManifest(value: unknown): {
   }
   if (root.bootstrapSigner !== undefined && root.bootstrapSigner !== null)
     address(root.bootstrapSigner, "bootstrapSigner");
+  if (root.schemaVersion === 2) {
+    if (root.bootstrapSigner !== null && root.bootstrapSigner !== undefined)
+      throw new Error("Dual steward Safes cannot use a bootstrap signer");
+    const source = object(root.sourceSafe, ["expectedTopHat", "salt"], "sourceSafe");
+    uint(source.expectedTopHat, "sourceSafe.expectedTopHat");
+    uint(source.salt, "sourceSafe.salt", true);
+    if (source.expectedTopHat !== null && (BigInt(source.expectedTopHat as string) & ((1n << 224n) - 1n)) !== 0n)
+      throw new Error("Expected source top Hat must identify a root tree");
+  }
   address(root.garden, "garden");
   // The receiver names the garden's Hats tree with it; Hats details accept any non-empty label.
   if (root.gardenName === null) missing.push("gardenName");
@@ -154,20 +173,21 @@ export function inspectStewardManifest(value: unknown): {
   };
 }
 
-export function loadStewardArtifacts(out: string): StewardArtifacts {
+export function loadStewardArtifacts(out: string, dual = false): StewardArtifacts {
   return Object.fromEntries(
-    STEWARD_CONTRACTS.map((name) => [
+    [...STEWARD_CONTRACTS, ...(dual ? ["StewardSafePublisher"] : [])].map((name) => [
       name,
       JSON.parse(readFileSync(path.join(out, `${name}.sol`, `${name}.json`), "utf8")),
     ]),
   ) as StewardArtifacts;
 }
 
-export function inspectStewardArtifacts(artifacts: StewardArtifacts): Record<string, string> {
+export function inspectStewardArtifacts(artifacts: StewardArtifacts, dual = false): Record<string, string> {
   const hashes: Record<string, string> = {};
-  for (const name of STEWARD_CONTRACTS) {
-    const a = artifacts[name],
-      settings = a.metadata.settings;
+  for (const name of [dual ? "StewardSafePublisher" : "StewardRolePublisher", "StewardSafeReceiver"] as const) {
+    const a = artifacts[name];
+    if (!a) throw new Error(`Missing ${name} artifact`);
+    const settings = a.metadata.settings;
     if (
       !a.metadata.compiler.version.startsWith("0.8.28+") ||
       !settings.optimizer.enabled ||
@@ -205,10 +225,17 @@ export function buildStewardPlan(value: unknown, artifacts: StewardArtifacts, so
   );
   const transactions = (["arbitrum", "gnosis"] as const).map((network, index) => {
     const c = m.networks[network],
-      name = STEWARD_CONTRACTS[index];
+      name = stewardContracts(m)[index];
     const args =
       network === "arbitrum"
-        ? [c.router, m.hatsModule, m.garden, m.stewardHat, addresses.gnosis]
+        ? [
+            c.router,
+            m.hatsModule,
+            m.garden,
+            m.stewardHat,
+            addresses.gnosis,
+            ...(m.schemaVersion === 2 ? [m.gardenName, m.sourceSafe!.expectedTopHat, m.sourceSafe!.salt] : []),
+          ]
         : [
             c.router,
             addresses.arbitrum,
@@ -228,8 +255,8 @@ export function buildStewardPlan(value: unknown, artifacts: StewardArtifacts, so
       to: null,
       value: "0" as const,
       data: concat([
-        `0x${artifacts[name].bytecode.object.replace(/^0x/, "")}`,
-        new Interface(artifacts[name].abi).encodeDeploy(args),
+        `0x${artifacts[name]!.bytecode.object.replace(/^0x/, "")}`,
+        new Interface(artifacts[name]!.abi).encodeDeploy(args),
       ]),
     };
   });
@@ -239,7 +266,7 @@ export function buildStewardPlan(value: unknown, artifacts: StewardArtifacts, so
     releaseId: m.releaseId,
     sourceCommit,
     manifestHash: digest(m),
-    artifactHashes: inspectStewardArtifacts(artifacts),
+    artifactHashes: inspectStewardArtifacts(artifacts, m.schemaVersion === 2),
     transactions,
     observerRegistration: {
       chainId: 42161,

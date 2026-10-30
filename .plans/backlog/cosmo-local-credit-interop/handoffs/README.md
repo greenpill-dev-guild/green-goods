@@ -12,6 +12,10 @@ Older local-only dispatch limits below are historical.
 closes the bootstrap-mode gap found in the 26 October review, in which every mirrored steward
 could sign alone. It also records the general steward Safe model accepted the same day.
 
+[Dual-chain steward Safes, 29 October](dual-chain-steward-safes.md) extends that model with a native
+Arbitrum Safe, automatic source owner reconciliation and bounded release tooling for another
+garden. Deployment and activation remain separate from the private preparation package.
+
 [Green Goods voucher offers publishing runbook, 27 October](green-goods-offer-publishing-runbook.md)
 publishes the approved assisted-session and Claude offers after the Gnosis mint, limit and approve
 batch. Its [terms script](green-goods-offer-terms-batch.mjs) builds a steward's sending page or a Safe

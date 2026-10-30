@@ -11,6 +11,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { HatsModule } from "../../src/modules/Hats.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
+import { StewardSafePublisher } from "../../src/accounts/StewardSafePublisher.sol";
 import { StewardRolePublisher } from "../../src/accounts/StewardRolePublisher.sol";
 import { StewardRouterFixture } from "../helpers/StewardRoleFixtures.sol";
 
@@ -269,6 +270,14 @@ contract GnosisStewardSafeForkTest is Test {
     }
 
     function testGnosisStewardSafe_fundedSourceRoleLifecycleAutomaticallyUpdatesTheRealDestinationSafe() public {
+        _roleLifecycle(false);
+    }
+
+    function testGnosisStewardSafe_oneSourceHookAutomaticallyUpdatesBothSafes() public {
+        _roleLifecycle(true);
+    }
+
+    function _roleLifecycle(bool dual) private {
         // Actual source module/publisher with fictional Arbitrum Hats and mocked CCIP delivery.
         vm.chainId(42_161);
         MockHats sourceHats = new MockHats();
@@ -287,8 +296,24 @@ contract GnosisStewardSafeForkTest is Test {
         require(nonce > 0 && nonce < 126, "fixture CREATE nonce");
         address predictedReceiver =
             address(uint160(uint256(keccak256(abi.encodePacked(hex"d694", address(this), uint8(nonce + 1))))));
-        StewardRolePublisher source =
-            new StewardRolePublisher(address(sourceRouter), address(module), GARDEN, 2, predictedReceiver);
+        StewardRolePublisher source;
+        if (dual) {
+            (bool counterOk, bytes memory sourceCounter) =
+                receiver.HATS().staticcall(abi.encodeWithSignature("lastTopHatId()"));
+            require(counterOk, "source counter");
+            source = new StewardSafePublisher(
+                address(sourceRouter),
+                address(module),
+                GARDEN,
+                2,
+                predictedReceiver,
+                "Fixture Garden",
+                (abi.decode(sourceCounter, (uint256)) + 1) << 224,
+                53
+            );
+        } else {
+            source = new StewardRolePublisher(address(sourceRouter), address(module), GARDEN, 2, predictedReceiver);
+        }
         vm.chainId(100);
         (bool ok, bytes memory counter) = receiver.HATS().staticcall(abi.encodeWithSignature("lastTopHatId()"));
         require(ok, "top Hat counter");
@@ -304,6 +329,7 @@ contract GnosisStewardSafeForkTest is Test {
         vm.deal(address(source), 100);
         vm.prank(GARDEN);
         module.grantRole(GARDEN, vm.addr(A), IHatsModule.GardenRole.Steward);
+        if (dual) assertTrue(StewardSafePublisher(payable(address(source))).safe().isOwner(vm.addr(A)));
         bytes memory oldGrant = sourceRouter.lastData();
         _deliverSource(source, sourceRouter.lastData());
         vm.chainId(42_161);
@@ -319,6 +345,12 @@ contract GnosisStewardSafeForkTest is Test {
         vm.chainId(42_161);
         vm.prank(GARDEN);
         module.revokeRole(GARDEN, vm.addr(A), IHatsModule.GardenRole.Steward);
+        if (dual) {
+            StewardSafePublisher native = StewardSafePublisher(payable(address(source)));
+            assertFalse(native.safe().isOwner(vm.addr(A)));
+            assertFalse(native.gate().isValidSigner(vm.addr(A)));
+            assertEq(native.safe().getThreshold(), 2);
+        }
         _deliverSource(source, sourceRouter.lastData());
         _deliverSource(source, oldGrant);
         assertFalse(gate.isValidSigner(vm.addr(A)));

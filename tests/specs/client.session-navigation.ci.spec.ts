@@ -13,13 +13,19 @@ async function expectHomeInGarden(page: Page) {
 test.describe("Client Navigation", () => {
   test.use({ baseURL: TEST_URLS.client });
 
-  test("redirects unauthenticated users from protected routes", async ({ page }) => {
-    for (const route of ["/home?presentation=pwa", "/home/profile", "/home/garden"]) {
+  for (const route of [
+    "/home?presentation=pwa",
+    "/home/profile?presentation=pwa",
+    "/home/garden?presentation=pwa",
+  ]) {
+    test(`redirects signed-out users from ${route}`, async ({ page }) => {
+      const helper = await setupAuthenticatedClient(page, "disconnected");
       await page.goto(route);
+      await helper.waitForPageLoad();
       await expect(page).toHaveURL(/\/home\/login/);
       await expect(page.getByTestId("login-button")).toBeVisible();
-    }
-  });
+    });
+  }
 
   test("opens Profile from the mobile navigation", async ({ page }) => {
     const helper = await setupAuthenticatedClient(page);
@@ -105,7 +111,12 @@ test.describe("Client mock-auth session", () => {
     await page.goto("/home/profile?presentation=pwa");
     await helper.waitForPageLoad();
 
-    await page.getByRole("button", { name: "Logout", exact: true }).click();
+    // Mock logout reloads the document; wait for that boot before testing the redirect.
+    await Promise.all([
+      page.waitForEvent("domcontentloaded"),
+      page.getByRole("button", { name: "Logout", exact: true }).click(),
+    ]);
+    await helper.waitForPageLoad();
     await expect(page).toHaveURL(/\/home\/login/);
     await expect(page.getByTestId("login-button")).toBeVisible();
     await expect

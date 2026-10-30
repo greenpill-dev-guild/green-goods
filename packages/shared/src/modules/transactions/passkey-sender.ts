@@ -94,6 +94,7 @@ export class PasskeySender implements TransactionSender {
     options: TransactionSendOptions = {}
   ): Promise<TxResult> {
     await this.deps.assertWriteSafety?.();
+    if (call.gasBuffer !== undefined && call.gasBuffer < 0n) throw new Error("Invalid gas buffer");
 
     const chainId = call.chainId ?? this.client.chain?.id;
     if (chainId === undefined) throw new SmartAccountClientError("chain_mismatch");
@@ -113,11 +114,16 @@ export class PasskeySender implements TransactionSender {
       args: call.args as unknown[],
     });
 
+    const calls = [{ to: call.address, value: call.value ?? 0n, data }];
+    const callGasLimit = call.gasBuffer
+      ? (await client.estimateUserOperationGas({ calls })).callGasLimit + call.gasBuffer
+      : undefined;
     assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
     await options.assertOwnership?.();
     const operationHash = await client.sendUserOperation({
       account: this.reportingAccount(client, options),
-      calls: [{ to: call.address, value: call.value ?? 0n, data }],
+      calls,
+      ...(callGasLimit !== undefined ? { callGasLimit } : {}),
     });
     await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash, chainId });
     const receipt = await client.waitForUserOperationReceipt({
