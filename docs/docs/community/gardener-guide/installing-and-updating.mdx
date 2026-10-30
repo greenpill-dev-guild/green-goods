@@ -5,7 +5,7 @@ slug: /community/gardener-guide/installing-and-updating
 description: "Put Green Goods on your phone, create your account, and keep the app up to date without losing work you have not sent yet."
 audience: gardener
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-29
 feature_status: Live
 goal: "Get a gardener onto the current version, signed in, and able to record work without a signal, with drafts and unsent work intact."
 difficulty: "quickstart"
@@ -14,6 +14,7 @@ prereqs: "An Android phone with Chrome, or an iPhone with Safari, and a connecti
 next_steps: "/community/gardener-guide/joining-a-garden"
 persona_context: "Gardeners installing or updating on their own phone, often in the field."
 source_of_truth:
+  - packages/client/src/config/pwaManifest.ts
   - packages/client/src/components/Public/PublicInstallAction.tsx
   - packages/client/src/components/Public/PublicInstallDialog.tsx
   - packages/shared/src/hooks/app/useInstallGuidance.ts
@@ -53,15 +54,25 @@ Choose [Android](#install-on-android) or [iPhone](#install-on-iphone) below. Alr
 - **A connection.** Installing and signing in both need one. Recording work afterwards does not.
 - **A few minutes.** Allow time for the app to download before you head out.
 
+:::note Invited to test the beta?
+Open [beta.greengoods.app](https://beta.greengoods.app) in your phone's browser and follow the install steps below from that site. Everyone else uses [greengoods.app](https://greengoods.app).
+
+The full install name is **Green Goods Beta**, but the home-screen label can still say **Green Goods**. If you have several copies, return to the beta site in Chrome and use **Open App** when offered. That opens the copy for that site. An update to one copy does not update the others.
+
+Keep any older copy that holds unsent work. Open it and send that work before considering removing it. Never clear app storage to resolve an install loop.
+:::
+
 
 ## Install on Android
 
-1. Open [greengoods.app](https://greengoods.app) in Chrome.
+1. Open [greengoods.app](https://greengoods.app) in Chrome, or the beta site if you were invited to test.
 2. Tap **Install App**. On a phone it is the first button on the home page. You can also find it at the bottom of the menu.
 3. Confirm when Chrome asks to install.
 4. Open Green Goods from your home screen.
 
 If Chrome does not ask, Green Goods shows **Install Green Goods on this phone** with two steps instead: tap Chrome's menu (the three dots), then choose **Add to Home Screen** or **Install App**.
+
+If the page says **Open App**, try that before installing another copy. If the install returns you to the same page, check your home screen for the app and open it. If you still only see the website, use Chrome's install menu on the same site. Avoid repeatedly installing copies from different links.
 
 
 <figure className="gg-figure" style={{maxWidth: '480px'}}>
@@ -70,7 +81,7 @@ If Chrome does not ask, Green Goods shows **Install Green Goods on this phone** 
 
 ## Install on iPhone
 
-1. Open [greengoods.app](https://greengoods.app) in Safari.
+1. Open [greengoods.app](https://greengoods.app) in Safari, or the beta site if you were invited to test.
 2. Tap **Install App**.
 3. Follow the two steps Green Goods shows: tap the Share button in Safari's bar, then scroll down and tap **Add to Home Screen**.
 4. Open Green Goods from your home screen.
@@ -83,6 +94,8 @@ If Chrome does not ask, Green Goods shows **Install Green Goods on this phone** 
 ## Create your account
 
 Always open Green Goods from the home screen. A browser tab shows the public website, not the app.
+
+**Already a member?** Use the same passkey or wallet account you used before. Follow [signing in to an existing account](#sign-in-to-an-existing-account) below instead of creating a new account for the beta.
 
 **A passkey lets you sign in without a password.** Your phone or passkey manager keeps a sign-in key. When Green Goods asks you to confirm, you use your fingerprint, face, or screen lock. Choose **Create Account** to use this route.
 
@@ -97,7 +110,9 @@ If you already use a wallet, **Sign in with a Wallet** connects that account ins
   <figcaption>Use the same sign-in route each time to keep your work and membership together.</figcaption>
 </figure>
 
-**Already have an account?** Tap **Already have an account?**, enter your name, and tap **Sign in with Passkey**. Your passkey usually travels with your Apple or Google account, so the new phone needs to be signed in to that same account.
+### Sign in to an existing account
+
+If the app remembers your passkey, use its sign-in button. On a new browser or phone, tap **Already have an account?**, enter your name, and tap **Sign in with Passkey**. Your passkey usually travels with your Apple or Google account, so the new phone needs to be signed in to that same account. If you joined with a wallet, choose **Sign in with a Wallet** and connect that wallet instead.
 
 Keep access to the passkey you created. If your passkey manager did not save or sync it, signing in to an Apple or Google account alone will not restore it. Green Goods cannot replace a lost passkey for you.
 
@@ -111,6 +126,13 @@ Keep access to the passkey you created. If your passkey manager did not save or 
 Nothing is waiting on anyone else. Your next step is to join the garden you work with.
 
 In the background, the app saves what it needs to work without a signal. You can watch it under **Profile**, on the **Account** tab, in the **Offline** row. It keeps your gardens' work lists, plus photos for the garden you have open and for your own work. **Pause** stops it and **Resume** continues. If your phone has Data Saver on, photos wait until you tap **Resume** or turn Data Saver off.
+
+### Reach your first submission
+
+1. Follow [Join a Garden](/community/gardener-guide/joining-a-garden). On Home, **Explore Gardens** helps you find the right community. A request to join waits for a steward's decision.
+2. Once you are a member, check the garden named at the top of **Home**. Tap its name to switch through **Your Gardens** if needed.
+3. Tap **Garden** in the bottom bar and follow [Submit Work](/community/gardener-guide/uploading-your-work). For ordinary work, choose **Log Work on Its Own** if the promise list appears.
+4. After sending, open **Your Work** for that garden. **In review** means the record reached your steward; **To upload** means it is still waiting on this phone.
 
 ## Update the app
 
