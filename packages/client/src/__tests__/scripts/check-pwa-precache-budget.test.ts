@@ -240,6 +240,38 @@ afterEach(() => {
 
 describe("PWA build budgets", () => {
   it.each([
+    "node_modules/@ethereum-attestation-service/eas-contracts/dist/typechain-types/factories/EAS__factory.js",
+    "node_modules/@ethereum-attestation-service/eas-sdk/dist/lib.esm/offchain/index.js",
+  ])("rejects unused EAS code in the offline shell: %s", (module) => {
+    const output = runFailure(
+      createFixture({ pwaModules: [module], shellAssets: ["/index.html", `/${PWA_CHUNK}`] }),
+      {}
+    );
+    expect(output).toContain("unused EAS SDK code in the offline shell");
+    expect(output).toContain(module);
+  });
+
+  it("keeps the EAS schema encoder and its utility module available offline", () => {
+    const fixture = createFixture({
+      pwaModules: [
+        "node_modules/@ethereum-attestation-service/eas-sdk/dist/lib.esm/schema-encoder.js",
+        "node_modules/@ethereum-attestation-service/eas-sdk/dist/lib.esm/utils.js",
+      ],
+      shellAssets: ["/index.html", `/${PWA_CHUNK}`],
+    });
+    expect(runFailure(fixture, {})).toBe("");
+  });
+
+  it("does not apply the offline EAS restriction to code outside the shell", () => {
+    const fixture = createFixture({
+      pwaModules: [
+        "node_modules/@ethereum-attestation-service/eas-sdk/dist/lib.esm/offchain/index.js",
+      ],
+    });
+    expect(runFailure(fixture, {})).toBe("");
+  });
+
+  it.each([
     [
       "precache entry count",
       { precache: ["index.html", "assets/main.js"] },

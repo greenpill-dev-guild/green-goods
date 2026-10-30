@@ -373,6 +373,30 @@ try {
   if (forbidden.length) {
     failures.push(`forbidden public dependencies:\n  ${forbidden.join("\n  ")}`);
   }
+  // Attestation encoding uses SchemaEncoder, not the SDK's contract clients or factories.
+  // Guard the import graph as well as its size: local builds without Sentry instrumentation
+  // can fit the byte ceiling while retaining the entire unused contract SDK.
+  const unusedEasModules = new Set();
+  const offlineChunks = collectChunkClosure(
+    graph,
+    shell.assets.map((asset) => asset.replace(/^\/+/, ""))
+  );
+  for (const file of offlineChunks) {
+    for (const moduleId of graph.chunks[file]?.modules ?? []) {
+      if (
+        moduleId.includes("@ethereum-attestation-service/eas-contracts/") ||
+        (moduleId.includes("@ethereum-attestation-service/eas-sdk/") &&
+          !/\/dist\/lib\.(?:esm|commonjs)\/(?:index|schema-encoder|utils)\.js$/.test(moduleId))
+      ) {
+        unusedEasModules.add(moduleId);
+      }
+    }
+  }
+  if (unusedEasModules.size) {
+    failures.push(
+      `unused EAS SDK code in the offline shell:\n  ${[...unusedEasModules].sort().join("\n  ")}`
+    );
+  }
   // One catch-all import under the frame once brought sign-in, the work queue and the wallet
   // kit to every public page, and the entry's check above could not see it.
   const publicShell = collectManifestClosure(manifest, [publicShellKey]);
