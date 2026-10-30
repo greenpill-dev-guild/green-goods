@@ -26,7 +26,16 @@ async function emit(plugin: ReturnType<typeof createLocaleCataloguesPlugin>, pat
     typeof plugin.load !== "function"
   )
     throw new Error("catalogue hooks missing");
-  const result = await plugin.transform.call({} as never, "", path, { moduleType: "json" });
+  const result = await plugin.transform.call(
+    {
+      error(message: string): never {
+        throw new Error(message);
+      },
+    } as never,
+    "",
+    path,
+    { moduleType: "json" }
+  );
   if (!result || typeof result === "string" || typeof result.code !== "string")
     throw new Error("catalogue output missing");
   expect(result.moduleType).toBe("js");
@@ -108,5 +117,16 @@ describe("locale catalogue bundles", () => {
       expect(
         await plugin.transform.call({} as never, "", path, { moduleType: "js" })
       ).toBeUndefined();
+  });
+
+  it.each([null, [], "not a catalogue"])("rejects a non-object catalogue: %j", async (value) => {
+    const root = await mkdtemp(join(tmpdir(), "gg-invalid-locale-"));
+    roots.push(root);
+    const directory = join(root, "shared/src/i18n");
+    await mkdir(directory, { recursive: true });
+    const path = join(directory, "en.json");
+    await writeFile(path, JSON.stringify(value));
+    const plugin = await configure(join(root, "client"));
+    await expect(emit(plugin, path)).rejects.toThrow("Expected a message catalogue object:");
   });
 });
