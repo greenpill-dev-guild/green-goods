@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { Step } from "@green-goods/shared/components/Form/StepIndicator";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
@@ -9,11 +11,10 @@ import {
 } from "@green-goods/shared/utils/time";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { resolveCynefinOptions, resolveDomainMetrics } from "./StrategyKernelStep";
-import { knownDomain, ReviewRow, resolveDomainLabel, Section } from "./shared";
+import { knownDomain, resolveDomainLabel, Section } from "./shared";
 
 interface ReviewStepProps {
   /** The answers under review: the wizard's own, or the ones a send just carried. */
@@ -51,6 +52,18 @@ export function ReviewStep({ form, steps, status, onEditStep }: ReviewStepProps)
     pickerValueToUtcDay(fromCalendarDateKey(form.reportingPeriodEnd))
   );
 
+  // An answer left empty reads "Not provided", quieter than the answers, so a gap stands out.
+  const notProvided = (
+    <span className="font-normal text-text-soft">
+      {formatMessage({
+        id: "admin.assessment.review.notProvided",
+        defaultMessage: "Not provided",
+      })}
+    </span>
+  );
+  const answer = (value: string | null | undefined) =>
+    value && value.trim().length > 0 ? value : notProvided;
+
   const section = (stepId: string, rows: ReactNode) => {
     const stepIndex = steps.findIndex((step) => step.id === stepId);
     const title = steps[stepIndex]?.title ?? "";
@@ -58,10 +71,10 @@ export function ReviewStep({ form, steps, status, onEditStep }: ReviewStepProps)
       <Section
         title={title}
         action={
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             disabled={!editable}
             aria-label={formatMessage(
               { id: "app.admin.flow.review.editSection", defaultMessage: "Edit {section}" },
@@ -70,10 +83,10 @@ export function ReviewStep({ form, steps, status, onEditStep }: ReviewStepProps)
             onClick={() => onEditStep(stepIndex)}
           >
             {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
-          </AdminButton>
+          </Button>
         }
       >
-        <dl className="grid gap-3 sm:grid-cols-2">{rows}</dl>
+        <FactList frame="inset">{rows}</FactList>
       </Section>
     );
   };
@@ -90,91 +103,85 @@ export function ReviewStep({ form, steps, status, onEditStep }: ReviewStepProps)
       {section(
         "domainContext",
         <>
-          <ReviewRow
+          <FactRow
             label={formatMessage({ id: "app.admin.assessment.domainAction.domainTitle" })}
-            value={domain === null ? null : resolveDomainLabel(intl, domain)}
+            value={domain === null ? notProvided : resolveDomainLabel(intl, domain)}
           />
-          <ReviewRow
+          <FactRow
             label={formatMessage({ id: "app.admin.assessment.strategyKernel.titleLabel" })}
-            value={form.title}
+            value={answer(form.title)}
           />
-          <ReviewRow
+          <FactRow
             label={formatMessage({ id: "app.admin.assessment.strategyKernel.locationLabel" })}
-            value={form.location}
-            wide
+            value={answer(form.location)}
           />
-          <ReviewRow
+          <FactRow
             label={formatMessage({ id: "app.admin.assessment.strategyKernel.descriptionLabel" })}
-            value={form.description}
-            wide
+            value={answer(form.description)}
           />
         </>
       )}
       {section(
         "strategy",
         <>
-          <ReviewRow
+          <FactRow
             label={formatMessage({ id: "app.admin.assessment.strategyKernel.diagnosisLabel" })}
-            value={form.diagnosis}
-            wide
+            value={answer(form.diagnosis)}
           />
-          <ReviewRow
+          <FactRow
             label={formatMessage({ id: "app.admin.assessment.strategyKernel.smartOutcomesTitle" })}
-            wide
-          >
-            {form.smartOutcomes.length > 0 ? (
-              <ul className="space-y-1.5">
-                {form.smartOutcomes.map((outcome, index) => {
-                  const metric = metrics.find((entry) => entry.key === outcome.metric);
-                  const target = intl.formatNumber(outcome.target);
-                  return (
-                    <li key={index}>
-                      <span className="block">{outcome.description}</span>
-                      <span className="block type-meta text-text-sub">
-                        {metric ? `${metric.label} · ${target} ${metric.unit}` : target}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-          </ReviewRow>
-          <ReviewRow
+            value={
+              form.smartOutcomes.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {form.smartOutcomes.map((outcome, index) => {
+                    const metric = metrics.find((entry) => entry.key === outcome.metric);
+                    const target = intl.formatNumber(outcome.target);
+                    return (
+                      <li key={index}>
+                        <span className="block">{outcome.description}</span>
+                        <span className="block type-meta font-normal text-text-sub">
+                          {metric ? `${metric.label} · ${target} ${metric.unit}` : target}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                notProvided
+              )
+            }
+          />
+          <FactRow
             label={formatMessage({ id: "app.admin.assessment.strategyKernel.cynefinTitle" })}
-            value={cynefin?.label}
-            wide
+            value={answer(cynefin?.label)}
           />
         </>
       )}
       {section(
         "actionsHarvest",
         <>
-          <ReviewRow
+          <FactRow
             label={formatMessage({ id: "app.admin.assessment.domainAction.actionsTitle" })}
-            // Actions are optional, so none is an answer, not a gap.
             value={
-              form.selectedActionUIDs.length === 0
-                ? formatMessage({
-                    id: "admin.assessment.review.noActions",
-                    defaultMessage: "None selected",
-                  })
-                : undefined
+              form.selectedActionUIDs.length > 0 ? (
+                <ul className="space-y-0.5">
+                  {form.selectedActionUIDs.map((uid) => (
+                    // An action this device has not loaded still shows, by its id.
+                    <li key={uid}>{actions.find((action) => action.id === uid)?.title ?? uid}</li>
+                  ))}
+                </ul>
+              ) : (
+                // Actions are optional, so none is an answer, not a gap.
+                formatMessage({
+                  id: "admin.assessment.review.noActions",
+                  defaultMessage: "None selected",
+                })
+              )
             }
-            wide
-          >
-            {form.selectedActionUIDs.length > 0 ? (
-              <ul className="space-y-0.5">
-                {form.selectedActionUIDs.map((uid) => (
-                  // An action this device has not loaded still shows, by its id.
-                  <li key={uid}>{actions.find((action) => action.id === uid)?.title ?? uid}</li>
-                ))}
-              </ul>
-            ) : null}
-          </ReviewRow>
-          <ReviewRow
+          />
+          <FactRow
             label={formatMessage({ id: "app.admin.assessment.actionsHarvest.sectionTitle" })}
-            value={period}
-            wide
+            value={answer(period)}
           />
         </>
       )}

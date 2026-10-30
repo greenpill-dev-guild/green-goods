@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your purchase status</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: {{padBottom}}">
+    <div class="topnav">
+      <a class="close" href="Main.dc.html" aria-label="Back"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+      <span class="mid">Your purchase</span>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg>Your purchase · Green Goods Community Garden</span>
+      <h1>AI assistant membership, 1 month</h1>
+      <span class="pill {{pillCls}}">{{pill}}</span>
+    </div>
+
+    <sc-if value="{{isCurrent}}" hint-placeholder-val="{{false}}">
+      <div class="hero" style="margin-top: 16px">
+        <span class="kick">Step {{curN}} of {{total}}</span>
+        <span class="ht">{{curTitle}}</span>
+        <span class="small">{{curMeta}}</span>
+        <div class="dots"><sc-for list="{{steps}}" as="d" hint-placeholder-count="8"><span class="{{d.dot}}"></span></sc-for></div>
+        <span class="small" style="color: var(--strong)">Next: {{nextTitle}}</span>
+      </div>
+    </sc-if>
+
+    <div class="stack" style="margin-top: 12px">
+      <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
+        <div class="notice {{noticeCls}}"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{isTimeline}}" hint-placeholder-val="{{true}}">
+      <div class="sec"><h2>Where things stand</h2></div>
+      <div class="mx16 card">
+        <div class="ladder">
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="8">
+            <div class="ls {{s.cls}}"><span class="lm"><sc-if value="{{s.isDone}}" hint-placeholder-val="{{true}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></sc-if><sc-if value="{{s.isFail}}" hint-placeholder-val="{{false}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></sc-if><sc-if value="{{s.isNum}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; font-weight: 600">{{s.n}}</span></sc-if></span><span class="lt"><b>{{s.title}}</b><span>{{s.meta}}</span></span></div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isTracks}}" hint-placeholder-val="{{false}}">
+      <div class="sec"><h2>Two things are moving</h2></div>
+      <div class="tracks">
+        <div class="track">
+          <span class="th"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg>Your G$</span>
+          <sc-for list="{{money}}" as="m" hint-placeholder-count="4"><div class="tstep {{m.cls}}"><span class="tm"></span><span>{{m.short}}</span></div></sc-for>
+        </div>
+        <div class="track">
+          <span class="th"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg>The service</span>
+          <sc-for list="{{service}}" as="v" hint-placeholder-count="4"><div class="tstep {{v.cls}}"><span class="tm"></span><span>{{v.short}}</span></div></sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isCurrent}}" hint-placeholder-val="{{false}}">
+      <div class="mx16" style="margin-top: 8px"><button type="button" class="btn txt" style="width: auto; padding: 0">See all {{total}} steps</button></div>
+    </sc-if>
+
+    <div class="sec"><h2>Payment</h2></div>
+    <div class="mx16 card">
+      <div class="facts">
+        <div class="fact"><span class="k">Paid from</span><span class="v">Your own G$, not garden funds</span></div>
+        <div class="fact"><span class="k">Held by</span><span class="v"><span>Riverside Commons stewards</span><small>Their Safe on Celo</small></span></div>
+        <div class="fact"><span class="k">Recorded</span><span class="v"><span>{{recorded}}</span><small>{{recordedBy}}</small></span></div>
+        <div class="fact"><span class="k">Outcome</span><span class="v"><span>{{outcome}}</span></span></div>
+        <div class="fact"><span class="k">Access</span><span class="v"><span>{{access}}</span><small>{{accessSub}}</small></span></div>
+      </div>
+    </div>
+  </div>
+  <sc-if value="{{hasActs}}" hint-placeholder-val="{{false}}">
+    <div class="fbar">
+      <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{false}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
+      <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><button type="button" class="btn sec">{{secondary}}</button></sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Timeline","Two tracks","Current step"],"default":"Timeline","section":"Direction"},"state":{"editor":"enum","options":["Waiting for check","Underpaid","Checked","Terms changed","Accepted","Applied","Access active","Paying out","Done","Declined","Refund failed","Refunded","Late deposit"],"default":"Waiting for check","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = this.props.variant ?? 'Timeline';
+    var st = this.props.state ?? 'Waiting for check';
+    var dark = this.props.dark ?? false;
+    var S = {
+      agreed: { t: 's', title: 'You agreed to version 3', meta: 'Today, 10:40 AM', short: 'You asked' },
+      sent: { t: 'm', title: 'Payment sent: 450.45 G$', meta: 'On Celo · 10:52 AM', short: 'Sent' },
+      check: { t: 'm', title: 'A Riverside Commons steward checks it arrived', meta: 'Waiting 2 days · only its stewards can check it', short: 'Checked by a steward' },
+      accept: { t: 's', title: 'Green Goods Community Garden accepts', meta: 'They review each request', short: 'Accepted' },
+      apply: { t: 'm', title: 'Your deposit is applied to this promise', meta: 'Riverside Commons applies it after acceptance', short: 'Applied' },
+      access: { t: 's', title: 'Access is set up', meta: 'Outside the app, reported by Green Goods', short: 'Access on' },
+      kept: { t: 's', title: 'You confirm it was kept', meta: 'After your month of access', short: 'You confirm' },
+      payout: { t: 'm', title: "Paid out to the provider's team", meta: 'Under its payout plan', short: 'Paid out' },
+      r1: { t: 'm', title: 'Refund queued: 450.00 G$', meta: 'Riverside Commons stewards send it', short: 'Refund queued' },
+      r2: { t: 'm', title: 'Refund sent on Celo', meta: 'To 0x3C1e…7A2e', short: 'Refund sent' },
+      r3: { t: 'm', title: 'Refund received', meta: 'Back in your account', short: 'Received' },
+      w1: { t: 's', title: 'You withdrew your request', meta: 'Oct 21, 11:02 AM', short: 'You withdrew' },
+      w2: { t: 'm', title: 'A payment arrived after you withdrew: 450.00 G$', meta: 'Oct 21, 11:30 AM', short: 'Late payment' },
+      w3: { t: 'm', title: 'A steward records it and sends it back', meta: 'The full amount returns to you', short: 'Sent back' },
+    };
+    var main = ['agreed', 'sent', 'check', 'accept', 'apply', 'access', 'kept', 'payout'];
+    var refund = ['agreed', 'sent', 'check', 'accept', 'r1', 'r2', 'r3'];
+    var M = {
+      'Waiting for check': { keys: main, at: 2, pill: ['info', 'Waiting for a check'] },
+      'Underpaid': { keys: main, at: 2, mark: 'warn', over: { check: ['Steward found 440.00 G$ of 450.00 G$', 'Checked by Tomás · 10.00 G$ short'] }, pill: ['warn', '10.00 G$ short'],
+        notice: ['warn', 'Your payment is 10.00 G$ short', 'Send the rest so a steward can record it. If you withdraw instead, a steward returns what arrived.'], primary: ['Send 10.00 G$ More', 'Send.dc.html'], secondary: 'Withdraw Request' },
+      'Checked': { keys: main, at: 3, over: { check: ['Deposit checked: 450.00 G$', "By Tomás, a steward · a person's check, not automatic proof"] }, pill: ['info', 'Waiting for the provider'], secondary: 'Withdraw Request' },
+      'Terms changed': { keys: main, at: 3, mark: 'warn', over: { check: ['Deposit checked: 450.00 G$', 'By Tomás, a steward'], accept: ['The offer changed to version 4', "Your request is for version 3, so it can't be accepted"] }, pill: ['warn', 'Terms changed'],
+        notice: ['warn', 'The offer changed to version 4', 'Version 4 costs 480.00 G$. Agree again and send 30.00 G$ more, or withdraw and get your 450.00 G$ back.'], primary: ['Review Version 4', 'Pay.dc.html'], secondary: 'Withdraw and Get 450.00 G$ Back' },
+      'Accepted': { keys: main, at: 4, over: { check: ['Deposit checked: 450.00 G$', 'By Tomás, a steward'], accept: ['Green Goods Community Garden accepted', 'Oct 22, 9:15 AM'], apply: ['Your deposit is applied to this promise', 'Riverside Commons applies it next'] }, pill: ['info', 'Accepted, not yet applied'],
+        notice: ['info', "Accepted doesn't mean paid", 'Your deposit is applied to the promise next; until then the service doesn’t start.'] },
+      'Applied': { keys: main, at: 5, over: { check: ['Deposit checked: 450.00 G$', 'By Tomás, a steward'], accept: ['Green Goods Community Garden accepted', 'Oct 22, 9:15 AM'], apply: ['Your deposit is applied', 'Oct 22, 2:40 PM'] }, pill: ['info', 'Access being set up'] },
+      'Access active': { keys: main, at: 6, over: { check: ['Deposit checked: 450.00 G$', 'By Tomás, a steward'], accept: ['Green Goods Community Garden accepted', 'Oct 22'], apply: ['Your deposit is applied', 'Oct 22'], access: ['Access active', 'Reported by Green Goods, Oct 24'] }, pill: ['ok', 'Access active'], primary: ['Confirm It Was Kept', '#'], secondary: 'Report a Problem' },
+      'Paying out': { keys: main, at: 7, over: { check: ['Deposit checked: 450.00 G$', 'By Tomás'], accept: ['Accepted', 'Oct 22'], apply: ['Applied', 'Oct 22'], access: ['Access active', 'Since Oct 24'], kept: ['You confirmed it was kept', 'Nov 24'], payout: ["Paying the provider's team", 'Under its payout plan · sent to Celo, waiting for confirmation'] }, pill: ['ok', 'Kept · paying out'] },
+      'Done': { keys: main, at: 8, over: { check: ['Deposit checked: 450.00 G$', 'By Tomás'], accept: ['Accepted', 'Oct 22'], apply: ['Applied', 'Oct 22'], access: ['Access active', 'Since Oct 24'], kept: ['You confirmed it was kept', 'Nov 24'], payout: ["Paid out to the provider's team", 'Nov 25 · confirmed on Celo'] }, pill: ['ok', 'Kept and paid'] },
+      'Declined': { keys: refund, at: 4, fail: 'accept', over: { check: ['Deposit checked: 450.00 G$', 'By Tomás'], accept: ['Green Goods Community Garden declined', 'Oct 22 · no reason given'] }, pill: ['neu', 'Declined · refund on its way'],
+        notice: ['', 'Your 450.00 G$ comes back', 'The full recorded amount returns to 0x3C1e…7A2e on Celo. Riverside Commons stewards send it.'] },
+      'Refund failed': { keys: refund, at: 5, mark: 'fail', fail: 'accept', over: { check: ['Deposit checked: 450.00 G$', 'By Tomás'], accept: ['Green Goods Community Garden declined', 'Oct 22'], r1: ['Refund queued: 450.00 G$', 'Oct 22'], r2: ["Didn't complete on Celo", 'Attempt 1 · stewards retry the same refund'] }, pill: ['err', 'Refund delayed'],
+        notice: ['warn', 'Your refund is delayed', "The transfer didn't complete. Riverside Commons stewards retry the same refund; it can't be paid twice. You don't need to do anything."] },
+      'Refunded': { keys: refund, at: 7, fail: 'accept', over: { check: ['Deposit checked: 450.00 G$', 'By Tomás'], accept: ['Green Goods Community Garden declined', 'Oct 22'], r1: ['Refund queued: 450.00 G$', 'Oct 22'], r2: ['Refund sent on Celo', 'Oct 25'], r3: ['Refund received', 'Oct 25 · to 0x3C1e…7A2e'] }, pill: ['ok', 'Refunded'] },
+      'Late deposit': { keys: ['agreed', 'w1', 'w2', 'w3'], at: 3, pill: ['warn', 'Late payment · refund owed'],
+        notice: ['warn', 'Your payment arrived after you withdrew', 'Riverside Commons stewards record it and return the full amount to you.'] },
+    };
+    var cfg = M[st];
+    var over = cfg.over || {};
+    var dotOf = { done: 'd', now: 'n', warn: 'w', fail: 'f', todo: '' };
+    var steps = cfg.keys.map(function (k, i) {
+      var b = S[k];
+      var cls = i < cfg.at ? 'done' : (i === cfg.at ? (cfg.mark || 'now') : 'todo');
+      if (cfg.fail === k) cls = 'fail';
+      if (i === cfg.at && cfg.at >= cfg.keys.length) cls = 'done';
+      var o = over[k];
+      return { key: k, n: i + 1, cls: cls, title: o ? o[0] : b.title, meta: o ? o[1] : b.meta, short: b.short, t: b.t,
+        isDone: cls === 'done', isFail: cls === 'fail', isNum: cls !== 'done' && cls !== 'fail', dot: dotOf[cls] };
+    });
+    var curIdx = Math.min(cfg.at, steps.length - 1);
+    var cur = steps[curIdx];
+    var nxt = steps[curIdx + 1];
+    var refundish = cfg.keys === refund;
+    var checked = cfg.at >= 3 && st !== 'Late deposit';
+    var accessOn = ['Access active', 'Paying out', 'Done'].indexOf(st) >= 0;
+    var hasPrimary = !!cfg.primary;
+    var hasSecondary = !!cfg.secondary;
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      isTimeline: v === 'Timeline', isTracks: v === 'Two tracks', isCurrent: v === 'Current step',
+      pillCls: cfg.pill[0], pill: cfg.pill[1],
+      steps: steps,
+      money: steps.filter(function (s) { return s.t === 'm'; }),
+      service: steps.filter(function (s) { return s.t === 's'; }),
+      curN: cur.n, total: steps.length, curTitle: cur.title, curMeta: cur.meta,
+      nextTitle: nxt ? nxt.title : (refundish ? 'Nothing else. This purchase is closed.' : 'Nothing else. This purchase is closed.'),
+      hasNotice: !!cfg.notice, noticeCls: cfg.notice ? cfg.notice[0] : '', noticeT: cfg.notice ? cfg.notice[1] : '', noticeB: cfg.notice ? cfg.notice[2] : '',
+      recorded: st === 'Underpaid' ? '440.00 G$' : (checked ? '450.00 G$' : 'Not yet'),
+      recordedBy: st === 'Underpaid' || checked ? 'By Tomás, a Riverside Commons steward' : 'A steward records what arrived',
+      outcome: st === 'Done' ? "Paid to the provider's team" : (st === 'Refunded' ? 'Came back to you' : "Pays the provider's team when you confirm, or comes back to you. Never both."),
+      access: accessOn ? 'Active' : 'Not active yet',
+      accessSub: accessOn ? 'Reported by Green Goods, Oct 24' : "Turned on outside the app. Paying doesn't turn it on.",
+      hasActs: hasPrimary || hasSecondary, hasPrimary: hasPrimary, hasSecondary: hasSecondary,
+      primary: hasPrimary ? cfg.primary[0] : '', primaryHref: hasPrimary ? cfg.primary[1] : '#', secondary: cfg.secondary || '',
+      padBottom: hasPrimary || hasSecondary ? '170px' : '40px',
+    };
+  }
+}
+</script>
+</body>
+</html>

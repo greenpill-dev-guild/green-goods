@@ -5,7 +5,7 @@ slug: /community/gardener-guide/confirm-a-promise
 description: "Check the evidence and independently confirm a promise, or explain what still needs doing."
 audience: gardener
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-10-26
 feature_status: Live
 goal: "Check the evidence and independently confirm a promise, or explain what still needs doing."
 difficulty: "standard"
@@ -19,6 +19,8 @@ source_of_truth:
   - packages/client/src/views/Home/Garden/Commitment
   - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
   - packages/client/src/views/Home/Garden/Commitment/ConfirmNotYet.tsx
+  - packages/client/src/views/Home/Garden/Commitment/ConfirmOutcome.tsx
+  - packages/indexer/src/handlers/commitment-pool-lifecycle.ts
   - packages/shared/src/modules/commitment-pooling/acts.ts
   - packages/shared/src/modules/commitment-pooling/selectors.ts
   - packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts
@@ -58,8 +60,8 @@ Confirm that the agreed help happened after checking its evidence. This is separ
 
 ## Steps
 
-1. The eligible confirmer opens the promise and checks the evidence. The action is **Confirm It Was Kept**; the review may ask **Did the help arrive?** or **Was the work you asked for done?**
-2. Your confirmation cannot be taken back, and it may be only part of a group's required total. Read the confirmation count and check the evidence before choosing the button shown: **Confirm It Was Kept**, **Confirm the Help Arrived**, or **Confirm the Work Was Done**.
+1. The eligible confirmer opens the promise and checks the evidence. The review asks **Promise kept?**, or **Was the work you asked for done?** for garden work you asked for.
+2. Your confirmation cannot be taken back, and it may be only part of a group's required total. Read the confirmation count and check the evidence before choosing the button shown: **Confirm It Was Kept** or **Confirm the Work Was Done**.
 
 <figure className="gg-figure" style={{maxWidth: '480px'}}>
   <img src="/img/screenshots/guide-promise-confirm.webp" alt="Independent confirmation review with repair photographs and one of two required confirmations." loading="lazy" width="480" height="1000" />
@@ -80,13 +82,19 @@ Opening **Not Yet** or saving its explanation does not send it. If sending fails
 
 The confirmation count increases once your decision reaches the shared record. The promise reads **Kept** once the required total is met.
 
+A kept promise shows who confirmed it. If a steward or the Green Goods team stepped in because nobody eligible could confirm, it says so: **Confirmed by your garden steward, as a fallback:** or **Confirmed by the Green Goods team, as a fallback:**, followed by the account that confirmed and the reason.
+
 ## What happens next
 
 If more confirmations are required, the remaining eligible people act next. A successful **Not Yet** send moves the promise to **Under review by stewards**; ordinary confirmation pauses until that review is resolved.
 
+Stewards resolve the review with a recorded reason, and the history then reads **The review was resolved**. They can return the promise to where it was, cancel it, let it expire, or decide it was kept. A promise stewards decide was kept reads **Kept**. It names no confirmer, because the decision came from the review rather than from a confirmation.
+
 ## If something goes wrong
 
 If no confirmation action appears, check whose turn it is, your account, team membership and the current state. Opening or saving a **Not Yet** explanation does not send it. After a failed send, keep the explanation on this phone and check the record before **Try Again**.
+
+If you can no longer confirm, for example because you have left the garden, tell a steward. A steward who is not on the team can confirm it as a fallback with a written reason.
 
 After an uncertain confirmation, check the count and history before acting again. A confirmation that already reached the record cannot be taken back. See [Recover Unsent Work](/community/gardener-guide/recovery-and-sync) for saved explanations and other queued actions.
 

@@ -2,7 +2,7 @@
  * ADMIN LAYOUT — the layout and surface classes admin components render
  *
  * The canvas route frame, the Garden and Community tab layouts and stat rows,
- * the Hub shells, workbench grid, and workbench row and card states, the Hub
+ * the Hub shells, workbench grid, and workbench card states, the Hub
  * card's media tiles, the account avatar tile, the surface primitives, and the
  * spacing rhythm. index.css imports this file, and so does the shared
  * Storybook (packages/shared/.storybook/storybook.css), so stories lay out
@@ -183,19 +183,11 @@ button.garden-stat-row:hover {
     box-shadow: var(--m3-elevation-1);
   }
 
-  [data-theme="dark"] .workbench-row-clickable:hover {
-    background: rgb(var(--bg-sub-300) / 0.6);
-  }
-
-  [data-theme="dark"] .workbench-row-clickable:active {
-    background: rgb(var(--bg-sub-300));
-  }
-
-  /* ── Workbench surfaces (Hub WorkbenchRow + Actions WorkbenchCard) ──────────
-     These shared Canvas components render only in the cockpit, so their edge,
-     elevation, hover and selected treatment lives here with the cockpit's
-     other surface rules, as named classes the components carry. Base layout
-     and colour utilities stay in the components. */
+  /* ── Workbench surfaces (the Hub's workbench grid + Actions WorkbenchCard) ──
+     WorkbenchCard, a shared Canvas component, renders only in the cockpit, so
+     its elevation, hover and selected treatment lives here with the cockpit's
+     other surface rules, as named classes the card carries. Its fill, edge and
+     corner are the shared card surface (.gg-card). */
   .hub-workbench-grid {
     display: grid;
     width: 100%;
@@ -205,7 +197,8 @@ button.garden-stat-row:hover {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
     justify-content: stretch;
     align-items: stretch;
-    gap: 0.875rem;
+    /* One list gap on both surfaces (F11). */
+    gap: var(--gg-list-gap);
     list-style: none;
     margin: 0;
     padding: 0;
@@ -216,64 +209,45 @@ button.garden-stat-row:hover {
     width: 100%;
   }
 
+  /* The work queue's wide cards (F12): from the desktop breakpoint each work
+     card lies wide, its mosaic on the left, so two share a row at 1280px where
+     three tall cards stood, and three from about 1380px. */
+  .hub-workbench-grid[data-card-layout="wide"] {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+  }
+
   /* Hover feedback is a pure elevation step (1 → 2) with box-shadow 150ms —
      no translate lift, no hue shift (Cockpit M3 1a interaction contract). */
-  .workbench-row,
-  .workbench-card,
-  .hub-work-card {
+  .workbench-card {
     transition-property: background-color, box-shadow;
     transition-duration: var(--spring-effects-fast-duration);
     transition-timing-function: var(--spring-effects-fast-easing);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .workbench-row,
-    .workbench-card,
-    .hub-work-card {
+    .workbench-card {
       transition: none;
     }
   }
 
-  /* Selected row gains a neutral ink state layer; the focus ring ships via
-     Tailwind. Selection is a state, not a workspace-tone surface. */
-  .workbench-row[data-selected="true"] {
-    background-color: rgb(var(--m3-on-surface) / 0.08);
-  }
-
-  .workbench-card[data-selected="true"],
-  .hub-work-card[data-selected="true"] {
+  /* A selected card takes the older 2px focus edge over its elevation; the
+     focus ring ships via Tailwind. Selection is a state, not a workspace-tone
+     surface. */
+  .workbench-card[data-selected="true"] {
     box-shadow: var(--edge-focus), var(--m3-elevation-2);
   }
 
-  .workbench-row-clickable:hover {
-    box-shadow: var(--m3-elevation-1);
-  }
-
-  .workbench-card-clickable:hover,
-  .hub-work-card:hover {
+  .workbench-card-clickable:hover {
     box-shadow: var(--m3-elevation-2);
   }
 
-  .workbench-row-clickable:active,
-  .workbench-card-clickable:active,
-  .hub-work-card:active {
+  .workbench-card-clickable:active {
     box-shadow: var(--m3-elevation-1);
   }
 
   /* Raised inner tiles (thumbnail / icon) — edge ring + elevation. */
   .workbench-raised {
     box-shadow: var(--edge-rest), var(--m3-elevation-1);
-  }
-
-  /* Row trailing affordance hides on the <600px two-column layout. */
-  .workbench-row-trailing {
-    display: inline-flex;
-  }
-
-  @media (max-width: 599px) {
-    .workbench-row-trailing {
-      display: none;
-    }
   }
 
   @media (min-width: 600px) {

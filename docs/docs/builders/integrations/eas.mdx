@@ -4,7 +4,7 @@ sidebar_label: EAS
 slug: /builders/integrations/eas
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-25
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -21,6 +21,8 @@ source_of_truth:
   - packages/contracts/src/Schemas.sol
   - packages/shared/src/config/blockchain.ts
   - packages/contracts/src/resolvers/Testimony.sol
+  - packages/contracts/src/lib/CommitmentPooling/ProofLib.sol
+  - packages/contracts/deployments/42161-latest.json
 keywords:
   - eas
   - attestation
@@ -35,8 +37,10 @@ import {IntegrationProjection} from "@site/src/components/docs";
 The [Ethereum Attestation Service](https://docs.attest.org/docs/welcome) is where Green Goods
 records its claims about work. Work submitted, work approved, and an assessment authored are all
 EAS attestations, and that's a deliberate choice: attestations are portable, signed, inspectable
-records that outlive any app Green Goods ships. (Commitments are the exception; they live in their
-own contracts.)
+records that outlive any app Green Goods ships. Commitments are the exception: they are records
+in the commitment pooling module, never attestations, because their state keeps changing. A
+commitment can point to an assessment attestation, and a testimony can name a commitment, but EAS
+never holds the commitment itself.
 
 <figure className="gg-figure">
   <img src="/img/builders/eas-work-schema.webp" alt="The Green Goods Work Submission schema on easscan: schema number 401, its UID, the custom resolver contract, the decoded fields actionUID, title, feedback, metadata and media, and 83 attestations on chain" loading="lazy" width="2000" height="1250" />
@@ -53,7 +57,10 @@ never by the person who submitted the work. Meaning is enforced, not implied.
 - A **Work** attestation records submitted evidence for a garden and action.
 - A separate **Work Approval** attestation records the steward's decision, referencing the work it
   judges.
-- An **Assessment** attestation records evaluation strategy and its content reference.
+- An **Assessment** attestation records evaluation strategy and its content reference. EAS
+  schemas are immutable, so assessment v3 was registered as a new schema beside the still-readable
+  v2 one, on the same resolver. A commitment that requires an assessment accepts either version,
+  as long as it was recorded for the commitment's provider garden and has not been revoked.
 - A **Community Testimony** attestation records what a community member says about a garden or a
   commitment. Only a wearer of the garden's community hat can write one, and it is append-only.
   The resolver and schema are recorded for Arbitrum One; no app surface writes testimony yet.
@@ -64,7 +71,8 @@ stack, and the [Data Model](../architecture/data-model) shows how they relate.
 ## How it flows
 
 Here's the path one record takes, from a signature to the pages that show it. The resolver can
-refuse the write, so any record you can read has already passed its role check.
+refuse the write, so any record you can read has already passed its role check. Apps read
+attestations from EAS GraphQL directly; the Green Goods indexer never reads EAS.
 
 ```mermaid
 flowchart LR
@@ -80,7 +88,7 @@ flowchart LR
 
 | Layer | Source |
 |---|---|
-| Resolvers | `packages/contracts/src/resolvers/` (Work, WorkApproval, Assessment) |
+| Resolvers | `packages/contracts/src/resolvers/` (Work, WorkApproval, Assessment, Testimony) |
 | Schema definitions | `packages/contracts/src/Schemas.sol` and `packages/contracts/config/schemas.json` |
 | Encode a record | `packages/shared/src/utils/eas/encoders.ts` (`encodeWorkData`, `encodeWorkApprovalData`) |
 | Build and send the attestation | `packages/shared/src/utils/eas/transaction-builder.ts`, sent by the queue executors in `packages/shared/src/modules/job-queue/` (`work-executor.ts`, `approval-executor.ts`) |

@@ -4,7 +4,7 @@ Technical deep dive into the Green Goods E2E testing infrastructure.
 
 > **For quick start and usage:** See [`README.md`](./README.md)
 >
-> **Canonical diagrams:** See [E2E Test Flow](../docs/developer/architecture/diagrams.md#e2e-test-flow) for the execution lifecycle.
+> **Execution lifecycle:** See [Test Execution Timeline](#test-execution-timeline) below and the [Testing Guide](../docs/docs/builders/testing/index.mdx#the-test-map) for runner ownership.
 
 ## Platform Matrix
 
@@ -575,7 +575,7 @@ Agent: *Reads test output, checks component code*
 ```typescript
 test("shows the garden list", async ({ page }) => {
   const helper = await setupAuthenticatedClient(page);
-  await page.goto("/home?presentation=pwa");
+  await page.goto("/home/explore?presentation=pwa");
   await helper.waitForPageLoad();
   await expect(page.getByTestId("garden-card").first()).toBeVisible();
 });
@@ -680,5 +680,5 @@ bun run browser e2e --preset smoke # Owns startup and cleanup
 - [Playwright Docs](https://playwright.dev)
 - [WebAuthn API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API)
 - [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/)
-- [Green Goods Developer Guide](../docs/developer/getting-started.md)
+- [Green Goods Builder Guide](../docs/docs/builders/getting-started.mdx)
 - [Test README](./README.md)

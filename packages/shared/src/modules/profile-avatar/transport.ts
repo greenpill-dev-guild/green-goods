@@ -1,6 +1,8 @@
 import type { Address } from "../../types/domain";
 import {
   parseProfileAvatarRecord,
+  PROFILE_AVATAR_BATCH_LIMIT,
+  PROFILE_AVATAR_BATCH_ROUTE,
   PROFILE_AVATAR_ROUTE,
   type ProfileAvatarMutation,
   type ProfileAvatarRecord,
@@ -48,6 +50,59 @@ function recordFromPayload(payload: unknown): ProfileAvatarRecord | null {
   return parseProfileAvatarRecord(payload);
 }
 
+function batchRoute(chainId: number, addresses: readonly string[]): string {
+  const route = PROFILE_AVATAR_BATCH_ROUTE.replace(":chainId", encodeURIComponent(String(chainId)));
+  const list = addresses.map((address) => encodeURIComponent(address.toLowerCase())).join(",");
+  return `${route}?addresses=${list}`;
+}
+
+function recordsFromPayload(payload: unknown): ProfileAvatarRecord[] | null {
+  if (!payload || typeof payload !== "object" || !("records" in payload)) return null;
+  const records = (payload as { records: unknown }).records;
+  if (!Array.isArray(records)) return null;
+  const parsed = records.map(parseProfileAvatarRecord);
+  return parsed.every((record): record is ProfileAvatarRecord => record !== null) ? parsed : null;
+}
+
+interface ListedRead {
+  address: string;
+  resolve: (record: ProfileAvatarRecord) => void;
+  reject: (error: unknown) => void;
+}
+
+/** Reads a list's rows asked for in the current task, by agent and chain. */
+const pendingListedReads = new Map<
+  string,
+  { chainId: number; baseUrl: string; reads: ListedRead[] }
+>();
+
+async function flushListedReads(key: string): Promise<void> {
+  const batch = pendingListedReads.get(key);
+  pendingListedReads.delete(key);
+  if (!batch) return;
+  const addresses = [...new Set(batch.reads.map((read) => read.address))];
+  const chunks: string[][] = [];
+  for (let start = 0; start < addresses.length; start += PROFILE_AVATAR_BATCH_LIMIT) {
+    chunks.push(addresses.slice(start, start + PROFILE_AVATAR_BATCH_LIMIT));
+  }
+  await Promise.all(
+    chunks.map(async (chunk) => {
+      const reads = batch.reads.filter((read) => chunk.includes(read.address));
+      try {
+        const records = await profileAvatarTransport.getMany(batch.chainId, chunk, batch.baseUrl);
+        const byAddress = new Map(records.map((record) => [record.address.toLowerCase(), record]));
+        for (const read of reads) {
+          const record = byAddress.get(read.address);
+          if (record) read.resolve(record);
+          else read.reject(new ProfileAvatarTransportError("Profile avatar could not be loaded."));
+        }
+      } catch (error) {
+        for (const read of reads) read.reject(error);
+      }
+    })
+  );
+}
+
 export const profileAvatarTransport = {
   async get(
     chainId: number,
@@ -70,6 +125,59 @@ export const profileAvatarTransport = {
     if (!response.ok || !record)
       throw new ProfileAvatarTransportError("Profile avatar could not be loaded.", response.status);
     return record;
+  },
+
+  /**
+   * Up to 50 accounts' records in one request, in request order, on the batch route's own read
+   * budget, so a list of people never spends the single-read budget the photo editor needs.
+   */
+  async getMany(
+    chainId: number,
+    addresses: readonly (Address | string)[],
+    baseUrl = apiBaseUrl()
+  ): Promise<ProfileAvatarRecord[]> {
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(
+        `${baseUrl.replace(/\/$/, "")}${batchRoute(chainId, addresses)}`
+      );
+    } catch {
+      throw new ProfileAvatarTransportError(
+        "Profile avatars could not be loaded.",
+        undefined,
+        undefined,
+        true
+      );
+    }
+    const records = recordsFromPayload(await responsePayload(response));
+    if (!response.ok || !records)
+      throw new ProfileAvatarTransportError(
+        "Profile avatars could not be loaded.",
+        response.status
+      );
+    return records;
+  },
+
+  /**
+   * One row's record in a list of people. Every row of a list asks in the same render, so the
+   * reads made in one task go out together, 50 addresses to a request (`getMany`).
+   */
+  getListed(
+    chainId: number,
+    address: Address | string,
+    baseUrl = apiBaseUrl()
+  ): Promise<ProfileAvatarRecord> {
+    const key = `${baseUrl}|${chainId}`;
+    return new Promise((resolve, reject) => {
+      const read = { address: address.toLowerCase(), resolve, reject };
+      const batch = pendingListedReads.get(key);
+      if (batch) {
+        batch.reads.push(read);
+        return;
+      }
+      pendingListedReads.set(key, { chainId, baseUrl, reads: [read] });
+      setTimeout(() => void flushListedReads(key), 0);
+    });
   },
 
   async save(

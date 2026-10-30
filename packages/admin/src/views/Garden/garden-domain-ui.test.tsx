@@ -243,6 +243,7 @@ vi.mock("@green-goods/shared/hooks/navigation/useCanvasSearchParams", () => ({
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
   useMediaQuery: () => true,
+  useFocusAfterFlip: () => undefined,
 }));
 
 vi.mock("@green-goods/shared/hooks/useSheetWidth", () => ({
@@ -342,7 +343,7 @@ describe("garden domain recovery UI", () => {
       </TestProviders>
     );
 
-    const pendingWork = screen.getByText("Pending Work").closest(".garden-stat-row");
+    const pendingWork = screen.getByText("Pending Work").closest('[data-component="FactRow"]');
     expect(pendingWork).not.toBeNull();
     expect(within(pendingWork as HTMLElement).getByText("6")).toBeInTheDocument();
   });

@@ -235,7 +235,7 @@ export function useCommitmentDialogController(input: {
     return times;
   }, [cycleQuery.cycle]);
   const dueCommitments = useMemo(() => (commitment ? [commitment] : []), [commitment]);
-  const now = useExpiryClock({ commitments: dueCommitments, cycleEndTimes });
+  const now = useExpiryClock({ chainId, commitments: dueCommitments, cycleEndTimes });
   const isDue = useMemo(() => {
     if (!commitment) return false;
     return selectDueLiveCommitments({ commitments: [commitment], cycleEndTimes, now }).length > 0;

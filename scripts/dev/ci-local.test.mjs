@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { cpus, tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import test from "node:test";
 import * as ciLocal from "./ci-local.js";
@@ -15,7 +15,7 @@ import {
   buildLocalValidationPlan,
   capabilityRecoveryHint,
   checkEnvironment,
-  executePlan,
+  executePlan as executeValidationPlan,
   ignoredConfigurationFingerprint,
   isPinnedCiNodeVersion,
   isSupportedCiNodeVersion,
@@ -116,6 +116,14 @@ test("environment blockers name their recovery commands", () => {
   assert.match(capabilityRecoveryHint("contractSubmodules", "command-error"), /git submodule status/);
   assert.equal(capabilityRecoveryHint("docker"), null);
 });
+
+// Executor unit tests use fictional configuration; only the fingerprint test reads its
+// own temporary .env fixtures. They must never depend on the developer's root secrets.
+function executePlan(input, options = {}) {
+  const executionOptions = { ignoredConfiguration: "sha256:fictional-root-configuration" };
+  Object.defineProperties(executionOptions, Object.getOwnPropertyDescriptors(options));
+  return executeValidationPlan(input, executionOptions);
+}
 
 function plan(checks, status = "ready") {
   return {
@@ -285,7 +293,7 @@ test("local execution fails fast by default", async () => {
 
   assert.equal(result.status, "failed");
   assert.deepEqual(calls, ["first"]);
-  assert.equal(result.results[0].receiptInputs.cacheReuse.allowed, true);
+  assert.equal(result.results[0].receiptInputs, undefined);
 });
 
 test("explicit no-fail-fast continues independent checks", async () => {
@@ -330,6 +338,65 @@ test("a needs-focus plan starts no checks and exits non-zero", async () => {
   assert.deepEqual(calls, []);
 });
 
+test("a saturated host suspends the hard deadline and runs the plan in full", async () => {
+  const input = plan(["fast", "slow"]);
+  input.requestedIntent = "push";
+  input.effectiveIntent = "push";
+  input.budget = {
+    hardLimitSeconds: 0.03,
+    enforced: true,
+    estimatedWallSeconds: 0.02,
+    automatedSeconds: 0.02,
+    manualSeconds: 0,
+  };
+
+  const result = await executePlan(input, {
+    host: { loadAverage: 40, cpuCount: 10 },
+    runCheck: async (check, { signal }) => {
+      if (check.id === "fast") return { ok: true, exitCode: 0, durationSeconds: 0.001 };
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      assert.equal(signal?.aborted ?? false, false);
+      return { ok: true, exitCode: 0, durationSeconds: 0.06 };
+    },
+  });
+
+  assert.equal(result.status, "passed");
+  assert.deepEqual(result.results.map((entry) => entry.id), ["fast", "slow"]);
+  assert.deepEqual(result.deadlineSuspension, { at: "start", host: { loadAverage: 40, cpuCount: 10 } });
+  assert.equal(ciLocal.deadlineSuspendedBy({ loadAverage: 15, cpuCount: 10 }), false);
+  assert.equal(ciLocal.deadlineSuspendedBy({ loadAverage: 16, cpuCount: 10 }), true);
+  // Load and CPUs are compared in the host's scope; an unknown CPU count keeps the deadline.
+  assert.equal(ciLocal.deadlineSuspendedBy({ loadAverage: 40, cpuCount: 0 }), false);
+  assert.equal(ciLocal.liveHost().cpuCount, cpus().length);
+});
+
+test("a host that saturates after the plan starts suspends the deadline when it fires", async () => {
+  const input = plan(["fast", "slow"]);
+  input.requestedIntent = "push";
+  input.effectiveIntent = "push";
+  input.budget = {
+    hardLimitSeconds: 0.03,
+    enforced: true,
+    estimatedWallSeconds: 0.02,
+    automatedSeconds: 0.02,
+    manualSeconds: 0,
+  };
+  const result = await executePlan(input, {
+    host: { loadAverage: 1, cpuCount: 10 },
+    sampleHost: () => ({ loadAverage: 40, cpuCount: 10 }),
+    runCheck: async (check, { signal }) => {
+      if (check.id === "fast") return { ok: true, exitCode: 0, durationSeconds: 0.001 };
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      assert.equal(signal?.aborted ?? false, false);
+      return { ok: true, exitCode: 0, durationSeconds: 0.06 };
+    },
+  });
+
+  assert.equal(result.status, "passed");
+  assert.deepEqual(result.results.map((entry) => entry.id), ["fast", "slow"]);
+  assert.deepEqual(result.deadlineSuspension, { at: "deadline", host: { loadAverage: 40, cpuCount: 10 } });
+});
+
 test("hard deadline stops noncritical work and preserves completed passing receipts", async () => {
   const receiptStore = new Map();
   const input = plan(["fast", "slow"]);
@@ -346,6 +413,7 @@ test("hard deadline stops noncritical work and preserves completed passing recei
   const result = await executePlan(input, {
     reusePassingReceipts: true,
     receiptStore,
+    host: { loadAverage: 1, cpuCount: 10 },
     runCheck: async (check, { signal }) => {
       if (check.id === "fast") return { ok: true, exitCode: 0, durationSeconds: 0.001 };
       return new Promise((resolve) => {
@@ -877,6 +945,72 @@ test("a receipt covers the environment a check runs with, not only the plan", as
   // The store keeps a digest of the environment, never its values.
   await run({ ...shell, SECRET_TOKEN: "do-not-store-me" });
   assert.equal(JSON.stringify([...receiptStore.values()]).includes("do-not-store-me"), false);
+});
+
+function forbiddenFingerprint(options) {
+  return Object.defineProperty(options, "ignoredConfiguration", {
+    get() { throw new Error("fictional fingerprint unavailable"); },
+  });
+}
+
+test("fresh execution starts checks without accessing cache-only configuration", async () => {
+  const receiptStore = new Map();
+  let runs = 0;
+  const result = await executePlan(plan(["probe"]), forbiddenFingerprint({
+    receiptStore,
+    runCheck: async () => { runs += 1; return { ok: true, exitCode: 0 }; },
+  }));
+  assert.equal(result.status, "passed");
+  assert.equal(runs, 1);
+  assert.equal(result.results[0].receiptInputs, undefined);
+  assert.equal(receiptStore.size, 0);
+});
+
+test("strict gates run fresh even with receipt reuse requested", async () => {
+  for (const intent of ["readiness", "ship", "merge", "release"]) {
+    const input = plan(["probe"]);
+    input.effectiveIntent = intent;
+    input.receiptPolicy.reuseAllowed = false;
+    const receiptStore = new Map();
+    let runs = 0;
+    const result = await executePlan(input, forbiddenFingerprint({
+      reusePassingReceipts: true,
+      receiptStore,
+      runCheck: async () => { runs += 1; return { ok: true, exitCode: 0 }; },
+    }));
+    assert.equal(result.status, "passed");
+    assert.equal(runs, 1);
+    assert.equal(receiptStore.size, 0);
+  }
+});
+
+test("unavailable fingerprints cannot create or reuse passing receipts", async () => {
+  const receiptStore = new Map();
+  let runs = 0;
+  await assert.rejects(() => executePlan(plan(["probe"]), forbiddenFingerprint({
+    reusePassingReceipts: true,
+    receiptStore,
+    runCheck: async () => { runs += 1; return { ok: true, exitCode: 0 }; },
+  })), /fictional fingerprint unavailable/);
+  assert.equal(runs, 0);
+  assert.equal(receiptStore.size, 0);
+});
+
+test("complete opted-in fingerprints reuse only identical inputs", async () => {
+  const receiptStore = new Map();
+  let runs = 0;
+  const run = (configuration) => executePlan(plan(["probe"]), {
+    reusePassingReceipts: true,
+    receiptStore,
+    ignoredConfiguration: configuration,
+    environment: {},
+    runCheck: async () => { runs += 1; return { ok: true, exitCode: 0 }; },
+  });
+  await run("sha256:fictional-one");
+  assert.equal((await run("sha256:fictional-one")).results[0].reused, true);
+  await run("sha256:fictional-two");
+  assert.equal(runs, 2);
+  assert.equal(receiptStore.size, 2);
 });
 
 test("a receipt covers the git-ignored root .env files that builds and tests read", async (t) => {

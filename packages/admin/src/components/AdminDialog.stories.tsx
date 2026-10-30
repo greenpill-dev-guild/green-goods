@@ -1,10 +1,11 @@
-import { RiErrorWarningLine, RiWallet3Line } from "@remixicon/react";
+import { Button } from "@green-goods/shared/components/Button";
+import { RiWallet3Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { type ComponentType, type ReactNode, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminButton } from "./AdminButton";
 import { ADMIN_FLOW_DIALOG_CLASS, AdminConfirmDialog, AdminDialog } from "./AdminDialog";
+import { AdminTextField } from "./AdminTextField";
 import { ActionFlowShell } from "./Layout/ActionFlowShell";
 
 const meta: Meta<typeof AdminDialog> = {
@@ -16,16 +17,23 @@ const meta: Meta<typeof AdminDialog> = {
     docs: {
       description: {
         component: [
-          "**AdminDialog** - M3 basic dialog. 28dp shape, surface-container-high,",
-          "elevation-3, 32 percent scrim, optional icon, headline, supporting",
-          "text, and action slot.",
+          "**AdminDialog** - the cockpit's dialog: its own surface (16dp corners,",
+          "surface-container-high, elevation 2, 32 percent scrim) under the shared",
+          "`SheetHeader` (DL-117): the 22px title, the target line, the description",
+          "and the close button on the title's line, with no icon. The confirm family's",
+          "Cancel and confirm are the shared `SheetActions`.",
           "",
           "**Tone-aware** - focus ring on the close button consumes",
           "`var(--tone-focus-ring, var(--m3-primary))` so it tints to the active",
           "workspace (action color in light, bright accent in dark).",
           "",
-          "**Accessibility**: native `<dialog>` via Radix; Escape closes; focus",
-          "trapped while open; focus returns to trigger on close.",
+          "**On phones (below 640px)** - the installed app's bottom sheet in look (F5):",
+          "the shared sheet material, the grip (visual only) and the shared",
+          "`SheetHeader` with the 22px title and the target line, no icon. Opening,",
+          "closing and focus stay Radix's, as on desktop.",
+          "",
+          "**Accessibility**: Radix dialog; Escape closes the topmost dialog; focus",
+          "is trapped while open and returns to the opener on close.",
         ].join("\n"),
       },
     },
@@ -95,12 +103,12 @@ function OpenGeometryDialog({
         description={description}
         actions={
           <>
-            <AdminButton variant="text" onClick={() => undefined}>
+            <Button type="button" emphasis="tertiary" size="sm" onClick={() => undefined}>
               Cancel
-            </AdminButton>
-            <AdminButton variant="filled" onClick={() => undefined}>
+            </Button>
+            <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
               Confirm
-            </AdminButton>
+            </Button>
           </>
         }
       >
@@ -137,13 +145,11 @@ async function expectRealEnterAnimation(surface: HTMLElement, keyframe: RegExp) 
 }
 
 function DialogPreview({
-  icon,
   title,
   description,
   body,
   confirmLabel = "Confirm",
 }: {
-  icon?: ComponentType<{ className?: string }>;
   title: string;
   description: string;
   body: string;
@@ -153,23 +159,28 @@ function DialogPreview({
 
   return (
     <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6">
-      <AdminButton variant="filled" leadingIcon={<RiWallet3Line />} onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        emphasis="primary"
+        size="sm"
+        leadingIcon={<RiWallet3Line className="h-[18px] w-[18px]" aria-hidden="true" />}
+        onClick={() => setOpen(true)}
+      >
         Open dialog
-      </AdminButton>
+      </Button>
       <AdminDialog
         open={open}
         onOpenChange={setOpen}
         title={title}
         description={description}
-        icon={icon}
         actions={
           <>
-            <AdminButton variant="text" onClick={() => setOpen(false)}>
+            <Button type="button" emphasis="tertiary" size="sm" onClick={() => setOpen(false)}>
               Cancel
-            </AdminButton>
-            <AdminButton variant="filled" onClick={() => setOpen(false)}>
+            </Button>
+            <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(false)}>
               {confirmLabel}
-            </AdminButton>
+            </Button>
           </>
         }
       >
@@ -205,22 +216,11 @@ export const Default: Story = {
         expect(document.querySelector('[role="dialog"]')).toBeNull();
         expect(document.body).not.toHaveAttribute("data-scroll-locked");
         expect(document.body.style.pointerEvents).toBe("");
-        expect(canvas.getByRole("button", { name: "Open dialog" })).toBeVisible();
+        // Focus returns to the opener.
+        expect(canvas.getByRole("button", { name: "Open dialog" })).toHaveFocus();
       });
     }
   },
-};
-
-export const WithIcon: Story = {
-  render: () => (
-    <DialogPreview
-      title="Unable to withdraw"
-      description="This jar has no available balance."
-      body="Recent payouts exhausted the jar. Top up the jar to continue."
-      icon={RiErrorWarningLine}
-      confirmLabel="Dismiss"
-    />
-  ),
 };
 
 export const StateCatalog: Story = {
@@ -236,7 +236,6 @@ export const StateCatalog: Story = {
         title="Unable to withdraw"
         description="This jar has no available balance."
         body="Top up the jar to continue."
-        icon={RiErrorWarningLine}
         confirmLabel="Dismiss"
       />
     </div>
@@ -315,9 +314,8 @@ export const PaletteVariant: Story = {
  */
 const FLOW_SECTIONS = ["Action details", "Time & notes", "Evidence photos", "Review"];
 
-export const FlowVariant: Story = {
-  tags: ["storybook-ci"],
-  render: () => (
+function FlowSheet() {
+  return (
     <AdminDialog
       open
       size="lg"
@@ -336,12 +334,12 @@ export const FlowVariant: Story = {
           <>
             <div className="min-w-0 flex-1" aria-live="polite" />
             <div className="flex gap-2">
-              <AdminButton variant="text" onClick={() => undefined}>
+              <Button type="button" emphasis="tertiary" size="sm" onClick={() => undefined}>
                 Cancel
-              </AdminButton>
-              <AdminButton variant="filled" onClick={() => undefined}>
+              </Button>
+              <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
                 Submit work
-              </AdminButton>
+              </Button>
             </div>
           </>
         }
@@ -365,7 +363,12 @@ export const FlowVariant: Story = {
         </div>
       </ActionFlowShell>
     </AdminDialog>
-  ),
+  );
+}
+
+export const FlowVariant: Story = {
+  tags: ["storybook-ci"],
+  render: () => <FlowSheet />,
   play: async () => {
     const surface = document.querySelector<HTMLElement>(
       '[data-component="AdminDialog"][data-slot="surface"]'
@@ -383,6 +386,12 @@ export const FlowVariant: Story = {
     await expect(surface?.querySelector('[data-region="action-flow-header"]')).not.toBeNull();
     // ActionFlowShell pins its footer through the shared SheetFooter.
     await expect(surface?.querySelector('[data-component="SheetFooter"]')).not.toBeNull();
+    // The flow keeps the dialog's absolute close beside its own header; an
+    // unlayered `.m3-state-layer { position: relative }` once dropped it into
+    // flow over the headline.
+    const close = surface?.querySelector<HTMLElement>(':scope > [data-slot="close"]');
+    await expect(close).not.toBeNull();
+    if (close) await expect(getComputedStyle(close).position).toBe("absolute");
   },
 };
 
@@ -433,11 +442,10 @@ export const ConfirmWithDetails: Story = {
 };
 
 /**
- * Close-button geometry guard. Runs in addon-vitest browser mode, where the real
- * `@layer` cascade applies (jsdom has none), so `getComputedStyle().position` is
- * meaningful. Regression test for the defect where the unlayered
- * `.m3-state-layer { position: relative }` overrode Tailwind's layered `.absolute`,
- * dropping the close button into normal flow at the top-left, over the headline.
+ * Close-button geometry guard, in addon-vitest browser mode where the real
+ * `@layer` cascade applies. A structured dialog's close sits in the shared
+ * header on the title's line (DL-117): anchored at the surface's right edge,
+ * clear of the headline. The flow's absolute close is guarded in FlowVariant.
  */
 export const CloseButtonGeometry: Story = {
   tags: ["storybook-ci"],
@@ -449,9 +457,9 @@ export const CloseButtonGeometry: Story = {
         title="Close button clearance"
         description="The close affordance anchors top-right, clear of the headline."
         actions={
-          <AdminButton variant="filled" onClick={() => undefined}>
+          <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
             Done
-          </AdminButton>
+          </Button>
         }
       >
         <div>Body content used to anchor the geometry assertions.</div>
@@ -462,18 +470,28 @@ export const CloseButtonGeometry: Story = {
     const surface = await within(document.body).findByRole("dialog", {
       name: /close button clearance/i,
     });
+    await waitForDialogSettled(surface);
     await waitFor(async () => {
-      const closeBtn = surface.querySelector<HTMLElement>('[data-slot="close"]');
-      await expect(closeBtn).not.toBeNull();
-      if (!closeBtn) return;
-      // `relative` means the unlayered state-layer rule is overriding `.absolute`
-      // again and the button has fallen into flow over the title.
-      await expect(getComputedStyle(closeBtn).position).toBe("absolute");
+      const header = surface.querySelector<HTMLElement>(
+        '[data-component="SheetHeader"][data-slot="root"]'
+      );
+      await expect(header).not.toBeNull();
+      if (!header) return;
       const surfaceRect = surface.getBoundingClientRect();
-      const closeRect = closeBtn.getBoundingClientRect();
-      // Anchored to the surface top-right (~16px inset), not floating over the headline.
+      const closeRect = within(header)
+        .getByRole("button", { name: "Close" })
+        .getBoundingClientRect();
+      const titleRect = within(surface)
+        .getByRole("heading", { name: /close button clearance/i })
+        .getBoundingClientRect();
+      // On the title's line, at the surface's right edge, clear of the headline.
       await expect(surfaceRect.right - closeRect.right).toBeLessThan(24);
       await expect(closeRect.left).toBeGreaterThan(surfaceRect.left + surfaceRect.width / 2);
+      await expect(titleRect.right).toBeLessThanOrEqual(
+        closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX
+      );
+      await expect(closeRect.top).toBeLessThanOrEqual(titleRect.bottom);
+      await expect(closeRect.bottom).toBeGreaterThanOrEqual(titleRect.top);
     });
   },
 };
@@ -548,7 +566,9 @@ export const DesktopGeometry: Story = {
 /**
  * Mobile full-width bottom-sheet geometry at a real 390x844 viewport.
  * Regression-guards mobile sheet overflow, off-bottom sheets, hidden/floating
- * footers, and the close-button overlap defect.
+ * footers, and the close-button overlap defect, and pins the shared phone
+ * sheet (F5): the grip, the shared header's close on the title's line, the
+ * 22px title and the sheet material.
  */
 export const MobileSheetGeometry: Story = {
   tags: ["storybook-ci"],
@@ -633,39 +653,81 @@ export const MobileSheetGeometry: Story = {
       surfaceRect.bottom + VIEWPORT_EDGE_TOLERANCE_PX
     );
 
-    // Close button sits inside the surface, anchored top-right, clear of body
-    // and headline. `position: absolute` is the direct guard for the cascade
-    // defect where the unlayered `.m3-state-layer { position: relative }`
-    // overrode Tailwind's `.absolute`.
-    const closeBtn = surface.querySelector<HTMLElement>('[data-slot="close"]');
-    await expect(closeBtn).not.toBeNull();
-    if (closeBtn) {
-      await expect(getComputedStyle(closeBtn).position).toBe("absolute");
-      const closeRect = closeBtn.getBoundingClientRect();
-      await expect(closeRect.left).toBeGreaterThanOrEqual(
-        surfaceRect.left - VIEWPORT_EDGE_TOLERANCE_PX
-      );
-      await expect(closeRect.right).toBeLessThanOrEqual(
-        surfaceRect.right + VIEWPORT_EDGE_TOLERANCE_PX
-      );
-      await expect(closeRect.top).toBeGreaterThanOrEqual(
-        surfaceRect.top - VIEWPORT_EDGE_TOLERANCE_PX
-      );
-      // Anchored to the right (~16px inset), not floating over the headline.
-      await expect(surfaceRect.right - closeRect.right).toBeLessThan(24);
-      await expect(closeRect.left).toBeGreaterThan(surfaceRect.left + surfaceRect.width / 2);
-      // Sits above the scrollable body — does not overlap content.
-      await expect(closeRect.bottom).toBeLessThanOrEqual(bodyRect.top + VIEWPORT_EDGE_TOLERANCE_PX);
-      // Headline text stays clear of the absolute close button. Clearance now
-      // lives on the header row (pr-14 on the title bar), not on the title's own
-      // paddingRight, so assert the geometry directly: the title never extends
-      // under the close button.
-      const title = within(surface).getByRole("heading", { name: /mobile bottom sheet/i });
-      const titleRect = title.getBoundingClientRect();
-      await expect(titleRect.right).toBeLessThanOrEqual(
-        closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX
-      );
-    }
+    // The shared header's close sits inside the surface on the title's first
+    // line, anchored top-right, clear of the body and the title.
+    const header = surface.querySelector<HTMLElement>(
+      '[data-component="SheetHeader"][data-slot="root"]'
+    );
+    await expect(header).not.toBeNull();
+    if (!header) return;
+    const closeRect = within(header).getByRole("button", { name: "Close" }).getBoundingClientRect();
+    const title = within(surface).getByRole("heading", { name: /mobile bottom sheet/i });
+    const titleRect = title.getBoundingClientRect();
+    const firstLineMiddle =
+      titleRect.top + Number.parseFloat(getComputedStyle(title).lineHeight) / 2;
+    await expect(closeRect.top).toBeLessThanOrEqual(firstLineMiddle);
+    await expect(closeRect.bottom).toBeGreaterThanOrEqual(firstLineMiddle);
+    await expect(closeRect.right).toBeLessThanOrEqual(
+      surfaceRect.right + VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expect(surfaceRect.right - closeRect.right).toBeLessThan(24);
+    await expect(closeRect.bottom).toBeLessThanOrEqual(bodyRect.top + VIEWPORT_EDGE_TOLERANCE_PX);
+    await expect(titleRect.right).toBeLessThanOrEqual(closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX);
+    // The cockpit keeps its 22px dialog title in the shared header.
+    await expect(getComputedStyle(title).fontSize).toBe("22px");
+
+    // The grip tops the surface, centred above the title, and marks the sheet
+    // without a gesture.
+    const grip = surface.querySelector<HTMLElement>(
+      '[data-component="SheetGrip"][data-slot="grip"]'
+    );
+    await expect(grip).not.toBeNull();
+    if (!grip) return;
+    const gripRect = grip.getBoundingClientRect();
+    const surfaceMiddle = (surfaceRect.left + surfaceRect.right) / 2;
+    await expect(
+      Math.abs((gripRect.left + gripRect.right) / 2 - surfaceMiddle)
+    ).toBeLessThanOrEqual(CENTER_TOLERANCE_PX);
+    await expect(gripRect.bottom).toBeLessThanOrEqual(titleRect.top);
+    await expect(grip.parentElement).not.toHaveAttribute("data-drag-region");
+
+    // The shared sheet material: white in light, rounded on top only.
+    const surfaceStyle = getComputedStyle(surface);
+    await expect(surfaceStyle.backgroundColor).toBe("rgb(255, 255, 255)");
+    await expect(surfaceStyle.borderTopLeftRadius).toBe("16px");
+    await expect(surfaceStyle.borderBottomLeftRadius).toBe("0px");
+  },
+};
+
+/**
+ * A flow keeps its own header on a phone, under the shared grip: the dialog's
+ * close moves down with it, on the flow's title row and clear of the grip.
+ */
+export const MobileFlowSheetGeometry: Story = {
+  tags: ["storybook-ci"],
+  parameters: { viewport: { options: ADMIN_MOBILE_390_VIEWPORT } },
+  globals: { viewport: { value: "adminMobile390x844" } },
+  render: () => <FlowSheet />,
+  play: async () => {
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+    const surface = await within(document.body).findByRole("dialog", { name: "Submit Work" });
+    await waitForDialogSettled(surface);
+    const handle = surface.querySelector<HTMLElement>(
+      '[data-component="SheetGrip"][data-slot="drag-handle"]'
+    );
+    const close = surface.querySelector<HTMLElement>(':scope > [data-slot="close"]');
+    await expect(handle).not.toBeNull();
+    await expect(close).not.toBeNull();
+    if (!handle || !close) return;
+    const closeRect = close.getBoundingClientRect();
+    const title = within(surface).getByRole("heading", { name: "Submit Work", level: 1 });
+    const titleRect = title.getBoundingClientRect();
+    await expect(closeRect.top).toBeGreaterThanOrEqual(
+      handle.getBoundingClientRect().bottom - VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expect(closeRect.top).toBeLessThanOrEqual(titleRect.bottom);
+    await expect(closeRect.bottom).toBeGreaterThanOrEqual(titleRect.top);
+    await expect(titleRect.right).toBeLessThanOrEqual(closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX);
   },
 };
 
@@ -822,4 +884,214 @@ export const ToneMatrix: Story = {
       ))}
     </div>
   ),
+};
+
+const PREVIEW_STAGE =
+  "flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6";
+
+/**
+ * Closes the open dialog with a gesture and checks the page comes back whole:
+ * no dialog, no scroll or pointer lock, and focus on the opener.
+ */
+async function closeAndExpectFocusOn(opener: HTMLElement, close: () => Promise<void>) {
+  await close();
+  await waitFor(() => {
+    expect(document.querySelector('[role="dialog"], [role="alertdialog"]')).toBeNull();
+    expect(document.body).not.toHaveAttribute("data-scroll-locked");
+    expect(document.body.style.pointerEvents).toBe("");
+    expect(opener).toHaveFocus();
+  });
+}
+
+function FormDialogPreview() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("North Meadow");
+  const [summary, setSummary] = useState("");
+  return (
+    <div className={PREVIEW_STAGE}>
+      <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
+        Edit garden
+      </Button>
+      <AdminDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Edit Garden"
+        description="Change the name and summary members see."
+        tone="garden"
+        actions={
+          <>
+            <Button type="button" emphasis="tertiary" size="sm" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(false)}>
+              Save
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <AdminTextField
+            label="Garden name"
+            required
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <AdminTextField
+            label="Summary"
+            value={summary}
+            onChange={(event) => setSummary(event.target.value)}
+          />
+        </div>
+      </AdminDialog>
+    </div>
+  );
+}
+
+/** A form dialog: typing stays inside it, Escape and Cancel close it, and focus comes home. */
+export const FormDialog: Story = {
+  tags: ["storybook-ci"],
+  render: () => <FormDialogPreview />,
+  play: async ({ canvasElement }) => {
+    const body = within(document.body);
+    const opener = within(canvasElement).getByRole("button", { name: "Edit garden" });
+
+    await userEvent.click(opener);
+    const dialog = await body.findByRole("dialog", { name: "Edit Garden" });
+    await waitForDialogSettled(dialog);
+    const summary = within(dialog).getByRole("textbox", { name: /summary/i });
+    await userEvent.type(summary, "Food forest");
+    await expect(summary).toHaveValue("Food forest");
+    await closeAndExpectFocusOn(opener, async () => {
+      await userEvent.keyboard("{Escape}");
+    });
+
+    await userEvent.click(opener);
+    const again = await body.findByRole("dialog", { name: "Edit Garden" });
+    await waitForDialogSettled(again);
+    await closeAndExpectFocusOn(opener, () =>
+      userEvent.click(within(again).getByRole("button", { name: "Cancel" }))
+    );
+  },
+};
+
+function ConfirmPreview() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={PREVIEW_STAGE}>
+      <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
+        Pause vault
+      </Button>
+      <AdminConfirmDialog
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onConfirm={() => setOpen(false)}
+        title="Emergency pause"
+        description="Pause deposits and withdrawals for this vault?"
+        confirmLabel="Pause"
+        variant="danger"
+      />
+    </div>
+  );
+}
+
+/**
+ * The confirm family: an alertdialog whose Cancel and confirm are the shared
+ * action bar. Escape and Cancel close it, and focus comes home.
+ */
+export const ConfirmFocusReturn: Story = {
+  tags: ["storybook-ci"],
+  render: () => <ConfirmPreview />,
+  play: async ({ canvasElement }) => {
+    const body = within(document.body);
+    const opener = within(canvasElement).getByRole("button", { name: "Pause vault" });
+
+    await userEvent.click(opener);
+    const dialog = await body.findByRole("alertdialog", { name: "Emergency pause" });
+    await waitForDialogSettled(dialog);
+    await expect(dialog.querySelector('[data-component="SheetActions"]')).not.toBeNull();
+    await expect(within(dialog).getByRole("button", { name: "Pause" })).toHaveAttribute(
+      "data-action",
+      "primary"
+    );
+    await closeAndExpectFocusOn(opener, async () => {
+      await userEvent.keyboard("{Escape}");
+    });
+
+    await userEvent.click(opener);
+    const again = await body.findByRole("alertdialog", { name: "Emergency pause" });
+    await waitForDialogSettled(again);
+    await closeAndExpectFocusOn(opener, () =>
+      userEvent.click(within(again).getByRole("button", { name: "Cancel" }))
+    );
+  },
+};
+
+function NestedPreview() {
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <div className={PREVIEW_STAGE}>
+      <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
+        Manage member
+      </Button>
+      <AdminDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Manage Member"
+        description="Rosa Lima gardens in North Meadow."
+        tone="community"
+        actions={
+          <Button type="button" emphasis="tertiary" size="sm" onClick={() => setOpen(false)}>
+            Done
+          </Button>
+        }
+      >
+        <Button type="button" emphasis="secondary" size="sm" onClick={() => setConfirming(true)}>
+          Remove member
+        </Button>
+        <AdminConfirmDialog
+          isOpen={confirming}
+          onClose={() => setConfirming(false)}
+          onConfirm={() => setConfirming(false)}
+          title="Remove member?"
+          description="Rosa Lima loses access to North Meadow."
+          confirmLabel="Remove"
+          variant="danger"
+          tone="community"
+        />
+      </AdminDialog>
+    </div>
+  );
+}
+
+/**
+ * A confirm opened from inside a dialog: Escape closes only the topmost one,
+ * and focus steps back a level at a time, to the button that opened each.
+ */
+export const NestedDialogs: Story = {
+  tags: ["storybook-ci"],
+  render: () => <NestedPreview />,
+  play: async ({ canvasElement }) => {
+    const body = within(document.body);
+    const opener = within(canvasElement).getByRole("button", { name: "Manage member" });
+
+    await userEvent.click(opener);
+    const outer = await body.findByRole("dialog", { name: "Manage Member" });
+    await waitForDialogSettled(outer);
+    const removeMember = within(outer).getByRole("button", { name: "Remove member" });
+    await userEvent.click(removeMember);
+    const inner = await body.findByRole("alertdialog", { name: "Remove member?" });
+    await waitForDialogSettled(inner);
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(body.queryByRole("alertdialog")).toBeNull();
+      expect(body.getByRole("dialog", { name: "Manage Member" })).toBeVisible();
+      expect(removeMember).toHaveFocus();
+    });
+
+    await closeAndExpectFocusOn(opener, async () => {
+      await userEvent.keyboard("{Escape}");
+    });
+  },
 };

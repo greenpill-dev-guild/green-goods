@@ -17,8 +17,8 @@
         "conformance": ["packages/shared/src/__tests__/modules/job-queue.db.test.ts"],
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
-      "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:a37a1c0f389cd2ac2cf0dba8b934a0d7bb9c2b31ab12115e873c6597785c1b1d"
+      "reviewedAt": "2026-10-26",
+      "evidenceFingerprint": "sha256:5268e6155f63d10e48ebd3ab14bb6baf6b858142e9fea7bb5b8e28ccb30a49e2"
     },
     {
       "id": "shared-auth-session",
@@ -42,8 +42,8 @@
           "packages/shared/src/__tests__/hooks/auth/useIdentityChangeReset.test.ts"
         ]
       },
-      "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:0ed0cebecf1780db8eee334beadfc9e81eedc20478b4758cd285c5870c507c16"
+      "reviewedAt": "2026-10-25",
+      "evidenceFingerprint": "sha256:e52e48005baf2713b45722af418b03c158d6adaab3c0a217859e5a6e26b57e05"
     },
     {
       "id": "shared-work-provider-command",
@@ -63,8 +63,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:001fd1465b542e05bfbb03d3869bb0ecc892ac0af5d475180da62f7552d82ccf"
+      "reviewedAt": "2026-10-25",
+      "evidenceFingerprint": "sha256:cfa52f3ef8346120960b253575ae12f601efef96f42ac627bb59eff59d921a29"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -75,15 +75,15 @@
       "publicSpecifier": "@green-goods/shared/commitment-pooling",
       "interfaceSummary": "Provides the declared stable domain surface for commitment pooling reads, commands, controllers, selectors, and types without exposing Shared internals.",
       "dependencyCategory": "true-external",
-      "compositionRoots": ["packages/client/src/views/Home/Garden/index.tsx"],
+      "compositionRoots": ["packages/client/src/views/Home/Garden/GardenPage.tsx"],
       "directConsumers": ["packages/client/src/views/Home/Garden/WorkFulfills.tsx"],
       "proof": {
         "direct": ["packages/shared/src/__tests__/commitment-pooling.test.ts"],
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-10-23",
-      "evidenceFingerprint": "sha256:dc9da3efb845e76df15dd69f75c100244207e2e8f2282eafcde87855a55659ec"
+      "reviewedAt": "2026-10-26",
+      "evidenceFingerprint": "sha256:2a6b438906a6da30074854b554308e306b38e26302759cdc6d7e7033ac73f993"
     }
   ]
 }

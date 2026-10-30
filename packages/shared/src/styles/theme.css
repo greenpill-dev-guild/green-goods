@@ -590,6 +590,14 @@
   --gg-type-field-line: 1.5rem;
   --gg-type-field-weight: 400;
   --gg-type-field-tracking: -0.011em;
+  /* The card title (typography.card-title): every card's one-line title, item
+   * rows and media cards. 15px at 500 here, the work row's weight; the cockpit
+   * sets 13px at 600 in packages/admin/src/index.css. Its own role, so a
+   * surface that moves title-sm never moves a card title. */
+  --gg-type-card-title-size: 0.9375rem;
+  --gg-type-card-title-line: 1.25rem;
+  --gg-type-card-title-weight: 500;
+  --gg-type-card-title-tracking: 0px;
   /* 12px: app buttons of every emphasis, and actions inside a field (DL-026). */
   --radius-squircle: var(--gg-radius-squircle);
   --radius-lg: var(--gg-radius-lg);
@@ -597,20 +605,32 @@
   --radius-2xl: var(--gg-radius-2xl);
   --radius-full: var(--gg-radius-full);
 
-  /* ── Glass Material ── Blur + transparency tokens for navigation-tier surfaces
-   * Applied via .glass-surface utility or per-component backdrop-filter.
-   * @media (prefers-contrast: more) forces solid fallback — see utilities.
+  /* ── Cards, rows and lists (F7, F11) ── One card surface on both surfaces:
+   * the card's fill, a 1px edge and a faint shadow, on a 24px corner. The fill
+   * and edge read --gg-card-surface and --gg-card-edge where a surface sets them
+   * (the cockpit, in admin index.css) and the element's own --bg-white-0 and
+   * --stroke-soft-200 otherwise, so a dark scope below the root resolves its
+   * own. An item row takes a 16px corner and one 88px height, and every card
+   * list keeps 12px between its cards. Read by .gg-card and .gg-item-row in the
+   * components layer below. */
+  --gg-card-radius: var(--gg-radius-2xl);
+  --gg-row-radius: var(--gg-radius-lg);
+  --gg-card-shadow: 0 1px 2px 0 rgb(var(--static-black) / 0.05);
+  --gg-item-row-height: 5.5rem;
+  --gg-item-row-tile: 3.5rem;
+  --gg-list-gap: 0.75rem;
+
+  /* ── Glass residue ── The cockpit's .glass-surface rule reads these two. Every
+   * surface is solid (DL-108); new UI never uses them.
    */
   --glass-blur: 16px;
   --glass-bg: 255 255 255 / 80%;
-  --glass-ring: 0 0 0 / 4%;
-  --glass-overlay-bg: 0 0 0 / 40%;
 
-  /* ── Material System ── 5-thickness semantic surface material (Warm Earth spec).
-   * Match thickness to content density — see .claude/skills/design/surfaces.md.
-   * Opacity uses OKLCH per language.md § Color Direction (destination token format).
-   * Usage: `background: var(--color-material-regular); backdrop-filter: blur(var(--blur-material-regular));`
-   * Degrades to solid via @media (prefers-contrast: more) at end of theme layer.
+  /* ── Material ── Every surface is solid (surfaces.md § Solid Surfaces, DL-108):
+   * --color-material-solid is the solid fill, and the cockpit's nav dock reads its
+   * blur from --blur-material-regular. The translucent steps are residue that stays
+   * only until nothing renders them; they resolve solid under
+   * @media (prefers-contrast: more) at the end of the theme layer.
    */
   --color-material-ultrathin: oklch(0.99 0 0 / 0.2);
   --color-material-thin: oklch(0.98 0 0 / 0.4);
@@ -618,9 +638,17 @@
   --color-material-thick: oklch(0.96 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
   /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
-   * surface-colored cover that rides the end of the content to hide it. */
-  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
-  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
+   * surface-colored cover that rides the end of the content to hide it. Both
+   * follow the sheet's own hairline and fill where a surface sets them
+   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the cockpit's phone dialogs). */
+  --sheet-scroll-edge-line: linear-gradient(
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200))),
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200)))
+  );
+  --sheet-scroll-edge-cover: linear-gradient(
+    var(--gg-sheet-fill, var(--color-material-solid)),
+    var(--gg-sheet-fill, var(--color-material-solid))
+  );
 
   --blur-material-ultrathin: 30px;
   --blur-material-thin: 20px;
@@ -791,6 +819,9 @@
   /* Declared again so a dark scope below the root draws the dark stroke: the
    * :root outline has already resolved to the light one when it is inherited. */
   --gg-control-outline: var(--stroke-sub-300);
+  /* A card reads against the dark canvas by its lightness step and its edge; a
+   * black shadow would not show, so the card casts none (F13). */
+  --gg-card-shadow: 0 0 transparent;
   --stroke-soft-200: var(--neutral-800);     /* 34 37 48 - soft borders (subtle elevation) */
   --stroke-white-0: var(--neutral-950);
   
@@ -894,7 +925,6 @@
 
   /* Glass material - dark mode overrides */
   --glass-bg: 23 23 23 / 80%;
-  --glass-ring: 255 255 255 / 6%;
 
   /* Material system — dark mode shifts tones darker; opacity higher for readability */
   --color-material-ultrathin: oklch(0.1 0 0 / 0.2);
@@ -903,9 +933,17 @@
   --color-material-thick: oklch(0.12 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
   /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
-   * surface-colored cover that rides the end of the content to hide it. */
-  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
-  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
+   * surface-colored cover that rides the end of the content to hide it. Both
+   * follow the sheet's own hairline and fill where a surface sets them
+   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the cockpit's phone dialogs). */
+  --sheet-scroll-edge-line: linear-gradient(
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200))),
+    var(--gg-sheet-edge, rgb(var(--stroke-soft-200)))
+  );
+  --sheet-scroll-edge-cover: linear-gradient(
+    var(--gg-sheet-fill, var(--color-material-solid)),
+    var(--gg-sheet-fill, var(--color-material-solid))
+  );
   --border-material: 1px solid oklch(1 0 0 / 0.06);
 
   /* Social colors - invert for dark mode */
@@ -936,6 +974,21 @@
    * the pale green behind a deep green icon. */
   --primary-container: var(--green-100);
   --primary-container-foreground: var(--green-900);
+  /* The garden context chip at the app's density (DL-124): a 32px capsule, the
+   * height of the compact icon buttons beside it, with a 48px hit area; the
+   * garden's banner as a 22px avatar inset 4px inside the edge (a 14px glyph
+   * where it falls back to the seedling), a 16px caret, the 16px label role,
+   * the control outline, and focus in the app's green. Unset, the chip keeps
+   * the cockpit's 36px pill. Its two colors are set again in the dark block. */
+  --gg-garden-chip-height: 2rem;
+  --gg-garden-chip-hit: var(--gg-hit-block, 3rem);
+  --gg-garden-chip-inline-start: 0.25rem;
+  --gg-garden-chip-inline-end: 0.75rem;
+  --gg-garden-chip-avatar: 1.375rem;
+  --gg-garden-chip-glyph: 0.875rem;
+  --gg-garden-chip-caret: 1rem;
+  --gg-garden-chip-edge: var(--gg-control-outline);
+  --gg-garden-chip-focus-ring: var(--focus-ring);
 }
 
 /* The PWA restores its pale mint dark palette (DL-088) and takes the one warm
@@ -967,6 +1020,8 @@
   --gg-control-outline: var(--neutral-400);
   --primary-container: var(--green-900);
   --primary-container-foreground: var(--green-100);
+  --gg-garden-chip-edge: var(--gg-control-outline);
+  --gg-garden-chip-focus-ring: var(--focus-ring);
 }
 
 /* Resolve Tailwind aliases within each theme scope so nested dark surfaces
@@ -980,9 +1035,9 @@
 }
 } /* End @layer theme */
 
-/* Material system — accessibility fallback.
- * Users who enable max-contrast lose translucent glass and get solid surfaces.
- * Matches the fallback rule in .claude/skills/design/surfaces.md § Material System.
+/* Material residue — accessibility fallback.
+ * With max contrast, the translucent material steps that still render resolve
+ * solid, like every other surface (surfaces.md § Solid Surfaces, DL-108).
  */
 @media (prefers-contrast: more) {
   :root {
@@ -1032,10 +1087,11 @@
   }
 
   /* One focus role (F3): the workspace tone in the cockpit, the installed app's
-     green in the app. Declared on each control so the cockpit's tone resolves
-     where the control sits. The ring replaces a 3px halo that measured about
-     1.3:1; fields keep three quarters of the halo where it remains. */
-  :where(.gg-control, .gg-button, .gg-chip, .gg-switch) {
+     green in the app. Declared on each control, and on the message line under a
+     field, so the cockpit's tone resolves where the control sits. The ring
+     replaces a 3px halo that measured about 1.3:1; fields keep three quarters of
+     the halo where it remains. */
+  :where(.gg-control, .gg-button, .gg-chip, .gg-switch, .gg-field-message) {
     --gg-focus-ring: var(--tone-focus-ring, var(--focus-ring, var(--primary-base)));
   }
 
@@ -1139,12 +1195,34 @@
     }
   }
 
+  /* The admin surface's outline, fill and text come after the shared error and
+     disabled states, so it sets each state again, as the editorial surface does
+     (DL-116): an error draws the box in the field family's error role, the red
+     of its label and message line, and a disabled control takes the shared
+     disabled fill. */
+  .gg-control[data-surface="admin"][data-invalid="true"] {
+    border-color: rgb(var(--m3-error));
+  }
+
+  .gg-control[data-surface="admin"][data-invalid="true"]:focus-visible {
+    outline-color: rgb(var(--m3-error));
+  }
+
+  .gg-control[data-surface="admin"]:disabled {
+    background-color: rgb(var(--bg-soft-200));
+    color: rgb(var(--text-sub-600));
+  }
+
   .gg-control-textarea {
     min-height: 5rem;
     resize: vertical;
   }
 
-  .gg-control-select {
+  /* A disabled select on the admin surface keeps one chevron (DL-116): the shared
+     disabled rule's background shorthand would clear it in light and, with the
+     dark chevron restored over it, tile it across the box in dark. */
+  .gg-control-select,
+  select.gg-control-select[data-surface="admin"]:disabled {
     /* Custom chevron with breathing room — the browser-default arrow sits
        flush against the control edge with no inset. Same glyph light + dark
        via a mid-gray stroke; padding reserves its lane so option text never
@@ -1225,7 +1303,8 @@
   }
 
   :root[data-theme="dark"] .gg-control-select,
-  [data-theme="dark"] .gg-control-select {
+  [data-theme="dark"] .gg-control-select,
+  [data-theme="dark"] select.gg-control-select[data-surface="admin"]:disabled {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 
@@ -1286,11 +1365,14 @@
     flex-shrink: 0;
   }
 
-  /* ── Field label and help (DL-031) ── The label above a shared field and the
-   * supporting line under it. The label reads the surface's small label size
-   * (14px in the app; the cockpit sets --gg-label-sm) at weight 500, the same
-   * as the cockpit's setting-row titles, so a shared field never reads smaller
-   * or greyer than the fields beside it. */
+  /* ── Field label and message (DL-031, F3) ── One anatomy on both surfaces:
+   * the label above the control and the message line under it. The label
+   * reads the surface's small label size (14px in the app; the cockpit sets
+   * --gg-label-sm) at weight 500, the same as the cockpit's setting-row titles,
+   * so a field never reads smaller or grayer than the fields beside it. The
+   * message text is the type-meta role; an error takes the field family's
+   * error role, red-700 in the cockpit, since red-500 measured under 4.5:1 at
+   * this size. */
   .gg-field-label {
     display: block;
     font-size: var(--gg-label-sm);
@@ -1300,13 +1382,34 @@
   }
 
   .gg-field-help {
-    font-size: var(--text-label-xs, 0.75rem);
-    line-height: var(--text-label-xs--line-height, 1rem);
+    font-size: var(--gg-type-meta-size);
+    line-height: var(--gg-type-meta-line);
+    letter-spacing: var(--gg-type-meta-tracking);
     color: rgb(var(--text-sub-600));
   }
 
   .gg-field-help[data-invalid="true"] {
-    color: rgb(var(--error-base));
+    color: rgb(var(--m3-error));
+  }
+
+  /* The message line reserves the surface's message lines whether or not it
+   * shows a message, so a message that fits never moves the form; a longer one
+   * grows the line instead of scrolling inside it (DL-018, DL-064). Two lines in
+   * the installed app, and the cockpit sets its own (admin index.css). */
+  .gg-field-message {
+    flex-shrink: 0;
+    min-block-size: calc(var(--gg-field-message-lines, 2) * 1lh);
+    overflow-wrap: anywhere;
+  }
+
+  /* A message a reader can reach by Tab (FormField's hint or error, the amount
+   * input's error) draws the one focus ring (DL-098): solid 2px, 2px off the
+   * line, in the focus role (`--gg-focus-ring`). On every surface, as the icon
+   * button's ring is: a halo around a line of text would be the faint one the
+   * ring replaced. */
+  .gg-field-message:focus-visible {
+    outline: 2px solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
   }
 
   /* Select options sit concentric inside the 8px menu and its 4px padding. The
@@ -1351,15 +1454,25 @@
     outline-offset: 2px;
   }
 
+  /* A surface whose buttons keep still while pressed sets
+   * --gg-button-pressed-transform to none (the cockpit, DL-115). */
   .gg-button:active {
-    transform: scale(0.985);
+    transform: var(--gg-button-pressed-transform, scale(0.985));
   }
 
+  /* A disabled button dims and takes no pointer. A surface can draw its own
+   * disabled look through tokens instead: no dim, a fill and ink of its own
+   * (painted after the emphases below), and an aria-disabled button that keeps
+   * its pointer so a reason given on hover still shows (the cockpit, DL-115). */
   .gg-button:disabled,
   .gg-button[aria-disabled="true"] {
     pointer-events: none;
     cursor: not-allowed;
-    opacity: 0.6;
+    opacity: var(--gg-button-disabled-opacity, 0.6);
+  }
+
+  .gg-button[aria-disabled="true"] {
+    pointer-events: var(--gg-button-aria-disabled-events, none);
   }
 
   /* ── Button emphasis API (DL-023, DL-026, DL-029) ──
@@ -1414,9 +1527,13 @@
     --gg-button-weight: 500;
   }
 
+  /* Each emphasis and state below names its fill and ink, and this rule paints
+   * them, so a disabled button can take a surface's own pair instead (DL-115). */
   .gg-button[data-emphasis] {
     border-radius: var(--gg-button-radius);
     font-weight: var(--gg-button-weight);
+    background: var(--gg-button-fill);
+    color: var(--gg-button-ink);
   }
 
   /* The compact size keeps the corner's proportion, not its number: 16px on a
@@ -1426,8 +1543,14 @@
     border-radius: var(--gg-button-radius-compact);
   }
 
+  /* A surface whose rows were laid out around fixed-height buttons caps each
+   * size at its block, so a row that stretches never grows one, and can reserve
+   * a block margin for the finger box's reach (the cockpit, DL-119). The app
+   * sets neither, and a shared piece's own buttons take neither (below). */
   .gg-button[data-size="lg"] {
     --gg-button-block: var(--gg-button-block-lg, 3rem);
+    max-block-size: var(--gg-button-block-cap-lg, none);
+    margin-block: var(--gg-button-reserve-lg, 0);
     --gg-button-line: var(--text-label-md--line-height);
     padding-inline: var(--gg-button-inline-lg, 1.25rem);
     font-size: var(--gg-label-md);
@@ -1436,6 +1559,8 @@
 
   .gg-button[data-size="md"] {
     --gg-button-block: var(--gg-button-block-md, 2.75rem);
+    max-block-size: var(--gg-button-block-cap-md, none);
+    margin-block: var(--gg-button-reserve-md, 0);
     --gg-button-line: var(--text-label-md--line-height);
     padding-inline: var(--gg-button-inline-md, 1rem);
     font-size: var(--gg-label-md);
@@ -1444,13 +1569,32 @@
 
   .gg-button[data-size="sm"] {
     --gg-button-block: var(--gg-button-block-sm, 2.5rem);
+    max-block-size: var(--gg-button-block-cap-sm, none);
+    margin-block: var(--gg-button-reserve-sm, 0);
     padding-inline: var(--gg-button-inline-sm, 0.875rem);
   }
 
   .gg-button[data-size="compact"] {
     --gg-button-block: var(--gg-button-block-compact, 2rem);
+    max-block-size: var(--gg-button-block-cap-compact, none);
+    margin-block: var(--gg-button-reserve-compact, 0);
     gap: 0.375rem;
     padding-inline: var(--gg-button-inline-compact, 0.75rem);
+  }
+
+  /* A shared piece lays out its own buttons: a toast's actions, the sheet's
+   * actions and Close, a copy, dismiss or remove button. It marks them
+   * data-piece-control, and they keep the app's layout on any surface, with no
+   * reserve and no cap, so a wrapped toast action grows to fit (DL-119). */
+  :is(.gg-button, .gg-icon-button)[data-piece-control] {
+    --gg-button-reserve-lg: 0;
+    --gg-button-reserve-md: 0;
+    --gg-button-reserve-sm: 0;
+    --gg-button-reserve-compact: 0;
+    --gg-button-block-cap-lg: none;
+    --gg-button-block-cap-md: none;
+    --gg-button-block-cap-sm: none;
+    --gg-button-block-cap-compact: none;
   }
 
   /* Hit areas: every size carries an absolute box that reaches the surface's
@@ -1467,94 +1611,103 @@
   }
 
   .gg-button[data-emphasis="primary"] {
-    background: rgb(var(--tone-action, var(--primary-action)));
-    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+    --gg-button-fill: rgb(var(--tone-action, var(--primary-action)));
+    --gg-button-ink: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
   .gg-button[data-emphasis="primary"]:hover {
-    background: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+    --gg-button-fill: rgb(var(--tone-action-hover, var(--primary-action-hover)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"] {
-    background: rgb(var(--error-action));
-    color: rgb(var(--static-white, var(--neutral-0)));
+    --gg-button-fill: rgb(var(--error-action));
+    --gg-button-ink: rgb(var(--static-white, var(--neutral-0)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"]:hover {
-    background: rgb(var(--error-action-hover));
+    --gg-button-fill: rgb(var(--error-action-hover));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"] {
-    background: rgb(var(--warning-base));
-    color: rgb(var(--static-white, var(--neutral-0)));
+    --gg-button-fill: rgb(var(--warning-base));
+    --gg-button-ink: rgb(var(--static-white, var(--neutral-0)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"]:hover {
-    background: rgb(var(--warning-dark));
+    --gg-button-fill: rgb(var(--warning-dark));
   }
 
   .gg-button[data-emphasis="secondary"] {
     border-color: rgb(var(--gg-control-outline));
-    background: rgb(var(--bg-white-0));
-    color: rgb(var(--text-strong-950));
+    --gg-button-fill: rgb(var(--bg-white-0));
+    --gg-button-ink: rgb(var(--text-strong-950));
   }
 
   .gg-button[data-emphasis="secondary"]:hover {
-    background: rgb(var(--bg-weak-50));
+    --gg-button-fill: rgb(var(--bg-weak-50));
   }
 
   .gg-button[data-emphasis="secondary"][data-tone="danger"] {
     border-color: rgb(var(--error-base));
-    color: rgb(var(--error-base));
+    --gg-button-ink: rgb(var(--error-base));
   }
 
   .gg-button[data-emphasis="secondary"][data-tone="danger"]:hover {
-    background: rgb(var(--error-base) / 0.08);
+    --gg-button-fill: rgb(var(--error-base) / 0.08);
   }
 
   .gg-button[data-emphasis="tertiary"] {
     border-color: transparent;
-    background: transparent;
-    color: rgb(var(--text-sub-600));
+    --gg-button-fill: transparent;
+    --gg-button-ink: rgb(var(--text-sub-600));
   }
 
   .gg-button[data-emphasis="tertiary"]:hover {
-    background: rgb(var(--bg-weak-50));
-    color: rgb(var(--text-strong-950));
+    --gg-button-fill: rgb(var(--bg-weak-50));
+    --gg-button-ink: rgb(var(--text-strong-950));
   }
 
   .gg-button[data-emphasis="tertiary"][data-tone="danger"] {
-    color: rgb(var(--error-base));
+    --gg-button-ink: rgb(var(--error-base));
   }
 
   .gg-button[data-emphasis="tertiary"][data-tone="danger"]:hover {
-    background: rgb(var(--error-base) / 0.08);
-    color: rgb(var(--error-base));
+    --gg-button-fill: rgb(var(--error-base) / 0.08);
+    --gg-button-ink: rgb(var(--error-base));
   }
 
   /* Pressed fill: touch has no hover, so the press itself shows the state the
    * pointer gets on hover. Without it a tap on a phone changed nothing visible
    * but a 4px corner. Toned buttons keep their own pressed colour. */
   .gg-button[data-emphasis="primary"]:not([data-tone]):active {
-    background: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+    --gg-button-fill: rgb(var(--tone-action-hover, var(--primary-action-hover)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"]:active {
-    background: rgb(var(--error-action-hover));
+    --gg-button-fill: rgb(var(--error-action-hover));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"]:active {
-    background: rgb(var(--warning-dark));
+    --gg-button-fill: rgb(var(--warning-dark));
   }
 
   .gg-button[data-emphasis="secondary"]:not([data-tone]):active,
   .gg-button[data-emphasis="tertiary"]:not([data-tone]):active {
-    background: rgb(var(--bg-weak-50));
+    --gg-button-fill: rgb(var(--bg-weak-50));
   }
 
   .gg-button[data-emphasis="secondary"][data-tone="danger"]:active,
   .gg-button[data-emphasis="tertiary"][data-tone="danger"]:active {
-    background: rgb(var(--error-base) / 0.08);
+    --gg-button-fill: rgb(var(--error-base) / 0.08);
+  }
+
+  /* Disabled: a surface's own fill and ink when it sets them (the cockpit's
+   * neutral pair, DL-115), else the emphasis's own under the dim above. Last, so
+   * a hover or press on an aria-disabled button that keeps its pointer changes
+   * nothing. */
+  .gg-button[data-emphasis]:is(:disabled, [aria-disabled="true"]) {
+    background: var(--gg-button-disabled-fill, var(--gg-button-fill));
+    color: var(--gg-button-disabled-ink, var(--gg-button-ink));
   }
 
   /* Press morph (DL-001): a filled or outlined button tightens one step while
@@ -1584,8 +1737,12 @@
     padding: 0;
     border: 1px solid transparent;
     border-radius: calc(var(--gg-icon-button-size) / 2);
-    background-color: transparent;
-    color: rgb(var(--text-sub-600));
+    --gg-icon-button-fill: transparent;
+    --gg-icon-button-ink: rgb(var(--text-sub-600));
+    /* The same reserve as the button's, per size (DL-115); none in the app. */
+    margin-block: var(--gg-button-reserve-md, 0);
+    background-color: var(--gg-icon-button-fill);
+    color: var(--gg-icon-button-ink);
     cursor: pointer;
     transition:
       background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
@@ -1594,21 +1751,27 @@
       border-radius var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out);
   }
 
+  /* The glyph is 20px; a denser surface sets --gg-icon-button-glyph (the cockpit
+   * draws 18px, DL-115, over any size class the icon carries, DL-119). The
+   * compact size keeps 16px. */
   .gg-icon-button svg {
-    inline-size: 1.25rem;
-    block-size: 1.25rem;
+    inline-size: var(--gg-icon-button-glyph, 1.25rem);
+    block-size: var(--gg-icon-button-glyph, 1.25rem);
   }
 
   .gg-icon-button[data-size="lg"] {
     --gg-icon-button-size: var(--gg-icon-size-lg, 3rem);
+    margin-block: var(--gg-button-reserve-lg, 0);
   }
 
   .gg-icon-button[data-size="sm"] {
     --gg-icon-button-size: var(--gg-icon-size-sm, 2.5rem);
+    margin-block: var(--gg-button-reserve-sm, 0);
   }
 
   .gg-icon-button[data-size="compact"] {
     --gg-icon-button-size: var(--gg-icon-size-compact, 2rem);
+    margin-block: var(--gg-button-reserve-compact, 0);
   }
 
   .gg-icon-button[data-size="compact"] svg {
@@ -1623,9 +1786,20 @@
     border-radius: 50%;
   }
 
+  /* The garden chip's hit area (DL-124), drawn as the icon button's: where a
+   * surface sets --gg-garden-chip-hit (the app's 48px), the box reaches it above
+   * and below, inside the 1px border; sideways it is the chip. The cockpit sets
+   * none, so its chip keeps its own box. */
+  .gg-garden-chip::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--gg-garden-chip-height, 36px) - var(--gg-garden-chip-hit, var(--gg-garden-chip-height, 36px))) / 2 - 1px) -1px;
+    border-radius: inherit;
+  }
+
   .gg-icon-button:hover {
-    background-color: rgb(var(--bg-weak-50));
-    color: rgb(var(--text-strong-950));
+    --gg-icon-button-fill: rgb(var(--bg-weak-50));
+    --gg-icon-button-ink: rgb(var(--text-strong-950));
   }
 
   .gg-icon-button:focus-visible {
@@ -1633,48 +1807,73 @@
     outline-offset: 2px;
   }
 
+  /* Pressed, the circle tightens to the squircle; a surface whose icon buttons
+   * stay circles sets --gg-icon-button-radius-pressed (the cockpit, DL-115). */
   .gg-icon-button:active {
-    border-radius: var(--radius-squircle);
+    border-radius: var(--gg-icon-button-radius-pressed, var(--radius-squircle));
   }
 
+  /* Disabled dims, as the button does, through the same surface tokens. */
   .gg-icon-button:disabled,
   .gg-icon-button[aria-disabled="true"] {
     pointer-events: none;
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: var(--gg-button-disabled-opacity, 0.5);
+  }
+
+  .gg-icon-button[aria-disabled="true"] {
+    pointer-events: var(--gg-button-aria-disabled-events, none);
   }
 
   .gg-icon-button[data-emphasis="secondary"] {
     border-color: rgb(var(--stroke-soft-200));
-    background-color: rgb(var(--bg-white-0));
+    --gg-icon-button-fill: rgb(var(--bg-white-0));
   }
 
   .gg-icon-button[data-emphasis="secondary"]:hover {
-    background-color: rgb(var(--bg-weak-50));
+    --gg-icon-button-fill: rgb(var(--bg-weak-50));
   }
 
   .gg-icon-button[data-emphasis="primary"] {
-    background-color: rgb(var(--tone-action, var(--primary-action)));
-    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+    --gg-icon-button-fill: rgb(var(--tone-action, var(--primary-action)));
+    --gg-icon-button-ink: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
   .gg-icon-button[data-emphasis="primary"]:hover {
-    background-color: rgb(var(--tone-action-hover, var(--primary-action-hover)));
-    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+    --gg-icon-button-fill: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+    --gg-icon-button-ink: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
   .gg-icon-button[data-tone="danger"] {
-    color: rgb(var(--error-base));
+    --gg-icon-button-ink: rgb(var(--error-base));
   }
 
   .gg-icon-button[data-emphasis="primary"][data-tone="danger"] {
-    background-color: rgb(var(--error-action));
-    color: rgb(var(--static-white, var(--neutral-0)));
+    --gg-icon-button-fill: rgb(var(--error-action));
+    --gg-icon-button-ink: rgb(var(--static-white, var(--neutral-0)));
   }
 
   .gg-icon-button[data-emphasis="primary"][data-tone="danger"]:hover {
-    background-color: rgb(var(--error-action-hover));
-    color: rgb(var(--static-white, var(--neutral-0)));
+    --gg-icon-button-fill: rgb(var(--error-action-hover));
+    --gg-icon-button-ink: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  /* Disabled: the surface's own ink, and on a filled or outlined icon button its
+   * fill, else the emphasis's own under the dim (DL-115). A quiet icon button keeps
+   * its transparent rest, so one that keeps its pointer never shows a hover. */
+  .gg-icon-button:is(:disabled, [aria-disabled="true"]) {
+    color: var(--gg-button-disabled-ink, var(--gg-icon-button-ink));
+  }
+
+  .gg-icon-button:is([data-emphasis="primary"], [data-emphasis="secondary"]):is(
+      :disabled,
+      [aria-disabled="true"]
+    ) {
+    background-color: var(--gg-button-disabled-fill, var(--gg-icon-button-fill));
+  }
+
+  .gg-icon-button[data-emphasis="tertiary"]:is(:disabled, [aria-disabled="true"]) {
+    background-color: transparent;
   }
 
   /* A launcher's count or status dot, pinned to the top-right corner. */
@@ -1765,12 +1964,34 @@
     outline-offset: 2px;
   }
 
+  /* The cockpit fills a selected chip in its workspace tone (DL-101, DL-116),
+     read where the chip sits so each tone scope resolves; outside a tone it is
+     the theme's action pair. */
   .gg-chip[aria-pressed="true"],
   .gg-chip[aria-checked="true"],
   .gg-chip[aria-selected="true"] {
     border-color: transparent;
-    background-color: rgb(var(--primary-action));
-    color: rgb(var(--primary-action-foreground));
+    background-color: rgb(var(--tone-action, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+  }
+
+  /* A selected chip answers a hover or a press with the neutral ink layer over
+     its fill, as the cockpit's filled controls do (Rule 18, DL-116). The layer is
+     a background image, so it paints beneath the label and the label keeps its
+     contrast. Its opacities are the cockpit's chip state tokens (index.css): the
+     app sets none, so its selected chips do not change. */
+  .gg-chip[aria-pressed="true"]:hover,
+  .gg-chip[aria-checked="true"]:hover,
+  .gg-chip[aria-selected="true"]:hover {
+    --gg-chip-state-layer: rgb(var(--m3-on-surface, var(--text-strong-950)) / var(--gg-chip-state-hover, 0));
+    background-image: linear-gradient(var(--gg-chip-state-layer), var(--gg-chip-state-layer));
+  }
+
+  .gg-chip[aria-pressed="true"]:active,
+  .gg-chip[aria-checked="true"]:active,
+  .gg-chip[aria-selected="true"]:active {
+    --gg-chip-state-layer: rgb(var(--m3-on-surface, var(--text-strong-950)) / var(--gg-chip-state-pressed, 0));
+    background-image: linear-gradient(var(--gg-chip-state-layer), var(--gg-chip-state-layer));
   }
 
   .gg-chip:disabled,
@@ -1922,6 +2143,526 @@
 
   .gg-switch[data-surface="admin"][data-state="checked"] .gg-switch-thumb {
     background: rgb(var(--tone-on-action, var(--m3-on-primary, 255 255 255)));
+  }
+
+  /* ── Card surface (F7) ── The one card surface: the card's fill, a 1px edge
+   * that reads on linen and on the dark canvas, a faint shadow in light and the
+   * 24px corner. The app's Card, AdminCard, Surface's raised level and
+   * WorkbenchCard draw it.
+   * A work card's status edge (data-edge) widens the inline-start edge to 2px in
+   * its status color. */
+  .gg-card {
+    --gg-focus-ring: var(--tone-focus-ring, var(--focus-ring, var(--primary-base)));
+    position: relative;
+    border: 1px solid rgb(var(--gg-card-edge, var(--stroke-soft-200)));
+    border-radius: var(--gg-card-radius);
+    background-color: rgb(var(--gg-card-surface, var(--bg-white-0)));
+    box-shadow: var(--gg-card-shadow);
+  }
+
+  .gg-card[data-edge] {
+    border-inline-start-width: 2px;
+  }
+
+  .gg-card[data-edge="success"] {
+    border-inline-start-color: rgb(var(--success-base));
+  }
+
+  .gg-card[data-edge="warning"] {
+    border-inline-start-color: rgb(var(--warning-base));
+  }
+
+  .gg-card[data-edge="error"] {
+    border-inline-start-color: rgb(var(--error-base));
+  }
+
+  .gg-card[data-edge="info"] {
+    border-inline-start-color: rgb(var(--information-base));
+  }
+
+  .gg-card[data-edge="neutral"] {
+    border-inline-start-color: rgb(var(--stroke-sub-300));
+  }
+
+  /* ── Media card (F12) ── A card with a picture of its own (MediaCard). Its
+   * picture reaches the card's corners, so the card clips it. One that opens its
+   * object answers like an item row: the neutral ink layer on hover, never a
+   * lift (Rule 18), the focus ring, and a 3px border in the focus role when its
+   * object is open, drawn over the picture. */
+  .gg-media-card {
+    overflow: hidden;
+  }
+
+  button.gg-media-card {
+    cursor: pointer;
+  }
+
+  button.gg-media-card:focus-visible {
+    outline: 2px solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    button.gg-media-card:hover:not(:disabled) {
+      background-image: linear-gradient(
+        rgb(var(--text-strong-950) / 0.04),
+        rgb(var(--text-strong-950) / 0.04)
+      );
+    }
+  }
+
+  /* A picker's card while choosing cannot happen. */
+  button.gg-media-card:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .gg-media-card[data-selected="true"] {
+    border-color: rgb(var(--gg-focus-ring));
+  }
+
+  .gg-media-card[data-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgb(var(--gg-focus-ring));
+    border-radius: calc(var(--gg-card-radius) - 1px);
+    pointer-events: none;
+  }
+
+  /* ── Item row (F7) ── Every item in a list on both surfaces, on the card
+   * surface: one height in every state and language (88px, in rem so it grows
+   * with the reader's text size), a 16px corner, the item's own square photo or
+   * a centered 56px icon tile, a one-line title, the one status pill under it,
+   * one detail line, and the row's one action in its right slot. ItemRow
+   * (Cards/ItemRow) renders it. A row with nothing to open is content: it
+   * presses nowhere and takes no focus. */
+  .gg-item-row {
+    display: flex;
+    align-items: stretch;
+    inline-size: 100%;
+    block-size: var(--gg-item-row-height);
+    overflow: hidden;
+    border-radius: var(--gg-row-radius);
+    color: rgb(var(--text-strong-950));
+    text-align: start;
+  }
+
+  /* The open target: the whole row, or, beside an action, everything but the
+   * action. It never draws its own ring: overflow clips it, so the row does. */
+  .gg-item-row-open {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: stretch;
+    min-inline-size: 0;
+    color: inherit;
+    text-align: inherit;
+    cursor: pointer;
+  }
+
+  .gg-item-row-open:focus-visible {
+    outline: none;
+  }
+
+  button.gg-item-row:focus-visible,
+  .gg-item-row:has(> .gg-item-row-open:focus-visible) {
+    outline: 2px solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
+  }
+
+  /* The neutral ink layer over the card's fill: never a lift or a hue (Rule 18). */
+  @media (hover: hover) {
+    button.gg-item-row:hover,
+    .gg-item-row:has(> .gg-item-row-open:hover) {
+      background-image: linear-gradient(
+        rgb(var(--text-strong-950) / 0.04),
+        rgb(var(--text-strong-950) / 0.04)
+      );
+    }
+  }
+
+  /* The record a list has open: a 3px border in the focus role, drawn over the
+   * photo, so selection reads on every row the same way. */
+  .gg-item-row[data-selected="true"] {
+    border-color: rgb(var(--gg-focus-ring));
+  }
+
+  .gg-item-row[data-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgb(var(--gg-focus-ring));
+    border-radius: calc(var(--gg-row-radius) - 1px);
+    pointer-events: none;
+  }
+
+  /* Lead: the item's own photo, square and the row's full height, with its
+   * photo count (or another mark) on it; or a 56px icon tile, centered. */
+  .gg-item-row-photo {
+    position: relative;
+    flex: 0 0 auto;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background-color: rgb(var(--gg-card-fill, var(--bg-soft-200)));
+  }
+
+  .gg-item-row-mark {
+    position: absolute;
+    inset-block-start: 0.3125rem;
+    inset-inline-end: 0.3125rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1875rem;
+    padding: 0.0625rem 0.375rem;
+    border-radius: 9999px;
+    background-color: rgb(var(--static-black) / 0.6);
+    color: rgb(var(--static-white));
+    font-size: var(--gg-type-meta-sm-size);
+    font-weight: 600;
+    line-height: var(--gg-type-meta-sm-line);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .gg-item-row-mark > svg {
+    inline-size: 0.75rem;
+    block-size: 0.75rem;
+  }
+
+  .gg-item-row-lead {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    padding-inline-start: 0.75rem;
+  }
+
+  .gg-item-row-tile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--gg-item-row-tile);
+    block-size: var(--gg-item-row-tile);
+    border-radius: var(--radius-squircle);
+    background-color: rgb(var(--gg-card-fill, var(--bg-soft-200)));
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-item-row-tile-icon {
+    display: flex;
+  }
+
+  .gg-item-row-tile-icon > svg {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
+  /* A person's avatar (PersonRow): a 56px circle where the tile sits, their photo filling
+   * it, or a person glyph on the row's quiet fill when they have none. */
+  .gg-item-row-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--gg-item-row-tile);
+    block-size: var(--gg-item-row-tile);
+    overflow: hidden;
+    border-radius: 9999px;
+    background-color: rgb(var(--gg-card-fill, var(--bg-soft-200)));
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-item-row-avatar > svg {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
+  .gg-item-row-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.125rem;
+    min-inline-size: 0;
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Plus Jakarta Sans's contextual alternates draw the x of a short address ("0x12...abc",
+   * a person row's title) as a times sign, so a title keeps its letters as written. */
+  .gg-item-row-title {
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-ligatures: no-contextual;
+  }
+
+  /* One detail line that never wraps: each detail carries its separator in a
+   * 12px start pad and the list is pulled 12px back inside a one-line clip, so
+   * a detail that does not fit wraps below the clip and drops whole, separator
+   * and all, last first. A first detail too long on its own ends in an
+   * ellipsis. */
+  /* Details name people, often by a short address: Plus Jakarta Sans's contextual
+   * alternates would draw "0x2" as "0×2", so the line keeps the plain glyphs. */
+  .gg-item-row-details {
+    max-inline-size: 100%;
+    block-size: var(--gg-type-meta-sm-line);
+    overflow: hidden;
+    color: rgb(var(--text-sub-600));
+    font-variant-ligatures: no-contextual;
+  }
+
+  .gg-item-row-detail-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: var(--gg-type-meta-sm-line);
+    margin-inline-start: -0.75rem;
+  }
+
+  .gg-item-row-detail {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-inline-size: 0;
+    padding-inline-start: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* The separator is drawn, not read: the empty alternative text keeps it out
+   * of the row's accessible name where the browser supports it. */
+  .gg-item-row-detail::before {
+    content: "\2022";
+    content: "\2022" / "";
+    position: absolute;
+    inset-inline-start: 0.25rem;
+    color: rgb(var(--text-soft-400));
+  }
+
+  .gg-item-row-detail-text {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .gg-item-row-detail > svg {
+    flex: 0 0 auto;
+    inline-size: 0.875rem;
+    block-size: 0.875rem;
+  }
+
+  .gg-item-row-detail[data-tone="soft"] {
+    color: rgb(var(--text-soft-400));
+  }
+
+  .gg-item-row-detail[data-tone="error"] {
+    color: rgb(var(--error-dark));
+  }
+
+  .gg-item-row-action {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    padding-inline-end: 0.5rem;
+  }
+
+  /* An amount the item carries, in the right slot of a row with no action (a jar's
+   * balance): the value with its asset in the title's role, never cut, and what it is
+   * under it. The body gives way first, so a long amount ends the title in an ellipsis. */
+  .gg-item-row-amount {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.125rem;
+    padding-inline-end: 0.75rem;
+    text-align: end;
+  }
+
+  .gg-item-row-amount-value {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .gg-item-row-amount-caption {
+    color: rgb(var(--text-sub-600));
+    white-space: nowrap;
+  }
+
+  /* The page a row opens in place, right under it (a jar's claim form, a vault's acts):
+   * the card surface at the row's corner, so the row keeps its height and its page reads
+   * as its own. */
+  .gg-item-row-page {
+    border-radius: var(--gg-row-radius);
+  }
+
+  /* ── Fact row (DL-109) ── The facts about one thing on both surfaces, a label
+   * beside its value in divided rows: a review before a send, a record's
+   * details, a settings list. The label takes the narrower column and the
+   * quieter ink so the value reads first, a value wraps rather than being cut,
+   * and the row's one action takes the right slot. A row with no value is a
+   * setting: its label names the control there. FactList and FactRow
+   * (Cards/FactRow) render it. */
+  .gg-fact-list {
+    margin: 0;
+  }
+
+  /* A list that is its own card runs its rules to the card's edges. */
+  .gg-fact-list[data-frame="card"] > .gg-fact-row {
+    padding-inline: 0.875rem;
+  }
+
+  .gg-fact-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+    column-gap: 0.75rem;
+    align-items: baseline;
+    padding-block: 0.625rem;
+  }
+
+  .gg-fact-row + .gg-fact-row {
+    border-block-start: 1px solid rgb(var(--gg-card-edge, var(--stroke-soft-200)));
+  }
+
+  .gg-fact-row[data-has-action="true"] {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) auto;
+  }
+
+  /* A setting: its label and hint take the row, its control the right slot. */
+  .gg-fact-row[data-kind="setting"] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  /* Where subgrid is supported, the rows share one label column, as wide as the
+   * list's longest label up to 40%, so the values line up and keep the rest of
+   * the row; above, each row keeps its own 0.9 to 1.4 split. */
+  @supports (grid-template-columns: subgrid) {
+    .gg-fact-list {
+      display: grid;
+      grid-template-columns: fit-content(40%) minmax(0, 1fr) auto;
+      column-gap: 0.75rem;
+    }
+
+    .gg-fact-row,
+    .gg-fact-row[data-has-action="true"],
+    .gg-fact-row[data-kind="setting"] {
+      grid-column: 1 / -1;
+      grid-template-columns: subgrid;
+    }
+
+    .gg-fact-row > .gg-fact-term {
+      grid-column: 1;
+    }
+
+    .gg-fact-row > .gg-fact-value {
+      grid-column: 2 / -1;
+    }
+
+    .gg-fact-row[data-has-action="true"] > .gg-fact-value {
+      grid-column: 2;
+    }
+
+    .gg-fact-row[data-kind="setting"] > .gg-fact-term {
+      grid-column: 1 / 3;
+    }
+
+    .gg-fact-row > .gg-fact-action {
+      grid-column: 3;
+    }
+  }
+
+  .gg-fact-term {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-inline-size: 0;
+  }
+
+  .gg-fact-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .gg-fact-row[data-kind="fact"] .gg-fact-label {
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-fact-icon {
+    display: flex;
+    flex: 0 0 auto;
+    align-self: center;
+    color: rgb(var(--text-soft-400));
+  }
+
+  .gg-fact-icon > svg {
+    inline-size: 1rem;
+    block-size: 1rem;
+  }
+
+  .gg-fact-description {
+    color: rgb(var(--text-sub-600));
+  }
+
+  /* The hint lines up with the label's words, not with its glyph. */
+  .gg-fact-term[data-has-icon="true"] > .gg-fact-description {
+    padding-inline-start: 1.5rem;
+  }
+
+  /* The value's weight is FactRow's `font-medium`: the type role is a utility,
+   * so a weight set here would lose to it. */
+  .gg-fact-value {
+    margin: 0;
+    min-inline-size: 0;
+    color: rgb(var(--text-strong-950));
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+
+  .gg-fact-action {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    align-self: center;
+    margin: 0;
+  }
+
+  /* ── State mark ── The round tile that leads the state block (`EmptyState`):
+   * 56px with a 24px glyph on both surfaces. A calm state takes the surface's
+   * quiet accent: the app's green tint, or what a surface sets in
+   * `--gg-state-mark-fill` and `--gg-state-mark-ink` (the cockpit keeps it
+   * neutral, because its workspace tone is held to its budget, Rule 18). A
+   * warning and a failure take their status tints. */
+  .gg-state-mark {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    inline-size: 3.5rem;
+    block-size: 3.5rem;
+    border-radius: 9999px;
+    background-color: var(--gg-state-mark-fill, rgb(var(--primary-on-surface) / 0.1));
+    color: var(--gg-state-mark-ink, rgb(var(--primary-on-surface)));
+  }
+
+  .gg-state-mark > svg {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
+  .gg-state-mark[data-tone="warning"] {
+    background-color: rgb(var(--warning-lighter));
+    color: rgb(var(--warning-base));
+  }
+
+  .gg-state-mark[data-tone="error"] {
+    background-color: rgb(var(--error-lighter));
+    color: rgb(var(--error-base));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -2747,4 +3488,11 @@
   line-height: var(--tw-leading, var(--gg-type-field-line));
   font-weight: var(--tw-font-weight, var(--gg-type-field-weight));
   letter-spacing: var(--tw-tracking, var(--gg-type-field-tracking));
+}
+
+@utility type-card-title {
+  font-size: var(--gg-type-card-title-size);
+  line-height: var(--tw-leading, var(--gg-type-card-title-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-card-title-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-card-title-tracking));
 }

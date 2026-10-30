@@ -4,11 +4,15 @@ sidebar_label: Shared
 slug: /builders/packages/shared
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-25
 feature_status: Live
 source_of_truth:
   - packages/shared/AGENTS.md
   - packages/shared/package.json
+  - packages/shared/src/MODULES.md
+  - packages/shared/src/config/app.ts
+  - packages/shared/src/commitment-pooling/index.ts
+  - packages/shared/src/modules/commitment-pooling/service-access-live-config.ts
 keywords:
   - hooks
   - providers
@@ -38,7 +42,7 @@ authority on where a new piece goes.
 
 | Directory | What lives there |
 |---|---|
-| `src/modules/` | Protocol and platform modules, one folder each: `data/` (EAS, gardens, vaults, hypercerts, Karma, IPFS, GraphQL clients), `job-queue/` (the offline-first work queue), `app/` (logger, environment), and the rest |
+| `src/modules/` | Protocol and platform modules, one folder each: `data/` (EAS, gardens, vaults, hypercerts, Karma, IPFS, GraphQL clients), `job-queue/` (the offline-first work queue), `commitment-pooling/` (pool, settlement, credit and voucher-pilot data and job executors), `app/` (logger, environment), and the rest |
 | `src/stores/` and `src/workflows/` | Client state stores and the XState machines behind multi-step flows |
 | `src/hooks/` | Domain hooks by area: auth, garden, work, assessment, vault, cookie-jar, hypercerts, conviction, and more |
 | `src/providers/` | App-level providers (auth, chain, query) |
@@ -46,7 +50,7 @@ authority on where a new piece goes.
 | `src/styles/` | The theme and the generated DesignMD tokens every surface reads |
 | `src/utils/`, `src/types/`, `src/config/` | Pure helpers (addresses, errors, explorers), the domain types, and the query keys and chain config |
 | `src/public-contracts/` and `src/lib/` | The public API contracts the agent serves, and the Hypercerts library bindings |
-| `src/commitment-pooling/` and `src/profile-avatar/` | Feature modules too large for one folder family |
+| `src/commitment-pooling/` and `src/profile-avatar/` | Entry points that gather one feature's modules and hooks behind a declared export, such as `@green-goods/shared/commitment-pooling` and its public-site subset `@green-goods/shared/commitment-pooling/public`; the pooling code itself lives in `src/modules/commitment-pooling/` and `src/hooks/commitment-pooling/` |
 | `src/i18n/` | `en.json`, `es.json`, `pt.json`; every user-facing string ships in all three |
 | `src/ontology/` | The domain ontology the docs and guards project from |
 | `src/__tests__/` | Vitest suites and the test support the apps import through `@green-goods/shared/testing` |
@@ -79,6 +83,14 @@ rather than only inside this package.
   seen, so verify a new utility in the running app, not only in Storybook.
 - Query keys come from the central `queryKeys`; ad-hoc query arrays break invalidation.
 - Application defaults use `useCurrentChain()` or `DEFAULT_CHAIN_ID`, never wallet chain state.
+- Shared gates decide what the apps may offer, so check them before describing a feature as
+  available. `SETTLEMENT_ENABLED` in `src/config/app.ts` is false, so the shared mutations and job
+  executor refuse settlement writes and new G$ rewards in every app. The voucher pilot reads its
+  deployed contracts only for voucher offers, through the receipt-backed `SERVICE_LIVE_ROUTES` in
+  `src/modules/commitment-pooling/service-access-live-config.ts`. `SERVICE_ISSUER_ROUTES` in
+  `src/modules/commitment-pooling/service-issuer-metadata.ts` stays empty until the issuers confirm
+  their terms and capacity. The credit hooks in `src/hooks/commitment-pooling/useCredit.ts` have no
+  app consumer.
 - Prefer event-driven invalidation over polling.
 - New user-facing strings land in all three locale files in the same change, or the i18n gate
   fails.

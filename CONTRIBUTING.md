@@ -1,6 +1,6 @@
 # Contributing to Green Goods
 
-Green Goods is open source infrastructure, and we welcome contributions. This file is the repo-level quick reference; the full contributor guide lives at [docs.greengoods.app/builders/how-to-contribute](https://docs.greengoods.app/builders/how-to-contribute).
+Green Goods is open source infrastructure built and maintained by its contributors. We welcome contributions. This file is the repo-level quick reference; the full contributor guide lives at [docs.greengoods.app/builders/how-to-contribute](https://docs.greengoods.app/builders/how-to-contribute).
 
 ## First setup
 
@@ -59,7 +59,10 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path 
 ```
 
 Replace the example with the package and test that prove your change. CI owns broad
-regression coverage; critical and release changes retain their complete local requirements.
+regression coverage; a critical Shared change also runs the selector's mandatory override (owner
+typecheck and focused suite plus consumer typechecks), a critical contracts change keeps its full
+local gate (`abi-artifacts`, `contracts-build`, `contracts-test`, `contracts-verify-fast` plus every
+consumer's suites and builds), and release changes retain their complete local gate.
 See the [validation contract](.claude/context/validation-pipeline.md) for exact gates.
 Formatting changes use `bun run format`; `bun run format --check` is read-only.
 

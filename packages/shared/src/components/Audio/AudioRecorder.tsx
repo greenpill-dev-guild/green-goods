@@ -99,6 +99,7 @@ export function AudioRecorder({
       {/* Recording controls */}
       {state === "idle" && (
         <Button
+          data-piece-control
           type="button"
           emphasis="secondary"
           size="sm"
@@ -146,6 +147,7 @@ export function AudioRecorder({
           <div className="flex-1" />
 
           <Button
+            data-piece-control
             type="button"
             emphasis="primary"
             tone="danger"
@@ -166,6 +168,7 @@ export function AudioRecorder({
 
           <div className="flex items-center gap-2">
             <Button
+              data-piece-control
               type="button"
               size="sm"
               onClick={handleConfirm}
@@ -176,6 +179,7 @@ export function AudioRecorder({
             </Button>
 
             <Button
+              data-piece-control
               type="button"
               emphasis="secondary"
               size="sm"

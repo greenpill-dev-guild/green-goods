@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import {
   type AdminLoginController,
   useAdminLoginController,
@@ -5,7 +6,6 @@ import {
 import { RiKey2Line } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "./AdminButton";
 import { AdminTextField } from "./AdminTextField";
 import { ConnectButton } from "./ConnectButton";
 
@@ -43,12 +43,13 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
         }
       }}
     >
-      {/* AdminTextField includes its reserved supporting line; this slot accommodates it
-          on desktop and touch widths. Both slots and feedback stay mounted in every state. */}
-      <div className="flex h-16 w-full items-center" data-testid="admin-auth-slot-one">
+      {/* The field's hints and errors live in the feedback zone below, so it reserves no
+          message line, and this slot holds its label and box on desktop and touch widths.
+          Both slots and feedback stay mounted in every state. */}
+      <div className="flex h-18 w-full items-center" data-testid="admin-auth-slot-one">
         {isForm ? (
           <AdminTextField
-            className="w-full text-left"
+            className="w-full text-left [--gg-field-message-lines:0]"
             label={formatMessage(
               isCreating
                 ? {
@@ -71,26 +72,26 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
             }}
           />
         ) : (
-          <AdminButton
+          <Button
             className="w-full"
             type="button"
             size="lg"
-            leadingIcon={<RiKey2Line />}
+            leadingIcon={<RiKey2Line className="h-[18px] w-[18px]" aria-hidden="true" />}
             disabled={controller.isSigningIn}
             title={createLabel}
             onClick={() => controller.changeMode("create")}
           >
             <span className="min-w-0 truncate">{createLabel}</span>
-          </AdminButton>
+          </Button>
         )}
       </div>
       <div className="flex h-11 w-full items-center" data-testid="admin-auth-slot-two">
         {isForm ? (
-          <AdminButton
+          <Button
             className="w-full"
             type="submit"
             size="lg"
-            leadingIcon={<RiKey2Line />}
+            leadingIcon={<RiKey2Line className="h-[18px] w-[18px]" aria-hidden="true" />}
             loading={controller.isSigningIn}
             disabled={controller.isSigningIn || !controller.username.trim()}
           >
@@ -100,7 +101,7 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
                   id: "app.login.button.loginPasskey",
                   defaultMessage: "Sign in with Passkey",
                 })}
-          </AdminButton>
+          </Button>
         ) : (
           <ConnectButton
             className="w-full"
@@ -113,17 +114,17 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
       <div className="h-20 overflow-y-auto" data-testid="admin-sign-in-feedback">
         {controller.mode === "signin" && controller.hasStoredCredential ? (
           <div className="flex h-11 shrink-0 items-center">
-            <AdminButton
+            <Button
               className="w-full"
               type="button"
-              variant="text"
+              emphasis="tertiary"
               size="lg"
               disabled={controller.isSigningIn}
               title={storedLabel}
               onClick={() => void controller.signInWithStoredPasskey()}
             >
               <span className="min-w-0 truncate">{storedLabel}</span>
-            </AdminButton>
+            </Button>
           </div>
         ) : null}
         <div>
@@ -167,9 +168,9 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
         </div>
       </div>
       <div className="flex h-11 items-center justify-center" data-testid="admin-auth-navigation">
-        <AdminButton
+        <Button
           type="button"
-          variant="text"
+          emphasis="tertiary"
           size="lg"
           disabled={controller.isSigningIn}
           onClick={() => controller.changeMode(isForm ? "entry" : "signin")}
@@ -182,7 +183,7 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
                   defaultMessage: "Already have an account?",
                 }
           )}
-        </AdminButton>
+        </Button>
       </div>
     </form>
   );

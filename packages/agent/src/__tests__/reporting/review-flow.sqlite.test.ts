@@ -104,6 +104,11 @@ describe("steward review", () => {
       "How confident are you in this work?\n1. Low\n2. Medium\n3. High",
     ]);
     await harness.press(BOLA, "High");
+    // ACCOUNT at the feedback question is a command, so the word never becomes public feedback:
+    // it shows the account, and the question stays open for the real feedback.
+    expect(await harness.say(BOLA, "ACCOUNT")).toEqual([
+      `This chat is connected to ${stewardAccount.address.toLowerCase()}.\nYour gardens: TAS.\nTo use a different account, send SWITCH.`,
+    ]);
     const summary = await harness.say(BOLA, "Well documented, thank you");
     expect(harness.catalog.calls).toBe(activityReads);
     expect(summary[0]).toContain(
@@ -174,6 +179,14 @@ describe("steward review", () => {
     await linkedSteward();
     await harness.say(BOLA, "REVIEW");
     await harness.say(BOLA, "1");
+    // While the decision's question is showing, a story would only put it again, so NEW says the
+    // review comes first and STATUS shows the question it waits on.
+    expect(await harness.say(BOLA, "NEW")).toEqual([
+      "You have a review in progress. Send CANCEL to discard it or keep going with it.",
+    ]);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([
+      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`,
+    ]);
     expect(await harness.press(BOLA, "Reject")).toEqual([
       "Tell the gardener why you're rejecting this work (it will be public).",
     ]);
@@ -193,6 +206,26 @@ describe("steward review", () => {
       confidence: 0,
       verificationMethod: 1,
     });
+  });
+
+  it("keeps an open decision ahead of a new report after STOP, START and consent", async () => {
+    await publishedWork();
+    await linkedSteward();
+    await harness.say(BOLA, "REVIEW");
+    await harness.say(BOLA, "1");
+    const decision = `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`;
+    // STOP closes the decision's question and leaves the decision open.
+    expect((await harness.say(BOLA, "STOP"))[0]).toMatch(/^You've stopped the assistant\./);
+    expect((await harness.say(BOLA, "START"))[0]).toContain("Do you agree?");
+    await harness.press(BOLA, "I agree");
+    expect(await harness.say(BOLA, "NEW")).toEqual([
+      "You have a review in progress. Send CANCEL to discard it or keep going with it.",
+      decision,
+    ]);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([decision]);
+    // With its question showing again, a story goes to the decision, not to a report beside it.
+    expect(await harness.say(BOLA, "Weeded the beds this morning")).toEqual([decision]);
+    expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 1 });
   });
 
   it("never offers or accepts a steward's own work", async () => {

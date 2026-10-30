@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  GardenTokenABI,
-  getNetworkContracts,
-  GreenWillABI,
-} from "../../utils/blockchain/contracts";
+import { GreenWillABI } from "../../utils/blockchain/contract-abis/green-will";
+import { GardenTokenABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 
 describe("utils/blockchain/contracts GreenWill surface", () => {
   it("includes the GreenWill address in the network contracts map", () => {

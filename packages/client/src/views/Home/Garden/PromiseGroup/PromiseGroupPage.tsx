@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentReadModel, InboxCommitment } from "@green-goods/shared/commitment-pooling";
 import type { DisplayGroupCounts } from "@green-goods/shared/modules/commitment-pooling/display-groups";
@@ -7,8 +8,7 @@ import { RiHandHeartLine, RiRefreshLine, RiSeedlingLine, RiTimeLine } from "@rem
 import { type ReactNode, useId } from "react";
 import { useIntl } from "react-intl";
 
-import { Fact } from "@/components/Display";
-import { CommitmentRow, groupCountsText } from "@/components/Features/Commitments";
+import { groupCountsText, PromiseRewardRow, PromiseRow } from "@/components/Features/Commitments";
 import { CommitmentActionBar } from "../Commitment/CommitmentActionBar";
 import { CommitmentDetailShell } from "../Commitment/CommitmentDetailShell";
 
@@ -33,6 +33,8 @@ export interface PromiseGroupPageProps {
   sample: CommitmentReadModel;
   /** The promises' shared note, in the words they were made with. */
   note: string | null;
+  /** The reward each one carries, in words, or null when they carry none. */
+  reward: string | null;
   counts: DisplayGroupCounts;
   availabilityKnown: boolean;
   /** The pool's at-once limit, stated for promises it counts against. */
@@ -52,15 +54,17 @@ export interface PromiseGroupPageProps {
 
 /**
  * A group's page (PRD-1029 c2): what each promise asks, in the words it was
- * made with; how many are available, in progress and kept, and that finishing
- * yours never waits for anyone else; then the reader's own copies. The bar's
- * one act takes up one copy the app picks. Held, it says why: the pool's
- * at-once limit, none available, or availability that can't be read.
+ * made with, and what keeping one earns; how many are available, in progress
+ * and kept, and that finishing yours never waits for anyone else; then the
+ * reader's own copies. The bar's one act takes up one copy the app picks.
+ * Held, it says why: the pool's at-once limit, none available, or availability
+ * that can't be read.
  */
 export function PromiseGroupPage({
   title,
   sample,
   note,
+  reward,
   counts,
   availabilityKnown,
   cap,
@@ -115,9 +119,9 @@ export function PromiseGroupPage({
         <h2 id={asksId} className="text-sm font-semibold leading-5 text-text-strong-950">
           {formatMessage({ id: "app.pool.group.eachAsks" })}
         </h2>
-        <dl className="mt-1 divide-y divide-stroke-soft-200">
+        <FactList frame="inset" className="mt-1">
           {units ? (
-            <Fact
+            <FactRow
               icon={isRequest ? <RiHandHeartLine /> : <RiSeedlingLine />}
               label={formatMessage({
                 id: isRequest
@@ -128,7 +132,7 @@ export function PromiseGroupPage({
             />
           ) : null}
           {sample.dueDate ? (
-            <Fact
+            <FactRow
               icon={<RiTimeLine />}
               label={formatMessage({ id: "app.commitment.people.due" })}
               value={formatDate(new Date(Number(sample.dueDate) * 1000), {
@@ -138,7 +142,8 @@ export function PromiseGroupPage({
               })}
             />
           ) : null}
-        </dl>
+          {reward ? <PromiseRewardRow text={reward} /> : null}
+        </FactList>
         {note ? <p className="mt-2 text-sm leading-relaxed text-text-sub-600">{note}</p> : null}
         {cap !== null && isRequest ? (
           <p className="mt-2 text-xs text-text-sub-600">
@@ -179,12 +184,12 @@ export function PromiseGroupPage({
       {join}
 
       {yours.length > 0 ? (
-        <section aria-labelledby={yoursId} className="space-y-2">
+        <section aria-labelledby={yoursId} className="space-y-(--gg-list-gap)">
           <h2 id={yoursId} className="text-sm font-semibold leading-5 text-text-strong-950">
             {formatMessage({ id: "app.pool.group.yours" })}
           </h2>
           {yours.map((row) => (
-            <CommitmentRow key={row.commitment.id} row={row} title={title} onOpen={onOpenCopy} />
+            <PromiseRow key={row.commitment.id} row={row} title={title} onOpen={onOpenCopy} />
           ))}
         </section>
       ) : null}

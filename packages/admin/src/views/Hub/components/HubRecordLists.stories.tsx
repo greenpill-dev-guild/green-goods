@@ -50,6 +50,7 @@ const HYPERCERTS: HubHypercertListItem[] = [
     description: "Native saplings planted and checked for survival along the eastern ridge.",
     workScopes: ["planting", "maintenance", "survival checks", "nursery"],
     mintedAt: daysAgo(3),
+    attestationCount: 12,
   },
   {
     id: "42161-1001",
@@ -57,6 +58,7 @@ const HYPERCERTS: HubHypercertListItem[] = [
     description: null,
     workScopes: [],
     mintedAt: daysAgo(90),
+    attestationCount: 0,
   },
 ];
 
@@ -69,7 +71,7 @@ const meta: Meta<typeof HubAssessmentList> = {
     docs: {
       description: {
         component:
-          "The Hub's two record tabs: the garden's assessments and its minted hypercerts. Each card opens its record and carries no status pill, since a record waits on no one. An empty tab says what it holds and when it is needed, and offers the create flow to a reader who can use it; a search that finds nothing says so instead.",
+          "The Hub's two record tabs: the garden's assessments and its minted hypercerts, each record the shared item row that opens it: its icon, its title, and its date, then for a hypercert how many works it bundles. A row carries no status pill, since a record waits on no one. An empty tab says what it holds and when it is needed, and offers the create flow to a reader who can use it; a search that finds nothing says so instead.",
       },
     },
   },

@@ -1,10 +1,10 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminButton } from "./AdminButton";
 import { AdminSideSheet } from "./AdminSideSheet";
 
 const meta: Meta<typeof AdminSideSheet> = {
@@ -159,6 +159,16 @@ export const MobileBottomSheet: Story = {
     await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
     await expect(Math.abs(rect.left)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
     await expect(Math.abs(rect.right - vw)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
+    // The phone dialog's look (F5): the grip, and the close in the shared header.
+    await expect(surface.querySelector('[data-component="SheetGrip"]')).not.toBeNull();
+    await expect(
+      within(sheet).getByRole("button", { name: "Close" }).closest('[data-component="SheetHeader"]')
+    ).not.toBeNull();
+    // The panel's SheetBody carries the header's scroll edge: a hairline that
+    // shows only while the body scrolls under it (DL-028).
+    const panelBody = surface.querySelector<HTMLElement>('[data-component="SheetBody"]');
+    if (!panelBody) throw new Error("SheetBody not found");
+    await expect(getComputedStyle(panelBody).backgroundAttachment).toBe("local, scroll");
   },
 };
 
@@ -177,12 +187,12 @@ export const WithPinnedFooter: Story = {
       <>
         <SheetBody padded>{SAMPLE_ROWS}</SheetBody>
         <SheetFooter>
-          <AdminButton variant="text" onClick={() => undefined}>
+          <Button type="button" emphasis="tertiary" size="sm" onClick={() => undefined}>
             Secondary
-          </AdminButton>
-          <AdminButton variant="filled" onClick={() => undefined}>
+          </Button>
+          <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
             Primary
-          </AdminButton>
+          </Button>
         </SheetFooter>
       </>
     </OpenSideSheet>
@@ -194,9 +204,9 @@ function SideSheetPreview() {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex min-h-56 items-center justify-center">
-      <AdminButton variant="filled" onClick={() => setOpen(true)}>
+      <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
         Open side sheet
-      </AdminButton>
+      </Button>
       <AdminSideSheet open={open} onOpenChange={setOpen} title="Settings" tone="hub">
         <SheetBody padded>
           <p className="type-body text-text-sub">

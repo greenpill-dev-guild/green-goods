@@ -1,0 +1,296 @@
+/** @vitest-environment happy-dom */
+import { act, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  useServiceAccess,
+  useServiceAccessMutation,
+} from "../hooks/commitment-pooling/useServiceAccess";
+import { useServiceOfferLines } from "../hooks/commitment-pooling/useServiceOfferLines";
+import {
+  useIssuerSafeThreshold,
+  useVoucherIssuerApproval,
+  useVoucherWallet,
+} from "../hooks/commitment-pooling/useVoucherWallet";
+import { unavailableServiceAccess } from "../modules/commitment-pooling/data-service-access";
+import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
+import { REHEARSAL_VOUCHER_ISSUERS } from "../modules/commitment-pooling/demo/demo-service-wallet";
+import type { ServiceAccessKey } from "../modules/commitment-pooling/service-access-types";
+import type {
+  VoucherIssuer,
+  VoucherWalletScope,
+  VoucherWalletSnapshot,
+} from "../modules/commitment-pooling/service-access-wallet-types";
+import type { Address } from "../types/domain";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
+
+const mocks = vi.hoisted(() => ({
+  rehearsal: true,
+  online: true,
+  read: vi.fn(),
+  error: vi.fn(),
+  /** Stands in for the chain's wallet read, which answers "unavailable" until adoption. */
+  wallet: null as ((scope: VoucherWalletScope) => Promise<VoucherWalletSnapshot>) | null,
+}));
+vi.mock("../modules/commitment-pooling/demo/demo-mode", () => ({
+  isDemoPoolingActive: () => mocks.rehearsal,
+}));
+vi.mock("../modules/commitment-pooling/service-access-wallet", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../modules/commitment-pooling/service-access-wallet")>();
+  return {
+    ...actual,
+    readLiveVoucherWallet: (scope: VoucherWalletScope) =>
+      mocks.wallet ? mocks.wallet(scope) : actual.readLiveVoucherWallet(scope, { routes: [] }),
+  };
+});
+// These cases read through mocked snapshots on Arbitrum's pooling core, which #1350 made a live
+// route. Inject no live routes at the read seams without replacing the shared reviewed catalog.
+vi.mock("../modules/commitment-pooling/service-access-live", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../modules/commitment-pooling/service-access-live")>();
+  return {
+    ...actual,
+    createLiveServiceAccessAdapter: (
+      deps: Parameters<typeof actual.createLiveServiceAccessAdapter>[0]
+    ) => actual.createLiveServiceAccessAdapter({ ...deps, routes: [] }),
+  };
+});
+vi.mock("../hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => mocks.online }));
+vi.mock("../hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: key.buyer, authMode: "wallet", passkeyAccountProfile: null }),
+}));
+vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => key.buyer }));
+vi.mock("../hooks/blockchain/useTransactionSender", () => ({ useTransactionSender: () => null }));
+vi.mock("../modules/commitment-pooling/service-access-read-repository", () => ({
+  createServiceAccessReadRepository: () => ({ getServiceAccess: mocks.read }),
+}));
+vi.mock("../utils/errors/mutation-error-handler", () => ({
+  createMutationErrorHandler: () => mocks.error,
+}));
+
+const key: ServiceAccessKey = {
+  sourceChainId: 42161,
+  coreModule: "0x0000000000000000000000000000000000000001",
+  commitmentId: 1022n,
+  buyer: "0x0000000000000000000000000000000000000002",
+};
+const walletScope = {
+  sourceChainId: key.sourceChainId,
+  coreModule: key.coreModule,
+  account: key.buyer,
+};
+
+describe("service access hooks", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.rehearsal = true;
+    mocks.online = true;
+    mocks.wallet = null;
+  });
+
+  it("consumes the real fixture adapter and replaces its scoped read after an explicit request", async () => {
+    const { result } = renderHookWithProviders(() => ({
+      read: useServiceAccess(key),
+      mutation: useServiceAccessMutation(key),
+    }));
+    await waitFor(() => expect(result.current.read.data?.mode).toBe("personal-gd"));
+    const snapshot = result.current.read.data!;
+    await act(async () => {
+      const sent = await result.current.mutation.mutateAsync({
+        action: "requestClaim",
+        expectedRevision: snapshot.offer!.revision,
+        expectedTermsHash: snapshot.offer!.termsHash,
+        requestNonce: snapshot.nextRequestNonce,
+        buyerGarden: snapshot.eligibleBuyerGardens[0]!.address,
+        voucherHolder: `0x${"0".repeat(40)}`,
+      });
+      expect(sent.kind).toBe("local-rehearsal");
+    });
+    await waitFor(() => expect(result.current.read.data?.consent?.state).toBe("pending"));
+    expect(mocks.read).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the same member's service holdings after an independent request reward", async () => {
+    const requestKey = { ...key, commitmentId: 1025n };
+    const serviceKey = { ...key, commitmentId: 1023n };
+    const { result } = renderHookWithProviders(() => {
+      const wallet = useVoucherWallet(walletScope);
+      const issuer =
+        wallet.data?.holdings.find((holding) => holding.issuer.name === "Tech and Sun")?.issuer ??
+        null;
+      return {
+        request: useServiceAccess(requestKey),
+        service: useServiceAccess(serviceKey),
+        mutation: useServiceAccessMutation(requestKey),
+        held: wallet.data?.holdings.find((holding) => holding.issuer === issuer)?.available,
+        approval: useVoucherIssuerApproval(issuer),
+        safe: useIssuerSafeThreshold({ chainId: 100, safe: issuer?.account }),
+      };
+    });
+    await waitFor(() => expect(result.current.request.data?.pilot?.holdings.b).toBe(0n));
+    await waitFor(() => expect(result.current.service.data?.pilot?.holdings.b).toBe(0n));
+    await waitFor(() => expect(result.current.held).toBe(0n));
+    await waitFor(() =>
+      expect(result.current.approval.data).toMatchObject({ kind: "safe", threshold: 1, owners: 1 })
+    );
+    await waitFor(() =>
+      expect(result.current.safe.data).toMatchObject({
+        status: "observed",
+        threshold: 1,
+        owners: 1,
+      })
+    );
+    await act(async () => {
+      await result.current.mutation.mutateAsync({
+        action: "observePilotRole",
+        observation: "work-fulfilled",
+      });
+      await result.current.mutation.mutateAsync({
+        action: "observePilotRole",
+        observation: "voucher-budget-repaired",
+      });
+      await result.current.mutation.mutateAsync({ action: "deliverPilotReward", asset: "voucher" });
+    });
+    await waitFor(() => expect(result.current.service.data?.pilot?.holdings.b).toBe(1_000_000n));
+    await waitFor(() => expect(result.current.held).toBe(1_000_000n));
+    expect(result.current.service.data!.capabilities.sourceBuyer).toBe(key.buyer);
+    expect(result.current.service.data!.capabilities.gnosisHolder).toBe(key.buyer);
+    expect(result.current.request.data!.capabilities.celoDepositor).toBeNull();
+  });
+
+  it("keeps production mutations unavailable, surfaces the error and does not enter an offline queue", async () => {
+    mocks.rehearsal = false;
+    mocks.read.mockResolvedValue(unavailableServiceAccess(key));
+    const { result } = renderHookWithProviders(() => ({
+      read: useServiceAccess(key),
+      mutation: useServiceAccessMutation(key),
+      wallet: useVoucherWallet(walletScope),
+      noSafe: useIssuerSafeThreshold({ chainId: 100, safe: undefined }),
+    }));
+    await waitFor(() => expect(result.current.read.data?.mode).toBe("unavailable"));
+    // Disabled until the garden names an issuer Safe.
+    expect(result.current.noSafe.fetchStatus).toBe("idle");
+    expect(result.current.noSafe.data).toBeUndefined();
+    await waitFor(() =>
+      expect(result.current.wallet.data).toMatchObject({
+        evidence: "unavailable",
+        reason: "routes-unconfigured",
+        holdings: [],
+      })
+    );
+    await act(async () => {
+      await expect(
+        result.current.mutation.mutateAsync({
+          action: "withdrawClaim",
+          expectedClaimHash: `0x${"a".repeat(64)}`,
+        })
+      ).rejects.toThrow("reviewed deployment");
+    });
+    await waitFor(() => expect(result.current.mutation.isError).toBe(true));
+    expect(mocks.error).toHaveBeenCalledOnce();
+  });
+
+  it("withdraws visible action availability on offline change and rejects explicit sending", async () => {
+    const voucherKey = { ...key, commitmentId: 1024n };
+    const { result, rerender } = renderHookWithProviders(() => ({
+      read: useServiceAccess(voucherKey),
+      mutation: useServiceAccessMutation(voucherKey),
+    }));
+    await waitFor(() =>
+      expect(result.current.read.data?.availableActions).toContain("finalizeVoucherAllocation")
+    );
+    mocks.online = false;
+    rerender();
+    expect(result.current.read.data!.availableActions).toEqual([]);
+    expect(result.current.read.data!.capabilities.reasons).toContain("offline");
+    const snapshot = result.current.read.data!;
+    await act(async () => {
+      await expect(
+        result.current.mutation.mutateAsync({
+          action: "retryVoucherSetupAcknowledgment",
+          setupId: snapshot.voucherSetups[0]!.setupId,
+          sourceChainId: snapshot.key.sourceChainId,
+          sourceModule: snapshot.voucherSetups[0]!.authorization.sourceModule,
+          expectedAuthorizationHash: snapshot.voucherSetups[0]!.authorizationHash,
+          reviewedNativeFee: 0n,
+        })
+      ).rejects.toThrow("online connection");
+    });
+    expect(result.current.read.data!.voucherSetups[0]!.acknowledgments.setup.sent).toBe(false);
+    expect(result.current.read.data!.voucherSetups[0]!.availableActions).toEqual([]);
+  });
+
+  it("keys an issuer's approval by its authority, so one account read both ways never shares it", async () => {
+    const collective = REHEARSAL_VOUCHER_ISSUERS.greenGoods;
+    const { result, rerender } = renderHookWithProviders(
+      ({ issuer }) => useVoucherIssuerApproval(issuer),
+      { initialProps: { issuer: collective as VoucherIssuer } }
+    );
+    await waitFor(() =>
+      expect(result.current.data).toMatchObject({ kind: "safe", threshold: 2, owners: 5 })
+    );
+    rerender({ issuer: { ...collective, kind: "individual" } });
+    await waitFor(() =>
+      expect(result.current.data).toEqual({ kind: "account", evidence: "local-rehearsal" })
+    );
+  });
+
+  it("tells a listed offer what the reader's Gnosis holder holds, not the source buyer", async () => {
+    mocks.rehearsal = false;
+    const gnosis = "0x0000000000000000000000000000000000000004" as Address;
+    const techAndSun = REHEARSAL_VOUCHER_ISSUERS.techAndSun;
+    const hubDay = createServiceRehearsalSnapshot({ ...key, commitmentId: 1023n });
+    hubDay.capabilities.gnosisHolder = gnosis;
+    // A personal G$ service listed first names no Gnosis holder, and its read answers first.
+    const personal = createServiceRehearsalSnapshot({ ...key, commitmentId: 1022n });
+    mocks.read.mockImplementation(async (read: ServiceAccessKey) =>
+      read.commitmentId === 1022n
+        ? personal
+        : new Promise((resolve) => setTimeout(() => resolve(hubDay), 20))
+    );
+    mocks.wallet = async (scope) => ({
+      account: scope.account,
+      evidence: "onchain",
+      complete: true,
+      reason: null,
+      issuers: [techAndSun],
+      holdings: [{ issuer: techAndSun, available: scope.account === gnosis ? 9_000_000n : 0n }],
+      bookings: [],
+      returns: [],
+    });
+    const offer = {
+      commitmentId: 1023n,
+      direction: "OFFER",
+      onchainState: "OFFERED",
+      claimMode: "APPROVAL_GATED",
+      claimType: "INDIVIDUAL",
+    } as const;
+    const { result } = renderHookWithProviders(() =>
+      useServiceOfferLines({ chainId: 42161, offers: [{ ...offer, commitmentId: 1022n }, offer] })
+    );
+    await waitFor(() =>
+      expect(result.current.get("1023")).toEqual({
+        promisedBy: "Tech and Sun",
+        booking: { kind: "hold", held: 9_000_000n, decimals: 6 },
+      })
+    );
+    expect(result.current.has("1022")).toBe(false);
+  });
+
+  it("uses a different cache identity after buyer or rehearsal-gate change", async () => {
+    const { result, rerender } = renderHookWithProviders(
+      ({ buyer }) => useServiceAccess({ ...key, buyer }),
+      { initialProps: { buyer: key.buyer } }
+    );
+    await waitFor(() => expect(result.current.data?.evidence).toBe("local-rehearsal"));
+    const other = "0x0000000000000000000000000000000000000003" as const;
+    rerender({ buyer: other });
+    await waitFor(() => expect(result.current.data?.key.buyer).toBe(other));
+    expect(result.current.data!.consent).toBeNull();
+    mocks.rehearsal = false;
+    mocks.read.mockResolvedValue(unavailableServiceAccess({ ...key, buyer: other }));
+    rerender({ buyer: other });
+    await waitFor(() => expect(result.current.data?.mode).toBe("unavailable"));
+    expect(result.current.data!.availableActions).toEqual([]);
+  });
+});

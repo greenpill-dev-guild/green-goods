@@ -136,6 +136,19 @@ export function takeSoleGarden(
   if (scope.kind === "own" && work.content.garden) work.taken = sole;
 }
 
+/**
+ * A report holds no more photos than its activity accepts. Evidence is kept in the order its
+ * files were sent, so the first ones sent stay; the rest stay private and out of the report.
+ * Returns the activity's maximum when photos were taken off, otherwise null.
+ */
+export function keepAcceptedPhotos(work: Working): number | null {
+  const maximum = work.snapshot?.definition.media.maxImageCount ?? null;
+  if (maximum === null || work.content.evidence.length <= maximum) return null;
+  work.content = { ...work.content, evidence: work.content.evidence.slice(0, maximum) };
+  work.changed = true;
+  return maximum;
+}
+
 /** Fills garden and Action only when the chat's gardens and the catalog leave no ambiguity. */
 export function autoFill(
   writer: TurnWriter,
@@ -194,15 +207,22 @@ export function applyInterpretation(
   );
 }
 
+/**
+ * Commits the turn's changes and says what follows from them. `ask: false` leaves the next
+ * question to the reply that follows files being processed, so it is asked once.
+ */
 export function finish(
   writer: TurnWriter,
   draft: DraftRecord,
   work: Working,
   external: TurnExternal,
-  cause: string
+  cause: string,
+  { ask = true }: { ask?: boolean } = {}
 ): DraftRecord {
   const account = writer.ctx.account?.address ?? null;
   takeSoleGarden(work, gardenScope(writer.core.gardens, account), () => writer.sourceEntryId());
+  // An activity chosen after the photos may accept fewer of them than were sent.
+  const photoLimit = keepAcceptedPhotos(work);
   const next = work.changed
     ? commitContentChange(writer.core, draft, {
         content: work.content,
@@ -223,6 +243,7 @@ export function finish(
       });
     }
   }
-  promptNextStep(writer, next, external.catalog);
+  if (photoLimit !== null) writer.say("report.photosKept", { maximum: photoLimit });
+  if (ask) promptNextStep(writer, next, external.catalog);
   return next;
 }

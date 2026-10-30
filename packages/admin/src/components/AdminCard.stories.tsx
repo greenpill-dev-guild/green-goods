@@ -2,7 +2,6 @@ import { RiArrowRightSLine, RiLeafLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { drawnRings } from "../../../shared/.storybook/design-system/measure";
 import { AdminCard, AdminCardTitle } from "./AdminCard";
 
 const meta: Meta<typeof AdminCard> = {
@@ -14,17 +13,14 @@ const meta: Meta<typeof AdminCard> = {
     docs: {
       description: {
         component: [
-          "**AdminCard** — M3 card with filled / elevated / outlined variants.",
-          "Interactive cards add an M3 state layer and elevation response.",
+          "**AdminCard** — the cockpit's card on the shared card surface (`.gg-card`,",
+          "DL-102, DL-118). Elevated and outlined draw the installed app's card: its fill,",
+          "a 1px edge, a faint shadow in light and the 24px corner. Filled keeps a tint on",
+          "the same corner with no edge. Interactive cards add the neutral ink state",
+          "layer and never lift.",
           "",
-          "**Tone wash** — admin-scope cards layer a barely-perceptible 3% tone tint",
-          "via a `::before` pseudo-element defined in `admin-m3-components.css`. The pseudo",
-          "lets dense lists (Hub queues, action templates) avoid per-element",
-          "`background-image` paint cost. Outside admin scope (here in Storybook), the",
-          "tint falls back to invisible black, so cards read as standard M3 surfaces.",
-          "",
-          'Wrap a story in `[data-tone="hub|garden|community|actions"]` to see the',
-          "tone tint apply.",
+          "**Workspace tone** belongs to the canvas, not the card: inside a",
+          '`[data-tone="hub|garden|community|actions"]` scope the card keeps its surface.',
         ].join("\n"),
       },
     },
@@ -87,7 +83,7 @@ export const Filled: Story = {
   ),
 };
 
-/** The outline is an inset ring beside the elevation-0 shadow; the play test checks it draws. */
+/** The outline is the shared card's 1px edge (DL-102); the play test checks it draws. */
 export const Outlined: Story = {
   tags: ["storybook-ci"],
   args: { variant: "outlined" },
@@ -99,7 +95,9 @@ export const Outlined: Story = {
   play: async ({ canvasElement }) => {
     const card = canvasElement.querySelector('[data-component="AdminCard"]');
     await expect(card).not.toBeNull();
-    await expect(drawnRings(card as Element)).not.toHaveLength(0);
+    const edge = getComputedStyle(card as Element);
+    await expect(edge.borderTopWidth).toBe("1px");
+    await expect(edge.borderTopStyle).toBe("solid");
   },
 };
 
@@ -118,7 +116,21 @@ export const Interactive: Story = {
   ),
 };
 
+/** Every variant is the shared card (DL-118): the 24px corner, and an edge on all but filled. */
 export const StateCatalog: Story = {
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const cards = [...canvasElement.querySelectorAll('[data-component="AdminCard"]')];
+    await expect(cards).toHaveLength(3);
+    for (const card of cards) {
+      await expect(card).toHaveClass("gg-card");
+      await expect(getComputedStyle(card).borderTopLeftRadius).toBe("24px");
+    }
+    const [filled, elevated, outlined] = cards.map((card) => getComputedStyle(card));
+    await expect(filled?.borderTopWidth).toBe("0px");
+    await expect(elevated?.borderTopWidth).toBe("1px");
+    await expect(outlined?.borderTopWidth).toBe("1px");
+  },
   render: () => (
     <div className="grid gap-4 md:grid-cols-3">
       {(["filled", "elevated", "outlined"] as const).map((variant) => (
@@ -136,9 +148,8 @@ export const StateCatalog: Story = {
 };
 
 /**
- * Tone wash matrix — same elevated card rendered inside each `[data-tone]`
- * scope so the 3% `::before` tint reads against the M3 surface. Hub blue,
- * Garden green, Community amber, Actions clay.
+ * The same elevated card inside each `[data-tone]` scope: the card keeps its
+ * surface, because workspace tone belongs to the canvas (Controlled Chrome).
  */
 export const WithToneWash: Story = {
   render: () => (

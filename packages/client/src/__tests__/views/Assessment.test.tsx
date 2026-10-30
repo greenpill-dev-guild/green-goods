@@ -89,7 +89,8 @@ const messages = {
   "app.garden.assessments.diagnosis": "Diagnosis",
   "app.garden.assessments.evidence": "Evidence media",
   "app.garden.assessments.evidenceItem": "Open evidence {index}",
-  "app.garden.assessments.loadError": "Assessments could not be loaded.",
+  "app.garden.assessments.loadError.description": "Check your connection and try again.",
+  "app.garden.assessments.loadError.title": "Assessments could not be loaded",
   "app.garden.assessments.locationNotProvided": "Location not provided",
   "app.garden.assessments.noEvidence": "No evidence media attached.",
   "app.garden.assessments.noSdgTargets": "No SDG alignment recorded.",
@@ -168,7 +169,7 @@ describe("GardenAssessment", () => {
     [
       "the garden's assessments could not be read",
       () => mockUseGardenAssessmentRecords.mockReturnValue({ records: [], status: "error" }),
-      "Assessments could not be loaded.",
+      "Assessments could not be loaded",
     ],
     [
       // The list is from an earlier read, so an assessment missing from it may
@@ -182,13 +183,13 @@ describe("GardenAssessment", () => {
           status: "success",
           refreshFailed: true,
         }),
-      "Assessments could not be loaded.",
+      "Assessments could not be loaded",
     ],
-  ])("says so when %s", (_label, arrange, message) => {
+  ])("says so when %s, in place of the skeleton", (_label, arrange, message) => {
     arrange();
     renderRoute();
-    expect(screen.getByText(message)).toBeInTheDocument();
-    expect(screen.getByTestId("skeleton")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: message })).toBeInTheDocument();
+    expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
   });
 
   // The top bar is 72px tall below the status bar's safe area. Left in the flow

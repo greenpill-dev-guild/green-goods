@@ -1,13 +1,20 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useCancelListing } from "@green-goods/shared/hooks/hypercerts/useCancelListing";
 import { useHypercertListings } from "@green-goods/shared/hooks/hypercerts/useHypercertListings";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { RegisteredOrderView } from "@green-goods/shared/types/hypercerts";
-import { RiCloseLine, RiExchangeDollarLine, RiLoader4Line, RiTimeLine } from "@remixicon/react";
+import {
+  RiCloseLine,
+  RiErrorWarningLine,
+  RiExchangeDollarLine,
+  RiLoader4Line,
+  RiTimeLine,
+} from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 
 interface ActiveListingsTableProps {
@@ -72,15 +79,21 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
   const recoveryControls = pendingCancellation ? (
     <>
       <Alert variant="info">
-        <AdminButton size="sm" disabled={recoveryBusy} onClick={() => void checkConfirmation()}>
+        <Button
+          type="button"
+          size="compact"
+          disabled={recoveryBusy}
+          onClick={() => void checkConfirmation()}
+        >
           {intl.formatMessage({
             id: "app.account.checkConfirmation",
             defaultMessage: "Check confirmation",
           })}
-        </AdminButton>
-        <AdminButton
-          size="sm"
-          variant="text"
+        </Button>
+        <Button
+          type="button"
+          emphasis="tertiary"
+          size="compact"
           disabled={recoveryBusy}
           onClick={() => {
             setRecoveryError(false);
@@ -88,7 +101,7 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
           }}
         >
           {intl.formatMessage({ id: "app.account.reviewCancellation" })}
-        </AdminButton>
+        </Button>
       </Alert>
       {recoveryError && (
         <Alert variant="error">
@@ -130,15 +143,14 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     return (
       <>
         {confirmationControl}
-        <div className="flex items-center justify-center gap-2 py-8">
-          <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-          <span className="type-body text-text-soft">
-            {intl.formatMessage({
-              id: "app.admin.listings.loading",
-              defaultMessage: "Loading listings...",
-            })}
-          </span>
-        </div>
+        <EmptyState
+          busy
+          icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+          title={intl.formatMessage({
+            id: "app.admin.listings.loading",
+            defaultMessage: "Loading listings...",
+          })}
+        />
       </>
     );
   }
@@ -147,12 +159,14 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     return (
       <>
         {confirmationControl}
-        <Alert variant="error">
-          {intl.formatMessage({
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={intl.formatMessage({
             id: "app.admin.listings.loadError",
             defaultMessage: "Failed to load listings",
           })}
-        </Alert>
+        />
       </>
     );
   }
@@ -161,22 +175,18 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     return (
       <>
         {confirmationControl}
-        <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
-          <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
-          <p className="mt-2 type-body text-text-soft">
-            {intl.formatMessage({
-              id: "app.admin.listings.empty",
-              defaultMessage: "No active listings",
-            })}
-          </p>
-          <p className="mt-1 type-meta text-text-disabled">
-            {intl.formatMessage({
-              id: "app.admin.listings.emptyHint",
-              defaultMessage:
-                "List your hypercerts for yield to allow supporters to purchase fractions",
-            })}
-          </p>
-        </div>
+        <EmptyState
+          icon={<RiExchangeDollarLine />}
+          title={intl.formatMessage({
+            id: "app.admin.listings.empty",
+            defaultMessage: "No active listings",
+          })}
+          description={intl.formatMessage({
+            id: "app.admin.listings.emptyHint",
+            defaultMessage:
+              "List your hypercerts for yield to allow supporters to purchase fractions",
+          })}
+        />
       </>
     );
   }
@@ -263,9 +273,11 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                 </td>
                 <td className="px-4 py-3 text-right">
                   {status === "active" ? (
-                    <AdminButton
-                      variant="danger"
-                      size="sm"
+                    <Button
+                      type="button"
+                      emphasis="primary"
+                      tone="danger"
+                      size="compact"
                       onClick={() =>
                         pendingCancellation ? checkConfirmation() : cancelListing(listing.orderId)
                       }
@@ -275,7 +287,7 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                         (Boolean(pendingCancellation) &&
                           pendingCancellation?.orderId !== listing.orderId)
                       }
-                      leadingIcon={<RiCloseLine />}
+                      leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
                     >
                       {intl.formatMessage({
                         id:
@@ -287,20 +299,23 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                             ? "Check confirmation"
                             : "Cancel",
                       })}
-                    </AdminButton>
+                    </Button>
                   ) : (
                     onCreateListing && (
-                      <AdminButton
-                        variant="text"
-                        size="sm"
+                      <Button
+                        type="button"
+                        emphasis="tertiary"
+                        size="compact"
                         onClick={() => onCreateListing(listing.hypercertId)}
-                        leadingIcon={<RiExchangeDollarLine />}
+                        leadingIcon={
+                          <RiExchangeDollarLine className="h-4 w-4" aria-hidden="true" />
+                        }
                       >
                         {intl.formatMessage({
                           id: "app.admin.listings.renew",
                           defaultMessage: "Renew",
                         })}
-                      </AdminButton>
+                      </Button>
                     )
                   )}
                 </td>

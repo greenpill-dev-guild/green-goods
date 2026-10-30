@@ -1,7 +1,8 @@
-import { useIntl } from "react-intl";
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { RiSeedlingLine } from "@remixicon/react";
 import type { ReactNode } from "react";
-import { AdminButton } from "@/components/AdminButton";
-import { SeedlingIllustration } from "./SeedlingIllustration";
+import { useIntl } from "react-intl";
 
 interface CanvasGardenAccessStateProps {
   onCreateGarden: () => void;
@@ -18,38 +19,45 @@ export function CanvasGardenAccessState({
 
   return (
     <section
-      className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
+      className="flex min-h-full flex-col items-center justify-center px-6 py-16"
       data-testid="canvas-no-garden-access"
     >
-      <SeedlingIllustration className="h-28 w-28" />
-      <h1 className="mt-5 type-title-lg font-semibold text-text-strong">
-        {formatMessage({
+      <EmptyState
+        titleAs="h1"
+        icon={<RiSeedlingLine />}
+        title={formatMessage({
           id: "cockpit.access.noGardenTitle",
           defaultMessage: "No garden access yet",
         })}
-      </h1>
-      <p className="mt-2 max-w-md type-body text-text-sub">
-        {canCreateGarden
-          ? formatMessage({
-              id: "cockpit.access.noGardenDescriptionCanCreate",
-              defaultMessage:
-                "This wallet is not assigned to a steward or evaluator garden yet. Create a garden to start working in the canvas.",
-            })
-          : formatMessage({
-              id: "cockpit.access.noGardenDescription",
-              defaultMessage:
-                "This wallet is not assigned to a steward or evaluator garden yet. Ask a garden owner or steward to add you before using the canvas.",
-            })}
-      </p>
-      {stewardAccess ? <div className="mt-6 w-full max-w-md">{stewardAccess}</div> : null}
-      {canCreateGarden && (
-        <AdminButton className="mt-6" onClick={onCreateGarden}>
-          {formatMessage({
-            id: "cockpit.workspace.createGarden",
-            defaultMessage: "Create Garden",
-          })}
-        </AdminButton>
-      )}
+        description={
+          canCreateGarden
+            ? formatMessage({
+                id: "cockpit.access.noGardenDescriptionCanCreate",
+                defaultMessage:
+                  "This wallet is not assigned to a steward or evaluator garden yet. Create a garden to start working in the canvas.",
+              })
+            : formatMessage({
+                id: "cockpit.access.noGardenDescription",
+                defaultMessage:
+                  "This wallet is not assigned to a steward or evaluator garden yet. Ask a garden owner or steward to add you before using the canvas.",
+              })
+        }
+        action={
+          stewardAccess || canCreateGarden ? (
+            <div className="flex w-full max-w-md flex-col items-center gap-6">
+              {stewardAccess ? <div className="w-full">{stewardAccess}</div> : null}
+              {canCreateGarden && (
+                <Button type="button" size="sm" onClick={onCreateGarden}>
+                  {formatMessage({
+                    id: "cockpit.workspace.createGarden",
+                    defaultMessage: "Create Garden",
+                  })}
+                </Button>
+              )}
+            </div>
+          ) : null
+        }
+      />
     </section>
   );
 }

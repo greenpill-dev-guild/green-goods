@@ -628,14 +628,16 @@ describe("PwaSheet", () => {
       expect(dragOffset()).toBe(40);
     });
 
-    it("keeps the title out of the grab area when the sheet has no grip or cannot close", () => {
+    it("marks the grip and the title as grab areas only while the sheet can drag", () => {
       const header = () =>
         document.body.querySelector('[data-component="SheetHeader"][data-slot="text"]');
+      const grip = () => screen.getByTestId("pwa-sheet-drag-handle");
 
       const draggable = render(
         <PwaSheet open onClose={vi.fn()} title="Sheet" closeLabel="Close" />
       );
       expect(header()).toHaveAttribute("data-drag-region");
+      expect(grip()).toHaveAttribute("data-drag-region");
       draggable.unmount();
 
       const gripless = render(
@@ -646,6 +648,7 @@ describe("PwaSheet", () => {
 
       render(<PwaSheet open onClose={vi.fn()} title="Sheet" closeLabel="Close" preventClose />);
       expect(header()).not.toHaveAttribute("data-drag-region");
+      expect(grip()).not.toHaveAttribute("data-drag-region");
     });
 
     it("marks a flicked close, and only that one, for the decelerating exit", () => {

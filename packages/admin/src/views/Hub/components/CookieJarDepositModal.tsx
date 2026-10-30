@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
@@ -19,7 +20,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { useBalance } from "wagmi";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
@@ -148,36 +148,45 @@ export function CookieJarDepositModal({
       actions={
         lowLimitJar ? (
           <>
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
+              emphasis="secondary"
+              size="sm"
               loading={isPending}
               disabled={parsedDepositAmount <= 0n}
               onClick={handleDeposit}
             >
               {formatMessage({ id: "app.cookieJar.depositAnyway" })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
+              size="sm"
               type="button"
               disabled={isPending}
               onClick={() => onFixLimit?.(lowLimitJar.jarAddress)}
             >
               {formatMessage({ id: "app.cookieJar.fixLimitFirst" })}
-            </AdminButton>
+            </Button>
           </>
         ) : (
           <>
-            <AdminButton type="button" variant="text" onClick={onClose} disabled={isPending}>
+            <Button
+              type="button"
+              emphasis="tertiary"
+              size="sm"
+              onClick={onClose}
+              disabled={isPending}
+            >
               {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
+              size="sm"
               type="button"
               loading={isPending}
               disabled={!selectedDepositJar || parsedDepositAmount <= 0n}
               onClick={handleDeposit}
             >
               {formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
-            </AdminButton>
+            </Button>
           </>
         )
       }

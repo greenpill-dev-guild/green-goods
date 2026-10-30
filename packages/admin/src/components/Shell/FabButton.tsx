@@ -147,7 +147,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         <div
           className={cn(
             "pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap",
-            "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface)/0.9)] px-2.5 py-1 type-label-sm font-medium text-[rgb(var(--m3-inverse-on-surface))]",
+            "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface))] px-2.5 py-1 type-label-sm font-medium text-[rgb(var(--m3-inverse-on-surface))]",
             "opacity-0 transition-opacity group-hover/fab:opacity-100",
             "motion-reduce:transition-none"
           )}

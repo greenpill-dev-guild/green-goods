@@ -2,6 +2,7 @@ import { isAddress, type Address } from "viem";
 
 import type { DraftWorkLink } from "../../types/job-queue";
 import type { WorkLinkJobPayload } from "./job-types";
+import type { CommitmentReadModel } from "./types-core";
 
 export interface WorkLinkIntent {
   commitmentId: bigint;
@@ -11,6 +12,12 @@ export interface WorkLinkIntent {
   commitmentTitle: string;
   requirementLabel: string;
   returnTo: string;
+  /**
+   * An Open ask the member takes up in the same tap that logs the work (decision 18). The page and
+   * a draft keep it with the link, so a resumed draft can say so before the live asks are read;
+   * it takes no part in the link's identity, and only the live asks decide that Submit takes it up.
+   */
+  takesUp?: true;
 }
 
 /** Read-only choice details; they do not participate in link identity or URL persistence. */
@@ -18,6 +25,31 @@ export interface WorkLinkChoice extends WorkLinkIntent {
   approvedCount?: number;
   requiredCount?: number;
   dueDate?: bigint | null;
+  direction?: CommitmentReadModel["direction"];
+}
+
+/**
+ * A promise the account can work on in a garden: the requirements it can link work to, and
+ * whether it can add evidence, each by the promise's own act rules (`canLinkWork`, Add Proof).
+ */
+export interface WorkablePromise {
+  commitmentId: bigint;
+  title: string;
+  direction: CommitmentReadModel["direction"];
+  state: CommitmentReadModel["derivedState"];
+  dueDate: bigint | null;
+  /** What it promises, for a promise that counts no approvals. */
+  targetUnits: bigint;
+  unitLabel: string | null;
+  /**
+   * Its approvals against every requirement's count, each capped at its count as the contract
+   * counts progress; null for a promise that counts no approvals.
+   */
+  progress: { approved: number; required: number } | null;
+  /** One choice per requirement the account can link work to; none when it cannot link work. */
+  choices: readonly WorkLinkChoice[];
+  /** The account can add evidence to it: the promise offers them Add Proof. */
+  takesEvidence: boolean;
 }
 
 /** One operation identity shared by admission, the wizard and queue recovery. */
@@ -57,6 +89,7 @@ export function toDraftWorkLink(intent: WorkLinkIntent): DraftWorkLink {
     commitmentTitle: intent.commitmentTitle,
     requirementLabel: intent.requirementLabel,
     returnTo: intent.returnTo,
+    ...(intent.takesUp ? { takesUp: true as const } : {}),
   };
 }
 
@@ -74,6 +107,7 @@ export function fromDraftWorkLink(link: DraftWorkLink): WorkLinkIntent | null {
       [PARAMS.commitmentTitle]: String(link.commitmentTitle),
       [PARAMS.requirementLabel]: String(link.requirementLabel),
       [PARAMS.returnTo]: String(link.returnTo),
+      ...(link.takesUp ? { [PARAMS.takesUp]: TAKES_UP } : {}),
     })
   );
 }
@@ -93,7 +127,9 @@ const PARAMS = {
   commitmentTitle: "linkCommitmentTitle",
   requirementLabel: "linkRequirementLabel",
   returnTo: "returnTo",
+  takesUp: "linkTakesUp",
 } as const;
+const TAKES_UP = "1";
 
 export function hasWorkLinkIntentParams(params: URLSearchParams): boolean {
   return Object.values(PARAMS).some((key) => params.has(key));
@@ -135,6 +171,7 @@ export function parseWorkLinkIntent(params: URLSearchParams): WorkLinkIntent | n
       commitmentTitle,
       requirementLabel,
       returnTo,
+      ...(params.get(PARAMS.takesUp) === TAKES_UP ? { takesUp: true as const } : {}),
     };
   } catch {
     return null;
@@ -152,5 +189,6 @@ export function writeWorkLinkIntent(params: URLSearchParams, intent: WorkLinkInt
   next.set(PARAMS.commitmentTitle, intent.commitmentTitle);
   next.set(PARAMS.requirementLabel, intent.requirementLabel);
   next.set(PARAMS.returnTo, intent.returnTo);
+  if (intent.takesUp) next.set(PARAMS.takesUp, TAKES_UP);
   return next;
 }

@@ -1,6 +1,7 @@
 import type { Address } from "@green-goods/shared/types/domain";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import {
   type CommitmentContributorRecord,
@@ -20,7 +21,7 @@ import {
   RiShieldCheckLine,
   RiTimeLine,
 } from "@remixicon/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { EvidencePreview } from "./EvidencePreview";
@@ -28,6 +29,8 @@ import { EvidencePreview } from "./EvidencePreview";
 import { ConfirmNotYet } from "./ConfirmNotYet";
 import { Meter, Provenance } from "./ConfirmOutcome";
 import { selectConfirmCast } from "./confirmCast";
+import type { ServiceConfirmExtras } from "./serviceBookingTypes";
+import { ServiceStepStrip } from "./ServiceStepStrip";
 
 export { Provenance } from "./ConfirmOutcome";
 export { type ConfirmCast, selectConfirmCast } from "./confirmCast";
@@ -61,6 +64,13 @@ export interface ConfirmSheetProps {
   onConfirm: () => void;
   onNotYet: (reason: string) => void;
   onDone: () => void;
+  /**
+   * A voucher booking's Promise kept?: the booking's step strip, the split the reader already
+   * approved, and the note that confirming is separate from the vouchers.
+   */
+  service?: ServiceConfirmExtras | null;
+  /** Opens on the Not yet form: the page's Report a Problem. */
+  startInNotYet?: boolean;
 }
 
 export function ConfirmSheet({
@@ -79,10 +89,17 @@ export function ConfirmSheet({
   onConfirm,
   onNotYet,
   onDone,
+  service = null,
+  startInNotYet = false,
 }: ConfirmSheetProps) {
   const { formatMessage } = useIntl();
   const cast = selectConfirmCast(commitment);
   const [mode, setMode] = useState<"ask" | "notYet">("ask");
+  // Each opening starts where it was asked to, however the last one closed: Report a Problem on
+  // the Not yet form, Confirm It Was Kept on its ask.
+  useEffect(() => {
+    if (open) setMode(startInNotYet ? "notYet" : "ask");
+  }, [open, startInNotYet]);
   const { evidence, isLoading: evidenceLoading } = useCommitmentEvidence(evidenceAttributions);
   // The words of a Not yet survive closing the sheet and losing the signal.
   const { reason: draftReason, setReason: setDraftReason } = useCommitmentNotYetDraft(
@@ -213,6 +230,7 @@ export function ConfirmSheet({
         />
       ) : (
         <div className="space-y-4" data-component="ConfirmSheetAsk">
+          {service ? <ServiceStepStrip steps={service.steps} label={service.stepsLabel} /> : null}
           <div className="text-sm text-text-sub-600" data-component="ConfirmSummary">
             {provider ? (
               <span className="flex flex-wrap items-center gap-1">
@@ -289,9 +307,27 @@ export function ConfirmSheet({
             </div>
           ) : null}
 
+          {service ? (
+            <FactList frame="inset" data-component="ConfirmSheetServiceSplit">
+              <FactRow
+                label={service.split.label}
+                value={
+                  <>
+                    {service.split.value}
+                    <span className="mt-0.5 block text-xs font-normal leading-4 text-text-sub-600">
+                      {service.split.detail}
+                    </span>
+                  </>
+                }
+              />
+            </FactList>
+          ) : null}
+
           <p className="flex items-start gap-2 rounded-[var(--radius-lg)] bg-bg-weak-50 p-3 text-xs text-text-sub-600">
             <RiShieldCheckLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            {formatMessage({ id: `app.confirm.exclusion.${cast}` }, { count: excludedCount })}
+            {service
+              ? service.note
+              : formatMessage({ id: `app.confirm.exclusion.${cast}` }, { count: excludedCount })}
           </p>
 
           {!canNotYet ? (
@@ -299,6 +335,7 @@ export function ConfirmSheet({
               {formatMessage({ id: "app.confirm.notYet.unavailable" })}
             </p>
           ) : null}
+          {service ? <p className="text-xs text-text-sub-600">{service.passkey}</p> : null}
         </div>
       )}
     </DialogShell>

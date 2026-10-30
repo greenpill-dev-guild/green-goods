@@ -1,5 +1,9 @@
+import {
+  NativeSelect,
+  Textarea,
+  TextInput,
+} from "@green-goods/shared/components/Form/ControlPrimitives";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiArrowDownSLine } from "@remixicon/react";
 import * as React from "react";
 import { useCallback, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -17,20 +21,23 @@ import { CharacterCounter, countedLength, overLimitMessage } from "./CharacterCo
 // ============================================================================
 
 /**
- * Shared M3 text-field anatomy behind {@link AdminTextField},
- * {@link AdminTextArea}, and {@link AdminSelect}, on the responsive field tier
- * (DL-011, DL-030): 44dp / 16px text below 640px (the installed app's touch
- * fields), 40dp / 14px text from 640px, balanced with the 32 / 40dp buttons:
- * - Floating label that animates between resting (the field text, type-field) and floating (type-meta)
- * - Active indicator line (filled) or outline ring (outlined) reflecting focus/error state
- * - Leading and trailing icon slots (20dp, on-surface-variant)
- * - Supporting text / error message below with aria-describedby linkage, on a
- *   line that is always reserved, so a message never moves the form (D10)
+ * The field anatomy behind {@link AdminTextField}, {@link AdminTextArea}, and
+ * {@link AdminSelect}: the shared field (DL-116), the installed app's label and
+ * message layout (F3) around Shared's own control:
+ * - The label above the control, the shared field title (`gg-field-label`)
+ * - The shared control (`TextInput`, `Textarea`, `NativeSelect`) on the admin
+ *   surface: the cockpit's 8px corner on the responsive field tier, 44px /
+ *   16px text below 640px (the installed app's touch fields) and 40px / 14px
+ *   text from 640px (DL-030, DL-031), the control-grade outline at rest, one
+ *   2px focus ring in the workspace tone (DL-098), and the error colour on error
+ * - Leading and trailing icon slots (20px, on-surface-variant)
+ * - Supporting text / error message below with aria-describedby linkage, on
+ *   the shared message line (`gg-field-message`), which reserves the
+ *   cockpit's message lines whether or not it shows one, so a message that
+ *   fits never moves the form (DL-064) and a longer one grows the line
  * - Opt-in character counter at the end of that row, toward the control's maxLength,
  *   with an error past it
  * - forwardRef compatible — wraps the native control for react-hook-form register()
- *
- * Floating label is triggered by: focus OR value is non-empty OR defaultValue exists
  */
 const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFieldBaseProps>(
   (
@@ -46,7 +53,6 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       disabled,
       leadingIcon: LeadingIcon,
       trailingIcon: TrailingIcon,
-      variant = "filled",
       multiline = false,
       select = false,
       rows = 3,
@@ -72,9 +78,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
         ? { id: `${inputId}-count`, max: maxLength }
         : null;
 
-    const [focused, setFocused] = useState(false);
-    // An uncontrolled field (register(), defaultValue) tracks its own length:
-    // it floats the label and feeds the counter.
+    // An uncontrolled field (register(), defaultValue) tracks its own length
+    // for the counter.
     const [uncontrolledLength, setUncontrolledLength] = useState(() =>
       countedLength(defaultValue ?? "", countBytes)
     );
@@ -83,12 +88,12 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     const [typedText, setTypedText] = useState<string | null>(null);
     const edited = typedText !== null && (value === undefined || value === typedText);
 
-    // Internal ref to read uncontrolled control value for isFloating detection
+    // Internal ref to read the uncontrolled control's value for the counter
     const internalRef = useRef<AdminTextFieldControl | null>(null);
 
     // Merge the forwarded ref and our internal ref via callback ref. React Hook
     // Form restores uncontrolled values in its ref callback, so read the DOM
-    // value after forwarding and update the label state before the next paint.
+    // value after forwarding and update the count before the next paint.
     const mergeRef = useCallback(
       (node: AdminTextFieldControl | null) => {
         internalRef.current = node;
@@ -104,16 +109,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       [ref, value, countBytes]
     );
 
-    // What the control holds: the counter shows its length, any text floats the label.
+    // What the control holds: the counter shows its length.
     const length = value !== undefined ? countedLength(value, countBytes) : uncontrolledLength;
-    // Raw text floats the label: a trimmed byte count can read 0 over spaces.
-    const hasValue = (value !== undefined ? value.length : uncontrolledLength) > 0;
-
-    // A native <select> always shows its selected option's text, and date/time
-    // inputs paint intrinsic format text (mm/dd/yyyy) — a resting centered
-    // label would overlap both, so those labels float permanently (M3 exposed).
-    const intrinsicText = /^(date|time|datetime-local|month|week)$/.test(type);
-    const isFloating = select || intrinsicText || focused || hasValue || Boolean(defaultValue);
 
     // Past the limit: text written before it, loaded in, or bytes, which
     // `maxLength` cannot stop. A caller's own error still comes first.
@@ -129,10 +126,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     // Shared handlers
     // -------------------------------------------------------------------------
 
-    const handleFocus = () => setFocused(true);
-
     const handleBlur = (e: React.FocusEvent<AdminTextFieldControl>) => {
-      setFocused(false);
       onBlur?.(e);
     };
 
@@ -143,34 +137,17 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     };
 
     // -------------------------------------------------------------------------
-    // Control element (input or textarea), shared by both variants
+    // Control element (input, textarea or select)
     // -------------------------------------------------------------------------
 
+    // The shared control draws the box, the text and every state; the field
+    // only makes room for its icons. A select's chevron is the control's own.
     const controlClasses = cn(
-      // Layout — sits above the active indicator
-      "peer w-full bg-transparent",
-      // 16px on touch widths (no iOS zoom, PWA parity), 14px from 640px (DL-030).
-      "type-field leading-5 [color:rgb(var(--m3-on-surface))]",
-      // Remove browser defaults
-      "outline-none border-none focus:outline-none focus:border-none",
-      // Caret color
-      hasError
-        ? "caret-[rgb(var(--m3-error))]"
-        : "caret-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
-      // Placeholder — only visible when focused and empty
-      "placeholder-[rgb(var(--m3-on-surface-variant)/0.6)]",
-      !focused && "placeholder-transparent",
-      // Disabled text
-      disabled && "[color:rgb(var(--m3-on-surface)/0.38)] cursor-not-allowed",
-      // Below the floating label: 20 + 20 + 4 = 44 on touch widths, 16 + 20 + 4 = 40 from 640px.
-      "pb-1 pt-5 sm:pt-4",
-      multiline && "resize-y",
-      // Selects drop the native chrome; the chevron renders in the trailing
-      // icon slot and clicks fall through it to the control. Option-row colours
-      // belong to `[data-theme="dark"] select option` in theme.css, not here.
-      select && "appearance-none cursor-pointer disabled:cursor-not-allowed",
+      select && "cursor-pointer",
       LeadingIcon && "pl-9",
-      TrailingIcon && "pr-9"
+      TrailingIcon && "pr-9",
+      // A caller's class styles the value alone (an address in mono), never the label.
+      controlProps?.className as string | undefined
     );
 
     const sharedControlProps = {
@@ -200,22 +177,42 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           .filter(Boolean)
           .join(" ") || undefined,
       onChange: handleChange,
-      onFocus: handleFocus,
       onBlur: handleBlur,
       className: controlClasses,
     };
 
+    // Shared's controls on the admin surface (DL-031): they read the invalid
+    // state from aria-invalid, so a group-level error a caller passes in
+    // colours the box too.
     const control = select ? (
-      <select {...controlProps} {...sharedControlProps} ref={mergeRef} />
+      <NativeSelect
+        {...(controlProps as React.ComponentPropsWithoutRef<typeof NativeSelect>)}
+        {...sharedControlProps}
+        surface="admin"
+        ref={mergeRef as React.Ref<HTMLSelectElement>}
+      />
     ) : multiline ? (
-      <textarea {...controlProps} {...sharedControlProps} ref={mergeRef} rows={rows} />
+      <Textarea
+        {...(controlProps as React.ComponentPropsWithoutRef<typeof Textarea>)}
+        {...sharedControlProps}
+        surface="admin"
+        ref={mergeRef as React.Ref<HTMLTextAreaElement>}
+        rows={rows}
+      />
     ) : (
-      <input {...controlProps} {...sharedControlProps} ref={mergeRef} type={type} />
+      <TextInput
+        {...(controlProps as React.ComponentPropsWithoutRef<typeof TextInput>)}
+        {...sharedControlProps}
+        surface="admin"
+        ref={mergeRef as React.Ref<HTMLInputElement>}
+        type={type}
+      />
     );
 
     const iconClasses = (position: "left" | "right") =>
       cn(
-        "absolute bottom-3 sm:bottom-2.5",
+        // Centred on the first text line: (44 - 20) / 2 and (40 - 20) / 2.
+        "absolute top-3 sm:top-2.5",
         position === "left" ? "left-3" : "right-3",
         // Decorative only — clicks fall through (a select's chevron must not
         // swallow the tap that opens it).
@@ -224,196 +221,32 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
         disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
       );
 
-    const floatingLabel = (floatedClasses: string[]) => (
-      <label
-        htmlFor={inputId}
-        className={cn(
-          "pointer-events-none absolute select-none",
-          // Horizontal: respect leading icon
-          LeadingIcon ? "left-12" : "left-4",
-          // Vertical animation via transform
-          "origin-top-left transition-all",
-          "duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-          isFloating
-            ? floatedClasses
-            : [
-                // Resting: vertically centered, the control's own size
-                "top-1/2 -translate-y-1/2 type-field leading-5",
-                hasError
-                  ? "text-[rgb(var(--m3-error))]"
-                  : "text-[rgb(var(--m3-on-surface-variant))]",
-              ],
-          disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
-        )}
-      >
-        {label}
-        {/* Visual-only marker: aria-required already announces the state, and
-            hiding it keeps the accessible name equal to the label text. */}
-        {required ? <span aria-hidden="true">{" *"}</span> : null}
-      </label>
-    );
-
-    // Supporting text at the start of the row, the counter at its end (M3). The
-    // row is always one 16px line (type-meta's own line height), so an error
-    // never moves anything below the field (PRD-1022 D10).
-    const supporting = (
-      <div data-region="supporting-line" className="mt-1 flex min-h-4 gap-4 px-4 type-meta">
-        {supportingText ? (
-          <p
-            id={supportingId}
-            role={error || (limitError && edited) ? "alert" : undefined}
-            className={cn(
-              hasError ? "text-[rgb(var(--m3-error))]" : "text-[rgb(var(--m3-on-surface-variant))]",
-              disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
-            )}
-          >
-            {supportingText}
-          </p>
-        ) : null}
-        {counter ? (
-          <CharacterCounter
-            id={counter.id}
-            count={length}
-            max={counter.max}
-            error={hasError}
-            disabled={disabled}
-            edited={edited}
-            bytes={countBytes}
-          />
-        ) : null}
-      </div>
-    );
-
-    // -------------------------------------------------------------------------
-    // Filled variant
-    // -------------------------------------------------------------------------
-
-    if (variant === "filled") {
-      return (
-        <div
-          data-component={select ? "AdminSelect" : "AdminTextField"}
-          data-variant="filled"
-          className={cn("flex flex-col", className)}
-        >
-          {/* Container */}
-          <div
-            data-region="field-container"
-            className={cn(
-              // Shape: small-top only (top corners rounded, bottom flat). 8px
-              // (--m3-shape-sm, the chip/sm tier) is a deliberate step up from the 4px
-              // M3 xs, which read as too square; the field's own tier across admin fields.
-              "rounded-t-[var(--m3-shape-sm)] rounded-b-none",
-              // Height: 44 on touch widths, 40 from 640px (DL-030)
-              "min-h-11 sm:min-h-10",
-              // Background
-              disabled
-                ? "bg-[rgb(var(--m3-on-surface)/0.04)]"
-                : "bg-[rgb(var(--m3-surface-container-highest))]",
-              // State layer on container
-              !disabled && "m3-state-layer [--state-layer-color:var(--m3-on-surface)]",
-              // Layout: column so label sits above input
-              "relative flex flex-col justify-end",
-              // Horizontal padding accounts for optional icons
-              LeadingIcon ? "pl-3 pr-4" : "px-4"
-            )}
-          >
-            {LeadingIcon ? (
-              <span aria-hidden="true" className={iconClasses("left")}>
-                <LeadingIcon className="h-full w-full" />
-              </span>
-            ) : null}
-
-            {floatingLabel([
-              // Floating: a 12px label in a 16px slot (2–18px on touch widths, 0–16px from 640px).
-              "top-0.5 type-meta leading-4 sm:top-0",
-              hasError
-                ? "text-[rgb(var(--m3-error))]"
-                : focused
-                  ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
-                  : "text-[rgb(var(--m3-on-surface-variant))]",
-            ])}
-
-            {control}
-
-            {TrailingIcon ? (
-              <span aria-hidden="true" className={iconClasses("right")}>
-                <TrailingIcon className="h-full w-full" />
-              </span>
-            ) : null}
-
-            {/* Active indicator: a line along the container's bottom edge, drawn
-                inside it so the field keeps its height when focus thickens it. */}
-            <div
-              aria-hidden="true"
-              data-region="active-indicator"
-              className={cn(
-                "pointer-events-none absolute inset-x-0 bottom-0 transition-all duration-[var(--spring-spatial-fast-duration)]",
-                hasError
-                  ? "h-0.5 bg-[rgb(var(--m3-error))]"
-                  : focused
-                    ? "h-0.5 bg-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
-                    : "h-px bg-[rgb(var(--m3-on-surface-variant))]",
-                disabled && "bg-[rgb(var(--m3-on-surface)/0.38)] h-px"
-              )}
-            />
-          </div>
-
-          {supporting}
-        </div>
-      );
-    }
-
-    // -------------------------------------------------------------------------
-    // Outlined variant
-    // -------------------------------------------------------------------------
-
     return (
       <div
         data-component={select ? "AdminSelect" : "AdminTextField"}
-        data-variant="outlined"
-        className={cn("flex flex-col pt-2", className)}
+        className={cn("flex flex-col gap-1", className)}
       >
-        {/* Container with outline ring */}
-        <div
+        <label
+          htmlFor={inputId}
           className={cn(
-            // Shape: all corners small (8px, --m3-shape-sm, the chip/sm tier) — a
-            // deliberate step up from the 4px M3 xs, which read as too square.
-            // (Field's own tier; not matched to the sibling cards at 12-20px.)
-            "rounded-[var(--m3-shape-sm)]",
-            // Height: 44 on touch widths, 40 from 640px (DL-030)
-            "min-h-11 sm:min-h-10",
-            // Background
-            "bg-transparent",
-            // Layout
-            "relative flex flex-col justify-end",
-            // Horizontal padding
-            LeadingIcon ? "pl-3 pr-4" : "px-4",
-            // Outline ring
-            hasError
-              ? "ring-2 ring-inset ring-[rgb(var(--m3-error))]"
-              : focused
-                ? "ring-2 ring-inset ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
-                : "ring-1 ring-inset ring-[rgb(var(--m3-outline))]",
-            disabled && "ring-1 ring-inset ring-[rgb(var(--m3-on-surface)/0.38)]"
+            "gg-field-label",
+            hasError && "[color:rgb(var(--m3-error))]",
+            disabled && "[color:rgb(var(--m3-on-surface)/0.38)]"
           )}
         >
+          {label}
+          {/* Visual-only marker: aria-required already announces the state, and
+              hiding it keeps the accessible name equal to the label text. */}
+          {required ? <span aria-hidden="true">{"\u00a0*"}</span> : null}
+        </label>
+
+        {/* The control and the icons laid over its inline padding */}
+        <div data-region="field-container" className="relative">
           {LeadingIcon ? (
             <span aria-hidden="true" className={iconClasses("left")}>
               <LeadingIcon className="h-full w-full" />
             </span>
           ) : null}
-
-          {floatingLabel([
-            // Floating: sits on the top outline edge
-            "top-0 -translate-y-1/2 type-meta leading-4",
-            // Small background notch to visually break the outline
-            "bg-[rgb(var(--m3-surface-container-lowest))] px-1",
-            hasError
-              ? "text-[rgb(var(--m3-error))]"
-              : focused
-                ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
-                : "text-[rgb(var(--m3-on-surface-variant))]",
-          ])}
 
           {control}
 
@@ -424,7 +257,34 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           ) : null}
         </div>
 
-        {supporting}
+        {/* Supporting text at the start of the line, the counter at its end. */}
+        <div data-region="supporting-line" className="gg-field-help gg-field-message flex gap-4">
+          {supportingText ? (
+            <p
+              id={supportingId}
+              role={error || (limitError && edited) ? "alert" : undefined}
+              className={cn(
+                hasError
+                  ? "text-[rgb(var(--m3-error))]"
+                  : "text-[rgb(var(--m3-on-surface-variant))]",
+                disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
+              )}
+            >
+              {supportingText}
+            </p>
+          ) : null}
+          {counter ? (
+            <CharacterCounter
+              id={counter.id}
+              count={length}
+              max={counter.max}
+              error={hasError}
+              disabled={disabled}
+              edited={edited}
+              bytes={countBytes}
+            />
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -437,7 +297,7 @@ AdminTextFieldBase.displayName = "AdminTextFieldBase";
 // ============================================================================
 
 /**
- * AdminTextField — M3 single-line text field (see {@link AdminTextFieldBase}
+ * AdminTextField — the single-line text field (see {@link AdminTextFieldBase}
  * for the shared anatomy).
  */
 export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldProps>(
@@ -454,9 +314,9 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
 AdminTextField.displayName = "AdminTextField";
 
 /**
- * AdminTextArea — the multiline M3 text field. Same anatomy, floating label,
- * indicator/ring, and supporting-text behavior as {@link AdminTextField}; the
- * control is a vertically resizable <textarea> (default 3 rows). Added for the
+ * AdminTextArea — the multiline text field. Same anatomy, label, and
+ * supporting-text behavior as {@link AdminTextField}; the control is Shared's
+ * vertically resizable `Textarea` (default 3 rows). Added for the
  * reason-required flows so no surface hand-rolls a label + textarea again.
  */
 export const AdminTextArea = React.forwardRef<HTMLTextAreaElement, AdminTextAreaProps>(
@@ -475,20 +335,17 @@ export const AdminTextArea = React.forwardRef<HTMLTextAreaElement, AdminTextArea
 AdminTextArea.displayName = "AdminTextArea";
 
 /**
- * AdminSelect — the M3 form select. Same anatomy, indicator/ring, and
- * supporting-text behavior as {@link AdminTextField}, wrapping a native
- * `<select>`: the label floats permanently (a select always shows its
- * selected option's text), the trailing slot carries a chevron by default,
- * and an empty-value `<option>` plays the placeholder role. Added 2026-08-29
- * so form flows stop hand-rolling `SELECT_CLASS` selects (the toolbar
+ * AdminSelect — the form select. Same anatomy, label, and supporting-text
+ * behavior as {@link AdminTextField}, wrapping Shared's `NativeSelect`, which
+ * draws its own chevron; an empty-value `<option>` plays the placeholder role. Added 2026-08-29 so
+ * form flows stop hand-rolling `SELECT_CLASS` selects (the toolbar
  * `AdminSortSelect` stays a separate, toolbar-only control).
  */
 export const AdminSelect = React.forwardRef<HTMLSelectElement, AdminSelectProps>(
-  ({ selectProps, children, trailingIcon, ...props }, ref) => (
+  ({ selectProps, children, ...props }, ref) => (
     <AdminTextFieldBase
       {...(props as AdminTextFieldBaseProps)}
       select
-      trailingIcon={trailingIcon ?? RiArrowDownSLine}
       controlProps={{ ...selectProps, children } as Record<string, unknown>}
       // Safe narrowing: with select set the base always renders a <select>.
       ref={ref as React.Ref<AdminTextFieldControl>}

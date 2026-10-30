@@ -1,6 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Chip } from "@green-goods/shared/components/Chip";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
@@ -9,11 +10,12 @@ import {
   type InboxCommitment,
   useCommitmentMetadata,
 } from "@green-goods/shared/commitment-pooling";
-import { useMemo } from "react";
+import { RiFilterOffLine } from "@remixicon/react";
+import { type ReactNode, useMemo } from "react";
 import type { CommitmentsDirectionFilter } from "@green-goods/shared/stores/useUIStore";
 import { useIntl } from "react-intl";
 
-import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
+import { CommitmentStateLadder, PromiseRow } from "@/components/Features/Commitments";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { gardenAddressFor, groupByGarden } from "./grouping";
 
@@ -33,6 +35,12 @@ export interface LiveTabProps {
   sendsFromTap: boolean;
   /** Where a row goes when tapped: the commitment, in its garden. */
   onOpenCommitment: (gardenAddress: string, commitmentId: bigint) => void;
+  /** Drawn first, in every state that lists: the garden's seasons and campaigns. */
+  lead?: ReactNode;
+  /** The season or campaign the list shows; null shows every promise. */
+  cycleId: bigint | null;
+  /** Head each garden's promises with its name; off once the sheet names its one garden. */
+  gardenHeadings: boolean;
 }
 
 /**
@@ -51,6 +59,9 @@ export function LiveTab({
   onOpenCommitment,
   direction,
   onDirectionChange,
+  lead,
+  cycleId,
+  gardenHeadings,
 }: LiveTabProps) {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
@@ -59,20 +70,24 @@ export function LiveTab({
   );
 
   const { visible, groups } = useMemo(() => {
-    const filtered: InboxCommitment[] =
-      direction === "all"
-        ? inbox.live
-        : inbox.live.filter((row) => row.commitment.direction === direction);
+    const filtered: InboxCommitment[] = inbox.live.filter(
+      (row) =>
+        (direction === "all" || row.commitment.direction === direction) &&
+        (cycleId === null || row.commitment.cycleId === cycleId)
+    );
     return {
       visible: filtered,
-      groups: groupByGarden(
-        filtered,
-        pools,
-        gardens,
-        formatMessage({ id: "app.commitments.group.other" })
-      ),
+      // One garden named in the header holds every row; otherwise each garden heads its own.
+      groups: gardenHeadings
+        ? groupByGarden(
+            filtered,
+            pools,
+            gardens,
+            formatMessage({ id: "app.commitments.group.other" })
+          )
+        : [{ key: "garden", gardenName: "", rows: filtered }],
     };
-  }, [inbox.live, direction, pools, gardens, formatMessage]);
+  }, [inbox.live, direction, cycleId, gardenHeadings, pools, gardens, formatMessage]);
 
   return (
     <CommitmentStateLadder
@@ -93,11 +108,15 @@ export function LiveTab({
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.live.loading",
-        errorId: "app.commitments.live.error",
+        errorId: "app.commitments.live.error.title",
+        errorDescriptionId: "app.commitments.live.error.description",
         emptyTitleId: "app.commitments.live.emptyTitle",
         emptyDescriptionId: "app.commitments.live.emptyDescription",
+        emptyLead: lead,
       }}
     >
+      {lead}
+
       {inbox.queueUnavailable ? (
         <Alert variant="warning" className="p-3">
           {formatMessage({ id: "app.commitments.queueUnreadable" })}
@@ -148,20 +167,24 @@ export function LiveTab({
       </div>
 
       {visible.length === 0 ? (
-        <p className="py-6 text-center text-sm text-text-sub-600">
-          {formatMessage({ id: "app.commitments.filter.noMatches" })}
-        </p>
+        <EmptyState
+          placement="sheet"
+          icon={<RiFilterOffLine />}
+          title={formatMessage({ id: "app.commitments.filter.noMatches" })}
+        />
       ) : (
         groups.map((group) => (
           <div key={group.key}>
-            <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
-              {group.gardenName}
-            </SheetHeading>
-            <div className="space-y-2">
+            {gardenHeadings ? (
+              <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
+                {group.gardenName}
+              </SheetHeading>
+            ) : null}
+            <div className="flex flex-col gap-(--gg-list-gap)">
               {group.rows.map((row) => {
                 const gardenAddress = gardenAddressFor(row, pools);
                 return (
-                  <CommitmentRow
+                  <PromiseRow
                     key={row.commitment.id}
                     row={row}
                     title={

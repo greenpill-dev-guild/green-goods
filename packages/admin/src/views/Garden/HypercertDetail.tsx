@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
@@ -25,7 +26,6 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useParams } from "react-router-dom";
 import { formatEther } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { CreateListingDialog } from "@/components/Hypercerts/CreateListingDialog";
 import { MarketplaceApprovalGate } from "@/components/Hypercerts/MarketplaceApprovalGate";
@@ -462,15 +462,15 @@ function MarketplaceSection({
               <p className="type-body text-text-soft">
                 {formatMessage({ id: "app.hypercerts.marketplace.notListed" })}
               </p>
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
-                size="sm"
+                emphasis="primary"
+                size="compact"
                 onClick={() => setListingDialogOpen(true)}
-                leadingIcon={<RiExchangeDollarLine />}
+                leadingIcon={<RiExchangeDollarLine className="h-4 w-4" aria-hidden="true" />}
               >
                 {formatMessage({ id: "app.hypercerts.marketplace.listForYield" })}
-              </AdminButton>
+              </Button>
             </div>
           )}
         </MarketplaceApprovalGate>

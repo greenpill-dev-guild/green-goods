@@ -196,7 +196,7 @@ The order each type follows, locked with the card picks on 18 October:
 | Work | who · age | The garden name, except in a list that mixes gardens; the photo count, onto the photo |
 | Commitments | due date · other person | Offer or request (the lead icon); "4 of 10 taken" (the promise's page) |
 | Actions | what it asks for ("2 photos") | The domain (the banner's chip) |
-| Assessments and hypercerts | date · outcomes or units | The kind, when the icon shows it |
+| Assessments and hypercerts | date · outcomes or units; superseded by DL-111 (24 October): date · domain for an assessment, date · works bundled for a hypercert | The kind, when the icon shows it |
 | Gardens | members · place | Stewards and "open to join" (the garden's page) |
 | People | one count ("12 works") | The role (the chip) |
 | Jars, vaults and pools | one detail: the limit ("0.01 WETH a claim"; the pool shows what is waiting) | The cooldown and harvests (the jar's page); the amount stays on the right |
@@ -214,7 +214,9 @@ Two more rulings the same day, from the census review:
   than its neighbours. Layouts that add a line by design (the pill under the title, the label above
   it) and two-line titles stay opt-in choices for a whole card type, never a single card.
 - **A media card needs a picture of its own.** Work, gardens, actions and hypercerts have one;
-  commitments, assessments and jars, vaults and pools do not, so they take the item row only.
+  commitments, assessments and jars, vaults and pools do not, so they take the item row only. A
+  picture is what a media card needs, not what makes one: hypercert records keep the item row
+  (DL-103, DL-111).
 
 ### Card picks, locked on 18 October
 
@@ -254,13 +256,15 @@ Questions raised against the picks, all settled by 18 October:
 - **F9 and the earlier preference: settled.** Earlier the same day the maintainer preferred the
   app's filter button ([brief](brief.md#stated-direction), item 6). The pick keeps the cockpit's
   chips, and the maintainer confirmed the pick when asked.
-- **F3 and the app's message lines: settled.** Each surface keeps its own reserve under a field:
+- **F3 and the app's message lines: settled.** Each surface sets its own reserve under a field:
   two lines in the app (DL-018, chosen because many real messages wrap on a 360px phone in English,
-  Spanish and Portuguese) and one in the cockpit (its rule that a message never moves the form).
-  The reserve becomes a per-surface setting like the button corner; the rest of the field anatomy is
-  shared, and a longer message grows the slot rather than scrolling. On the pair, the longest
-  Spanish and Portuguese cockpit messages are measured in two-column forms at 640px, where a message
-  has about 205px; if several wrap, the cockpit reserves two lines too.
+  Spanish and Portuguese), and one in the cockpit (its rule that a message never moves the form)
+  unless its longest messages wrap. The reserve becomes a per-surface setting like the button
+  corner; the rest of the field anatomy is shared, and a longer message grows the slot rather than
+  scrolling. On the pair, the longest Spanish and Portuguese cockpit messages are measured in
+  two-column forms at 640px, where a message has about 205px; if several wrap, the cockpit reserves
+  two lines too. Measured on 23 October: a two-column field there is 290px wide and 6 of 32 messages
+  wrap, so the cockpit reserves two lines, like the app (DL-105).
 - **F7 on the cockpit's phone: settled.** The cockpit's phone queue takes the work row. Its work
   card is one button that opens the work's page, where approval happens, so the queue only chooses
   what to open; a photo-grid card is about 300px tall on a phone, so two fit a screen, against about
@@ -269,9 +273,13 @@ Questions raised against the picks, all settled by 18 October:
   page, not in a second card design.
 - **F8 on desktop: settled.** Each equal-width tab is at most 180px wide on desktop, the row aligned
   left and never wider than the content: 720px for the cockpit's four-tab rows (Hub, Garden,
-  Community), 360px for a two-tab row. The longest label, "Coordenação", measures 94px in Plus
-  Jakarta Sans at 14px, about 170px with its icon, count badge and padding. Phones keep full-width
-  tabs.
+  Community), 360px for a two-tab row. A cell is never narrower than its icon, label and count on
+  one line, so a cell whose content needs more than 180px takes it (DL-100). The longest route
+  label, "Coordenação", measures 94px in Plus Jakarta Sans at 14px, about 170px with its icon,
+  count badge and padding; the one cell past 180px is Spanish "Configuración de medios" in the
+  Create Action dialog, at 191px. Phones fill the width
+  with equal cells, and a row that cannot hold its cells on one line scrolls with its edge fade and
+  snap: the measured deviation DL-100 records (23 October), for the maintainer's review after merge.
 - **Where a card's status sits, and how many lines a title takes: settled.** Raised on 17 October,
   when the pill in the title's corner cut titles off. The
   [card census](artifacts/card-census.html#layouts) measured five placements, and on 18 October the
@@ -367,7 +375,7 @@ inventory of tokens or components.
 | Tabs | [StandardTabs.tsx](../../../packages/client/src/components/Navigation/Tabs/StandardTabs.tsx) and [AdminTabRail.tsx](../../../packages/admin/src/components/AdminTabRail.tsx). |
 | Chips and filters | Shared [Chip.tsx](../../../packages/shared/src/components/Chip.tsx), the app's filter button in [Home](../../../packages/client/src/views/Home/index.tsx) and its [filter sheet](../../../packages/client/src/views/Home/GardenFilters/index.tsx); the cockpit's [AdminFilterChip.tsx](../../../packages/admin/src/components/AdminFilterChip.tsx) and [AdminSortSelect.tsx](../../../packages/admin/src/components/AdminSortSelect.tsx). |
 | Count badges | The app's [AppBar.tsx](../../../packages/client/src/components/Layout/AppBar.tsx), the [Your Work launcher](../../../packages/client/src/views/Home/WorkDashboard/Icon.tsx), the [Promises launcher](../../../packages/client/src/views/Home/CommitmentsSheet/Launcher.tsx), the Home filter count, `StandardTabs` and the [AppSheet](../../../packages/client/src/components/Sheets/AppSheet.tsx) tabs, and a garden's notification bell in [TopNav](../../../packages/client/src/components/Navigation/TopNav.tsx); the cockpit's `AdminTabRail`. Since step 4 they all render Shared's `CountBadge`. |
-| Cards and work items | [CardBase.tsx](../../../packages/shared/src/components/Cards/CardBase.tsx), the client [Card.tsx](../../../packages/client/src/components/Cards/Card.tsx) and shared [WorkCard.tsx](../../../packages/shared/src/components/Cards/WorkCard/WorkCard.tsx); the cockpit's [AdminCard.tsx](../../../packages/admin/src/components/AdminCard.tsx), [HubWorkCard.tsx](../../../packages/admin/src/views/Hub/components/HubWorkCard.tsx) and the grid in [admin-layout.css](../../../packages/admin/src/styles/admin-layout.css); shared [WorkbenchRow.tsx](../../../packages/shared/src/components/Canvas/WorkbenchRow.tsx). |
+| Cards and work items | Shared [ItemRow.tsx](../../../packages/shared/src/components/Cards/ItemRow/ItemRow.tsx), the client [Card.tsx](../../../packages/client/src/components/Cards/Card.tsx) and shared [WorkCard.tsx](../../../packages/shared/src/components/Cards/WorkCard/WorkCard.tsx); the cockpit's [AdminCard.tsx](../../../packages/admin/src/components/AdminCard.tsx), [HubWorkCard.tsx](../../../packages/admin/src/views/Hub/components/HubWorkCard.tsx) and the grid in [admin-layout.css](../../../packages/admin/src/styles/admin-layout.css); shared [WorkbenchCard.tsx](../../../packages/shared/src/components/Canvas/WorkbenchCard.tsx). |
 | Sheets | Shared [PwaSheet.tsx](../../../packages/shared/src/components/Dialog/PwaSheet.tsx) and [SheetHeader.tsx](../../../packages/shared/src/components/Dialog/SheetHeader.tsx); the cockpit's [AdminDialog.tsx](../../../packages/admin/src/components/AdminDialog.tsx). |
 | Bottom bars | The app's `AppBar.tsx` and the cockpit's [NavigationBar.tsx](../../../packages/admin/src/components/Shell/NavigationBar.tsx). |
 | What does Storybook already measure? | The design-system pages grade each surface against [rules.ts](../../../packages/shared/.storybook/design-system/rules.ts) and [surfaces.css](../../../packages/shared/.storybook/surfaces.css). |
@@ -623,8 +631,9 @@ on the pair.
 
 - **The app's tabs on both, equal width** (recommended): `StandardTabs` as shipped. Equal cells, a
   tinted active cell with a 2px underline, a solid count badge, an icon when a tab has one. On
-  desktop each cell is capped at 180px and the row aligns left (720px for four tabs, as the lab
-  draws), so the cells stay readable.
+  desktop each cell is at most 180px and the row aligns left (720px for four tabs, as the lab
+  draws), so the cells stay readable; a cell whose icon, label and count need more takes it
+  (DL-100).
 - **The cockpit rail on both**: an underline rail at content width with the grey count chip. The
   app's four garden tabs would scroll at 320px.
 - **Keep both**: two tab vocabularies for the same job.
@@ -632,7 +641,8 @@ on the pair.
 Touches `AdminTabRail`: it gains the equal-width layout and the tinted active cell, and its count
 chip becomes the shared badge. The tab height stays per surface (DL-011).
 
-**Pick, locked on 18 October:** the recommended option.
+**Pick, locked on 18 October:** the recommended option. On phones a row that cannot hold its cells scrolls, the
+measured deviation DL-100 records (23 October).
 
 ### F9 Filter control
 
@@ -713,7 +723,8 @@ ladder the app's dark cards follow the same step.
   today. Behind a filter button they would be two. The pick keeps them inline, so this point is
   closed unless the pick changes.
 - **F8 on desktop.** Equal cells across a 1176px content column are very wide. Settled on 18
-  October: each tab is at most 180px wide and the row aligns left.
+  October: each tab is at most 180px wide and the row aligns left; a cell whose content needs more
+  takes it, which DL-100 records for Spanish "Configuración de medios" (191px).
 - **F7 on the cockpit's phone.** A row removes the mosaic from the phone queue. Settled on 18
   October: the row stays, and a steward who sorts by photo checks it on the rendered pair.
 - **The Cosmo-Local demonstration.** The research's view was that only the token slice is small

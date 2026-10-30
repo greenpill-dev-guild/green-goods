@@ -1,8 +1,10 @@
 /** @vitest-environment happy-dom */
+import { webcrypto } from "node:crypto";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../../hooks/work/useDraftAutoSave";
+import { cleanPhoto, photoFile } from "../../test-utils/photo-fixtures";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mocks = vi.hoisted(() => ({
@@ -66,6 +68,52 @@ describe("complete draft autosave", () => {
       await vi.advanceTimersByTimeAsync(1);
     });
     expect(mocks.save.mock.calls[0][2]).toBe("resumed");
+  });
+  it("starts no draft for a garden alone, and carries it into the draft the first action starts", async () => {
+    // The flow chooses a garden before the member does anything (the active garden), so
+    // opening Submit Work and leaving must not leave a draft behind.
+    const garden = "0x2222222222222222222222222222222222222222";
+    const { rerender } = renderHookWithQueryClient(
+      ({ actionUID }) =>
+        useDraftAutoSave({ ...base, feedback: "", gardenAddress: garden, actionUID }, emptyImages),
+      { initialProps: { actionUID: null as number | null } }
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
+
+    rerender({ actionUID: 3 });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(mocks.save.mock.calls[0][3]).toMatchObject({ gardenAddress: garden, actionUID: 3 });
+  });
+  it("starts no draft for the action the flow chose when it skipped Start, until the member adds work", async () => {
+    // A garden with one action and nothing owed opens Media with that action (DL-131): the
+    // member chose nothing yet, so leaving must not leave a draft behind either.
+    const garden = "0x2222222222222222222222222222222222222222";
+    useWorkFlowStore.setState({ startSkipAction: { garden, actionUID: 7 } });
+    const photo = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
+    const { rerender } = renderHookWithQueryClient(
+      ({ images }) =>
+        useDraftAutoSave({ ...base, feedback: "", gardenAddress: garden, actionUID: 7 }, images),
+      { initialProps: { images: emptyImages } }
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
+
+    rerender({ images: [photo] });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(mocks.save.mock.calls[0][3]).toMatchObject({ gardenAddress: garden, actionUID: 7 });
   });
   it("saves the initial snapshot and debounces subsequent text edits", async () => {
     const { rerender } = renderHookWithQueryClient(
@@ -239,6 +287,12 @@ describe("complete draft autosave", () => {
 });
 
 describe("missing attachment choices", () => {
+  beforeEach(() => {
+    // Photos are binary, so they are hashed with real WebCrypto, not the setup's text-only stand-in.
+    vi.stubGlobal("crypto", { ...crypto, subtle: webcrypto.subtle });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
   it("reselection retains identity and order, and removal cannot revive an earlier missing entry", async () => {
     vi.useRealTimers();
     const { identifyWorkFile } = await import("../../../modules/work/work-attachments");
@@ -255,7 +309,7 @@ describe("missing attachment choices", () => {
     await act(async () => {
       await result.current.reselectMissingAttachment(
         "replace",
-        new File(["replacement"], "new.jpg", { type: "image/jpeg" })
+        photoFile(cleanPhoto("image/jpeg", { label: "replacement" }), "new.jpg", "image/jpeg")
       );
     });
     const state = useWorkFlowStore.getState();
@@ -280,7 +334,7 @@ describe("missing attachment choices", () => {
     await act(async () => {
       await result.current.reselectMissingAttachment(
         "missing",
-        new File(["jpeg"], "found.jpg", { type: "image/jpeg" })
+        photoFile(cleanPhoto("image/jpeg", { label: "found" }), "found.jpg", "image/jpeg")
       );
     });
     expect(useWorkFlowStore.getState().images.map((file) => file.name)).toEqual([

@@ -41,6 +41,13 @@ export interface PendingRowContext {
   actionTitle: (actionUID: number) => string | undefined;
   /** Work a promise counts: linked on the record, or by a queued link. */
   isLinked: (work: Work) => boolean;
+  /**
+   * Queued work for a promise the same tap took up waits for that take-up (decision 18):
+   * still on its way, or given up. Absent or null for any other work.
+   */
+  takeUpStage?: (work: Work) => "pending" | "failed" | null;
+  /** Sent work whose link to its promise gave up. */
+  linkFailed?: (work: Work) => boolean;
 }
 
 type QueuedDecision = NonNullable<ReturnType<WorkUploads["decisionFor"]>>;
@@ -93,12 +100,16 @@ export function submissionRow(
   const base = { title: workTitle(work, context), marker: linkedMarker(work, context) };
   const row = { id: work.id, type: "work" as const, source: "work" as const, at, work };
   if (!onThisDevice) {
+    const linkFailed = context.linkFailed?.(work) === true;
     const card: RowCard = {
       ...base,
       kind: "review",
       pill: message(intl, "app.pending.pill.inReview"),
       meta: message(intl, "app.pending.meta.submitted", { date: formatRowDay(intl, at) }),
-      status: message(intl, "app.pending.status.waitingForReview"),
+      // The work went; the stage that stopped is its link to the promise.
+      ...(linkFailed
+        ? { status: message(intl, "app.pending.status.linkFailed"), statusTone: "error" as const }
+        : { status: message(intl, "app.pending.status.waitingForReview") }),
     };
     return { ...row, kind: "review", card, discardable: false };
   }
@@ -116,7 +127,27 @@ export function submissionRow(
     status,
     locked,
   });
+  const takeUp = context.takeUpStage?.(work) ?? null;
   const card = ((): RowCard => {
+    // A work for a promise the same tap took up goes after the take-up, which this names.
+    if (takeUp === "failed")
+      return {
+        ...saved,
+        kind: "needs",
+        pill: message(intl, "app.pending.pill.cantUpload"),
+        status: message(intl, "app.pending.status.takeUpFailed"),
+        statusTone: "error",
+      };
+    if (takeUp === "pending")
+      return toUpload(
+        message(
+          intl,
+          // A wallet reader's take-up goes from their own tap; any other goes on its own.
+          context.sendsFromTap
+            ? "app.pending.status.openToTakeUp"
+            : "app.pending.status.takeUpFirst"
+        )
+      );
     switch (workUploadGroup(state.submissionState)) {
       case "attention":
         return {

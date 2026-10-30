@@ -1,6 +1,8 @@
 import type { ApproximateWorkLocation } from "../../types/domain";
 import type { SerializedFileData } from "../../types/job-queue";
 import { serializeFile } from "../../utils/storage/file-serialization";
+import { logger } from "../app/logger";
+import { withoutImageMetadata } from "./image-metadata";
 
 export class InvalidWorkAttachmentError extends Error {
   constructor(message: string) {
@@ -23,6 +25,23 @@ export class PendingHeicConversionError extends Error {
     super(reason);
     this.name = "PendingHeicConversionError";
     this.reason = reason;
+  }
+}
+
+/**
+ * A photo that cannot lose its metadata, because neither the byte-level
+ * rewrite nor a canvas can read it, so it is never published. Queued work holds
+ * it, named, as needing attention, the way a HEIC photo that will not convert
+ * is held; a proof ends on it.
+ */
+export class UnpublishablePhotoError extends InvalidWorkAttachmentError {
+  /** The photo's file name. */
+  readonly photo: string;
+
+  constructor(photo: string) {
+    super("photo-unreadable");
+    this.name = "UnpublishablePhotoError";
+    this.photo = photo;
   }
 }
 
@@ -130,6 +149,47 @@ export function isHeicFile(file: Pick<File, "name" | "type">): boolean {
  */
 export function isWorkPhoto(file: File, policy: WorkAttachmentPolicy = {}): boolean {
   return PHOTO_TYPES.has(file.type) || (policy.pendingHeic === "accept" && isHeicFile(file));
+}
+
+/**
+ * A photo without its location, camera or other metadata, or null when it
+ * cannot be published. The byte-level rewrite reads the JPEG, PNG and WebP
+ * structures cameras and editors write. A file it cannot read, which a browser
+ * may still draw leniently, is drawn again through a canvas, which writes no
+ * metadata. Null only when neither can read it; the Agent has no canvas.
+ */
+export async function withoutPhotoMetadata(file: File): Promise<File | null> {
+  const stripped = await withoutImageMetadata(file);
+  if (stripped) return stripped;
+  const redrawn = await redrawPhoto(file);
+  // The canvas's output is read back like any photo, so nothing it carried over is published.
+  return redrawn ? withoutImageMetadata(redrawn) : null;
+}
+
+async function redrawPhoto(file: File): Promise<File | null> {
+  try {
+    const { imageCompressor } = await import("../../utils/work/image-compression");
+    return await imageCompressor.redraw(file);
+  } catch (error) {
+    logger.warn("[WorkMedia] The canvas to redraw a photo could not load", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+/**
+ * An attachment as it may be pinned. A photo loses its location and camera
+ * metadata, and one that cannot lose it is refused rather than published as it
+ * was picked: IPFS and the attestation cannot be withdrawn. A video is
+ * published as it was picked, since removing a video container's metadata needs
+ * a parser this does not have.
+ */
+export async function publishableWorkFile(file: File): Promise<File> {
+  if (!PHOTO_TYPES.has(file.type)) return file;
+  const published = await withoutPhotoMetadata(file);
+  if (!published) throw new UnpublishablePhotoError(file.name);
+  return published;
 }
 
 export function validateWorkAttachments(

@@ -29,12 +29,14 @@ import {
 import { logger } from "../app/logger";
 import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
 import { sendCheckpointOf, writeSendCheckpoint } from "../job-queue/queue-policy";
+import { takeUpOf } from "../job-queue/take-up-hold";
 import { holdingSends } from "../job-queue/send-guards";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
 import type { ContractCall, TransactionSender } from "../transactions/types";
 import { sendWithCheckpoint } from "./send-with-checkpoint";
 import { SimulationRejected } from "./simulation-rejected";
-import { isUploadJob, queuedUploadStatus } from "./upload-state";
+import { isUploadJob, queuedUploadStatus, type UploadPreparation } from "./upload-state";
+import { UnpublishablePhotoError } from "./work-attachments";
 import { forgetWorkBroadcast } from "./work-confirmation";
 
 /**
@@ -132,17 +134,17 @@ export async function uploadQueuedWork(
     }
   };
 
-  const flag = async (item: ChunkItem, reason: string) => {
-    const preparation = {
-      status: "blocked",
-      reason,
-      checkedAt: new Date(ports.now()).toISOString(),
-    };
-    await ports.save(item.claim, item.job.id, (stored) => {
+  /** Record on an item what it waits on, for the person to see, and count it. */
+  const flagItem = async (claim: WorkClaim, jobId: string, preparation: UploadPreparation) => {
+    await ports.save(claim, jobId, (stored) => {
       stored.meta = { ...stored.meta, preparation };
     });
     flagged += 1;
   };
+  const checkedAt = () => new Date(ports.now()).toISOString();
+
+  const flag = (item: ChunkItem, reason: string) =>
+    flagItem(item.claim, item.job.id, { status: "blocked", reason, checkedAt: checkedAt() });
 
   /** Simulate each item alone and flag the ones the chain refuses. */
   const flagRefused = async (items: ChunkItem[]): Promise<ChunkItem[]> => {
@@ -225,6 +227,16 @@ export async function uploadQueuedWork(
           });
           items.push({ job, claim, attestation });
         } catch (error) {
+          // A photo that cannot be published would be refused again by preparation:
+          // the item waits on it, named, instead of going back to preparing.
+          if (error instanceof UnpublishablePhotoError) {
+            await flagItem(claim, id, {
+              status: "photo-needs-attention",
+              photo: error.photo,
+              checkedAt: checkedAt(),
+            }).catch(() => undefined);
+            continue;
+          }
           logger.warn("[UploadAll] Queued item is not ready after all", {
             jobId: id,
             error: error instanceof Error ? error.message : String(error),
@@ -302,12 +314,14 @@ export async function uploadQueuedWork(
 
   try {
     const selected = input.jobIds ? new Set(input.jobIds) : undefined;
-    const ready = (await ports.listJobs(input.userAddress)).filter(
+    const listed = await ports.listJobs(input.userAddress);
+    // A work whose promise this account is still taking up waits for that take-up.
+    const ready = listed.filter(
       (job) =>
         (!selected || selected.has(job.id)) &&
         isUploadJob(job) &&
         (job.chainId ?? chainId) === chainId &&
-        queuedUploadStatus(job).state === "ready"
+        queuedUploadStatus(job, { takeUp: takeUpOf(job, listed) }).state === "ready"
     );
     if (ready.length === 0) return { status: "nothing-ready" };
 

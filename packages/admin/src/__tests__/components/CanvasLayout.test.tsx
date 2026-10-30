@@ -626,6 +626,33 @@ describe("CanvasLayout", () => {
     expect(mockNavigationBarProps.mock.calls[0]?.[0].onNavigate).toBe(firstProps.onNavigate);
   });
 
+  // One chip on both surfaces: the cockpit's avatar is the garden's banner too (DL-124).
+  it("hands the chip the selected garden's banner for its avatar", () => {
+    mockEligibleAdminGardens.current = {
+      ...mockEligibleAdminGardens.current,
+      resolvedDefaultGarden: {
+        ...createGardenFixture(),
+        bannerImage: "https://cdn.example/garden-one.webp",
+      },
+    };
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    expect(mockGardenChipProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        selectedGarden: {
+          id: "garden-1",
+          name: "Garden One",
+          bannerImage: "https://cdn.example/garden-one.webp",
+        },
+      })
+    );
+  });
+
   it("renders AppBar above the main workspace and keeps NavigationBar pure", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/hub"]}>
@@ -842,6 +869,21 @@ describe("CanvasLayout", () => {
       expect(useSheetOrchestratorStore.getState().activeSheet).toBeNull();
     });
     expect(screen.queryByTestId("admin-side-sheet-content")).not.toBeInTheDocument();
+  });
+
+  it("rings the skip link in the cockpit's focus role, not the browser's own ring", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    // One solid 2px ring in the workspace tone, 2px off the link's fill (DL-098).
+    const skipLink = screen.getByRole("link", { name: "Skip to Content" });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    expect(skipLink.className).toContain("focus-visible:outline-2");
+    expect(skipLink.className).toContain("focus-visible:outline-offset-2");
+    expect(skipLink.className).toContain("focus-visible:outline-[rgb(var(--tone-focus-ring,");
   });
 
   it("does not apply pl-20 padding on main content", () => {

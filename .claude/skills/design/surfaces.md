@@ -35,12 +35,12 @@ Visual depth cues (blur, shadow, scale) need non-visual equivalents:
 
 ## Solid Surfaces
 
-This section replaces § Material System, which the high-contrast fallback comment in `theme.css` still names until the code that removes the residue below changes it. Every surface that carries content or controls is solid, in the installed app, the cockpit, and the public website alike: cards, panels, sheets, dialogs, menus, popovers, and bars (DL-108). A surface takes an opaque fill (`var(--color-material-solid)` in Shared, the surface's own card token in each app, never a hardcoded `bg-white/65`), and its depth comes from its shadow tier and stacking order.
+This section replaces § Material System. Every surface that carries content or controls is solid, in the installed app, the cockpit, and the public website alike: cards, panels, sheets, dialogs, menus, popovers, and bars (DL-108). A surface takes an opaque fill (`var(--color-material-solid)` in Shared, the surface's own card token in each app, never a hardcoded `bg-white/65`), and its depth comes from its shadow tier and stacking order.
 
 - **One translucent piece**: the cockpit's nav dock (the `NavigationBar` with its FAB), a flat 85% surface with a 12px blur, a warm ambient shadow, and a 1px ink ring (Controlled Chrome in `packages/admin/DESIGN.md`). Nothing else is translucent.
 - **The scrim is not a surface**: a dialog or sheet that interrupts the main flow dims the page behind it with the shared scrim. The scrim carries no content.
 - **Transparent chrome is not glass**: a chrome root with no fill and no blur at all (the cockpit's `AppBar` root, `MainSheet` and route frame, and the website's `SiteHeader` over its hero) draws nothing behind its controls. Its controls sit on the page or carry their own solid fills.
-- **Glass in code is residue**: the translucent `--color-material-*` steps, the `glass-*` utilities, and `Surface`'s glass elevations stay in Shared only until nothing renders them. New UI never reaches for them. `--color-material-solid` stays the solid fill, and the dock reads its blur from `--blur-material-regular`.
+- **Glass in code is residue**: the translucent `--color-material-*` steps and `glass-surface` (Shared's `MainSheet`) stay in Shared only until nothing renders them. `glass-surface` is the last `glass-*` utility once step 19's code change puts `WorkbenchCard` on the shared card surface and deletes `glass-raised` with `WorkbenchList`. `Surface` draws all four of its levels solid. New UI never reaches for any of them. `--color-material-solid` stays the solid fill, and the dock reads its blur from `--blur-material-regular`.
 
 ---
 
@@ -60,7 +60,7 @@ Every interaction must be reachable through at least two modalities (fallback ch
 
 ### Hover is a preview, not a gate
 
-Design hover states as if the cursor were an eye: generous hit areas (≥ 44px), glow not just color shift, and a brief contextual reveal using the shared effects timing. (Admin carve-out: cockpit hovers never glow: an elevation step or the neutral `rgb(var(--m3-on-surface)/0.08)` ink layer only.) Never hide essential information behind hover: touch and gaze cannot hover; primary content must be visible at rest.
+Design hover states as if the cursor were an eye: generous hit areas (≥ 44px), glow not just color shift, and a brief contextual reveal using the shared effects timing. (Admin carve-out: cockpit hovers never glow: an elevation step or the neutral `rgb(var(--m3-on-surface)/0.08)` ink layer only, and a card or item row takes the ink layer only, DL-102.) Never hide essential information behind hover: touch and gaze cannot hover; primary content must be visible at rest.
 
 ### Adaptive Density
 

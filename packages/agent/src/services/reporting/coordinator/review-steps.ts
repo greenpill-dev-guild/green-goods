@@ -14,7 +14,7 @@ import { commitReview, type ReviewRecord, reviewState } from "../reviews";
 import { accountLink } from "./account-link";
 import type { ChatCommand } from "./commands";
 import type { TurnPlan } from "./context";
-import { nextReviewStep } from "./review-prompts";
+import { isReviewPrompt, nextReviewStep } from "./review-prompts";
 import type { TurnWriter } from "./writer";
 
 /**
@@ -30,6 +30,9 @@ const EDITABLE = new Set([
   "reviewGrantChoice",
   "awaitingSignature",
 ]);
+
+/** The states in which a steward still answers a decision's questions, before confirming it. */
+const ANSWERING = new Set(["discussing", "needsClarification", "decisionPrepared"]);
 
 /** `REVIEW` lists pending work (after linking an account); `REVIEW n` picks from the open list. */
 export function requestReview(writer: TurnWriter, index: number | null): void {
@@ -160,6 +163,17 @@ export function handleReviewCommand(
       else nextReviewStep(writer, review, account.address);
       return true;
     }
+    // A decision the steward is still answering comes first, whether or not its question is
+    // showing: STOP closes the question and leaves the decision open. NEW says so, and STATUS
+    // shows the question it waits on. A question no longer showing is put again, so the next
+    // story goes to the review and not to a report beside it.
+    case "new":
+    case "status":
+      if (!account || !ANSWERING.has(reviewState(review))) return false;
+      if (command.kind === "new") writer.say("review.resumeFirst");
+      if (command.kind === "status" || !isReviewPrompt(writer.ctx.prompt?.kind))
+        nextReviewStep(writer, review, account.address);
+      return true;
     default:
       return false;
   }

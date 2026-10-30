@@ -162,6 +162,18 @@ async function setupMockSteward(page: Page) {
   return helper;
 }
 
+// A signed-in boot shows "Opening your workspace…" for 10 to 20 seconds on a quiet clean-room
+// dev server and can outlast the helper's 30s wait for `main` on a busy one. A boot-sized wait
+// for `main` runs first; the helper's checks still run after it.
+const SIGNED_IN_BOOT_MS = 60_000;
+// A whole signed-in load: the boot's wait for `main`, plus the navigation and the helper's checks.
+const SIGNED_IN_LOAD_MS = SIGNED_IN_BOOT_MS + 20_000;
+
+async function waitForSignedInBoot(page: Page, helper: AdminTestHelper) {
+  await page.getByRole("main").waitFor({ state: "visible", timeout: SIGNED_IN_BOOT_MS });
+  await helper.waitForPageLoad();
+}
+
 test.describe.configure({ mode: "serial" });
 test.describe("Admin Cockpit", () => {
   test.use({ baseURL: ADMIN_URL });
@@ -199,13 +211,16 @@ test.describe("Admin Cockpit", () => {
   });
 
   test("keeps mock auth active across full reloads on other cockpit routes", async ({ page }) => {
+    // Two full signed-in loads, so room for both; the default 30s cut the second one short on
+    // a busy machine.
+    test.setTimeout(2 * SIGNED_IN_LOAD_MS);
     const helper = await setupMockSteward(page);
 
     await page.goto(helper.buildMockAuthPath("/hub", "steward"));
-    await helper.waitForPageLoad();
+    await waitForSignedInBoot(page, helper);
 
     await page.goto("/actions");
-    await helper.waitForPageLoad();
+    await waitForSignedInBoot(page, helper);
 
     // Actions is gated to deployers (commit 6e88d78e); mock steward without
     // deployer role lands on the Unauthorized state. Auth is still active —

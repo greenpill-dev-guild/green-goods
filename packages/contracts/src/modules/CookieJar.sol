@@ -10,7 +10,7 @@ import { ICookieJarFactory } from "../interfaces/ICookieJarFactory.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 
 /// @title CookieJarModule
-/// @notice Creates per-asset Cookie Jar vaults for gardens during mint using the 1Hive CookieJarFactory
+/// @notice Creates per-asset Cookie Jar vaults for gardens during mint using the Greenpill Dev Guild CookieJarFactory
 /// @dev UUPS upgradeable. Called by GardenToken during mintGarden() via try/catch.
 ///      Delegates jar deployment to the external CookieJarFactory and uses ERC1155 (Hats Protocol)
 ///      access gating so that garden members (gardeners, operators, owners) can withdraw from jars.
@@ -28,7 +28,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     /// @notice The YieldResolver contract (for auto-registration)
     address public yieldSplitter;
 
-    /// @notice The 1Hive CookieJarFactory used to deploy jars
+    /// @notice The Greenpill Dev Guild CookieJarFactory used to deploy jars
     ICookieJarFactory public cookieJarFactory;
 
     /// @notice The Hats Protocol ERC1155 contract address used for access gating
@@ -88,7 +88,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     /// @param _owner The owner address
     /// @param _hatsModule HatsModule address for resolving garden hat IDs
     /// @param _yieldSplitter YieldResolver address
-    /// @param _cookieJarFactory The 1Hive CookieJarFactory address
+    /// @param _cookieJarFactory The Greenpill Dev Guild CookieJarFactory address
     /// @param _hatsProtocol The Hats Protocol ERC1155 contract address
     /// @param _supportedAssets Array of supported ERC-20 asset addresses
     function initialize(

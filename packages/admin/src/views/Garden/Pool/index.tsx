@@ -1,4 +1,9 @@
-import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useIssuerSafeThreshold } from "@green-goods/shared/commitment-pooling";
+import {
+  usePoolConsoleController,
+  useVoucherConsole,
+} from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
@@ -21,7 +26,8 @@ import { PoolNotReadyCard } from "./PoolNotReadyCard";
 import { PoolStatsCard } from "./PoolStatsCard";
 import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
-import { currentGroup } from "./poolCommitmentRows";
+import { VoucherReserveCard } from "./VoucherReserveCard";
+import { currentGroup, withVoucherRecovery } from "./poolCommitmentRows";
 import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 
 export interface GardenPoolTabProps {
@@ -49,6 +55,14 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const pool = usePoolConsoleController({ chainId, garden: garden.id });
+  // The voucher bookings in this garden's pool and its issuer's reserve (PRD-1297 surface 6).
+  const vouchers = useVoucherConsole({ chainId, garden: garden.id });
+  // Its issuer Safe's signature rule, read from the Safe, never written into copy (task 13).
+  const issuer = vouchers.snapshot.issuer;
+  const issuerSafe = useIssuerSafeThreshold({
+    chainId: issuer?.chainId ?? chainId,
+    safe: issuer?.safe,
+  }).data;
   const tone = "garden" as const;
   const isProtocolPool = pool.pool?.poolType === "PROTOCOL";
   const target = { gardenName: garden.name, isProtocol: isProtocolPool };
@@ -175,7 +189,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           },
           {
             id: "recovery",
-            count: model.counts.needsRecovery,
+            count: withVoucherRecovery(model, pool.commitments, vouchers).counts.needsRecovery,
             label: formatMessage({
               id: "cockpit.garden.pool.summary.recovery",
               defaultMessage: "Needs recovery",
@@ -197,7 +211,28 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
 
   return (
     <div className="garden-tab-layout" data-component="GardenPoolTab" data-region="garden-pool">
+      {/* The grid has two cells, main and rail; a notice belongs at the top of main. */}
       <div className="garden-tab-main">
+        {vouchers.snapshot.status === "unavailable" && pool.chainId === 42161 ? (
+          <Alert variant="warning">
+            {formatMessage({
+              id: "cockpit.garden.pool.voucher.live.indexerUnavailable",
+              defaultMessage:
+                "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.",
+            })}
+          </Alert>
+        ) : null}
+        {vouchers.snapshot.status === "observed" &&
+        vouchers.snapshot.incomplete &&
+        pool.chainId === 42161 ? (
+          <Alert variant="warning">
+            {formatMessage({
+              id: "cockpit.garden.pool.voucher.live.partial",
+              defaultMessage:
+                "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
+            })}
+          </Alert>
+        ) : null}
         {summary}
 
         {preOpen ? (
@@ -221,6 +256,9 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         {!preOpen ? (
           <PoolCommitmentsCard
             console={pool}
+            vouchers={vouchers}
+            target={target}
+            safe={issuerSafe}
             scope={scope}
             onScopeChange={setScope}
             focus={focus}
@@ -240,8 +278,21 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         {!preOpen && !finished ? (
           <PoolClaimsCard
             console={pool}
+            vouchers={vouchers}
+            target={target}
+            safe={issuerSafe}
+            tone={tone}
             onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
             onOpen={(row) => openCommitment(row.commitment, "waiting")}
+          />
+        ) : null}
+        {vouchers.snapshot.reserve && !preOpen && !finished ? (
+          <VoucherReserveCard
+            reserve={vouchers.snapshot.reserve}
+            safe={issuerSafe}
+            disabled={!pool.isOnline || pool.isActing}
+            tone={tone}
+            onRaiseAllowance={vouchers.acts.raiseAllowance}
           />
         ) : null}
         {statusCard}

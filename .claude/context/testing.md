@@ -5,7 +5,9 @@ Loaded when writing, wiring, or diagnosing tests (Vitest unit/integration; Playw
 ## Test-utils barrel — `@green-goods/shared/testing`
 
 Alias → `packages/shared/src/__tests__/test-utils/`. Admin and Client import test helpers from
-`@green-goods/shared/testing`, not deep paths. Shared tests import the leaf module instead
+the declared leaf subpaths (`@green-goods/shared/testing/query-client`), never the bare
+`@green-goods/shared/testing` barrel, which `check-source-structure` refuses in every Admin and
+Client file, tests and stories included, and never deep paths. Shared tests import the leaf module instead
 (`test-utils/render-helpers`, `query-client`, `query-client-render`, `mock-factories`,
 `transaction-fakes`, …). The barrel loads every fixture into each file that
 imports it, so `test-quality` rejects it in Shared tests. Because Admin and Client tests import

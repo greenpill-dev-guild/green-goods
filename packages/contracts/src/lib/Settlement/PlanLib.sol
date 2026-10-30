@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
+import { SettlementFundingLib } from "./FundingLib.sol";
 import { IHatsModule } from "../../interfaces/IHatsModule.sol";
 import { ISettlementModule } from "../../interfaces/ISettlementModule.sol";
 
@@ -29,6 +30,8 @@ library SettlementPlanLib {
 
     struct PreparationConfig {
         address hatsModule;
+        address poolingModule;
+        address gDollarToken;
         uint64 destinationEvmChainId;
         bool paused;
         bool gardenerDeliveryEnabled;
@@ -147,6 +150,7 @@ library SettlementPlanLib {
         public
         returns (uint256 payoutPlanId)
     {
+        SettlementFundingLib.requireServicePayout(accounts, _fundingConfig(config), commitmentId, 0);
         ICommitmentPoolingModule.Commitment memory commitment =
             ICommitmentPoolingModule(config.poolingModule).getCommitment(commitmentId);
         if (commitment.payerGarden == address(0)) {
@@ -194,6 +198,7 @@ library SettlementPlanLib {
             );
         }
 
+        SettlementFundingLib.selectPersonalPayout(commitmentId, payoutPlanId);
         self.payoutPlanOfCommitment[commitmentId] = payoutPlanId;
         _emitPlanCreated(plan, payoutPlanId, msg.sender);
         if (plan.payoutKind == ISettlementModule.DisbursementKind.ContributorConsideration) {
@@ -204,8 +209,7 @@ library SettlementPlanLib {
     function setContributorPayouts(
         State storage self,
         mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
-        address hatsModule,
-        uint64 destinationEvmChainId,
+        RuntimeConfig memory config,
         uint256 payoutPlanId,
         uint256 gardenRetainedAmount,
         ISettlementModule.ContributorPayoutInput[] calldata payouts,
@@ -214,8 +218,9 @@ library SettlementPlanLib {
         public
     {
         ISettlementModule.CommitmentPayoutPlan storage plan = _knownPlan(self, payoutPlanId);
-        _requireSteward(hatsModule, plan.payerGarden);
-        _activeAccountMatches(accounts, plan.payerGarden, plan.source, destinationEvmChainId);
+        _requireServicePlan(self, accounts, config, payoutPlanId);
+        _requireSteward(config.hatsModule, plan.payerGarden);
+        _activeAccountMatches(accounts, plan.payerGarden, plan.source, config.destinationEvmChainId);
         if (plan.finalized) revert ISettlementModule.PayoutPlanFinalized(payoutPlanId);
         if (plan.payoutKind != ISettlementModule.DisbursementKind.ContributorConsideration) {
             revert ISettlementModule.PayoutKindMismatch(
@@ -234,20 +239,19 @@ library SettlementPlanLib {
     function finalizeCommitmentPayoutPlan(
         State storage self,
         mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
-        address hatsModule,
-        address poolingModule,
-        uint64 destinationEvmChainId,
+        RuntimeConfig memory config,
         uint256 payoutPlanId
     )
         public
     {
         ISettlementModule.CommitmentPayoutPlan storage plan = _knownPlan(self, payoutPlanId);
-        _requireSteward(hatsModule, plan.payerGarden);
-        _activeAccountMatches(accounts, plan.payerGarden, plan.source, destinationEvmChainId);
+        _requireServicePlan(self, accounts, config, payoutPlanId);
+        _requireSteward(config.hatsModule, plan.payerGarden);
+        _activeAccountMatches(accounts, plan.payerGarden, plan.source, config.destinationEvmChainId);
         if (plan.finalized) revert ISettlementModule.PayoutPlanFinalized(payoutPlanId);
 
         if (plan.payoutKind == ISettlementModule.DisbursementKind.GardenBeneficiary) {
-            _activeAccountMatches(accounts, plan.beneficiaryGarden, plan.beneficiaryRecipient, destinationEvmChainId);
+            _activeAccountMatches(accounts, plan.beneficiaryGarden, plan.beneficiaryRecipient, config.destinationEvmChainId);
             if (
                 plan.gardenRetainedAmount != 0 || plan.contributorPayoutTotal != 0
                     || plan.beneficiaryAmount != plan.declaredAmount || plan.contributorOrder.length != 0
@@ -268,7 +272,7 @@ library SettlementPlanLib {
                     plan.declaredAmount, plan.gardenRetainedAmount, plan.contributorPayoutTotal, 0
                 );
             }
-            _revalidateRecognition(self, plan, poolingModule);
+            _revalidateRecognition(self, plan, config.poolingModule);
         }
 
         plan.finalized = true;
@@ -302,6 +306,12 @@ library SettlementPlanLib {
         returns (uint256 disbursementId, bool created)
     {
         ISettlementModule.CommitmentPayoutPlan storage plan = _knownPlan(self, payoutPlanId);
+        _requireServicePlan(
+            self,
+            accounts,
+            RuntimeConfig(config.hatsModule, config.poolingModule, config.gDollarToken, config.destinationEvmChainId),
+            payoutPlanId
+        );
         _requireSteward(config.hatsModule, plan.payerGarden);
         if (!plan.finalized) revert ISettlementModule.PayoutPlanNotFinalized(payoutPlanId);
         if (plan.payoutKind != ISettlementModule.DisbursementKind.ContributorConsideration) {
@@ -351,6 +361,12 @@ library SettlementPlanLib {
         returns (uint256 disbursementId, bool created)
     {
         ISettlementModule.CommitmentPayoutPlan storage plan = _knownPlan(self, payoutPlanId);
+        _requireServicePlan(
+            self,
+            accounts,
+            RuntimeConfig(config.hatsModule, config.poolingModule, config.gDollarToken, config.destinationEvmChainId),
+            payoutPlanId
+        );
         _requireSteward(config.hatsModule, plan.payerGarden);
         if (!plan.finalized) revert ISettlementModule.PayoutPlanNotFinalized(payoutPlanId);
         if (plan.payoutKind != ISettlementModule.DisbursementKind.GardenBeneficiary) {
@@ -382,6 +398,35 @@ library SettlementPlanLib {
         plan.beneficiaryDisbursementId = disbursementId;
         ++plan.preparedPayoutCount;
         created = true;
+    }
+
+    function getPayoutPlan(
+        State storage self,
+        uint256 payoutPlanId
+    )
+        public
+        view
+        returns (ISettlementModule.CommitmentPayoutPlan memory)
+    {
+        return _knownPlan(self, payoutPlanId);
+    }
+
+    function _requireServicePlan(
+        State storage self,
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
+        RuntimeConfig memory config,
+        uint256 payoutPlanId
+    )
+        private
+        view
+    {
+        SettlementFundingLib.requireServicePlan(accounts, _fundingConfig(config), self, payoutPlanId);
+    }
+
+    function _fundingConfig(RuntimeConfig memory config) private pure returns (SettlementFundingLib.RuntimeConfig memory) {
+        return SettlementFundingLib.RuntimeConfig(
+            config.hatsModule, config.poolingModule, config.gDollarToken, config.destinationEvmChainId, false
+        );
     }
 
     function _queueDisbursement(

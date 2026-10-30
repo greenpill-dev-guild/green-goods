@@ -1,35 +1,37 @@
+import { type Hex } from "viem";
+import type { Address } from "../../types/domain";
+import type { Job } from "../../types/job-queue";
+import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { logger } from "../app/logger";
+import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
+import { EarnedRewardWaiting } from "../commitment-pooling/earned-agreement-error";
+import {
+  type ClaimJobPayload,
+  type CommitmentCreationPayload,
+  type CommitmentSeriesJobPayload,
+  commitmentJobPrerequisite,
+  executeCommitmentJob,
+  toCommitmentJob,
+  type WorkLinkJobPayload,
+} from "../commitment-pooling/jobs";
+import {
+  type DeferredWorkIdentityResolution,
+  resolveDeferredWorkIdentity,
+} from "../commitment-pooling/work-identity";
+import type { TransactionSender } from "../transactions/types";
+import type { StrandedCommitmentLookup } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
   reconcileWorkTransaction,
   retainedWorkBroadcastReference,
 } from "../work/work-confirmation";
-import type { StrandedCommitmentLookup } from "../work/stranded-intent";
-import type { Job } from "../../types/job-queue";
-import type { TransactionSender } from "../transactions/types";
-import { jobQueueDB } from "./db";
-import { hasRecordedSend, recordsSends } from "./queue-policy";
-import { type Hex } from "viem";
-import {
-  commitmentJobPrerequisite,
-  executeCommitmentJob,
-  toCommitmentJob,
-  type CommitmentCreationPayload,
-  type CommitmentSeriesJobPayload,
-  type WorkLinkJobPayload,
-} from "../commitment-pooling/jobs";
-import {
-  resolveDeferredWorkIdentity,
-  type DeferredWorkIdentityResolution,
-} from "../commitment-pooling/work-identity";
-import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
-import { publishPendingEvidence } from "./evidence-publisher";
-import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { logger } from "../app/logger";
-import { createCommitmentChainReads, type CommitmentChainReads } from "./commitment-chain-reads";
 import { buildCommitmentContractCall } from "./commitment-call-builder";
+import { type CommitmentChainReads, createCommitmentChainReads } from "./commitment-chain-reads";
 import { sendRecordedAct, settleActSend, waitingForRecordedSend } from "./commitment-send-record";
+import { jobQueueDB } from "./db";
+import { publishPendingEvidence } from "./evidence-publisher";
+import { hasRecordedSend, recordsSends } from "./queue-policy";
 import { observeTransactionNonce } from "./send-guards";
-import type { Address } from "../../types/domain";
 
 type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
 
@@ -71,6 +73,8 @@ export type CommitmentQueueExecution =
 
 /** As many tries as any other job gets, so a dead gateway cannot queue forever. */
 const MAX_METADATA_ATTEMPTS = 5;
+// ICommitmentPoolingModule.ClaimType.Individual; the payload carries the Solidity ordinal.
+const CLAIM_TYPE_INDIVIDUAL = 1;
 
 /**
  * Publish a commitment's words, if it was composed before they could be.
@@ -223,6 +227,17 @@ export async function executeCommitmentQueueJob(
       ...chainReads,
       resolveSeriesId: (clientSeriesId) => store.getSeriesIdByClientId(clientSeriesId),
       send: async ({ kind, payload, moduleAddress: target, chainId: targetChain }) => {
+        const claim = kind === "claim" ? (payload as ClaimJobPayload) : null;
+        const beforeBroadcast = claim
+          ? () =>
+              chainReads.assertClaimRewardAgreed(
+                claim.commitmentId,
+                claim.kind === CLAIM_TYPE_INDIVIDUAL
+                  ? (job.userAddress as Address)
+                  : claim.gardenContext
+              )
+          : undefined;
+        await beforeBroadcast?.();
         const built = buildCommitmentContractCall(kind, payload);
         const call = {
           address: target,
@@ -237,13 +252,19 @@ export async function executeCommitmentQueueJob(
         if (!recordsSends(job.kind)) return (await sender.sendContractCall(call)).hash;
         // A wallet estimates inside its own send, after the intent is recorded;
         // asking the chain first keeps a refusal a refusal.
-        await chainReads.simulateSend?.({
-          address: target,
-          functionName: built.functionName,
-          args: built.args,
-          account: job.userAddress as Address,
-          chainId: targetChain,
-        });
+        try {
+          await chainReads.simulateSend?.({
+            address: target,
+            functionName: built.functionName,
+            args: built.args,
+            account: job.userAddress as Address,
+            chainId: targetChain,
+          });
+        } catch (simulationError) {
+          // Reward state may have changed since preflight. Only that dependency waits.
+          await beforeBroadcast?.();
+          throw simulationError;
+        }
         // Read after the simulation, and again just before the intent, after any
         // prompt: nothing this send does can land in that block or before, so an
         // earlier ask never passes for this one. The first read must succeed; a
@@ -254,6 +275,7 @@ export async function executeCommitmentQueueJob(
           return await sendRecordedAct(jobId, job, call, sender, store, {
             readChainHead: chainReads.readChainHead,
             headBeforeSend: firstHead,
+            beforeBroadcast,
           });
         } catch (error) {
           // Its receipt did not come in time: keep the nonce the transaction
@@ -267,6 +289,8 @@ export async function executeCommitmentQueueJob(
   } catch (error) {
     const waiting = waitingForRecordedSend(error);
     if (waiting) return waiting;
+    if (error instanceof EarnedRewardWaiting && !hasRecordedSend(job))
+      return { status: "waiting", reason: error.reason };
     throw error;
   }
 

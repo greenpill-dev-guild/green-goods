@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
@@ -18,7 +19,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog, type AdminDialogProps } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 
@@ -143,15 +143,17 @@ export function WithdrawModal({
       preventClose={withdrawMutation.isPending}
       actions={
         <>
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
+            emphasis="tertiary"
+            size="sm"
             onClick={onClose}
             disabled={withdrawMutation.isPending}
           >
             {formatMessage({ id: "app.common.cancel" })}
-          </AdminButton>
-          <AdminButton
+          </Button>
+          <Button
+            size="sm"
             type="button"
             onClick={onSubmit}
             disabled={
@@ -160,7 +162,7 @@ export function WithdrawModal({
             loading={withdrawMutation.isPending}
           >
             {formatMessage({ id: "app.treasury.withdraw" })}
-          </AdminButton>
+          </Button>
         </>
       }
     >
@@ -187,9 +189,11 @@ export function WithdrawModal({
           <Alert
             variant="error"
             action={
-              <AdminButton
-                variant="danger"
-                size="sm"
+              <Button
+                type="button"
+                emphasis="primary"
+                tone="danger"
+                size="compact"
                 onClick={() => {
                   void refetchDeposits();
                 }}
@@ -198,7 +202,7 @@ export function WithdrawModal({
                 {depositsFetching
                   ? formatMessage({ id: "app.common.refreshing" })
                   : formatMessage({ id: "app.common.tryAgain" })}
-              </AdminButton>
+              </Button>
             }
           >
             {depositsQueryError instanceof Error
@@ -235,14 +239,15 @@ export function WithdrawModal({
             error={amountError ? formatMessage({ id: amountError }) : undefined}
             inputProps={{ inputMode: "decimal" }}
           />
-          <AdminButton
-            variant="outlined"
-            size="sm"
-            className="w-full sm:mt-2 sm:w-auto"
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            className="w-full sm:mt-8 sm:w-auto"
             onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
           >
             {formatMessage({ id: "app.treasury.max" })}
-          </AdminButton>
+          </Button>
         </div>
 
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 type-body text-text-sub">

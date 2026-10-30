@@ -98,6 +98,11 @@ const NON_VISUAL_ADMIN_COMPONENTS = new Set<string>([
   // The visible boot frames (`BootSurface.tsx`) carry the story.
   "components/Boot/AdminRoot.tsx",
   "components/Boot/bootAdmin.tsx",
+
+  // The dialogs' header renders only inside a Radix dialog (it names and
+  // describes it); AdminDialog's and AdminSideSheet's stories carry its
+  // centered and phone states, icon and target line included.
+  "components/AdminDialogHeader.tsx",
 ]);
 
 /**
@@ -140,8 +145,8 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   // `SubmissionDetails` (both of which have dedicated stories).
   "Garden/WorkDetail/index.tsx",
 
-  // Pure helpers — small visual primitives (`DetailRow`, `ReviewSummary`,
-  // `TabBadge`, `SectionStateCard`, etc.) plus
+  // Pure helpers — small visual primitives (`ReviewSummary`,
+  // `SectionStateCard`, etc.) plus
   // non-visual utilities (zod schemas, parsers). Reviewed implicitly
   // through the tab stories that consume them.
   "Garden/components/GardenDetailHelpers.tsx",
@@ -520,8 +525,8 @@ async function main() {
 
     // Candidate story paths. For visual `index.tsx` we also accept a
     // sibling named after the containing directory (e.g.
-    // `VaultPositionCard/VaultPositionCard.stories.tsx`), which is a
-    // long-standing convention in `shared/Cards/*`.
+    // `views/Actions/Actions.stories.tsx` beside `views/Actions/index.tsx`),
+    // a long-standing convention in the cockpit's views.
     const candidates = [join(dir, `${fileName}.stories.tsx`)];
     if (fileName === "index") {
       const dirName = basename(dir);

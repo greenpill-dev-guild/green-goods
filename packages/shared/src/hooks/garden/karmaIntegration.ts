@@ -107,8 +107,9 @@ export function deriveKarmaProjectSlug(name: string): string {
 
 export interface KarmaIntegrationAuthorizationInput {
   primaryAddress: Address | null;
-  owners: readonly Address[];
-  stewards: readonly Address[];
+  /** The garden's lists; a garden restored from an older build's cache can lack one (PRD-1311). */
+  owners?: readonly Address[] | null;
+  stewards?: readonly Address[] | null;
 }
 
 export interface KarmaIntegrationAuthorization {
@@ -201,7 +202,7 @@ export function deriveKarmaIntegrationAuthorization(
   const normalizedPrimary = input.primaryAddress ? normalizeAddress(input.primaryAddress) : null;
   const canReconcile = Boolean(
     normalizedPrimary &&
-      [...input.owners, ...input.stewards].some(
+      [...(input.owners ?? []), ...(input.stewards ?? [])].some(
         (account) => normalizeAddress(account) === normalizedPrimary
       )
   );
@@ -212,9 +213,10 @@ export function uniqueKarmaReconciliationAccounts(
   garden: Garden,
   projection: KarmaIntegrationProjection
 ): Address[] {
+  // A garden restored from an older build's cache can lack a role list (PRD-1311).
   const accounts = [
-    ...garden.owners,
-    ...garden.stewards,
+    ...(garden.owners ?? []),
+    ...(garden.stewards ?? []),
     ...projection.membershipPendingAccounts,
     ...projection.membershipFailedAccounts,
     ...projection.accessPendingAccounts,

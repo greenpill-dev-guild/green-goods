@@ -1,3 +1,5 @@
+import { logger } from "@green-goods/shared/modules/app/logger";
+
 type WebMcpInputSchema = {
   type: "object";
   properties?: Record<string, unknown>;
@@ -29,7 +31,10 @@ type WebMcpRegisterToolOptions = {
 };
 
 type WebMcpModelContext = {
-  registerTool?: (tool: WebMcpToolDefinition, options?: WebMcpRegisterToolOptions) => unknown;
+  registerTool?: (
+    tool: WebMcpToolDefinition,
+    options?: WebMcpRegisterToolOptions
+  ) => Promise<void> | void;
 };
 
 declare global {
@@ -185,21 +190,34 @@ export function createPublicWebMcpTools({
   ] satisfies WebMcpToolDefinition[];
 }
 
+let pendingRegistration: Promise<void> | undefined;
+
 export function registerPublicWebMcpTools() {
   const modelContext = resolveWebMcpModelContext();
   const registerTool = modelContext?.registerTool;
   if (typeof registerTool !== "function" || window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__) {
     return;
   }
+  if (pendingRegistration) return pendingRegistration;
 
   const tools = createPublicWebMcpTools();
-
-  for (const tool of tools) {
-    registerTool.call(modelContext, tool);
-  }
-
-  window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__ = true;
-  window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__ = tools.map((tool) => tool.name);
+  const controller = new AbortController();
+  pendingRegistration = (async () => {
+    try {
+      await Promise.all(
+        tools.map((tool) => registerTool.call(modelContext, tool, { signal: controller.signal }))
+      );
+      window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__ = true;
+      window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__ = tools.map((tool) => tool.name);
+    } catch (error) {
+      // Remove any successful registrations from this attempt before allowing a retry.
+      controller.abort();
+      logger.warn("Public WebMCP tool registration failed", { source: "webmcp", error });
+    }
+  })().finally(() => {
+    pendingRegistration = undefined;
+  });
+  return pendingRegistration;
 }
 
 export const greenGoodsPublicWebMcpRoutes = publicRoutes;

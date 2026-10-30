@@ -66,22 +66,22 @@ bounded change, and split a step that would mix independent behaviours.
 | 2. Ground and dark ladder (F2, F13) | `ui` | App-scope surface tokens and one dark ladder in Shared `theme.css`; the cockpit's dark card step. With them (21 October): the dark text lifts, the error action fill on the cockpit's error screen, the app's tab row and garden title block on their ground, and the status bar and manifest per presentation. Merged as #1191 with its guides #1193 (23 October). | Contrast audit on the new ground; rendered pairs in light and dark; the public website unchanged. |
 | 3. Control boundary and focus role (F3, part) | `ui` | A 3:1 outline token for secondary buttons, chips and fields; one focus-ring role, with the app's ring in its own green, drawn as a solid 2px ring in place of the halo; the app's button labels at weight 500 (21 October). Merged as #1195 with its guides #1196 (23 October). | Measured ratios in both themes; focus ring visible on every control family. |
 | 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs, a garden's notification bell, and the cockpit's tab rail consume it. Approved on 23 October with the bar's 9+, the tone's accent on every cockpit tab, and the unused `TabBadge` removed ([spec.md](spec.md#count-badge-approved-23-october)). | Every consumer renders the same badge; counts above 9 and 99 still fit. |
-| 5. Tabs (F8) | `ui` | The cockpit's tab rail takes the equal-width tinted layout and the shared badge. On desktop each tab is at most 180px wide and the row aligns left; phones keep full-width tabs. | Rendered pairs of every tab row at phone, tablet and desktop widths in three languages. |
+| 5. Tabs (F8) | `ui` | The cockpit's tab rail takes the equal-width tinted layout and the shared badge. From 640px the row is at most 180px per tab and aligns left, and a cell whose content needs more takes it (Spanish "Configuración de medios", 191px). On phones it fills the width, and a row that cannot hold its cells scrolls: option 1, a measured deviation from the pick that DL-100 records, taken on 23 October for the maintainer's review after merge. | Rendered pairs of every tab row at phone, tablet and desktop widths in three languages. |
 | 6. Chips (F4) | `ui` | Capsule chips with one selected treatment in the cockpit's filter row. The filter control keeps its form on each surface (the F9 pick). Built on 23 October: `AdminFilterChip` as a capsule that selects in the workspace tone's action pair, and `AdminInputChip` as a capsule beside it (DL-101). | One chip shape on both; DL-082 scopes unchanged; keyboard and screen-reader paths unchanged. |
 | 7. Cards, rows and list gap (F7, F11) | `ui` | The app's card as the one card surface (24px, a visible edge, a faint shadow) in place of the five card primitives; the shared item row in the app's work-row style (16px corner, the 2px status edge) as locked on 18 October: card titles 15px in the app and 13px in the cockpit, card details and labels 11px (moved here from step 1 on 21 October), one 88px height, an 88px photo or a lead icon tile, a one-line title, the status pill under the title, one detail line by the spec's detail-line rules, and the row's one action in its right slot; first used by the work item on phones on both surfaces, the cockpit's phone queue included (a steward who sorts by photo checks it on the pair); a 12px list gap token. | Rendered pairs of every list at every width; a visible card edge in both themes; every row in a list one height; no detail line wraps at 320, 360 or 390px in English, Spanish or Portuguese. |
 | 8. Wide desktop work card (F12) | `ui` | The cockpit's desktop work card lies wide with its mosaic on the left, as the first use of the shared media card; the grid's column rule follows. | Mosaic variants for no photo, one, two and three or more photos; phone widths unaffected. |
 | 9. Phone sheets (F5) | `ui` | The cockpit's phone sheet takes the shared surface, grip and header. Its centred desktop dialog does not change. | Sheet open, close, focus return and Back unchanged. |
-| 10. Fields (F3 fields) | `ui` | Outlined fields by default on both surfaces, with one label and message anatomy; the message slot reserves two lines in the app (DL-018) and one in the cockpit, and a longer message grows it. | Field message lines do not move layout, checked with the longest Spanish and Portuguese messages; if several cockpit messages wrap in two-column forms at 640px, the cockpit reserves two lines too. |
+| 10. Fields (F3 fields) | `ui` | Outlined fields by default on both surfaces, with one label and message anatomy; the message slot reserves two lines on both surfaces (DL-018 in the app; DL-105 in the cockpit, where 6 of the 32 messages under side-by-side fields wrap at 640px), and a longer message grows it. Its code, which retires the filled field (DL-105), is #1229. | Field message lines do not move layout on either surface, each reserving two lines, checked with the longest Spanish and Portuguese messages in two-column forms at 640px. |
 | 11. Empty, loading and error states | `ui` | The shared state block: one anatomy in two sizes, set by each surface's density, grown from the shared `EmptyState`. The app's own `EmptyState` and the local state cards move onto it. An empty list or a failed page takes the full size with an icon tile. | Every state keeps its copy and its actions on both surfaces; rendered pairs of each state. |
 | 12. Garden context chip in the app | `ui` | Render the shared `GardenChip` on the app's density. Waits on the Home decision in the PWA simplification hub. | Selection behaviour owned by that hub; this step proves only the shared look. |
 | 13. Guides and gates | `ui` | Decision-log rows, including the retired Material 3 rule; the token version and generated design files; Storybook parity numbers; both surface guides and both prompt contracts, with the cockpit's rewritten around the app's language; the glass spec retired from the design guide; the vocabulary list. The cockpit's Material-named tokens keep their names. | The design checks and the documentation generator pass. |
 | 14. Fact rows | `ui` | One shared fact row, a label beside its value in divided rows, with an optional action, in place of about eleven local label-and-value rows on both surfaces, the cockpit's two `ReviewRow`s among them. | Every review, detail and settings screen that lists facts renders the shared row; rendered pairs of each. |
 | 15. Commitment cards | `ui` | The app's five commitment rows and cards and the cockpit's pool rows move onto the item row, led by the offer or request icon, with "Confirming…" and "Not sent" shown in the status pill, with the act phase line and queue states as the object's own parts. Commitments get one home. | Rendered pairs of every commitment list in both surfaces, in every act phase and queue state. |
 | 16. Pickers and record cards | `ui` | One action picker for both surfaces, built from media cards with a banner; assessment and hypercert record cards on the item row; the app's garden card as a media card. | Picking an action works the same by pointer and keyboard on both surfaces; rendered pairs of each list. |
-| 17. People rows | `ui` | Member, funder and claimant rows on the item row with an avatar, one role chip and one count, each name through the shared address display. | Rendered pairs of every people list; names resolve as they do today. |
-| 18. Jar and vault cards | `ui` | The app's and the cockpit's jar, deposit and position cards on the item row with one detail and no action on the row; they have no picture of their own, so no media card. The public site's cards stay editorial. | Rendered pairs of every jar and vault list in the app and the cockpit; amounts and assets read as they do today. |
+| 17. People rows | `ui` | Member, funder and claimant rows on the item row with an avatar, one role chip and one count, each name through the shared address display. Built on 24 October: Shared's `PersonRow` under the app's garden members and send recipients and the cockpit's member directory and funder lists, and the cockpit's `PersonName` on the shared address display (DL-112). Claimant rows are decision rows (`CommitmentClaims`, `ClaimDecisionPanel`), so they keep their paired acts and take only their names from the shared address display, the app's directly and the cockpit's through `PersonName`; DL-112 also keeps Manage Members, the Add Members queue, a promise's team roster and the group inspector off the person row. | Rendered pairs of every people list; names resolve as they do today. |
+| 18. Jar and vault cards | `ui` | The app's and the cockpit's jar, deposit and position cards on the item row with one detail and no action on the row; they have no picture of their own, so no media card. The public site's cards stay editorial. Built on 24 October (#1234, DL-113 in #1233): every jar, deposit and position list is item rows with the amount in the right slot, and a jar's, deposit's or position's row opens its page in place beneath it. | Rendered pairs of every jar and vault list in the app and the cockpit; amounts and assets read as they do today. |
 | 19. Unused card code | `ui` | Remove Shared's unused card exports (`CardBase`, its own `Card`, `StatCard`, `ProposalCardConviction`, `SortSelect`, `ListToolbar`) and `Surface`'s glass tiers once nothing renders them; rename the app's wrapper cards that share a Shared card's name. | No export without a consumer or a recorded reason; no two card components share a name. |
-| 20. Cockpit controls onto the shared family | `ui` | Phased, one family at a time: buttons and icon buttons; fields, checkboxes and chips; dialogs and sheets; cards and tabs. Each phase retires its `Admin*` files, rewrites the matching part of Rules 15 and 18, and turns the design token check's wrapper-adoption sweep around. Split into one issue per phase when scheduled. | Each phase: the cockpit renders only the shared family for its controls; density, hit areas and pill corners unchanged; the design checks pass. |
+| 20. Cockpit controls onto the shared family | `ui` | Adapters first, one family at a time: each phase rendered the shared family inside the `Admin*` adapters, which kept their names and props, so every call site moved at once and the matching part of Rules 15 and 18 was rewritten (buttons and icon buttons: DL-115; fields, checkboxes and chips: DL-116; dialogs and sheets: DL-117; cards and tabs: DL-118). Then a call-site pass for the buttons (DL-119): views render the shared `Button` and `IconButton` directly, `AdminButton` and `AdminIconButton` are deleted, and the design token check fails if either name returns. The cockpit components that stay are composites over shared pieces, each under its decision row: the field family with its label and message layout, `AdminInputChip`, `AdminCheckbox` and `AdminChoiceGroup` (DL-116); the `AdminDialog` shell (DL-117, approved by the orchestrator on 24 October); and `AdminCard` over `.gg-card`, `AdminListRow`, `AdminSelectableCard`, `AdminTabRail`, `AdminTooltip`, `AdminLinearProgress`, `AdminLoadingScreen`, `AdminViewActions` and `AdminSignIn` (DL-118). | Each phase: the cockpit renders only the shared family for its controls; density, hit areas and pill corners unchanged; the design checks pass. The call-site pass: no `AdminButton` or `AdminIconButton` left, and every cockpit story the same before and after, but for the chosen options it moves onto filter chips and the three looks it restores. |
 | 21. Bottom bar active state (F6) | `ui` | The app's bottom bar shows its active tab with a green pill behind the icon, the cockpit's recipe; each bar keeps its chrome, and the app's bar stays solid. | Rendered pairs of both bars in light and dark; labels, count badges and focus unchanged. |
 | 22. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-facing review, then an independent regression review. | Criteria in [eval.md](eval.md), with fresh receipts for the changed surfaces. |
 
@@ -194,6 +194,17 @@ and DL-099 are the standards-only `feature/app-cockpit-count-badge-guides`, whic
 count badge to the cockpit's tone budget in Rule 18. Raising Community's action fill to
 orange-800 is not in the step; it gets its own pair.
 
+**Step 5 (23 October).** The maintainer ruled that each slice merges once its CI is green and its
+review threads are resolved, with the pairs reviewed afterwards. The code is on
+`feature/app-cockpit-tabs`: `AdminTabRail` takes the app's equal-width tabs at the cockpit's 36px
+height, with the tinted active cell, the underline and step 4's badge; from 640px each cell stops
+at 180px unless its content needs more (Spanish "Configuración de medios", 191px), and the row
+keeps to the left. At 320px the Hub, Actions and the protocol garden's
+Community row cannot hold equal cells, so they scroll there as before. The orchestrator took that
+rule (option 1 of three) for the maintainer's review after merge, and DL-100 records it as a
+measured deviation from the pick. DL-100 and its guide lines are the standards-only
+`feature/app-cockpit-tabs-guides` ([handoff](handoffs/claude-ui.md#step-5-tabs-prd-1271)).
+
 **Step 6 (23 October).** `feature/app-cockpit-chips` makes the cockpit's chips capsules:
 `AdminFilterChip` selects in the workspace tone's action pair, the app's selected look in the
 cockpit's accent, with the filled controls' state layer beneath its label and its focus ring
@@ -205,6 +216,26 @@ DL-101, which makes a selected chip the tone's sixth use, are the standards-only
 class and gave Storybook and the portals Community's amber ramp; its contrast guard now covers
 the selected chip too.
 
+**Step 7 (23 October).** `feature/app-cockpit-cards-rows` puts every card on the installed app's
+card and every work item on Shared's new item row: `.gg-card` in Shared `theme.css` under the five
+card primitives (their exports stay for step 19), `ItemRow` with its skeleton and stories, the card
+title role (15px at 500 in the app, 13px at 600 in the cockpit) and `--gg-list-gap` (12px). The
+work row, the app's pending and draft rows and the cockpit's phone queue render it. Every measured
+row is 88px, and no detail line wraps or is cut at 320, 360 or 390px in English, Spanish or
+Portuguese ([eval.md](eval.md#step-7-build-cards-rows-and-list-gap)); the pairs went to the
+maintainer as a private artifact. DL-102 and the guide wording are the standards-only
+`feature/app-cockpit-cards-rows-guides`. The
+[UI handoff](handoffs/claude-ui.md#step-7-cards-rows-and-list-gap-prd-1273) lists six calls the
+pairs raise.
+**Step 9 (23 October).** Below 640px the cockpit's dialogs and its side sheet take the installed
+app's bottom sheet: the shared sheet material and grip and the shared `SheetHeader` at their own
+22px title, built from Shared's pieces (`SheetGrip`, one `[data-sheet-surface]` rule, a target line
+in the header) and four cockpit tokens. Radix still opens, closes and dismisses them, and the
+centered dialog from 640px does not change. The grip marks the sheet and does not drag it; whether
+it should drag in the cockpit is still open. The code is on `feature/app-cockpit-phone-sheets`,
+and DL-104 with its guide wording is the standards-only `feature/app-cockpit-phone-sheets-guides`;
+[eval.md](eval.md#step-9-proof-phone-sheets) records the pairs and the behavior proof.
+
 **Step 21 (23 October).** The installed app's bottom bar takes the cockpit's pill in its green on
 `feature/app-cockpit-bar-pill`: a 56 × 32 pill of the new app-scoped `--primary-container` behind
 the line icon in `--primary-container-foreground`, the active label in ink at weight 600, and every
@@ -212,3 +243,169 @@ tab holding the pill's width. The bar keeps its 69px, its chrome, its count badg
 behavior, and the cockpit's bar is unchanged
 ([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
 standards-only `feature/app-cockpit-bar-pill-guides`.
+
+**Step 10 (23 October).** The cockpit's fields take the app's anatomy: the label above an outlined
+box at the cockpit's 8px corner, and one shared message line under every field on both surfaces.
+The measurement the plan called for settled the cockpit's reserve at two lines, as in the app: a
+field in a two-column row at 640px is 290px wide, and 6 of the 32 messages under fields that share a
+row wrap in English, Spanish and Portuguese ([eval.md](eval.md#step-10-proof-outlined-fields)). The
+code is `feature/app-cockpit-outlined-fields`; DL-105 and its guide lines are the standards-only
+`feature/app-cockpit-outlined-fields-guides`.
+
+**Step 14 (24 October).** `feature/app-cockpit-fact-rows` gives both surfaces one fact row: Shared's
+`FactList` and `FactRow` on the new leaf `./components/Cards/FactRow`, a label beside its value in
+divided rows, the labels in one column as wide as the longest (up to 40%), and the row's one action
+in its right slot; a row with no value is a setting. The search found more local rows than the
+census's eleven, and all of them moved: the cockpit's `AdminSettingRow` (retired), `FlowStatusRow`'s
+summary, `DetailRow`, `InfoRow`, both `ReviewRow`s, `ReviewLine` (retired), `DetailField`, `PoolFundingDialogFact`, the
+commitment and settlement fact rows, `ChangeSummary` and the rails' stat rows; the app's `Fact`
+(retired), `SummaryRow`, `ReadinessRow`, the settings rows and the claim panel's rows; and the inline
+fact lists on the same screens. The 142 pairs and the measurements are in
+[eval.md](eval.md#step-14-build-fact-rows). DL-109 and the guide wording are the standards-only
+`feature/app-cockpit-fact-rows-guides` (#1232).
+
+**Step 18 (24 October).** `feature/app-cockpit-jar-vault-cards` (#1234) puts every jar, deposit
+and position list on the item row. `ItemRow` gains an `amount` for its right slot (the value with
+its asset, never cut, over what it is), which an action still takes when a row has one. The app's
+wallet and endowment-sheet jars become one `CookieJarRow` with the wallet's claim form; the vault
+summary becomes content rows and My deposits a row that opens its withdrawal. In the cockpit the
+Payouts jars, the endowment positions and the campaign cookie jars become rows; a jar's or a
+position's page opens in place beneath its row with everything the card held, and stays mounted
+while closed so a write in flight keeps its state. Step 11's remaining states on these surfaces
+move onto the state block. DL-113 and its guide lines are the standards-only #1233
+([handoff](handoffs/claude-ui.md#step-18-jar-and-vault-cards-prd-1285),
+[eval.md](eval.md#step-18-build-jar-and-vault-cards)).
+
+**Step 16 (24 October).** `feature/app-cockpit-pickers-records` gives both surfaces one action
+picker, Shared's `ActionPicker`: media cards with the action's banner in one listbox with one
+tab stop, a row that scrolls sideways in the app's Submit Work and a grid in the cockpit's. The
+app's garden card is the shared media card with its banner (Home's list, a work's page, and Submit
+Work's garden picker on the same listbox), and assessments and hypercerts are item rows on both
+surfaces. The twenty states step 11 left in the hypercert and action screens take the state block.
+DL-111 and its guide wording are the standards-only `feature/app-cockpit-pickers-records-guides`
+([handoff](handoffs/claude-ui.md#step-16-pickers-and-record-cards-prd-1283)).
+
+**Step 17 (24 October).** `feature/app-cockpit-people-rows` puts every list of people on Shared's
+new `PersonRow`: the item row led by the person's 56px round avatar, their name from the shared
+address display (which gains a render-prop for it), their highest role as the row's one chip and
+one count. The app's garden members and send recipients and the cockpit's member directory and
+funder lists render it, the cockpit's `PersonName` takes its name from the same display, and step
+11's leftover states moved onto the state block. Every person row measured is 88px, and no detail
+wraps or is cut at 320, 360 or 390px in English, Spanish or Portuguese
+([eval.md](eval.md#step-17-build-people-rows)). Decision rows keep their paired acts, Manage
+Members keeps a chip and a remove per role, the Add Members queue and a promise's team roster keep
+their own rows, and the group inspector's rows stay promise rows; the
+[UI handoff](handoffs/claude-ui.md#step-17-people-rows-prd-1284) lists the calls the pairs raise.
+DL-112 and its guide wording are the standards-only `feature/app-cockpit-people-rows-guides`.
+
+**Step 15 (24 October).** `feature/app-cockpit-commitment-cards` puts every promise in a list on
+Shared's new `CommitmentRow`, the item row led by the offer or request icon: the app's promise rows
+(now `PromiseRow`), group rows, pending creations, the series offered over time and the pinned
+promise, and the cockpit's Offers and Requests rows, group rows and queued rows. The one pill takes
+"Needs you", "Past due" or a queue or act state ("Confirming…", "Not sent", "Didn't send"), the
+edge follows it, and the detail line gives the due date, then the other person. The app's
+commitment cards now live in one folder and the cockpit keeps only route assembly; the step 11
+states left for this step moved onto the state block. DL-110, which supersedes DL-052's direction
+edge, and the guide wording are the standards-only `feature/app-cockpit-commitment-cards-guides`
+([handoff](handoffs/claude-ui.md#step-15-commitment-cards-prd-1281),
+[eval.md](eval.md#step-15-build-commitment-cards)).
+
+**Step 19, first pass (24 October).** Steps 14 to 18 move card consumers in parallel, so step 19
+runs in two passes. The first removes what nothing rendered on `develop`: `CardBase` and Shared's
+own `Card`, `StatCard`, `ProposalCardConviction`, the list toolbar and sort control the cockpit
+had replaced with its own, and the work row's unused status-border helper. It also makes the glass
+DL-108 named solid: `Surface`'s four levels (and with them the Hub's empty, error and loading
+frame), the garden menu, the cockpit's two hover tooltips, and the app's install and offline
+strips. The code is `feature/app-cockpit-unused-card-code`, and the guide wording, with the public
+design page's role-map caption, is the standards-only `feature/app-cockpit-unused-card-code-guides`,
+merged as #1235 ([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-1286),
+[eval.md](eval.md#step-19-proof-unused-card-code-and-solid-surfaces)). The second pass waits for
+steps 16 and 18: `VaultPositionCard`, `WorkbenchRow` and the `glass-raised` left on `WorkbenchCard`
+and `WorkbenchList`, and the app's `GardenCard` and work row module, which share their Shared
+card's name.
+
+**Step 12 (24 October).** `feature/app-cockpit-app-garden-chip` gives Shared's `GardenChip` the
+app's density through the installed app's scope and leaves the cockpit's chip as it was. The chip
+reads `--gg-garden-chip-*` for its height, insets, avatar, glyph, caret, edge and focus ring, with
+the cockpit's values as the fallbacks. The app's scope sets a 44px capsule, a 28px avatar with a
+16px glyph and caret, the control outline and focus in the app's green; the label already takes
+the app's 16px label role. Storybook's `AppDensity` shows both chips in English, Spanish and
+Portuguese with a long name, and the cockpit column is pixel-identical to `develop`'s
+([eval.md](eval.md#step-12-build-the-garden-chip-at-the-apps-density)). The PWA Home design
+(RESR-93) was accepted with #1140 but its implementation is not authorized, so nothing mounts the
+chip in the app and selection stays with the PWA simplification hub
+([handoff](handoffs/claude-ui.md#step-12-garden-context-chip-prd-1278)).
+
+**Step 20, phase 3 (24 October).** The cockpit's dialogs take the shared dialog family's pieces
+behind their own names and props: the shared `SheetHeader` at every width, the shared
+`SheetActions` in the confirm family, and focus back on the opener when a dialog closes.
+`AdminDialog` keeps its own Radix surface, because `DialogShell` cannot carry what the cockpit's
+dialogs need without new Shared props (DL-117). This is the adapter pass: the call-site pass
+renames the call sites and retires the other `Admin*` dialog files, and the `AdminDialog` shell
+stays as the recorded exception. The code is `feature/app-cockpit-shared-dialogs`,
+and DL-117 with its guide wording the standards-only `feature/app-cockpit-shared-dialogs-guides`
+([handoff](handoffs/claude-ui.md#step-20-phase-3-dialogs-on-the-shared-header-prd-1287),
+[eval.md](eval.md#step-20-phase-3-proof-dialogs-on-the-shared-header)).
+
+**Step 20, phase 4 (24 October).** The cockpit's cards and tabs go onto the shared family (PRD-1287),
+adapters first: each component keeps its name and props for its call sites. `AdminCard` has
+rendered the shared card surface since step 7, so its 72 call sites already draw the shared card;
+`AdminListRow` takes the shared row corner and stays a row whose height follows its content, since
+the item row holds every row at 88px; `AdminSelectableCard` keeps its anatomy, since the shared
+picker is for objects with a picture and none of its choices has one; and `AdminTabRail`,
+`AdminTooltip`, `AdminLinearProgress`, `AdminLoadingScreen`, `AdminViewActions` and `AdminSignIn`
+have no shared counterpart. DL-118 records each reason. The code is `feature/app-cockpit-shared-cards`
+and the guide wording the standards-only `feature/app-cockpit-shared-cards-guides`. The pairs show
+no change: 30 Storybook frames, every measured box and every pixel the same
+([eval.md](eval.md#step-20-phase-4-proof-cards-and-tabs)).
+
+**Step 19, second pass (24 October).** With steps 14 to 18 on `develop`, the second pass removes
+the last cards nothing rendered: Shared's `VaultPositionCard`, the cockpit's `GardenYieldCard` and
+its strings, `WorkbenchRow`, and `WorkbenchList` with the Hub skeleton's row variant, its only
+user. `WorkbenchCard`, the Actions workspace's card, leaves `glass-raised` for the shared card
+surface, so that utility goes, and the app's work row module takes its component's name,
+`MinimalWorkCard`. `SkeletonCard`, the cell of the cockpit's route fallback grid, stays exported
+with its reason recorded. Step 16 had already deleted the app's `GardenCard` wrapper. The code is
+`feature/app-cockpit-unused-card-code-pass-2`, and the guide wording is the standards-only
+`feature/app-cockpit-unused-card-code-pass-2-guides`, merged as #1246
+([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-1286),
+[eval.md](eval.md#step-19-proof-second-pass)).
+
+**Step 20, phase 1 (24 October).** `feature/app-cockpit-shared-buttons` makes every cockpit button
+the shared one: `AdminButton` and `AdminIconButton` keep their names and props and render the
+shared `Button` and `IconButton`, so their 307 call sites are unchanged until a later pass renames
+them. Filled maps to the primary, outlined to the secondary, text to the tertiary, danger and
+outlined danger to the danger tone, and sm, md and lg to the shared compact, sm and lg sizes on the
+cockpit's 28 / 32 / 40px tiers. The 21 tonal actions became outlined or text; the three tonal
+choices keep their pill for phase 2. Seven tokens the shared family now reads keep the cockpit's
+look, each falling back to the app's value. DL-115 and its guide wording are the standards-only
+`feature/app-cockpit-shared-buttons-guides`, #1253
+([handoff](handoffs/claude-ui.md#step-20-phase-1-shared-buttons-prd-1287),
+[eval.md](eval.md#step-20-phase-1-proof-shared-buttons)).
+
+**Step 20, phase 2 (24 October).** The cockpit's fields, selects and filter chip go onto the shared
+family (PRD-1287), adapters first: `AdminTextField`, `AdminTextArea`, `AdminSelect`,
+`AdminInlineField` and `AdminSearchToolbar` render Shared's `TextInput`, `Textarea` and
+`NativeSelect` on the admin surface inside their own label and message line, and `AdminFilterChip`
+renders Shared's `Chip`, whose selected fill reads the workspace tone. `AdminFieldGroup`,
+`AdminSortSelect`, `AdminInputChip`, `AdminCheckbox` and `AdminChoiceGroup` stay, each for a reason
+DL-116 records. The code is `feature/app-cockpit-shared-fields` and the guide wording the
+standards-only `feature/app-cockpit-shared-fields-guides`. Heights and rows hold; the box takes the
+shared outline, focus ring, error border and disabled fill, and a text area the shared 80px
+minimum. The pairs caught the admin surface hiding the error and disabled states, which
+`theme.css` now sets again, with a browser-mode check
+([eval.md](eval.md#step-20-phase-2-proof-fields-selects-and-chips),
+[handoff](handoffs/claude-ui.md#step-20-phase-2-fields-selects-and-chips-prd-1287)).
+
+**Step 20, call-site pass (24 October).** `feature/app-cockpit-button-call-sites` finishes the
+buttons: every cockpit button renders the shared `Button` or `IconButton` directly, and
+`AdminButton` and `AdminIconButton` are deleted, with the design token check failing if either
+name returns. A codemod applied DL-115's table to the call sites, which now name their size, their
+`type` and their glyph sizes; the three tonal choices became `AdminFilterChip`s. With no adapter to
+mark a cockpit button, the cap and the hit-target reserve moved to the cockpit's `:root`, and a
+shared piece marks the buttons it lays out itself (`data-piece-control`), which take neither. It
+also fixes the three looks Codex found on #1256: a wrapped toast action held at 32px, copy icons
+drawn at 16px, and a busy warning action keeping its colours. DL-119 and its guide wording are the
+standards-only `feature/app-cockpit-button-call-sites-guides`
+([handoff](handoffs/claude-ui.md#step-20-call-site-pass-buttons-prd-1287),
+[eval.md](eval.md#step-20-call-site-pass-proof-buttons)).

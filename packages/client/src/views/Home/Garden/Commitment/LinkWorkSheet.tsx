@@ -1,8 +1,10 @@
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { type CommitmentRequirementRecord } from "@green-goods/shared/commitment-pooling";
+import { RiInboxLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -115,9 +117,11 @@ export function LinkWorkSheet({
     >
       <div className="space-y-4">
         {eligibleWorks.length === 0 ? (
-          <p className="text-sm text-text-sub-600">
-            {formatMessage({ id: "app.commitment.link.empty" })}
-          </p>
+          <EmptyState
+            icon={<RiInboxLine />}
+            title={formatMessage({ id: "app.commitment.link.empty.title" })}
+            description={formatMessage({ id: "app.commitment.link.empty.description" })}
+          />
         ) : (
           <fieldset disabled={isPending}>
             <SheetHeading as="legend">

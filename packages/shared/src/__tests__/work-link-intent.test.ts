@@ -3,6 +3,7 @@ import {
   fromDraftWorkLink,
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
+  sameWorkLinkIdentity,
   toDraftWorkLink,
   workLinkReturnGarden,
   writeWorkLinkIntent,
@@ -31,6 +32,17 @@ describe("Work link intent", () => {
     expect(fromDraftWorkLink(kept)).toEqual(intent);
     expect(fromDraftWorkLink({ ...kept, returnTo: "//example.com/path" })).toBeNull();
     expect(fromDraftWorkLink({ ...kept, commitmentId: "not a number" })).toBeNull();
+  });
+
+  it("keeps an Open ask's take-up with the link through the page and a draft, apart from its identity", () => {
+    const own = parseWorkLinkIntent(complete())!;
+    const ask = { ...own, takesUp: true as const };
+    const page = writeWorkLinkIntent(new URLSearchParams(), ask);
+    expect(parseWorkLinkIntent(page)).toEqual(ask);
+    expect(fromDraftWorkLink(toDraftWorkLink(ask))).toEqual(ask);
+    expect(toDraftWorkLink(own)).not.toHaveProperty("takesUp");
+    // The same requirement of the same promise, whether or not the work takes it up first.
+    expect(sameWorkLinkIdentity(ask, own)).toBe(true);
   });
 
   it("keeps changing choice progress and dates out of persisted draft identity", () => {

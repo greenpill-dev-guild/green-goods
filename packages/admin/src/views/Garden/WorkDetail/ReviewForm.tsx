@@ -1,4 +1,5 @@
 import { AudioRecorder } from "@green-goods/shared/components/Audio/AudioRecorder";
+import { Button } from "@green-goods/shared/components/Button";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
@@ -22,10 +23,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
+import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
-import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { ReviewSummary, type WorkApprovalFormData, workApprovalSchema } from "./helpers";
 
 const REJECT_REASON_SUGGESTION_IDS = [
@@ -390,26 +390,29 @@ export function ReviewForm({
                     destructive but secondary (outlined, error color role);
                     Approve is the filled primary and sits rightmost. */}
                 <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
-                  <AdminButton
+                  <Button
                     type="button"
-                    variant="outlinedDanger"
+                    emphasis="secondary"
+                    tone="danger"
+                    size="sm"
                     onClick={() => setRejectDialogOpen(true)}
                     disabled={isSubmitting}
                     loading={isSubmitting && submittingAction === "reject"}
                     data-action="reject"
                   >
                     {formatMessage({ id: "app.work.detail.reject" })}
-                  </AdminButton>
-                  <AdminButton
+                  </Button>
+                  <Button
                     type="button"
-                    variant="filled"
+                    emphasis="primary"
+                    size="sm"
                     onClick={() => void handleApprovalSubmit(true)}
                     disabled={isSubmitting || needsConfidence}
                     loading={isSubmitting && submittingAction === "approve"}
                     data-action="approve"
                   >
                     {formatMessage({ id: "app.work.detail.approve" })}
-                  </AdminButton>
+                  </Button>
                 </div>
 
                 <AdminReasonDialog

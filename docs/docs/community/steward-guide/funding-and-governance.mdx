@@ -5,7 +5,7 @@ slug: /community/steward-guide/funding-and-governance
 description: "How support reaches a garden, what a steward can do with the shared fund and the endowment, and what the dashboard does not offer yet."
 audience: steward
 owner: docs
-last_verified: 2026-10-13
+last_verified: 2026-10-25
 feature_status: Live
 goal: "Let a steward look after the garden's shared fund and endowment, and set honest expectations with gardeners and funders."
 difficulty: "advanced"
@@ -26,7 +26,13 @@ source_of_truth:
   - packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx
   - packages/admin/src/views/Hub/components/CookieJarWithdrawModal.tsx
   - packages/shared/src/hooks/cookie-jar/useCookieJarAdmin.ts
-  - packages/shared/src/config/app.ts
+  - packages/admin/src/views/Garden/Pool/PoolFundingSection.tsx
+  - packages/admin/src/views/Garden/Pool/PoolFundingDialog.tsx
+  - packages/client/src/views/Home/WalletSheet/Send/WalletSupportHistory.tsx
+  - packages/contracts/deployments/42220-settlement-safes.json
+  - packages/contracts/deployments/100-pilot-downstream.json
+  - packages/shared/src/modules/commitment-pooling/service-access-live-config.ts
+  - docs/releases/2.0.0/README.md
   - packages/contracts/src/modules/CookieJar.sol
   - packages/contracts/src/modules/Octant.sol
   - packages/contracts/src/resolvers/Yield.sol
@@ -65,7 +71,11 @@ Both are normally set up when the garden is created. If **Payouts** says **No co
 
 ## Where promises fit
 
-[Commitment Pooling](/community/steward-guide/open-a-pool) coordinates specific promises and their evidence. It is separate from the shared fund and endowment described here. The 2.0 release includes promises without new money rewards; it defers new promise payouts and settlement-account changes. Approving work or confirming a promise does not send money.
+[Commitment Pooling](/community/steward-guide/open-a-pool) coordinates specific promises and their evidence. It is separate from the shared fund and endowment described here. Approving work or confirming a promise does not send money.
+
+Promise payouts in G$ are switched off in this release. The dashboard does not create new reward promises, pay contributors or change a garden's payout account, so there is no payout to send, retry or recover from it. Earlier payout records remain on the shared record. A member sees support sent to them under **Recent support** in their wallet, where **Support on its way** has not arrived yet and only **Arrived** means it was received.
+
+G$ for promises lives on the Celo network, in the garden's own Celo account. That account is a Safe with a different address from the garden's account in this dashboard, which is on Arbitrum One. Both addresses are correct. To see it, open **Pool Funding** on the **Promises** tab and choose **View Details**; the **Celo Safe** row links to the Celo explorer, or reads **No settlement Safe configured** if the garden has none. A member's own Celo account has the same address as their account in the app.
 
 ## Before you start
 
@@ -165,6 +175,9 @@ Say these plainly when your community asks.
 - **Changing how earnings are split.** There is no control for it.
 - **Creating or pausing a shared fund.** A garden's jars are created with the garden.
 - **Paying a gardener when work is approved.** Approval and payment are separate. Nothing is paid automatically.
+- **Paying for kept promises.** Promise payouts in G$ are switched off in this release, as described in [Where promises fit](#where-promises-fit).
+- **Borrowing and repaying through the pool.** A borrow-and-repay companion to promises has been designed, but no app offers it.
+- **Service vouchers.** Tech and Sun Hub is preparing a pilot of service vouchers with Cosmo-Local Credit. Its contracts were deployed on 24 October 2026, paused and with no vouchers issued, and issuer terms and activation were still pending on 25 October 2026. The app does not use them yet, so nobody can earn, buy or redeem a voucher through Green Goods.
 
 ## Money promises to avoid
 

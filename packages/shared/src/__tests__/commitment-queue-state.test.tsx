@@ -1,20 +1,26 @@
 /** @vitest-environment happy-dom */
 
-import { waitFor } from "@testing-library/react";
+import { focusManager, onlineManager, QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { commitmentPoolingKeys } from "../config/query-keys/commitment-pooling";
 import { useCommitmentQueueState } from "../hooks/commitment-pooling/useCommitmentQueueState";
 import { jobQueueEventBus } from "../modules/job-queue/event-bus";
 import type { Job } from "../types/job-queue";
 import type { Address } from "../types/domain";
+import { createTestQueryClient } from "./test-utils/query-client";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
 
-const mocks = vi.hoisted(() => ({ getJobs: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getJobs: vi.fn(), getWorkCompletion: vi.fn() }));
 
 vi.mock("../modules/job-queue/db", () => ({
-  jobQueueDB: { getJobs: (input: unknown) => mocks.getJobs(input) },
+  jobQueueDB: {
+    getJobs: (input: unknown) => mocks.getJobs(input),
+    getWorkCompletion: (...input: unknown[]) => mocks.getWorkCompletion(...input),
+  },
 }));
 
 function creation(overrides: Partial<Job> = {}): Job {
@@ -31,6 +37,19 @@ function creation(overrides: Partial<Job> = {}): Job {
     ...overrides,
   };
 }
+
+/** A take-up of the promise, still on this phone. */
+const takeUp = (commitmentId: bigint) =>
+  creation({ id: `claim-${commitmentId}`, kind: "claim", payload: { commitmentId } });
+
+/** Reads as the app's client does: offline first, and a failed read tried again (twice there). */
+// TEST-QUALITY: allow-local-query-setup - its network mode and retry mirror the app's client.
+const appClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { networkMode: "offlineFirst", retry: 1, retryDelay: 0, gcTime: 0 },
+    },
+  });
 
 describe("useCommitmentQueueState", () => {
   it("marks unsent rewards deferred before a flush, but leaves recorded sends recoverable", async () => {
@@ -87,6 +106,72 @@ describe("useCommitmentQueueState", () => {
     ).toBeUndefined();
   });
 
+  it("is loading until the queue is first read for a known reader, then reports what it holds", async () => {
+    let answer: (jobs: Job[]) => void = () => undefined;
+    mocks.getJobs.mockReturnValueOnce(new Promise<Job[]>((resolve) => (answer = resolve)));
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.proofJobs).toEqual([]);
+
+    answer([creation({ id: "proof", kind: "evidence", payload: { commitmentId: 7n } })]);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.proofJobs.map((job) => job.id)).toEqual(["proof"]);
+
+    const anonymous = renderHookWithProviders(() => useCommitmentQueueState(null));
+    expect(anonymous.result.current.isLoading).toBe(false);
+  });
+
+  // The queue is this phone's own storage, so no read of it waits for a connection. One that
+  // did held Start on its skeleton offline, as after switching accounts (Codex on #1340).
+  it.each([
+    ["TanStack's default, which waits to start a read", createTestQueryClient, () => undefined],
+    [
+      "the app's client, which waits to try a failed read again",
+      appClient,
+      () => mocks.getJobs.mockRejectedValueOnce(new Error("IndexedDB connection lost")),
+    ],
+  ])("reads the queue offline under %s", async (_client, client, failOnce) => {
+    mocks.getJobs.mockResolvedValue([takeUp(9n)]);
+    failOnce();
+    onlineManager.setOnline(false);
+    try {
+      const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER), {
+        queryClient: client(),
+      });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.takeUpIds).toEqual(new Set(["9"]));
+    } finally {
+      onlineManager.setOnline(true);
+    }
+  });
+
+  // A read that failed while the app was away is tried again once it is back in front, and
+  // until then what the queue says may still change (Codex on #1340).
+  it("reads as being read again while a failed read waits for the app to try it again", async () => {
+    const queryClient = appClient();
+    mocks.getJobs.mockResolvedValue([]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mocks.getJobs.mockRejectedValueOnce(new Error("IndexedDB connection lost"));
+    mocks.getJobs.mockResolvedValue([takeUp(9n)]);
+    focusManager.setFocused(false);
+    try {
+      act(() => result.current.refresh());
+      const queue = () => queryClient.getQueryState(commitmentPoolingKeys.queueState(VIEWER));
+      await waitFor(() => expect(queue()?.fetchStatus).toBe("paused"));
+      expect(result.current.isFetching).toBe(true);
+
+      act(() => focusManager.setFocused(true));
+      await waitFor(() => expect(result.current.takeUpIds).toEqual(new Set(["9"])));
+      expect(result.current.isFetching).toBe(false);
+    } finally {
+      focusManager.setFocused(undefined);
+    }
+  });
+
   it("re-reads the stored job when a flush ends without completing or failing it", async () => {
     // A flush that only parks a creation on its membership preflight rewrites
     // the record without a completed or failed event. The query never goes
@@ -131,6 +216,26 @@ describe("useCommitmentQueueState", () => {
       reason: "membershipLost",
       retryable: false,
     });
+  });
+
+  it("names a sent work whose link gave up by its record id, as its Your Work row knows it", async () => {
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "link-1",
+        kind: "workLink",
+        payload: { commitmentId: 9n, clientWorkId: "client-1", sourceWorkJobId: "work-1" },
+        attempts: 5,
+        lastError: "identity_conflict:commitment-frozen",
+      }),
+    ]);
+    // The work landed from this phone, so its completion keeps the record id the link does not.
+    mocks.getWorkCompletion.mockResolvedValue({ clientWorkId: "client-1", workUID: "0xABCD" });
+
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+
+    await waitFor(() => expect(result.current.failedLinkWorkIds.has("0xabcd")).toBe(true));
+    expect(result.current.failedLinkWorkIds.has("client-1")).toBe(true);
+    expect(mocks.getWorkCompletion).toHaveBeenCalledWith(VIEWER, 42161, "client-1");
   });
 
   it("names the act still on this phone for its commitment, with why it waits", async () => {

@@ -1,7 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
-import { AdminButton } from "@/components/AdminButton";
 import type { FallbackPath, OpenDialog } from "./commitmentDialogPresentation";
 
 /**
@@ -59,10 +59,10 @@ export function CommitmentActions({
         data-testid="commitment-acts"
       >
         {onEditReward ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             disabled={actDisabled}
             onClick={onEditReward}
           >
@@ -70,13 +70,13 @@ export function CommitmentActions({
               id: "cockpit.garden.pool.reward.title",
               defaultMessage: "Edit Reward",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {onSeedAnother ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="text"
-            size="sm"
+            emphasis="tertiary"
+            size="compact"
             disabled={actDisabled}
             onClick={onSeedAnother}
           >
@@ -84,13 +84,13 @@ export function CommitmentActions({
               id: "cockpit.garden.pool.commitment.act.seedAnother",
               defaultMessage: "Seed Another Like This",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.raiseDispute ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => onOpenDialog("raise-dispute")}
             disabled={actDisabled}
           >
@@ -98,13 +98,13 @@ export function CommitmentActions({
               id: "cockpit.garden.pool.commitment.act.raiseDispute",
               defaultMessage: "Raise Dispute…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.resolveDispute ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={() => onOpenDialog("resolve-dispute")}
             disabled={actDisabled}
           >
@@ -112,13 +112,13 @@ export function CommitmentActions({
               id: "cockpit.garden.pool.commitment.act.resolve",
               defaultMessage: "Resolve…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.confirmFallback ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={() => onOpenDialog("fallback-confirm")}
             disabled={actDisabled}
           >
@@ -131,13 +131,13 @@ export function CommitmentActions({
                   id: "cockpit.garden.pool.commitment.act.confirmGarden",
                   defaultMessage: "Confirm as Garden Fallback…",
                 })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.confirmOrdinary ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={() => onOpenDialog("confirm-kept")}
             disabled={isActing}
           >
@@ -145,13 +145,13 @@ export function CommitmentActions({
               id: "cockpit.garden.pool.commitment.act.confirm",
               defaultMessage: "Confirm Kept…",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
         {can.sendForConfirmation ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="filled"
-            size="sm"
+            emphasis="primary"
+            size="compact"
             onClick={() => void acts.sendForConfirmation().catch(() => undefined)}
             disabled={isActing || sendHeld}
           >
@@ -159,7 +159,7 @@ export function CommitmentActions({
               id: "cockpit.garden.pool.commitment.act.send",
               defaultMessage: "Send for Confirmation",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
       </div>
       {can.sendForConfirmation || sendPhase.status !== "idle" ? (
@@ -178,10 +178,10 @@ export function CommitmentActions({
         // row after the routine ones, quiet where it sits, loud only inside its
         // confirmation.
         <div className="flex justify-end border-t border-stroke-soft pt-3" data-slot="expire">
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => onOpenDialog("expire")}
             disabled={actDisabled}
           >
@@ -189,7 +189,7 @@ export function CommitmentActions({
               id: "cockpit.garden.pool.row.act.expire",
               defaultMessage: "Expire Now…",
             })}
-          </AdminButton>
+          </Button>
         </div>
       ) : null}
     </>

@@ -98,12 +98,12 @@ const allowedIdenticalLocalizedKeys = new Set([
   // Token symbol and network proper name have no words to translate.
   "app.celoWallet.asset",
   "app.community.weightScheme.linear",
-  // The compact Agro tab label is intentionally the same abbreviation in all locales;
-  // its accessible name uses the translated full domain name.
-  "app.gardenIntro.domain.agroShort",
   "cockpit.community.stats.pools",
-  // An amount beside the G$ symbol has no words to translate.
+  // The G$ symbol, alone or beside an amount, has no words to translate.
+  "app.commitment.reward.goodDollars",
   "cockpit.garden.pool.reward.inGoodDollars",
+  "app.voucher.rw.gd",
+  "app.voucher.rw.sh.gd",
   "public.fund.vaults.vaultCount",
   // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
   // and the compact line Your Work and a garden's Promises share drops "Saved" in every
@@ -531,7 +531,10 @@ describe("i18n locale coverage", () => {
       );
 
       expect(missing, `Missing source message ids:\n${missing.join("\n")}`).toHaveLength(0);
-    }, 30_000);
+      // The first caller parses every Client, Admin and Shared source file for message ids (the
+      // result is cached for the rest), which takes 10 s on a quiet machine and 50 to 140 s while
+      // parallel sessions' gates share the CPU; the limit allows for that and still stops a hang.
+    }, 180_000);
 
     it("pairs each literal id with its literal defaultMessage in every message form", () => {
       const fixture = `
@@ -589,7 +592,7 @@ describe("i18n locale coverage", () => {
         );
 
       expect(drift, `defaultMessage drifted from en.json:\n${drift.join("\n")}`).toHaveLength(0);
-    }, 30_000);
+    }, 180_000);
 
     it("should include known dynamic message id families in all locales", () => {
       const catalogs: Record<string, LocaleCatalog> = { en, es, pt };

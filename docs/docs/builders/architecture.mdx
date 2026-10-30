@@ -5,18 +5,31 @@ sidebar_position: 3
 slug: /builders/architecture
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-25
 feature_status: Live
 source_of_truth:
   - AGENTS.md
   - package.json
   - packages/shared/package.json
   - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
   - packages/contracts/src/modules
   - packages/contracts/src/accounts/Garden.sol
   - packages/contracts/src/tokens/Garden.sol
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/Settlement/PlanLib.sol
+  - packages/contracts/src/interfaces/ISettlementModule.sol
+  - packages/contracts/src/interfaces/ICeloSettlementExecutor.sol
+  - packages/contracts/deployments/42220-settlement-safes.json
+  - packages/contracts/deployments/100-pilot-downstream.json
+  - packages/contracts/deployments/42161-pilot-downstream.json
+  - packages/indexer/src/handlers/commitment-pool-lifecycle.ts
+  - packages/shared/src/config/app.ts
+  - packages/shared/src/modules/commitment-pooling/service-access-live-config.ts
+  - packages/shared/src/hooks/commitment-pooling/useCredit.ts
   - packages/shared/src/modules/job-queue
   - packages/shared/src/modules/data/eas.ts
+  - docs/releases/2.0.0/README.md
 keywords:
   - architecture
   - monorepo
@@ -81,7 +94,7 @@ themselves, and EAS stays outside our indexer on purpose, so the attestation and
 paths stay independent. And writes have exactly one door: everything that becomes protocol truth
 goes through the contracts.
 
-For the released member and steward workflow, see [Make a Promise](/community/gardener-guide/make-a-promise) and [Run a Commitment Pool](/community/steward-guide/open-a-pool). Those guides distinguish evidence, confirmation, and the money actions deferred from the 2.0 app release.
+For the released member and steward workflow, see [Make a Promise](/community/gardener-guide/make-a-promise) and [Open a Pool](/community/steward-guide/open-a-pool). Those guides distinguish evidence, confirmation, and the money actions deferred from the 2.0 app release. [Commitment pooling, settlement and pilots](#commitment-pooling-settlement-and-pilots) below says what runs today.
 
 ## The ideas that carry the protocol
 
@@ -128,21 +141,28 @@ withdraw, subject to strategy and contract risk, and sends the yield to the gard
 
 A [commitment pool](/community/steward-guide/open-a-pool) lets neighbors make promises to
 each other, an offer or a request of work, under a charter. Each commitment names one accountable
-lead, is confirmed by someone other than the person who made it, and is accounted for in a
-non-transferable register rather than a token anyone can trade.
+lead and an optional team of contributors, lists repeatable action requirements, and is accounted
+for in a non-transferable register rather than a token anyone can trade. The team freezes when the
+commitment becomes ready for confirmation, and nobody on it may confirm: by default the person the
+commitment serves confirms it, or a named group does.
 
-Settled support then splits into what the garden keeps and what its contributors are paid,
-through a payout plan that is frozen before anything is dispatched. When that payout happens in
-G$ on Celo, the settlement lane only carries the instruction and never holds the money.
+Settled support for a fulfilled commitment splits into what the garden keeps and what its
+contributors are paid, through a payout plan that is frozen before anything is dispatched. The
+payout happens in G$ on Celo, and the settlement lane only carries the instruction and never holds
+the money. The contracts are deployed, but the 2.0 apps keep these writes off; see
+[settlement states and recovery](#settlement-states-and-recovery).
 
 [Cookie jars](./integrations/cookie-jar) cover small, capped allowances, and
-[hypercerts](./integrations/hypercerts) turn a season of approved work into an impact claim a
-funder can hold a fraction of.
+[hypercerts](./integrations/hypercerts) turn verified contribution into an impact claim a funder
+can hold a fraction of. A season's certificate is built from its fulfilled commitments, with the
+approved work inside them kept as evidence; the dashboard cannot mint that kind yet, and its
+current wizard bundles approved work directly.
 
 The common thread is the record. Deposits, jar funding, and new commitments are open doors; the
-payouts are what is gated: a hypercert bundles approved work, and a commitment pays out against
-confirmed, evidenced work. Every flow ends in state a funder can inspect, which is what lets
-capital form around contribution without a treasury anyone has to trust.
+payouts are what is gated, and each points back to a record: a promise payout and a season
+certificate to fulfilled commitments, the older work certificate to approved work. Every flow ends
+in state a funder can inspect, which is what lets capital form around contribution without a
+treasury anyone has to trust.
 
 
 ### Capabilities are modules, wired per chain
@@ -172,6 +192,91 @@ contracts; nothing is lost to a dropped signal. On the way back, apps never craw
 [indexer](./packages/indexer) projects contract events into GraphQL read models, attestations come
 straight from EAS, and current values come from the contracts. Three read paths, one write door,
 and the truth stays where anyone can verify it.
+
+## Commitment pooling, settlement and pilots
+
+Several parts share the commitment vocabulary, and they are at different stages. A deployed
+contract is not the same as a feature someone can use, so keep these apart in code and in copy.
+
+| Part | State | What that means |
+|---|---|---|
+| Promises, pools, seasons and campaigns | Released in Green Goods 2.0; in use during the network's Season One program | Members make, take up, evidence and confirm promises, and stewards set up and run the pool. Commitments are pooling-module records on Arbitrum One, never EAS attestations |
+| G$ settlement for fulfilled commitments | Contracts deployed; switched off in the apps | `SETTLEMENT_ENABLED` is false in `packages/shared/src/config/app.ts`, so the apps create no new G$ reward, prepare no payout and change no settlement account. The Arbitrum `SettlementModule` read unpaused on 18 October 2026, and existing records stay readable |
+| Tech and Sun Hub service-voucher pilot with Cosmo-Local Credit | Deployed and adopted; no voucher offer published yet | Its contracts were deployed on 24 October 2026: 16 on Gnosis and 7 on Arbitrum One, recorded in `100-pilot-downstream.json` and `42161-pilot-downstream.json`. On 25 October the Green Goods and Tech and Sun Safes ran their owner transactions: the voucher endpoints are unpaused, and each issuer has minted 20 vouchers, 10 of them in the shared pool. `SERVICE_LIVE_ROUTES` in `packages/shared/src/modules/commitment-pooling/service-access-live-config.ts` pins that deployment, so a promise page reads a voucher offer from those contracts. No voucher offer has been published, the issuers' service terms and capacity are unconfirmed, and `SERVICE_ISSUER_ROUTES` stays empty until they are confirmed |
+| Commitment Credit, a records-only borrow-and-repay companion | Not available | The credit registry (`packages/contracts/src/registries/Credit.sol`), its indexer projection and its shared hooks (`packages/shared/src/hooks/commitment-pooling/useCredit.ts`) exist, but no client or admin screen uses them, so no garden can borrow or repay through Green Goods |
+
+[Entity Matrix](./architecture/entity-matrix) carries each entity's per-chain availability, and
+[Deployments & Addresses](/builders/reference/deployments) lists what is recorded where.
+
+### Where each chain fits
+
+Gardens live on two chains, and the second address is not a mistake.
+
+| Chain | What lives there | Addresses people see |
+|---|---|---|
+| Arbitrum One | Gardens and their accounts, roles, actions, work and approvals, commitments, and the `SettlementModule` that issues payout instructions | The garden's account address in both apps, and a member's account address |
+| Celo | Canonical G$, each garden's settlement Safe, and the `CeloSettlementExecutor` that carries out instructions | The garden's Celo Safe, a different address that the dashboard shows under **Pool Funding**; a member's Celo account, which has the same address as their Arbitrum account |
+| Gnosis | The voucher pilot's endpoints and its shared exchange pool, in progress | None in a released app yet |
+
+G$ never moves to Arbitrum. The protocol funds a garden through a protocol-to-garden transfer
+(`queueFunding`), carried out on Celo like every other payout; it is the only modeled top-up route.
+
+### Confirmation provenance
+
+Every fulfilled commitment records who confirmed it and how. `CommitmentFulfilled` carries the
+confirmer, the confirmation path (`Ordinary`, `PoolFallback` or `ProtocolFallback`) and, for a
+fallback, its required reason, and the indexer stores them as `fulfilledBy`, `confirmationPath`
+and `fallbackReason`. A fallback is possible only while no ordinary confirmer can still confirm.
+`PoolFallback` needs a current steward of the pool's garden, and `ProtocolFallback` also needs the
+commitment to have opted in before acceptance and a steward of the registered Green Goods
+protocol garden; a caller who is both is recorded as `PoolFallback`, and module ownership alone
+grants neither. Nobody on the frozen team may confirm on any path. A dispute resolved as fulfilled
+clears all three fields, so a steward's resolution is never labeled as a confirmation.
+
+### Settlement states and recovery
+
+A fulfilled commitment's G$ follows one path, and only one state counts as arrived.
+
+1. A steward of the paying garden (the side that asked; for a promise inside one garden, that
+   garden) creates a payout plan. It divides the declared support into an explicit amount the
+   garden keeps plus one row per eligible contributor, and the parts must add up exactly. A request
+   that another garden claimed instead pays that garden's Celo Safe in one payment, with no
+   contributor rows.
+2. Recognition and payment stay separate. The recognition vector is hash-bound to the frozen team
+   and the cycle's recognition policy, payment weights derive from the amounts, and an amount that
+   departs from the default needs a written reason.
+3. Finalizing freezes the plan without creating any payment. Preparing a contributor's row then
+   creates exactly one queued child disbursement, and preparing it again returns the same child. A
+   plan whose whole amount the garden keeps completes with no children.
+4. The Arbitrum `SettlementModule` sends each child, or a batch of children, to Celo over CCIP as
+   a message. The `CeloSettlementExecutor` authenticates it, pays from the garden's Celo Safe within
+   its allowance, and acknowledges back.
+5. A child is Confirmed only when the module authenticates a success acknowledgment for its
+   current execution key and attempt. Dispatched is not arrived, executed on Celo with the
+   acknowledgment still on its way is not arrived, and a delay is not a failure.
+
+Recovery depends on where a payment stopped.
+
+| Where it stopped | Recovery | What recovery never does |
+|---|---|---|
+| Queued, not sent | Cancel it with a reason (`cancelDisbursement`), or cancel a whole queued batch (`cancelBatch`) | Cancel one member of a queued batch, or cancel a payment while it is dispatched |
+| Dispatched, message delayed | Resend the same command with the same execution key and attempt (`retryCommand`, `retryBatchCommand`) | Start a new attempt or cancel because time passed |
+| Executed on Celo, acknowledgment stuck | Resend the stored acknowledgment from Celo (`retryAcknowledgment` or `retryAcknowledgmentSponsored`) | Pay a second time |
+| Failure acknowledged | Start a new attempt (`requeue`), or cancel with a reason | Reuse the failed attempt |
+| Dispatched, but its executor peer was retired | The owner-only `failStrandedSubject` marks it failed; confirm on Celo whether the payment landed before requeuing | Mark it Confirmed |
+
+A plan's status is derived from its children, so one contributor's failure is retried on its own
+while the others stand, and every child keeps its pointer to the plan. Member delivery has its
+own gate: while `gardenerDeliveryEnabled` is off, contributor rows cannot be prepared, the garden
+holds no claim on the member's behalf, and the plan, the retained amount and unprepared rows stay
+visible. A payout whose destination is a garden Safe does not depend on that gate.
+
+A garden's Celo Safe has two separate authorities. Its owners are recovery owners: the recorded
+Safes in `packages/contracts/deployments/42220-settlement-safes.json` are two-of-three between the
+garden's own account address and two reviewed recovery Safes. The executor's ability to move G$
+is a different, scoped Zodiac Roles permission with an allowance, and a recorded Safe is not
+evidence that this permission is granted. The 2.0 apps offer none of these operations; until a
+settlement release turns them on, they stay with the release operators.
 
 ## The monorepo that serves it
 

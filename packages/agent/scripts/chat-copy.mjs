@@ -27,13 +27,14 @@ export const CHAT_COPY = [
     closing: locale === "en" ? "} as const" : "\n};",
     least: 50,
   })),
-  // The Telegram command menu, which reporting mode publishes to every chat.
+  // The Telegram command menu's descriptions, which reporting mode publishes to every chat. The
+  // command names are the table's keys, so they are code, not copy.
   ...["en", "es", "pt"].map((locale) => ({
     file: "packages/agent/src/platforms/telegram-commands.ts",
     locale,
-    opening: `  ${locale}: [`,
-    closing: "  ],",
-    least: 6,
+    opening: `  ${locale}: {`,
+    closing: "  },",
+    least: 15,
   })),
   // The labels the browser signing and review pages show, which views.ts builds.
   {

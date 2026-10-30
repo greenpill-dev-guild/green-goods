@@ -64,8 +64,11 @@ describe("JoinGardenButton", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Join Garden" }));
     expect(mockJoinGarden).not.toHaveBeenCalled();
+    // The confirmation's code loads with the first press.
     expect(
-      screen.getByText("You'll join Open Garden as a gardener and can submit work right away.")
+      await screen.findByText(
+        "You'll join Open Garden as a gardener and can submit work right away."
+      )
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
@@ -83,7 +86,7 @@ describe("JoinGardenButton", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Join Garden" }));
-    fireEvent.click(screen.getByRole("button", { name: "Join" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Join" }));
 
     await waitFor(() => expect(mockToastError).toHaveBeenCalledOnce());
     await waitFor(() => expect(screen.queryByTestId("confirm-dialog")).not.toBeInTheDocument());

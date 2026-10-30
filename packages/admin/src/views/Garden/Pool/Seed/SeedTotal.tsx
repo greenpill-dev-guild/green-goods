@@ -1,7 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiErrorWarningLine, RiStackLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 
 export interface SeedTotalProps {
   /** How many separate promises the answer creates. */
@@ -71,10 +71,10 @@ export function SeedTotal({ count, each, unit, busy, onMakeItOne }: SeedTotalPro
       </div>
       <span className="col-start-2 flex min-h-8 justify-start sm:col-start-3 sm:min-w-[8.25rem] sm:justify-end">
         {warn ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             disabled={busy}
             onClick={onMakeItOne}
           >
@@ -82,7 +82,7 @@ export function SeedTotal({ count, each, unit, busy, onMakeItOne }: SeedTotalPro
               id: "cockpit.garden.pool.seed.makeItOne",
               defaultMessage: "Make It 1 Each",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
       </span>
     </div>

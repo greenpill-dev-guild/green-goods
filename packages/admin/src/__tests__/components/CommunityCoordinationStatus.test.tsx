@@ -119,7 +119,7 @@ describe("Community coordination status actions", () => {
     const manageStrategies = screen.getByRole("link", { name: /Manage Strategies/i });
 
     expect(manageStrategies.parentElement).toHaveClass("flex", "items-center", "gap-2");
-    expect(manageStrategies).toHaveClass("h-7");
+    expect(manageStrategies).toHaveAttribute("data-size", "compact");
     expect(manageStrategies).not.toHaveClass("h-auto");
     // Yield wiring moved to CommunityYieldStatus so it stays visible while
     // governance is hidden (PRD-917). The hook still reports "connected" here,

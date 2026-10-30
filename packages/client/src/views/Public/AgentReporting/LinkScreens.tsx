@@ -197,6 +197,7 @@ export function AccountNameForm({
           minLength={MIN_NAME}
           autoComplete={creating ? "nickname" : "username"}
           required
+          surface="editorial"
         />
       </FormField>
     </form>

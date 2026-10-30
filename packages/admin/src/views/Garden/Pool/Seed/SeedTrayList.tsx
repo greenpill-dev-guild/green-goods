@@ -1,6 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { SeedTrayRow } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { directionEdgeClass } from "../poolPresentation";
 
 export interface SeedTrayListProps {
@@ -81,10 +81,10 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
               </div>
               {locked ? null : (
                 <span className="ml-auto flex items-center gap-1.5">
-                  <AdminButton
+                  <Button
                     type="button"
-                    variant="text"
-                    size="sm"
+                    emphasis="tertiary"
+                    size="compact"
                     disabled={busy}
                     aria-label={formatMessage(
                       {
@@ -96,11 +96,11 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
                     onClick={() => onRemove(row.clientCommitmentId)}
                   >
                     {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-                  </AdminButton>
-                  <AdminButton
+                  </Button>
+                  <Button
                     type="button"
-                    variant="outlined"
-                    size="sm"
+                    emphasis="secondary"
+                    size="compact"
                     disabled={busy}
                     aria-label={formatMessage(
                       {
@@ -112,7 +112,7 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
                     onClick={() => onEdit(row.clientCommitmentId)}
                   >
                     {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
-                  </AdminButton>
+                  </Button>
                 </span>
               )}
             </li>

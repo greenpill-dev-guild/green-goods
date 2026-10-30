@@ -24,7 +24,8 @@ import {
   type GreenWillSupportClaimParams,
 } from "../../types/greenwill";
 import { normalizeAddress, ZERO_ADDRESS } from "../../utils/blockchain/address";
-import { getNetworkContracts, GreenWillABI } from "../../utils/blockchain/contracts";
+import { GreenWillABI } from "../../utils/blockchain/contract-abis/green-will";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { extractErrorMessage } from "../../utils/errors/extract-message";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";

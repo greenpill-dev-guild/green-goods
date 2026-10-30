@@ -7,12 +7,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   buildCastJsonArgs,
   buildUpgradeBoundarySendArgs,
+  hatsUpgradeRuntime,
   findLatestUpgradeArtifactIn,
   isAddressOrZero,
   type PersistedUpgradePlan,
   type UpgradeCheckpoint,
   UPGRADE_TRANSACTION_BOUNDARY_RULE,
   validateReleaseOwnedUpgradePlan,
+  validateHatsUpgradePlan,
   validateUpgradeCheckpointPrefix,
 } from "../upgrade";
 import { buildReadOnlyCastEnv } from "./cast-env";
@@ -59,6 +61,148 @@ describe("upgrade transaction plan artifact discovery", () => {
     expect(() => findLatestUpgradeArtifactIn(temporaryDirectory, "upgradeHatsModule")).toThrow(
       "Invalid upgrade function signature",
     );
+  });
+});
+
+describe("Arbitrum Hats upgrade boundaries", () => {
+  const sender = "0x0000000000000000000000000000000000000001";
+  const proxy = "0x0000000000000000000000000000000000000002";
+  const prior = "0x0000000000000000000000000000000000000003";
+  const creationCode = "0x1234";
+  const sourceCommit = "a".repeat(40);
+  const implementation = getCreateAddress({ from: sender, nonce: 10 });
+  const abi = new Interface(["function upgradeTo(address)"]);
+  const inputs = { sender, proxy, sourceCommit, creationCode };
+  function plan(): PersistedUpgradePlan {
+    return {
+      network: "arbitrum",
+      chainId: 42161,
+      contract: "hats-module",
+      functionSignature: "upgradeHatsModule()",
+      sender,
+      expectedNonce: 10,
+      releaseSourceCommit: sourceCommit,
+      transactionBoundaryRule: UPGRADE_TRANSACTION_BOUNDARY_RULE,
+      hatsUpgrade: { maxFeePerGasWei: "50000000" },
+      transactionCount: 2,
+      transactions: [
+        {
+          index: 0,
+          transactionType: "CREATE",
+          contractName: "HatsModule",
+          from: sender,
+          to: null,
+          nonce: "10",
+          value: "0",
+          gas: "5000000",
+          data: creationCode,
+          contractAddress: implementation,
+          function: null,
+        },
+        {
+          index: 1,
+          transactionType: "CALL",
+          from: sender,
+          to: proxy,
+          nonce: "11",
+          value: "0",
+          gas: "100000",
+          data: abi.encodeFunctionData("upgradeTo", [implementation]),
+          contractAddress: proxy,
+          function: "upgradeTo(address)",
+        },
+      ],
+      upgrades: [
+        {
+          deploymentKey: "hatsModule",
+          proxy,
+          ownerAtPlan: sender,
+          previousImplementation: prior,
+          previousImplementationCodeHash: `0x${"b".repeat(64)}`,
+          newImplementation: implementation,
+          newImplementationCreationCodeHash: keccak256(creationCode),
+          deployTransactionIndex: 0,
+          upgradeTransactionIndex: 1,
+        },
+      ],
+      wiring: [],
+    };
+  }
+  it("accepts only the exact two zero-value nonce-bound transactions", () => {
+    expect(() => validateHatsUpgradePlan(plan(), inputs)).not.toThrow();
+  });
+  it.each([
+    [
+      "an old unbound plan",
+      (p: PersistedUpgradePlan) => {
+        delete p.releaseSourceCommit;
+      },
+    ],
+    [
+      "a different commit",
+      (p: PersistedUpgradePlan) => {
+        p.releaseSourceCommit = "c".repeat(40);
+      },
+    ],
+    [
+      "changed creation code",
+      (p: PersistedUpgradePlan) => {
+        p.transactions[0].data = "0x1235";
+      },
+    ],
+    [
+      "another proxy",
+      (p: PersistedUpgradePlan) => {
+        p.transactions[1].to = prior;
+      },
+    ],
+    [
+      "a different implementation",
+      (p: PersistedUpgradePlan) => {
+        p.transactions[1].data = abi.encodeFunctionData("upgradeTo", [prior]);
+      },
+    ],
+    [
+      "a skipped nonce",
+      (p: PersistedUpgradePlan) => {
+        p.transactions[1].nonce = "12";
+      },
+    ],
+    [
+      "a value transfer",
+      (p: PersistedUpgradePlan) => {
+        p.transactions[0].value = "1";
+      },
+    ],
+    [
+      "an extra call",
+      (p: PersistedUpgradePlan) => {
+        p.transactions.push({ ...p.transactions[1], index: 2 });
+        p.transactionCount = 3;
+      },
+    ],
+    [
+      "a higher fee",
+      (p: PersistedUpgradePlan) => {
+        p.hatsUpgrade!.maxFeePerGasWei = "50000001";
+      },
+    ],
+    [
+      "gas beyond the approved cap",
+      (p: PersistedUpgradePlan) => {
+        p.transactions[0].gas = "100000001";
+      },
+    ],
+  ])("rejects %s before signing", (_name, mutate) => {
+    const p = plan();
+    mutate(p);
+    expect(() => validateHatsUpgradePlan(p, inputs)).toThrow();
+  });
+  it("materializes the implementation's self immutable for exact runtime verification", () => {
+    expect(hatsUpgradeRuntime(`0x60${"00".repeat(32)}ff`, [{ start: 1, length: 32 }], proxy)).toBe(
+      `0x60${proxy.slice(2).padStart(64, "0")}ff`,
+    );
+    expect(() => hatsUpgradeRuntime("0x60ff", [{ start: 1, length: 32 }], proxy)).toThrow();
   });
 });
 
@@ -137,12 +281,15 @@ describe("upgrade operator entrypoint", () => {
     expect(output).not.toContain("cast call");
   });
 
-  it("will not enter a release-owned broadcast path without one reviewed plan boundary", () => {
+  it.each([
+    "assessment-resolver",
+    "hats-module",
+  ])("will not broadcast %s without one reviewed plan boundary", (target) => {
     const result = spawnSync(
       "bun",
       [
         "script/upgrade.ts",
-        "assessment-resolver",
+        target,
         "--network",
         "arbitrum",
         "--broadcast",
@@ -156,6 +303,43 @@ describe("upgrade operator entrypoint", () => {
 
     expect(result.status).not.toBe(0);
     expect(`${result.stdout}${result.stderr}`).toContain("requires --plan <path> and --step <index>");
+  });
+
+  it("keeps Hats gas and max-fee bounds before the CREATE payload", () => {
+    const args = buildUpgradeBoundarySendArgs(
+      {
+        index: 0,
+        from: "0x0000000000000000000000000000000000000001",
+        to: null,
+        nonce: "10",
+        value: "0",
+        gas: "0x4c4b40",
+        data: "0x1234",
+        contractAddress: null,
+        function: null,
+      },
+      "42161",
+      10,
+      "green-goods-deployer",
+      "50000000",
+    );
+    expect(args).toEqual([
+      "send",
+      "--chain",
+      "42161",
+      "--nonce",
+      "10",
+      "--account",
+      "green-goods-deployer",
+      "--gas-limit",
+      "5000000",
+      "--gas-price",
+      "50000000",
+      "--priority-gas-price",
+      "0",
+      "--create",
+      "0x1234",
+    ]);
   });
 });
 

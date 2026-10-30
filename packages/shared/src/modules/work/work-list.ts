@@ -3,6 +3,7 @@ import type { EASWork, EASWorkApproval, EASWorkListRow } from "../../types/eas-r
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import { logger } from "../app/logger";
 import {
+  getGardenActivitySince,
   getWorkApprovalsForWork,
   getWorkListPage,
   getWorksByUIDs,
@@ -109,6 +110,67 @@ async function readGardenWorkList({
     const key = work.id.toLowerCase();
     if (failedWorkUIDs.has(key)) return work;
     return withLatestApproval(work, byWork.get(key) ?? []);
+  });
+}
+
+/** A garden's works that changed since a moment, each with its latest decision. */
+export interface GardenActivity {
+  rows: EASWorkListRow[];
+  /**
+   * Every work and decision of the window was read. False when a list ran past its limit or
+   * the older works its decisions name could not be read.
+   */
+  complete: boolean;
+}
+
+/**
+ * The works that changed in a garden since a moment, however far back each was submitted: the
+ * works submitted since then, and the older works decided since then. The garden screen's page
+ * holds only the newest works; the bell reads this so a submission or a decision in its window
+ * always counts. `since` is in seconds.
+ */
+export function readGardenActivity({
+  garden,
+  chainId,
+  since,
+}: {
+  garden: string;
+  chainId: number;
+  since: number;
+}): Promise<GardenActivity> {
+  return inTurn(async () => {
+    const { works, decisions, truncated } = await getGardenActivitySince(garden, {
+      chainId,
+      since,
+    });
+    const listed = new Set(works.map((work) => work.id.toLowerCase()));
+    const olderIds = [
+      ...new Set(
+        decisions
+          .map((decision) => decision.workUID)
+          .filter((uid) => uid && !listed.has(uid.toLowerCase()))
+      ),
+    ];
+    let older: EASWork[] = [];
+    let complete = !truncated;
+    if (olderIds.length > 0) {
+      try {
+        older = await getWorksByUIDs(olderIds, chainId);
+      } catch (error) {
+        logger.warn("[readGardenActivity] Older decided works could not be read", {
+          error,
+          garden,
+        });
+        complete = false;
+      }
+    }
+    // A decision on a work submitted in the window came after it, so the window holds all of
+    // that work's decisions; an older work's latest decision is in the window too.
+    const byWork = groupByWork(decisions);
+    const rows = [...works, ...older].map((work) =>
+      withLatestApproval(work, byWork.get(work.id.toLowerCase()) ?? [])
+    );
+    return { rows, complete };
   });
 }
 

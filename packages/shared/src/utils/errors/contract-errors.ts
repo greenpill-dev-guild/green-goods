@@ -1,7 +1,8 @@
 import { extractErrorMessage } from "./extract-message";
 import { offlineFailure, parseUnsentFailure } from "./unsent-failures";
+import { VOUCHER_ENTITLEMENT_ERRORS } from "./voucher-entitlement-errors";
 
-interface ErrorInfo {
+export interface ErrorInfo {
   name: string;
   message?: string;
   action?: string;
@@ -327,7 +328,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
     suggestedAction: "check-wallet",
   },
-
+  ...VOUCHER_ENTITLEMENT_ERRORS,
   // ============================================================================
   // Common ERC-721 / OpenZeppelin errors
   // ============================================================================

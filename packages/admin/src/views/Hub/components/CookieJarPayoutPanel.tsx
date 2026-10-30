@@ -1,10 +1,11 @@
+import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import { useGardenAccountSigner } from "@green-goods/shared/hooks/garden/useGardenAccountSigner";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
-import { RiCupLine, RiErrorWarningLine, RiWifiOffLine } from "@remixicon/react";
+import { RiCookieLine, RiErrorWarningLine, RiWifiOffLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
@@ -104,7 +105,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
       <AdminCard density="none">
         <AdminCardBody>
           <EmptyState
-            icon={<RiCupLine className="h-6 w-6" />}
+            icon={<RiCookieLine className="h-6 w-6" />}
             title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
             description={formatMessage({ id: "app.cookieJar.noJarsHint" })}
           />
@@ -146,7 +147,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
         <AdminCard density="none">
           <AdminCardBody>
             <EmptyState
-              icon={<RiCupLine className="h-6 w-6" />}
+              icon={<RiCookieLine className="h-6 w-6" />}
               title={formatMessage({ id: "app.cookieJar.noJars" })}
               // Says how a jar appears, since funding one is impossible without it (D10).
               description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
@@ -156,14 +157,10 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
       );
     }
     return (
-      <div className="space-y-3" role="status" aria-live="polite">
+      <div className="flex flex-col gap-(--gg-list-gap)" role="status" aria-live="polite">
         <span className="sr-only">{formatMessage({ id: "app.cookieJar.loading" })}</span>
         {[0, 1].map((index) => (
-          <div
-            key={index}
-            className="h-52 rounded-lg skeleton-shimmer"
-            style={{ animationDelay: `${index * 0.08}s` }}
-          />
+          <ItemRowSkeleton key={index} lead="icon" amount />
         ))}
       </div>
     );
@@ -190,7 +187,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
         </AdminCardHeader>
 
         <AdminCardBody className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <div className="flex flex-col gap-(--gg-list-gap)">
             {jars.map((jar) => (
               <CookieJarPayoutCard
                 key={jar.jarAddress}

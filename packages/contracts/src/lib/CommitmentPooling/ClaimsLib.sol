@@ -2,9 +2,12 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
+import { ICommitmentServiceOffers } from "../../interfaces/ICommitmentServiceOffers.sol";
 import { CommitmentPoolingAcceptanceLib } from "./AcceptanceLib.sol";
 import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
 import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
+import { CommitmentPoolingServiceOffersLib } from "./ServiceOffersLib.sol";
+import { CommitmentPoolingServiceOfferStorageLib } from "./ServiceOfferStorageLib.sol";
 
 /// @title CommitmentPoolingClaimsLib
 /// @notice Deployed behavior library: claim, acceptance, decline, and lead-managed roster entry.
@@ -31,6 +34,7 @@ library CommitmentPoolingClaimsLib {
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingServiceOfferStorageLib.requireLegacyClaim(commitmentId);
         CommitmentPoolingGuardLib.requirePoolState(
             commitment.poolId, pools[commitment.poolId], ICommitmentPoolingModule.PoolState.Open
         );
@@ -91,6 +95,7 @@ library CommitmentPoolingClaimsLib {
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingServiceOfferStorageLib.requireLegacyClaim(commitmentId);
         CommitmentPoolingGuardLib.requirePoolState(
             commitment.poolId, pools[commitment.poolId], ICommitmentPoolingModule.PoolState.Open
         );
@@ -119,6 +124,70 @@ library CommitmentPoolingClaimsLib {
             acceptedClaim.gardenContext,
             true
         );
+    }
+
+    function requestServiceClaim(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(address garden => uint256 poolId) storage gardenPool,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        mapping(
+            uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)
+        ) storage pendingClaim,
+        uint256 commitmentId,
+        ICommitmentServiceOffers.ServiceClaimRequest calldata request
+    )
+        external
+        returns (bytes32)
+    {
+        return CommitmentPoolingServiceOffersLib.requestClaim(
+            env, pools, gardenPool, commitments, pendingClaim, commitmentId, request
+        );
+    }
+
+    function acceptServiceClaim(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(address garden => uint256 poolId) storage gardenPool,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        mapping(
+            uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)
+        ) storage pendingClaim,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
+        mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
+        uint256 commitmentId,
+        address buyer,
+        bytes32 expectedClaimHash
+    )
+        external
+    {
+        CommitmentPoolingServiceOffersLib.acceptClaim(
+            env,
+            pools,
+            gardenPool,
+            commitments,
+            pendingClaim,
+            contributors,
+            commitmentConfirmers,
+            commitmentId,
+            buyer,
+            expectedClaimHash
+        );
+    }
+
+    function withdrawServiceClaim(
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        mapping(
+            uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)
+        ) storage pendingClaim,
+        uint256 commitmentId,
+        bytes32 expectedClaimHash
+    )
+        external
+    {
+        CommitmentPoolingServiceOffersLib.withdrawClaim(commitments, pendingClaim, commitmentId, expectedClaimHash);
     }
 
     function declineClaim(

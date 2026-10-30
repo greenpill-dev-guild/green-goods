@@ -1,6 +1,7 @@
 import { grantConsent, withdrawConsent } from "../consent";
 import { enqueueJob } from "../jobs";
 import { releaseQuarantine } from "../inbox";
+import { settleFileBatch } from "../media-intake";
 import { endRecognition } from "../recognition";
 import { audit, ensureParticipant } from "../participants";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
@@ -132,6 +133,8 @@ export function answerVoiceConsent(writer: TurnWriter, answer: string): void {
       )
       .run({ participant: binding.participantId, now });
     writer.say("voice.declined");
+    // Files that waited with the notes are answered now: no job will reach the batch's end.
+    if (ctx.draft) settleFileBatch(core, writer, ctx.draft);
     audit(core, "voice_consent_declined", { kind: "participant", id: binding.participantId });
     return;
   }

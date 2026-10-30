@@ -2,9 +2,12 @@
  * @vitest-environment happy-dom
  */
 
+import { AppProvider } from "@green-goods/shared/providers/App";
+import { render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useIntl } from "react-intl";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const INDEX_HTML = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
 const MAIN_SOURCE = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
@@ -215,6 +218,18 @@ function createWorker(state: ServiceWorkerState = "installed") {
   };
 }
 
+/** Runs boot-language, which the head runs before the shell, the app and the first paint. */
+function runBootLanguage(
+  windowLike: Pick<BootWindow, "localStorage">,
+  navigatorLike: Pick<BootNavigator, "language" | "languages">
+) {
+  new Function("window", "document", "navigator", inlineScript("boot-language"))(
+    windowLike,
+    document,
+    navigatorLike
+  );
+}
+
 function runController(
   presentation: "website" | "pwa",
   options: {
@@ -228,6 +243,7 @@ function runController(
   const windowLike = options.window ?? (window as unknown as BootWindow);
   const navigatorLike = options.navigator ?? (navigator as unknown as BootNavigator);
 
+  runBootLanguage(windowLike, navigatorLike);
   new Function(
     "window",
     "document",
@@ -328,6 +344,7 @@ describe("presentation-specific boot fallback", () => {
     document.head.innerHTML = "";
     delete document.documentElement.dataset.theme;
     delete document.documentElement.dataset.bootPresentation;
+    document.documentElement.removeAttribute("lang");
     delete (window as Window & { __GG_CLEAR_BOOT_FALLBACK?: () => void }).__GG_CLEAR_BOOT_FALLBACK;
     delete (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED;
     delete (window as Window & { __GG_MARK_REACT_MOUNTED?: () => void }).__GG_MARK_REACT_MOUNTED;
@@ -582,6 +599,11 @@ describe("presentation-specific boot fallback", () => {
     expect(fallback).toHaveAttribute("hidden");
   });
 
+  it("declares the page's language in the head, before anything paints", () => {
+    const head = INDEX_HTML.slice(0, INDEX_HTML.indexOf("<body>"));
+    expect(head).toContain('<script id="boot-language">');
+  });
+
   // The app's own choice: the stored language, else the first browser language with copy, else English.
   it.each([
     { stored: null, browser: ["es-MX"], language: "es", message: "Green Goods se está cargando." },
@@ -594,7 +616,7 @@ describe("presentation-specific boot fallback", () => {
     },
     { stored: "pt", browser: ["es-MX"], language: "pt", message: "Green Goods está carregando." },
     { stored: "fr", browser: ["es-MX"], language: "en", message: "Green Goods is loading." },
-  ])("shows $language copy and declares it for a stored $stored and a browser on $browser", ({
+  ])("declares $language for the page and its shell for a stored $stored and a browser on $browser", ({
     stored,
     browser,
     language,
@@ -607,6 +629,7 @@ describe("presentation-specific boot fallback", () => {
       window: { ...createBootWindow().windowLike, localStorage },
     });
 
+    expect(document.documentElement).toHaveAttribute("lang", language);
     expect(pwaMessage).toHaveTextContent(message);
     expect(fallback).toHaveAttribute("lang", language);
   });
@@ -623,6 +646,7 @@ describe("presentation-specific boot fallback", () => {
       window: windowLike,
     });
 
+    expect(document.documentElement).toHaveAttribute("lang", "es");
     expect(pwaMessage).toHaveTextContent("Green Goods se está cargando.");
     expect(fallback).toHaveAttribute("lang", "es");
   });
@@ -884,5 +908,45 @@ describe("presentation-specific boot fallback", () => {
 
     clearFallback?.();
     expect(fallback).toHaveAttribute("data-state", "cleared");
+  });
+});
+
+function CloseLabel() {
+  return (
+    <p>{useIntl().formatMessage({ id: "app.common.close", defaultMessage: "fallback copy" })}</p>
+  );
+}
+
+describe("the page's language from the loading screen into the app", () => {
+  beforeAll(async () => {
+    // Transform the catalogue once, up front, so a cold transform on a busy machine never eats
+    // into the wait below. A load from the warm cache still lands after the first render.
+    await import("@green-goods/shared/i18n/pt.json");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    document.documentElement.removeAttribute("lang");
+  });
+
+  it("keeps a Portuguese reader's language from the first paint until their copy lands", async () => {
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["pt-BR", "en-US"]);
+    runBootLanguage(window, navigator);
+    expect(document.documentElement).toHaveAttribute("lang", "pt");
+
+    const setLanguage = vi.spyOn(document.documentElement, "lang", "set");
+    render(
+      <AppProvider allowPosthogKeyFallback={false}>
+        <CloseLabel />
+      </AppProvider>
+    );
+    // The Portuguese catalogue is still loading, so the copy on screen is the fallback.
+    expect(screen.getByText("fallback copy")).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute("lang", "pt");
+
+    expect(await screen.findByText("Fechar")).toBeInTheDocument();
+    // The app declared nothing else on the way, so the page never said English.
+    expect(new Set(setLanguage.mock.calls.map(([language]) => language))).toEqual(new Set(["pt"]));
   });
 });

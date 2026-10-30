@@ -1,4 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { CELO_G_DOLLAR_TOKEN } from "@green-goods/shared/config/tokens";
 import type {
@@ -13,7 +15,6 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
@@ -182,68 +183,69 @@ export function ProtocolFundingOperationsCard({
               error={amountError}
             />
           </div>
-          <dl className="divide-y divide-stroke-soft type-body">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="type-meta text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.source",
-                  defaultMessage: "Protocol Safe",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {source?.safe ? shortAddress(source.safe) : "—"} ·{" "}
-                {formatGdollar(source?.balance?.value ?? null, locale)}
-              </dd>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="type-meta text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.recipient",
-                  defaultMessage: "Receiving Safe",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {target?.safe ? shortAddress(target.safe) : "—"}
-              </dd>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="type-meta text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.allowance",
-                  defaultMessage: "Safe allowance remaining",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {formatGdollar(source?.limits.rolesAllowanceRemaining ?? null, locale)}
-              </dd>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="type-meta text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.periodAllowance",
-                  defaultMessage: "Period allowance remaining",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {formatGdollar(source?.limits.periodAllowanceRemaining ?? null, locale)}
-              </dd>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="type-meta text-text-soft">
-                {formatMessage({
-                  id: "cockpit.community.protocolFunding.cap",
-                  defaultMessage: "Per-transfer cap",
-                })}
-              </dt>
-              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
-                {formatGdollar(source?.limits.maxTransferAmount ?? null, locale)}
-              </dd>
-            </div>
-          </dl>
+          <FactList frame="inset">
+            <FactRow
+              label={formatMessage({
+                id: "cockpit.community.protocolFunding.source",
+                defaultMessage: "Protocol Safe",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {source?.safe ? shortAddress(source.safe) : "—"} ·{" "}
+                  {formatGdollar(source?.balance?.value ?? null, locale)}
+                </span>
+              }
+            />
+            <FactRow
+              label={formatMessage({
+                id: "cockpit.community.protocolFunding.recipient",
+                defaultMessage: "Receiving Safe",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {target?.safe ? shortAddress(target.safe) : "—"}
+                </span>
+              }
+            />
+            <FactRow
+              label={formatMessage({
+                id: "cockpit.community.protocolFunding.allowance",
+                defaultMessage: "Safe allowance remaining",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {formatGdollar(source?.limits.rolesAllowanceRemaining ?? null, locale)}
+                </span>
+              }
+            />
+            <FactRow
+              label={formatMessage({
+                id: "cockpit.community.protocolFunding.periodAllowance",
+                defaultMessage: "Period allowance remaining",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {formatGdollar(source?.limits.periodAllowanceRemaining ?? null, locale)}
+                </span>
+              }
+            />
+            <FactRow
+              label={formatMessage({
+                id: "cockpit.community.protocolFunding.cap",
+                defaultMessage: "Per-transfer cap",
+              })}
+              value={
+                <span className="tabular-nums">
+                  {formatGdollar(source?.limits.maxTransferAmount ?? null, locale)}
+                </span>
+              }
+            />
+          </FactList>
           <div className="flex justify-end [&>button]:w-full">
-            <AdminButton
+            <Button
               type="button"
-              variant="filled"
+              emphasis="primary"
+              size="sm"
               disabled={!canReview || operations.isActing}
               onClick={() => setConfirmQueue(true)}
             >
@@ -251,7 +253,7 @@ export function ProtocolFundingOperationsCard({
                 id: "cockpit.community.protocolFunding.review",
                 defaultMessage: "Review Seed or Top-Up…",
               })}
-            </AdminButton>
+            </Button>
           </div>
         </div>
       ) : (

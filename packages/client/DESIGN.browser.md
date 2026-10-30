@@ -45,7 +45,7 @@ A visitor who meets a failure still sees a website. The failure is drawn where i
 
 - **A page fails** (its code will not load, its loader throws, or it throws while rendering): the page is replaced by an ordinary editorial page inside the site's frame. `PublicPageError` is the banner hero with a title, one sentence, Reload and Browse Gardens, over the soil footer. `SiteHeader` stays, so the navigation still leads away. The public pages sit inside one route that carries `RouteErrorBoundary view="page"` (`errorFrame` in `config/routes.tsx`), which is what keeps `PublicShell` on screen. The state cannot sit on a page's own route: React Router renders nothing for a route whose code failed to load.
 - **The site's frame fails** (`PublicShell`, the root route, or a provider): `PublicSiteError` is one linen card on the walnut ground, where the boot shell's recovery card sits, with the title, one sentence and Reload. It reads no provider and no router, so it renders whatever failed.
-- **A reporting ceremony page fails** as the app does, inside its focused bar: see `DESIGN.pwa.md` § Failure states.
+- **A reporting ceremony page fails** (the same causes): `CeremonyPageError` replaces the page under its focused bar, in the website's voice (DL-121). It says the failed screen's words as the serif sentence and offers Reload as the website's primary button, as `PublicPageError` does, never the app's state block.
 - **Offline**: when a page's code cannot be fetched without a connection, the title says so and the page reloads itself when the connection returns. Reload waits with it, so the browser's own offline page never replaces the site.
 - **A new build**: a page whose code is from a build that is no longer served reloads itself once, and no error is shown.
 - **A failed read is not an empty one.** A section whose read failed renders `PublicReadUnavailable`: the serif italic sentence ("This public record is temporarily unavailable. Please try again.", or the surface's own) and a Try Again that asks the read again. `PublicSurfaceState` renders it by default; the homepage's featured gardens and the lists on `/gardens`, `/actions`, `/fund` and `/impact` use it. An empty state is only for a read that succeeded and found nothing.
@@ -55,16 +55,23 @@ A visitor who meets a failure still sees a website. The failure is drawn where i
 
 The browser step of a chat report, review or account move: `/agent/reporting/:requestId`,
 `/agent/reporting/recover/:requestId`, and the static `/agent/reporting/permissions`. They are
-transactional pages that someone reaches from a chat link, usually on a phone, so they leave the
-editorial dialect on purpose:
+transactional pages that someone reaches from a chat link, usually on a phone, so they keep a
+focused shell; funders and community members read them, so they take the website's look (DL-121):
 
 - **Focused shell.** `PublicShell` renders `FocusedSiteHeader` for this prefix: the mark on a solid
   canvas and one Help control, with no navigation, no `Install App` CTA, no footer and no hero.
   Nothing leads away from a signature in progress. Help opens in place and explains the page, what
   becomes public and returning to the chat, and links the static permissions page and the support
   contact. The boot skeleton uses the matching `focused` variant.
-- **App surface.** The shell omits `data-site="website"`, so shared buttons and fields keep the app
-  corner together. One narrow column, one step at a time, Inter throughout; no Fraunces.
+- **Website surface (DL-121).** The shell carries `data-site="website"`, so shared buttons take the
+  website's capsule, and the page keeps the website's white ground and Inter even inside an installed
+  app. A page's buttons keep the app's 500 label: at the website's semibold, the act bar's two acts
+  wrap on a 320px phone in Portuguese, and the bar keeps one height in every state. A panel is the website's white panel with a hairline edge and a 24px
+  corner, the funding receipt's shape, which the shared card already draws. A list of facts is the
+  receipt's rows: the label on the start side in the sub ink and the value at weight 500 on the
+  end, with a hairline under each row. A state screen, an empty list or a failed page is the serif
+  sentence, and a failed page's Reload is the website's primary button. A field is the underlined
+  editorial field. One narrow column, one step at a time, headings in Inter.
 - **Website presentation even when installed.** The prefix is a public website prefix, so an
   installed app that captures the link still renders the page, not the PWA shell.
 - **Wallet connect is allowed here**, at the proof step only, as in funding flows. The page connects

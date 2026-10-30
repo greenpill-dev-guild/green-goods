@@ -1,3 +1,4 @@
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenWillBadgeDefinitions } from "@green-goods/shared/hooks/greenwill/useGreenWillBadgeDefinitions";
@@ -5,7 +6,7 @@ import { useGreenWillBadges } from "@green-goods/shared/hooks/greenwill/useGreen
 import { useGreenWillRecentGrants } from "@green-goods/shared/hooks/greenwill/useGreenWillRecentGrants";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatDate } from "@green-goods/shared/utils/time";
-import { RiAwardLine } from "@remixicon/react";
+import { RiAwardLine, RiErrorWarningLine, RiLoader4Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
@@ -187,19 +188,23 @@ export function GreenWillPanel() {
           </div>
 
           {isDefinitionsLoading ? (
-            <p className="type-body text-text-sub-600">
-              {intl.formatMessage({
+            <EmptyState
+              busy
+              icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+              title={intl.formatMessage({
                 id: "admin.greenWill.loadingDefinitions",
                 defaultMessage: "Loading badge definitions...",
               })}
-            </p>
+            />
           ) : isDefinitionsError ? (
-            <p className="type-body text-error-dark">
-              {intl.formatMessage({
+            <EmptyState
+              tone="error"
+              icon={<RiErrorWarningLine />}
+              title={intl.formatMessage({
                 id: "admin.greenWill.definitionsError",
                 defaultMessage: "Could not load GreenWill badge definitions.",
               })}
-            </p>
+            />
           ) : (
             <div className="space-y-3">
               {badgeDefinitions.map((definition) => (
@@ -248,19 +253,23 @@ export function GreenWillPanel() {
           </h3>
 
           {isGrantsLoading ? (
-            <p className="type-body text-text-sub-600">
-              {intl.formatMessage({
+            <EmptyState
+              busy
+              icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+              title={intl.formatMessage({
                 id: "admin.greenWill.loadingGrants",
                 defaultMessage: "Loading recent grants...",
               })}
-            </p>
+            />
           ) : isGrantsError ? (
-            <p className="type-body text-error-dark">
-              {intl.formatMessage({
+            <EmptyState
+              tone="error"
+              icon={<RiErrorWarningLine />}
+              title={intl.formatMessage({
                 id: "admin.greenWill.grantsError",
                 defaultMessage: "Could not load GreenWill grant history.",
               })}
-            </p>
+            />
           ) : (
             <div className="space-y-3">
               {grants.map((grant) => (

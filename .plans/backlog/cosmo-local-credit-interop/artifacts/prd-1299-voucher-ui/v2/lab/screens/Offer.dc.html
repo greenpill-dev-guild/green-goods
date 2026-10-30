@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer from another garden</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: 150px">
+    <div class="topnav">
+      <a class="close" href="Visit.dc.html" aria-label="Back"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+      <span class="mid">Green Goods Community Garden</span>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>Offer</span>
+      <h1>AI assistant membership, 1 month</h1>
+      <p class="para">A shared assistant seat for stewards: grant drafts, translations, meeting notes. Set up by the Green Goods team once your request is approved.</p>
+    </div>
+
+    <sc-if value="{{isRoute}}" hint-placeholder-val="{{true}}">
+      <div class="mx16" style="margin-top: 16px">
+        <div class="price"><span class="amt">450.00</span><span class="unit">G$ for 1 month</span></div>
+      </div>
+      <div class="mx16 card" style="margin-top: 12px">
+        <div class="pad">
+          <p class="h3">How your G$ moves</p>
+          <div class="ladder" style="margin: 0 -16px">
+            <div class="ls done"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-wallet-3-line"/></svg></span><span class="lt"><b>From your wallet</b><span>Your own G$, not your garden's</span></span></div>
+            <div class="ls done"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><span class="lt"><b>{{homeName}} holds it</b><span>{{homeSub}}</span></span></div>
+            <div class="ls done"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span class="lt"><b>Paid out once the service starts</b><span>Or returned in full if it doesn't</span></span></div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isChips}}" hint-placeholder-val="{{false}}">
+      <div class="mx16" style="margin-top: 14px; display: flex; flex-direction: column; gap: 12px">
+        <div class="price"><span class="amt">450.00</span><span class="unit">G$</span></div>
+        <div class="chips">
+          <span class="chip big"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-wallet-3-line"/></svg>Your own G$</span>
+          <span class="chip big"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg>Held by {{homeShort}}</span>
+          <span class="chip big"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-user-line"/></svg>Kaya approves</span>
+          <span class="chip big"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-go-back-line"/></svg>Full refund if declined</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isWays}}" hint-placeholder-val="{{false}}">
+      <div class="sec"><h2>Ways to take this up</h2></div>
+      <div class="mx16 ways">
+        <div class="way {{wayOwnCls}}"><span class="wi"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-wallet-3-line"/></svg></span><span><b>Your own G$</b><span>450.00 G$ · {{homeShort}} holds it until it starts</span></span><span class="pill {{wayOwnPill}}">{{wayOwnTag}}</span></div>
+        <div class="way"><span class="wi"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><span><b>Your garden pays</b><span>Riverside stewards ask from their pool</span></span><span class="pill neu">Ask them</span></div>
+        <div class="way off"><span class="wi"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg></span><span><b>Vouchers</b><span>This offer doesn't take vouchers</span></span><span class="pill neu">No</span></div>
+      </div>
+    </sc-if>
+
+    <div class="stack" style="margin-top: 12px">
+      <sc-if value="{{noHome}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>You need a home garden first</span><p>A garden you belong to holds your G$ until the service starts. Join one, then come back.</p></div></sc-if>
+      <sc-if value="{{routeOff}}" hint-placeholder-val="{{false}}"><div class="notice info"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg>Gardens only, for now</span><p>Green Goods Community Garden hasn't opened this to personal G$. Your stewards can ask for it from Riverside Commons' pool.</p></div></sc-if>
+      <sc-if value="{{paused}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-pause-circle-line"/></svg>Paused by Green Goods Community Garden</span><p>No new requests until they reopen it. Requests already in progress continue.</p></div></sc-if>
+      <sc-if value="{{stale}}" hint-placeholder-val="{{false}}"><div class="notice"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg>Last checked 2 hours ago</span><p>Check again before you ask. Prices and terms can change.</p></div></sc-if>
+    </div>
+
+    <div class="sec"><h2>What you get</h2></div>
+    <div class="mx16 card">
+      <div class="facts">
+        <div class="fact"><span class="k">Units</span><span class="v">1 month</span></div>
+        <div class="fact"><span class="k">For</span><span class="v"><span>You (Lina)</span><small>Not shareable</small></span></div>
+        <div class="fact"><span class="k">Starts</span><span class="v"><span>After Kaya approves</span><small>Steward, Green Goods Community Garden</small></span></div>
+        <div class="fact"><span class="k">Access</span><span class="v"><span>Set up by email</span><small>Outside Green Goods</small></span></div>
+      </div>
+    </div>
+  </div>
+  <div class="fbar">
+    <sc-if value="{{canAsk}}" hint-placeholder-val="{{true}}"><a class="btn" href="Pay.dc.html">Ask to Take Up</a></sc-if>
+    <sc-if value="{{blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{blockedLabel}}</button></sc-if>
+    <sc-if value="{{noHome}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="#">Find a Garden</a></sc-if>
+    <sc-if value="{{stale}}" hint-placeholder-val="{{false}}"><button type="button" class="btn sec">Check Again</button></sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["Route card","Price chips","Ways to pay"],"default":"Route card","section":"Direction"},"state":{"editor":"enum","options":["Open","No home garden","Route off","Paused","Stale"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = this.props.variant ?? 'Route card';
+    var st = this.props.state ?? 'Open';
+    var dark = this.props.dark ?? false;
+    var noHome = st === 'No home garden';
+    var routeOff = st === 'Route off';
+    var paused = st === 'Paused';
+    var stale = st === 'Stale';
+    var canAsk = st === 'Open';
+    var labels = { 'No home garden': 'Ask to Take Up', 'Route off': 'Not open to personal G$', 'Paused': 'Paused', 'Stale': 'Ask to Take Up' };
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      isRoute: v === 'Route card', isChips: v === 'Price chips', isWays: v === 'Ways to pay',
+      noHome: noHome, routeOff: routeOff, paused: paused, stale: stale,
+      canAsk: canAsk, blocked: !canAsk, blockedLabel: labels[st] || 'Ask to Take Up',
+      homeName: noHome ? 'Your home garden' : 'Riverside Commons',
+      homeShort: noHome ? 'your garden' : 'Riverside',
+      homeSub: noHome ? 'You need one to hold your G$' : 'Your garden, in its Celo Safe',
+      wayOwnCls: canAsk || stale ? 'on' : 'off',
+      wayOwnPill: canAsk ? 'ok' : 'neu',
+      wayOwnTag: canAsk ? 'Open' : (routeOff ? 'Not yet' : (paused ? 'Paused' : (noHome ? 'Needs a garden' : 'Check'))),
+    };
+  }
+}
+</script>
+</body>
+</html>

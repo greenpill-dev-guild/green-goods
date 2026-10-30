@@ -17,6 +17,11 @@ export interface CommitmentProgressProps {
    * what it carries in words, or still on the phone under the notice above.
    */
   onPhone?: { kind: "sending"; summary: string } | { kind: "local" } | null;
+  /**
+   * A voucher booking's delivery, counted once the issuer reports it, or the one sentence
+   * that says who reports it. It takes the proof-only line's place.
+   */
+  delivery?: { label: string; done: number; of: number } | { none: string } | null;
   /** The proof itself, shown under the progress in the same section. */
   children?: ReactNode;
 }
@@ -37,6 +42,7 @@ export function CommitmentProgress({
   commitment,
   requirements,
   onPhone = null,
+  delivery = null,
   children,
 }: CommitmentProgressProps) {
   const { formatMessage } = useIntl();
@@ -87,8 +93,40 @@ export function CommitmentProgress({
         data-component="CommitmentProgress"
       >
         {heading}
+        {delivery && "none" in delivery ? (
+          <p className="mt-2 text-sm text-text-sub-600">{delivery.none}</p>
+        ) : delivery ? (
+          <div className="mt-3" data-component="ServiceDeliveryProgress">
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate text-text-sub-600" title={delivery.label}>
+                {delivery.label}
+              </span>
+              <span className="shrink-0 text-text-strong-950">
+                {formatMessage(
+                  { id: "app.commitment.progress.count" },
+                  { done: Math.min(delivery.done, delivery.of), of: delivery.of }
+                )}
+              </span>
+            </div>
+            <div
+              className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-bg-weak-50"
+              role="progressbar"
+              aria-label={delivery.label}
+              aria-valuenow={Math.min(delivery.done, delivery.of)}
+              aria-valuemin={0}
+              aria-valuemax={delivery.of}
+            >
+              <div
+                className="h-full rounded-full bg-primary-action"
+                style={{
+                  width: `${delivery.of > 0 ? Math.round((Math.min(delivery.done, delivery.of) / delivery.of) * 100) : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
         {/* Once proof is on the promise, the proof itself says so. */}
-        {hasProof || onPhone ? null : (
+        {delivery || hasProof || onPhone ? null : (
           <p className="mt-2 text-sm text-text-sub-600">
             {formatMessage(
               {

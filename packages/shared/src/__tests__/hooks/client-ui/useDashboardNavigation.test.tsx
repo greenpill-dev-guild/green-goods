@@ -232,3 +232,87 @@ describe("dashboard returns through the PWA data router", () => {
     }
   });
 });
+
+describe("opening Your Work from anywhere", () => {
+  function YourWorkOpener() {
+    const dashboard = useDashboardNavigation();
+    return <button onClick={() => dashboard.openYourWork()}>Review</button>;
+  }
+
+  beforeEach(() => useUIStore.getState().resetForAccountChange());
+  afterEach(() => useUIStore.getState().resetForAccountChange());
+
+  // A failed upload's toast offers Review on any screen (Codex on #1339).
+  it.each([
+    ["/home/profile", "PUSH"],
+    // Already on Home, it opens over Home as Home's own launcher does: no second Home entry.
+    ["/home", "POP"],
+  ])("opens it on Pending from %s", async (from, historyAction) => {
+    useUIStore.setState({ isCommitmentsSheetOpen: true });
+    const router = createMemoryRouter(
+      ["/home", "/home/profile"].map((path) => ({
+        path,
+        element: path === from ? <YourWorkOpener /> : <p>Home</p>,
+      })),
+      { initialEntries: [from] }
+    );
+    const view = render(<RouterProvider router={router} />);
+    try {
+      await act(async () => {
+        fireEvent.click(await screen.findByRole("button", { name: "Review" }));
+      });
+      expect(router.state.location.pathname).toBe("/home");
+      expect(router.state.historyAction).toBe(historyAction);
+      if (historyAction === "PUSH") {
+        // Home's entry carries Your Work, which the shell opens as Home shows.
+        expect(router.state.location.state).toMatchObject({
+          dashboardEntry: { path: "/home", snapshot: { kind: "work", tab: "pending" } },
+        });
+      } else {
+        const ui = useUIStore.getState();
+        expect(ui).toMatchObject({ isWorkDashboardOpen: true, workDashboardInitialTab: "pending" });
+        // Your Work takes the Promises sheet's place rather than opening over it.
+        expect(ui.isCommitmentsSheetOpen).toBe(false);
+      }
+    } finally {
+      view.unmount();
+      router.dispose();
+    }
+  });
+});
+
+describe("opening Home's garden switcher from anywhere", () => {
+  function SwitcherOpener() {
+    const dashboard = useDashboardNavigation();
+    return <button onClick={() => dashboard.openGardenSwitcher()}>See Your Gardens</button>;
+  }
+
+  beforeEach(() => useUIStore.getState().resetForAccountChange());
+  afterEach(() => useUIStore.getState().resetForAccountChange());
+
+  it.each([
+    ["/home/profile", "PUSH"],
+    // Already on Home, it adds no second Home to go Back through.
+    ["/home", "POP"],
+  ])("asks Home for the switcher and goes Home from %s", async (from, historyAction) => {
+    const router = createMemoryRouter(
+      ["/home", "/home/profile"].map((path) => ({
+        path,
+        element: path === from ? <SwitcherOpener /> : <p>Home</p>,
+      })),
+      { initialEntries: [from] }
+    );
+    const view = render(<RouterProvider router={router} />);
+    try {
+      await act(async () => {
+        fireEvent.click(await screen.findByRole("button", { name: "See Your Gardens" }));
+      });
+      expect(router.state.location.pathname).toBe("/home");
+      expect(router.state.historyAction).toBe(historyAction);
+      expect(useUIStore.getState().gardenSwitcherRequested).toBe(true);
+    } finally {
+      view.unmount();
+      router.dispose();
+    }
+  });
+});

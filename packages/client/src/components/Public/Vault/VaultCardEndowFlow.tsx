@@ -1223,7 +1223,7 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.cardEndow.emailHelp",
                 defaultMessage:
-                  "Enter the email you want linked to this endowment. You'll use it later to manage or redeem it.",
+                  "Enter the email you want linked to this endowment. You'll use it later to manage or withdraw it.",
               })}
             </p>
             <TextInput
@@ -1429,7 +1429,7 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.cardEndow.doneLead",
                 defaultMessage:
-                  "Endowment complete. You can manage or redeem it from Manage Endowments.",
+                  "Endowment complete. You can manage or withdraw it from Manage Endowments.",
               })}
             </p>
             <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">

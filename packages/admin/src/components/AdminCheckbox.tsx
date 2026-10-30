@@ -17,7 +17,7 @@ export interface AdminCheckboxProps {
   name?: string;
   id?: string;
   className?: string;
-  /** External label reference for label-less use inside AdminSettingRow. */
+  /** External label reference, for a checkbox that a setting row (`FactRow`) names. */
   "aria-labelledby"?: string;
 }
 

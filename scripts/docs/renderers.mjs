@@ -433,7 +433,7 @@ const CONTRACT_LABELS = {
   celoSettlementExecutor: "Celo settlement executor",
   commitmentPoolingModule: "Commitment pooling module",
   commitmentRegistry: "Commitment registry",
-  cookieJarFactory: "Cookie Jar factory (1Hive)",
+  cookieJarFactory: "Cookie Jar factory (Greenpill Dev Guild)",
   cookieJarModule: "Cookie Jar module",
   creditRegistry: "Credit registry",
   deploymentRegistry: "Deployment registry",

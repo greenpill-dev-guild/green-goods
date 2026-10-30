@@ -7,17 +7,6 @@
  * @vitest-environment happy-dom
  */
 
-import type { Action, Work } from "@green-goods/shared/types/domain";
-import type {
-  GardenCommitmentActs,
-  GardenCommitmentController,
-} from "@green-goods/shared/hooks/client-ui/commitment/controller.types";
-import type {
-  CommitmentDetail,
-  CommitmentReadModel,
-  CommitmentRequirementRecord,
-  CommitmentWorkAttributionRecord,
-} from "@green-goods/shared/commitment-pooling";
 import {
   claimFixture,
   commitmentDetailFixture,
@@ -26,10 +15,21 @@ import {
   poolFixture,
 } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { gardenCommitmentControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type {
+  CommitmentDetail,
+  CommitmentReadModel,
+  CommitmentRequirementRecord,
+  CommitmentWorkAttributionRecord,
+} from "@green-goods/shared/commitment-pooling";
+import type {
+  GardenCommitmentActs,
+  GardenCommitmentController,
+} from "@green-goods/shared/hooks/client-ui/commitment/controller.types";
+import type { Action, Work } from "@green-goods/shared/types/domain";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, within } from "../test-utils";
+import { renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
@@ -44,6 +44,10 @@ const mockFlush = vi.fn();
 const mockRetryAndSend = vi.fn();
 const mockDiscardJob = vi.fn();
 const mockJoinGarden = vi.fn();
+const mockUseServiceAccess = vi.fn();
+const mockServiceMutation = vi.fn();
+const mockVoucherWallet = vi.fn();
+const mockIssuerApproval = vi.fn();
 const mockActs = {
   claim: vi.fn(),
   claimPersonal: vi.fn(),
@@ -122,9 +126,26 @@ vi.mock("@green-goods/shared/modules/job-queue/default-instance", async (importO
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitmentReason: (...args: unknown[]) => mockReason(...args),
+  useServiceAccess: (...args: unknown[]) => mockUseServiceAccess(...args),
+  useServiceAccessMutation: () => ({ mutateAsync: mockServiceMutation, isPending: false }),
+  useVoucherWallet: (...args: unknown[]) => mockVoucherWallet(...args),
+  useVoucherIssuerApproval: (...args: unknown[]) => mockIssuerApproval(...args),
 }));
 
 const { GardenCommitment } = await import("../../views/Home/Garden/Commitment");
+const { serviceAccessStorySnapshot } = await import(
+  "../../views/Home/Garden/Commitment/serviceAccessStoryFixtures"
+);
+const {
+  bookingStoryController,
+  bookingStorySnapshot,
+  bookingStoryWallet,
+  rewardStoryController,
+  rewardStorySnapshot,
+} = await import("../../../../shared/.storybook/voucherBookingFixtures");
+const { VOUCHER_STORY_APPROVALS, VOUCHER_STORY_ISSUERS, vouchers } = await import(
+  "../../../../shared/.storybook/voucherPilotFixtures"
+);
 
 function commitment(overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel {
   return commitmentFixture({
@@ -297,9 +318,21 @@ function render(commitmentId = "9") {
         <Route path="/home/:id/commitments/:commitmentId/proof" element={<p>Proof composer</p>} />
         <Route path="/home/:id/work/:workId" element={<p>Work detail</p>} />
         <Route path="/home/garden" element={<WorkSubmissionRoute />} />
+        <Route path="/home/profile" element={<HelpRoute />} />
+        <Route path="/home" element={<HomeRoute />} />
       </Routes>
     </MemoryRouter>
   );
+}
+
+function HomeRoute() {
+  const location = useLocation();
+  return <output data-testid="home-route">{`${location.pathname}${location.search}`}</output>;
+}
+
+function HelpRoute() {
+  const location = useLocation();
+  return <output data-testid="help-route">{`${location.pathname}${location.search}`}</output>;
 }
 
 function ComposerRoute() {
@@ -319,6 +352,14 @@ function WorkSubmissionRoute() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockUseServiceAccess.mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  });
+  mockVoucherWallet.mockReturnValue({ data: undefined });
+  mockIssuerApproval.mockReturnValue({ data: undefined });
   window.localStorage.clear();
   for (const operation of Object.values(mockActs)) operation.mockResolvedValue("0x123");
   mockReason.mockReturnValue({ reason: null, isLoading: false, isUnavailable: false });
@@ -326,6 +367,199 @@ beforeEach(() => {
 });
 
 describe("GardenCommitment", () => {
+  it.each([
+    "unknown",
+    "earned",
+  ] as const)("keeps %s acceptance evidence separate from ordinary legacy controls", (kind) => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: "askToTakeUp",
+        seat: "bystander",
+        detail: detail({
+          commitment: {
+            onchainState: "OFFERED",
+            derivedState: "OFFERED",
+            creator: OTHER,
+            leadProvider: OTHER,
+          },
+        }),
+      })
+    );
+    const state = serviceAccessStorySnapshot();
+    state.mode = "legacy";
+    state.knownService = false;
+    state.offer = null;
+    state.availableActions = [];
+    state.evidence = "onchain";
+    state.capabilities.mutation = "unavailable";
+    state.capabilities.reasons = ["unsupported-protocol"];
+    state.acceptancePolicy = {
+      ...state.acceptancePolicy,
+      kind,
+      knownOptIn: kind === "earned",
+      blockGenericMemberAcceptance: kind === "earned",
+      earned: {
+        ...state.acceptancePolicy.earned,
+        status: kind === "earned" ? "bound" : "unknown",
+        creator: GARDEN,
+        participant: VIEWER,
+      },
+    };
+    mockUseServiceAccess.mockReturnValue({ data: state, refetch: vi.fn() });
+    render();
+    if (kind === "unknown") {
+      expect(screen.getByRole("button", { name: "Ask to take this up" })).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Service Access" })).not.toBeInTheDocument();
+    } else {
+      expect(screen.queryByRole("button", { name: "Ask to take this up" })).not.toBeInTheDocument();
+      expect(screen.getByText("Earned voucher consent")).toBeInTheDocument();
+    }
+  });
+
+  it("draws a voucher booking as a section card whose acts sit only in the action bar", async () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        seat: "bystander",
+        detail: detail({
+          commitment: { onchainState: "OFFERED", derivedState: "OFFERED", creator: OTHER },
+        }),
+      })
+    );
+    const snapshot = bookingStorySnapshot("hubDay", "readyToDeposit");
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    mockServiceMutation.mockResolvedValue({
+      kind: "local-rehearsal",
+      observationId: "x",
+      snapshot,
+    });
+    mockVoucherWallet.mockReturnValue({
+      data: bookingStoryWallet(snapshot, { techAndSun: 9, greenGoods: 0 }),
+    });
+    mockIssuerApproval.mockReturnValue({ data: VOUCHER_STORY_APPROVALS.techAndSunBootstrap });
+    render();
+    const section = screen.getByRole("region", { name: "Service Access" });
+    expect(within(section).queryAllByRole("button")).toEqual([]);
+    expect(
+      within(section).getByText("1 Tech and Sun voucher, still in your account")
+    ).toBeVisible();
+    expect(screen.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
+      "Tech and Sun approved. Deposit your voucher into the escrow for this booking."
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancel Booking" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "abortVoucherSetup",
+        setupId: snapshot.currentVoucherSetupId,
+      })
+    );
+    expect(screen.getByRole("button", { name: "Deposit 1 Voucher" })).toBeInTheDocument();
+  });
+
+  it("reads the voucher wallet of the booking's holder, not of the member who agreed", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        seat: "bystander",
+        detail: detail({
+          commitment: { onchainState: "OFFERED", derivedState: "OFFERED", creator: OTHER },
+        }),
+      })
+    );
+    const snapshot = bookingStorySnapshot("hubDay", "readyToDeposit");
+    snapshot.voucherSetups = snapshot.voucherSetups.map((setup) => ({
+      ...setup,
+      authorization: { ...setup.authorization, holder: HELPER },
+    }));
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    render();
+    expect(snapshot.key.buyer).not.toBe(HELPER);
+    expect(mockVoucherWallet).toHaveBeenLastCalledWith(
+      expect.objectContaining({ account: HELPER })
+    );
+  });
+
+  it("uses the service boundary for known incomplete opt-in instead of generic claim and acceptance", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: "askToTakeUp",
+        seat: "bystander",
+        detail: detail({
+          commitment: {
+            onchainState: "OFFERED",
+            derivedState: "OFFERED",
+            creator: OTHER,
+            leadProvider: OTHER,
+          },
+        }),
+        pendingClaimRequests: [claimFixture({ claimant: VIEWER, state: "PENDING" })],
+        roles: { ...controller().roles, stewardsPoolGarden: true },
+      })
+    );
+    mockUseServiceAccess.mockReturnValue({
+      data: {
+        key: { sourceChainId: 42161, coreModule: GARDEN, commitmentId: 9n, buyer: VIEWER },
+        mode: "unavailable",
+        knownService: true,
+        complete: false,
+        evidence: "indexed",
+        offer: null,
+        consent: null,
+        nextRequestNonce: 0n,
+        coreState: "OFFERED",
+        eligibleBuyerGardens: [],
+        personalFeeQuote: null,
+        personalPaymentAccount: null,
+        availableActions: [],
+        personalPurchase: null,
+        sourceTimestamp: null,
+        sourceBlock: null,
+        currentVoucherSetupId: null,
+        voucherSetups: [],
+        acceptancePolicy: {
+          kind: "service",
+          knownOptIn: true,
+          blockGenericMemberAcceptance: true,
+          earned: {
+            status: "unknown",
+            module: null,
+            revision: null,
+            termsHash: null,
+            acceptedRevision: null,
+            acceptedTermsHash: null,
+            acceptedCounterparty: null,
+            terms: null,
+            creator: null,
+            creatorConsentRevision: null,
+            participant: null,
+            participantConsentRevision: null,
+            accountRouteAvailable: false,
+          },
+        },
+        pause: { core: null, sourceVoucher: null, destinationVoucher: null },
+        capabilities: {
+          mutation: "unavailable",
+          reasons: ["projection-incomplete"],
+          sourceBuyer: VIEWER,
+          celoDepositor: null,
+          gnosisHolder: null,
+          canSignSource: false,
+          canSendSource: false,
+          canSignCelo: false,
+          canSignHolder: false,
+          canSendDestination: false,
+        },
+      },
+      refetch: vi.fn(),
+    });
+    render();
+    expect(screen.getByRole("region", { name: "Service Access" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask to take this up" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Accept/ })).not.toBeInTheDocument();
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+    expect(mockActs.acceptClaim).not.toHaveBeenCalled();
+  });
+
   it("calls one controller and renders the commitment name and current act", () => {
     render();
 
@@ -337,6 +571,32 @@ describe("GardenCommitment", () => {
     });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("3 hours");
     expect(screen.getByRole("button", { name: "Add Proof" })).toBeInTheDocument();
+  });
+
+  it("names the reward among what was promised, so it stays in sight after taking one up", () => {
+    const wei = 160_000n * 10n ** 18n;
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          commitment: {
+            direction: "REQUEST",
+            commitmentType: "SUPPORT_SERVICE",
+            considerationRail: "CELO_SETTLEMENT",
+            considerationAmount: wei,
+          },
+        }),
+        metadata: {
+          version: 1,
+          title: "Complete the climate course",
+          reward: { version: 1, usdCents: "2000", goodDollarWei: wei.toString() },
+        },
+      })
+    );
+    render();
+
+    const promised = screen.getByRole("region", { name: "What was promised" });
+    expect(within(promised).getByText("Reward")).toBeInTheDocument();
+    expect(within(promised).getByText("$20.00, paid in G$ after it's kept")).toBeInTheDocument();
   });
 
   it("makes required work the primary action while keeping optional proof available", () => {
@@ -421,9 +681,11 @@ describe("GardenCommitment", () => {
     // A protocol commitment is read from the reader's own garden, and the new one
     // has to be composed into the protocol pool, not into the garden it was opened from.
     const PROTOCOL_GARDEN = "0x9999999999999999999999999999999999999999";
+    const claimPersonal = vi.fn();
     mockUseController.mockReturnValue(
       controller({
         actKind: "askAgain",
+        acts: { ...controller().acts, claimPersonal },
         pool: poolFixture({ poolId: 1n, poolType: "PROTOCOL", garden: PROTOCOL_GARDEN }),
       })
     );
@@ -434,6 +696,7 @@ describe("GardenCommitment", () => {
     expect(screen.getByTestId("composer-route")).toHaveTextContent(
       `/home/${PROTOCOL_GARDEN}/commitments/new?direction=request&from=9`
     );
+    expect(claimPersonal).not.toHaveBeenCalled();
   });
 
   it("renders the team and delegates joining to the controller", async () => {
@@ -1252,5 +1515,493 @@ describe("GardenCommitment", () => {
     expect(screen.getByText(/couldn't check whether you belong/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a voucher booking on the promise page", () => {
+  type BookingSnapshot = ReturnType<typeof bookingStorySnapshot>;
+  /** The page over one booking or reward read, with the wallet and approval it reads beside it. */
+  function show(
+    snapshot: BookingSnapshot,
+    page: GardenCommitmentController,
+    holds = { techAndSun: 9, greenGoods: 2 }
+  ) {
+    mockUseController.mockReturnValue(page);
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    mockServiceMutation.mockResolvedValue({
+      kind: "local-rehearsal",
+      observationId: "x",
+      snapshot,
+    });
+    mockVoucherWallet.mockReturnValue({ data: bookingStoryWallet(snapshot, holds) });
+    mockIssuerApproval.mockReturnValue({ data: VOUCHER_STORY_APPROVALS.techAndSunBootstrap });
+    render();
+  }
+
+  it("names a booking by the voucher its setup froze, after the offer changed it", () => {
+    const changed = bookingStorySnapshot("hubDay", "termsChanged");
+    const { greenGoods } = VOUCHER_STORY_ISSUERS;
+    show(
+      {
+        ...changed,
+        offer: changed.offer && {
+          ...changed.offer,
+          voucher: { asset: greenGoods.asset, issuer: greenGoods.account, units: vouchers(1) },
+        },
+      },
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    const section = screen.getByRole("region", { name: "Service Access" });
+    expect(section).toHaveTextContent("1 Tech and Sun voucher, still in your account");
+    expect(section).not.toHaveTextContent("Green Goods voucher");
+  });
+
+  it("says Needs you when the promise waits on the reader under a booking that doesn't", () => {
+    show(
+      bookingStorySnapshot("hubDay", "transfersPending"),
+      bookingStoryController("hubDay", "READY_FOR_CONFIRMATION")
+    );
+    const band = screen.getByRole("region", { name: "Where this stands" });
+    expect(band).toHaveTextContent("Needs you");
+    expect(band).toHaveAttribute("data-tone", "attention");
+    expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toBeInTheDocument();
+  });
+
+  it("sends the transfers of an approved split whose prompt the reader declined", async () => {
+    show(
+      bookingStorySnapshot("hubDay", "transfersPending", { legsSent: false }),
+      bookingStoryController("hubDay", "READY_FOR_CONFIRMATION")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Close the Booking" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "executeVoucherFinalLeg", leg: "release" })
+    );
+  });
+
+  it("sends the deposit's confirmation again when it didn't reach the source", async () => {
+    show(
+      bookingStorySnapshot("hubDay", "confirmingDeposit", { ackStuck: true }),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry Confirmation" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "retryVoucherSetupAcknowledgment", reviewedNativeFee: 0n })
+    );
+  });
+
+  it("says why Deposit can't run while the escrow is paused", async () => {
+    show(
+      bookingStorySnapshot("hubDay", "readyToDeposit", { pause: { destinationVoucher: true } }),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Deposit 1 Voucher" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).getByText("Depositing is paused.")).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Deposit 1 Voucher" })).toBeDisabled();
+  });
+
+  it("offers Exchange Vouchers for too few vouchers only where a pool can quote", async () => {
+    show(
+      bookingStorySnapshot("hubDay", "readyToDeposit", { held: 0n }),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Deposit 1 Voucher" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).getByText("You hold 0 Tech and Sun vouchers.")).toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+    expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
+  });
+
+  it("offers Exchange Vouchers only when the pool can quote for vouchers the reader holds", async () => {
+    // A pool is set up, but the reader holds none of the voucher it would take.
+    const unquotable = (snapshot: BookingSnapshot): BookingSnapshot => ({
+      ...snapshot,
+      pilot: snapshot.pilot && { ...snapshot.pilot, holdings: { a: 0n, b: 0n } },
+    });
+    show(
+      unquotable(bookingStorySnapshot("hubDay", "readyToDeposit", { held: 0n, exchange: "none" })),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Deposit 1 Voucher" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+    expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
+  });
+
+  it("gives the too-few-vouchers door no Exchange act when the pool can't quote", () => {
+    const short = bookingStorySnapshot("access", "notEnough", { exchange: "none" });
+    show(
+      { ...short, pilot: short.pilot && { ...short.pilot, holdings: { a: 0n, b: 0n } } },
+      bookingStoryController("access", "OFFERED")
+    );
+    expect(document.querySelector('[data-component="JoinToAct"][data-mode="door"]')).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+  });
+
+  it("asks a short pool for a smaller exchange, not the same quote again", async () => {
+    const quoted = bookingStorySnapshot("access", "notEnough", { exchange: "quoted" });
+    const pilot = quoted.pilot!;
+    show(
+      {
+        ...quoted,
+        pilot: {
+          ...pilot,
+          exchange: {
+            ...pilot.exchange,
+            status: "failed",
+            failure: "inventory",
+            inventory: vouchers(5),
+          },
+        },
+      },
+      bookingStoryController("access", "OFFERED")
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Exchange Vouchers" }));
+    await userEvent.click(screen.getByRole("button", { name: "Try a Smaller Amount" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith({
+      action: "quotePilotExchange",
+      input: vouchers(5),
+    });
+  });
+
+  it("takes Ask for Help to the app's Help for an agreement the app can't sign", async () => {
+    show(
+      rewardStorySnapshot("agreementUnavailable", true),
+      rewardStoryController("agreementUnavailable", true)
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ask for Help" }));
+    expect(screen.getByTestId("help-route")).toHaveTextContent("/home/profile?tab=help");
+  });
+
+  function withReviewedReward(
+    snapshot: BookingSnapshot,
+    termsHash: `0x${string}`
+  ): BookingSnapshot {
+    Object.assign(snapshot, {
+      evidence: "onchain",
+      availableActions: ["consentEarnedTerms"],
+    });
+    snapshot.pause.core = false;
+    snapshot.capabilities = {
+      ...snapshot.capabilities,
+      mutation: "onchain",
+      reasons: [],
+      sourceBuyer: snapshot.key.buyer,
+      canSignSource: true,
+    };
+    snapshot.acceptancePolicy.earned = {
+      ...snapshot.acceptancePolicy.earned,
+      status: "bound",
+      revision: 2n,
+      module: VOUCHER_STORY_ISSUERS.techAndSun.account,
+      termsHash,
+      terms: {
+        issuer: VOUCHER_STORY_ISSUERS.techAndSun.account,
+        issuerAuthority: VOUCHER_STORY_ISSUERS.techAndSun.account,
+        asset: {
+          chainId: 100,
+          token: VOUCHER_STORY_ISSUERS.techAndSun.asset.token,
+          symbol: "TSV",
+          decimals: 6,
+        },
+        totalUnits: vouchers(1),
+        allocationPolicy: termsHash,
+        serviceTermsRef: termsHash,
+        season: 3n,
+        issuerApproved: true,
+        frozen: true,
+      },
+      creator: VOUCHER_STORY_ISSUERS.techAndSun.account,
+      claimType: "individual",
+      viewerConsentRevision: 0n,
+      modulePaused: false,
+    };
+    return snapshot;
+  }
+
+  function showEarnedClaimRequests(
+    stewardsPoolGarden: boolean,
+    earned: Partial<BookingSnapshot["acceptancePolicy"]["earned"]> = {}
+  ) {
+    const snapshot = withReviewedReward(
+      rewardStorySnapshot("agreementUnavailable", true),
+      `0x${"c".repeat(64)}`
+    );
+    Object.assign(snapshot.acceptancePolicy.earned, earned);
+    const page = rewardStoryController("agreementUnavailable", true);
+    page.detail!.commitment.claimMode = "APPROVAL_GATED";
+    page.roles.stewardsPoolGarden = stewardsPoolGarden;
+    page.actKind = "askToTakeUp";
+    page.canAskAgain = true;
+    page.ownRequest = claimFixture({ claimant: page.viewer!, state: "DECLINED" });
+    page.pendingClaimRequests = [claimFixture({ claimant: OTHER, state: "PENDING" })];
+    page.acts = mockActs;
+    show(snapshot, page);
+  }
+
+  it("lets a pool-garden steward decide earned reward claims without generic member take-up", async () => {
+    showEarnedClaimRequests(true);
+    const decisions = within(screen.getByRole("region", { name: "Waiting on you" }));
+    await userEvent.click(decisions.getByRole("button", { name: /^Accept$/ }));
+    expect(mockActs.acceptClaim).toHaveBeenCalledWith(OTHER);
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    await userEvent.type(
+      decisions.getByLabelText("Why not, in a sentence or two"),
+      "Try next week"
+    );
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    expect(mockActs.declineClaim).toHaveBeenCalledWith(OTHER, "Try next week");
+    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+    expect(mockActs.claim).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: "paused", earned: { modulePaused: true } },
+    { name: "unread pause", earned: { modulePaused: null } },
+    { name: "unread terms", earned: { terms: null } },
+  ])("keeps Decline but disables earned Accept for $name", async ({ earned }) => {
+    showEarnedClaimRequests(true, earned);
+    const decisions = within(screen.getByRole("region", { name: "Waiting on you" }));
+    const accept = decisions.getByRole("button", { name: /^Accept$/ });
+    expect(accept).toBeDisabled();
+    await userEvent.click(accept);
+    expect(mockActs.acceptClaim).not.toHaveBeenCalled();
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    await userEvent.type(decisions.getByLabelText("Why not, in a sentence or two"), "Try later");
+    await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
+    expect(mockActs.declineClaim).toHaveBeenCalledWith(OTHER, "Try later");
+  });
+
+  it("keeps earned member retries behind consent and hides decisions from non-stewards", () => {
+    showEarnedClaimRequests(false);
+    expect(screen.queryByRole("region", { name: "Waiting on you" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Agree and Take It Up" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Take It Up$/ })).not.toBeInTheDocument();
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+  });
+
+  it("reviews a combined booking's earned reward before offering the booking's own consent", async () => {
+    const terms = `0x${"c".repeat(64)}` as const;
+    const snapshot = withReviewedReward(bookingStorySnapshot("hubDay", "open"), terms);
+    const page = bookingStoryController("hubDay", "OFFERED");
+    const claimPersonal = vi.fn();
+    show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });
+    expect(screen.getByRole("region", { name: "Service Access" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Agree to the Rewards" }));
+    const sheet = await screen.findByRole("dialog", { name: "Agree to the Rewards" });
+    expect(
+      within(sheet).getByText(
+        "Agreeing records these exact rewards. Then review and agree to the service booking."
+      )
+    ).toBeInTheDocument();
+    const agreed = structuredClone(snapshot);
+    agreed.acceptancePolicy.earned.viewerConsentRevision = 2n;
+    agreed.availableActions = ["requestClaim"];
+    mockServiceMutation.mockResolvedValueOnce({
+      kind: "onchain",
+      observationId: "reward",
+      snapshot: agreed,
+    });
+    await userEvent.click(within(sheet).getByRole("button", { name: "Agree to the Rewards" }));
+    await waitFor(() => expect(mockServiceMutation).toHaveBeenCalledTimes(1));
+    expect(mockServiceMutation).toHaveBeenCalledWith({
+      action: "consentEarnedTerms",
+      expectedRevision: 2n,
+      expectedTermsHash: terms,
+    });
+    expect(claimPersonal).not.toHaveBeenCalled();
+  });
+
+  it("keeps an agreed reward on the booking path instead of a generic take-up", async () => {
+    const terms = `0x${"c".repeat(64)}` as const;
+    const snapshot = withReviewedReward(bookingStorySnapshot("hubDay", "open"), terms);
+    snapshot.acceptancePolicy.earned.viewerConsentRevision = 2n;
+    snapshot.availableActions = ["requestClaim"];
+    const page = bookingStoryController("hubDay", "OFFERED");
+    const claimPersonal = vi.fn();
+    show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });
+    expect(screen.queryByRole("button", { name: "Take It Up" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Review and Redeem" }));
+    expect(await screen.findByRole("dialog", { name: "Review and Redeem" })).toBeInTheDocument();
+    expect(claimPersonal).not.toHaveBeenCalled();
+    expect(mockServiceMutation).not.toHaveBeenCalled();
+  });
+
+  it("keeps context-requiring queued reward consent unavailable", () => {
+    const snapshot = withReviewedReward(
+      rewardStorySnapshot("agreementUnavailable", true),
+      `0x${"c".repeat(64)}`
+    );
+    const page = rewardStoryController("agreementUnavailable", true);
+    page.claimNeedsContext = true;
+    page.actKind = null;
+    page.queue.pendingAct = {
+      jobId: "held-claim",
+      kind: "claim",
+      waitingReason: "reward-agreement-required",
+      discardable: true,
+      createdAt: 1,
+    };
+    show(snapshot, page);
+    expect(screen.queryByRole("button", { name: "Agree and Take It Up" })).not.toBeInTheDocument();
+    expect(mockServiceMutation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: "open take-up", actKind: "takeUp" as const, claimMode: "OPEN" as const, queued: false },
+    {
+      name: "reviewed take-up",
+      actKind: "askToTakeUp" as const,
+      claimMode: "APPROVAL_GATED" as const,
+      queued: false,
+    },
+    { name: "queued open claim", actKind: null, claimMode: "OPEN" as const, queued: true },
+    {
+      name: "queued reviewed claim",
+      actKind: null,
+      claimMode: "APPROVAL_GATED" as const,
+      queued: true,
+    },
+  ])("agrees to the reward before $name", async ({ actKind, claimMode, queued }) => {
+    const TERMS = `0x${"c".repeat(64)}` as const;
+    // A live open request whose reward its creator froze and this member can agree to.
+    const snapshot = rewardStorySnapshot("agreementUnavailable", true);
+    withReviewedReward(snapshot, TERMS);
+    const page = rewardStoryController("agreementUnavailable", true);
+    page.detail!.commitment.claimMode = claimMode;
+    page.queue.hasPendingJob = queued;
+    page.queue.pendingAct = queued
+      ? {
+          jobId: "held-claim",
+          kind: "claim",
+          waitingReason: "reward-agreement-required",
+          discardable: true,
+          createdAt: 1,
+        }
+      : null;
+    const claimPersonal = vi.fn(async () => "claim-job");
+    show(snapshot, { ...page, actKind, acts: { ...page.acts, claimPersonal } });
+    expect(screen.queryByRole("button", { name: "Ask for Help" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Agree and Take It Up" }));
+    const sheet = await screen.findByRole("dialog", { name: "Agree to the Rewards" });
+    expect(
+      within(sheet).getByText(
+        claimMode === "OPEN"
+          ? "Agreeing records these exact rewards. Then you take the promise up, and it's yours right away."
+          : /Agreeing records these exact rewards with your request\./
+      )
+    ).toBeInTheDocument();
+    // Once the agreement lands, the read no longer offers it.
+    const agreed = structuredClone(snapshot);
+    agreed.availableActions = [];
+    agreed.acceptancePolicy.earned.viewerConsentRevision = 2n;
+    mockServiceMutation.mockResolvedValueOnce({
+      kind: "onchain",
+      observationId: "x",
+      snapshot: agreed,
+    });
+    await userEvent.click(within(sheet).getByRole("button", { name: "Agree and Take It Up" }));
+    expect(mockServiceMutation).toHaveBeenCalledWith({
+      action: "consentEarnedTerms",
+      expectedRevision: 2n,
+      expectedTermsHash: TERMS,
+    });
+    await waitFor(() => expect(claimPersonal).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe("a promise whose service read hasn't answered", () => {
+  beforeEach(() => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: "askToTakeUp",
+        seat: "bystander",
+        detail: detail({
+          commitment: {
+            onchainState: "OFFERED",
+            derivedState: "OFFERED",
+            creator: OTHER,
+            leadProvider: OTHER,
+          },
+        }),
+      })
+    );
+  });
+
+  it("holds the ordinary take-up while the read is on its way", () => {
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "pending",
+      fetchStatus: "fetching",
+      isError: false,
+      refetch: vi.fn(),
+    });
+    render();
+    expect(screen.queryByRole("button", { name: "Ask to take this up" })).toBeNull();
+    expect(screen.queryByText(/couldn't check how this promise/i)).toBeNull();
+  });
+
+  it("offers the check again when the read failed, instead of the ordinary take-up", async () => {
+    const refetch = vi.fn();
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "error",
+      fetchStatus: "idle",
+      isError: true,
+      refetch,
+    });
+    render();
+    expect(screen.queryByRole("button", { name: "Ask to take this up" })).toBeNull();
+    expect(screen.getByText(/couldn't check how this promise is taken up/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("says why its requests are withheld after it was taken up, too", () => {
+    mockUseController.mockReturnValue(controller({ actKind: null, seat: "confirmer" }));
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "error",
+      fetchStatus: "idle",
+      isError: true,
+      refetch: vi.fn(),
+    });
+    render();
+    expect(screen.getByText(/couldn't check how this promise is taken up/i)).toBeInTheDocument();
+  });
+});
+
+describe("a request that rewards vouchers", () => {
+  function showReward(state: "bothOnTheWay" | "vouchersIn" | "received") {
+    const snapshot = rewardStorySnapshot(state, true);
+    mockUseController.mockReturnValue(rewardStoryController(state, true));
+    mockUseServiceAccess.mockReturnValue({ data: snapshot, refetch: vi.fn() });
+    mockVoucherWallet.mockReturnValue({
+      data: bookingStoryWallet(snapshot, { techAndSun: 9, greenGoods: 0 }),
+    });
+    render("4103");
+  }
+
+  it("takes arrived vouchers to the wallet's Vouchers tab", async () => {
+    showReward("vouchersIn");
+    await userEvent.click(screen.getByRole("button", { name: "See Your Vouchers" }));
+    expect(screen.getByTestId("home-route")).toHaveTextContent("/home?wallet=vouchers");
+  });
+
+  it("offers no way to the vouchers before they arrive", () => {
+    showReward("bothOnTheWay");
+    expect(screen.queryByRole("button", { name: "See Your Vouchers" })).toBeNull();
+  });
+
+  it("leads with the vouchers: the G$ shows once, on its own row in the rewards", () => {
+    showReward("received");
+    const promised = screen.getByRole("region", { name: "What was promised" });
+    expect(within(promised).queryByText("Reward")).toBeNull();
+    expect(document.querySelector('[data-component="PromiseReward"]')).toBeNull();
+    expect(screen.getByText("2 Tech and Sun vouchers")).toBeInTheDocument();
+    expect(screen.getByText("120 G$")).toBeInTheDocument();
   });
 });

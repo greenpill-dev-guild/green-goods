@@ -365,8 +365,8 @@ describe("PublicShell", () => {
     expect(window.scrollY).toBe(720);
   });
 
-  it("gives chat ceremony pages the focused shell: no navigation, install CTA or editorial styling", async () => {
-    const { container } = renderShellWithRoute("/agent/reporting/abcdefghijklmnop");
+  it("gives chat ceremony pages the focused shell on the website's surface: no navigation or install CTA", async () => {
+    renderShellWithRoute("/agent/reporting/abcdefghijklmnop");
     // Wait for the real lazy module, rather than racing the default DOM query timeout.
     await act(async () => {
       await vi.dynamicImportSettled();
@@ -375,7 +375,8 @@ describe("PublicShell", () => {
     expect(document.querySelector('header[data-variant="focused"]')).toBeInTheDocument();
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
     expect(screen.queryByText("Install App")).not.toBeInTheDocument();
-    expect(container.querySelector('[data-site="website"]')).toBeNull();
+    // The reporting pages are the website's (DL-121), and the focused shell sets that itself.
+    expect(screen.getByRole("main").parentElement).toHaveAttribute("data-site", "website");
 
     // Account and Help opens in place and keeps the permissions page and a person reachable.
     fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));

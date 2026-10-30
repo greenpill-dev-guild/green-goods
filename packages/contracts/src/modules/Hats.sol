@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import { IStewardRoleObserver } from "../interfaces/IStewardRoleObserver.sol";
+
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
@@ -160,37 +162,15 @@ contract HatsModule is
     ///      multiple users (or the same user after re-grant). See _revokeRole().
     uint256 private _revokeNonce;
 
-    /// @notice Storage gap for future upgrades
-    /// @dev Verified storage layout (forge inspect src/modules/Hats.sol:HatsModule storage-layout):
-    ///
-    ///      Inherited (OZ upgradeable bases):
-    ///        Slot 0       : Initializable (_initialized, _initializing)
-    ///        Slots 1-50   : Initializable __gap[50]
-    ///        Slot 51      : OwnableUpgradeable (_owner)
-    ///        Slots 52-100 : OwnableUpgradeable __gap[49]
-    ///        Slot 101     : ReentrancyGuardUpgradeable (_status)
-    ///        Slots 102-150: ReentrancyGuardUpgradeable __gap[49]
-    ///
-    ///      HatsModule own storage (15 vars, slots 151-165):
-    ///        Slot 151: hats (IHats)
-    ///        Slot 152: gardenToken (address)
-    ///        Slot 153: karmaGAPModule (IKarmaGAPModule)
-    ///        Slot 154: hatsModuleFactory (IHatsModuleFactory)
-    ///        Slot 155: funderEligibilityModule (address)
-    ///        Slot 156: communityEligibilityModule (address)
-    ///        Slot 157: communityMinBalance (uint256)
-    ///        Slot 158: communityHatId (uint256)
-    ///        Slot 159: gardensHatId (uint256)
-    ///        Slot 160: protocolGardenersHatId (uint256)
-    ///        Slot 161: gardenHats (mapping)
-    ///        Slot 162: gardensModule (address)
-    ///        Slot 163: configAuthority (mapping)
-    ///        Slot 164: gardenConvictionStrategies (mapping)
-    ///        Slot 165: _revokeNonce (uint256)
-    ///
-    ///      Gap (slots 166-200): 15 vars + 35 gap = 50 slots total for HatsModule.
-    ///      When adding new storage variables, decrease __gap size by the same number of slots.
-    uint256[35] private __gap;
+    /// @notice Optional per-garden canonical steward change observer. Delivery remains permissionless.
+    mapping(address garden => address observer) public stewardObserver;
+    event StewardObserverSet(address indexed garden, address indexed observer);
+    event StewardObserverDeferred(address indexed garden, address indexed account);
+
+    /// @notice Storage gap for future upgrades.
+    /// @dev Slot layout: storage-layouts/HatsModule.json.
+    ///      State and gap occupy 50 slots; consume gap slots when adding storage.
+    uint256[34] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -609,6 +589,15 @@ contract HatsModule is
         gardensModule = _gardensModule;
     }
 
+    /// @notice Configure the observer without giving it authority to change source roles.
+    /// @dev Setting zero disables notification. Public refresh still reads canonical state directly.
+    function setStewardObserver(address garden, address observer) external onlyOwner nonReentrant {
+        if (!gardenHats[garden].configured) revert GardenNotConfigured(garden);
+        if (observer != address(0) && observer.code.length == 0) revert ZeroAddress();
+        stewardObserver[garden] = observer;
+        emit StewardObserverSet(garden, observer);
+    }
+
     /// @notice Add or remove a config authority
     function setConfigAuthority(address authority, bool authorized) external onlyOwner {
         if (authority == address(0)) revert ZeroAddress();
@@ -677,6 +666,7 @@ contract HatsModule is
         // Best-effort conviction power sync on role grant
         // Sync fires post-mint so strategies see updated hat state
         _syncConvictionPower(garden, account);
+        _notifyStewardObserver(garden, account, role);
     }
 
     function _grantSubRole(address garden, address account, GardenRole role, string memory label) internal {
@@ -707,6 +697,7 @@ contract HatsModule is
             hats.transferHat(hatId, account, burnAddr);
         }
         emit RoleRevoked(garden, account, role);
+        _notifyStewardObserver(garden, account, role);
         if (role == GardenRole.Owner || role == GardenRole.Steward) {
             _syncProjectAdmin(garden, account, false);
         }
@@ -751,6 +742,17 @@ contract HatsModule is
             } catch {
                 emit ConvictionSyncFailed(garden, account, strategy, "");
             }
+        }
+    }
+
+    function _notifyStewardObserver(address garden, address account, GardenRole role) private {
+        if (role != GardenRole.Owner && role != GardenRole.Steward) return;
+        address observer = stewardObserver[garden];
+        if (observer == address(0)) return;
+        // Enough for canonical refresh + bounded best-effort CCIP dispatch; failure cannot restore the role.
+        try IStewardRoleObserver(observer).syncSteward{ gas: 800_000 }(account) { }
+        catch {
+            emit StewardObserverDeferred(garden, account);
         }
     }
 

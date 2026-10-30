@@ -23,6 +23,7 @@ function fixture(success: boolean) {
       userOpHash: operation,
       sender: "0x2222222222222222222222222222222222222222",
       success,
+      logs: [],
       receipt: { status: "success", transactionHash: transaction },
     }),
     sendUserOperation: vi.fn().mockResolvedValue(operation),
@@ -30,6 +31,7 @@ function fixture(success: boolean) {
       userOpHash: operation,
       sender: "0x2222222222222222222222222222222222222222",
       success,
+      logs: [],
       receipt: { status: "success", transactionHash: transaction },
     }),
   };

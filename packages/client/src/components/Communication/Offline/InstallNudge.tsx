@@ -30,7 +30,7 @@ export function InstallNudge() {
 
   return (
     <div
-      className="fixed left-0 right-0 top-0 z-nav flex h-6 w-full items-center justify-center gap-2 overflow-y-clip border-b border-stroke-soft-200 bg-bg-white-0/95 px-3 text-xs font-medium text-text-strong-950 shadow-sm backdrop-blur-md"
+      className="fixed left-0 right-0 top-0 z-nav flex h-6 w-full items-center justify-center gap-2 overflow-y-clip border-b border-stroke-soft-200 bg-bg-white-0 px-3 text-xs font-medium text-text-strong-950 shadow-sm"
       style={{ top: "env(safe-area-inset-top, 0px)" }}
       role="status"
       data-testid="install-nudge"

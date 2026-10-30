@@ -279,6 +279,7 @@ export function FileUploadField({
                 </div>
                 {onRemoveFile && (
                   <IconButton
+                    data-piece-control
                     size="compact"
                     tone="danger"
                     onClick={() => handleRemove(index)}

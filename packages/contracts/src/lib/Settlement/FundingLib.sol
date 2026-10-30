@@ -2,9 +2,15 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { IHatsModule } from "../../interfaces/IHatsModule.sol";
 import { ISettlementModule } from "../../interfaces/ISettlementModule.sol";
+import { ISettlementPersonalServicePurchases as Personal } from "../../interfaces/ISettlementPersonalServicePurchases.sol";
 import { SettlementPlanLib } from "./PlanLib.sol";
+import { PersonalPurchaseStorageLib as Store } from "./PersonalPurchaseStorageLib.sol";
+import { PersonalPurchaseConsentLib as Consent } from "./PersonalPurchaseConsentLib.sol";
+import { PersonalFundingLib } from "./PersonalFundingLib.sol";
+import { PersonalPurchaseOutcomeLib as Outcome } from "./PersonalPurchaseOutcomeLib.sol";
+import { SettlementFundingGuardLib as Guard } from "./FundingGuardLib.sol";
+import { SettlementFundingRefundLib } from "./FundingRefundLib.sol";
 
 /// @notice Member funding records and their single persistent refund authority.
 /// @dev Uses a dedicated ERC-7201 namespace so the frozen SettlementModule layout is unchanged.
@@ -87,12 +93,13 @@ library SettlementFundingLib {
         if (commitment.state == ICommitmentPoolingModule.CommitmentState.None || pool.garden == address(0)) {
             revert ISettlementModule.ConsiderationNotDeclared(commitmentId);
         }
-        _requireSteward(config.hatsModule, pool.garden);
+        Consent.requireLegacy(config.poolingModule, commitmentId);
+        Guard.requireSteward(config.hatsModule, pool.garden);
         ISettlementModule.SettlementAccount storage source =
-            _activeAccount(accounts, pool.garden, config.destinationEvmChainId);
+            Guard.activeAccount(accounts, pool.garden, config.destinationEvmChainId);
         if (refundAccount == source.account) revert ISettlementModule.InvalidPayoutVector();
 
-        State storage state = _state();
+        State storage state = fundingState();
         fundingId = state.fundingOfCommitmentFunder[commitmentId][funder];
         if (fundingId != 0) {
             ISettlementModule.CommitmentFunding storage existing = state.fundings[fundingId];
@@ -138,13 +145,16 @@ library SettlementFundingLib {
         public
     {
         ISettlementModule.CommitmentFunding storage funding = _knownFunding(fundingId);
-        _requireSteward(config.hatsModule, funding.garden);
-        _activeAccount(accounts, funding.garden, config.destinationEvmChainId);
+        if (Store.state().purchases[fundingId].terms.version != 0) {
+            revert Personal.PersonalServiceDepositProofRequired(fundingId);
+        }
+        Guard.requireSteward(config.hatsModule, funding.garden);
+        Guard.activeAccount(accounts, funding.garden, config.destinationEvmChainId);
         if (funding.state != ISettlementModule.FundingState.Pledged) {
             revert ISettlementModule.CommitmentFundingNotInState(fundingId, funding.state);
         }
         if (depositReference == bytes32(0)) revert ISettlementModule.FundingDepositReferenceRequired();
-        State storage state = _state();
+        State storage state = fundingState();
         uint256 existingFundingId = state.fundingByDepositReference[depositReference];
         if (existingFundingId != 0) {
             revert ISettlementModule.FundingDepositReferenceUsed(depositReference, existingFundingId);
@@ -169,8 +179,15 @@ library SettlementFundingLib {
         public
     {
         ISettlementModule.CommitmentFunding storage funding = _knownFunding(fundingId);
-        _requireSteward(config.hatsModule, funding.garden);
-        _activeAccount(accounts, funding.garden, config.destinationEvmChainId);
+        if (Store.state().purchases[fundingId].terms.version != 0) {
+            PersonalFundingLib.consume(fundingState(), accounts, config, fundingId);
+            return;
+        }
+        // Historical pledges/deposits may wind down after opt-in, but cannot claim the
+        // permanent consumed pointer of a newly opted-in service promise.
+        Consent.requireLegacy(config.poolingModule, funding.commitmentId);
+        Guard.requireSteward(config.hatsModule, funding.garden);
+        Guard.activeAccount(accounts, funding.garden, config.destinationEvmChainId);
         if (funding.state != ISettlementModule.FundingState.DepositRecorded) {
             revert ISettlementModule.CommitmentFundingNotInState(fundingId, funding.state);
         }
@@ -183,7 +200,7 @@ library SettlementFundingLib {
         ) {
             revert ISettlementModule.FundingClaimantMismatch(fundingId, funding.funder, commitment.counterparty);
         }
-        State storage state = _state();
+        State storage state = fundingState();
         uint256 existingFundingId = state.consumedFundingOfCommitment[funding.commitmentId];
         if (existingFundingId != 0 && existingFundingId != fundingId) {
             revert ISettlementModule.FundingRecordConflict(funding.commitmentId, funding.funder, existingFundingId);
@@ -195,8 +212,8 @@ library SettlementFundingLib {
     }
 
     function queueFundingRefund(
-        mapping(uint256 disbursementId => ISettlementModule.Disbursement disbursement) storage disbursements,
-        mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
+        mapping(uint256 => ISettlementModule.Disbursement) storage disbursements,
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
         RuntimeConfig memory config,
         uint256 nextDisbursementId,
         uint256 fundingId
@@ -204,71 +221,12 @@ library SettlementFundingLib {
         public
         returns (uint256 disbursementId, bool created)
     {
-        ISettlementModule.CommitmentFunding storage funding = _knownFunding(fundingId);
-        _requireSteward(config.hatsModule, funding.garden);
-        disbursementId = funding.refundDisbursementId;
-        if (disbursementId != 0) {
-            if (_state().fundingOfRefundDisbursement[disbursementId] != fundingId) {
-                revert ISettlementModule.FundingRefundAlreadyLinked(fundingId, disbursementId);
-            }
-            return (disbursementId, false);
-        }
-        if (funding.state == ISettlementModule.FundingState.Pledged) {
-            funding.state = ISettlementModule.FundingState.Withdrawn;
-            funding.closedAt = uint64(block.timestamp);
-            emit FundingWithdrawn(fundingId, funding.commitmentId, funding.funder, msg.sender);
-            return (0, false);
-        }
-        if (funding.state == ISettlementModule.FundingState.Consumed) {
-            ICommitmentPoolingModule.Commitment memory commitment =
-                ICommitmentPoolingModule(config.poolingModule).getCommitment(funding.commitmentId);
-            if (
-                commitment.state != ICommitmentPoolingModule.CommitmentState.Cancelled
-                    && commitment.state != ICommitmentPoolingModule.CommitmentState.Expired
-            ) revert ISettlementModule.FundingRefundNotEligible(fundingId);
-        } else if (funding.state != ISettlementModule.FundingState.DepositRecorded) {
-            revert ISettlementModule.FundingRefundNotEligible(fundingId);
-        }
-        if (config.paused) revert ISettlementModule.SourceMustBePaused();
-        ISettlementModule.SettlementAccount storage source =
-            _activeAccount(accounts, funding.garden, config.destinationEvmChainId);
-
-        disbursementId = nextDisbursementId;
-        if (disbursementId == 0) revert ISettlementModule.FundingConfigurationIncomplete();
-        funding.refundDisbursementId = disbursementId;
-        funding.state = ISettlementModule.FundingState.RefundQueued;
-        State storage state = _state();
-        state.fundingOfRefundDisbursement[disbursementId] = fundingId;
-        disbursements[disbursementId] = ISettlementModule.Disbursement({
-            commitmentId: funding.commitmentId,
-            payoutPlanId: 0,
-            contributor: funding.funder,
-            garden: funding.garden,
-            executorGarden: funding.garden,
-            kind: ISettlementModule.DisbursementKind.Refund,
-            fundingRoute: ISettlementModule.FundingRoute.None,
-            source: source.account,
-            recipient: funding.refundAccount,
-            token: config.gDollarToken,
-            amount: funding.depositedAmount,
-            state: ISettlementModule.DisbursementState.Queued,
-            batchId: 0,
-            reasonCID: "",
-            attempt: 0,
-            executionKey: bytes32(0),
-            commandMessageId: bytes32(0),
-            dispatchedAt: 0,
-            confirmedAt: 0,
-            acknowledgmentMessageId: bytes32(0),
-            failureCode: 0,
-            cancelledFromState: ISettlementModule.DisbursementState.None
-        });
-        _emitRefundQueued(disbursementId, funding, source.account, config.gDollarToken);
-        created = true;
+        return
+            SettlementFundingRefundLib.queue(fundingState(), disbursements, accounts, config, nextDisbursementId, fundingId);
     }
 
     function recheckRefund(
-        mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
         uint64 destinationEvmChainId,
         address gDollarToken,
         uint256 disbursementId,
@@ -277,37 +235,13 @@ library SettlementFundingLib {
         internal
         view
     {
-        State storage state = _state();
-        uint256 fundingId = state.fundingOfRefundDisbursement[disbursementId];
-        ISettlementModule.CommitmentFunding storage funding = state.fundings[fundingId];
-        if (
-            fundingId == 0 || funding.refundDisbursementId != disbursementId
-                || funding.state != ISettlementModule.FundingState.RefundQueued
-        ) revert ISettlementModule.FundingRefundAlreadyLinked(fundingId, disbursementId);
-        ISettlementModule.SettlementAccount storage source = _activeAccount(accounts, funding.garden, destinationEvmChainId);
-        if (
-            disbursement.commitmentId != funding.commitmentId || disbursement.payoutPlanId != 0
-                || disbursement.contributor != funding.funder || disbursement.garden != funding.garden
-                || disbursement.executorGarden != funding.garden || disbursement.source != source.account
-                || disbursement.recipient != funding.refundAccount || disbursement.token != gDollarToken
-                || disbursement.amount != funding.depositedAmount
-                || disbursement.kind != ISettlementModule.DisbursementKind.Refund
-                || disbursement.fundingRoute != ISettlementModule.FundingRoute.None
-        ) revert ISettlementModule.FundingRefundAlreadyLinked(fundingId, disbursementId);
+        SettlementFundingRefundLib.recheck(
+            fundingState(), accounts, destinationEvmChainId, gDollarToken, disbursementId, disbursement
+        );
     }
 
     function recordRefundOutcome(uint256 disbursementId, bool success) internal {
-        if (!success) return;
-        State storage state = _state();
-        uint256 fundingId = state.fundingOfRefundDisbursement[disbursementId];
-        if (fundingId == 0) return;
-        ISettlementModule.CommitmentFunding storage funding = state.fundings[fundingId];
-        if (funding.refundDisbursementId != disbursementId || funding.state != ISettlementModule.FundingState.RefundQueued)
-        {
-            revert ISettlementModule.FundingRefundAlreadyLinked(fundingId, disbursementId);
-        }
-        funding.state = ISettlementModule.FundingState.Refunded;
-        funding.closedAt = uint64(block.timestamp);
+        SettlementFundingRefundLib.recordOutcome(fundingState(), disbursementId, success);
     }
 
     function closeIfPlanComplete(SettlementPlanLib.State storage planState, uint256 payoutPlanId) public {
@@ -317,7 +251,7 @@ library SettlementFundingLib {
                     != ISettlementModule.PayoutPlanStatus.Complete
         ) return;
         ISettlementModule.CommitmentPayoutPlan storage plan = planState.payoutPlans[payoutPlanId];
-        State storage state = _state();
+        State storage state = fundingState();
         uint256 fundingId = state.consumedFundingOfCommitment[plan.commitmentId];
         if (fundingId == 0) return;
         ISettlementModule.CommitmentFunding storage funding = state.fundings[fundingId];
@@ -327,6 +261,7 @@ library SettlementFundingLib {
         if (funding.state != ISettlementModule.FundingState.Consumed) return;
         funding.state = ISettlementModule.FundingState.Closed;
         funding.closedAt = uint64(block.timestamp);
+        Outcome.complete(fundingId, payoutPlanId, false);
     }
 
     function getCommitmentFunding(uint256 fundingId)
@@ -338,11 +273,139 @@ library SettlementFundingLib {
     }
 
     function fundingOfCommitmentFunder(uint256 commitmentId, address funder) public view returns (uint256) {
-        return _state().fundingOfCommitmentFunder[commitmentId][funder];
+        return fundingState().fundingOfCommitmentFunder[commitmentId][funder];
     }
 
     function fundingRefundDisbursementOf(uint256 fundingId) public view returns (uint256) {
         return _knownFunding(fundingId).refundDisbursementId;
+    }
+
+    function pledgePersonalServicePurchase(
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
+        RuntimeConfig memory config,
+        Personal.PersonalPurchaseConsent calldata consent
+    )
+        public
+        returns (uint256 fundingId, bytes32 purchaseId)
+    {
+        _requireConfiguration(config);
+        return PersonalFundingLib.pledge(fundingState(), accounts, config, consent);
+    }
+
+    function recordPersonalServiceDeposit(
+        RuntimeConfig memory config,
+        uint256 fundingId,
+        Personal.VerifiedCeloDeposit calldata deposit
+    )
+        public
+    {
+        PersonalFundingLib.recordDeposit(fundingState(), config, fundingId, deposit);
+    }
+
+    function getPersonalServicePurchase(uint256 fundingId)
+        public
+        view
+        returns (Personal.PersonalServicePurchase memory purchase)
+    {
+        purchase = Store.state().purchases[fundingId];
+        if (purchase.terms.version != 1) revert Personal.UnknownPersonalServicePurchase(fundingId);
+    }
+
+    function fundingOfPersonalServicePurchase(bytes32 purchaseId) public view returns (uint256) {
+        return Store.state().fundingOfPurchase[purchaseId];
+    }
+
+    function personalServiceDepositFunding(
+        uint64 chainId,
+        bytes32 transactionHash,
+        uint32 logIndex
+    )
+        public
+        view
+        returns (uint256)
+    {
+        return Store.state().fundingOfVerifiedReceipt[Store.receiptKey(chainId, transactionHash, logIndex)];
+    }
+
+    function requireServicePayout(
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
+        RuntimeConfig memory config,
+        uint256 commitmentId,
+        uint256 payoutPlanId
+    )
+        internal
+        view
+    {
+        Outcome.validatePayout(fundingState(), accounts, config, commitmentId, payoutPlanId);
+    }
+
+    function requireServicePlan(
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
+        RuntimeConfig memory config,
+        SettlementPlanLib.State storage plans,
+        uint256 payoutPlanId
+    )
+        internal
+        view
+    {
+        Outcome.validatePlan(fundingState(), accounts, config, payoutPlanId, plans.payoutPlans[payoutPlanId]);
+    }
+
+    function selectPersonalPayout(uint256 commitmentId, uint256 payoutPlanId) internal {
+        Outcome.selectPayout(fundingState(), commitmentId, payoutPlanId);
+    }
+
+    function recheckPersonalDisbursement(
+        mapping(address => ISettlementModule.SettlementAccount) storage accounts,
+        RuntimeConfig memory config,
+        SettlementPlanLib.State storage plans,
+        uint256 disbursementId,
+        ISettlementModule.Disbursement storage entry
+    )
+        internal
+        view
+    {
+        if (
+            entry.kind == ISettlementModule.DisbursementKind.ContributorConsideration
+                || entry.kind == ISettlementModule.DisbursementKind.GardenBeneficiary
+        ) {
+            Outcome.validatePlan(
+                fundingState(), accounts, config, entry.payoutPlanId, plans.payoutPlans[entry.payoutPlanId]
+            );
+        } else if (
+            entry.kind == ISettlementModule.DisbursementKind.Refund
+                && Outcome.isPersonal(fundingState(), disbursementId, entry)
+        ) {
+            recheckRefund(accounts, config.destinationEvmChainId, config.gDollarToken, disbursementId, entry);
+        }
+    }
+
+    function rejectPersonalTerminalRecovery(
+        uint256 disbursementId,
+        ISettlementModule.Disbursement storage entry
+    )
+        internal
+        view
+    {
+        if (Outcome.isPersonal(fundingState(), disbursementId, entry)) {
+            revert Personal.PersonalServiceUnsafeRecovery(disbursementId);
+        }
+    }
+
+    function requirePersonalRequeue(
+        uint256 disbursementId,
+        ISettlementModule.Disbursement storage entry,
+        bool authenticatedFailure
+    )
+        internal
+        view
+    {
+        if (
+            Outcome.isPersonal(fundingState(), disbursementId, entry)
+                && (!authenticatedFailure || entry.failureCode == uint8(ISettlementModule.FailureCode.SourceStranded))
+        ) {
+            revert Personal.PersonalServiceUnsafeRecovery(disbursementId);
+        }
     }
 
     function _validatePledge(
@@ -372,61 +435,10 @@ library SettlementFundingLib {
         ) revert ISettlementModule.FundingClaimantMismatch(commitmentId, funder, claim.claimant);
     }
 
-    function _emitRefundQueued(
-        uint256 disbursementId,
-        ISettlementModule.CommitmentFunding storage funding,
-        address source,
-        address token
-    )
-        private
-    {
-        emit DisbursementQueued(
-            disbursementId,
-            funding.commitmentId,
-            funding.garden,
-            0,
-            funding.funder,
-            funding.garden,
-            uint8(ISettlementModule.DisbursementKind.Refund),
-            uint8(ISettlementModule.FundingRoute.None),
-            source,
-            funding.refundAccount,
-            token,
-            funding.depositedAmount
-        );
-    }
-
     function _knownFunding(uint256 fundingId) private view returns (ISettlementModule.CommitmentFunding storage funding) {
-        funding = _state().fundings[fundingId];
+        funding = fundingState().fundings[fundingId];
         if (funding.state == ISettlementModule.FundingState.None) {
             revert ISettlementModule.UnknownCommitmentFunding(fundingId);
-        }
-    }
-
-    function _activeAccount(
-        mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
-        address garden,
-        uint64 destinationEvmChainId
-    )
-        private
-        view
-        returns (ISettlementModule.SettlementAccount storage account)
-    {
-        account = accounts[garden];
-        if (account.account == address(0)) revert ISettlementModule.UnknownSettlementAccount(garden);
-        if (!account.active) revert ISettlementModule.SettlementAccountInactive(garden);
-        if (account.chainId != destinationEvmChainId) {
-            revert ISettlementModule.InvalidSettlementChain(account.chainId);
-        }
-    }
-
-    function _requireSteward(address hatsModule, address garden) private view {
-        if (hatsModule == address(0)) revert ISettlementModule.FundingConfigurationIncomplete();
-        if (
-            !IHatsModule(hatsModule).isStewardOf(garden, msg.sender)
-                && !IHatsModule(hatsModule).isOwnerOf(garden, msg.sender)
-        ) {
-            revert ISettlementModule.NotSettlementSteward(msg.sender, garden);
         }
     }
 
@@ -437,7 +449,7 @@ library SettlementFundingLib {
         ) revert ISettlementModule.FundingConfigurationIncomplete();
     }
 
-    function _state() private pure returns (State storage state) {
+    function fundingState() internal pure returns (State storage state) {
         bytes32 slot = _STATE_SLOT;
         assembly ("memory-safe") {
             state.slot := slot

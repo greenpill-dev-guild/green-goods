@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
@@ -19,7 +20,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog, type AdminDialogProps } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -182,15 +182,17 @@ export function DepositModal({
       actions={
         primaryAddress ? (
           <>
-            <AdminButton
+            <Button
               type="button"
-              variant="text"
+              emphasis="tertiary"
+              size="sm"
               onClick={onClose}
               disabled={depositMutation.isPending}
             >
               {formatMessage({ id: "app.common.cancel" })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
+              size="sm"
               type="button"
               onClick={onSubmit}
               disabled={
@@ -205,7 +207,7 @@ export function DepositModal({
               loading={depositMutation.isPending}
             >
               {formatMessage({ id: "app.treasury.deposit" })}
-            </AdminButton>
+            </Button>
           </>
         ) : null
       }
@@ -267,10 +269,11 @@ export function DepositModal({
                 }`}
                 inputProps={{ inputMode: "decimal" }}
               />
-              <AdminButton
-                variant="outlined"
-                size="sm"
-                className="w-full sm:mt-2 sm:w-auto"
+              <Button
+                type="button"
+                emphasis="secondary"
+                size="compact"
+                className="w-full sm:mt-8 sm:w-auto"
                 onClick={() => {
                   if (!balance) return;
                   form.setValue("amount", formatUnits(balance.value, balance.decimals), {
@@ -281,7 +284,7 @@ export function DepositModal({
                 disabled={!decimalsReady || depositMutation.isPending}
               >
                 {formatMessage({ id: "app.treasury.max" })}
-              </AdminButton>
+              </Button>
             </div>
             {!decimalsReady && selectedVault && (
               <p className="mt-1 type-body text-warning-dark" role="alert">

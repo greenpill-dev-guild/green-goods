@@ -8,7 +8,7 @@
  * @vitest-environment happy-dom
  */
 
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -106,10 +106,11 @@ describe("GardenChip", () => {
     await user.click(screen.getByRole("button"));
 
     // Should see both garden names and "Create Garden"; there is no all-gardens mode.
-    // "Wildflower Meadow" appears in both the trigger chip and the dropdown list
+    // "Wildflower Meadow" appears in both the trigger chip and the dropdown list. The menu's
+    // code arrives with the first press, so the list is awaited.
+    expect(await screen.findByText("Urban Composting")).toBeTruthy();
     expect(screen.queryByText("All Gardens")).toBeNull();
     expect(screen.getAllByText("Wildflower Meadow").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("Urban Composting")).toBeTruthy();
     expect(screen.getByText("Create Garden")).toBeTruthy();
   });
 
@@ -125,6 +126,7 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
+    await screen.findByText("Urban Composting");
     expect(screen.queryByText("All Gardens")).toBeNull();
     expect(onSelectGarden).not.toHaveBeenCalled();
   });
@@ -141,7 +143,7 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
-    const gardenBBtn = screen.getByText("Urban Composting").closest("button")!;
+    const gardenBBtn = (await screen.findByText("Urban Composting")).closest("button")!;
     await user.click(gardenBBtn);
 
     expect(onSelectGarden).toHaveBeenCalledWith(GARDEN_B);
@@ -160,7 +162,7 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
-    const createBtn = screen.getByText("Create Garden").closest("button")!;
+    const createBtn = (await screen.findByText("Create Garden")).closest("button")!;
     await user.click(createBtn);
 
     expect(onCreateGarden).toHaveBeenCalledOnce();
@@ -177,6 +179,7 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
+    await screen.findByText("Urban Composting");
     expect(screen.queryByText("Create Garden")).toBeNull();
   });
 
@@ -194,8 +197,94 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
+    await screen.findByText("Urban Composting");
     expect(screen.queryByText("Create Garden")).toBeNull();
     expect(onCreateGarden).not.toHaveBeenCalled();
+  });
+
+  // --------------------------------------------------------------------------
+  // The garden's banner as the avatar (DL-124) and the app's switcher callback
+  // --------------------------------------------------------------------------
+
+  const avatarOf = () =>
+    document.querySelector<HTMLElement>("[data-component='GardenChip'] [data-slot='avatar']");
+
+  it("shows the garden's banner as its avatar", () => {
+    const garden = { ...GARDEN_A, bannerImage: "https://example.org/meadow.jpg" };
+    render(<GardenChip gardens={[garden]} selectedGarden={garden} onSelectGarden={() => {}} />);
+
+    expect(avatarOf()?.querySelector("img")).toHaveAttribute("src", garden.bannerImage);
+    expect(avatarOf()?.querySelector("svg")).toBeNull();
+  });
+
+  it("draws the banner fallback tile, not the seedling, for a garden without a banner", () => {
+    const garden = { ...GARDEN_A, bannerImage: "" };
+    render(<GardenChip gardens={[garden]} selectedGarden={garden} onSelectGarden={() => {}} />);
+
+    const avatar = avatarOf();
+    expect(avatar?.querySelector("img")).toBeNull();
+    expect(avatar?.querySelector("svg")).toBeNull();
+    expect(avatar?.innerHTML).toContain("linear-gradient");
+  });
+
+  it("keeps the seedling tile for a caller that passes no banner", () => {
+    render(<GardenChip gardens={[GARDEN_A]} selectedGarden={GARDEN_A} onSelectGarden={() => {}} />);
+
+    expect(avatarOf()?.querySelector("svg")).not.toBeNull();
+    expect(avatarOf()?.querySelector("img")).toBeNull();
+  });
+
+  it("opens the caller's switcher with one garden too", async () => {
+    const onOpen = vi.fn();
+    render(
+      <GardenChip
+        gardens={[GARDEN_A]}
+        selectedGarden={GARDEN_A}
+        onSelectGarden={() => {}}
+        onOpen={onOpen}
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: /Wildflower Meadow/ });
+    expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    await user.click(trigger);
+
+    expect(onOpen).toHaveBeenCalledOnce();
+    expect(document.querySelector("[data-component='GardenChip'][data-slot='menu']")).toBeNull();
+  });
+
+  it("hands several gardens to the caller's switcher instead of its own menu", async () => {
+    const onOpen = vi.fn();
+    const onSelectGarden = vi.fn();
+    render(
+      <GardenChip
+        gardens={[GARDEN_A, GARDEN_B]}
+        selectedGarden={GARDEN_A}
+        onSelectGarden={onSelectGarden}
+        onOpen={onOpen}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /Wildflower Meadow/ }));
+
+    expect(onOpen).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Urban Composting")).toBeNull();
+    expect(onSelectGarden).not.toHaveBeenCalled();
+  });
+
+  it("names an empty choice with the caller's label", () => {
+    render(
+      <GardenChip
+        gardens={[GARDEN_A, GARDEN_B]}
+        selectedGarden={null}
+        onSelectGarden={() => {}}
+        onOpen={() => {}}
+        emptyLabel="Choose a Garden"
+      />
+    );
+
+    expect(screen.getByRole("button")).toHaveTextContent("Choose a Garden");
+    expect(screen.getByRole("button")).not.toHaveTextContent("Select Garden");
   });
 
   it("truncates long garden names with title attribute", () => {
@@ -241,10 +330,10 @@ describe("GardenChip", () => {
 
     await user.click(trigger);
 
-    const menu = document.querySelector<HTMLElement>(
-      "[data-component='GardenChip'][data-slot='menu']"
-    );
-    expect(menu).toBeTruthy();
+    const menuOnScreen = () =>
+      document.querySelector<HTMLElement>("[data-component='GardenChip'][data-slot='menu']");
+    await waitFor(() => expect(menuOnScreen()).toBeTruthy());
+    const menu = menuOnScreen();
     expect(menu?.style.width).toBe("max-content");
     expect(menu?.style.maxWidth).toBe("calc(100vw - 2rem)");
   });

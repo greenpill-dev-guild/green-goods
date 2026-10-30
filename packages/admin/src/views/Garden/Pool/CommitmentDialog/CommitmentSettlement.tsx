@@ -1,7 +1,8 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import type {
   CommitmentDialogController,
   CommitmentSettlementController,
@@ -12,7 +13,6 @@ import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment
 import { RiRefreshLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { formatGdollar, shortAddress } from "../poolFundingPresentation";
@@ -184,18 +184,18 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
             <Alert
               variant="error"
               action={
-                <AdminButton
+                <Button
                   type="button"
-                  variant="text"
-                  size="sm"
-                  leadingIcon={<RiRefreshLine className="h-4 w-4" />}
+                  emphasis="tertiary"
+                  size="compact"
+                  leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
                   onClick={() => void settlement.refetch()}
                 >
                   {formatMessage({
                     id: "cockpit.garden.pool.settlement.retry",
                     defaultMessage: "Read Again",
                   })}
-                </AdminButton>
+                </Button>
               }
             >
               {formatMessage({
@@ -283,16 +283,16 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
 
           {nextAction ? (
             <div className="flex justify-end">
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
-                size="sm"
+                emphasis="primary"
+                size="compact"
                 onClick={() => setReview(nextAction)}
                 disabled={settlement.isActing}
                 loading={settlement.isActing}
               >
                 {actionLabel(nextAction, intl, who)}
-              </AdminButton>
+              </Button>
             </div>
           ) : null}
 

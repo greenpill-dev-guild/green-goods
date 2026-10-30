@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
 import { useGardenRoleHat } from "@green-goods/shared/hooks/roles/useGardenRoleHat";
@@ -14,7 +16,6 @@ import { type ReactNode, useId, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { EnsAddressText } from "@/components/EnsAddressText";
-import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { AdminSelect, AdminTextField } from "../AdminTextField";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
@@ -357,17 +358,24 @@ export function AddMembersDialog({
         })}
         actions={
           <>
-            <AdminButton type="button" variant="text" onClick={closeAndReset} disabled={busy}>
+            <Button
+              type="button"
+              emphasis="tertiary"
+              size="sm"
+              onClick={closeAndReset}
+              disabled={busy}
+            >
               {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
+              size="sm"
               type="submit"
               form={formId}
               loading={submitResolving || submitting}
               disabled={busy || batchCount === 0 || typedInputInvalid || resolvingEns}
             >
               {submitLabel}
-            </AdminButton>
+            </Button>
           </>
         }
       >
@@ -407,26 +415,31 @@ export function AddMembersDialog({
                   "aria-describedby": statusId,
                 }}
               />
-              <div className="flex items-center gap-2 pt-1.5">
-                <AdminIconButton
+              <div className="flex items-center gap-2 pt-1.5 sm:pt-7.5">
+                <IconButton
+                  size="sm"
                   onClick={handlePaste}
                   disabled={busy}
-                  label={formatMessage({
+                  aria-label={formatMessage({
                     id: "admin.addMember.paste",
                     defaultMessage: "Paste from Clipboard",
                   })}
-                >
-                  <RiClipboardLine />
-                </AdminIconButton>
-                <AdminButton
+                  title={formatMessage({
+                    id: "admin.addMember.paste",
+                    defaultMessage: "Paste from Clipboard",
+                  })}
+                  icon={<RiClipboardLine />}
+                />
+                <Button
                   type="button"
-                  variant="tonal"
+                  emphasis="secondary"
+                  size="sm"
                   onClick={() => handleAddToList()}
                   disabled={busy || !typedEntryCommitReady || resolvingEns}
-                  leadingIcon={<RiAddLine />}
+                  leadingIcon={<RiAddLine className="h-[18px] w-[18px]" aria-hidden="true" />}
                 >
                   {formatMessage({ id: "admin.addMember.addToList", defaultMessage: "Add" })}
-                </AdminButton>
+                </Button>
               </div>
             </div>
             {/* Always mounted so screen readers hear each change; guidance is

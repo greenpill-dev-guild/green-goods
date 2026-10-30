@@ -1,58 +1,58 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
-import { GardenCard, type GardenCardData } from "./GardenCard";
+import { useState } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { FIXTURE_IMAGE_BANNER } from "../../../../.storybook/fixtures";
+import { MediaCardSkeleton } from "../MediaCard";
+import { GardenCard, type GardenCardData, GardenPicker } from "./GardenCard";
 
-const mockGarden: GardenCardData = {
+const GARDEN: GardenCardData = {
   id: "garden-1",
   name: "Community Permaculture Garden",
   location: "Portland, OR",
-  description:
-    "A community-driven permaculture space focused on native plants and sustainable growing practices.",
-  bannerImage: "https://picsum.photos/800/400?random=1",
-  gardeners: ["0x1234...5678", "0x2345...6789", "0x3456...7890"],
-  stewards: ["0xabcd...efgh"],
+  bannerImage: FIXTURE_IMAGE_BANNER,
+  // A steward who also gardens is one member (DL-049): three people here.
+  gardeners: ["0x1111", "0x2222", "0x3333"],
+  stewards: ["0x1111"],
 };
+
+const GARDENS: GardenCardData[] = [
+  GARDEN,
+  {
+    id: "garden-2",
+    name: "Ìbàdàn Food Forest",
+    location: "Ìbàdàn, Oyo State, Nigeria",
+    gardeners: ["0x4444", "0x5555"],
+    stewards: ["0x6666"],
+  },
+  {
+    id: "garden-3",
+    name: "Riverside Cooperative Garden and Seed Library for the East Bank",
+    gardeners: ["0x7777"],
+    stewards: [],
+  },
+];
+
+/** A list column at a phone's width, 12px between cards. */
+function Column({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-(--gg-list-gap)" style={{ width: 358 }}>
+      {children}
+    </div>
+  );
+}
 
 const meta: Meta<typeof GardenCard> = {
   title: "Shared/Cards/GardenCard",
   component: GardenCard,
-  tags: ["autodocs"],
-  // A card is a button only when it has something to open.
-  args: { onClick: fn() },
-  argTypes: {
-    media: {
-      control: "select",
-      options: ["large", "small"],
-      description: "Media size variant",
-    },
-    height: {
-      control: "select",
-      options: ["home", "selection", "default"],
-      description: "Card height variant",
-    },
-    interactive: {
-      control: "boolean",
-      description: "Whether card is clickable",
-    },
-    selected: {
-      control: "boolean",
-      description: "Selection state",
-    },
-    showStewards: {
-      control: "boolean",
-      description: "Show stewards section",
-    },
-    showStats: {
-      control: "boolean",
-      description: "Show garden stats badges",
-    },
-    showDescription: {
-      control: "boolean",
-      description: "Show description",
-    },
-    showBanner: {
-      control: "boolean",
-      description: "Show banner image",
+  tags: ["autodocs", "storybook-ci"],
+  args: { garden: GARDEN, onClick: fn() },
+  argTypes: { selected: { control: "boolean" } },
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "A garden in the installed app: the shared media card with the garden's banner (its photo, or its name's gradient), its name on one line, and how many members, then where. Home's list opens a garden from it; Submit Work chooses one with `GardenPicker`, the action picker's listbox.",
+      },
     },
   },
 };
@@ -60,144 +60,68 @@ const meta: Meta<typeof GardenCard> = {
 export default meta;
 type Story = StoryObj<typeof GardenCard>;
 
-export const Default: Story = {
-  args: {
-    garden: mockGarden,
+/** Home's list: each card opens its garden. */
+export const HomeList: Story = {
+  render: (args) => (
+    <Column>
+      {GARDENS.map((garden) => (
+        <GardenCard key={garden.id} {...args} garden={garden} />
+      ))}
+    </Column>
+  ),
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const card = canvas.getByRole("button", { name: /Community Permaculture Garden/ });
+    await expect(card).toHaveAccessibleName(/3 members.*Portland, OR/);
+    await userEvent.click(card);
+    await expect(args.onClick).toHaveBeenCalledTimes(1);
+    // A garden with no place says only its members.
+    await expect(canvas.getByRole("button", { name: /Riverside/ })).toHaveAccessibleName(
+      /1 member$/
+    );
   },
 };
 
-export const Selected: Story = {
-  args: {
-    garden: mockGarden,
-    selected: true,
-  },
-};
-
-export const WithStewards: Story = {
-  args: {
-    garden: mockGarden,
-    showStewards: true,
-  },
-};
-
-export const WithDescription: Story = {
-  args: {
-    garden: mockGarden,
-    showDescription: true,
-  },
-};
-
-export const NoBanner: Story = {
-  args: {
-    garden: {
-      ...mockGarden,
-      bannerImage: undefined,
-    },
-  },
-};
-
-export const SelectionHeight: Story = {
-  args: {
-    garden: mockGarden,
-    height: "selection",
-  },
-};
-
-export const MinimalSelection: Story = {
-  args: {
-    garden: mockGarden,
-    media: "small",
-    height: "selection",
-    showStats: false,
-    showStewards: false,
-  },
-};
-
-export const SmallMedia: Story = {
-  args: {
-    garden: mockGarden,
-    media: "small",
-  },
-};
-
-export const NonInteractive: Story = {
-  args: {
-    garden: mockGarden,
-    interactive: false,
-  },
-};
-
-export const CardGrid: Story = {
+/** While gardens load, empty cards hold their place. */
+export const Loading: Story = {
   render: () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <GardenCard garden={mockGarden} />
-      <GardenCard
-        garden={{
-          ...mockGarden,
-          id: "garden-2",
-          name: "Urban Food Forest",
-          location: "Seattle, WA",
-          bannerImage: "https://picsum.photos/800/400?random=2",
-        }}
-      />
-      <GardenCard
-        garden={{
-          ...mockGarden,
-          id: "garden-3",
-          name: "Rooftop Vegetables",
-          location: "San Francisco, CA",
-          bannerImage: undefined,
-        }}
-      />
-      <GardenCard
-        garden={{
-          ...mockGarden,
-          id: "garden-4",
-          name: "Medicinal Herbs Garden",
-          location: "Denver, CO",
-          bannerImage: "https://picsum.photos/800/400?random=4",
-        }}
-        selected
-      />
-    </div>
+    <Column>
+      <MediaCardSkeleton mediaShape="banner" />
+      <MediaCardSkeleton mediaShape="banner" />
+    </Column>
   ),
 };
 
-export const SelectionList: Story = {
-  render: () => (
-    <div className="flex flex-col gap-3 max-w-md">
-      <GardenCard garden={mockGarden} height="selection" />
-      <GardenCard
-        garden={{
-          ...mockGarden,
-          id: "garden-2",
-          name: "Urban Food Forest",
-        }}
-        height="selection"
-        selected
-      />
-      <GardenCard
-        garden={{
-          ...mockGarden,
-          id: "garden-3",
-          name: "Rooftop Vegetables",
-          bannerImage: undefined,
-        }}
-        height="selection"
+/** A garden picker that holds its own choice, the way Submit Work does. */
+function PickerHarness() {
+  const [value, setValue] = useState<string | null>(null);
+  return (
+    <div style={{ width: 390 }} className="overflow-hidden px-4">
+      <GardenPicker
+        gardens={GARDENS}
+        value={value}
+        onChange={setValue}
+        label="Garden"
+        layout="row"
+        className="-mx-4 scroll-px-4 px-4"
       />
     </div>
-  ),
-};
+  );
+}
 
-export const DarkMode: Story = {
-  args: {
-    garden: mockGarden,
+/** Submit Work: the gardens as the action picker's listbox, in one row that scrolls sideways. */
+export const Picker: Story = {
+  // storybook-quality-allow state-harness: PickerHarness owns the choice while rendering the real GardenPicker.
+  render: () => <PickerHarness />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const cards = canvas.getAllByRole("option");
+    await userEvent.tab();
+    await expect(cards[0]).toHaveFocus();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect(cards[1]).toHaveFocus();
+    await expect(cards[1]).toHaveAttribute("aria-selected", "false");
+    await userEvent.keyboard(" ");
+    await expect(cards[1]).toHaveAttribute("aria-selected", "true");
   },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
 };

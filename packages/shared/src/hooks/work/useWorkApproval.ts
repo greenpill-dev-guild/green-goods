@@ -92,6 +92,9 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         queryClient.invalidateQueries({
           queryKey: worksKeys.merged(lastGardenRef.current, chainId),
         });
+        queryClient.invalidateQueries({
+          queryKey: worksKeys.activity(lastGardenRef.current, chainId),
+        });
       }
       queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
     }, [queryClient, chainId]),
@@ -152,6 +155,11 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         }),
         queryClient.invalidateQueries({
           queryKey: worksKeys.merged(completion.gardenId, chainId),
+        }),
+        // The bell's week of activity lists works outside the garden's page, and Home stays
+        // mounted under the work page, so a decided submission would otherwise stay new there.
+        queryClient.invalidateQueries({
+          queryKey: worksKeys.activity(completion.gardenId, chainId),
         }),
         queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all }),
         queryClient.invalidateQueries({ queryKey: approvalsKeys.all }),

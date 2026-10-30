@@ -98,10 +98,7 @@ describe("AccountProfileAvatarEditor", () => {
     const user = userEvent.setup();
     render(<AccountProfileAvatarEditor fallbackInitials="GG" />);
     await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
-    expect(screen.getByRole("button", { name: /remove photo/i })).toHaveAttribute(
-      "data-component",
-      "AdminButton"
-    );
+    expect(screen.getByRole("button", { name: /remove photo/i })).toHaveClass("gg-button");
     await user.click(screen.getByRole("button", { name: /remove photo/i }));
     expect(screen.getByRole("alertdialog", { name: "Remove profile photo?" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -112,7 +109,7 @@ describe("AccountProfileAvatarEditor", () => {
     await user.click(screen.getAllByRole("button", { name: /remove photo/i })[1]!);
     expect(mocks.clear).toHaveBeenCalledTimes(1);
   });
-  it("stages and publishes a replacement through the admin button surface", async () => {
+  it("stages and publishes a replacement through the shared button", async () => {
     const user = userEvent.setup();
     render(<AccountProfileAvatarEditor fallbackInitials="GG" />);
     await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
@@ -122,7 +119,7 @@ describe("AccountProfileAvatarEditor", () => {
     expect((screen.getByLabelText(/choose photo/i) as HTMLInputElement).files).toHaveLength(0);
     expect(screen.getByText(/draft photo has not been published/i)).toBeVisible();
     const replace = screen.getByRole("button", { name: /replace photo/i });
-    expect(replace).toHaveAttribute("data-component", "AdminButton");
+    expect(replace).toHaveClass("gg-button");
     await user.click(replace);
 
     expect(mocks.save).toHaveBeenCalledWith(file);

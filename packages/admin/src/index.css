@@ -3,7 +3,6 @@
 /* Startup and recovery remain styled without downloading the workspace.
  * admin-workspace.css scans the remaining admin and shared components. */
 @source "./components/Boot/BootSurface.tsx";
-@source "./components/AdminButton.tsx";
 @source "./components/AdminLoadingScreen.tsx";
 @source "./components/Layout/ConnectPrompt.tsx";
 @source "../../shared/src/components/ErrorBoundary/ErrorBoundary.tsx";
@@ -117,9 +116,9 @@
      ride the shared Button / IconButton / Chip / control classes, which read
      these tokens: pills, one 14px / 500 label, the 28 / 32 / 40 tiers (the
      app's four sizes collapse onto the cockpit's three: lg and md land on 40,
-     sm on 32, compact on 28) and the 44px finger box. Keep in step with
-     AdminButton and the Storybook admin scope
-     (packages/shared/.storybook/surfaces.css); AdminDensityScale.guard pins both. */
+     sm on 32, compact on 28) and the 44px finger box. Keep in step with the
+     Storybook admin scope (packages/shared/.storybook/surfaces.css);
+     AdminDensityScale.guard pins both. */
   --gg-button-radius: var(--radius-full);
   --gg-button-radius-pressed: var(--radius-full);
   --gg-button-radius-compact: var(--radius-full);
@@ -140,6 +139,33 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  /* The cockpit's buttons are the shared family (DL-115, DL-119), and these keep
+     its look on it: buttons keep still while pressed, icon buttons stay circles
+     with an 18px glyph, and a disabled button takes the neutral pair (a 12% ink
+     fill under a 38% ink label) instead of a dim, while an aria-disabled one
+     keeps its pointer so a reason given on hover shows. The pair resolves per
+     theme, so the dark block below re-declares it. Each size is capped at its
+     block, as the cockpit's fixed-height pill was, so a row that stretches its
+     items never grows a button, and keeps the block margin the hit-target
+     classes reserved, 6px around the 28 and 32px tiers and 2px around 40px, so
+     the finger boxes of a wrapped row never overlap and the rows laid out
+     around that room keep their rhythm. A shared piece's own buttons take
+     neither (data-piece-control, theme.css). */
+  --gg-button-block-cap-lg: var(--gg-button-block-lg);
+  --gg-button-block-cap-md: var(--gg-button-block-md);
+  --gg-button-block-cap-sm: var(--gg-button-block-sm);
+  --gg-button-block-cap-compact: var(--gg-button-block-compact);
+  --gg-button-reserve-lg: 0.125rem;
+  --gg-button-reserve-md: 0.125rem;
+  --gg-button-reserve-sm: 0.375rem;
+  --gg-button-reserve-compact: 0.375rem;
+  --gg-button-pressed-transform: none;
+  --gg-icon-button-glyph: 1.125rem;
+  --gg-icon-button-radius-pressed: var(--radius-full);
+  --gg-button-disabled-opacity: 1;
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
+  --gg-button-aria-disabled-events: auto;
   /* Shared fields, secondary buttons and chips take the cockpit's
      control-grade outline (4.8:1 on white, 6.1:1 on the dark card), the boundary its own
      Admin* controls already draw, and focus draws one solid 2px ring in the
@@ -147,6 +173,21 @@
   --gg-control-outline: var(--m3-outline);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
+  /* The message line under every field (F3) reserves this many lines, so a
+     message that fits never moves the form. Two, like the installed app's: at
+     640px, 6 of the 32 messages under side-by-side fields wrap in English,
+     Spanish and Portuguese, so one line would let them move the form. */
+  --gg-field-message-lines: 2;
+  /* A selected chip answers a hover or a press with the neutral ink layer at the
+     cockpit's state opacities, beneath its label (Rule 18, DL-116). */
+  --gg-chip-state-hover: var(--m3-state-hover);
+  --gg-chip-state-pressed: var(--m3-state-pressed);
+
+  /* The state block's calm mark stays neutral: a quiet ink tint and the sub
+     ink, where the app draws its green, because the workspace tone is held to
+     its budget (Rule 18). Warnings and failures keep their status tints. */
+  --gg-state-mark-fill: rgb(var(--text-strong-950) / 0.06);
+  --gg-state-mark-ink: rgb(var(--text-sub-600));
 
   /* The type roles at the cockpit's density: the app's names (shared theme.css)
      on the cockpit's 14px scale. Titles 22 / 16 / 14, body and labels 14, small
@@ -176,12 +217,75 @@
   --gg-type-field-size: 1rem;
   --gg-type-field-line: 1.25rem;
   --gg-type-field-tracking: 0px;
+  /* A card's one-line title at the cockpit's density: 13px at 600 (F7). */
+  --gg-type-card-title-size: 0.8125rem;
+  --gg-type-card-title-line: 1.125rem;
+  --gg-type-card-title-weight: 600;
+
+  /* The phone sheet (F5): below 640px the cockpit's dialogs take the shared
+     bottom sheet's material, grip and header. The sheet is the card step of the
+     one ladder with the card's hairline, as in the installed app (white and
+     neutral-200 in light; the dark block below re-declares both so a dark scope
+     resolves its own), and the header keeps the cockpit's 22px dialog title. */
+  --gg-sheet-fill: rgb(var(--admin-surface-0));
+  --gg-sheet-edge: rgb(var(--neutral-200));
+  --gg-sheet-title-size: var(--gg-type-title-lg-size);
+  --gg-sheet-title-line: var(--gg-type-title-lg-line);
+
+  /* The shared card surface (F7) on the cockpit's own ladder: its white card,
+     which flips to the warm card step in dark (re-declared in the dark block
+     below, since this value resolves where it is declared), with the installed
+     app's linen-grade edge and the fills a card carries. */
+  --gg-card-surface: var(--admin-surface-0);
+  --gg-card-edge: var(--neutral-200);
+  --gg-card-fill: var(--m3-surface-container-high);
 }
 
 @media (min-width: 40rem) {
   :root {
     --gg-type-field-size: 0.875rem;
   }
+}
+
+/* The phone sheet in dark: the lifted card (earth-850) and its hairline. The
+   disabled button pair, re-declared so a dark scope resolves its own ink. */
+[data-theme="dark"] {
+  --gg-sheet-fill: rgb(var(--admin-surface-0));
+  --gg-sheet-edge: rgb(var(--earth-700));
+  --gg-button-disabled-fill: rgb(var(--m3-on-surface) / 0.12);
+  --gg-button-disabled-ink: rgb(var(--m3-on-surface) / 0.38);
+}
+
+/* Two looks a call site's utility classes would otherwise beat, since the shared
+   rules sit in the components layer and these sit outside every layer (DL-119).
+   An icon button's glyph takes its tier, 18px or 16px at 28px, whatever size
+   class the icon carries; a shared piece's own icon buttons keep the sizes the
+   piece gives them. A disabled or loading button takes the neutral pair over a
+   call site's color classes, as the fixed pill's disabled classes did. */
+.gg-icon-button:not([data-piece-control]) svg {
+  inline-size: var(--gg-icon-button-glyph, 1.25rem);
+  block-size: var(--gg-icon-button-glyph, 1.25rem);
+}
+
+.gg-icon-button[data-size="compact"]:not([data-piece-control]) svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+.gg-button[data-emphasis]:is(:disabled, [aria-disabled="true"]) {
+  background: var(--gg-button-disabled-fill, var(--gg-button-fill));
+  color: var(--gg-button-disabled-ink, var(--gg-button-ink));
+}
+
+.gg-icon-button:is([data-emphasis="primary"], [data-emphasis="secondary"]):is(
+    :disabled,
+    [aria-disabled="true"]
+  ) {
+  background-color: var(--gg-button-disabled-fill, var(--gg-icon-button-fill));
+}
+
+.gg-icon-button:is(:disabled, [aria-disabled="true"]) {
+  color: var(--gg-button-disabled-ink, var(--gg-icon-button-ink));
 }
 
 /* Base layer: Admin-specific element resets */
@@ -353,10 +457,11 @@
     rgb(var(--admin-surface-50)) 0%,
     rgb(var(--admin-surface-0)) 100%
   );
+  /* The Hub's empty, error and loading frame is a solid surface (DL-108). */
   --admin-empty-state-bg: linear-gradient(
     180deg,
-    rgb(var(--admin-surface-0) / 0.62) 0%,
-    rgb(var(--admin-surface-50) / 0.82) 100%
+    rgb(var(--admin-surface-0)) 0%,
+    rgb(var(--admin-surface-50)) 100%
   );
   --admin-workbench-icon-bg: rgb(var(--bg-soft-200));
   --admin-skeleton-shimmer: linear-gradient(
@@ -420,6 +525,12 @@
    * .canvas-route-card read cold/flat. Now a warm, elevated plane. */
   --admin-surface-0: var(--m3-surface-container);     /* 32 25 19 — warm card */
   --admin-surface-50: var(--m3-surface-container-low); /* 24 19 13 — recessed */
+  /* The shared card surface in dark (F7, F13): the warm card step, the
+     installed app's hairline (12% of the ink over the card) and the fill one
+     step above the card, re-declared so a dark scope resolves its own. */
+  --gg-card-surface: var(--admin-surface-0);
+  --gg-card-edge: var(--earth-700);
+  --gg-card-fill: var(--m3-surface-container-high);
   /* Restore a warm-brown shadow tint (was 0 0 0 — pure black, zero warmth) so the
    * large-blur chrome/sheet shadows that DO render on dark carry Warm Earth. */
   --warm-shadow: 30 22 14;
@@ -446,8 +557,8 @@
   );
   --admin-empty-state-bg: linear-gradient(
     180deg,
-    rgb(var(--neutral-900) / 0.72) 0%,
-    rgb(var(--neutral-950) / 0.86) 100%
+    rgb(var(--neutral-900)) 0%,
+    rgb(var(--neutral-950)) 100%
   );
   --admin-workbench-icon-bg: rgb(var(--bg-sub-300));
   --admin-skeleton-shimmer: linear-gradient(
@@ -666,15 +777,6 @@
     animation: fade-in-up var(--spring-spatial-duration) var(--spring-spatial-easing) both;
   }
 
-  /* Legacy shared Card surfaces (`glass-raised` from CardBase/Surface) rendered
-   * inside admin routes stay solid white cards — glass is reserved for the
-   * navigation chrome. Pending those consumers' migration to Admin* wrappers. */
-  .admin-m3 .canvas-area-main .glass-raised {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: rgb(var(--admin-surface-0));
-  }
-
   /* ── Glass Surface ── Shared frosted treatment
    * In admin, Controlled Chrome owns glass surfaces; M3 overrides neutralize
    * dense chrome/content where glass would reduce readability.
@@ -801,27 +903,6 @@
   line-height: var(--type-body-sm-lh, 1rem);
   letter-spacing: var(--type-body-sm-ls, 0.025rem);
   font-weight: 400;
-}
-
-.admin-m3 [data-component="EmptyState"] {
-  padding-block: clamp(3rem, 8vh, 5rem);
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="icon"] {
-  width: 4.5rem;
-  height: 4.5rem;
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="title"] {
-  font-size: var(--type-title-lg, 1.375rem);
-  line-height: var(--type-title-lg-lh, 1.75rem);
-  font-weight: 600;
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="description"] {
-  max-width: 34rem;
-  font-size: var(--type-body-lg, 1rem);
-  line-height: var(--type-body-lg-lh, 1.5rem);
 }
 
 .main-scroll-area::-webkit-scrollbar-track {

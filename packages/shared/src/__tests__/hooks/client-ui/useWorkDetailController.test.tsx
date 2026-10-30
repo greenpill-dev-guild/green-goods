@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   sender: null as null | { authMode: string },
   lookupResult: null as null | Record<string, unknown>,
   queuedLoading: false,
+  online: true,
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.userId }));
@@ -87,7 +88,7 @@ vi.mock("../../../hooks/app/useNavigateToTop", () => ({
 }));
 
 vi.mock("../../../hooks/app/useOnlineStatus", () => ({
-  useOnlineStatus: () => true,
+  useOnlineStatus: () => mocks.online,
 }));
 
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
@@ -136,6 +137,7 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 import { useWorkDetailController } from "../../../hooks/client-ui/work/useWorkDetailController";
 import { useUIStore } from "../../../stores/useUIStore";
 import { createMockAction } from "../../test-utils/mock-factories";
+import { queuedTakeUpChain } from "../../test-utils/queued-jobs";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -187,6 +189,45 @@ function OlderWorkWrapper({ children }: { children: ReactNode }) {
   );
 }
 
+/** The older work, opened from a notification row that carried its record in the route's state. */
+function carriedWorkWrapper(carried: Record<string, unknown>) {
+  return function CarriedWorkWrapper({ children }: { children: ReactNode }) {
+    return createElement(
+      MemoryRouter,
+      {
+        initialEntries: [
+          {
+            pathname: "/home/garden-1/work/work-older",
+            state: { from: "home", returnTo: "/home", work: carried },
+          },
+        ],
+      },
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: {} },
+        createElement(
+          Routes,
+          null,
+          createElement(Route, { path: "/home/:id/work/:workId", element: children })
+        )
+      )
+    );
+  };
+}
+
+const OLDER_ROW = {
+  id: "work-older",
+  title: "Fresh work",
+  gardenAddress: "garden-1",
+  gardenerAddress: "0x2222222222222222222222222222222222222222",
+  actionUID: 1,
+  feedback: "",
+  media: [],
+  metadata: "{}",
+  createdAt: 1,
+  approval: null,
+};
+
 describe("useWorkDetailController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -198,6 +239,7 @@ describe("useWorkDetailController", () => {
     mocks.sender = null;
     mocks.lookupResult = null;
     mocks.queuedLoading = false;
+    mocks.online = true;
   });
 
   it("opens older reviewed work through the direct UID read", () => {
@@ -220,6 +262,49 @@ describe("useWorkDetailController", () => {
 
     expect(result.current.work?.title).toBe("Older work");
     expect(result.current.work?.status).toBe("rejected");
+  });
+
+  // A notification row can list a work outside the garden's loaded page, and offline the direct
+  // read of it is paused, so the record the row carried is what opens it.
+  it.each([
+    ["the record its notification carried, offline", "garden-1", false, "Cached work"],
+    ["nothing for a carried record from another garden", "garden-2", false, undefined],
+    ["the fetched record over the carried one, online", "garden-1", true, "Fresh work"],
+  ] as const)("opens %s", (_case, carriedGarden, fetched, expected) => {
+    mocks.online = fetched;
+    mocks.lookupResult = fetched ? OLDER_ROW : null;
+    const carried = {
+      ...OLDER_ROW,
+      approval: undefined,
+      title: "Cached work",
+      gardenAddress: carriedGarden,
+      status: "pending",
+    };
+
+    const { result } = renderHook(() => useWorkDetailController(), {
+      wrapper: carriedWorkWrapper(carried),
+    });
+
+    expect(result.current.work?.title).toBe(expected);
+  });
+
+  // Online, a carried row may be stale, so only the direct read can open the work.
+  it("opens nothing from a carried record online while the direct read has none", () => {
+    mocks.online = true;
+    mocks.lookupResult = null;
+    const carried = {
+      ...OLDER_ROW,
+      approval: undefined,
+      title: "Cached work",
+      gardenAddress: "garden-1",
+      status: "pending",
+    };
+
+    const { result } = renderHook(() => useWorkDetailController(), {
+      wrapper: carriedWorkWrapper(carried),
+    });
+
+    expect(result.current.work).toBeUndefined();
   });
 
   it("keeps the detail loading while its queued work is still reading from this device", () => {
@@ -291,6 +376,66 @@ describe("useWorkDetailController", () => {
     } finally {
       confirm.mockRestore();
     }
+  });
+
+  describe("Upload now on a work whose promise is still being taken up (decision 18)", () => {
+    const chain = () => {
+      const { claim, work } = queuedTakeUpChain();
+      return [claim, { ...work, id: "work-1" }];
+    };
+
+    it("sends the take-up first, then the work, as the member's own tap", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+      const { connectivityStore } = await import("../../../stores/connectivity");
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+      vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
+      vi.mocked(jobQueue.processJob).mockResolvedValue({ success: true, txHash: "0x1" });
+      try {
+        const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+        await act(async () => {
+          await result.current.retry();
+        });
+
+        expect(jobQueue.retryJob).toHaveBeenCalledWith("take-up");
+        expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
+          "take-up",
+          "work-1",
+        ]);
+      } finally {
+        confirm.mockRestore();
+      }
+    });
+
+    it("stops at a take-up that does not land and says so, sending none of the work", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+      const { toastService } = await import("../../../components/Toast/toast.service");
+      const { connectivityStore } = await import("../../../stores/connectivity");
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+      vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
+      vi.mocked(jobQueue.processJob).mockResolvedValue({
+        success: false,
+        error: "execution reverted",
+      });
+      try {
+        const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+        await act(async () => {
+          await result.current.retry();
+        });
+
+        expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
+          "take-up",
+        ]);
+        expect(toastService.error).toHaveBeenCalledWith(
+          expect.objectContaining({ title: "app.garden.takeUp.failed.title" })
+        );
+      } finally {
+        confirm.mockRestore();
+      }
+    });
   });
 
   it("projects steward, gardener, and viewer modes with steward precedence", () => {

@@ -77,6 +77,11 @@ export interface CommitmentReadModel {
    * comparing this field directly.
    */
   counterparty?: Address | null;
+  /**
+   * When it was taken up (`CommitmentAccepted`), in seconds, kept when a later state wins.
+   * Null before anyone takes it up.
+   */
+  acceptanceAt?: number | null;
   /** Who recorded this on someone else's behalf. Null until creation is seen. */
   recordedBy?: Address | null;
   /**

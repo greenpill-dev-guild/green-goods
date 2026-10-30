@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { browserTranslator } from "@green-goods/shared/modules/translation/browser-translator";
 import type {
   ActionInstructionConfig,
@@ -21,7 +22,6 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckboxCircleLine, RiRefreshLine, RiTranslate2 } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
@@ -501,12 +501,12 @@ export function ActionTranslationEditor({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <AdminButton
+        <Button
           type="button"
-          variant="outlined"
-          size="sm"
+          emphasis="secondary"
+          size="compact"
           loading={generatingLocale === activeLocale}
-          leadingIcon={<RiRefreshLine />}
+          leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
           onClick={() => {
             void handleGenerateDraft();
           }}
@@ -515,25 +515,25 @@ export function ActionTranslationEditor({
             id: "app.admin.actions.translations.generateDraft",
             defaultMessage: "Generate Draft",
           })}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="tonal"
-          size="sm"
-          leadingIcon={<RiCheckboxCircleLine />}
+          emphasis="secondary"
+          size="compact"
+          leadingIcon={<RiCheckboxCircleLine className="h-4 w-4" aria-hidden="true" />}
           onClick={markReviewed}
         >
           {formatMessage({
             id: "app.admin.actions.translations.markReviewed",
             defaultMessage: "Mark Reviewed",
           })}
-        </AdminButton>
-        <AdminButton type="button" variant="text" size="sm" onClick={markDraft}>
+        </Button>
+        <Button type="button" emphasis="tertiary" size="compact" onClick={markDraft}>
           {formatMessage({
             id: "app.admin.actions.translations.markDraft",
             defaultMessage: "Mark Draft",
           })}
-        </AdminButton>
+        </Button>
       </div>
 
       {message ? <p className="type-meta text-text-sub">{message}</p> : null}

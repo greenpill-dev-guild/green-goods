@@ -4,15 +4,18 @@
  * Title (18px semibold on a 24px line, wraps), an optional description
  * (14px on a 20px line, wraps), and a 44px borderless close button on the
  * title's first line. No leading icon: the tone of a sheet lives in its
- * primary action and its dialog role. An optional rail (a tab strip) renders
- * directly under the header row and keeps its own bottom rule; the header
- * itself draws none.
+ * primary action and its dialog role. An optional target line names what the
+ * sheet's act writes to, between the title and the description. An optional
+ * rail (a tab strip) renders directly under the header row and keeps its own
+ * bottom rule; the header itself draws none.
  *
- * `PwaSheet` renders it under the drag handle and, through `dragHandlers`,
- * makes the title block part of the grip's grab area (DL-033); the centered
- * `DialogShell` and `ConfirmDialog` render it at the top of their Radix
- * surface, passing the Radix title and description primitives through
- * `titleAs` / `descriptionAs` so Radix keeps naming the dialog.
+ * `PwaSheet` renders it under the grip (`SheetGrip`) and, through
+ * `dragHandlers`, makes the title block part of the grip's grab area
+ * (DL-033); the centered `DialogShell` and `ConfirmDialog` render it at the
+ * top of their Radix surface, and the cockpit's `AdminDialog` and
+ * `AdminSideSheet` below 640px, passing the Radix title and description
+ * primitives through `titleAs` / `descriptionAs` so Radix keeps naming the
+ * dialog.
  *
  * Layout lives in shared `utilities.css` as `[data-component="SheetHeader"]`
  * attribute rules that adapt the header to its host: the PwaSheet drag rules
@@ -20,7 +23,9 @@
  * as grab area, and `data-standalone` adds top padding when the header starts
  * a centered dialog. The title and
  * description sizes sit in `@layer components`, which is why consumers must
- * not carry unlayered element type rules.
+ * not carry unlayered element type rules. A surface sets its own title size
+ * through `--gg-sheet-title-size` and `--gg-sheet-title-line` (DL-031); the
+ * cockpit keeps its 22px dialog title.
  *
  * @module components/Dialog/SheetHeader
  */
@@ -28,10 +33,47 @@ import { RiCloseLine } from "@remixicon/react";
 import type { DOMAttributes, ElementType, ReactNode } from "react";
 import { IconButton } from "../IconButton";
 
+export interface SheetGripProps {
+  /** Test id of the grip's handle. */
+  testId?: string;
+  /**
+   * A bottom sheet's drag handlers (DL-033). With them the handle is the
+   * sheet's grab area; without them the grip only marks the surface as a
+   * sheet.
+   */
+  dragHandlers?: DOMAttributes<HTMLElement>;
+}
+
+/**
+ * SheetGrip — the short pill at the top of every bottom sheet (DL-028).
+ * `PwaSheet` binds its drag gesture to it (DL-033); the cockpit's dialogs show
+ * it below 640px without a gesture, as the mark of a sheet.
+ */
+export function SheetGrip({ testId, dragHandlers }: SheetGripProps) {
+  return (
+    <div
+      data-component="SheetGrip"
+      data-slot="drag-handle"
+      data-drag-region={dragHandlers ? "" : undefined}
+      data-testid={testId}
+      style={dragHandlers ? { touchAction: "none" } : undefined}
+      {...dragHandlers}
+    >
+      <div data-component="SheetGrip" data-slot="grip" />
+    </div>
+  );
+}
+
 export interface SheetHeaderProps {
   title: ReactNode;
   /** Id of the default title element, for the dialog's `aria-labelledby`. Ignored with `titleAs`. */
   titleId?: string;
+  /**
+   * What the sheet's act writes to, named under the title and before the
+   * description: a dialog cannot prove which record a write changes, so a
+   * consequential act says so first.
+   */
+  target?: ReactNode;
   description?: ReactNode;
   /** Id of the default description element. Ignored with `descriptionAs`. */
   descriptionId?: string;
@@ -65,6 +107,7 @@ export interface SheetHeaderProps {
 export function SheetHeader({
   title,
   titleId,
+  target,
   description,
   descriptionId,
   titleAs,
@@ -105,6 +148,11 @@ export function SheetHeader({
           >
             {title}
           </Title>
+          {target ? (
+            <div data-component="SheetHeader" data-slot="target">
+              {target}
+            </div>
+          ) : null}
           {hasDescription ? (
             <Description
               {...(descriptionAs ? {} : { id: descriptionId })}
@@ -118,6 +166,7 @@ export function SheetHeader({
         </div>
         {!hideCloseButton && (
           <IconButton
+            data-piece-control
             data-component="SheetHeader"
             data-slot="close"
             data-testid={closeTestId}
