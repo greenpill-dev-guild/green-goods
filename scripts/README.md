@@ -112,7 +112,7 @@ spending is blocked. Version 2 forbids a bootstrap signer. The family draft is
 These preparation modes do not broadcast, register an observer, deliver Hats or activate authority.
 The source HatsModule must already support its observer hook before registration.
 
-Dual-Safe execution uses `bun run contracts -- release steward-safe-execution`, handled by
+Run `bun run contracts -- release steward-safe-execution --help` for dual-Safe execution options. The handler is
 `packages/contracts/script/deploy/steward-safe-execution.ts`. Every mode requires `--manifest`,
 `--plan` and `--rehearsal` from the same committed source revision. Generated JSON belongs in
 `.generated/steward-safe/`; no secrets or private roster evidence belongs in Git.
@@ -123,7 +123,7 @@ Dual-Safe execution uses `bun run contracts -- release steward-safe-execution`, 
 | `broadcast` | `--envelope <execution.json>`; sends one zero-value CREATE through the fixed deployer keystore after live nonce, constructor, balance and budget checks |
 | `adopt` | `--envelope <execution.json> --receipt <hash>`; verifies the canonical transaction and exact rehearsed runtime, guard, modules, locked gate, threshold and roster at the receipt block |
 | `activation` | `--output <activation.json>` and optional `--roster <roster.json>`; verifies source authority and exports observer registration plus initial refresh calldata without sending |
-| `verify` | `--output <readback.json>` and optional `--roster <roster.json>`; checks current owners, valid signatures, thresholds, source/dispatched/destination revisions and fuel; exits nonzero while coordination is pending |
+| `verify` | `--output <readback.json>` and optional `--roster <roster.json>`; checks current owners, valid signers, thresholds, source/dispatched/destination revisions and fuel; exits nonzero while coordination is pending |
 
 The private roster format is `{ "garden": "0x…", "stewardHat": "…", "accounts": ["0x…"] }`.
 It refines readiness checks; canonical HatsModule authority still decides membership. Neither a
