@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
+import { useOpenerFocus } from "../../hooks/utils/useOpenerFocus";
 import { cn } from "../../utils/styles/cn";
 import {
   dialogOverlayClassName,
@@ -81,6 +82,7 @@ export function DialogShell({
   // The sheet registers itself; the centered surface registers here so the
   // installed app's AppBar also steps aside on wide screens (DL-015).
   useSheetPresence(open && !rendersAsSheet);
+  useOpenerFocus(open && !rendersAsSheet);
   const closeLabel = formatMessage({ id: "app.common.close" });
 
   if (rendersAsSheet) {

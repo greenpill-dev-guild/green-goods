@@ -59,6 +59,15 @@ function open(
 }
 
 describe("Exchange Vouchers", () => {
+  it.each([
+    "quote",
+    "review",
+  ] as const)("discloses the network in transaction details at the %s step", async (state) => {
+    open(state);
+    await userEvent.click(screen.getByText("Transaction details"));
+    expect(screen.getByText(/One direct exchange in the shared pool on Gnosis/)).toBeVisible();
+  });
+
   // The rate the quote prices at, with one whole voucher on its smaller side.
   it("shows the rate the quote prices at, not one voucher for one", () => {
     open("quote");

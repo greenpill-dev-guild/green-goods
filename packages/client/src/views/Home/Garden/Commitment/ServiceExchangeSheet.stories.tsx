@@ -3,7 +3,7 @@ import esMessages from "@green-goods/shared/i18n/es";
 import ptMessages from "@green-goods/shared/i18n/pt";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import { expect, fn, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import {
   type ServiceExchangeQuote,
   ServiceExchangeSheet,
@@ -112,9 +112,11 @@ export const MayaToTeoReview: Story = {
   args: { state: "review" },
   play: async ({ canvasElement, args }) => {
     const { sheet, say } = sheetOf(canvasElement, args.lang);
-    await expect(await sheet.findByText(say("ex.sh.title"))).toBeVisible();
+    await waitFor(() => expect(sheet.getByText(say("ex.sh.title"))).toBeVisible());
     await expect(sheet.getByText(say("ex.f.feesZero"))).toBeVisible();
     await expect(sheet.getByRole("button", { name: say("ex.sh.cta") })).toBeEnabled();
+    await userEvent.click(sheet.getByText(say("c.tech")));
+    await expect(sheet.getByText(/Gnosis/)).toBeVisible();
   },
 };
 

@@ -1,6 +1,8 @@
 /** @vitest-environment happy-dom */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DialogShell } from "../../components/Dialog/DialogShell";
@@ -43,6 +45,49 @@ afterEach(() => {
 });
 
 describe("DialogShell", () => {
+  it.each([
+    [375, "Escape"],
+    [375, "Close"],
+    [375, "Cancel"],
+    [1280, "Escape"],
+    [1280, "Close"],
+    [1280, "Cancel"],
+  ] as const)("returns keyboard focus to its opener at %ipx after %s", async (width, dismiss) => {
+    stubViewportWidth(width);
+    function Review() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Review reward
+          </button>
+          <DialogShell
+            open={open}
+            onOpenChange={setOpen}
+            title="Review reward"
+            description="Check the reward before continuing."
+            actions={{ secondary: { label: "Cancel", onClick: () => setOpen(false) } }}
+          >
+            <input aria-label="Recipient" />
+          </DialogShell>
+        </>
+      );
+    }
+    render(wrap(<Review />));
+    const user = userEvent.setup();
+    const opener = screen.getByRole("button", { name: "Review reward" });
+    await user.tab();
+    expect(opener).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("dialog", { name: "Review reward" })).toBeInTheDocument();
+    if (dismiss === "Escape") await user.keyboard("{Escape}");
+    else await user.click(screen.getByRole("button", { name: dismiss }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(opener).toHaveFocus();
+    });
+  });
+
   it("renders the shared bottom sheet below 640px with the shell's header", () => {
     stubViewportWidth(390);
     const onOpenChange = vi.fn();
