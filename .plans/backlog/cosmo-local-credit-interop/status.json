@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-26T10:53:25.428Z"
+    "updated_at": "2026-10-30T05:02:17.745Z"
   },
   "links": {
     "brief": "brief.md",
@@ -202,14 +202,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "PATH=/private/tmp/green-goods-purchases-20261021/bin:$PATH FOUNDRY_PROFILE=test FOUNDRY_OFFLINE=true bun --no-env-file run --cwd packages/contracts test --suite solidity --profile match test/unit/VoucherEntitlement.t.sol --match-test testVoucherEntitlement_directCoreAcceptanceRejectsMissingCounterpartyConsent",
-          "evidence": "Compiled old-runtime RED before safeguards implementation: direct core acceptance without counterparty consent0pass/1fail (core/red-consent.log); source preacceptance setup0/1; destination legacy/incremental bypass0/2. Compiler/setup failures are separate. Later full run2189pass/one claim gas failure140329>135000 is retained, not relabeled. New working tree after e7cd49d6, not commit-attributed."
+          "command": "FOUNDRY_PROFILE=test bun run --cwd packages/contracts test --suite solidity --profile match -- test/unit/VoucherEntitlement.t.sol",
+          "evidence": "/private/tmp/prd1317-red.log: baseline31 tests; two new behavior tests failed and29 passed. Collection failures are not RED."
         },
         "green": {
-          "command": "bun run test",
-          "evidence": "Final 2026-10-22 critical checkpoint04:03:56-04:22:34 UTC passes6/6 fresh with all4mandatory contract overrides, zero reused/unrun/changed inputs. bun run test with cwd=packages/contracts passes2191 Solidity,3 production G$ gas,31 CLI,331 scripts; nested verify-production --skip-e2e --skip-dry-run repeats those counts. Exact argv/config/hashes: /private/tmp/green-goods-voucher-safeguards-20261021/critical-recheck.{json,log}. PATH no-env shim, FOUNDRY_OFFLINE=true, TURBO_FORCE=true, VITEST_MAX_WORKERS=1, FOUNDRY_EXTRA_OUTPUT storageLayout; no global profile change. Final140focused+lint pass; claim134797<135000. Fresh sizes/16layouts/8namespaces/Gnosis41 at100/48848261/Celo12 at42220/75178393 pass without source mismatch. Full consumer and eight global components plus labeled Brave mock-auth/Storybook proof pass across distinct fresh runs; no aggregate24 pass invented. Details and failed commands: handoffs/codex-voucher-reconciliation.md. Local uncommitted evidence, no live/member-signing/full-lifecycle certification."
+          "command": "FOUNDRY_PROFILE=test bun run --cwd packages/contracts test --suite solidity --profile match -- 'test/{unit/VoucherEntitlement,integration/CosmoLocalVoucher}.t.sol'",
+          "evidence": "/private/tmp/prd1317-contracts-focused-final.log:46 passed. Full verifier also passed via VITEST_MAX_WORKERS=1 node scripts/dev/ci-local.js --intent diagnose --base HEAD --only contracts-verify-fast: full build, lint,2220 Solidity,3 cold gas and772 tooling tests; unchanged timeouts and signing safeguards. Working-copy evidence only. Preserve every broader lane/manual/live hold."
         },
-        "note": "Bounded local safeguards reconciliation complete; keep contracts in_progress, overall backlog, every unrelated/manual/COM-46/live/release blocker unchanged. All new changes local and uncommitted; next is member-signing and issuer-readiness proof. The22October local pilot adds proof of existing runtime, not a manufactured runtime RED; exact signed source and open branch/live gates are in codex-local-voucher-pilot.md."
+        "note": ""
       },
       "skill_tags": ["contracts"],
       "manual_blocked": false
@@ -650,6 +650,38 @@
       "status": "planning_reconciled",
       "branch": "research/sf-live-pitch-final-polish",
       "note": "SF.Live 2026 submission items complete in artifacts/ (deck, brief, Business Model Canvas, logical architecture, clickable demo), in review as PR #1317 (MAR-32 In Review; RESR-94 evidence pass applied). The event brief, read 25 October, confirms the four deliverables, the 27 October 2 to 3 PM UK submission and eight minutes a team; plan.todo.md ticks RESR-94 + MAR-32 and records the confirmed format. Open before submission: the G$ settlement switch (artifacts/README.md input 0) and the status re-check (input 5). No lane object, manual block, dispatch authority or runtime changed."
+    },
+    {
+      "timestamp": "2026-10-30T03:20:55.831Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-30T03:21:54.258Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-30T04:39:27.686Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-30T05:02:17.746Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "updatedAt": "2026-10-26T10:53:25.428Z"

@@ -6,6 +6,11 @@ Afo accepted it on 20 October as the PRD-1315 candidate. Afo's voucher-direction
 21 October are recorded in the [spec](spec.md#voucher-direction-decided-2026-10-21). No implementation or deployment
 authorized.
 
+**Current scope:** the [spec](spec.md) and [acceptance checks](eval.md) record the later
+implementation decisions, member-owned issuer model and PRD-1317 recovery scope. The alternatives
+below remain historical. Earned delivery uses finite reserve allowance; the adapter has no
+mint/writer fallback.
+
 **Accepted user intent:** one Green Goods commitment can receive both vouchers and G$, with both
 terms agreed at commitment acceptance.
 The earlier several-G$-installments interpretation is withdrawn. The original four goals remain:

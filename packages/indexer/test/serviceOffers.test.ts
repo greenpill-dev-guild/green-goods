@@ -61,7 +61,7 @@ describe("opt-in service offer facts", () => {
       ["SettlementModule", "ISettlementPersonalServicePurchases", 4],
       ["VoucherRedemptionModule", "VoucherRedemptionModule", 11],
       ["GnosisVoucherEscrow", "GnosisVoucherEscrow", 21],
-      ["VoucherEntitlementModule", "VoucherEntitlementModule", 9],
+      ["VoucherEntitlementModule", "VoucherEntitlementModule", 10],
     ] as const;
     for (const [contract, abiName, count] of boundaries) {
       const abi = JSON.parse(
