@@ -2395,6 +2395,12 @@ type EarnedVoucherDistribution {
   resultSequence: BigInt
   delivered: Boolean
   failureHash: String
+  # Administrative source dispatch closure is independent of authenticated payment.
+  dispatchCloseoutEvidence: String
+  closeoutBlockNumber: BigInt
+  closeoutLogIndex: Int
+  closeoutTxHash: String
+  closeoutAt: Int
   preparedBlockNumber: BigInt
   preparedLogIndex: Int
   preparedTxHash: String

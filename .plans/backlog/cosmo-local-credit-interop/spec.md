@@ -570,6 +570,29 @@ messages and execution retries do not consume its fee reserve. A separate acknow
 requires the caller to fund exactly the current quote and sends only the stored result. After
 execution repair, explicitly reconcile that new result through this acknowledgment lane.
 
+### Accepted PRD-1317 source recovery scope (29 October Pacific)
+
+The earned source retains a positive owner-configured native fee minimum after every initial
+send or same-byte retry. Configuration is owner-only while paused. An unset minimum rejects
+sends; the release owner selects the amount, funds the endpoint and reads back the retained
+balance before separately authorized activation. A refused send or router failure reverts the
+whole transaction, including transport effects and source history.
+
+The source owner may administratively close further dispatch of an already-dispatched Pending
+or Failed reward with a nonzero evidence hash. The record is immutable and repeatable with the
+same evidence. This closes source dispatch only: it does not cancel destination authorization,
+prove nonpayment, forgive the obligation or permit a replacement entitlement. Delayed execution
+and authenticated acknowledgments remain valid, including while paused; a late success still
+records Delivered. Keep this annotation separate from delivery state and the setup-abort lane.
+
+The accepted issuer model binds each issuer/token to an explicit source approval authority and
+issuer-controlled reserve. A member uses their supported account; existing collective Safe
+controls remain. Garden affiliation and pool admission confer no reserve-spending rights.
+Finite reserve allowance is enforced onchain, reviewed capacity/issuance preparation is a
+client/operator policy, and pool caps bound pool exposure. Hard global outstanding-cap enforcement,
+independent per-issuer steward suspension and actual-member signing remain separate release gates.
+Returned vouchers do not restore consumed service capacity.
+
 ## Budgets, capacity and privileged powers
 
 Keep finite delegated ERC20 allowance and actual reserve, accepted undelivered rewards,
