@@ -19,11 +19,14 @@ export type ServiceProfile = "hubDay" | "access" | "minutes" | "generic";
 export type ServiceBookingStage =
   | "open"
   | "notEnough"
+  | "requestNotSent"
+  | "requestInTransit"
   | "waitingApproval"
   | "readyToDeposit"
   | "confirmingDeposit"
   | "waitingAcceptance"
   | "starting"
+  | "activationInTransit"
   | "inProgress"
   | "readyToClose"
   | "returnProposed"
@@ -127,6 +130,7 @@ export interface ServiceBookingView {
   transfers: ServiceTransfer[];
   /** Chains, Safes and record numbers, only under Transaction details (D2). */
   details: string[];
+  messageLinks: { label: string; href: string }[];
   /** Delivery for Progress and proof: a count once reported, else what comes next. */
   delivery: { label: string; done: number; of: number } | { none: string } | null;
   primary: ServiceAct | null;

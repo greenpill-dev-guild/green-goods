@@ -149,8 +149,10 @@ function serviceBookingStage(
   }
   // Accepted but not started: Start the Booking records the activation and sends it. A
   // cancellation that lost the race says so once the booking has started.
-  if (accepted) return "starting";
-  if (!d || d.result.phase === "none" || d.result.phase === "authorized")
+  if (accepted) return setup.source.decisionDispatched ? "activationInTransit" : "starting";
+  if (!setup.source.authorizationDispatched) return "requestNotSent";
+  if (!d || d.result.phase === "none") return "requestInTransit";
+  if (d.result.phase === "authorized")
     return d?.result.issuerApproved ? "readyToDeposit" : "waitingApproval";
   return setup.source.setupResult?.depositedUnits === a.voucherUnits
     ? "waitingAcceptance"
@@ -167,6 +169,8 @@ const NEEDS_YOU = new Set<ServiceBookingStage>([
 const WAITING = new Set<ServiceBookingStage>([
   "open",
   "notEnough",
+  "requestInTransit",
+  "activationInTransit",
   "waitingApproval",
   "confirmingDeposit",
   "waitingAcceptance",
@@ -176,6 +180,8 @@ const WAITING = new Set<ServiceBookingStage>([
 /** The page's acts per stage: one primary and at most one secondary. */
 const ACTS: Partial<Record<ServiceBookingStage, [ServiceActKind | null, ServiceActKind | null]>> = {
   open: ["redeem", null],
+  requestNotSent: ["redeem", "cancel"],
+  requestInTransit: [null, "cancel"],
   waitingApproval: [null, "cancel"],
   readyToDeposit: ["deposit", "cancel"],
   confirmingDeposit: [null, "cancel"],
@@ -214,6 +220,8 @@ function recoveryAct(
 const POSITION: Record<ServiceBookingStage, number> = {
   open: -1,
   notEnough: -1,
+  requestNotSent: -1,
+  requestInTransit: -1,
   waitingApproval: 0,
   readyToDeposit: 1,
   confirmingDeposit: 2,
@@ -222,6 +230,7 @@ const POSITION: Record<ServiceBookingStage, number> = {
   canceling: 3,
   canceled: 3,
   starting: 4,
+  activationInTransit: 4,
   inProgress: 5,
   acceptedFirst: 5,
   problemReported: 5,
@@ -327,7 +336,7 @@ export function serviceBookingView(
   };
   // A stage that waits on others still needs the reader when an act of theirs stopped partway.
   const recovery = recoveryAct(stage, setup);
-  const needsYou = NEEDS_YOU.has(stage) || recovery !== null;
+  const needsYou = stage === "requestNotSent" || NEEDS_YOU.has(stage) || recovery !== null;
   const tone: ServiceBandTone = needsYou
     ? "attention"
     : kept
@@ -339,7 +348,7 @@ export function serviceBookingView(
     kind,
     label:
       kind === "redeem"
-        ? t("of.cta.redeem")
+        ? t(stage === "requestNotSent" ? "wait.sendRequest" : "of.cta.redeem")
         : kind === "deposit"
           ? ctx.one
             ? t("pay.m.deposit")
@@ -364,13 +373,23 @@ export function serviceBookingView(
       tone,
       sentence: bookingSentence(ctx),
       needsYou,
-      pillId: endedEarly ? "app.voucher.pp.st.endedEarly" : null,
+      pillId: endedEarly
+        ? "app.voucher.pp.st.endedEarly"
+        : stage === "requestInTransit" || stage === "activationInTransit"
+          ? "app.voucher.wait.messagePending"
+          : null,
     },
     facts: bookingFacts(ctx),
     termsVersion: revision !== null ? t("pp.version", { v: revision.toString() }) : null,
     phases,
     transfers: bookingTransfers(ctx),
     details: bookingDetails(ctx),
+    messageLinks: [
+      { id: setup?.source.authorizationMessageId, label: t("wait.trackRequest") },
+      { id: setup?.source.decisionMessageId, label: t("wait.trackDecision") },
+    ].flatMap(({ id, label }) =>
+      id ? [{ label, href: `https://ccip.chain.link/msg/${id}` }] : []
+    ),
     delivery: bookingDelivery(ctx),
     primary: primaryKind ? act(primaryKind) : null,
     secondary: secondaryKind ? act(secondaryKind) : null,

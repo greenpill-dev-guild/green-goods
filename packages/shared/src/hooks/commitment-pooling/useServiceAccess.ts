@@ -1,5 +1,11 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef } from "react";
+import {
+  queryOptions,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useEffect, useMemo, useRef } from "react";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { unavailableServiceAccess } from "../../modules/commitment-pooling/data-service-access";
 import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
@@ -7,6 +13,7 @@ import { createServiceAccessReadRepository } from "../../modules/commitment-pool
 import type {
   ServiceAccessAction,
   ServiceAccessKey,
+  ServiceAccessSnapshot,
 } from "../../modules/commitment-pooling/service-access-types";
 import { greenGoodsIndexer } from "../../modules/data/graphql-client";
 import type { Address } from "../../types/domain";
@@ -18,6 +25,39 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 
 const EMPTY_ADDRESS = `0x${"0".repeat(40)}` as Address;
 const serviceReads = createServiceAccessReadRepository(greenGoodsIndexer);
+
+/** Fallback for remote arrivals: local transaction events alone cannot observe the other chain. */
+function waitingForServiceUpdate(snapshot: ServiceAccessSnapshot | undefined): boolean {
+  if (!snapshot) return false;
+  if (
+    snapshot.coreState === "FULFILLED" &&
+    snapshot.acceptancePolicy.earned.status === "bound" &&
+    snapshot.earnedReward?.status !== "received"
+  )
+    return true;
+  return snapshot.voucherSetups.some((setup) => {
+    const destination = setup.destination;
+    if (
+      Object.values(setup.acknowledgments).some(
+        (ack) =>
+          ack.pending === true ||
+          (ack.destinationSequence !== null && ack.sourceObservedSequence < ack.destinationSequence)
+      )
+    )
+      return true;
+    if (destination?.finalAllocation?.financiallyClosed) return false;
+    if (destination?.result.phase === "aborted") return false;
+    if (
+      !destination ||
+      ["none", "authorized", "deposited", "abort-refund-pending"].includes(destination.result.phase)
+    )
+      return true;
+    return (
+      (setup.source.decisionDispatched && destination.result.decision !== setup.source.decision) ||
+      !!destination.finalAllocation
+    );
+  });
+}
 
 function rehearsalEnabled(key: ServiceAccessKey): boolean {
   return (
@@ -84,17 +124,32 @@ async function readServiceAccess(
 }
 
 export function useServiceAccess(key: ServiceAccessKey | null) {
+  const client = useQueryClient();
   const online = useOnlineStatus();
   const live = useLiveServiceAdapter();
   const query = useQuery({
     queryKey: queryKey(key, live.session),
     enabled: key !== null,
     retry: false,
+    refetchInterval: (query) =>
+      online && waitingForServiceUpdate(query.state.data) ? 30_000 : false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: "always",
     queryFn: async () => {
       if (!key) throw new Error("Service context required");
       return readServiceAccess(key, live);
     },
   });
+  const deliveredReward =
+    query.data?.earnedReward?.status === "received" ? query.data.earnedReward.id : null;
+  const sourceChainId = key?.sourceChainId;
+  const buyer = key?.buyer;
+  useEffect(() => {
+    if (deliveredReward && sourceChainId && buyer)
+      void client.invalidateQueries({
+        queryKey: commitmentPoolingKeys.voucherWallets(sourceChainId),
+      });
+  }, [client, sourceChainId, buyer, deliveredReward]);
   const data = useMemo(() => {
     if (!query.data || online) return query.data;
     return {
@@ -115,13 +170,19 @@ export function useServiceAccess(key: ServiceAccessKey | null) {
  * Each shares its promise page's cached read under the same key; a list only reads, never acts.
  */
 export function useServiceAccessReads(keys: readonly ServiceAccessKey[]) {
+  const online = useOnlineStatus();
   const live = useLiveServiceAdapter();
   return useQueries({
-    queries: keys.map((key) => ({
-      queryKey: queryKey(key, live.session),
-      retry: false,
-      queryFn: () => readServiceAccess(key, live),
-    })),
+    queries: keys.map((key) =>
+      queryOptions({
+        queryKey: queryKey(key, live.session),
+        retry: false,
+        refetchInterval: (query) =>
+          online && waitingForServiceUpdate(query.state.data) ? 30_000 : false,
+        refetchIntervalInBackground: false,
+        queryFn: () => readServiceAccess(key, live),
+      })
+    ),
   });
 }
 
@@ -160,8 +221,11 @@ export function useServiceAccessMutation(key: ServiceAccessKey | null) {
         throw new Error("Service account or rehearsal context changed; review again");
       return serviceRehearsalAdapter.execute(key, action);
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       if (current.current === identity && key) {
+        // A poll started before this action must not replace its confirmed result when it lands.
+        await client.cancelQueries({ queryKey: queryKey(key, live.session), exact: true });
+        if (current.current !== identity) return;
         client.setQueryData(queryKey(key, live.session), result.snapshot);
         if (result.snapshot.pilot) {
           for (const commitmentId of [1023n, 1025n, 1026n]) {

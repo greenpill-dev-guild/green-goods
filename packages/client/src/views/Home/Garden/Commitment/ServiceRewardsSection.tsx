@@ -67,6 +67,18 @@ export function ServiceRewardsSection({ view }: { view: ServiceRewardsView }) {
             {view.details.map((line) => (
               <li key={line}>{line}</li>
             ))}
+            {view.messageLinks.map((link) => (
+              <li key={link.href}>
+                <a
+                  className="underline underline-offset-2"
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
           </ul>
         </details>
       ) : null}
