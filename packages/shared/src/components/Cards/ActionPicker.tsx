@@ -30,9 +30,11 @@ export type ActionPickerLayout = MediaCardPickerLayout;
 export interface ActionPickerProps {
   /** The actions to choose from, each already titled in the reader's language. */
   actions: readonly Action[];
-  /** The chosen action's id; nothing is chosen when it matches none. */
+  /** The chosen option value, the action's id unless getOptionValue supplies another identity. */
   value: string | null;
-  onChange: (actionId: string) => void;
+  onChange: (optionValue: string) => void;
+  /** Distinguishes requirements that ask for the same action; defaults to the action's id. */
+  getOptionValue?: (action: Action, index: number) => string;
   /** Names the group for assistive technology. */
   label: string;
   /**
@@ -63,6 +65,7 @@ export function ActionPicker({
   actions,
   value,
   onChange,
+  getOptionValue,
   label,
   layout,
   disabled,
@@ -71,12 +74,12 @@ export function ActionPicker({
 }: ActionPickerProps) {
   const { formatMessage } = useIntl();
 
-  const options: MediaCardPickerOption[] = actions.map((action) => {
+  const options: MediaCardPickerOption[] = actions.map((action, index) => {
     const domain = action.domain !== null ? DOMAIN_CONFIG[action.domain] : undefined;
     // The same count Submit Work holds a work to (getMinRequiredWorkImages).
     const minPhotos = action.mediaInfo?.required ? (action.mediaInfo.minImageCount ?? 1) : 0;
     return {
-      value: action.id,
+      value: getOptionValue ? getOptionValue(action, index) : action.id,
       title: action.title,
       media: (
         <ImageWithFallback
