@@ -1,7 +1,7 @@
 /** CI Playwright: navigation with the supported dev-auth seam and fictional garden data. */
 import { expect, type Page, test } from "@playwright/test";
 import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
-import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
+import { ClientTestHelper, setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 // Home opens in the account's one garden, and its header chip names that garden.
 async function expectHomeInGarden(page: Page) {
@@ -14,8 +14,10 @@ test.describe("Client Navigation", () => {
   test.use({ baseURL: TEST_URLS.client });
 
   test("redirects unauthenticated users from protected routes", async ({ page }) => {
+    const helper = new ClientTestHelper(page);
     for (const route of ["/home?presentation=pwa", "/home/profile", "/home/garden"]) {
       await page.goto(route);
+      await helper.waitForPageLoad();
       await expect(page).toHaveURL(/\/home\/login/);
       await expect(page.getByTestId("login-button")).toBeVisible();
     }
@@ -105,7 +107,12 @@ test.describe("Client mock-auth session", () => {
     await page.goto("/home/profile?presentation=pwa");
     await helper.waitForPageLoad();
 
-    await page.getByRole("button", { name: "Logout", exact: true }).click();
+    // Mock logout reloads the document; wait for that boot before testing the redirect.
+    await Promise.all([
+      page.waitForEvent("domcontentloaded"),
+      page.getByRole("button", { name: "Logout", exact: true }).click(),
+    ]);
+    await helper.waitForPageLoad();
     await expect(page).toHaveURL(/\/home\/login/);
     await expect(page.getByTestId("login-button")).toBeVisible();
     await expect
