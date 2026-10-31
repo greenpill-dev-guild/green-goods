@@ -43,7 +43,7 @@ This is the coming generation I mean. Tech and Sun builds solar-powered hubs acr
 
 ## 6. Five roles · 0:20
 
-We call each place-based initiative a garden, and five roles keep it going. Gardeners do the work and document it. Stewards run the garden. Evaluators set the baseline. Funders see delivery before and after they give. And community members witness the work and confirm what was done for them. The glue between the roles is trust and transparency.
+We call each place-based initiative a garden: a community doing regenerative work together in one place, like a solar hub, a waste crew, a farm or a class. Five roles keep it going. Gardeners do the work and document it. Stewards run the garden. Evaluators set the baseline. Funders see delivery before and after they give. And community members witness the work and confirm what was done for them. The glue between the roles is trust and transparency.
 
 ## 7. Ubuntu · 0:25
 

@@ -93,6 +93,7 @@
   .roles li { display: grid; grid-template-columns: 48px 440px 1fr; column-gap: 32px; align-items: center; padding: 22px 0; border-top: 1px solid var(--rule-2); }
   .roles h3 { margin: 0; font: 400 42px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
   .roles p { margin: 0; font: 400 30px/1.4 var(--sans); color: var(--ink-2); }
+  .s-roles .body > .closing { margin-top: 40px; } /* what a garden is, under the roles */
 
   /* 10 · Commitment pooling: the hub's asks and offers beside two phone screens; 12 · Funding: four ways beside the hub's Fund sheet */
   .s-pool .points { position: absolute; left: var(--px); top: 340px; width: 820px; }
@@ -177,6 +178,7 @@
   .nextline { stroke: #A8A29E; stroke-width: 2.5; fill: none; }
   .flow-label { font: 400 24px var(--sans); fill: var(--sub); }
   .flow-label.green { fill: var(--green-action); font-weight: 600; }
+  .flow-label.soft { fill: var(--stone); } /* a quiet mention, like the 2.7% share on slide 15 */
   .next-label { font: italic 400 26px var(--serif); fill: var(--stone); }
   .mech-sub { font: 400 24px var(--sans); fill: var(--ink-2); }
   .s-model .fee { position: absolute; left: 1150px; top: 316px; width: 642px; }
@@ -305,10 +307,10 @@
     <p class="by">Afolabi Aiyeloja, founder</p>
   </div>
   <div class="why-photos">
-    <figure class="tall"><img src="assets/photos/hub-desks.jpg" alt="Members working at the desks under the Tech and Sun logo" style="object-position: 50% 60%" /></figure>
+    <figure class="tall"><img src="assets/photos/founder-odunde.jpg" alt="Afolabi at a sound desk at the Odunde Festival" style="object-position: 36% 50%" /></figure>
     <figure><img src="assets/photos/hub-launch-day.jpg" alt="Members and guests gathered outside the hub on its launch day" style="object-position: 50% 60%" /></figure>
-    <figure><img src="assets/photos/tas-hub-build.jpg" alt="Members working at laptops inside the hub" style="object-position: 60% 50%" /></figure>
-    <p class="strip-cap">Tech and Sun's hub in Awka, Nigeria: members at work, and its launch day in March 2026. Photos: Tech and Sun.</p>
+    <figure><img src="assets/photos/hub-build-container.jpg" alt="The hub's shipping container on its new foundation, with windows and a door cut out" style="object-position: 50% 55%" /></figure>
+    <p class="strip-cap">Afolabi at the Odunde Festival, and Tech and Sun's hub in Awka, Nigeria, on launch day and during its build. Hub photos: Tech and Sun.</p>
   </div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">4 / 17</span>
 </section>
@@ -322,10 +324,10 @@
     <p>Members want to learn, collaborate and grow their skills in a credible and transparent way.</p>
   </div>
   <div class="minis">
-    <figure><img src="assets/photos/hub-members-together.jpg" alt="Members working together at the desks inside the hub" style="object-position: 50% 80%" /></figure>
-    <figure><img src="assets/photos/hub-bootcamp.jpg" alt="A member presenting at the whiteboard during an AI content bootcamp" style="object-position: 50% 40%" /></figure>
+    <figure><img src="assets/photos/hub-solar-roof.jpg" alt="Solar panels on the hub's roof" style="object-position: 50% 45%" /></figure>
+    <figure><img src="assets/photos/hub-power-system.jpg" alt="The hub's inverter and battery on its wall" style="object-position: 50% 42%" /></figure>
   </div>
-  <figure class="hub-photo"><img src="assets/photos/awka-hub.jpg" alt="Tech and Sun members standing together in front of the solar-roofed hub in Awka" /><figcaption>The Awka hub and its members. Photos: Tech and Sun.</figcaption></figure>
+  <figure class="hub-photo"><img src="assets/photos/awka-hub.jpg" alt="Tech and Sun members standing together in front of the solar-roofed hub in Awka" /><figcaption>The Awka hub, its members, its rooftop solar and its power system. Photos: Tech and Sun.</figcaption></figure>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">5 / 17</span>
 </section>
 
@@ -340,6 +342,7 @@
     <li><svg class="icon" aria-hidden="true"><use href="#i-funder"/></svg><h3>Funders</h3><p>See delivery before and after they give.</p></li>
     <li><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><h3>Community members</h3><p>Witness the work and confirm what was done for them.</p></li>
     </ul>
+    <p class="closing">A garden is a community doing regenerative work together in one place: a solar hub, a waste crew, a farm or a class.</p>
   </div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">6 / 17</span>
 </section>
@@ -484,12 +487,13 @@
     <text class="flow-label" x="536.0" y="497.0" text-anchor="middle">funds the work</text>
     <text class="flow-label" x="524.0" y="787.0" text-anchor="middle">pays a separate fee</text>
     <text class="flow-label green" x="824" y="622.0">setup, support</text><text class="flow-label green" x="824" y="654.0">and reporting</text>
+    <line class="nextline" x1="768.0" y1="556.0" x2="768.0" y2="702.0" marker-end="url(#ah-stone)"/>
+    <text class="flow-label soft" x="748" y="606.0" text-anchor="end">2.7% of</text><text class="flow-label soft" x="748" y="636.0" text-anchor="end">endowment earnings,</text><text class="flow-label soft" x="748" y="666.0" text-anchor="end">being switched on</text>
   </svg>
   <div class="fee">
     <div class="item rule"><h3>Setup</h3><p>Onboard the garden, its stewards and its first season.</p></div>
     <div class="item rule"><h3>Support</h3><p>Tools, training and help through the season.</p></div>
     <div class="item rule"><h3>Reporting</h3><p>Delivery records a funder can act on and renew from.</p></div>
-    <p class="closing">Plus a 2.7% default share of endowment earnings, being switched on, to build Green Goods' own endowment. Never a supporter's deposit, never a garden's fund.</p>
   </div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">15 / 17</span>
 </section>
@@ -532,7 +536,7 @@
   "Green Goods answers each one. An endowment keeps a gift invested, so support outlasts the grant. Members prove work with a tap and a photo, in the app or by chat. The record is public and owned by the community, and no one can quietly change it. And one record follows the need through the promise and the work to its outcomes. We call each community a garden. And here's why I'm the one building it.",
   "I'm building Green Goods to rebuild community bonds and trust: the ones I've seen lost, in myself and in others. [Your moment, in your own words: where you saw those bonds fade, and what that cost.] Bonds grow back when people keep promises to each other and someone notices. So I build for three reasons that are really one. To support the people I care about in the regenerative ecosystem. To build a bridge of trust and transparency for the Nigerian diaspora. And to support the coming generation in Nigeria and across the Global South. These are some of the people I'm building for.",
   "This is the coming generation I mean. Tech and Sun builds solar-powered hubs across Nigeria. Its first, in Awka, has served more than 300 people with steady power and internet, and its plan names Enugu and Abuja next. What members need most is opportunity: a recent member survey put introductions to work and career calls first. And they want to learn, collaborate and grow their skills in a credible and transparent way. Green Goods works across clean energy, waste management, agroforestry and education; Tech and Sun is clean energy, with solar hub development and education.",
-  "We call each place-based initiative a garden, and five roles keep it going. Gardeners do the work and document it. Stewards run the garden. Evaluators set the baseline. Funders see delivery before and after they give. And community members witness the work and confirm what was done for them. The glue between the roles is trust and transparency.",
+  "We call each place-based initiative a garden: a community doing regenerative work together in one place, like a solar hub, a waste crew, a farm or a class. Five roles keep it going. Gardeners do the work and document it. Stewards run the garden. Evaluators set the baseline. Funders see delivery before and after they give. And community members witness the work and confirm what was done for them. The glue between the roles is trust and transparency.",
   "There's a Southern African word for that: Ubuntu. I am because we are; a person is a person through other people. Trust in Green Goods grows the same way, from the people a promise touches. A promise names who does what for whom, by when. The person served confirms it, never the person who did it; if a steward has to step in, the record says so. Each kept promise is a bond the whole community can see. That is how bonds and trust grow back, one kept promise at a time.",
   "A garden runs as a loop, season after season. Needs: what the place needs, from steady power to new skills. Promise: who does what for whom, by when. Work: done, with photos and notes as proof. Funding: supporters fund what the record shows. And what was learned shapes the next season's needs. Let me show you one turn of this loop, starting with its needs.",
   "[His name, with his agreement, and the career call you had with him on 21 October.] He's a 20-year-old front-end developer at the hub. He tried freelancing, but clients wanted proof of work he couldn't show. In Awka the power can go out for days; at the hub he keeps building, and he builds with other members on a shared hub project. Those are one builder's needs: proof, power, and people to build with. The hub has needs at its own scale: climate-course seats, workshops and weekly discussions for its members, and the power, internet and workspace that keep more than 300 people working, open to more. These needs are the first step of the loop. Here's how a garden meets them.",
