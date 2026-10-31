@@ -7,7 +7,7 @@
  * role never reaches the list, so the wallet is never asked to sign for nothing.
  */
 
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -667,6 +667,36 @@ describe("components/Garden/AddMembersDialog", () => {
     const landed = { ...batch, hold: null, saved: [ROW_A], lastReadAt: 3 };
     rerender(createElement(AddMembersDialog, { ...defaultProps, batch: landed }));
     await waitFor(() => expect(stagedList().getAllByRole("listitem")).toHaveLength(1));
+  });
+
+  it("leaves a send's result behind when the account changed while it ran", async () => {
+    const user = userEvent.setup({ delay: null });
+    let finish: (outcome: AddMembersOutcome) => void = () => undefined;
+    const batch = batchWith({
+      add: vi.fn(
+        () =>
+          new Promise<AddMembersOutcome>((resolve) => {
+            finish = resolve;
+          })
+      ),
+    });
+    const { rerender } = render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: { ...batch, account: OTHER_SIGNER },
+      })
+    );
+    await waitFor(() => expect(stagedList().queryAllByRole("listitem")).toHaveLength(0));
+
+    await act(async () => finish({ ...NOTHING, notSent: [ROW_A, ROW_B] }));
+
+    expect(stagedList().queryAllByRole("listitem")).toHaveLength(0);
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
   });
 
   it("waits for the chain before it lets anyone send", async () => {

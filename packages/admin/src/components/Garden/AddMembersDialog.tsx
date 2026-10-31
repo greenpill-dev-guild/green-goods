@@ -38,20 +38,15 @@ import { StagedMemberList } from "./StagedMemberList";
 export interface AddMembersDialogProps {
   open: boolean;
   onClose: () => void;
-  /**
-   * Commit one address for one role. The dialog loops the staged batch itself;
-   * a `{ success: false }` result (or a throw) keeps that address staged for
-   * retry. Wire this to `useGardenOperations` in the hosting view.
-   */
+  /** Commits one person. `{ success: false }` or a throw keeps that row staged for retry. */
   onAdd: (role: GardenRole, address: Address) => Promise<{ success: boolean }>;
   /** Lets a list go under fewer signatures, and settles an add whose outcome is unknown. */
   batch?: ReturnType<typeof useAddMembersBatch>;
   /** The garden being written to; the chain confirms held roles against it. */
   gardenAddress: Address;
   /**
-   * Who holds which role today (the indexed roster). The dialog uses it to
-   * refuse a role someone already has, confirmed on chain first because the
-   * roster can lag, and to show what adding a role changes for an existing member.
+   * Who holds which role today (the indexed roster). It refuses a role someone already has, confirmed
+   * on chain first because the roster can lag, and shows what an add changes for an existing member.
    */
   roleMembers: Record<GardenRole, Address[]>;
   /** Starts the field with this person (the Manage Roles path into promotion). */
@@ -105,6 +100,11 @@ export function AddMembersDialog({
       setOverCeilings(null);
     }
   }
+  // A send outlives a change of account, and what it left behind is not the new draft's.
+  const draftAccountRef = useRef(draftAccount);
+  useEffect(() => {
+    draftAccountRef.current = draftAccount;
+  }, [draftAccount]);
   const hold = batch?.hold ?? null;
   const isSettlingHold = batch?.isSettlingHold ?? false;
   const lastReadAt = batch?.lastReadAt ?? 0;
@@ -237,13 +237,12 @@ export function AddMembersDialog({
     setError("");
 
     const addFailed = formatMessage({ id: "app.admin.roles.error.addFailed" });
+    const sentBy = draftAccount;
     let rows = sendable;
     try {
-      // Fold a typed-but-not-yet-staged person into the batch so a single
-      // entry doesn't require the extra "Add" tap. Someone already queued, or
-      // already holding the role, is left out; the status line says why. ENS
-      // submit resolution is marked busy before awaiting so close paths cannot
-      // continue into a wallet write after the steward cancels.
+      // Fold a typed person into the list, so one entry needs no extra "Add" tap. Someone queued or
+      // already holding the role is left out; the status line says why. ENS resolution is marked
+      // busy before awaiting, so close paths cannot continue into a wallet write after a cancel.
       if (trimmed) {
         if (!isHexAddress) setSubmitResolving(true);
         const resolved = await resolveInput();
@@ -251,6 +250,7 @@ export function AddMembersDialog({
           setError(formatMessage({ id: "app.admin.roles.error.ensResolutionFailed" }));
           return;
         }
+        if (draftAccountRef.current !== sentBy) return;
         if (stageable(resolved)) rows = [...sendable, { address: resolved, role: selectedRole }];
       }
 
@@ -267,6 +267,7 @@ export function AddMembersDialog({
         addBatch: batch?.available && memberListKey(rows) !== overCeilings ? batch.add : undefined,
         onLanded: (landed) => setPending((current) => stagedAfterRead(current, [], landed)),
       });
+      if (draftAccountRef.current !== sentBy) return;
       setPending((current) => [...current.filter(isHeld), ...run.remaining]);
       setInput("");
       const refusedCount = run.remaining.filter((row) => row.refusal).length;
