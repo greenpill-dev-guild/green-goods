@@ -21,6 +21,12 @@ interface CookieJarPayoutPanelProps {
   gardenAddress: Address;
   gardenName: string;
   routeAction?: "deposit" | "withdraw" | null;
+  /**
+   * Called when the dialog `routeAction` opened closes, so the caller can drop
+   * the route item: left in the URL, it reopened the dialog on a reload and
+   * kept the tab the action jumped to (qa-session 2026-10-30 OBS-10).
+   */
+  onRouteActionClose?: () => void;
   /** Open this jar's per-claim limit editor on arrival (the low-limit alert links here). */
   routeEditLimitJar?: string | null;
   allocationCount?: number;
@@ -32,6 +38,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   gardenAddress,
   gardenName,
   routeAction,
+  onRouteActionClose,
   routeEditLimitJar,
   allocationCount = 0,
   allocationCountAtLeast = false,
@@ -62,12 +69,22 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     null
   );
   const handledRouteActionRef = useRef<string | null>(null);
+  // Which dialog the route opened and still owns, so closing it can hand the
+  // route item back; a dialog opened from a jar's own row owes the route nothing.
+  const routeOwnedDialogRef = useRef<"deposit" | "withdraw" | null>(null);
   const handledRouteEditRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!routeAction || handledRouteActionRef.current === routeAction) return;
+    // Forget the handled action once the route moves on, so the next press of
+    // Fund Cookie Jar opens the dialog again.
+    if (!routeAction) {
+      handledRouteActionRef.current = null;
+      return;
+    }
+    if (handledRouteActionRef.current === routeAction) return;
 
     handledRouteActionRef.current = routeAction;
+    routeOwnedDialogRef.current = routeAction;
     setSelectedJarAddress((jars[0]?.jarAddress as Address | undefined) ?? null);
     if (routeAction === "deposit") {
       setDepositOpen(true);
@@ -75,6 +92,18 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
       setWithdrawOpen(true);
     }
   }, [jars, routeAction]);
+
+  const closeDialog = (dialog: "deposit" | "withdraw") => {
+    if (dialog === "deposit") {
+      setDepositOpen(false);
+    } else {
+      setWithdrawOpen(false);
+    }
+    if (routeOwnedDialogRef.current === dialog) {
+      routeOwnedDialogRef.current = null;
+      onRouteActionClose?.();
+    }
+  };
 
   useEffect(() => {
     // Forget the handled jar once the route moves on, so the alert can open it again later.
@@ -209,17 +238,17 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
 
       <CookieJarWithdrawModal
         isOpen={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
+        onClose={() => closeDialog("withdraw")}
         gardenAddress={gardenAddress}
         defaultJarAddress={selectedJarAddress}
       />
       <CookieJarDepositModal
         isOpen={depositOpen}
-        onClose={() => setDepositOpen(false)}
+        onClose={() => closeDialog("deposit")}
         gardenAddress={gardenAddress}
         defaultJarAddress={selectedJarAddress}
         onFixLimit={(jarAddress) => {
-          setDepositOpen(false);
+          closeDialog("deposit");
           setEditing({ jarAddress, field: "limit" });
         }}
       />
