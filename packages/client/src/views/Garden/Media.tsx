@@ -77,17 +77,22 @@ function MediaItems({ label, items }: { label: string; items: readonly string[] 
     <div className="flex flex-col gap-1.5">
       <span className="type-label-sm text-text-sub-600">{label}</span>
       <div className="flex flex-wrap gap-1.5">
-        {items.map((item) => (
-          <StatusBadge
-            key={item}
-            size="xs"
-            variant="neutral"
-            showIcon={false}
-            className="capitalize"
-          >
-            {String(item).replace(/_/g, " ")}
-          </StatusBadge>
-        ))}
+        {items.map((item) => {
+          // A steward configures these labels, so a long one truncates and keeps its full text.
+          const display = String(item).replace(/_/g, " ");
+          return (
+            <StatusBadge
+              key={item}
+              size="xs"
+              variant="neutral"
+              showIcon={false}
+              className="max-w-full capitalize"
+              title={display}
+            >
+              <span className="truncate">{display}</span>
+            </StatusBadge>
+          );
+        })}
       </div>
     </div>
   );
