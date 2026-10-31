@@ -974,6 +974,10 @@
    * the pale green behind a deep green icon. */
   --primary-container: var(--green-100);
   --primary-container-foreground: var(--green-900);
+  /* The app's icon tiles (DL-133): the pill's pair, pale green behind a deep green glyph, on
+   * every item row's 56px tile. The cockpit keeps the tile's quiet fill. */
+  --gg-item-row-tile-fill: var(--primary-container);
+  --gg-item-row-tile-ink: var(--primary-container-foreground);
   /* The garden context chip at the app's density (DL-124): a 32px capsule, the
    * height of the compact icon buttons beside it, with a 48px hit area; the
    * garden's banner as a 22px avatar inset 4px inside the edge (a 14px glyph
@@ -1020,6 +1024,8 @@
   --gg-control-outline: var(--neutral-400);
   --primary-container: var(--green-900);
   --primary-container-foreground: var(--green-100);
+  --gg-item-row-tile-fill: var(--primary-container);
+  --gg-item-row-tile-ink: var(--primary-container-foreground);
   --gg-garden-chip-edge: var(--gg-control-outline);
   --gg-garden-chip-focus-ring: var(--focus-ring);
 }
@@ -2343,8 +2349,9 @@
     inline-size: var(--gg-item-row-tile);
     block-size: var(--gg-item-row-tile);
     border-radius: var(--radius-squircle);
-    background-color: rgb(var(--gg-card-fill, var(--bg-soft-200)));
-    color: rgb(var(--text-sub-600));
+    /* A surface may set the tile's pair (the installed app's green, DL-133); unset, the quiet fill. */
+    background-color: rgb(var(--gg-item-row-tile-fill, var(--gg-card-fill, var(--bg-soft-200))));
+    color: rgb(var(--gg-item-row-tile-ink, var(--text-sub-600)));
   }
 
   .gg-item-row-tile-icon {

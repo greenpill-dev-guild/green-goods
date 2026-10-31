@@ -161,7 +161,6 @@ const REJECTED = work("0xwork1", "rejected", "Fence repair");
 function recent(overrides: Partial<GardenRecentActivity> = {}): GardenRecentActivity {
   return {
     state: { status: "ready", items: [PENDING, APPROVED, REJECTED], savedAt: null },
-    featured: PENDING,
     actionTitleOf: () => undefined,
     refetch: vi.fn(),
     ...overrides,
@@ -285,7 +284,6 @@ function promises(overrides: Partial<GardenOpenPromises> = {}): GardenOpenPromis
   return {
     state: { status: "ready", items: [OFFER, ASK], savedAt: null },
     all: { status: "ready", items: [OFFER, ASK], savedAt: null },
-    ask: ASK,
     emptyReason: "none",
     titleOf: (cid) => (cid ? (TITLES[cid] ?? null) : null),
     refetch: vi.fn(),
@@ -694,38 +692,38 @@ describe("Home journal", () => {
     });
   });
 
-  describe("Highlights", () => {
-    it("leads with the open season and campaigns, then the newest update, then an open ask", () => {
+  describe("What's Open", () => {
+    it("leads with the open season and campaigns, one card each, and nothing else (DL-133)", () => {
       render(<HighlightsCarousel gardenId={GARDEN} />);
 
-      expect(screen.getByRole("heading", { level: 2, name: "Highlights" })).toBeVisible();
-      const cards = within(screen.getByRole("list")).getAllByRole("button");
-      expect(cards.map((card) => card.getAttribute("data-highlight"))).toEqual([
-        "cycle",
-        "cycle",
-        "work",
-        "ask",
-      ]);
+      expect(screen.getByRole("heading", { level: 2, name: "What's Open" })).toBeVisible();
+      const list = screen.getByRole("list");
+      expect(list.className).toContain("snap-x");
+      const cards = within(list).getAllByRole("button");
+      expect(cards.map((card) => card.getAttribute("data-highlight"))).toEqual(["cycle", "cycle"]);
       expect(cards[0]).toHaveTextContent("Autumn Planting 2026");
       expect(cards[0]).toHaveTextContent("3 of 7 kept · 36 days left");
       // A cycle with no end date says what it has kept, and no count of days.
       expect(cards[1]).toHaveTextContent("Seed Swap Weekend");
       expect(cards[1]).not.toHaveTextContent("left");
-      expect(within(cards[2]!).getByRole("status")).toHaveTextContent("Pending");
-      expect(cards[3]).toHaveTextContent("Two hours sorting the seed library");
     });
 
-    it("opens the work's page, the ask's page, and a cycle's details with its own promises", async () => {
-      const user = userEvent.setup();
+    it("draws one open cycle as a card across the row rather than a one-card carousel", () => {
+      mocks.cycles.mockReturnValue(
+        cycles({ state: { status: "ready", items: [SEASON], savedAt: null } })
+      );
+
       render(<HighlightsCarousel gardenId={GARDEN} />);
 
-      await user.click(screen.getByRole("button", { name: /Compost turn/ }));
-      expect(mocks.navigate).toHaveBeenCalledWith(
-        `/home/${GARDEN}/work/${PENDING.id}`,
-        expect.objectContaining({ state: { from: "home", returnTo: "/home" } })
-      );
-      await user.click(screen.getByRole("button", { name: /Two hours sorting the seed library/ }));
-      expect(mocks.navigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/20`);
+      const list = screen.getByRole("list");
+      expect(list.className).not.toContain("snap-x");
+      const [card] = within(list).getAllByRole("button");
+      expect(card).toHaveClass("w-full");
+    });
+
+    it("opens a cycle's details, whose Show Its Promises opens the garden's open promises at it", async () => {
+      const user = userEvent.setup();
+      render(<HighlightsCarousel gardenId={GARDEN} />);
 
       const card = screen.getByRole("button", { name: /Autumn Planting 2026/ });
       await user.click(card);
@@ -745,78 +743,20 @@ describe("Home journal", () => {
       expect(promises.recorded.opener).toBe(card);
     });
 
-    it("keys each card by what it shows, so a season and an ask with one indexer id stay apart", () => {
-      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
-      // A cycle's and a promise's indexer ids are both `${chainId}-${id}`: this season's matches
-      // the ask's, `42161-20`.
-      const season = journalCycle("42161-20", "SEASON", "Autumn Planting 2026", 36);
-      mocks.cycles.mockReturnValue(
-        cycles({ state: { status: "ready", items: [season], savedAt: null } })
-      );
-
-      render(<HighlightsCarousel gardenId={GARDEN} />);
-
-      expect(within(screen.getByRole("list")).getAllByRole("button")).toHaveLength(3);
-      expect(errors.mock.calls.flat().join(" ")).not.toContain("same key");
-      errors.mockRestore();
-    });
-
-    it("shows and opens a grouped ask at the copy still open to take up", async () => {
-      const user = userEvent.setup();
-      const asked = { direction: "REQUEST", metadataCID: "cid-20" } as const;
-      const kept = promise(23, { ...asked, onchainState: "FULFILLED", derivedState: "FULFILLED" });
-      const open = promise(22, { ...asked, onchainState: "REQUESTED", derivedState: "REQUESTED" });
-      const counts = { published: 2, available: 1, inProgress: 0, kept: 1, ended: 0, other: 0 };
-      // The newer copy was kept, so the group's first child is not the one open to take up.
-      const grouped: TakePartEntry = {
-        kind: "group",
-        group: {
-          kind: "group",
-          key: "set-1",
-          displayGroupId: "set-1",
-          children: [kept, open],
-          counts,
-        },
-        copy: open,
-      };
-      mocks.promises.mockReturnValue(promises({ ask: grouped }));
-
-      render(<HighlightsCarousel gardenId={GARDEN} />);
-      const card = screen.getByRole("button", { name: /Two hours sorting the seed library/ });
-      expect(card).toHaveTextContent("Asked for");
-      await user.click(card);
-
-      expect(mocks.navigate).toHaveBeenLastCalledWith(
-        `/home/${GARDEN}/commitments/group/set-1?copy=22`
-      );
-    });
-
-    it("is absent when it has no card", () => {
-      mocks.cycles.mockReturnValue(cycles({ state: { status: "empty" } }));
-      mocks.recent.mockReturnValue(recent({ featured: null }));
-      mocks.promises.mockReturnValue(promises({ ask: null }));
-
-      const { container } = render(<HighlightsCarousel gardenId={GARDEN} />);
-
-      expect(container).toBeEmptyDOMElement();
-    });
-
-    it("waits until every read settles, then adds no card for one that failed", () => {
-      // A card slid in ahead of the one in view would scroll the row, so they arrive together.
+    it("is absent while the cycles load, when their read failed, and when none is open", () => {
       mocks.cycles.mockReturnValue(cycles({ state: { status: "loading" } }));
       const { container, rerender } = render(<HighlightsCarousel gardenId={GARDEN} />);
       expect(container).toBeEmptyDOMElement();
 
-      mocks.cycles.mockReturnValue(cycles({ state: { status: "error" } }));
-      mocks.recent.mockReturnValue(recent());
-      mocks.promises.mockReturnValue(promises());
-      rerender(
-        <MemoryRouter>
-          <HighlightsCarousel gardenId={GARDEN} />
-        </MemoryRouter>
-      );
-      const cards = within(screen.getByRole("list")).getAllByRole("button");
-      expect(cards.map((card) => card.getAttribute("data-highlight"))).toEqual(["work", "ask"]);
+      for (const status of ["error", "empty"] as const) {
+        mocks.cycles.mockReturnValue(cycles({ state: { status } }));
+        rerender(
+          <MemoryRouter>
+            <HighlightsCarousel gardenId={GARDEN} />
+          </MemoryRouter>
+        );
+        expect(container).toBeEmptyDOMElement();
+      }
     });
   });
 

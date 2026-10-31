@@ -107,11 +107,6 @@ export function recentActivityState(read: GardenWorkRead): RecentActivityState {
   return answered ? { status: "empty" } : { status: "loading" };
 }
 
-/** The newest of the garden's works with a photo, the carousel's featured update. */
-export function featuredWork(works: readonly Work[]): Work | null {
-  return gardenActivity(works).find((work) => work.media.length > 0) ?? null;
-}
-
 export interface OpenCycle {
   cycle: CommitmentCycleRecord;
   /** Whole days to the cycle's end, the last part of a day counting as one; null without one. */
@@ -347,9 +342,4 @@ export function oneTapAsks(input: TakePartInput): CommitmentReadModel[] {
   return takePartEntries(input)
     .map((entry) => entry.copy)
     .filter((copy) => isOneTapTakeUp(copy, input.viewer, input.takeUps, input.clock));
-}
-
-/** The newest ask among Take Part's entries, for the carousel's last card. */
-export function openAsk(entries: readonly TakePartEntry[]): TakePartEntry | null {
-  return entries.find((entry) => entry.copy.direction === "REQUEST") ?? null;
 }

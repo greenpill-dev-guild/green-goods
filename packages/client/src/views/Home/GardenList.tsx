@@ -82,7 +82,8 @@ export function GardenList({
     return (
       <div className="flex flex-col gap-(--gg-list-gap)">
         {Array.from({ length: 3 }).map((_, idx) => (
-          <MediaCardSkeleton key={`garden-skeleton-${idx}`} mediaShape="banner" />
+          // The frame holds the two title lines a loaded card reserves (DL-133), so nothing shifts.
+          <MediaCardSkeleton key={`garden-skeleton-${idx}`} mediaShape="banner" titleLines={2} />
         ))}
         {!isOnline && (
           <p className="text-center text-sm text-text-sub-600 mt-4 px-4">
@@ -184,6 +185,8 @@ export function GardenList({
           key={garden.id}
           garden={garden}
           tag={tagFor?.(garden)}
+          // Two title lines reserved, so a long name wraps and every card keeps one height (DL-133).
+          titleLines={2}
           className="cv-garden-card"
           selected={garden.id === selectedGardenId}
           onClick={() => onCardClick(garden.id)}

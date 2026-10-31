@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { logger } from "../modules/app/logger";
 import {
+  clearNotifications,
   type GardenNotificationsSeen,
   isNotificationNew,
   markNotificationsSeen,
@@ -16,6 +17,8 @@ interface GardenNotificationsSeenState {
   seenByScope: Record<string, GardenNotificationsSeen>;
   /** Record that the member was shown these events in one scope. `now` is in seconds. */
   markSeen: (scope: string, notifications: readonly SeenNotification[], now: number) => void;
+  /** Record that the member cleared these events from the sheet in one scope (DL-133). */
+  clearAll: (scope: string, notifications: readonly SeenNotification[], now: number) => void;
 }
 
 /**
@@ -58,11 +61,18 @@ function parseSeenByScope(value: unknown): Record<string, GardenNotificationsSee
   const records: Record<string, GardenNotificationsSeen> = {};
   for (const [scope, record] of Object.entries(value)) {
     if (!record || typeof record !== "object") continue;
-    const { seenThrough, seen } = record as { seenThrough?: unknown; seen?: unknown };
+    const { seenThrough, seen, cleared } = record as {
+      seenThrough?: unknown;
+      seen?: unknown;
+      cleared?: unknown;
+    };
     if (!isTime(seenThrough) || !seen || typeof seen !== "object") continue;
     records[scope] = {
       seenThrough,
       seen: Object.fromEntries(Object.entries(seen).filter(([, at]) => isTime(at))),
+      ...(cleared && typeof cleared === "object"
+        ? { cleared: Object.fromEntries(Object.entries(cleared).filter(([, at]) => isTime(at))) }
+        : {}),
     };
   }
   return records;
@@ -89,6 +99,16 @@ export const useGardenNotificationsSeenStore = create<GardenNotificationsSeenSta
             seenByScope: {
               ...state.seenByScope,
               [scope]: markNotificationsSeen(record, notifications, now),
+            },
+          };
+        }),
+      clearAll: (scope, notifications, now) =>
+        set((state) => {
+          if (notifications.length === 0) return state;
+          return {
+            seenByScope: {
+              ...state.seenByScope,
+              [scope]: clearNotifications(state.seenByScope[scope], notifications, now),
             },
           };
         }),

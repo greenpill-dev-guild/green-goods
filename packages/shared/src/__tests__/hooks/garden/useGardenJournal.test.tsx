@@ -175,7 +175,7 @@ describe("useGardenJournal", () => {
     }
   });
 
-  it("previews three open promises and keeps the newest ask for the carousel past them", async () => {
+  it("previews three open promises past the reader's own", async () => {
     mocks.getCommitments.mockResolvedValue([
       promise(14),
       promise(13, { creator: READER, leadProvider: READER }),
@@ -188,12 +188,11 @@ describe("useGardenJournal", () => {
     const { result } = renderHookWithProviders(() => useGardenOpenPromises(GARDEN));
 
     await waitFor(() => expect(result.current.state.status).toBe("ready"));
-    const { state, ask } = result.current;
+    const { state } = result.current;
     expect(
       state.status === "ready" &&
         state.items.map((entry) => entry.kind === "single" && entry.row.commitment.commitmentId)
     ).toEqual([14n, 12n, 11n]);
-    expect(ask?.kind === "single" && ask.row.commitment.commitmentId).toBe(9n);
     expect(mocks.getCommitments).toHaveBeenCalledWith(
       expect.objectContaining({ chainId: 42161, poolId: 7n })
     );
@@ -208,7 +207,6 @@ describe("useGardenJournal", () => {
     const { result } = renderHookWithProviders(() => useGardenOpenPromises(GARDEN));
 
     await waitFor(() => expect(result.current.state.status).toBe("empty"));
-    expect(result.current.ask).toBeNull();
   });
 
   it("reads nothing where promises do not run, and says so rather than none", async () => {
@@ -219,11 +217,10 @@ describe("useGardenJournal", () => {
 
     expect(cycles.result.current.state.status).toBe("unavailable");
     expect(promises.result.current.state.status).toBe("unavailable");
-    expect(promises.result.current.ask).toBeNull();
     expect(mocks.getCommitmentPools).not.toHaveBeenCalled();
   });
 
-  describe("the reader's own take-ups, for Take Part and the carousel alike", () => {
+  describe("the reader's own take-ups, for Take Part", () => {
     const ask = (id: number, claimMode: "OPEN" | "APPROVAL_GATED") =>
       promise(id, {
         direction: "REQUEST",
@@ -244,11 +241,10 @@ describe("useGardenJournal", () => {
         synced: false,
       }) as Job;
     const ids = (result: { current: ReturnType<typeof useGardenOpenPromises> }) => {
-      const { state, ask: carousel } = result.current;
+      const { state } = result.current;
       return {
         takePart:
           state.status === "ready" ? state.items.map((entry) => entry.copy.commitmentId) : [],
-        highlights: carousel?.copy.commitmentId ?? null,
       };
     };
 
@@ -268,7 +264,7 @@ describe("useGardenJournal", () => {
 
       const { result } = renderHookWithProviders(() => useGardenOpenPromises(GARDEN));
 
-      await waitFor(() => expect(ids(result)).toEqual({ takePart: [10n], highlights: 10n }));
+      await waitFor(() => expect(ids(result)).toEqual({ takePart: [10n] }));
       expect(mocks.getPoolClaimRequests).toHaveBeenCalledWith(
         expect.objectContaining({ chainId: 42161, poolId: 7n, state: "PENDING" })
       );
@@ -289,7 +285,7 @@ describe("useGardenJournal", () => {
           error: "discarded",
         })
       );
-      await waitFor(() => expect(ids(result)).toEqual({ takePart: [11n], highlights: 11n }));
+      await waitFor(() => expect(ids(result)).toEqual({ takePart: [11n] }));
     });
 
     it("waits for the reader's requests, and lists by the garden's rule when they cannot be read", async () => {
@@ -307,7 +303,7 @@ describe("useGardenJournal", () => {
       expect(result.current.state.status).toBe("loading");
       act(() => failRequests(new Error("indexer down")));
       // The promise's own page still shows a pending request, so a failed read hides nothing.
-      await waitFor(() => expect(ids(result)).toEqual({ takePart: [12n], highlights: 12n }));
+      await waitFor(() => expect(ids(result)).toEqual({ takePart: [12n] }));
     });
 
     it("waits for the end of an undated ask's cycle, and leaves the ask out once it has passed", async () => {
@@ -334,7 +330,7 @@ describe("useGardenJournal", () => {
           cycleFixture({ cycleId: 6n, poolId: 7n, endTime: now + 86_400n }),
         ])
       );
-      await waitFor(() => expect(ids(result)).toEqual({ takePart: [11n], highlights: 11n }));
+      await waitFor(() => expect(ids(result)).toEqual({ takePart: [11n] }));
     });
 
     it("waits for the take-ups on this phone, and lists nothing it cannot check against them", async () => {
@@ -354,7 +350,6 @@ describe("useGardenJournal", () => {
       // Read as empty, the queue would offer again a take-up already on this phone.
       act(() => failQueue(new Error("IndexedDB unavailable")));
       await waitFor(() => expect(result.current.state.status).toBe("error"));
-      expect(result.current.ask).toBeNull();
     });
   });
 
