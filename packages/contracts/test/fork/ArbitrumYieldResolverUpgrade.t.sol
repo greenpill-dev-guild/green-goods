@@ -3,18 +3,17 @@ pragma solidity ^0.8.25;
 
 import { StdStorage, stdStorage, Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { ICookieJarModule } from "../../src/interfaces/ICookieJarModule.sol";
 import { IERC6551Registry } from "../../src/interfaces/IERC6551Registry.sol";
+import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
 
 interface ILiveCookieJar {
     function currencyHeldByJar() external view returns (uint256);
     function maxWithdrawal() external view returns (uint256);
     function MIN_DEPOSIT() external view returns (uint256);
-    function nftRequirement() external view returns (address nftContract, uint256 tokenId, uint256 minBalance, bool isPoap);
     function withdraw(uint256 amount, string calldata purpose) external;
     function emergencyWithdraw(address token, uint256 amount) external;
     function pause() external;
@@ -39,6 +38,7 @@ contract ArbitrumYieldResolverUpgradeForkTest is Test {
 
     YieldResolver private resolver;
     ICookieJarModule private jarModule;
+    IHatsModule private hatsModule;
     address private gardenToken;
     address private gardenAccountImpl;
     address private newImplementation;
@@ -53,6 +53,7 @@ contract ArbitrumYieldResolverUpgradeForkTest is Test {
         string memory deployment = vm.readFile(string.concat(vm.projectRoot(), "/deployments/42161-latest.json"));
         resolver = YieldResolver(abi.decode(vm.parseJson(deployment, ".yieldSplitter"), (address)));
         jarModule = ICookieJarModule(abi.decode(vm.parseJson(deployment, ".cookieJarModule"), (address)));
+        hatsModule = IHatsModule(abi.decode(vm.parseJson(deployment, ".hatsModule"), (address)));
         gardenToken = abi.decode(vm.parseJson(deployment, ".gardenToken"), (address));
         gardenAccountImpl = abi.decode(vm.parseJson(deployment, ".gardenAccountImpl"), (address));
         assertGt(address(resolver).code.length, 0, "YieldResolver proxy must contain code");
@@ -136,10 +137,9 @@ contract ArbitrumYieldResolverUpgradeForkTest is Test {
         assertEq(liveJar.currencyHeldByJar(), routed, "jar should book the routed yield");
         assertEq(IERC20(asset).allowance(address(resolver), jar), 0, "no allowance should remain");
 
-        // The hat gate has its own coverage in ArbitrumCookieJar.t.sol; the jar's ledger is the subject here.
-        (address hats, uint256 gardenerHat,,) = liveJar.nftRequirement();
         address gardener = makeAddr("gardener");
-        vm.mockCall(hats, abi.encodeCall(IERC1155.balanceOf, (gardener, gardenerHat)), abi.encode(1));
+        vm.prank(garden);
+        hatsModule.grantRole(garden, gardener, IHatsModule.GardenRole.Gardener);
         uint256 claim = routed < liveJar.maxWithdrawal() ? routed : liveJar.maxWithdrawal();
         vm.prank(gardener);
         liveJar.withdraw(claim, "seed purchase");
