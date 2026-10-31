@@ -164,6 +164,7 @@ export function openPromisesFixture(
       state.status === "ready"
         ? (JOURNAL_ENTRIES.find((entry) => entry.copy.direction === "REQUEST") ?? null)
         : null,
+    emptyReason: "none",
     titleOf: (cid) => (cid ? (TITLES.get(cid) ?? null) : null),
     refetch: () => undefined,
   };

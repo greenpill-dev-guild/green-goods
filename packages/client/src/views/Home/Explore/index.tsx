@@ -72,19 +72,13 @@ export function Explore() {
   const isGardenFilterPresent = useExitPresence(isGardenFilterOpen, getPwaSheetExitMs);
   useEffect(() => closeGardenFilter, [closeGardenFilter]);
   // Filters fetches its sheet's code as Explore mounts and waits for it, disabled and busy, so
-  // its first tap opens the sheet (DL-132); a reconnect asks again for a chunk that could not load.
+  // its first tap opens the sheet (DL-132). A fetch that fails frees the button: the sheet's lazy
+  // import then reports the failure through the route's error frame when Filters opens it.
   const [isFilterReady, setIsFilterReady] = useState(false);
-  useAsyncEffect(
-    async ({ isMounted }) => {
-      try {
-        await loadGardensFilterSheet();
-      } catch {
-        return;
-      }
-      if (isMounted()) setIsFilterReady(true);
-    },
-    [isOnline]
-  );
+  useAsyncEffect(async ({ isMounted }) => {
+    await loadGardensFilterSheet().catch(() => undefined);
+    if (isMounted()) setIsFilterReady(true);
+  }, []);
 
   const isLoadingData = isPending || (isFetching && gardens.length === 0);
   const {

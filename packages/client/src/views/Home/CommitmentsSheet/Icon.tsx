@@ -1,6 +1,5 @@
 import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useAsyncEffect } from "@green-goods/shared/hooks/utils/useAsyncEffect";
 import { RiHandHeartLine } from "@remixicon/react";
 import React, { useState } from "react";
@@ -20,7 +19,8 @@ export interface CommitmentsSheetIconProps {
 
 /**
  * The Promises launcher. It fetches the sheet's code as it mounts and waits for it, disabled and
- * busy, so its first tap opens a sheet with something to show (DL-132).
+ * busy, so its first tap opens a sheet with something to show (DL-132). A fetch that fails frees
+ * it: the sheet's own lazy import reports the failure through the route's error frame on open.
  */
 export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
   onClick,
@@ -29,21 +29,12 @@ export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
 }) => {
   const intl = useIntl();
   const hasActs = actCount > 0;
-  const isOnline = useOnlineStatus();
   const [isReady, setIsReady] = useState(false);
 
-  useAsyncEffect(
-    async ({ isMounted }) => {
-      try {
-        await preloadCommitmentsSheet();
-      } catch {
-        // A reconnect changes isOnline and asks for the chunk again.
-        return;
-      }
-      if (isMounted()) setIsReady(true);
-    },
-    [isOnline]
-  );
+  useAsyncEffect(async ({ isMounted }) => {
+    await preloadCommitmentsSheet().catch(() => undefined);
+    if (isMounted()) setIsReady(true);
+  }, []);
 
   return (
     <IconButton

@@ -47,8 +47,9 @@ export const WalletSheet = lazy(() =>
 /*
  * A sheet's code, fetched ahead of its first opening. Its launcher waits for it, disabled and
  * busy, so a tap never asks for a sheet that has nothing to show yet, as Your Work's launcher
- * does (DL-132). A fetch that fails leaves the launcher waiting, and it asks again when the
- * connection returns.
+ * does (DL-132). A fetch that fails frees the launcher instead of holding it: its tap then opens
+ * the sheet through the lazy import above, which reports the failure through the route's error
+ * frame and its reload, as every sheet here does.
  */
 export const preloadCommitmentsSheet = loadCommitmentsSheet;
 export const preloadWalletSheet = loadWalletSheet;

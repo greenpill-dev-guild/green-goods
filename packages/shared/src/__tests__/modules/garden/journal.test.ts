@@ -280,6 +280,19 @@ describe("Take Part", () => {
     expect(takePartEmptyReason(input([readersOwn, kept]))).toBe("yours");
     // Another's open offer is listed, so there is nothing to explain.
     expect(takePartEmptyReason(input([readersOwn, promise(9)]))).toBe("none");
+    // Another's ask the reader asked to take up, or has queued, is not the reader's own yet: the
+    // request may be declined and the send may fail, so the row never calls it "yours".
+    const othersAsk = promise(8, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+    });
+    const requested = { requested: new Set(["8"]), queued: new Set<string>() };
+    const queued = { requested: new Set<string>(), queued: new Set(["8"]) };
+    expect(takePartEmptyReason({ ...input([othersAsk]), takeUps: requested })).toBe("none");
+    expect(takePartEmptyReason({ ...input([othersAsk, readersOwn]), takeUps: queued })).toBe(
+      "none"
+    );
     // A pool that is not open takes nothing up, whoever made its promises.
     expect(takePartEmptyReason({ ...input([readersOwn]), poolOpen: false })).toBe("none");
   });

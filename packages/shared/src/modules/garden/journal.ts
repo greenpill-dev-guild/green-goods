@@ -325,16 +325,17 @@ export function takePartEntries(input: TakePartInput): TakePartEntry[] {
 }
 
 /**
- * Why Take Part lists nothing, when it does (DL-132): `none` while the pool holds no promise
- * open to take up, `yours` when every open one is the reader's own, or already asked for.
+ * Why Take Part lists nothing, when it does (DL-132): `yours` when the pool's open promises are
+ * all the reader's own, `none` otherwise. A promise the reader asked to take up, or has a take-up
+ * queued for, is still another's: its request may be declined and its send may fail, so it never
+ * reads as "yours".
  */
 export function takePartEmptyReason(input: TakePartInput): "none" | "yours" {
   if (!input.poolOpen) return "none";
+  const viewer = input.viewer ?? undefined;
   const open = input.commitments.filter((commitment) => isOpenToTakeUp(commitment, input.clock));
   if (open.length === 0) return "none";
-  return takePartPromises(open, input.viewer, input.takeUps, input.clock).length === 0
-    ? "yours"
-    : "none";
+  return open.every((commitment) => isCommitmentCreator({ commitment, viewer })) ? "yours" : "none";
 }
 
 /**

@@ -76,8 +76,8 @@ const meta: Meta<typeof Work> = {
 export default meta;
 type Story = StoryObj<typeof Work>;
 
-/** The four step markers, spread between Back and the bar's end gutter (decision 31). */
-const markersSpreadBesideBack = (canvasElement: HTMLElement) => {
+/** The step markers, centered in the bar and clear of Back (DL-132). */
+const markersCenteredInBar = (canvasElement: HTMLElement) => {
   const canvas = within(canvasElement);
   const back = canvas.getByRole("button", { name: "Go back" }).getBoundingClientRect();
   const steps = within(canvas.getByRole("list", { name: "Steps" })).getAllByRole("listitem");
@@ -86,13 +86,14 @@ const markersSpreadBesideBack = (canvasElement: HTMLElement) => {
   return {
     steps,
     clearOfBack: first.left >= back.right,
-    endGutter: window.innerWidth - last.right,
+    // How far the markers' middle sits from the bar's; the bar spans the viewport.
+    offCenter: (first.left + last.right) / 2 - window.innerWidth / 2,
   };
 };
 
 /**
  * Frame `submit-start`: Start on the garden's actions, with no Start button and no bar at all,
- * the markers spread beside Back (DL-131).
+ * the markers centered in the bar (DL-132).
  */
 export const StartOnTheGardensActions: Story = {
   tags: ["storybook-ci"],
@@ -103,11 +104,11 @@ export const StartOnTheGardensActions: Story = {
     await expect(
       canvasElement.ownerDocument.querySelector('[data-component="FlowBar"]')
     ).toBeNull();
-    const { steps, clearOfBack, endGutter } = markersSpreadBesideBack(canvasElement);
+    const { steps, clearOfBack, offCenter } = markersCenteredInBar(canvasElement);
     await expect(steps).toHaveLength(4);
     await expect(steps[0]).toHaveAttribute("aria-current", "step");
     await expect(clearOfBack).toBe(true);
-    await expect(endGutter).toBeCloseTo(16, 0);
+    await expect(offCenter).toBeCloseTo(0, 0);
     // Back on Start leaves the flow.
     await userEvent.click(canvas.getByRole("button", { name: "Go back" }));
     await expect(exitFlow).toHaveBeenCalledTimes(1);
@@ -146,7 +147,7 @@ export const StartForAResumedDraft: Story = {
 export const StartSkippedForOneAction: Story = {
   beforeEach: onStep("media", { linked: false, start: startStepFixture({ skipped: true }) }),
   play: async ({ canvasElement }) => {
-    const { steps } = markersSpreadBesideBack(canvasElement);
+    const { steps } = markersCenteredInBar(canvasElement);
     await expect(steps[1]).toHaveAttribute("aria-current", "step");
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Go back" }));
     await expect(exitFlow).toHaveBeenCalledTimes(1);

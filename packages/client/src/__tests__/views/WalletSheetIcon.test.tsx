@@ -12,8 +12,9 @@ import { describe, expect, it, vi } from "vitest";
 import { WalletSheetIcon } from "../../views/Home/WalletSheet/Icon";
 
 // The launcher waits for the sheet's code (DL-132); the test stands in for that fetch.
+const preload = vi.fn<() => Promise<unknown>>(() => Promise.resolve());
 vi.mock("../../views/Home/DeferredSurfaces", () => ({
-  preloadWalletSheet: () => Promise.resolve(),
+  preloadWalletSheet: () => preload(),
 }));
 
 const messages: Record<string, string> = {
@@ -39,5 +40,12 @@ describe("WalletSheetIcon", () => {
     await waitFor(() => expect(trigger).toBeEnabled());
     expect(trigger).not.toHaveAttribute("aria-busy", "true");
     expect(screen.queryByTestId("wallet-badge")).not.toBeInTheDocument();
+  });
+
+  it("frees the trigger when the sheet's code cannot be fetched, so a tap reaches the recovery flow", async () => {
+    preload.mockImplementationOnce(() => Promise.reject(new Error("chunk gone")));
+    renderView();
+    const trigger = screen.getByRole("button", { name: "Your Wallet" });
+    await waitFor(() => expect(trigger).toBeEnabled());
   });
 });
